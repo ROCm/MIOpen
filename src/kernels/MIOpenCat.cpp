@@ -84,7 +84,7 @@ extern "C" __global__ void Cat8FwdPacked(const FLOAT* __restrict__ input1,
     if(gid >= outer_size)
         return;
 
-    uint64_t output_offset = gid * output_dim_size * stride; // outer offset
+    uint64_t output_offset = gid * output_dim_size * stride;
 
     cat_copy_buf(input1, output, input1_dim_size, stride, &output_offset);
     cat_copy_buf(input2, output, input2_dim_size, stride, &output_offset);
@@ -115,7 +115,7 @@ extern "C" __global__ void Cat4FwdPacked(const FLOAT* __restrict__ input1,
     if(gid >= outer_size)
         return;
 
-    uint64_t output_offset = gid * output_dim_size * stride; // outer offset
+    uint64_t output_offset = gid * output_dim_size * stride;
 
     cat_copy_buf(input1, output, input1_dim_size, stride, &output_offset);
     cat_copy_buf(input2, output, input2_dim_size, stride, &output_offset);
@@ -138,7 +138,7 @@ extern "C" __global__ void Cat2FwdPacked(const FLOAT* __restrict__ input1,
     if(gid >= outer_size)
         return;
 
-    uint64_t output_offset = gid * output_dim_size * stride; // outer offset
+    uint64_t output_offset = gid * output_dim_size * stride;
 
     cat_copy_buf(input1, output, input1_dim_size, stride, &output_offset);
     cat_copy_buf(input2, output, input2_dim_size, stride, &output_offset);

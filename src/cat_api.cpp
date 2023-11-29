@@ -49,10 +49,6 @@ static void LogCmdCat(const std::vector<miopenTensorDescriptor_t> xDescs, bool i
             {
                 ss << "catf16";
             }
-            else if(dtype == miopenDouble)
-            {
-                ss << "catfp64";
-            }
 
             std::string batch_sz;
             auto dims = miopen::deref(xDesc).GetLengths();
