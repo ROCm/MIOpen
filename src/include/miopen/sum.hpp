@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_LAYERNORM_HPP_
-#define MIOPEN_LAYERNORM_HPP_
+#ifndef MIOPEN_SUM_HPP_
+#define MIOPEN_SUM_HPP_
 
 #include <miopen/common.hpp>
 
@@ -33,22 +33,20 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-miopenStatus_t LayerNormForward(Handle& handle,
+std::size_t GetSumWorkspaceSize(Handle& handle,
                                 const TensorDescriptor& xDesc,
-                                ConstData_t x,
-                                const TensorDescriptor& weightDesc,
-                                ConstData_t weight,
-                                const TensorDescriptor& biasDesc,
-                                ConstData_t bias,
                                 const TensorDescriptor& yDesc,
-                                Data_t y,
-                                const TensorDescriptor& meanDesc,
-                                Data_t mean,
-                                const TensorDescriptor& rstdDesc,
-                                Data_t rstd,
-                                miopenLayerNormMode_t mode,
-                                float epsilon,
-                                int32_t normalized_dim);
+                                int32_t dim);
+
+miopenStatus_t SumForward(Handle& handle,
+                          Data_t workspace,
+                          size_t workspaceSizeInBytes,
+                          const TensorDescriptor& xDesc,
+                          ConstData_t x,
+                          const TensorDescriptor& yDesc,
+                          Data_t y,
+                          miopenSumNanPropagation_t nanPropagation,
+                          int32_t dim);
 
 } // namespace miopen
-#endif // _MIOPEN_LAYERNORM_HPP_
+#endif // _MIOPEN_SUM_HPP_

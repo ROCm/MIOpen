@@ -45,7 +45,7 @@ using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 template <typename DataType>
-using DeviceOpGFwd = ck::tensor_operation::device::DeviceGroupedConvFwdMultipleD<
+using DeviceOpGFwd = ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<
     2,
     ck::tensor_layout::convolution::NHWGC,
     ck::tensor_layout::convolution::GKYXC,

@@ -23,32 +23,33 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_LAYERNORM_HPP_
-#define MIOPEN_LAYERNORM_HPP_
 
-#include <miopen/common.hpp>
+#pragma once
+
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
+namespace reduce {
 
-struct Handle;
-struct TensorDescriptor;
+struct InvokeParams : public miopen::InvokeParams
+{
+    InvokeParams() = default;
 
-miopenStatus_t LayerNormForward(Handle& handle,
-                                const TensorDescriptor& xDesc,
-                                ConstData_t x,
-                                const TensorDescriptor& weightDesc,
-                                ConstData_t weight,
-                                const TensorDescriptor& biasDesc,
-                                ConstData_t bias,
-                                const TensorDescriptor& yDesc,
-                                Data_t y,
-                                const TensorDescriptor& meanDesc,
-                                Data_t mean,
-                                const TensorDescriptor& rstdDesc,
-                                Data_t rstd,
-                                miopenLayerNormMode_t mode,
-                                float epsilon,
-                                int32_t normalized_dim);
+    const TensorDescriptor* xDesc = nullptr;
+    const TensorDescriptor* yDesc = nullptr;
+
+    ConstData_t x                            = nullptr;
+    Data_t y                                 = nullptr;
+    Data_t workspace                         = nullptr;
+    std::size_t workspace_size               = 0;
+    int32_t dim                              = 0;
+    miopenSumNanPropagation_t nanPropagation = MIOPEN_SUM_NOT_PROPAGATE_NAN;
+
+    std::size_t GetWorkspaceSize() const { return workspace_size; }
+    Data_t GetWorkspace() const { return workspace; }
+};
+
+} // namespace reduce
 
 } // namespace miopen
-#endif // _MIOPEN_LAYERNORM_HPP_
