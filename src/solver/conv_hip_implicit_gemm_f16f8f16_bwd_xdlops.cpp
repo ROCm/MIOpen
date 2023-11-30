@@ -38,7 +38,7 @@
 #include <vector>
 #include <cstdint>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_F16F8F16_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_F16F8F16_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS)
 
 namespace miopen {
 namespace solver {
@@ -299,9 +299,9 @@ bool ConvHipImplicitGemmF16F8F16BwdXdlops::IsApplicable(
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(MIOPEN_DEBUG_F16F8F16_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_F16F8F16_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS)))
         return false;
-    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+    if(problem.GetConv().attribute.deterministic)
         return false;
     if(problem.HasMixedDataTypes())
         return false;

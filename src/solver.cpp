@@ -31,6 +31,7 @@
 #include <miopen/pooling/solvers.hpp>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/norm/solvers.hpp>
+#include <miopen/reduce/solvers.hpp>
 
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
@@ -44,7 +45,7 @@
 #include <boost/range/adaptor/transformed.hpp>
 #include <ostream>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
 
 namespace miopen {
 namespace solver {
@@ -67,7 +68,6 @@ std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<Kernel
 
     // clang-format off
     par_for_strided(kernels.size(),
-                    // max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)},
                     max_threads{GetTuningThreadsMax()},
                     [&](auto i) {
                         const KernelInfo& k = kernels[i];
@@ -610,6 +610,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Normalization, norm::Layernorm2DCKForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Normalization, norm::Layernorm4DCKForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Normalization, norm::LayernormForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Reduce, reduce::SumForward{}.SolverDbId());
     RegisterWithSolver(registry,
                        ++id,
                        conv::ConvHipImplicitGemmF16F8F16FwdXdlops{},
@@ -629,7 +630,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 bool ThisSolverIsDeprecatedStatic::IsDisabled(const ExecutionContext& ctx)
 {
     static const bool device_is_allowed = [&]() {
-        if(miopen::IsEnabled(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS{}))
+        if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)))
             return true;
         const auto device = ctx.GetStream().GetTargetProperties().Name();
         return device == "gfx803"                       // Fiji

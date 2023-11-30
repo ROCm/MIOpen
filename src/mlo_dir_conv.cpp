@@ -55,7 +55,7 @@
 #define WORKAROUND_SWDEV_227826 0
 
 #if WORKAROUND_SWDEV_227826
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)
 #endif
 
 miopen::PerformanceDb miopen::GetDb(const miopen::ExecutionContext& ctx)
@@ -259,7 +259,7 @@ FindAllImplicitGemmWorkspaceSizes(const miopen::ExecutionContext& ctx,
                                   const miopen::conv::ProblemDescription& problem)
 {
 #if WORKAROUND_SWDEV_227826
-    if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)))
         return GetImplicitGemmSolvers().GetWorkspaceSizes(ctx, problem);
     else
         return GetImplicitGemmSolvers().GetWorkspaceSizes(ctx, problem, 1);
@@ -274,7 +274,7 @@ FindAllImplicitGemmSolutions(const miopen::ExecutionContext& ctx,
                              const miopen::AnyInvokeParams& invoke_ctx)
 {
 #if WORKAROUND_SWDEV_227826
-    if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)))
         return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, problem, GetDb(ctx), invoke_ctx);
     else
         return GetImplicitGemmSolvers().SearchForAllSolutions(
@@ -312,7 +312,7 @@ FindImplicitGemmWrWWorkspaceSizes(const miopen::ExecutionContext& ctx,
                                   const miopen::conv::ProblemDescription& problem)
 {
 #if WORKAROUND_SWDEV_227826
-    if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)))
         return GetImplicitGemmWrWSolvers().GetWorkspaceSizes(ctx, problem);
     else
         return GetImplicitGemmWrWSolvers().GetWorkspaceSizes(ctx, problem, 1);
@@ -327,7 +327,7 @@ FindImplicitGemmWrWAllSolutions(const miopen::ExecutionContext& ctx,
                                 const miopen::AnyInvokeParams& invoke_ctx)
 {
 #if WORKAROUND_SWDEV_227826
-    if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)))
         return GetImplicitGemmWrWSolvers().SearchForAllSolutions(
             ctx, problem, GetDb(ctx), invoke_ctx);
     else

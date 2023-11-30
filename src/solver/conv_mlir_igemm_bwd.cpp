@@ -32,7 +32,7 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/mlir_common.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD)
 
 namespace miopen {
 namespace solver {
@@ -44,7 +44,7 @@ bool ConvMlirIgemmBwd::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD)))
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;
