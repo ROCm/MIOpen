@@ -27,6 +27,7 @@
 #include "miopen/common.hpp"
 #include <miopen/config.h>
 #include <miopen/handle.hpp>
+#include <miopen/env.hpp>
 #include <miopen/binary_cache.hpp>
 #include <miopen/target_properties.hpp>
 #include <miopen/errors.hpp>
@@ -56,6 +57,9 @@
 #include <chrono>
 #include <thread>
 #include <miopen/nogpu/handle_impl.hpp>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_PREFER_LAZY_INITIALIZATION)
+
 namespace miopen {
 
 Handle::Handle(miopenAcceleratorQueue_t /* stream */) : Handle::Handle() {}
@@ -295,6 +299,8 @@ rocblas_handle_ptr Handle::CreateRocblasHandle(miopenAcceleratorQueue_t) const
     rocblas_handle x = nullptr;
     rocblas_create_handle(&x);
     auto result = rocblas_handle_ptr{x};
+    if(!IsEnabled(MIOPEN_DEBUG_PREFER_LAZY_INITIALIZATION{}))
+        rocblas_initialize();
     return result;
 }
 #endif

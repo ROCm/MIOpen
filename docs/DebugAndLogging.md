@@ -1,6 +1,8 @@
 Debugging and Logging
 =====================
 
+> **_WARNING 1:_** **All the variables that begin with `MIOPEN_DEBUG` are debugging tools and intended to be used by qualified engineers only.**
+
 ## Logging
 
 All logging messages output to standard error stream (`stderr`). The following environment variables can be used to control logging:
@@ -48,16 +50,16 @@ The following list of environment variables allow for enabling/disabling various
 
 If a variable is not set, then MIOpen behaves as if it is set to `enabled`, unless otherwise specified. So all kinds of kernels/algorithms are enabled by default and the below variables can be used for disabling them.
 
-> **_WARNING:_** **When the library is used with layer filtering, the results of `Find()` calls become narrower than during normal operation. This means that relevant find-db entries would not include some solutions that normally should be there.** **_Therefore the subsequent Immediate mode `Get()` calls may return incomplete information or even run into Fallback path._**
-
-In order to rehabilitate the Immediate mode, the user can:
-- Re-enable all solvers and re-run the same `Find()` calls that have been run before,
-- Or, completely remove the User find-db.
+> **_WARNING 2:_** **When the library is used with layer filtering, the results of `Find()` calls become narrower than during normal operation. This means that relevant find-db entries would not include some solutions that normally should be there.** **_Therefore the subsequent Immediate mode `Get()` calls may return incomplete information or even run into Fallback path._**
+>
+> In order to rehabilitate the Immediate mode, the user can:
+> - Re-enable all solvers and re-run the same `Find()` calls that have been run before,
+> - Or, completely remove the User find-db.
 
 ### Filtering by algorithm
 
 These variables control the sets (families) of convolution Solutions. For example, Direct algorithm is implemented in several Solutions that use OpenCL, GCN assembly etc. The corresponding variable can disable them all.
-* `MIOPEN_DEBUG_CONV_FFT` - FFT convolution algorithm. 
+* `MIOPEN_DEBUG_CONV_FFT` - FFT convolution algorithm.
 * `MIOPEN_DEBUG_CONV_DIRECT` - Direct convolution algorithm.
 * `MIOPEN_DEBUG_CONV_GEMM` - GEMM convolution algorithm.
 * `MIOPEN_DEBUG_CONV_WINOGRAD` - Winograd convolution algorithm.
@@ -72,7 +74,7 @@ These variables control the sets (families) of convolution Solutions. For exampl
 
 ### Filtering out all Solutions except one
 
-* `MIOPEN_DEBUG_FIND_ONLY_SOLVER=solution_id`, where `solution_id` should be either numeric or string identifier of some Solution. Directly affects only `Find()` calls _(however there is some indirect connection to Immediate mode; please see the "Warning" above.)_
+* `MIOPEN_DEBUG_FIND_ONLY_SOLVER=solution_id`, where `solution_id` should be either numeric or string identifier of some Solution. Directly affects only `Find()` calls _(however there is some indirect connection to Immediate mode; please see the "WARNING 2" above.)_
   - If `solution_id` denotes some applicable Solution, then only that Solution will be found (plus GEMM and FFT, if these applicable, see _Note 4_).
   - Else, if `solution_id` is valid but not applicable, then `Find()` would fail with all algorithms (again, except GEMM and FFT, see _Note 4_)
   - Otherwise the `solution_id` is invalid (i.e. it doesn't match any existing Solution), and the `Find()` call would fail.
@@ -81,7 +83,7 @@ These variables control the sets (families) of convolution Solutions. For exampl
 
 ### Filtering the Solutions on individual basis
 
-Some of the Solutions have individual controls available. These affect both Find and Immediate modes. _Note the "Warning" above._
+Some of the Solutions have individual controls available. These affect both Find and Immediate modes. _Note the "WARNING 2" above._
 
 Direct Solutions:
 * `MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U` - `ConvAsm3x3U`.
@@ -162,6 +164,7 @@ Implicit GEMM Solutions:
     * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_PADDED_GEMM_XDLOPS` - `ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm`
 
 ## rocBlas Logging and Behavior
+
 The `ROCBLAS_LAYER` environmental variable can be set to output GEMM information:
 * `ROCBLAS_LAYER=`  - is not set, there is no logging
 * `ROCBLAS_LAYER=1` - is set to 1, then there is trace logging
@@ -176,6 +179,8 @@ both MIOpenGEMM and rocBlas depending on the input configuration:
 * `MIOPEN_GEMM_ENFORCE_BACKEND=3`, no gemm will be called
 * `MIOPEN_GEMM_ENFORCE_BACKEND=4`, use MIOpenTensile for FP32, use rocBLAS for FP16 if enabled
 * `MIOPEN_GEMM_ENFORCE_BACKEND=<any other value>`, use default behavior
+
+> **_WARNING 3:_** **`MIOPEN_GEMM_ENFORCE_BACKEND` variable is a debugging tool and intended to be used by qualified engineers only.**
 
 To disable using rocBlas entirely, set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off` during MIOpen configuration.
 
@@ -195,12 +200,21 @@ MIOpen provides the environmental variable `MIOPEN_CHECK_NUMERICS` to allow user
 
 ## Controlling Parallel Compilation
 
-MIOpen's Convolution Find() calls will compile and benchmark a set of `solvers` contained in `miopenConvAlgoPerf_t` this is done in parallel per `miopenConvAlgorithm_t`. Parallelism per algorithm is set to 20 threads. Typically there are far fewer threads spawned due to the limited number of kernels under any given algorithm. The level of parallelism can be controlled using the environment variable `MIOPEN_COMPILE_PARALLEL_LEVEL`. 
+MIOpen's Convolution Find() calls will compile and benchmark a set of `solvers` contained in `miopenConvAlgoPerf_t` this is done in parallel per `miopenConvAlgorithm_t`. Parallelism per algorithm is set to 20 threads. Typically there are far fewer threads spawned due to the limited number of kernels under any given algorithm. The level of parallelism can be controlled using the environment variable `MIOPEN_COMPILE_PARALLEL_LEVEL`.
 
 For example, to disable multi-threaded compilation:
 ```
 export MIOPEN_COMPILE_PARALLEL_LEVEL=1
 ```
+
+
+## Initialization order
+
+The library uses lazy initialization in many places. This is useful in terms of saving resources. But the downside is that lazy initialization affects performance measurements. Therefore, even if the library implements lazy initialization, we try to explicitly initialize the resources.
+
+> Example: MIOpen handle creates a rocBlas handle. With lazy initialization, the latter is initialized on the first time GEMM is called, which involves loading code objects for the target GPU, which affects benchmarking. Therefore, we use explicit initialization of rocBlas handle when creating the MIOpen handle. But there may be cases where a handle is created but never used with GEMM algorithms, so explicit initialization can be a waste of resources.
+
+* `MIOPEN_DEBUG_PREFER_LAZY_INITIALIZATION` - Disables explicit initialization in the most places where _both explicit and lazy_ initialization are implemented. This can be useful for triaging initialization related issues. The variable is "two-state" and can be set to the values listed in the "_NOTE 1_" above (default value is _false_).
 
 
 ## Experimental controls

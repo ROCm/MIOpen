@@ -66,6 +66,7 @@
 #define WORKAROUND_FAULTY_HIPMEMGETINFO_VEGA_NAVI2X (ROCM_FEATURE_DEPRECATED_VEGA_NAVI2X)
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_CU)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_PREFER_LAZY_INITIALIZATION)
 
 namespace miopen {
 
@@ -733,6 +734,8 @@ rocblas_handle_ptr Handle::CreateRocblasHandle(miopenAcceleratorQueue_t stream) 
     rocblas_create_handle(&x);
     auto result = rocblas_handle_ptr{x};
     rocblas_set_stream(result.get(), stream);
+    if(!IsEnabled(MIOPEN_DEBUG_PREFER_LAZY_INITIALIZATION{}))
+        rocblas_initialize();
     return result;
 }
 #endif
