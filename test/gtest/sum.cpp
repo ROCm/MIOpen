@@ -31,12 +31,12 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 std::string GetFloatArg()
 {
-    static const auto tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
     if(tmp.empty())
     {
         return "";
     }
-    return tmp.front();
+    return tmp;
 }
 
 struct SumTestFloat : SumTest<float>
