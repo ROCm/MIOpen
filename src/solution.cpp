@@ -72,6 +72,9 @@ void Solution::Run(Handle& handle,
                         },
                         [&](const ActivationDescriptor& /*op_desc*/) {
                             MIOPEN_THROW(miopenStatusNotImplemented);
+                        },
+                        [&](const BiasDescriptor& /*op_desc*/) {
+                            MIOPEN_THROW(miopenStatusNotImplemented);
                         }),
                     problem_.GetOperatorDescriptor());
             },
@@ -109,8 +112,10 @@ void Solution::LogDriverCommand(const ActivationDescriptor& desc) const
 
 void Solution::LogDriverCommand(const Problem& problem_) const
 {
-    boost::apply_visitor([&](const auto& op_desc) { LogDriverCommand(op_desc); },
-                         problem_.GetOperatorDescriptor());
+    boost::apply_visitor(
+        boost::hof::match([&](const BiasDescriptor&) { /* \todo: think on how to log bias */ },
+                          [&](const auto& op_desc) { LogDriverCommand(op_desc); }),
+        problem_.GetOperatorDescriptor());
 }
 
 void Solution::LogDriverCommand(const FusedProblem& problem_) const

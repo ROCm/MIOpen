@@ -143,6 +143,7 @@ TEST_P(ConvBiasActivFind2InferTestFloatFusionFind, ConvBiasActivFind2Float_testF
         {miopenTensorConvolutionX, in_dev.get()},
         {miopenTensorConvolutionW, wei_dev.get()},
         {miopenTensorActivationY, out_dev.get()},
+        {miopenTensorBias, bias_dev.get()},
     };
 
     for(auto& solution : solutions)
