@@ -36,6 +36,13 @@ option(MIOPEN_SQLITE3_USE_SYSTEM "Use SQLite3 library installed in the system" $
 include(FetchContent)
 cmake_policy(SET CMP0135 NEW)
 
+set(_DISABLE_INSTALL FALSE)
+macro(install)
+    if(NOT _DISABLE_INSTALL)
+        _install(${ARGV})
+    endif()
+endmacro()
+
 if(MIOPEN_HALF_USE_SYSTEM)
     set(__half_find_package_args FIND_PACKAGE_ARGS REQUIRED)
 endif()
@@ -46,6 +53,8 @@ FetchContent_Declare(
         URL_MD5 b169bcfda2c65e90f73167e06368a27a
         SYSTEM
         ${__half_find_package_args})
+
+FetchContent_MakeAvailable(HALF)
 
 set(BOOST_INCLUDE_LIBRARIES any container date_time filesystem hof interprocess range thread variant CACHE INTERNAL "")
 
@@ -64,8 +73,18 @@ if(MIOPEN_JSON_USE_SYSTEM)
     set(__nlohmann_json_find_package_args FIND_PACKAGE_ARGS REQUIRED)
 endif()
 
+# Store the current value of BUILD_SHARED_LIBS
+set(__build_shared_libs ${BUILD_SHARED_LIBS})
+set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
+
+FetchContent_MakeAvailable(Boost)
+
+# Restore the old value of BUILD_SHARED_LIBS
+set(BUILD_SHARED_LIBS ${__build_shared_libs} CACHE BOOL "Type of libraries to build" FORCE)
+
 set(JSON_MultipleHeaders ON CACHE INTERNAL "")
 set(JSON_BuildTests OFF CACHE INTERNAL "")
+set(JSON_SystemInclude ON CACHE INTERNAL "")
 
 FetchContent_Declare(
         nlohmann_json
@@ -74,14 +93,50 @@ FetchContent_Declare(
         SYSTEM
         ${__nlohmann_json_find_package_args})
 
-# Store the current value of BUILD_SHARED_LIBS
-set(__build_shared_libs ${BUILD_SHARED_LIBS})
-set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
+FetchContent_Declare(
+        ZStd
+        GIT_REPOSITORY https://github.com/facebook/zstd.git
+        GIT_TAG v1.5.5
+        SYSTEM
+        ${__zstd_find_package_args}
+)
 
-FetchContent_MakeAvailable(HALF Boost nlohmann_json)
+if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
+    FetchContent_Declare(
+            FunctionalPlus
+            GIT_REPOSITORY https://github.com/ROCmSoftwarePlatform/FunctionalPlus.git
+            GIT_TAG v0.2.18-p0
+            SYSTEM
+            ${__functional_plus_find_package_args}
+    )
+    set(FDEEP_BUILD_UNITTEST OFF CACHE INTERNAL "")
+    FetchContent_Declare(
+            frugally_deep
+            GIT_REPOSITORY https://github.com/ROCmSoftwarePlatform/frugally-deep.git
+            GIT_TAG 9683d557eb672ee2304f80f6682c51242d748a50
+            SYSTEM
+            ${__frugakky_deep_find_package_args}
+    )
+    FetchContent_Declare(
+            eigen
+            GIT_REPOSITORY https://github.com/ROCmSoftwarePlatform/eigen.git
+            GIT_TAG 3.4.0
+            SYSTEM
+            ${__eigen_find_package_args}
+    )
+    # Store the current value of BUILD_SHARED_LIBS
+    set(__build_testing ${BUILD_TESTING})
+    set(BUILD_TESTING OFF CACHE INTERNAL "")
 
-# Restore the old value of BUILD_SHARED_LIBS
-set(BUILD_SHARED_LIBS ${__build_shared_libs} CACHE BOOL "Type of libraries to build" FORCE)
+    set(_DISABLE_INSTALL TRUE)
+    FetchContent_MakeAvailable(ZStd nlohmann_json FunctionalPlus frugally_deep eigen)
+    set(_DISABLE_INSTALL FALSE)
+
+    # Restore the old value of BUILD_SHARED_LIBS
+    set(BUILD_TESTING ${__build_testing} CACHE BOOL "" FORCE)
+else()
+    FetchContent_MakeAvailable(ZStd hlohmann_json)
+endif()
 
 include(ExternalProject)
 
@@ -107,15 +162,11 @@ else()
 
     ExternalProject_Get_Property(bzip2 SOURCE_DIR)
 
-    add_library(bzip2::bzip2 INTERFACE IMPORTED GLOBAL)
-    add_dependencies(bzip2::bzip2 bzip2)
-    target_link_directories(bzip2::bzip2 INTERFACE ${SOURCE_DIR})
-    target_link_libraries(bzip2::bzip2 INTERFACE libbz2.lib)
-    target_include_directories(bzip2::bzip2 INTERFACE ${SOURCE_DIR})
-
-    # For compatibility
-    set(BZIP2_INCLUDE_DIR ${SOURCE_DIR} PARENT_SCOPE)
-    set(BZIP2_LIBRARIES bzip2::bzip2 PARENT_SCOPE)
+    add_library(BZip2::BZip2 INTERFACE IMPORTED GLOBAL)
+    add_dependencies(BZip2::BZip2 bzip2)
+    target_link_directories(BZip2::BZip2 INTERFACE ${SOURCE_DIR})
+    target_link_libraries(BZip2::BZip2 INTERFACE libbz2.lib)
+    target_include_directories(BZip2::BZip2 INTERFACE ${SOURCE_DIR})
 endif()
 
 if(MIOPEN_ENABLE_SQLITE)
@@ -137,15 +188,11 @@ if(MIOPEN_ENABLE_SQLITE)
         ExternalProject_Get_Property(sqlite3 BINARY_DIR)
 
         # For compatibility with PkgConfig on Linux
-        add_library(PkgConfig::SQLITE3 INTERFACE IMPORTED GLOBAL)
-        add_dependencies(PkgConfig::SQLITE3 sqlite3)
-        target_link_directories(PkgConfig::SQLITE3 INTERFACE ${BINARY_DIR})
-        target_link_libraries(PkgConfig::SQLITE3 INTERFACE libsqlite3.lib)
-        target_include_directories(PkgConfig::SQLITE3 INTERFACE ${BINARY_DIR})
-
-        # For compatibility
-        set(SQLITE3_STATIC_INCLUDE_DIRS ${BINARY_DIR} PARENT_SCOPE)
-        set(SQLITE3_STATIC_LDFLAGS PkgConfig::SQLITE3 PARENT_SCOPE)
+        add_library(SQLite::SQLite3 INTERFACE IMPORTED GLOBAL)
+        add_dependencies(SQLite::SQLite3 sqlite3)
+        target_link_directories(SQLite::SQLite3 INTERFACE ${BINARY_DIR})
+        target_link_libraries(SQLite::SQLite3 INTERFACE libsqlite3.lib)
+        target_include_directories(SQLite::SQLite3 INTERFACE ${BINARY_DIR})
     endif()
 endif()
 

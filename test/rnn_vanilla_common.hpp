@@ -540,11 +540,15 @@ void RNNFwdTrainCPUVerify(miopen::Handle& handle,
     {
         for(int h = 0; h < out_h; h++)
         {
+            // The standard library from MSVC does not implement std::fpclassify() for integer
+            // types - no additional overloads are provided. According to the documentation,
+            // integer types should be treaded as doubles.
+            // Refer to https://en.cppreference.com/w/cpp/numeric/math/fpclassify for more details.
+            // The functions std::isnan() and std::isinf() are using stg::fpclassify() internally.
             assert(
                 !std::isnan(static_cast<double>(rsvspace.at(prelayer_shift + bs * hy_stride + h))));
             assert(
                 !std::isinf(static_cast<double>(rsvspace.at(prelayer_shift + bs * hy_stride + h))));
-
             out_host.at(bs * out_stride + h) = rsvspace.at(prelayer_shift + bs * hy_stride + h);
             //  printf("out_host[%d]: %f\n", bs * out_stride + h, out_host.at(bs * out_stride + h));
         }

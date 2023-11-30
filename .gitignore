@@ -54,3 +54,6 @@ docs/html
 
 # Python virtual environment
 .venv/
+
+# MIOpen dependency projects
+depend*/

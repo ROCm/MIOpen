@@ -24,12 +24,6 @@
  *
  *******************************************************************************/
 
-#ifdef __linux__
-#include <paths.h>
-#else
-#include <Windows.h>
-#endif // __linux__
-
 #include <string>
 #include <fstream>
 
@@ -39,61 +33,14 @@
 #include <miopen/tmp_dir.hpp>
 
 #include "test.hpp"
+#include "process.hpp"
 
 namespace bf = boost::filesystem;
 
-static int Child(const std::string& path, const std::string& cmd)
+static int Child(std::string_view path, std::string_view cmd)
 {
-#ifdef __linux__
-    std::ignore = path;
-    auto pipe   = popen(cmd.c_str(), "w");
-
-    if(pipe == nullptr)
-        MIOPEN_THROW("Error: popen()");
-
-    auto status = pclose(pipe);
-    return WEXITSTATUS(status);
-#else
-    STARTUPINFO info;
-    PROCESS_INFORMATION processInfo;
-
-    ZeroMemory(&info, sizeof(info));
-    info.cb = sizeof(info);
-    ZeroMemory(&processInfo, sizeof(processInfo));
-
-    LPSTR lpCmdLn{};
-
-#if !defined(UNICODE)
-    lpCmdLn = const_cast<LPSTR>(cmd.c_str());
-#else
-    std::wstring cmdln{};
-    auto length{
-        MultiByteToWideChar(CP_ACP, 0, cmd.c_str(), static_cast<int>(cmd.length()), nullptr, 0)};
-    if(length > 0)
-    {
-        cmdln.resize(length);
-        MultiByteToWideChar(
-            CP_ACP, 0, cmd.c_str(), static_cast<int>(cmd.length()), &cmdln[0], length);
-    }
-    lpCmdLn = reinterpret_cast<LPSTR>(const_cast<LPWSTR>(cmdln.c_str()));
-#endif
-    if(!CreateProcess(
-           nullptr, lpCmdLn, nullptr, nullptr, FALSE, 0, nullptr, nullptr, &info, &processInfo))
-        MIOPEN_THROW("CreateProcess error: " + std::to_string(GetLastError()));
-
-    WaitForSingleObject(processInfo.hProcess, INFINITE);
-
-    DWORD status;
-    const auto getExitCodeStatus = GetExitCodeProcess(processInfo.hProcess, &status);
-
-    CloseHandle(processInfo.hProcess);
-    CloseHandle(processInfo.hThread);
-
-    if(!getExitCodeStatus)
-        MIOPEN_THROW("GetExitCodeProcess error: " + std::to_string(GetLastError()));
-
-    return static_cast<int>(status);
-#endif // __linux__
+    Process child{path, cmd};
+    return child.Wait();
 }
 
 namespace miopen {

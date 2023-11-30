@@ -685,9 +685,11 @@ rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
 
 clang_tidy_check(MIOpen)
 
-find_package(zstd)
-if(zstd_FOUND)
-    target_link_libraries(MIOpen PRIVATE $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>)
+if(NOT WIN32)
+    find_package(zstd)
+    if(zstd_FOUND)
+        target_link_libraries(MIOpen PRIVATE $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>)
+    endif()
 endif()
 
 function(target_internal_library TARGET)
@@ -714,10 +716,9 @@ if(WIN32)
 endif()
 
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
-target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
-# Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS} 
+# Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS}
 #               We can remove ${CMAKE_DL_LIBS} once root cause is identified.
-target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} Threads::Threads ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
+target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} Threads::Threads BZip2::BZip2 ${MIOPEN_CK_LINK_FLAGS})
 miopen_generate_export_header(MIOpen)
 
 if(BUILD_TESTING)
@@ -730,42 +731,23 @@ if(BUILD_TESTING)
 endif()
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
-        find_path(FDEEP_INCLUDE_DIR "fdeep/fdeep.hpp")
-        if(${FDEEP_INCLUDE_DIR} STREQUAL "FDEEP_INCLUDE_DIR-NOTFOUND")
-            if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
-                message(FATAL_ERROR "MIOPEN_ENABLE_AI_KERNEL_TUNING requirement frugally-deep not found")
-            endif()
-            if(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
-                message(FATAL_ERROR "MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK requirement frugally-deep not found")
-            endif()
-        endif()
-
-        find_path(EIGEN_INCLUDE_DIR "eigen3/Eigen/Core")
-        if(${EIGEN_INCLUDE_DIR} STREQUAL "EIGEN_INCLUDE_DIR-NOTFOUND")
-            if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
-                message(FATAL_ERROR "MIOPEN_ENABLE_AI_KERNEL_TUNING requirement Eigen not found")
-            endif()
-            if(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
-                message(FATAL_ERROR "MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK requirement frugally-deep not found")
-            endif()
-        endif()
-
-        target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${FDEEP_INCLUDE_DIR}>)
-        target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${EIGEN_INCLUDE_DIR}/eigen3>)
-        if(NOT BUILD_DEV)
-            file(GLOB MODEL_FILES kernels/*.model)
-            if( NOT ENABLE_ASAN_PACKAGING )
-              install(FILES ${MODEL_FILES} DESTINATION ${DATA_INSTALL_DIR}/db)
-            endif ()
-            foreach(MODEL_FILE ${MODEL_FILES})
-                get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
-                configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${MODEL_FILE_FILENAME}" COPYONLY)
-            endforeach()
-        endif()
+    if(NOT WIN32)
+        find_package(frugally-deep CONFIG REQUIRED)
+        find_package(Eigen3 REQUIRED)
+    endif()
+    target_link_libraries(MIOpen PRIVATE frugally-deep::fdeep Eigen3::Eigen)
+    if(NOT BUILD_DEV)
+        file(GLOB MODEL_FILES kernels/*.model)
+        if( NOT ENABLE_ASAN_PACKAGING )
+            install(FILES ${MODEL_FILES} DESTINATION ${DATA_INSTALL_DIR}/db)
+        endif ()
+        foreach(MODEL_FILE ${MODEL_FILES})
+            get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
+            configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${MODEL_FILE_FILENAME}" COPYONLY)
+        endforeach()
+    endif()
 endif()
 
-set(PACKAGE_DEPENDS)
-set(PACKAGE_STATIC_DEPENDS)
 ############################################################
 # MIOpen depends on OpenCL
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
@@ -775,10 +757,10 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     list(APPEND PACKAGE_DEPENDS PACKAGE OpenCL)
 elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     target_link_libraries( MIOpen PRIVATE hip::device )
+    target_link_libraries( MIOpen INTERFACE hip::host )
     if(MIOPEN_USE_HIPRTC AND WIN32)
         target_link_libraries( MIOpen PRIVATE hiprtc::hiprtc )
     endif()
-    target_link_libraries( MIOpen INTERFACE hip::host )
     if(ENABLE_HIP_WORKAROUNDS)
         # Workaround hip not setting its usage requirements correctly
         target_compile_definitions( MIOpen PRIVATE -D__HIP_PLATFORM_HCC__=1 )
@@ -799,12 +781,10 @@ if(rocblas_FOUND)
     list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE rocblas)
 endif()
 
-if(NOT WIN32)
-    # For backward compatibility with ROCm 5.3
-    # Build with library libMLIRMIOpen
-    if(LIBMLIRMIOPEN)
-        target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
-    endif()
+# For backward compatibility with ROCm 5.3
+# Build with library libMLIRMIOpen
+if(LIBMLIRMIOPEN)
+    target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
 endif()
 
 # Build with package rocMLIR
@@ -842,12 +822,7 @@ endif()
 #######################################
 if(MIOPEN_ENABLE_SQLITE)
     # MIOpen depends on SQLite
-    target_include_directories(MIOpen SYSTEM PRIVATE ${SQLITE3_STATIC_INCLUDE_DIRS})
-    target_include_directories(MIOpen SYSTEM INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_INCLUDE_DIRS}>)
-    target_compile_options(MIOpen PRIVATE ${SQLITE3_STATIC_CFLAGS})
-    target_compile_options(MIOpen INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_CFLAGS}>)
-    target_link_libraries(MIOpen PRIVATE ${SQLITE3_STATIC_LDFLAGS})
-    target_link_libraries(MIOpen INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_LDFLAGS}>)
+    target_link_libraries(MIOpen PRIVATE SQLite::SQLite3)
 endif()
 ############################################################
 # MIOpen depends on librt for Boost.Interprocess

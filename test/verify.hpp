@@ -82,10 +82,10 @@ struct not_finite_fn
     template <class T>
     bool operator()(T x) const
     {
-        // WIN32: The Standard Library from MSVC does implement std::isfinite()
-        // for floating-point types only - no additional overloads for integer
-        // types, which should be treated as doubles according to the specification.
-        // https://en.cppreference.com/w/cpp/numeric/math/isfinite
+        // The standard library from MSVC does not implement std::isfinite() for integer
+        // types - no additional overloads are provided. According to the documentation,
+        // integer types should be treaded as doubles.
+        // Refer to https://en.cppreference.com/w/cpp/numeric/math/isfinite for more information.
         return not std::isfinite(static_cast<double>(x));
     }
 };
@@ -102,7 +102,8 @@ struct compare_mag_fn
     template <class T, class U>
     bool operator()(T x, U y) const
     {
-        return std::fabs(x) < std::fabs(y);
+        using std::fabs;
+        return fabs(x) < fabs(y);
     }
 };
 static constexpr compare_mag_fn compare_mag{};

@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "process.hpp"
 #include "test.hpp"
 #include "driver.hpp"
 
@@ -48,10 +49,6 @@
 #include <string>
 #include <thread>
 #include <vector>
-
-#ifdef _WIN32
-#include <Windows.h>
-#endif
 
 namespace miopen {
 namespace tests {
@@ -968,12 +965,7 @@ public:
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for multiprocess write access...");
 
-#ifdef _WIN32
-        using PROCESS_HANDLE = PROCESS_INFORMATION;
-#else
-        using PROCESS_HANDLE = FILE*;
-#endif
-        std::vector<PROCESS_HANDLE> children(DBMultiThreadedTestWork::threads_count);
+        std::vector<Process> children{};
         const auto lock_file_path = LockFilePath(temp_file);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
@@ -986,7 +978,7 @@ public:
 
             auto id = 0;
 
-            for(auto& child : children)
+            for(auto i = 0; i < DBMultiThreadedTestWork::threads_count; ++i)
             {
                 auto command = exe_path().string() + " --" + ArgsHelper::write_arg + " --" +
                                ArgsHelper::id_arg + " " + std::to_string(id++) + " --" +
@@ -1002,56 +994,14 @@ public:
                 if(full_set())
                     command += " --all";
 
-#ifdef _WIN32
-                STARTUPINFO info;
-                PROCESS_INFORMATION processInfo;
-
-                ZeroMemory(&info, sizeof(info));
-                info.cb = sizeof(info);
-                ZeroMemory(&processInfo, sizeof(processInfo));
-
-                LPSTR lpCmdLn{const_cast<LPSTR>(command.c_str())};
-
-                if(!CreateProcess(nullptr,
-                                  lpCmdLn,
-                                  nullptr,
-                                  nullptr,
-                                  FALSE,
-                                  0,
-                                  nullptr,
-                                  nullptr,
-                                  &info,
-                                  &processInfo))
-                    MIOPEN_THROW("CreateProcess error: " + std::to_string(GetLastError()));
-
-                child = processInfo;
-#else
-                child = popen(command.c_str(), "w");
-#endif
+                children.emplace_back("test_perfdb_mp_" + std::to_string(i), command);
             }
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test processes...");
         for(auto child : children)
         {
-#ifdef _WIN32
-            WaitForSingleObject(child.hProcess, INFINITE);
-
-            DWORD status{};
-            auto exitCode{GetExitCodeProcess(child.hProcess, &status)};
-
-            CloseHandle(child.hProcess);
-            CloseHandle(child.hThread);
-
-            if(exitCode == 0)
-                MIOPEN_THROW("GetExitCodeProcess error: " + std::to_string(GetLastError()));
-
-            auto exit_code = static_cast<int>(status);
-#else
-            auto status          = pclose(child);
-            const auto exit_code = WEXITSTATUS(status);
-#endif
-            EXPECT_EQUAL(exit_code, 0);
+            EXPECT_EQUAL(child.Wait(), 0);
         }
 
         std::remove(lock_file_path.c_str());
@@ -1096,12 +1046,7 @@ public:
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for multiprocess read access...");
 
-#ifdef _WIN32
-        using PROCESS_HANDLE = PROCESS_INFORMATION;
-#else
-        using PROCESS_HANDLE = FILE*;
-#endif
-        std::vector<PROCESS_HANDLE> children(DBMultiThreadedTestWork::threads_count);
+        std::vector<Process> children{};
         const auto lock_file_path = LockFilePath(temp_file);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
@@ -1116,7 +1061,7 @@ public:
 
             auto id = 0;
 
-            for(auto& child : children)
+            for(auto i = 0; i < DBMultiThreadedTestWork::threads_count; ++i)
             {
                 auto command = exe_path().string() + " --" + ArgsHelper::id_arg + " " +
                                std::to_string(id++) + " --" + ArgsHelper::path_arg + " " + p +
@@ -1133,56 +1078,14 @@ public:
                     command += " --all";
 
                 MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", command);
-#ifdef _WIN32
-                STARTUPINFO info;
-                PROCESS_INFORMATION processInfo;
-
-                ZeroMemory(&info, sizeof(info));
-                info.cb = sizeof(info);
-                ZeroMemory(&processInfo, sizeof(processInfo));
-
-                LPSTR lpCmdLn{const_cast<LPSTR>(command.c_str())};
-
-                if(!CreateProcess(nullptr,
-                                  lpCmdLn,
-                                  nullptr,
-                                  nullptr,
-                                  FALSE,
-                                  0,
-                                  nullptr,
-                                  nullptr,
-                                  &info,
-                                  &processInfo))
-                    MIOPEN_THROW("CreateProcess error: " + std::to_string(GetLastError()));
-
-                child = processInfo;
-#else
-                child = popen(command.c_str(), "w");
-#endif
+                children.emplace_back("test_perfdb_mp_read_" + std::to_string(i), command);
             }
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test processes...");
         for(auto child : children)
         {
-#ifdef _WIN32
-            WaitForSingleObject(child.hProcess, INFINITE);
-
-            DWORD status{};
-            auto exitCode{GetExitCodeProcess(child.hProcess, &status)};
-
-            CloseHandle(child.hProcess);
-            CloseHandle(child.hThread);
-
-            if(exitCode == 0)
-                MIOPEN_THROW("GetExitCodeProcess error: " + std::to_string(GetLastError()));
-
-            auto exit_code = static_cast<int>(status);
-#else
-            auto status                            = pclose(child);
-            const auto exit_code                   = WEXITSTATUS(status);
-#endif
-            EXPECT_EQUAL(exit_code, 0);
+            EXPECT_EQUAL(child.Wait(), 0);
         }
 
         std::remove(lock_file_path.c_str());

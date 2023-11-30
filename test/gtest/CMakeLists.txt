@@ -1,7 +1,6 @@
 if(NOT WIN32)
-    find_package(GTest REQUIRED)
+  find_package(GTest REQUIRED)
 endif()
-
 find_package(rocblas)
 
 set(SOURCES
@@ -28,17 +27,18 @@ function(add_gtest TEST_NAME)
       target_include_directories(test_${TEST_NAME} SYSTEM PRIVATE $<BUILD_INTERFACE:${FDEEP_INCLUDE_DIR}>)
       target_include_directories(test_${TEST_NAME} SYSTEM PRIVATE $<BUILD_INTERFACE:${EIGEN_INCLUDE_DIR}/eigen3>)
     endif()
-    target_link_libraries(test_${TEST_NAME} GTest::gtest GTest::gtest_main MIOpen ${Boost_LIBRARIES} hip::host nlohmann_json::nlohmann_json ${BZIP2_LIBRARIES})
+    target_link_libraries(test_${TEST_NAME} GTest::gtest GTest::gtest_main MIOpen ${Boost_LIBRARIES} hip::host)
     if(rocBLAS_FOUND)
       target_link_libraries(test_${TEST_NAME} PRIVATE roc::rocblas)
     endif()
     if(NOT MIOPEN_EMBED_DB STREQUAL "")
       target_link_libraries(test_${TEST_NAME} PRIVATE miopen_data)
     endif()
-    if(NOT WIN32) # TODO: enable on Windows!
+    if(NOT WIN32) # TODO: cannot run on Windows due to missing DLL dependencies
       # Enable CMake to discover the test binary
       gtest_discover_tests(test_${TEST_NAME} PROPERTIES ENVIRONMENT "MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR};MIOPEN_TEST_FLOAT_ARG=${MIOPEN_TEST_FLOAT_ARG};MIOPEN_TEST_ALL=${MIOPEN_TEST_ALL};MIOPEN_TEST_MLIR=${MIOPEN_TEST_MLIR};MIOPEN_TEST_COMPOSABLEKERNEL=${MIOPEN_TEST_COMPOSABLEKERNEL}")
     endif()
+    target_link_libraries(test_${TEST_NAME} BZip2::BZip2 nlohmann_json::nlohmann_json SQLite::SQLite3)
     if(WIN32)
       # Refer to https://en.cppreference.com/w/cpp/language/types for details.
       target_compile_options(test_${TEST_NAME} PRIVATE $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:Clang>:-U__LP64__>>)
