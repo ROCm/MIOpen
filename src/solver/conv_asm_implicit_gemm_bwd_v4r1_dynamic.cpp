@@ -31,7 +31,7 @@
 #include <algorithm>
 #include <miopen/solver/implicitgemm_util.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1)
 
 namespace miopen {
 namespace solver {
@@ -133,7 +133,7 @@ static inline bool FindImplicitGemmDynamicKernelBwd(const ProblemDescription& pr
 bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ExecutionContext& ctx,
                                                      const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1)))
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
