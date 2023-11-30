@@ -260,7 +260,7 @@ rocblas_status miopen_rocblas_gemm_strided_batched_ex3(const miopen::Handle& han
 
 #endif // MIOPEN_USE_ROCBLAS
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_GEMM_ENFORCE_BACKEND)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_GEMM_ENFORCE_BACKEND)
 
 namespace miopen {
 
@@ -343,7 +343,7 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
     // enforce backend based on env variable
     // I have left the commented lines here to preserve values for the enforce and hint at why are
     // they 1 and 3
-    switch(Value(MIOPEN_GEMM_ENFORCE_BACKEND{}))
+    switch(Value(ENV(MIOPEN_GEMM_ENFORCE_BACKEND)))
     {
     case 1: gemm_backend_env = GemmBackend_t::rocblas; break;
     // case 2: gemm_backend_env = GemmBackend_t::miopengemm; break;

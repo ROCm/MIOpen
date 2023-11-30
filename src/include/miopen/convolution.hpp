@@ -48,10 +48,10 @@
 #include <unordered_map>
 #include <random>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED)
 
 namespace miopen {
 
@@ -76,8 +76,8 @@ struct ConvolutionAttribute
 
         inline int Get() const
         {
-            if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL{}))
-                return miopen::Value(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL{});
+            if(!miopen::IsUnset(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)))
+                return miopen::Value(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL));
             return value;
         }
 
@@ -105,19 +105,17 @@ struct ConvolutionAttribute
 
         inline miopenF8RoundingMode_t Get() const
         {
-            if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE{}))
-            {
+            if(!miopen::IsUnset(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE)))
                 return static_cast<miopenF8RoundingMode_t>(
-                    miopen::Value(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE{}));
-            }
+                    miopen::Value(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE)));
             return rounding_mode;
         }
 
         inline uint32_t GetSeed() const
         {
             // assert(rounding_mode == miopenF8RoundingModeStochastic);
-            if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED{}))
-                return miopen::Value(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED{});
+            if(!miopen::IsUnset(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED)))
+                return miopen::Value(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED));
             return seed;
         }
 
@@ -132,8 +130,9 @@ struct ConvolutionAttribute
     public:
         inline int Get() const
         {
-            if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
-                return miopen::Value(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{});
+            if(!miopen::IsUnset(ENV(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)))
+                return static_cast<int>(
+                    miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)));
             return value;
         }
         operator bool() const
