@@ -34,7 +34,7 @@ function(add_gtest TEST_NAME)
     endif()
     # Enable CMake to discover the test binary
     gtest_discover_tests(test_${TEST_NAME} PROPERTIES ENVIRONMENT "MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR};MIOPEN_TEST_FLOAT_ARG=${MIOPEN_TEST_FLOAT_ARG};MIOPEN_TEST_ALL=${MIOPEN_TEST_ALL};MIOPEN_TEST_MLIR=${MIOPEN_TEST_MLIR};MIOPEN_TEST_COMPOSABLEKERNEL=${MIOPEN_TEST_COMPOSABLEKERNEL}")
-
+    target_link_libraries(test_${TEST_NAME} BZip2::BZip2)
   endif()
 endfunction()
 
