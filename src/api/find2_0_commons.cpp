@@ -28,7 +28,6 @@
 
 #include <miopen/common.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/problem.hpp>
 #include <miopen/search_options.hpp>
@@ -62,7 +61,7 @@ miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
                                        miopenConvolutionDescriptor_t operatorDesc,
                                        miopenProblemDirection_t direction)
 {
-    MIOPEN_LOG_FUNCTION(problem);
+    MIOPEN_LOG_FUNCTION(problem, operatorDesc, direction);
     return MakeProblem(problem, operatorDesc, direction);
 }
 
@@ -70,8 +69,24 @@ miopenStatus_t miopenCreateActivationProblem(miopenProblem_t* problem,
                                              miopenActivationDescriptor_t operatorDesc,
                                              miopenProblemDirection_t direction)
 {
-    MIOPEN_LOG_FUNCTION(problem);
+    MIOPEN_LOG_FUNCTION(problem, operatorDesc, direction);
     return MakeProblem(problem, operatorDesc, direction);
+}
+
+miopenStatus_t miopenCreateBiasProblem(miopenProblem_t* problem, miopenProblemDirection_t direction)
+{
+    MIOPEN_LOG_FUNCTION(problem, direction);
+
+    return miopen::try_([&] {
+        miopen::deref(problem) = new miopen::ProblemContainer();
+        auto& container_deref  = miopen::deref(*problem);
+
+        container_deref.item = miopen::Problem();
+        auto& problem_deref  = boost::get<miopen::Problem>(container_deref.item);
+
+        problem_deref.SetOperatorDescriptor(miopen::BiasDescriptor{});
+        problem_deref.SetDirection(direction);
+    });
 }
 
 miopenStatus_t miopenFuseProblems(miopenProblem_t problem1, miopenProblem_t problem2)
@@ -245,6 +260,9 @@ inline std::ostream& operator<<(std::ostream& stream, const miopenTensorArgument
     case miopenTensorActivationDX: stream << "ActivDX"; break;
     case miopenTensorActivationY: stream << "ActivY"; break;
     case miopenTensorActivationDY: stream << "ActivDY"; break;
+    case miopenTensorBias: stream << "Bias"; break;
+    case miopenTensorBiasX: stream << "BiasX"; break;
+    case miopenTensorBiasY: stream << "BiasY"; break;
     case miopenTensorArgumentIdInvalid: stream << "Invalid"; break;
     }
 

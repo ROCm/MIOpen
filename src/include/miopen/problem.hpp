@@ -59,7 +59,13 @@ namespace conv {
 struct ProblemDescription;
 } // namespace conv
 
-using OperatorDescriptor = boost::variant<ConvolutionDescriptor, ActivationDescriptor>;
+struct BiasDescriptor
+{
+};
+
+// The order of types is important for deserialization and should be preserved between releases.
+using OperatorDescriptor =
+    boost::variant<ConvolutionDescriptor, ActivationDescriptor, BiasDescriptor>;
 
 struct Problem
 {
@@ -196,7 +202,9 @@ private:
 
 struct ProblemContainer : miopenProblem
 {
+    // The order of types is important for deserialization and should be preserved between releases.
     using Item = boost::variant<Problem, FusedProblem>;
+
     Item item;
 
     ProblemContainer() = default;
