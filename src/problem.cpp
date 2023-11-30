@@ -177,6 +177,9 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
             },
             [&](const ActivationDescriptor& /*op_desc*/) -> std::vector<Solution> {
                 MIOPEN_THROW(miopenStatusNotImplemented);
+            },
+            [&](const BiasDescriptor& /*op_desc*/) -> std::vector<Solution> {
+                MIOPEN_THROW(miopenStatusNotImplemented);
             }),
         operator_descriptor);
 
@@ -452,7 +455,8 @@ void Problem::LogDriverCommand() const
 {
     const auto log_function =
         boost::hof::match([&](const ConvolutionDescriptor& op_desc) { LogDriverCommand(op_desc); },
-                          [&](const ActivationDescriptor& op_desc) { LogDriverCommand(op_desc); });
+                          [&](const ActivationDescriptor& op_desc) { LogDriverCommand(op_desc); },
+                          [&](const BiasDescriptor&) {});
 
     boost::apply_visitor(log_function, operator_descriptor);
 }
@@ -474,6 +478,10 @@ void Problem::LogDriverCommand(const ActivationDescriptor& descriptor) const
         GetTensorDescriptorChecked(miopenTensorActivationX, "miopenTensorActivationX");
     miopen::debug::LogCmdActivation(x_desc, descriptor, direction == miopenProblemDirectionForward);
 }
+
+void to_json(nlohmann::json& json, const BiasDescriptor&) { json = nlohmann::json{}; }
+
+void from_json(const nlohmann::json&, BiasDescriptor&) {}
 
 void to_json(nlohmann::json& json, const Problem& problem)
 {
@@ -556,26 +564,28 @@ void Problem::CalculateOutput()
     if(!HasInput())
         return;
 
-    boost::apply_visitor(boost::hof::match(
-                             [&](const ConvolutionDescriptor& conv) {
-                                 const auto& in = GetInput();
-                                 conv.GetForwardOutputTensor(
-                                     in,
-                                     GetTensorDescriptorChecked(miopenTensorConvolutionW,
-                                                                "miopenTensorConvolutionW"),
-                                     in.GetType());
-                             },
-                             [&](const ActivationDescriptor&) {
-                                 RegisterTensorDescriptor(GetOutputId(), GetInput());
-                             }),
-                         operator_descriptor);
+    boost::apply_visitor(
+        boost::hof::match(
+            [&](const ConvolutionDescriptor& conv) {
+                const auto& in = GetInput();
+                conv.GetForwardOutputTensor(in,
+                                            GetTensorDescriptorChecked(miopenTensorConvolutionW,
+                                                                       "miopenTensorConvolutionW"),
+                                            in.GetType());
+            },
+            [&](const ActivationDescriptor&) {
+                RegisterTensorDescriptor(GetOutputId(), GetInput());
+            },
+            [&](const BiasDescriptor&) { RegisterTensorDescriptor(GetOutputId(), GetInput()); }),
+        operator_descriptor);
 }
 
 miopenTensorArgumentId_t Problem::GetInputId() const
 {
     return boost::apply_visitor(
         boost::hof::match([](const ConvolutionDescriptor&) { return miopenTensorConvolutionX; },
-                          [](const ActivationDescriptor&) { return miopenTensorActivationX; }),
+                          [](const ActivationDescriptor&) { return miopenTensorActivationX; },
+                          [](const BiasDescriptor&) { return miopenTensorBiasX; }),
         operator_descriptor);
 }
 
@@ -583,7 +593,8 @@ miopenTensorArgumentId_t Problem::GetOutputId() const
 {
     return boost::apply_visitor(
         boost::hof::match([](const ConvolutionDescriptor&) { return miopenTensorConvolutionY; },
-                          [](const ActivationDescriptor&) { return miopenTensorActivationY; }),
+                          [](const ActivationDescriptor&) { return miopenTensorActivationY; },
+                          [](const BiasDescriptor&) { return miopenTensorBiasY; }),
         operator_descriptor);
 }
 
@@ -664,6 +675,10 @@ void FusedProblem::AddProblemToPlan(FusionPlanDescriptor& plan, const Problem& p
                     plan.AddOp(std::make_shared<ActivFwdFusionOpDescriptor>(activ_desc.GetMode()));
                 else
                     plan.AddOp(std::make_shared<ActivBwdFusionOpDescriptor>(activ_desc.GetMode()));
+            },
+            [&](const BiasDescriptor&) {
+                plan.AddOp(std::make_shared<BiasFusionOpDescriptor>(
+                    problem.GetTensorDescriptorChecked(miopenTensorBias, "miopenTensorBias")));
             }),
         problem.operator_descriptor);
 }
@@ -721,6 +736,11 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
                             std::make_unique<miopen::fusion::ActivationBwdOpInvokeParam>(
                                 y, x, alpha, beta, gamma));
                     }
+                },
+                [&](const BiasDescriptor&) {
+                    const auto bias_ptr = buffers.at(miopenTensorBias);
+                    operator_args.params.emplace_back(
+                        std::make_unique<miopen::fusion::BiasOpInvokeParam>(bias_ptr));
                 }),
             problem.operator_descriptor);
     }
