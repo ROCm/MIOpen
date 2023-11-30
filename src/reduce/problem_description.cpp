@@ -23,32 +23,36 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_LAYERNORM_HPP_
-#define MIOPEN_LAYERNORM_HPP_
 
-#include <miopen/common.hpp>
+#include <miopen/reduce/problem_description.hpp>
+#include <miopen/names.hpp>
+
+#include <sstream>
 
 namespace miopen {
 
-struct Handle;
-struct TensorDescriptor;
+namespace reduce {
 
-miopenStatus_t LayerNormForward(Handle& handle,
-                                const TensorDescriptor& xDesc,
-                                ConstData_t x,
-                                const TensorDescriptor& weightDesc,
-                                ConstData_t weight,
-                                const TensorDescriptor& biasDesc,
-                                ConstData_t bias,
-                                const TensorDescriptor& yDesc,
-                                Data_t y,
-                                const TensorDescriptor& meanDesc,
-                                Data_t mean,
-                                const TensorDescriptor& rstdDesc,
-                                Data_t rstd,
-                                miopenLayerNormMode_t mode,
-                                float epsilon,
-                                int32_t normalized_dim);
+NetworkConfig ProblemDescription::MakeNetworkConfig() const
+{
+    auto xlength = xDesc.GetLengths();
+    auto ylength = yDesc.GetLengths();
+
+    auto reduce_size  = xlength[dim];
+    auto output_numel = std::accumulate(
+        ylength.begin(), ylength.end(), static_cast<size_t>(1), std::multiplies<size_t>());
+    auto dtype = xDesc.GetType();
+
+    std::ostringstream ss;
+
+    ss << "dtype" << dtype;
+    ss << "dim" << dim;
+    ss << "reduce_size" << reduce_size;
+    ss << "output_numel" << output_numel;
+
+    return NetworkConfig{ss.str()};
+}
+
+} // namespace reduce
 
 } // namespace miopen
-#endif // _MIOPEN_LAYERNORM_HPP_

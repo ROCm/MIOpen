@@ -31,6 +31,7 @@
 #include <miopen/pooling/solvers.hpp>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/norm/solvers.hpp>
+#include <miopen/reduce/solvers.hpp>
 
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
@@ -609,6 +610,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Normalization, norm::Layernorm2DCKForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Normalization, norm::Layernorm4DCKForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Normalization, norm::LayernormForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Reduce, reduce::SumForward{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }
