@@ -30,7 +30,7 @@
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SAVE_TEMP_DIR)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_SAVE_TEMP_DIR)
 
 namespace miopen {
 
@@ -62,7 +62,7 @@ TmpDir& TmpDir::operator=(TmpDir&& other) noexcept
 
 void TmpDir::Execute(std::string exe, std::string args) const
 {
-    if(miopen::IsEnabled(MIOPEN_DEBUG_SAVE_TEMP_DIR{}))
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_SAVE_TEMP_DIR)))
     {
         MIOPEN_LOG_I2(this->path.string());
     }
@@ -73,7 +73,7 @@ void TmpDir::Execute(std::string exe, std::string args) const
 
 TmpDir::~TmpDir()
 {
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_SAVE_TEMP_DIR{}))
+    if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_SAVE_TEMP_DIR)))
     {
         if(!this->path.empty())
             boost::filesystem::remove_all(this->path);

@@ -31,7 +31,7 @@
 
 #define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)
 
 namespace miopen {
 namespace solver {
@@ -42,7 +42,7 @@ using ProblemDescription = miopen::conv::ProblemDescription;
 bool ConvAsm5x10u2v2b1::IsApplicable(const ExecutionContext& ctx,
                                      const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)))
         return false;
     if(!ctx.use_asm_kernels)
         return false;

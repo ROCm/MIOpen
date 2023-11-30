@@ -65,7 +65,7 @@
 /// Brute-force W/A: return fixed values.
 #define WORKAROUND_FAULTY_HIPMEMGETINFO_VEGA_NAVI2X (ROCM_FEATURE_DEPRECATED_VEGA_NAVI2X)
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_CU)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEVICE_CU)
 
 namespace miopen {
 
@@ -642,7 +642,7 @@ std::size_t Handle::GetGlobalMemorySize() const
 
 std::size_t Handle::GetMaxComputeUnits() const
 {
-    const std::size_t num_cu = Value(MIOPEN_DEVICE_CU{});
+    const std::size_t num_cu = Value(ENV(MIOPEN_DEVICE_CU));
     if(num_cu > 0)
         return num_cu;
 

@@ -31,7 +31,7 @@
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11)
 
 namespace miopen {
 namespace solver {
@@ -42,7 +42,7 @@ using ProblemDescription = miopen::conv::ProblemDescription;
 bool ConvOclDirectFwd11x11::IsApplicable(const ExecutionContext& ctx,
                                          const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11)))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;

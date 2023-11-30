@@ -100,7 +100,7 @@ auto cpu_async(V& v, Ts&&... xs) -> std::future<decltype(v.cpu(xs...))>
     return std::async(std::launch::deferred, [&] { return v.cpu(xs...); });
 }
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_VERIFY_CACHE_PATH)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_VERIFY_CACHE_PATH)
 
 struct test_driver
 {
@@ -151,11 +151,11 @@ struct test_driver
 
     static std::string compute_cache_path()
     {
-        auto e = miopen::GetStringEnv(MIOPEN_VERIFY_CACHE_PATH{});
-        if(e == nullptr)
+        auto s = miopen::GetStringEnv(ENV(MIOPEN_VERIFY_CACHE_PATH));
+        if(s.empty())
             return "~/.cache/miopen/tests";
         else
-            return e;
+            return s;
     }
 
     std::string program_name;
