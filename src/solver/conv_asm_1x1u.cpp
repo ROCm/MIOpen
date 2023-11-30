@@ -40,10 +40,10 @@
 #include <miopen/solver.hpp>
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR)
 
 namespace miopen {
 namespace solver {
@@ -160,7 +160,7 @@ bool PerformanceConfigConvAsm1x1U::SetNextValue(const ProblemDescription&)
     {
         if(!NextLinear<1, 4>(read_size))
             break;
-        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED{}))
+        if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)))
         {
             /// Narrow search space in optimized mode.
             if(use_spare_set ? !Next_1_4(k_mult) : !NextTwoPower<8, 32>(k_mult))
@@ -204,7 +204,7 @@ bool PerformanceConfigConvAsm1x1U::SetNextValue(const ProblemDescription&)
 PerformanceConfigConvAsm1x1U::PerformanceConfigConvAsm1x1U(bool spare)
     : PerformanceConfigConvAsm1x1U(1, 1, 1, 1, 1, 1, 1, 1, spare)
 {
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED{}))
+    if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)))
     {
         k_mult     = spare ? 1 : 8;
         chunk_size = spare ? 1 : 16;
@@ -519,7 +519,7 @@ bool ConvAsm1x1U::IsValidPerformanceConfig(const ExecutionContext&,
 
 bool ConvAsm1x1U::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U)))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
@@ -824,24 +824,19 @@ ConvSolution ConvAsm1x1U::GetSolution(const ExecutionContext& ctx,
 
     PerformanceConfigConvAsm1x1U fromEnv;
     {
-        std::string s;
-        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS{});
-        if(p_asciz != nullptr)
+        const auto& s = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS));
+        if(!s.empty()) // else nothing to parse.
         {
-            s = std::string(p_asciz);
-            if(!s.empty()) // else nothing to parse.
+            if(!fromEnv.Deserialize(s) || !fromEnv.IsValidValue())
             {
-                if(!fromEnv.Deserialize(s) || !fromEnv.IsValidValue())
-                {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS: "
-                                 "Bad format or invalid for the problem config: "
-                                 << s);
-                }
-                else
-                {
-                    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
-                    pcfg = &fromEnv;
-                }
+                MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS: "
+                             "Bad format or invalid for the problem config: "
+                             << s);
+            }
+            else
+            {
+                MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
+                pcfg = &fromEnv;
             }
         }
     }
