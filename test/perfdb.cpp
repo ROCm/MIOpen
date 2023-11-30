@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "process.hpp"
 #include "test.hpp"
 #include "driver.hpp"
 
@@ -964,7 +965,7 @@ public:
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for multiprocess write access...");
 
-        std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
+        std::vector<Process> children{};
         const auto lock_file_path = LockFilePath(temp_file);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
@@ -977,7 +978,7 @@ public:
 
             auto id = 0;
 
-            for(auto& child : children)
+            for(auto i = 0; i < DBMultiThreadedTestWork::threads_count; ++i)
             {
                 auto command = exe_path().string() + " --" + ArgsHelper::write_arg + " --" +
                                ArgsHelper::id_arg + " " + std::to_string(id++) + " --" +
@@ -993,17 +994,14 @@ public:
                 if(full_set())
                     command += " --all";
 
-                child = popen(command.c_str(), "w");
+                children.emplace_back("test_perfdb_mp_" + std::to_string(i), command);
             }
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test processes...");
         for(auto child : children)
         {
-            auto status          = pclose(child);
-            const auto exit_code = WEXITSTATUS(status);
-
-            EXPECT_EQUAL(exit_code, 0);
+            EXPECT_EQUAL(child.Wait(), 0);
         }
 
         std::remove(lock_file_path.c_str());
@@ -1048,7 +1046,7 @@ public:
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for multiprocess read access...");
 
-        std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
+        std::vector<Process> children{};
         const auto lock_file_path = LockFilePath(temp_file);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
@@ -1063,7 +1061,7 @@ public:
 
             auto id = 0;
 
-            for(auto& child : children)
+            for(auto i = 0; i < DBMultiThreadedTestWork::threads_count; ++i)
             {
                 auto command = exe_path().string() + " --" + ArgsHelper::id_arg + " " +
                                std::to_string(id++) + " --" + ArgsHelper::path_arg + " " + p +
@@ -1080,17 +1078,14 @@ public:
                     command += " --all";
 
                 MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", command);
-                child = popen(command.c_str(), "w");
+                children.emplace_back("test_perfdb_mp_read_" + std::to_string(i), command);
             }
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test processes...");
         for(auto child : children)
         {
-            auto status          = pclose(child);
-            const auto exit_code = WEXITSTATUS(status);
-
-            EXPECT_EQUAL(exit_code, 0);
+            EXPECT_EQUAL(child.Wait(), 0);
         }
 
         std::remove(lock_file_path.c_str());

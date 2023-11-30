@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "process.hpp"
 #include "test.hpp"
 #include "driver.hpp"
 
@@ -828,7 +829,7 @@ public:
         std::cout << "Testing db for multiprocess write access..." << std::endl;
 
         ResetDb();
-        std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
+        std::vector<Process> children{};
         const auto lock_file_path = LockFilePath(temp_file);
 
         std::cout << "Initializing test data..." << std::endl;
@@ -841,7 +842,7 @@ public:
 
             auto id = 0;
 
-            for(auto& child : children)
+            for(auto i = 0; i < DBMultiThreadedTestWork::threads_count; ++i)
             {
                 auto command = exe_path().string() + " --" + write_arg + " --" + id_arg + " " +
                                std::to_string(id++) + " --" + path_arg + " " + temp_file.Path();
@@ -855,17 +856,14 @@ public:
                 if(full_set())
                     command += " --all";
 
-                child = popen(command.c_str(), "w");
+                children.emplace_back("test_perfdb_sqlite_" + std::to_string(i), command);
             }
         }
 
         std::cout << "Waiting for test processes..." << std::endl;
         for(auto child : children)
         {
-            auto status          = pclose(child);
-            const auto exit_code = WEXITSTATUS(status);
-
-            EXPECT_EQUAL(exit_code, 0);
+            EXPECT_EQUAL(child.Wait(), 0);
         }
 
         std::remove(lock_file_path.c_str());
@@ -904,7 +902,7 @@ public:
     {
         std::cout << "Testing db for multiprocess read access..." << std::endl;
 
-        std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
+        std::vector<Process> children{};
         const auto lock_file_path = LockFilePath(temp_file);
 
         std::cout << "Initializing test data..." << std::endl;
@@ -919,7 +917,7 @@ public:
 
             auto id = 0;
 
-            for(auto& child : children)
+            for(auto i = 0; i < DBMultiThreadedTestWork::threads_count; ++i)
             {
                 auto command = exe_path().string() + " --" + DbMultiProcessTest::id_arg + " " +
                                std::to_string(id++) + " --" + DbMultiProcessTest::path_arg + " " +
@@ -935,17 +933,14 @@ public:
                     command += " --all";
 
                 std::cout << command << std::endl;
-                child = popen(command.c_str(), "w");
+                children.emplace_back("test_perfdb_sqlite_read_" + std::to_string(i), command);
             }
         }
 
         std::cout << "Waiting for test processes..." << std::endl;
         for(auto child : children)
         {
-            auto status          = pclose(child);
-            const auto exit_code = WEXITSTATUS(status);
-
-            EXPECT_EQUAL(exit_code, 0);
+            EXPECT_EQUAL(child.Wait(), 0);
         }
 
         std::remove(lock_file_path.c_str());

@@ -24,12 +24,6 @@
  *
  *******************************************************************************/
 
-#ifdef __linux__
-#include <paths.h>
-#else
-#include <Windows.h>
-#endif // __linux__
-
 #include <string>
 #include <fstream>
 
@@ -39,41 +33,14 @@
 #include <miopen/tmp_dir.hpp>
 
 #include "test.hpp"
+#include "process.hpp"
 
 namespace bf = boost::filesystem;
 
-static int Child(const std::string& path, std::string cmd)
+static int Child(std::string_view path, std::string_view cmd)
 {
-#ifdef __linux__
-    std::ignore = path;
-    auto pipe   = popen(cmd.c_str(), "w");
-
-    if(pipe == nullptr)
-        MIOPEN_THROW("Error: popen()");
-
-    auto status = pclose(pipe);
-    return WEXITSTATUS(status);
-#else
-    STARTUPINFOA info{sizeof(info)};
-    PROCESS_INFORMATION processInfo{};
-
-    if(!CreateProcessA(
-           path, &cmd[0], nullptr, nullptr, false, 0, nullptr, nullptr, &info, &processInfo))
-        MIOPEN_THROW("CreateProcess error: " << GetLastError());
-
-    WaitForSingleObject(processInfo.hProcess, INFINITE);
-
-    DWORD status;
-    const auto getExitCodeStatus = GetExitCodeProcess(processInfo.hProcess, &status);
-
-    CloseHandle(processInfo.hProcess);
-    CloseHandle(processInfo.hThread);
-
-    if(!getExitCodeStatus)
-        MIOPEN_THROW("GetExitCodeProcess error: " << GetLastError());
-
-    return status;
-#endif // __linux__
+    Process child{path, cmd};
+    return child.Wait();
 }
 
 namespace miopen {
@@ -93,9 +60,9 @@ public:
         const auto header_src      = test_srcs.path / header_filename;
 
         // clang-format-off
-        std::ofstream(valid_src.c_str()) << "#include <" << header_filename << ">" << std::endl
-                                         << "#include \"" << header_filename << "\"" << std::endl
-                                         << "//inliner-include-optional" << std::endl
+        std::ofstream(valid_src.c_str()) << "#include <" << header_filename << ">\n"
+                                         << "#include \"" << header_filename << "\"\n"
+                                         << "//inliner-include-optional\n"
                                          << "#include <missing_header.h>" << std::endl;
         // clang-format-on
 
