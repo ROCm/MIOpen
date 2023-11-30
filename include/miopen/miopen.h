@@ -5234,6 +5234,9 @@ typedef enum
     miopenTensorActivationY  = 5,
     miopenTensorActivationDX = 6,
     miopenTensorActivationDY = 7,
+    miopenTensorBiasX        = 8,
+    miopenTensorBiasY        = 9,
+    miopenTensorBias         = 10,
 #endif
 } miopenTensorArgumentId_t;
 
@@ -5506,6 +5509,16 @@ miopenCreateActivationProblem(miopenProblem_t* problem,
  * @return             miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenFuseProblems(miopenProblem_t problem1, miopenProblem_t problem2);
+
+/*! @brief Initializes a problem object describing an bias operation.
+ * @note As of now there is no way to actually get any solution for this kind of problems.
+ *
+ * @param problem        Pointer to the problem to initialize
+ * @param direction      Direction of the operation
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenCreateBiasProblem(miopenProblem_t* problem,
+                                                     miopenProblemDirection_t direction);
 
 #endif
 
