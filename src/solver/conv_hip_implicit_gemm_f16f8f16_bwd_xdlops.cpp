@@ -24,18 +24,20 @@
  *
  *******************************************************************************/
 
-#include <vector>
-#include <cstdint>
-
+#include <miopen/config.h>
 #include <miopen/solver.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_data.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
+#include <miopen/env.hpp>
+#include <vector>
+#include <cstdint>
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_F16F8F16_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS)
 
 namespace miopen {
@@ -44,7 +46,7 @@ namespace conv {
 
 using ProblemDescription = miopen::conv::ProblemDescription;
 
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_USE_COMPOSABLEKERNEL
 template <typename DataType, typename OutComputeType, typename WeiComputeType>
 using DeviceOpF8Bwd = ck::tensor_operation::device::DeviceGroupedConvBwdDataMultipleD<
     3,
@@ -219,10 +221,9 @@ void PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops::HeuristicInit(
     index     = 0;
     kernel_id = "";
 
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    const auto& y_cast_type = problem.GetOut().GetCastType();
-    const auto& w_cast_type = problem.GetWeights().GetCastType();
-    if(y_cast_type == miopenBFloat8 && w_cast_type == miopenFloat8)
+#if MIOPEN_USE_COMPOSABLEKERNEL
+    if(problem.GetOut().GetCastType() == miopenBFloat8 &&
+       problem.GetWeights().GetCastType() == miopenFloat8)
         Init<ck::half_t, ck::bf8_t, ck::f8_t>(problem);
 #endif
 }
@@ -254,10 +255,9 @@ bool PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops::IsValidValue() const
 bool PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops::IsValid(
     [[maybe_unused]] const ProblemDescription& problem) const
 {
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    const auto& y_cast_type = problem.GetOut().GetCastType();
-    const auto& w_cast_type = problem.GetWeights().GetCastType();
-    if(y_cast_type == miopenBFloat8 && w_cast_type == miopenFloat8)
+#if MIOPEN_USE_COMPOSABLEKERNEL
+    if(problem.GetOut().GetCastType() == miopenBFloat8 &&
+       problem.GetWeights().GetCastType() == miopenFloat8)
         return CheckIsSupportCKArgs<ck::half_t, ck::bf8_t, ck::f8_t>(problem);
 #endif
     return false;
@@ -298,7 +298,7 @@ bool ConvHipImplicitGemmF16F8F16BwdXdlops::IsApplicable(
     [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem) const
 {
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_USE_COMPOSABLEKERNEL
     if(miopen::IsDisabled(MIOPEN_DEBUG_F16F8F16_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS{}))
         return false;
     if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
@@ -309,30 +309,15 @@ bool ConvHipImplicitGemmF16F8F16BwdXdlops::IsApplicable(
         return false;
     if(!problem.IsDirectionBackwardData())
         return false;
-    if(!problem.Is3d())
-        return false;
     if(!problem.IsLayoutNHWC())
         return false;
     if(!problem.IsFp16())
         return false;
     if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
-    const auto& yDesc = problem.GetOut();
-    const auto& wDesc = problem.GetWeights();
-    if(yDesc.GetCastType() && wDesc.GetCastType())
-    {
-        const auto y_cast_type = yDesc.GetCastType();
-        const auto w_cast_type = wDesc.GetCastType();
-        if(y_cast_type == miopenBFloat8 && w_cast_type == miopenFloat8)
-        {
-            return CheckCKApplicability<ck::half_t, ck::bf8_t, ck::f8_t>(problem);
-        }
-    }
-    else
-    {
-        MIOPEN_LOG_I("Both the output and weights tensors need to be casted");
-        return false;
-    }
+    if(problem.GetOut().GetCastType() == miopenBFloat8 &&
+       problem.GetWeights().GetCastType() == miopenFloat8)
+        return CheckCKApplicability<ck::half_t, ck::bf8_t, ck::f8_t>(problem);
 #endif
     return false;
 }
@@ -342,25 +327,13 @@ ConvSolution ConvHipImplicitGemmF16F8F16BwdXdlops::GetSolution(
     [[maybe_unused]] const ProblemDescription& problem,
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops& config) const
 {
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    const auto& yDesc = problem.GetOut();
-    const auto& wDesc = problem.GetWeights();
-    if(yDesc.GetCastType() && wDesc.GetCastType())
-    {
-        const auto y_cast_type = yDesc.GetCastType();
-        const auto w_cast_type = wDesc.GetCastType();
-        if(y_cast_type == miopenBFloat8 && w_cast_type == miopenFloat8)
-            return MakeInvokerFactory<DeviceOpF8BwdPtrs<ck::half_t, ck::bf8_t, ck::f8_t>,
-                                      CKArgs,
-                                      miopen::conv::DataInvokeParams>(problem, config.kernel_id);
-        else
-            return {};
-    }
-    else
-        MIOPEN_THROW(miopenStatusInternalError, "Datatype not casted");
-#endif
-
+#if MIOPEN_USE_COMPOSABLEKERNEL
+    return MakeInvokerFactory<DeviceOpF8BwdPtrs<ck::half_t, ck::bf8_t, ck::f8_t>,
+                              CKArgs,
+                              miopen::conv::DataInvokeParams>(problem, config.kernel_id);
+#else
     return {};
+#endif
 }
 
 } // namespace conv
