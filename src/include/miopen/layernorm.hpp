@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/miopen.h>
 #ifndef MIOPEN_LAYERNORM_HPP_
 #define MIOPEN_LAYERNORM_HPP_
 

@@ -22,5 +22,6 @@ API Reference
     dropout
     reduction
     layernorm
+    sum
     cat
 
