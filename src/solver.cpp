@@ -44,7 +44,7 @@
 #include <boost/range/adaptor/transformed.hpp>
 #include <ostream>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
 
 namespace miopen {
 namespace solver {
@@ -67,7 +67,6 @@ std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<Kernel
 
     // clang-format off
     par_for_strided(kernels.size(),
-                    // max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)},
                     max_threads{GetTuningThreadsMax()},
                     [&](auto i) {
                         const KernelInfo& k = kernels[i];
@@ -617,7 +616,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 bool ThisSolverIsDeprecatedStatic::IsDisabled(const ExecutionContext& ctx)
 {
     static const bool device_is_allowed = [&]() {
-        if(miopen::IsEnabled(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS{}))
+        if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)))
             return true;
         const auto device = ctx.GetStream().GetTargetProperties().Name();
         return device == "gfx803"                       // Fiji
