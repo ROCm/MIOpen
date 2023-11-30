@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/env.hpp>
 #include "sum.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
