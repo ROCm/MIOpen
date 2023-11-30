@@ -50,7 +50,7 @@ find_program(CLANG_TIDY_EXE
 
 function(find_clang_tidy_version VAR)
     execute_process(COMMAND ${CLANG_TIDY_EXE} -version OUTPUT_VARIABLE VERSION_OUTPUT)
-    separate_arguments(VERSION_OUTPUT_LIST UNIX_COMMAND "${VERSION_OUTPUT}")
+    separate_arguments(VERSION_OUTPUT_LIST NATIVE_COMMAND "${VERSION_OUTPUT}")
     list(FIND VERSION_OUTPUT_LIST "version" VERSION_INDEX)
     if(VERSION_INDEX GREATER 0)
         math(EXPR VERSION_INDEX "${VERSION_INDEX} + 1")
