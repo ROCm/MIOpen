@@ -33,7 +33,7 @@ using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
-static bool SkipTest(void) { return miopen::IsEnabled(MIOPEN_TEST_GPU_XNACK_ENABLED{}); }
+static bool SkipTest(void) { return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)); }
 
 void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
 {

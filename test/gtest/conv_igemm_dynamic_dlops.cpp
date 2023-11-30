@@ -37,8 +37,8 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
 static bool SkipTest(void)
 {
-    return miopen::IsEnabled(MIOPEN_TEST_GPU_XNACK_ENABLED{}) ||
-           miopen::IsDisabled(MIOPEN_TEST_ALL{});
+    return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)) ||
+           miopen::IsDisabled(ENV(MIOPEN_TEST_ALL));
 }
 
 void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
