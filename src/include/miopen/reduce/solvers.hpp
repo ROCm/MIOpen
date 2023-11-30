@@ -23,32 +23,37 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_LAYERNORM_HPP_
-#define MIOPEN_LAYERNORM_HPP_
 
-#include <miopen/common.hpp>
+#pragma once
+
+#include <miopen/solver.hpp>
+#include <miopen/reduce/problem_description.hpp>
+
+#include <utility>
 
 namespace miopen {
 
-struct Handle;
-struct TensorDescriptor;
+namespace solver {
 
-miopenStatus_t LayerNormForward(Handle& handle,
-                                const TensorDescriptor& xDesc,
-                                ConstData_t x,
-                                const TensorDescriptor& weightDesc,
-                                ConstData_t weight,
-                                const TensorDescriptor& biasDesc,
-                                ConstData_t bias,
-                                const TensorDescriptor& yDesc,
-                                Data_t y,
-                                const TensorDescriptor& meanDesc,
-                                Data_t mean,
-                                const TensorDescriptor& rstdDesc,
-                                Data_t rstd,
-                                miopenLayerNormMode_t mode,
-                                float epsilon,
-                                int32_t normalized_dim);
+namespace reduce {
+
+using ReduceSolver = NonTunableSolverBase<ExecutionContext, miopen::reduce::ProblemDescription>;
+
+struct SumForward final : ReduceSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<SumForward>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::reduce::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::reduce::ProblemDescription& problem) const override;
+    std::size_t GetWorkspaceSize(const ExecutionContext& context,
+                                 const miopen::reduce::ProblemDescription& problem) const override;
+    bool MayNeedWorkspace() const override { return true; }
+};
+
+} // namespace reduce
+
+} // namespace solver
 
 } // namespace miopen
-#endif // _MIOPEN_LAYERNORM_HPP_
