@@ -440,7 +440,7 @@ auto GenericSearch(const Solver s,
                                     std::ref(solution_queue));
     }
 
-    if(!IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
+    if(!IsEnabled(ENV(MIOPEN_DEBUG_COMPILE_ONLY)))
     {
         size_t n_current       = 0;
         auto threads_remaining = total_threads;

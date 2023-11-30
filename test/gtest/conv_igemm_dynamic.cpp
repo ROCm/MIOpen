@@ -33,9 +33,9 @@
 
 using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_TEST_GPU_XNACK_ENABLED)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
-static bool SkipTest(void) { return miopen::IsEnabled(MIOPEN_TEST_GPU_XNACK_ENABLED{}); }
+static bool SkipTest(void) { return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)); }
 
 void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
 {
@@ -143,17 +143,17 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
 
     const std::vector<TestCase> test_cases = {
     // clang-format off
-#if CODECOV_TEST        
+#if CODECOV_TEST
     TestCase{env, precision + v +  " --input  32  32 17 17 --weights 32  32 1 7 --pads_strides_dilations 0 3 1 1 1 1" + dis_bk_data + dis_bk_wei + dis_vali},
     TestCase{env_wrw, precision + v + " --input  64  64 28 28 --weights 32  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data + dis_vali},
     TestCase{env_bwd, precision + v + " --input  64  64 28 28 --weights 16  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei + dis_vali},
-#else    
+#else
     TestCase{env, precision + v + " --input  16  16 56 56 --weights 64  16 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
     TestCase{env, precision + v + " --input  16  64 34 34 --weights 64  64 3 3 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
     TestCase{env, precision + v + " --input  32  32 17 17 --weights 32  32 1 7 --pads_strides_dilations 0 3 1 1 1 1" + dis_bk_data + dis_bk_wei},
     TestCase{env_1x1, precision + v + " --input  16 384  8  8 --weights 64 384 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
     TestCase{env_wrw, precision + v + " --input  64  64 28 28 --weights 32  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},
-    TestCase{env_wrw, precision + v + " --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},    
+    TestCase{env_wrw, precision + v + " --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},
     TestCase{env_bwd, precision + v + " --input  64  64 28 28 --weights 16  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei},
     TestCase{env_bwd, precision + v + " --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei},
 #endif

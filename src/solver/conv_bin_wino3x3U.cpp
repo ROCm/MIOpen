@@ -35,7 +35,7 @@
 
 #include <boost/any.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)
 
 namespace miopen {
 namespace solver {
@@ -46,7 +46,7 @@ using ProblemDescription = miopen::conv::ProblemDescription;
 bool ConvBinWinograd3x3U::IsApplicable(const ExecutionContext& ctx,
                                        const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_3X3{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)))
         return false;
     if(!problem.Is2d())
         return false;

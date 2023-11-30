@@ -35,6 +35,7 @@
 #include <miopen/find_db.hpp>
 #include <miopen/find_controls.hpp>
 #include <miopen/float_equal.hpp>
+#include <miopen/generic_search_controls.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/solver.hpp>
@@ -56,14 +57,13 @@
 
 #include <boost/range/adaptors.hpp>
 
-namespace miopen {
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DUMP_TENSOR_PATH)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DUMP_TENSOR_PATH)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)
+namespace miopen {
 
 static inline bool IsValidFilterChannelNumber(const TensorDescriptor& x,
                                               const TensorDescriptor& w,
@@ -204,7 +204,7 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
         auto sols     = conv.GetSolutions(ctx, problem, 1, &fallback);
         // override the normal find with immed mode with env var
         if(!sols.empty() && (!(findMode.IsHybrid(ctx) && fallback) ||
-                             miopen::IsEnabled(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK{})))
+                             miopen::IsEnabled(ENV(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK))))
             sol = sols.front();
         // In Hybrid Find mode, we use Normal Find instead of Immediate fallback kernels.
     }
@@ -230,7 +230,7 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
         });
     }
 
-    if(IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
+    if(IsEnabled(ENV(MIOPEN_DEBUG_COMPILE_ONLY)))
     {
         MIOPEN_THROW(
             miopenStatusGpuOperationsSkipped,
@@ -391,13 +391,12 @@ static void ConvForwardCheckNumerics(const Handle& handle,
 
     flag |= miopen::checkNumericsOutput(handle, tensors.yDesc, tensors.y);
 
-    const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
-    if(flag && static_cast<bool>(file_name))
+    const auto& file_name = miopen::GetStringEnv(ENV(MIOPEN_DUMP_TENSOR_PATH));
+    if(flag && !file_name.empty())
     {
-        std::string file_name_str = file_name;
-        DumpTensorToFileFromDevice(handle, tensors.xDesc, tensors.x, file_name_str + "_x.bin");
-        DumpTensorToFileFromDevice(handle, tensors.wDesc, tensors.w, file_name_str + "_w.bin");
-        DumpTensorToFileFromDevice(handle, tensors.yDesc, tensors.y, file_name_str + "_y.bin");
+        DumpTensorToFileFromDevice(handle, tensors.xDesc, tensors.x, file_name + "_x.bin");
+        DumpTensorToFileFromDevice(handle, tensors.wDesc, tensors.w, file_name + "_w.bin");
+        DumpTensorToFileFromDevice(handle, tensors.yDesc, tensors.y, file_name + "_y.bin");
     }
 }
 
@@ -592,7 +591,7 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
                                             const conv::ProblemDescription& problem,
                                             const size_t maxSolutionCount) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)))
     {
         MIOPEN_LOG_I("Disabled via environment");
         return {};
@@ -610,7 +609,7 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
 
     // TunaNet Fallback
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK{}))
+    if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK)))
     {
         const static std::string arch = ctx.GetStream().GetDeviceName();
         auto solvers                  = ai::immed_mode::PredictSolver(problem, ctx, arch);
@@ -921,13 +920,12 @@ static void ConvBwdCheckNumerics(const Handle& handle,
 
     flag |= miopen::checkNumericsOutput(handle, tensors.dxDesc, tensors.dx);
 
-    const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
-    if(flag && static_cast<bool>(file_name))
+    const auto& file_name = miopen::GetStringEnv(ENV(MIOPEN_DUMP_TENSOR_PATH));
+    if(flag && !file_name.empty())
     {
-        std::string file_name_str = file_name;
-        DumpTensorToFileFromDevice(handle, tensors.dyDesc, tensors.dy, file_name_str + "_dy.bin");
-        DumpTensorToFileFromDevice(handle, tensors.wDesc, tensors.w, file_name_str + "_w.bin");
-        DumpTensorToFileFromDevice(handle, tensors.dxDesc, tensors.dx, file_name_str + "_dx.bin");
+        DumpTensorToFileFromDevice(handle, tensors.dyDesc, tensors.dy, file_name + "_dy.bin");
+        DumpTensorToFileFromDevice(handle, tensors.wDesc, tensors.w, file_name + "_w.bin");
+        DumpTensorToFileFromDevice(handle, tensors.dxDesc, tensors.dx, file_name + "_dx.bin");
     }
 }
 
@@ -1129,13 +1127,12 @@ static void ConvWrwCheckNumerics(const Handle& handle,
 
     flag |= miopen::checkNumericsOutput(handle, tensors.dwDesc, tensors.dw);
 
-    const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
-    if(flag && static_cast<bool>(file_name))
+    const auto& file_name = miopen::GetStringEnv(ENV(MIOPEN_DUMP_TENSOR_PATH));
+    if(flag && !file_name.empty())
     {
-        std::string file_name_str = file_name;
-        DumpTensorToFileFromDevice(handle, tensors.dyDesc, tensors.dy, file_name_str + "_dy.bin");
-        DumpTensorToFileFromDevice(handle, tensors.xDesc, tensors.x, file_name_str + "_x.bin");
-        DumpTensorToFileFromDevice(handle, tensors.dwDesc, tensors.dw, file_name_str + "_dw.bin");
+        DumpTensorToFileFromDevice(handle, tensors.dyDesc, tensors.dy, file_name + "_dy.bin");
+        DumpTensorToFileFromDevice(handle, tensors.xDesc, tensors.x, file_name + "_x.bin");
+        DumpTensorToFileFromDevice(handle, tensors.dwDesc, tensors.dw, file_name + "_dw.bin");
     }
 }
 

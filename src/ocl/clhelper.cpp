@@ -45,7 +45,7 @@
 #include <string>
 #include <vector>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
 
 namespace miopen {
 
@@ -211,7 +211,7 @@ ClProgramPtr LoadProgram(cl_context ctx,
     else // OpenCL programs.
     {
         ClProgramPtr result{CreateProgram(ctx, source.data(), source.size())};
-        if(miopen::IsEnabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP{}))
+        if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)))
             params += " -Wf,-mwavefrontsize64 -Wf,-mcumode";
 #if MIOPEN_BUILD_DEV
         params += " -Werror";

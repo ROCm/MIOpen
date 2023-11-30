@@ -36,12 +36,12 @@
 #include <boost/any.hpp>
 
 /// Global switch
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_RXS)
 /// Sub-switches for testing/debugging
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_FWD_BWD)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_FWD_BWD)
 /// \todo Detect at runtime and remove this var:
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 
 /// \return v rounded up (towards +inf) to the nearest multiple of m.
 /// Defined for positive values only.
@@ -227,11 +227,11 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(problem.IsTensorsCasted())
         return false;
-    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS)))
         return false;
     if(problem.IsDirectionBackwardWrW())
     {
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW{}))
+        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW)))
             return false;
         if(!(problem.IsFp32() && problem.GetKernelStrideW() == 1 &&
              problem.GetKernelStrideH() == 1))
@@ -239,7 +239,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
     }
     else
     {
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_FWD_BWD{}))
+        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_FWD_BWD)))
             return false;
     }
     if(!ctx.use_asm_kernels)
@@ -345,7 +345,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
     {
         kernel.kernel_name = "miopenSp3AsmConvRxSU";
         kernel.kernel_file = "Conv_Winograd_";
-        if(miopen::IsEnabled(MIOPEN_DEBUG_SRAM_EDC_DISABLED{}))
+        if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_SRAM_EDC_DISABLED)))
             kernel.kernel_file += "v13_3_12";
         else
             kernel.kernel_file += "v14_3_3";

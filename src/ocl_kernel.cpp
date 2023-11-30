@@ -30,7 +30,7 @@
 
 namespace miopen {
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEVICE_ARCH)
 
 static std::string DimToFormattedString(const size_t* dims, size_t count)
 {
@@ -58,8 +58,8 @@ void OCLKernelInvoke::run() const
 
     MIOPEN_HANDLE_LOCK
 
-    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
-    if(arch != nullptr && strlen(arch) > 0)
+    const auto& arch = miopen::GetStringEnv(ENV(MIOPEN_DEVICE_ARCH));
+    if(!arch.empty())
     {
         MIOPEN_THROW("MIOPEN_DEVICE_ARCH used, escaping launching kernel");
     }
