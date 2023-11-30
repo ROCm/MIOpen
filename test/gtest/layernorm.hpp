@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#define MIOPEN_BETA_API 1
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
 #include <miopen/layernorm.hpp>
@@ -279,8 +278,8 @@ protected:
 
         error = miopen::rms_range(ref_mean, mean);
         EXPECT_TRUE(miopen::range_distance(ref_mean) == miopen::range_distance(mean));
-        EXPECT_TRUE(error < threshold * 20)
-            << "Error mean beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        EXPECT_TRUE(error < threshold * 20) << "Error mean beyond tolerance Error:" << error
+                                            << ",  Thresholdx20: " << threshold * 20;
 
         error = miopen::rms_range(ref_rstd, rstd);
         EXPECT_TRUE(miopen::range_distance(ref_rstd) == miopen::range_distance(rstd));
