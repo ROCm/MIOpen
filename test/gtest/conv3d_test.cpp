@@ -25,32 +25,22 @@
  *******************************************************************************/
 #include <tuple>
 #include <miopen/miopen.h>
+#include <miopen/env.hpp>
 #include <gtest/gtest.h>
 #include "../conv3d.cpp"
 #include "get_handle.hpp"
 
-using TestCase = std::tuple<std::vector<std::string>, std::string>;
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_TEST_FLOAT_ARG)
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_TEST_ALL)
-
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_TEST_GPU_XNACK_ENABLED)
-
-static bool SkipTest(void)
+static bool IsTestRunWith(const char* float_arg)
 {
-    return miopen::IsEnabled(MIOPEN_TEST_GPU_XNACK_ENABLED{}) ||
-           miopen::IsDisabled(MIOPEN_TEST_ALL{});
+    assert(float_arg != nullptr);
+    const char* const p_envVar = miopen::GetStringEnv(MIOPEN_TEST_FLOAT_ARG{});
+    return (p_envVar != nullptr && std::strcmp(p_envVar, float_arg) == 0);
 }
 
 void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
 {
-    auto env_vars = std::get<0>(param);
-    for(auto& elem : env_vars)
-    {
-        putenv(elem.data());
-    }
-
-    auto cmd = std::get<1>(param);
-
     std::stringstream ss(cmd);
     std::istream_iterator<std::string> begin(ss);
     std::istream_iterator<std::string> end;
@@ -58,7 +48,7 @@ void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class Conv3dFloat : public testing::TestWithParam<std::vector<TestCase>>
+class Conv3dFloat : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -77,7 +67,7 @@ void Run3dDriver(miopenDataType_t prec)
     case miopenBFloat8:
         FAIL() << "miopenHalf, miopenInt8, miopenBFloat16, miopenInt32, "
                   "miopenDouble, miopenFloat8, miopenBFloat8 "
-                  "data type not supported by conv_igemm_dynamic test";
+                  "data type not supported by conv3d_test";
 
     default: params = Conv3dFloat::GetParam(); break;
     }
@@ -98,12 +88,12 @@ void Run3dDriver(miopenDataType_t prec)
         auto capture = testing::internal::GetCapturedStderr();
         std::cout << capture;
     }
-}
+};
 
 bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
     std::string devName = handle.GetDeviceName();
-    if(devName == "gfx94" || devName == "gfx103" || miopen::StartsWith(devName, "gfx110"))
+    if(devName == "gfx94" || devName == "gfx103" || devName == "gfx110")
         return true;
     else
         return false;
@@ -111,40 +101,54 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
 
 TEST_P(Conv3dFloat, FloatTest)
 {
+#if MIOPEN_BACKEND_OPENCL
+
+    GTEST_SKIP() << "MIOPEN_BACKEND_HIP needed for this test";
+
+#else // MIOPEN_BACKEND_HIP, OCL_DISABLED
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())
-    {
-        Run3dDriver(miopenFloat);
-    }
+       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_COMPOSABLEKERNEL") &&
+       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") && IsTestRunWith("--float"))
+       {
+           Run3dDriver(miopenFloat);
+       }
     else
     {
         GTEST_SKIP();
     }
+#endif
 };
 
-std::vector<TestCase> GetTestCases(const std::string& precision)
+std::vector<std::string> GetTestCases(const std::string& precision)
 {
+    std::string psd0 = " --pads_strides_dilations 0 0 0 1 1 1 1 1 1";
+    std::string psd1 = " --pads_strides_dilations 0 0 0 2 2 2 1 1 1";
+    std::string psd2 = " --pads_strides_dilations 2 2 2 1 1 1 1 1 1";
+    std::string psd3 = " --pads_strides_dilations 0 0 0 1 1 1 2 2 2";
+    std::string psd4 = " --pads_strides_dilations 1 1 1 1 1 1 1 1 1";
+    std::string psd5 = " --pads_strides_dilations 0 0 0 1 1 1 1 1 1";
 
-    const std::vector<TestCase> test_cases = {
+    std::vector<std::string> test_cases = {
         // clang-format off
     // test_conv3d_extra
-    {{}, precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 1 1 1" },
-    {{}, precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 2 2 2 1 1 1" },
-    {{}, precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 2 2 2 1 1 1 1 1 1" },
-    {{}, precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 2 2 2" },
+    {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5" + psd0},
+    {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5" + psd1},
+    {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5" + psd2},
+    {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5" + psd3},
     //test_conv3d_extra reduced set
-    {{}, precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 1 1 1" },
-    {{}, precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 2 2 2 1 1 1" },
-    {{}, precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 2 2 2 1 1 1 1 1 1" },
-    {{}, precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 2 2 2" },
-    {{}, precision + "--input 1 16 4 161 700 --weights 16 16 3 11 11 --pads_strides_dilations 1 1 1 1 1 1 1 1 1" },
-    {{}, precision + "--input 1 16 4 161 700 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 1 1 1 1 1 1" },
-    {{}, precision + "--input 1 16 4 140 602 --weights 16 16 3 11 11 --pads_strides_dilations 1 1 1 1 1 1 1 1 1" },
-    {{}, precision + "--input 1 16 4 140 602 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 1 1 1 1 1 1" }
+    {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5" + psd0 },
+    {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5" + psd1 },
+    {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5" + psd2 },
+    {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5" + psd3 },
+    {precision + "--input 1 16 4 161 700 --weights 16 16 3 11 11" + psd4 },
+    {precision + "--input 1 16 4 161 700 --weights 16 16 3 11 11" + psd5 },
+    {precision + "--input 1 16 4 140 602 --weights 16 16 3 11 11" + psd4 },
+    {precision + "--input 1 16 4 140 602 --weights 16 16 3 11 11" + psd5 }
 
     };
     return test_cases;
-    };
+}
 
 INSTANTIATE_TEST_SUITE_P(Conv3dFloatTest,
                          Conv3dFloat,
