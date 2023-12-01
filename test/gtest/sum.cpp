@@ -23,32 +23,37 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_LAYERNORM_HPP_
-#define MIOPEN_LAYERNORM_HPP_
+#include <miopen/env.hpp>
+#include "sum.hpp"
 
-#include <miopen/common.hpp>
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-namespace miopen {
+std::string GetFloatArg()
+{
+    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    if(tmp.empty())
+    {
+        return "";
+    }
+    return tmp;
+}
 
-struct Handle;
-struct TensorDescriptor;
+struct SumTestFloat : SumTest<float>
+{
+};
 
-miopenStatus_t LayerNormForward(Handle& handle,
-                                const TensorDescriptor& xDesc,
-                                ConstData_t x,
-                                const TensorDescriptor& weightDesc,
-                                ConstData_t weight,
-                                const TensorDescriptor& biasDesc,
-                                ConstData_t bias,
-                                const TensorDescriptor& yDesc,
-                                Data_t y,
-                                const TensorDescriptor& meanDesc,
-                                Data_t mean,
-                                const TensorDescriptor& rstdDesc,
-                                Data_t rstd,
-                                miopenLayerNormMode_t mode,
-                                float epsilon,
-                                int32_t normalized_dim);
+TEST_P(SumTestFloat, SumTestFw)
+{
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
-} // namespace miopen
-#endif // _MIOPEN_LAYERNORM_HPP_
+INSTANTIATE_TEST_SUITE_P(SumTestSet, SumTestFloat, testing::ValuesIn(SumTestConfigs()));
