@@ -32,7 +32,7 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_V4R1)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_V4R1)
 
 namespace miopen {
 namespace solver {
@@ -298,7 +298,7 @@ static int GetGemmkGroups(const ProblemDescription& problem)
 bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const ExecutionContext& ctx,
                                                      const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_V4R1{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_V4R1)))
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();

@@ -48,7 +48,7 @@
 #include <iostream>
 #include <iterator>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEVICE_ARCH)
 
 namespace miopen {
 
@@ -120,8 +120,8 @@ Kernel KernelCache::AddKernel(const Handle& h,
     }
 
     Kernel kernel{};
-    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
-    if(arch != nullptr && strlen(arch) > 0)
+    const auto& arch = miopen::GetStringEnv(ENV(MIOPEN_DEVICE_ARCH));
+    if(!arch.empty())
     {
         kernel = Kernel{program, kernel_name};
     }
