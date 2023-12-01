@@ -36,7 +36,7 @@
 #include <numeric>
 #include <algorithm>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_RNNFWD_exp)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNNFWD_exp)
 
 namespace miopen {
 
@@ -2520,7 +2520,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
 
     if(rnnMode == miopenLSTM && algoMode == miopenRNNdefault && !use_dropout && nLayers > 1 &&
        dirMode == miopenRNNunidirection && inputMode != miopenRNNskip &&
-       !(miopen::IsDisabled(MIOPEN_RNNFWD_exp{})) && xDesc[0].GetType() == miopenFloat &&
+       !(miopen::IsDisabled(ENV(MIOPEN_RNNFWD_exp))) && xDesc[0].GetType() == miopenFloat &&
        seqLen >= 32)
     {
         RNNForwardTraining_MS(handle,
