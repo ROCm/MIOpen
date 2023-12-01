@@ -52,7 +52,8 @@ enum class Primitive
     Bias,
     Fusion,
     Pooling,
-    Normalization
+    Normalization,
+    Reduce
 };
 
 struct MIOPEN_EXPORT Id

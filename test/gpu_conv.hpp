@@ -43,7 +43,7 @@ MIOPEN_EXPORT extern bool
 } // namespace debug
 } // namespace miopen
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF)
 
 struct AutoPrepareForGpuReference
 {
@@ -76,7 +76,7 @@ bool gpu_ref_convolution_fwd(const tensor<Tin>& input,
                              miopen::ConvolutionDescriptor filter)
 {
     bool gpu_ref_used = false;
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF{}))
+    if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF)))
     {
         const AutoPrepareForGpuReference guard;
         auto&& handle            = get_handle();
@@ -112,7 +112,7 @@ bool gpu_ref_convolution_bwd(tensor<Tin>& input,
                              miopen::ConvolutionDescriptor filter)
 {
     bool gpu_ref_used = false;
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF{}))
+    if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF)))
     {
         const AutoPrepareForGpuReference guard;
         auto&& handle            = get_handle();
@@ -148,7 +148,7 @@ bool gpu_ref_convolution_wrw(const tensor<Tin>& input,
                              miopen::ConvolutionDescriptor filter)
 {
     bool gpu_ref_used = false;
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF{}))
+    if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF)))
     {
         const AutoPrepareForGpuReference guard;
         auto&& handle            = get_handle();

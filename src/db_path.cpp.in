@@ -37,8 +37,8 @@
 #include <dlfcn.h>
 #endif
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_SYSTEM_DB_PATH)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_USER_DB_PATH)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_SYSTEM_DB_PATH)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_USER_DB_PATH)
 
 namespace miopen {
 
@@ -65,8 +65,8 @@ boost::filesystem::path GetLibPath()
 
 std::string GetSystemDbPath()
 {
-    auto p = GetStringEnv(MIOPEN_SYSTEM_DB_PATH{});
-    if(p == nullptr)
+    auto p = GetStringEnv(ENV(MIOPEN_SYSTEM_DB_PATH));
+    if(p.empty())
 #if MIOPEN_BUILD_DEV
     {
         return "${MIOPEN_SYSTEM_DB_PATH}";
@@ -89,8 +89,8 @@ boost::filesystem::path PrepareUserDbPath()
 {
     /// If MIOPEN_USER_DB_PATH is set in the environment, then assume that the user wants
     /// the library to use exactly that path.
-    const auto p = GetStringEnv(MIOPEN_USER_DB_PATH{});
-    if(p != nullptr)
+    const auto p = GetStringEnv(ENV(MIOPEN_USER_DB_PATH));
+    if(!p.empty())
         return ExpandUser(p);
     /// \anchor nfs-detection
     /// Otherwise, check if the user-db-path denotes a network filesystem. If this is the case, then
