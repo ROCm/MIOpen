@@ -3,9 +3,10 @@
 
 
 ## The key differences between MIOpen and cuDNN:
-* MIOpen only supports 4-D tensors in the NCHW storage format. This means all the __“\*Nd\*”__ APIs in cuDNN do not have a corresponding API in MIOpen.
+* MIOpen only supports 4-D tensors in the NCHW and NHWC storage format. This means all the __“\*Nd\*”__ APIs in cuDNN do not have a corresponding API in MIOpen.
 * MIOpen only supports __`float(fp32)`__ data-type.
-* MIOpen only supports __2D Convolutions__ and __2D Pooling__.
+* MIOpen supports __2D Convolutions__ and __3D Convolutions__.
+* MIOpen only supports __2D Pooling__.
 * Calling miopenFindConvolution*Algorithm() is *mandatory* before calling any Convolution API.
 * Typical calling sequence for Convolution APIs for MIOpen is:
     * miopenConvolution*GetWorkSpaceSize() // returns the workspace size required by Find()
