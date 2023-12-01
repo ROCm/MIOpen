@@ -23,16 +23,43 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/env.hpp>
 #include "layernorm.hpp"
-#ifdef MIOPEN_BETA_API
 
-struct LayerNormSolverTestFloat : LayerNormSolverTest<float>
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
+
+std::string GetFloatArg()
+{
+    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    if(tmp.empty())
+    {
+        return "";
+    }
+    return tmp;
+}
+
+struct LayerNormTestFloat : LayerNormTest<float>
 {
 };
 
-TEST_P(LayerNormSolverTestFloat, LayerNormTestFw){};
+TEST_P(LayerNormTestFloat, LayerNormTestFw)
+{
+    const auto& handle = get_handle();
+    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
+       miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
 INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
-                         LayerNormSolverTestFloat,
+                         LayerNormTestFloat,
                          testing::ValuesIn(LayerNormTestConfigs()));
-#endif

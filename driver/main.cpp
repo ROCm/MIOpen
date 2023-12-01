@@ -41,11 +41,10 @@
 #include "dropout_driver.hpp"
 #include "tensorop_driver.hpp"
 #include "reduce_driver.hpp"
+#include "layernorm_driver.hpp"
+#include "sum_driver.hpp"
 #include <miopen/config.h>
 #include <miopen/stringutils.hpp>
-#ifdef MIOPEN_BETA_API
-#include "layernorm_driver.hpp"
-#endif
 
 int main(int argc, char* argv[])
 {
@@ -199,7 +198,6 @@ int main(int argc, char* argv[])
     {
         drv = new ReduceDriver<double, double>();
     }
-#ifdef MIOPEN_BETA_API
     else if(base_arg == "layernorm")
     {
         drv = new LayerNormDriver<float, float>();
@@ -212,7 +210,18 @@ int main(int argc, char* argv[])
     {
         drv = new LayerNormDriver<bfloat16, float>();
     }
-#endif
+    else if(base_arg == "sum")
+    {
+        drv = new SumDriver<float, float>();
+    }
+    else if(base_arg == "sumfp16")
+    {
+        drv = new SumDriver<float16, float>();
+    }
+    else if(base_arg == "sumbfp16")
+    {
+        drv = new SumDriver<bfloat16, float>();
+    }
     else
     {
         printf("Incorrect BaseArg\n");

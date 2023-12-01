@@ -46,7 +46,7 @@
 
 using half_float::half;
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
 namespace miopen {
 namespace solver {
@@ -156,11 +156,15 @@ ConvBiasActivAsm1x1U::GetSolution(const FusionContext& context,
             const auto& top_ocl_buf  = invoke_ctx.out;
             const auto& bias_ocl_buf = [&]() -> ConstData_t {
                 if(has_bias)
+                {
                     return dynamic_cast<miopen::fusion::BiasOpInvokeParam&>(
                                *invoke_ctx.op_args.params[1])
                         .bdata;
+                }
                 else
+                {
                     return nullptr;
+                }
             }();
 
             if(activ_idx == -1) // skip the activation args
@@ -218,7 +222,7 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
     {
         MIOPEN_THROW("");
     }
-    if(miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_GCN_ASM_KERNELS)))
         return false;
     // check the sequence of prims
     if(desc.op_map.size() > 3)

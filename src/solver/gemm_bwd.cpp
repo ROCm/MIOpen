@@ -40,7 +40,7 @@
 #include <boost/any.hpp>
 #include <boost/range/adaptors.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 
 #define WORKAROUND_MIOPENGEMM_ISSUE_59 1
 
@@ -314,7 +314,7 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
     solution.workspace_sz = workspace_req;
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
-        const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
+        const bool time_precision = (!IsDisabled(ENV(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)));
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto& conv_params    = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
@@ -336,9 +336,11 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
             }
 
             if((workspace_req > 0 && workspace == nullptr) || workspace_size < workspace_req)
+            {
                 MIOPEN_THROW("Not enough workspace for GemmBwd1x1_stride2. (" +
                              std::to_string(workspace_size) + " < " +
                              std::to_string(workspace_req) + ")");
+            }
 
             // Initialization required for upsampling in bwd direction
             float zero = 0.f;
@@ -377,6 +379,7 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
             if(conv_params.type == InvokeType::Run)
             {
                 if(group_count > 1)
+                {
                     gemm_status = CallGemmStridedBatched(handle,
                                                          gemm_desc,
                                                          w,
@@ -386,7 +389,9 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
                                                          workspace,
                                                          dyDesc_.GetElementSize(),
                                                          GemmBackend_t::rocblas);
+                }
                 else
+                {
                     // tensors.dx = CNHW2NCHW(transpose(tensors.w) * NCHW2CNHW(tensors.dy))
                     gemm_status = CallGemm(handle,
                                            gemm_desc,
@@ -397,6 +402,7 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
                                            workspace,
                                            dyDesc_.GetElementSize(),
                                            GemmBackend_t::rocblas);
+                }
             }
             else
             {
@@ -504,7 +510,7 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
     solution.workspace_sz = 0;
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
-        const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
+        const bool time_precision = (!IsDisabled(ENV(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)));
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto& conv_params = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
@@ -755,7 +761,7 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
     solution.workspace_sz = workspace_req;
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
-        const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
+        const bool time_precision = (!IsDisabled(ENV(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)));
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto& conv_params    = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
@@ -776,9 +782,11 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
             }
 
             if((workspace_req > 0 && workspace == nullptr) || workspace_size < workspace_req)
+            {
                 MIOPEN_THROW("Not enough workspace for GemmBwdRest. (" +
                              std::to_string(workspace_size) + " < " +
                              std::to_string(workspace_req) + ")");
+            }
 
             const auto gemm_desc = [&]() {
                 auto tmp            = tmp_gemm_desc;
@@ -798,6 +806,7 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
 
                     // tensors.dx = transpose(tensors.w) * tensors.dy
                     if(group_count > 1)
+                    {
                         gemm_status = CallGemmStridedBatched(handle,
                                                              gemm_desc,
                                                              w,
@@ -807,7 +816,9 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
                                                              workspace,
                                                              0,
                                                              GemmBackend_t::rocblas);
+                    }
                     else
+                    {
                         gemm_status = CallGemm(handle,
                                                gemm_desc,
                                                w,
@@ -817,6 +828,7 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
                                                workspace,
                                                0,
                                                GemmBackend_t::rocblas);
+                    }
 
                     if(gemm_status != miopenStatusSuccess)
                         MIOPEN_THROW("GemmBwdRest execution failure.");
