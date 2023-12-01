@@ -23,25 +23,73 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/miopen.h>
 #ifndef GUARD_MIOPEN_CAT_DRIVER_HPP
 #define GUARD_MIOPEN_CAT_DRIVER_HPP
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
-#include "mloCatHost.hpp"
+#include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
-#include <../test/verify.hpp>
 #include <algorithm>
-#include <cstdlib>
 #include <cfloat>
+#include <cstdlib>
 #include <memory>
+#include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <numeric>
 #include <vector>
 #include <../test/tensor_holder.hpp>
-#include "random.hpp"
+#include <../test/verify.hpp>
+
+#ifndef MLO_CATHOST_H_
+#define MLO_CATHOST_H_
+
+template <typename Tgpu, typename Tcheck>
+int32_t mloCatForwardRunHost(std::vector<miopenTensorDescriptor_t> inputDescs,
+                             std::vector<Tgpu*> inputs,
+                             miopenTensorDescriptor_t outputDesc,
+                             Tcheck* outputhost,
+                             int32_t dim)
+{
+    auto shape             = miopen::deref(outputDesc).GetLengths();
+    size_t outer_size      = 1;
+    size_t inner_size      = 1;
+    size_t output_dim_size = shape[dim];
+    size_t i               = 0;
+    for(; i < dim; i++)
+    {
+        outer_size *= shape[i];
+    }
+
+    for(; i < shape.size(); i++)
+    {
+        inner_size *= shape[i];
+    }
+
+    int32_t ret                = 0;
+    size_t output_start_offset = 0;
+
+    for(i = 0; i < inputs.size(); i++)
+    {
+        auto input       = inputs[i];
+        size_t dim_size  = miopen::deref(inputDescs[i]).GetLengths()[dim];
+        size_t copy_size = inner_size / output_dim_size * dim_size;
+        for(size_t o = 0; o < outer_size; o++)
+        {
+            size_t output_offset = output_start_offset + (o * inner_size);
+            for(size_t j = 0; j < copy_size; j++)
+            {
+                outputhost[output_offset + j] = input[copy_size * o + j];
+            }
+        }
+        output_start_offset += copy_size;
+    }
+
+    return ret;
+}
+
+#endif
 
 template <typename Tgpu, typename Tref>
 class CatDriver : public Driver
@@ -68,7 +116,6 @@ public:
 
     int RunBackwardGPU() override;
 
-    Tref GetTolerance();
     int VerifyBackward() override;
     int VerifyForward() override;
     ~CatDriver() override
@@ -177,7 +224,6 @@ std::vector<std::vector<int>> CatDriver<Tgpu, Tref>::GetInputTensorLengthsFromCm
 template <typename Tgpu, typename Tref>
 int CatDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
-    int status   = 0;
     uint32_t ctx = 0;
     for(auto& inputDesc : inputDescs)
     {
@@ -191,7 +237,8 @@ int CatDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         {
             in[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
         }
-        status |= in_dev->ToGPU(q, in.data());
+        if(in_dev->ToGPU(GetStream(), in.data()) != 0)
+            std::cerr << "Error copying (in) to GPU, size: " << in_dev->GetSize() << std::endl;
         in_devs_ptr.push_back(in_dev->GetMem());
         ins_ptr.push_back(in.data());
     }
@@ -202,10 +249,8 @@ int CatDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     out     = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
     outhost = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
-    status |= out_dev->ToGPU(q, out.data());
-
-    if(status != CL_SUCCESS)
-        printf("Error copying data to GPU\n");
+    if(out_dev->ToGPU(GetStream(), out.data()) != 0)
+        std::cerr << "Error copying (out) to GPU, size: " << out_dev->GetSize() << std::endl;
 
     return miopenStatusSuccess;
 }
@@ -213,8 +258,8 @@ int CatDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 template <typename Tgpu, typename Tref>
 int CatDriver<Tgpu, Tref>::RunForwardGPU()
 {
-    float kernel_total_time = 0.0;
-    float kernel_first_time = 0.0;
+    float kernel_total_time = 0;
+    float kernel_first_time = 0;
 
     Timer t;
     START_TIME
@@ -242,7 +287,8 @@ int CatDriver<Tgpu, Tref>::RunForwardGPU()
         printf("GPU Kernel Time Forward Cat Elapsed: %f ms\n", kernel_average_time);
     }
 
-    out_dev->FromGPU(GetStream(), out.data());
+    if(out_dev->FromGPU(GetStream(), out.data()) != 0)
+        std::cerr << "Error copying (out_dev) from GPU, size: " << out_dev->GetSize() << std::endl;
 
     return miopenStatusSuccess;
 }
@@ -262,38 +308,19 @@ int CatDriver<Tgpu, Tref>::RunBackwardGPU()
 }
 
 template <typename Tgpu, typename Tref>
-Tref CatDriver<Tgpu, Tref>::GetTolerance()
-{
-    if(data_type == miopenHalf)
-    {
-        return 1e-3;
-    }
-    else if(data_type == miopenFloat)
-    {
-        return 5e-5;
-    }
-    else if(data_type == miopenBFloat16)
-    {
-        return 5e-3;
-    }
-    return 0;
-}
-
-template <typename Tgpu, typename Tref>
 int CatDriver<Tgpu, Tref>::VerifyForward()
 {
     RunForwardCPU();
-    const Tref tolerance = GetTolerance();
-    auto error           = miopen::rms_range(outhost, out);
+    auto error = miopen::rms_range(outhost, out);
 
-    if(!std::isfinite(error) || error > tolerance)
+    if(!std::isfinite(error) || error != 0)
     {
-        std::cout << "Forward Cat FAILED: " << error << std::endl;
+        std::cout << "Forward Cat FAILED: " << error << " > 0" << std::endl;
         return EC_VerifyFwd;
     }
     else
     {
-        printf("Forward Cat Verifies on CPU and GPU (err=%f)\n", error);
+        std::cout << "Forward Cat Verifies OK on CPU reference" << std::endl;
     }
 
     return miopenStatusSuccess;
