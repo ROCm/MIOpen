@@ -173,7 +173,7 @@ public:
                                 reverse * h_vec_sz * h_vec_sz;
     }
 
-    size_t bias_stride() const { return h_vec_sz; }
+    size_t bias_stride() const { return static_cast<size_t>(h_vec_sz) * bi_scale; }
 
     int bias_off() const
     {
