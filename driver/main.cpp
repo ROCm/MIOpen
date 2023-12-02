@@ -225,15 +225,15 @@ int main(int argc, char* argv[])
     }
     else if(base_arg == "cat")
     {
-        drv = new CatDriver<float, float>();
+        drv = new CatDriver<float>();
     }
     else if(base_arg == "catfp16")
     {
-        drv = new CatDriver<float16, float>();
+        drv = new CatDriver<float16>();
     }
     else if(base_arg == "catbfp16")
     {
-        drv = new CatDriver<bfloat16, float>();
+        drv = new CatDriver<bfloat16>();
     }
     else
     {

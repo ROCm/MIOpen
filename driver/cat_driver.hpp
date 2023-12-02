@@ -91,7 +91,7 @@ int32_t mloCatForwardRunHost(std::vector<miopenTensorDescriptor_t> inputDescs,
 
 #endif
 
-template <typename Tgpu, typename Tref>
+template <typename Tgpu, typename Tref = Tgpu>
 class CatDriver : public Driver
 {
 public:
@@ -180,7 +180,7 @@ int CatDriver<Tgpu, Tref>::GetandSetData()
 
     SetTensorNd(outputDesc, out_len, data_type);
 
-    return (0);
+    return 0;
 }
 
 template <typename Tgpu, typename Tref>
