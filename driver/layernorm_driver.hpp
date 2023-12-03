@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 #include <miopen/miopen.h>
-#ifdef MIOPEN_BETA_API
 #ifndef GUARD_MIOPEN_LAYERNORM_DRIVER_HPP
 #define GUARD_MIOPEN_LAYERNORM_DRIVER_HPP
 
@@ -112,8 +111,8 @@ private:
     std::vector<Tgpu> weight;
     std::vector<Tgpu> bias;
     std::vector<Tgpu> out;
-    std::vector<Tgpu> mean;
-    std::vector<Tgpu> rstd;
+    std::vector<Tref> mean;
+    std::vector<Tref> rstd;
     std::vector<Tref> outhost;
     std::vector<Tref> meanhost;
     std::vector<Tref> rstdhost;
@@ -140,7 +139,7 @@ int LayerNormDriver<Tgpu, Tref>::GetandSetData()
 {
     std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
 
-    dim = static_cast<int>(inflags.GetValueDouble("nomalized_dim"));
+    dim = inflags.GetValueInt("normalized_dim");
 
     std::vector<int> inner_len;
     if(dim == in_len.size())
@@ -164,7 +163,7 @@ int LayerNormDriver<Tgpu, Tref>::GetandSetData()
     eps  = static_cast<double>(inflags.GetValueDouble("eps"));
     mode = miopenLayerNormMode_t(inflags.GetValueInt("mode"));
 
-    return (0);
+    return 0;
 }
 
 template <typename Tgpu, typename Tref>
@@ -200,23 +199,30 @@ std::vector<int> LayerNormDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
     int in_h = inflags.GetValueInt("in_h");
     int in_d = inflags.GetValueInt("in_d");
 
-    if(in_h != 0)
+    if((in_n != 0) && (in_c != 0) && (in_d != 0) && (in_h != 0) && (in_w != 0))
     {
-        if(in_d != 0)
-        {
-            dim_size = 5;
-            return std::vector<int>({in_n, in_c, in_d, in_h, in_w});
-        }
-        else
-        {
-            dim_size = 4;
-            return std::vector<int>({in_n, in_c, in_h, in_w});
-        }
+        dim_size = 5;
+        return std::vector<int>({in_n, in_c, in_d, in_h, in_w});
     }
-    else
+    else if((in_n != 0) && (in_c != 0) && (in_h != 0) && (in_w != 0))
+    {
+        dim_size = 4;
+        return std::vector<int>({in_n, in_c, in_h, in_w});
+    }
+    else if((in_n != 0) && (in_c != 0) && (in_w != 0))
     {
         dim_size = 3;
         return std::vector<int>({in_n, in_c, in_w});
+    }
+    else if((in_n != 0) && (in_w != 0))
+    {
+        dim_size = 2;
+        return std::vector<int>({in_n, in_w});
+    }
+    else
+    {
+        std::cout << "Error Input Tensor Lengths\n" << std::endl;
+        return std::vector<int>({0});
     }
 }
 
@@ -230,27 +236,25 @@ int LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     size_t mean_sz   = GetTensorSize(meanDesc);
     size_t rstd_sz   = GetTensorSize(rstdDesc);
 
-    // MIOPEN_BACKEND_HIP
     uint32_t ctx = 0;
 
     in_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
     weight_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, weight_sz, sizeof(Tgpu)));
     bias_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, bias_sz, sizeof(Tgpu)));
     out_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-    mean_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, mean_sz, sizeof(Tgpu)));
-    rstd_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, rstd_sz, sizeof(Tgpu)));
+    mean_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, mean_sz, sizeof(Tref)));
+    rstd_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, rstd_sz, sizeof(Tref)));
 
     in       = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
     weight   = std::vector<Tgpu>(weight_sz, static_cast<Tgpu>(0));
     bias     = std::vector<Tgpu>(bias_sz, static_cast<Tgpu>(0));
     out      = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    mean     = std::vector<Tgpu>(mean_sz, static_cast<Tgpu>(0));
-    rstd     = std::vector<Tgpu>(rstd_sz, static_cast<Tgpu>(0));
+    mean     = std::vector<Tref>(mean_sz, static_cast<Tref>(0));
+    rstd     = std::vector<Tref>(rstd_sz, static_cast<Tref>(0));
     outhost  = std::vector<Tref>(out_sz, static_cast<Tref>(0));
     meanhost = std::vector<Tref>(mean_sz, static_cast<Tref>(0));
     rstdhost = std::vector<Tref>(rstd_sz, static_cast<Tref>(0));
 
-    // MIOPEN_BACKEND_HIP
     int status;
 
     for(int i = 0; i < in_sz; i++)
@@ -261,22 +265,28 @@ int LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < weight_sz; i++)
     {
-        weight[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        if(mode == MIOPEN_ELEMENTWISE_AFFINE)
+            weight[i] = static_cast<Tgpu>(1);
+        else
+            weight[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
     }
-    status = weight_dev->ToGPU(q, weight.data());
+    status |= weight_dev->ToGPU(q, weight.data());
 
     for(int i = 0; i < bias_sz; i++)
     {
-        bias[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        if(mode == MIOPEN_ELEMENTWISE_AFFINE)
+            bias[i] = static_cast<Tgpu>(0);
+        else
+            bias[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
     }
-    status = bias_dev->ToGPU(q, bias.data());
+    status |= bias_dev->ToGPU(q, bias.data());
 
     status |= out_dev->ToGPU(q, out.data());
     status |= mean_dev->ToGPU(q, mean.data());
     status |= rstd_dev->ToGPU(q, rstd.data());
 
-    if(status != CL_SUCCESS)
-        printf("Error copying data to GPU\n");
+    if(status != 0)
+        std::cout << "Error copying data to GPU\n" << std::endl;
 
     return miopenStatusSuccess;
 }
@@ -369,10 +379,6 @@ Tref LayerNormDriver<Tgpu, Tref>::GetTolerance()
     {
         return 5e-5;
     }
-    else if(data_type == miopenDouble)
-    {
-        return 1e-10;
-    }
     else if(data_type == miopenBFloat16)
     {
         return 5e-3;
@@ -390,6 +396,7 @@ int LayerNormDriver<Tgpu, Tref>::VerifyForward()
     if(!std::isfinite(error) || error > tolerance)
     {
         std::cout << "Forward LayerNorm FAILED: " << error << std::endl;
+        return EC_VerifyFwd;
     }
     else
     {
@@ -400,6 +407,7 @@ int LayerNormDriver<Tgpu, Tref>::VerifyForward()
     if(!std::isfinite(meanerror) || meanerror > tolerance)
     {
         std::cout << "Forward LayerNorm mean FAILED: " << meanerror << std::endl;
+        return EC_VerifyFwd;
     }
     else
     {
@@ -410,6 +418,7 @@ int LayerNormDriver<Tgpu, Tref>::VerifyForward()
     if(!std::isfinite(rstderror) || rstderror > tolerance)
     {
         std::cout << "Forward LayerNorm rstd FAILED: " << rstderror << std::endl;
+        return EC_VerifyFwd;
     }
     else
     {
@@ -425,5 +434,4 @@ int LayerNormDriver<Tgpu, Tref>::VerifyBackward()
     return miopenStatusSuccess;
 }
 
-#endif // GUARD_MIOPEN_SOFTMAX_DRIVER_HPP
-#endif
+#endif // GUARD_MIOPEN_LAYERNORM_DRIVER_HPP

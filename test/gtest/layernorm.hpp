@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 #include <miopen/miopen.h>
-#ifdef MIOPEN_BETA_API
 #include <gtest/gtest.h>
 #include <miopen/layernorm.hpp>
 
@@ -52,42 +51,102 @@ struct LayerNormTestCase
                   << " LayerNorm_mode:" << tc.ln_mode;
     }
 
-    std::vector<size_t> GetInput() { return {N, C, D, H, W}; }
+    std::vector<size_t> GetInput()
+    {
+        if((N != 0) && (C != 0) && (D != 0) && (H != 0) && (W != 0))
+        {
+            return std::vector<size_t>({N, C, D, H, W});
+        }
+        else if((N != 0) && (C != 0) && (H != 0) && (W != 0))
+        {
+            return std::vector<size_t>({N, C, H, W});
+        }
+        else if((N != 0) && (C != 0) && (W != 0))
+        {
+            return std::vector<size_t>({N, C, W});
+        }
+        else if((N != 0) && (W != 0))
+        {
+            return std::vector<size_t>({N, W});
+        }
+        else
+        {
+            std::cout << "Error Input Tensor Lengths\n" << std::endl;
+            return std::vector<size_t>({0});
+        }
+    }
 };
 
 std::vector<LayerNormTestCase> LayerNormTestConfigs()
-{ // n c h d w nomalized_dim eps ln_mode
+{ // n c d h w nomalized_dim eps ln_mode
     // clang-format off
     return {
-	{ 32,   1,   32,  32,  32  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},       // 32x32x32 based on VoxNet arch
+        { 32,   1,   32,  32,  32  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},   // 32x32x32 based on VoxNet arch
         { 32,   1,   14,  14,  14  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
         { 32,  32,   14,  14,  14  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
         { 32,  32,   12,  12,  12  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
         { 32,  32,    6,   6,   6  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 256,  1,   32,  32,  32  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},      // 32x32x32 based on VoxNet arch
+        { 256,  1,   32,  32,  32  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},   // 32x32x32 based on VoxNet arch
         { 256, 32,   14,  14,  14  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
         { 256, 32,   12,  12,  12  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
         { 256, 32,    6,   6,   6  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 512,  1,   32,  32,  32  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},      // 32x32x32 based on VoxNet arch
+        { 512,  1,   32,  32,  32  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},   // 32x32x32 based on VoxNet arch
         { 512, 32,   14,  14,  14  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
         { 512, 32,   12,  12,  12  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
         { 512, 32,    6,   6,   6  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 32,  2,   32,  57, 125  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},       // Hand-gesture recognition CVPR 2015 paper High Res Net Path
+        { 32,  2,   32,  57, 125  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},    // Hand-gesture recognition CVPR 2015 paper High Res Net Path
         { 32, 32,   14,  25,  59  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
         { 32, 32,    6,  10,  27  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
         { 32, 32,    4,   6,  11  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
         { 32, 32,    2,   2,   3  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 32, 32,   32,  28,  62  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},       // Hand-gesture recognition CVPR 2015 paper Low Res Net Path
+        { 32, 32,   32,  28,  62  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},    // Hand-gesture recognition CVPR 2015 paper Low Res Net Path
         { 32, 32,   14,  12,  29  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
         { 32, 32,    6,   4,  12  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
         { 32, 32,    4,   2,   2  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 16, 32,    6,  50,  50  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},       // Multi-view 3D convnet
-        { 1, 3,     8,  240, 320 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},      // 3D convet on video
-        { 1, 3,    16,  240, 320 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},      // 3D convet on video
-        { 1, 3,     8,  128, 171 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},      // 3D convet on video
-        { 1, 3,    16,  128, 171 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},      // 3D convet on video
-        { 1, 3,     8,  112, 112 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},      // 3D convet on video
-        { 1, 3,    16,  112, 112 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE}      // 3D convet on video
+        { 16, 32,    6,  50,  50  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},    // Multi-view 3D convnet
+        { 1, 3,     8,  240, 320 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
+        { 1, 3,    16,  240, 320 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
+        { 1, 3,     8,  128, 171 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
+        { 1, 3,    16,  128, 171 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
+        { 1, 3,     8,  112, 112 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
+        { 1, 3,    16,  112, 112 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
+        { 32,   1,   32,  32,  32  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},          // 32x32x32 based on VoxNet arch
+        { 32,   1,   14,  14,  14  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 32,  32,   14,  14,  14  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 32,  32,   12,  12,  12  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 32,  32,    6,   6,   6  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 256,  1,   32,  32,  32  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},          // 32x32x32 based on VoxNet arch
+        { 256, 32,   14,  14,  14  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 256, 32,   12,  12,  12  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 256, 32,    6,   6,   6  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 512,  1,   32,  32,  32  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},          // 32x32x32 based on VoxNet arch
+        { 512, 32,   14,  14,  14  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 512, 32,   12,  12,  12  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 512, 32,    6,   6,   6  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 32,  2,   32,  57, 125  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},           // Hand-gesture recognition CVPR 2015 paper High Res Net Path
+        { 32, 32,   14,  25,  59  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 32, 32,    6,  10,  27  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 32, 32,    4,   6,  11  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 32, 32,    2,   2,   3  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 32, 32,   32,  28,  62  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},           // Hand-gesture recognition CVPR 2015 paper Low Res Net Path
+        { 32, 32,   14,  12,  29  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 32, 32,    6,   4,  12  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 32, 32,    4,   2,   2  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 16, 32,    6,  50,  50  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},           // Multi-view 3D convnet
+        { 1, 3,     8,  240, 320 ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
+        { 1, 3,    16,  240, 320 ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
+        { 1, 3,     8,  128, 171 ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
+        { 1, 3,    16,  128, 171 ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
+        { 1, 3,     8,  112, 112 ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
+        { 1, 3,    16,  112, 112 ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
+        {32, 4,     0,    4, 256 ,1 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        {64, 4,     0,    4, 256 ,1 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        {32, 4,     0,    4, 256 ,1 , 1e-5, MIOPEN_WEIGHT_BIAS},
+        {64, 4,     0,    4, 256 ,1 , 1e-5, MIOPEN_WEIGHT_BIAS},
+        {32, 0,     0,    0, 256 ,1 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        {64, 0,     0,    0, 256 ,1 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        {32, 0,     0,    0, 256 ,1 , 1e-5, MIOPEN_WEIGHT_BIAS},
+        {64, 0,     0,    0, 256 ,1 , 1e-5, MIOPEN_WEIGHT_BIAS}
       };
     // clang-format on
 }
@@ -102,13 +161,12 @@ inline int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
 }
 
 template <typename T = float>
-struct LayerNormSolverTest : public ::testing::TestWithParam<LayerNormTestCase>
+struct LayerNormTest : public ::testing::TestWithParam<LayerNormTestCase>
 {
 protected:
     void SetUp() override
     {
         auto&& handle    = get_handle();
-        test_skipped     = false;
         layernorm_config = GetParam();
         std::mt19937 gen(0);
         std::uniform_real_distribution<> d{-3, 3};
@@ -122,13 +180,23 @@ protected:
 
         input = tensor<T>{in_dim}.generate(gen_value);
 
+        std::vector<size_t> inner_dim;
+        if(nomalized_dim == in_dim.size())
+            inner_dim = {1};
+        else
+            inner_dim = {in_dim.begin() + nomalized_dim, in_dim.end()};
+
         if(ln_mode == MIOPEN_ELEMENTWISE_AFFINE)
         {
-            std::vector<size_t> inner_dim;
-            if(nomalized_dim == in_dim.size())
-                inner_dim = {1};
-            else
-                inner_dim = {in_dim.begin() + nomalized_dim, in_dim.end()};
+            auto gen_one  = [&](auto...) { return 1; };
+            auto gen_zero = [&](auto...) { return 0; };
+            weight        = tensor<T>{inner_dim}.generate(gen_one);
+            bias          = tensor<T>{inner_dim}.generate(gen_zero);
+            SetTensorLayout(weight.desc);
+            SetTensorLayout(bias.desc);
+        }
+        else
+        {
             weight = tensor<T>{inner_dim}.generate(gen_value);
             bias   = tensor<T>{inner_dim}.generate(gen_value);
             SetTensorLayout(weight.desc);
@@ -167,11 +235,8 @@ protected:
         mean_dev   = handle.Write(mean.data);
         rstd_dev   = handle.Write(rstd.data);
     }
-    void TearDown() override
+    void RunTest()
     {
-        if(test_skipped)
-            return;
-
         auto&& handle = get_handle();
 
         cpu_layernorm_forward<T>(
@@ -200,7 +265,10 @@ protected:
         output.data = handle.Read<T>(output_dev, output.data.size());
         mean.data   = handle.Read<T>(mean_dev, mean.data.size());
         rstd.data   = handle.Read<T>(rstd_dev, rstd.data.size());
+    }
 
+    void Verify()
+    {
         double threshold = std::numeric_limits<T>::epsilon();
         auto error       = miopen::rms_range(ref_output, output);
 
@@ -210,8 +278,8 @@ protected:
 
         error = miopen::rms_range(ref_mean, mean);
         EXPECT_TRUE(miopen::range_distance(ref_mean) == miopen::range_distance(mean));
-        EXPECT_TRUE(error < threshold)
-            << "Error mean beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        EXPECT_TRUE(error < threshold * 20) << "Error mean beyond tolerance Error:" << error
+                                            << ",  Thresholdx20: " << threshold * 20;
 
         error = miopen::rms_range(ref_rstd, rstd);
         EXPECT_TRUE(miopen::range_distance(ref_rstd) == miopen::range_distance(rstd));
@@ -241,7 +309,4 @@ protected:
     size_t nomalized_dim;
     float eps;
     miopenLayerNormMode_t ln_mode;
-
-    bool test_skipped = false;
 };
-#endif

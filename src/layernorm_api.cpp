@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 #include <miopen/layernorm.hpp>
-#ifdef MIOPEN_BETA_API
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
@@ -48,10 +47,6 @@ LogCmdLayerNorm(const miopenTensorDescriptor_t xDesc, const miopenLayerNormMode_
         else if(dtype == miopenBFloat16)
         {
             ss << "layernormbf16";
-        }
-        else if(dtype == miopenDouble)
-        {
-            ss << "layernormfp64";
         }
 
         int32_t size = {0};
@@ -134,4 +129,3 @@ extern "C" miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
                                  normalized_dim);
     });
 }
-#endif
