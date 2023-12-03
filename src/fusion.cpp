@@ -93,19 +93,19 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
             MIOPEN_THROW(miopenStatusNotImplemented, "alpha2 can only be 1.0");
     }
     // if(z != nullptr || zDesc.GetSize() != 0)
-        // MIOPEN_THROW(miopenStatusNotImplemented, "The addition of z vector is not yet supported");
+    // MIOPEN_THROW(miopenStatusNotImplemented, "The addition of z vector is not yet supported");
     FusionPlanDescriptor fusePlanDesc{miopenVerticalFusion, xDesc};
     OperatorArgs fusionArgs;
     auto convoOp = std::make_shared<ConvForwardOpDescriptor>(conv_desc, wDesc);
-    auto zOp  = std::make_shared<BiasFusionOpDescriptor>(zDesc);
+    auto zOp     = std::make_shared<BiasFusionOpDescriptor>(zDesc);
     auto biasOp  = std::make_shared<BiasFusionOpDescriptor>(biasDesc);
     auto activOp = std::make_shared<ActivFwdFusionOpDescriptor>(activationDesc.GetMode());
 
-    if (activationDesc.GetMode() != miopenActivationRELU) {
-        MIOPEN_THROW(miopenStatusNotImplemented, 
-            "only Activation Mode == miopenActivationRELU is supported");
+    if(activationDesc.GetMode() != miopenActivationRELU)
+    {
+        MIOPEN_THROW(miopenStatusNotImplemented,
+                     "only Activation Mode == miopenActivationRELU is supported");
     }
-
 
     MIOPEN_CHECK(fusePlanDesc.AddOp(convoOp));
     MIOPEN_CHECK(fusePlanDesc.SetConvAlgo(algo));
