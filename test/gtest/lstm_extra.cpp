@@ -63,7 +63,7 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenDouble:
         FAIL() << "miopenHalf, miopenInt8, miopenBFloat16, miopenInt32, miopenDouble "
                   "data type not supported by "
-                  "deepbench_lstm test";
+                  "lstm_extra test";
 
     default: params = ConfigWithFloat::GetParam();
     }
@@ -111,34 +111,42 @@ TEST_P(ConfigWithFloat, FloatTest)
 
 std::vector<std::string> GetTestCases(void)
 {
-    std::string flags = "test_lstm --verbose";
+    std::string flags = "test_lstm --verbose ";
     std::string commonFlags =
-        " --num-layers 1 --in-mode 1 --bias-mode 0 -dir-mode 0 --rnn-mode 0 --flat-batch-fill";
+        "--batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 --hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0";
 
     const std::vector<std::string> test_cases = {
     // clang-format off
-    {flags + " --batch-size 16 --seq-len 25 --vector-len 512 --hidden-size 512" + commonFlags},
-    {flags + " --batch-size 32 --seq-len 25 --vector-len 512 --hidden-size 512" + commonFlags},
-    {flags + " --batch-size 64 --seq-len 25 --vector-len 512 --hidden-size 512" + commonFlags},
-    {flags + " --batch-size 128 --seq-len 25 --vector-len 512 --hidden-size 512" + commonFlags},
-    {flags + " --batch-size 16 --seq-len 25 --vector-len 1024 --hidden-size 1024" + commonFlags},
-    {flags + " --batch-size 32 --seq-len 25 --vector-len 1024 --hidden-size 1024" + commonFlags},
-    {flags + " --batch-size 64 --seq-len 25 --vector-len 1024 --hidden-size 1024" + commonFlags},
-    {flags + " --batch-size 128 --seq-len 25 --vector-len 1024 --hidden-size 1024" + commonFlags},
-    {flags + " --batch-size 16 --seq-len 25 --vector-len 2048 --hidden-size 2048" + commonFlags},
-    {flags + " --batch-size 32 --seq-len 25 --vector-len 2048 --hidden-size 2048" + commonFlags},
-    {flags + " --batch-size 64 --seq-len 25 --vector-len 2048 --hidden-size 2048" + commonFlags},
-    {flags + " --batch-size 128 --seq-len 25 --vector-len 2048 --hidden-size 2048" + commonFlags},
-    {flags + " --batch-size 16 --seq-len 25 --vector-len 4096 --hidden-size 4096" + commonFlags},
-    {flags + " --batch-size 32 --seq-len 25 --vector-len 4096 --hidden-size 4096" + commonFlags},
-    {flags + " --batch-size 64 --seq-len 25 --vector-len 4096 --hidden-size 4096" + commonFlags},
-    {flags + " --batch-size 128 --seq-len 25 --vector-len 4096 --hidden-size 4096" + commonFlags},
-    {flags + " --batch-size 8 --seq-len 50 --vector-len 1536 --hidden-size 1536" + commonFlags},
-    {flags + " --batch-size 16 --seq-len 50 --vector-len 1536 --hidden-size 1536" + commonFlags},
-    {flags + " --batch-size 32 --seq-len 50 --vector-len 1536 --hidden-size 1536" + commonFlags},
-    {flags + " --batch-size 16 --seq-len 150 --vector-len 256 --hidden-size 256" + commonFlags},
-    {flags + " --batch-size 32 --seq-len 150 --vector-len 256 --hidden-size 256" + commonFlags},
-    {flags + " --batch-size 64 --seq-len 150 --vector-len 256 --hidden-size 256" + commonFlags}
+    {flags + commonFlags + " -dir-mode 0 --no-hx"},
+    {flags + commonFlags + " -dir-mode 0 --no-dhy"},
+    {flags + commonFlags + " -dir-mode 0 --no-hx --no-dhy"},
+    {flags + commonFlags + " -dir-mode 0 --no-cx"},
+    {flags + commonFlags + " -dir-mode 0 --no-hx --no-cx"},
+    {flags + commonFlags + " -dir-mode 0 --no-dcy"},
+    {flags + commonFlags + " -dir-mode 0 --no-cx --no-dcy"},
+    {flags + commonFlags + " -dir-mode 1 --no-hx"},
+    {flags + commonFlags + " -dir-mode 1 --no-dhy"},
+    {flags + commonFlags + " -dir-mode 1 --no-hx --no-dhy"},
+    {flags + commonFlags + " -dir-mode 1 --no-cx"},
+    {flags + commonFlags + " -dir-mode 1 --no-hx --no-cx"},
+    {flags + commonFlags + " -dir-mode 1 --no-dcy"},
+    {flags + commonFlags + " -dir-mode 1 --no-cx --no-dcy"},
+    {flags + commonFlags + " -dir-mode 0 --no-hy"},
+    {flags + commonFlags + " -dir-mode 0 --no-dhx"},
+    {flags + commonFlags + " -dir-mode 0 --no-hy --no-dhx"},
+    {flags + commonFlags + " -dir-mode 0 --no-cy"},
+    {flags + commonFlags + " -dir-mode 0 --no-hy --no-cy"},
+    {flags + commonFlags + " -dir-mode 0 --no-dcx"},
+    {flags + commonFlags + " -dir-mode 0 --no-cy --no-dcx"},
+    {flags + commonFlags + " -dir-mode 1 --no-hy"},
+    {flags + commonFlags + " -dir-mode 1 --no-dhx"},
+    {flags + commonFlags + " -dir-mode 1 --no-hy --no-dhx"},
+    {flags + commonFlags + " -dir-mode 1 --no-cy"},
+    {flags + commonFlags + " -dir-mode 1 --no-hy --no-cy"},
+    {flags + commonFlags + " -dir-mode 1 --no-dcx"},
+    {flags + commonFlags + " -dir-mode 1 --no-cy --no-dcx"},
+    {flags + commonFlags + " -dir-mode 0 --no-hx --no-dhy --no-cx --no-dcy --no-hy --no-dhx --no-cy --no-dcx"},
+    {flags + commonFlags + " -dir-mode 1 --no-hx --no-dhy --no-cx --no-dcy --no-hy --no-dhx --no-cy --no-dcx"}
     // clang-format on
     };
 
@@ -146,4 +154,5 @@ std::vector<std::string> GetTestCases(void)
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvTrans, ConfigWithFloat, testing::Values(GetTestCases()));
+
 
