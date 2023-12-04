@@ -66,12 +66,11 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenFloat:
     case miopenBFloat16:
     case miopenInt8:
-    case miopenInt8x4:
     case miopenInt32:
     case miopenDouble:
     case miopenFloat8:
     case miopenBFloat8:
-        FAIL() << "miopenFloat, miopenBFloat16, miopenInt8, miopenInt8x4, miopenInt32, "
+        FAIL() << "miopenFloat, miopenBFloat16, miopenInt8, miopenInt32, "
                   "miopenDouble, miopenFloat8, miopenBFloat8 "
                   "data type not supported by smoke_solver_convasmbwdwrw3x3_fp16 test";
 

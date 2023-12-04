@@ -74,11 +74,13 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenHalf: params = Conv2dHalf::GetParam(); break;
     case miopenBFloat16: params = Conv2dBf16::GetParam(); break;
     case miopenInt8:
-        \ case miopenInt32 : case miopenDouble : case miopenFloat8 : case miopenBFloat8
-            : FAIL()
-              << "miopenInt8, miopenInt32, "
-                 "miopenDouble, miopenFloat8, miopenBFloat8 "
-                 "data type not supported by smoke_solver_convasmbwdwrw test";
+    case miopenInt32:
+    case miopenDouble:
+    case miopenFloat8:
+    case miopenBFloat8:
+        FAIL() << "miopenInt8, miopenInt32, "
+                  "miopenDouble, miopenFloat8, miopenBFloat8 "
+                  "data type not supported by smoke_solver_convasmbwdwrw test";
 
     default: params = Conv2dFloat::GetParam();
     }
