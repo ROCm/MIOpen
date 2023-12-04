@@ -1241,6 +1241,11 @@ void test_drive_impl_1(std::string program_name, std::vector<std::string> as)
     Driver d{};
     d.program_name = program_name;
 
+    std::cout << program_name << " ";
+    for(auto str : as)
+        std::cout << str << " ";
+    std::cout << std::endl;
+
     std::set<std::string> keywords{
         "--help", "-h", "--half", "--float", "--double", "--int8", "--bfloat16"};
     d.parse(keyword_set{keywords});
@@ -1380,7 +1385,7 @@ template <template <class...> class Driver>
 void test_drive(int argc, const char* argv[])
 {
     std::vector<std::string> as(argv + 1, argv + argc);
-    as.emplace_back("--float");
+    //as.emplace_back("--float");
     for(auto&& arg : as)
     {
         if(arg == "--half")
