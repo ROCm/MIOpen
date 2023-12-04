@@ -68,30 +68,34 @@ tensor<T> concatenateHeads(std::vector<tensor<T>>& heads,
 }
 
 template <class T>
-void softmax(tensor<T>& tensor_val)
+void softmax(tensor<T>& tensor_val, tensor<T>& m_tensor, tensor<T>& zinv_tensor)
 {
     // assert(tensor_val.desc.GetLengths() == static_cast<size_t>(2));
     size_t batch = tensor_val.desc.GetLengths()[0];
     size_t rows  = tensor_val.desc.GetLengths()[1];
     size_t cols  = tensor_val.desc.GetLengths()[2];
+
     for(int b = 0; b < batch; ++b)
     {
         for(int i = 0; i < rows; ++i)
         {
-            // T max_score_in_row = *std::max_element(tensor_val.begin(), tensor_val.begin() +
-            // cols); computing sum of exp for each row
+            T max_score_in_row =
+                *std::max_element(tensor_val.begin() + ((b * rows * cols) + i * cols),
+                                  tensor_val.begin() + ((b * rows * cols) + i * cols) + cols);
+
             T sum(0);
             for(int j = 0; j < cols; ++j)
             {
-                tensor_val(b, i, j) = std::exp(tensor_val(b, i, j));
+                tensor_val(b, i, j) = std::exp((tensor_val(b, i, j) - max_score_in_row));
                 sum += tensor_val(b, i, j);
             }
 
-            // applying the softmax
             for(int j = 0; j < cols; ++j)
             {
                 tensor_val(b, i, j) = tensor_val(b, i, j) / sum;
             }
+            m_tensor(b, i)    = max_score_in_row;
+            zinv_tensor(b, i) = sum;
         }
     }
 }
@@ -135,12 +139,13 @@ void print(const tensor<T>& tensor_val, size_t problem_dimension)
     std::cout << "\n======\n";
 }
 template <typename T>
-tensor<T> multi_head_attention(size_t num_heads,
-                               size_t problem_dimension,
-                               size_t sequence_length,
-                               size_t batch_size,
-                               tensor<T> mask_val,
-                               float drop_out_rate)
+std::tuple<tensor<T>, std::vector<tensor<T>>, std::vector<tensor<T>>>
+multi_head_attention(size_t num_heads,
+                     size_t problem_dimension,
+                     size_t sequence_length,
+                     size_t batch_size,
+                     tensor<T> mask_val,
+                     float drop_out_rate)
 {
     size_t d_k = problem_dimension / num_heads;
     // In each head of the Transformer's multi-head attention mechanism, the same weight matrix
@@ -166,6 +171,8 @@ tensor<T> multi_head_attention(size_t num_heads,
 
     std::vector<size_t> lens = {batch_size, sequence_length, problem_dimension};
     tensor<T> word_position({lens});
+    std::vector<tensor<T>> set_of_m_tensors;
+    std::vector<tensor<T>> set_of_zinv_tensors;
     std::mutex coutMutex;
 
     word_position.generate(GenData<T>{});
@@ -189,6 +196,7 @@ tensor<T> multi_head_attention(size_t num_heads,
         });
     }
     // print(set_of_k_transpose[0], problem_dimension);
+    test::cpu::print<T>(mask_val, sequence_length);
 
     double sqrt_dk = squareRoot(d_k);
     for(size_t head = 0; head < num_heads; ++head)
@@ -204,12 +212,17 @@ tensor<T> multi_head_attention(size_t num_heads,
                 sum = (sum / sqrt_dk) + mask_val(sl_r_id, sl_c_id);
                 set_of_q_dot_k_transpose[head](b_id, sl_r_id, sl_c_id) = sum;
             });
+        test::cpu::print<T>(set_of_q_dot_k_transpose[0], sequence_length);
     }
 
+    std::vector<size_t> zinv_m_lens = {batch_size, sequence_length};
     for(size_t head = 0; head < num_heads; ++head)
     {
         // std::cout << "compute softmax of " << head << std::endl;
-        softmax(set_of_q_dot_k_transpose[head]);
+
+        tensor<T> m_tensor(zinv_m_lens);
+        tensor<T> z_inv_tensor(zinv_m_lens);
+        softmax(set_of_q_dot_k_transpose[head], m_tensor, z_inv_tensor);
 
         // dropout
         tensor<T> rand_dis(set_of_q_dot_k_transpose[head].desc.GetLengths());
@@ -221,6 +234,8 @@ tensor<T> multi_head_attention(size_t num_heads,
                     set_of_q_dot_k_transpose[head](b_id, sl_r_id, sl_c_id) = T(0);
                 }
             });
+        set_of_m_tensors.emplace_back(m_tensor);
+        set_of_zinv_tensors.emplace_back(z_inv_tensor);
     }
 
     for(size_t head = 0; head < num_heads; ++head)
@@ -240,7 +255,6 @@ tensor<T> multi_head_attention(size_t num_heads,
     // concatinate attention heads
     tensor<T> multi_head =
         concatenateHeads(atten_heads, batch_size, sequence_length, problem_dimension, d_k);
-
     tensor<T> linear_multi_head(multi_head.desc.GetLengths());
 
     for(size_t head = 0; head < num_heads; ++head)
@@ -257,7 +271,7 @@ tensor<T> multi_head_attention(size_t num_heads,
         });
     }
 
-    return linear_multi_head;
+    return {linear_multi_head, set_of_m_tensors, set_of_zinv_tensors};
 }
 
 } // namespace cpu
