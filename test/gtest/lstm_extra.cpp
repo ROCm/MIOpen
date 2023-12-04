@@ -111,12 +111,12 @@ TEST_P(ConfigWithFloat, FloatTest)
 
 std::vector<std::string> GetTestCases(void)
 {
-    std::string flags = "test_lstm --verbose ";
-    std::string commonFlags =
-        "--batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 --hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0";
+    std::string flags       = "test_lstm --verbose ";
+    std::string commonFlags = "--batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 "
+                              "--hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0";
 
     const std::vector<std::string> test_cases = {
-    // clang-format off
+        // clang-format off
     {flags + commonFlags + " -dir-mode 0 --no-hx"},
     {flags + commonFlags + " -dir-mode 0 --no-dhy"},
     {flags + commonFlags + " -dir-mode 0 --no-hx --no-dhy"},
@@ -147,12 +147,10 @@ std::vector<std::string> GetTestCases(void)
     {flags + commonFlags + " -dir-mode 1 --no-cy --no-dcx"},
     {flags + commonFlags + " -dir-mode 0 --no-hx --no-dhy --no-cx --no-dcy --no-hy --no-dhx --no-cy --no-dcx"},
     {flags + commonFlags + " -dir-mode 1 --no-hx --no-dhy --no-cx --no-dcy --no-hy --no-dhx --no-cy --no-dcx"}
-    // clang-format on
+        // clang-format on
     };
 
     return test_cases;
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvTrans, ConfigWithFloat, testing::Values(GetTestCases()));
-
-
