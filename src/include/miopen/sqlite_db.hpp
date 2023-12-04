@@ -52,6 +52,9 @@
 #include <chrono>
 #include <unordered_map>
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_DISABLE_SQL_WAL)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_PERFDB_OVERRIDE)
+
 namespace boost {
 namespace filesystem {
 class path;
@@ -59,8 +62,6 @@ class path;
 } // namespace boost
 
 namespace miopen {
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DISABLE_SQL_WAL)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_PERFDB_OVERRIDE)
 
 constexpr bool InMemDb = MIOPEN_EMBED_DB;
 #if MIOPEN_ENABLE_SQLITE_BACKOFF
@@ -286,7 +287,7 @@ public:
         else
         {
             dbInvalid = false;
-            if(!is_system && !miopen::IsEnabled(MIOPEN_DEBUG_DISABLE_SQL_WAL{}))
+            if(!is_system && !miopen::IsEnabled(ENV(MIOPEN_DEBUG_DISABLE_SQL_WAL)))
             {
                 auto res = sql.Exec("PRAGMA journal_mode=WAL;");
                 if(res.empty() || res[0]["journal_mode"] != "wal")
@@ -413,8 +414,10 @@ public:
         auto stmt              = SQLite::Statement{sql, clause, vals};
         auto rc                = stmt.Step(sql);
         if(rc != SQLITE_DONE)
+        {
             MIOPEN_THROW(miopenStatusInternalError,
                          "Failed to insert config: " + sql.ErrorMessage());
+        }
         auto cnt = sql.Changes();
         MIOPEN_LOG_I2(cnt << " rows updated");
     }
@@ -430,11 +433,17 @@ public:
         {
             auto rc = stmt.Step(sql);
             if(rc == SQLITE_ROW)
+            {
                 return stmt.ColumnText(0);
+            }
             else if(rc == SQLITE_DONE)
+            {
                 return "";
+            }
             else if(rc == SQLITE_ERROR || rc == SQLITE_MISUSE)
+            {
                 MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
+            }
         }
     }
     template <typename T>
@@ -443,8 +452,8 @@ public:
         if(dbInvalid)
             return boost::none;
 
-        const auto pdb_ovr = miopen::GetStringEnv(MIOPEN_DEBUG_PERFDB_OVERRIDE{});
-        if(pdb_ovr != nullptr)
+        const auto& pdb_ovr = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_PERFDB_OVERRIDE));
+        if(!pdb_ovr.empty())
         {
             MIOPEN_LOG_I2("overriding tuning params with: " << pdb_ovr);
             DbRecord ovr_rec;
@@ -484,11 +493,17 @@ public:
         {
             auto rc = stmt.Step(sql);
             if(rc == SQLITE_ROW)
+            {
                 rec.SetValues(stmt.ColumnText(0), stmt.ColumnText(1));
+            }
             else if(rc == SQLITE_DONE)
+            {
                 break;
+            }
             else if(rc == SQLITE_ERROR || rc == SQLITE_MISUSE)
+            {
                 MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
+            }
         }
         if(rec.GetSize() == 0)
             return boost::none;
@@ -519,7 +534,9 @@ public:
         auto stmt = SQLite::Statement{sql, query, values};
         auto rc   = stmt.Step(sql);
         if(rc == SQLITE_DONE)
+        {
             return true;
+        }
         else
         {
             const std::string msg = "Unable to remove database entry: ";
@@ -544,8 +561,10 @@ public:
             auto stmt              = SQLite::Statement{sql, clause, vals};
             auto rc                = stmt.Step(sql);
             if(rc != SQLITE_DONE)
+            {
                 MIOPEN_THROW(miopenStatusInternalError,
                              "Failed to insert config: " + sql.ErrorMessage());
+            }
             auto cnt = sql.Changes();
             MIOPEN_LOG_I2(cnt << " rows updated");
         }

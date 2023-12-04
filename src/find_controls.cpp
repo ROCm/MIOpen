@@ -30,6 +30,7 @@
 #include <miopen/miopen_internal.h>
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
+#include <miopen/execution_context.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/stringutils.hpp>
 
@@ -39,9 +40,9 @@
 #include <cstdlib>
 #include <cstring>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_FIND_ENFORCE)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_FIND_MODE)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_ENFORCE)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
 
 namespace miopen {
 
@@ -68,26 +69,35 @@ const char* ToCString(const FindEnforceAction mode)
 
 FindEnforceAction GetFindEnforceActionImpl()
 {
-    const char* const p_asciz = miopen::GetStringEnv(MIOPEN_FIND_ENFORCE{});
-    if(p_asciz == nullptr)
+    auto str = miopen::GetStringEnv(ENV(MIOPEN_FIND_ENFORCE));
+    if(str.empty())
         return FindEnforceAction::Default_;
-    std::string str = p_asciz;
     for(auto& c : str)
         c = toupper(static_cast<unsigned char>(c));
     if(str == "NONE")
+    {
         return FindEnforceAction::None;
+    }
     else if(str == "DB_UPDATE")
+    {
         return FindEnforceAction::DbUpdate;
+    }
     else if(str == "SEARCH")
+    {
         return FindEnforceAction::Search;
+    }
     else if(str == "SEARCH_DB_UPDATE")
+    {
         return FindEnforceAction::SearchDbUpdate;
+    }
     else if(str == "DB_CLEAN")
+    {
         return FindEnforceAction::DbClean;
+    }
     else
     { // Nop. Fall down & try numerics.
     }
-    const auto val = static_cast<FindEnforceAction>(miopen::Value(MIOPEN_FIND_ENFORCE{}));
+    const auto val = static_cast<FindEnforceAction>(stoul(str));
     if(FindEnforceAction::First_ <= val && val <= FindEnforceAction::Last_)
         return val;
     MIOPEN_LOG_NQE("Wrong MIOPEN_FIND_ENFORCE, using default.");
@@ -103,11 +113,11 @@ FindEnforceAction GetFindEnforceAction()
 boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolverImpl()
 {
     static_assert(miopen::solver::Id::invalid_value == 0, "miopen::solver::Id::invalid_value == 0");
-    const char* const p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_FIND_ONLY_SOLVER{});
+    const auto& slv_str = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER));
     std::vector<solver::Id> res;
-    if(p_asciz != nullptr && strlen(p_asciz) > 0)
+    if(!slv_str.empty())
     {
-        const auto solver_list = miopen::SplitDelim(std::string(p_asciz), ';');
+        const auto solver_list = miopen::SplitDelim(slv_str, ';');
         for(const auto& kinder : solver_list)
         {
             auto numeric_id = std::strtoul(kinder.c_str(), nullptr, 10);
@@ -121,10 +131,14 @@ boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolverImpl()
                 numeric_id = solver::Id{solver::Id{numeric_id}.ToString()}.Value();
             }
             if(numeric_id != 0)
+            {
                 MIOPEN_LOG_NQI(numeric_id);
+            }
             else
+            {
                 MIOPEN_THROW(miopenStatusBadParm,
                              "Invalid value of MIOPEN_DEBUG_FIND_ONLY_SOLVER: " + kinder);
+            }
             const auto id = solver::Id{numeric_id};
             if(id.IsValid())
             {
@@ -154,6 +168,8 @@ std::ostream& operator<<(std::ostream& os, const FindEnforce& val)
 
 boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolver()
 {
+    if(miopen::debug::IsWarmupOngoing)
+        return boost::none;
     static const auto once = GetEnvFindOnlySolverImpl();
     return once;
 }
@@ -181,24 +197,31 @@ std::ostream& operator<<(std::ostream& os, const FindMode::Values& v)
 
 FindMode::Values GetFindModeValueImpl2()
 {
-    const char* const p_asciz = miopen::GetStringEnv(MIOPEN_FIND_MODE{});
-    if(p_asciz == nullptr)
+    auto str = miopen::GetStringEnv(ENV(MIOPEN_FIND_MODE));
+    if(str.empty())
         return FindMode::Values::Default_;
-    std::string str = p_asciz;
     for(auto& c : str)
         c = toupper(static_cast<unsigned char>(c));
     if(str == "NORMAL")
+    {
         return FindMode::Values::Normal;
+    }
     else if(str == "FAST")
+    {
         return FindMode::Values::Fast;
+    }
     else if(str == "HYBRID")
+    {
         return FindMode::Values::Hybrid;
+    }
     else if(str == "DYNAMIC_HYBRID")
+    {
         return FindMode::Values::DynamicHybrid;
+    }
     else
     { // Nop. Fall down & try numerics.
     }
-    const auto val = static_cast<FindMode::Values>(miopen::Value(MIOPEN_FIND_MODE{}));
+    const auto val = static_cast<FindMode::Values>(stoul(str));
     if(FindMode::Values::Begin_ <= val && val < FindMode::Values::End_)
         return val;
     MIOPEN_LOG_NQE("Wrong MIOPEN_FIND_MODE, using default.");

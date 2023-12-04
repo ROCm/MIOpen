@@ -34,6 +34,8 @@
 #include <miopen/datatype.hpp>
 #include <ostream>
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS);
+
 namespace miopen {
 
 namespace debug {
@@ -119,15 +121,13 @@ bool IsOutputInt32(const ProblemDescription& problem)
            problem.GetOutDataType() == miopenInt32;
 }
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS);
-
 std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
 {
     std::ostringstream kernel_name;
 
     /// \todo remove packed reference convolution kernels --amberhassaan
 #ifndef NDEBUG // enable in debug mode only
-    if(miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS()))
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS)))
     {
         kernel_name << "naive_conv_packed_";
     }
@@ -137,6 +137,7 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
         kernel_name << "naive_conv_nonpacked_";
     }
 
+    // NOLINTBEGIN(*-braces-around-statements)
     if(problem.IsDirectionForward())
         kernel_name << "fwd_";
     else if(problem.IsDirectionBackwardData())
@@ -145,6 +146,7 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
         kernel_name << "wrw_";
     else
         MIOPEN_THROW("unsupported convolution direction");
+    // NOLINTEND(*-braces-around-statements)
 
     if(problem.IsLayoutDefault())
     {
@@ -161,7 +163,9 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
             kernel_name << "ndhwc_";
     }
     else
+    {
         MIOPEN_THROW("unsupported tensor layout");
+    }
 
     if(problem.IsFp8() || problem.IsTensorsCasted() || problem.IsBfp8())
     {
@@ -171,15 +175,25 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
         return kernel_name.str();
     }
     else if(IsInputFp32(problem))
+    {
         kernel_name << "float_";
+    }
     else if(IsInputFp16(problem))
+    {
         kernel_name << "half_";
+    }
     else if(IsInputBfp16(problem))
+    {
         kernel_name << "ushort_";
+    }
     else if(IsInputInt8(problem))
+    {
         kernel_name << "int8_t_";
+    }
     else
+    {
         MIOPEN_THROW("unsupported data type:");
+    }
 
     if(IsAccInt32(problem))
         kernel_name << "int32_t_";
@@ -188,6 +202,7 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
     else
         MIOPEN_THROW("unsupported data type:");
 
+    // NOLINTBEGIN(*-braces-around-statements)
     if(IsOutputFp32(problem))
         kernel_name << "float";
     else if(IsOutputFp16(problem))
@@ -200,6 +215,7 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
         kernel_name << "int32_t";
     else
         MIOPEN_THROW("unsupported data type:");
+    // NOLINTEND(*-braces-around-statements)
 
     return kernel_name.str();
 }

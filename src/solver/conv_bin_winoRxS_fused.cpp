@@ -36,8 +36,8 @@
 
 #include <boost/any.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
 /// \return v rounded up (towards +inf) to the nearest multiple of m.
 /// Defined for positive values only.
@@ -58,9 +58,9 @@ namespace fusion {
 bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& context,
                                            const FusionDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD)))
         return false;
-    if(miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_GCN_ASM_KERNELS)))
         return false;
     if(!WinoCommonIsApplicable(context, problem))
         return false;
@@ -122,7 +122,7 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& context,
     // clang-format off
     return conv_problem.GetKernelStrideH() == conv_problem.GetKernelStrideW()
         && conv_problem.GetDilationH() == 1
-        && conv_problem.GetDilationW() == 1 
+        && conv_problem.GetDilationW() == 1
         && (static_cast<uint64_t>(C) * x * y) <= std::pow(2, 28)
         && (static_cast<uint64_t>(K) * x * y) <= std::pow(2, 28)
         && (static_cast<uint64_t>(K) * OH * OW) <= std::pow(2, 28)
@@ -134,10 +134,10 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& context,
         && OH <= std::pow(2, 16)
         && OW <= std::pow(2, 16)
         && H <= std::pow(2, 16)
-        && W <= std::pow(2, 16) 
-        && C <= std::pow(2, 16) 
-        && K <= std::pow(2, 16) 
-        && N <= std::pow(2, 16) 
+        && W <= std::pow(2, 16)
+        && C <= std::pow(2, 16)
+        && K <= std::pow(2, 16)
+        && N <= std::pow(2, 16)
         && group_count == 1;
     // clang-format on
 }
@@ -201,11 +201,17 @@ ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionContext& context,
     const int zero = 0;
     int flags      = [&]() {
         if(bias_idx != -1 && activ_idx != -1)
+        {
             return (1 << 7) + (1 << 8);
+        }
         else if(bias_idx != -1)
+        {
             return (1 << 7);
+        }
         else
+        {
             return zero;
+        }
     }();
     const miopenActivationMode_t activ_mode = [&]() {
         if(activ_idx != -1)

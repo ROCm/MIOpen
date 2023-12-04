@@ -298,6 +298,12 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
                                    const TensorDescriptor& yDesc,
                                    Data_t y);
 
+solver::ConvSolution MakeFusedSolution(const struct FusionContext& ctx,
+                                       solver::Id id,
+                                       const std::optional<std::string>& perf_cfg_override,
+                                       const struct FusionDescription& problem,
+                                       const AnyInvokeParams& invoke_params);
+
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenFusionOpDescriptor, miopen::FusionOpDescriptor);
 MIOPEN_DEFINE_OBJECT(miopenOperatorArgs, miopen::OperatorArgs);

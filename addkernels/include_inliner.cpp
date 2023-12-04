@@ -164,8 +164,10 @@ void IncludeInliner::ProcessCore(std::istream& input,
             std::ifstream include_file(abs_include_file_path, std::ios::in);
 
             if(!include_file.good())
+            {
                 throw IncludeCantBeOpenedException(include_file_path,
                                                    GetIncludeStackTrace(current_line));
+            }
 
             ProcessCore(include_file,
                         output,

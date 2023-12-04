@@ -32,8 +32,8 @@
 #include <miopen/conv/asm_implicit_gemm.hpp>
 #include <miopen/util_sol.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
 
 #define FWD_MAX_GEMM_K_SPLITS 8
 // #define DEBUG_IGEMM_ASM_FWD_NHWC_CHECK_VALID_TILE_LIST
@@ -605,9 +605,11 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(
                     if(need_k_split)
                     {
                         if(miopen::IsDisabled(
-                               MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
+                               ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)))
+                        {
                             if(problem.IsFp16() && gks > 0)
                                 vector_store = 1;
+                        }
                         if(gks > 0)
                             gemm_k_global_split = static_cast<int>(gks);
                     }
@@ -675,11 +677,15 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
 
     if(!((problem.IsFp16() && precision == "fp16") || (problem.IsFp32() && precision == "fp32") ||
          (problem.IsBfp16() && precision == "bf16")))
+    {
         return false;
+    }
 
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)))
+    {
         if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1)
             return false;
+    }
 
     const int c           = problem.GetInChannels_();
     const int k           = problem.GetOutChannels_();
@@ -841,10 +847,12 @@ size_t ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(
     }
 
     if(!problem.IsFp32())
+    {
         size_tensor_cast =
             miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st
                                              // kernel is FP32, when using FP32 atomic
             * n * k * ho * wo;
+    }
 
     MultiBufferWorkspaceTraits wt(
         {size_trans_input, size_trans_weight, size_trans_output, size_tensor_cast}, buf_alignment);
@@ -856,7 +864,7 @@ size_t ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(
 bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
     const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC)))
         return false;
 
     if(problem.GetConv().attribute.deterministic)

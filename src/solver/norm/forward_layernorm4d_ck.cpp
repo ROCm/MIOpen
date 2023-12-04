@@ -29,9 +29,9 @@
 #include <miopen/layernorm.hpp>
 #if MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
-#include <ck/library/tensor_operation_instance/gpu/normalization.hpp>
+#include <ck/library/tensor_operation_instance/gpu/normalization_fwd.hpp>
 #endif
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_LAYERNORM4DCKFORWARD_CONV_CK_LN)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_LAYERNORM4DCKFORWARD_CONV_CK_LN)
 
 namespace miopen {
 namespace solver {
@@ -48,7 +48,7 @@ template <typename XDataType,
           typename BetaDataType,
           typename YDataType,
           typename SaveMeanInvStdDataType>
-using DeviceOp = ck::tensor_operation::device::DeviceNormalization<
+using DeviceOp = ck::tensor_operation::device::DeviceNormalizationFwd<
     XDataType,
     GammaDataType,
     BetaDataType,
@@ -224,7 +224,7 @@ bool Layernorm4DCKForward::IsApplicable(
     [[maybe_unused]] const miopen::norm::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(MIOPEN_DEBUG_LAYERNORM4DCKFORWARD_CONV_CK_LN{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_LAYERNORM4DCKFORWARD_CONV_CK_LN)))
         return false;
     if(!problem.IsSameType())
         return false;
