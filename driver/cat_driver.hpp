@@ -187,15 +187,15 @@ template <typename Tgpu, typename Tref>
 int CatDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Cat (Default=1)", "int");
-    inflags.AddTensorFlag("input1", '1', "100x1x32", "input tensor descriptor");
-    inflags.AddTensorFlag("input2", '2', "100x2x32", "input tensor descriptor");
-    inflags.AddTensorFlag("input3", '3', "", "input tensor descriptor");
-    inflags.AddTensorFlag("input4", '4', "", "input tensor descriptor");
-    inflags.AddTensorFlag("input5", '5', "", "input tensor descriptor");
-    inflags.AddTensorFlag("input6", '6', "", "input tensor descriptor");
-    inflags.AddTensorFlag("input7", '7', "", "input tensor descriptor");
-    inflags.AddTensorFlag("input8", '8', "", "input tensor descriptor");
-    inflags.AddInputFlag("dim", 'd', "1", "Dim (Default=1)", "int");
+    inflags.AddTensorFlag("input1", '1', "", "input1 tensor descriptor");
+    inflags.AddTensorFlag("input2", '2', "", "input2 tensor descriptor");
+    inflags.AddTensorFlag("input3", '3', "", "input3 tensor descriptor");
+    inflags.AddTensorFlag("input4", '4', "", "input4 tensor descriptor");
+    inflags.AddTensorFlag("input5", '5', "", "input5 tensor descriptor");
+    inflags.AddTensorFlag("input6", '6', "", "input6 tensor descriptor");
+    inflags.AddTensorFlag("input7", '7', "", "input7 tensor descriptor");
+    inflags.AddTensorFlag("input8", '8', "", "input8 tensor descriptor");
+    inflags.AddInputFlag("dim", 'd', "0", "Concatenation dimension (Default=0)", "int");
 
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
