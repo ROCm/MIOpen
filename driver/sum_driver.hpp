@@ -23,25 +23,72 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/miopen.h>
 #ifndef GUARD_MIOPEN_SUM_DRIVER_HPP
 #define GUARD_MIOPEN_SUM_DRIVER_HPP
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
-#include "mloSumHost.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
-#include <../test/verify.hpp>
+#include "random.hpp"
 #include <algorithm>
-#include <cstdlib>
 #include <cfloat>
+#include <cstdlib>
 #include <memory>
+#include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <numeric>
 #include <vector>
 #include <../test/tensor_holder.hpp>
-#include "random.hpp"
+#include <../test/verify.hpp>
+
+#ifndef MLO_SUMMHOST_H_
+#define MLO_SUMMHOST_H_
+
+template <typename Tgpu, typename Tcheck>
+int32_t mloSumForwardRunHost(miopenTensorDescriptor_t inputDesc,
+                             miopenTensorDescriptor_t outputDesc,
+                             Tgpu* input,
+                             Tcheck* outputhost,
+                             int32_t dim,
+                             miopenSumNanPropagation_t nanPropagation)
+{
+    auto input_dims  = miopen::deref(inputDesc).GetLengths();
+    auto output_dims = miopen::deref(outputDesc).GetLengths();
+
+    auto reduce_size = input_dims[dim];
+    auto output_numel =
+        std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
+
+    auto inner_size = 1ULL;
+    for(int32_t i = dim + 1; i < input_dims.size(); i++)
+    {
+        inner_size *= input_dims[i];
+    }
+
+    int32_t ret = 0;
+
+    for(size_t o = 0; o < output_numel; o++)
+    {
+        size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
+
+        Tcheck sum = 0.0f;
+        for(size_t i = 0; i < reduce_size; i++)
+        {
+            Tcheck val = static_cast<Tcheck>(input[input_idx]);
+            if(nanPropagation && isnan(val))
+            {
+                val = 0.0f;
+            }
+            sum += val;
+            input_idx += inner_size;
+        }
+        outputhost[o] = sum;
+    }
+    return ret;
+}
+#endif
+>>>>>>> develop
 
 template <typename Tgpu, typename Tref>
 class SumDriver : public Driver
@@ -141,11 +188,12 @@ template <typename Tgpu, typename Tref>
 int SumDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Sum (Default=1)", "int");
-    inflags.AddInputFlag("InputDimLengths",
-                         'D',
-                         "256,4,8732",
-                         "The dimensional lengths of the input tensor(Default=256,4,8732)",
-                         "string");
+    inflags.AddInputFlag("batchsize", 'n', "256", "Mini-batch size (Default=100)", "int");
+    inflags.AddInputFlag("in_channels", 'c', "4", "Number of Input Channels (Default=3)", "int");
+    inflags.AddInputFlag("in_d", 'D', "0", "Input Depth (Default=0)", "int");
+    inflags.AddInputFlag("in_h", 'H', "0", "Input Height (Default=32)", "int");
+    inflags.AddInputFlag("in_w", 'W', "8732", "Input Width (Default=32)", "int");
+
     inflags.AddInputFlag(
         "DimToReduce", 'R', "1", "The indice of the dimensions to be reduced(Default=1)", "int");
     inflags.AddInputFlag("NanPropagation",
@@ -166,31 +214,33 @@ int SumDriver<Tgpu, Tref>::AddCmdLineArgs()
 template <typename Tgpu, typename Tref>
 std::vector<int> SumDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
-    std::string lengthsStr = inflags.GetValueStr("InputDimLengths");
+    int in_n = inflags.GetValueInt("batchsize");
+    int in_c = inflags.GetValueInt("in_channels");
+    int in_w = inflags.GetValueInt("in_w");
+    int in_h = inflags.GetValueInt("in_h");
+    int in_d = inflags.GetValueInt("in_d");
 
-    std::vector<int> lengths;
-    std::size_t pos = 0;
-    std::size_t new_pos;
-
-    new_pos = lengthsStr.find(',', pos);
-    while(new_pos != std::string::npos)
+    if((in_n != 0) && (in_c != 0) && (in_d != 0) && (in_h != 0) && (in_w != 0))
     {
-        std::string sliceStr = lengthsStr.substr(pos, new_pos - pos);
-
-        int len = std::stoi(sliceStr);
-
-        lengths.push_back(len);
-
-        pos     = new_pos + 1;
-        new_pos = lengthsStr.find(',', pos);
-    };
-
-    std::string sliceStr = lengthsStr.substr(pos);
-    int len              = std::stoi(sliceStr);
-
-    lengths.push_back(len);
-
-    return (lengths);
+        return std::vector<int>({in_n, in_c, in_d, in_h, in_w});
+    }
+    else if((in_n != 0) && (in_c != 0) && (in_h != 0) && (in_w != 0))
+    {
+        return std::vector<int>({in_n, in_c, in_h, in_w});
+    }
+    else if((in_n != 0) && (in_c != 0) && (in_w != 0))
+    {
+        return std::vector<int>({in_n, in_c, in_w});
+    }
+    else if((in_n != 0) && (in_w != 0))
+    {
+        return std::vector<int>({in_n, in_w});
+    }
+    else
+    {
+        std::cerr << "Error Input Tensor Lengths\n" << std::endl;
+        return std::vector<int>({0});
+    }
 }
 
 template <typename Tgpu, typename Tref>
@@ -200,29 +250,29 @@ int SumDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     size_t out_sz = GetTensorSize(outputDesc);
 
     miopenGetSumWorkspaceSize(GetHandle(), inputDesc, dim, outputDesc, &ws_sizeInBytes);
+    if(ws_sizeInBytes == static_cast<size_t>(-1))
+        return miopenStatusAllocFailed;
 
     uint32_t ctx = 0;
 
     in_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
     out_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-    workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sizeInBytes, sizeof(Tgpu)));
+    workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sizeInBytes, sizeof(std::byte)));
 
     in      = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
     out     = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
     outhost = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
-    int status;
-
     for(int i = 0; i < in_sz; i++)
     {
         in[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
     }
-    status = in_dev->ToGPU(q, in.data());
 
-    status |= out_dev->ToGPU(q, out.data());
+    if(in_dev->ToGPU(GetStream(), in.data()) != 0)
+        std::cerr << "Error copying (in) to GPU, size: " << in_dev->GetSize() << std::endl;
 
-    if(status != 0)
-        std::cout << "Error copying data to GPU\n" << std::endl;
+    if(out_dev->ToGPU(GetStream(), out.data()) != 0)
+        std::cerr << "Error copying (out) to GPU, size: " << out_dev->GetSize() << std::endl;
 
     return miopenStatusSuccess;
 }
@@ -230,8 +280,8 @@ int SumDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 template <typename Tgpu, typename Tref>
 int SumDriver<Tgpu, Tref>::RunForwardGPU()
 {
-    float kernel_total_time = 0.0;
-    float kernel_first_time = 0.0;
+    float kernel_total_time = 0;
+    float kernel_first_time = 0;
 
     Timer t;
     START_TIME
@@ -267,7 +317,8 @@ int SumDriver<Tgpu, Tref>::RunForwardGPU()
         printf("GPU Kernel Time Forward Sum Elapsed: %f ms\n", kernel_average_time);
     }
 
-    out_dev->FromGPU(GetStream(), out.data());
+    if(out_dev->FromGPU(GetStream(), out.data()) != 0)
+        std::cerr << "Error copying (out_dev) from GPU, size: " << out_dev->GetSize() << std::endl;
 
     return miopenStatusSuccess;
 }
@@ -290,19 +341,14 @@ int SumDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 Tref SumDriver<Tgpu, Tref>::GetTolerance()
 {
-    if(data_type == miopenHalf)
-    {
-        return 1e-3;
-    }
-    else if(data_type == miopenFloat)
-    {
-        return 5e-5;
-    }
-    else if(data_type == miopenBFloat16)
-    {
-        return 1e-2;
-    }
-    return 0;
+    // Computation error of fp16 is ~2^13 (=8192) bigger than
+    // the one of fp32 because mantissa is shorter by 13 bits.
+    auto tolerance = (sizeof(Tgpu) == 4 || sizeof(Tgpu) == 1) ? 1.5e-6 : 8.2e-3;
+
+    // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+    if(std::is_same<Tgpu, bfloat16>::value)
+        tolerance *= 8.0;
+    return tolerance;
 }
 
 template <typename Tgpu, typename Tref>
@@ -314,12 +360,13 @@ int SumDriver<Tgpu, Tref>::VerifyForward()
 
     if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Forward Sum FAILED: " << error << std::endl;
+        std::cout << "Forward Sum FAILED: " << error << " > " << tolerance << std::endl;
         return EC_VerifyFwd;
     }
     else
     {
-        printf("Forward Sum Verifies on CPU and GPU (err=%f)\n", error);
+        std::cout << "Forward Sum Verifies OK on CPU reference (" << error << " < " << tolerance
+                  << ')' << std::endl;
     }
 
     return miopenStatusSuccess;

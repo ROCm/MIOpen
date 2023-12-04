@@ -635,7 +635,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor
 
 /*! @brief Set shape of 4D tensor
  *
- * Interface for setting 4-D tensor shape. MIOpen currently only implements NCHW layout.
+ * Interface for setting 4-D tensor shape. MIOpen currently implements NCHW and NHWC layout.
  *
  * @param tensorDesc Tensor descriptor (input/output)
  * @param dataType   MIOpen datatype (input)
@@ -5235,6 +5235,9 @@ typedef enum
     miopenTensorActivationY  = 5,
     miopenTensorActivationDX = 6,
     miopenTensorActivationDY = 7,
+    miopenTensorBiasX        = 8,
+    miopenTensorBiasY        = 9,
+    miopenTensorBias         = 10,
 #endif
 } miopenTensorArgumentId_t;
 
@@ -5507,6 +5510,16 @@ miopenCreateActivationProblem(miopenProblem_t* problem,
  * @return             miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenFuseProblems(miopenProblem_t problem1, miopenProblem_t problem2);
+
+/*! @brief Initializes a problem object describing an bias operation.
+ * @note As of now there is no way to actually get any solution for this kind of problems.
+ *
+ * @param problem        Pointer to the problem to initialize
+ * @param direction      Direction of the operation
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenCreateBiasProblem(miopenProblem_t* problem,
+                                                     miopenProblemDirection_t direction);
 
 #endif
 

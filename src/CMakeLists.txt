@@ -208,6 +208,9 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_3d_grouped_fwd_xdlops.cpp
     solver/conv_hip_implicit_gemm_3d_grouped_wrw_xdlops.cpp
     solver/conv_hip_implicit_gemm_3d_grouped_bwd_xdlops.cpp
+    solver/conv_hip_implicit_gemm_f16f8f16_fwd_xdlops.cpp
+    solver/conv_hip_implicit_gemm_f16f8f16_bwd_xdlops.cpp
+    solver/conv_hip_implicit_gemm_f16f8f16_wrw_xdlops.cpp
     solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
@@ -709,7 +712,7 @@ target_include_directories(MIOpen PUBLIC
 )
 
 if(MIOPEN_USE_COMPOSABLEKERNEL)
-set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_operations hip::host)
+set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_other_operations composable_kernel::device_gemm_operations composable_kernel::device_conv_operations composable_kernel::device_contraction_operations composable_kernel::device_reduction_operations hip::host)
 endif()
 
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)

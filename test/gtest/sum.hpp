@@ -148,6 +148,9 @@ protected:
 
         std::vector<size_t> workspace_dims;
         ws_sizeInBytes = miopen::GetSumWorkspaceSize(handle, input.desc, output.desc, dim);
+        if(ws_sizeInBytes == static_cast<size_t>(-1))
+            GTEST_SKIP();
+
         workspace_dims.push_back(ws_sizeInBytes / sizeof(T));
         if(ws_sizeInBytes != 0)
         {

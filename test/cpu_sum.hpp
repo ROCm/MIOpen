@@ -51,9 +51,8 @@ void cpu_sum_forward(tensor<T> input,
         size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
         T sum            = 0.0f;
 
-        ford(reduce_size)([&](size_t i) {
-            std::ignore = i;
-            T val       = input[input_idx];
+        ford(reduce_size)([&](size_t) {
+            T val = input[input_idx];
             if(nanPropagation && std::isnan(val))
             {
                 val = 0.0f;

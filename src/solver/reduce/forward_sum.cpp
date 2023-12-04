@@ -49,6 +49,35 @@ bool IsNotLastDim(const miopen::reduce::ProblemDescription& problem)
     return true;
 }
 
+size_t get_reqd_work_item_cnt(const ExecutionContext& context)
+{
+    // At least 4 WGs per one CU
+    return static_cast<size_t>(LOCAL_SIZE * context.GetStream().GetMaxComputeUnits() * 4);
+}
+
+size_t get_reqd_work_item_cnt(const Handle& handle)
+{
+    // At least 4 WGs per one CU
+    return static_cast<size_t>(LOCAL_SIZE * handle.GetMaxComputeUnits() * 4);
+}
+
+size_t get_parallelism_size(size_t reqd_work_item_cnt, size_t output_numel, size_t reduce_size)
+{
+    size_t parallelism_size = 1ULL;
+    while(parallelism_size * output_numel < reqd_work_item_cnt &&
+          parallelism_size < std::sqrt(reduce_size))
+    {
+        parallelism_size *= 2ULL;
+    }
+    return parallelism_size;
+}
+
+bool is_parallelism(size_t reqd_work_item_cnt, size_t output_numel, size_t reduce_size)
+{
+    return !(output_numel > reqd_work_item_cnt) &&
+           (output_numel * reduce_size > reqd_work_item_cnt);
+}
+
 bool IsImprovementOverROCm(const ExecutionContext& context,
                            const miopen::reduce::ProblemDescription& problem)
 {
@@ -60,25 +89,18 @@ bool IsImprovementOverROCm(const ExecutionContext& context,
     auto output_numel =
         std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
 
-    // At least 4 WGs per one CU
-    auto reqd_work_item_cnt =
-        static_cast<size_t>(256 * context.GetStream().GetMaxComputeUnits() * 4);
+    auto reqd_work_item_cnt = get_reqd_work_item_cnt(context);
 
-    bool is_num_work_item_enough = (output_numel > reqd_work_item_cnt);
-    bool is_parallelism_enough   = (output_numel * reduce_size > reqd_work_item_cnt);
-
-    if(!is_num_work_item_enough && is_parallelism_enough)
+    if(is_parallelism(reqd_work_item_cnt, output_numel, reduce_size))
     {
         // It's large enough to parallelization, but calling the kernel twice is overhead.
         // For cases smaller than this, ROCm pytorch performed better.
         bool is_improvement_ROCm = (output_numel * reduce_size < reqd_work_item_cnt * 64);
-        // But the reduce size is small, MIOpen HIP performs better.
+        // But the reduce size is small, MIOpen HIP performed better.
         bool is_reduce_large = (reduce_size > 64);
 
         if(is_improvement_ROCm && is_reduce_large)
-        {
-            MIOPEN_THROW(miopenStatusBadParm, "SumForward: Performance cannot be guaranteed.");
-        }
+            return false;
     }
 
     return true;
@@ -118,21 +140,11 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
     auto output_numel =
         std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
 
-    // At least 4 WGs per one CU
-    auto reqd_work_item_cnt =
-        static_cast<size_t>(256 * context.GetStream().GetMaxComputeUnits() * 4);
+    auto reqd_work_item_cnt = get_reqd_work_item_cnt(context);
 
-    bool is_num_work_item_enough = (output_numel > reqd_work_item_cnt);
-    bool is_parallelism_enough   = (output_numel * reduce_size > reqd_work_item_cnt);
-
-    if(!is_num_work_item_enough && is_parallelism_enough)
+    if(is_parallelism(reqd_work_item_cnt, output_numel, reduce_size))
     {
-        size_t parallelism_size = 1;
-        while(parallelism_size * output_numel < reqd_work_item_cnt &&
-              parallelism_size < std::sqrt(reduce_size))
-        {
-            parallelism_size *= 2;
-        }
+        auto parallelism_size = get_parallelism_size(reqd_work_item_cnt, output_numel, reduce_size);
 
         size_t xlocalsize = LOCAL_SIZE;
         size_t xgridsize  = AlignUp(parallelism_size * output_numel, xlocalsize);
@@ -199,7 +211,7 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
         result.construction_params.push_back(kernel);
     }
 
-    if(!is_num_work_item_enough && is_parallelism_enough)
+    if(is_parallelism(reqd_work_item_cnt, output_numel, reduce_size))
     {
         result.invoker_factory = [](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
@@ -221,16 +233,9 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
                     inner_size *= xdims[i];
                 }
 
-                // At least 4 WGs per one CU
-                auto reqd_work_item_cnt =
-                    static_cast<size_t>(256 * handle_.GetMaxComputeUnits() * 4);
-
-                auto parallelism_size = 1ULL;
-                while(parallelism_size * output_numel < reqd_work_item_cnt &&
-                      parallelism_size < std::sqrt(reduce_size))
-                {
-                    parallelism_size *= 2ULL;
-                }
+                auto reqd_work_item_cnt = get_reqd_work_item_cnt(handle_);
+                auto parallelism_size =
+                    get_parallelism_size(reqd_work_item_cnt, output_numel, reduce_size);
 
                 auto elapsed = 0.f;
 
@@ -306,20 +311,11 @@ std::size_t SumForward::GetWorkspaceSize(const ExecutionContext& context,
     auto output_numel =
         std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
 
-    // At least 4 WGs per one CU
-    auto reqd_work_item_cnt =
-        static_cast<size_t>(256 * context.GetStream().GetMaxComputeUnits() * 4);
-    bool is_num_work_item_enough = (output_numel > reqd_work_item_cnt);
-    bool is_parallelism_enough   = (output_numel * reduce_size > reqd_work_item_cnt);
+    auto reqd_work_item_cnt = get_reqd_work_item_cnt(context);
 
-    if(!is_num_work_item_enough && is_parallelism_enough)
+    if(is_parallelism(reqd_work_item_cnt, output_numel, reduce_size))
     {
-        size_t parallelism_size = 1;
-        while(parallelism_size * output_numel < reqd_work_item_cnt &&
-              parallelism_size < std::sqrt(reduce_size))
-        {
-            parallelism_size *= 2;
-        }
+        auto parallelism_size = get_parallelism_size(reqd_work_item_cnt, output_numel, reduce_size);
 
         return parallelism_size * output_numel * get_data_size(problem.GetXDesc().GetType());
     }
