@@ -36,7 +36,7 @@
 #include <numeric>
 #include <algorithm>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_RNNFWD_exp)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNNFWD_exp)
 
 namespace miopen {
 
@@ -3077,8 +3077,9 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
 #if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
 
     if(rnnMode == miopenLSTM && algoMode == miopenRNNdefault && !use_dropout && nLayers > 1 &&
-       inputMode != miopenRNNskip && !(miopen::IsDisabled(MIOPEN_RNNFWD_exp{})) &&
-       xDesc[0].GetType() == miopenFloat && seqLen >= 32)
+       dirMode == miopenRNNunidirection && inputMode != miopenRNNskip &&
+       !(miopen::IsDisabled(ENV(MIOPEN_RNNFWD_exp))) && xDesc[0].GetType() == miopenFloat &&
+       seqLen >= 32)
     {
         RNNForwardTraining_MS(handle,
                               in_n,
@@ -3107,7 +3108,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
     }
 
     if((rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH) && !use_dropout && nLayers > 1 &&
-       inputMode != miopenRNNskip && !(miopen::IsDisabled(MIOPEN_RNNFWD_exp{})))
+       inputMode != miopenRNNskip && !(miopen::IsDisabled(ENV(MIOPEN_RNNFWD_exp))))
     {
         RNNForwardTrainingTanhRelu(
             handle, in_n, xDesc[0], x, hxDesc, hx, wDesc, w, yDesc[0], y, hy, reserveSpace);
@@ -3155,7 +3156,6 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
     x_stride[1]  = in_stride;
     y_stride[0]  = batch_n * out_stride;
     y_stride[1]  = out_stride;
-
     if(hy != nullptr || (rnnMode == miopenLSTM && cy != nullptr))
     {
         hx_size[2]   = hy_d * hy_n * hy_h;
@@ -3175,7 +3175,6 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
             profileRNNkernels(handle, 1, ctime);
         }
     }
-
     hx_stride[0] = in_n.at(0) * uni_stride;
     hx_stride[1] = uni_stride;
 
@@ -5496,6 +5495,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                             sp_size[2] = hy_h;
                             hx_desc = miopen::TensorDescriptor(rnn_data_type, hx_size, hx_stride);
                             sp_desc = miopen::TensorDescriptor(rnn_data_type, sp_size, sp_stride);
+
                             OpTensor(handle,
                                      miopenTensorOpAdd,
                                      &alpha0,
@@ -5528,6 +5528,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                             sp_size[2] = hy_h;
                             hx_desc = miopen::TensorDescriptor(rnn_data_type, hx_size, hx_stride);
                             sp_desc = miopen::TensorDescriptor(rnn_data_type, sp_size, sp_stride);
+
                             OpTensor(handle,
                                      miopenTensorOpAdd,
                                      &alpha0,
@@ -5619,6 +5620,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                                                                               1, // beta
                                                                               rnn_data_type,
                                                                               false};
+
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
                                          gemm_desc,
@@ -6503,6 +6505,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
                             }
+
                             miopen::GemmDescriptor gemm_desc =
                                 GemmDescriptor{false,
                                                false,
@@ -7618,5 +7621,4 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
     MIOPEN_THROW("GEMM is not supported");
 #endif
 };
-
 } // namespace miopen

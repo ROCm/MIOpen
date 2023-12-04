@@ -32,13 +32,13 @@
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_TEST_FLOAT_ARG)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 static bool IsTestRunWith(const char* float_arg)
 {
     assert(float_arg != nullptr);
-    const char* const p_envVar = miopen::GetStringEnv(MIOPEN_TEST_FLOAT_ARG{});
-    return (p_envVar != nullptr && std::strcmp(p_envVar, float_arg) == 0);
+    const auto& s_envVar = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    return (s_envVar.compare(float_arg) == 0);
 }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
