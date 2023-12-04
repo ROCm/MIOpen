@@ -23,37 +23,51 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/env.hpp>
-#include "sum.hpp"
+#pragma once
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
+#include <hip_float8.hpp>
+#include "verify.hpp"
+using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
+using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
 
-std::string GetFloatArg()
+template <typename U, typename V>
+struct Fp8Cast
 {
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
+    uint64_t seed = 1234;
+    bool is_stoch = true;
+    V operator()(U x)
     {
-        return "";
-    }
-    return tmp;
-}
-
-struct SumTestFloat : SumTest<float>
-{
-};
-
-TEST_P(SumTestFloat, SumTestFw)
-{
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
+        if(is_stoch)
+        {
+            auto tmp =
+                float8(static_cast<float>(x), miopen_f8::hip_f8_rounding_mode::stochastic, seed);
+            return static_cast<V>(tmp);
+        }
+        else
+        {
+            auto tmp = float8(static_cast<float>(x));
+            return static_cast<V>(tmp);
+        }
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SumTestSet, SumTestFloat, testing::ValuesIn(SumTestConfigs()));
+template <typename U, typename V>
+struct Bf8Cast
+{
+    uint64_t seed = 1234;
+    bool is_stoch = true;
+    V operator()(U x)
+    {
+        if(is_stoch)
+        {
+            auto tmp =
+                bfloat8(static_cast<float>(x), miopen_f8::hip_f8_rounding_mode::stochastic, seed);
+            return static_cast<V>(tmp);
+        }
+        else
+        {
+            auto tmp = bfloat8(static_cast<float>(x));
+            return static_cast<V>(tmp);
+        }
+    }
+};
