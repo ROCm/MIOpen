@@ -30,9 +30,9 @@
 #include <gtest/gtest.h>
 #include <boost/algorithm/string.hpp>
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DEEPBENCH)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-static bool SkipTest(void) { return miopen::IsDisabled(ENV(MIOPEN_TEST_DEEPBENCH)); }
+static bool SkipTest(void) { return miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
