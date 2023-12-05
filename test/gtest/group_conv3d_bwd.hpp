@@ -92,7 +92,9 @@ protected:
         auto&& handle = get_handle();
 
         ref_in     = tensor<T>{tensor_layout, conv_config.GetInput()};
-        ref_in     = ref_conv_bwd(input, weights, output, conv_desc);
+        // ref_in     = ref_conv_bwd(input, weights, output, conv_desc);
+        ref_in     = cpu_convolution_backward_data(conv_desc.GetSpatialDimension(), input, weights, output, 
+            conv_desc.GetConvPads(), conv_desc.GetConvStrides(), conv_desc.GetConvDilations(), conv_desc.GetGroupCount());
         input.data = handle.Read<T>(in_dev, input.data.size());
         EXPECT_FALSE(miopen::range_zero(ref_in)) << "Cpu data is all zeros";
         EXPECT_FALSE(miopen::range_zero(input)) << "Gpu data is all zeros";
