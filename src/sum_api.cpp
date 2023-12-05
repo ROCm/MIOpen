@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #include <miopen/sum.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>

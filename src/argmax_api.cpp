@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #include <miopen/argmax.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>

@@ -26,10 +26,10 @@
 
 #include <miopen/argmax.hpp>
 #include <miopen/datatype.hpp>
+#include <miopen/kernel_build_params.hpp>
 #include <miopen/reduce/invoke_params.hpp>
 #include <miopen/reduce/solvers.hpp>
 #include <miopen/target_properties.hpp>
-#include <miopen/kernel_build_params.hpp>
 
 #define LOCAL_SIZE 256
 

@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/miopen.h>
 #ifndef GUARD_MIOPEN_ARGMAX_DRIVER_HPP
 #define GUARD_MIOPEN_ARGMAX_DRIVER_HPP
 

@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #include "../driver/tensor_driver.hpp"
 #include "cpu_argmax.hpp"
 #include "get_handle.hpp"

@@ -24,12 +24,12 @@
  *
  *******************************************************************************/
 
+#include <miopen/layernorm.hpp>
 #include <miopen/norm/solvers.hpp>
 #include <miopen/norm/invoke_params.hpp>
-#include <miopen/layernorm.hpp>
 #if MIOPEN_USE_COMPOSABLEKERNEL
-#include <miopen/solver/ck_utility_common.hpp>
 #include <ck/library/tensor_operation_instance/gpu/normalization_fwd.hpp>
+#include <miopen/solver/ck_utility_common.hpp>
 #endif
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_LAYERNORM2DCKFORWARD_CONV_CK_LN)
 

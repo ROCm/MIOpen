@@ -23,15 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/miopen.h>
-#include <gtest/gtest.h>
-#include <miopen/layernorm.hpp>
 
-#include "tensor_holder.hpp"
+#include "../driver/tensor_driver.hpp"
 #include "cpu_layernorm.hpp"
 #include "get_handle.hpp"
-#include "../driver/tensor_driver.hpp"
+#include "tensor_holder.hpp"
 #include "verify.hpp"
+#include <gtest/gtest.h>
+#include <miopen/layernorm.hpp>
+#include <miopen/miopen.h>
 #include <random>
 
 struct LayerNormTestCase

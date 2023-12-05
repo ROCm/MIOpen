@@ -24,12 +24,11 @@
  *
  *******************************************************************************/
 
-#include <miopen/norm/solvers.hpp>
-
-#include <miopen/norm/invoke_params.hpp>
 #include <miopen/datatype.hpp>
-#include <miopen/layernorm.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/layernorm.hpp>
+#include <miopen/norm/invoke_params.hpp>
+#include <miopen/norm/solvers.hpp>
 #include <miopen/target_properties.hpp>
 
 #define LOCAL_SIZE 256

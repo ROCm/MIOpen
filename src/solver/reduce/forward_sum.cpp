@@ -24,12 +24,11 @@
  *
  *******************************************************************************/
 
-#include <miopen/reduce/solvers.hpp>
-
-#include <miopen/reduce/invoke_params.hpp>
 #include <miopen/datatype.hpp>
-#include <miopen/sum.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/reduce/invoke_params.hpp>
+#include <miopen/reduce/solvers.hpp>
+#include <miopen/sum.hpp>
 #include <miopen/target_properties.hpp>
 
 #define LOCAL_SIZE 256

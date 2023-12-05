@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #include <miopen/argmax.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/find_solution.hpp>

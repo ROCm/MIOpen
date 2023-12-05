@@ -23,8 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/env.hpp>
+
 #include "layernorm.hpp"
+#include <miopen/env.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)

@@ -23,12 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #pragma once
 
-#include <miopen/solver.hpp>
 #include <miopen/reduce/problem_description.hpp>
-
+#include <miopen/solver.hpp>
 #include <utility>
 
 namespace miopen {
