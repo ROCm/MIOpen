@@ -70,7 +70,7 @@ using conditional_t = typename conditional<predicate, X, Y>::type;
 #include <cstdint> // int8_t, int16_t
 #include <cmath>   // float_t
 #endif
-#else              // __HIPCC_RTC__
+#else // __HIPCC_RTC__
 #include <limits>
 #endif // __HIPCC_RTC__
 
