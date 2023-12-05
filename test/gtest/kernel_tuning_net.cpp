@@ -25,12 +25,13 @@ std::vector<KernelTuningNetTestCase> GetConvAsm1x1UTestCases()
 
 std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupFwdXdlopsTestCases()
 {
-    return {{{{128, 64, 209, 209, 128, 3, 3, 0, 0, 2, 2, 1, 1, miopenConvolution},
-              miopen::conv::Direction::Forward,
-              miopenFloat,
-              miopenTensorNHWC},
-             "DeviceGroupedConvFwdMultipleD_Xdl_CShuffle<256, 128, 128, 16, Default, 32, 32, 2, 2, "
-             "4, 4, 1, 1>"}};
+    return {
+        {{{128, 64, 209, 209, 128, 3, 3, 0, 0, 2, 2, 1, 1, miopenConvolution},
+          miopen::conv::Direction::Forward,
+          miopenFloat,
+          miopenTensorNHWC},
+         "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle<256, 128, 128, 16, Default, 32, 32, 2, 2, "
+         "4, 4, 4, 1, 1>"}};
 }
 
 struct KernelTuningNetTest : public ::testing::TestWithParam<KernelTuningNetTestCase>

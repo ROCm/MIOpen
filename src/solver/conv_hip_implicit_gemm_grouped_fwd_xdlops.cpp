@@ -213,7 +213,8 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::InitHeuristicKernelIDs()
 {
     for(int i = 0; i < valid_kernels.size(); i++)
     {
-        if(valid_kernels[i].find("DeviceGroupedConvFwdMultipleD_Xdl_CShuffle") != std::string::npos)
+        if(valid_kernels[i].find("DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle") !=
+           std::string::npos)
         {
             heuristic_indexes.push_back(i);
             heuristic_kernels.push_back(GetKernelAsTokens(valid_kernels[i]));
@@ -293,7 +294,7 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsModelApplicable(
         return false;
     if(problem.GetInDataType() != miopenFloat && problem.GetInDataType() != miopenHalf)
         return false;
-    if(miopen::IsDisabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS_AI_HEUR{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS_AI_HEUR)))
         return false;
     return true;
 }

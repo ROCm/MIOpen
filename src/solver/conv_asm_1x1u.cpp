@@ -474,7 +474,7 @@ void PerformanceConfigConvAsm1x1U::StaticHeuristic(const ProblemDescription& pro
 bool PerformanceConfigConvAsm1x1U::IsModelApplicable(const ExecutionContext& ctx,
                                                      const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR)))
         return false;
     if(ctx.GetStream().GetDeviceName() != "gfx908")
         return false;
