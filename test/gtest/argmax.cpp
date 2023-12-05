@@ -23,16 +23,20 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/env.hpp>
 #include "argmax.hpp"
+
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 std::string GetFloatArg()
 {
-    static const auto tmp = miopen::GetEnv("MIOPEN_TEST_FLOAT_ARG");
+    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
     if(tmp.empty())
     {
         return "";
     }
-    return tmp.front();
+    return tmp;
 }
 
 struct ArgmaxTestFloat : ArgmaxTest<float>
@@ -41,7 +45,7 @@ struct ArgmaxTestFloat : ArgmaxTest<float>
 
 TEST_P(ArgmaxTestFloat, ArgmaxTestFw)
 {
-    if(miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") && (GetFloatArg() == "--float"))
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
     {
         RunTest();
         Verify();

@@ -49,6 +49,8 @@ bool ArgmaxForward::IsApplicable(const ExecutionContext&,
         return false;
     if(!problem.IsAllPacked())
         return false;
+    if(!problem.IsNotLastDim())
+        return false;
     return true;
 }
 
@@ -62,9 +64,7 @@ ConvSolution ArgmaxForward::GetSolution(const ExecutionContext& context,
     auto dtype = problem.GetXDesc().GetType();
     auto xdims = problem.GetXDesc().GetLengths();
     auto ydims = problem.GetYDesc().GetLengths();
-    auto dim   = problem.GetDim();
 
-    int32_t reduce_size = static_cast<int32_t>(xdims[dim]);
     auto output_numel =
         std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
 
@@ -79,25 +79,15 @@ ConvSolution ArgmaxForward::GetSolution(const ExecutionContext& context,
         auto kernel = KernelInfo{};
 
         kernel.kernel_file = "MIOpenArgmax.cpp";
-        if((problem.GetDim() == problem.GetXDesc().GetLengths().size() - 1))
-        {
-            kernel.kernel_name = "ArgmaxFwdContiguousLastDim";
-            xlocalsize         = min(reduce_size, LOCAL_SIZE);
-            xgridsize          = output_numel * xlocalsize;
-        }
-        else
-        {
-            kernel.kernel_name = "ArgmaxFwdContiguous";
-            xlocalsize         = LOCAL_SIZE;
-            xgridsize          = AlignUp(output_numel, xlocalsize);
-        }
+        kernel.kernel_name = "ArgmaxFwdContiguous";
+        xlocalsize         = LOCAL_SIZE;
+        xgridsize          = AlignUp(output_numel, xlocalsize);
 
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
             {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
             {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-            {"LOCAL_SIZE", LOCAL_SIZE},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});

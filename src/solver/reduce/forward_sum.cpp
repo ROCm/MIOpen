@@ -40,15 +40,6 @@ namespace solver {
 
 namespace reduce {
 
-bool IsNotLastDim(const miopen::reduce::ProblemDescription& problem)
-{
-    if((problem.GetDim() == problem.GetXDesc().GetLengths().size() - 1))
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "SumForward: Reduce last dim not supported.");
-    }
-    return true;
-}
-
 size_t get_reqd_work_item_cnt(const ExecutionContext& context)
 {
     // At least 4 WGs per one CU
@@ -117,7 +108,7 @@ bool SumForward::IsApplicable(const ExecutionContext& context,
         return false;
     if(!problem.IsAllPacked())
         return false;
-    if(!IsNotLastDim(problem))
+    if(!problem.IsNotLastDim())
         return false;
     if(!IsImprovementOverROCm(context, problem))
         return false;

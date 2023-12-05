@@ -63,7 +63,7 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(xDesc.GetType() != yDesc.GetType())
         {
-            MIOPEN_THROW(miopenStatusBadParm, "SumForward: Tensor types do not match.");
+            MIOPEN_THROW(miopenStatusBadParm, "Reduce: Tensor types do not match.");
         }
         return true;
     }
@@ -78,8 +78,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
             if(xDesc.GetLengths()[i] != yDesc.GetLengths()[posy])
             {
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "SumForward: Tensor dimension lengths do not match.");
+                MIOPEN_THROW(miopenStatusBadParm, "Reduce: Tensor dimension lengths do not match.");
             }
 
             posy++;
@@ -93,7 +92,7 @@ struct ProblemDescription : ProblemDescriptionBase
         {
             MIOPEN_THROW(
                 miopenStatusBadParm,
-                "SumForward: is greater than 0 and less than or equal tensor dimension length.");
+                "Reduce: is greater than 0 and less than or equal tensor dimension length.");
         }
         return true;
     }
@@ -102,8 +101,15 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(!(xDesc.IsPacked() && yDesc.IsPacked()))
         {
-            MIOPEN_THROW(miopenStatusBadParm, "SumForward: Unpacked tensors not supported.");
+            MIOPEN_THROW(miopenStatusBadParm, "Reduce: Unpacked tensors not supported.");
         }
+        return true;
+    }
+
+    bool IsNotLastDim() const
+    {
+        if(dim == xDesc.GetLengths().size() - 1)
+            return false;
         return true;
     }
 
