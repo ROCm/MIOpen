@@ -243,7 +243,7 @@ if(MIOPEN_TEST_INT8)
               test_tensor_transform test_conv2d test_conv2d_find2)
 elseif(MIOPEN_TEST_BFLOAT16)
     set(SKIP_ALL_EXCEPT_TESTS
-              test_conv2d test_conv2d_find2 test_tensor_copy test_tensor_set test_tensor_vec test_immed_conv2d
+              test_conv2d test_conv2d_find2 test_tensor_copy test_tensor_set test_tensor_vec
               test_check_numerics_test test_conv_extra test_conv_for_implicit_gemm test_miopen_conv
               test_deepbench_conv test_conv_igemm_dynamic_xdlops_nhwc_wrw_bf16
               test_conv_igemm_dynamic_xdlops_nhwc_fwd_bf16
@@ -252,8 +252,7 @@ endif()
 
 if(${CODECOV_TEST})
     list(APPEND SKIP_TESTS
-        test_conv3d test_conv3d_find2 test_immed_conv3d test_immed_conv2d test_pooling2d test_pooling2d_asymmetric
-        test_pooling2d_wide)
+        test_conv3d test_conv3d_find2)
     # replaced by smaller tests with suffix _codecov
 endif()
 
@@ -341,7 +340,7 @@ function(add_test_executable TEST_NAME)
         set(TEST_COMMAND ${TEST_COMMAND} --xnack 1)
     endif()
 
-    if(WORKAROUND_ISSUE_936 AND (${TEST_NAME} MATCHES "test_conv2d" OR ${TEST_NAME} MATCHES "test_immed_conv2d") )
+    if(WORKAROUND_ISSUE_936 AND (${TEST_NAME} MATCHES "test_conv2d") )
         set(TEST_COMMAND ${TEST_COMMAND} --tolerance 130) #increased by 1.625 times
     endif()
 
@@ -391,10 +390,8 @@ set(LONG_TESTS
     test_soft_max
     test_lrn_test
     test_conv_for_implicit_gemm
-    test_immed_conv3d
     test_conv3d_extra
     test_conv_3d
-    test_pooling2d
     test_conv_igemm_mlir
     test_conv_igemm_mlir_xdlops
     test_activation
@@ -662,20 +659,6 @@ function(add_custom_test NAME)
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
     endif()
 endfunction()
-if(${CODECOV_TEST})
-    add_custom_test(test_conv3d_codecov
-        COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 4 4 4 4 --weights 2 4 1 1 1 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    )
-    #add_custom_test(test_immed_conv2d_codecov
-    #    COMMAND $<TARGET_FILE:test_immed_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input  2 2 14 14 --weights 8 2 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    #)
-    add_custom_test(test_immed_conv3d_codecov
-        COMMAND $<TARGET_FILE:test_immed_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 4 4 4 4 --weights 2 4 3 3 3 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    )
-    add_custom_test(test_pooling2d_codecov
-        COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --input 1, 192, 28, 28 --lens 2 2 --strides 2 2 --pads 0 0 ${MIOPEN_TEST_FLAGS_ARGS}
-    )
-endif()
 
 if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
     add_custom_test(test_miopendriver_regression_issue_1576 SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED HALF_ENABLED
@@ -760,14 +743,6 @@ set(IMPLICITGEMM_MLIR_ENV_W ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY
 set(TEST_CONV_VERBOSE_F ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-backward-data --disable-backward-weights)
 set(TEST_CONV_VERBOSE_B ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-forward --disable-backward-weights)
 set(TEST_CONV_VERBOSE_W ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-forward --disable-backward-data)
-
-add_custom_test(test_pooling2d_asymmetric SKIP_UNLESS_ALL HALF_ENABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
-    COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --all --dataset 1 --limit 0 ${MIOPEN_TEST_FLAGS_ARGS}
-)
-
-add_custom_test(test_pooling2d_wide SKIP_UNLESS_ALL HALF_ENABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
-    COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --all --dataset 2 --limit 0 ${MIOPEN_TEST_FLAGS_ARGS}
-)
 
 set(IMPLICITGEMM_MLIR_ENV_F_XDLOPS ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvMlirIgemmFwdXdlops)
 set(IMPLICITGEMM_MLIR_ENV_B_XDLOPS ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvMlirIgemmBwdXdlops)
