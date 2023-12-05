@@ -57,15 +57,19 @@ void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class Conv3dFloat : public testing::TestWithParam<TestCase>
+class Conv3dFloat : public testing::TestWithParam<std::string>
 {
 };
 
 void Run3dDriver(miopenDataType_t prec)
 {
-    auto param = Conv3dFloat::GetParam();
+    std::string cmd = Conv3dFloat::GetParam();
     std::vector<std::string> tokens;
-    GetArgs(param, tokens);
+    std::istringstream iss(cmd);
+    std::copy(std::istream_iterator<std::string>(iss),
+              std::istream_iterator<std::string>(),
+              std::back_inserter(tokens));
+
     std::vector<const char*> ptrs;
     std::transform(tokens.begin(),
                    tokens.end(),
@@ -138,4 +142,4 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
 INSTANTIATE_TEST_SUITE_P(Conv3dFloatTest,
                          Conv3dFloat,
-                         testing::Values(GetTestCases("--float")));
+                         testing::ValuesIn(GetTestCases("--float")));
