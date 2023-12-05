@@ -32,7 +32,7 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_TEST_FLOAT_ARG)
 
-using TestCase = std::tuple<std::vector<std::string>, std::string>; 
+using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
 static bool IsTestRunWith(const char* float_arg)
 {
@@ -67,7 +67,9 @@ void Run3dDriver(miopenDataType_t prec)
     std::vector<std::string> tokens;
     GetArgs(param, tokens);
     std::vector<const char*> ptrs;
-    std::transform(tokens.begin(), tokens.end(), std::back_inserter(ptrs),
+    std::transform(tokens.begin(),
+                   tokens.end(),
+                   std::back_inserter(ptrs),
                    [](const std::string& str) { return str.data(); });
 
     testing::internal::CaptureStderr();
