@@ -1385,7 +1385,7 @@ template <template <class...> class Driver>
 void test_drive(int argc, const char* argv[])
 {
     std::vector<std::string> as(argv + 1, argv + argc);
-    //as.emplace_back("--float");
+    // as.emplace_back("--float");
     for(auto&& arg : as)
     {
         if(arg == "--half")

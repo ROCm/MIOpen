@@ -33,7 +33,6 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_BOOL(CODECOV_TEST)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
 
-
 template <class T>
 struct conv2d_driver : conv_driver<T, ConvApi::Immediate>
 {
@@ -67,7 +66,6 @@ struct conv2d_driver : conv_driver<T, ConvApi::Immediate>
         this->add(this->out_layout, "out_layout", this->generate_data({"NCHW"}));
     }
 };
-
 
 static bool SkipTest(void) { return !miopen::IsEnabled(ENV(CODECOV_TEST)); }
 
@@ -103,10 +101,22 @@ void Run2dDriver(miopenDataType_t prec)
     std::string flag = "";
     switch(prec)
     {
-    case miopenHalf: params = Conv2dHalf::GetParam(); flag = "--half"; break;
-    case miopenBFloat16: params = Conv2dBFloat16::GetParam(); flag = "--bfloat16"; break;
-    case miopenFloat: params = Conv2dFloat::GetParam(); flag = "--float"; break;
-    case miopenInt8: params = Conv2dInt8::GetParam(); flag = "--int8"; break;
+    case miopenHalf:
+        params = Conv2dHalf::GetParam();
+        flag   = "--half";
+        break;
+    case miopenBFloat16:
+        params = Conv2dBFloat16::GetParam();
+        flag   = "--bfloat16";
+        break;
+    case miopenFloat:
+        params = Conv2dFloat::GetParam();
+        flag   = "--float";
+        break;
+    case miopenInt8:
+        params = Conv2dInt8::GetParam();
+        flag   = "--int8";
+        break;
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
@@ -136,10 +146,7 @@ void Run2dDriver(miopenDataType_t prec)
     }
 };
 
-bool IsTestSupportedForDevice(const miopen::Handle& handle)
-{
-    return true;
-}
+bool IsTestSupportedForDevice(const miopen::Handle& handle) { return true; }
 
 TEST_P(Conv2dFloat, FloatTest)
 {
@@ -198,9 +205,9 @@ std::vector<std::string> GetTestCases(void)
     const auto& flag_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLAGS_ARGS));
 
     const std::vector<std::string> test_cases = {
-    // clang-format off
+        // clang-format off
     {"test_immed_conv2d --input  2 2 14 14 --weights 8 2 3 3 --pads_strides_dilations 0 0 1 1 1 1 "+flag_arg}
-    // clang-format on
+        // clang-format on
     };
 
     return test_cases;
