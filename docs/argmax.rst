@@ -2,11 +2,11 @@
 Argmax Layer(experimental)
 ========================
 
-The sum types and functions.
+The argmax functions.
 To enable this, define MIOPEN_BETA_API before including miopen.h.
 
 
-miopenSumForward
+miopenArgmaxForward
 ----------------------------------
 
 .. doxygenfunction::  miopenArgmaxForward

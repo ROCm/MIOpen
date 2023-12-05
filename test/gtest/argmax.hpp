@@ -23,15 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/miopen.h>
-#include <gtest/gtest.h>
-#include <miopen/argmax.hpp>
-
-#include "tensor_holder.hpp"
+#include "../driver/tensor_driver.hpp"
 #include "cpu_argmax.hpp"
 #include "get_handle.hpp"
-#include "../driver/tensor_driver.hpp"
+#include "tensor_holder.hpp"
 #include "verify.hpp"
+#include <gtest/gtest.h>
+#include <miopen/argmax.hpp>
+#include <miopen/miopen.h>
 #include <random>
 
 struct ArgmaxTestCase

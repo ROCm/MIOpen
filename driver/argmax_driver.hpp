@@ -113,7 +113,6 @@ public:
 
     int RunBackwardGPU() override;
 
-    Tref GetTolerance();
     int VerifyBackward() override;
     int VerifyForward() override;
     ~ArgmaxDriver() override
@@ -308,24 +307,6 @@ template <typename Tgpu, typename Tref>
 int ArgmaxDriver<Tgpu, Tref>::RunBackwardGPU()
 {
     return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref>
-Tref ArgmaxDriver<Tgpu, Tref>::GetTolerance()
-{
-    if(data_type == miopenHalf)
-    {
-        return 1e-3;
-    }
-    else if(data_type == miopenFloat)
-    {
-        return 5e-5;
-    }
-    else if(data_type == miopenBFloat16)
-    {
-        return 1e-2;
-    }
-    return 0;
 }
 
 template <typename Tgpu, typename Tref>

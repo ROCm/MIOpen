@@ -248,8 +248,8 @@ set( MIOpen_Source
     solver/pooling/forwardNd.cpp
     solver/pooling/backward2d.cpp
     solver/pooling/backwardNd.cpp
-    solver/reduce/forward_sum.cpp
     solver/reduce/forward_argmax.cpp
+    solver/reduce/forward_sum.cpp
     subbuffers.cpp
     sum_api.cpp
     target_properties.cpp
