@@ -63,14 +63,35 @@ struct conditional<false, X, Y>
 
 template <bool predicate, typename X, typename Y>
 using conditional_t = typename conditional<predicate, X, Y>::type;
+
+template <class T, T V>
+struct integral_constant
+{
+    static constexpr T value = V;
+    using value_type         = T;
+    using type               = integral_constant;
+    constexpr operator value_type() const noexcept { return value; }
+    constexpr value_type operator()() const noexcept { return value; }
+    static constexpr type to() { return {}; }
+};
+
+template <bool B>
+using bool_constant = integral_constant<bool, B>;
+
+template <class T, class U>
+struct is_same : bool_constant<__is_same(T, U)>
+{
+}
+
 } // namespace std
+
 #else
 #include <cstdint> // int8_t, int16_t
 #include <cmath>   // float_t
 #endif
+#else              // __HIPCC_RTC__
+#include <limits>
 #endif // __HIPCC_RTC__
-
-#include <limits> // std::numeric_limits
 
 #define MIOPEN_ENABLE_F8_DEVICE_CODE 1
 #include "hip_float8.hpp"
