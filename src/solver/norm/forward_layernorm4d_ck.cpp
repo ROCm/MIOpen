@@ -168,9 +168,7 @@ typename LnPtrsType::iterator FindLnPtr(LnPtrsType& ln_ptrs,
     });
 }
 
-template <typename DeviceOpType,
-          typename CKArgsType,
-          typename CastType>
+template <typename DeviceOpType, typename CKArgsType, typename CastType>
 ConvSolution MakeInvokerFactory([[maybe_unused]] const ExecutionContext& context,
                                 const miopen::norm::ProblemDescription& problem)
 {
