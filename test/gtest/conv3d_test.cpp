@@ -32,6 +32,8 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_TEST_FLOAT_ARG)
 
+using TestCase = std::tuple<std::vector<std::string>, std::string>; 
+
 static bool IsTestRunWith(const char* float_arg)
 {
     assert(float_arg != nullptr);
@@ -41,6 +43,13 @@ static bool IsTestRunWith(const char* float_arg)
 
 void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
 {
+    auto env_vars = std::get<0>(param);
+    for(auto& elem : env_vars)
+    {
+        putenv(elem.data());
+    }
+
+    auto cmd = std::get<1>(param);
     std::stringstream ss(cmd);
     std::istream_iterator<std::string> begin(ss);
     std::istream_iterator<std::string> end;
@@ -48,47 +57,24 @@ void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class Conv3dFloat : public testing::TestWithParam<std::vector<std::string>>
+class Conv3dFloat : public testing::TestWithParam<TestCase>
 {
 };
 
 void Run3dDriver(miopenDataType_t prec)
 {
-    std::vector<TestCase> params;
-    switch(prec)
-    {
-    case miopenFloat: params = Conv3dFloat::GetParam(); break;
-    case miopenBFloat16:
-    case miopenHalf:
-    case miopenInt8:
-    case miopenInt32:
-    case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
-        FAIL() << "miopenHalf, miopenInt8, miopenBFloat16, miopenInt32, "
-                  "miopenDouble, miopenFloat8, miopenBFloat8 "
-                  "data type not supported by conv3d_test";
+    auto param = Conv3dFloat::GetParam();
+    std::vector<std::string> tokens;
+    GetArgs(param, tokens);
+    std::vector<const char*> ptrs;
+    std::transform(tokens.begin(), tokens.end(), std::back_inserter(ptrs),
+                   [](const std::string& str) { return str.data(); });
 
-    default: params = Conv3dFloat::GetParam(); break;
-    }
-
-    for(const auto& test_value : params)
-    {
-        std::vector<std::string> tokens;
-        GetArgs(test_value, tokens);
-        std::vector<const char*> ptrs;
-
-        std::transform(tokens.begin(),
-                       tokens.end(),
-                       std::back_inserter(ptrs),
-                       [](const std::string& str) { return str.data(); });
-
-        testing::internal::CaptureStderr();
-        test_drive<conv3d_driver>(ptrs.size(), ptrs.data());
-        auto capture = testing::internal::GetCapturedStderr();
-        std::cout << capture;
-    }
-};
+    testing::internal::CaptureStderr();
+    test_drive<conv3d_driver>(ptrs.size(), ptrs.data());
+    auto capture = testing::internal::GetCapturedStderr();
+    std::cout << capture;
+}
 
 bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
@@ -102,23 +88,21 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
 TEST_P(Conv3dFloat, FloatTest)
 {
 #if MIOPEN_BACKEND_OPENCL
-
     GTEST_SKIP() << "MIOPEN_BACKEND_HIP needed for this test";
-
-#else // MIOPEN_BACKEND_HIP, OCL_DISABLED
+#else
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    if(IsTestSupportedForDevice(handle) &&
        miopen::IsEnvvarValueEnabled("MIOPEN_TEST_COMPOSABLEKERNEL") &&
        miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") && IsTestRunWith("--float"))
-       {
-           Run3dDriver(miopenFloat);
-       }
+    {
+        Run3dDriver(miopenFloat);
+    }
     else
     {
         GTEST_SKIP();
     }
 #endif
-};
+}
 
 std::vector<std::string> GetTestCases(const std::string& precision)
 {
