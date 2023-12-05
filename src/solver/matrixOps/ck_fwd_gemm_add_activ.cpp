@@ -44,7 +44,7 @@
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 #include <miopen/solver/ck_utility_common.hpp>
 #endif
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CK_GEMM_ADD_FASTGELU)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CK_GEMM_ADD_FASTGELU)
 
 namespace miopen {
 namespace solver {
@@ -380,9 +380,13 @@ bool CKGEMMAddActiv::IsApplicable([[maybe_unused]] const FusionContext& ctx,
     std::ignore = fdesc_problem;
     return false;
 #else
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CK_GEMM_ADD_FASTGELU{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CK_GEMM_ADD_FASTGELU)))
         return false;
     const auto& fp_desc = fdesc_problem.fusion_plan_desc;
+    if(fp_desc->op_map.empty())
+    {
+        MIOPEN_THROW(miopenStatusInternalError, "desc.op_map.empty()");
+    }
     if(fp_desc->op_map[0]->kind() != miopenFusionOpGEMM)
     {
         return false;
