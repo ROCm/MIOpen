@@ -31,14 +31,14 @@
 
 using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_TEST_ALL)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_TEST_GPU_XNACK_ENABLED)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
 static bool SkipTest(void)
 {
-    return miopen::IsEnabled(MIOPEN_TEST_GPU_XNACK_ENABLED{}) ||
-           miopen::IsDisabled(MIOPEN_TEST_ALL{});
+    return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)) ||
+           miopen::IsDisabled(ENV(MIOPEN_TEST_ALL));
 }
 
 void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
@@ -169,6 +169,7 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
     TestCase{env_xdlops, precision + v + " --input  400  256 7 7 --weights 1024  256  7 7 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei},
     TestCase{env_xdlops, precision + v + " --input  400  256 1 1 --weights 1024  256  1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei},
     TestCase{env_xdlops, precision + v + " --input  8  16 5 5 --weights 8  16  2 2 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei},
+    //ho=wo=1 stride=2
     TestCase{env_xdlops, precision + v + " --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1" + dis_fwd + dis_bk_wei},
     //fwd
     //Be careful to add testings for (x=1, y=1, c % 8 != 0) due to WORKAROUND_SWDEV_306318

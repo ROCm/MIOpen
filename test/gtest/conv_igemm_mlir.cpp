@@ -32,16 +32,20 @@
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
 
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_MLIR)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
+
 using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
 std::string GetFloatArg()
 {
-    static const auto tmp = miopen::GetEnv("MIOPEN_TEST_FLOAT_ARG");
+    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
     if(tmp.empty())
     {
         return "";
     }
-    return tmp.front();
+    return tmp;
 };
 
 void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
@@ -116,8 +120,8 @@ TEST_P(ConfigWithFloat, FloatTest)
     const auto& handle = get_handle();
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx103") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx906")) &&
-       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_MLIR") &&
-       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") && GetFloatArg() == "--float")
+       miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR)) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
+       GetFloatArg() == "--float")
     {
         Run2dDriver(miopenFloat);
     }
@@ -138,8 +142,8 @@ TEST_P(ConfigWithHalf, HalfTest)
     const auto& handle = get_handle();
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx103") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx906")) &&
-       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_MLIR") &&
-       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") && GetFloatArg() == "--half")
+       miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR)) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
+       GetFloatArg() == "--half")
     {
         Run2dDriver(miopenHalf);
     }
@@ -160,8 +164,8 @@ TEST_P(ConfigWithInt8, Int8Test)
     const auto& handle = get_handle();
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx103") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx906")) &&
-       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_MLIR") &&
-       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") && GetFloatArg() == "--int8")
+       miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR)) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
+       GetFloatArg() == "--int8")
     {
         Run2dDriver(miopenInt8);
     }
@@ -217,13 +221,13 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
     TestCase{igemm_bwd, precision + flags_bwd + " --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1" + layout},
     TestCase{igemm_bwd, precision + flags_bwd + " --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1"},
     TestCase{igemm_bwd, precision + flags_bwd + " --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1" + layout},
-    
+
     TestCase{igemm_wrw, precision + flags_wrw + " --input 64  1024 14 14 --weights 256  1024 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
     TestCase{igemm_wrw, precision + flags_wrw + " --input 64  1024 14 14 --weights 256  1024 1 1 --pads_strides_dilations 0 0 1 1 1 1" + layout},
     TestCase{igemm_wrw, precision + flags_wrw + " --input 256 256  14 14 --weights 256  256  3 3 --pads_strides_dilations 0 0 2 2 1 1"},
     TestCase{igemm_wrw, precision + flags_wrw + " --input 256 256  14 14 --weights 256  256  3 3 --pads_strides_dilations 0 0 2 2 1 1" + layout},
     TestCase{igemm_wrw, precision + flags_wrw + " --input 128 2048 7  7  --weights 512  2048 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    TestCase{igemm_wrw, precision + flags_wrw + " --input 128 2048 7  7  --weights 512  2048 1 1 --pads_strides_dilations 0 0 1 1 1 1" + layout},    
+    TestCase{igemm_wrw, precision + flags_wrw + " --input 128 2048 7  7  --weights 512  2048 1 1 --pads_strides_dilations 0 0 1 1 1 1" + layout},
     TestCase{igemm_wrw, precision + flags_wrw + " --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1" + layout},
     TestCase{igemm_wrw, precision + flags_wrw + " --input 256 1024 14 14 --weights 1024 32   1 1 --pads_strides_dilations 0 0 1 1 1 1" + groupCount_32}
         // clang-format on
