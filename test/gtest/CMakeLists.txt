@@ -1,6 +1,3 @@
-if(NOT WIN32)
-  find_package(GTest REQUIRED)
-endif()
 find_package(rocblas)
 
 set(SOURCES
@@ -24,8 +21,7 @@ function(add_gtest TEST_NAME)
     target_compile_options(test_${TEST_NAME} PRIVATE -Wno-global-constructors -Wno-undef)
     target_include_directories(test_${TEST_NAME} PRIVATE ../ ../../src/kernels)
     if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
-      target_include_directories(test_${TEST_NAME} SYSTEM PRIVATE $<BUILD_INTERFACE:${FDEEP_INCLUDE_DIR}>)
-      target_include_directories(test_${TEST_NAME} SYSTEM PRIVATE $<BUILD_INTERFACE:${EIGEN_INCLUDE_DIR}/eigen3>)
+      target_link_libraries(test_${TEST_NAME} frugally-deep::fdeep Eigen3::Eigen)
     endif()
     target_link_libraries(test_${TEST_NAME} GTest::gtest GTest::gtest_main MIOpen ${Boost_LIBRARIES} hip::host)
     if(rocBLAS_FOUND)

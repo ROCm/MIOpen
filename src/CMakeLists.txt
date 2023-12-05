@@ -688,11 +688,10 @@ rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
 
 clang_tidy_check(MIOpen)
 
-if(NOT WIN32)
-    find_package(zstd)
-    if(zstd_FOUND)
-        target_link_libraries(MIOpen PRIVATE $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>)
-    endif()
+if(TARGET zstd::libzstd_shared)
+    target_link_libraries(MIOpen PRIVATE zstd::libzstd_shared)
+elseif(TARGET zstd::libzstd_static)
+    target_link_libraries(MIOpen PRIVATE zstd::libzstd_static)
 endif()
 
 function(target_internal_library TARGET)
@@ -700,7 +699,7 @@ function(target_internal_library TARGET)
     target_link_libraries(${TARGET} INTERFACE $<BUILD_INTERFACE:${ARGN}>)
 endfunction()
 
-if(WIN32)
+if(NOT MIOPEN_BOOST_USE_SYSTEM)
     target_internal_library(MIOpen Boost::any Boost::container Boost::date_time Boost::hof
         Boost::interprocess Boost::range Boost::thread Boost::variant)
 endif()
@@ -734,11 +733,12 @@ if(BUILD_TESTING)
 endif()
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
-    if(NOT WIN32)
-        find_package(frugally-deep CONFIG REQUIRED)
-        find_package(Eigen3 REQUIRED)
-    endif()
     target_link_libraries(MIOpen PRIVATE frugally-deep::fdeep Eigen3::Eigen)
+    if(NOT TARGET nlohmann_json)
+        # frugally-deep has broken linking to nlohmann_json
+        add_library(nlohmann_json INTERFACE IMPORTED GLOBAL)
+        target_link_libraries(nlohmann_json INTERFACE nlohmann_json::nlohmann_json)
+    endif()	    
     if(NOT BUILD_DEV)
         file(GLOB MODEL_FILES kernels/*.model)
         if( NOT ENABLE_ASAN_PACKAGING )
@@ -760,6 +760,9 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     list(APPEND PACKAGE_DEPENDS PACKAGE OpenCL)
 elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     target_link_libraries( MIOpen PRIVATE hip::device )
+    if(MIOPEN_USE_HIPRTC AND WIN32)
+        target_link_libraries( MIOpen PRIVATE hiprtc::hiprtc )
+    endif()
     target_link_libraries( MIOpen INTERFACE hip::host )
     if(MIOPEN_USE_HIPRTC AND WIN32)
         target_link_libraries( MIOpen PRIVATE hiprtc::hiprtc )
@@ -784,10 +787,12 @@ if(rocblas_FOUND)
     list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE rocblas)
 endif()
 
-# For backward compatibility with ROCm 5.3
-# Build with library libMLIRMIOpen
-if(LIBMLIRMIOPEN)
-    target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
+if(NOT WIN32)
+    # For backward compatibility with ROCm 5.3
+    # Build with library libMLIRMIOpen
+    if(LIBMLIRMIOPEN)
+        target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
+    endif()
 endif()
 
 # Build with package rocMLIR
