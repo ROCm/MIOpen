@@ -159,7 +159,7 @@ __global__ void Im2d2Col(const int data_size_off,
 
 #ifndef EXTREME_LARGE
 
-    int lid = threadIdx.x;
+    int lid = threadIdx.x; //  get_local_id(0);
     /// tile_sz_x = {32,16,8,4,2,1}, tile_sz_y = {8,4,2,1}
     /// NUM_IM_BLKS_X = out_w / tile_sz_x
     /// NUM_IM_BLKS = NUM_IM_BLKS_X * out_h / tile_sz_y => out_w * out_h
