@@ -145,6 +145,7 @@ if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
             SYSTEM
             ${__eigen_find_package_args}
     )
+
     # Store the current value of BUILD_SHARED_LIBS
     set(__build_testing ${BUILD_TESTING})
     set(BUILD_TESTING OFF CACHE INTERNAL "")
@@ -156,7 +157,7 @@ if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
     # Restore the old value of BUILD_SHARED_LIBS
     set(BUILD_TESTING ${__build_testing} CACHE BOOL "" FORCE)
 else()
-    FetchContent_MakeAvailable(hlohmann_json)
+    FetchContent_MakeAvailable(nlohmann_json)
 endif()
 
 if(MIOPEN_ZSTD_USE_SYSTEM)
