@@ -63,23 +63,37 @@ class Conv3dFloat : public testing::TestWithParam<std::string>
 
 void Run3dDriver(miopenDataType_t prec)
 {
-    std::string cmd = Conv3dFloat::GetParam();
-    std::vector<std::string> tokens;
-    std::istringstream iss(cmd);
-    std::copy(std::istream_iterator<std::string>(iss),
-              std::istream_iterator<std::string>(),
-              std::back_inserter(tokens));
+    std::vector<std::string> params;
+    switch(prec)
+    {
+    case miopenInt8: params = ConfigWithInt8::GetParam(); break;
+    // Add cases for other data types if needed
+    case miopenFloat8:
+    case miopenBFloat8:
+    case miopenHalf:
+    case miopenBFloat16:
+    case miopenFloat:
+    case miopenInt32:
+    case miopenDouble:
+        FAIL() << "Unsupported data type for conv3d test";
+    default: params = ConfigWithInt8::GetParam();
+    }
 
-    std::vector<const char*> ptrs;
-    std::transform(tokens.begin(),
-                   tokens.end(),
-                   std::back_inserter(ptrs),
-                   [](const std::string& str) { return str.data(); });
+    for(const auto& test_value : params)
+    {
+        std::vector<std::string> tokens;
+        GetArgs(test_value, tokens);
+        std::vector<const char*> ptrs;
 
-    testing::internal::CaptureStderr();
-    test_drive<conv3d_driver>(ptrs.size(), ptrs.data());
-    auto capture = testing::internal::GetCapturedStderr();
-    std::cout << capture;
+        std::transform(tokens.begin(), tokens.end(), std::back_inserter(ptrs), [](const auto& str) {
+            return str.data();
+        });
+
+        testing::internal::CaptureStderr();
+        test_drive<conv3d_driver>(ptrs.size(), ptrs.data());
+        auto capture = testing::internal::GetCapturedStderr();
+        std::cout << capture;
+    }
 }
 
 bool IsTestSupportedForDevice(const miopen::Handle& handle)
