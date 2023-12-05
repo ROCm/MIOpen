@@ -78,11 +78,13 @@ GetConsistentFlattenedTensorDescriptors(const TDescriptors&... real_descriptor_p
     bool is_all_same_strided        = true;
     const auto& real_desc_0_strides = real_descriptors[0]->GetStrides();
     for(std::size_t itensor = 1; itensor < NTensor; ++itensor)
+    {
         if(real_desc_0_strides != real_descriptors[itensor]->GetStrides())
         {
             is_all_same_strided = false;
             break;
         }
+    }
 
     auto non1_length_strides =
         boost::combine(real_descriptors[0]->GetLengths(), real_descriptor_pack.GetStrides()...) |
@@ -198,6 +200,7 @@ void CopyTensor(const Handle& handle,
 
 void CastTensor(const Handle& handle,
                 const void* alpha,
+                bool clamping, // Set to false for Bwd and WrW convolutions.
                 const TensorDescriptor& srcDesc,
                 ConstData_t src,
                 const TensorDescriptor& dstDesc,

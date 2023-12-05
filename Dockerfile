@@ -111,7 +111,7 @@ RUN if [ "$USE_FIN" = "ON" ]; then \
 
 RUN ccache -s 
 # Install doc requirements
-ADD docs/.sphinx/requirements.txt /doc-requirements.txt
+ADD docs/sphinx/requirements.txt /doc-requirements.txt
 RUN pip3 install -r /doc-requirements.txt
 
 # Composable Kernel requires this version cmake

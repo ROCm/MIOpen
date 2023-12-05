@@ -30,7 +30,7 @@
 #include <miopen/env.hpp>
 #include <miopen/visit_float.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1)
 
 #define TWO_PASSES 1
 
@@ -48,10 +48,12 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ExecutionContext& ctx,
 #if WORKAROUND_SWDEV_266868
     if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx10") ||
        StartsWith(ctx.GetStream().GetDeviceName(), "gfx11"))
-        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1{}))
+    {
+        if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1)))
             return false;
+    }
 #endif
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1)))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;

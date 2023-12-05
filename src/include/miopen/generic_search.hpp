@@ -52,6 +52,19 @@
 namespace miopen {
 namespace solver {
 
+namespace debug {
+// This struct is not MT-safe, meaning one should use it before starting threads, thus avoiding
+// constructing it inside a worker thread.
+struct TuningIterationScopedLimiter
+{
+    TuningIterationScopedLimiter(std::size_t new_limit);
+    ~TuningIterationScopedLimiter();
+
+private:
+    std::optional<std::size_t> old_limit;
+};
+} // namespace debug
+
 /// This STL-like container together with corresponding iterator provide access
 /// to a set of all available performance configs for the given problem config.
 ///
@@ -121,9 +134,11 @@ public:
     bool operator!=(ComputedIterator const& other) const
     {
         if(p == other.p)
+        {
             if(p == nullptr // Ends are always equal.
                || v == other.v)
                 return false;
+        }
         return true;
     }
     bool operator==(ComputedIterator const& other) const { return !(*this != other); }
@@ -425,7 +440,7 @@ auto GenericSearch(const Solver s,
                                     std::ref(solution_queue));
     }
 
-    if(!IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
+    if(!IsEnabled(ENV(MIOPEN_DEBUG_COMPILE_ONLY)))
     {
         size_t n_current       = 0;
         auto threads_remaining = total_threads;
@@ -442,7 +457,9 @@ auto GenericSearch(const Solver s,
             {
                 threads_remaining--;
                 if(threads_remaining == 0)
+                {
                     break;
+                }
                 else
                 {
                     continue;

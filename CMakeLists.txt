@@ -37,10 +37,20 @@ macro(set_var_to_condition var)
     endif()
 endmacro()
 
+get_property(MIOPEN_GENERATOR_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+
 # This has to be initialized before the project() command appears
-# Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.  MSVC_IDE does not use CMAKE_BUILD_TYPE
-if( NOT MSVC_IDE AND NOT CMAKE_BUILD_TYPE )
-    set( CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." )
+# Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.
+if(MIOPEN_GENERATOR_IS_MULTI_CONFIG)
+    if (NOT CMAKE_CONFIGURATION_TYPES)
+        set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo;MinSizeRel" CACHE STRING
+            "Available build types (configurations) on multi-config generators")
+    endif()
+else()
+    if(NOT CMAKE_BUILD_TYPE)
+        set(CMAKE_BUILD_TYPE Release CACHE STRING
+            "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel.")
+    endif()
 endif()
 
 # Default installation path
@@ -237,30 +247,26 @@ message(STATUS "Enable Composable Kernels: ${MIOPEN_USE_COMPOSABLEKERNEL}")
 set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT (NOT DEFINED MIOPEN_BACKEND_OPENCL) AND (NOT (MIOPEN_BACKEND STREQUAL "HIPNOGPU")))
 option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_USE_COMGR_DEFAULT})
 
-# TODO: Unify MIOPEN_HIP_VERSION_FLAT in config.h with this.
-# in config.h we reserve 6 digits for patch, but here only 5 digits reserved to avoid overflow.
-# Actually 5 digits should be Ok everywhere.
-math(EXPR MIOPEN_hip_VERSION_FLAT "(${MIOPEN_hip_VERSION_MAJOR} * 1000 + ${MIOPEN_hip_VERSION_MINOR}) * 100000 + ${MIOPEN_hip_VERSION_PATCH}")
+set(MIOPEN_hip_VERSION ${MIOPEN_hip_VERSION_MAJOR}.${MIOPEN_hip_VERSION_MINOR}.${MIOPEN_hip_VERSION_PATCH})
 
 # Do not enable HIPRTC by default for older ROCm versions in order to avoid
 # build time errors, because HIPRTC is a relatively new component.
-set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT ${MIOPEN_USE_COMGR} AND (${MIOPEN_hip_VERSION_FLAT} GREATER 500000000))
+set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT (MIOPEN_USE_COMGR AND (MIOPEN_hip_VERSION VERSION_GREATER_EQUAL 5)))
 option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MIOPEN_USE_HIPRTC_DEFAULT})
 
 # WORKAROUND_SWDEV_413293
-if(${MIOPEN_hip_VERSION_FLAT} GREATER_EQUAL 500723302)
+if(MIOPEN_hip_VERSION VERSION_GREATER_EQUAL 5.7.23302)
     string(APPEND HIP_COMPILER_FLAGS " -fno-offload-uniform-block ")
 endif()
 
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
-add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
-
+add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:HIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}>)
 
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     if(MIOPEN_USE_COMPOSABLEKERNEL)
-        find_package(composable_kernel 1.0.0 COMPONENTS device_operations)
+        find_package(composable_kernel 1.0.0 COMPONENTS device_other_operations device_gemm_operations device_conv_operations device_contraction_operations device_reduction_operations)
     endif()
     if( MIOPEN_BACKEND STREQUAL "HIPNOGPU")
         set(MIOPEN_MODE_NOGPU 1)
@@ -321,7 +327,6 @@ endif()
 set_var_to_condition(MIOPEN_USE_MLIR_DEFAULT NOT (NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR}))
 option(MIOPEN_USE_MLIR "Use MLIR compilation backend" ${MIOPEN_USE_MLIR_DEFAULT})
 
-set(rocMLIR_VERSION_FLAT 0)
 if(MIOPEN_USE_MLIR)
     if(NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR})
         message(FATAL_ERROR "Potential symbol conflict between mlir and comgr in static build")
@@ -339,14 +344,11 @@ if(MIOPEN_USE_MLIR)
             Refer to https://github.com/ROCmSoftwarePlatform/MIOpen#installing-the-dependencies")
         else()
             message(STATUS "Build with library libMLIRMIOpen: " ${LIBMLIRMIOPEN})
-            set(rocMLIR_VERSION_MAJOR 0)
-            set(rocMLIR_VERSION_MINOR 0)
-            set(rocMLIR_VERSION_PATCH 1)
+            set(rocMLIR_VERSION 0.0.1)
         endif()
     else()
         message(STATUS "Build with rocMLIR::rockCompiler ${rocMLIR_VERSION}")
     endif()
-    math(EXPR rocMLIR_VERSION_FLAT "(${rocMLIR_VERSION_MAJOR} * 1000 + ${rocMLIR_VERSION_MINOR}) * 100000 + ${rocMLIR_VERSION_PATCH}")
 endif()
 
 
@@ -535,153 +537,11 @@ if(CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+")
 # Enable tidy on hip
 elseif(MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     set(MIOPEN_TIDY_ERRORS ALL)
-
 endif()
 
 include(ClangTidy)
 enable_clang_tidy(
     CHECKS
-        *
-        -abseil-*
-        -altera-*
-        -android-cloexec-fopen
-        # This check is useless for us. Many objects (like tensors or problem descriptions)
-        # naturally have mutiple parameters of the same type.
-        -bugprone-easily-swappable-parameters
-        -bugprone-exception-escape
-        -bugprone-macro-parentheses
-        # too many narrowing conversions in our code
-        -bugprone-narrowing-conversions
-        -cert-dcl37-c
-        -cert-dcl51-cpp
-        -cert-env33-c
-        # Yea we shouldn't be using rand()
-        -cert-msc30-c
-        -cert-msc32-c
-        -cert-msc50-cpp
-        -cert-msc51-cpp
-        -clang-analyzer-alpha.core.CastToStruct
-        -clang-analyzer-optin.performance.Padding
-        -clang-diagnostic-extern-c-compat
-        -clang-diagnostic-unused-command-line-argument
-        -cppcoreguidelines-avoid-c-arrays
-        -cppcoreguidelines-avoid-magic-numbers
-        -cppcoreguidelines-explicit-virtual-functions
-        -cppcoreguidelines-init-variables
-        -cppcoreguidelines-macro-usage
-        -cppcoreguidelines-narrowing-conversions
-        -cppcoreguidelines-non-private-member-variables-in-classes
-        -cppcoreguidelines-prefer-member-initializer
-        -cppcoreguidelines-pro-bounds-array-to-pointer-decay
-        -cppcoreguidelines-pro-bounds-constant-array-index
-        -cppcoreguidelines-pro-bounds-pointer-arithmetic
-        -cppcoreguidelines-pro-type-member-init
-        -cppcoreguidelines-pro-type-reinterpret-cast
-        -cppcoreguidelines-pro-type-union-access
-        -cppcoreguidelines-pro-type-vararg
-        -cppcoreguidelines-special-member-functions
-        -fuchsia-*
-        -google-explicit-constructor
-        -google-readability-braces-around-statements
-        -google-readability-todo
-        -google-runtime-int
-        -google-runtime-references
-        -hicpp-avoid-c-arrays
-        -hicpp-braces-around-statements
-        -hicpp-explicit-conversions
-        -hicpp-named-parameter
-        -hicpp-no-array-decay
-        # We really shouldn't use bitwise operators with signed integers, but opencl leaves us no choice
-        -hicpp-signed-bitwise
-        -hicpp-special-member-functions
-        -hicpp-uppercase-literal-suffix
-        -hicpp-use-auto
-        -hicpp-use-equals-default
-        -hicpp-use-override
-        -hicpp-vararg
-        -llvm-else-after-return
-        -llvm-header-guard
-        -llvm-include-order
-        -llvmlibc-callee-namespace
-        -llvmlibc-implementation-in-namespace
-        -llvmlibc-restrict-system-libc-headers
-        -llvm-qualified-auto
-        # This one is extremely slow, and probably has lots of FPs.
-        -misc-confusable-identifiers
-        -misc-misplaced-const
-        -misc-non-private-member-variables-in-classes
-        -misc-no-recursion
-        -modernize-avoid-bind
-        -modernize-avoid-c-arrays
-        -modernize-pass-by-value
-        -modernize-use-auto
-        -modernize-use-default-member-init
-        -modernize-use-equals-default
-        -modernize-use-trailing-return-type
-        -modernize-use-transparent-functors
-        -modernize-use-nodiscard
-        -modernize-concat-nested-namespaces
-        -modernize-unary-static-assert
-        -performance-unnecessary-value-param
-        -readability-braces-around-statements
-        -readability-convert-member-functions-to-static
-        -readability-else-after-return
-        # TODO We are not ready to use it, but very useful.
-        -readability-function-cognitive-complexity
-        # We dont think this is a useful check. Disabled on migraphx.
-        -readability-identifier-length
-        -readability-isolate-declaration
-        -readability-magic-numbers
-        -readability-named-parameter
-        -readability-qualified-auto
-        -readability-redundant-string-init
-        # There are many FPs with this, let's disable it (ditto in MIGraphX)
-        -readability-suspicious-call-argument
-        -readability-uppercase-literal-suffix
-        ###################################################################
-        # TODO Code Quality WORKAROUND ROCm 5.1 update
-        ###################################################################
-        -cert-err33-c
-        -google-readability-casting
-        -hicpp-use-emplace
-        -modernize-use-emplace
-        -performance-unnecessary-copy-initialization
-        -readability-container-data-pointer
-        ###################################################################
-        # TODO Code Quality WORKAROUND ROCm 5.3 &&
-        # Ubuntu 22.04 && C++17 && cppcheck 2.9 update
-        ###################################################################
-        -bugprone-use-after-move
-        -hicpp-invalid-access-moved
-        -modernize-use-nodiscard
-        -modernize-unary-static-assert
-        -modernize-macro-to-enum
-        -modernize-concat-nested-namespaces
-        -readability-redundant-declaration
-        -readability-simplify-boolean-expr
-        -hicpp-deprecated-headers
-        -hicpp-member-init
-        -performance-no-automatic-move
-        -clang-analyzer-cplusplus.NewDeleteLeaks
-        -modernize-deprecated-headers
-        ###################################################################
-        # TODO Code Quality WORKAROUND ROCm 5.4.2
-        ###################################################################
-        -misc-const-correctness
-        ###################################################################
-        # TODO Code Quality WORKAROUND ROCm 5.6
-        ###################################################################
-        -cppcoreguidelines-avoid-const-or-ref-data-members
-        -cppcoreguidelines-avoid-do-while
-        -misc-use-anonymous-namespace
-        ###################################################################
-        # TODO Code Quality WORKAROUND ROCm 5.7
-        ###################################################################
-        -llvmlibc-inline-function-decl
-        -cppcoreguidelines-avoid-capture-default-when-capturing-this
-        -cppcoreguidelines-rvalue-reference-param-not-moved
-        -readability-avoid-unconditional-preprocessor-if
-        -bugprone-lambda-function-name
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER
@@ -689,6 +549,7 @@ enable_clang_tidy(
     EXTRA_ARGS
         -DMIOPEN_USE_CLANG_TIDY
 )
+
 include(CppCheck)
 enable_cppcheck(
     CHECKS
