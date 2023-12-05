@@ -64,25 +64,6 @@ struct conditional<false, X, Y>
 template <bool predicate, typename X, typename Y>
 using conditional_t = typename conditional<predicate, X, Y>::type;
 
-template <class T, T V>
-struct integral_constant
-{
-    static constexpr T value = V;
-    using value_type         = T;
-    using type               = integral_constant;
-    constexpr operator value_type() const noexcept { return value; }
-    constexpr value_type operator()() const noexcept { return value; }
-    static constexpr type to() { return {}; }
-};
-
-template <bool B>
-using bool_constant = integral_constant<bool, B>;
-
-template <class T, class U>
-struct is_same : bool_constant<__is_same(T, U)>
-{
-}
-
 } // namespace std
 
 #else
