@@ -454,7 +454,8 @@ public:
     fdeep::tensors Encode(const std::vector<float>& features, std::size_t dim, bool transform) const
     {
         const auto tensor_shape_depth = transform ? dim : 1;
-        fdeep::tensor input_tensor = fdeep::tensor(fdeep::tensor_shape(dim, tensor_shape_depth), features);
+        fdeep::tensor input_tensor =
+            fdeep::tensor(fdeep::tensor_shape(dim, tensor_shape_depth), features);
         return encoder.predict({input_tensor});
     }
     fdeep::tensors Decode(const float prev_token, const fdeep::tensors& context) const
