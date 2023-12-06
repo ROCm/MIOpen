@@ -89,8 +89,15 @@ private:
 class Process
 {
 public:
-    Process(std::string_view, std::string_view cmd, std::string_view) : pipe{popen(cmd.data(), "w")}
+    Process(std::string_view, std::string_view cmd, std::string_view cwd = "")
     {
+        std::string command;
+        if(not cwd.empty())
+        {
+            command = "cd " + std::string{cwd} + ";";
+        }
+        command += cmd;
+        pipe = popen(command.c_str(), "w");
         if(pipe == nullptr)
             MIOPEN_THROW("Error: popen()");
     }
