@@ -4,9 +4,9 @@ defaults:
   numbered: False
   maxdepth: 7
 root: index
-- caption: What is MIOpen?  
 subtrees:
-- entries:      
+- caption: What is MIOpen?
+  entries:
   - file: find_and_immediate.rst
   - file: finddb.rst
   - file: cache.rst
@@ -16,28 +16,19 @@ subtrees:
   - file: MI200AlternateImplementation.rst
   - file: MIOpen_Porting_Guide.rst
   - file: citation.rst
-    
 - caption: Quick-start
   entries:
   - file: reference/install.rst
   - file: reference/embed.rst
   - file: reference/driver.rst
-  
 - caption: API reference
   entries:
   - file: reference/apireference.rst
     title: API library
   - file: tutorials/index.rst
-  
 - caption: Tutorials
   entries:
   - file: tutorials/install.rst
   - file: tutorials/embed.rst
   - file: tutorials/driver.rst
     title: Installing and building MIOpen
-
-
-
- 
- 
-
