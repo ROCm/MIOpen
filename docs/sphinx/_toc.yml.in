@@ -4,7 +4,7 @@ defaults:
   numbered: False
   maxdepth: 7
 root: index
-caption: What is MIOpen?  
+- caption: What is MIOpen?  
 subtrees:
 - entries:      
       - file: find_and_immediate.rst
@@ -17,19 +17,19 @@ subtrees:
       - file: MIOpen_Porting_Guide.rst
       - file: citation.rst
     
-    caption: Quick-start
+    - caption: Quick-start
     - file: reference/install.rst
     - file: reference/embed.rst
     - file: reference/driver.rst
   
-    caption: API reference
+    - caption: API reference
     subtrees:
     - entries:
       - file: reference/apireference.rst
         title: API library
 
   - file: tutorials/index.rst
-    caption: Tutorials
+    - caption: Tutorials
     subtrees:
     - entries:
       - file: tutorials/install.rst
