@@ -40,8 +40,8 @@
 #include <cassert>
 #include <tuple>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U)
 
 namespace miopen {
 namespace solver {
@@ -171,7 +171,7 @@ bool ConvAsm3x3U::IsValidPerformanceConfig(const ExecutionContext&,
 
 bool ConvAsm3x3U::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U)))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
@@ -254,24 +254,19 @@ ConvSolution ConvAsm3x3U::GetSolution(const ExecutionContext& ctx,
 
     PerformanceConfigConvAsm3x3U fromEnv;
     {
-        std::string s;
-        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS{});
-        if(p_asciz != nullptr)
+        const auto& s = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS));
+        if(!s.empty()) // else nothing to parse.
         {
-            s = std::string(p_asciz);
-            if(!s.empty()) // else nothing to parse.
+            if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(problem))
             {
-                if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(problem))
-                {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS: "
-                                 "Bad format or invalid for the problem config: "
-                                 << s);
-                }
-                else
-                {
-                    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
-                    pcfg = &fromEnv;
-                }
+                MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS: "
+                             "Bad format or invalid for the problem config: "
+                             << s);
+            }
+            else
+            {
+                MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
+                pcfg = &fromEnv;
             }
         }
     }
