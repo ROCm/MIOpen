@@ -69,13 +69,13 @@ void Run3dDriver(miopenDataType_t prec)
     case miopenInt8: params = ConfigWithInt8::GetParam(); break;
     // Add cases for other data types if needed
     case miopenFloat8:
+
     case miopenBFloat8:
     case miopenHalf:
     case miopenBFloat16:
     case miopenFloat:
     case miopenInt32:
-    case miopenDouble:
-        FAIL() << "Unsupported data type for conv3d test";
+    case miopenDouble: FAIL() << "Unsupported data type for conv3d test";
     default: params = ConfigWithInt8::GetParam();
     }
 
