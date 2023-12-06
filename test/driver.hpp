@@ -1242,7 +1242,7 @@ void test_drive_impl_1(std::string program_name, std::vector<std::string> as)
     d.program_name = program_name;
 
     std::cout << program_name << " ";
-    for(const auto str& : as)
+    for(const auto& str : as)
         std::cout << str << " ";
     std::cout << std::endl;
 

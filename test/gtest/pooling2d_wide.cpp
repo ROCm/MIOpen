@@ -55,17 +55,10 @@ void Run2dDriver(miopenDataType_t prec)
 {
 
     std::vector<std::string> params;
-    std::string flag = "";
     switch(prec)
     {
-    case miopenFloat:
-        params = Pooling2dFloat::GetParam();
-        flag   = "--float";
-        break;
-    case miopenHalf:
-        params = Pooling2dHalf::GetParam();
-        flag   = "--half";
-        break;
+    case miopenFloat: params = Pooling2dFloat::GetParam(); break;
+    case miopenHalf: params = Pooling2dHalf::GetParam(); break;
     case miopenBFloat16:
     case miopenInt8:
     case miopenFloat8:
@@ -77,7 +70,7 @@ void Run2dDriver(miopenDataType_t prec)
                "data type not supported by "
                "immed_conv2d_codecov test";
 
-    default: params = Pooling2dFloat::GetParam(); flag = "--float";
+    default: params = Pooling2dFloat::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -89,7 +82,6 @@ void Run2dDriver(miopenDataType_t prec)
         std::transform(tokens.begin(), tokens.end(), std::back_inserter(ptrs), [](const auto& str) {
             return str.data();
         });
-        ptrs.push_back(flag.c_str());
 
         testing::internal::CaptureStderr();
         test_drive<pooling2d_driver>(ptrs.size(), ptrs.data());
@@ -126,19 +118,19 @@ TEST_P(Pooling2dHalf, HalfTest)
     }
 };
 
-std::vector<std::string> GetTestCases(void)
+std::vector<std::string> GetTestCases(const std::string precision)
 {
     const auto& flag_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLAGS_ARGS));
 
     const std::vector<std::string> test_cases = {
         // clang-format off
-    {"test_pooling2d --all --dataset 2 --limit 0 "+flag_arg}
+    {"test_pooling2d " + precision + " --all --dataset 2 --limit 0 "+flag_arg}
         // clang-format on
     };
 
     return test_cases;
 }
 
-INSTANTIATE_TEST_SUITE_P(Pooling2D, Pooling2dFloat, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Pooling2D, Pooling2dFloat, testing::Values(GetTestCases("--float")));
 
-INSTANTIATE_TEST_SUITE_P(Pooling2D, Pooling2dHalf, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Pooling2D, Pooling2dHalf, testing::Values(GetTestCases("--half")));
