@@ -1,24 +1,44 @@
+# Anywhere {branch} is used, the branch name will be substituted.
+# These comments will also be removed.
 defaults:
   numbered: False
-  maxdepth: 6
+  maxdepth: 7
 root: index
+title: What is MIOpen?  
 subtrees:
-- entries:
-  - file: releasenotes
-  - file: citation
-  - file: install
-  - file: embed
-  - file: driver
-  - file: DebugAndLogging
-  - file: cache
-  - file: perfdatabase
-  - file: finddb
-  - file: find_and_immediate
-  - file: Getting_Started_FusionAPI
-  - file: MI200AlternateImplementation
-  - file: MIOpen_Porting_Guide
-  - file: apireference
-- caption: About
-  entries:
-    - file: license
+- entries:      
+      - file: find_and_immediate.rst
+      - file: finddb.rst
+      - file: cache.rst
+      - file: perfdatabase.rst
+      - file: Getting_Started_FusionAPI.rst
+      - file: DebugAndLogging.rst
+      - file: MI200AlternateImplementation.rst
+      - file: MIOpen_Porting_Guide.rst
+      - file: citation.rst
+    
+    title: Quick-start
+    - file: reference/install.rst
+    - file: reference/embed.rst
+    - file: reference/driver.rst
+  
+    title: API reference
+    subtrees:
+    - entries:
+      - file: reference/apireference.rst
+        title: API library
+
+  - file: tutorials/index.rst
+    title: Tutorials
+    subtrees:
+    - entries:
+      - file: tutorials/install.rst
+      - file: tutorials/embed.rst
+      - file: tutorials/driver.rst
+        title: Installing and building MIOpen
+
+
+
+ 
+ 
 
