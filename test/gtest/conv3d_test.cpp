@@ -41,15 +41,8 @@ static bool IsTestRunWith(const char* float_arg)
     return (p_envVar != nullptr && std::strcmp(p_envVar, float_arg) == 0);
 }
 
-void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
+void GetArgs(const std::string& cmd, std::vector<std::string>& tokens)
 {
-    auto env_vars = std::get<0>(param);
-    for(auto& elem : env_vars)
-    {
-        putenv(elem.data());
-    }
-
-    auto cmd = std::get<1>(param);
     std::stringstream ss(cmd);
     std::istream_iterator<std::string> begin(ss);
     std::istream_iterator<std::string> end;
@@ -66,17 +59,17 @@ void Run3dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenInt8: params = ConfigWithInt8::GetParam(); break;
+    case miopenFloat: params = Conv3dFloat::GetParam(); break;
     // Add cases for other data types if needed
     case miopenFloat8:
 
     case miopenBFloat8:
     case miopenHalf:
     case miopenBFloat16:
-    case miopenFloat:
+    case miopenInt8:
     case miopenInt32:
     case miopenDouble: FAIL() << "Unsupported data type for conv3d test";
-    default: params = ConfigWithInt8::GetParam();
+    default: params = Conv3dFloat::GetParam();
     }
 
     for(const auto& test_value : params)
