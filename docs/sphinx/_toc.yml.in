@@ -7,35 +7,34 @@ root: index
 - caption: What is MIOpen?  
 subtrees:
 - entries:      
-      - file: find_and_immediate.rst
-      - file: finddb.rst
-      - file: cache.rst
-      - file: perfdatabase.rst
-      - file: Getting_Started_FusionAPI.rst
-      - file: DebugAndLogging.rst
-      - file: MI200AlternateImplementation.rst
-      - file: MIOpen_Porting_Guide.rst
-      - file: citation.rst
+  - file: find_and_immediate.rst
+  - file: finddb.rst
+  - file: cache.rst
+  - file: perfdatabase.rst
+  - file: Getting_Started_FusionAPI.rst
+  - file: DebugAndLogging.rst
+  - file: MI200AlternateImplementation.rst
+  - file: MIOpen_Porting_Guide.rst
+  - file: citation.rst
     
-    - caption: Quick-start
-    - file: reference/install.rst
-    - file: reference/embed.rst
-    - file: reference/driver.rst
+- caption: Quick-start
+  entries:
+  - file: reference/install.rst
+  - file: reference/embed.rst
+  - file: reference/driver.rst
   
-    - caption: API reference
-    subtrees:
-    - entries:
-      - file: reference/apireference.rst
-        title: API library
-
+- caption: API reference
+  entries:
+  - file: reference/apireference.rst
+    title: API library
   - file: tutorials/index.rst
-    - caption: Tutorials
-    subtrees:
-    - entries:
-      - file: tutorials/install.rst
-      - file: tutorials/embed.rst
-      - file: tutorials/driver.rst
-        title: Installing and building MIOpen
+  
+- caption: Tutorials
+  entries:
+  - file: tutorials/install.rst
+  - file: tutorials/embed.rst
+  - file: tutorials/driver.rst
+    title: Installing and building MIOpen
 
 
 
