@@ -64,6 +64,7 @@
  * @defgroup LossFunction
  * @defgroup TensorReduce
  * @defgroup find2
+ * @defgroup sum
  *
  */
 
@@ -464,8 +465,8 @@ typedef enum
 } miopenLRNMode_t;
 #ifdef MIOPEN_BETA_API
 /*! @ingroup layernorm
- * @enum miopenLayerNormAlgorithm_t
- * LayerNorm implementation algorithms
+ * @enum miopenLayerNormMode_t
+ * LayerNorm mode
  */
 typedef enum
 {
@@ -633,7 +634,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor
 
 /*! @brief Set shape of 4D tensor
  *
- * Interface for setting 4-D tensor shape. MIOpen currently only implements NCHW layout.
+ * Interface for setting 4-D tensor shape. MIOpen currently implements NCHW and NHWC layout.
  *
  * @param tensorDesc Tensor descriptor (input/output)
  * @param dataType   MIOpen datatype (input)
@@ -2490,8 +2491,6 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lr
  *  @{
  */
 /*! @brief Execute a layernorm forward layer
- *
- * This API only implements the LAYERNORM_MODE_CHANNEL in LAYERNORM_ACCURATE path.
  *
  * @param handle         MIOpen handle (input)
  * @param mode           LayerNorm mode (input)
@@ -5253,6 +5252,9 @@ typedef enum
     miopenTensorActivationY  = 5,
     miopenTensorActivationDX = 6,
     miopenTensorActivationDY = 7,
+    miopenTensorBiasX        = 8,
+    miopenTensorBiasY        = 9,
+    miopenTensorBias         = 10,
 #endif
 } miopenTensorArgumentId_t;
 
@@ -5493,7 +5495,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetSolverIdConvAlgorithm(uint64_t solverId,
 #ifdef MIOPEN_BETA_API
 
 /*! @brief Initializes a problem object describing an activation operation.
- * @note As of now there is no way to actually get any solution for this kind of problems
+ * @note As of now there is no way to actually get any solution for this kind of problems.
  *
  * @param problem      Pointer to the problem to initialize
  * @param operatorDesc Descriptor of the operator to be used
@@ -5505,10 +5507,101 @@ miopenCreateActivationProblem(miopenProblem_t* problem,
                               miopenActivationDescriptor_t operatorDesc,
                               miopenProblemDirection_t direction);
 
+/*! @brief Fuse two problems into a single one. Problems can be either regular, or fused. No
+ * problems are disposed in the process, so the problem2 should be destroyed manually if it is not
+ * needed anymore.
+ * @example
+ * miopenProblem_t problem = makeSomeProblem1();
+ * miopenProblem_t problem2 = makeSomeProblem2();
+ * miopenProblem_t problem3 = makeSomeProblem3();
+ * miopenFuseProblems(problem, problem2);
+ * // Now problem contains {problem1, problem2}
+ * miopenFuseProblems(problem, problem3);
+ * // Now problem contains {problem1, problem2, problem3}
+ * miopenDestroyProblem(problem2);
+ * miopenDestroyProblem(problem3);
+ * @note As of now there is no way to actually get any solution for this kind of problems.
+ *
+ * @param problem1     The first problem to fuse. The result would be stored here.
+ * @param problem2     The second problem to fuse.
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenFuseProblems(miopenProblem_t problem1, miopenProblem_t problem2);
+
+/*! @brief Initializes a problem object describing an bias operation.
+ * @note As of now there is no way to actually get any solution for this kind of problems.
+ *
+ * @param problem        Pointer to the problem to initialize
+ * @param direction      Direction of the operation
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenCreateBiasProblem(miopenProblem_t* problem,
+                                                     miopenProblemDirection_t direction);
+
 #endif
 
 /** @} */
 // CLOSEOUT find2 DOXYGEN GROUP
+
+#ifdef MIOPEN_BETA_API
+
+/*! @ingroup sum
+ * @enum miopenSumNanPropagation_t
+ * Nan numbers propagation modes for sum
+ */
+typedef enum
+{
+    MIOPEN_SUM_NOT_PROPAGATE_NAN = 0, /*!< does not propagate Nan number */
+    MIOPEN_SUM_PROPAGATE_NAN     = 1, /*!< propagate the Nan number by the Reduction operation */
+} miopenSumNanPropagation_t;
+
+// Sum APIs
+/** @addtogroup sum
+ *
+ *  @{
+ */
+
+/*! @brief Helper function to query the minimum workspace size required by the ReduceTensor call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param xDesc                    Tensor descriptor for data input tensor x (input)
+ * @param dim                      Dimensions to sum. (input)
+ * @param yDesc                    Tensor descriptor for output data tensor y (input)
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetSumWorkspaceSize(miopenHandle_t handle,
+                                                       const miopenTensorDescriptor_t xDesc,
+                                                       const int32_t dim,
+                                                       const miopenTensorDescriptor_t yDesc,
+                                                       size_t* sizeInBytes);
+
+/*! @brief Execute a sum forward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param nanPropagation           Nan number propagation mode (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param xDesc                    Tensor descriptor for data input tensor x (input)
+ * @param x                        Data tensor x (input)
+ * @param dim                      Dimensions to sum. (input)
+ * @param yDesc                    Tensor descriptor for output data tensor y (input)
+ * @param y                        Data tensor y (output)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSumForward(miopenHandle_t handle,
+                                              miopenSumNanPropagation_t nanPropagation,
+                                              void* workspace,
+                                              size_t workspaceSizeInBytes,
+                                              const miopenTensorDescriptor_t xDesc,
+                                              const void* x,
+                                              const int32_t dim,
+                                              const miopenTensorDescriptor_t yDesc,
+                                              void* y);
+
+/** @} */
+// CLOSEOUT SUM DOXYGEN GROUP
+#endif
 
 #ifdef __cplusplus
 }

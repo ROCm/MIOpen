@@ -32,14 +32,17 @@
 #include <miopen/conv/asm_implicit_gemm.hpp>
 #include <miopen/util_sol.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
 
 #define FWD_MAX_GEMM_K_SPLITS 8
 // #define DEBUG_IGEMM_ASM_FWD_NHWC_CHECK_VALID_TILE_LIST
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 static const inline std::vector<PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC>&
 GetFwdXdlopsNHWCConfigList()
@@ -318,11 +321,13 @@ GetFwdXdlopsNHWCConfigLargestTileFp32()
 {
     return {"fwd", "nhwc", miopenFloat,  0, 1, 256,  64,  16, 32, 32,  2, 1, 1, 2, 2, 0, 0, 0, 0, 0, { 1, 4, 4, 1}, {  1,  4,  1, 64}, { 1, 4, 1, 1}, {  1,  4,  1, 64}};
 }
+
 static inline PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
 GetFwdXdlopsNHWCConfigLargestTileFp16()
 {
     return {"fwd", "nhwc", miopenHalf,  0, 1, 256, 128,  32, 32, 32,  8, 2, 1, 2, 2, 0, 0, 0, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 8, 2, 1}, {  1,  4,  1, 64}};
 }
+
 static inline PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
 GetFwdXdlopsNHWCConfigLargestTileBf16()
 {
@@ -600,9 +605,11 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(
                     if(need_k_split)
                     {
                         if(miopen::IsDisabled(
-                               MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
+                               ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)))
+                        {
                             if(problem.IsFp16() && gks > 0)
                                 vector_store = 1;
+                        }
                         if(gks > 0)
                             gemm_k_global_split = static_cast<int>(gks);
                     }
@@ -670,11 +677,15 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
 
     if(!((problem.IsFp16() && precision == "fp16") || (problem.IsFp32() && precision == "fp32") ||
          (problem.IsBfp16() && precision == "bf16")))
+    {
         return false;
+    }
 
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)))
+    {
         if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1)
             return false;
+    }
 
     const int c           = problem.GetInChannels_();
     const int k           = problem.GetOutChannels_();
@@ -836,10 +847,12 @@ size_t ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(
     }
 
     if(!problem.IsFp32())
+    {
         size_tensor_cast =
             miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st
                                              // kernel is FP32, when using FP32 atomic
             * n * k * ho * wo;
+    }
 
     MultiBufferWorkspaceTraits wt(
         {size_trans_input, size_trans_weight, size_trans_output, size_tensor_cast}, buf_alignment);
@@ -851,7 +864,7 @@ size_t ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(
 bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
     const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC)))
         return false;
 
     if(problem.GetConv().attribute.deterministic)
@@ -870,7 +883,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
 
     if(!problem.Is2d())
@@ -918,6 +931,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
 
     return true;
 }
+
 ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
     const ExecutionContext& ctx,
     const ProblemDescription& problem,
@@ -1041,9 +1055,10 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
     MIOPEN_LOG_I2(SolverDbId() << ": " << config.ToString() << msg.str());
 
     result.invoker_factory =
-        conv::MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(ctx, problem, config);
+        miopen::conv::MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(ctx, problem, config);
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

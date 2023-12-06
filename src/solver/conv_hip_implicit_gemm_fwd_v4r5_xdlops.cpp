@@ -31,18 +31,21 @@
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R5_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R5_XDLOPS)
 
 /* this fix is for fp16 xdlops vectorizable kernels due to followings, we may revisit this fix after
   compiler fix:
   1. compiler issues(25% impact)
   2. LDS write performance(75% impact)
 */
-MIOPEN_DECLARE_ENV_VAR(
+MIOPEN_DECLARE_ENV_VAR_BOOL(
     MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_FWD_V4R5_XDLOPS_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 static std::tuple<int, int, int, int> CalculateGemmSize(const ProblemDescription& problem)
 {
@@ -125,8 +128,8 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::SetNextValue(const ProblemDescrip
     {
         // list performance parameters in reverse order, in order for tuning to iterate over the
         // range in normal order
-        if(miopen::IsEnabled(
-               MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_FWD_V4R5_XDLOPS_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM{}))
+        if(miopen::IsEnabled(ENV(
+               MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_FWD_V4R5_XDLOPS_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM)))
         {
             if(!NextTwoPower<1, 8>(GemmBThreadDataPerRead_GemmN))
                 break;
@@ -491,8 +494,8 @@ PerformanceImplicitGemmForwardV4R5Xdlops::CalculateGemmBBlockCopyPerformancePara
         // calculate threadwise copy size
         auto data_per_thread_copy =
             std::max(1, (GemmKPerBlock * NWaves * BPerBlock * GemmKPack) / block_size);
-        if(miopen::IsEnabled(
-               MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_FWD_V4R5_XDLOPS_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM{}))
+        if(miopen::IsEnabled(ENV(
+               MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_FWD_V4R5_XDLOPS_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM)))
         {
             if(problem.IsFp16())
             {
@@ -823,8 +826,8 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsFastToBeUsedForTuning(
     // DstDataPerWrite_GemmKPack should not be too small, otherwise too many ds_write instruction
     // would cause bad performance
     {
-        if(miopen::IsEnabled(
-               MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_FWD_V4R5_XDLOPS_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM{}))
+        if(miopen::IsEnabled(ENV(
+               MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_FWD_V4R5_XDLOPS_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM)))
         {
             if(problem.IsFp16())
             {
@@ -985,13 +988,13 @@ ConvSolution ConvHipImplicitGemmForwardV4R5Xdlops::GetSolution(
         std::string(" -DCK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N=") + std::to_string(GemmBBlockCopySrcDataPerRead_GemmN) +
         std::string(" -DCK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") + std::to_string(GemmBBlockCopyDstDataPerWrite_GemmKPack) +
         std::string(" -DCK_USE_AMD_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
-        std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
-        std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
+        std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(ENV(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM)) ? 1 : 0) +
+        std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE)) ? '1' : '0') +
         get_static_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
     // clang-format on
 
-    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(problem);
+    result.invoker_factory = miopen::conv::MakeImplGemmDataInvokerFactory(problem);
     result.construction_params.push_back(construction_parameters);
     return result;
 }
@@ -999,7 +1002,7 @@ ConvSolution ConvHipImplicitGemmForwardV4R5Xdlops::GetSolution(
 bool ConvHipImplicitGemmForwardV4R5Xdlops::IsApplicable(const ExecutionContext& ctx,
                                                         const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R5_XDLOPS{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R5_XDLOPS)))
         return false;
 
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
@@ -1033,7 +1036,7 @@ bool ConvHipImplicitGemmForwardV4R5Xdlops::IsApplicable(const ExecutionContext& 
     if(y == 1 && x == 1)
         return false;
 
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
 
     if(!problem.Is2d())
@@ -1077,5 +1080,6 @@ ConvHipImplicitGemmForwardV4R5Xdlops::Search(const ExecutionContext& ctx,
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

@@ -34,16 +34,22 @@ void check_bz2_error(int e, const std::string& name)
     if(e == BZ_MEM_ERROR)
         throw std::runtime_error(name + " failed: out of memory!");
     if(e == BZ_OUTBUFF_FULL)
+    {
         throw std::runtime_error(name +
                                  " failed: the size of the compressed data exceeds *destLen");
+    }
     if(e == BZ_PARAM_ERROR)
         throw std::runtime_error(name + " failed: bad parameters given to function");
     if(e == BZ_DATA_ERROR)
+    {
         throw std::runtime_error(
             name + " failed: a data integrity error was detected in the compressed data");
+    }
     if(e == BZ_DATA_ERROR_MAGIC)
+    {
         throw std::runtime_error(
             name + " failed: the compressed data doesn't begin with the right magic bytes");
+    }
     if(e == BZ_UNEXPECTED_EOF)
         throw std::runtime_error(name + " failed: the compressed data ends unexpectedly");
     throw std::runtime_error(name + " failed: unknown error!");

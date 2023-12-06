@@ -41,24 +41,27 @@
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
 #include <nlohmann/json_fwd.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 static inline bool UseSubsample(const ProblemDescription& problem)
 {
     return (problem.GetKernelStrideW() > 1 || problem.GetKernelStrideH() > 1) &&
-           problem.direction.IsForward();
+           problem.IsDirectionForward();
 }
 
 static inline bool UseUpsample(const ProblemDescription& problem)
 {
     return (problem.GetKernelStrideW() > 1 || problem.GetKernelStrideH() > 1) &&
-           problem.direction.IsBackwardData();
+           problem.IsDirectionBackwardData();
 }
 
 /// After 2x subsampling kernel, image size on asm kernel input becomes 4x (2*2) smaller.
@@ -158,7 +161,7 @@ bool PerformanceConfigConvAsm1x1U::SetNextValue(const ProblemDescription&)
     {
         if(!NextLinear<1, 4>(read_size))
             break;
-        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED{}))
+        if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)))
         {
             /// Narrow search space in optimized mode.
             if(use_spare_set ? !Next_1_4(k_mult) : !NextTwoPower<8, 32>(k_mult))
@@ -202,7 +205,7 @@ bool PerformanceConfigConvAsm1x1U::SetNextValue(const ProblemDescription&)
 PerformanceConfigConvAsm1x1U::PerformanceConfigConvAsm1x1U(bool spare)
     : PerformanceConfigConvAsm1x1U(1, 1, 1, 1, 1, 1, 1, 1, spare)
 {
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED{}))
+    if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)))
     {
         k_mult     = spare ? 1 : 8;
         chunk_size = spare ? 1 : 16;
@@ -302,7 +305,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
     {
         if((k_mult % elements_in_dword) != 0)
             return false;
-        if(problem.direction.IsBackwardData() && !(problem.GetOutChannels_() % k_mult == 0))
+        if(problem.IsDirectionBackwardData() && !(problem.GetOutChannels_() % k_mult == 0))
             return false;
     }
     if(sequence_length > 2)
@@ -388,7 +391,7 @@ bool PerformanceConfigConvAsm1x1U::ModelApplyToken(int index,
 
 static bool IsModelApplicable(const ExecutionContext& ctx, const ProblemDescription& problem)
 {
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR{}))
+    if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR)))
         return false;
     if(ctx.GetStream().GetDeviceName() != "gfx908")
         return false;
@@ -403,12 +406,12 @@ static std::vector<float> TransformFeatures(const ProblemDescription& problem, s
                     // values nominal param can take).
     std::vector<float> features(n * n, 0.0f);
     features[0]                   = problem.IsFp32() ? 2.0 : 1.0;
-    int offset                    = (problem.direction.IsForward() ? 0 : 1) + 1;
+    int offset                    = (problem.IsDirectionForward() ? 0 : 1) + 1;
     features[(offset)*n + offset] = 1.0;
     features[3 * n + 3] =
-        float(problem.direction.IsForward() ? problem.GetInChannels_() : problem.GetOutChannels_());
+        float(problem.IsDirectionForward() ? problem.GetInChannels_() : problem.GetOutChannels_());
     features[4 * n + 4] =
-        float(problem.direction.IsForward() ? problem.GetOutChannels_() : problem.GetInChannels_());
+        float(problem.IsDirectionForward() ? problem.GetOutChannels_() : problem.GetInChannels_());
     features[5 * n + 5] = float(problem.GetInHeight_());
     features[6 * n + 6] = float(problem.GetInWidth_());
     features[7 * n + 7] = float(problem.GetBatchSize_());
@@ -519,7 +522,7 @@ bool ConvAsm1x1U::IsValidPerformanceConfig(const ExecutionContext&,
 
 bool ConvAsm1x1U::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U)))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
@@ -529,7 +532,7 @@ bool ConvAsm1x1U::IsApplicable(const ExecutionContext& ctx, const ProblemDescrip
         return false;
     if(problem.HasNonPackedTensors())
         return false;
-    if(!(problem.direction.IsForward() || problem.direction.IsBackwardData()))
+    if(!(problem.IsDirectionForward() || problem.IsDirectionBackwardData()))
         return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
@@ -577,7 +580,7 @@ bool ConvAsm1x1U::IsApplicable(const ExecutionContext& ctx, const ProblemDescrip
         && problem.GetGroupCount() == 1
         && img_hw >= elements_in_dword
         && (elements_in_dword == 1 || problem.GetOutChannels_() >= 4));
-    if(problem.direction.IsBackwardData() && elements_in_dword != 1)
+    if(problem.IsDirectionBackwardData() && elements_in_dword != 1)
         ok = ok && (problem.GetOutChannels_() % 4 == 0);
     if(!ok)
     {
@@ -674,7 +677,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ExecutionContext& ctx,
             std::string(" -DMLO_OUT_STRIDE=") + std::to_string(problem.GetOutStrideH_()) +
             std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(in_batch_stride) +
             std::string(" -DMLO_IN0_BATCH_STRIDE=") +
-            std::to_string(problem.direction.IsForward() ? problem.GetInBatchStride_()
+            std::to_string(problem.IsDirectionForward() ? problem.GetInBatchStride_()
                                                          : problem.GetOutBatchStride_()) +
             std::string(" -DMLO_IN0_CHANNEL_STRIDE=") + std::to_string(problem.GetInChannelStride_()) +
             std::string(" -DMLO_IN0_STRIDE=") + std::to_string(problem.GetInStrideH_()) +
@@ -717,7 +720,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ExecutionContext& ctx,
     GenerateClangDefsym(options, "wei_w", problem.GetWeightsWidth_());          // S
     GenerateClangDefsym(options, "pad_h", problem.GetPadH());
     GenerateClangDefsym(options, "pad_w", problem.GetPadW());
-    GenerateClangDefsym(options, "weights_layout", problem.direction.IsForward() ? 0 : 1);
+    GenerateClangDefsym(options, "weights_layout", problem.IsDirectionForward() ? 0 : 1);
 
     GenerateClangDefsym(options, "vec_c_in", 1);
     GenerateClangDefsym(options, "vec_k_out", 1);
@@ -792,7 +795,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ExecutionContext& ctx,
                    1,
                    data_len);
     // cppcheck-suppress unreadVariable
-    buff_info fbuf(problem.direction.IsForward() ? MemLayout::NCHW : MemLayout::CNHW,
+    buff_info fbuf(problem.IsDirectionForward() ? MemLayout::NCHW : MemLayout::CNHW,
                    problem.GetOutChannels_(),
                    problem.GetInChannels_(),
                    1,
@@ -824,24 +827,19 @@ ConvSolution ConvAsm1x1U::GetSolution(const ExecutionContext& ctx,
 
     PerformanceConfigConvAsm1x1U fromEnv;
     {
-        std::string s;
-        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS{});
-        if(p_asciz != nullptr)
+        const auto& s = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS));
+        if(!s.empty()) // else nothing to parse.
         {
-            s = std::string(p_asciz);
-            if(!s.empty()) // else nothing to parse.
+            if(!fromEnv.Deserialize(s) || !fromEnv.IsValidValue())
             {
-                if(!fromEnv.Deserialize(s) || !fromEnv.IsValidValue())
-                {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS: "
-                                 "Bad format or invalid for the problem config: "
-                                 << s);
-                }
-                else
-                {
-                    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
-                    pcfg = &fromEnv;
-                }
+                MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS: "
+                             "Bad format or invalid for the problem config: "
+                             << s);
+            }
+            else
+            {
+                MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
+                pcfg = &fromEnv;
             }
         }
     }
@@ -891,21 +889,22 @@ ConvSolution ConvAsm1x1U::GetSolution(const ExecutionContext& ctx,
     {
         int N, C, H, W, K, n_groups, out_H, out_W;
         GetCompiledInParameters(ctx, problem, &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
-        result.invoker_factory = conv::MakeGcnAsm1x1USSInvokerFactory(
+        result.invoker_factory = miopen::conv::MakeGcnAsm1x1USSInvokerFactory(
             N, C, K, n_groups, out_H, out_W, result.workspace_sz);
     }
     else if(UseUpsample(problem))
     {
         int N, C, H, W, K, n_groups;
         GetCompiledInParameters(ctx, problem, &N, &C, &H, &W, &K, &n_groups);
-        result.invoker_factory =
-            conv::MakeGcnAsm1x1UUSInvokerFactory(N, C, K, n_groups, H, W, result.workspace_sz);
+        result.invoker_factory = miopen::conv::MakeGcnAsm1x1UUSInvokerFactory(
+            N, C, K, n_groups, H, W, result.workspace_sz);
     }
     else
     {
         int N, C, H, W, K, n_groups;
         GetCompiledInParameters(ctx, problem, &N, &C, &H, &W, &K, &n_groups);
-        result.invoker_factory = conv::MakeGcnAsm1x1UInvokerFactory(N, C, H, W, K, n_groups);
+        result.invoker_factory =
+            miopen::conv::MakeGcnAsm1x1UInvokerFactory(N, C, H, W, K, n_groups);
     }
 
     return result;
@@ -918,5 +917,6 @@ PerformanceConfigConvAsm1x1U ConvAsm1x1U::Search(const ExecutionContext& ctx,
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen
