@@ -716,8 +716,8 @@ target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} Threads::Threads ${BZIP2_L
 miopen_generate_export_header(MIOpen)
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
-    find_package(frugally-deep CONFIG REQUIRED)
-    find_package(Eigen3 REQUIRED)
+    find_package(frugally-deep CONFIG REQUIRED GLOBAL)
+    find_package(Eigen3 REQUIRED GLOBAL)
     target_link_libraries(MIOpen PRIVATE frugally-deep::fdeep Eigen3::Eigen)
     if(NOT TARGET nlohmann_json)
 	# frugally-deep has broken linking to nlohmann_json
