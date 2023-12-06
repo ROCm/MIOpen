@@ -32,7 +32,6 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(CODECOV_TEST)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
 
-
 static bool SkipTest(void) { return !miopen::IsEnabled(ENV(CODECOV_TEST)); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
@@ -73,9 +72,10 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenBFloat8:
     case miopenInt32:
     case miopenDouble:
-        FAIL() << "miopenBFloat16, miopenInt8, miopenInt32, miopenDouble, miopenFloat8, miopenBFloat8 "
-                  "data type not supported by "
-                  "immed_conv2d_codecov test";
+        FAIL()
+            << "miopenBFloat16, miopenInt8, miopenInt32, miopenDouble, miopenFloat8, miopenBFloat8 "
+               "data type not supported by "
+               "immed_conv2d_codecov test";
 
     default: params = Pooling2dFloat::GetParam(); flag = "--float";
     }

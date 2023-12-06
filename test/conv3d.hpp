@@ -58,4 +58,3 @@ struct conv3d_driver : conv_driver<T>
         this->add(this->out_layout, "out_layout", this->generate_data({"NCDHW"}));
     }
 };
-
