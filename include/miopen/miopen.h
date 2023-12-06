@@ -2995,9 +2995,10 @@ MIOPEN_EXPORT miopenStatus_t miopenFusionPlanGetOp(miopenFusionPlanDescriptor_t 
                                                    miopenFusionOpDescriptor_t* op);
 
 /*! @brief Query the workspace size required for the fusion plan
- *
+ * @param handle         MIOpen handle (input)
  * @param fusePlanDesc   A fusion plan descriptor (input)
  * @param workSpaceSize  Pointer to memory to return size in bytes (output)
+ * @param algo           Algorithm selected (inputs)
  * @return               miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -3328,12 +3329,29 @@ miopenExecuteFusionPlan(const miopenHandle_t handle,
                         void* output,
                         miopenOperatorArgs_t args);
 
-/*! @brief Prepares and executes the Convlution+Bias+Activation Fusion
+/*! @brief Prepares and executes the Convlution+Bias+Activation Fusion.
  *
  *
- * @param handle           MIOpen handle (input)
- * @return           miopenStatus_t
+ * @param handle               MIOpen handle (input)
+ * @param alpha1               floating point scaling factor, allocated on the host (input)
+ * @param xDesc                Tensor descriptor for input data tensor x (input)
+ * @param x                    Data tensor x (input)
+ * @param wDesc                Tensor descriptor for weight tensor w (input)
+ * @param w                    Weights tensor w (input)
+ * @param convDesc             Convolution layer descriptor (input)
+ * @param algo                 Algorithm selected (inputs)
+ * @param workspace            Pointer to workspace required (input)
+ * @param workspaceSizeInBytes Size of the memory in bytes pointed to by workSpace above
+ * @param alpha2               floating point scaling factor, allocated on the host (input)
+ * @param zDesc                Tensor descriptor for tensor z (input)
+ * @param z                    Data tensor z (input)
+ * @param biasDesc             Tensor descriptor for input data tensor x (input)
+ * @param bias                 Data tensor bias (input)
+ * @param activationDesc       Activation descriptor that specifies the activation mode
+ * @param yDesc                Tensor descriptor for output data tensor y (input)
+ * @param y                    Output data tensor
  */
+
 MIOPEN_EXPORT miopenStatus_t
 miopenConvolutionBiasActivationForward(miopenHandle_t handle,
                                        const void* alpha1,
@@ -4256,7 +4274,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNPaddingMode(miopenRNNDescriptor_t rnnDe
  *
  * @param handle                MIOpen handle (input)
  * @param rnnDesc               RNN layer descriptor type (input)
- *
+ * @param fwdMode          Specifies in which mode the buffers will be used.
  * @param xDesc                 An input tensor descriptor for sequenced RNN data. This
  * miopenSeqTensorDescriptor_t should be initialyzed by `miopenSetRNNDataSeqTensorDescriptor`
  * function.(input)
