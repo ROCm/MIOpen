@@ -29,7 +29,7 @@ subtrees:
         title: API library
 
   - file: tutorials/index.rst
-    title: Tutorials
+    caption: Tutorials
     subtrees:
     - entries:
       - file: tutorials/install.rst
