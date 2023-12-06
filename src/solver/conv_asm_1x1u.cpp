@@ -483,7 +483,7 @@ bool PerformanceConfigConvAsm1x1U::IsModelApplicable(const ExecutionContext& ctx
     return true;
 }
 
-void PerformanceConfigConvAsm1x1U::HeuristicInit([[maybe_unused]] ExecutionContext& ctx,
+void PerformanceConfigConvAsm1x1U::HeuristicInit([[maybe_unused]] const ExecutionContext& ctx,
                                                  const ProblemDescription& problem)
 {
     if(problem.GetInDataType() == miopenDouble)
