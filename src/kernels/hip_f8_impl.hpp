@@ -202,12 +202,13 @@ MIOPEN_HIP_HOST_DEVICE uint8_t cast_to_f8(T _x, bool stoch, uint32_t rng)
         }
         mantissa += (1 << mfmt); // Add the implicit 1 into mantissa
     }
-    const long tmp = (mfmt - wm + exponent_diff);
-    if(tmp == 33)
-        printf("Gotcha");
 
-    bool midpoint = (mantissa & ((static_cast<uint32_t>(1) << (mfmt - wm + exponent_diff)) - 1)) ==
-                    (static_cast<uint32_t>(1) << (mfmt - wm + exponent_diff - 1));
+    bool midpoint;
+    if(exponent_diff <= wm)
+        midpoint = (mantissa & ((1 << (mfmt - wm + exponent_diff)) - 1)) ==
+                   (1 << (mfmt - wm + exponent_diff - 1));
+    else
+        midpoint = false;
     /* This part is a bit tricky. The judgment of whether it is a tie needs to be done before we
        shift right as shift right could rip off some residual part and make something not midpoint
        look like midpoint. For example, the fp16 number 0x1002 (0 00100 0000000010), it is larger
