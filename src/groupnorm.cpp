@@ -46,8 +46,8 @@ miopenStatus_t GroupNormForward(Handle& handle,
                                 Data_t mean,
                                 const TensorDescriptor& rstdDesc,
                                 Data_t rstd,
-                                int32_t num_groups,
                                 miopenLayerNormMode_t mode,
+                                int32_t num_groups,
                                 float epsilon)
 {
     if(x == nullptr || y == nullptr)
@@ -80,8 +80,11 @@ miopenStatus_t GroupNormForward(Handle& handle,
 
     auto dims         = xDesc.GetLengths();
     size_t numel      = xDesc.GetElementSize();
+    size_t numel_per_channel = numel / dims[0] / dims[1];
+    size_t num_channels      = dims[1];
+
     size_t outer_size = dims[0] * num_groups;
-    size_t inner_size = numel / outer_size;
+    // size_t inner_size = numel / outer_size;
 
     auto dtype = xDesc.GetType();
 
@@ -89,12 +92,13 @@ miopenStatus_t GroupNormForward(Handle& handle,
     const std::vector<size_t> vgd{outer_size * vld[0], 1, 1};
 
     std::string algo_name = "GroupNormForward";
-    std::string network_config =
-        "gnfwd-dtype" + std::to_string(static_cast<int32_t>(dtype)) + "-g" +
-        std::to_string(vgd[0]) + "-l" + std::to_string(vld[0]) + "-num_groups" +
-        std::to_string(num_groups) + "-outer_size" + std::to_string(outer_size) + "-inner_size" +
-        std::to_string(inner_size) + "-mode" + std::to_string(static_cast<int32_t>(mode)) + "-eps" +
-        std::to_string(static_cast<float>(epsilon));
+    std::string network_config = "gnfwd-dtype" + std::to_string(static_cast<int32_t>(dtype)) +
+                                 "-g" + std::to_string(vgd[0]) + "-l" + std::to_string(vld[0]) +
+                                 "-num_groups" + std::to_string(num_groups) + "-num_channels" +
+                                 std::to_string(num_channels) + "-numel_per_channel" +
+                                 std::to_string(numel_per_channel) + "-mode" +
+                                 std::to_string(static_cast<int32_t>(mode)) + "-eps" +
+                                 std::to_string(static_cast<float>(epsilon));
 
     std::string program_name = "MIOpenGroupNorm.cpp";
     std::string kernel_name  = "GroupNormFwdContiguous";
@@ -112,12 +116,32 @@ miopenStatus_t GroupNormForward(Handle& handle,
     auto&& kernels = handle.GetKernels(algo_name, network_config);
     if(!kernels.empty())
     {
-        kernels.front()(x, y, weight, bias, mean, rstd, epsilon, inner_size, mode);
+        kernels.front()(x,
+                        y,
+                        weight,
+                        bias,
+                        mean,
+                        rstd,
+                        epsilon,
+                        static_cast<size_t>(num_groups),
+                        num_channels,
+                        numel_per_channel,
+                        mode);
     }
     else
     {
         handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-            x, y, weight, bias, mean, rstd, epsilon, inner_size, mode);
+            x,
+            y,
+            weight,
+            bias,
+            mean,
+            rstd,
+            epsilon,
+            static_cast<size_t>(num_groups),
+            num_channels,
+            numel_per_channel,
+            mode);
     }
 
     return miopenStatusSuccess;
