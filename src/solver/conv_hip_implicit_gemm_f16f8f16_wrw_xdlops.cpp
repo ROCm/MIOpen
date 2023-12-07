@@ -325,9 +325,9 @@ ConvSolution ConvHipImplicitGemmF16F8F16WrwXdlops::GetSolution(
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops& config) const
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
-    return MakeInvokerFactory<DeviceOpF8WrwPtrs<ck::half_t, ck::bf8_t, ck::f8_t>,
+    return InitInvokerFactoryNHWC<DeviceOpF8WrwPtrs<ck::half_t, ck::bf8_t, ck::f8_t>,
                               CKArgs,
-                              miopen::conv::WrWInvokeParams>(problem, config.kernel_id);
+                              miopen::conv::WrWInvokeParams>(ctx, problem, config.kernel_id);
 #else
     return {};
 #endif
