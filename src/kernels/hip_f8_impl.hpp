@@ -87,8 +87,8 @@ MIOPEN_HIP_HOST_DEVICE uint8_t cast_to_f8_no_range_reduce(T _x,
 template <int wm, int we, typename T, bool negative_zero_nan, bool clip>
 MIOPEN_HIP_HOST_DEVICE uint8_t cast_to_f8(T _x, bool stoch, uint32_t rng)
 {
-    constexpr bool is_half  = std::is_same<T, half>::value;
-    constexpr bool is_float = std::is_same<T, float>::value;
+    constexpr bool is_half  = __is_same_as(T, half);
+    constexpr bool is_float = __is_same_as(T, float);
     static_assert(wm + we == 7, "wm+we==7");
     static_assert(is_half || is_float, "Only half and float can be cast to f8");
 
@@ -273,8 +273,8 @@ MIOPEN_HIP_HOST_DEVICE uint8_t cast_to_f8(T _x, bool stoch, uint32_t rng)
 template <int wm, int we, typename T, bool negative_zero_nan>
 MIOPEN_HIP_HOST_DEVICE T cast_from_f8(uint8_t x)
 {
-    constexpr bool is_half  = std::is_same<T, half>::value;
-    constexpr bool is_float = std::is_same<T, float>::value;
+    constexpr bool is_half  = __is_same_as(T, half);
+    constexpr bool is_float = __is_same_as(T, float);
     static_assert(is_half || is_float, "only half and float are supported");
 
     constexpr int weo = is_half ? 5 : 8;
