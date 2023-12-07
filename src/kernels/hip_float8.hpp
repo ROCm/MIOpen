@@ -83,6 +83,9 @@ inline MIOPEN_HIP_HOST_DEVICE bool get_hip_f8_bias_mode()
 #endif
 }
 
+template <typename T>
+class numeric_limits;
+
 template <hip_f8_type T>
 struct hip_f8
 {
@@ -262,8 +265,7 @@ struct hip_f8
 
     inline MIOPEN_HIP_HOST_DEVICE bool operator==(const hip_f8& rhs) const
     {
-        if((rhs.is_zero() && this->is_zero()) ||
-           (fabs(rhs - *this) < std::numeric_limits<hip_f8<T>>::epsilon()))
+        if((rhs.is_zero() && this->is_zero()) || (this->data == rhs.data))
             return true;
         else if(rhs.is_nan() || rhs.is_inf() || this->is_nan() || this->is_inf())
             return false;
@@ -483,19 +485,6 @@ MIOPEN_HIP_HOST_DEVICE T F8_Max()
     x.bits = 0x7F;
     return x.value;
 }
-} // namespace miopen_f8
-
-// define numeric limits for the new data type
-namespace std {
-inline bool isfinite(miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> x) // NOLINT
-{
-    return x.is_inf();
-}
-
-inline bool isfinite(miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> x) // NOLINT
-{
-    return x.is_inf();
-}
 
 template <>
 class numeric_limits<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>
@@ -551,7 +540,44 @@ public:
     }
 };
 
+} // namespace miopen_f8
+
+#ifndef __HIPCC_RTC__
+namespace std {
+inline bool isfinite(miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> x) // NOLINT
+{
+    return x.is_inf();
+}
+
+inline bool isfinite(miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> x) // NOLINT
+{
+    return x.is_inf();
+}
+
+inline bool isnan(miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> x) // NOLINT
+{
+    return x.is_nan();
+}
+
+inline bool isnan(miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> x) // NOLINT
+{
+    return x.is_nan();
+}
+
+template <>
+class numeric_limits<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>
+    : public miopen_f8::numeric_limits<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>
+{
+};
+
+template <>
+class numeric_limits<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>
+    : public miopen_f8::numeric_limits<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>
+{
+};
+
 } // namespace std
+#endif
 
 template <miopen_f8::hip_f8_type T>
 struct hip_f8x4
