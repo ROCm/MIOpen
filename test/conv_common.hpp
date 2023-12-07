@@ -297,6 +297,9 @@ struct conv_base
 protected:
     void RunFind2_0(miopenProblem_t problem, const miopenTensorArgument_t* arguments) const
     {
+#ifdef WORKAROUND_MIOPEN_GITHUB_ISSUE_2500
+        // const_cast<miopen::ConvolutionDescriptor&>(filter).findMode.Set(miopen::FindMode::Values::Normal);
+#endif
         miopenHandle_t handle = &get_handle();
 
         constexpr const auto find_limit = 1;

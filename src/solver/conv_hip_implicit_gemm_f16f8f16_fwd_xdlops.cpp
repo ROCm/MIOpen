@@ -325,8 +325,8 @@ ConvSolution ConvHipImplicitGemmF16F8F16FwdXdlops::GetSolution(
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
     return InitInvokerFactoryNHWC<DeviceOpF8FwdPtrs<ck::half_t, c_type>,
-                              CKArgs,
-                              miopen::conv::DataInvokeParams>(ctx, problem, config.kernel_id);
+                                  CKArgs,
+                                  miopen::conv::DataInvokeParams>(ctx, problem, config.kernel_id);
 #else
     return {};
 #endif
