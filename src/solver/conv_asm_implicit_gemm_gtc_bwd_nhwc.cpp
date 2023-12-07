@@ -32,8 +32,8 @@
 #include <miopen/conv/asm_implicit_gemm.hpp>
 #include <miopen/batched_transpose_sol.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS_NHWC)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS_NHWC)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
 
 #define BWD_MAX_GEMM_K_SPLITS 8
 // #define DEBUG_IGEMM_ASM_BWD_NHWC_CHECK_VALID_TILE_LIST
@@ -733,7 +733,7 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(
                     if(need_k_split)
                     {
                         if(miopen::IsDisabled(
-                               MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
+                               ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)))
                         {
                             if(problem.IsFp16() && gks > 0)
                                 vector_store = 1;
@@ -809,7 +809,7 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
         return false;
     }
 
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)))
     {
         if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1)
             return false;
@@ -928,7 +928,7 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::Search(const ExecutionContext& ctx,
 bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(
     const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS_NHWC{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS_NHWC)))
         return false;
 
     if(problem.GetConv().attribute.deterministic)

@@ -138,6 +138,7 @@ set( MIOpen_Source
     readonlyramdb.cpp
     reducetensor.cpp
     reducetensor_api.cpp
+    reduce/problem_description.cpp
     rnn.cpp
     rnn_api.cpp
     rnn/rnn_util.cpp
@@ -206,6 +207,9 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_3d_grouped_fwd_xdlops.cpp
     solver/conv_hip_implicit_gemm_3d_grouped_wrw_xdlops.cpp
     solver/conv_hip_implicit_gemm_3d_grouped_bwd_xdlops.cpp
+    solver/conv_hip_implicit_gemm_f16f8f16_fwd_xdlops.cpp
+    solver/conv_hip_implicit_gemm_f16f8f16_bwd_xdlops.cpp
+    solver/conv_hip_implicit_gemm_f16f8f16_wrw_xdlops.cpp
     solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
@@ -243,7 +247,9 @@ set( MIOpen_Source
     solver/pooling/forwardNd.cpp
     solver/pooling/backward2d.cpp
     solver/pooling/backwardNd.cpp
+    solver/reduce/forward_sum.cpp
     subbuffers.cpp
+    sum_api.cpp
     target_properties.cpp
     temp_file.cpp
     tensor.cpp
@@ -430,6 +436,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
         kernels/MIOpenSoftmax.cl
+        kernels/MIOpenSum.cpp
         kernels/MIOpenUtilKernels3.cl
         kernels/MIOpenUtilKernels4.cl
         kernels/MIOpenUtilKernels5.cl
@@ -561,6 +568,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         pooling.cpp
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
+        sum.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )
 
@@ -700,7 +708,7 @@ target_include_directories(MIOpen PUBLIC
 )
 
 if(MIOPEN_USE_COMPOSABLEKERNEL)
-set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_operations hip::host)
+set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_other_operations composable_kernel::device_gemm_operations composable_kernel::device_conv_operations composable_kernel::device_contraction_operations composable_kernel::device_reduction_operations hip::host)
 endif()
 
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
