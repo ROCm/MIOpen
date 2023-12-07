@@ -39,12 +39,14 @@ void cpu_groupnorm_forward(tensor<T> input,
                            float eps,
                            miopenLayerNormMode_t mode)
 {
-    auto dims         = input.desc.GetLengths();
-    size_t numel      = input.desc.GetElementSize();
+    auto dims = input.desc.GetLengths();
+
+    size_t numel             = input.desc.GetElementSize();
+    size_t numel_per_channel = numel / dims[0] / dims[1];
+    size_t num_channels      = dims[1];
+
     size_t outer_size = dims[0] * num_groups;
     size_t inner_size = numel / outer_size;
-
-    auto getC = [&dims](size_t idx) { return (idx / dims[4] / dims[3] / dims[2]) % dims[1]; };
 
     par_ford(outer_size)([&](int32_t o) {
         T mean_v = 0.0f;
@@ -64,12 +66,12 @@ void cpu_groupnorm_forward(tensor<T> input,
         ref_rstd[o] = rstd_v;
 
         ford(inner_size)([&](int32_t i) {
-            size_t c   = getC(i);
-            T weight_v = mode ? 1 : weight[c];
-            T bias_v   = mode ? 0 : bias[c];
+            size_t idx = o * inner_size + i;
+            size_t c   = (idx / numel_per_channel) % num_channels;
+            T weight_v = mode ? weight[c] : 1;
+            T bias_v   = mode ? bias[c] : 0;
 
-            ref_output[o * inner_size + i] =
-                (input[o * inner_size + i] - mean_v) * rstd_v * weight_v + bias_v;
+            ref_output[idx] = (input[idx] - mean_v) * rstd_v * weight_v + bias_v;
         });
     });
 }

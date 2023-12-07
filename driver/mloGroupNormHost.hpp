@@ -30,18 +30,6 @@
 //
 ///////////////////////////////////////////////////////////
 
-#define GET_NCDHW(n, c, d, h, w, idx, dims) \
-    {                                       \
-        ulong ncdh = (idx) / dims[4];       \
-        w          = (idx) % dims[4];       \
-        ulong ncd  = ncdh / dims[3];        \
-        h          = ncdh % dims[3];        \
-        ulong nc   = ncd / dims[2];         \
-        d          = ncd % dims[2];         \
-        n          = nc / dims[1];          \
-        c          = nc % dims[1];          \
-    }
-
 template <typename Tgpu, typename Tcheck>
 int32_t mloGroupNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
                                    Tgpu* input,
@@ -55,17 +43,19 @@ int32_t mloGroupNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
                                    miopenLayerNormMode_t mode)
 {
     auto dims         = miopen::deref(inputDesc).GetLengths();
+
     size_t numel      = miopen::deref(inputDesc).GetElementSize();
+    size_t numel_per_channel = numel / dims[0] / dims[1];
+    size_t num_channels      = dims[1];
+
     size_t outer_size = dims[0] * num_groups;
     size_t inner_size = numel / outer_size;
 
-    auto getC = [&dims](size_t idx) { return (idx / dims[4] / dims[3] / dims[2]) % dims[1]; };
-
-    for(int32_t o = 0; o < outer_size; o++)
+    for(size_t o = 0; o < outer_size; o++)
     {
         Tcheck pmean = 0.0f;
         Tcheck pvar  = 0.0f;
-        for(int32_t i = 0; i < inner_size; i++)
+        for(size_t i = 0; i < inner_size; i++)
         {
             Tcheck tmp = static_cast<Tcheck>(input[o * inner_size + i]);
             pmean += tmp;
@@ -79,14 +69,14 @@ int32_t mloGroupNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
         meanhost[o] = pmean;
         rstdhost[o] = prstd;
 
-        for(int32_t i = 0; i < inner_size; i++)
+        for(size_t i = 0; i < inner_size; i++)
         {
-            size_t c       = getC(i);
-            Tcheck pweight = mode ? 1 : static_cast<Tcheck>(weight[c]);
-            Tcheck pbias   = mode ? 0 : static_cast<Tcheck>(bias[c]);
+            size_t idx     = o * inner_size + i;
+            size_t c       = (idx / numel_per_channel) % num_channels;
+            Tcheck pweight = mode ? static_cast<Tcheck>(weight[c]) : 1;
+            Tcheck pbias   = mode ? static_cast<Tcheck>(bias[c]) : 0;
 
-            outputhost[o * inner_size + i] =
-                (static_cast<Tcheck>(input[o * inner_size + i]) - pmean) * prstd * pweight + pbias;
+            outputhost[idx] = (static_cast<Tcheck>(input[idx]) - pmean) * prstd * pweight + pbias;
         }
     }
 

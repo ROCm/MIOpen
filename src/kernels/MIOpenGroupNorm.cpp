@@ -45,7 +45,9 @@ extern "C" __global__ void GroupNormFwdContiguous(const FLOAT* __restrict__ x,
                                                   FLOAT_ACCUM* __restrict__ mean,
                                                   FLOAT_ACCUM* __restrict__ rstd,
                                                   float eps,
-                                                  uint64_t inner_size,
+                                                  uint64_t num_groups,
+                                                  uint64_t num_channels,
+                                                  uint64_t numel_per_channel,
                                                   bool mode)
 {
     /*
@@ -67,6 +69,8 @@ extern "C" __global__ void GroupNormFwdContiguous(const FLOAT* __restrict__ x,
 
     const uint64_t gid = blockIdx.x;
     const uint64_t lid = threadIdx.x;
+
+    const size_t inner_size = numel_per_channel * num_channels / num_groups;
 
     FLOAT_ACCUM pmean = static_cast<FLOAT_ACCUM>(0);
     FLOAT_ACCUM pvar  = static_cast<FLOAT_ACCUM>(0);
@@ -115,10 +119,9 @@ extern "C" __global__ void GroupNormFwdContiguous(const FLOAT* __restrict__ x,
         FLOAT_ACCUM pweight;
         FLOAT_ACCUM pbias;
 
-        size_t o[5];
-        GET_NCDHW(o[0], o[1], o[2], o[3], o[4], idx, x);
-        pweight = mode ? CVT_FLOAT2ACCUM(weight[o[i]]) : CVT_FP32_2ACCUM(1.0f);
-        pbias   = mode ? CVT_FLOAT2ACCUM(bias[o[i]]) : static_cast<FLOAT>(0);
+        size_t c = (idx / numel_per_channel) % num_channels;
+        pweight  = mode ? CVT_FLOAT2ACCUM(weight[c]) : CVT_FP32_2ACCUM(1.0f);
+        pbias    = mode ? CVT_FLOAT2ACCUM(bias[c]) : static_cast<FLOAT>(0);
 
         FLOAT_ACCUM val = (CVT_FLOAT2ACCUM(x[idx]) - pmean) * prstd * pweight + pbias;
         y[idx]          = CVT_ACCUM2FLOAT(val);

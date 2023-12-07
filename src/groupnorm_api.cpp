@@ -29,8 +29,10 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
-static void
-LogCmdGroupNorm(const miopenTensorDescriptor_t xDesc, const miopenLayerNormMode_t mode, bool is_fwd)
+static void LogCmdGroupNorm(const miopenTensorDescriptor_t xDesc,
+                            const miopenLayerNormMode_t mode,
+                            int32_t num_groups,
+                            bool is_fwd)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -73,7 +75,9 @@ LogCmdGroupNorm(const miopenTensorDescriptor_t xDesc, const miopenLayerNormMode_
             ss << " -W " << miopen::deref(xDesc).GetLengths()[2];
         }
 
-        ss << " -F " << ((is_fwd) ? "1" : "2") << " -m " << mode;
+        ss << " -g " << num_groups;
+        ss << " -m " << mode;
+        ss << " -F " << ((is_fwd) ? "1" : "2");
 
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
@@ -113,7 +117,7 @@ extern "C" miopenStatus_t miopenGroupNormForward(miopenHandle_t handle,
                         rstdDesc,
                         rstd);
 
-    LogCmdGroupNorm(xDesc, mode, true);
+    LogCmdGroupNorm(xDesc, mode, num_groups, true);
     return miopen::try_([&] {
         miopen::GroupNormForward(miopen::deref(handle),
                                  miopen::deref(xDesc),

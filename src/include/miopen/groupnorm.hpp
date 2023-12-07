@@ -48,8 +48,8 @@ miopenStatus_t GroupNormForward(Handle& handle,
                                 const TensorDescriptor& rstdDesc,
                                 Data_t rstd,
                                 miopenLayerNormMode_t mode,
-                                float epsilon,
-                                int32_t normalized_dim);
+                                int32_t num_groups,
+                                float epsilon);
 
 } // namespace miopen
 #endif // _MIOPEN_GROUPNORM_HPP_
