@@ -436,7 +436,8 @@ Metadata::Metadata(const std::string& arch, const std::string& solver)
     const nlohmann::json metadata =
         common::LoadJSON(GetSystemDbPath() + "/" + arch + "_" + solver + "_metadata.ktn.model");
     num_tuning_params = metadata["num_tuning_params"].get<std::size_t>();
-    tuning_decodings = metadata["decodings"]["tunings"].get<std::unordered_map<std::string, int>>();
+    tuning_decodings =
+        metadata["decodings"]["tunings"].get<std::unordered_map<std::string, std::string>>();
 }
 
 class Model
@@ -450,9 +451,11 @@ public:
     {
     }
     virtual ~Model() = default;
-    fdeep::tensors Encode(const std::vector<float>& features, std::size_t dim) const
+    fdeep::tensors Encode(const std::vector<float>& features, std::size_t dim, bool transform) const
     {
-        fdeep::tensor input_tensor = fdeep::tensor(fdeep::tensor_shape(dim, dim), features);
+        const auto tensor_shape_depth = transform ? dim : 1;
+        fdeep::tensor input_tensor =
+            fdeep::tensor(fdeep::tensor_shape(dim, tensor_shape_depth), features);
         return encoder.predict({input_tensor});
     }
     fdeep::tensors Decode(const float prev_token, const fdeep::tensors& context) const
@@ -488,10 +491,6 @@ private:
 
 std::shared_ptr<Model> GetModel(const std::string& arch, const std::string& solver)
 {
-    static const std::string prevArch{arch};
-
-    if(prevArch != arch)
-        MIOPEN_THROW("Cannot use AI tuning models for multiple gpu architectures");
     static std::map<std::string, std::shared_ptr<Model>> models;
     auto it = models.find(solver);
     if(it == models.end())
@@ -509,11 +508,16 @@ std::shared_ptr<Model> GetModel(const std::string& arch, const std::string& solv
 bool ModelSetParams(const std::string& arch,
                     const std::string& solver,
                     const std::vector<float>& features,
-                    std::function<bool(int, int)> validator)
+                    bool transform_features,
+                    std::function<bool(std::size_t, std::string)> validator)
 {
-    auto model             = GetModel(arch, solver);
-    int dim                = std::sqrt(features.size());
-    fdeep::tensors context = model->Encode(features, dim);
+    auto model = GetModel(arch, solver);
+    int dim    = 0;
+    if(transform_features)
+        dim = std::sqrt(features.size());
+    else
+        dim = features.size();
+    fdeep::tensors context = model->Encode(features, dim, transform_features);
     float decoder_input    = 0.0;
     for(std::size_t i = 0; i < model->metadata.num_tuning_params; ++i)
     {
@@ -529,9 +533,9 @@ bool ModelSetParams(const std::string& arch,
         {
             int token = pq.top().second;
             // convert index to token value
-            int value = model->metadata.tuning_decodings[std::to_string(token)];
+            std::string value = model->metadata.tuning_decodings[std::to_string(token)];
             pq.pop();
-            if(value < 0)
+            if(value == "-1")
                 return false;
             if(validator(i, value))
             {
