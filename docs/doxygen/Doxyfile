@@ -2452,3 +2452,12 @@ GENERATE_LEGEND        = YES
 # This tag requires that the tag HAVE_DOT is set to YES.
 
 DOT_CLEANUP            = YES
+
+# If the WARN_AS_ERROR tag is set to YES then doxygen will immediately stop when
+# a warning is encountered. If the WARN_AS_ERROR tag is set to FAIL_ON_WARNINGS
+# then doxygen will continue running as if WARN_AS_ERROR tag is set to NO, but
+# at the end of the doxygen process doxygen will return with a non-zero status.
+# Possible values are: NO, YES and FAIL_ON_WARNINGS.
+# The default value is: NO.
+
+WARN_AS_ERROR          = YES
