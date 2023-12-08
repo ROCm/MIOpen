@@ -37,7 +37,7 @@ void cpu_groupnorm_forward(tensor<T> input,
                            tensor<T>& ref_rstd,
                            int32_t num_groups,
                            float eps,
-                           miopenLayerNormMode_t mode)
+                           miopenNormMode_t mode)
 {
     auto dims = input.desc.GetLengths();
 

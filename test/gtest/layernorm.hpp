@@ -43,7 +43,7 @@ struct LayerNormTestCase
     size_t W;
     size_t nomalized_dim;
     float eps;
-    miopenLayerNormMode_t ln_mode;
+    miopenNormMode_t ln_mode;
     friend std::ostream& operator<<(std::ostream& os, const LayerNormTestCase& tc)
     {
         return os << " N:" << tc.N << " C:" << tc.C << " D:" << tc.D << " H:" << tc.H
@@ -308,5 +308,5 @@ protected:
 
     size_t nomalized_dim;
     float eps;
-    miopenLayerNormMode_t ln_mode;
+    miopenNormMode_t ln_mode;
 };

@@ -466,7 +466,7 @@ typedef enum
 } miopenLRNMode_t;
 #ifdef MIOPEN_BETA_API
 /*! @ingroup layernorm
- * @enum miopenLayerNormMode_t
+ * @enum miopenNormMode_t
  * LayerNorm mode
  */
 typedef enum
@@ -474,7 +474,7 @@ typedef enum
     MIOPEN_ELEMENTWISE_AFFINE = 0, /*!< initialized to ones for weights and zeros for biases */
     MIOPEN_WEIGHT_BIAS =
         1, /*!< learnable weights and biases of the module of shape normalized_shape */
-} miopenLayerNormMode_t;
+} miopenNormMode_t;
 #endif
 /*! @ingroup batchnorm
  * @enum miopenBatchNormMode_t
@@ -2538,7 +2538,7 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lr
  * @return               miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
-                                                    miopenLayerNormMode_t mode,
+                                                    miopenNormMode_t mode,
                                                     const miopenTensorDescriptor_t xDesc,
                                                     const void* x,
                                                     const miopenTensorDescriptor_t weightDesc,
@@ -5657,7 +5657,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSumForward(miopenHandle_t handle,
  * @return               miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGroupNormForward(miopenHandle_t handle,
-                                                    miopenLayerNormMode_t mode,
+                                                    miopenNormMode_t mode,
                                                     const miopenTensorDescriptor_t xDesc,
                                                     const void* x,
                                                     const miopenTensorDescriptor_t weightDesc,

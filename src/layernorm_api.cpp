@@ -30,7 +30,7 @@
 #include <miopen/tensor_ops.hpp>
 
 static void
-LogCmdLayerNorm(const miopenTensorDescriptor_t xDesc, const miopenLayerNormMode_t mode, bool is_fwd)
+LogCmdLayerNorm(const miopenTensorDescriptor_t xDesc, const miopenNormMode_t mode, bool is_fwd)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -76,7 +76,7 @@ LogCmdLayerNorm(const miopenTensorDescriptor_t xDesc, const miopenLayerNormMode_
 }
 
 extern "C" miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
-                                                 miopenLayerNormMode_t mode,
+                                                 miopenNormMode_t mode,
                                                  const miopenTensorDescriptor_t xDesc,
                                                  const void* x,
                                                  const miopenTensorDescriptor_t weightDesc,

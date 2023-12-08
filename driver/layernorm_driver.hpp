@@ -119,7 +119,7 @@ private:
 
     float eps;
     int dim;
-    miopenLayerNormMode_t mode;
+    miopenNormMode_t mode;
 };
 
 template <typename Tgpu, typename Tref>
@@ -161,7 +161,7 @@ int LayerNormDriver<Tgpu, Tref>::GetandSetData()
     SetTensorNd(rstdDesc, outer_len, data_type);
 
     eps  = static_cast<double>(inflags.GetValueDouble("eps"));
-    mode = miopenLayerNormMode_t(inflags.GetValueInt("mode"));
+    mode = miopenNormMode_t(inflags.GetValueInt("mode"));
 
     return 0;
 }
