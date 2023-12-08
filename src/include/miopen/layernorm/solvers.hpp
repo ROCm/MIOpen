@@ -27,7 +27,7 @@
 #pragma once
 
 #include <miopen/solver.hpp>
-#include <miopen/norm/problem_description.hpp>
+#include <miopen/layernorm/problem_description.hpp>
 
 #include <utility>
 
@@ -35,19 +35,19 @@ namespace miopen {
 
 namespace solver {
 
-namespace norm {
+namespace layernorm {
 
 using NormalizationSolver =
-    NonTunableSolverBase<ExecutionContext, miopen::norm::ProblemDescription>;
+    NonTunableSolverBase<ExecutionContext, miopen::layernorm::ProblemDescription>;
 
 struct LayernormForward final : NormalizationSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<LayernormForward>(); }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::norm::ProblemDescription& problem) const override;
+                      const miopen::layernorm::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::norm::ProblemDescription& problem) const override;
+                             const miopen::layernorm::ProblemDescription& problem) const override;
 };
 
 struct Layernorm2DCKForward final : NormalizationSolver
@@ -55,9 +55,9 @@ struct Layernorm2DCKForward final : NormalizationSolver
     const std::string& SolverDbId() const override { return GetSolverDbId<Layernorm2DCKForward>(); }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::norm::ProblemDescription& problem) const override;
+                      const miopen::layernorm::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::norm::ProblemDescription& problem) const override;
+                             const miopen::layernorm::ProblemDescription& problem) const override;
 };
 
 struct Layernorm4DCKForward final : NormalizationSolver
@@ -65,12 +65,12 @@ struct Layernorm4DCKForward final : NormalizationSolver
     const std::string& SolverDbId() const override { return GetSolverDbId<Layernorm4DCKForward>(); }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::norm::ProblemDescription& problem) const override;
+                      const miopen::layernorm::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::norm::ProblemDescription& problem) const override;
+                             const miopen::layernorm::ProblemDescription& problem) const override;
 };
 
-} // namespace norm
+} // namespace layernorm
 
 } // namespace solver
 

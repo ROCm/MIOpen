@@ -27,8 +27,8 @@
 #include <miopen/kernel_cache.hpp>
 #include <miopen/float_equal.hpp>
 #include <miopen/tensor.hpp>
-#include <miopen/norm/invoke_params.hpp>
-#include <miopen/norm/solvers.hpp>
+#include <miopen/layernorm/invoke_params.hpp>
+#include <miopen/layernorm/solvers.hpp>
 #include <miopen/find_solution.hpp>
 
 namespace miopen {
