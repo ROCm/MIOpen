@@ -65,7 +65,8 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
     int in_vec_size  = xDesc.GetLengths()[1];
     int out_vec_size = yDesc.GetLengths()[1];
 
-    GruWeightOffsets WeiBuf(in_vec_size, hidden_size, nLayers, biasMode * 2);
+    int bi = dirMode != 0u ? 2 : 1;
+    GruWeightOffsets WeiBuf(in_vec_size, hidden_size, nLayers, biasMode * 2, bi);
 
     ActivationDescriptor sigDesc  = {miopenActivationLOGISTIC, 1, 0, 1};
     ActivationDescriptor tanhDesc = {miopenActivationTANH, 1, 1, 1};
@@ -84,9 +85,7 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
 
     bacc_per_time[seq_len] = total_batch_size;
 
-    GRUOffsets RBuff(hidden_size, nLayers, total_batch_size);
-
-    int bi = dirMode != 0u ? 2 : 1;
+    GRUOffsets RBuff(hidden_size, nLayers, total_batch_size, bi);
 
     auto get_HxBuff_offset = [&bi, hidden_size, max_batch](int layer_id, int reverse = 0) {
         return (static_cast<size_t>(hidden_size) * max_batch) * (bi * layer_id + reverse);
@@ -102,7 +101,8 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
                                 &wDesc,
                                 reserveSpace,
                                 x,
-                                w](int layer_id, float beta_t = 1) {
+                                w, 
+                                bi](int layer_id, float beta_t = 1) {
         // n = Rx,Zx,Cx
         const int m = RBuff.batches_per_layer, n = WeiBuf.weight_stride,
                   k = layer_id > 0 ? hidden_size : in_vec_size;
@@ -211,12 +211,16 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
         float alpha1 = 0;
         beta_t       = 0;
 
+        //li * batch_n * hy_stride
+        //hid_shift + bs * wei_len + 2 * hy_h,
+        //hid_shift + hid_off + bs * hy_h);
+
         CopyTensor(handle,
                    desc,
                    reserveSpace,
                    desc,
                    reserveSpace,
-                   RBuff.layer_offset(layer_id) + RBuff.c_offset(),
+                   RBuff.layer_offset(layer_id) + RBuff.c_offset(rnn_direction::Forward),
                    RBuff.layer_offset(layer_id) + RBuff.hidden_offset());
 
         OpTensor(handle,
@@ -230,9 +234,9 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
                  &beta_t,
                  desc,
                  reserveSpace,
-                 RBuff.layer_offset(layer_id) + RBuff.c_offset(),
-                 RBuff.layer_offset(layer_id) + RBuff.c_offset(),
-                 RBuff.layer_offset(layer_id) + RBuff.c_offset());
+                 RBuff.layer_offset(layer_id) + RBuff.c_offset(rnn_direction::Forward),
+                 RBuff.layer_offset(layer_id) + RBuff.c_offset(rnn_direction::Forward),
+                 RBuff.layer_offset(layer_id) + RBuff.c_offset(rnn_direction::Forward));
     };
 
     auto call_gru_bias_add =
@@ -332,7 +336,7 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
         if(cur_time == 0 && hx == nullptr)
             return;
 
-        const int m = batches.at(cur_time), n = WeiBuf.weight_stride, k = hidden_size;
+        const int m = batches.at(cur_time), n = WeiBuf.uni_stride, k = hidden_size;
 
         const int lda = (cur_time == 0) ? hidden_size : RBuff.gemm_write_stride();
 
@@ -364,6 +368,8 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
         const auto ht_ptr = cur_time > 0 ? reserveSpace : hx;
 
         const auto result_offset = RBuff.gemm_write_offset(layer, bacc_per_time[cur_time]);
+        
+        std::cout << "call_gru_hidden_gemm " << "\n";
 
         const miopenStatus_t gemm_status = CallGemm(handle,
                                                     gemm_desc_hx,
@@ -404,7 +410,7 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
 
             auto r_offset     = RBuff.gemm_write_offset(layer_id, bacc_per_time[time_id]);
             auto r_act_offset = r_offset + RBuff.activated_offset();
-
+            std::cout << "call_gru_activate_rz " << "\n";
             sigDesc.Forward(handle,
                             &alpha,
                             // input tensor descriptor
@@ -426,12 +432,12 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
         [&RBuff, &bacc_per_time, &batches, &handle, &wDesc, reserveSpace, hidden_size](
             int layer_id, int time_id) {
             auto c_offset =
-                RBuff.gemm_write_offset(layer_id, bacc_per_time[time_id]) + RBuff.c_offset();
+                RBuff.gemm_write_offset(layer_id, bacc_per_time[time_id]) + RBuff.c_offset(rnn_direction::Forward);
             auto hidden_offset =
                 RBuff.gemm_write_offset(layer_id, bacc_per_time[time_id]) + RBuff.hidden_offset();
             auto hidden_act_offset = hidden_offset + RBuff.activated_offset();
             auto r_act_offset      = RBuff.gemm_write_offset(layer_id, bacc_per_time[time_id]) +
-                                RBuff.r_offset() + RBuff.activated_offset();
+                                RBuff.r_offset(rnn_direction::Forward) + RBuff.activated_offset();
 
             const std::vector<size_t> tensor_size{
                 1, static_cast<size_t>(batches.at(time_id)), static_cast<size_t>(hidden_size)};
@@ -496,9 +502,10 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
             auto dst_desc = miopen::TensorDescriptor(wDesc.GetType(), tensor_size, tensor_stride);
 
             auto c_offset =
-                RBuff.gemm_write_offset(layer_id, bacc_per_time[time_id]) + RBuff.c_offset();
+                RBuff.gemm_write_offset(layer_id, bacc_per_time[time_id]) + RBuff.c_offset(rnn_direction::Forward);
             auto c_act_offset = c_offset + RBuff.activated_offset();
-
+            
+            std::cout << "call_gru_activate_c_gate " << "\n";
             tanhDesc.Forward(handle,
                              &alpha,
                              // input tensor descriptor
@@ -531,9 +538,9 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
             auto hidden_offset =
                 RBuff.gemm_write_offset(layer_id, bacc_per_time[time_id]) + RBuff.hidden_offset();
             auto zact_offset = RBuff.gemm_write_offset(layer_id, bacc_per_time[time_id]) +
-                               RBuff.z_offset() + RBuff.activated_offset();
+                               RBuff.z_offset(rnn_direction::Forward) + RBuff.activated_offset();
             auto cact_offset = RBuff.gemm_write_offset(layer_id, bacc_per_time[time_id]) +
-                               RBuff.c_offset() + RBuff.activated_offset();
+                               RBuff.c_offset(rnn_direction::Forward) + RBuff.activated_offset();
 
             const std::vector<size_t> hidden_tensor_size{
                 1, static_cast<size_t>(batches.at(time_id)), static_cast<size_t>(hidden_size)};
@@ -3252,8 +3259,8 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
         return;
     }
 
-    /*
-        if((rnnMode == miopenGRU) && !use_dropout && nLayers > 0 && dirMode == miopenRNNunidirection
+        if((rnnMode == miopenGRU) && !use_dropout && nLayers > 0 
+        //&& dirMode == miopenRNNunidirection
        && inputMode != miopenRNNskip && !(miopen::IsDisabled(ENV(MIOPEN_RNNFWD_exp))))
         {
             RNNForwardTrainingGRU(
@@ -3268,7 +3275,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
             }
             return;
         }
-    */
+    
 
 #endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
 

@@ -142,18 +142,20 @@ private:
 
 struct GruWeightOffsets : public RNNWeightOffsets
 {
-    GruWeightOffsets(int input_vector_sz, int hidden_vec_sz, int layers_cnt, int bias_cnt)
-        : weight_stride(matrixes::Count * hidden_vec_sz),
+    GruWeightOffsets(int input_vector_sz, int hidden_vec_sz, int layers_cnt, int bias_cnt, int bidirectional_scale)
+        : weight_stride(matrixes::Count * hidden_vec_sz * bidirectional_scale),
+          uni_stride(matrixes::Count * hidden_vec_sz),
           in_vec_sz(input_vector_sz),
           h_vec_sz(hidden_vec_sz),
           num_layers(layers_cnt),
-          bias_count(bias_cnt)
+          bias_count(bias_cnt),
+          bi_scale(bidirectional_scale)
     {
     }
 
     int input_offset(int layer)
     {
-        return layer == 0 ? 0 : first_layer_offset() + h_vec_sz * 2 * weight_stride * (layer - 1);
+        return layer == 0 ? 0 : first_layer_offset() + (h_vec_sz * bi_scale + h_vec_sz) * weight_stride * (layer - 1);
     }
 
     int hidden_offset(int layer)
@@ -169,12 +171,13 @@ struct GruWeightOffsets : public RNNWeightOffsets
     }
     int bias_off(int layer_id) const { return bias_off() + layer_id * bias_count * weight_stride; }
     int weight_stride;
+    int uni_stride;
 
 private:
     const int in_vec_sz, h_vec_sz;
     const int num_layers;
-    [[maybe_unused]] const int bi_scale = 0;
     const int bias_count                = 0;
+    [[maybe_unused]] const int bi_scale = 1;
     enum matrixes
     {
         Z     = 0,
@@ -203,8 +206,8 @@ struct RNNOffsets
 struct GRUOffsets : public RNNOffsets
 {
 public:
-    GRUOffsets(int h_vec_size, int layers_cnt, int total_batch_size)
-        : hidden_size(h_vec_size), batches_per_layer(total_batch_size), num_layers(layers_cnt)
+    GRUOffsets(int h_vec_size, int layers_cnt, int total_batch_size, int bidirect_scale)
+        : hidden_size(h_vec_size), batches_per_layer(total_batch_size), num_layers(layers_cnt), bi_scale(bidirect_scale)
     {
     }
 
@@ -212,7 +215,7 @@ public:
 
     size_t layer_stride() const { return gemm_write_stride() * batches_per_layer; }
 
-    int gemm_write_size() const { return hidden_size; }
+    int gemm_write_size() const { return hidden_size * bi_scale; }
 
     size_t gemm_write_stride() const { return (size_t)save_point::Count * gemm_write_size(); }
 
@@ -228,12 +231,18 @@ private:
 
 public:
     const int batches_per_layer;
+    // Layout:
+    //   r
+    //   z
+    //   c
+    //   r_reverse
+    //   z_reverse
+    //   c_reverse
+    int r_offset(int direction) const { return save_point::R * hidden_size + save_point::Ht * hidden_size * direction; }
 
-    int r_offset() const { return save_point::R * gemm_write_size(); }
+    int z_offset(int direction) const { return save_point::Z * hidden_size + save_point::Ht * hidden_size * direction; }
 
-    int z_offset() const { return save_point::Z * gemm_write_size(); }
-
-    int c_offset() const { return save_point::C * gemm_write_size(); }
+    int c_offset(int direction) const { return save_point::C * hidden_size + save_point::Ht * hidden_size * direction; }
 
     int activated_offset() const { return layer_stride() * num_layers; }
 
@@ -241,6 +250,7 @@ public:
 
 private:
     int num_layers;
+    int bi_scale = 1;
 
     enum save_point
     {
