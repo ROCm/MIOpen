@@ -349,6 +349,9 @@ public:
 
     void AssignBuffer(const Handle& handle, Data_t workSpace)
     {
+        // TODO(amber): remove
+        void* p = reinterpret_cast<char*>(workSpace) + buf_offset;
+        MIOPEN_LOG_I("buffer start = " << p << ", tensor_sz = " << tensor_sz);
         buf_handle = handle.CreateSubBuffer(workSpace, buf_offset, tensor_sz);
         assert(buf_handle.get());
     }
@@ -357,6 +360,8 @@ public:
 
     void ConvertFrom(const Handle& handle, const std::vector<Kernel>& kernels, ConstData_t in_ptr)
     {
+        // TODO(amber): remove
+        MIOPEN_LOG_I("kernel = " << kernels[index].name);
         Run(handle, kernels, buf_handle.get(), in_ptr);
     }
 
@@ -382,6 +387,14 @@ private:
 
         kern_args[0] = out_ptr;
         kern_args[1] = in_ptr;
+        MIOPEN_LOG_I("out_ptr = " << out_ptr);
+        MIOPEN_LOG_I("in_ptr = " << in_ptr);
+
+        // TODO(amber): remove
+        for (size_t i = 2; i < kern_args.size(); ++i) {
+          uint32_t a = *reinterpret_cast<uint32_t*>(kern_args[i].buffer.data());
+          MIOPEN_LOG_I("kern_args " << i << " = " << a);
+        }
 
         handle.Run(kernels[index])(kern_args);
         if(handle.IsProfilingEnabled())
@@ -518,71 +531,85 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
         return {miopenStatusInvalidValue};
     }
 
-    result.invoker_factory = [ck_args        = std::move(ck_args),
-                              sh_conv_ptr    = std::shared_ptr{std::move(*ptr_iter)},
-                              input1_tr_inst = std::move(_input1_tr_inst),
-                              input2_tr_inst = std::move(_input2_tr_inst),
-                              output_tr_inst = std::move(_output_tr_inst)](
-                                 const std::vector<Kernel>& kernels) mutable {
-        return [kernels,
-                ck_args        = std::move(ck_args),
-                sh_conv_ptr    = std::move(sh_conv_ptr),
-                input1_tr_inst = std::move(input1_tr_inst),
-                input2_tr_inst = std::move(input2_tr_inst),
-                output_tr_inst = std::move(output_tr_inst)](
-                   const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
-            handle.ResetKernelTime();
-
-            const auto& data_ctx = primitive_parameters.CastTo<CastType>();
-
-            // TODO(amber): remove
-            auto* wp = reinterpret_cast<char*>(data_ctx.workSpace);
-            MIOPEN_LOG_I("Workspace beg ptr = " << wp
-                                                << " end ptr = " << (wp + data_ctx.workSpaceSize));
-            if(!data_ctx.workSpace)
-            {
-                MIOPEN_THROW(miopenStatusInvalidValue, "workspace pointer is null");
-            }
-
-            input1_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
-            input2_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
-            output_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
-
-            float tot_time = 0;
-
-            input1_tr_inst.ConvertFrom(handle, kernels, data_ctx.tensors);
-            tot_time += handle.GetKernelTime();
-
-            input2_tr_inst.ConvertFrom(handle, kernels, data_ctx.tensors);
-            tot_time += handle.GetKernelTime();
-
-            std::array<internal::TransposeInstanceTagged*, 3> tr_ptrs = {
-                &input1_tr_inst, &input2_tr_inst, &output_tr_inst};
-
-            // sort by tag in order: Input, Weights, Output
-            std::sort(tr_ptrs.begin(), tr_ptrs.end(), [](const auto& left, const auto& right) {
-                return left->GetConvOperandTagAsInt() < right->GetConvOperandTagAsInt();
-            });
-
-            auto invoker_ptr  = sh_conv_ptr->MakeInvokerPointer();
-            auto argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
-                                                   tr_ptrs[0]->GetBufferPtr(),
-                                                   tr_ptrs[1]->GetBufferPtr(),
-                                                   tr_ptrs[2]->GetBufferPtr());
-
-            tot_time += invoker_ptr->Run(argument_ptr.get(),
-                                         {handle.GetStream(), handle.IsProfilingEnabled()});
-
-            output_tr_inst.ConvertTo(handle, kernels, data_ctx.tensors);
-            tot_time += handle.GetKernelTime();
-
-            if(handle.IsProfilingEnabled())
-            {
+    result.invoker_factory =
+        [ck_args        = std::move(ck_args),
+         sh_conv_ptr    = std::shared_ptr{std::move(*ptr_iter)},
+         input1_tr_inst = std::move(_input1_tr_inst),
+         input2_tr_inst = std::move(_input2_tr_inst),
+         output_tr_inst = std::move(_output_tr_inst)](const std::vector<Kernel>& kernels) mutable {
+            return [kernels,
+                    ck_args        = std::move(ck_args),
+                    sh_conv_ptr    = std::move(sh_conv_ptr),
+                    input1_tr_inst = std::move(input1_tr_inst),
+                    input2_tr_inst = std::move(input2_tr_inst),
+                    output_tr_inst = std::move(output_tr_inst)](
+                       const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
                 handle.ResetKernelTime();
-                handle.AccumKernelTime(tot_time);
-            }
+
+                const auto& data_ctx = primitive_parameters.CastTo<CastType>();
+
+                // TODO(amber): remove
+                void* wb = data_ctx.workSpace;
+                void* we = reinterpret_cast<char*>(data_ctx.workSpace) + data_ctx.workSpaceSize;
+                MIOPEN_LOG_I("Workspace beg ptr = " << wb << " end ptr = " <<  we);
+                if (!data_ctx.workSpace) {
+                  MIOPEN_THROW(miopenStatusInvalidValue, "workspace pointer is null");
+                }
+
+                input1_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+                input2_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+                output_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+
+                float tot_time = 0;
+
+                // TODO(amber): remove
+                handle.Finish();
+                MIOPEN_LOG_I("calling ConvertFrom");
+                input1_tr_inst.ConvertFrom(handle, kernels, data_ctx.tensors);
+                tot_time += handle.GetKernelTime();
+
+                // TODO(amber): remove
+                handle.Finish();
+                MIOPEN_LOG_I("calling 2nd ConvertFrom");
+                input2_tr_inst.ConvertFrom(handle, kernels, data_ctx.tensors);
+                tot_time += handle.GetKernelTime();
+
+                std::array<internal::TransposeInstanceTagged*, 3> tr_ptrs = {
+                    &input1_tr_inst, &input2_tr_inst, &output_tr_inst};
+
+                // sort by tag in order: Input, Weights, Output
+                std::sort(tr_ptrs.begin(), tr_ptrs.end(), [](const auto& left, const auto& right) {
+                    return left->GetConvOperandTagAsInt() < right->GetConvOperandTagAsInt();
+                });
+
+                auto invoker_ptr  = sh_conv_ptr->MakeInvokerPointer();
+                auto argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                       tr_ptrs[0]->GetBufferPtr(),
+                                                       tr_ptrs[1]->GetBufferPtr(),
+                                                       tr_ptrs[2]->GetBufferPtr());
+                // TODO(amber): remove
+                handle.Finish();
+                MIOPEN_LOG_I("calling CK convolution");
+                tot_time += invoker_ptr->Run(argument_ptr.get(),
+                                             {handle.GetStream(), handle.IsProfilingEnabled()});
+
+                // TODO(amber): remove
+                handle.Finish();
+                MIOPEN_LOG_I("calling ConvertTo");
+                output_tr_inst.ConvertTo(handle, kernels, data_ctx.tensors);
+                tot_time += handle.GetKernelTime();
+
+                // TODO(amber): remove
+                handle.Finish();
+                MIOPEN_LOG_I("done calling ConvertTo");
+
+                if(handle.IsProfilingEnabled())
+                {
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(tot_time);
+                }
+            };
         };
-    };
     return result;
 }
 
