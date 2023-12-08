@@ -128,7 +128,7 @@ set( MIOpen_Source
     lock_file.cpp
     logger.cpp
     lrn_api.cpp
-    norm/problem_description.cpp
+    layernorm/problem_description.cpp
     op_args.cpp
     operator.cpp
     performance_config.cpp
@@ -240,9 +240,9 @@ set( MIOpen_Source
     solver/gemm.cpp
     solver/gemm_bwd.cpp
     solver/gemm_wrw.cpp
-    solver/norm/forward_layernorm.cpp
-    solver/norm/forward_layernorm2d_ck.cpp
-    solver/norm/forward_layernorm4d_ck.cpp
+    solver/layernorm/forward_layernorm.cpp
+    solver/layernorm/forward_layernorm2d_ck.cpp
+    solver/layernorm/forward_layernorm4d_ck.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp

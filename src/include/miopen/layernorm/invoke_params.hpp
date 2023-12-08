@@ -30,7 +30,7 @@
 #include <miopen/tensor.hpp>
 
 namespace miopen {
-namespace norm {
+namespace layernorm {
 
 struct InvokeParams : public miopen::InvokeParams
 {
@@ -52,6 +52,6 @@ struct InvokeParams : public miopen::InvokeParams
     Data_t GetWorkspace() const { return nullptr; }
 };
 
-} // namespace norm
+} // namespace layernorm
 
 } // namespace miopen
