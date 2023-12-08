@@ -30,7 +30,7 @@
 #include <miopen/tensor_ops.hpp>
 
 static void LogCmdGroupNorm(const miopenTensorDescriptor_t xDesc,
-                            const miopenLayerNormMode_t mode,
+                            const miopenNormMode_t mode,
                             int32_t num_groups,
                             bool is_fwd)
 {
@@ -84,7 +84,7 @@ static void LogCmdGroupNorm(const miopenTensorDescriptor_t xDesc,
 }
 
 extern "C" miopenStatus_t miopenGroupNormForward(miopenHandle_t handle,
-                                                 miopenLayerNormMode_t mode,
+                                                 miopenNormMode_t mode,
                                                  const miopenTensorDescriptor_t xDesc,
                                                  const void* x,
                                                  const miopenTensorDescriptor_t weightDesc,

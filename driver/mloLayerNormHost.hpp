@@ -40,7 +40,7 @@ int32_t mloLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
                                    Tcheck* rstdhost,
                                    float eps,
                                    int32_t normalized_dim,
-                                   miopenLayerNormMode_t mode)
+                                   miopenNormMode_t mode)
 {
     auto dims         = miopen::deref(inputDesc).GetLengths();
     size_t outer_size = 1;

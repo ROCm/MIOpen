@@ -40,7 +40,7 @@ int32_t mloGroupNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
                                    Tcheck* rstdhost,
                                    int32_t num_groups,
                                    float eps,
-                                   miopenLayerNormMode_t mode)
+                                   miopenNormMode_t mode)
 {
     auto dims         = miopen::deref(inputDesc).GetLengths();
 

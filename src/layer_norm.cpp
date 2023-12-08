@@ -46,7 +46,7 @@ miopenStatus_t LayerNormForward(Handle& handle,
                                 Data_t mean,
                                 const TensorDescriptor& rstdDesc,
                                 Data_t rstd,
-                                miopenLayerNormMode_t mode,
+                                miopenNormMode_t mode,
                                 float epsilon,
                                 int32_t normalized_dim)
 {

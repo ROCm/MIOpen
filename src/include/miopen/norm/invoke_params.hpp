@@ -46,7 +46,7 @@ struct InvokeParams : public miopen::InvokeParams
     Data_t rstd                = nullptr;
     float epsilon              = 0;
     int32_t normalized_dim     = 0;
-    miopenLayerNormMode_t mode = MIOPEN_ELEMENTWISE_AFFINE;
+    miopenNormMode_t mode      = MIOPEN_ELEMENTWISE_AFFINE;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }

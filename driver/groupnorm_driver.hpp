@@ -119,7 +119,7 @@ private:
 
     int num_groups;
     float eps;
-    miopenLayerNormMode_t mode;
+    miopenNormMode_t mode;
 };
 
 template <typename Tgpu, typename Tref>
@@ -150,7 +150,7 @@ int GroupNormDriver<Tgpu, Tref>::GetandSetData()
 
     num_groups = static_cast<int>(inflags.GetValueDouble("num_groups"));
     eps        = static_cast<double>(inflags.GetValueDouble("eps"));
-    mode       = miopenLayerNormMode_t(inflags.GetValueInt("mode"));
+    mode       = miopenNormMode_t(inflags.GetValueInt("mode"));
 
     return 0;
 }

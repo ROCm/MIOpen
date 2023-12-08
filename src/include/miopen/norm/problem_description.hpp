@@ -41,7 +41,7 @@ namespace norm {
 
 struct ProblemDescription : ProblemDescriptionBase
 {
-    ProblemDescription(miopenLayerNormMode_t mode_,
+    ProblemDescription(miopenNormMode_t mode_,
                        const TensorDescriptor& xDesc_,
                        const TensorDescriptor& weightDesc_,
                        const TensorDescriptor& biasDesc_,
@@ -62,7 +62,7 @@ struct ProblemDescription : ProblemDescriptionBase
     {
     }
 
-    miopenLayerNormMode_t GetMode() const { return mode; }
+    miopenNormMode_t GetMode() const { return mode; }
     const TensorDescriptor& GetXDesc() const { return xDesc; }
     const TensorDescriptor& GetWeightDesc() const { return weightDesc; }
     const TensorDescriptor& GetBiasDesc() const { return biasDesc; }
@@ -129,7 +129,7 @@ struct ProblemDescription : ProblemDescriptionBase
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
-    miopenLayerNormMode_t mode;
+    miopenNormMode_t mode;
     TensorDescriptor xDesc;
     TensorDescriptor weightDesc;
     TensorDescriptor biasDesc;
