@@ -15,7 +15,7 @@ subtrees:
   - file: DebugAndLogging.rst
   - file: MI200AlternateImplementation.rst
   - file: MIOpen_Porting_Guide.rst
-  - file: citation.rst
+  
 - caption: Quick-start
   entries:
   - file: reference/install.rst
