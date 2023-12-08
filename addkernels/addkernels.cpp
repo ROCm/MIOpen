@@ -173,14 +173,20 @@ void Process(const std::string& sourcePath,
         try
         {
             if(is_asm)
+            {
                 inliner.Process(
                     sourceFile, inlinerTemp, root, sourcePath, ".include", false, recurse);
+            }
             else if(is_cl || is_header)
+            {
                 inliner.Process(
                     sourceFile, inlinerTemp, root, sourcePath, "#include", true, recurse);
+            }
             else if(is_hip)
+            {
                 inliner.Process(
                     sourceFile, inlinerTemp, root, sourcePath, "<#not_include>", true, false);
+            }
         }
         catch(const InlineException& ex)
         {
@@ -261,19 +267,33 @@ int main(int argsn, char** args)
             target = &targetFile;
         }
         else if(arg == "l" || arg == "line-size")
+        {
             lineSize = std::stol(args[++i]);
+        }
         else if(arg == "b" || arg == "buffer")
+        {
             bufferSize = std::stol(args[++i]);
+        }
         else if(arg == "g" || arg == "guard")
+        {
             guard = args[++i];
+        }
         else if(arg == "n" || arg == "no-recurse")
+        {
             recurse = false;
+        }
         else if(arg == "m" || arg == "mark-includes")
+        {
             mark_includes = true;
+        }
         else if(arg == "e" || arg == "extern")
+        {
             as_extern = true;
+        }
         else
+        {
             UnknownArgument(arg);
+        }
     }
 
     WrongUsage("source key is required");

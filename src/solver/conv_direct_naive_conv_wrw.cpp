@@ -29,16 +29,19 @@
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/env.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_WRW)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_WRW)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 bool ConvDirectNaiveConvWrw::IsApplicable(const ExecutionContext& ctx,
                                           const ProblemDescription& problem) const
 {
     if(!miopen::debug::AlwaysEnableConvDirectNaive &&
-       miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_WRW{}))
+       miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_WRW)))
         return false;
 
     if(!ConvDirectNaiveConvIsApplicableByKernelType(ctx, problem))
@@ -51,7 +54,7 @@ bool ConvDirectNaiveConvWrw::IsApplicable(const ExecutionContext& ctx,
          problem.IsBfp8()))
         return false;
 
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
     if(problem.IsTensorsCasted())
     {
@@ -132,9 +135,10 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ExecutionContext& ctx,
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                decltype(auto) data_ctx = primitive_parameters.CastTo<conv::WrWInvokeParams>();
-                const auto& tensors     = data_ctx.tensors;
-                float elapsed           = 0;
+                decltype(auto) data_ctx =
+                    primitive_parameters.CastTo<miopen::conv::WrWInvokeParams>();
+                const auto& tensors = data_ctx.tensors;
+                float elapsed       = 0;
 
                 auto in_strides = conv_internal::MakeStrideArray<5>(conv_internal::SplitStrideCtoGC(
                     group, tensors.xDesc.GetStrides(), G_stride_idx));
@@ -214,9 +218,10 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ExecutionContext& ctx,
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                decltype(auto) data_ctx = primitive_parameters.CastTo<conv::WrWInvokeParams>();
-                const auto& tensors     = data_ctx.tensors;
-                float elapsed           = 0;
+                decltype(auto) data_ctx =
+                    primitive_parameters.CastTo<miopen::conv::WrWInvokeParams>();
+                const auto& tensors = data_ctx.tensors;
+                float elapsed       = 0;
 
                 auto in_strides = conv_internal::MakeStrideArray<6>(conv_internal::SplitStrideCtoGC(
                     group, tensors.xDesc.GetStrides(), G_stride_idx));
@@ -270,5 +275,6 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ExecutionContext& ctx,
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

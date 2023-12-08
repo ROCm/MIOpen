@@ -226,7 +226,7 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     std::string conv_compiler_options;
 
 private:
-    ProblemDescription GetConvProblem();
+    conv::ProblemDescription GetConvProblem();
 };
 
 namespace fusion {
@@ -252,6 +252,12 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
                                    const ActivationDescriptor& activationDesc,
                                    const TensorDescriptor& yDesc,
                                    Data_t y);
+
+solver::ConvSolution MakeFusedSolution(const struct FusionContext& ctx,
+                                       solver::Id id,
+                                       const std::optional<std::string>& perf_cfg_override,
+                                       const struct FusionDescription& problem,
+                                       const AnyInvokeParams& invoke_params);
 
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenFusionOpDescriptor, miopen::FusionOpDescriptor);

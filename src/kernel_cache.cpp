@@ -48,7 +48,7 @@
 #include <iostream>
 #include <iterator>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEVICE_ARCH)
 
 namespace miopen {
 
@@ -117,15 +117,17 @@ Kernel KernelCache::AddKernel(const Handle& h,
     else
     {
         if(!is_kernel_miopengemm_str) // default value
+        {
             is_kernel_miopengemm_str = algorithm.find("ImplicitGEMM") == std::string::npos &&
                                        algorithm.find("GEMM") != std::string::npos;
+        }
         program = h.LoadProgram(program_name, params, is_kernel_miopengemm_str, kernel_src);
         program_map[std::make_pair(program_name, params)] = program;
     }
 
     Kernel kernel{};
-    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
-    if(arch != nullptr && strlen(arch) > 0)
+    const auto& arch = miopen::GetStringEnv(ENV(MIOPEN_DEVICE_ARCH));
+    if(!arch.empty())
     {
         kernel = Kernel{program, kernel_name};
     }

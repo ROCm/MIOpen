@@ -48,10 +48,10 @@
 #include <unordered_map>
 #include <random>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED)
 
 namespace miopen {
 
@@ -63,26 +63,9 @@ namespace solver {
 struct ConvSolution;
 } // namespace solver
 
-struct AnyInvokeParams;
-struct ExecutionContext;
 struct ExecutionContext;
 struct Handle;
 struct TensorDescriptor;
-struct ProblemDescription;
-struct ConvFwdTensors;
-struct ConvWrwTensors;
-
-using ExtraKernelArgs = std::tuple<int /*N*/,
-                                   int /*C*/,
-                                   int /*H*/,
-                                   int /*W*/,
-                                   int /*K*/,
-                                   int /*n_groups*/,
-                                   int /*out_H*/,
-                                   int /*out_W*/>;
-
-struct ConvFwdTensors;
-struct ConvWrwTensors;
 
 struct ConvolutionAttribute
 {
@@ -93,8 +76,8 @@ struct ConvolutionAttribute
 
         inline int Get() const
         {
-            if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL{}))
-                return miopen::Value(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL{});
+            if(!miopen::IsUnset(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)))
+                return miopen::Value(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL));
             return value;
         }
 
@@ -122,17 +105,17 @@ struct ConvolutionAttribute
 
         inline miopenF8RoundingMode_t Get() const
         {
-            if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE{}))
+            if(!miopen::IsUnset(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE)))
                 return static_cast<miopenF8RoundingMode_t>(
-                    miopen::Value(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE{}));
+                    miopen::Value(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE)));
             return rounding_mode;
         }
 
         inline uint32_t GetSeed() const
         {
             // assert(rounding_mode == miopenF8RoundingModeStochastic);
-            if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED{}))
-                return miopen::Value(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED{});
+            if(!miopen::IsUnset(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED)))
+                return miopen::Value(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED));
             return seed;
         }
 
@@ -147,8 +130,9 @@ struct ConvolutionAttribute
     public:
         inline int Get() const
         {
-            if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
-                return miopen::Value(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{});
+            if(!miopen::IsUnset(ENV(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)))
+                return static_cast<int>(
+                    miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)));
             return value;
         }
         operator bool() const
@@ -210,7 +194,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                             miopenDataType_t yType = miopenFloat) const;
 
     bool IsWinograd3x3SupportedAndFast(const miopen::ExecutionContext& ctx,
-                                       const ProblemDescription& problem) const;
+                                       const conv::ProblemDescription& problem) const;
 
     std::size_t GetWorkSpaceSize(ExecutionContext ctx,
                                  const conv::ProblemDescription& problem) const;
@@ -229,31 +213,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               std::size_t workSpaceSize,
                               bool exhaustiveSearch) const;
 
-    std::vector<miopen::solver::ConvSolution>
-    FindWinogradSolutions(const ExecutionContext& ctx,
-                          const ProblemDescription& problem,
-                          const AnyInvokeParams& invoke_ctx) const;
-
-    std::vector<miopen::solver::ConvSolution>
-    FindWinogradSolutions(const ExecutionContext& ctx, const AnyInvokeParams& invoke_ctx) const;
-
-    std::vector<miopen::solver::ConvSolution>
-    FindDataGemmSolutions(const ExecutionContext& ctx, const AnyInvokeParams& invoke_ctx) const;
-
-    std::vector<miopen::solver::ConvSolution>
-    FindDataImplicitGemmSolutions(Handle& handle,
-                                  const TensorDescriptor& xDesc,
-                                  const TensorDescriptor& wDesc,
-                                  const TensorDescriptor& yDesc,
-                                  bool exhaustiveSearch,
-                                  bool isForward,
-                                  const AnyInvokeParams& invoke_ctx) const;
-
-    std::vector<miopen::solver::ConvSolution>
-    FindFftSolutions(const ExecutionContext& ctx,
-                     const ProblemDescription& problem,
-                     const AnyInvokeParams& invoke_ctx) const;
-
     void ConvolutionForward(Handle& handle,
                             const void* alpha,
                             const TensorDescriptor& xDesc,
@@ -267,10 +226,10 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                             Data_t workSpace,
                             std::size_t workSpaceSize) const;
 
-    std::size_t GetSolutionCount(const ExecutionContext& exec_ctx,
+    std::size_t GetSolutionCount(const ExecutionContext& ctx,
                                  const conv::ProblemDescription& problem) const;
 
-    std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& exec_ctx,
+    std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& ctx,
                                                    const conv::ProblemDescription& problem,
                                                    size_t maxSolutionCount,
                                                    bool* fallbackPathTaken) const;
@@ -400,7 +359,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                                            const conv::ProblemDescription& problem,
                                                            size_t maxSolutionCount) const;
 
-    std::size_t GetSolutionCountFallback(const ExecutionContext& exec_ctx,
+    std::size_t GetSolutionCountFallback(const ExecutionContext& ctx,
                                          const conv::ProblemDescription& problem) const;
 
     friend void to_json(nlohmann::json& json, const ConvolutionDescriptor& conv);
@@ -430,6 +389,7 @@ void DumpTensorToFileFromDevice(const miopen::Handle& handle,
                                 const std::string& filename);
 
 } // namespace miopen
+
 MIOPEN_DEFINE_OBJECT(miopenConvolutionDescriptor, miopen::ConvolutionDescriptor);
 
 #endif // GUARD_MIOPEN_CONVOLUTION_HPP_

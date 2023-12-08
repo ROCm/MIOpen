@@ -27,10 +27,10 @@
 #pragma once
 
 #include <miopen/conv_solution.hpp>
+#include <miopen/errors.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/problem_description_base.hpp>
-#include <miopen/errors.hpp>
-#include <miopen/problem_description.hpp>
+#include <miopen/search_options.hpp>
 
 #include <memory>
 #include <type_traits>
@@ -59,7 +59,8 @@ public:
     Find(const ExecutionContext& ctx,
          const ProblemDescriptionBase& problem,
          const AnyInvokeParams& invoke_ctx,
-         const PrimitiveFindParameters& parameters) const
+         const PrimitiveFindParameters& parameters,
+         const std::optional<FindOptions>& find_options) const
     {
         if(!IsEnabled(ctx, problem, parameters))
         {
@@ -70,7 +71,7 @@ public:
         try
         {
             MIOPEN_LOG_I2("Starting find for " << GetAlgorithmName(problem).ToString());
-            return FindImpl(ctx, problem, invoke_ctx, parameters);
+            return FindImpl(ctx, problem, invoke_ctx, parameters, find_options);
         }
         catch(Exception& ex)
         {
@@ -87,7 +88,8 @@ protected:
     FindImpl(const ExecutionContext& ctx,
              const ProblemDescriptionBase& problem,
              const AnyInvokeParams& invoke_ctx,
-             const PrimitiveFindParameters& parameters) const = 0;
+             const PrimitiveFindParameters& parameters,
+             const std::optional<FindOptions>& options) const = 0;
 };
 
 template <class ProblemDescription, class FindParameters>
@@ -106,12 +108,14 @@ public:
     FindImpl(const ExecutionContext& ctx,
              const ProblemDescriptionBase& problem,
              const AnyInvokeParams& invoke_ctx,
-             const PrimitiveFindParameters& parameters) const final
+             const PrimitiveFindParameters& parameters,
+             const std::optional<FindOptions>& options) const final
     {
         return FindImpl(ctx,
                         static_cast<const ProblemDescription&>(problem),
                         invoke_ctx,
-                        static_cast<const FindParameters&>(parameters));
+                        static_cast<const FindParameters&>(parameters),
+                        options);
     }
 
     [[nodiscard]] bool IsEnabled(const ExecutionContext& ctx,
@@ -131,21 +135,29 @@ protected:
     FindImpl(const ExecutionContext& ctx,
              const ProblemDescription& problem,
              const AnyInvokeParams& invoke_ctx,
-             const FindParameters& parameters) const = 0;
+             const FindParameters& parameters,
+             const std::optional<FindOptions>& options) const = 0;
 
     [[nodiscard]] virtual bool IsEnabled(const ExecutionContext& ctx,
                                          const ProblemDescription& problem,
                                          const FindParameters& parameters) const = 0;
 };
 
+namespace conv {
+
 const std::vector<std::unique_ptr<ISolversFinder>>& GetConvSolverFinders();
+
+} // namespace conv
 
 void FindCore(const AnyInvokeParams& invoke_ctx,
               DbRecord& record,
               const ExecutionContext& ctx,
               const ProblemDescriptionBase& problem,
               const PrimitiveFindParameters& parameters,
-              const std::vector<std::unique_ptr<ISolversFinder>>& finders);
+              const std::vector<std::unique_ptr<ISolversFinder>>& finders,
+              const std::optional<FindOptions>& options = std::nullopt);
+
+namespace conv {
 
 bool IsAlgorithmDisabled(miopenConvAlgorithm_t algo);
 
@@ -155,4 +167,5 @@ struct ConvFindParameters : PrimitiveFindParameters
     ConvFindParameters(bool use_winograd_only_) : use_winograd_only(use_winograd_only_) {}
 };
 
+} // namespace conv
 } // namespace miopen

@@ -40,11 +40,14 @@
 #include <cassert>
 #include <tuple>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 namespace {
 // clang-format off
@@ -168,7 +171,7 @@ bool ConvAsm3x3U::IsValidPerformanceConfig(const ExecutionContext&,
 
 bool ConvAsm3x3U::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U)))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
@@ -180,7 +183,7 @@ bool ConvAsm3x3U::IsApplicable(const ExecutionContext& ctx, const ProblemDescrip
         return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
-    if(!(problem.direction.IsForward() || problem.direction.IsBackwardData()))
+    if(!(problem.IsDirectionForward() || problem.IsDirectionBackwardData()))
         return false;
     if(!ctx.rmv.IsV2orV3())
         return false;
@@ -251,24 +254,19 @@ ConvSolution ConvAsm3x3U::GetSolution(const ExecutionContext& ctx,
 
     PerformanceConfigConvAsm3x3U fromEnv;
     {
-        std::string s;
-        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS{});
-        if(p_asciz != nullptr)
+        const auto& s = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS));
+        if(!s.empty()) // else nothing to parse.
         {
-            s = std::string(p_asciz);
-            if(!s.empty()) // else nothing to parse.
+            if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(problem))
             {
-                if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(problem))
-                {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS: "
-                                 "Bad format or invalid for the problem config: "
-                                 << s);
-                }
-                else
-                {
-                    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
-                    pcfg = &fromEnv;
-                }
+                MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS: "
+                             "Bad format or invalid for the problem config: "
+                             << s);
+            }
+            else
+            {
+                MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
+                pcfg = &fromEnv;
             }
         }
     }
@@ -285,8 +283,8 @@ ConvSolution ConvAsm3x3U::GetSolution(const ExecutionContext& ctx,
         {"img_height", problem.GetInHeight_()},
         {"input_channels", problem.GetInChannels_()},
         {"output_channels", problem.GetOutChannels_()},
-        {"weights_layout", problem.direction.IsForward() ? 0 : 1},
-        {"reverse_weights", problem.direction.IsForward() ? 0 : 1},
+        {"weights_layout", problem.IsDirectionForward() ? 0 : 1},
+        {"reverse_weights", problem.IsDirectionForward() ? 0 : 1},
         {"ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4},
         {"limit_wave_cnt", pcfg->limit_wave_cnt},
         {"filters_per_wave", pcfg->filters_per_wave},
@@ -315,7 +313,7 @@ ConvSolution ConvAsm3x3U::GetSolution(const ExecutionContext& ctx,
     construction_params.kernel_name = "miopenGcnAsmConv3x3U";
 
     result.construction_params.push_back(construction_params);
-    result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
+    result.invoker_factory = &miopen::conv::MakeGenericXWYPadInvoker;
 
     return result;
 }
@@ -327,5 +325,6 @@ PerformanceConfigConvAsm3x3U ConvAsm3x3U::Search(const ExecutionContext& ctx,
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

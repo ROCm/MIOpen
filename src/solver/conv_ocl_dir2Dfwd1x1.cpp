@@ -33,10 +33,13 @@
 
 #define WORKAROUND_SWDEV_271887 1
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 bool ConvOclDirectFwd1x1::IsApplicable(const ExecutionContext& ctx,
                                        const ProblemDescription& problem) const
@@ -44,18 +47,20 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ExecutionContext& ctx,
 #if WORKAROUND_SWDEV_271887
     if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx10") ||
        StartsWith(ctx.GetStream().GetDeviceName(), "gfx11"))
-        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1{}))
+    {
+        if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1)))
             return false;
+    }
 #endif
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1)))
         return false;
     if(!ctx.use_opencl_convolutions)
         return false;
     if(!problem.Is2d())
         return false;
-    if(!(problem.direction.IsForward() || problem.direction.IsBackwardData()))
+    if(!(problem.IsDirectionForward() || problem.IsDirectionBackwardData()))
         return false;
     if(problem.HasNonPackedTensors())
         return false;
@@ -86,7 +91,7 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ExecutionContext& ctx,
     {
         //        int version = result.out_pix_tile1;
 
-        if((problem.direction.IsForward() && problem.GetInChannels_() % 16 == 0 &&
+        if((problem.IsDirectionForward() && problem.GetInChannels_() % 16 == 0 &&
             problem.GetOutChannels_() % 16 == 0) &&
            (problem.GetInDataType() == miopenFloat))
         {
@@ -259,7 +264,7 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ExecutionContext& ctx,
                 std::min(static_cast<int>(problem.GetOutWidth_()), result.out_pix_tile0);
             result.out_pix_tile1 =
                 std::min(static_cast<int>(problem.GetOutHeight_()), result.out_pix_tile1);
-            if(!problem.direction.IsForward())
+            if(!problem.IsDirectionForward())
             {
                 while(problem.GetOutWidth_() % result.out_pix_tile0 != 0 &&
                       result.out_pix_tile0 > 1)
@@ -281,7 +286,7 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ExecutionContext& ctx,
 
             int wei_cstride = problem.GetWeightsWidth_() * problem.GetWeightsHeight_();
             // backward: inputs are forward outputs
-            const bool is_forward = problem.direction.IsForward();
+            const bool is_forward = problem.IsDirectionForward();
             int wei_bstride =
                 (is_forward ? problem.GetInChannels_() : problem.GetOutChannels_()) * wei_cstride;
 
@@ -413,8 +418,10 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ExecutionContext& ctx,
         }
     }
 
-    result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
+    result.invoker_factory = &miopen::conv::MakeGenericXWYPadInvoker;
     return result;
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen

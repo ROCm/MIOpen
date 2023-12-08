@@ -133,10 +133,9 @@ static inline bool skip_config(miopen::Handle& handle,
     if(convDesc.mode != miopenConvolution)
         return false;
 
-    const auto conv_problem = miopen::conv::ProblemDescription{
+    const auto problem = miopen::conv::ProblemDescription{
         xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::Forward};
-    const auto problem = miopen::ProblemDescription{conv_problem};
-    auto ctx           = miopen::ExecutionContext{};
+    auto ctx = miopen::ExecutionContext{};
 
     ctx.do_search               = false;
     ctx.save_srch_req           = false;
@@ -163,13 +162,21 @@ StringToLayoutType(std::string layout_str, int tensor_vect, int vector_length)
     if(tensor_vect == 0)
     {
         if(layout_str == "NCHW")
+        {
             return miopenTensorNCHW;
+        }
         else if(layout_str == "NHWC")
+        {
             return miopenTensorNHWC;
+        }
         else if(layout_str == "NDHWC")
+        {
             return miopenTensorNDHWC;
+        }
         else if(layout_str == "NCDHW")
+        {
             return miopenTensorNCDHW;
+        }
         else
         {
             MIOPEN_THROW("Non-vectorized tensor only support layout NCHW, NHWC, NCDHW and NDHWC");
@@ -301,8 +308,10 @@ protected:
             if(preallocate)
             {
                 for(auto i = 0; i < 3; ++i)
+                {
                     miopenSetFindOptionPreallocatedTensor(
                         options.get(), arguments[i].id, arguments[i].buffer);
+                }
             }
 
             EXPECT_EQUAL(
@@ -571,7 +580,9 @@ struct verify_forward_conv : conv_base<T, Tout>
             bool is_vect_c = weights.desc.GetVectorLength() > 1;
             rout.par_for_each([&](auto... is) {
                 if(is_int8 && !is_vect_c)
+                {
                     rout(is...) = Tout(double(rout(is...)) + double(this->bias));
+                }
                 else if(is_vect_c)
                 {
                     for(std::size_t i = 0; i < weights.desc.GetVectorLength(); i++)
@@ -680,8 +691,10 @@ struct verify_forward_conv : conv_base<T, Tout>
                     const std::size_t ws_size = filter.GetBackwardSolutionWorkspaceSize(
                         handle, input.desc, weights.desc, rout.desc, selected.solution_id);
                     if(ws_size != selected.workspace_size)
+                    {
                         std::cout << "WARNING: workspace size mismatch: " << selected.workspace_size
                                   << " != " << ws_size << std::endl;
+                    }
                 }
                 resize_workspace(handle, selected.workspace_size, ws, ws_dev);
 
@@ -747,8 +760,10 @@ struct verify_forward_conv : conv_base<T, Tout>
                     const std::size_t ws_size = filter.GetForwardSolutionWorkspaceSize(
                         handle, weights.desc, input.desc, rout.desc, selected.solution_id);
                     if(ws_size != selected.workspace_size)
+                    {
                         std::cout << "WARNING: workspace size mismatch: " << selected.workspace_size
                                   << " != " << ws_size << std::endl;
+                    }
                 }
                 resize_workspace(handle, selected.workspace_size, ws, ws_dev);
 
@@ -2033,7 +2048,6 @@ struct conv_driver : test_driver
 
     void run()
     {
-
         if(!input_dims.empty())
             filter.spatialDim = get_spatial_dim();
         else
