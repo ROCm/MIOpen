@@ -64,6 +64,7 @@
  * @defgroup LossFunction
  * @defgroup TensorReduce
  * @defgroup find2
+ * @defgroup sum
  *
  */
 
@@ -633,7 +634,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor
 
 /*! @brief Set shape of 4D tensor
  *
- * Interface for setting 4-D packed tensor shape.
+ * Interface for setting 4-D tensor shape. MIOpen currently implements NCHW and NHWC layout.
  *
  * @param tensorDesc Tensor descriptor (input/output)
  * @param dataType   MIOpen datatype (input)
@@ -3019,9 +3020,10 @@ MIOPEN_EXPORT miopenStatus_t miopenFusionPlanGetOp(miopenFusionPlanDescriptor_t 
                                                    miopenFusionOpDescriptor_t* op);
 
 /*! @brief Query the workspace size required for the fusion plan
- *
+ * @param handle         MIOpen handle (input)
  * @param fusePlanDesc   A fusion plan descriptor (input)
  * @param workSpaceSize  Pointer to memory to return size in bytes (output)
+ * @param algo           Algorithm selected (inputs)
  * @return               miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -3352,12 +3354,29 @@ miopenExecuteFusionPlan(const miopenHandle_t handle,
                         void* output,
                         miopenOperatorArgs_t args);
 
-/*! @brief Prepares and executes the Convlution+Bias+Activation Fusion
+/*! @brief Prepares and executes the Convlution+Bias+Activation Fusion.
  *
  *
- * @param handle           MIOpen handle (input)
- * @return           miopenStatus_t
+ * @param handle               MIOpen handle (input)
+ * @param alpha1               floating point scaling factor, allocated on the host (input)
+ * @param xDesc                Tensor descriptor for input data tensor x (input)
+ * @param x                    Data tensor x (input)
+ * @param wDesc                Tensor descriptor for weight tensor w (input)
+ * @param w                    Weights tensor w (input)
+ * @param convDesc             Convolution layer descriptor (input)
+ * @param algo                 Algorithm selected (inputs)
+ * @param workspace            Pointer to workspace required (input)
+ * @param workspaceSizeInBytes Size of the memory in bytes pointed to by workSpace above
+ * @param alpha2               floating point scaling factor, allocated on the host (input)
+ * @param zDesc                Tensor descriptor for tensor z (input)
+ * @param z                    Data tensor z (input)
+ * @param biasDesc             Tensor descriptor for input data tensor x (input)
+ * @param bias                 Data tensor bias (input)
+ * @param activationDesc       Activation descriptor that specifies the activation mode
+ * @param yDesc                Tensor descriptor for output data tensor y (input)
+ * @param y                    Output data tensor
  */
+
 MIOPEN_EXPORT miopenStatus_t
 miopenConvolutionBiasActivationForward(miopenHandle_t handle,
                                        const void* alpha1,
@@ -4280,7 +4299,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNPaddingMode(miopenRNNDescriptor_t rnnDe
  *
  * @param handle                MIOpen handle (input)
  * @param rnnDesc               RNN layer descriptor type (input)
- *
+ * @param fwdMode          Specifies in which mode the buffers will be used.
  * @param xDesc                 An input tensor descriptor for sequenced RNN data. This
  * miopenSeqTensorDescriptor_t should be initialyzed by `miopenSetRNNDataSeqTensorDescriptor`
  * function.(input)
@@ -5259,6 +5278,9 @@ typedef enum
     miopenTensorActivationY  = 5,
     miopenTensorActivationDX = 6,
     miopenTensorActivationDY = 7,
+    miopenTensorBiasX        = 8,
+    miopenTensorBiasY        = 9,
+    miopenTensorBias         = 10,
 #endif
 } miopenTensorArgumentId_t;
 
@@ -5532,10 +5554,80 @@ miopenCreateActivationProblem(miopenProblem_t* problem,
  */
 MIOPEN_EXPORT miopenStatus_t miopenFuseProblems(miopenProblem_t problem1, miopenProblem_t problem2);
 
+/*! @brief Initializes a problem object describing an bias operation.
+ * @note As of now there is no way to actually get any solution for this kind of problems.
+ *
+ * @param problem        Pointer to the problem to initialize
+ * @param direction      Direction of the operation
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenCreateBiasProblem(miopenProblem_t* problem,
+                                                     miopenProblemDirection_t direction);
+
 #endif
 
 /** @} */
 // CLOSEOUT find2 DOXYGEN GROUP
+
+#ifdef MIOPEN_BETA_API
+
+/*! @ingroup sum
+ * @enum miopenSumNanPropagation_t
+ * Nan numbers propagation modes for sum
+ */
+typedef enum
+{
+    MIOPEN_SUM_NOT_PROPAGATE_NAN = 0, /*!< does not propagate Nan number */
+    MIOPEN_SUM_PROPAGATE_NAN     = 1, /*!< propagate the Nan number by the Reduction operation */
+} miopenSumNanPropagation_t;
+
+// Sum APIs
+/** @addtogroup sum
+ *
+ *  @{
+ */
+
+/*! @brief Helper function to query the minimum workspace size required by the ReduceTensor call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param xDesc                    Tensor descriptor for data input tensor x (input)
+ * @param dim                      Dimensions to sum. (input)
+ * @param yDesc                    Tensor descriptor for output data tensor y (input)
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetSumWorkspaceSize(miopenHandle_t handle,
+                                                       const miopenTensorDescriptor_t xDesc,
+                                                       const int32_t dim,
+                                                       const miopenTensorDescriptor_t yDesc,
+                                                       size_t* sizeInBytes);
+
+/*! @brief Execute a sum forward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param nanPropagation           Nan number propagation mode (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param xDesc                    Tensor descriptor for data input tensor x (input)
+ * @param x                        Data tensor x (input)
+ * @param dim                      Dimensions to sum. (input)
+ * @param yDesc                    Tensor descriptor for output data tensor y (input)
+ * @param y                        Data tensor y (output)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSumForward(miopenHandle_t handle,
+                                              miopenSumNanPropagation_t nanPropagation,
+                                              void* workspace,
+                                              size_t workspaceSizeInBytes,
+                                              const miopenTensorDescriptor_t xDesc,
+                                              const void* x,
+                                              const int32_t dim,
+                                              const miopenTensorDescriptor_t yDesc,
+                                              void* y);
+
+/** @} */
+// CLOSEOUT SUM DOXYGEN GROUP
+#endif
 
 #ifdef __cplusplus
 }

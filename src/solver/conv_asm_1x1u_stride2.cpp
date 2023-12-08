@@ -37,9 +37,9 @@
 #include <miopen/solver.hpp>
 #include <miopen/generic_search.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_PERF_VALS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_SEARCH_OPTIMIZED)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2)
 
 namespace miopen {
 namespace solver {
@@ -202,7 +202,7 @@ bool PerformanceConfigConvAsm1x1UV2::SetNextValue(const ProblemDescription&)
     // Increment with wrap-around:
     do
     {
-        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_SEARCH_OPTIMIZED{}))
+        if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_SEARCH_OPTIMIZED)))
         {
             if(!IncPack<16, 32, 64>(chunk_size))
                 break;
@@ -263,7 +263,7 @@ bool PerformanceConfigConvAsm1x1UV2::SetNextValue(const ProblemDescription&)
 PerformanceConfigConvAsm1x1UV2::PerformanceConfigConvAsm1x1UV2(bool spare)
     : PerformanceConfigConvAsm1x1UV2(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, spare)
 {
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_SEARCH_OPTIMIZED{}))
+    if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_SEARCH_OPTIMIZED)))
     {
         k_mult           = spare ? 1 : 8;
         chunk_size       = 16;
@@ -482,7 +482,7 @@ bool ConvAsm1x1UV2::IsValidPerformanceConfig(const ExecutionContext&,
 bool ConvAsm1x1UV2::IsApplicable(const ExecutionContext& ctx,
                                  const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2)))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
@@ -609,24 +609,19 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ExecutionContext& ctx,
 
     PerformanceConfigConvAsm1x1UV2 fromEnv;
     {
-        std::string s;
-        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_PERF_VALS{});
-        if(p_asciz != nullptr)
+        const auto& s = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_PERF_VALS));
+        if(!s.empty()) // else nothing to parse.
         {
-            s = std::string(p_asciz);
-            if(!s.empty()) // else nothing to parse.
+            if(!fromEnv.Deserialize(s) || !fromEnv.IsValidValue())
             {
-                if(!fromEnv.Deserialize(s) || !fromEnv.IsValidValue())
-                {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_PERF_VALS: "
-                                 "Bad format or invalid for the problem config: "
-                                 << s);
-                }
-                else
-                {
-                    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
-                    pcfg = &fromEnv;
-                }
+                MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_PERF_VALS: "
+                             "Bad format or invalid for the problem config: "
+                             << s);
+            }
+            else
+            {
+                MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
+                pcfg = &fromEnv;
             }
         }
     }
