@@ -119,16 +119,17 @@ set( MIOpen_Source
     fusion/problem_description.cpp
     generic_search.cpp
     groupnorm_api.cpp
+    groupnorm/problem_description.cpp
     handle_api.cpp
     invoker_cache.cpp
     kernel_build_params.cpp
     kernel_warnings.cpp
     layernorm_api.cpp
+    layernorm/problem_description.cpp
     load_file.cpp
     lock_file.cpp
     logger.cpp
     lrn_api.cpp
-    layernorm/problem_description.cpp
     op_args.cpp
     operator.cpp
     performance_config.cpp
@@ -240,6 +241,7 @@ set( MIOpen_Source
     solver/gemm.cpp
     solver/gemm_bwd.cpp
     solver/gemm_wrw.cpp
+    solver/groupnorm/forward_groupnorm.cpp
     solver/layernorm/forward_layernorm.cpp
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
