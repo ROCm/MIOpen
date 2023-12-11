@@ -94,5 +94,5 @@ TEST_P(ConvBwdSolverTest3D, CKGroupConvBwd3D)
 INSTANTIATE_TEST_SUITE_P(ConvBwdTest,
                          ConvBwdSolverTest3D,
                          testing::Combine(testing::Values(miopenConvolutionBwdDataAlgoImplicitGEMM),
-                                          testing::ValuesIn(ConvTestConfigs()),
+                                          testing::ValuesIn(ConvTestConfigs<Conv3DTestCase>()),
                                           testing::Values(miopenTensorNDHWC)));

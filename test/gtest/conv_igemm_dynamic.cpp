@@ -35,6 +35,8 @@ using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
+namespace conv_igemm_dynamic {
+
 static bool SkipTest(void) { return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)); }
 
 void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
@@ -186,3 +188,5 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamic, Conv2dFloat, testing::Values(GetTestCases("--float")));
+
+} //namespace conv_igemm_dynamic

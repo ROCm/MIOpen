@@ -36,6 +36,8 @@ MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_COMPOSABLEKERNEL)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
+namespace conv_hip_igem_xdlops {
+
 static bool IsTestRunWith(const char* float_arg)
 {
     assert(float_arg != nullptr);
@@ -167,3 +169,5 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 INSTANTIATE_TEST_SUITE_P(ConvHipIgemmXdlops,
                          ConfigWithInt8,
                          testing::Values(GetTestCases("--int8")));
+
+} //namespace conv_hip_igem_xdlops

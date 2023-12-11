@@ -30,6 +30,8 @@
 #include "tensor_holder.hpp"
 #include "get_handle.hpp"
 
+namespace bad_fusion_plan {
+
 #if MIOPEN_BACKEND_HIP
 
 void setEnvironmentVariable(const std::string& name, const std::string& value)
@@ -54,7 +56,7 @@ miopenDataType_t GetDataType<half_float::half>()
     return miopenHalf;
 }
 
-struct ConvTestCase
+struct ConvTestCaseFusion
 {
     size_t N;
     size_t C;
@@ -69,7 +71,7 @@ struct ConvTestCase
     size_t stride_y;
     size_t dilation_x;
     size_t dilation_y;
-    friend std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
+    friend std::ostream& operator<<(std::ostream& os, const ConvTestCaseFusion& tc)
     {
         return os << "(N: " << tc.N << " C:" << tc.C << " H:" << tc.H << " W:" << tc.W
                   << " k: " << tc.k << " y:" << tc.y << " x:" << tc.x << " pad_y:" << tc.pad_y
@@ -88,7 +90,7 @@ struct ConvTestCase
     }
 };
 
-const static ConvTestCase conv_config = {64, 64, 56, 56, 64, 3, 3, 1, 1, 1, 1, 1, 1};
+const static ConvTestCaseFusion conv_config = {64, 64, 56, 56, 64, 3, 3, 1, 1, 1, 1, 1, 1};
 
 template <typename Solver, typename T>
 class TestFusionPlan
@@ -263,3 +265,5 @@ TEST(TestFusionPlan, UnSupportedFusionPlanDuringSearchMode)
 }
 
 #endif
+
+} //namespace bad_fusion_plan

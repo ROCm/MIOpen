@@ -36,6 +36,8 @@
 #include "get_handle.hpp"
 #include "cba.hpp"
 
+namespace cba_infer {
+
 struct ConvBiasActivInferTestFloat : ConvBiasActivInferTest<float>
 {
 };
@@ -87,7 +89,7 @@ void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
 template <typename Solver>
 void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
                       const std::unique_ptr<miopen::fusion::FusionInvokeParams>& plan_params,
-                      const ConvTestCase& conv_config,
+                      const ConvTestCaseBase& conv_config,
                       bool& test_skipped)
 {
     auto& handle = get_handle();
@@ -169,11 +171,13 @@ INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
 INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
                          ConvBiasActivInferTestFloat,
                          testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(GetNetwork1()),
+                                          testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
                                           testing::Values(miopenTensorNCHW)));
 
 INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
                          ConvBiasActivInferTestHalf,
                          testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(GetNetwork1()),
+                                          testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
                                           testing::Values(miopenTensorNHWC)));
+
+} //namespace cba_infer

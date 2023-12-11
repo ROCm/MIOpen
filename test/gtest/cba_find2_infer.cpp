@@ -38,6 +38,8 @@
 #include "get_handle.hpp"
 #include "cba_find2.hpp"
 
+namespace cba_find2_infer {
+
 struct ConvBiasActivFind2InferTestFloat : ConvBiasActivInferFind2Test<float>
 {
 };
@@ -78,7 +80,7 @@ void RunSolver(miopen::FusedProblem& problem,
 template <typename Solver>
 void RunTunableSolver(miopen::FusedProblem& problem,
                       const miopen::AnyInvokeParams& invoke_ctx,
-                      const ConvTestCase& conv_config,
+                      const ConvTestCaseBase& conv_config,
                       bool& test_skipped)
 {
     auto& handle = get_handle();
@@ -164,11 +166,13 @@ INSTANTIATE_TEST_SUITE_P(CBAFind2InferSolverTest,
 INSTANTIATE_TEST_SUITE_P(CBAFind2InferSolverTest,
                          ConvBiasActivFind2InferTestFloat,
                          testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(GetNetwork1()),
+                                          testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
                                           testing::Values(miopenTensorNCHW)));
 
 INSTANTIATE_TEST_SUITE_P(CBAFind2InferSolverTest,
                          ConvBiasActivFind2InferTestHalf,
                          testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(GetNetwork1()),
+                                          testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
                                           testing::Values(miopenTensorNHWC)));
+
+} //namespace cba_find2_infer

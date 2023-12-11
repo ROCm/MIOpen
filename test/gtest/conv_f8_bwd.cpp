@@ -32,6 +32,8 @@
 #include "conv3d_test_case.hpp"
 #include "f8_cast_util.hpp"
 
+
+template<>
 std::vector<Conv3DTestCase> ConvTestConfigs()
 { // g    n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
     return {{1, 16, 16, 1, 14, 14, 16, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
@@ -43,6 +45,7 @@ std::vector<Conv3DTestCase> ConvTestConfigs()
             {4, 128, 4, 1, 28, 28, 4, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
             {2, 128, 2, 1, 28, 28, 2, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution}};
 }
+namespace conv_f8_bwd {
 
 template <typename T = float>
 struct ConvBwdSolverTest
@@ -190,5 +193,7 @@ TEST_P(ConvBwdSolverTestF8, CKConvF8Bwd)
 INSTANTIATE_TEST_SUITE_P(ConvBwdTest,
                          ConvBwdSolverTestF8,
                          testing::Combine(testing::Values(miopenConvolutionBwdDataAlgoImplicitGEMM),
-                                          testing::ValuesIn(ConvTestConfigs()),
+                                          testing::ValuesIn(ConvTestConfigs<Conv3DTestCase>()),
                                           testing::Values(miopenTensorNDHWC)));
+
+} //namespace conv_f8_bwd

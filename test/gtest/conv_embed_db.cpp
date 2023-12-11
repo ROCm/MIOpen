@@ -34,6 +34,8 @@
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
+namespace conv_embed_db {
+
 static bool IsTestRunWith(const char* float_arg)
 {
     assert(float_arg != nullptr);
@@ -228,3 +230,5 @@ INSTANTIATE_TEST_SUITE_P(ConvEmbedDB, ConfigWithInt8, testing::Values(GetTestCas
 INSTANTIATE_TEST_SUITE_P(ConvEmbedDB,
                          ConfigWithBFloat16,
                          testing::Values(GetTestCases("--bfloat16")));
+
+} //namespace conv_embed_db

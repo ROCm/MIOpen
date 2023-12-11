@@ -23,30 +23,18 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
 
-#include <gtest/gtest.h>
-#include <random>
-#include "hip_float8.hpp"
+#include "group_solver.hpp"
 
-// Copied from conv_driver.hpp
 
-template <typename T>
-extern T RanGenData();
+template<>
+std::vector<ConvTestCaseGroup> ConvTestConfigs()
+{ // g  n  c   h   w   k   y  x pad_x pad_y stri_x stri_y dia_x dia_y
+    return {{1, 256, 192, 28, 28, 192, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {1, 256, 12, 28, 28, 12, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {4, 256, 192, 28, 28, 192, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {8, 256, 192, 28, 28, 192, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {8, 256, 384, 28, 28, 384, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {32, 256, 1024, 28, 28, 2048, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
+}
 
-template <typename T>
-struct GenData
-{
-    template <class... Ts>
-    T operator()(Ts...) const;
-};
-
-template <typename T>
-extern T RanGenWeights();
-
-template <typename T>
-struct GenWeights
-{
-    template <class... Ts>
-    T operator()(Ts...) const;
-};

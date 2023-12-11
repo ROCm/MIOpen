@@ -71,7 +71,7 @@ TEST_P(BNActivInferFloat, BnFwdInferActivationFused)
 INSTANTIATE_TEST_SUITE_P(BNActivInferFloatSuite,
                          BNActivInferFloat,
                          testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(Network1())));
+                                          testing::ValuesIn(Networkna1())));
 TEST_P(BNActivInferHalf, DISABLED_BnFwdInferActivationFused)
 {
     const auto plan_params = miopen::fusion::FusionInvokeParams(
@@ -83,4 +83,4 @@ TEST_P(BNActivInferHalf, DISABLED_BnFwdInferActivationFused)
 INSTANTIATE_TEST_SUITE_P(BNActivInferHalfSuite,
                          BNActivInferHalf,
                          testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(Network1())));
+                                          testing::ValuesIn(Networkna1())));
