@@ -31,8 +31,10 @@
 #include <boost/algorithm/string.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_FLOAT)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_HALF)
 
-static bool SkipTest(void) { return miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)); }
+static bool SkipTest(void) { return !miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -47,6 +49,10 @@ class ConfigWithFloat : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
+class ConfigWithHalf : public testing::TestWithParam<std::vector<std::string>>
+{
+};
+
 void Run2dDriver(miopenDataType_t prec)
 {
 
@@ -54,15 +60,16 @@ void Run2dDriver(miopenDataType_t prec)
     switch(prec)
     {
     case miopenFloat: params = ConfigWithFloat::GetParam(); break;
-    case miopenHalf:
+    case miopenHalf: params = ConfigWithHalf::GetParam(); break;
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt8:
     case miopenBFloat16:
     case miopenInt32:
     case miopenDouble:
-        FAIL() << "miopenHalf, miopenInt8, miopenBFloat16, miopenInt32, miopenDouble "
-                  "data type not supported by "
+        FAIL() << "miopenInt8, miopenBFloat16, miopenInt32, "
+                  "miopenDouble, miopenFloat8, miopenBFloat8 "
+                  "data types not supported by "
                   "lstm_extra test";
 
     default: params = ConfigWithFloat::GetParam();
@@ -85,21 +92,12 @@ void Run2dDriver(miopenDataType_t prec)
     }
 };
 
-bool IsTestSupportedForDevice(const miopen::Handle& handle)
-{
-    std::string devName = handle.GetDeviceName();
-    if(devName == "gfx900" || devName == "gfx906" || devName == "gfx908" || devName == "gfx90a" ||
-       miopen::StartsWith(devName, "gfx94") || miopen::StartsWith(devName, "gfx103") ||
-       miopen::StartsWith(devName, "gfx110"))
-        return true;
-    else
-        return false;
-}
+bool IsTestSupportedForDevice(const miopen::Handle& handle) { return true; }
 
 TEST_P(ConfigWithFloat, FloatTest)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && miopen::IsEnabled(ENV(MIOPEN_TEST_FLOAT)))
     {
         Run2dDriver(miopenFloat);
     }
@@ -109,48 +107,62 @@ TEST_P(ConfigWithFloat, FloatTest)
     }
 };
 
-std::vector<std::string> GetTestCases(void)
+TEST_P(ConfigWithHalf, HalfTest)
 {
-    std::string flags       = "test_lstm --verbose ";
-    std::string commonFlags = "--batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 "
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && miopen::IsEnabled(ENV(MIOPEN_TEST_HALF)))
+    {
+        Run2dDriver(miopenHalf);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+std::vector<std::string> GetTestCases(std::string precision)
+{
+    std::string flags       = "test_lstm --verbose " + precision;
+    std::string commonFlags = " --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 "
                               "--hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0";
 
     const std::vector<std::string> test_cases = {
-        // clang-format off
-    {flags + commonFlags + " -dir-mode 0 --no-hx"},
-    {flags + commonFlags + " -dir-mode 0 --no-dhy"},
-    {flags + commonFlags + " -dir-mode 0 --no-hx --no-dhy"},
-    {flags + commonFlags + " -dir-mode 0 --no-cx"},
-    {flags + commonFlags + " -dir-mode 0 --no-hx --no-cx"},
-    {flags + commonFlags + " -dir-mode 0 --no-dcy"},
-    {flags + commonFlags + " -dir-mode 0 --no-cx --no-dcy"},
-    {flags + commonFlags + " -dir-mode 1 --no-hx"},
-    {flags + commonFlags + " -dir-mode 1 --no-dhy"},
-    {flags + commonFlags + " -dir-mode 1 --no-hx --no-dhy"},
-    {flags + commonFlags + " -dir-mode 1 --no-cx"},
-    {flags + commonFlags + " -dir-mode 1 --no-hx --no-cx"},
-    {flags + commonFlags + " -dir-mode 1 --no-dcy"},
-    {flags + commonFlags + " -dir-mode 1 --no-cx --no-dcy"},
-    {flags + commonFlags + " -dir-mode 0 --no-hy"},
-    {flags + commonFlags + " -dir-mode 0 --no-dhx"},
-    {flags + commonFlags + " -dir-mode 0 --no-hy --no-dhx"},
-    {flags + commonFlags + " -dir-mode 0 --no-cy"},
-    {flags + commonFlags + " -dir-mode 0 --no-hy --no-cy"},
-    {flags + commonFlags + " -dir-mode 0 --no-dcx"},
-    {flags + commonFlags + " -dir-mode 0 --no-cy --no-dcx"},
-    {flags + commonFlags + " -dir-mode 1 --no-hy"},
-    {flags + commonFlags + " -dir-mode 1 --no-dhx"},
-    {flags + commonFlags + " -dir-mode 1 --no-hy --no-dhx"},
-    {flags + commonFlags + " -dir-mode 1 --no-cy"},
-    {flags + commonFlags + " -dir-mode 1 --no-hy --no-cy"},
-    {flags + commonFlags + " -dir-mode 1 --no-dcx"},
-    {flags + commonFlags + " -dir-mode 1 --no-cy --no-dcx"},
-    {flags + commonFlags + " -dir-mode 0 --no-hx --no-dhy --no-cx --no-dcy --no-hy --no-dhx --no-cy --no-dcx"},
-    {flags + commonFlags + " -dir-mode 1 --no-hx --no-dhy --no-cx --no-dcy --no-hy --no-dhx --no-cy --no-dcx"}
-        // clang-format on
-    };
+        {flags + commonFlags + " -dir-mode 0 --no-hx"},
+        {flags + commonFlags + " -dir-mode 0 --no-dhy"},
+        {flags + commonFlags + " -dir-mode 0 --no-hx --no-dhy"},
+        {flags + commonFlags + " -dir-mode 0 --no-cx"},
+        {flags + commonFlags + " -dir-mode 0 --no-hx --no-cx"},
+        {flags + commonFlags + " -dir-mode 0 --no-dcy"},
+        {flags + commonFlags + " -dir-mode 0 --no-cx --no-dcy"},
+        {flags + commonFlags + " -dir-mode 1 --no-hx"},
+        {flags + commonFlags + " -dir-mode 1 --no-dhy"},
+        {flags + commonFlags + " -dir-mode 1 --no-hx --no-dhy"},
+        {flags + commonFlags + " -dir-mode 1 --no-cx"},
+        {flags + commonFlags + " -dir-mode 1 --no-hx --no-cx"},
+        {flags + commonFlags + " -dir-mode 1 --no-dcy"},
+        {flags + commonFlags + " -dir-mode 1 --no-cx --no-dcy"},
+        {flags + commonFlags + " -dir-mode 0 --no-hy"},
+        {flags + commonFlags + " -dir-mode 0 --no-dhx"},
+        {flags + commonFlags + " -dir-mode 0 --no-hy --no-dhx"},
+        {flags + commonFlags + " -dir-mode 0 --no-cy"},
+        {flags + commonFlags + " -dir-mode 0 --no-hy --no-cy"},
+        {flags + commonFlags + " -dir-mode 0 --no-dcx"},
+        {flags + commonFlags + " -dir-mode 0 --no-cy --no-dcx"},
+        {flags + commonFlags + " -dir-mode 1 --no-hy"},
+        {flags + commonFlags + " -dir-mode 1 --no-dhx"},
+        {flags + commonFlags + " -dir-mode 1 --no-hy --no-dhx"},
+        {flags + commonFlags + " -dir-mode 1 --no-cy"},
+        {flags + commonFlags + " -dir-mode 1 --no-hy --no-cy"},
+        {flags + commonFlags + " -dir-mode 1 --no-dcx"},
+        {flags + commonFlags + " -dir-mode 1 --no-cy --no-dcx"},
+        {flags + commonFlags +
+         " -dir-mode 0 --no-hx --no-dhy --no-cx --no-dcy --no-hy --no-dhx --no-cy --no-dcx"},
+        {flags + commonFlags +
+         " -dir-mode 1 --no-hx --no-dhy --no-cx --no-dcy --no-hy --no-dhx --no-cy --no-dcx"}};
 
     return test_cases;
 }
 
-INSTANTIATE_TEST_SUITE_P(ConvTrans, ConfigWithFloat, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(LstmExtra, ConfigWithFloat, testing::Values(GetTestCases("--float")));
+
+INSTANTIATE_TEST_SUITE_P(LstmExtra, ConfigWithHalf, testing::Values(GetTestCases("--half")));
