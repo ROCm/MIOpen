@@ -561,7 +561,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 output_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
 
                 // conversion operator applied here to convert to ConvTensors
-                ConvTensors conv_tensors{data_ctx.tensors};
+                auto conv_tensors = ConvTensors(data_ctx.tensors);
 
                 // TODO(amber): remove this when DataInvokeParams stops swapping
                 // "in" and "out" tensors for backward pass
