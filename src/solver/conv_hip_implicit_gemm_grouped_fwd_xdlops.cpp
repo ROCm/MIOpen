@@ -33,16 +33,21 @@
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_forward.hpp>
+#include <miopen/conv/heuristics/ai_heuristics.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS_AI_HEUR)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 template <typename DataType>
-using DeviceOpGFwd = ck::tensor_operation::device::DeviceGroupedConvFwdMultipleD<
+using DeviceOpGFwd = ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<
     2,
     ck::tensor_layout::convolution::NHWGC,
     ck::tensor_layout::convolution::GKYXC,
@@ -160,14 +165,17 @@ struct CKArgs
     std::array<ck::index_t, 2> lPadding;
     std::array<ck::index_t, 2> rPadding;
 };
+
 } // namespace
 
 template <typename DataType>
-void PerformanceConfigHipImplicitGemmGroupFwdXdlops::Init(const ProblemDescription& problem)
+void PerformanceConfigHipImplicitGemmGroupFwdXdlops::Init(
+    const ProblemDescription& problem) // should be parameterized with execution context
 {
-    valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<DataType>, CKArgs>(problem);
-    index         = 0;
-    kernel_id     = valid_kernels[index];
+    if(valid_kernels.empty())
+        valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<DataType>, CKArgs>(problem);
+    index     = 0;
+    kernel_id = valid_kernels[index];
 }
 
 template <typename DataType>
@@ -185,13 +193,136 @@ bool ConvHipImplicitGemmGroupFwdXdlops::CheckCKApplicability(
 }
 #endif
 
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+static std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
+{
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(
+        kernel.substr(kernel.find('<') + 1, kernel.find('>') - kernel.find('<') - 1));
+    while(std::getline(tokenStream, token, ','))
+    {
+        token.erase(remove_if(token.begin(), token.end(), isspace),
+                    token.end()); // strip whitespace
+        tokens.push_back(token);
+    }
+    return tokens;
+}
+
+void PerformanceConfigHipImplicitGemmGroupFwdXdlops::InitHeuristicKernelIDs()
+{
+    for(int i = 0; i < valid_kernels.size(); i++)
+    {
+        if(valid_kernels[i].find("DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle") !=
+           std::string::npos)
+        {
+            heuristic_indexes.push_back(i);
+            heuristic_kernels.push_back(GetKernelAsTokens(valid_kernels[i]));
+        }
+    }
+}
+
+bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::ModelApplyToken(int idx, std::string value)
+{
+
+    std::vector<int> new_heuristic_indexes;
+    new_heuristic_indexes.reserve(heuristic_indexes.size());
+    if(idx >= 5)
+        idx += 2; // skip MPerXDL and NPerXDL as they are constant
+    auto eraseBegin = std::remove_if(
+        heuristic_indexes.begin(), heuristic_indexes.end(), [&](int heuristic_index) {
+            return heuristic_kernels[heuristic_index][idx] != value;
+        });
+
+    heuristic_indexes.erase(eraseBegin, heuristic_indexes.end());
+
+    return !heuristic_indexes.empty();
+}
+
+static std::vector<float> GetFeatures(const ProblemDescription& problem, std::size_t num_cu)
+{
+    std::size_t n = 18;
+    std::vector<float> features(n, 0.0f);
+    features[0]  = problem.GetInDataType() == miopenFloat ? 2 : 1;
+    features[1]  = problem.GetInChannels_();
+    features[2]  = problem.GetInHeight_();
+    features[3]  = problem.GetInWidth_();
+    features[4]  = problem.GetOutChannels_();
+    features[5]  = problem.GetOutHeight_();
+    features[6]  = problem.GetOutWidth_();
+    features[7]  = problem.GetWeightsHeight_();
+    features[8]  = problem.GetWeightsWidth_();
+    features[9]  = problem.GetPadH();
+    features[10] = problem.GetPadW();
+    features[11] = problem.GetKernelStrideH();
+    features[12] = problem.GetKernelStrideW();
+    features[13] = problem.GetDilationH();
+    features[14] = problem.GetDilationW();
+    features[15] = problem.GetBatchSize_();
+    features[16] = problem.GetGroupCount();
+    features[17] = num_cu;
+    return features;
+}
+
+template <typename DataType>
+bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::RunParameterPredictionModel(
+    const ExecutionContext& ctx, const ProblemDescription& problem)
+{
+    valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<DataType>, CKArgs>(
+        problem); // filter valid_kernel ID's
+    InitHeuristicKernelIDs();
+    static const std::string& arch  = ctx.GetStream().GetDeviceName();
+    static const std::string solver = "ConvHipIgemmGroupFwdXdlops";
+    std::vector<float> features     = GetFeatures(problem, ctx.GetStream().GetMaxComputeUnits());
+    if(ai::tuning::ModelSetParams(arch, solver, features, false, [&](int idx, std::string value) {
+           return this->ModelApplyToken(idx, value);
+       }))
+    {
+        index     = heuristic_indexes[0];
+        kernel_id = valid_kernels[index];
+        MIOPEN_LOG_I("Params set by AI: " << ToString());
+        return true;
+    }
+    return false;
+}
+#endif
+
+bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsModelApplicable(
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
+{
+    if(ctx.GetStream().GetDeviceName() != "gfx90a")
+        return false;
+    if(problem.GetInDataType() != miopenFloat && problem.GetInDataType() != miopenHalf)
+        return false;
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS_AI_HEUR)))
+        return false;
+    return true;
+}
+
 void PerformanceConfigHipImplicitGemmGroupFwdXdlops::HeuristicInit(
+    [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem)
 {
+    // these seem redundant
     index     = 0;
     kernel_id = "";
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+    if(IsModelApplicable(ctx, problem))
+    {
+        if(problem.GetInDataType() == miopenFloat)
+        {
+            if(RunParameterPredictionModel<float>(ctx, problem))
+                return;
+        }
+        else
+        {
+            if(RunParameterPredictionModel<ck::half_t>(ctx, problem))
+                return;
+        }
+    }
+#endif
     switch(problem.GetInDataType())
     {
     case miopenHalf: Init<ck::half_t>(problem); break;
@@ -210,7 +341,17 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::SetNextValue(const ProblemD
 {
     if(valid_kernels.empty())
     {
-        HeuristicInit(problem);
+        switch(problem.GetInDataType())
+        {
+        case miopenHalf: Init<ck::half_t>(problem); break;
+        case miopenFloat: Init<float>(problem); break;
+        case miopenInt8: Init<int8_t>(problem); break;
+        case miopenInt32:
+        case miopenBFloat16:
+        case miopenFloat8:
+        case miopenBFloat8:
+        case miopenDouble: break;
+        }
         assert(!valid_kernels.empty());
         return true;
     }
@@ -256,10 +397,10 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::operator==(
 
 PerformanceConfigHipImplicitGemmGroupFwdXdlops
 ConvHipImplicitGemmGroupFwdXdlops::GetDefaultPerformanceConfig(
-    const ExecutionContext&, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     PerformanceConfigHipImplicitGemmGroupFwdXdlops pp;
-    pp.HeuristicInit(problem);
+    pp.HeuristicInit(ctx, problem);
     return pp;
 }
 
@@ -284,7 +425,7 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)))
         return false;
     if(problem.HasNonPackedTensors())
         return false;
@@ -294,7 +435,7 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
         return false;
     if(problem.HasMixedDataTypes())
         return false;
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
     if(!problem.Is2d())
         return false;
@@ -327,13 +468,14 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlops::GetSolution(
     switch(problem.GetInDataType())
     {
     case miopenHalf:
-        return MakeInvokerFactory<DeviceOpGFwdPtrs<ck::half_t>, CKArgs, conv::DataInvokeParams>(
-            problem, config.kernel_id);
+        return MakeInvokerFactory<DeviceOpGFwdPtrs<ck::half_t>,
+                                  CKArgs,
+                                  miopen::conv::DataInvokeParams>(problem, config.kernel_id);
     case miopenFloat:
-        return MakeInvokerFactory<DeviceOpGFwdPtrs<float>, CKArgs, conv::DataInvokeParams>(
+        return MakeInvokerFactory<DeviceOpGFwdPtrs<float>, CKArgs, miopen::conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenInt8:
-        return MakeInvokerFactory<DeviceOpGFwdPtrs<int8_t>, CKArgs, conv::DataInvokeParams>(
+        return MakeInvokerFactory<DeviceOpGFwdPtrs<int8_t>, CKArgs, miopen::conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenInt32:
     case miopenBFloat16:
@@ -348,5 +490,6 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlops::GetSolution(
     return {};
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

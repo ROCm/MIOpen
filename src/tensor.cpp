@@ -462,8 +462,10 @@ std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t)
     LogRange(stream << "{", t.lens, ", ") << "}, ";
     LogRange(stream << "{", t.strides, ", ") << "}, ";
     if(t.packed)
+    {
         stream << "packed"
                << ", ";
+    }
 
     if(t.cast_type)
     {
@@ -500,8 +502,6 @@ void from_json(const nlohmann::json& j, TensorDescriptor& descriptor)
 
 } // namespace miopen
 
-// TODO(paul): Remove
-MIOPEN_EXPORT
 int miopenGetTensorIndex(miopenTensorDescriptor_t tensorDesc, std::initializer_list<int> indices)
 {
     return miopen::deref(tensorDesc).GetIndex(indices);

@@ -32,15 +32,18 @@
 
 #define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 bool ConvAsm5x10u2v2f1::IsApplicable(const ExecutionContext& ctx,
                                      const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)))
         return false;
     if(!ctx.use_asm_kernels)
         return false;
@@ -67,7 +70,7 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ExecutionContext& ctx,
 #endif
     if(!device_is_gfx8_9_no_xnack)
         return false;
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
     if(!problem.IsLayoutDefault())
         return false;
@@ -147,9 +150,11 @@ ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ExecutionContext& ctx,
     construction_params.kernel_name = "miopenConv5x10u2v2f1";
 
     result.construction_params.push_back(construction_params);
-    result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
+    result.invoker_factory = &miopen::conv::MakeGenericXWYPadInvoker;
 
     return result;
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen

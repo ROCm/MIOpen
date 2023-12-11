@@ -65,7 +65,7 @@
 /// Brute-force W/A: return fixed values.
 #define WORKAROUND_FAULTY_HIPMEMGETINFO_VEGA_NAVI2X (ROCM_FEATURE_DEPRECATED_VEGA_NAVI2X)
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_CU)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEVICE_CU)
 
 namespace miopen {
 
@@ -355,6 +355,7 @@ void Handle::ReserveExtraStreamsInPool(int cnt) const
     int last_stream_id = this->impl->ms_resourse_ptr->stream_pool.size();
 
     if(last_stream_id < cnt)
+    {
         for(; last_stream_id < cnt; last_stream_id++)
         {
             auto new_stream = this->impl->create_stream_non_blocking();
@@ -365,6 +366,7 @@ void Handle::ReserveExtraStreamsInPool(int cnt) const
             this->impl->ms_resourse_ptr->add_stream(std::move(new_stream));
 #endif
         }
+    }
 }
 
 miopenAcceleratorQueue_t Handle::GetStream() const
@@ -640,7 +642,7 @@ std::size_t Handle::GetGlobalMemorySize() const
 
 std::size_t Handle::GetMaxComputeUnits() const
 {
-    const std::size_t num_cu = Value(MIOPEN_DEVICE_CU{});
+    const std::size_t num_cu = Value(ENV(MIOPEN_DEVICE_CU));
     if(num_cu > 0)
         return num_cu;
 

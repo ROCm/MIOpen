@@ -584,8 +584,10 @@ size_t RNNDescriptor::GetParamsSize(size_t inputVector) const
     if(inputMode == miopenRNNskip)
     {
         if(inputVector != hsize)
+        {
             MIOPEN_THROW(miopenStatusBadParm,
                          "In miopenRNNskip mode input_vector size and hidden_size shoud be same.");
+        }
         inputVector = 0;
     }
 
@@ -910,9 +912,11 @@ void RNNDescriptor::SetLayerBias(const Handle& handle,
 void RNNDescriptor::SetPaddingmode(miopenRNNPaddingMode_t padding)
 {
     if(padding != miopenRNNIOWithPadding && padding != miopenRNNIONotPadded)
+    {
         MIOPEN_THROW(miopenStatusBadParm,
                      "SetPaddingmode: Bad parameter. RNN padding mode must be "
                      "miopenRNNIOWithPadding or miopenRNNIONotPadded.");
+    }
 
     paddingMode = padding;
 }
@@ -1122,6 +1126,7 @@ void RNNDescriptor::RNNVanillaForward(Handle& handle,
     miopen::c_array_view<const miopenTensorDescriptor_t> yDescArray{output_descs.data(), seq_len};
 
     if(fwdMode == miopenRNNFWDMode_t::miopenRNNTraining)
+    {
         return RNNForwardTrainingPackedTensors(handle,
                                                seq_len,
                                                xDescArray,
@@ -1141,7 +1146,9 @@ void RNNDescriptor::RNNVanillaForward(Handle& handle,
                                                cy,
                                                reserveSpace,
                                                reserveSpaceSize);
+    }
     else
+    {
         return RNNForwardInferencePacked(handle,
                                          seq_len,
                                          xDescArray,
@@ -1161,6 +1168,7 @@ void RNNDescriptor::RNNVanillaForward(Handle& handle,
                                          cy,
                                          workSpace,
                                          workSpaceSize);
+    }
 }
 
 void RNNDescriptor::RNNVanillaBackwardData(Handle& handle,
