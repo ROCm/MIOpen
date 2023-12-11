@@ -391,9 +391,10 @@ private:
         MIOPEN_LOG_I("in_ptr = " << in_ptr);
 
         // TODO(amber): remove
-        for (size_t i = 2; i < kern_args.size(); ++i) {
-          uint32_t a = *reinterpret_cast<uint32_t*>(kern_args[i].buffer.data());
-          MIOPEN_LOG_I("kern_args " << i << " = " << a);
+        for(size_t i = 2; i < kern_args.size(); ++i)
+        {
+            uint32_t a = *reinterpret_cast<uint32_t*>(kern_args[i].buffer.data());
+            MIOPEN_LOG_I("kern_args " << i << " = " << a);
         }
 
         handle.Run(kernels[index])(kern_args);
@@ -551,9 +552,10 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 // TODO(amber): remove
                 void* wb = data_ctx.workSpace;
                 void* we = reinterpret_cast<char*>(data_ctx.workSpace) + data_ctx.workSpaceSize;
-                MIOPEN_LOG_I("Workspace beg ptr = " << wb << " end ptr = " <<  we);
-                if (!data_ctx.workSpace) {
-                  MIOPEN_THROW(miopenStatusInvalidValue, "workspace pointer is null");
+                MIOPEN_LOG_I("Workspace beg ptr = " << wb << " end ptr = " << we);
+                if(!data_ctx.workSpace)
+                {
+                    MIOPEN_THROW(miopenStatusInvalidValue, "workspace pointer is null");
                 }
 
                 input1_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
@@ -565,12 +567,13 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
 
                 // TODO(amber): remove this when DataInvokeParams stops swapping
                 // "in" and "out" tensors for backward pass
-                if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Input) {
-                  // this is backward pass, swap back input and output
-                  std::swap(conv_tensors.x, conv_tensors.y);
-                  std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
+                if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Input)
+                {
+                    // this is backward pass, swap back input and output
+                    std::swap(conv_tensors.x, conv_tensors.y);
+                    std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
                 }
- 
+
                 float tot_time = 0;
 
                 // TODO(amber): remove
