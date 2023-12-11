@@ -28,7 +28,6 @@
 #include "get_handle.hpp"
 #include <miopen/env.hpp>
 #include <gtest/gtest.h>
-#include <boost/algorithm/string.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DEEPBENCH)
 
