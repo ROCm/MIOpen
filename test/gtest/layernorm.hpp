@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#define MIOPEN_BETA_API 1
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
 #include <miopen/layernorm.hpp>
@@ -236,7 +235,7 @@ protected:
         mean_dev   = handle.Write(mean.data);
         rstd_dev   = handle.Write(rstd.data);
     }
-    void TearDown() override
+    void RunTest()
     {
         auto&& handle = get_handle();
 
@@ -266,7 +265,10 @@ protected:
         output.data = handle.Read<T>(output_dev, output.data.size());
         mean.data   = handle.Read<T>(mean_dev, mean.data.size());
         rstd.data   = handle.Read<T>(rstd_dev, rstd.data.size());
+    }
 
+    void Verify()
+    {
         double threshold = std::numeric_limits<T>::epsilon();
         auto error       = miopen::rms_range(ref_output, output);
 
@@ -276,8 +278,8 @@ protected:
 
         error = miopen::rms_range(ref_mean, mean);
         EXPECT_TRUE(miopen::range_distance(ref_mean) == miopen::range_distance(mean));
-        EXPECT_TRUE(error < threshold * 20)
-            << "Error mean beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        EXPECT_TRUE(error < threshold * 20) << "Error mean beyond tolerance Error:" << error
+                                            << ",  Thresholdx20: " << threshold * 20;
 
         error = miopen::rms_range(ref_rstd, rstd);
         EXPECT_TRUE(miopen::range_distance(ref_rstd) == miopen::range_distance(rstd));

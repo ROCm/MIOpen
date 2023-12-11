@@ -1260,13 +1260,13 @@ void OpTensor(const Handle& handle,
     std::cout << " tensorOp " << tensorOp << "\n";
     std::cout << " alpha0 " << *(float*)alpha0 << "\n";
     std::cout << " aTensorDesc " << aTensorDesc << "\n";
-    std::cout << " ATensor " << ATensor << "\n";
+    //std::cout << " ATensor " << ATensor << "\n";
     std::cout << " alpha1 " << *(float*)alpha1 << "\n";
     std::cout << " bTensorDesc " << bTensorDesc << "\n";
-    std::cout << " BTensor " << BTensor << "\n";
+    //std::cout << " BTensor " << BTensor << "\n";
     std::cout << " beta " << *(float*)beta << "\n";
     std::cout << " cTensorDesc " << cTensorDesc << "\n";
-    std::cout << " CTensor " << CTensor << "\n";
+    //std::cout << " CTensor " << CTensor << "\n";
     std::cout << " Aoffset " << Aoffset << "\n";
     std::cout << " Boffset " << Boffset << "\n";
     std::cout << " Coffset " << Coffset << "\n";
@@ -1761,9 +1761,9 @@ void CopyTensor(const Handle& handle,
 {
     std::cout << "CopyTensor " << "\n";
     std::cout << " srcDesc " << srcDesc << "\n";
-    std::cout << " src " << src << "\n";
+    //std::cout << " src " << src << "\n";
     std::cout << " dstDesc " << dstDesc << "\n";
-    std::cout << " dst " << dst << "\n";
+    //std::cout << " dst " << dst << "\n";
     std::cout << " srcOffset " << srcOffset << "\n";
     std::cout << " dstOffset " << dstOffset << "\n";
 
@@ -1974,6 +1974,7 @@ std::string GetCastTensorBuildOptionFromType(const std::string& buildOption, mio
 
 void CastTensor(const Handle& handle,
                 const void* alpha,
+                const bool clamping,
                 const TensorDescriptor& srcDesc,
                 ConstData_t src,
                 const TensorDescriptor& dstDesc,
@@ -2076,11 +2077,13 @@ void CastTensor(const Handle& handle,
                                       parms);
         }
 
+        const int clamping_arg = clamping ? 1 : 0;
         switch(srcDim_flat)
         {
         case 1: {
             kernel(src,
                    miopen_alpha,
+                   clamping_arg,
                    srcOffset,
                    static_cast<int>(srcDesc_flat.GetStrides()[0]),
                    static_cast<int>(srcDesc_flat.GetLengths()[0]),
@@ -2093,6 +2096,7 @@ void CastTensor(const Handle& handle,
         case 2: {
             kernel(src,
                    miopen_alpha,
+                   clamping_arg,
                    srcOffset,
                    static_cast<int>(srcDesc_flat.GetStrides()[0]),
                    static_cast<int>(srcDesc_flat.GetStrides()[1]),
@@ -2108,6 +2112,7 @@ void CastTensor(const Handle& handle,
         case 3: {
             kernel(src,
                    miopen_alpha,
+                   clamping_arg,
                    srcOffset,
                    static_cast<int>(srcDesc_flat.GetStrides()[0]),
                    static_cast<int>(srcDesc_flat.GetStrides()[1]),
@@ -2126,6 +2131,7 @@ void CastTensor(const Handle& handle,
         case 4: {
             kernel(src,
                    miopen_alpha,
+                   clamping_arg,
                    srcOffset,
                    static_cast<int>(srcDesc_flat.GetStrides()[0]),
                    static_cast<int>(srcDesc_flat.GetStrides()[1]),
@@ -2147,6 +2153,7 @@ void CastTensor(const Handle& handle,
         case 5: {
             kernel(src,
                    miopen_alpha,
+                   clamping_arg,
                    srcOffset,
                    static_cast<int>(srcDesc_flat.GetStrides()[0]),
                    static_cast<int>(srcDesc_flat.GetStrides()[1]),

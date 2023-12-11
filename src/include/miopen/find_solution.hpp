@@ -32,6 +32,7 @@
 #include <miopen/execution_context.hpp>
 #include <miopen/find_controls.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/search_options.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/solver.hpp>
 
@@ -51,10 +52,12 @@ auto FindSolutionImpl(rank<1>,
                       const Problem& problem,
                       Db& db,
                       const AnyInvokeParams& invoke_ctx,
-                      const std::string& perf_cfg)
+                      const std::string& perf_cfg,
+                      const std::optional<FindOptions>& options)
     -> decltype(s.GetSolution(context, problem, s.Search(context, problem, invoke_ctx)))
 {
-    const FindEnforce enforce;
+    const FindEnforce enforce =
+        options && options->find_enforce ? *options->find_enforce : FindEnforce{};
     if(context.disable_perfdb_access)
     {
         MIOPEN_LOG_I(s.SolverDbId() << " (db access disabled)");
@@ -142,7 +145,9 @@ auto FindSolutionImpl(rank<0>,
                       const Problem& problem,
                       Db&,
                       const AnyInvokeParams&,
-                      const std::string&) -> decltype(s.GetSolution(context, problem))
+                      const std::string&,
+                      const std::optional<FindOptions>&)
+    -> decltype(s.GetSolution(context, problem))
 {
     MIOPEN_LOG_I(s.SolverDbId() << " (not searchable)");
     return s.GetSolution(context, problem);
@@ -160,12 +165,14 @@ ConvSolution FindSolution(Solver s,
                           const Problem& problem,
                           Db& db,
                           const AnyInvokeParams& invoke_ctx,
-                          const std::string& perf_cfg = "")
+                          const std::string& perf_cfg               = "",
+                          const std::optional<FindOptions>& options = std::nullopt)
 {
     static_assert(sizeof(Solver) == sizeof(SolverBase), "Solver must be stateless");
     static_assert(std::is_base_of<SolverBase, Solver>{}, "Not derived class of SolverBase");
     // TODO: This assumes all solutions are ConvSolution
-    auto solution      = FindSolutionImpl(rank<1>{}, s, context, problem, db, invoke_ctx, perf_cfg);
+    auto solution =
+        FindSolutionImpl(rank<1>{}, s, context, problem, db, invoke_ctx, perf_cfg, options);
     solution.solver_id = s.SolverDbId();
     return solution;
 }
@@ -173,6 +180,29 @@ ConvSolution FindSolution(Solver s,
 template <class... Solvers>
 struct SolverContainer
 {
+    template <class... SolversRight>
+    auto operator+(SolverContainer<SolversRight...>) const
+    {
+        return SolverContainer<Solvers..., SolversRight...>{};
+    }
+
+    ///\todo: remove when AnySolver would be able to work with non-conv solvers
+    template <class Functor>
+    void FindById(solver::Id id, Functor&& receiver)
+    {
+        bool found = false;
+
+        miopen::each_args(
+            [&](auto solver) {
+                if(found || id != solver::Id{solver.SolverDbId()})
+                    return;
+
+                found = true;
+                receiver(solver);
+            },
+            Solvers{}...);
+    }
+
     // Search for all applicable solutions among many solvers
     template <class Context, class Problem, class Db, class Solution = miopen::solver::ConvSolution>
     std::vector<Solution>
@@ -180,7 +210,8 @@ struct SolverContainer
                           const Problem& problem,
                           Db&& db,
                           const AnyInvokeParams& invoke_ctx,
-                          std::size_t limit = std::numeric_limits<std::size_t>::max()) const
+                          std::size_t limit = std::numeric_limits<std::size_t>::max(),
+                          const std::optional<FindOptions>& options = std::nullopt) const
     {
         std::vector<Solution> ss;
         std::size_t count    = 0;
@@ -206,7 +237,8 @@ struct SolverContainer
                 }
                 else
                 {
-                    const Solution s = FindSolution(solver, ctx, problem, db, invoke_ctx);
+                    const Solution s =
+                        FindSolution(solver, ctx, problem, db, invoke_ctx, "", options);
                     if(s.Succeeded())
                     {
                         ++count;

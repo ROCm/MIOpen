@@ -48,10 +48,6 @@ LogCmdLayerNorm(const miopenTensorDescriptor_t xDesc, const miopenLayerNormMode_
         {
             ss << "layernormbf16";
         }
-        else if(dtype == miopenDouble)
-        {
-            ss << "layernormfp64";
-        }
 
         int32_t size = {0};
         miopenGetTensorDescriptorSize(xDesc, &size);
