@@ -83,11 +83,7 @@ GroupNormForward::GetSolution(const ExecutionContext& context,
 
         size_t numel             = problem.GetXDesc().GetElementSize();
         size_t num_groups        = problem.GetNumGroups();
-        size_t num_channels      = dims[1];
-        size_t numel_per_channel = numel / dims[0] / dims[1];
-
-        size_t outer_size = dims[0] * num_groups;
-        // size_t inner_size = numel / outer_size;
+        size_t outer_size        = dims[0] * num_groups;
 
         size_t xlocalsize = LOCAL_SIZE;
         size_t xgridsize  = outer_size * xlocalsize;
@@ -139,7 +135,7 @@ GroupNormForward::GetSolution(const ExecutionContext& context,
                    params.mean,
                    params.rstd,
                    params.epsilon,
-                   params.num_groups,
+                   static_cast<size_t>(params.num_groups),
                    num_channels,
                    numel_per_channel,
                    static_cast<bool>(params.mode));
