@@ -370,12 +370,8 @@ struct PerformanceConfigConvAsm1x1U : PerfConfigBase<PerformanceConfigConvAsm1x1
 
     void StaticHeuristic(const miopen::conv::ProblemDescription& problem);
     void HeuristicInit(const ExecutionContext&, const miopen::conv::ProblemDescription&);
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
-    void RunParmeterPredictionModel(const ExecutionContext&,
-                                    const miopen::conv::ProblemDescription&,
-                                    bool& valid);
-    bool ModelApplyToken(int index, int value, const miopen::conv::ProblemDescription&);
-#endif
+    bool IsModelApplicable(const ExecutionContext& ctx,
+                           const miopen::conv::ProblemDescription& problem) const;
     bool IsValidValue() const { return IsValidValueImpl(8); }
     bool SetNextValue(const miopen::conv::ProblemDescription&);
     bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription& problem) const
@@ -399,6 +395,9 @@ private:
     {
         return IsValidValueImpl(sequence_length);
     }
+    bool RunParameterPredictionModel(const ExecutionContext&,
+                                     const miopen::conv::ProblemDescription&);
+    bool ModelApplyToken(int index, std::string value, const miopen::conv::ProblemDescription&);
 #endif
     bool IsValidImpl(const miopen::conv::ProblemDescription& problem, int sequence_length) const;
     bool IsValidValueImpl(int sequence_length) const;
@@ -4492,7 +4491,7 @@ struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
         : PerformanceConfigHipImplicitGemmGroupFwdXdlops(0, "")
     {
     }
-    void HeuristicInit(const miopen::conv::ProblemDescription&);
+    void HeuristicInit(const ExecutionContext&, const miopen::conv::ProblemDescription&);
     bool SetNextValue(const miopen::conv::ProblemDescription&);
     bool IsValidValue() const;
     bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription& problem) const
@@ -4501,8 +4500,19 @@ struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
     }
     bool IsValid(const miopen::conv::ProblemDescription&) const;
     bool operator==(const PerformanceConfigHipImplicitGemmGroupFwdXdlops& other) const;
+    bool IsModelApplicable(const ExecutionContext& ctx,
+                           const miopen::conv::ProblemDescription& problem) const;
 
 private:
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+    std::vector<int> heuristic_indexes;
+    std::vector<std::vector<std::string>> heuristic_kernels;
+    template <typename DataType>
+    bool RunParameterPredictionModel(const ExecutionContext& ctx,
+                                     const miopen::conv::ProblemDescription& problem);
+    void InitHeuristicKernelIDs();
+    bool ModelApplyToken(int idx, std::string value);
+#endif
     template <typename DataType>
     void Init(const miopen::conv::ProblemDescription&);
     template <typename DataType>
