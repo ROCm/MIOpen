@@ -61,7 +61,7 @@ boost::filesystem::path GetLibPath()
 }
 #endif
 
-std::string GetSystemDbPath()
+boost::filesystem::path GetSystemDbPath()
 {
     auto p = GetStringEnv(ENV(MIOPEN_SYSTEM_DB_PATH));
     if(p.empty())
@@ -69,12 +69,12 @@ std::string GetSystemDbPath()
     {
         // Here, by default, MIOPEN_SYSTEM_DB_PATH is an empty path on Windows.
         // MIOpen.dll will be searching for System DB files in local directory.
-        return "${MIOPEN_SYSTEM_DB_PATH}";
+        return {"${MIOPEN_SYSTEM_DB_PATH}"};
     }
 #else
     {
         // Get the module path and construct the db path
-        static const auto lib_path = (GetLibPath().parent_path() / "share/miopen/db/").string();
+        static const auto lib_path{GetLibPath().parent_path() / "share/miopen/db/"};
         return lib_path;
     }
 #endif

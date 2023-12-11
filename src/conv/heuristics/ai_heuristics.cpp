@@ -40,6 +40,11 @@ nlohmann::json LoadJSON(const std::string& path)
     return nlohmann::json::parse(std::ifstream(path));
 }
 
+nlohmann::json LoadJSON(const boost::filesystem::path& path)
+{
+    return LoadJSON(path.string());
+}
+
 template <typename U, typename V>
 std::unordered_map<V, U> ReverseMap(const std::unordered_map<U, V>& map)
 {
@@ -64,7 +69,7 @@ std::vector<V> LookupValues(const std::vector<U>& keys, const std::unordered_map
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
 namespace immed_mode {
 Metadata::Metadata(const std::string& arch)
-    : json(common::LoadJSON(GetSystemDbPath() + "/" + arch + "_metadata.tn.model")),
+    : json{common::LoadJSON(GetSystemDbPath() / (arch + "_metadata.tn.model"))},
       direction_encodings(json["encodings"]["Direction"]),
       precision_encodings(json["encodings"]["Precision"]),
       layout_encodings(json["encodings"]["Layout"]),
@@ -137,10 +142,10 @@ protected:
     const size_t offset;
     static std::string ModelPath(const std::string& arch)
     {
-        const auto file_path = GetSystemDbPath() + "/" + arch + ".tn.model";
+        const auto file_path{GetSystemDbPath() / (arch + ".tn.model")};
         if(!boost::filesystem::exists(file_path))
-            MIOPEN_THROW(miopenStatusInternalError, "Unable to load AI model file:" + file_path);
-        return file_path;
+            MIOPEN_THROW(miopenStatusInternalError, "Unable to load AI model file:" + file_path.string());
+        return file_path.string();
     }
     virtual std::vector<float> ToFeatures(const conv::ProblemDescription& problem) const = 0;
 };
@@ -434,7 +439,7 @@ namespace tuning {
 Metadata::Metadata(const std::string& arch, const std::string& solver)
 {
     const nlohmann::json metadata =
-        common::LoadJSON(GetSystemDbPath() + "/" + arch + "_" + solver + "_metadata.ktn.model");
+        common::LoadJSON(GetSystemDbPath() / (arch + "_" + solver + "_metadata.ktn.model"));
     num_tuning_params = metadata["num_tuning_params"].get<std::size_t>();
     tuning_decodings =
         metadata["decodings"]["tunings"].get<std::unordered_map<std::string, std::string>>();
@@ -474,7 +479,7 @@ private:
     static std::string EncoderPath(const std::string& arch, const std::string& solver)
     {
         const std::string path =
-            GetSystemDbPath() + "/" + arch + "_" + solver + "_encoder.ktn.model";
+            (GetSystemDbPath() / (arch + "_" + solver + "_encoder.ktn.model")).string();
         if(!boost::filesystem::exists(path))
             MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
         return path;
@@ -482,7 +487,7 @@ private:
     static std::string DecoderPath(const std::string& arch, const std::string& solver)
     {
         const std::string path =
-            GetSystemDbPath() + "/" + arch + "_" + solver + "_decoder.ktn.model";
+            (GetSystemDbPath() / (arch + "_" + solver + "_decoder.ktn.model")).string();
         if(!boost::filesystem::exists(path))
             MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
         return path;

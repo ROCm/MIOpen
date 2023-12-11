@@ -51,8 +51,8 @@ namespace miopen {
 
 static boost::filesystem::path ComputeSysCachePath()
 {
-    const std::string cache_dir = GetSystemDbPath();
-    auto p                      = miopen::ExpandUser(cache_dir);
+    const auto cache_dir = GetSystemDbPath();
+    auto p               = miopen::ExpandUser(cache_dir.string());
     if(!boost::filesystem::exists(p))
         return {};
     else

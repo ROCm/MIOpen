@@ -61,7 +61,7 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathEmbed(Handle& handle,
     static const auto embed_path = [&] {
         namespace fs          = boost::filesystem;
         const std::string ext = ".fdb.txt";
-        const auto root_path  = fs::path(GetSystemDbPath());
+        const auto root_path  = GetSystemDbPath();
         const auto base_name  = handle.GetDbBasename();
         const auto suffix     = GetSystemFindDbSuffix() + path_suffix;
         const auto filename   = base_name + "." + suffix + ext;
@@ -129,7 +129,7 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle,
     static const auto installed_path = [&] {
         namespace fs          = boost::filesystem;
         const std::string ext = ".fdb.txt";
-        const auto root_path  = fs::path(GetSystemDbPath());
+        const auto root_path  = GetSystemDbPath();
         const auto base_name  = handle.GetDbBasename();
         const auto suffix =
             GetSystemFindDbSuffix() + (path_suffix.empty() ? "" : ('.' + path_suffix));

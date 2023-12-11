@@ -421,7 +421,7 @@ void SetupPaths(boost::filesystem::path& fdb_file_path,
                 const miopen::Handle& handle)
 {
     const std::string ext = ".fdb.txt";
-    const auto root_path  = boost::filesystem::path(miopen::GetSystemDbPath());
+    const auto root_path  = miopen::GetSystemDbPath();
     // The base name has to be the test name for each GPU arch we have
     const std::string base_name = handle.GetDbBasename(); // "gfx90a68";
     const std::string suffix    = "HIP";                  // miopen::GetSystemFindDbSuffix();
