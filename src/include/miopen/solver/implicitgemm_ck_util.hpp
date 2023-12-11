@@ -560,18 +560,29 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 input2_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
                 output_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
 
+                // conversion operator applied here to convert to ConvTensors
+                ConvTensors conv_tensors{data_ctx.tensors};
+
+                // TODO(amber): remove this when DataInvokeParams stops swapping
+                // "in" and "out" tensors for backward pass
+                if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Input) {
+                  // this is backward pass, swap back input and output
+                  std::swap(conv_tensors.x, conv_tensors.y);
+                  std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
+                }
+ 
                 float tot_time = 0;
 
                 // TODO(amber): remove
                 handle.Finish();
                 MIOPEN_LOG_I("calling ConvertFrom");
-                input1_tr_inst.ConvertFrom(handle, kernels, data_ctx.tensors);
+                input1_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
                 tot_time += handle.GetKernelTime();
 
                 // TODO(amber): remove
                 handle.Finish();
                 MIOPEN_LOG_I("calling 2nd ConvertFrom");
-                input2_tr_inst.ConvertFrom(handle, kernels, data_ctx.tensors);
+                input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
                 tot_time += handle.GetKernelTime();
 
                 std::array<internal::TransposeInstanceTagged*, 3> tr_ptrs = {
@@ -596,7 +607,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 // TODO(amber): remove
                 handle.Finish();
                 MIOPEN_LOG_I("calling ConvertTo");
-                output_tr_inst.ConvertTo(handle, kernels, data_ctx.tensors);
+                output_tr_inst.ConvertTo(handle, kernels, conv_tensors);
                 tot_time += handle.GetKernelTime();
 
                 // TODO(amber): remove

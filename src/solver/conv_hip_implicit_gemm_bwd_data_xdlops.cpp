@@ -339,11 +339,7 @@ ConvSolution ConvHipImplicitGemmBwdXdlops::GetSolution(
         problem,
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            /// \todo This call should be InitInvokerFactoryBwdNCHW but due to the
-            /// silliness of "in tensor is out and out is in" in backward pass,
-            /// InitInvokerFactoryFwdNCHW works correct while Bwd call causes wrong
-            /// output -- amberhassaan
-            return InitInvokerFactoryFwdNCHW<2,
+            return InitInvokerFactoryBwdNCHW<2,
                                              DeviceOpBwdPtrs<T>,
                                              CKArgs,
                                              miopen::conv::DataInvokeParams>(
