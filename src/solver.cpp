@@ -28,9 +28,10 @@
 
 #include <miopen/activ/solvers.hpp>
 #include <miopen/batchnorm/solvers.hpp>
-#include <miopen/pooling/solvers.hpp>
 #include <miopen/fusion/solvers.hpp>
+#include <miopen/groupnorm/solvers.hpp>
 #include <miopen/layernorm/solvers.hpp>
+#include <miopen/pooling/solvers.hpp>
 #include <miopen/reduce/solvers.hpp>
 
 #include <miopen/conv_algo_name.hpp>
@@ -607,6 +608,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdInference{}.SolverDbId());
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKBwdBackward{}.SolverDbId());
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdTraining{}.SolverDbId());
+    Register(registry, ++id, Primitive::Normalization, groupnorm::GroupNormForward{}.SolverDbId());
     Register(
         registry, ++id, Primitive::Normalization, layernorm::Layernorm2DCKForward{}.SolverDbId());
     Register(
