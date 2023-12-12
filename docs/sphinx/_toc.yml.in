@@ -1,3 +1,15 @@
+.. meta::
+  :description: MIOpen documentation and API reference library
+  :keywords: MIOpen, ROCm, API, documentation
+
+********************************************************************
+MIOpen documentation
+********************************************************************
+
+Welcome to the MIOpen docs home page! To learn more, see :ref:`what-is-MIOpen`
+
+Our documentation is structured as follows:
+
 # Anywhere {branch} is used, the branch name will be substituted.
 # These comments will also be removed.
 defaults:
@@ -32,3 +44,17 @@ subtrees:
   - file: tutorials/embed.rst
   - file: tutorials/driver.rst
     title: Installing and building MIOpen
+
+Contributing to this documentation
+=======================================================
+
+We welcome collaboration! If you'd like to contribute to our documentation, you can find instructions
+in our `Contributing to ROCm  <https://rocm.docs.amd.com/en/latest/contribute/index.md>`_ section, which discusses:
+
+* `Document structure <https://rocm.docs.amd.com/en/develop/contribute/index.html#supported-formats>`_
+* `Toolchains <https://rocm.docs.amd.com/en/develop/contribute/toolchain.html>`_
+* `Documentation builds <https://rocm.docs.amd.com/en/develop/contribute/building.html>`_
+* `How to provide feedback <https://rocm.docs.amd.com/en/develop/contribute/feedback.html>`_
+
+Licensing information for all ROCm components is listed on our
+`Licensing <https://rocm.docs.amd.com/en/latest/about/license.md>`_ page.
