@@ -591,6 +591,12 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 std::array<internal::TransposeInstanceTagged*, 3> tr_ptrs = {
                     &input1_tr_inst, &input2_tr_inst, &output_tr_inst};
 
+                // TODO(amber): remove
+                MIOPEN_LOG_I("Inputs for CK conv kernel: " << 
+                    tr_ptrs[0]->GetBufferPtr() << ", " << 
+                    tr_ptrs[1]->GetBufferPtr() << ", " << 
+                    tr_ptrs[2]->GetBufferPtr() << ", ");
+
                 // sort by tag in order: Input, Weights, Output
                 std::sort(tr_ptrs.begin(), tr_ptrs.end(), [](const auto& left, const auto& right) {
                     return left->GetConvOperandTagAsInt() < right->GetConvOperandTagAsInt();
