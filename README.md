@@ -46,7 +46,7 @@ python3 -m sphinx -T -E -b html -d _build/doctrees -D language=en . _build/html
 * [MIOpenTENSILE](https://github.com/ROCmSoftwarePlatform/MIOpenTensile) - users can enable this library using the cmake configuration flag`-DMIOPEN_USE_MIOPENTENSILE=On`. (deprecated after ROCm 5.1.1)
 * [rocBLAS](https://github.com/ROCm/rocBLAS) - AMD library for Basic Linear Algebra Subprograms (BLAS) on the ROCm platform.
   * Minimum version branch for pre-ROCm 3.5 [master-rocm-2.10](https://github.com/ROCm/rocBLAS/tree/master-rocm-2.10)
-  * Minimum version branch for post-ROCm 3.5 [master-rocm-3.5](https://github.com/ROCm/releases/tag/rocm-3.5.0)
+  * Minimum version branch for post-ROCm 3.5 [master-rocm-3.5](https://github.com/ROCm/releases/tag/rocm-3.5)
 * [MLIR](https://github.com/ROCm/llvm-project-mlir) - (Multi-Level Intermediate Representation) with its MIOpen dialect to support and complement kernel development.
 * [Composable Kernel](https://github.com/ROCm/composable_kernel) - C++ templated device library for GEMM-like and reduction-like operators.
 
