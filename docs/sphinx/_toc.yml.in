@@ -1,38 +1,32 @@
-.. meta::
-  :description: MIOpen documentation and API reference library
-  :keywords: MIOpen, ROCm, API, documentation
-
-# Welcome to the MIOpen docs home page! To learn more, see :ref:`what-is-MIOpen`
-
-# Our documentation is structured as follows:
-
 # Anywhere {branch} is used, the branch name will be substituted.
 # These comments will also be removed.
 defaults:
   numbered: False
   maxdepth: 7
 root: index
-subtrees:
 - caption: What is MIOpen?
-  entries:
-  - file: tutorials/what-is-MIOpen.rst
-  - file: tutorials/find_and_immediate.rst
-    title: Find and Immediate
-  - file: tutorials/finddb.rst
-    title: Find database
-  - file: tutorials/cache.rst
-    title: Cache
-  - file: tutorials/perfdatabase.rst
-    title: Performance database
-  - file: tutorials/Getting_Started_FusionAPI.rst
-    title: Getting started with Fusion API
-  - file: tutorials/DebugAndLogging.rst
-    title: Debugging and logging
-  - file: tutorials/MI200AlternateImplementation.rst
-    title: Alternate implementation for MI200
-  - file: tutorials/MIOpen_Porting_Guide.rst
-    title: MIOpen Porting Guide
+  subtrees:
+    - entries:
+      - file: tutorials/what-is-MIOpen.rst
+        title: What is MIOpen?
+      - file: tutorials/find_and_immediate.rst
+        title: Find and Immediate
+      - file: tutorials/finddb.rst
+        title: Find database
+      - file: tutorials/cache.rst
+        title: Cache
+      - file: tutorials/perfdatabase.rst
+        title: Performance database
+      - file: tutorials/Getting_Started_FusionAPI.rst
+        title: Getting started with Fusion API
+      - file: tutorials/DebugAndLogging.rst
+        title: Debugging and logging
+      - file: tutorials/MI200AlternateImplementation.rst
+        title: Alternate implementation for MI200
+      - file: tutorials/MIOpen_Porting_Guide.rst
+        title: MIOpen Porting Guide
   
+   - file: tutorials/index.rst
 - caption: Quick-start
   subtrees:
   - entries:
@@ -45,13 +39,14 @@ subtrees:
 
   - file: reference/index.rst
 - caption: API reference
-  entries:
-  - file: reference/apireference.rst
-    title: API library
+  subtrees:
+    - entries
+      - file: reference/apireference.rst
+        title: API library
     
   - file: tutorials/index.rst
 - caption: Tutorials
-  subtrees
+  subtrees:
     - entries:
       - file: tutorials/install.rst
         title: MIOpen installation
@@ -60,16 +55,3 @@ subtrees:
       - file: tutorials/driver.rst
         title: Installing and building MIOpen
 
-Contributing to this documentation
-=======================================================
-
-We welcome collaboration! If you'd like to contribute to our documentation, you can find instructions
-in our `Contributing to ROCm  <https://rocm.docs.amd.com/en/latest/contribute/index.md>`_ section, which discusses:
-
-* `Document structure <https://rocm.docs.amd.com/en/develop/contribute/index.html#supported-formats>`_
-* `Toolchains <https://rocm.docs.amd.com/en/develop/contribute/toolchain.html>`_
-* `Documentation builds <https://rocm.docs.amd.com/en/develop/contribute/building.html>`_
-* `How to provide feedback <https://rocm.docs.amd.com/en/develop/contribute/feedback.html>`_
-
-Licensing information for all ROCm components is listed on our
-`Licensing <https://rocm.docs.amd.com/en/latest/about/license.md>`_ page.
