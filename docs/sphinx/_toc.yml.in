@@ -19,20 +19,20 @@ root: index
 subtrees:
 - caption: What is MIOpen?
   entries:
-  - file: find_and_immediate.rst
-  - file: finddb.rst
-  - file: cache.rst
-  - file: perfdatabase.rst
-  - file: Getting_Started_FusionAPI.rst
-  - file: DebugAndLogging.rst
-  - file: MI200AlternateImplementation.rst
-  - file: MIOpen_Porting_Guide.rst
+  - file: tutorials/find_and_immediate.rst
+  - file: tutorials/finddb.rst
+  - file: tutorials/cache.rst
+  - file: tutorials/perfdatabase.rst
+  - file: tutorials/Getting_Started_FusionAPI.rst
+  - file: tutorials/DebugAndLogging.rst
+  - file: tutorials/MI200AlternateImplementation.rst
+  - file: tutorials/MIOpen_Porting_Guide.rst
   
 - caption: Quick-start
   entries:
-  - file: reference/install.rst
-  - file: reference/embed.rst
-  - file: reference/driver.rst
+  - file: tutorials/install.rst
+  - file: tutorials/embed.rst
+  - file: tutorials/driver.rst
 - caption: API reference
   entries:
   - file: reference/apireference.rst
