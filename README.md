@@ -2,7 +2,7 @@
 
 AMD's library for high performance machine learning primitives.
 Sources and binaries can be found at [MIOpen's GitHub site](https://github.com/ROCmSoftwarePlatform/MIOpen).
-The latest released documentation can be read online [here](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/index.html).
+The latest released documentation can be read online [here](https://rocm.docs.amd.com/projects/MIOpen/en/latest/index.html).
 
 MIOpen supports two programming models
 
@@ -39,7 +39,7 @@ python3 -m sphinx -T -E -b html -d _build/doctrees -D language=en . _build/html
 * [ROCm cmake](https://github.com/RadeonOpenCompute/rocm-cmake) - provide cmake modules for common build tasks needed for the ROCM software stack.
 * [Half](http://half.sourceforge.net/) - IEEE 754-based half-precision floating point library
 * [Boost](http://www.boost.org/)
-  * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html)
+  * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://rocm.docs.amd.com/projects/MIOpen/en/latest/cache.html)
   * Version 1.79 is recommended, older version may need patches to work on newer systems, e.g. boost1{69,70,72} w/glibc-2.34
 * [SQLite3](https://sqlite.org/index.html) - reading and writing performance database
 * lbzip2 - multi-threaded compress or decompress utility
@@ -174,7 +174,7 @@ cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On ..
 
 Database paths can be explicitly customized by means of `MIOPEN_SYSTEM_DB_PATH` (System PerfDb) and `MIOPEN_USER_DB_PATH` (User PerfDb) cmake variables.
 
-More information about the performance database can be found [here](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html).
+More information about the performance database can be found [here](https://rocm.docs.amd.com/projects/MIOpen/en/latest/perfdatabase.html).
 
 ### Persistent Program Cache
 
@@ -184,7 +184,7 @@ Users can also disable the cache during runtime using the environmental variable
 
 #### For MIOpen version 2.3 and earlier
 
-If the compiler changes, or the user modifies the kernels then the cache must be deleted for the MIOpen version in use; e.g., `rm -rf ~/.cache/miopen/<miopen-version-number>`. More information about the cache can be found [here](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html).
+If the compiler changes, or the user modifies the kernels then the cache must be deleted for the MIOpen version in use; e.g., `rm -rf ~/.cache/miopen/<miopen-version-number>`. More information about the cache can be found [here](https://rocm.docs.amd.com/projects/MIOpen/en/latest/cache.html).
 
 #### For MIOpen version 2.4 and later
 
@@ -218,7 +218,7 @@ The driver can be built using the `MIOpenDriver` target:
 
 ` cmake --build . --config Release --target MIOpenDriver ` **OR** ` make MIOpenDriver `
 
-Documentation on how to run the driver is [here](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/driver.html).
+Documentation on how to run the driver is [here](https://rocm.docs.amd.com/projects/MIOpen/en/latest/driver.html).
 
 ## Running the tests
 
