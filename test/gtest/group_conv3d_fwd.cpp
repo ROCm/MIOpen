@@ -51,7 +51,7 @@ std::vector<Conv3DTestCase> ConvTestConfigs()
             {5, 120, 60, 28, 28, 28, 60, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution}};
 }
 
-struct ConvFwdSolverTest3D : ConvFwdSolverTest<half_float::half>
+struct ConvGroupFwdSolverTest3D : ConvFwdSolverTest<half_float::half>
 {
 };
 
@@ -97,7 +97,7 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     handle.Finish();
 }
 
-TEST_P(ConvFwdSolverTest3D, CKGroupConvFwd3D)
+TEST_P(ConvGroupFwdSolverTest3D, CKGroupConvFwd3D)
 {
     SolverFwd<miopen::solver::conv::ConvHipImplicitGemm3DGroupFwdXdlops>(input.desc,
                                                                          in_dev.get(),
@@ -111,7 +111,7 @@ TEST_P(ConvFwdSolverTest3D, CKGroupConvFwd3D)
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
-                         ConvFwdSolverTest3D,
+                         ConvGroupFwdSolverTest3D,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
                                           testing::ValuesIn(ConvTestConfigs()),
                                           testing::Values(miopenTensorNDHWC)));

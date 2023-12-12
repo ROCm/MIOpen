@@ -26,27 +26,102 @@
 #pragma once
 
 #include <gtest/gtest.h>
+
 #include <random>
-#include "hip_float8.hpp"
+
+#include <hip_float8.hpp>
 
 // Copied from conv_driver.hpp
 
 template <typename T>
-extern T RanGenData();
+inline T FRAND()
+{
+    double d = static_cast<double>(rand() / (static_cast<double>(RAND_MAX)));
+    return static_cast<T>(d);
+}
+
+template <typename T>
+inline T RAN_GEN(T A, T B)
+{
+    T r = (FRAND<T>() * (B - A)) + A;
+    return r;
+}
+template <typename T>
+inline T RanGenData()
+{
+    return RAN_GEN<T>(static_cast<T>(0.0f), static_cast<T>(1.0f));
+}
+
+template <>
+inline float8 RanGenData()
+{
+    return RAN_GEN<float8>(static_cast<float8>(-1.0f), static_cast<float8>(1.0f));
+}
+
+template <>
+inline bfloat8 RanGenData()
+{
+    const auto tmp = RAN_GEN<float>(static_cast<float>(-1.0f), static_cast<float>(1.0f));
+    return static_cast<bfloat8>(tmp);
+}
 
 template <typename T>
 struct GenData
 {
     template <class... Ts>
-    T operator()(Ts...) const;
+    T operator()(Ts...) const
+    {
+        return RanGenData<T>();
+    }
 };
 
 template <typename T>
-extern T RanGenWeights();
+T RanGenWeights()
+{
+    return RAN_GEN<T>(static_cast<T>(-0.5), static_cast<T>(0.5));
+}
+
+// Shift FP16 distribution towards positive numbers,
+// otherwise Winograd FP16 validation fails.
+template <>
+inline half_float::half RanGenWeights()
+{
+    return RAN_GEN<half_float::half>(static_cast<half_float::half>(-1.0 / 3.0),
+                                     static_cast<half_float::half>(0.5));
+}
+
+template <>
+inline float8 RanGenWeights()
+{
+    const auto tmp =
+        RAN_GEN<float>(0.0, 1.0) > 0.5 ? static_cast<float>(0.0) : static_cast<float>(1.0);
+    // 1 in 2 chance of number being positive
+    const float sign =
+        (RAN_GEN<float>(0.0, 1.0) > 0.5) ? static_cast<float>(-1) : static_cast<float>(1);
+    const auto tmp2 = static_cast<float>(std::numeric_limits<float8>::epsilon()) *
+                      static_cast<float>(2) * sign * static_cast<float>(tmp);
+    return static_cast<float8>(tmp2);
+}
+
+template <>
+inline bfloat8 RanGenWeights()
+{
+    const auto tmp =
+        RAN_GEN<float>(0.0, 1.0) > 0.5 ? static_cast<float>(0.0) : static_cast<float>(1.0);
+    // 1 in 2 chance of number being positive
+    const float sign =
+        (RAN_GEN<float>(0.0, 1.0) > 0.5) ? static_cast<float>(-1) : static_cast<float>(1);
+    const auto tmp2 = static_cast<float>(std::numeric_limits<float8>::epsilon()) *
+                      static_cast<float>(2) * sign * static_cast<float>(tmp);
+    return static_cast<bfloat8>(tmp2);
+}
 
 template <typename T>
 struct GenWeights
 {
     template <class... Ts>
-    T operator()(Ts...) const;
+    T operator()(Ts...) const
+    {
+        return RanGenWeights<T>();
+    }
 };

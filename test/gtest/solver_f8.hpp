@@ -37,8 +37,7 @@
 #include "verify.hpp"
 
 #include "conv_test_base.hpp"
-using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
-using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
+#include "f8_cast_util.hpp"
 
 float scalar_gen_random_float(float low, float high)
 {
@@ -76,27 +75,6 @@ struct ConvTestCaseF8
             {static_cast<int>(pad_y), static_cast<int>(pad_x)},
             {static_cast<int>(stride_y), static_cast<int>(stride_x)},
             {static_cast<int>(dilation_y), static_cast<int>(dilation_y)}};
-    }
-};
-
-template <typename U, typename V>
-struct Fp8Cast
-{
-    uint64_t seed = 1234;
-    bool is_stoch = true;
-    V operator()(U x)
-    {
-        if(is_stoch)
-        {
-            auto tmp =
-                float8(static_cast<float>(x), miopen_f8::hip_f8_rounding_mode::stochastic, seed);
-            return static_cast<V>(tmp);
-        }
-        else
-        {
-            auto tmp = float8(static_cast<float>(x));
-            return static_cast<V>(tmp);
-        }
     }
 };
 

@@ -108,7 +108,7 @@ void ConvFwdSolverTestBase<T, Tref, use_cpu_ref>::SetUpImpl(ConvTestCaseBase con
     conv_desc = conv_config.GetConv();
 
     miopen::TensorDescriptor output_desc =
-        conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
+        conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
 
     output = tensor<T>{tensor_layout, output_desc.GetLengths()};
     std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
@@ -123,7 +123,7 @@ template <typename T, typename Tref, bool use_cpu_ref>
 void ConvFwdSolverTestBase<T, Tref, use_cpu_ref>::TearDownConv()
 {
     miopen::TensorDescriptor output_desc =
-        conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
+        conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
     ref_out = tensor<T>{output.desc.GetLayout_t(), output_desc.GetLengths()};
     if(use_cpu_ref)
     {

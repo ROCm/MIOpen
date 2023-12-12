@@ -54,7 +54,7 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class ConfigWithInt8 : public testing::TestWithParam<std::vector<std::string>>
+class ConvHipIgemmXdlopsConfigInt8 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -63,7 +63,7 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenInt8: params = ConfigWithInt8::GetParam(); break;
+    case miopenInt8: params = ConvHipIgemmXdlopsConfigInt8::GetParam(); break;
     case miopenFloat8:
     case miopenBFloat8:
     case miopenHalf:
@@ -76,7 +76,7 @@ void Run2dDriver(miopenDataType_t prec)
                   "type not supported by "
                   "test_conv_hip_igemm_xdlops test";
 
-    default: params = ConfigWithInt8::GetParam();
+    default: params = ConvHipIgemmXdlopsConfigInt8::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -105,7 +105,7 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
         return false;
 }
 
-TEST_P(ConfigWithInt8, Int8Test)
+TEST_P(ConvHipIgemmXdlopsConfigInt8, Int8Test)
 {
 #if MIOPEN_BACKEND_OPENCL
 
@@ -167,7 +167,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvHipIgemmXdlops,
-                         ConfigWithInt8,
+                         ConvHipIgemmXdlopsConfigInt8,
                          testing::Values(GetTestCases("--int8")));
 
 } //namespace conv_hip_igem_xdlops

@@ -42,10 +42,10 @@ void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class ConfigWithHalf : public testing::TestWithParam<std::vector<TestCase>>
+class ConvIgemmMlirXdlopsConfigHalf : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
-class ConfigWithInt8 : public testing::TestWithParam<std::vector<TestCase>>
+class ConvIgemmMlirXdlopsConfigInt8 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -55,8 +55,8 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<TestCase> params;
     switch(prec)
     {
-    case miopenHalf: params = ConfigWithHalf::GetParam(); break;
-    case miopenInt8: params = ConfigWithInt8::GetParam(); break;
+    case miopenHalf: params = ConvIgemmMlirXdlopsConfigHalf::GetParam(); break;
+    case miopenInt8: params = ConvIgemmMlirXdlopsConfigInt8::GetParam(); break;
     case miopenBFloat16:
     case miopenFloat:
     case miopenInt32:
@@ -68,7 +68,7 @@ void Run2dDriver(miopenDataType_t prec)
                      "type not supported by "
                      "conv_igemm_mlir_xdlops test");
 
-    default: params = ConfigWithHalf::GetParam();
+    default: params = ConvIgemmMlirXdlopsConfigHalf::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -88,7 +88,7 @@ void Run2dDriver(miopenDataType_t prec)
     }
 };
 
-TEST_P(ConfigWithHalf, HalfTest)
+TEST_P(ConvIgemmMlirXdlopsConfigHalf, HalfTest)
 {
 #if MIOPEN_USE_MLIR
 
@@ -110,7 +110,7 @@ TEST_P(ConfigWithHalf, HalfTest)
 #endif
 };
 
-TEST_P(ConfigWithInt8, Int8Test)
+TEST_P(ConvIgemmMlirXdlopsConfigInt8, Int8Test)
 {
 #if MIOPEN_USE_MLIR
 
@@ -198,11 +198,11 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
 }
 // Half for FWD, BWD, WRW
 INSTANTIATE_TEST_SUITE_P(ConvIgemmMlirXdlops,
-                         ConfigWithHalf,
+                         ConvIgemmMlirXdlopsConfigHalf,
                          testing::Values(GetTestCases("--half")));
 // Int8 for FWD
 INSTANTIATE_TEST_SUITE_P(ConvIgemmMlirXdlops,
-                         ConfigWithInt8,
+                         ConvIgemmMlirXdlopsConfigInt8,
                          testing::Values(GetTestCases("--int8")));
 
 } //namespace conv_igemm_mlir_xdlops 

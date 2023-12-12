@@ -67,13 +67,13 @@ void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class ConfigWithFloat : public testing::TestWithParam<std::vector<TestCase>>
+class ConvIgemmMlirConfigFloat : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
-class ConfigWithHalf : public testing::TestWithParam<std::vector<TestCase>>
+class ConvIgemmMlirConfigHalf : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
-class ConfigWithInt8 : public testing::TestWithParam<std::vector<TestCase>>
+class ConvIgemmMlirConfigInt8 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -83,9 +83,9 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<TestCase> params;
     switch(prec)
     {
-    case miopenHalf: params = ConfigWithHalf::GetParam(); break;
-    case miopenInt8: params = ConfigWithInt8::GetParam(); break;
-    case miopenFloat: params = ConfigWithFloat::GetParam(); break;
+    case miopenHalf: params = ConvIgemmMlirConfigHalf::GetParam(); break;
+    case miopenInt8: params = ConvIgemmMlirConfigInt8::GetParam(); break;
+    case miopenFloat: params = ConvIgemmMlirConfigFloat::GetParam(); break;
     case miopenBFloat16:
     case miopenInt32:
     case miopenFloat8:
@@ -95,7 +95,7 @@ void Run2dDriver(miopenDataType_t prec)
                      "miopenBFloat16, miopenInt32, miopenFloat8, miopenBFloat8, "
                      "miopenDouble data type not supported by conv_igemm_mlir test");
 
-    default: params = ConfigWithFloat::GetParam();
+    default: params = ConvIgemmMlirConfigFloat::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -115,7 +115,7 @@ void Run2dDriver(miopenDataType_t prec)
     }
 };
 
-TEST_P(ConfigWithFloat, FloatTest)
+TEST_P(ConvIgemmMlirConfigFloat, FloatTest)
 {
 #if MIOPEN_USE_MLIR
 
@@ -137,7 +137,7 @@ TEST_P(ConfigWithFloat, FloatTest)
 #endif
 };
 
-TEST_P(ConfigWithHalf, HalfTest)
+TEST_P(ConvIgemmMlirConfigHalf, HalfTest)
 {
 #if MIOPEN_USE_MLIR
 
@@ -159,7 +159,7 @@ TEST_P(ConfigWithHalf, HalfTest)
 #endif
 };
 
-TEST_P(ConfigWithInt8, Int8Test)
+TEST_P(ConvIgemmMlirConfigInt8, Int8Test)
 {
 #if MIOPEN_USE_MLIR
 
@@ -245,10 +245,10 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
     return test_cases;
 }
 // Float for FWD, BWD, WRW
-INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, ConfigWithFloat, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, ConvIgemmMlirConfigFloat, testing::Values(GetTestCases("--float")));
 // Half for FWD, BWD, WRW
-INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, ConfigWithHalf, testing::Values(GetTestCases("--half")));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, ConvIgemmMlirConfigHalf, testing::Values(GetTestCases("--half")));
 // Int8 for FWD
-INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, ConfigWithInt8, testing::Values(GetTestCases("--int8")));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, ConvIgemmMlirConfigInt8, testing::Values(GetTestCases("--int8")));
 
 } //namespace conv_igemm_mlir 
