@@ -38,13 +38,14 @@ subtrees:
     title: MIOpen Porting Guide
   
 - caption: Quick-start
-  entries:
-  - file: tutorials/quick-start/install.rst
-    title: MIOpen installation
-  - file: tutorials/quick-start/embed.rst
-    title: Embedding MIOpen
-  - file: tutorials/quick-start/driver.rst
-    title: About MIOpen driver 
+  subtrees:
+  - entries:
+    - file: tutorials/quick-start/install.rst
+      title: MIOpen installation
+    - file: tutorials/quick-start/embed.rst
+      title: Embedding MIOpen
+    - file: tutorials/quick-start/driver.rst
+      title: About MIOpen driver 
 
   - file: reference/index.rst
 - caption: API reference
@@ -54,11 +55,14 @@ subtrees:
     
   - file: tutorials/index.rst
 - caption: Tutorials
-  entries:
-  - file: tutorials/install.rst
-  - file: tutorials/embed.rst
-  - file: tutorials/driver.rst
-    title: Installing and building MIOpen
+  subtrees
+    - entries:
+      - file: tutorials/install.rst
+        title: MIOpen installation
+      - file: tutorials/embed.rst
+        title: Embedding MIOpen
+      - file: tutorials/driver.rst
+        title: Installing and building MIOpen
 
 Contributing to this documentation
 =======================================================
