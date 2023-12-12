@@ -58,7 +58,7 @@ This release provides additional bug fixes and support for embedded build using 
 - Added cmake flag for embedding system databases when building a static library
 - Added a way to disable building MIOpenDriver when building a static library
 - Added CC compiler detection in ROCm environment
-- Known issue: This release may show warnings for "obsolete configs" in the performance database. This can be fixed by rerunning tuning on a specfic network; [see tuning documentation](https://ROCm.github.io/MIOpen/doc/html/perfdatabase.html#miopen-find-enforce)
+- Known issue: This release may show warnings for "obsolete configs" in the performance database. This can be fixed by rerunning tuning on a specfic network; [see tuning documentation](https://rocm.docs.amd.com/projects/MIOpen/en/latest/perfdatabase.html#miopen-find-enforce)
 
 
 
