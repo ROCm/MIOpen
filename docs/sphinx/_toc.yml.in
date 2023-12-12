@@ -2,13 +2,9 @@
   :description: MIOpen documentation and API reference library
   :keywords: MIOpen, ROCm, API, documentation
 
-********************************************************************
-MIOpen documentation
-********************************************************************
+# Welcome to the MIOpen docs home page! To learn more, see :ref:`what-is-MIOpen`
 
-Welcome to the MIOpen docs home page! To learn more, see :ref:`what-is-MIOpen`
-
-Our documentation is structured as follows:
+# Our documentation is structured as follows:
 
 # Anywhere {branch} is used, the branch name will be substituted.
 # These comments will also be removed.
