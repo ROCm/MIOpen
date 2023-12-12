@@ -500,6 +500,31 @@ auto MakeTaggedTransposeInstances(ConvSolution& result,
 
 } // end namespace internal
 
+/// \todo move to a cpp file
+inline size_t GetWorkspaceSizeLayoutTransformConv(const ProblemDescription& problem)
+{
+    if(problem.IsLayoutNHWC())
+    {
+        return 0;
+    }
+
+    assert(problem.IsLayoutDefault());
+    // packed size in bytes
+    auto GetPackedSize = [](const TensorDescriptor& td) {
+        auto sz                         = td.GetElementSize() * GetTypeSize(td.GetType());
+        constexpr size_t alignment      = 256u;
+        constexpr size_t alignment_mask = alignment - 1;
+        static_assert(alignment_mask > 0);
+        static_assert((alignment & alignment_mask) == 0);
+        return (sz + alignment_mask) & ~(alignment_mask);
+    };
+
+    auto w_sz = GetPackedSize(problem.GetIn()) + GetPackedSize(problem.GetWeights()) +
+                GetPackedSize(problem.GetOut());
+
+    return w_sz;
+}
+
 template <typename DeviceOpType,
           typename CKArgsType,
           typename CastType,
@@ -592,10 +617,9 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                     &input1_tr_inst, &input2_tr_inst, &output_tr_inst};
 
                 // TODO(amber): remove
-                MIOPEN_LOG_I("Inputs for CK conv kernel: " << 
-                    tr_ptrs[0]->GetBufferPtr() << ", " << 
-                    tr_ptrs[1]->GetBufferPtr() << ", " << 
-                    tr_ptrs[2]->GetBufferPtr() << ", ");
+                MIOPEN_LOG_I("Inputs for CK conv kernel: " << tr_ptrs[0]->GetBufferPtr() << ", "
+                                                           << tr_ptrs[1]->GetBufferPtr() << ", "
+                                                           << tr_ptrs[2]->GetBufferPtr() << ", ");
 
                 // sort by tag in order: Input, Weights, Output
                 std::sort(tr_ptrs.begin(), tr_ptrs.end(), [](const auto& left, const auto& right) {
@@ -630,6 +654,9 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 }
             };
         };
+
+    result.workspace_sz = GetWorkspaceSizeLayoutTransformConv(problem);
+
     return result;
 }
 
@@ -730,31 +757,6 @@ MakeSolutionGroupConvImplicitGemmXdlops(const ProblemDescription& problem,
             "3DGroupConvolutionImplicitGemmXdlops operation not implemented for this data type");
     }
     return {};
-}
-
-/// \todo move to a cpp file
-inline size_t GetWorkspaceSizeLayoutTransformConv(const ProblemDescription& problem)
-{
-    if(problem.IsLayoutNHWC())
-    {
-        return 0;
-    }
-
-    assert(problem.IsLayoutDefault());
-    // packed size in bytes
-    auto GetPackedSize = [](const TensorDescriptor& td) {
-        auto sz                         = td.GetElementSize() * GetTypeSize(td.GetType());
-        constexpr size_t alignment      = 256u;
-        constexpr size_t alignment_mask = alignment - 1;
-        static_assert(alignment_mask > 0);
-        static_assert((alignment & alignment_mask) == 0);
-        return (sz + alignment_mask) & ~(alignment_mask);
-    };
-
-    auto w_sz = GetPackedSize(problem.GetIn()) + GetPackedSize(problem.GetWeights()) +
-                GetPackedSize(problem.GetOut());
-
-    return w_sz;
 }
 
 } // namespace solver
