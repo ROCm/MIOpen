@@ -70,7 +70,7 @@ def cmake_build(Map conf=[:]){
     }
 
     if(conf.get("codecov", false)){ //Need
-        setup_args = " -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags} -fprofile-instr-generate -fcoverage-mapping' -DCODECOV_TEST=On " + setup_args
+        setup_args = " -DCMAKE_BUILD_TYPE=release -DCMAKE_CXX_FLAGS='-fprofile-instr-generate -fcoverage-mapping' -DCODECOV_TEST=On " + setup_args
     }else if(build_type_debug){
         setup_args = " -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags}'" + setup_args
     }else{
