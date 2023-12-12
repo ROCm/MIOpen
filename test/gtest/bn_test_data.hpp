@@ -55,7 +55,8 @@ struct BNTestCase
     std::vector<size_t> GetInput() const { return {N, C, H, W}; }
 };
 
-extern std::vector<BNTestCase> Network1();
+template<typename T>
+extern std::vector<T> Network1();
 
 template <typename XDataType, typename YDataType, typename TConfig>
 struct BNTestData

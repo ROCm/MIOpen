@@ -36,6 +36,8 @@ MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_MLIR)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
+namespace conv_igemm_mlir {
+
 using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
 std::string GetFloatArg()
@@ -248,3 +250,5 @@ INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, ConfigWithFloat, testing::Values(GetTest
 INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, ConfigWithHalf, testing::Values(GetTestCases("--half")));
 // Int8 for FWD
 INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, ConfigWithInt8, testing::Values(GetTestCases("--int8")));
+
+} //namespace conv_igemm_mlir 

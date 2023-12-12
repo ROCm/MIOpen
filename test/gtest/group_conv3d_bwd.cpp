@@ -32,6 +32,19 @@
 #include "get_handle.hpp"
 #include "group_conv3d_bwd.hpp"
 
+namespace group_conv3d_bwd {
+
+std::vector<Conv3DTestCase> ConvTestConfigs()
+{ // g    n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
+    return {{1, 128, 64, 14, 28, 28, 64, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {1, 64, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {32, 128, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {16, 128, 16, 28, 28, 28, 16, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {8, 128, 8, 28, 28, 28, 8, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {4, 128, 4, 28, 28, 28, 4, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {2, 128, 2, 28, 28, 28, 2, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution}};
+}
+
 struct ConvBwdSolverTest3D : ConvBwdSolverTest<float>
 {
 };
@@ -94,5 +107,7 @@ TEST_P(ConvBwdSolverTest3D, CKGroupConvBwd3D)
 INSTANTIATE_TEST_SUITE_P(ConvBwdTest,
                          ConvBwdSolverTest3D,
                          testing::Combine(testing::Values(miopenConvolutionBwdDataAlgoImplicitGEMM),
-                                          testing::ValuesIn(ConvTestConfigs<Conv3DTestCase>()),
+                                          testing::ValuesIn(ConvTestConfigs()),
                                           testing::Values(miopenTensorNDHWC)));
+
+} //namespace group_conv3d_bwd 

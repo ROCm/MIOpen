@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-#include "conv3d_test_case.hpp"
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/solver_id.hpp>
@@ -32,8 +31,10 @@
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
 #include "f8_cast_util.hpp"
+#include "conv3d_test_case.hpp"
 
-template<>
+namespace conv_f8_wrw {
+
 std::vector<Conv3DTestCase> ConvTestConfigs()
 { // g   n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
     return {{1, 16, 16, 1, 14, 14, 16, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
@@ -196,5 +197,7 @@ INSTANTIATE_TEST_SUITE_P(
     ConvWrwTest,
     ConvWrwSolverTestF8,
     testing::Combine(testing::Values(miopenConvolutionBwdWeightsAlgoImplicitGEMM),
-                     testing::ValuesIn(ConvTestConfigs<Conv3DTestCase>()),
+                     testing::ValuesIn(ConvTestConfigs()),
                      testing::Values(miopenTensorNDHWC)));
+
+} //namespace conv_f8_wrw 

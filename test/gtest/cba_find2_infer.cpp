@@ -158,7 +158,7 @@ TEST_P(ConvBiasActivFind2InferTestFloatFusionFind, ConvBiasActivFind2Float_testF
 INSTANTIATE_TEST_SUITE_P(CBAFind2InferSolverTest,
                          ConvBiasActivFind2InferTestFloatFusionFind,
                          testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(GetNetworkForFusionCompileStepTest()),
+                                          testing::ValuesIn(GetNetworkForFusionCompileStepTest<ConvTestCaseBase>()),
                                           testing::Values(miopenTensorNCHW)));
 
 #endif

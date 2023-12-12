@@ -29,6 +29,7 @@
 
 #include "tensor_holder.hpp"
 #include "get_handle.hpp"
+#include "conv_test_base.hpp"
 
 namespace bad_fusion_plan {
 
@@ -45,15 +46,6 @@ void setEnvironmentVariable(const std::string& name, const std::string& value)
     ret = setenv(name.c_str(), value.c_str(), 1);
 #endif
     EXPECT_EQ(ret, 0);
-}
-
-template <typename T>
-miopenDataType_t GetDataType();
-
-template <>
-miopenDataType_t GetDataType<half_float::half>()
-{
-    return miopenHalf;
 }
 
 struct ConvTestCaseFusion

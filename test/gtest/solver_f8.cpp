@@ -25,18 +25,6 @@
  *******************************************************************************/
 #include "solver_f8.hpp"
 
-template <>
-miopenDataType_t GetDataType<float8>()
-{
-    return miopenFloat8;
-}
-
-template <>
-miopenDataType_t GetDataType<bfloat8>()
-{
-    return miopenBFloat8;
-}
-
 template<>
 std::vector<ConvTestCaseF8> ConvTestConfigs()
 {           // n  c   h   w   k   y  x pad_x pad_y stri_x stri_y dia_x dia_y

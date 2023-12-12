@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include "bn_test_data.hpp"
 
+template<>
 std::vector<BNTestCase> Network1()
 {
     // pyt_mlperf_resnet50v1.5

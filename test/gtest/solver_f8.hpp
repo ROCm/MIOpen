@@ -26,18 +26,25 @@
 #pragma once
 
 #include <gtest/gtest.h>
+#include <random>
 #include "cpu_conv.hpp"
 #include "get_handle.hpp"
 #include "tensor_util.hpp"
 #include <fusionHost.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include "conv_common.hpp"
-#include <miopen/hip_float8.hpp>
+#include "hip_float8.hpp"
 #include "verify.hpp"
 
 #include "conv_test_base.hpp"
 using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
 using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
+
+float scalar_gen_random_float(float low, float high)
+{
+    float r = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * (high+low) - low;
+    return r;
+}
 
 struct ConvTestCaseF8
 {
@@ -106,7 +113,7 @@ protected:
         weights = tensor<T>{conv_config.k, conv_config.C, conv_config.y, conv_config.x};
 
         auto gen_fp8_value = [=](auto...) {
-            const auto tmp = float8(scalar_gen_random_float{-0.5, 0.5}());
+            const auto tmp = float8(scalar_gen_random_float(-0.5, 0.5));
             return tmp;
         };
 

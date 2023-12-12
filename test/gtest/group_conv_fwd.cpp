@@ -32,7 +32,7 @@
 #include "get_handle.hpp"
 #include "group_solver.hpp"
 
-struct ConvFwdSolverTestFloat : ConvFwdSolverTestBase<float>
+struct ConvFwdSolverTestFloat : ConvGroupFwdSolverTest<float>
 {
 };
 

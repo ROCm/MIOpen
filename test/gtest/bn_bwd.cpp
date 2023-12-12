@@ -54,20 +54,20 @@ TEST_P(BNBwdTestDouble, DISABLED_BnBwdCKDouble) {}
 
 INSTANTIATE_TEST_SUITE_P(BNBwdTestTestHalfNHWCSuite,
                          BNBwdTestTestHalf,
-                         testing::Combine(testing::ValuesIn(Network1()),
+                         testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNHWC)));
 
 INSTANTIATE_TEST_SUITE_P(BNBwdTestFloatNHWCSuite,
                          BNBwdTestFloat,
-                         testing::Combine(testing::ValuesIn(Network1()),
+                         testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNHWC)));
 
 INSTANTIATE_TEST_SUITE_P(BNBwdTestBFloat16NHWCSuite,
                          BNBwdTestBFloat16,
-                         testing::Combine(testing::ValuesIn(Network1()),
+                         testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNHWC)));
 
 INSTANTIATE_TEST_SUITE_P(BNBwdTestDoubleNHWCSuite,
                          BNBwdTestDouble,
-                         testing::Combine(testing::ValuesIn(Network1()),
+                         testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNHWC)));

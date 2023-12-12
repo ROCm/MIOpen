@@ -29,6 +29,8 @@
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
+namespace layernorm {
+
 std::string GetFloatArg()
 {
     const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
@@ -63,3 +65,5 @@ TEST_P(LayerNormTestFloat, LayerNormTestFw)
 INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
                          LayerNormTestFloat,
                          testing::ValuesIn(LayerNormTestConfigs()));
+
+} //namespace layernorm

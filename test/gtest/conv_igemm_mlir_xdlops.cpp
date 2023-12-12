@@ -11,6 +11,8 @@ MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_MLIR)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
+namespace conv_igemm_mlir_xdlops {
+
 using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
 std::string GetFloatArg()
@@ -202,3 +204,5 @@ INSTANTIATE_TEST_SUITE_P(ConvIgemmMlirXdlops,
 INSTANTIATE_TEST_SUITE_P(ConvIgemmMlirXdlops,
                          ConfigWithInt8,
                          testing::Values(GetTestCases("--int8")));
+
+} //namespace conv_igemm_mlir_xdlops 
