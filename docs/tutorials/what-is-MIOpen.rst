@@ -1,7 +1,7 @@
 .. meta::
-:description: MIOpen is AMD’s deep learning primitives library, which provides highly optimized, and hand-tuned implementations of
-different operators such as convolution, batch normalization, pooling, softmax, activation and layers for Recurrent Neural
-Networks (RNNs), used in both training and inference [9].
+   :description: MIOpen is AMD’s deep learning primitives library, which provides highly optimized, and hand-tuned implementations of
+   different operators such as convolution, batch normalization, pooling, softmax, activation and layers for Recurrent Neural
+      Networks (RNNs), used in both training and inference [9].
    :keywords: MIOpen, ROCm, library, API
 
 .. _what-is-MIOpen:
