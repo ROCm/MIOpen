@@ -36,7 +36,6 @@ endforeach()
 
 
 
-#function(add_gtest TEST_NAME)
 if( NOT (TEST_NAME IN_LIST SKIP_TESTS))
   message("Adding miopen_gtest: " ${TESTS_CPP})
   add_executable(miopen_gtest ${TESTS_CPP} ${SOURCES})
@@ -56,15 +55,3 @@ if( NOT (TEST_NAME IN_LIST SKIP_TESTS))
   gtest_discover_tests(miopen_gtest PROPERTIES ENVIRONMENT "MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR};MIOPEN_TEST_FLOAT_ARG=${MIOPEN_TEST_FLOAT_ARG};MIOPEN_TEST_ALL=${MIOPEN_TEST_ALL};MIOPEN_TEST_MLIR=${MIOPEN_TEST_MLIR};MIOPEN_TEST_COMPOSABLEKERNEL=${MIOPEN_TEST_COMPOSABLEKERNEL}")
 
 endif()
-#endfunction()
-
-#file(GLOB TESTS *.cpp)
-## Remove files that do not contain tests
-#foreach(SOURCE ${SOURCES})
-#    list(REMOVE_ITEM TESTS ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE})
-#endforeach()
-#
-#foreach(TEST ${TESTS})
-#    get_filename_component(BASE_NAME ${TEST} NAME_WE)
-#    add_gtest(${BASE_NAME})
-#endforeach()

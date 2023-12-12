@@ -116,4 +116,4 @@ INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
                                           testing::ValuesIn(ConvTestConfigs()),
                                           testing::Values(miopenTensorNDHWC)));
 
-} //namespace group_conv3d_fwd
+} // namespace group_conv3d_fwd

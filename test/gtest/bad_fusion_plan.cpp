@@ -258,4 +258,4 @@ TEST(TestFusionPlan, UnSupportedFusionPlanDuringSearchMode)
 
 #endif
 
-} //namespace bad_fusion_plan
+} // namespace bad_fusion_plan

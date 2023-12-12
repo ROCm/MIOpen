@@ -66,4 +66,4 @@ INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
                          LayerNormTestFloat,
                          testing::ValuesIn(LayerNormTestConfigs()));
 
-} //namespace layernorm
+} // namespace layernorm

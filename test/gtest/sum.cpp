@@ -60,4 +60,4 @@ TEST_P(SumTestFloat, SumTestFw)
 
 INSTANTIATE_TEST_SUITE_P(SumTestSet, SumTestFloat, testing::ValuesIn(SumTestConfigs()));
 
-} //namespace sum 
+} // namespace sum

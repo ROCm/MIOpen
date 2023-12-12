@@ -189,4 +189,4 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
 
 INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamic, Conv2dFloat, testing::Values(GetTestCases("--float")));
 
-} //namespace conv_igemm_dynamic
+} // namespace conv_igemm_dynamic

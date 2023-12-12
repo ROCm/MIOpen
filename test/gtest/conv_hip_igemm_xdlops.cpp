@@ -170,4 +170,4 @@ INSTANTIATE_TEST_SUITE_P(ConvHipIgemmXdlops,
                          ConvHipIgemmXdlopsConfigInt8,
                          testing::Values(GetTestCases("--int8")));
 
-} //namespace conv_hip_igem_xdlops
+} // namespace conv_hip_igem_xdlops

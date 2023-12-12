@@ -41,7 +41,7 @@
 
 float scalar_gen_random_float(float low, float high)
 {
-    float r = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * (high+low) - low;
+    float r = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * (high + low) - low;
     return r;
 }
 

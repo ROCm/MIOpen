@@ -154,4 +154,4 @@ std::vector<std::string> GetTestCases(void)
 
 INSTANTIATE_TEST_SUITE_P(ConvTrans, ConfigWithFloat, testing::Values(GetTestCases()));
 
-} //namespace conv_trans
+} // namespace conv_trans

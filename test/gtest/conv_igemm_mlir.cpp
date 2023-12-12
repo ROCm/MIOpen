@@ -245,10 +245,16 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
     return test_cases;
 }
 // Float for FWD, BWD, WRW
-INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, ConvIgemmMlirConfigFloat, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir,
+                         ConvIgemmMlirConfigFloat,
+                         testing::Values(GetTestCases("--float")));
 // Half for FWD, BWD, WRW
-INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, ConvIgemmMlirConfigHalf, testing::Values(GetTestCases("--half")));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir,
+                         ConvIgemmMlirConfigHalf,
+                         testing::Values(GetTestCases("--half")));
 // Int8 for FWD
-INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, ConvIgemmMlirConfigInt8, testing::Values(GetTestCases("--int8")));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir,
+                         ConvIgemmMlirConfigInt8,
+                         testing::Values(GetTestCases("--int8")));
 
-} //namespace conv_igemm_mlir 
+} // namespace conv_igemm_mlir

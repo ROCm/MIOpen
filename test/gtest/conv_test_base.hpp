@@ -68,14 +68,60 @@ struct ConvTestCaseBase
     }
 };
 
-template<typename T>
-extern std::vector<T> GetNetworkForFusionCompileStepTest();
+template <typename T>
+std::vector<T> GetNetworkForFusionCompileStepTest();
 
-template<typename T>
-extern std::vector<T> GetNetwork1();
+template <>
+inline std::vector<ConvTestCaseBase> GetNetworkForFusionCompileStepTest()
+{
+    return {{1, 64, 56, 56, 64, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+            {1, 64, 56, 56, 64, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
+}
 
-template<typename T>
-extern std::vector<T> ConvTestConfigs();
+template <typename T>
+std::vector<T> GetNetwork1();
+
+template <>
+inline std::vector<ConvTestCaseBase> GetNetwork1()
+{
+    // pyt_mlperf_resnet50v1.5
+    return {{64, 1024, 14, 14, 2048, 1, 1, 0, 0, 2, 2, 1, 1, miopenConvolution},
+            {64, 1024, 14, 14, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+            {64, 1024, 14, 14, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+            {64, 128, 28, 28, 128, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {64, 128, 28, 28, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+            {64, 128, 56, 56, 128, 3, 3, 1, 1, 2, 2, 1, 1, miopenConvolution},
+            {64, 2048, 7, 7, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+            {64, 256, 14, 14, 1024, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+            {64, 256, 14, 14, 256, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {64, 256, 28, 28, 256, 3, 3, 1, 1, 2, 2, 1, 1, miopenConvolution},
+            {64, 256, 56, 56, 128, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+            {64, 256, 56, 56, 512, 1, 1, 0, 0, 2, 2, 1, 1, miopenConvolution},
+            {64, 256, 56, 56, 64, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+            {64, 3, 224, 224, 64, 7, 7, 3, 3, 2, 2, 1, 1, miopenConvolution},
+            {64, 512, 14, 14, 512, 3, 3, 1, 1, 2, 2, 1, 1, miopenConvolution},
+            {64, 512, 28, 28, 1024, 1, 1, 0, 0, 2, 2, 1, 1, miopenConvolution},
+            {64, 512, 28, 28, 128, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+            {64, 512, 28, 28, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+            {64, 512, 7, 7, 2048, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+            {64, 512, 7, 7, 512, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {64, 64, 56, 56, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+            {64, 64, 56, 56, 64, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+            {64, 64, 56, 56, 64, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
+}
+
+template <typename T>
+std::vector<T> ConvTestConfigs();
+
+template <>
+inline std::vector<ConvTestCaseBase> ConvTestConfigs()
+{ // n  c   h   w   k   y  x pad_x pad_y stri_x stri_y dia_x dia_y
+    return {{16, 128, 16, 16, 128, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {64, 128, 28, 28, 128, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {64, 256, 14, 14, 256, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {64, 512, 7, 7, 512, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {64, 1024, 14, 14, 1024, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
+}
 
 template <typename T, typename Tref = float, bool use_cpu_ref = false>
 struct ConvFwdSolverTestBase
@@ -98,7 +144,8 @@ protected:
 };
 
 template <typename T, typename Tref, bool use_cpu_ref>
-void ConvFwdSolverTestBase<T, Tref, use_cpu_ref>::SetUpImpl(ConvTestCaseBase conv_config, miopenTensorLayout_t tensor_layout)
+void ConvFwdSolverTestBase<T, Tref, use_cpu_ref>::SetUpImpl(ConvTestCaseBase conv_config,
+                                                            miopenTensorLayout_t tensor_layout)
 {
     input   = tensor<T>{tensor_layout, conv_config.GetInput()};
     weights = tensor<T>{tensor_layout, conv_config.GetWeights()};

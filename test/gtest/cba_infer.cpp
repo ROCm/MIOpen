@@ -160,11 +160,12 @@ TEST_P(ConvBiasActivInferTestFloatFusionCompileStep, ConvBiasActivAsm1x1UFloat_t
         fusePlanDesc, plan_params, conv_config, test_skipped);
 }
 
-INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
-                         ConvBiasActivInferTestFloatFusionCompileStep,
-                         testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(GetNetworkForFusionCompileStepTest<ConvTestCaseBase>()),
-                                          testing::Values(miopenTensorNCHW)));
+INSTANTIATE_TEST_SUITE_P(
+    CBAInferSolverTest,
+    ConvBiasActivInferTestFloatFusionCompileStep,
+    testing::Combine(testing::Values(miopenActivationRELU),
+                     testing::ValuesIn(GetNetworkForFusionCompileStepTest<ConvTestCaseBase>()),
+                     testing::Values(miopenTensorNCHW)));
 
 #endif
 
@@ -180,4 +181,4 @@ INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
                                           testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
                                           testing::Values(miopenTensorNHWC)));
 
-} //namespace cba_infer
+} // namespace cba_infer

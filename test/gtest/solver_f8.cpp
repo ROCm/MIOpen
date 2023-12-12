@@ -25,7 +25,7 @@
  *******************************************************************************/
 #include "solver_f8.hpp"
 
-template<>
+template <>
 std::vector<ConvTestCaseF8> ConvTestConfigs()
 {           // n  c   h   w   k   y  x pad_x pad_y stri_x stri_y dia_x dia_y
     return {// New tests begin
@@ -63,4 +63,3 @@ std::vector<ConvTestCaseF8> ConvTestConfigs()
             {64, 512, 7, 7, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
             {64, 1024, 14, 14, 1024, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution}};
 }
-

@@ -49,7 +49,7 @@ struct NonPackTestCase : Conv3DTestCase
     std::vector<size_t> GetOutputStrides() { return {o0, o1, o2, o3, o4}; }
 };
 
-template<>
+template <>
 std::vector<NonPackTestCase> ConvTestConfigs()
 { // g    n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
     return {{{1, 4, 16, 4, 9, 16, 16, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},

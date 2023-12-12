@@ -81,6 +81,17 @@ struct ConvTestCaseGroup
     }
 };
 
+template <>
+inline std::vector<ConvTestCaseGroup> ConvTestConfigs()
+{ // g  n  c   h   w   k   y  x pad_x pad_y stri_x stri_y dia_x dia_y
+    return {{1, 256, 192, 28, 28, 192, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {1, 256, 12, 28, 28, 12, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {4, 256, 192, 28, 28, 192, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {8, 256, 192, 28, 28, 192, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {8, 256, 384, 28, 28, 384, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {32, 256, 1024, 28, 28, 2048, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
+}
+
 inline int SetTensorLayout(miopen::TensorDescriptor& desc)
 {
     // get layout string names

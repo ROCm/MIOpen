@@ -205,4 +205,4 @@ INSTANTIATE_TEST_SUITE_P(ConvIgemmMlirXdlops,
                          ConvIgemmMlirXdlopsConfigInt8,
                          testing::Values(GetTestCases("--int8")));
 
-} //namespace conv_igemm_mlir_xdlops 
+} // namespace conv_igemm_mlir_xdlops

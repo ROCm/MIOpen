@@ -224,11 +224,13 @@ std::vector<std::string> GetTestCases(const std::string& precision)
     return test_cases;
 }
 
-INSTANTIATE_TEST_SUITE_P(ConvEmbedDB, ConvEmbedConfigFloat, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(ConvEmbedDB,
+                         ConvEmbedConfigFloat,
+                         testing::Values(GetTestCases("--float")));
 INSTANTIATE_TEST_SUITE_P(ConvEmbedDB, ConvEmbedConfigHalf, testing::Values(GetTestCases("--half")));
 INSTANTIATE_TEST_SUITE_P(ConvEmbedDB, ConvEmbedConfigInt8, testing::Values(GetTestCases("--int8")));
 INSTANTIATE_TEST_SUITE_P(ConvEmbedDB,
                          ConvEmbedConfigBFloat16,
                          testing::Values(GetTestCases("--bfloat16")));
 
-} //namespace conv_embed_db
+} // namespace conv_embed_db
