@@ -28,7 +28,7 @@ python3 -m sphinx -T -E -b html -d _build/doctrees -D language=en . _build/html
 ## Prerequisites
 
 * More information about ROCm stack via [ROCm Information Portal](https://docs.amd.com/).
-* A ROCm enabled platform, more info [here](https://rocm.github.io/install.html).
+* A ROCm enabled platform, more info [here](https://rocmdocs.amd.com/en/latest/).
 * Base software stack, which includes:
   * HIP -
     * HIP and HCC libraries and header files.
