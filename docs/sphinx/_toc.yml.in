@@ -30,9 +30,9 @@ subtrees:
   
 - caption: Quick-start
   entries:
-  - file: tutorials/install.rst
-  - file: tutorials/embed.rst
-  - file: tutorials/driver.rst
+  - file: tutorials/quick-start/install.rst
+  - file: tutorials/quick-start/embed.rst
+  - file: tutorials/quick-start/driver.rst
 - caption: API reference
   entries:
   - file: reference/apireference.rst
