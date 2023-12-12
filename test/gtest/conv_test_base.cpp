@@ -71,7 +71,6 @@ std::vector<ConvTestCaseBase> ConvTestConfigs()
             {64, 1024, 14, 14, 1024, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
 }
 
-
 template <typename T, typename Tref, bool use_cpu_ref>
 void ConvFwdSolverTestBase<T, Tref, use_cpu_ref>::SetUpImpl(ConvTestCaseBase conv_config, miopenTensorLayout_t tensor_layout)
 {
