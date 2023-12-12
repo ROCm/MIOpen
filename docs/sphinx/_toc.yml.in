@@ -19,6 +19,7 @@ root: index
 subtrees:
 - caption: What is MIOpen?
   entries:
+  - file: tutorials/what-is-MIOpen.rst
   - file: tutorials/find_and_immediate.rst
   - file: tutorials/finddb.rst
   - file: tutorials/cache.rst
@@ -33,10 +34,13 @@ subtrees:
   - file: tutorials/quick-start/install.rst
   - file: tutorials/quick-start/embed.rst
   - file: tutorials/quick-start/driver.rst
+
+  - file: reference/index.rst
 - caption: API reference
   entries:
   - file: reference/apireference.rst
     title: API library
+    
   - file: tutorials/index.rst
 - caption: Tutorials
   entries:
