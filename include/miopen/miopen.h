@@ -2543,6 +2543,7 @@ MIOPEN_EXPORT miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
  * This API only implements the LAYERNORM_MODE_CHANNEL in LAYERNORM_ACCURATE path.
  *
  * @param handle         MIOpen handle (input)
+ * @param xCount         Number of input tensor x (input)
  * @param xDescs         Tensor descriptor of input tensor x (input)
  * @param xs             Source data tensor x (input)
  * @param yDesc          Tensor descriptor of output tensor y (input)
@@ -2551,8 +2552,9 @@ MIOPEN_EXPORT miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
  * @return               miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenCatForward(miopenHandle_t handle,
-                                              const std::vector<miopenTensorDescriptor_t>& xDescs,
-                                              const std::vector<void*>& xs,
+                                              const int32_t xCount,
+                                              const miopenTensorDescriptor_t* xDescs,
+                                              const void* const* xs,
                                               const miopenTensorDescriptor_t& yDesc,
                                               void* y,
                                               const int32_t dim);

@@ -29,12 +29,13 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
-static void LogCmdCat(const std::vector<miopenTensorDescriptor_t> xDescs, bool is_fwd)
+static void LogCmdCat(const miopenTensorDescriptor_t* xDescs, int32_t xCount, bool is_fwd)
 {
     if(miopen::IsLoggingCmd())
     {
-        for(auto xDesc : xDescs)
+        for(int i = 0; i < xCount; i++)
         {
+            auto xDesc = xDescs[i];
             std::stringstream ss;
             auto dtype = miopen::deref(xDesc).GetType();
             if(dtype == miopenHalf)
@@ -67,24 +68,24 @@ static void LogCmdCat(const std::vector<miopenTensorDescriptor_t> xDescs, bool i
 }
 
 extern "C" miopenStatus_t miopenCatForward(miopenHandle_t handle,
-                                           const std::vector<miopenTensorDescriptor_t>& xDescs,
-                                           const std::vector<void*>& xs,
+                                           const int32_t xCount,
+                                           const miopenTensorDescriptor_t* xDescs,
+                                           const void* const* xs,
                                            const miopenTensorDescriptor_t& yDesc,
                                            void* y,
                                            const int32_t dim)
 {
     MIOPEN_LOG_FUNCTION(handle, xDescs, xs, yDesc, y, dim);
-    LogCmdCat(xDescs, true);
+    LogCmdCat(xDescs, xCount, true);
     return miopen::try_([&] {
         std::vector<ConstData_t> xCast;
         std::vector<miopen::TensorDescriptor> xDescsCast;
-        std::transform(xDescs.begin(),
-                       xDescs.end(),
+        std::transform(xDescs,
+                       xDescs + xCount,
                        std::back_inserter(xDescsCast),
                        [](const auto& xDesc) { return miopen::deref(xDesc); });
-        std::transform(xs.begin(), xs.end(), std::back_inserter(xCast), [](const void* x) {
-            return DataCast(x);
-        });
+        std::transform(
+            xs, xs + xCount, std::back_inserter(xCast), [](const void* x) { return DataCast(x); });
         miopen::CatForward(
             miopen::deref(handle), xDescsCast, xCast, miopen::deref(yDesc), DataCast(y), dim);
     });

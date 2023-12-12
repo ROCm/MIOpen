@@ -266,7 +266,13 @@ int CatDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenCatForward(GetHandle(), inputDescs, in_devs_ptr, outputDesc, out_dev->GetMem(), dim);
+        miopenCatForward(GetHandle(),
+                         inputDescs.size(),
+                         inputDescs.data(),
+                         in_devs_ptr.data(),
+                         outputDesc,
+                         out_dev->GetMem(),
+                         dim);
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
