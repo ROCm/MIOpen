@@ -40,8 +40,11 @@ subtrees:
 - caption: Quick-start
   entries:
   - file: tutorials/quick-start/install.rst
+    title: MIOpen installation
   - file: tutorials/quick-start/embed.rst
+    title: Embedding MIOpen
   - file: tutorials/quick-start/driver.rst
+    title: About MIOpen driver 
 
   - file: reference/index.rst
 - caption: API reference
