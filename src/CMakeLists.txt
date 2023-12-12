@@ -909,7 +909,11 @@ else()
     file(GLOB PERF_DB_FILES kernels/*.db)
     file(GLOB KERN_DB_FILES kernels/*.kdb)
     list(APPEND FIND_DB_FILES ${PERF_DB_FILES})
+# Install the kdb files for the kdb sync test only, a better approach would be to 
+# install the kdb package instead
+if(MIOPEN_TEST_DBSYNC)
     list(APPEND FIND_DB_FILES ${KERN_DB_FILES})
+endif()
     if(NOT MIOPEN_DISABLE_SYSDB)
         if( NOT ENABLE_ASAN_PACKAGING )
           install(FILES
