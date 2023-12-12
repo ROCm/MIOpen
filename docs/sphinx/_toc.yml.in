@@ -21,13 +21,21 @@ subtrees:
   entries:
   - file: tutorials/what-is-MIOpen.rst
   - file: tutorials/find_and_immediate.rst
+    title: Find and Immediate
   - file: tutorials/finddb.rst
+    title: Find database
   - file: tutorials/cache.rst
+    title: Cache
   - file: tutorials/perfdatabase.rst
+    title: Performance database
   - file: tutorials/Getting_Started_FusionAPI.rst
+    title: Getting started with Fusion API
   - file: tutorials/DebugAndLogging.rst
+    title: Debugging and logging
   - file: tutorials/MI200AlternateImplementation.rst
+    title: Alternate implementation for MI200
   - file: tutorials/MIOpen_Porting_Guide.rst
+    title: MIOpen Porting Guide
   
 - caption: Quick-start
   entries:
