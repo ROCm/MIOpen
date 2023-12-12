@@ -123,7 +123,7 @@ protected:
         conv_desc = conv_config.GetConv();
 
         miopen::TensorDescriptor output_desc = conv_desc.GetForwardOutputTensor(
-            input.desc, weights.desc, GetDataType<Tout>()); // Tgpu Datatype?
+            input.desc, weights.desc, miopen_type<Tout>{}); // Tgpu Datatype?
 
         output = tensor<Tout>{output_desc.GetLengths()}; // half_float::half instead?
 
@@ -142,7 +142,7 @@ protected:
         auto&& handle = get_handle();
 
         miopen::TensorDescriptor output_desc = conv_desc.GetForwardOutputTensor(
-            input.desc, weights.desc, GetDataType<Tout>()); // miopenFloat or GetDataType<Tgpu>() ?
+            input.desc, weights.desc, miopen_type<Tout>{}); // miopenFloat or miopen_type<Tgpu>{} ?
         ref_out = tensor<Tout>{output_desc.GetLengths()};
 
         using FI       = Fp8Cast<T, T>;

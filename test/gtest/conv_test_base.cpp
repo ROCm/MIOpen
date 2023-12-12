@@ -25,40 +25,6 @@
  *******************************************************************************/
 #include "conv_test_base.hpp"
 
-template <typename T>
-miopenDataType_t GetDataType();
-
-template <>
-miopenDataType_t GetDataType<float>()
-{
-    return miopenFloat;
-}
-
-template <>
-miopenDataType_t GetDataType<half_float::half>()
-{
-    return miopenHalf;
-}
-
-template <>
-miopenDataType_t GetDataType<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>()
-{
-    return miopenFloat8;
-}
-
-template <>
-miopenDataType_t GetDataType<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>()
-{
-    return miopenBFloat8;
-}
-
-template <>
-miopenDataType_t GetDataType<int8_t>()
-{
-    return miopenInt8;
-}
-
-
 template<>
 std::vector<ConvTestCaseBase> GetNetworkForFusionCompileStepTest()
 {
@@ -117,7 +83,7 @@ void ConvFwdSolverTestBase<T, Tref, use_cpu_ref>::SetUpImpl(ConvTestCaseBase con
     conv_desc = conv_config.GetConv();
 
     miopen::TensorDescriptor output_desc =
-        conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
+        conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
 
     output = tensor<T>{tensor_layout, output_desc.GetLengths()};
     std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
@@ -132,7 +98,7 @@ template <typename T, typename Tref, bool use_cpu_ref>
 void ConvFwdSolverTestBase<T, Tref, use_cpu_ref>::TearDownConv()
 {
     miopen::TensorDescriptor output_desc =
-        conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
+        conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
     ref_out = tensor<T>{output.desc.GetLayout_t(), output_desc.GetLengths()};
     if(use_cpu_ref)
     {

@@ -67,7 +67,7 @@ protected:
         weights.desc.SetCastType(miopenFloat8);
 
         miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
         output = tensor<T>{tensor_layout, output_desc.GetLengths()};
         std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
         auto&& handle = get_handle();
@@ -83,7 +83,7 @@ protected:
         auto&& handle = get_handle();
 
         miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
         ref_out        = tensor<T>{tensor_layout, output_desc.GetLengths()};
         using FI       = Fp8Cast<T, T>;
         using FW       = Fp8Cast<T, T>;

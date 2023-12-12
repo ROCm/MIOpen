@@ -28,11 +28,9 @@
 #include <miopen/miopen.h>
 #include <iostream>
 
+#include "tensor_holder.hpp"
 #include "conv_common.hpp"
 #include "conv_tensor_gen.hpp"
-
-template <typename T>
-extern miopenDataType_t GetDataType();
 
 struct ConvTestCaseBase
 {

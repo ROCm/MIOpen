@@ -106,7 +106,7 @@ protected:
         conv_desc = conv_config.GetConv();
 
         miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
 
         output = tensor<T>{output_desc.GetLengths()};
         output.generate(GenData<T>{});
@@ -126,7 +126,7 @@ protected:
         auto&& handle = get_handle();
 
         miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
         ref_weights = tensor<Tref>{output_desc.GetLengths()};
         if(use_cpu_ref)
         {
