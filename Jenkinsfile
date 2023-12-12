@@ -546,7 +546,7 @@ pipeline {
         Smoke_targets = "check MIOpenDriver"
         NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
     }
-    //nightly runs testing23
+    //nightly runs for testing CI
     triggers{
         
         cron(env.BRANCH_NAME == env.NIGHTLY_BRANCH ? env.NIGHTLY_SCHEDULE : '')
