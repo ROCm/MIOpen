@@ -35,22 +35,23 @@
 //#define FLOAT hip_bfloat16
 //#endif
 
-__device__ void cat_copy_buf(const FLOAT* __restrict__ input,
-                             FLOAT* __restrict__ output,
-                             const uint64_t input_dim_size,
-                             const uint64_t stride,
-                             uint64_t* output_offset)
+template <typename T>
+__device__ void cat_copy_buf(const T* __restrict__ input,
+                             T* __restrict__ output,
+                             const size_t input_dim_size,
+                             const int stride,
+                             size_t* output_offset)
 {
     if(!input)
         return;
 
-    uint64_t gid0         = blockIdx.x * blockDim.x + threadIdx.x;
-    uint64_t gid1         = blockIdx.y * blockDim.y + threadIdx.y;
-    uint64_t gsz0         = gridDim.x * blockDim.x;
-    uint64_t input_offset = gid1 * input_dim_size * stride;
+    int gid0            = blockIdx.x * blockDim.x + threadIdx.x;
+    int gid1            = blockIdx.y * blockDim.y + threadIdx.y;
+    int gsz0            = gridDim.x * blockDim.x;
+    size_t input_offset = static_cast<size_t>(gid1) * input_dim_size * static_cast<size_t>(stride);
 
-    uint64_t end = input_dim_size * stride;
-    for(uint64_t i = gid0; i < end; i += gsz0)
+    size_t end = input_dim_size * static_cast<size_t>(stride);
+    for(size_t i = static_cast<size_t>(gid0); i < end; i += static_cast<size_t>(gsz0))
     {
         output[*output_offset + i] = input[input_offset + i];
     }
@@ -66,25 +67,25 @@ extern "C" __global__ void Cat8FwdPacked(const FLOAT* __restrict__ input1,
                                          const FLOAT* __restrict__ input7,
                                          const FLOAT* __restrict__ input8,
                                          FLOAT* __restrict__ output,
-                                         const uint64_t input1_dim_size,
-                                         const uint64_t input2_dim_size,
-                                         const uint64_t input3_dim_size,
-                                         const uint64_t input4_dim_size,
-                                         const uint64_t input5_dim_size,
-                                         const uint64_t input6_dim_size,
-                                         const uint64_t input7_dim_size,
-                                         const uint64_t input8_dim_size,
-                                         const uint64_t dim,
-                                         const uint64_t outer_size,
-                                         const uint64_t stride,
-                                         const uint64_t output_dim_size)
+                                         const size_t input1_dim_size,
+                                         const size_t input2_dim_size,
+                                         const size_t input3_dim_size,
+                                         const size_t input4_dim_size,
+                                         const size_t input5_dim_size,
+                                         const size_t input6_dim_size,
+                                         const size_t input7_dim_size,
+                                         const size_t input8_dim_size,
+                                         const int dim,
+                                         const size_t outer_size,
+                                         const int stride,
+                                         const size_t output_dim_size)
 {
-    uint64_t gid = blockIdx.y * blockDim.y + threadIdx.y;
+    int gid = blockIdx.y * blockDim.y + threadIdx.y;
 
     if(gid >= outer_size)
         return;
 
-    uint64_t output_offset = gid * output_dim_size * stride;
+    size_t output_offset = static_cast<size_t>(gid) * output_dim_size * static_cast<size_t>(stride);
 
     cat_copy_buf(input1, output, input1_dim_size, stride, &output_offset);
     cat_copy_buf(input2, output, input2_dim_size, stride, &output_offset);
@@ -101,21 +102,21 @@ extern "C" __global__ void Cat4FwdPacked(const FLOAT* __restrict__ input1,
                                          const FLOAT* __restrict__ input3,
                                          const FLOAT* __restrict__ input4,
                                          FLOAT* __restrict__ output,
-                                         const uint64_t input1_dim_size,
-                                         const uint64_t input2_dim_size,
-                                         const uint64_t input3_dim_size,
-                                         const uint64_t input4_dim_size,
-                                         const uint64_t dim,
-                                         const uint64_t outer_size,
-                                         const uint64_t stride,
-                                         const uint64_t output_dim_size)
+                                         const size_t input1_dim_size,
+                                         const size_t input2_dim_size,
+                                         const size_t input3_dim_size,
+                                         const size_t input4_dim_size,
+                                         const int dim,
+                                         const size_t outer_size,
+                                         const int stride,
+                                         const size_t output_dim_size)
 {
-    uint64_t gid = blockIdx.y * blockDim.y + threadIdx.y;
+    int gid = blockIdx.y * blockDim.y + threadIdx.y;
 
     if(gid >= outer_size)
         return;
 
-    uint64_t output_offset = gid * output_dim_size * stride;
+    size_t output_offset = static_cast<size_t>(gid) * output_dim_size * static_cast<size_t>(stride);
 
     cat_copy_buf(input1, output, input1_dim_size, stride, &output_offset);
     cat_copy_buf(input2, output, input2_dim_size, stride, &output_offset);
@@ -126,19 +127,19 @@ extern "C" __global__ void Cat4FwdPacked(const FLOAT* __restrict__ input1,
 extern "C" __global__ void Cat2FwdPacked(const FLOAT* __restrict__ input1,
                                          const FLOAT* __restrict__ input2,
                                          FLOAT* __restrict__ output,
-                                         const uint64_t input1_dim_size,
-                                         const uint64_t input2_dim_size,
-                                         const uint64_t dim,
-                                         const uint64_t outer_size,
-                                         const uint64_t stride,
-                                         const uint64_t output_dim_size)
+                                         const size_t input1_dim_size,
+                                         const size_t input2_dim_size,
+                                         const int dim,
+                                         const size_t outer_size,
+                                         const int stride,
+                                         const size_t output_dim_size)
 {
-    uint64_t gid = blockIdx.y * blockDim.y + threadIdx.y;
+    int gid = blockIdx.y * blockDim.y + threadIdx.y;
 
     if(gid >= outer_size)
         return;
 
-    uint64_t output_offset = gid * output_dim_size * stride;
+    size_t output_offset = static_cast<size_t>(gid) * output_dim_size * static_cast<size_t>(stride);
 
     cat_copy_buf(input1, output, input1_dim_size, stride, &output_offset);
     cat_copy_buf(input2, output, input2_dim_size, stride, &output_offset);
