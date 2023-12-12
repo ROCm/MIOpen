@@ -191,6 +191,10 @@ struct tensor
         data.resize(desc.GetElementSpace());
     }
 
+    size_t GetDataByteSize() const { return GetSize() * sizeof(T); }
+
+    size_t GetSize() const { return desc.GetElementSpace(); }
+
     template <class G>
     tensor& generate(G g) &
     {
