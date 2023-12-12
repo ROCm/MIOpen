@@ -317,6 +317,10 @@ void RNNTensorBaseLayoutConverter::ChangeTensorGPUDataPadding(
         const std::vector<size_t> packed_stride =
             get_packed_stride(copy_size, tensor_desc.GetLayoutVector());
 
+        // Nothing to copy, avoiding error with zero lens in TensorDescriptor
+        if(!std::all_of(copy_size.cbegin(), copy_size.cend(), [](size_t x) { return x > 0; }))
+            continue;
+
         const auto packed_desc =
             miopen::TensorDescriptor(tensor_desc.GetType(), copy_size, packed_stride);
         const auto padded_desc =

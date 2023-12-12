@@ -146,7 +146,7 @@ SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
     : SeqTensorDescriptor(t,
                           layout_in,
                           ConvertLengthsOrThrow(lens_in, "Lengths must be > 0"),
-                          ConvertLengthsOrThrow(seq_len, "SequenceLengths must be >= 0"),
+                          ConvertLengthsOrThrow(seq_len, "SequenceLengths must be >= 0", true),
                           {},
                           padding_marker_in,
                           use_seq_len,
@@ -429,22 +429,31 @@ std::vector<size_t> SeqTensorDescriptor::GetBatchesPerSequence() const
     }
     else
     {
+        batches.reserve(sequence_len[0]);
         auto block_begin = sequence_len.rbegin();
-        auto sample_ptr  = sequence_len.rbegin();
-        auto batch_size  = sequence_len.size();
 
-        batches.insert(batches.end(), *block_begin, batch_size);
+        while(block_begin != sequence_len.rend() && *block_begin == 0)
+            ++block_begin;
 
-        while(sample_ptr != sequence_len.rend())
+        if(block_begin != sequence_len.rend())
         {
-            if(*sample_ptr != *block_begin)
+            auto sample_ptr = block_begin;
+            auto batch_size = sequence_len.rend() - block_begin;
+
+            batches.insert(batches.end(), *block_begin, batch_size);
+
+            while(sample_ptr != sequence_len.rend())
             {
-                batch_size           = batch_size - (sample_ptr - block_begin);
-                const auto seq_count = *sample_ptr - *block_begin;
-                batches.insert(batches.end(), seq_count, batch_size);
-                block_begin = sample_ptr;
+                if(*sample_ptr != *block_begin)
+                {
+                    batch_size           = batch_size - (sample_ptr - block_begin);
+                    const auto seq_count = *sample_ptr - *block_begin;
+                    batches.insert(batches.end(), seq_count, batch_size);
+
+                    block_begin = sample_ptr;
+                }
+                sample_ptr++;
             }
-            sample_ptr++;
         }
     }
     return batches;

@@ -35,7 +35,7 @@
 #include "verify.hpp"
 #include "rnn_util.hpp"
 #include "random.hpp"
-#include "cpu_lstm.hpp"
+#include "cpu_rnn.hpp"
 #include <array>
 #include <cmath>
 #include <ctime>
@@ -229,10 +229,10 @@ struct verify_backward_data_lstm
 
         switch(badtensor)
         {
-        case(0): std::cout << "Output dx failed verification." << std::endl; break;
-        case(1): std::cout << "Hidden state dhx tensor failed verification." << std::endl; break;
-        case(2): std::cout << "Hidden cell dcx tensor failed verification." << std::endl; break;
-        case(3): std::cout << "Workspace space tensor failed verification." << std::endl; break;
+        case(0): std::cout << "Output dx tensor report." << std::endl; break;
+        case(1): std::cout << "Hidden state dhx tensor report." << std::endl; break;
+        case(2): std::cout << "Hidden cell dcx tensor report." << std::endl; break;
+        case(3): std::cout << "Workspace space tensor report." << std::endl; break;
         default: break;
         }
     }
@@ -641,7 +641,7 @@ struct verify_forward_infer_lstm : verify_forward_lstm<T>
         std::cout << "hz: " << hiddenSize << " batch_n: " << batch_n << " seqLength: " << seqLength
                   << " inputLen: " << inputVecLen << " numLayers: " << nLayers << std::endl;
         std::cout << "Forward Inference LSTM: " << std::endl;
-        std::cout << "Output tensor output failed verification." << std::endl;
+        std::cout << "Output tensor report." << std::endl;
     }
 };
 //~~~~~~~~~~~~ END FWD INFERENCE ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1022,9 +1022,9 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
 
         switch(badtensor)
         {
-        case(0): std::cout << "Output tensor output failed verification." << std::endl; break;
-        case(1): std::cout << "Hidden state tensor failed verification." << std::endl; break;
-        case(2): std::cout << "Cell state tensor failed verification." << std::endl; break;
+        case(0): std::cout << "Output tensor report." << std::endl; break;
+        case(1): std::cout << "Hidden state tensor report." << std::endl; break;
+        case(2): std::cout << "Cell state tensor report." << std::endl; break;
         default: break;
         }
     }
