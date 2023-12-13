@@ -29,7 +29,13 @@
 #include <miopen/solver.hpp>
 #include <miopen/groupnorm/problem_description.hpp>
 
-#include <utility>
+/// This W/A disables all GEMM convolution solvers for xDLOPs
+/// targets when MIOpenGEMM is used (OCL BE). More info at
+/// https://github.com/ROCm/MIOpen/issues/1315.
+///
+/// W/A affects ROCm releases starting from 4.5 and also
+/// pre-5.0 Mainline HIP builds, e.g. 9148.
+#define WORKAROUND_ISSUE_1315 (MIOPEN_USE_MIOPENGEMM && (HIP_PACKAGE_VERSION_FLAT >= 4004000000ULL))
 
 namespace miopen {
 
