@@ -205,11 +205,13 @@ if(MIOPEN_TEST_HALF)
     set(MIOPENDRIVER_MODE_CONV convfp16)
     set(MIOPENDRIVER_MODE_BN bnormfp16)
     set(MIOPENDRIVER_MODE_POOL poolfp16)
+    set(MIOPENDRIVER_MODE_GEMM gemmfp16)
 elseif(MIOPEN_TEST_INT8)
     set(MIOPEN_TEST_FLOAT_ARG --int8)
     set(MIOPENDRIVER_MODE_CONV convint8)
     set(MIOPENDRIVER_MODE_BN NOT_SUPPORTED)
     set(MIOPENDRIVER_MODE_POOL NOT_SUPPORTED)
+    set(MIOPENDRIVER_MODE_GEMM NOT_SUPPORTED)
     set(MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_INT8 --output_type int8)
     set(MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_INT32 --output_type int32)
     set(MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_FLOAT --output_type float)
@@ -218,12 +220,14 @@ elseif(MIOPEN_TEST_BFLOAT16)
     set(MIOPENDRIVER_MODE_CONV convbfp16)
     set(MIOPENDRIVER_MODE_BN NOT_SUPPORTED)
     set(MIOPENDRIVER_MODE_POOL NOT_SUPPORTED)
+    set(MIOPENDRIVER_MODE_GEMM NOT_SUPPORTED)
 else()
     set(MIOPEN_TEST_FLOAT_ARG --float)
     set(MIOPEN_TEST_FLOAT TRUE)
     set(MIOPENDRIVER_MODE_CONV conv)
     set(MIOPENDRIVER_MODE_BN bnorm)
     set(MIOPENDRIVER_MODE_POOL pool)
+    set(MIOPENDRIVER_MODE_GEMM gemm)
 endif()
 
 message(STATUS "MIOPEN_TEST_FLOAT ${MIOPEN_TEST_FLOAT}")
@@ -749,6 +753,10 @@ if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
                 -n 1 -c 1 --in_d 2 -H 1 -W 2 -k 2 --fil_d 2 -y 1 -x 2
                 --pad_d 0 -p 0 -q 0 --conv_stride_d 1 -u 1 -v 1 --dilation_d 1 -l 1 -j 1
                 --spatial_dim 3 -m conv -g 1 -F 1 -i 1 -t 1 -w 1
+    )
+
+    add_custom_test(smoke_miopendriver_gemm GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED
+        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_GEMM} -m 256 -n 512 -k 1024 -i 1 -V 1
     )
 endif()
 

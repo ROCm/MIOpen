@@ -136,11 +136,10 @@ int main(int argc, char* argv[])
     {
         drv = new GemmDriver<float>();
     }
-// TODO half is not supported in gemm
-//    else if(base_arg == "gemmfp16")
-//    {
-//        drv = new GemmDriver<float16>();
-//    }
+    else if(base_arg == "gemmfp16")
+    {
+        drv = new GemmDriver<float16>();
+    }
 #endif
     else if(base_arg == "bnorm")
     {
