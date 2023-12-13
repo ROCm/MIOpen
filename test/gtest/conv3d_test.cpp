@@ -59,17 +59,21 @@ void Run3dDriver(miopenDataType_t prec)
     std::string test_value;
     switch(prec)
     {
-    case miopenFloat: test_value = Conv3dFloat::GetParam(); break;
-    case miopenHalf:
-    case miopenInt8: FAIL() << "miopenHalf and miopenInt8 data types not supported for conv3d test";
+    case miopenHalf: params = ConfigWithHalf::GetParam(); break;
+    case miopenInt8: params = ConfigWithInt8::GetParam(); break;
+    case miopenFloat:
     case miopenBFloat16:
     case miopenInt32:
+    case miopenDouble:
     case miopenFloat8:
     case miopenBFloat8:
-    case miopenDouble: FAIL() << "Unsupported data type for conv3d test";
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "miopenBFloat16, miopenFloat, miopenInt32, miopenDouble, "
+                     "miopenFloat8, miopenBFloat8 data types not supported by "
+                     "conv_igemm_mlir_xdlops test");
+        break;
     default: FAIL() << "Unknown data type for conv3d test";
     }
-
     std::vector<std::string> tokens;
     GetArgs(test_value, tokens);
     std::vector<const char*> ptrs;
