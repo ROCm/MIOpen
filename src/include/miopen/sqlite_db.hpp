@@ -270,7 +270,7 @@ public:
                             "Missing system database file: "
                             << filename_
                             << " Performance may degrade. Please follow instructions to install: "
-                               "https://github.com/ROCmSoftwarePlatform/"
+                               "https://github.com/ROCm/"
                                "MIOpen#installing-miopen-kernels-package");
                         return true;
                     }();

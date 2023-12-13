@@ -111,7 +111,7 @@ struct SolverBase
     /// * Value 1.0 corresponds to the 100% utilization of HW capabilities as
     ///   if Direct computational algorithm is used.
     /// * [Notice] WTI may exceed 1.0 for highly optimized algorithms like Winograd.
-    /// * @see https://github.com/ROCmSoftwarePlatform/MIOpen/issues/410
+    /// * @see https://github.com/ROCm/MIOpen/issues/410
     virtual float GetWti(const ExecutionContext& ctx, const boost::any& problem) const = 0;
 
     // Returns the workspace size required by the solver for a given ExecutionContext
@@ -1019,7 +1019,7 @@ struct PerformanceConvMlirIgemm : PerfConfigBase<PerformanceConvMlirIgemm>
     int GemmNPerThread;
     bool use_spare_set;
 
-    /// \ref https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1154
+    /// \ref https://github.com/ROCm/MIOpen/issues/1154
     static PerformanceConvMlirIgemm& MlirHeuristicInitRequest()
     {
         static PerformanceConvMlirIgemm heur;
@@ -1093,7 +1093,7 @@ struct PerformanceConvMlirIgemmXdlops : PerfConfigBase<PerformanceConvMlirIgemmX
 
     bool use_spare_set;
 
-    /// \ref https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1154
+    /// \ref https://github.com/ROCm/MIOpen/issues/1154
     static PerformanceConvMlirIgemmXdlops& MlirHeuristicInitRequest()
     {
         static PerformanceConvMlirIgemmXdlops heur;

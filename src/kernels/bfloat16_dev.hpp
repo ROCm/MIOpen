@@ -67,7 +67,7 @@ EXECUTION_SPECIFIER ushort float_to_bfloat16(float src_val)
     cvt_bf16_fp32_t target_val;
     target_val.f32 = src_val;
     // BF16 round and NaN preservation code matches
-    // https://github.com/ROCmSoftwarePlatform/rocBLAS/blob/develop/library/include/rocblas_bfloat16.h
+    // https://github.com/ROCm/rocBLAS/blob/develop/library/include/rocblas_bfloat16.h
     if((~target_val.u32 & 0x7f800000) == 0) // Inf or NaN
     {
         // When all of the exponent bits are 1, the value is Inf or NaN.
