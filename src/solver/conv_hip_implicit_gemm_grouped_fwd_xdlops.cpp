@@ -339,7 +339,7 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::HeuristicInit(
 
 bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::SetNextValue(const ProblemDescription& problem)
 {
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_USE_COMPOSABLEKERNEL
     if(valid_kernels.empty())
     {
         switch(problem.GetInDataType())
