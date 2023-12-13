@@ -197,7 +197,7 @@ inline void xorwow_lite_init_emu(prngStates* cur_state,
 
     cur_state->d = 6615241;
 
-    // Adopt constants choice of rocRAND (https://github.com/ROCmSoftwarePlatform/rocRAND)
+    // Adopt constants choice of rocRAND (https://github.com/ROCm/rocRAND)
     const unsigned int s0 = static_cast<unsigned int>(seed) ^ 0x2c7f967fU;
     const unsigned int s1 = static_cast<unsigned int>(seed >> 32) ^ 0xa03697cbU;
     const unsigned int t0 = 1228688033 * s0;

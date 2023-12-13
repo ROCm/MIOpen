@@ -370,7 +370,7 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(
                 return false;
             size_t n_wei_blk = workgroup_size / wei_blk_sz;
             if(n_wei_blk == 0)
-            { /// \todo This is quickfix for DIV/0, see ROCmSoftwarePlatform/MIOpen/issues/70.
+            { /// \todo This is quickfix for DIV/0, see ROCm/MIOpen/issues/70.
                 MIOPEN_LOG_I2("ConvOClBwdWrW2: GRP_SZ < wei_blk_sz, not applicable?");
                 return false;
             }
