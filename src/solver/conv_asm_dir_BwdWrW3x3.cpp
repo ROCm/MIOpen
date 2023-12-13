@@ -41,12 +41,15 @@
 #define MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED 0
 #define WORKAROUND_SWDEV_330460 1 // ConvAsmBwdWrw3x3 has precision issues on MI200
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_SEARCH_OPTIMIZED)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 inline static bool Inc_1_2_4_8(int& v)
 {
@@ -68,7 +71,7 @@ bool PerformanceConfigAsmDirect3x3WrW::SetNextValue(const ProblemDescription&)
     do
     {
 #if MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED == 0
-        if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_SEARCH_OPTIMIZED{}))
+        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_SEARCH_OPTIMIZED)))
         {
             // (0 <= limit_wave_cnt && limit_wave_cnt <= 9)
             if(++limit_wave_cnt <= 9)
@@ -141,7 +144,7 @@ static bool IsReverseInOutAllowed(const ProblemDescription& problem)
     return problem.GetKernelStrideW() == 1 && problem.GetKernelStrideH() == 1;
 }
 
-inline int elements_in_dword(const ProblemDescription& problem) { return problem.IsFp16() ? 2 : 1; }
+static int elements_in_dword(const ProblemDescription& problem) { return problem.IsFp16() ? 2 : 1; }
 
 bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ExecutionContext& ctx,
                                                const ProblemDescription& problem) const
@@ -153,21 +156,29 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ExecutionContext& ctx,
     {
         if((problem.GetOutChannels_() % (GetCPerWave() * problem.GetGroupCount()) != 0) ||
            (problem.GetInChannels_() % (GetKPerWave() * problem.GetGroupCount()) != 0))
+        {
             return false;
+        }
     }
     else
     {
         if((problem.GetOutChannels_() % (GetKPerWave() * problem.GetGroupCount()) != 0) ||
            (problem.GetInChannels_() % (GetCPerWave() * problem.GetGroupCount()) != 0))
+        {
             return false;
+        }
     }
     if((problem.GetOutChannels_() % (64 / chunk_size) != 0) &&
        (problem.GetInChannels_() % (64 / chunk_size) != 0))
+    {
         return false;
+    }
     if((reverse_inout != 0 ? problem.GetInChannels_() : problem.GetOutChannels_()) %
            GetCPerWave() !=
        0)
+    {
         return false;
+    }
     if(!(chunk_size * k_per_wave <= 64))
         return false;
     if((reverse_inout != 0 ? problem.GetOutChannels_() : problem.GetInChannels_()) % k_per_wave !=
@@ -217,8 +228,10 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ExecutionContext& ctx,
         if(!(vgprs <= 256))
             return false;
         if(n_per_group > 4)
+        {
             if(!(vgprs <= 128))
                 return false;
+        }
         if(limit_wave_cnt != 0 && limit_wave_cnt * 4 < n_per_group)
             return false;
         const auto lds_size = static_cast<std::size_t>(n_per_group - 1) * solver::wave_size *
@@ -258,39 +271,61 @@ void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ExecutionContext& ctx
     chunk_size = (problem.GetOutWidth_() < 48) ? 8 : 16;
     if((problem.GetOutChannels_() % (64 / chunk_size) != 0) &&
        (problem.GetInChannels_() % (64 / chunk_size) != 0))
+    {
         chunk_size = 16; // Fixup for correctness
+    }
 
     reverse_inout = 0;
     if(IsReverseInOutAllowed(problem) &&
        ((problem.GetOutChannels_() % 4 != 0) || (problem.GetOutWidth_() < 8)))
+    {
         reverse_inout = 1;
+    }
 
     const auto c_k =
         problem.GetOutChannels_() * problem.GetInChannels_() / problem.GetGroupCount(); // C*K
     if(c_k < 256)
+    {
         k_per_wave = 1;
+    }
     else if(c_k < 16384)
+    {
         k_per_wave = 2;
+    }
     else // C*K >= 16k
+    {
         k_per_wave = ((chunk_size == 8) ? 2 : 4);
+    }
     while((reverse_inout != 0 ? problem.GetOutChannels_() : problem.GetInChannels_()) %
               k_per_wave !=
           0)
+    {
         k_per_wave /= 2; // Fixup for correctness
+    }
 
     if(c_k <= 512)
+    {
         n_per_group = 8;
+    }
     else if(c_k <= 4096)
+    {
         n_per_group = 4;
+    }
     else if(c_k <= 8192)
+    {
         n_per_group = 2;
+    }
     else
+    {
         n_per_group = 1;
+    }
     if(n_per_group > problem.GetBatchSize_())
         n_per_group = problem.GetBatchSize_(); // n_per_group should never be > batch size.
     if(problem.GetOutWidth_() >= 256 &&
        n_per_group > 4) // when width >= 256, n_per_group should not be > 4.
+    {
         n_per_group = 4;
+    }
 
     pipe_lines_depth = (problem.GetOutHeight_() <= 1) ? 1 : 2;
     if((problem.GetOutHeight_() < 8) && (problem.GetOutWidth_() < 64))
@@ -352,7 +387,7 @@ bool ConvAsmBwdWrW3x3::IsValidPerformanceConfig(
 bool ConvAsmBwdWrW3x3::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3)))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
@@ -360,7 +395,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.Is2d())
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
     if(problem.HasNonPackedTensors())
         return false;
@@ -390,7 +425,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ExecutionContext& ctx,
         return false;
 
 #if WORKAROUND_SWDEV_330460
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3{}) && name == "gfx90a" &&
+    if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3)) && name == "gfx90a" &&
        problem.IsFp32())
         return false;
 #endif
@@ -471,24 +506,19 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ExecutionContext& ctx,
 
     PerformanceConfigAsmDirect3x3WrW fromEnv;
     {
-        std::string s;
-        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS{});
-        if(p_asciz != nullptr)
+        const auto& s = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS));
+        if(!s.empty()) // else nothing to parse.
         {
-            s = std::string(p_asciz);
-            if(!s.empty()) // else nothing to parse.
+            if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(ctx, problem))
             {
-                if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(ctx, problem))
-                {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS: "
-                                 "Bad format or invalid for the problem config: "
-                                 << s);
-                }
-                else
-                {
-                    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
-                    pcfg = &fromEnv;
-                }
+                MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS: "
+                             "Bad format or invalid for the problem config: "
+                             << s);
+            }
+            else
+            {
+                MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
+                pcfg = &fromEnv;
             }
         }
     }
@@ -548,7 +578,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ExecutionContext& ctx,
     result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto k              = handle.Run(kernels[0]);
-            const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+            const auto& invoke_params = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
             int unused                = 0;
             int* return_addr          = nullptr;
             const auto& x             = invoke_params.tensors.x;
@@ -568,5 +598,6 @@ PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::Search(const ExecutionContext
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

@@ -86,8 +86,7 @@ static float CallImplGemmDynamicForward1x1(const miopen::Handle& handle,
     return elapsed;
 }
 
-InvokerFactory
-MakeImplGemmDynamicForward1x1InvokerFactory(const miopen::ProblemDescription& problem)
+InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ProblemDescription& problem)
 {
     return [problem](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
@@ -112,10 +111,8 @@ MakeImplGemmDynamicForward1x1InvokerFactory(const miopen::ProblemDescription& pr
     };
 }
 
-template <>
-InvokerFactory
-MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const miopen::ProblemDescription& problem,
-                                                   const int& cfg)
+InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescription& problem,
+                                                             const int cfg)
 {
     int hi         = problem.GetOutHeight_();
     int wi         = problem.GetOutWidth_();
@@ -249,10 +246,9 @@ MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const miopen::ProblemDescript
     };
 }
 
-template <>
 InvokerFactory
-MakeImplGemmDynamicBackwardDataInvokerFactory<solver::TunableImplicitGemmGTCDynamic_t>(
-    const miopen::ProblemDescription& problem, const solver::TunableImplicitGemmGTCDynamic_t& cfg)
+MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescription& problem,
+                                              const solver::TunableImplicitGemmGTCDynamic_t& cfg)
 {
     int hi         = problem.GetOutHeight_();
     int wi         = problem.GetOutWidth_();
@@ -439,8 +435,8 @@ MakeImplGemmDynamicBackwardDataInvokerFactory<solver::TunableImplicitGemmGTCDyna
 
 InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     const ExecutionContext& ctx,
-    const miopen::ProblemDescription& problem,
-    const solver::PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config)
+    const ProblemDescription& problem,
+    const solver::conv::PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config)
 {
     int hi         = problem.GetInHeight_();
     int wi         = problem.GetInWidth_();
@@ -700,6 +696,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
             {
                 CastTensor(handle,
                            &lowp_quant,
+                           problem.IsDirectionForward(),
                            cast_desc,
                            cast_buf.get(),
                            tensors.outDesc,
@@ -732,8 +729,8 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
 
 InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     const ExecutionContext& ctx,
-    const miopen::ProblemDescription& problem,
-    const solver::PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config)
+    const ProblemDescription& problem,
+    const solver::conv::PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config)
 {
     int hi         = problem.GetOutHeight_();
     int wi         = problem.GetOutWidth_();
@@ -1017,6 +1014,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
             {
                 CastTensor(handle,
                            &lowp_quant,
+                           false,
                            cast_desc,
                            cast_buf.get(),
                            tensors.outDesc,
@@ -1047,8 +1045,8 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
 }
 
 InvokerFactory MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(
-    const miopen::ProblemDescription& problem,
-    const solver::PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config)
+    const ProblemDescription& problem,
+    const solver::conv::PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config)
 {
     int hi         = problem.GetInHeight_();
     int wi         = problem.GetInWidth_();
