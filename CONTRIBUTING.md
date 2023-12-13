@@ -25,14 +25,14 @@ different operators such as convolution, batch normalization,
 pooling, softmax, activation and layers for Recurrent Neural
 Networks (RNNs), used in both training and inference.
 
-The easiest way to get started is to check out [MIOpen documentation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/) and [MIOpen: An Open Source Library For Deep Learning Primitives](https://arxiv.org/pdf/1910.00078.pdf).
+The easiest way to get started is to check out [MIOpen documentation](https://rocm.docs.amd.com/projects/MIOpen/en/latest/) and [MIOpen: An Open Source Library For Deep Learning Primitives](https://arxiv.org/pdf/1910.00078.pdf).
 
 All contributions you make will be under the [MIT Software License](LICENSE.txt). 
 ## How do I contribute
 ### Reporting Issues
 We use [GitHub Issues](https://github.com/ROCmSoftwarePlatform/MIOpen/issues) to track public **bugs** and **enhancement requests**.
 
-If you have found an issue, please check [MIOpen documentation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/) to see if it is a bug or new feature enhancement which is not supported in the latest version of MIOpen:
+If you have found an issue, please check [MIOpen documentation](https://rocm.docs.amd.com/projects/MIOpen/en/latest/) to see if it is a bug or new feature enhancement which is not supported in the latest version of MIOpen:
 
 #### Bugs
 Please follow the template below to report any bugs found in MIOpen:
@@ -103,7 +103,7 @@ testable and reviewable tasks instead of a huge chunk at once.
 4. Does the PR have sufficient documentation and easy to read and understand, 
 feasible for test and future maintainence, related docs already in place? 
 e.g. revise or add to 
-[MIOpen documentation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/) 
+[MIOpen documentation](https://rocm.docs.amd.com/projects/MIOpen/en/latest/) 
 if API or functionality has changed?
 5. For bugfixes and new features, new regression test created and included in CI,
  or some other holistic test pipeline?
