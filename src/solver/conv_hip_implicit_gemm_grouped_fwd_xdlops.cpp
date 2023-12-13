@@ -191,7 +191,6 @@ bool ConvHipImplicitGemmGroupFwdXdlops::CheckCKApplicability(
 {
     return IsCKApplicable<DeviceOpGFwdPtrs<DataType>, CKArgs>(problem);
 }
-#endif
 
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
 static std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
@@ -285,7 +284,8 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::RunParameterPredictionModel
     }
     return false;
 }
-#endif
+#endif // MIOPEN_ENABLE_AI_KERNEL_TUNING
+#endif // MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
 bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsModelApplicable(
     const ExecutionContext& ctx, const ProblemDescription& problem) const
@@ -339,6 +339,7 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::HeuristicInit(
 
 bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::SetNextValue(const ProblemDescription& problem)
 {
+#if MIOPEN_USE_COMPOSABLEKERNEL
     if(valid_kernels.empty())
     {
         switch(problem.GetInDataType())
@@ -362,6 +363,7 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::SetNextValue(const ProblemD
         return true;
     }
     else
+#endif
         return false;
 }
 
