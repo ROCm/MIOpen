@@ -284,9 +284,9 @@ struct PerfConfigConvCKIgemmFwdBiasResAddActivFused
     bool operator==(const PerfConfigConvCKIgemmFwdBiasResAddActivFused& other) const;
 
 private:
-    template <typename DataType, typename BiasDataType = DataType>
+    template <typename DataType, typename AccumDataType = DataType>
     void Init(const miopen::conv::ProblemDescription&);
-    template <typename DataType, typename BiasDataType = DataType>
+    template <typename DataType, typename AccumDataType = DataType>
     bool CheckIsSupportCKArgs(const miopen::conv::ProblemDescription&) const;
 };
 
@@ -317,7 +317,7 @@ struct ConvCKIgemmFwdBiasResAddActivFused final
                 const PerfConfigConvCKIgemmFwdBiasResAddActivFused& config) const override;
 
 private:
-    template <typename DataType, typename BiasDataType = DataType>
+    template <typename DataType, typename AccumDataType = DataType>
     bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
 };
 struct ConvBinWinogradRxSFused final : FusionSolverBase

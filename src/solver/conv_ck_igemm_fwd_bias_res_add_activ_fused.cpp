@@ -49,18 +49,18 @@ namespace fusion {
 using CK_OutLayout = ck::tensor_layout::convolution::NDHWGK;
 
 // DataType also applies to weights
-// BiasDataType also applies to added z & bias tensors
-template <typename DataType, typename BiasDataType = DataType>
+// AccumDataType also applies to added z & bias tensors
+template <typename DataType, typename AccumDataType = DataType>
 using DeviceOp = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
     ck::tensor_operation::device::DeviceGroupedConvFwdMultipleD<
         3,
         ck::tensor_layout::convolution::NDHWGC,
         ck::tensor_layout::convolution::GKZYXC,
-        ck::Tuple<CK_OutLayout, CK_OutLayout>,
+        ck::Tuple<CK_OutLayout, ck::tensor_layout::convolution::G_K>,
         CK_OutLayout,
         DataType,                              // in data type
         DataType,                              // wei data type
-        ck::Tuple<BiasDataType, BiasDataType>, // z & bias tensors data type
+        ck::Tuple<AccumDataType, AccumDataType>, // z & bias tensors data type
         DataType,                              // out data type
         ck::tensor_operation::element_wise::PassThrough,
         ck::tensor_operation::element_wise::PassThrough,
@@ -93,6 +93,8 @@ struct CKArgs
         in_lens  = {G, N, C, Di, Hi, Wi};
         out_lens = {G, N, K, Do, Ho, Wo};
         wei_lens = {G, K, C, Z, Y, X};
+        bias_lens = {G, 1, K, 1, 1, 1};
+        bias_strides = {K, 0, 1, 0, 0, 0}; 
 
         // miopen filter_stride to CK filter_stride
         auto miopen_in_strides  = problem.GetIn().GetStrides();
@@ -129,7 +131,9 @@ struct CKArgs
                     ConstData_t wei_buf,
                     Data_t out_buf,
                     ConstData_t z_buf,
-                    ConstData_t bias_buf) const
+                    ConstData_t bias_buf,
+                    float alpha1,
+                    float alpha2) const
     {
         using ScaleAddScaleAddRelu = ck::tensor_operation::element_wise::ScaleAddScaleAddRelu;
         return op_ptr->MakeArgumentPointer(in_buf,
@@ -140,8 +144,8 @@ struct CKArgs
                                            in_strides,
                                            wei_lens,
                                            wei_strides,
-                                           {out_lens, out_lens},
-                                           {out_strides, out_strides},
+                                           {out_lens, bias_lens},
+                                           {out_strides, bias_strides},
                                            out_lens,
                                            out_strides,
                                            filter_stride,
@@ -158,20 +162,24 @@ struct CKArgs
                     const miopen::fusion::FusionInvokeParams& data_ctx) const
     {
 
-        const auto& wei_buf =
-            dynamic_cast<miopen::fusion::ConvolutionOpInvokeParam&>(*data_ctx.op_args.params[0])
-                .weights;
+        auto* conv_param = 
+            dynamic_cast<miopen::fusion::ConvolutionOpInvokeParam*>(data_ctx.op_args.params[0]);
+        assert(conv_param);
 
-        const auto& z_buf =
-            dynamic_cast<miopen::fusion::BiasOpInvokeParam&>(*data_ctx.op_args.params[1]).bdata;
+        auto* z_param = dynamic_cast<miopen::fusion::TensorScaleAddOpInvokeParam*>(data_ctx.op_args.params[1]);
+        assert(z_param);
 
-        const auto& bias_buf =
-            dynamic_cast<miopen::fusion::BiasOpInvokeParam&>(*data_ctx.op_args.params[2]).bdata;
+        auto* bias_param = dynamic_cast<miopen::fusion::BiasOpInvokeParam*>(data_ctx.op_args.params[2]);
+        assert(bias_param);
 
-        // const auto& activ_op =
-        // dynamic_cast<miopen::fusion::ActivationOpInvokeParam&>(*data_ctx.op_args.params[3]);
+        /// \todo: Support general activation functions.
+        /// only relu activation supported and hardcoded for now
+        [[maybe_unused]] auto* activ_param = dynamic_cast<miopen::fusion::ActivationOpInvokeParam&>(*data_ctx.op_args.params[3]);
+        assert(activ_param);
 
-        return MakeArgPtr(op_ptr, data_ctx.in, wei_buf, data_ctx.out, z_buf, bias_buf);
+        return MakeArgPtr(op_ptr, data_ctx.in, conv_param->weights, data_ctx.out, 
+            z_param->tensor_ptr, bias_param->bdata,
+            conv_param->alpha, z_param->alpha);
     }
 
 #if 0
@@ -204,14 +212,14 @@ struct CKArgs
     int Y;
     int X;
     int Z;
-    float alpha1 = 1.0f;
-    float alpha2 = 1.0f;
     std::array<ck::index_t, 6> in_lens;
     std::array<ck::index_t, 6> in_strides;
     std::array<ck::index_t, 6> out_lens;
     std::array<ck::index_t, 6> out_strides;
     std::array<ck::index_t, 6> wei_lens;
     std::array<ck::index_t, 6> wei_strides;
+    std::array<ck::index_t, 6> bias_lens;
+    std::array<ck::index_t, 6> bias_strides;
     std::array<ck::index_t, 3> filter_stride;
     std::array<ck::index_t, 3> filter_dilation;
     std::array<ck::index_t, 3> lPadding;
@@ -221,29 +229,29 @@ struct CKArgs
 } // namespace
 
 // TODO: deal with separate input/output data types
-template <typename DataType, typename BiasDataType>
+template <typename DataType, typename AccumDataType>
 void PerfConfigConvCKIgemmFwdBiasResAddActivFused::Init(
     const miopen::conv::ProblemDescription& problem)
 {
 
-    valid_kernels = FillValidKernelsIDs<DeviceOp<DataType, BiasDataType>, CKArgs>(problem);
+    valid_kernels = FillValidKernelsIDs<DeviceOp<DataType, AccumDataType>, CKArgs>(problem);
     index         = 0;
     assert(!valid_kernels.empty());
     kernel_id = valid_kernels[0];
 }
 
-template <typename DataType, typename BiasDataType>
+template <typename DataType, typename AccumDataType>
 bool PerfConfigConvCKIgemmFwdBiasResAddActivFused::CheckIsSupportCKArgs(
     const miopen::conv::ProblemDescription& problem) const
 {
-    return IsCKArgsSupported<DeviceOp<DataType, BiasDataType>, CKArgs>(problem, kernel_id);
+    return IsCKArgsSupported<DeviceOp<DataType, AccumDataType>, CKArgs>(problem, kernel_id);
 }
 
-template <typename DataType, typename BiasDataType>
+template <typename DataType, typename AccumDataType>
 bool ConvCKIgemmFwdBiasResAddActivFused::CheckCKApplicability(
     const miopen::conv::ProblemDescription& problem) const
 {
-    return IsCKApplicable<DeviceOp<DataType, BiasDataType>, CKArgs>(problem);
+    return IsCKApplicable<DeviceOp<DataType, AccumDataType>, CKArgs>(problem);
 }
 
 #endif
@@ -379,9 +387,11 @@ bool ConvCKIgemmFwdBiasResAddActivFused::IsApplicable(const FusionContext& ctx,
         return false;
     if(desc.op_map[0]->kind() != miopenFusionOpConvForward)
         return false;
-    if(desc.op_map[1]->kind() != miopenFusionOpBiasForward)
+    if(desc.op_map[1]->kind() != miopenFusionOpTensorScaleAdd)
         return false;
-    if(desc.op_map[2]->kind() != miopenFusionOpActivForward)
+    if(desc.op_map[2]->kind() != miopenFusionOpBiasForward)
+        return false;
+    if(desc.op_map[3]->kind() != miopenFusionOpActivForward)
         return false;
     const auto& activ_op = dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[2]);
     if(activ_op.activMode != miopenActivationRELU)
