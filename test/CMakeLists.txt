@@ -247,7 +247,7 @@ if(MIOPEN_TEST_INT8)
               test_tensor_transform test_conv2d test_conv2d_find2)
 elseif(MIOPEN_TEST_BFLOAT16)
     set(SKIP_ALL_EXCEPT_TESTS
-              test_conv2d test_conv2d_find2 test_tensor_copy test_tensor_set test_tensor_vec
+              test_conv2d test_conv2d_find2 test_tensor_copy test_tensor_set test_tensor_vec test_immed_conv2d
               test_check_numerics_test test_conv_extra test_conv_for_implicit_gemm test_miopen_conv
               test_deepbench_conv test_conv_igemm_dynamic_xdlops_nhwc_wrw_bf16
               test_conv_igemm_dynamic_xdlops_nhwc_fwd_bf16
@@ -256,7 +256,8 @@ endif()
 
 if(${CODECOV_TEST})
     list(APPEND SKIP_TESTS
-        test_conv3d test_conv3d_find2)
+        test_conv3d test_conv3d_find2 test_immed_conv3d test_immed_conv2d test_pooling2d test_pooling2d_asymmetric
+        test_pooling2d_wide)
     # replaced by smaller tests with suffix _codecov
 endif()
 
@@ -344,7 +345,7 @@ function(add_test_executable TEST_NAME)
         set(TEST_COMMAND ${TEST_COMMAND} --xnack 1)
     endif()
 
-    if(WORKAROUND_ISSUE_936 AND (${TEST_NAME} MATCHES "test_conv2d") )
+    if(WORKAROUND_ISSUE_936 AND (${TEST_NAME} MATCHES "test_conv2d" OR ${TEST_NAME} MATCHES "test_immed_conv2d") )
         set(TEST_COMMAND ${TEST_COMMAND} --tolerance 130) #increased by 1.625 times
     endif()
 
@@ -394,8 +395,10 @@ set(LONG_TESTS
     test_soft_max
     test_lrn_test
     test_conv_for_implicit_gemm
+    test_immed_conv3d
     test_conv3d_extra
     test_conv_3d
+    test_pooling2d
     test_conv_igemm_mlir
     test_conv_igemm_mlir_xdlops
     test_activation
