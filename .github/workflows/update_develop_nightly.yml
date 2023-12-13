@@ -1,0 +1,20 @@
+name: Sync branch
+
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop
+jobs:
+  sync-branch:
+    name: Update nightly branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@main
+      - uses: connor-baer/action-sync-branch@main
+        with:
+          branch: develop_nightly
+          token: ${{ secrets.GITHUB_TOKEN }}
+          force: false
