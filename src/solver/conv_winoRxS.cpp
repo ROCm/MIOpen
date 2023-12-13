@@ -195,7 +195,7 @@ auto PerfFieldRules()
 
 // Winograd v21 is preferred on Vega10/Vega20 ASICs due to ~25% performance regression with Winograd
 // v30. The exception is Winograd F(3,2) stride2 as this mode is unsupported in v21. Details:
-// https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1927#issuecomment-1412741130
+// https://github.com/ROCm/MIOpen/pull/1927#issuecomment-1412741130
 template <int Winodata, int Winofilter>
 inline bool IsWinogradV21Preferred(const std::string& asic, const ProblemDescription& problem)
 {

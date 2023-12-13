@@ -146,8 +146,8 @@
 
 /// WORKAROUND_BOOST_ISSUE_392
 /// Workaround for https://github.com/boostorg/config/issues/392#issuecomment-1109889533
-/// See also https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1490#issuecomment-1109928102,
-/// https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1543
+/// See also https://github.com/ROCm/MIOpen/pull/1490#issuecomment-1109928102,
+/// https://github.com/ROCm/MIOpen/pull/1543
 /// TODO: Remove the W/A as soon we switch to the properly fixed boost.
 #if MIOPEN_BACKEND_HIP
 #include <hip/hip_version.h>
