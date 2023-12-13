@@ -91,6 +91,7 @@ set( MIOpen_Source
     batchnorm/problem_description.cpp
     buffer_info.cpp
     cat_api.cpp
+    cat/problem_description.cpp
     check_numerics.cpp
     conv/invokers/gcn_asm_1x1u.cpp
     conv/invokers/gcn_asm_1x1u_ss.cpp
@@ -164,6 +165,7 @@ set( MIOpen_Source
     solver/batchnorm/forward_spatial_multiple.cpp
     solver/batchnorm/forward_spatial_single.cpp
     solver/batchnorm/forward_training_ck.cpp
+    solver/cat/forward_cat.cpp
     solver/conv_asm_1x1u.cpp
     solver/conv_asm_1x1u_bias_activ_fused.cpp
     solver/conv_asm_1x1u_stride2.cpp

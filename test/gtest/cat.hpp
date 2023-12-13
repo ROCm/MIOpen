@@ -167,20 +167,25 @@ protected:
         auto&& handle = get_handle();
 
         cpu_cat_forward<T>(inputs, ref_output, dim);
-        std::vector<miopen::TensorDescriptor> inputDescs;
+        std::vector<miopen::TensorDescriptor*> inputDescs;
         std::vector<ConstData_t> inputData;
 
         std::transform(inputs.begin(),
                        inputs.end(),
                        std::back_inserter(inputDescs),
-                       [](auto& input) { return input.desc; });
+                       [](auto& input) { return &input.desc; });
         std::transform(inputs_dev.begin(),
                        inputs_dev.end(),
                        std::back_inserter(inputData),
                        [](auto& input_dev) { return input_dev.get(); });
 
-        miopenStatus_t status =
-            miopen::CatForward(handle, inputDescs, inputData, output.desc, output_dev.get(), dim);
+        miopenStatus_t status = miopen::CatForward(handle,
+                                                   inputDescs.size(),
+                                                   inputDescs.data(),
+                                                   inputData.data(),
+                                                   output.desc,
+                                                   output_dev.get(),
+                                                   dim);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 

@@ -23,33 +23,47 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/cat.hpp>
-#include <miopen/kernel_cache.hpp>
-#include <miopen/float_equal.hpp>
-#include <miopen/check_numerics.hpp>
-#include <miopen/tensor.hpp>
-#include <miopen/datatype.hpp>
-#include <miopen/cat/cat_invoke_params.hpp>
-#include <miopen/cat/solvers.hpp>
-#include <miopen/find_solution.hpp>
+
+#include <miopen/cat/problem_description.hpp>
+#include <miopen/names.hpp>
+
+#include <sstream>
 
 namespace miopen {
 
-miopenStatus_t CatForward(Handle& handle,
-                          const int32_t xCount,
-                          const TensorDescriptor* const* xDescs,
-                          const ConstData_t* xs,
-                          const TensorDescriptor& yDesc,
-                          Data_t y,
-                          int32_t dim)
-{
-    const auto problem       = cat::ProblemDescription{xCount, xDescs, yDesc, dim};
-    const auto invoke_params = cat::CatInvokeParams{xCount, xDescs, xs, yDesc, y, dim};
-    const auto algo          = AlgorithmName{"CatForward"};
-    const auto solvers       = solver::SolverContainer<solver::cat::CatForward>{};
-    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+namespace cat {
 
-    return miopenStatusSuccess;
+NetworkConfig ProblemDescription::MakeNetworkConfig() const
+{
+    int32_t fusion_size = 2;
+    while(fusion_size < xCount)
+    {
+        fusion_size *= 2;
+    }
+
+    size_t max_x_dim_size = 0;
+    for(int i = 0; i < xCount; i++)
+    {
+        auto xlength   = xDescs[i]->GetLengths();
+        max_x_dim_size = std::max(max_x_dim_size, xlength[dim]);
+    }
+
+    auto ylength    = yDesc.GetLengths();
+    auto outer_size = std::accumulate(
+        ylength.begin(), ylength.begin() + dim, static_cast<size_t>(1), std::multiplies<size_t>());
+    auto dtype = yDesc.GetType();
+
+    std::ostringstream ss;
+
+    ss << "catfwd" << fusion_size;
+    ss << "dtype" << dtype;
+    ss << "dim" << dim;
+    ss << "max_x_dim_size" << max_x_dim_size;
+    ss << "outer_size" << outer_size;
+
+    return NetworkConfig{ss.str()};
 }
+
+} // namespace cat
 
 } // namespace miopen

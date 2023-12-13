@@ -23,33 +23,40 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/cat.hpp>
-#include <miopen/kernel_cache.hpp>
-#include <miopen/float_equal.hpp>
-#include <miopen/check_numerics.hpp>
-#include <miopen/tensor.hpp>
-#include <miopen/datatype.hpp>
-#include <miopen/cat/cat_invoke_params.hpp>
-#include <miopen/cat/solvers.hpp>
-#include <miopen/find_solution.hpp>
+
+#pragma once
+
+#include <miopen/solver.hpp>
+#include <miopen/cat/problem_description.hpp>
+
+#include <utility>
 
 namespace miopen {
 
-miopenStatus_t CatForward(Handle& handle,
-                          const int32_t xCount,
-                          const TensorDescriptor* const* xDescs,
-                          const ConstData_t* xs,
-                          const TensorDescriptor& yDesc,
-                          Data_t y,
-                          int32_t dim)
-{
-    const auto problem       = cat::ProblemDescription{xCount, xDescs, yDesc, dim};
-    const auto invoke_params = cat::CatInvokeParams{xCount, xDescs, xs, yDesc, y, dim};
-    const auto algo          = AlgorithmName{"CatForward"};
-    const auto solvers       = solver::SolverContainer<solver::cat::CatForward>{};
-    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+namespace solver {
 
-    return miopenStatusSuccess;
-}
+namespace cat {
+
+using CatSolver = NonTunableSolverBase<ExecutionContext, miopen::cat::ProblemDescription>;
+
+struct CatForward final : CatSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<CatForward>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::cat::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::cat::ProblemDescription& problem) const override;
+    std::size_t GetWorkspaceSize(const ExecutionContext& context,
+                                 const miopen::cat::ProblemDescription& problem) const override
+    {
+        return 0;
+    }
+    bool MayNeedWorkspace() const override { return false; }
+};
+
+} // namespace cat
+
+} // namespace solver
 
 } // namespace miopen

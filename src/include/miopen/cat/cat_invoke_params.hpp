@@ -23,33 +23,44 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/cat.hpp>
-#include <miopen/kernel_cache.hpp>
-#include <miopen/float_equal.hpp>
-#include <miopen/check_numerics.hpp>
+
+#pragma once
+
+#include <miopen/invoke_params.hpp>
 #include <miopen/tensor.hpp>
-#include <miopen/datatype.hpp>
-#include <miopen/cat/cat_invoke_params.hpp>
-#include <miopen/cat/solvers.hpp>
-#include <miopen/find_solution.hpp>
 
 namespace miopen {
+namespace cat {
 
-miopenStatus_t CatForward(Handle& handle,
-                          const int32_t xCount,
-                          const TensorDescriptor* const* xDescs,
-                          const ConstData_t* xs,
-                          const TensorDescriptor& yDesc,
-                          Data_t y,
-                          int32_t dim)
+struct CatInvokeParams : public miopen::InvokeParams
 {
-    const auto problem       = cat::ProblemDescription{xCount, xDescs, yDesc, dim};
-    const auto invoke_params = cat::CatInvokeParams{xCount, xDescs, xs, yDesc, y, dim};
-    const auto algo          = AlgorithmName{"CatForward"};
-    const auto solvers       = solver::SolverContainer<solver::cat::CatForward>{};
-    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+    CatInvokeParams(const int32_t xCount_,
+                    const TensorDescriptor* const* xDescs_,
+                    const void* const* xs_,
+                    const TensorDescriptor& yDesc_,
+                    void* y_,
+                    const int32_t dim_)
+        : xCount(xCount_), xDescs(xDescs_), xs(xs_), yDesc(yDesc_), y(y_), dim(dim_)
+    {
+    }
 
-    return miopenStatusSuccess;
-}
+    miopenHandle_t handle;
+    const int32_t xCount;
+    const TensorDescriptor* const* xDescs;
+    const void* const* xs;
+    const TensorDescriptor& yDesc;
+    void* y;
+    const int32_t dim;
 
+    size_t GetXDimSize(int xIndex) const
+    {
+        return xIndex < xCount ? xDescs[xIndex]->GetLengths()[dim] : 0;
+    }
+    const void* GetX(int xIndex) const { return xIndex < xCount ? xs[xIndex] : nullptr; }
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
+
+} // namespace cat
 } // namespace miopen
