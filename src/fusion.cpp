@@ -104,7 +104,7 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
     // MIOPEN_THROW(miopenStatusNotImplemented, "The addition of z vector is not yet supported");
     FusionPlanDescriptor fusePlanDesc{miopenVerticalFusion, xDesc};
     OperatorArgs fusionArgs;
-    auto convOp = std::make_shared<ConvForwardOpDescriptor>(conv_desc, wDesc);
+    auto convOp  = std::make_shared<ConvForwardOpDescriptor>(conv_desc, wDesc);
     auto zOp     = std::make_shared<TensorScaleAddOpDescriptor>(zDesc);
     auto biasOp  = std::make_shared<BiasFusionOpDescriptor>(biasDesc);
     auto activOp = std::make_shared<ActivFwdFusionOpDescriptor>(activationDesc.GetMode());
@@ -122,7 +122,7 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
     MIOPEN_CHECK(fusePlanDesc.AddOp(activOp));
 
     MIOPEN_CHECK(fusePlanDesc.Compile(handle));
-    float alpha = 1.0f;
+    float alpha       = 1.0f;
     float beta        = 0.0f;
     float activ_alpha = activationDesc.GetAlpha();
     float activ_beta  = activationDesc.GetBeta();
@@ -530,10 +530,8 @@ miopenStatus_t ConvForwardOpDescriptor::GetOutputDesc(TensorDescriptor& output_d
         [&]() { output_desc = base_desc.GetForwardOutputTensor(input_desc, filter_desc); });
 }
 
-miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
-                                                float alpha,
-                                                float beta,
-                                                ConstData_t w)
+miopenStatus_t
+ConvForwardOpDescriptor::SetArgs(OperatorArgs& args, float alpha, float beta, ConstData_t w)
 {
     auto op_args = std::make_unique<fusion::ConvolutionOpInvokeParam>(alpha, beta, w);
     args.SetArg(GetIdx(), std::move(op_args));
@@ -696,9 +694,8 @@ miopenStatus_t TensorScaleAddOpDescriptor::GetOutputDesc(TensorDescriptor& outpu
     return miopenStatusSuccess;
 }
 
-miopenStatus_t TensorScaleAddOpDescriptor::SetArgs(OperatorArgs& args,
-                                               float alpha,
-                                               ConstData_t tensor_ptr)
+miopenStatus_t
+TensorScaleAddOpDescriptor::SetArgs(OperatorArgs& args, float alpha, ConstData_t tensor_ptr)
 {
     auto op_args = std::make_unique<fusion::TensorScaleAddOpInvokeParam>(alpha, tensor_ptr);
     args.SetArg(GetIdx(), std::move(op_args));

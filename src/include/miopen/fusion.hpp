@@ -81,15 +81,14 @@ struct BiasFusionOpDescriptor : FusionOpDescriptor
     TensorDescriptor base_desc;
 };
 
-struct TensorScaleAddOpDescriptor: public FusionOpDescriptor {
+struct TensorScaleAddOpDescriptor : public FusionOpDescriptor
+{
     TensorScaleAddOpDescriptor(const TensorDescriptor& desc) : tensor_desc(desc) {}
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
     miopenStatus_t GetNetworkConfig(std::ostringstream& network_config) override;
-    miopenStatus_t
-    SetArgs(OperatorArgs& args, float alpha, ConstData_t tensor_ptr);
+    miopenStatus_t SetArgs(OperatorArgs& args, float alpha, ConstData_t tensor_ptr);
     miopenFusionOp_t kind() const override { return miopenFusionOpTensorScaleAdd; };
     TensorDescriptor tensor_desc;
-
 };
 
 struct ActivFwdFusionOpDescriptor : FusionOpDescriptor

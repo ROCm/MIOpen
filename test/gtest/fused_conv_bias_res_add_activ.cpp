@@ -59,8 +59,11 @@ inline int SetTensorLayout(miopen::TensorDescriptor& desc)
 
 template <typename T = float>
 struct ConvFwdBiasResAddFixture
-    : public ::testing::TestWithParam<
-          std::tuple<miopenConvBwdDataAlgorithm_t, Conv3DTestCase, float, float, miopenTensorLayout_t>>
+    : public ::testing::TestWithParam<std::tuple<miopenConvBwdDataAlgorithm_t,
+                                                 Conv3DTestCase,
+                                                 float,
+                                                 float,
+                                                 miopenTensorLayout_t>>
 {
 
 protected:
@@ -89,43 +92,41 @@ protected:
         SetTensorLayout(z.desc);
         z.generate(gen_value);
 
-        bias = tensor<T> {
-          tensor_layout, 
-          {1, 1, 1, 1, conv_config.k}, // NDHWK for lengths
-          {0, 1, 0, 0, 0}}; // NKDHW order for strides
+        bias = tensor<T>{tensor_layout,
+                         {1, 1, 1, 1, conv_config.k}, // NDHWK for lengths
+                         {0, 1, 0, 0, 0}};            // NKDHW order for strides
 
         bias.generate(gen_value);
 
-
         auto& handle = get_handle();
-        in_dev        = handle.Write(input.data);
-        wei_dev       = handle.Write(weights.data);
-        out_dev       = handle.Write(output.data);
-        z_dev = handle.Write(z.data);
-        bias_dev = handle.Write(bias.data);
+        in_dev       = handle.Write(input.data);
+        wei_dev      = handle.Write(weights.data);
+        out_dev      = handle.Write(output.data);
+        z_dev        = handle.Write(z.data);
+        bias_dev     = handle.Write(bias.data);
 
         miopenCreateActivationDescriptor(&activ_desc);
         miopenSetActivationDescriptor(activ_desc, miopenActivationRELU, 1.0f, 1.0f, 1.0f);
     }
     void TearDown() override
     {
-        
+
         miopenDestroyActivationDescriptor(activ_desc);
 
         auto&& handle = get_handle();
 
-        ref_out     = tensor<T>{tensor_layout, output_desc.GetLengths()};
-        ref_out     = ref_conv_fwd(input, weights, output, conv_desc);
+        ref_out = tensor<T>{tensor_layout, output_desc.GetLengths()};
+        ref_out = ref_conv_fwd(input, weights, output, conv_desc);
 
         // implement equation out = act(conv(in) * alpah1 + z * alpha2 + bias);
         ref_out.par_for_each([&](auto n, auto k, auto... dhw) {
-              auto& o = ref_out(n, k, dhw...);
+            auto& o = ref_out(n, k, dhw...);
 
-              o *= alpha1;
-              o += alpha2 * z(n, k, dhw...) + bias(n, k, dhw...);
-              o = (o > T{0}) ? o : T{0}; // TODO: hardcoded relu. Todo: use
-                                         // activationHostInfer
-            });
+            o *= alpha1;
+            o += alpha2 * z(n, k, dhw...) + bias(n, k, dhw...);
+            o = (o > T{0}) ? o : T{0}; // TODO: hardcoded relu. Todo: use
+                                       // activationHostInfer
+        });
 
         output.data = handle.Read<T>(out_dev, output.data.size());
         EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
@@ -164,31 +165,28 @@ protected:
     miopenActivationDescriptor activ_desc;
 };
 
-TEST_P(ConvFwdBiasResAddActivTest, ConvFwdBiasResAddFixture) {
-  auto status = miopenConvolutionBiasActivationForward(
-      &alpha1, 
-      &input.desc,
-      in_dev.get(),
-      &weights.desc,
-      wei_dev.get(),
-      conv_desc,
-      algo,
-      nullptr, // workspace
-      0ull, // workspace size
-      &alpha2,
-      &z.desc,
-      z_dev.get(),
-      &bias.desc,
-      bias_dev.get(),
-      activ_desc,
-      &output.desc,
-      out_dev.get());
+TEST_P(ConvFwdBiasResAddActivTest, ConvFwdBiasResAddFixture)
+{
+    auto status = miopenConvolutionBiasActivationForward(&alpha1,
+                                                         &input.desc,
+                                                         in_dev.get(),
+                                                         &weights.desc,
+                                                         wei_dev.get(),
+                                                         conv_desc,
+                                                         algo,
+                                                         nullptr, // workspace
+                                                         0ull,    // workspace size
+                                                         &alpha2,
+                                                         &z.desc,
+                                                         z_dev.get(),
+                                                         &bias.desc,
+                                                         bias_dev.get(),
+                                                         activ_desc,
+                                                         &output.desc,
+                                                         out_dev.get());
 
-  EXPECT_EQ(status, miopenStatusSuccess);
+    EXPECT_EQ(status, miopenStatusSuccess);
 }
-
-
-
 
 INSTANTIATE_TEST_SUITE_P(ConvFwdBiasActivAPI,
                          ConvBwdSolverTest3D,

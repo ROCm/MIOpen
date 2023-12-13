@@ -58,10 +58,10 @@ using DeviceOp = ck::tensor_operation::device::instance::DeviceOperationInstance
         ck::tensor_layout::convolution::GKZYXC,
         ck::Tuple<CK_OutLayout, ck::tensor_layout::convolution::G_K>,
         CK_OutLayout,
-        DataType,                              // in data type
-        DataType,                              // wei data type
+        DataType,                                // in data type
+        DataType,                                // wei data type
         ck::Tuple<AccumDataType, AccumDataType>, // z & bias tensors data type
-        DataType,                              // out data type
+        DataType,                                // out data type
         ck::tensor_operation::element_wise::PassThrough,
         ck::tensor_operation::element_wise::PassThrough,
         ck::tensor_operation::element_wise::
@@ -90,11 +90,11 @@ struct CKArgs
         Do = ProblemInterpreter::GetOutputDepthDo(problem);
         Z  = ProblemInterpreter::GetFilterDepthZ(problem);
 
-        in_lens  = {G, N, C, Di, Hi, Wi};
-        out_lens = {G, N, K, Do, Ho, Wo};
-        wei_lens = {G, K, C, Z, Y, X};
-        bias_lens = {G, 1, K, 1, 1, 1};
-        bias_strides = {K, 0, 1, 0, 0, 0}; 
+        in_lens      = {G, N, C, Di, Hi, Wi};
+        out_lens     = {G, N, K, Do, Ho, Wo};
+        wei_lens     = {G, K, C, Z, Y, X};
+        bias_lens    = {G, 1, K, 1, 1, 1};
+        bias_strides = {K, 0, 1, 0, 0, 0};
 
         // miopen filter_stride to CK filter_stride
         auto miopen_in_strides  = problem.GetIn().GetStrides();
@@ -162,24 +162,32 @@ struct CKArgs
                     const miopen::fusion::FusionInvokeParams& data_ctx) const
     {
 
-        auto* conv_param = 
+        auto* conv_param =
             dynamic_cast<miopen::fusion::ConvolutionOpInvokeParam*>(data_ctx.op_args.params[0]);
         assert(conv_param);
 
-        auto* z_param = dynamic_cast<miopen::fusion::TensorScaleAddOpInvokeParam*>(data_ctx.op_args.params[1]);
+        auto* z_param =
+            dynamic_cast<miopen::fusion::TensorScaleAddOpInvokeParam*>(data_ctx.op_args.params[1]);
         assert(z_param);
 
-        auto* bias_param = dynamic_cast<miopen::fusion::BiasOpInvokeParam*>(data_ctx.op_args.params[2]);
+        auto* bias_param =
+            dynamic_cast<miopen::fusion::BiasOpInvokeParam*>(data_ctx.op_args.params[2]);
         assert(bias_param);
 
         /// \todo: Support general activation functions.
         /// only relu activation supported and hardcoded for now
-        [[maybe_unused]] auto* activ_param = dynamic_cast<miopen::fusion::ActivationOpInvokeParam&>(*data_ctx.op_args.params[3]);
+        [[maybe_unused]] auto* activ_param =
+            dynamic_cast<miopen::fusion::ActivationOpInvokeParam&>(*data_ctx.op_args.params[3]);
         assert(activ_param);
 
-        return MakeArgPtr(op_ptr, data_ctx.in, conv_param->weights, data_ctx.out, 
-            z_param->tensor_ptr, bias_param->bdata,
-            conv_param->alpha, z_param->alpha);
+        return MakeArgPtr(op_ptr,
+                          data_ctx.in,
+                          conv_param->weights,
+                          data_ctx.out,
+                          z_param->tensor_ptr,
+                          bias_param->bdata,
+                          conv_param->alpha,
+                          z_param->alpha);
     }
 
 #if 0

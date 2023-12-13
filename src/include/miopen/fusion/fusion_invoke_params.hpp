@@ -40,12 +40,12 @@ struct FusionOpInvokeParamBase
 
 struct ConvolutionOpInvokeParam : FusionOpInvokeParamBase
 {
-    ConvolutionOpInvokeParam(float _alpha, float _beta, ConstData_t w) : 
-      alpha(_alpha),
-      beta(_beta),
-      weights(w) {}
-    float alpha = 1.0f; // scales new result of convolution
-    float beta = 0.0f; // scales old val of convolution output tensor
+    ConvolutionOpInvokeParam(float _alpha, float _beta, ConstData_t w)
+        : alpha(_alpha), beta(_beta), weights(w)
+    {
+    }
+    float alpha         = 1.0f; // scales new result of convolution
+    float beta          = 0.0f; // scales old val of convolution output tensor
     ConstData_t weights = nullptr;
 };
 
@@ -58,7 +58,7 @@ struct BiasOpInvokeParam : FusionOpInvokeParamBase
 struct TensorScaleAddOpInvokeParam : public FusionOpInvokeParamBase
 {
     TensorScaleAddOpInvokeParam(float a, ConstData_t tp) : alpha(a), tensor_ptr(tp) {}
-    float alpha = 1.0f;
+    float alpha            = 1.0f;
     ConstData_t tensor_ptr = nullptr;
 };
 
