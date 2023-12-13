@@ -100,7 +100,6 @@ ConvSolution MakeInvokerFactory(const ProblemDescriptionType& problem, const std
     auto conv_ptrs = DeviceOpType::GetInstances();
     auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id);
 
-    MIOPEN_LOG_I("CK kernel instance = " << kernel_id);
     if(ptr_iter == conv_ptrs.end())
     {
         MIOPEN_LOG_E("PerformanceConfig kernel '" + kernel_id + "' does not exist.");
@@ -120,29 +119,6 @@ ConvSolution MakeInvokerFactory(const ProblemDescriptionType& problem, const std
                 const auto enable_profiling = handle.IsProfilingEnabled();
                 float elapsed_time =
                     invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
-
-                auto print_tensor = [](const char* name, const TensorDescriptor& desc, const void* ptr) {
-                
-                  const float* fptr = reinterpret_cast<const float*>(ptr);
-
-                  std::cout << name << "=[";
-                  for (size_t i = 0; i < desc.GetElementSpace(); ++i) {
-                    std::cout << fptr[i] << ", ";
-                  }
-                  
-                  std::cout << "]\n";
-                };
-
-
-                #define PRINT_TENSOR(x) print_tensor(#x, data_ctx.tensors.x##Desc, data_ctx.tensors.x);
-                handle.Finish();
-                if constexpr (std::is_same_v<decltype(data_ctx.tensors), ConvDataTensors>) {
-                  PRINT_TENSOR(in);
-                  PRINT_TENSOR(w);
-                  PRINT_TENSOR(out);
-                }
-
-
                 if(enable_profiling)
                 {
                     handle.ResetKernelTime();

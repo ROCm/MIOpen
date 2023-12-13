@@ -84,8 +84,9 @@ struct CKArgs
         Do = ProblemInterpreter::GetOutputDepthDo(problem);
         Z  = ProblemInterpreter::GetFilterDepthZ(problem);
 
-        output  = {G, N, C, Di, Hi, Wi};
-        input = {G, N, K, Do, Ho, Wo};
+        // On a backward pass, out is in and in is out and this is silly
+        output = {G, N, C, Di, Hi, Wi};
+        input  = {G, N, K, Do, Ho, Wo};
         weight = {G, K, C, Z, Y, X};
 
         // miopen strides to CK strides
@@ -119,27 +120,6 @@ struct CKArgs
     template <typename ConvPtr>
     auto MakeArgPtr(const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy) const
     {
-        auto printVec = [] (const char* name, const auto& vec) {
-          std::cout << name << "=[";
-          for (const auto& v: vec) {
-            std::cout << v << ", ";
-          }
-          std::cout << "]\n";
-        };
-
-#define PRINT_VEC(x) printVec(#x, x);
-
-        PRINT_VEC(input);
-        PRINT_VEC(in_strides);
-        PRINT_VEC(output);
-        PRINT_VEC(out_strides);
-        PRINT_VEC(weight);
-        PRINT_VEC(wei_strides);
-
-        PRINT_VEC(strides);
-        PRINT_VEC(dilation);
-        PRINT_VEC(lPadding);
-        PRINT_VEC(rPadding);
         return conv_ptr->MakeArgumentPointer(x,
                                              dw,
                                              dy,
