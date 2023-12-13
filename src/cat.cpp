@@ -38,33 +38,21 @@ namespace miopen {
 inline size_t AlignUp(size_t num, size_t align) { return (num + align - 1) / align * align; }
 
 miopenStatus_t CatForward(const Handle& handle,
-                          const std::vector<TensorDescriptor>& xDescs,
-                          std::vector<ConstData_t> xs,
+                          const int32_t xCount,
+                          const TensorDescriptor* const* xDescs,
+                          const ConstData_t* xs,
                           const TensorDescriptor& yDesc,
                           Data_t y,
                           int32_t dim)
 {
-    if(xs.size() > MAX_TENSOR_X_COUNT)
+    if(xCount > MAX_TENSOR_X_COUNT)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Exceeded the number of tensors.");
-    }
-
-    if(xs.size() != xDescs.size())
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "The number of tensors does not match.");
     }
 
     if(y == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
-    }
-
-    for(auto x : xs)
-    {
-        if(x == nullptr)
-        {
-            MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
-        }
     }
 
     const auto dtype   = yDesc.GetType();
@@ -74,11 +62,18 @@ miopenStatus_t CatForward(const Handle& handle,
     std::vector<size_t> x_dim_sizes;
     size_t x_dim_size_max = 0;
 
-    for(auto& xDesc : xDescs)
+    for(int i = 0; i < xCount; i++)
     {
-        auto& xdims = xDesc.GetLengths();
+        auto x      = xs[i];
+        auto xDesc  = xDescs[i];
+        auto& xdims = xDesc->GetLengths();
 
-        if(xDesc.GetType() != dtype)
+        if(x == nullptr)
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
+        }
+
+        if(xDesc->GetType() != dtype)
         {
             MIOPEN_THROW(miopenStatusBadParm, "Tensor types do not match.");
         }
@@ -88,9 +83,9 @@ miopenStatus_t CatForward(const Handle& handle,
             MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
         }
 
-        for(int i = 0; i < ydims.size(); i++)
+        for(int j = 0; j < ydims.size(); j++)
         {
-            if((i != dim) && (ydims[i] != xdims[i]))
+            if((j != dim) && (ydims[j] != xdims[j]))
             {
                 MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
             }
@@ -99,7 +94,7 @@ miopenStatus_t CatForward(const Handle& handle,
         x_dim_size_max = std::max(x_dim_size_max, xdims[dim]);
         x_dim_sizes.push_back(xdims[dim]);
         ydims[dim] += xdims[dim];
-        is_all_packed &= xDesc.IsPacked();
+        is_all_packed &= xDesc->IsPacked();
     }
 
     if(ydims[dim] != yDesc.GetLengths()[dim])
@@ -124,17 +119,16 @@ miopenStatus_t CatForward(const Handle& handle,
         outer_size *= ydims[i];
     }
 
-    auto ninputs        = xs.size();
     auto stride         = yDesc.GetStrides()[dim];
     auto y_dim_size     = ydims[dim];
     int32_t fusion_size = 2;
 
-    while(fusion_size < ninputs)
+    while(fusion_size < xCount)
     {
         fusion_size *= 2;
     }
 
-    for(int i = ninputs; i < fusion_size; i++)
+    for(int i = xCount; i < fusion_size; i++)
     {
         x_dim_sizes.push_back(0);
     }

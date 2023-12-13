@@ -79,14 +79,19 @@ extern "C" miopenStatus_t miopenCatForward(miopenHandle_t handle,
     LogCmdCat(xDescs, xCount, true);
     return miopen::try_([&] {
         std::vector<ConstData_t> xCast;
-        std::vector<miopen::TensorDescriptor> xDescsCast;
+        std::vector<miopen::TensorDescriptor*> xDescsCast;
         std::transform(xDescs,
                        xDescs + xCount,
                        std::back_inserter(xDescsCast),
-                       [](const auto& xDesc) { return miopen::deref(xDesc); });
+                       [](const auto& xDesc) { return &miopen::deref(xDesc); });
         std::transform(
             xs, xs + xCount, std::back_inserter(xCast), [](const void* x) { return DataCast(x); });
-        miopen::CatForward(
-            miopen::deref(handle), xDescsCast, xCast, miopen::deref(yDesc), DataCast(y), dim);
+        miopen::CatForward(miopen::deref(handle),
+                           xCount,
+                           xDescsCast.data(),
+                           xCast.data(),
+                           miopen::deref(yDesc),
+                           DataCast(y),
+                           dim);
     });
 }
