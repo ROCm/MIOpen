@@ -129,7 +129,7 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
     float activ_gamma = activationDesc.GetGamma();
 
     // Set the Args
-    MIOPEN_CHECK(convOp->SetArgs(fusionArgs, falpha1, beta, w));
+    MIOPEN_CHECK(convOp->SetArgs(fusionArgs, &falpha1, &beta, w));
     MIOPEN_CHECK(zOp->SetArgs(fusionArgs, falpha2, z));
     MIOPEN_CHECK(biasOp->SetArgs(fusionArgs, &alpha, &beta, bias));
     MIOPEN_CHECK(activOp->SetArgs(fusionArgs, &alpha, &beta, activ_alpha, activ_beta, activ_gamma));
@@ -530,10 +530,24 @@ miopenStatus_t ConvForwardOpDescriptor::GetOutputDesc(TensorDescriptor& output_d
         [&]() { output_desc = base_desc.GetForwardOutputTensor(input_desc, filter_desc); });
 }
 
+/*
 miopenStatus_t
 ConvForwardOpDescriptor::SetArgs(OperatorArgs& args, float alpha, float beta, ConstData_t w)
 {
     auto op_args = std::make_unique<fusion::ConvolutionOpInvokeParam>(alpha, beta, w);
+    args.SetArg(GetIdx(), std::move(op_args));
+    return miopenStatusSuccess;
+}
+*/
+
+miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
+                                                const void* alpha,
+                                                const void* beta,
+                                                ConstData_t w)
+{
+    float* alphaptr = reinterpret_cast<float*>(const_cast<void*>(alpha));
+    float* betaptr  = reinterpret_cast<float*>(const_cast<void*>(beta));
+    auto op_args    = std::make_unique<fusion::ConvolutionOpInvokeParam>(*alphaptr, *betaptr, w);
     args.SetArg(GetIdx(), std::move(op_args));
     return miopenStatusSuccess;
 }

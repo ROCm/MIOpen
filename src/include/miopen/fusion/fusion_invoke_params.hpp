@@ -40,6 +40,7 @@ struct FusionOpInvokeParamBase
 
 struct ConvolutionOpInvokeParam : FusionOpInvokeParamBase
 {
+    ConvolutionOpInvokeParam(ConstData_t w) : weights(w) {}
     ConvolutionOpInvokeParam(float _alpha, float _beta, ConstData_t w)
         : alpha(_alpha), beta(_beta), weights(w)
     {

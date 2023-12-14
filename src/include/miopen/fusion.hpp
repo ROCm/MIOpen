@@ -224,7 +224,8 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
           kernel_info_valid(false),
           conv_compiler_options(""){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
-    miopenStatus_t SetArgs(OperatorArgs& args, float alpha, float beta, ConstData_t w);
+    miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t w);
+    // miopenStatus_t SetArgs(OperatorArgs& args, float alpha, float beta, ConstData_t w);
     miopenStatus_t GetNetworkConfig(std::ostringstream& network_config) override;
     bool isASMApplicable(Handle& handle);
     miopenFusionOp_t kind() const override { return miopenFusionOpConvForward; };
