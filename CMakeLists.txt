@@ -347,7 +347,7 @@ if(MIOPEN_USE_MLIR)
         find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
         if(NOT LIBMLIRMIOPEN)
             message(FATAL_ERROR "library libMLIRMIOpen not found, please reinstall dependencies. \
-            Refer to https://github.com/ROCmSoftwarePlatform/MIOpen#installing-the-dependencies")
+            Refer to https://github.com/ROCm/MIOpen#installing-the-dependencies")
         else()
             message(STATUS "Build with library libMLIRMIOpen: " ${LIBMLIRMIOPEN})
             set(rocMLIR_VERSION 0.0.1)

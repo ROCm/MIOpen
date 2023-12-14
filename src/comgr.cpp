@@ -58,7 +58,7 @@
 
 /// Correctness problems on MI200 with base driver 5.11.14 (~ROCm 4.3.1).
 /// With base driver 5.11.32 the errors disappear.
-/// More info at https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1257.
+/// More info at https://github.com/ROCm/MIOpen/issues/1257.
 #define WORKAROUND_ISSUE_1257 (HIP_PACKAGE_VERSION_FLAT >= 4003021331ULL)
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_LOG_CALLS)
@@ -1136,7 +1136,7 @@ static void PrintVersion()
 }
 
 /// \ref
-/// https://github.com/ROCmSoftwarePlatform/AMDMIGraphX/blob/21193e875fe2133b38872decb7b2d0f985f48496/src/targets/gpu/compile_hip.cpp#L44
+/// https://github.com/ROCm/AMDMIGraphX/blob/21193e875fe2133b38872decb7b2d0f985f48496/src/targets/gpu/compile_hip.cpp#L44
 /// Workaround hiprtc's broken API
 static void hiprtc_program_destroy(hiprtcProgram prog) { hiprtcDestroyProgram(&prog); }
 using hiprtc_program_ptr = MIOPEN_MANAGE_PTR(hiprtcProgram, hiprtc_program_destroy);

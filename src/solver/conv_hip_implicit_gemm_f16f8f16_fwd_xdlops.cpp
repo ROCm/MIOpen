@@ -44,13 +44,12 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
-#if MIOPEN_USE_COMPOSABLEKERNEL
-using d_type             = ck::half_t;
-using c_type             = ck::f8_t;
-#endif
 using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_USE_COMPOSABLEKERNEL
+using d_type = ck::half_t;
+using c_type = ck::f8_t;
+
 template <typename DataType, typename ComputeType>
 using DeviceOpF8Fwd = ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<
     3,
