@@ -86,8 +86,9 @@ struct CKArgs
         Do = ProblemInterpreter::GetOutputDepthDo(problem);
         Z  = ProblemInterpreter::GetFilterDepthZ(problem);
 
-        input  = {G, N, C, Di, Hi, Wi};
-        output = {G, N, K, Do, Ho, Wo};
+        // On a backward pass, out is in and in is out and this is silly
+        output = {G, N, C, Di, Hi, Wi};
+        input  = {G, N, K, Do, Ho, Wo};
         weight = {G, K, C, Z, Y, X};
 
         // CK strides are in GNCDHW order

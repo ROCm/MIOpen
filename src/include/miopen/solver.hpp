@@ -111,7 +111,7 @@ struct SolverBase
     /// * Value 1.0 corresponds to the 100% utilization of HW capabilities as
     ///   if Direct computational algorithm is used.
     /// * [Notice] WTI may exceed 1.0 for highly optimized algorithms like Winograd.
-    /// * @see https://github.com/ROCmSoftwarePlatform/MIOpen/issues/410
+    /// * @see https://github.com/ROCm/MIOpen/issues/410
     virtual float GetWti(const ExecutionContext& ctx, const boost::any& problem) const = 0;
 
     // Returns the workspace size required by the solver for a given ExecutionContext
@@ -370,12 +370,8 @@ struct PerformanceConfigConvAsm1x1U : PerfConfigBase<PerformanceConfigConvAsm1x1
 
     void StaticHeuristic(const miopen::conv::ProblemDescription& problem);
     void HeuristicInit(const ExecutionContext&, const miopen::conv::ProblemDescription&);
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
-    void RunParmeterPredictionModel(const ExecutionContext&,
-                                    const miopen::conv::ProblemDescription&,
-                                    bool& valid);
-    bool ModelApplyToken(int index, int value, const miopen::conv::ProblemDescription&);
-#endif
+    bool IsModelApplicable(const ExecutionContext& ctx,
+                           const miopen::conv::ProblemDescription& problem) const;
     bool IsValidValue() const { return IsValidValueImpl(8); }
     bool SetNextValue(const miopen::conv::ProblemDescription&);
     bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription& problem) const
@@ -399,6 +395,9 @@ private:
     {
         return IsValidValueImpl(sequence_length);
     }
+    bool RunParameterPredictionModel(const ExecutionContext&,
+                                     const miopen::conv::ProblemDescription&);
+    bool ModelApplyToken(int index, std::string value, const miopen::conv::ProblemDescription&);
 #endif
     bool IsValidImpl(const miopen::conv::ProblemDescription& problem, int sequence_length) const;
     bool IsValidValueImpl(int sequence_length) const;
@@ -1020,7 +1019,7 @@ struct PerformanceConvMlirIgemm : PerfConfigBase<PerformanceConvMlirIgemm>
     int GemmNPerThread;
     bool use_spare_set;
 
-    /// \ref https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1154
+    /// \ref https://github.com/ROCm/MIOpen/issues/1154
     static PerformanceConvMlirIgemm& MlirHeuristicInitRequest()
     {
         static PerformanceConvMlirIgemm heur;
@@ -1094,7 +1093,7 @@ struct PerformanceConvMlirIgemmXdlops : PerfConfigBase<PerformanceConvMlirIgemmX
 
     bool use_spare_set;
 
-    /// \ref https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1154
+    /// \ref https://github.com/ROCm/MIOpen/issues/1154
     static PerformanceConvMlirIgemmXdlops& MlirHeuristicInitRequest()
     {
         static PerformanceConvMlirIgemmXdlops heur;
@@ -4500,7 +4499,7 @@ struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
         : PerformanceConfigHipImplicitGemmGroupFwdXdlops(0, "")
     {
     }
-    void HeuristicInit(const miopen::conv::ProblemDescription&);
+    void HeuristicInit(const ExecutionContext&, const miopen::conv::ProblemDescription&);
     bool SetNextValue(const miopen::conv::ProblemDescription&);
     bool IsValidValue() const;
     bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription& problem) const
@@ -4509,8 +4508,19 @@ struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
     }
     bool IsValid(const miopen::conv::ProblemDescription&) const;
     bool operator==(const PerformanceConfigHipImplicitGemmGroupFwdXdlops& other) const;
+    bool IsModelApplicable(const ExecutionContext& ctx,
+                           const miopen::conv::ProblemDescription& problem) const;
 
 private:
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+    std::vector<int> heuristic_indexes;
+    std::vector<std::vector<std::string>> heuristic_kernels;
+    template <typename DataType>
+    bool RunParameterPredictionModel(const ExecutionContext& ctx,
+                                     const miopen::conv::ProblemDescription& problem);
+    void InitHeuristicKernelIDs();
+    bool ModelApplyToken(int idx, std::string value);
+#endif
     template <typename DataType>
     void Init(const miopen::conv::ProblemDescription&);
     template <typename DataType>

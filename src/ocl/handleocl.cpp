@@ -195,7 +195,7 @@ static bool PrintOpenCLDeprecateMsg()
     MIOPEN_LOG_W(
         "please port your application to the better supported and functional HIP backend. ");
     MIOPEN_LOG_W("If you have any questions, please reach out to the MIOpen developers at ");
-    MIOPEN_LOG_W("https://github.com/ROCmSoftwarePlatform/MIOpen");
+    MIOPEN_LOG_W("https://github.com/ROCm/MIOpen");
     return true;
 }
 
