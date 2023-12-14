@@ -48,7 +48,7 @@ static void LogCmdGroupNorm(const miopenTensorDescriptor_t xDesc,
         }
         else if(dtype == miopenBFloat16)
         {
-            ss << "groupnormbf16";
+            ss << "groupnormbfp16";
         }
         else if(dtype == miopenDouble)
         {
