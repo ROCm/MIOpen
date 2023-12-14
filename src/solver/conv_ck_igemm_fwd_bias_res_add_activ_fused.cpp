@@ -40,7 +40,7 @@
 #include <ck/tensor_operation/gpu/device/device_conv_fwd_bias_activation.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_forward_scaleadd_scaleadd_relu.hpp>
 #endif
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_RES_ADD_ACTIV)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_RES_ADD_ACTIV)
 
 namespace miopen {
 namespace solver {
@@ -52,7 +52,7 @@ using CK_OutLayout = ck::tensor_layout::convolution::NDHWGK;
 // AccumDataType also applies to added z & bias tensors
 template <typename DataType, typename AccumDataType = DataType>
 using DeviceOp = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-    ck::tensor_operation::device::DeviceGroupedConvFwdMultipleD<
+    ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<
         3,
         ck::tensor_layout::convolution::NDHWGC,
         ck::tensor_layout::convolution::GKZYXC,
@@ -161,33 +161,32 @@ struct CKArgs
     auto MakeArgPtr(const DevOpPtr& op_ptr,
                     const miopen::fusion::FusionInvokeParams& data_ctx) const
     {
+        const auto& conv_param =
+            dynamic_cast<miopen::fusion::ConvolutionOpInvokeParam&>(*data_ctx.op_args.params[0]);
+        // assert(conv_param);
 
-        auto* conv_param =
-            dynamic_cast<miopen::fusion::ConvolutionOpInvokeParam*>(data_ctx.op_args.params[0]);
-        assert(conv_param);
+        const auto& z_param =
+            dynamic_cast<miopen::fusion::TensorScaleAddOpInvokeParam&>(*data_ctx.op_args.params[1]);
+        // assert(z_param);
 
-        auto* z_param =
-            dynamic_cast<miopen::fusion::TensorScaleAddOpInvokeParam*>(data_ctx.op_args.params[1]);
-        assert(z_param);
-
-        auto* bias_param =
-            dynamic_cast<miopen::fusion::BiasOpInvokeParam*>(data_ctx.op_args.params[2]);
-        assert(bias_param);
+        const auto& bias_param =
+            dynamic_cast<miopen::fusion::BiasOpInvokeParam&>(*data_ctx.op_args.params[2]);
+        // assert(bias_param);
 
         /// \todo: Support general activation functions.
         /// only relu activation supported and hardcoded for now
-        [[maybe_unused]] auto* activ_param =
+        [[maybe_unused]] const auto& activ_param =
             dynamic_cast<miopen::fusion::ActivationOpInvokeParam&>(*data_ctx.op_args.params[3]);
-        assert(activ_param);
+        // assert(activ_param);
 
         return MakeArgPtr(op_ptr,
                           data_ctx.in,
-                          conv_param->weights,
+                          conv_param.weights,
                           data_ctx.out,
-                          z_param->tensor_ptr,
-                          bias_param->bdata,
-                          conv_param->alpha,
-                          z_param->alpha);
+                          z_param.tensor_ptr,
+                          bias_param.bdata,
+                          conv_param.alpha,
+                          z_param.alpha);
     }
 
 #if 0
@@ -201,7 +200,7 @@ struct CKArgs
     template <typename DevOpPtr>
     bool IsSupportedBy(const DevOpPtr& op_ptr) const
     {
-        auto arg_ptr = MakeArgPtr(op_ptr, nullptr, nullptr, nullptr, nullptr, nullptr);
+        auto arg_ptr = MakeArgPtr(op_ptr, nullptr, nullptr, nullptr, nullptr, nullptr, 1.0, 1.0);
         return op_ptr->IsSupportedArgument(arg_ptr.get());
     }
 
@@ -388,7 +387,7 @@ bool ConvCKIgemmFwdBiasResAddActivFused::IsApplicable(const FusionContext& ctx,
     {
         MIOPEN_THROW(miopenStatusInternalError, "desc.op_map.empty()");
     }
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_RES_ADD_ACTIV{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_RES_ADD_ACTIV)))
         return false;
     // check the sequence of prims
     if(desc.op_map.size() != 3)
