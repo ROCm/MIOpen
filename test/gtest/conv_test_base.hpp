@@ -127,11 +127,67 @@ template <typename T, typename Tref = float, bool use_cpu_ref = false>
 struct ConvFwdSolverTestBase
 {
 protected:
-    void SetUpImpl(ConvTestCaseBase conv_config, miopenTensorLayout_t tensor_layout);
+    void SetUpImpl(ConvTestCaseBase conv_config, miopenTensorLayout_t tensor_layout)
+    {
+        input   = tensor<T>{tensor_layout, conv_config.GetInput()};
+        weights = tensor<T>{tensor_layout, conv_config.GetWeights()};
+        input.generate(GenData<T>{});
+        weights.generate(GenWeights<T>{});
 
-    void TearDownConv();
+        conv_desc = conv_config.GetConv();
 
-    void ThresholdChecks();
+        miopen::TensorDescriptor output_desc =
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
+
+        output = tensor<T>{tensor_layout, output_desc.GetLengths()};
+        std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
+
+        auto&& handle = get_handle();
+        in_dev        = handle.Write(input.data);
+        wei_dev       = handle.Write(weights.data);
+        out_dev       = handle.Write(output.data);
+    }
+
+    void TearDownConv()
+    {
+        miopen::TensorDescriptor output_desc =
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
+        ref_out = tensor<T>{output.desc.GetLayout_t(), output_desc.GetLengths()};
+        if(use_cpu_ref)
+        {
+            cpu_convolution_forward(conv_desc.GetSpatialDimension(),
+                                    input,
+                                    weights,
+                                    ref_out,
+                                    conv_desc.GetConvPads(),
+                                    conv_desc.GetConvStrides(),
+                                    conv_desc.GetConvDilations(),
+                                    conv_desc.GetGroupCount());
+        }
+        else
+        {
+            ref_out = ref_conv_fwd(input, weights, ref_out, conv_desc);
+        }
+    }
+
+    void ThresholdChecks()
+    {
+        auto&& handle = get_handle();
+        output.data   = handle.Read<T>(out_dev, output.data.size());
+        EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
+        EXPECT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
+        EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(output));
+
+        const double tolerance = 80;
+        double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
+        auto error             = miopen::rms_range(ref_out, output);
+
+        EXPECT_FALSE(miopen::find_idx(ref_out, miopen::not_finite) >= 0)
+            << "Non finite number found in the CPU data";
+
+        EXPECT_TRUE(error < threshold)
+            << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+    }
 
     miopen::ConvolutionDescriptor conv_desc;
     tensor<T> input;
@@ -142,69 +198,3 @@ protected:
     miopen::Allocator::ManageDataPtr wei_dev;
     miopen::Allocator::ManageDataPtr out_dev;
 };
-
-template <typename T, typename Tref, bool use_cpu_ref>
-void ConvFwdSolverTestBase<T, Tref, use_cpu_ref>::SetUpImpl(ConvTestCaseBase conv_config,
-                                                            miopenTensorLayout_t tensor_layout)
-{
-    input   = tensor<T>{tensor_layout, conv_config.GetInput()};
-    weights = tensor<T>{tensor_layout, conv_config.GetWeights()};
-    input.generate(GenData<T>{});
-    weights.generate(GenWeights<T>{});
-
-    conv_desc = conv_config.GetConv();
-
-    miopen::TensorDescriptor output_desc =
-        conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
-
-    output = tensor<T>{tensor_layout, output_desc.GetLengths()};
-    std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
-
-    auto&& handle = get_handle();
-    in_dev        = handle.Write(input.data);
-    wei_dev       = handle.Write(weights.data);
-    out_dev       = handle.Write(output.data);
-}
-
-template <typename T, typename Tref, bool use_cpu_ref>
-void ConvFwdSolverTestBase<T, Tref, use_cpu_ref>::TearDownConv()
-{
-    miopen::TensorDescriptor output_desc =
-        conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
-    ref_out = tensor<T>{output.desc.GetLayout_t(), output_desc.GetLengths()};
-    if(use_cpu_ref)
-    {
-        cpu_convolution_forward(conv_desc.GetSpatialDimension(),
-                                input,
-                                weights,
-                                ref_out,
-                                conv_desc.GetConvPads(),
-                                conv_desc.GetConvStrides(),
-                                conv_desc.GetConvDilations(),
-                                conv_desc.GetGroupCount());
-    }
-    else
-    {
-        ref_out = ref_conv_fwd(input, weights, ref_out, conv_desc);
-    }
-}
-
-template <typename T, typename Tref, bool use_cpu_ref>
-void ConvFwdSolverTestBase<T, Tref, use_cpu_ref>::ThresholdChecks()
-{
-    auto&& handle = get_handle();
-    output.data   = handle.Read<T>(out_dev, output.data.size());
-    EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
-    EXPECT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
-    EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(output));
-
-    const double tolerance = 80;
-    double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
-    auto error             = miopen::rms_range(ref_out, output);
-
-    EXPECT_FALSE(miopen::find_idx(ref_out, miopen::not_finite) >= 0)
-        << "Non finite number found in the CPU data";
-
-    EXPECT_TRUE(error < threshold)
-        << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
-}
