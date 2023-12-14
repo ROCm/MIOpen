@@ -29,11 +29,10 @@
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
 
-using TestCase = std::tuple<std::vector<std::string>, std::string>;
-
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
 
 static bool SkipTest(void)
 {
@@ -41,31 +40,32 @@ static bool SkipTest(void)
            miopen::IsDisabled(ENV(MIOPEN_TEST_ALL));
 }
 
-void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
+void SetupEnvVar(void)
 {
-    auto env_vars = std::get<0>(param);
-    for(auto& elem : env_vars)
-    {
-        putenv(elem.data());
-    }
+    UpdateEnvVar(ENV(MIOPEN_FIND_MODE), "normal");
+    UpdateEnvVar(
+        ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
+        "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
+        "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC");
+}
 
-    auto cmd = std::get<1>(param);
-
-    std::stringstream ss(cmd);
+void GetArgs(const std::string& param, std::vector<std::string>& tokens)
+{
+    std::stringstream ss(param);
     std::istream_iterator<std::string> begin(ss);
     std::istream_iterator<std::string> end;
     while(begin != end)
         tokens.push_back(*begin++);
 }
 
-class Conv2dBf16 : public testing::TestWithParam<std::vector<TestCase>>
+class Conv2dBf16 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
 void Run2dDriver(miopenDataType_t prec)
 {
 
-    std::vector<TestCase> params;
+    std::vector<std::string> params;
     switch(prec)
     {
     case miopenBFloat16: params = Conv2dBf16::GetParam(); break;
@@ -82,6 +82,8 @@ void Run2dDriver(miopenDataType_t prec)
 
     default: params = Conv2dBf16::GetParam();
     }
+
+    SetupEnvVar();
 
     for(const auto& test_value : params)
     {
@@ -123,14 +125,9 @@ TEST_P(Conv2dBf16, Bf16Test)
     }
 };
 
-std::vector<TestCase> GetTestCases(const std::string& precision)
+std::vector<std::string> GetTestCases(const std::string& precision)
 {
-    std::vector<std::string> env_nhwc = {
-        "MIOPEN_FIND_MODE=normal",
-        "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;"
-        "ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC"};
-
-    const std::string v             = " --verbose";
+    const std::string flags         = "test_conv2d " + precision + " --verbose ";
     const std::string dis_bk_data   = " --disable-backward-data";
     const std::string dis_bk_wei    = " --disable-backward-weights";
     const std::string dis_fwd       = " --disable-forward";
@@ -142,66 +139,66 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
     const std::string args_nhwc_bwd = dis_fwd + dis_bk_wei + in_nhwc + fil_nhwc + out_nhwc;
     const std::string args_nhwc_wrw = dis_fwd + dis_bk_data + in_nhwc + fil_nhwc + out_nhwc;
 
-    const std::vector<TestCase> test_cases = {
+    const std::vector<std::string> test_cases = {
         // clang-format off
     //fwd
-    TestCase{env_nhwc, precision + v + " --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_fwd},
-    TestCase{env_nhwc, precision + v + " --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_fwd},
-    TestCase{env_nhwc, precision + v + " --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_fwd},
-    TestCase{env_nhwc, precision + v + " --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_fwd},
-    TestCase{env_nhwc, precision + v + " --input   2  64 59 57 --weights  12  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_fwd},
-    TestCase{env_nhwc, precision + v + " --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1" + args_nhwc_fwd},
-    TestCase{env_nhwc, precision + v + " --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1" + args_nhwc_fwd},
-    TestCase{env_nhwc, precision + v + " --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1" + args_nhwc_fwd},
-    TestCase{env_nhwc, precision + v + " --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1" + args_nhwc_fwd},
-    TestCase{env_nhwc, precision + v + " --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1" + args_nhwc_fwd},
-    TestCase{env_nhwc, precision + v + " --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1" + args_nhwc_fwd},
-    TestCase{env_nhwc, precision + v + " --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1" + args_nhwc_fwd},
-    TestCase{env_nhwc, precision + v + " --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1" + args_nhwc_fwd},
-    TestCase{env_nhwc, precision + v + " --input  64   3 78 78 --weights  64   3 7 7 --pads_strides_dilations 0 0 2 2 1 1" + args_nhwc_fwd},
-    TestCase{env_nhwc, precision + v + " --input  16 192 17 17 --weights 224 192 1 7 --pads_strides_dilations 0 3 1 1 1 1" + args_nhwc_fwd},
-    TestCase{env_nhwc, precision + v + " --input  16   3 17 17 --weights  64   3 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_fwd},
+    {flags + " --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_fwd},
+    {flags + " --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_fwd},
+    {flags + " --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_fwd},
+    {flags + " --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_fwd},
+    {flags + " --input   2  64 59 57 --weights  12  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_fwd},
+    {flags + " --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1" + args_nhwc_fwd},
+    {flags + " --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1" + args_nhwc_fwd},
+    {flags + " --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1" + args_nhwc_fwd},
+    {flags + " --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1" + args_nhwc_fwd},
+    {flags + " --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1" + args_nhwc_fwd},
+    {flags + " --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1" + args_nhwc_fwd},
+    {flags + " --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1" + args_nhwc_fwd},
+    {flags + " --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1" + args_nhwc_fwd},
+    {flags + " --input  64   3 78 78 --weights  64   3 7 7 --pads_strides_dilations 0 0 2 2 1 1" + args_nhwc_fwd},
+    {flags + " --input  16 192 17 17 --weights 224 192 1 7 --pads_strides_dilations 0 3 1 1 1 1" + args_nhwc_fwd},
+    {flags + " --input  16   3 17 17 --weights  64   3 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_fwd},
     
     //nhwc_bwd
-    TestCase{env_nhwc, precision + v + " --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_bwd},
-    TestCase{env_nhwc, precision + v + " --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_bwd},
-    TestCase{env_nhwc, precision + v + " --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_bwd},
-    TestCase{env_nhwc, precision + v + " --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_bwd},
-    TestCase{env_nhwc, precision + v + " --input   2  64 32 28 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_bwd},
-    TestCase{env_nhwc, precision + v + " --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1" + args_nhwc_bwd},
-    TestCase{env_nhwc, precision + v + " --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1" + args_nhwc_bwd},
-    TestCase{env_nhwc, precision + v + " --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1" + args_nhwc_bwd},
-    TestCase{env_nhwc, precision + v + " --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1" + args_nhwc_bwd},
-    TestCase{env_nhwc, precision + v + " --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1" + args_nhwc_bwd},
-    TestCase{env_nhwc, precision + v + " --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1" + args_nhwc_bwd},
-    TestCase{env_nhwc, precision + v + " --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1" + args_nhwc_bwd},
-    TestCase{env_nhwc, precision + v + " --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1" + args_nhwc_bwd},
-    TestCase{env_nhwc, precision + v + " --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_bwd},
-    TestCase{env_nhwc, precision + v + " --input  15 256 1  1  --weights 340 256 3 3 --pads_strides_dilations 1 1 1 1 1 1" + args_nhwc_bwd},
-    TestCase{env_nhwc, precision + v + " --input  15 128 10 10 --weights 340 128 3 3 --pads_strides_dilations 1 1 1 1 1 1" + args_nhwc_bwd},
+    {flags + " --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_bwd},
+    {flags + " --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_bwd},
+    {flags + " --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_bwd},
+    {flags + " --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_bwd},
+    {flags + " --input   2  64 32 28 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_bwd},
+    {flags + " --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1" + args_nhwc_bwd},
+    {flags + " --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1" + args_nhwc_bwd},
+    {flags + " --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1" + args_nhwc_bwd},
+    {flags + " --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1" + args_nhwc_bwd},
+    {flags + " --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1" + args_nhwc_bwd},
+    {flags + " --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1" + args_nhwc_bwd},
+    {flags + " --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1" + args_nhwc_bwd},
+    {flags + " --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1" + args_nhwc_bwd},
+    {flags + " --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_bwd},
+    {flags + " --input  15 256 1  1  --weights 340 256 3 3 --pads_strides_dilations 1 1 1 1 1 1" + args_nhwc_bwd},
+    {flags + " --input  15 128 10 10 --weights 340 128 3 3 --pads_strides_dilations 1 1 1 1 1 1" + args_nhwc_bwd},
     
     //nhwc_wrw
-    TestCase{env_nhwc, precision + v + " --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 " + args_nhwc_wrw},
-    TestCase{env_nhwc, precision + v + " --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 " + args_nhwc_wrw},
-    TestCase{env_nhwc, precision + v + " --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 " + args_nhwc_wrw},
-    TestCase{env_nhwc, precision + v + " --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 " + args_nhwc_wrw},
-    TestCase{env_nhwc, precision + v + " --input   2  64 32 28 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 " + args_nhwc_wrw},
-    TestCase{env_nhwc, precision + v + " --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 " + args_nhwc_wrw},
-    TestCase{env_nhwc, precision + v + " --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 " + args_nhwc_wrw},
-    TestCase{env_nhwc, precision + v + " --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 " + args_nhwc_wrw},
-    TestCase{env_nhwc, precision + v + " --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 " + args_nhwc_wrw},
-    TestCase{env_nhwc, precision + v + " --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 " + args_nhwc_wrw},
-    TestCase{env_nhwc, precision + v + " --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 " + args_nhwc_wrw},
-    TestCase{env_nhwc, precision + v + " --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 " + args_nhwc_wrw},
-    TestCase{env_nhwc, precision + v + " --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 " + args_nhwc_wrw},
-    TestCase{env_nhwc, precision + v + " --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1 " + args_nhwc_wrw},
-    TestCase{env_nhwc, precision + v + " --input  4 32 79 141 --weights 64 32 5 10 --pads_strides_dilations 0 0 2 2 1 1 " + args_nhwc_wrw},
-    TestCase{env_nhwc, precision + v + " --input  400  256 7 7 --weights 1024  256  7 7 --pads_strides_dilations 0 0 1 1 1 1 " + args_nhwc_wrw},
-    TestCase{env_nhwc, precision + v + " --input  400  256 1 1 --weights 1024  256  1 1 --pads_strides_dilations 0 0 1 1 1 1 " + args_nhwc_wrw},
-    TestCase{env_nhwc, precision + v + " --input  1 3 32 32 --weights 1 3 11 11 --pads_strides_dilations 1 1 2 2 2 1 " + args_nhwc_wrw},
-    TestCase{env_nhwc, precision + v + " --input  1 3 224 224 --weights 1 3 3 3 --pads_strides_dilations 0 0 1 1 2 2 " + args_nhwc_wrw},
-    TestCase{env_nhwc, precision + v + " --input  1 1 8 8 --weights 1 1 2 2 --pads_strides_dilations 0 0 1 1 2 2 " + args_nhwc_wrw},
-    TestCase{env_nhwc, precision + v + " --input  1 128 56 56 --weights 1 128 5 5 --pads_strides_dilations 0 0 2 2 1 1 " + args_nhwc_wrw}
+    {flags + " --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 " + args_nhwc_wrw},
+    {flags + " --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 " + args_nhwc_wrw},
+    {flags + " --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 " + args_nhwc_wrw},
+    {flags + " --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 " + args_nhwc_wrw},
+    {flags + " --input   2  64 32 28 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 " + args_nhwc_wrw},
+    {flags + " --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 " + args_nhwc_wrw},
+    {flags + " --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 " + args_nhwc_wrw},
+    {flags + " --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 " + args_nhwc_wrw},
+    {flags + " --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 " + args_nhwc_wrw},
+    {flags + " --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 " + args_nhwc_wrw},
+    {flags + " --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 " + args_nhwc_wrw},
+    {flags + " --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 " + args_nhwc_wrw},
+    {flags + " --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 " + args_nhwc_wrw},
+    {flags + " --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1 " + args_nhwc_wrw},
+    {flags + " --input  4 32 79 141 --weights 64 32 5 10 --pads_strides_dilations 0 0 2 2 1 1 " + args_nhwc_wrw},
+    {flags + " --input  400  256 7 7 --weights 1024  256  7 7 --pads_strides_dilations 0 0 1 1 1 1 " + args_nhwc_wrw},
+    {flags + " --input  400  256 1 1 --weights 1024  256  1 1 --pads_strides_dilations 0 0 1 1 1 1 " + args_nhwc_wrw},
+    {flags + " --input  1 3 32 32 --weights 1 3 11 11 --pads_strides_dilations 1 1 2 2 2 1 " + args_nhwc_wrw},
+    {flags + " --input  1 3 224 224 --weights 1 3 3 3 --pads_strides_dilations 0 0 1 1 2 2 " + args_nhwc_wrw},
+    {flags + " --input  1 1 8 8 --weights 1 1 2 2 --pads_strides_dilations 0 0 1 1 2 2 " + args_nhwc_wrw},
+    {flags + " --input  1 128 56 56 --weights 1 128 5 5 --pads_strides_dilations 0 0 2 2 1 1 " + args_nhwc_wrw}
         // clang-format on
     };
     return test_cases;
