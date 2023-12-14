@@ -62,9 +62,11 @@ bool GroupNormForward::IsApplicable(const ExecutionContext&,
         return false;
     if(!problem.IsAllPacked())
         return false;
-    if(!problem.IsRightNormDim())
+    if(!problem.IsNumGroupsValid())
         return false;
     if(!(sizeof_local_memory(problem) <= TargetProperties::GetMaxLocalMemorySize()))
+        return false;
+    if(problem.GetXDesc().GetLengths()[0] * problem.GetNumGroups() < 32)
         return false;
     return true;
 }
@@ -81,7 +83,6 @@ GroupNormForward::GetSolution(const ExecutionContext& context,
         auto dtype = problem.GetXDesc().GetType();
         auto dims  = problem.GetXDesc().GetLengths();
 
-        // size_t numel             = problem.GetXDesc().GetElementSize();
         size_t num_groups        = problem.GetNumGroups();
         size_t outer_size        = dims[0] * num_groups;
 
