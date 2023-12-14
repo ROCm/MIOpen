@@ -35,7 +35,7 @@ template <class MIOpen_Private_TypeName_>
 const std::string& get_type_name()
 {
     static const std::string ret =
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(__clang__)
         typeid(MIOpen_Private_TypeName_).name().substr(7);
 #else
         [](std::string name) {

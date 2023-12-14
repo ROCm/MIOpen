@@ -174,8 +174,13 @@ struct BoostSequence
 {
     using value_type     = TValue;
     using const_iterator = const TValue*;
+#ifdef _MSC_VER
+    constexpr const_iterator begin() const { return arr.begin()._Unwrapped(); }
+    constexpr const_iterator end() const { return arr.end()._Unwrapped(); }
+#else
     constexpr const_iterator begin() const { return arr.begin(); }
     constexpr const_iterator end() const { return arr.end(); }
+#endif
 
 private:
     static constexpr std::size_t count                         = sizeof...(values);

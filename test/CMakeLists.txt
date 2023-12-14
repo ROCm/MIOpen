@@ -325,6 +325,9 @@ separate_arguments(MIOPEN_TEST_FLAGS_ARGS NATIVE_COMMAND ${MIOPEN_TEST_FLAGS})
 
 function(add_test_executable TEST_NAME)
     add_executable (${TEST_NAME} EXCLUDE_FROM_ALL ${ARGN})
+    if(WIN32)
+        target_compile_definitions(${TEST_NAME} PRIVATE NOMINMAX)
+    endif()
     clang_tidy_check(${TEST_NAME})
     target_link_libraries(${TEST_NAME} Threads::Threads)
     # Cmake does not add flags correctly for gcc
@@ -364,7 +367,11 @@ function(add_test_executable TEST_NAME)
         target_link_libraries(${TEST_NAME} MIOpen)
     endif()
     target_include_directories(${TEST_NAME} PRIVATE ../src/kernels)
-endfunction(add_test_executable)
+    if(WIN32)
+        # Refer to https://en.cppreference.com/w/cpp/language/types for details.
+        target_compile_options(${TEST_NAME} PRIVATE $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:Clang>:-U__LP64__>>)
+    endif()
+endfunction()
 
 set(MIOPEN_TEST_SANITIZERS)
 foreach(SANTIZER address thread)
