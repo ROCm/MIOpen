@@ -1,10 +1,4 @@
-find_package(GTest CONFIG REQUIRED)
-if(GTest_FOUND)
-  MESSAGE(STATUS "GoogleTest: " ${GTest})
-  enable_testing()
-  include(GoogleTest)
-endif()
-
+find_package(GTest REQUIRED)
 find_package(rocblas)
 
 set(SOURCES
@@ -15,7 +9,6 @@ set(SOURCES
 if(MIOPEN_BACKEND_OPENCL)
   set(SKIP_TESTS dumpTensorTest.cpp)
 endif()
-
 
 file(GLOB TESTS *.cpp)
 file(GLOB HEADERS *.hpp)
@@ -37,20 +30,30 @@ endforeach()
 
 message("Adding miopen_gtest: " ${TESTS_CPP})
 add_executable(miopen_gtest ${TESTS_CPP} ${SOURCES})
+if(WIN32)
+  target_compile_definitions(miopen_gtest PRIVATE NOMINMAX)
+endif()
 add_dependencies(tests miopen_gtest)
 add_dependencies(check miopen_gtest)
 target_compile_options(miopen_gtest PRIVATE -Wno-global-constructors -Wno-undef)
 target_include_directories(miopen_gtest PRIVATE ../ ../../src/kernels)
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
-  target_include_directories(miopen_gtest SYSTEM PRIVATE $<BUILD_INTERFACE:${FDEEP_INCLUDE_DIR}>)
-  target_include_directories(miopen_gtest SYSTEM PRIVATE $<BUILD_INTERFACE:${EIGEN_INCLUDE_DIR}/eigen3>)
+  target_link_libraries(miopen_gtest frugally-deep::fdeep Eigen3::Eigen)
 endif()
 target_link_libraries(miopen_gtest GTest::gtest GTest::gtest_main MIOpen ${Boost_LIBRARIES} hip::host $<BUILD_INTERFACE:roc::rocblas>)
 if(NOT MIOPEN_EMBED_DB STREQUAL "")
     target_link_libraries(miopen_gtest $<BUILD_INTERFACE:miopen_data>)
 endif()
-# Enable CMake to discover the test binary
-gtest_discover_tests(miopen_gtest PROPERTIES ENVIRONMENT "MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR};MIOPEN_TEST_FLOAT_ARG=${MIOPEN_TEST_FLOAT_ARG};MIOPEN_TEST_ALL=${MIOPEN_TEST_ALL};MIOPEN_TEST_MLIR=${MIOPEN_TEST_MLIR};MIOPEN_TEST_COMPOSABLEKERNEL=${MIOPEN_TEST_COMPOSABLEKERNEL}")
+
+if(NOT WIN32) # TODO: cannot run on Windows due to missing DLL dependencies
+  # Enable CMake to discover the test binary
+  gtest_discover_tests(miopen_gtest PROPERTIES ENVIRONMENT "MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR};MIOPEN_TEST_FLOAT_ARG=${MIOPEN_TEST_FLOAT_ARG};MIOPEN_TEST_ALL=${MIOPEN_TEST_ALL};MIOPEN_TEST_MLIR=${MIOPEN_TEST_MLIR};MIOPEN_TEST_COMPOSABLEKERNEL=${MIOPEN_TEST_COMPOSABLEKERNEL}")
+endif()
+
+if(WIN32)
+  # Refer to https://en.cppreference.com/w/cpp/language/types for details.
+  target_compile_options(miopen_gtest PRIVATE $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:Clang>:-U__LP64__>>)
+endif()
 
 if( NOT ENABLE_ASAN_PACKAGING )
   install(TARGETS miopen_gtest
