@@ -148,10 +148,10 @@ std::vector<std::string> GetTestCases(std::string precision)
     {flags + " --batch-size 32 --seq-len 50 --vector-len 1536 --hidden-size 1536" + commonFlags},
     {flags + " --batch-size 16 --seq-len 150 --vector-len 256 --hidden-size 256" + commonFlags},
     {flags + " --batch-size 32 --seq-len 150 --vector-len 256 --hidden-size 256" + commonFlags},
-    {flags + " --batch-size 64 --seq-len 150 --vector-len 256 --hidden-size 256" + commonFlags}
-        // clang-format on
+    {flags + " --batch-size 64 --seq-len 150 --vector-len 256 --hidden-size 256" + commonFlags}};
+    // clang-format on
 
-        return test_cases;
+    return test_cases;
 }
 
 INSTANTIATE_TEST_SUITE_P(DeepbenchLstm, ConfigWithFloat, testing::Values(GetTestCases("--float")));
