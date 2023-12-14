@@ -43,7 +43,7 @@
 
 #include <tuple>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)
 
 #define IS3X2 (Winodata == 3 && Winofilter == 2)
 
@@ -60,7 +60,7 @@ namespace {
 
 // Winograd v21 is preferred on Vega10/Vega20 ASICs due to ~25% performance regression with Winograd
 // v30. The exception is Winograd F(3,2) stride2 as this mode is unsupported in v21. Details:
-// https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1927#issuecomment-1412741130
+// https://github.com/ROCm/MIOpen/pull/1927#issuecomment-1412741130
 template <int Winodata, int Winofilter>
 inline bool IsWinogradV21Preferred(const std::string& asic,
                                    const miopen::conv::ProblemDescription& problem)
@@ -152,7 +152,7 @@ namespace fusion {
 bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
                                                  const FusionDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)))
         return false;
     if(!WinoCommonIsApplicable(context, problem))
         return false;
