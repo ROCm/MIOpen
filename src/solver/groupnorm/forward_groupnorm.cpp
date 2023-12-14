@@ -40,16 +40,16 @@ namespace solver {
 
 namespace groupnorm {
 
-std::size_t sizeof_kernel_FLOAT(const miopen::groupnorm::ProblemDescription& problem)
+std::size_t sizeof_kernel_FLOAT_ACCUM(const miopen::groupnorm::ProblemDescription& problem)
 {
-    const auto datatype = problem.GetXDesc().GetType();
+    const auto datatype = problem.GetMeanDesc().GetType();
     return get_data_size(datatype);
 }
 
 std::size_t sizeof_local_memory(const miopen::groupnorm::ProblemDescription& problem)
 {
     std::size_t rv = 0;
-    rv += LOCAL_SIZE * sizeof_kernel_FLOAT(problem) * 2;
+    rv += LOCAL_SIZE * sizeof_kernel_FLOAT_ACCUM(problem) * 2;
     return rv;
 }
 
