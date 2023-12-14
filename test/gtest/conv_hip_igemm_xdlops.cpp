@@ -36,7 +36,7 @@ MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_COMPOSABLEKERNEL)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-namespace conv_hip_igem_xdlops {
+namespace conv_hip_igemm_xdlops {
 
 static bool IsTestRunWith(const char* float_arg)
 {
@@ -105,26 +105,6 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
         return false;
 }
 
-TEST_P(ConvHipIgemmXdlopsConfigInt8, Int8Test)
-{
-#if MIOPEN_BACKEND_OPENCL
-
-    GTEST_SKIP() << "MIOPEN_BACKEND_HIP needed for this test";
-
-#else // MIOPEN_BACKEND_HIP, OCL_DISABLED
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && miopen::IsEnabled(ENV(MIOPEN_TEST_COMPOSABLEKERNEL)) &&
-       miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && IsTestRunWith("--int8"))
-    {
-        Run2dDriver(miopenInt8);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-#endif
-};
-
 std::vector<std::string> GetTestCases(const std::string& precision)
 {
     std::string fwd         = " --disable-backward-data --disable-backward-weights --verbose";
@@ -166,8 +146,29 @@ std::vector<std::string> GetTestCases(const std::string& precision)
     return test_cases;
 }
 
+} // namespace conv_hip_igemm_xdlops
+using namespace conv_hip_igemm_xdlops;
+
+TEST_P(ConvHipIgemmXdlopsConfigInt8, Int8Test)
+{
+#if MIOPEN_BACKEND_OPENCL
+
+    GTEST_SKIP() << "MIOPEN_BACKEND_HIP needed for this test";
+
+#else // MIOPEN_BACKEND_HIP, OCL_DISABLED
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && miopen::IsEnabled(ENV(MIOPEN_TEST_COMPOSABLEKERNEL)) &&
+       miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && IsTestRunWith("--int8"))
+    {
+        Run2dDriver(miopenInt8);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+#endif
+};
+
 INSTANTIATE_TEST_SUITE_P(ConvHipIgemmXdlops,
                          ConvHipIgemmXdlopsConfigInt8,
                          testing::Values(GetTestCases("--int8")));
-
-} // namespace conv_hip_igem_xdlops

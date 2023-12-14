@@ -31,9 +31,10 @@
 #include "get_handle.hpp"
 #include "conv_test_base.hpp"
 
-namespace bad_fusion_plan {
 
 #if MIOPEN_BACKEND_HIP
+
+namespace bad_fusion_plan {
 
 void setEnvironmentVariable(const std::string& name, const std::string& value)
 {
@@ -166,6 +167,9 @@ private:
     bool skip_test;
 };
 
+} // namespace bad_fusion_plan
+using namespace bad_fusion_plan;
+
 TEST(TestFusionPlan, GoodFusionPlan)
 {
     TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
@@ -257,5 +261,3 @@ TEST(TestFusionPlan, UnSupportedFusionPlanDuringSearchMode)
 }
 
 #endif
-
-} // namespace bad_fusion_plan

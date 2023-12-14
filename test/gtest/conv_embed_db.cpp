@@ -111,6 +111,46 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
         return false;
 }
 
+std::vector<std::string> GetTestCases(const std::string& precision)
+{
+    std::string flags = " --disable-validation --verbose ";
+
+    // If precision env var is not set
+    if(!(IsTestRunWith("--float") || IsTestRunWith("--half") || IsTestRunWith("--int8") ||
+         IsTestRunWith("--bfloat16")))
+        flags.insert(0, precision);
+
+    const std::vector<std::string> test_cases = {
+        // clang-format off
+    {flags + "--input 128 128 28 28 --weights 128 128 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
+    {flags + "--input 128 256 56 56 --weights 512 256 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
+    {flags + "--input 128 3 230 230   --weights 64 3 7 7 --pads_strides_dilations 0 0 2 2 1 1"},
+    {flags + "--input 128 64 56 56 --weights 64 64 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
+    {flags + "--input 128 256 14 14 --weights 256 256 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
+    {flags + "--input 128 512 7 7   --weights 512 512 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
+    {flags + "--input 128 1024 14 14 --weights 512 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
+    {flags + "--input 128 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
+    {flags + "--input 128 256 14 14 --weights 1024 256 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    {flags + "--input 128 512 28 28 --weights 256 512 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
+    {flags + "--input 128 1024 14 14 --weights 256 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    {flags + "--input 128 64 56 56 --weights 256 64 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    {flags + "--input 128 64 56 56 --weights 64 64 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    {flags + "--input 128 128 28 28 --weights 512 128 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    {flags + "--input 128 256 56 56 --weights 128 256 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
+    {flags + "--input 128 256 56 56 --weights 64 256 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    {flags + "--input 128 512 28 28 --weights 1024 512 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
+    {flags + "--input 128 512 28 28 --weights 128 512 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    {flags + "--input 128 512 7 7   --weights 2048 512 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    {flags + "--input 128 2048 7 7 --weights 512 2048 1 1 --pads_strides_dilations 0 0 1 1 1 1"}
+        // clang-format on
+    };
+
+    return test_cases;
+}
+
+} // namespace conv_embed_db
+using namespace conv_embed_db;
+
 TEST_P(ConvEmbedConfigFloat, FloatTest)
 {
 #if MIOPEN_EMBED_DB
@@ -187,43 +227,6 @@ TEST_P(ConvEmbedConfigBFloat16, BFloat16Test)
 #endif
 };
 
-std::vector<std::string> GetTestCases(const std::string& precision)
-{
-    std::string flags = " --disable-validation --verbose ";
-
-    // If precision env var is not set
-    if(!(IsTestRunWith("--float") || IsTestRunWith("--half") || IsTestRunWith("--int8") ||
-         IsTestRunWith("--bfloat16")))
-        flags.insert(0, precision);
-
-    const std::vector<std::string> test_cases = {
-        // clang-format off
-    {flags + "--input 128 128 28 28 --weights 128 128 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
-    {flags + "--input 128 256 56 56 --weights 512 256 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
-    {flags + "--input 128 3 230 230   --weights 64 3 7 7 --pads_strides_dilations 0 0 2 2 1 1"},
-    {flags + "--input 128 64 56 56 --weights 64 64 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
-    {flags + "--input 128 256 14 14 --weights 256 256 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
-    {flags + "--input 128 512 7 7   --weights 512 512 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
-    {flags + "--input 128 1024 14 14 --weights 512 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
-    {flags + "--input 128 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
-    {flags + "--input 128 256 14 14 --weights 1024 256 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    {flags + "--input 128 512 28 28 --weights 256 512 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
-    {flags + "--input 128 1024 14 14 --weights 256 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    {flags + "--input 128 64 56 56 --weights 256 64 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    {flags + "--input 128 64 56 56 --weights 64 64 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    {flags + "--input 128 128 28 28 --weights 512 128 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    {flags + "--input 128 256 56 56 --weights 128 256 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
-    {flags + "--input 128 256 56 56 --weights 64 256 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    {flags + "--input 128 512 28 28 --weights 1024 512 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
-    {flags + "--input 128 512 28 28 --weights 128 512 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    {flags + "--input 128 512 7 7   --weights 2048 512 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    {flags + "--input 128 2048 7 7 --weights 512 2048 1 1 --pads_strides_dilations 0 0 1 1 1 1"}
-        // clang-format on
-    };
-
-    return test_cases;
-}
-
 INSTANTIATE_TEST_SUITE_P(ConvEmbedDB,
                          ConvEmbedConfigFloat,
                          testing::Values(GetTestCases("--float")));
@@ -232,5 +235,3 @@ INSTANTIATE_TEST_SUITE_P(ConvEmbedDB, ConvEmbedConfigInt8, testing::Values(GetTe
 INSTANTIATE_TEST_SUITE_P(ConvEmbedDB,
                          ConvEmbedConfigBFloat16,
                          testing::Values(GetTestCases("--bfloat16")));
-
-} // namespace conv_embed_db

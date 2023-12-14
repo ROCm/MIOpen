@@ -88,50 +88,6 @@ void Run2dDriver(miopenDataType_t prec)
     }
 };
 
-TEST_P(ConvIgemmMlirXdlopsConfigHalf, HalfTest)
-{
-#if MIOPEN_USE_MLIR
-
-    const auto& handle = get_handle();
-    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx90a")) &&
-       miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR)) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-       GetFloatArg() == "--half")
-    {
-        Run2dDriver(miopenHalf);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-
-#else
-    GTEST_SKIP();
-#endif
-};
-
-TEST_P(ConvIgemmMlirXdlopsConfigInt8, Int8Test)
-{
-#if MIOPEN_USE_MLIR
-
-    const auto& handle = get_handle();
-    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx90a")) &&
-       miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR)) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-       GetFloatArg() == "--int8")
-    {
-        Run2dDriver(miopenInt8);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-
-#else
-    GTEST_SKIP();
-#endif
-};
-
 std::vector<TestCase> GetTestCases(const std::string& precision)
 {
     std::vector<std::string> fwd = {"MIOPEN_FIND_MODE=normal",
@@ -196,6 +152,54 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
 
     return test_cases;
 }
+
+} // namespace conv_igemm_mlir_xdlops
+using namespace conv_igemm_mlir_xdlops;
+
+TEST_P(ConvIgemmMlirXdlopsConfigHalf, HalfTest)
+{
+#if MIOPEN_USE_MLIR
+
+    const auto& handle = get_handle();
+    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx90a")) &&
+       miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR)) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
+       GetFloatArg() == "--half")
+    {
+        Run2dDriver(miopenHalf);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+
+#else
+    GTEST_SKIP();
+#endif
+};
+
+TEST_P(ConvIgemmMlirXdlopsConfigInt8, Int8Test)
+{
+#if MIOPEN_USE_MLIR
+
+    const auto& handle = get_handle();
+    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx90a")) &&
+       miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR)) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
+       GetFloatArg() == "--int8")
+    {
+        Run2dDriver(miopenInt8);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+
+#else
+    GTEST_SKIP();
+#endif
+};
+
 // Half for FWD, BWD, WRW
 INSTANTIATE_TEST_SUITE_P(ConvIgemmMlirXdlops,
                          ConvIgemmMlirXdlopsConfigHalf,
@@ -204,5 +208,3 @@ INSTANTIATE_TEST_SUITE_P(ConvIgemmMlirXdlops,
 INSTANTIATE_TEST_SUITE_P(ConvIgemmMlirXdlops,
                          ConvIgemmMlirXdlopsConfigInt8,
                          testing::Values(GetTestCases("--int8")));
-
-} // namespace conv_igemm_mlir_xdlops

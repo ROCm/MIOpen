@@ -45,6 +45,9 @@ struct SumTestFloat : SumTest<float>
 {
 };
 
+} // namespace sum
+using namespace sum;
+
 TEST_P(SumTestFloat, SumTestFw)
 {
     if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
@@ -59,5 +62,3 @@ TEST_P(SumTestFloat, SumTestFw)
 };
 
 INSTANTIATE_TEST_SUITE_P(SumTestSet, SumTestFloat, testing::ValuesIn(SumTestConfigs()));
-
-} // namespace sum

@@ -179,6 +179,8 @@ void SolverWrw(const miopen::TensorDescriptor& inputDesc,
     (invoker)(handle, invoke_params);
     handle.Finish();
 }
+} // namespace conv_f8_wrw
+using namespace conv_f8_wrw;
 
 TEST_P(ConvWrwSolverTestF8, CKConvF8Wrw)
 {
@@ -200,4 +202,3 @@ INSTANTIATE_TEST_SUITE_P(
                      testing::ValuesIn(ConvTestConfigs()),
                      testing::Values(miopenTensorNDHWC)));
 
-} // namespace conv_f8_wrw

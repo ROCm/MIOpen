@@ -110,6 +110,8 @@ void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
     (invoker)(handle, *(plan_params.get()));
     handle.Finish();
 }
+} // namespace cba_infer
+using namespace cba_infer;
 
 TEST_P(ConvBiasActivInferTestFloat, ConvBiasActivAsm1x1UFloat)
 {
@@ -181,4 +183,3 @@ INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
                                           testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
                                           testing::Values(miopenTensorNHWC)));
 
-} // namespace cba_infer

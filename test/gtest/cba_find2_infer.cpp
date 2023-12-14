@@ -103,6 +103,9 @@ void RunTunableSolver(miopen::FusedProblem& problem,
     handle.Finish();
 }
 
+} // namespace cba_find2_infer
+using namespace cba_find2_infer;
+
 TEST_P(ConvBiasActivFind2InferTestFloat, ConvBiasActivAsm1x1UFind2Float)
 {
     RunTunableSolver<miopen::solver::fusion::ConvBiasActivAsm1x1U>(
@@ -176,4 +179,3 @@ INSTANTIATE_TEST_SUITE_P(CBAFind2InferSolverTest,
                                           testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
                                           testing::Values(miopenTensorNHWC)));
 
-} // namespace cba_find2_infer

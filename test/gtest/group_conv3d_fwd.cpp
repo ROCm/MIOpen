@@ -97,6 +97,9 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     handle.Finish();
 }
 
+} // namespace group_conv3d_fwd
+using namespace group_conv3d_fwd;
+
 TEST_P(ConvGroupFwdSolverTest3D, CKGroupConvFwd3D)
 {
     SolverFwd<miopen::solver::conv::ConvHipImplicitGemm3DGroupFwdXdlops>(input.desc,
@@ -115,5 +118,3 @@ INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
                                           testing::ValuesIn(ConvTestConfigs()),
                                           testing::Values(miopenTensorNDHWC)));
-
-} // namespace group_conv3d_fwd

@@ -175,6 +175,9 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     handle.Finish();
 }
 
+} // namespace conv_f8_fwd
+using namespace conv_f8_fwd;
+
 TEST_P(ConvFwdSolverTestF8, CKConvF8Fwd)
 {
     SolverFwd<miopen::solver::conv::ConvHipImplicitGemmF16F8F16FwdXdlops>(input.desc,
@@ -193,5 +196,3 @@ INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
                                           testing::ValuesIn(ConvTestConfigs()),
                                           testing::Values(miopenTensorNDHWC)));
-
-} // namespace conv_f8_fwd

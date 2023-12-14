@@ -91,6 +91,9 @@ void SolverBwd(const miopen::TensorDescriptor& inputDesc,
     handle.Finish();
 }
 
+} // namespace group_conv3d_bwd
+using namespace group_conv3d_bwd;
+
 TEST_P(ConvBwdSolverTest3D, CKGroupConvBwd3D)
 {
     SolverBwd<miopen::solver::conv::ConvHipImplicitGemm3DGroupBwdXdlops>(input.desc,
@@ -109,5 +112,3 @@ INSTANTIATE_TEST_SUITE_P(ConvBwdTest,
                          testing::Combine(testing::Values(miopenConvolutionBwdDataAlgoImplicitGEMM),
                                           testing::ValuesIn(ConvTestConfigs()),
                                           testing::Values(miopenTensorNDHWC)));
-
-} // namespace group_conv3d_bwd

@@ -45,6 +45,9 @@ struct LayerNormTestFloat : LayerNormTest<float>
 {
 };
 
+} // namespace layernorm
+using namespace layernorm;
+
 TEST_P(LayerNormTestFloat, LayerNormTestFw)
 {
     const auto& handle = get_handle();
@@ -65,5 +68,3 @@ TEST_P(LayerNormTestFloat, LayerNormTestFw)
 INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
                          LayerNormTestFloat,
                          testing::ValuesIn(LayerNormTestConfigs()));
-
-} // namespace layernorm

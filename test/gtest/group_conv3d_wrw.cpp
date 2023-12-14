@@ -93,6 +93,9 @@ void SolverWrw(const miopen::TensorDescriptor& inputDesc,
     handle.Finish();
 }
 
+} // namespace group_conv3d_wrw
+using namespace group_conv3d_wrw;
+
 TEST_P(ConvWrwSolverTest3D, CKGroupConvWrw3D)
 {
     SolverWrw<miopen::solver::conv::ConvHipImplicitGemm3DGroupWrwXdlops>(input.desc,
@@ -112,5 +115,3 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Combine(testing::Values(miopenConvolutionBwdWeightsAlgoImplicitGEMM),
                      testing::ValuesIn(ConvTestConfigs()),
                      testing::Values(miopenTensorNDHWC)));
-
-} // namespace group_conv3d_wrw

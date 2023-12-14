@@ -176,6 +176,9 @@ void SolverBwd(const miopen::TensorDescriptor& inputDesc,
     handle.Finish();
 }
 
+} // namespace conv_f8_bwd
+using namespace conv_f8_bwd;
+
 TEST_P(ConvBwdSolverTestF8, CKConvF8Bwd)
 {
     SolverBwd<miopen::solver::conv::ConvHipImplicitGemmF16F8F16BwdXdlops>(input.desc,
@@ -195,4 +198,3 @@ INSTANTIATE_TEST_SUITE_P(ConvBwdTest,
                                           testing::ValuesIn(ConvTestConfigs()),
                                           testing::Values(miopenTensorNDHWC)));
 
-} // namespace conv_f8_bwd
