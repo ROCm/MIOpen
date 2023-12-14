@@ -78,6 +78,10 @@ struct ProblemDescription : ProblemDescriptionBase
         {
             MIOPEN_THROW(miopenStatusBadParm, "GroupNormForward: Tensor types do not match.");
         }
+        if(meanDesc.GetType() != rstdDesc.GetType())
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "GroupNormForward: Tensor types do not match.");
+        }
         return true;
     }
 
@@ -91,7 +95,7 @@ struct ProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    bool IsRightNormDim() const
+    bool IsNumGroupsValid() const
     {
         if((num_groups < 1) || (xDesc.GetLengths().size() < 2) ||
            (xDesc.GetLengths()[1] % num_groups != 0))
