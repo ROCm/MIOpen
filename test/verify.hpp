@@ -194,9 +194,10 @@ template <class R1, class R2>
 double rms_range(R1&& r1, R2&& r2)
 {
     std::size_t n = range_distance(r1);
-    // When range is zero-sized, max_element() returns a past-the-end iterator.
-    if(n == range_distance(r2) && n != 0)
+    if(n == range_distance(r2))
     {
+        if(n == 0)
+            return 0;
         double square_difference = range_product(r1, r2, 0.0, sum_fn{}, square_diff);
         double mag1 = static_cast<double>(*std::max_element(r1.begin(), r1.end(), compare_mag));
         double mag2 = static_cast<double>(*std::max_element(r2.begin(), r2.end(), compare_mag));
