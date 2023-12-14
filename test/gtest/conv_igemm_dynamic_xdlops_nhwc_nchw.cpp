@@ -151,6 +151,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
         "ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC"};
 
     const std::string flags         = "test_conv2d " + precision + " --verbose ";
+    const std::string flags         = "test_conv2d " + precision + " --verbose ";
     const std::string dis_bk_data   = " --disable-backward-data";
     const std::string dis_bk_wei    = " --disable-backward-weights";
     const std::string dis_fwd       = " --disable-forward";

@@ -42,7 +42,7 @@ public:
         } bits_st = {rhs};
 
         // BF16 round and NaN preservation code matches
-        // https://github.com/ROCmSoftwarePlatform/rocBLAS/blob/develop/library/include/rocblas_bfloat16.h
+        // https://github.com/ROCm/rocBLAS/blob/develop/library/include/rocblas_bfloat16.h
         if((~bits_st.bf16_st & 0x7f800000) == 0) // Inf or NaN
         {
             // When all of the exponent bits are 1, the value is Inf or NaN.

@@ -64,7 +64,7 @@ The results of Find() are returned in an array of `miopenConvAlgoPerf_t` structs
 
 This call sequence is executed once per session as it is inherently expensive. Of those, `miopenFindConvolution*()` is the most expensive call. It caches its own results on disk, so the subsequent calls during the same MIOpen session will execute faster. However, it is better to remember results of `miopenFindConvolution*()` in the application, as recommended above. 
 
-Internally MIOpen's Find calls will compile and benchmark a set of `solvers` contained in `miopenConvAlgoPerf_t` this is done in parallel per `miopenConvAlgorithm_t`. The level of parallelism can be controlled using an environment variable. See the debugging section [controlling parallel compilation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/DebugAndLogging.html#controlling-parallel-compilation) for more details.
+Internally MIOpen's Find calls will compile and benchmark a set of `solvers` contained in `miopenConvAlgoPerf_t` this is done in parallel per `miopenConvAlgorithm_t`. The level of parallelism can be controlled using an environment variable. See the debugging section [controlling parallel compilation](https://rocm.docs.amd.com/projects/MIOpen/en/latest/DebugAndLogging.html#controlling-parallel-compilation) for more details.
 
 
 ## Immediate Mode API
@@ -139,7 +139,7 @@ miopenConvolutionForwardCompileSolution(handle,
 
 ## Immediate Mode Fallback
 
-The immediate mode is underpinned by the [Find-Db](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html), however it may not contain every configuration of interest. If Find-Db encounters a database miss it has two fallback paths it can take, depending on whether the cmake variable MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK is set to ON or OFF. However, if the user requires the best possible performance they should run the Find stage at least once.
+The immediate mode is underpinned by the [Find-Db](https://rocm.docs.amd.com/projects/MIOpen/en/latest/finddb.html), however it may not contain every configuration of interest. If Find-Db encounters a database miss it has two fallback paths it can take, depending on whether the cmake variable MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK is set to ON or OFF. However, if the user requires the best possible performance they should run the Find stage at least once.
 
 ### 1. AI-based Heuristic Fallback (Default)
 
@@ -173,10 +173,10 @@ OpenCL support for immediate mode via the fallback is limited to fp32 datatypes.
 MIOpen provides a set of Find modes which are used to accelerate the Find calls. The different modes are set by using the environment variable `MIOPEN_FIND_MODE`, and setting it to one of the values:
 
 - `NORMAL`, or `1`: Normal Find: This is the full Find mode call, which will benchmark all the solvers and return a list.
-- `FAST`, or `2`: Fast Find: Checks the [Find-Db](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html) for an entry. If there is a Find-Db hit, use that entry. If there is a miss, utilize the Immediate mode fallback. If Start-up times are expected to be faster, but worse GPU performance.
-- `HYBRID`, or `3`, or unset `MIOPEN_FIND_MODE`: Hybrid Find: Checks the [Find-Db](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html) for an entry. If there is a Find-Db hit, use that entry. If there is a miss, use the existing Find machinery. Slower start-up times than Fast Find, but no GPU performance drop.
+- `FAST`, or `2`: Fast Find: Checks the [Find-Db](https://rocm.docs.amd.com/projects/MIOpen/en/latest/finddb.html) for an entry. If there is a Find-Db hit, use that entry. If there is a miss, utilize the Immediate mode fallback. If Start-up times are expected to be faster, but worse GPU performance.
+- `HYBRID`, or `3`, or unset `MIOPEN_FIND_MODE`: Hybrid Find: Checks the [Find-Db](https://rocm.docs.amd.com/projects/MIOpen/en/latest/finddb.html) for an entry. If there is a Find-Db hit, use that entry. If there is a miss, use the existing Find machinery. Slower start-up times than Fast Find, but no GPU performance drop.
 - `4`: This value is reserved and should not be used.
-- `DYNAMIC_HYBRID`, or `5`: Dynamic Hybrid Find: Checks the [Find-Db](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html) for an entry. If there is a Find-Db hit, uses that entry. If there is a miss, uses the existing Find machinery with skipping non-dynamic kernels. Faster start-up times than Hybrid Find, but GPU performance may be a bit worse.
+- `DYNAMIC_HYBRID`, or `5`: Dynamic Hybrid Find: Checks the [Find-Db](https://rocm.docs.amd.com/projects/MIOpen/en/latest/finddb.html) for an entry. If there is a Find-Db hit, uses that entry. If there is a miss, uses the existing Find machinery with skipping non-dynamic kernels. Faster start-up times than Hybrid Find, but GPU performance may be a bit worse.
 
  Currently, the default Find mode is `DYNAMIC_HYBRID`. To run the full `NORMAL` Find mode, set the environment as:
  ```
