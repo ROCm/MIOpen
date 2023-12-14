@@ -27,6 +27,10 @@
 find_package(Threads REQUIRED)
 
 add_executable(MIOpenDriver main.cpp InputFlags.cpp)
+if(WIN32)
+    # Refer to https://en.cppreference.com/w/cpp/language/types for details.
+    target_compile_options(MIOpenDriver PRIVATE $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:Clang>:-U__LP64__>>)
+endif()
 target_include_directories(MIOpenDriver PRIVATE ../src/kernels)
 target_link_libraries(MIOpenDriver MIOpen Threads::Threads)
 if(NOT MIOPEN_EMBED_DB STREQUAL "")
