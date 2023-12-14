@@ -131,7 +131,7 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
         "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicFwdXdlops;"
         "ConvAsmImplicitGemmGTCDynamicWrwXdlops"};
 
-    const std::string v           = " --verbose";
+    const std::string flags       = "test_conv2d " + precision + " --verbose ";
     const std::string dis_bk_data = " --disable-backward-data";
     const std::string dis_bk_wei  = " --disable-backward-weights";
     const std::string dis_fwd     = " --disable-forward";
@@ -139,14 +139,14 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
     const std::vector<TestCase> test_cases = {
         // clang-format off
     //fwd
-    TestCase{env, precision + v + " --input 64 3 224 224 --weights 64 3 7 7 --pads_strides_dilations 3 3 2 2 1 1" + dis_bk_data + dis_bk_wei},
-    TestCase{env, precision + v + " --input 64 3 230 230 --weights 64 3 7 7 --pads_strides_dilations 0 0 2 2 1 1" + dis_bk_data + dis_bk_wei},
+    TestCase{env, flags + " --input 64 3 224 224 --weights 64 3 7 7 --pads_strides_dilations 3 3 2 2 1 1" + dis_bk_data + dis_bk_wei},
+    TestCase{env, flags + " --input 64 3 230 230 --weights 64 3 7 7 --pads_strides_dilations 0 0 2 2 1 1" + dis_bk_data + dis_bk_wei},
 
     //wrw
-    TestCase{env, precision + v + " --input  1 3 32 32 --weights 1 3 11 11 --pads_strides_dilations 1 1 2 2 2 1" + dis_fwd + dis_bk_data},
-    TestCase{env, precision + v + " --input  1 3 224 224 --weights 1 3 3 3 --pads_strides_dilations 0 0 1 1 2 2" + dis_fwd + dis_bk_data},
-    TestCase{env, precision + v + " --input  1 1 8 8 --weights 1 1 2 2 --pads_strides_dilations 0 0 1 1 2 2" + dis_fwd + dis_bk_data},
-    TestCase{env, precision + v + " --input  1 128 56 56 --weights 1 128 5 5 --pads_strides_dilations 0 0 2 2 1 1" + dis_fwd + dis_bk_data}
+    TestCase{env, flags + " --input  1 3 32 32 --weights 1 3 11 11 --pads_strides_dilations 1 1 2 2 2 1" + dis_fwd + dis_bk_data},
+    TestCase{env, flags + " --input  1 3 224 224 --weights 1 3 3 3 --pads_strides_dilations 0 0 1 1 2 2" + dis_fwd + dis_bk_data},
+    TestCase{env, flags + " --input  1 1 8 8 --weights 1 1 2 2 --pads_strides_dilations 0 0 1 1 2 2" + dis_fwd + dis_bk_data},
+    TestCase{env, flags + " --input  1 128 56 56 --weights 1 128 5 5 --pads_strides_dilations 0 0 2 2 1 1" + dis_fwd + dis_bk_data}
         // clang-format on
     };
     return test_cases;
