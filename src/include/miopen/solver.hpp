@@ -5159,7 +5159,6 @@ private:
     bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
 };
 
->>>>>>> develop
 } // namespace conv
 
 // Use struct as a syntactic sugar to make the intent as clear as possible.
