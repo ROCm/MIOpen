@@ -32,7 +32,7 @@
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/target_properties.hpp>
 
-#define LOCAL_SIZE 256
+#define LOCAL_SIZE 1024
 
 namespace miopen {
 
@@ -81,7 +81,7 @@ GroupNormForward::GetSolution(const ExecutionContext& context,
         auto dtype = problem.GetXDesc().GetType();
         auto dims  = problem.GetXDesc().GetLengths();
 
-        size_t numel             = problem.GetXDesc().GetElementSize();
+        // size_t numel             = problem.GetXDesc().GetElementSize();
         size_t num_groups        = problem.GetNumGroups();
         size_t outer_size        = dims[0] * num_groups;
 
