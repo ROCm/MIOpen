@@ -259,6 +259,10 @@ if(MIOPEN_hip_VERSION VERSION_GREATER_EQUAL 5.7.23302)
     string(APPEND HIP_COMPILER_FLAGS " -fno-offload-uniform-block ")
 endif()
 
+if(WIN32)
+    string(REPLACE "\\" "/" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+endif()
+
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
 add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:HIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}>)
@@ -309,7 +313,7 @@ endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
 
 # look for and register clang-offload-bundler
-if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+$")
+if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+.*")
     find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler
         PATH_SUFFIXES bin
         PATHS
@@ -341,7 +345,7 @@ if(MIOPEN_USE_MLIR)
         find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
         if(NOT LIBMLIRMIOPEN)
             message(FATAL_ERROR "library libMLIRMIOpen not found, please reinstall dependencies. \
-            Refer to https://github.com/ROCmSoftwarePlatform/MIOpen#installing-the-dependencies")
+            Refer to https://github.com/ROCm/MIOpen#installing-the-dependencies")
         else()
             message(STATUS "Build with library libMLIRMIOpen: " ${LIBMLIRMIOPEN})
             set(rocMLIR_VERSION 0.0.1)
@@ -376,9 +380,11 @@ endif()
 if(MIOPEN_USE_HIPRTC)
     if(NOT MIOPEN_USE_COMGR)
         message(FATAL_ERROR "HIPRTC can be used only together with COMGR")
-    else()
-        message(STATUS "Build with HIPRTC")
     endif()
+    if(WIN32)
+        find_package(hiprtc REQUIRED)
+    endif()
+    message(STATUS "Build with HIPRTC")
 endif()
 
 option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)
