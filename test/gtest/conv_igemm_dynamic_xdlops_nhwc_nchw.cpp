@@ -144,13 +144,6 @@ TEST_P(Conv2dHalf, HalfTest)
 
 std::vector<std::string> GetTestCases(const std::string& precision)
 {
-
-    std::vector<std::string> env_nhwc = {
-        "MIOPEN_FIND_MODE=normal",
-        "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;"
-        "ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC"};
-
-    const std::string flags         = "test_conv2d " + precision + " --verbose ";
     const std::string flags         = "test_conv2d " + precision + " --verbose ";
     const std::string dis_bk_data   = " --disable-backward-data";
     const std::string dis_bk_wei    = " --disable-backward-weights";
