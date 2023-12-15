@@ -98,7 +98,9 @@ struct ProcessImpl
     void Create(std::string_view args, std::string_view cwd)
     {
         std::string cmd{path.string()};
-        if(not cwd.empty())
+        if(!args.empty())
+            cmd += " " + std::string{args};
+        if(!cwd.empty())
             cmd.insert(0, "cd " + std::string{cwd} + "; ");
         pipe = popen(cmd.c_str(), "w");
         if(pipe == nullptr)
