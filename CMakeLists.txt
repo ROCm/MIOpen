@@ -253,9 +253,6 @@ set(MIOPEN_hip_VERSION ${MIOPEN_hip_VERSION_MAJOR}.${MIOPEN_hip_VERSION_MINOR}.$
 # build time errors, because HIPRTC is a relatively new component.
 set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT (MIOPEN_USE_COMGR AND (MIOPEN_hip_VERSION VERSION_GREATER_EQUAL 5)))
 option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MIOPEN_USE_HIPRTC_DEFAULT})
-if(MIOPEN_USE_HIPRTC) 
-    find_package(hiprtc REQUIRED PATHS /opt/rocm)
-endif()
 
 # WORKAROUND_SWDEV_413293
 if(MIOPEN_hip_VERSION VERSION_GREATER_EQUAL 5.7.23302)
@@ -384,9 +381,7 @@ if(MIOPEN_USE_HIPRTC)
     if(NOT MIOPEN_USE_COMGR)
         message(FATAL_ERROR "HIPRTC can be used only together with COMGR")
     endif()
-    if(WIN32)
-        find_package(hiprtc REQUIRED)
-    endif()
+    find_package(hiprtc REQUIRED)
     message(STATUS "Build with HIPRTC")
 endif()
 
