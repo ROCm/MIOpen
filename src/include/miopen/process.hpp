@@ -31,6 +31,8 @@
 #include <memory>
 #include <string_view>
 
+namespace miopen {
+
 struct ProcessImpl;
 
 struct Process
@@ -59,5 +61,7 @@ struct ProcessAsync
 private:
     std::unique_ptr<ProcessImpl> impl;
 };
+
+}
 
 #endif // MIOPEN_GUARD_MLOPEN_PROCESS_HPP

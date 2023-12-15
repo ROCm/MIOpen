@@ -28,6 +28,8 @@
 #include <miopen/process.hpp>
 #include <string_view>
 
+namespace miopen {
+
 #ifdef _WIN32
 
 #define WIN32_LEAN_AND_MEAN
@@ -152,3 +154,5 @@ ProcessAsync& ProcessAsync::operator=(ProcessAsync&& other) noexcept
 }
 
 ProcessAsync::ProcessAsync(ProcessAsync&& other) noexcept : impl{std::move(other.impl)} {}
+
+} // namespace miopen
