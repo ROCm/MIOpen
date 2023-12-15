@@ -25,21 +25,28 @@
  *******************************************************************************/
 
 #include <miopen/errors.hpp>
+#include <miopen/process.hpp>
 #include <string_view>
 
 #ifdef _WIN32
 
-#define WIN32_MEAN_AND_LEAN
+#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
-class Process
+struct ProcessImpl
 {
 public:
-    Process(std::string_view title, std::string_view cmd, std::string_view cwd = "")
+    ProcessImpl(std::string_view cmd) : path{cmd} {}
+
+    void Create(std::string_view args, std::string_view cwd)
     {
         STARTUPINFOA info;
         ZeroMemory(&info, sizeof(STARTUPINFO));
         info.cb = sizeof(STARTUPINFO);
+
+        std::string cmd{path.string()};
+        if(!args.empty())
+            cmd += " " + std::string{args};
 
         // Refer to
         // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessa
@@ -48,7 +55,7 @@ public:
         TCHAR buffer[BUFFER_CAPACITY];
         std::strncpy(buffer, cmd.data(), BUFFER_CAPACITY);
 
-        if(CreateProcess(title.data(),
+        if(CreateProcess(path.string().c_str(),
                          buffer,
                          nullptr,
                          nullptr,
@@ -61,18 +68,15 @@ public:
             MIOPEN_THROW("CreateProcess error: " + std::to_string(GetLastError()));
     }
 
-    ~Process()
-    {
-        CloseHandle(processInfo.hProcess);
-        CloseHandle(processInfo.hThread);
-    }
-
     int Wait()
     {
         WaitForSingleObject(processInfo.hProcess, INFINITE);
 
         DWORD status;
         const auto getExitCodeStatus = GetExitCodeProcess(processInfo.hProcess, &status);
+
+        CloseHandle(processInfo.hProcess);
+        CloseHandle(processInfo.hThread);
 
         if(getExitCodeStatus == 0)
             MIOPEN_THROW("GetExitCodeProcess error: " + std::to_string(GetLastError()));
@@ -81,20 +85,22 @@ public:
     }
 
 private:
+    boost::filesystem::path path;
     PROCESS_INFORMATION processInfo{};
 };
 
 #else
 
-class Process
+struct ProcessImpl
 {
-public:
-    Process(std::string_view, std::string_view cmd, std::string_view cwd = "")
+    ProcessImpl(std::string_view cmd) : path{cmd} {}
+
+    void Create(std::string_view args, std::string_view cwd)
     {
-        std::string command{cmd};
+        std::string cmd{path.string()};
         if(not cwd.empty())
-            command.insert(0, "cd " + std::string{cwd} + "; ");
-        pipe = popen(command.c_str(), "w");
+            cmd.insert(0, "cd " + std::string{cwd} + "; ");
+        pipe = popen(cmd.c_str(), "w");
         if(pipe == nullptr)
             MIOPEN_THROW("Error: popen()");
     }
@@ -106,7 +112,41 @@ public:
     }
 
 private:
+    boost::filesystem::path path;
     FILE* pipe = nullptr;
 };
 
 #endif
+
+Process::Process(const boost::filesystem::path& cmd)
+    : impl{std::make_unique<ProcessImpl>(cmd.string())}
+{
+}
+
+Process::~Process() noexcept = default;
+
+int Process::operator()(std::string_view args, const boost::filesystem::path& cwd)
+{
+    impl->Create(args, cwd.string());
+    return impl->Wait();
+}
+
+ProcessAsync::ProcessAsync(const boost::filesystem::path& cmd,
+                           std::string_view args,
+                           const boost::filesystem::path& cwd)
+    : impl{std::make_unique<ProcessImpl>(cmd.string())}
+{
+    impl->Create(args, cwd.string());
+}
+
+ProcessAsync::~ProcessAsync() noexcept = default;
+
+int ProcessAsync::Wait() { return impl->Wait(); }
+
+ProcessAsync& ProcessAsync::operator=(ProcessAsync&& other) noexcept
+{
+    impl = std::move(other.impl);
+    return *this;
+}
+
+ProcessAsync::ProcessAsync(ProcessAsync&& other) noexcept : impl{std::move(other.impl)} {}

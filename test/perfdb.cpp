@@ -24,13 +24,13 @@
  *
  *******************************************************************************/
 
-#include "process.hpp"
 #include "test.hpp"
 #include "driver.hpp"
 
 #include <miopen/db.hpp>
 #include <miopen/db_record.hpp>
 #include <miopen/lock_file.hpp>
+#include <miopen/process.hpp>
 #include <miopen/ramdb.hpp>
 #include <miopen/readonlyramdb.hpp>
 #include <miopen/temp_file.hpp>
@@ -965,7 +965,7 @@ public:
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for multiprocess write access...");
 
-        std::vector<Process> children{};
+        std::vector<ProcessAsync> children{};
         const auto lock_file_path = LockFilePath(temp_file);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
@@ -978,28 +978,30 @@ public:
 
             auto id = 0;
 
+            // clang-format off
             for(auto i = 0; i < DBMultiThreadedTestWork::threads_count; ++i)
             {
-                auto command = exe_path().string() + " --" + ArgsHelper::write_arg + " --" +
-                               ArgsHelper::id_arg + " " + std::to_string(id++) + " --" +
-                               ArgsHelper::path_arg + " " + temp_file.Path() + " --" +
-                               ArgsHelper::db_class_arg + " " + ArgsHelper::db_class::Get<TDb>();
+                auto args =
+                    std::string{"--"} + ArgsHelper::write_arg +
+                                " --" + ArgsHelper::id_arg + " " + std::to_string(id++) +
+                                " --" + ArgsHelper::path_arg + " " + temp_file.Path() +
+                                " --" + ArgsHelper::db_class_arg + " " + ArgsHelper::db_class::Get<TDb>();
 
                 if(thread_logs_root())
                 {
-                    command +=
-                        std::string(" --") + ArgsHelper::logs_path_arg + " " + *thread_logs_root();
+                    args += std::string{" --"} + ArgsHelper::logs_path_arg + " " + *thread_logs_root();
                 }
 
                 if(full_set())
-                    command += " --all";
+                    args += " --all";
 
-                children.emplace_back("test_perfdb_mp_" + std::to_string(i), command);
+                children.emplace_back(exe_path(), args);
             }
+            // clang-format on
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test processes...");
-        for(auto child : children)
+        for(auto&& child : children)
         {
             EXPECT_EQUAL(child.Wait(), 0);
         }
@@ -1046,7 +1048,7 @@ public:
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for multiprocess read access...");
 
-        std::vector<Process> children{};
+        std::vector<ProcessAsync> children{};
         const auto lock_file_path = LockFilePath(temp_file);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
@@ -1061,29 +1063,30 @@ public:
 
             auto id = 0;
 
+            // clang-format off
             for(auto i = 0; i < DBMultiThreadedTestWork::threads_count; ++i)
             {
-                auto command = exe_path().string() + " --" + ArgsHelper::id_arg + " " +
-                               std::to_string(id++) + " --" + ArgsHelper::path_arg + " " + p +
-                               " --" + ArgsHelper::db_class_arg + " " +
-                               ArgsHelper::db_class::Get<TDb>();
+                auto args =
+                    std::string{"--"} + ArgsHelper::id_arg + " " + std::to_string(id++) +
+                               " --" + ArgsHelper::path_arg + " " + p +
+                               " --" + ArgsHelper::db_class_arg + " " + ArgsHelper::db_class::Get<TDb>();
 
                 if(thread_logs_root())
                 {
-                    command +=
-                        std::string(" --") + ArgsHelper::logs_path_arg + " " + *thread_logs_root();
+                    args += std::string{" --"} + ArgsHelper::logs_path_arg + " " + *thread_logs_root();
                 }
 
                 if(full_set())
-                    command += " --all";
+                    args += " --all";
 
-                MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", command);
-                children.emplace_back("test_perfdb_mp_read_" + std::to_string(i), command);
+                MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", exe_path().string() + " " + args);
+                children.emplace_back(exe_path(), args);
             }
+            // clang-format on
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test processes...");
-        for(auto child : children)
+        for(auto&& child : children)
         {
             EXPECT_EQUAL(child.Wait(), 0);
         }
