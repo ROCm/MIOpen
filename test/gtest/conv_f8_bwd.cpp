@@ -197,4 +197,3 @@ INSTANTIATE_TEST_SUITE_P(ConvBwdTest,
                          testing::Combine(testing::Values(miopenConvolutionBwdDataAlgoImplicitGEMM),
                                           testing::ValuesIn(ConvTestConfigs()),
                                           testing::Values(miopenTensorNDHWC)));
-

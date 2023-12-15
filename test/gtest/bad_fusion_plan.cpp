@@ -31,7 +31,6 @@
 #include "get_handle.hpp"
 #include "conv_test_base.hpp"
 
-
 #if MIOPEN_BACKEND_HIP
 
 namespace bad_fusion_plan {

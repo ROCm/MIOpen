@@ -178,4 +178,3 @@ INSTANTIATE_TEST_SUITE_P(CBAFind2InferSolverTest,
                          testing::Combine(testing::Values(miopenActivationRELU),
                                           testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
                                           testing::Values(miopenTensorNHWC)));
-
