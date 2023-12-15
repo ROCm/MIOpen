@@ -59,11 +59,8 @@ inline int SetTensorLayout(miopen::TensorDescriptor& desc)
 
 template <typename T = float>
 struct ConvFwdBiasResAddFixture
-    : public ::testing::TestWithParam<std::tuple<miopenConvBwdDataAlgorithm_t,
-                                                 Conv3DTestCase,
-                                                 float,
-                                                 float,
-                                                 miopenTensorLayout_t>>
+    : public ::testing::TestWithParam<
+          std::tuple<miopenConvFwdAlgorithm_t, Conv3DTestCase, float, float, miopenTensorLayout_t>>
 {
 
 protected:
@@ -92,9 +89,8 @@ protected:
         SetTensorLayout(z.desc);
         z.generate(gen_value);
 
-        bias = tensor<T>{tensor_layout,
-                         {1, 1, 1, 1, conv_config.k}, // NDHWK for lengths
-                         {0, 1, 0, 0, 0}};            // NKDHW order for strides
+        const std::vector<std::size_t>& strides = {1, 1, 1, 1, 1};
+        bias = tensor<T>{tensor_layout, {1, 1, 1, 1, conv_config.k}, strides};
 
         bias.generate(gen_value);
 
@@ -114,6 +110,9 @@ protected:
         miopenDestroyActivationDescriptor(activ_desc);
 
         auto&& handle = get_handle();
+
+        miopen::TensorDescriptor output_desc =
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
 
         ref_out = tensor<T>{tensor_layout, output_desc.GetLengths()};
         ref_out = ref_conv_fwd(input, weights, output, conv_desc);
@@ -162,17 +161,22 @@ protected:
 
     miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoImplicitGEMM;
     miopenTensorLayout_t tensor_layout;
-    miopenActivationDescriptor activ_desc;
+    miopenActivationDescriptor_t activ_desc;
 };
 
-TEST_P(ConvFwdBiasResAddActivTest, ConvFwdBiasResAddFixture)
+struct ConvFwdBiasResAddActivTest : ConvFwdBiasResAddFixture<half_float::half>
 {
-    auto status = miopenConvolutionBiasActivationForward(&alpha1,
+};
+
+TEST_P(ConvFwdBiasResAddActivTest, ConvFusedAPI)
+{
+    auto status = miopenConvolutionBiasActivationForward(&get_handle(),
+                                                         &alpha1,
                                                          &input.desc,
                                                          in_dev.get(),
                                                          &weights.desc,
                                                          wei_dev.get(),
-                                                         conv_desc,
+                                                         &conv_desc,
                                                          algo,
                                                          nullptr, // workspace
                                                          0ull,    // workspace size
@@ -189,7 +193,7 @@ TEST_P(ConvFwdBiasResAddActivTest, ConvFwdBiasResAddFixture)
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvFwdBiasActivAPI,
-                         ConvBwdSolverTest3D,
+                         ConvFwdBiasResAddActivTest,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
                                           testing::ValuesIn(ConvTestConfigs()),
                                           testing::ValuesIn({1.0f, 2.0f}), // alpha1
