@@ -255,7 +255,7 @@ void xorwow_lite_init(prngStates* cur_state,
 
     cur_state->d = 6615241;
 
-    // Adopt constants choice of rocRAND (https://github.com/ROCmSoftwarePlatform/rocRAND)
+    // Adopt constants choice of rocRAND (https://github.com/ROCm/rocRAND)
     const uint s0 = (uint)(seed) ^ 0x2c7f967fU;
     const uint s1 = (uint)(seed >> 32) ^ 0xa03697cbU;
     const uint t0 = 1228688033 * s0;
