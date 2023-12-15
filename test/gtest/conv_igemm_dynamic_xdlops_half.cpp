@@ -42,9 +42,11 @@ static bool SkipTest(void)
 
 void SetupEnvVar(void)
 {
-    UpdateEnvVar(ENV(MIOPEN_FIND_MODE), "normal");
-    UpdateEnvVar(ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                 "ConvAsmImplicitGemmGTCDynamicFwdXdlops;ConvAsmImplicitGemmGTCDynamicWrwXdlops");
+    miopen::UpdateEnvVar(ENV(MIOPEN_FIND_MODE), std::string("normal"));
+    miopen::UpdateEnvVar(
+        ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
+        std::string(
+            "ConvAsmImplicitGemmGTCDynamicFwdXdlops;ConvAsmImplicitGemmGTCDynamicWrwXdlops"));
 }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
