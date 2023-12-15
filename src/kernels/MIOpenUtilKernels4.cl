@@ -67,6 +67,8 @@ typedef float data_t;
 
 #include "math_ops.h"
 
+typedef unsigned long arg_size_t;
+
 // N - batch size
 // C - # of maps
 // H - map height
@@ -512,18 +514,18 @@ __kernel void transpose_packed_MN2NM(const global data_t* in,
                                      global data_t* out,
                                      const int N,
                                      const int M,
-                                     const int in_off,
-                                     const int out_off)
+                                     const arg_size_t in_off,
+                                     const arg_size_t out_off)
 {
     uint i = get_global_id(0);
 
     if(i < M * N)
     {
-        uint m_i = iDiv(i, N);
-        uint n_i = iMod(i, m_i, N);
+        const uint m_i = iDiv(i, N);
+        const uint n_i = iMod(i, m_i, N);
 
-        uint in_offset  = m_i * N + n_i + in_off;
-        uint out_offset = n_i * M + m_i + out_off;
+        const size_t in_offset  = m_i * N + n_i + in_off;
+        const size_t out_offset = n_i * M + m_i + out_off;
 
         const global data_t* cin = (const global data_t*)(in + in_offset);
         global data_t* cout      = (global data_t*)(out + out_offset);
