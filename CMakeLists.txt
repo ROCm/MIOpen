@@ -206,6 +206,7 @@ endif()
 
 
 # HIP is always required
+find_package(hiprtc REQUIRED PATHS /opt/rocm)
 find_package(hip REQUIRED PATHS /opt/rocm)
 message(STATUS "Build with HIP ${hip_VERSION}")
 target_flags(HIP_COMPILER_FLAGS hip::device)
