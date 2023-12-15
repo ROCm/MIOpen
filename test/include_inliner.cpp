@@ -28,19 +28,15 @@
 #include <fstream>
 
 #include <boost/filesystem.hpp>
-
 #include <miopen/errors.hpp>
 #include <miopen/tmp_dir.hpp>
+#include <miopen/process.hpp>
 
 #include "test.hpp"
-#include "process.hpp"
 
-namespace bf = boost::filesystem;
-
-static int Child(std::string_view path, std::string_view cmd)
+static int Child(std::string_view cmd, const boost::filesystem::path& path)
 {
-    Process child{path, cmd};
-    return child.Wait();
+    return Process{cmd}("-source " + path.string());
 }
 
 namespace miopen {
@@ -49,7 +45,7 @@ namespace tests {
 class InlinerTest
 {
 public:
-    void Run(const bf::path& exe_path) const
+    void Run(const boost::filesystem::path& exe_path) const
     {
         const TmpDir test_srcs{"test_include_inliner"};
         const auto addkernels      = (exe_path.parent_path() / "addkernels").string();
@@ -70,9 +66,9 @@ public:
         std::ofstream(invalid_src.c_str()) << "#include <missing_header.h>" << std::endl;
         std::ofstream(header_src.c_str()) << std::endl;
 
-        EXPECT_EQUAL(0, Child(addkernels, addkernels + " -source " + valid_src.string()));
-        EXPECT_EQUAL(0, Child(addkernels, addkernels + " -source " + asm_src.string()));
-        EXPECT_EQUAL(1, Child(addkernels, addkernels + " -source " + invalid_src.string()));
+        EXPECT_EQUAL(0, Child(addkernels, valid_src));
+        EXPECT_EQUAL(0, Child(addkernels, asm_src));
+        EXPECT_EQUAL(1, Child(addkernels, invalid_src));
     }
 };
 

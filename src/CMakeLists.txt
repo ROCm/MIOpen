@@ -134,6 +134,7 @@ set( MIOpen_Source
     pooling/problem_description.cpp
     pooling_api.cpp
     problem.cpp
+    process.cpp
     ramdb.cpp
     readonlyramdb.cpp
     reducetensor.cpp
