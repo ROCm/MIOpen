@@ -39,7 +39,6 @@ extern "C" miopenStatus_t miopenCreateDropoutDescriptor(miopenDropoutDescriptor_
 
 extern "C" miopenStatus_t miopenDestroyDropoutDescriptor(miopenDropoutDescriptor_t dropoutDesc)
 {
-
     MIOPEN_LOG_FUNCTION(dropoutDesc);
     return miopen::try_([&] { miopen_destroy_object(dropoutDesc); });
 }
@@ -47,8 +46,7 @@ extern "C" miopenStatus_t miopenDestroyDropoutDescriptor(miopenDropoutDescriptor
 extern "C" miopenStatus_t miopenDropoutGetReserveSpaceSize(const miopenTensorDescriptor_t xDesc,
                                                            size_t* reserveSpaceSizeInBytes)
 {
-
-    MIOPEN_LOG_FUNCTION(xDesc, reserveSpaceSizeInBytes);
+    MIOPEN_LOG_FUNCTION(xDesc);
     return miopen::try_([&] {
         miopen::deref(reserveSpaceSizeInBytes) =
             miopen::deref(xDesc).GetElementSize() * sizeof(bool);
@@ -58,8 +56,7 @@ extern "C" miopenStatus_t miopenDropoutGetReserveSpaceSize(const miopenTensorDes
 extern "C" miopenStatus_t miopenDropoutGetStatesSize(miopenHandle_t handle,
                                                      size_t* stateSizeInBytes)
 {
-
-    MIOPEN_LOG_FUNCTION(stateSizeInBytes);
+    MIOPEN_LOG_FUNCTION(handle);
     return miopen::try_([&] {
         miopen::deref(stateSizeInBytes) =
             std::min(size_t(MAX_PRNG_STATE), miopen::deref(handle).GetImage3dMaxWidth()) *
@@ -76,7 +73,7 @@ extern "C" miopenStatus_t miopenGetDropoutDescriptor(miopenDropoutDescriptor_t d
                                                      bool* state_evo,
                                                      miopenRNGType_t* rng_mode)
 {
-    MIOPEN_LOG_FUNCTION(dropoutDesc, dropout, states, seed, use_mask, state_evo);
+    MIOPEN_LOG_FUNCTION(dropoutDesc);
     return miopen::try_([&] {
         miopen::deref(dropout)   = miopen::deref(dropoutDesc).dropout;
         miopen::deref(states)    = &(miopen::deref(dropoutDesc).pstates);

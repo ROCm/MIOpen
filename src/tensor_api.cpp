@@ -104,7 +104,7 @@ extern "C" miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_t t
                                                       int* wStride)
 {
 
-    MIOPEN_LOG_FUNCTION(tensorDesc, dataType, n, c, h, w, nStride, cStride, hStride, wStride);
+    MIOPEN_LOG_FUNCTION(tensorDesc);
     return miopen::try_([&] {
         miopen::deref(dataType)       = miopen::deref(tensorDesc).GetType();
         miopen::tie_deref(n, c, h, w) = miopen::tien<4>(miopen::deref(tensorDesc).GetLengths());
@@ -234,7 +234,7 @@ extern "C" miopenStatus_t miopenGetTensorNumBytes(miopenTensorDescriptor_t tenso
                                                   size_t* numBytes)
 {
 
-    MIOPEN_LOG_FUNCTION(tensorDesc, numBytes);
+    MIOPEN_LOG_FUNCTION(tensorDesc);
     return miopen::try_([&] { miopen::deref(numBytes) = miopen::deref(tensorDesc).GetNumBytes(); });
 }
 
@@ -247,7 +247,7 @@ int miopenGetTensorDescriptorElementSize(miopenTensorDescriptor_t tensorDesc)
 extern "C" miopenStatus_t miopenGetTensorDescriptorSize(miopenTensorDescriptor_t tensorDesc,
                                                         int* size)
 {
-    MIOPEN_LOG_FUNCTION(tensorDesc, size);
+    MIOPEN_LOG_FUNCTION(tensorDesc);
     return miopen::try_([&] { miopen::deref(size) = miopen::deref(tensorDesc).GetSize(); });
 }
 
@@ -257,7 +257,7 @@ extern "C" miopenStatus_t miopenGetTensorDescriptor(miopenTensorDescriptor_t ten
                                                     int* stridesA)
 {
 
-    MIOPEN_LOG_FUNCTION(tensorDesc, dataType, dimsA, stridesA);
+    MIOPEN_LOG_FUNCTION(tensorDesc);
     return miopen::try_([&] {
         if(dataType != nullptr)
         {

@@ -354,7 +354,7 @@ miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data)
 
 miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size)
 {
-    MIOPEN_LOG_FUNCTION(solution, size);
+    MIOPEN_LOG_FUNCTION(solution);
 
     return miopen::try_([&] {
         if(size == nullptr)
@@ -374,7 +374,7 @@ miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size)
 
 miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t solution, size_t* workspaceSize)
 {
-    MIOPEN_LOG_FUNCTION(solution, workspaceSize);
+    MIOPEN_LOG_FUNCTION(solution);
 
     return miopen::try_([&] {
         const auto& solution_deref = miopen::deref(solution);
@@ -384,7 +384,7 @@ miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t solution, size_t*
 
 miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time)
 {
-    MIOPEN_LOG_FUNCTION(solution, time);
+    MIOPEN_LOG_FUNCTION(solution);
 
     return miopen::try_([&] {
         const auto& solution_deref = miopen::deref(solution);
@@ -394,7 +394,7 @@ miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time)
 
 miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution, uint64_t* solverId)
 {
-    MIOPEN_LOG_FUNCTION(solution, solverId);
+    MIOPEN_LOG_FUNCTION(solution);
 
     return miopen::try_([&] {
         const auto& solution_deref = miopen::deref(solution);
@@ -404,7 +404,7 @@ miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution, uint64_t* so
 
 miopenStatus_t miopenGetSolverIdConvAlgorithm(uint64_t solverId, miopenConvAlgorithm_t* result)
 {
-    MIOPEN_LOG_FUNCTION(solverId, result);
+    MIOPEN_LOG_FUNCTION(solverId);
 
     return miopen::try_([&] {
         const auto id_deref = miopen::solver::Id{solverId};

@@ -77,7 +77,7 @@ struct GemmDescriptor
     miopenDataType_t a_cast_type;
     miopenDataType_t b_cast_type;
     ConvolutionAttribute conv_attributes;
-    GemmDescriptor() {}
+    GemmDescriptor() = delete;
     GemmDescriptor(bool isColMajor_,
                    bool transA_,
                    bool transB_,
