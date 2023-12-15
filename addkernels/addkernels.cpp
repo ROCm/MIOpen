@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include "include_inliner.hpp"
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -108,7 +109,7 @@ void PrintHelp()
               << std::endl;
 }
 
-[[gnu::noreturn]] void WrongUsage(const std::string& error)
+[[noreturn]] void WrongUsage(const std::string& error)
 {
     std::cout << "Wrong usage: " << error << std::endl;
     std::cout << std::endl;
@@ -117,88 +118,81 @@ void PrintHelp()
     std::exit(1);
 }
 
-[[gnu::noreturn]] void UnknownArgument(const std::string& arg)
+[[noreturn]] void UnknownArgument(const std::string& arg)
 {
     std::ostringstream ss;
     ss << "unknown argument - " << arg;
     WrongUsage(ss.str());
 }
 
-void Process(const std::string& sourcePath,
-             std::ostream& target,
-             size_t bufferSize,
-             size_t lineSize,
-             bool recurse,
-             bool as_extern,
-             bool mark_includes)
+int Process(const std::filesystem::path& sourcePath,
+            std::ostream& target,
+            size_t bufferSize,
+            size_t lineSize,
+            bool recurse,
+            bool as_extern,
+            bool mark_includes)
 {
-    std::string fileName(sourcePath);
-    std::string extension, root;
-    std::stringstream inlinerTemp;
-    auto extPos   = fileName.rfind('.');
-    auto slashPos = fileName.rfind('/');
+    std::ifstream sourceFile{sourcePath, std::ios::in | std::ios::binary};
 
-    if(extPos != std::string::npos)
-    {
-        extension = fileName.substr(extPos + 1);
-        fileName  = fileName.substr(0, extPos);
-    }
-
-    if(slashPos != std::string::npos)
-    {
-        root     = fileName.substr(0, slashPos + 1);
-        fileName = fileName.substr(slashPos + 1);
-    }
-
-    std::string variable(fileName);
-    std::ifstream sourceFile(sourcePath, std::ios::in | std::ios::binary);
-    std::istream* source = &sourceFile;
-
-    if(!sourceFile.good())
+    if(sourceFile.fail() || !sourceFile.is_open())
     {
         std::cerr << "File not found: " << sourcePath << std::endl;
         // NOLINTNEXTLINE (concurrency-mt-unsafe)
         std::exit(1);
     }
 
-    const auto is_asm    = extension == "s";
-    const auto is_cl     = extension == "cl";
-    const auto is_hip    = extension == "cpp";
-    const auto is_header = extension == "hpp";
+    const auto is_asm    = sourcePath.extension() == ".s";
+    const auto is_cl     = sourcePath.extension() == ".cl";
+    const auto is_hip    = sourcePath.extension() == ".cpp";
+    const auto is_header = sourcePath.extension() == ".hpp";
 
+    std::stringstream inlinerTemp;
     if(is_asm || is_cl || is_hip || is_header)
     {
         IncludeInliner inliner;
-
         try
         {
             if(is_asm)
             {
-                inliner.Process(
-                    sourceFile, inlinerTemp, root, sourcePath, ".include", false, recurse);
+                inliner.Process(sourceFile,
+                                inlinerTemp,
+                                sourcePath.parent_path(),
+                                sourcePath,
+                                ".include",
+                                false,
+                                recurse);
             }
             else if(is_cl || is_header)
             {
-                inliner.Process(
-                    sourceFile, inlinerTemp, root, sourcePath, "#include", true, recurse);
+                inliner.Process(sourceFile,
+                                inlinerTemp,
+                                sourcePath.parent_path(),
+                                sourcePath,
+                                "#include",
+                                true,
+                                recurse);
             }
             else if(is_hip)
             {
-                inliner.Process(
-                    sourceFile, inlinerTemp, root, sourcePath, "<#not_include>", true, false);
+                inliner.Process(sourceFile,
+                                inlinerTemp,
+                                sourcePath.parent_path(),
+                                sourcePath,
+                                "<#not_include>",
+                                true,
+                                false);
             }
         }
         catch(const InlineException& ex)
         {
-            std::cerr << ex.What() << std::endl;
-            std::cerr << ex.GetTrace() << std::endl;
+            std::cerr << ex.What() << "\n" << ex.GetTrace() << std::endl;
             // NOLINTNEXTLINE (concurrency-mt-unsafe)
-            std::exit(1);
+            return 1;
         }
-
-        source = &inlinerTemp;
     }
 
+    auto variable{sourcePath.stem().string()};
     std::transform(variable.begin(), variable.end(), variable.begin(), ::toupper);
 
     if(mark_includes)
@@ -209,7 +203,8 @@ void Process(const std::string& sourcePath,
         variable = "MIOPEN_KERNEL_" + variable;
     }
 
-    Bin2Hex(*source, target, variable, true, bufferSize, lineSize);
+    Bin2Hex(inlinerTemp, target, variable, true, bufferSize, lineSize);
+    return 0;
 }
 
 int main(int argsn, char** args)
@@ -249,7 +244,10 @@ int main(int argsn, char** args)
 
             while(++i < argsn)
             {
-                Process(args[i], *target, bufferSize, lineSize, recurse, as_extern, mark_includes);
+                // clang-format off
+                if(Process(args[i], *target, bufferSize, lineSize, recurse, as_extern, mark_includes))
+                    exit(1);
+                // clang-format on
             }
 
             *target << "#endif" << std::endl;

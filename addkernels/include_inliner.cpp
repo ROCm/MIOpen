@@ -24,47 +24,10 @@
  *
  *******************************************************************************/
 #include <algorithm>
-#include <exception>
 #include <fstream>
 #include <sstream>
 
-#ifdef _WIN32
-#include <Windows.h>
-#endif
-#ifdef __linux__
-#include <linux/limits.h>
-#include <cstdlib>
-#endif // __linux__
-
 #include "include_inliner.hpp"
-
-namespace {
-int GetMaxPath()
-{
-#ifdef _WIN32
-    return MAX_PATH;
-#else
-    return PATH_MAX;
-#endif
-}
-
-std::string GetAbsolutePath(const std::string& path)
-{
-    std::string result(GetMaxPath(), ' ');
-#ifdef _WIN32
-    const auto retval = GetFullPathName(path.c_str(), result.size(), &result[0], nullptr);
-
-    if(retval == 0)
-        return "";
-#else
-    auto* const retval = realpath(path.c_str(), &result[0]);
-
-    if(retval == nullptr)
-        return "";
-#endif
-    return result;
-}
-} // namespace
 
 std::string IncludeFileExceptionBase::What() const
 {
@@ -76,8 +39,8 @@ std::string IncludeFileExceptionBase::What() const
 
 void IncludeInliner::Process(std::istream& input,
                              std::ostream& output,
-                             const std::string& root,
-                             const std::string& file_name,
+                             const std::filesystem::path& root,
+                             const std::filesystem::path& file_name,
                              const std::string& directive,
                              bool allow_angle_brackets,
                              bool recurse)
@@ -87,8 +50,8 @@ void IncludeInliner::Process(std::istream& input,
 
 void IncludeInliner::ProcessCore(std::istream& input,
                                  std::ostream& output,
-                                 const std::string& root,
-                                 const std::string& file_name,
+                                 const std::filesystem::path& root,
+                                 const std::filesystem::path& file_name,
                                  int line_number,
                                  const std::string& directive,
                                  bool allow_angle_brackets,
@@ -151,8 +114,8 @@ void IncludeInliner::ProcessCore(std::istream& input,
 
             const std::string include_file_path =
                 line.substr(first_quote_pos + 1, second_quote_pos - first_quote_pos - 1);
-            const std::string abs_include_file_path(
-                GetAbsolutePath(root + "/" + include_file_path)); // NOLINT
+            const auto abs_include_file_path{
+                std::filesystem::absolute(root / include_file_path)};
 
             if(abs_include_file_path.empty())
             {
