@@ -28,6 +28,8 @@
 #include <miopen/process.hpp>
 #include <string_view>
 
+namespace miopen {
+
 #ifdef _WIN32
 
 #define WIN32_LEAN_AND_MEAN
@@ -36,10 +38,7 @@
 struct ProcessImpl
 {
 public:
-    ProcessImpl(std::string_view cmd)
-        : path{cmd}
-    {
-    }
+    ProcessImpl(std::string_view cmd) : path{cmd} {}
 
     void Create(std::string_view args, std::string_view cwd)
     {
@@ -96,15 +95,14 @@ private:
 
 struct ProcessImpl
 {
-    ProcessImpl(std::string_view cmd)
-        : path{cmd}
-    {
-    }
+    ProcessImpl(std::string_view cmd) : path{cmd} {}
 
     void Create(std::string_view args, std::string_view cwd)
     {
         std::string cmd{path.string()};
-        if(not cwd.empty())
+        if(!args.empty())
+            cmd += " " + std::string{args};
+        if(!cwd.empty())
             cmd.insert(0, "cd " + std::string{cwd} + "; ");
         pipe = popen(cmd.c_str(), "w");
         if(pipe == nullptr)
@@ -131,8 +129,7 @@ Process::Process(const boost::filesystem::path& cmd)
 
 Process::~Process() noexcept = default;
 
-int Process::operator()(std::string_view args,
-                     const boost::filesystem::path& cwd)
+int Process::operator()(std::string_view args, const boost::filesystem::path& cwd)
 {
     impl->Create(args, cwd.string());
     return impl->Wait();
@@ -148,10 +145,7 @@ ProcessAsync::ProcessAsync(const boost::filesystem::path& cmd,
 
 ProcessAsync::~ProcessAsync() noexcept = default;
 
-int ProcessAsync::Wait()
-{
-    return impl->Wait();
-}
+int ProcessAsync::Wait() { return impl->Wait(); }
 
 ProcessAsync& ProcessAsync::operator=(ProcessAsync&& other) noexcept
 {
@@ -159,7 +153,6 @@ ProcessAsync& ProcessAsync::operator=(ProcessAsync&& other) noexcept
     return *this;
 }
 
-ProcessAsync::ProcessAsync(ProcessAsync&& other) noexcept
-    : impl{std::move(other.impl)}
-{
-}
+ProcessAsync::ProcessAsync(ProcessAsync&& other) noexcept : impl{std::move(other.impl)} {}
+
+} // namespace miopen

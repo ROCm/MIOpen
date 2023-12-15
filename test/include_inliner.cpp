@@ -36,7 +36,7 @@
 
 static int Child(std::string_view cmd, const boost::filesystem::path& path)
 {
-    return Process{cmd}("-source " + path.string());
+    return miopen::Process{cmd}("-source " + path.string());
 }
 
 namespace miopen {
