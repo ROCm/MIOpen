@@ -585,11 +585,6 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              Primitive::Fusion,
              fusion::ConvCKIgemmFwdBiasActivFused{}.SolverDbId(),
              miopenConvolutionAlgoImplicitGEMM);
-    Register(registry,
-             ++id,
-             Primitive::Fusion,
-             fusion::ConvCKIgemmFwdBiasResAddActivFused{}.SolverDbId(),
-             miopenConvolutionAlgoImplicitGEMM);
     Register(registry, ++id, Primitive::Pooling, pooling::PoolingForwardNaive{}.SolverDbId());
     RegisterWithSolver(registry,
                        ++id,
@@ -628,6 +623,11 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        ++id,
                        conv::ConvHipImplicitGemmF16F8F16WrwXdlops{},
                        miopenConvolutionAlgoImplicitGEMM);
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             fusion::ConvCKIgemmFwdBiasResAddActivFused{}.SolverDbId(),
+             miopenConvolutionAlgoImplicitGEMM);
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }
