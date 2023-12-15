@@ -62,6 +62,6 @@ private:
     std::unique_ptr<ProcessImpl> impl;
 };
 
-}
+} // namespace miopen
 
 #endif // MIOPEN_GUARD_MLOPEN_PROCESS_HPP
