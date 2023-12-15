@@ -45,7 +45,9 @@
 #include <mutex>
 #include <sstream>
 
+#if defined(__linux__)
 #include <unistd.h>
+#endif
 
 /// 0 or undef or wrong - auto-detect
 /// 1 - <blank> / "-Xclang -target-feature -Xclang +code-object-v3"
