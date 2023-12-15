@@ -34,9 +34,67 @@
 #include <vector>
 #include <cstdlib>
 #include "random.hpp"
+#include <numeric>
 
 #define RNN_MM_TRANSPOSE 1
 #define RNN_MM_USEPARAGEMM 0
+
+// complexity O(NlogN)
+inline std::vector<int> GetReverseOrderIndex(const std::vector<int>& base_index)
+{
+    std::vector<int> reverse_index(base_index.size());
+    unsigned next_rev_index = 0;
+    for(auto id : base_index)
+        reverse_index[id] = next_rev_index++;
+    return reverse_index;
+};
+
+inline std::vector<int> GetSamplesIndexDescendingOrder(const std::vector<size_t>& unsorted_seq_lens)
+{
+    const auto sample_count = unsorted_seq_lens.size();
+
+    std::vector<int> index_v(sample_count);
+    std::iota(index_v.begin(), index_v.end(), 0);
+
+    auto seq_len_cmp = [&unsorted_seq_lens](unsigned a_id, unsigned b_id) {
+        return unsorted_seq_lens[a_id] > unsorted_seq_lens[b_id];
+    };
+
+    std::stable_sort(index_v.begin(), index_v.end(), seq_len_cmp);
+
+    return index_v;
+}
+
+template <typename Tgpu>
+inline void HiddenTensorReorder(const std::vector<Tgpu>& src_array,
+                                std::vector<Tgpu>& dst_array,
+                                const std::vector<int>& batch_order,
+                                const std::vector<size_t> hid_len,
+                                bool is_dst_direct_order)
+{
+    const size_t copy_size = hid_len[2];
+
+    const size_t batch_stride = hid_len[2];
+    const size_t layer_stride = batch_stride * hid_len[1];
+
+    for(size_t batch_id = 0; batch_id < hid_len[1]; batch_id++)
+    {
+        const auto src_batch_off =
+            batch_stride * (is_dst_direct_order ? batch_order[batch_id] : batch_id);
+        const auto dst_batch_off =
+            batch_stride * (is_dst_direct_order ? batch_id : batch_order[batch_id]);
+
+        for(size_t layer_id = 0; layer_id < hid_len[0]; layer_id++)
+        {
+            const auto dst_offset = dst_batch_off + layer_id * layer_stride;
+            const auto src_offset = src_batch_off + layer_id * layer_stride;
+
+            std::copy(src_array.begin() + src_offset,
+                      src_array.begin() + src_offset + copy_size,
+                      dst_array.begin() + dst_offset);
+        }
+    }
+}
 
 inline void createTensorDescArray(std::vector<miopen::TensorDescriptor>& td,
                                   std::vector<miopenTensorDescriptor_t>& ptd,
