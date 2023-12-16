@@ -24,96 +24,122 @@
  *
  *******************************************************************************/
 #include <tuple>
-#include <miopen/miopen.h>
-#include <gtest/gtest.h>
+#include <string_view>
+
+#include "gtest_common.hpp"
+
 #include "../conv2d.hpp"
-#include "get_handle.hpp"
 
-using TestCase = std::tuple<std::vector<std::string>, std::string>;
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
-void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
+auto GetTestCases()
 {
-    auto env_vars = std::get<0>(param);
-    for(auto& elem : env_vars)
-    {
-        putenv(elem.data());
-    }
+    // MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS is reqired due to env_bwd case
+    // for this particulaer case it's not needed, but must be there to simplify the code
+    const auto env_fwd = std::tuple{
+        std::pair{ENV(MIOPEN_FIND_ENFORCE), std::string_view("SEARCH_DB_UPDATE")},
+        std::pair{ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX), std::string_view("5")},
+        std::pair{ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS), std::string_view("0")},
+        std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), std::string_view("0")},
+        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
+        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
+                  std::string_view("ConvHipImplicitGemmForwardV4R4Xdlops")}};
 
-    auto cmd = std::get<1>(param);
+    // MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS is reqired due to env_bwd case
+    // for this particulaer case it's not needed, but must be there to simplify the code
+    const auto env_fwd_padded = std::tuple{
+        std::pair{ENV(MIOPEN_FIND_ENFORCE), std::string_view("SEARCH_DB_UPDATE")},
+        std::pair{ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX), std::string_view("5")},
+        std::pair{ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS), std::string_view("0")},
+        std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), std::string_view("0")},
+        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
+        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
+                  std::string_view("ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm")}};
 
-    std::stringstream ss(cmd);
-    std::istream_iterator<std::string> begin(ss);
-    std::istream_iterator<std::string> end;
-    while(begin != end)
-        tokens.push_back(*begin++);
+    // MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS is reqired due to env_bwd case
+    // for this particulaer case it's not needed, but must be there to simplify the code
+    const auto env_fwd_v4r5 = std::tuple{
+        std::pair{ENV(MIOPEN_FIND_ENFORCE), std::string_view("SEARCH_DB_UPDATE")},
+        std::pair{ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX), std::string_view("5")},
+        std::pair{ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS), std::string_view("0")},
+        std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), std::string_view("0")},
+        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
+        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
+                  std::string_view("ConvHipImplicitGemmForwardV4R5Xdlops")}};
+
+    // WORKAROUND_ISSUE_1206 disables this solver for FP32 due to precision issues.
+    // WORKAROUND_SWDEV_329642 disables this solver on MI200 for BF16.
+    // However we still want to check that these cases are not broken and therefore use
+    // MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS=1 to enable the solver.
+    const auto env_bwd = std::tuple{
+        std::pair{ENV(MIOPEN_FIND_ENFORCE), std::string_view("SEARCH_DB_UPDATE")},
+        std::pair{ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX), std::string_view("5")},
+        std::pair{ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS), std::string_view("1")},
+        std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), std::string_view("0")},
+        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
+        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
+                  std::string_view("ConvHipImplicitGemmBwdDataV4R1Xdlops")}};
+
+    // MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS is reqired due to env_bwd case
+    // for this particulaer case it's not needed, but must be there to simplify the code
+    const auto env_wrw = std::tuple{
+        std::pair{ENV(MIOPEN_FIND_ENFORCE), std::string_view("SEARCH_DB_UPDATE")},
+        std::pair{ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX), std::string_view("5")},
+        std::pair{ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS), std::string_view("0")},
+        std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), std::string_view("0")},
+        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
+        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
+                  std::string_view("ConvHipImplicitGemmWrwV4R4Xdlops")}};
+
+    // MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS is reqired due to env_bwd case
+    // for this particulaer case it's not needed, but must be there to simplify the code
+    const auto env_wrw_padded = std::tuple{
+        std::pair{ENV(MIOPEN_FIND_ENFORCE), std::string_view("SEARCH_DB_UPDATE")},
+        std::pair{ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX), std::string_view("5")},
+        std::pair{ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS), std::string_view("0")},
+        std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), std::string_view("0")},
+        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
+        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
+                  std::string_view("ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm")}};
+
+    const std::string vf = " --verbose --disable-backward-data --disable-backward-weights";
+    const std::string vb = " --verbose --disable-forward --disable-backward-weights";
+    const std::string vw = " --verbose --disable-forward --disable-backward-data";
+
+    return std::vector{
+        // clang-format off
+    std::pair{env_fwd, vf + " --input 128 48 13 13 --weights 192 48 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    std::pair{env_bwd, vb + " --input 64 64 55 55 --weights 64 64 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    std::pair{env_wrw, vw + " --input 1 192 28 28 --weights 16 192 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    std::pair{env_fwd_padded, vf + " --input 16 1 7 7 --weights 1 1 3 3 --pads_strides_dilations 0 0 1 1 1 1"},
+    std::pair{env_wrw_padded, vw + " --input 256 2 5 5 --weights 1 2 3 3 --pads_strides_dilations 1 1 2 2 1 1"},
+    std::pair{env_fwd_v4r5, vf + " --input 128 16 54 54 --weights 64 16 3 3 --pads_strides_dilations 1 1 1 1 1 1"}
+        // clang-format on
+    };
 }
 
-class Conv2dHalf : public testing::TestWithParam<std::vector<TestCase>>
+using TestCase = decltype(GetTestCases())::value_type;
+
+class Conv2dHalf : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dBFloat16 : public testing::TestWithParam<std::vector<TestCase>>
+class Conv2dBf16 : public Bf16TestCase<std::vector<TestCase>>
 {
 };
 
-void Run2dDriver(miopenDataType_t prec)
+bool IsTestSupportedForDevice()
 {
-
-    std::vector<TestCase> params;
-    switch(prec)
-    {
-    case miopenHalf: params = Conv2dHalf::GetParam(); break;
-    case miopenBFloat16: params = Conv2dBFloat16::GetParam(); break;
-    case miopenFloat:
-    case miopenInt8:
-    case miopenInt32:
-    case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
-        FAIL() << "miopenFloat, miopenInt8, miopenInt32, "
-                  "miopenDouble, miopenFloat8, miopenBFloat8 "
-                  "data type not supported by "
-                  "smoke_solver_ConvHipImplicitGemmDataV4RxXdlops test";
-
-    default: params = Conv2dHalf::GetParam();
-    }
-
-    for(const auto& test_value : params)
-    {
-        std::vector<std::string> tokens;
-        GetArgs(test_value, tokens);
-        std::vector<const char*> ptrs;
-
-        std::transform(tokens.begin(),
-                       tokens.end(),
-                       std::back_inserter(ptrs),
-                       [](const std::string& str) { return str.data(); });
-
-        testing::internal::CaptureStderr();
-        test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
-        auto capture = testing::internal::GetCapturedStderr();
-        // TEST_TUNING - the test should fail if output contains "Error" or "failed".
-        EXPECT_FALSE(capture.find("Error") != std::string::npos ||
-                     capture.find("failed") != std::string::npos);
-        std::cout << capture;
-    }
-};
-
-bool IsTestSupportedForDevice(const miopen::Handle& handle)
-{
-    std::string devName = handle.GetDeviceName();
-    if(devName == "gfx908" || devName == "gfx90a")
-        return true;
-    else
-        return false;
+    using e_mask = enabled<Gpu::Default>;
+    using d_mask = disabled<Gpu::gfx900, Gpu::gfx906>;
+    return IsTestSupportedForDevice<d_mask, e_mask>();
 }
 
 TEST_P(Conv2dHalf, HalfTest)
 {
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle))
+    if(IsTestSupportedForDevice())
     {
-        Run2dDriver(miopenHalf);
+        invoke_with_params<conv2d_driver, Conv2dHalf>(tuning_check);
     }
     else
     {
@@ -121,85 +147,22 @@ TEST_P(Conv2dHalf, HalfTest)
     }
 };
 
-TEST_P(Conv2dBFloat16, BFloat16Test)
+TEST_P(Conv2dBf16, Bf16Test)
 {
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle))
+    if(IsTestSupportedForDevice())
     {
-        Run2dDriver(miopenBFloat16);
+        invoke_with_params<conv2d_driver, Conv2dBf16>(tuning_check);
     }
     else
     {
         GTEST_SKIP();
     }
 };
-
-std::vector<TestCase> GetTestCases(void)
-{
-    std::vector<std::string> env_fwd = {
-        "MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE",
-        "MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5",
-        "MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0",
-        "MIOPEN_FIND_MODE=normal",
-        "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmForwardV4R4Xdlops"};
-
-    std::vector<std::string> env_fwd_padded = {
-        "MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE",
-        "MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5",
-        "MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0",
-        "MIOPEN_FIND_MODE=normal",
-        "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm"};
-
-    std::vector<std::string> env_fwd_v4r5 = {
-        "MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE",
-        "MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5",
-        "MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0",
-        "MIOPEN_FIND_MODE=normal",
-        "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmForwardV4R5Xdlops"};
-
-    std::vector<std::string> env_bwd = {
-        "MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE",
-        "MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5",
-        "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS=1",
-        "MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0",
-        "MIOPEN_FIND_MODE=normal",
-        "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmBwdDataV4R1Xdlops"};
-
-    std::vector<std::string> env_wrw = {
-        "MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE",
-        "MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5",
-        "MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0",
-        "MIOPEN_FIND_MODE=normal",
-        "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmWrwV4R4Xdlops"};
-
-    std::vector<std::string> env_wrw_padded = {
-        "MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE",
-        "MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5",
-        "MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0",
-        "MIOPEN_FIND_MODE=normal",
-        "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm"};
-
-    std::string vf = " --verbose --disable-backward-data --disable-backward-weights";
-    std::string vb = " --verbose --disable-forward --disable-backward-weights";
-    std::string vw = " --verbose --disable-forward --disable-backward-data";
-
-    const std::vector<TestCase> test_cases = {
-        // clang-format off
-    TestCase{env_fwd, vf + " --input 128 48 13 13 --weights 192 48 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    TestCase{env_bwd, vb + " --input 64 64 55 55 --weights 64 64 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    TestCase{env_wrw, vw + " --input 1 192 28 28 --weights 16 192 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    TestCase{env_fwd, vf + " --input 16 1 7 7 --weights 1 1 3 3 --pads_strides_dilations 0 0 1 1 1 1"},
-    TestCase{env_wrw_padded, vw + " --input 256 2 5 5 --weights 1 2 3 3 --pads_strides_dilations 1 1 2 2 1 1"},
-    TestCase{env_fwd_v4r5, vf + " --input 128 16 54 54 --weights 64 16 3 3 --pads_strides_dilations 1 1 1 1 1 1"}
-        // clang-format on
-    };
-    return test_cases;
-}
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvHipImplicitGemmDataV4RxXdlops,
                          Conv2dHalf,
                          testing::Values(GetTestCases()));
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvHipImplicitGemmDataV4RxXdlops,
-                         Conv2dBFloat16,
+                         Conv2dBf16,
                          testing::Values(GetTestCases()));

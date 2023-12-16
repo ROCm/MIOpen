@@ -24,110 +24,54 @@
  *
  *******************************************************************************/
 #include <tuple>
-#include <miopen/miopen.h>
-#include <gtest/gtest.h>
+#include <string_view>
+
+#include "gtest_common.hpp"
+
 #include "../conv2d.hpp"
-#include "get_handle.hpp"
 
-using TestCase = std::tuple<std::vector<std::string>, std::string>;
-
-void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
+auto GetTestCases(void)
 {
-    auto env_vars = std::get<0>(param);
-    for(auto& elem : env_vars)
-    {
-        putenv(elem.data());
-    }
+    const auto env = std::tuple{
+        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
+        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvOclDirectFwd1x1")}};
 
-    auto cmd = std::get<1>(param);
+    const std::string v =
+        " --verbose --disable-backward-data --disable-backward-weights "
+        "--disable-verification-cache --cmode conv --pmode default --group-count 1";
 
-    std::stringstream ss(cmd);
-    std::istream_iterator<std::string> begin(ss);
-    std::istream_iterator<std::string> end;
-    while(begin != end)
-        tokens.push_back(*begin++);
+    return std::vector{
+        // clang-format off
+    std::pair{env, v + " --input 1 16 7 7 --weights 16 16 1 1 --pads_strides_dilations 0 0 1 1 1 1"}
+        // clang-format on
+    };
 }
 
-class Conv2dHalf : public testing::TestWithParam<std::vector<TestCase>>
+using TestCase = decltype(GetTestCases())::value_type;
+
+class Conv2dHalf : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-void Run2dDriver(miopenDataType_t prec)
+bool IsTestSupportedForDevice()
 {
-
-    std::vector<TestCase> params;
-    switch(prec)
-    {
-    case miopenHalf: params = Conv2dHalf::GetParam(); break;
-    case miopenFloat:
-    case miopenBFloat16:
-    case miopenInt8:
-    case miopenInt32:
-    case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
-        FAIL() << "miopenFloat, miopenBFloat16, miopenInt8, miopenInt32, "
-                  "miopenDouble, miopenFloat8, miopenBFloat8 "
-                  "data type not supported by regression_half_vega_gfx908 test";
-
-    default: params = Conv2dHalf::GetParam();
-    }
-
-    for(const auto& test_value : params)
-    {
-        std::vector<std::string> tokens;
-        GetArgs(test_value, tokens);
-        std::vector<const char*> ptrs;
-
-        std::transform(tokens.begin(),
-                       tokens.end(),
-                       std::back_inserter(ptrs),
-                       [](const std::string& str) { return str.data(); });
-
-        testing::internal::CaptureStderr();
-        test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
-        auto capture = testing::internal::GetCapturedStderr();
-        std::cout << capture;
-    }
-};
-
-bool IsTestSupportedForDevice(const miopen::Handle& handle)
-{
-    std::string devName = handle.GetDeviceName();
-    if(devName == "gfx900" || devName == "gfx906" || devName == "gfx908")
-        return true;
-    else
-        return false;
+    // Issue #894.
+    // Can't be enabled for GFX10 due to WORKAROUND_SWDEV_271887
+    using e_mask = enabled<Gpu::Default>;
+    using d_mask = disabled<Gpu::gfx90A>;
+    return IsTestSupportedForDevice<d_mask, e_mask>();
 }
 
 TEST_P(Conv2dHalf, HalfTest)
 {
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle))
+    if(IsTestSupportedForDevice())
     {
-        Run2dDriver(miopenHalf);
+        invoke_with_params<conv2d_driver, Conv2dHalf>(default_check);
     }
     else
     {
         GTEST_SKIP();
     }
 };
-
-std::vector<TestCase> GetTestCases(void)
-{
-    std::vector<std::string> env = {"MIOPEN_FIND_MODE=normal",
-                                    "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclDirectFwd1x1"};
-
-    std::string v = " --verbose --disable-backward-data --disable-backward-weights "
-                    "--disable-verification-cache --cmode conv --pmode default --group-count 1";
-
-    const std::vector<TestCase> test_cases = {
-        // clang-format off
-    //smoke_solver_ConvAsmImplicitGemmV4R1Dynamic
-    TestCase{env, v + " --input 1 16 7 7 --weights 16 16 1 1 --pads_strides_dilations 0 0 1 1 1 1"}
-        // clang-format on
-    };
-    return test_cases;
-}
 
 INSTANTIATE_TEST_SUITE_P(RegressionHalfVegaGfx908, Conv2dHalf, testing::Values(GetTestCases()));

@@ -24,92 +24,50 @@
  *
  *******************************************************************************/
 #include <tuple>
-#include <miopen/miopen.h>
-#include <gtest/gtest.h>
+#include <string_view>
+
+#include "gtest_common.hpp"
+
 #include "../conv2d.hpp"
-#include "get_handle.hpp"
 
-using TestCase = std::tuple<std::vector<std::string>, std::string>;
-
-void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
+auto GetTestCases()
 {
-    auto env_vars = std::get<0>(param);
-    for(auto& elem : env_vars)
-    {
-        putenv(elem.data());
-    }
+    const auto env = std::tuple{
+        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
+        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvOclBwdWrW1x1")}};
 
-    auto cmd = std::get<1>(param);
+    const std::string vw = " --verbose --disable-forward --disable-backward-data";
 
-    std::stringstream ss(cmd);
-    std::istream_iterator<std::string> begin(ss);
-    std::istream_iterator<std::string> end;
-    while(begin != end)
-        tokens.push_back(*begin++);
+    return std::vector{
+        // clang-format off
+    std::pair{env, vw + " --input 1 16 14 14 --weights 16 16 1 1 --pads_strides_dilations 0 0 1 1 1 1"}
+        // clang-format on
+    };
 }
 
-class Conv2dHalf : public testing::TestWithParam<std::vector<TestCase>>
+using TestCase = decltype(GetTestCases())::value_type;
+
+class Conv2dHalf : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dBf16 : public testing::TestWithParam<std::vector<TestCase>>
+class Conv2dBf16 : public Bf16TestCase<std::vector<TestCase>>
 {
 };
 
-void Run2dDriver(miopenDataType_t prec)
+bool IsTestSupportedForDevice()
 {
-
-    std::vector<TestCase> params;
-    switch(prec)
-    {
-    case miopenHalf: params = Conv2dHalf::GetParam(); break;
-    case miopenBFloat16: params = Conv2dBf16::GetParam(); break;
-    case miopenFloat:
-    case miopenInt8:
-    case miopenInt32:
-    case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
-        FAIL() << "miopenFloat, miopenBFloat16, miopenInt8, miopenInt32, "
-                  "miopenDouble, miopenFloat8, miopenBFloat8 "
-                  "data type not supported by smoke_solver_ConvOclBwdWrW1x1 test";
-
-    default: params = Conv2dHalf::GetParam();
-    }
-
-    for(const auto& test_value : params)
-    {
-        std::vector<std::string> tokens;
-        GetArgs(test_value, tokens);
-        std::vector<const char*> ptrs;
-
-        std::transform(tokens.begin(),
-                       tokens.end(),
-                       std::back_inserter(ptrs),
-                       [](const std::string& str) { return str.data(); });
-
-        testing::internal::CaptureStderr();
-        test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
-        auto capture = testing::internal::GetCapturedStderr();
-        std::cout << capture;
-    }
-};
-
-bool IsTestSupportedForDevice(const miopen::Handle& handle)
-{
-    std::string devName = handle.GetDeviceName();
-    if(devName == "gfx900" || devName == "gfx906" || devName == "gfx908" || devName == "gfx90a")
-        return true;
-    else
-        return false;
+    using e_mask = enabled<Gpu::Default>;
+    //# GFX103X_DISABLED is due to WORKAROUND_SWDEV_266868
+    using d_mask = disabled<Gpu::gfx103X>;
+    return IsTestSupportedForDevice<d_mask, e_mask>();
 }
 
 TEST_P(Conv2dHalf, HalfTest)
 {
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle))
+    if(IsTestSupportedForDevice())
     {
-        Run2dDriver(miopenHalf);
+        invoke_with_params<conv2d_driver, Conv2dHalf>(default_check);
     }
     else
     {
@@ -119,33 +77,15 @@ TEST_P(Conv2dHalf, HalfTest)
 
 TEST_P(Conv2dBf16, Bf16Test)
 {
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle))
+    if(IsTestSupportedForDevice())
     {
-        Run2dDriver(miopenBFloat16);
+        invoke_with_params<conv2d_driver, Conv2dBf16>(default_check);
     }
     else
     {
         GTEST_SKIP();
     }
 };
-
-std::vector<TestCase> GetTestCases(void)
-{
-    std::vector<std::string> env = {
-        "MIOPEN_FIND_MODE=normal",
-        "MIOPEN_DEBUG_FIND_ONLY_SOLVER=MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclBwdWrW1x1"};
-
-    std::string vw = " --verbose --disable-forward --disable-backward-data";
-
-    const std::vector<TestCase> test_cases = {
-        // clang-format off
-    //smoke_solver_ConvAsmBwdWrW3x3_fp32   
-    TestCase{env, vw + " --input 2 4 3 3 --weights 4 4 3 3 --pads_strides_dilations 1 1 1 1 1 1"}
-        // clang-format on
-    };
-    return test_cases;
-}
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvOclBwdWrW1x1, Conv2dHalf, testing::Values(GetTestCases()));
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvOclBwdWrW1x1, Conv2dBf16, testing::Values(GetTestCases()));

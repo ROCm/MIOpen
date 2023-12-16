@@ -30,30 +30,30 @@
 
 #include "../conv2d.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
 auto GetTestCases()
 {
-    // Regression test for SWDEV-291202
-    const auto env =
-        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                             std::string_view("ConvHipImplicitGemmBwdDataV4R1Xdlops")}};
-
-    const std::string v          = " --verbose";
-    const std::string dis_fwd    = " --disable-forward";
-    const std::string dis_bk_wei = " --disable-backward-weights";
+    const auto env2x3 = std::tuple{
+        std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), std::string_view("0")},
+        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
+        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
+                  std::string_view("ConvBinWinogradRxSf2x3g1")}};
 
     return std::vector{
         // clang-format off
-    std::pair{env, v + " --input  128  24 14 14 --weights 64  24 5 5 --pads_strides_dilations 2 2 1 1 1 1" + dis_fwd + dis_bk_wei}
+    std::pair{env2x3," --input 1 40 20 20 --weights 20 40 3 3 --pads_strides_dilations 1 1 1 1 1 1"}
         // clang-format on
     };
 }
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest() { return miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)); }
+bool SkipTest() { return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)); }
+
+class Conv2dFloat : public FloatTestCase<std::vector<TestCase>>
+{
+};
 
 class Conv2dHalf : public HalfTestCase<std::vector<TestCase>>
 {
@@ -61,10 +61,22 @@ class Conv2dHalf : public HalfTestCase<std::vector<TestCase>>
 
 bool IsTestSupportedForDevice()
 {
-    using e_mask = enabled<Gpu::Default>;
-    using d_mask = disabled<Gpu::gfx900, Gpu::gfx906, Gpu::gfx90A>;
+    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X>;
+    using d_mask = disabled<Gpu::gfx900>;
     return IsTestSupportedForDevice<d_mask, e_mask>();
 }
+
+TEST_P(Conv2dFloat, FloatTest)
+{
+    if(IsTestSupportedForDevice() && !SkipTest())
+    {
+        invoke_with_params<conv2d_driver, Conv2dFloat>(default_check);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
 TEST_P(Conv2dHalf, HalfTest)
 {
@@ -78,4 +90,10 @@ TEST_P(Conv2dHalf, HalfTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(RegressionMi100, Conv2dHalf, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(SmokeSolverConvBinWinogradRxSf2x3g1,
+                         Conv2dFloat,
+                         testing::Values(GetTestCases()));
+
+INSTANTIATE_TEST_SUITE_P(SmokeSolverConvBinWinogradRxSf2x3g1,
+                         Conv2dHalf,
+                         testing::Values(GetTestCases()));

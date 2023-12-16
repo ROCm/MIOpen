@@ -24,111 +24,52 @@
  *
  *******************************************************************************/
 #include <tuple>
-#include <miopen/miopen.h>
-#include <gtest/gtest.h>
+#include <string_view>
+
+#include "gtest_common.hpp"
+
 #include "../conv2d.hpp"
-#include "get_handle.hpp"
 
-using TestCase = std::tuple<std::vector<std::string>, std::string>;
-
-void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
+auto GetTestCases()
 {
-    auto env_vars = std::get<0>(param);
-    for(auto& elem : env_vars)
-    {
-        putenv(elem.data());
-    }
+    const auto env =
+        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
+                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("fft")}};
 
-    auto cmd = std::get<1>(param);
+    const std::string vf = " --verbose --disable-backward-data --disable-backward-weights";
+    const std::string vb = " --verbose --disable-forward --disable-backward-weights";
 
-    std::stringstream ss(cmd);
-    std::istream_iterator<std::string> begin(ss);
-    std::istream_iterator<std::string> end;
-    while(begin != end)
-        tokens.push_back(*begin++);
+    return std::vector{
+        // clang-format off
+    std::pair{env, vf + " --input 1 16 14 14 --weights 48 16 5 5 --pads_strides_dilations 2 2 1 1 1 1"},
+    std::pair{env, vb + " --input 1 16 14 14 --weights 48 16 5 5 --pads_strides_dilations 2 2 1 1 1 1"}
+        // clang-format on
+    };
 }
 
-class Conv2dFloat : public testing::TestWithParam<std::vector<TestCase>>
+using TestCase = decltype(GetTestCases())::value_type;
+
+class Conv2dFloat : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-void Run2dDriver(miopenDataType_t prec)
+bool IsTestSupportedForDevice()
 {
-
-    std::vector<TestCase> params;
-    switch(prec)
-    {
-    case miopenFloat: params = Conv2dFloat::GetParam(); break;
-    case miopenHalf:
-    case miopenInt8:
-    case miopenBFloat16:
-    case miopenInt32:
-    case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
-        FAIL() << "miopenHalf, miopenInt8, miopenBFloat16, miopenInt32, "
-                  "miopenDouble, miopenFloat8, miopenBFloat8 "
-                  "data type not supported by smoke_solver_ConvFFT test";
-
-    default: params = Conv2dFloat::GetParam();
-    }
-
-    for(const auto& test_value : params)
-    {
-        std::vector<std::string> tokens;
-        GetArgs(test_value, tokens);
-        std::vector<const char*> ptrs;
-
-        std::transform(tokens.begin(),
-                       tokens.end(),
-                       std::back_inserter(ptrs),
-                       [](const std::string& str) { return str.data(); });
-
-        testing::internal::CaptureStderr();
-        test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
-        auto capture = testing::internal::GetCapturedStderr();
-        std::cout << capture;
-    }
-};
-
-bool IsTestSupportedForDevice(const miopen::Handle& handle)
-{
-    std::string devName = handle.GetDeviceName();
-    if(devName == "gfx900" || devName == "gfx906" || devName == "gfx908" || devName == "gfx90a" ||
-       miopen::StartsWith(devName, "gfx103") || miopen::StartsWith(devName, "gfx110"))
-        return true;
-    else
-        return false;
+    using e_mask = enabled<Gpu::gfx103X, Gpu::gfx110X>;
+    using d_mask = disabled<Gpu::Default>;
+    return IsTestSupportedForDevice<d_mask, e_mask>();
 }
 
 TEST_P(Conv2dFloat, FloatTest)
 {
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle))
+    if(IsTestSupportedForDevice())
     {
-        Run2dDriver(miopenFloat);
+        invoke_with_params<conv2d_driver, Conv2dFloat>(default_check);
     }
     else
     {
         GTEST_SKIP();
     }
 };
-
-std::vector<TestCase> GetTestCases(void)
-{
-
-    std::vector<std::string> env = {"MIOPEN_FIND_MODE=normal", "MIOPEN_DEBUG_FIND_ONLY_SOLVER=fft"};
-
-    std::string vf = " --verbose --disable-backward-data --disable-backward-weights";
-    std::string vb = " --verbose --disable-forward --disable-backward-weights";
-
-    const std::vector<TestCase> test_cases = {
-        // clang-format off
-    TestCase{env, vf + " --input 1 16 14 14 --weights 48 16 5 5 --pads_strides_dilations 2 2 1 1 1 1"},
-    TestCase{env, vb + " --input 1 16 14 14 --weights 48 16 5 5 --pads_strides_dilations 2 2 1 1 1 1"}
-        // clang-format on
-    };
-    return test_cases;
-}
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvFft, Conv2dFloat, testing::Values(GetTestCases()));
