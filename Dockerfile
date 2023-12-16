@@ -18,13 +18,13 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 RUN curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/rocm-keyring.gpg
 
-RUN wget https://repo.radeon.com/amdgpu-install/6.0.0/ubuntu/jammy/amdgpu-install_6.0.60000-1_all.deb --no-check-certificate
+RUN wget https://repo.radeon.com/amdgpu-install/6.0/ubuntu/jammy/amdgpu-install_6.0.60000-1_all.deb --no-check-certificate
 RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     ./amdgpu-install_6.0.60000-1_all.deb
 
 # Add rocm repository
-RUN export ROCM_APT_VER=6.0.0;\
+RUN export ROCM_APT_VER=6.0;\
 echo $ROCM_APT_VER &&\
 sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/amdgpu/$ROCM_APT_VER/ubuntu jammy main > /etc/apt/sources.list.d/amdgpu.list' &&\
 sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/rocm/apt/$ROCM_APT_VER jammy main > /etc/apt/sources.list.d/rocm.list'
