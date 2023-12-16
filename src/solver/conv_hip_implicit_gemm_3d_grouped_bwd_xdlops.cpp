@@ -87,8 +87,14 @@ struct CKArgs
         Z  = ProblemInterpreter::GetFilterDepthZ(problem);
 
         // On a backward pass, out is in and in is out and this is silly
-        output = {G, N, C, Di, Hi, Wi};
-        input  = {G, N, K, Do, Ho, Wo};
+        std::swap(K1, C1);
+        std::swap(K, C);
+        std::swap(Di, Do);
+        std::swap(Hi, Ho);
+        std::swap(Wi, Wo);
+
+        input = {G, N, C, Di, Hi, Wi};
+        output  = {G, N, K, Do, Ho, Wo};
         weight = {G, K, C, Z, Y, X};
 
         // CK strides are in GNCDHW order
@@ -113,6 +119,8 @@ struct CKArgs
             assert(problem.IsLayoutDefault()); // already checked in IsApplicable
             // for default layout, we produce packed strides because we transpose to
             // NCHW layout before calling CK kernel
+            /// \todo (amber): swap order once in-out swap for backward pass is
+            /// fixed
             in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
             out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
             wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
@@ -139,6 +147,26 @@ struct CKArgs
     template <typename ConvPtr>
     auto MakeArgPtr(const ConvPtr& conv_ptr, Data_t in, ConstData_t w, ConstData_t out) const
     {
+        std::cout << "out ptr = " << out << std::endl;
+        std::cout << "w ptr = " << w << std::endl;
+        std::cout << "in ptr = " << in << std::endl;
+
+        auto print_vec = [] (const char* name, const auto& vec) {
+          std::cout << name << " = [ ";
+          for (const auto& v: vec) {
+            std::cout << v << ", ";
+          }
+          std::cout << "]\n";
+        };
+#define PRINT_VEC(x) print_vec(#x, x);
+
+        PRINT_VEC(output);
+        PRINT_VEC(out_strides);
+        PRINT_VEC(input);
+        PRINT_VEC(in_strides);
+        PRINT_VEC(weight);
+        PRINT_VEC(wei_strides);
+
         return conv_ptr->MakeArgumentPointer(out,
                                              w,
                                              {},

@@ -228,8 +228,11 @@ struct TransposeOperand<ND, TPOSE_TYPE, ConvOperandTag::Input>
                                         const CKArgsType& ck_args) const
     {
 
+        std::printf("IN TPOSE_TYPE=%d, (N=%d,C=%d,Hi=%d,Wi=%d)\n",
+            int(TPOSE_TYPE), ck_args.N, ck_args.C1, ck_args.Hi, ck_args.Wi);
         if constexpr(ND == 3)
         {
+              
             return TransposeSolver{ctx,
                                    problem.GetInDataType(),
                                    static_cast<uint32_t>(ck_args.N),
@@ -263,6 +266,8 @@ struct TransposeOperand<ND, TPOSE_TYPE, ConvOperandTag::Weights>
                                         const CKArgsType& ck_args) const
     {
 
+        std::printf("WEI TPOSE_TYPE=%d, (K=%d,C=%d,Y=%d,X=%d)\n",
+            int(TPOSE_TYPE), ck_args.K1, ck_args.C, ck_args.Y, ck_args.X);
         if constexpr(ND == 3)
         {
             return TransposeSolver{ctx,
@@ -297,6 +302,8 @@ struct TransposeOperand<ND, TPOSE_TYPE, ConvOperandTag::Output>
                                         const miopen::conv::ProblemDescription& problem,
                                         const CKArgsType& ck_args) const
     {
+        std::printf("OUT TPOSE_TYPE=%d, (N=%d,K=%d,Ho=%d,Wo=%d)\n",
+            int(TPOSE_TYPE), ck_args.N, ck_args.K1, ck_args.Ho, ck_args.Wo);
 
         if constexpr(ND == 3)
         {
@@ -360,8 +367,6 @@ public:
 
     void ConvertFrom(const Handle& handle, const std::vector<Kernel>& kernels, ConstData_t in_ptr)
     {
-        // TODO(amber): remove
-        MIOPEN_LOG_I("kernel = " << kernels[index].name);
         Run(handle, kernels, buf_handle.get(), in_ptr);
     }
 
@@ -387,15 +392,6 @@ private:
 
         kern_args[0] = out_ptr;
         kern_args[1] = in_ptr;
-        MIOPEN_LOG_I("out_ptr = " << out_ptr);
-        MIOPEN_LOG_I("in_ptr = " << in_ptr);
-
-        // TODO(amber): remove
-        for(size_t i = 2; i < kern_args.size(); ++i)
-        {
-            uint32_t a = *reinterpret_cast<uint32_t*>(kern_args[i].buffer.data());
-            MIOPEN_LOG_I("kern_args " << i << " = " << a);
-        }
 
         handle.Run(kernels[index])(kern_args);
         if(handle.IsProfilingEnabled())
@@ -590,6 +586,30 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 // conversion operator applied here to convert to ConvTensors
                 auto conv_tensors = ConvTensors(data_ctx.tensors);
 
+                std::printf("Invoker inputs, x=%p, w=%p, y=%p\n", 
+                    conv_tensors.x, conv_tensors.w, conv_tensors.y);
+
+                auto print_vec = [] (const char* name, const auto& vec) {
+                  std::cout << name << " = [ ";
+                  for (const auto& v: vec) {
+                    std::cout << v << ", ";
+                  }
+                  std::cout << "]\n";
+                };
+#define PRINT_VEC(x) print_vec(#x, x);
+
+                PRINT_VEC(conv_tensors.xDesc.GetLengths());
+                PRINT_VEC(conv_tensors.wDesc.GetLengths());
+                PRINT_VEC(conv_tensors.yDesc.GetLengths());
+
+                // PRINT_VEC(ck_args.input);
+                // PRINT_VEC(ck_args.in_strides);
+                // PRINT_VEC(ck_args.weight);
+                // PRINT_VEC(ck_args.wei_strides);
+                // PRINT_VEC(ck_args.output);
+                // PRINT_VEC(ck_args.out_strides);
+
+
                 // TODO(amber): remove this when DataInvokeParams stops swapping
                 // "in" and "out" tensors for backward pass
                 if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Input)
@@ -597,6 +617,9 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                     // this is backward pass, swap back input and output
                     std::swap(conv_tensors.x, conv_tensors.y);
                     std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
+                    std::printf("Invoker inputs after swap, x=%p, w=%p, y=%p\n", 
+                        conv_tensors.x, conv_tensors.w, conv_tensors.y);
+
                 }
 
                 float tot_time = 0;
@@ -616,15 +639,15 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 std::array<internal::TransposeInstanceTagged*, 3> tr_ptrs = {
                     &input1_tr_inst, &input2_tr_inst, &output_tr_inst};
 
-                // TODO(amber): remove
-                MIOPEN_LOG_I("Inputs for CK conv kernel: " << tr_ptrs[0]->GetBufferPtr() << ", "
-                                                           << tr_ptrs[1]->GetBufferPtr() << ", "
-                                                           << tr_ptrs[2]->GetBufferPtr() << ", ");
-
                 // sort by tag in order: Input, Weights, Output
                 std::sort(tr_ptrs.begin(), tr_ptrs.end(), [](const auto& left, const auto& right) {
                     return left->GetConvOperandTagAsInt() < right->GetConvOperandTagAsInt();
                 });
+
+                // TODO(amber): remove
+                MIOPEN_LOG_I("Inputs for CK conv kernel (x,w,y): " << tr_ptrs[0]->GetBufferPtr() << ", "
+                                                           << tr_ptrs[1]->GetBufferPtr() << ", "
+                                                           << tr_ptrs[2]->GetBufferPtr() << ", ");
 
                 auto invoker_ptr  = sh_conv_ptr->MakeInvokerPointer();
                 auto argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
