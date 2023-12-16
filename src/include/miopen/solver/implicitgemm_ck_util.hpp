@@ -375,6 +375,11 @@ public:
         Run(handle, kernels, out_ptr, buf_handle.get());
     }
 
+    void ZeroOutBuffer() {
+      auto status = hipMemset(buf_handle.get(), 0, tensor_sz);
+      assert(status == hipSuccess);
+    }
+
     TransposeInstance()                         = delete;
     TransposeInstance(const TransposeInstance&) = default;
     TransposeInstance(TransposeInstance&&)      = default;
@@ -620,6 +625,13 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                     std::printf("Invoker inputs after swap, x=%p, w=%p, y=%p\n", 
                         conv_tensors.x, conv_tensors.w, conv_tensors.y);
 
+                }
+
+                if (output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Weights) {
+                // TODO(amber): remove
+                  handle.Finish();
+                  MIOPEN_LOG_I("calling ZeroOutBuffer");
+                  output_tr_inst.ZeroOutBuffer();
                 }
 
                 float tot_time = 0;
