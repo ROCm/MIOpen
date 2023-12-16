@@ -93,8 +93,8 @@ struct CKArgs
         std::swap(Hi, Ho);
         std::swap(Wi, Wo);
 
-        input = {G, N, C, Di, Hi, Wi};
-        output  = {G, N, K, Do, Ho, Wo};
+        input  = {G, N, C, Di, Hi, Wi};
+        output = {G, N, K, Do, Ho, Wo};
         weight = {G, K, C, Z, Y, X};
 
         // CK strides are in GNCDHW order
@@ -151,12 +151,13 @@ struct CKArgs
         std::cout << "w ptr = " << w << std::endl;
         std::cout << "in ptr = " << in << std::endl;
 
-        auto print_vec = [] (const char* name, const auto& vec) {
-          std::cout << name << " = [ ";
-          for (const auto& v: vec) {
-            std::cout << v << ", ";
-          }
-          std::cout << "]\n";
+        auto print_vec = [](const char* name, const auto& vec) {
+            std::cout << name << " = [ ";
+            for(const auto& v : vec)
+            {
+                std::cout << v << ", ";
+            }
+            std::cout << "]\n";
         };
 #define PRINT_VEC(x) print_vec(#x, x);
 
