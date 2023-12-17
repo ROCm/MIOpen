@@ -397,11 +397,6 @@ option(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY "Build with file/folder reorg wit
 set( MIOPEN_INSTALL_DIR miopen)
 set( DATA_INSTALL_DIR ${CMAKE_INSTALL_DATAROOTDIR}/miopen )
 
-if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
-    find_package(frugally-deep CONFIG REQUIRED)
-    find_package(Eigen3 REQUIRED)
-endif()
-
 if(WIN32)
     set(KERNELS_BINARY_DIR ${PROJECT_BINARY_DIR}/bin)
 else()

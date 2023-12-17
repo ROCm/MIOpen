@@ -182,22 +182,18 @@ struct ExecutionContext
 #else
     std::string GetPerfDbPathFile() const
     {
-        static const auto result = [&] {
-            const boost::filesystem::path pdb_path(GetSystemDbPath());
-            std::ostringstream filename;
-            // clang-format off
-        filename << GetStream().GetDbBasename();
+        static const auto result = [&] {            
+            auto pdb_path(GetSystemDbPath());
 #if MIOPEN_ENABLE_SQLITE
-        const std::string ext = ".db";
+            const std::string ext{".db "};
 #else
-        const std::string ext = ".cd.pdb.txt";
+            const std::string ext{".cd.pdb.txt"};
 #endif
-        filename << ext;
-            // clang-format on
-            if(boost::filesystem::exists(pdb_path / filename.str()))
+            std::string filename{GetStream().GetDbBasename() + ext};
+            if(boost::filesystem::exists(pdb_path / filename))
             {
                 MIOPEN_LOG_I("Found exact perf database file");
-                return (pdb_path / filename.str()).string();
+                return (pdb_path / filename).string();
             }
             else
             {
@@ -205,6 +201,10 @@ struct ExecutionContext
                 const auto db_id        = GetStream().GetTargetProperties().DbId();
                 const int real_cu_count = GetStream().GetMaxComputeUnits();
                 namespace fs            = boost::filesystem;
+                if(pdb_path.empty())
+                {
+                    pdb_path = boost::filesystem::current_path();
+                }
                 if(fs::exists(pdb_path) && fs::is_directory(pdb_path))
                 {
                     MIOPEN_LOG_I2("Iterating over perf db directory " << pdb_path.string());
@@ -257,7 +257,7 @@ struct ExecutionContext
                     MIOPEN_LOG_I("Database directory does not exist");
                 }
             }
-            return std::string();
+            return std::string{};
         }();
         return result;
     }
@@ -279,14 +279,13 @@ struct ExecutionContext
         const auto& udb = GetUserDbPath();
         if(udb.empty())
             return "";
-        std::ostringstream filename;
-        filename << GetStream().GetDbBasename();
+        auto filename{GetStream().GetDbBasename()};
 #if MIOPEN_ENABLE_SQLITE
-        filename << "_" << SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER << ".udb";
+        filename += "_" + std::string{SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER} + ".udb";
 #else
-        filename << "." << GetUserDbSuffix() << ".cd.updb.txt";
+        filename += "." + GetUserDbSuffix() + ".cd.updb.txt";
 #endif
-        return (udb / filename.str()).string();
+        return (udb / filename).string();
     }
 
 private:

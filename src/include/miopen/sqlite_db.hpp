@@ -241,7 +241,7 @@ public:
                 return;
             }
 
-            if(!(boost::filesystem::exists(directory)))
+            if(!boost::filesystem::exists(directory))
             {
                 if(!boost::filesystem::create_directories(directory))
                     MIOPEN_LOG_W("Unable to create a directory: " << directory);

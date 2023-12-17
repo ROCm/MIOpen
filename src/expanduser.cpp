@@ -208,8 +208,8 @@ std::optional<std::string> GetEnvironmentVariable(const std::string_view name)
     {
         return std::nullopt;
     }
-    std::string result;
-    result.reserve(required_size);
+    // getenv_s returns the required size of a string including '\0' character.
+    std::string result(required_size - 1, 'A');
     getenv_s(&required_size, result.data(), required_size, name.data());
     return {result};
 }
@@ -226,17 +226,13 @@ ReplaceVariable(const std::string& path, std::string_view name, std::size_t offs
         {
             auto result{path};
             auto value{GetEnvironmentVariable(name)};
-            if(value)
+            if(!value)
             {
-                result.replace(pos, variable.length(), *value);
+                // TODO: log warning message that the name used does not
+                //       correspond to an environment variable.
+                value = boost::filesystem::temp_directory_path().string();
             }
-            else
-            {
-                // TODO: log warning message that the name used does not correspond
-                //       to an environment variable.
-                result.replace(
-                    pos, variable.length(), boost::filesystem::temp_directory_path().string());
-            }
+            result.replace(pos, variable.length(), *value);
             return {{pos, result}};
         }
     }
@@ -247,10 +243,10 @@ ReplaceVariable(const std::string& path, std::string_view name, std::size_t offs
 boost::filesystem::path ExpandUser(const std::string& path)
 {
     auto result{ReplaceVariable(path, "USERPROFILE")};
-    if(not result)
+    if(!result)
     {
         result = ReplaceVariable(path, "HOME");
-        if(not result)
+        if(!result)
         {
             result = ReplaceVariable(path, "HOMEDRIVE");
             if(result)
@@ -263,11 +259,7 @@ boost::filesystem::path ExpandUser(const std::string& path)
             }
         }
     }
-    if(result)
-    {
-        return {std::get<1>(*result)};
-    }
-    return {path};
+    return {!result ? path : std::get<1>(*result)};
 }
 
 bool IsNetworkedFilesystem(const boost::filesystem::path&) { return false; }

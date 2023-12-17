@@ -220,14 +220,11 @@ template <class TDb>
 std::string FindDbRecord_t<TDb>::GetUserPath(Handle& handle, const std::string& path_suffix)
 {
 #if !MIOPEN_DISABLE_USERDB
-    std::ostringstream ss;
-    ss << GetUserDbPath().string() << '/';
-    ss << handle.GetDbBasename();
-    ss << '.' << GetUserDbSuffix();
+    std::string fname{handle.GetDbBasename()};
+    fname += '.' + GetUserDbSuffix();
     if(!path_suffix.empty())
-        ss << '.' << path_suffix;
-    ss << ".ufdb.txt";
-    return ss.str();
+        fname += '.' + path_suffix;
+    return (GetUserDbPath() / (fname + ".ufdb.txt")).string();
 #else
     std::ignore = handle;
     std::ignore = path_suffix;

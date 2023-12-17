@@ -48,7 +48,11 @@ public:
     void Run(const boost::filesystem::path& exe_path) const
     {
         const TmpDir test_srcs{"test_include_inliner"};
-        const auto addkernels      = (exe_path.parent_path() / "addkernels").string();
+#ifdef _WIN32
+        auto addkernels = (exe_path.parent_path() / "addkernels.exe").string();
+#else
+        auto addkernels = (exe_path.parent_path() / "addkernels").string();
+#endif
         const auto header_filename = "header.h";
         const auto asm_src         = test_srcs.path / "valid.s";
         const auto valid_src       = test_srcs.path / "valid.cl";
