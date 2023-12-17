@@ -7,7 +7,7 @@ Welcome to MIOpen
 =================
 **Advanced Micro Devices's open source deep learning library.**
 
-Sources and binaries can be found at `MIOpen's GitHub site <https://github.com/ROCmSoftwarePlatform/MIOpen>`_.
+Sources and binaries can be found at `MIOpen's GitHub site <https://github.com/ROCm/MIOpen>`_.
 
 Indices and tables
 ==================
