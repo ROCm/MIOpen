@@ -163,21 +163,21 @@ struct CKArgs
     {
         const auto& conv_param =
             dynamic_cast<miopen::fusion::ConvolutionOpInvokeParam&>(*data_ctx.op_args.params[0]);
-        // assert(conv_param);
+        assert(&conv_param);
 
         const auto& z_param =
             dynamic_cast<miopen::fusion::TensorScaleAddOpInvokeParam&>(*data_ctx.op_args.params[1]);
-        // assert(z_param);
+        assert(&z_param);
 
         const auto& bias_param =
             dynamic_cast<miopen::fusion::BiasOpInvokeParam&>(*data_ctx.op_args.params[2]);
-        // assert(bias_param);
+        assert(&bias_param);
 
         /// \todo: Support general activation functions.
         /// only relu activation supported and hardcoded for now
         [[maybe_unused]] const auto& activ_param =
             dynamic_cast<miopen::fusion::ActivationOpInvokeParam&>(*data_ctx.op_args.params[3]);
-        // assert(activ_param);
+        assert(&activ_param);
 
         return MakeArgPtr(op_ptr,
                           data_ctx.in,
@@ -390,7 +390,7 @@ bool ConvCKIgemmFwdBiasResAddActivFused::IsApplicable(const FusionContext& ctx,
     if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_RES_ADD_ACTIV)))
         return false;
     // check the sequence of prims
-    if(desc.op_map.size() != 3)
+    if(desc.op_map.size() != 4)
         return false;
     if(desc.op_map[0]->kind() != miopenFusionOpConvForward)
         return false;
@@ -400,7 +400,7 @@ bool ConvCKIgemmFwdBiasResAddActivFused::IsApplicable(const FusionContext& ctx,
         return false;
     if(desc.op_map[3]->kind() != miopenFusionOpActivForward)
         return false;
-    const auto& activ_op = dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[2]);
+    const auto& activ_op = dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[3]);
     if(activ_op.activMode != miopenActivationRELU)
         return false;
     const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
@@ -413,7 +413,7 @@ bool ConvCKIgemmFwdBiasResAddActivFused::IsApplicable(const FusionContext& ctx,
         return false;
     if(conv_problem.HasMixedDataTypes())
         return false;
-    if(!conv_problem.Is2d())
+    if(!(conv_problem.Is2d() || conv_problem.Is3d()))
         return false;
     if(!conv_problem.IsLayoutNHWC())
         return false;

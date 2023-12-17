@@ -6,4 +6,7 @@ nlohmann/json@v3.11.2 -DJSON_MultipleHeaders=ON -DJSON_BuildTests=Off
 ROCmSoftwarePlatform/FunctionalPlus@v0.2.18-p0
 ROCmSoftwarePlatform/eigen@3.4.0
 ROCmSoftwarePlatform/frugally-deep@9683d557eb672ee2304f80f6682c51242d748a50
-ROCmSoftwarePlatform/composable_kernel@e70a4d1922dba5d44211a004696d0822073533e3 -DCMAKE_BUILD_TYPE=Release -DINSTANCES_ONLY=ON
+ROCmSoftwarePlatform/composable_kernel@55a89c746eb6cf7973c47fb9b2635e0f73bd2fc2 -DCMAKE_BUILD_TYPE=Release -DINSTANCES_ONLY=ON
+
+
+
