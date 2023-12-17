@@ -35,6 +35,7 @@
 #include "verify.hpp"
 #include "rnn_util.hpp"
 #include "random.hpp"
+#include "workspace.hpp"
 #include <array>
 #include <cmath>
 #include <ctime>
@@ -1443,8 +1444,7 @@ struct verify_forward_infer_rnn
                               miopen::deref(rnnDesc).dataType);
 
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
-
-        std::vector<T> workSpace(workSpaceSize / sizeof(T));
+        Workspace wspace{workSpaceSize};
 
         auto input_dev = handle.Write(input);
 
@@ -1456,8 +1456,6 @@ struct verify_forward_infer_rnn
         auto hy          = initHidden;
         std::fill(hy.begin(), hy.end(), 0.);
         auto hy_dev = handle.Write(hy);
-
-        auto workSpace_dev = handle.Write(workSpace);
 
         std::vector<int> hlens(3, 0);
         hlens[0] = nLayers * ((dirMode != 0) ? 2 : 1);
@@ -1486,8 +1484,8 @@ struct verify_forward_infer_rnn
                                   ((nohy) ? nullptr : hy_dev.get()),
                                   &hiddenDesc,
                                   nullptr,
-                                  workSpace_dev.get(),
-                                  workSpaceSize);
+                                  wspace.ptr(),
+                                  wspace.size());
 
 #if(MIO_RNN_TEST_DEBUG == 2)
         auto outdata = handle.Read<T>(output_dev, output.size());
@@ -1715,11 +1713,13 @@ struct verify_forward_train_rnn
                               miopen::deref(rnnDesc).dataType);
 
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
+        Workspace wspace{workSpaceSize};
+
         miopenGetRNNTrainingReserveSize(
             &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
+        reserveSpaceSize = (reserveSpaceSize + (sizeof(T) - 1)) & ~(sizeof(T) - 1);
 
-        std::vector<T> workSpace(workSpaceSize / sizeof(T));
-        std::vector<T> reserveSpace((reserveSpaceSize + sizeof(T) - 1) / sizeof(T));
+        Workspace rspace{reserveSpaceSize};
 
         auto input_dev = handle.Write(input);
 
@@ -1732,9 +1732,6 @@ struct verify_forward_train_rnn
         auto hy = initHidden;
         std::fill(hy.begin(), hy.end(), 0.);
         auto hy_dev = handle.Write(hy);
-
-        auto workSpace_dev    = handle.Write(workSpace);
-        auto reserveSpace_dev = handle.Write(reserveSpace);
 
         std::vector<int> hlens(3, 0);
         hlens[0] = nLayers * ((dirMode != 0) ? 2 : 1);
@@ -1763,10 +1760,10 @@ struct verify_forward_train_rnn
                                  ((nohy) ? nullptr : hy_dev.get()),
                                  &hiddenDesc,
                                  nullptr,
-                                 workSpace_dev.get(),
-                                 workSpaceSize,
-                                 reserveSpace_dev.get(),
-                                 reserveSpaceSize);
+                                 wspace.ptr(),
+                                 wspace.size(),
+                                 rspace.ptr(),
+                                 rspace.size());
 
 #if(MIO_RNN_TEST_DEBUG == 2)
         auto outdata = handle.Read<T>(output_dev, output.size());
@@ -1776,10 +1773,9 @@ struct verify_forward_train_rnn
         }
 #endif
 
-        auto retSet = std::make_tuple(
-            handle.Read<T>(output_dev, output.size()),
-            (nohy ? initHidden : handle.Read<T>(hy_dev, hy.size())),
-            handle.Read<T>(reserveSpace_dev, (reserveSpaceSize + sizeof(T) - 1) / sizeof(T)));
+        auto retSet = std::make_tuple(handle.Read<T>(output_dev, output.size()),
+                                      (nohy ? initHidden : handle.Read<T>(hy_dev, hy.size())),
+                                      rspace.Read<std::vector<T>>());
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
 
@@ -2009,15 +2005,15 @@ struct verify_backward_data_rnn
                               miopen::deref(rnnDesc).dataType);
 
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
-        std::vector<T> workSpace(workSpaceSize / sizeof(T));
-        auto workSpace_dev = handle.Write(workSpace);
+        Workspace wspace{workSpaceSize};
 
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
         auto yin_dev  = handle.Write(yin);
         auto dyin_dev = handle.Write(dy);
         // auto dhyin_dev        = handle.Write(dhy);
-        auto reserveSpace_dev = handle.Write(reserveSpace);
-        auto weights_dev      = handle.Write(weights);
+        Workspace rspace{};
+        rspace.Write(reserveSpace);
+        auto weights_dev = handle.Write(weights);
         // auto hx_dev           = handle.Write(initHidden);
 
         std::vector<int> hlens(3, 0);
@@ -2061,15 +2057,15 @@ struct verify_backward_data_rnn
                               ((nodhx) ? nullptr : dhx_dev.get()),
                               &hiddenDesc,
                               nullptr,
-                              workSpace_dev.get(),
-                              workSpaceSize,
-                              reserveSpace_dev.get(),
-                              reserveSpace.size() * sizeof(T));
+                              wspace.ptr(),
+                              wspace.size(),
+                              rspace.ptr(),
+                              rspace.size());
 
         auto retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
                                       (nodhx ? initHidden : handle.Read<T>(dhx_dev, dhx.size())),
-                                      handle.Read<T>(reserveSpace_dev, reserveSpace.size()),
-                                      handle.Read<T>(workSpace_dev, workSpace.size()));
+                                      rspace.Read<std::vector<T>>(),
+                                      wspace.Read<std::vector<T>>());
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -2264,8 +2260,11 @@ struct verify_backward_weights_rnn
                               hiddenSize * ((dirMode != 0) ? 2 : 1),
                               miopen::deref(rnnDesc).dataType);
 
-        auto workSpace_dev    = handle.Write(workSpace);
-        auto reserveSpace_dev = handle.Write(reserveSpace);
+        Workspace wspace{};
+        wspace.Write(workSpace);
+        Workspace rspace{};
+        rspace.Write(reserveSpace);
+
         std::vector<T> dweights(weightSize);
         auto dweights_dev = handle.Write(dweights);
         miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, {weightSize});
@@ -2290,10 +2289,10 @@ struct verify_backward_weights_rnn
                                  dy_dev.get(),
                                  &weightDesc,
                                  dweights_dev.get(),
-                                 workSpace_dev.get(),
-                                 workSpace.size() * sizeof(T),
-                                 reserveSpace_dev.get(),
-                                 reserveSpace.size() * sizeof(T));
+                                 wspace.ptr(),
+                                 wspace.size(),
+                                 rspace.ptr(),
+                                 rspace.size());
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
