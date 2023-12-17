@@ -32,6 +32,8 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
+namespace regression_half_mi100 {
+
 auto GetTestCases()
 {
     // Regression test for SWDEV-291202
@@ -63,10 +65,13 @@ bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::Default>;
     using d_mask = disabled<Gpu::gfx900, Gpu::gfx906, Gpu::gfx90A>;
-    return IsTestSupportedForDevice<d_mask, e_mask>();
+    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-TEST_P(Conv2dHalf, HalfTest)
+} // namespace regression_half_mi100
+using namespace regression_half_mi100;
+
+TEST_P(Conv2dHalf, HalfTest_regression_half_mi100)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {

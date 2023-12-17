@@ -32,6 +32,8 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
+namespace conv_ck_igemm_fwd_v6r1_dlops_nchw {
+
 auto GetTestCases()
 {
     const auto env = std::tuple{
@@ -87,10 +89,13 @@ bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::Default>;
     using d_mask = disabled<Gpu::gfx908>;
-    return IsTestSupportedForDevice<d_mask, e_mask>();
+    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-TEST_P(Conv2dFloat, FloatTest)
+} // namespace conv_ck_igemm_fwd_v6r1_dlops_nchw
+using namespace conv_ck_igemm_fwd_v6r1_dlops_nchw;
+
+TEST_P(Conv2dFloat, FloatTest_conv_ck_igemm_fwd_v6r1_dlops_nchw)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
@@ -102,7 +107,7 @@ TEST_P(Conv2dFloat, FloatTest)
     }
 };
 
-TEST_P(Conv2dHalf, HalfTest)
+TEST_P(Conv2dHalf, HalfTest_conv_ck_igemm_fwd_v6r1_dlops_nchw)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {

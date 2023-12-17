@@ -38,16 +38,16 @@
 
 #include "../driver.hpp"
 
-void default_check(const std::string& err) { std::cout << err; }
+inline void default_check(const std::string& err) { std::cout << err; }
 
-void tuning_check(const std::string& err)
+inline void tuning_check(const std::string& err)
 {
     // TEST_TUNING - the test should fail if output contains "Error" or "failed".
     EXPECT_FALSE(err.find("Error") != std::string::npos || err.find("failed") != std::string::npos);
     default_check(err);
 }
 
-void db_check(const std::string& err)
+inline void db_check(const std::string& err)
 {
     EXPECT_FALSE(err.find("Perf Db: record not found") != std::string::npos);
     default_check(err);
@@ -80,7 +80,7 @@ struct disabled
 };
 
 template <typename disabled_mask, typename enabled_mask>
-bool IsTestSupportedForDevice()
+bool IsTestSupportedForDevMask()
 {
     static_assert((~disabled_mask::val & enabled_mask::val) == 0,
                   "Enabled and Disabled GPUs are overlapped");

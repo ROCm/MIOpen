@@ -30,6 +30,8 @@
 
 #include "../conv2d.hpp"
 
+namespace smoke_solver_ConvFFT {
+
 auto GetTestCases()
 {
     const auto env =
@@ -57,10 +59,13 @@ bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::gfx103X, Gpu::gfx110X>;
     using d_mask = disabled<Gpu::Default>;
-    return IsTestSupportedForDevice<d_mask, e_mask>();
+    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-TEST_P(Conv2dFloat, FloatTest)
+} // namespace smoke_solver_ConvFFT
+using namespace smoke_solver_ConvFFT;
+
+TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvFFT)
 {
     if(IsTestSupportedForDevice())
     {

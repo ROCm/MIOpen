@@ -32,6 +32,8 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
+namespace smoke_solver_ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC {
+
 auto GetTestCases()
 {
     const auto env_fwd =
@@ -64,10 +66,13 @@ bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::gfx103X>;
     using d_mask = disabled<Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A>;
-    return IsTestSupportedForDevice<d_mask, e_mask>();
+    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-TEST_P(Conv2dHalf, HalfTest)
+} // namespace smoke_solver_ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC
+using namespace smoke_solver_ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC;
+
+TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {

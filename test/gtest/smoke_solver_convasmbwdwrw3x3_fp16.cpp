@@ -32,6 +32,8 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
+namespace smoke_solver_convasmbwdwrw3x3_fp16 {
+
 auto GetTestCases()
 {
     const auto env_wrw = std::tuple{
@@ -61,10 +63,13 @@ bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::Default>;
     using d_mask = disabled<Gpu::Default>;
-    return IsTestSupportedForDevice<d_mask, e_mask>();
+    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-TEST_P(Conv2dHalf, HalfTest)
+} // namespace smoke_solver_convasmbwdwrw3x3_fp16
+using namespace smoke_solver_convasmbwdwrw3x3_fp16;
+
+TEST_P(Conv2dHalf, HalfTest_smoke_solver_convasmbwdwrw3x3_fp16)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {

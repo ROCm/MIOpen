@@ -34,6 +34,8 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_MLIR)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
+namespace conv_igemm_mlir_xdlops_fwd {
+
 auto GetTestCases()
 {
     const auto fwd = std::tuple{
@@ -78,10 +80,13 @@ bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::Default>;
     using d_mask = disabled<Gpu::gfx900, Gpu::gfx906>;
-    return IsTestSupportedForDevice<d_mask, e_mask>();
+    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-TEST_P(Conv2dHalf, HalfTest)
+} // namespace conv_igemm_mlir_xdlops_fwd
+using namespace conv_igemm_mlir_xdlops_fwd;
+
+TEST_P(Conv2dHalf, HalfTest_conv_igemm_mlir_xdlops_fwd)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
@@ -93,7 +98,7 @@ TEST_P(Conv2dHalf, HalfTest)
     }
 };
 
-TEST_P(Conv2dInt8, Int8Test)
+TEST_P(Conv2dInt8, Int8Test_conv_igemm_mlir_xdlops_fwd)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {

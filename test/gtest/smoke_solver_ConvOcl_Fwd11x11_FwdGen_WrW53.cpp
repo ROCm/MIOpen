@@ -30,6 +30,8 @@
 
 #include "../conv2d.hpp"
 
+namespace smoke_solver_ConvOcl_Fwd11x11_FwdGen_WrW53 {
+
 auto GetTestCases()
 {
     const auto env_fwd = std::tuple{
@@ -74,10 +76,13 @@ bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::gfx103X>;
     using d_mask = disabled<Gpu::Default>;
-    return IsTestSupportedForDevice<d_mask, e_mask>();
+    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-TEST_P(Conv2dFloat, FloatTest)
+} // namespace smoke_solver_ConvOcl_Fwd11x11_FwdGen_WrW53
+using namespace smoke_solver_ConvOcl_Fwd11x11_FwdGen_WrW53;
+
+TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvOcl_Fwd11x11_FwdGen_WrW53)
 {
     if(IsTestSupportedForDevice())
     {
@@ -89,7 +94,7 @@ TEST_P(Conv2dFloat, FloatTest)
     }
 };
 
-TEST_P(Conv2dHalf, HalftTest)
+TEST_P(Conv2dHalf, HalftTest_smoke_solver_ConvOcl_Fwd11x11_FwdGen_WrW53)
 {
     if(IsTestSupportedForDevice())
     {
@@ -101,7 +106,7 @@ TEST_P(Conv2dHalf, HalftTest)
     }
 };
 
-TEST_P(Conv2dBf16, Bf16Test)
+TEST_P(Conv2dBf16, Bf16Test_smoke_solver_ConvOcl_Fwd11x11_FwdGen_WrW53)
 {
     if(IsTestSupportedForDevice())
     {

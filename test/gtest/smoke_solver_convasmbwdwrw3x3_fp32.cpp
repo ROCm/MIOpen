@@ -32,6 +32,8 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
+namespace smoke_solver_convasmbwdwrw3x3_fp32 {
+
 auto GetTestCases()
 {
     const auto env_wrw = std::tuple{
@@ -62,10 +64,13 @@ bool IsTestSupportedForDevice()
     // GFX90A_DISABLED for FP32 because of WORKAROUND_SWDEV_330460
     using e_mask = enabled<Gpu::Default>;
     using d_mask = disabled<Gpu::gfx90A>;
-    return IsTestSupportedForDevice<d_mask, e_mask>();
+    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-TEST_P(Conv2dFloat, FloatTest)
+} // namespace smoke_solver_convasmbwdwrw3x3_fp32
+using namespace smoke_solver_convasmbwdwrw3x3_fp32;
+
+TEST_P(Conv2dFloat, FloatTest_smoke_solver_convasmbwdwrw3x3_fp32)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {

@@ -33,6 +33,8 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
+namespace smoke_solver_ConvCkIgemmFwdV6r1DlopsNchw {
+
 auto GetTestCases()
 {
     // MIOPEN_DEBUG_TUNING_ITERATIONS_MAX is set to 2 because kernels are very slow to build.
@@ -66,10 +68,13 @@ bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::gfx103X>;
     using d_mask = disabled<Gpu::Default>;
-    return IsTestSupportedForDevice<d_mask, e_mask>();
+    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-TEST_P(Conv2dHalf, HalfTest)
+} // namespace smoke_solver_ConvCkIgemmFwdV6r1DlopsNchw
+using namespace smoke_solver_ConvCkIgemmFwdV6r1DlopsNchw;
+
+TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvCkIgemmFwdV6r1DlopsNchw)
 {
     if(IsTestSupportedForDevice())
     {

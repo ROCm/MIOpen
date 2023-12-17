@@ -30,7 +30,9 @@
 
 #include "../conv2d.hpp"
 
-auto GetTestCases(void)
+namespace regression_half_vega_gfx908 {
+
+auto GetTestCases()
 {
     const auto env = std::tuple{
         std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
@@ -59,10 +61,13 @@ bool IsTestSupportedForDevice()
     // Can't be enabled for GFX10 due to WORKAROUND_SWDEV_271887
     using e_mask = enabled<Gpu::Default>;
     using d_mask = disabled<Gpu::gfx90A>;
-    return IsTestSupportedForDevice<d_mask, e_mask>();
+    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-TEST_P(Conv2dHalf, HalfTest)
+} // namespace regression_half_vega_gfx908
+using namespace regression_half_vega_gfx908;
+
+TEST_P(Conv2dHalf, HalfTest_regression_half_vega_gfx908)
 {
     if(IsTestSupportedForDevice())
     {

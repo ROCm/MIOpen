@@ -32,6 +32,8 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
+namespace smoke_solver_ConvHipImplicitGemmV4R4 {
+
 auto GetTestCases()
 {
     const auto env_fwd =
@@ -69,10 +71,13 @@ bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::gfx103X>;
     using d_mask = disabled<Gpu::Default>;
-    return IsTestSupportedForDevice<d_mask, e_mask>();
+    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-TEST_P(Conv2dFloat, FloatTest)
+} // namespace smoke_solver_ConvHipImplicitGemmV4R4
+using namespace smoke_solver_ConvHipImplicitGemmV4R4;
+
+TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvHipImplicitGemmV4R4)
 {
     if(IsTestSupportedForDevice())
     {

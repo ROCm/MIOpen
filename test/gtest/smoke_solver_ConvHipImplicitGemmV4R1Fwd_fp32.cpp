@@ -32,6 +32,8 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
+namespace smoke_solver_ConvHipImplicitGemmV4R1Fwd_fp32 {
+
 auto GetTestCases()
 {
     // MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=1 is necessary due to WORKAROUND_iGemm_936 in
@@ -65,10 +67,13 @@ bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::gfx103X>;
     using d_mask = disabled<Gpu::Default>;
-    return IsTestSupportedForDevice<d_mask, e_mask>();
+    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-TEST_P(Conv2dFloat, FloatTest)
+} // namespace smoke_solver_ConvHipImplicitGemmV4R1Fwd_fp32
+using namespace smoke_solver_ConvHipImplicitGemmV4R1Fwd_fp32;
+
+TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvHipImplicitGemmV4R1Fwd_fp32)
 {
     if(IsTestSupportedForDevice())
     {

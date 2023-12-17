@@ -32,6 +32,8 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
+namespace smoke_solver_ConvHipImplicitGemmDataV4RxXdlops {
+
 auto GetTestCases()
 {
     // MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS is reqired due to env_bwd case
@@ -132,10 +134,13 @@ bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::Default>;
     using d_mask = disabled<Gpu::gfx900, Gpu::gfx906>;
-    return IsTestSupportedForDevice<d_mask, e_mask>();
+    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-TEST_P(Conv2dHalf, HalfTest)
+} // namespace smoke_solver_ConvHipImplicitGemmDataV4RxXdlops
+using namespace smoke_solver_ConvHipImplicitGemmDataV4RxXdlops;
+
+TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvHipImplicitGemmDataV4RxXdlops)
 {
     if(IsTestSupportedForDevice())
     {
@@ -147,7 +152,7 @@ TEST_P(Conv2dHalf, HalfTest)
     }
 };
 
-TEST_P(Conv2dBf16, Bf16Test)
+TEST_P(Conv2dBf16, Bf16Test_smoke_solver_ConvHipImplicitGemmDataV4RxXdlops)
 {
     if(IsTestSupportedForDevice())
     {

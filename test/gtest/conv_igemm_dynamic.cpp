@@ -121,13 +121,13 @@ bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::Default>;
     using d_mask = disabled<Gpu::gfx908, Gpu::gfx90A>;
-    return IsTestSupportedForDevice<d_mask, e_mask>();
+    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
 } // namespace conv_igemm_dynamic
 using namespace conv_igemm_dynamic;
 
-TEST_P(Conv2dFloat, FloatTest)
+TEST_P(Conv2dFloat, FloatTest_conv_igemm_dynamic)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {

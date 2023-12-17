@@ -32,6 +32,8 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
+namespace smoke_solver_ConvBinWinogradRxSf2x3g1 {
+
 auto GetTestCases()
 {
     const auto env2x3 = std::tuple{
@@ -63,10 +65,13 @@ bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X>;
     using d_mask = disabled<Gpu::gfx900>;
-    return IsTestSupportedForDevice<d_mask, e_mask>();
+    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-TEST_P(Conv2dFloat, FloatTest)
+} // namespace smoke_solver_ConvBinWinogradRxSf2x3g1
+using namespace smoke_solver_ConvBinWinogradRxSf2x3g1;
+
+TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvBinWinogradRxSf2x3g1)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
@@ -78,7 +83,7 @@ TEST_P(Conv2dFloat, FloatTest)
     }
 };
 
-TEST_P(Conv2dHalf, HalfTest)
+TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvBinWinogradRxSf2x3g1)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {

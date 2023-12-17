@@ -33,6 +33,8 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
+namespace conv_igemm_dynamic_dlops {
+
 auto GetTestCases()
 {
     const auto env_fwd =
@@ -154,14 +156,17 @@ class Conv2dHalf : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-static bool IsTestSupportedForDevice()
+bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::gfx103X>;
     using d_mask = disabled<Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A>;
-    return IsTestSupportedForDevice<d_mask, e_mask>();
+    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-TEST_P(Conv2dHalf, HalfTest)
+} // namespace conv_igemm_dynamic_dlops
+using namespace conv_igemm_dynamic_dlops;
+
+TEST_P(Conv2dHalf, HalfTest_conv_igemm_dynamic_dlops)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
