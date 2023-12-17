@@ -36,31 +36,31 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_EXIT_STATUS_TEMP_DIR)
 
 namespace miopen {
 
-TmpDir::TmpDir(std::string prefix)
+TmpDir::TmpDir(std::string_view prefix)
     : path(boost::filesystem::temp_directory_path() /
-           boost::filesystem::unique_path("miopen-" + prefix + "-%%%%-%%%%-%%%%-%%%%"))
+           boost::filesystem::unique_path("miopen-" + std::string{prefix} + "-%%%%-%%%%-%%%%-%%%%"))
 {
     boost::filesystem::create_directories(this->path);
 }
 
 TmpDir& TmpDir::operator=(TmpDir&& other) noexcept
 {
-    this->path = other.path;
-    other.path = "";
+    this->path = std::move(other.path);
     return *this;
 }
 
-void TmpDir::Execute(std::string_view exe, std::string_view args) const
+int TmpDir::Execute(const boost::filesystem::path& exec, std::string_view args) const
 {
     if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_SAVE_TEMP_DIR)))
     {
         MIOPEN_LOG_I2(this->path.string());
     }
-    auto status = Process(exe)(args, this->path);
+    auto status = Process{exec}(args, this->path);
     if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_EXIT_STATUS_TEMP_DIR)))
     {
         MIOPEN_LOG_I2(status);
     }
+    return status;
 }
 
 TmpDir::~TmpDir()

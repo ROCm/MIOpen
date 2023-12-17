@@ -9,7 +9,7 @@ namespace miopen {
 struct TmpDir
 {
     boost::filesystem::path path;
-    TmpDir(std::string prefix);
+    explicit TmpDir(std::string_view prefix = "");
 
     TmpDir(TmpDir const&) = delete;
     TmpDir& operator=(TmpDir const&) = delete;
@@ -17,7 +17,7 @@ struct TmpDir
     TmpDir(TmpDir&& other) noexcept { (*this) = std::move(other); }
     TmpDir& operator=(TmpDir&& other) noexcept;
 
-    void Execute(std::string_view exe, std::string_view args) const;
+    int Execute(const boost::filesystem::path& exec, std::string_view args) const;
 
     ~TmpDir();
 };

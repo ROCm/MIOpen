@@ -114,10 +114,11 @@ void IncludeInliner::ProcessCore(std::istream& input,
 
             const std::string include_file_path =
                 line.substr(first_quote_pos + 1, second_quote_pos - first_quote_pos - 1);
-            const auto abs_include_file_path{
-                std::filesystem::absolute(root / include_file_path)};
 
-            if(abs_include_file_path.empty())
+            const auto abs_include_file_path{
+                std::filesystem::weakly_canonical(root / include_file_path)};
+
+            if(!std::filesystem::exists(abs_include_file_path))
             {
                 if(include_optional)
                     continue;
@@ -126,7 +127,7 @@ void IncludeInliner::ProcessCore(std::istream& input,
             }
             std::ifstream include_file(abs_include_file_path, std::ios::in);
 
-            if(!include_file.good())
+            if(!include_file.is_open())
             {
                 throw IncludeCantBeOpenedException(include_file_path,
                                                    GetIncludeStackTrace(current_line));

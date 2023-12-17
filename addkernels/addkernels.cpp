@@ -125,7 +125,7 @@ void PrintHelp()
     WrongUsage(ss.str());
 }
 
-int Process(const std::filesystem::path& sourcePath,
+void Process(const std::filesystem::path& sourcePath,
             std::ostream& target,
             size_t bufferSize,
             size_t lineSize,
@@ -133,11 +133,19 @@ int Process(const std::filesystem::path& sourcePath,
             bool as_extern,
             bool mark_includes)
 {
-    std::ifstream sourceFile{sourcePath, std::ios::in | std::ios::binary};
-
-    if(sourceFile.fail() || !sourceFile.is_open())
+    if(!std::filesystem::exists(sourcePath))
     {
         std::cerr << "File not found: " << sourcePath << std::endl;
+        // NOLINTNEXTLINE (concurrency-mt-unsafe)
+        std::exit(1);
+    }
+
+    std::ifstream sourceFile{sourcePath, std::ios::in | std::ios::binary};
+    std::istream* source = &sourceFile;
+
+    if(!sourceFile.is_open())
+    {
+        std::cerr << "Error opening file: " << sourcePath << std::endl;
         // NOLINTNEXTLINE (concurrency-mt-unsafe)
         std::exit(1);
     }
@@ -188,8 +196,9 @@ int Process(const std::filesystem::path& sourcePath,
         {
             std::cerr << ex.What() << "\n" << ex.GetTrace() << std::endl;
             // NOLINTNEXTLINE (concurrency-mt-unsafe)
-            return 1;
+            std::exit(1);
         }
+        source = &inlinerTemp;
     }
 
     auto variable{sourcePath.stem().string()};
@@ -203,8 +212,7 @@ int Process(const std::filesystem::path& sourcePath,
         variable = "MIOPEN_KERNEL_" + variable;
     }
 
-    Bin2Hex(inlinerTemp, target, variable, true, bufferSize, lineSize);
-    return 0;
+    Bin2Hex(*source, target, variable, true, bufferSize, lineSize);
 }
 
 int main(int argsn, char** args)
@@ -244,10 +252,7 @@ int main(int argsn, char** args)
 
             while(++i < argsn)
             {
-                // clang-format off
-                if(Process(args[i], *target, bufferSize, lineSize, recurse, as_extern, mark_includes))
-                    exit(1);
-                // clang-format on
+                Process(args[i], *target, bufferSize, lineSize, recurse, as_extern, mark_includes);
             }
 
             *target << "#endif" << std::endl;
