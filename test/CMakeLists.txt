@@ -205,11 +205,13 @@ if(MIOPEN_TEST_HALF)
     set(MIOPENDRIVER_MODE_CONV convfp16)
     set(MIOPENDRIVER_MODE_BN bnormfp16)
     set(MIOPENDRIVER_MODE_POOL poolfp16)
+    set(MIOPENDRIVER_MODE_GEMM gemmfp16)
 elseif(MIOPEN_TEST_INT8)
     set(MIOPEN_TEST_FLOAT_ARG --int8)
     set(MIOPENDRIVER_MODE_CONV convint8)
     set(MIOPENDRIVER_MODE_BN NOT_SUPPORTED)
     set(MIOPENDRIVER_MODE_POOL NOT_SUPPORTED)
+    set(MIOPENDRIVER_MODE_GEMM NOT_SUPPORTED)
     set(MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_INT8 --output_type int8)
     set(MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_INT32 --output_type int32)
     set(MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_FLOAT --output_type float)
@@ -218,12 +220,14 @@ elseif(MIOPEN_TEST_BFLOAT16)
     set(MIOPENDRIVER_MODE_CONV convbfp16)
     set(MIOPENDRIVER_MODE_BN NOT_SUPPORTED)
     set(MIOPENDRIVER_MODE_POOL NOT_SUPPORTED)
+    set(MIOPENDRIVER_MODE_GEMM NOT_SUPPORTED)
 else()
     set(MIOPEN_TEST_FLOAT_ARG --float)
     set(MIOPEN_TEST_FLOAT TRUE)
     set(MIOPENDRIVER_MODE_CONV conv)
     set(MIOPENDRIVER_MODE_BN bnorm)
     set(MIOPENDRIVER_MODE_POOL pool)
+    set(MIOPENDRIVER_MODE_GEMM gemm)
 endif()
 
 message(STATUS "MIOPEN_TEST_FLOAT ${MIOPEN_TEST_FLOAT}")
@@ -321,6 +325,9 @@ separate_arguments(MIOPEN_TEST_FLAGS_ARGS NATIVE_COMMAND ${MIOPEN_TEST_FLAGS})
 
 function(add_test_executable TEST_NAME)
     add_executable (${TEST_NAME} EXCLUDE_FROM_ALL ${ARGN})
+    if(WIN32)
+        target_compile_definitions(${TEST_NAME} PRIVATE NOMINMAX)
+    endif()
     clang_tidy_check(${TEST_NAME})
     target_link_libraries(${TEST_NAME} Threads::Threads)
     # Cmake does not add flags correctly for gcc
@@ -360,7 +367,11 @@ function(add_test_executable TEST_NAME)
         target_link_libraries(${TEST_NAME} MIOpen)
     endif()
     target_include_directories(${TEST_NAME} PRIVATE ../src/kernels)
-endfunction(add_test_executable)
+    if(WIN32)
+        # Refer to https://en.cppreference.com/w/cpp/language/types for details.
+        target_compile_options(${TEST_NAME} PRIVATE $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:Clang>:-U__LP64__>>)
+    endif()
+endfunction()
 
 set(MIOPEN_TEST_SANITIZERS)
 foreach(SANTIZER address thread)
@@ -662,24 +673,10 @@ function(add_custom_test NAME)
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
     endif()
 endfunction()
-if(${CODECOV_TEST})
-    add_custom_test(test_conv3d_codecov
-        COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 4 4 4 4 --weights 2 4 1 1 1 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    )
-    add_custom_test(test_immed_conv2d_codecov
-        COMMAND $<TARGET_FILE:test_immed_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input  2 2 14 14 --weights 8 2 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    )
-    add_custom_test(test_immed_conv3d_codecov
-        COMMAND $<TARGET_FILE:test_immed_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 4 4 4 4 --weights 2 4 3 3 3 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    )
-    add_custom_test(test_pooling2d_codecov
-        COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --input 1, 192, 28, 28 --lens 2 2 --strides 2 2 --pads 0 0 ${MIOPEN_TEST_FLAGS_ARGS}
-    )
-endif()
 
 if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
     add_custom_test(test_miopendriver_regression_issue_1576 SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED HALF_ENABLED
-        # Regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1576
+        # Regression test for https://github.com/ROCm/MIOpen/issues/1576
         ENVIRONMENT MIOPEN_FIND_MODE=1 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvDirectNaiveConvBwd
         COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} --forw 2 --in_layout NCHW --out_layout NCHW --fil_layout NCHW -n 256 -c 1024 -H 14 -W 14 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -t 1
     )
@@ -687,9 +684,9 @@ if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
     add_custom_test(test_miopendriver_regression_half SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED HALF_ENABLED
         # WORKAROUND_ISSUE_2110_2: tests for 2110 and 2160 shall be added to "test_pooling3d --all" but this is
         # impossible until backward pooling limitation (issue #2110 (2)) is fully fixed.
-        # Partial (3D only) regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/2160.
+        # Partial (3D only) regression test for https://github.com/ROCm/MIOpen/issues/2160.
         COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_POOL} -M 0 --input 1x64x41x40x70 -y 41 -x 40 -Z 70 -m avg -F 1 -t 1 -i 1
-        # Partial (3D only) regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/2110 (1).
+        # Partial (3D only) regression test for https://github.com/ROCm/MIOpen/issues/2110 (1).
         COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_POOL} -M 0 --input 1x64x41x40x100 -y 4 -x 4 -Z 100 -m max -F 1 -t 1 -i 1
     )
 
@@ -701,14 +698,14 @@ if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
     add_custom_test(test_miopendriver_regression_float_half_gfx10 SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED HALF_ENABLED
         # Regression test for:
         #   [Navi21] Fixing Batchnorm backward precision issues by adjusting workgroup size (SWDEV-292187, SWDEV-319919)
-        #   https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1386
+        #   https://github.com/ROCm/MIOpen/pull/1386
         COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_BN} -n 256 -c 512 -H 18 -W 18 -m 1 --forw 0 -b 1 -r 1
         COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_BN} -n 256 -c 512 -H 28 -W 28 -m 1 --forw 0 -b 1 -r 1
     )
 
     # Disabled for gfx908 due to WORKAROUND_ISSUE_1787.
     add_custom_test(test_miopendriver_regression_big_tensor GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED
-        # Regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1661
+        # Regression test for https://github.com/ROCm/MIOpen/issues/1661
         # Issue #1697: this is large test which has to run in serial and not enabled on gfx900/gfx906
         COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -W 5078 -H 4903 -c 24 -n 5 -k 1 --fil_w 3 --fil_h 3 --pad_w 6 --pad_h 4 -F 1
     )
@@ -720,7 +717,7 @@ if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
     add_custom_test(test_miopendriver_regression_half_gfx9 SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED GFX94X_ENABLED GFX103X_DISABLED FLOAT_DISABLED HALF_ENABLED
         # Regression test for:
         #   [SWDEV-375617] Fix 3d convolution Host API bug
-        #   https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1935
+        #   https://github.com/ROCm/MIOpen/pull/1935
         COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -n 2 -c 64 --in_d 128 -H 128 -W 128 -k 32 --fil_d 3 -y 3 -x 3 --pad_d 1 -p 1 -q 1 --conv_stride_d 1 -u 1 -v 1 --dilation_d 1 -l 1 -j 1 --spatial_dim 3 -m conv -g 1 -F 1 -t 1
     )
 
@@ -731,7 +728,7 @@ if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
         # Why we have to use the driver:
         #   The transposed convolutions are paritally implemented in the convolution_api layer,
         #   but test apps (including test_conv*) were designed as unit tests and, therefore, do not use the public API.
-        # Also serves as a regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/2459.
+        # Also serves as a regression test for https://github.com/ROCm/MIOpen/issues/2459.
         COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -m trans -x 1 -y 1 -W 112 -H 112 -c 64 -n 8 -k 32 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -g 1 -F 0 -V 1
         COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -m trans -x 1 -y 7 -W 17 -H 17 -c 32 -n 128 -k 16 -p 3 -q 0 -u 1 -v 1 -l 1 -j 1 -g 2 -F 0 -V 1
         COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -m trans -x 10 -y 5 -W 341 -H 79 -c 32 -n 4 -k 8 -p 0 -q 0 -u 2 -v 2 -l 1 -j 1 -g 4 -F 0 -V 1
@@ -743,12 +740,16 @@ if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
     )
 
     add_custom_test(test_miopendriver_regression_issue_2047 GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED BF16_ENABLED INT8_ENABLED
-        # Regression test for: MIOpenIm3d2Col stuck with ROCm update, https://github.com/ROCmSoftwarePlatform/MIOpen/issues/2047
+        # Regression test for: MIOpenIm3d2Col stuck with ROCm update, https://github.com/ROCm/MIOpen/issues/2047
         ENVIRONMENT MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=GemmFwdRest
         COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV}
                 -n 1 -c 1 --in_d 2 -H 1 -W 2 -k 2 --fil_d 2 -y 1 -x 2
                 --pad_d 0 -p 0 -q 0 --conv_stride_d 1 -u 1 -v 1 --dilation_d 1 -l 1 -j 1
                 --spatial_dim 3 -m conv -g 1 -F 1 -i 1 -t 1 -w 1
+    )
+
+    add_custom_test(smoke_miopendriver_gemm GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED
+        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_GEMM} -m 256 -n 512 -k 1024 -i 1 -V 1
     )
 endif()
 
@@ -760,14 +761,6 @@ set(IMPLICITGEMM_MLIR_ENV_W ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY
 set(TEST_CONV_VERBOSE_F ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-backward-data --disable-backward-weights)
 set(TEST_CONV_VERBOSE_B ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-forward --disable-backward-weights)
 set(TEST_CONV_VERBOSE_W ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-forward --disable-backward-data)
-
-add_custom_test(test_pooling2d_asymmetric SKIP_UNLESS_ALL HALF_ENABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
-    COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --all --dataset 1 --limit 0 ${MIOPEN_TEST_FLAGS_ARGS}
-)
-
-add_custom_test(test_pooling2d_wide SKIP_UNLESS_ALL HALF_ENABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
-    COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --all --dataset 2 --limit 0 ${MIOPEN_TEST_FLAGS_ARGS}
-)
 
 set(IMPLICITGEMM_MLIR_ENV_F_XDLOPS ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvMlirIgemmFwdXdlops)
 set(IMPLICITGEMM_MLIR_ENV_B_XDLOPS ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvMlirIgemmBwdXdlops)
@@ -1674,7 +1667,7 @@ set(CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvCkIgemmFwdV6r1DlopsNchw
     MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW=1)
 
-# gfx908 disabled as a workaround for https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1790/files?diff=split&w=1#r982923610
+# gfx908 disabled as a workaround for https://github.com/ROCm/MIOpen/pull/1790/files?diff=split&w=1#r982923610
 add_custom_test(test_conv_ck_igemm_fwd_v6r1_dlops_nchw FLOAT_ENABLED HALF_ENABLED BF16_DISABLED GFX908_DISABLED GFX103X_ENABLED SKIP_UNLESS_ALL
     ENVIRONMENT ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}
     COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128 1024 14 14  --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
@@ -2011,7 +2004,7 @@ add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1WrW GFX103X_ENABLED HALF_ENA
 # which disables ConvHipImplicitGemmV4R1Fwd, but we still want to check that the solver is not broken.
 # smoke_solver_ConvHipImplicitGemmV4R1Fwd is split to BF16+FP16 and FP32 tests because of
 # WORKAROUND_ISSUE_2038, which disables validation of FP16 and BF16 datatypes in this test,
-# see https://github.com/ROCmSoftwarePlatform/MIOpen/pull/2043#issuecomment-1482657160.
+# see https://github.com/ROCm/MIOpen/pull/2043#issuecomment-1482657160.
 add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1Fwd_fp16_bf16 GFX103X_ENABLED FLOAT_DISABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
     ENVIRONMENT MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5 MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=1 MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0 MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmV4R1Fwd
     COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 256 32 27 27 --weights 128 32 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS} --disable-validation

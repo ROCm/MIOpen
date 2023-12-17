@@ -688,7 +688,8 @@ struct test_driver
                               << out_gpu[gpu_nan_idx] << std::endl;
                 }
             }
-            else if(miopen::range_zero(out_cpu) and miopen::range_zero(out_gpu))
+            else if(miopen::range_zero(out_cpu) and miopen::range_zero(out_gpu) and
+                    (miopen::range_distance(out_cpu) != 0))
             {
                 show_command();
                 std::cout << "Warning: Both CPU and GPU data is all zero" << std::endl;
@@ -1241,6 +1242,11 @@ void test_drive_impl_1(std::string program_name, std::vector<std::string> as)
     Driver d{};
     d.program_name = program_name;
 
+    std::cout << program_name << " ";
+    for(const auto& str : as)
+        std::cout << str << " ";
+    std::cout << std::endl;
+
     std::set<std::string> keywords{
         "--help", "-h", "--half", "--float", "--double", "--int8", "--bfloat16"};
     d.parse(keyword_set{keywords});
@@ -1380,7 +1386,7 @@ template <template <class...> class Driver>
 void test_drive(int argc, const char* argv[])
 {
     std::vector<std::string> as(argv + 1, argv + argc);
-    as.emplace_back("--float");
+    // as.emplace_back("--float");
     for(auto&& arg : as)
     {
         if(arg == "--half")
