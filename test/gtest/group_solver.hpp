@@ -32,29 +32,9 @@
 
 #include "../driver/tensor_driver.hpp"
 #include "conv_common.hpp"
+#include "conv_test_base.hpp"
 
-template <typename T>
-miopenDataType_t GetDataType();
-
-template <>
-miopenDataType_t GetDataType<float>()
-{
-    return miopenFloat;
-}
-
-template <>
-miopenDataType_t GetDataType<half_float::half>()
-{
-    return miopenHalf;
-}
-
-template <>
-miopenDataType_t GetDataType<int8_t>()
-{
-    return miopenInt8;
-}
-
-struct ConvTestCase
+struct ConvTestCaseGroup
 {
     size_t G;
     size_t N;
@@ -71,7 +51,7 @@ struct ConvTestCase
     size_t dilation_x;
     size_t dilation_y;
     miopenConvolutionMode_t conv_mode;
-    friend std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
+    friend std::ostream& operator<<(std::ostream& os, const ConvTestCaseGroup& tc)
     {
         return os << " G:" << tc.G << " N:" << tc.N << " C:" << tc.C << " H:" << tc.H
                   << " W:" << tc.W << " k:" << tc.k << " y:" << tc.y << " x:" << tc.x
@@ -101,7 +81,8 @@ struct ConvTestCase
     }
 };
 
-std::vector<ConvTestCase> ConvTestConfigs()
+template <>
+inline std::vector<ConvTestCaseGroup> ConvTestConfigs()
 { // g  n  c   h   w   k   y  x pad_x pad_y stri_x stri_y dia_x dia_y
     return {{1, 256, 192, 28, 28, 192, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
             {1, 256, 12, 28, 28, 12, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
@@ -124,9 +105,9 @@ inline int SetTensorLayout(miopen::TensorDescriptor& desc)
 }
 
 template <typename T = float>
-struct ConvFwdSolverTest
+struct ConvGroupFwdSolverTest
     : public ::testing::TestWithParam<
-          std::tuple<miopenConvFwdAlgorithm_t, ConvTestCase, miopenTensorLayout_t>>
+          std::tuple<miopenConvFwdAlgorithm_t, ConvTestCaseGroup, miopenTensorLayout_t>>
 {
 protected:
     void SetUp() override
@@ -147,7 +128,7 @@ protected:
         conv_desc = conv_config.GetConv();
 
         miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
         output = tensor<T>{tensor_layout, output_desc.GetLengths()};
         SetTensorLayout(output.desc);
         std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
@@ -165,7 +146,7 @@ protected:
         auto&& handle = get_handle();
 
         miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
         ref_out     = tensor<T>{tensor_layout, output_desc.GetLengths()};
         ref_out     = ref_conv_fwd(input, weights, output, conv_desc);
         output.data = handle.Read<T>(out_dev, output.data.size());
@@ -183,7 +164,7 @@ protected:
         EXPECT_TRUE(error < threshold)
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
     }
-    ConvTestCase conv_config;
+    ConvTestCaseGroup conv_config;
     miopen::ConvolutionDescriptor conv_desc;
     tensor<T> input;
     tensor<T> weights;

@@ -33,6 +33,8 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
+namespace conv_igemm_dynamic {
+
 auto GetTestCases()
 {
     const auto env = std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
@@ -121,6 +123,9 @@ bool IsTestSupportedForDevice()
     using d_mask = disabled<Gpu::gfx908, Gpu::gfx90A>;
     return IsTestSupportedForDevice<d_mask, e_mask>();
 }
+
+} // namespace conv_igemm_dynamic
+using namespace conv_igemm_dynamic;
 
 TEST_P(Conv2dFloat, FloatTest)
 {

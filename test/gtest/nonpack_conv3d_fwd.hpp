@@ -49,6 +49,7 @@ struct NonPackTestCase : Conv3DTestCase
     std::vector<size_t> GetOutputStrides() { return {o0, o1, o2, o3, o4}; }
 };
 
+template <>
 std::vector<NonPackTestCase> ConvTestConfigs()
 { // g    n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
     return {{{1, 4, 16, 4, 9, 16, 16, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
@@ -107,7 +108,7 @@ protected:
         conv_desc = conv_config.GetConv();
 
         miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
         output = tensor<T>{tensor_layout, output_desc.GetLengths()};
         std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
         auto&& handle = get_handle();
@@ -123,7 +124,7 @@ protected:
         auto&& handle = get_handle();
 
         miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
         ref_out     = tensor<T>{tensor_layout, output_desc.GetLengths()};
         ref_out     = ref_conv_fwd(input, weights, output, conv_desc);
         output.data = handle.Read<T>(out_dev, output.data.size());

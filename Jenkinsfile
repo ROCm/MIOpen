@@ -922,9 +922,9 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     environment{
-                        setup_flags="-DMIOPEN_TEST_DBSYNC=1"
-			config_targets='test_db_sync'
-			execute_cmd='./bin/test_db_sync'
+                        setup_flags="-DDISCRETE_GTEST=1 -DMIOPEN_TEST_DBSYNC=1"
+                        config_targets='test_db_sync'
+                        execute_cmd='./bin/test_db_sync'
                     }
                     steps{
                         buildHipClangJobAndReboot(lfs_pull: true, setup_flags: setup_flags, config_targets: config_targets, execute_cmd: execute_cmd,
@@ -941,9 +941,9 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     environment{
-                        setup_flags="-DMIOPEN_TEST_DBSYNC=1"
-			config_targets='test_db_sync'
-			execute_cmd='./bin/test_db_sync'
+                        setup_flags="-DDISCRETE_GTEST=1 -DMIOPEN_TEST_DBSYNC=1"
+                        config_targets='test_db_sync'
+                        execute_cmd='./bin/test_db_sync'
                     }
                     steps{
                         buildHipClangJobAndReboot(lfs_pull: true, setup_flags: setup_flags, config_targets: config_targets, execute_cmd: execute_cmd,
