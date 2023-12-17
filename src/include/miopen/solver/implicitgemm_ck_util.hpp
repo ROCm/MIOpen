@@ -389,7 +389,7 @@ public:
 
     void ZeroOutBuffer()
     {
-        auto status = hipMemset(buf_handle.get(), 0, tensor_sz);
+        [[maybe_unused]] auto status = hipMemset(buf_handle.get(), 0, tensor_sz);
         assert(status == hipSuccess);
     }
 
