@@ -28,6 +28,10 @@
 /// \todo Create dedicated ticket and rename macro.
 #define WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS 1
 
+// https://gerrit-git.amd.com/c/compute/ec/clr/+/972441
+#define WORKAROUND_ISSUE_2600 \
+    (HIP_PACKAGE_VERSION_FLAT > 5007023384ULL && HIP_PACKAGE_VERSION_FLAT <= 6000023494ULL)
+
 #include <miopen/config.h>
 #include <miopen/handle.hpp>
 #include <miopen/execution_context.hpp>
@@ -231,7 +235,7 @@ std::string WriteNop(kernel_type_t kern_type)
 void test_warnings(kernel_type_t kern_type)
 {
     auto&& h = get_handle();
-#if MIOPEN_BUILD_DEV
+#if MIOPEN_BUILD_DEV && !WORKAROUND_ISSUE_2600
     if(kern_type == miopenOpenCLKernelType)
     {
         EXPECT(throws([&] {
