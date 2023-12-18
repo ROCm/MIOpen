@@ -29,21 +29,15 @@
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/env.hpp>
-#include "../conv2d.hpp"
 #include "get_handle.hpp"
+#include "test_env.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+#include "../conv2d.hpp"
+
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_COMPOSABLEKERNEL)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace conv_hip_igemm_xdlops {
-
-static bool IsTestRunWith(const char* float_arg)
-{
-    assert(float_arg != nullptr);
-    const auto& s_envVar = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    return (!s_envVar.empty() && std::strcmp(s_envVar.c_str(), float_arg) == 0);
-}
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {

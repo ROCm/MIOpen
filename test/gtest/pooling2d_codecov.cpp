@@ -27,6 +27,7 @@
 #include <gtest/gtest.h>
 #include <miopen/env.hpp>
 #include "get_handle.hpp"
+#include "test_env.hpp"
 
 #include "pooling2d.hpp"
 
@@ -106,7 +107,7 @@ using namespace pooling2d_codecov;
 TEST_P(Pooling2dFloat, FloatTest_pooling2d_codecov)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--float"))
     {
         Run2dDriver(miopenFloat);
     }
@@ -119,7 +120,7 @@ TEST_P(Pooling2dFloat, FloatTest_pooling2d_codecov)
 TEST_P(Pooling2dHalf, HalfTest_pooling2d_codecov)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--half"))
     {
         Run2dDriver(miopenHalf);
     }

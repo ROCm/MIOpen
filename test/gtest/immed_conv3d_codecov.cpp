@@ -26,6 +26,7 @@
 #include <gtest/gtest.h>
 #include <miopen/env.hpp>
 #include "get_handle.hpp"
+#include "test_env.hpp"
 
 #include "conv3d.hpp"
 
@@ -138,7 +139,7 @@ using namespace immed_conv3d_codecov;
 TEST_P(Conv3dFloat, FloatTest_immed_conv3d_codecov)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--float"))
     {
         Run3dDriver(miopenFloat);
     }
@@ -151,7 +152,7 @@ TEST_P(Conv3dFloat, FloatTest_immed_conv3d_codecov)
 TEST_P(Conv3dHalf, HalfTest_immed_conv3d_codecov)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--half"))
     {
         Run3dDriver(miopenHalf);
     }
@@ -164,7 +165,7 @@ TEST_P(Conv3dHalf, HalfTest_immed_conv3d_codecov)
 TEST_P(Conv3dBFloat16, BFloat16Test_immed_conv3d_codecov)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--bfloat16"))
     {
         Run3dDriver(miopenBFloat16);
     }
@@ -177,7 +178,7 @@ TEST_P(Conv3dBFloat16, BFloat16Test_immed_conv3d_codecov)
 TEST_P(Conv3dInt8, Int8Test_immed_conv3d_codecov)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--int8"))
     {
         Run3dDriver(miopenInt8);
     }

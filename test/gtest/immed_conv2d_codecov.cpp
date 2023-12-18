@@ -27,6 +27,7 @@
 #include "get_handle.hpp"
 #include <miopen/env.hpp>
 #include <gtest/gtest.h>
+#include "test_env.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(CODECOV_TEST)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
@@ -153,7 +154,7 @@ using namespace immed_conv2d_codecov;
 TEST_P(Conv2dFloat, FloatTest_immed_conv2d_codecov)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--float"))
     {
         Run2dDriver(miopenFloat);
     }
@@ -166,7 +167,7 @@ TEST_P(Conv2dFloat, FloatTest_immed_conv2d_codecov)
 TEST_P(Conv2dHalf, HalfTest_immed_conv2d_codecov)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--half"))
     {
         Run2dDriver(miopenHalf);
     }
@@ -179,7 +180,7 @@ TEST_P(Conv2dHalf, HalfTest_immed_conv2d_codecov)
 TEST_P(Conv2dBFloat16, BFloat16Test_immed_conv2d_codecov)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--bfloat16"))
     {
         Run2dDriver(miopenBFloat16);
     }
@@ -192,7 +193,7 @@ TEST_P(Conv2dBFloat16, BFloat16Test_immed_conv2d_codecov)
 TEST_P(Conv2dInt8, Int8Test_immed_conv2d_codecov)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--int8"))
     {
         Run2dDriver(miopenInt8);
     }

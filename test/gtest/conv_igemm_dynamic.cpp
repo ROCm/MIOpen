@@ -28,8 +28,10 @@
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
-#include "../conv2d.hpp"
 #include "get_handle.hpp"
+#include "test_env.hpp"
+
+#include "../conv2d.hpp"
 
 using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
@@ -180,7 +182,7 @@ using namespace conv_igemm_dynamic;
 TEST_P(Conv2dFloatDynamic, FloatTest_conv_igemm_dynamic)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--float"))
     {
         Run2dDriver(miopenFloat);
     }

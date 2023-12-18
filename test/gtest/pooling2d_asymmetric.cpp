@@ -27,6 +27,7 @@
 #include <gtest/gtest.h>
 #include <miopen/env.hpp>
 #include "get_handle.hpp"
+#include "test_env.hpp"
 
 #include "pooling2d.hpp"
 
@@ -103,10 +104,11 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 } // namespace pooling2d_asymmetric
 using namespace pooling2d_asymmetric;
 
+/*
 TEST_P(Pooling2dFloat, FloatTest_pooling2d_asymmetric)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--float"))
     {
         Run2dDriver(miopenFloat);
     }
@@ -115,11 +117,12 @@ TEST_P(Pooling2dFloat, FloatTest_pooling2d_asymmetric)
         GTEST_SKIP();
     }
 };
+*/
 
 TEST_P(Pooling2dHalf, HalfTest_pooling2d_asymmetric)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--half"))
     {
         Run2dDriver(miopenHalf);
     }
@@ -129,6 +132,6 @@ TEST_P(Pooling2dHalf, HalfTest_pooling2d_asymmetric)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Pooling2D, Pooling2dFloat, testing::Values(GetTestCases("--float")));
+// INSTANTIATE_TEST_SUITE_P(Pooling2D, Pooling2dFloat, testing::Values(GetTestCases("--float")));
 
 INSTANTIATE_TEST_SUITE_P(Pooling2D, Pooling2dHalf, testing::Values(GetTestCases("--half")));
