@@ -98,7 +98,7 @@ void Run3dDriver(miopenDataType_t prec)
 
 bool IsTestSupportedForDevice(const miopen::Handle& handle) { return true; }
 
-TEST_P(Conv3dFloat, FloatTest)
+TEST_P(Conv3dFloat, FloatTest_conv3d_codecov)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())
@@ -111,7 +111,7 @@ TEST_P(Conv3dFloat, FloatTest)
     }
 };
 
-TEST_P(Conv3dHalf, HalfTest)
+TEST_P(Conv3dHalf, HalfTest_conv3d_codecov)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())
@@ -124,7 +124,7 @@ TEST_P(Conv3dHalf, HalfTest)
     }
 };
 
-TEST_P(Conv3dBFloat16, BFloat16Test)
+TEST_P(Conv3dBFloat16, BFloat16Test_conv3d_codecov)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())
@@ -137,7 +137,7 @@ TEST_P(Conv3dBFloat16, BFloat16Test)
     }
 };
 
-TEST_P(Conv3dInt8, Int8Test)
+TEST_P(Conv3dInt8, Int8Test_conv3d_codecov)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())

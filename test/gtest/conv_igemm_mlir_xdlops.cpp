@@ -156,7 +156,7 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
 } // namespace conv_igemm_mlir_xdlops
 using namespace conv_igemm_mlir_xdlops;
 
-TEST_P(ConvIgemmMlirXdlopsConfigHalf, HalfTest)
+TEST_P(ConvIgemmMlirXdlopsConfigHalf, HalfTest_conv_igemm_mlir_xdlops)
 {
 #if MIOPEN_USE_MLIR
 
@@ -178,7 +178,7 @@ TEST_P(ConvIgemmMlirXdlopsConfigHalf, HalfTest)
 #endif
 };
 
-TEST_P(ConvIgemmMlirXdlopsConfigInt8, Int8Test)
+TEST_P(ConvIgemmMlirXdlopsConfigInt8, Int8Test_conv_igemm_mlir_xdlops)
 {
 #if MIOPEN_USE_MLIR
 

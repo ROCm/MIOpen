@@ -151,7 +151,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 } // namespace conv_embed_db
 using namespace conv_embed_db;
 
-TEST_P(ConvEmbedConfigFloat, FloatTest)
+TEST_P(ConvEmbedConfigFloat, FloatTest_conv_embed_db)
 {
 #if MIOPEN_EMBED_DB
 
@@ -170,7 +170,7 @@ TEST_P(ConvEmbedConfigFloat, FloatTest)
 #endif
 };
 
-TEST_P(ConvEmbedConfigHalf, HalfTest)
+TEST_P(ConvEmbedConfigHalf, HalfTest_conv_embed_db)
 {
 #if MIOPEN_EMBED_DB
 
@@ -189,7 +189,7 @@ TEST_P(ConvEmbedConfigHalf, HalfTest)
 #endif
 };
 
-TEST_P(ConvEmbedConfigInt8, Int8Test)
+TEST_P(ConvEmbedConfigInt8, Int8Test_conv_embed_db)
 {
 #if MIOPEN_EMBED_DB
 
@@ -208,7 +208,7 @@ TEST_P(ConvEmbedConfigInt8, Int8Test)
 #endif
 };
 
-TEST_P(ConvEmbedConfigBFloat16, BFloat16Test)
+TEST_P(ConvEmbedConfigBFloat16, BFloat16Test_conv_embed_db)
 {
 #if MIOPEN_EMBED_DB
 

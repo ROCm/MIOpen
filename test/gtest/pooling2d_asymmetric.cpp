@@ -92,7 +92,7 @@ void Run2dDriver(miopenDataType_t prec)
 
 bool IsTestSupportedForDevice(const miopen::Handle& handle) { return true; }
 
-TEST_P(Pooling2dFloat, FloatTest)
+TEST_P(Pooling2dFloat, FloatTest_pooling2d_asymmetric)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())
@@ -105,7 +105,7 @@ TEST_P(Pooling2dFloat, FloatTest)
     }
 };
 
-TEST_P(Pooling2dHalf, HalfTest)
+TEST_P(Pooling2dHalf, HalfTest_pooling2d_asymmetric)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())

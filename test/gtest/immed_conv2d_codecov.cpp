@@ -132,7 +132,7 @@ void Run2dDriver(miopenDataType_t prec)
 
 bool IsTestSupportedForDevice(const miopen::Handle& handle) { return true; }
 
-TEST_P(Conv2dFloat, FloatTest)
+TEST_P(Conv2dFloat, FloatTest_immed_conv2d_codecov)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())
@@ -145,7 +145,7 @@ TEST_P(Conv2dFloat, FloatTest)
     }
 };
 
-TEST_P(Conv2dHalf, HalfTest)
+TEST_P(Conv2dHalf, HalfTest_immed_conv2d_codecov)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())
@@ -158,7 +158,7 @@ TEST_P(Conv2dHalf, HalfTest)
     }
 };
 
-TEST_P(Conv2dBFloat16, BFloat16Test)
+TEST_P(Conv2dBFloat16, BFloat16Test_immed_conv2d_codecov)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())
@@ -171,7 +171,7 @@ TEST_P(Conv2dBFloat16, BFloat16Test)
     }
 };
 
-TEST_P(Conv2dInt8, Int8Test)
+TEST_P(Conv2dInt8, Int8Test_immed_conv2d_codecov)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())

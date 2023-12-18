@@ -177,7 +177,7 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
 } // namespace conv_igemm_dynamic
 using namespace conv_igemm_dynamic;
 
-TEST_P(Conv2dFloat, FloatTest)
+TEST_P(Conv2dFloat, FloatTest_conv_igemm_dynamic)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())

@@ -182,7 +182,7 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
 } // namespace conv_igemm_mlir
 using namespace conv_igemm_mlir;
 
-TEST_P(ConvIgemmMlirConfigFloat, FloatTest)
+TEST_P(ConvIgemmMlirConfigFloat, FloatTest_conv_igemm_mlir)
 {
 #if MIOPEN_USE_MLIR
 
@@ -204,7 +204,7 @@ TEST_P(ConvIgemmMlirConfigFloat, FloatTest)
 #endif
 };
 
-TEST_P(ConvIgemmMlirConfigHalf, HalfTest)
+TEST_P(ConvIgemmMlirConfigHalf, HalfTest_conv_igemm_mlir)
 {
 #if MIOPEN_USE_MLIR
 
@@ -226,7 +226,7 @@ TEST_P(ConvIgemmMlirConfigHalf, HalfTest)
 #endif
 };
 
-TEST_P(ConvIgemmMlirConfigInt8, Int8Test)
+TEST_P(ConvIgemmMlirConfigInt8, Int8Test_conv_igemm_mlir)
 {
 #if MIOPEN_USE_MLIR
 
