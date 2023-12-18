@@ -35,26 +35,17 @@
 // namespace conv_bias_act_res_add_fwd  {
 
 std::vector<Conv3DTestCase> ConvTestConfigs()
-{ // g    n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
-    return {{1, 128, 64, 14, 28, 28, 64, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 64, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {32, 128, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {16, 128, 16, 28, 28, 28, 16, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {8, 128, 8, 28, 28, 28, 8, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {4, 128, 4, 28, 28, 28, 4, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {2, 128, 2, 28, 28, 28, 2, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution}};
-}
-
-inline int SetTensorLayout(miopen::TensorDescriptor& desc)
-{
-    // get layout string names
-    std::string layout_str = desc.GetLayout_str();
-
-    std::vector<std::size_t> lens = desc.GetLengths();
-    std::vector<int> int_lens(lens.begin(), lens.end());
-
-    // set the strides for the tensor
-    return SetTensorNd(&desc, int_lens, layout_str, desc.GetType());
+{ //         g, n, c, d,  h,  w, k,  z, y, x, pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
+    return {{1, 1, 4, 14, 11, 1, 4,  3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {1, 1, 1, 1,  4,  4, 1,  2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {1, 1, 1, 8,  8,  8, 1,  2, 2, 2, 0, 0, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {1, 1, 1, 8,  8,  8, 1,  2, 2, 2, 0, 0, 0, 2, 2, 2, 1, 1, 1, miopenConvolution},
+            {2, 8, 8, 12, 14, 4, 4,  3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {4, 8, 8,11, 11, 11,16,  3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {6, 8, 18,11, 11, 11,18, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {8, 8, 8, 11, 11, 11,8,  3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {4, 8, 4, 11, 11, 11,8,  3, 4, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {2, 8, 2, 11, 11, 11,2,  4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution}};
 }
 
 template <typename T = float>
@@ -68,10 +59,9 @@ protected:
     {
 
         std::tie(algo, conv_config, alpha1, alpha2, tensor_layout) = GetParam();
+
         input   = tensor<T>{tensor_layout, conv_config.GetInput()};
         weights = tensor<T>{tensor_layout, conv_config.GetWeights()};
-        SetTensorLayout(input.desc);
-        SetTensorLayout(weights.desc);
         auto gen_value = [](auto...) {
             return prng::gen_A_to_B(static_cast<T>(-3.0), static_cast<T>(3.0));
         };
@@ -82,11 +72,9 @@ protected:
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
         output = tensor<T>{tensor_layout, output_desc.GetLengths()};
-        SetTensorLayout(output.desc);
         std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
 
         z = tensor<T>{tensor_layout, output_desc.GetLengths()};
-        SetTensorLayout(z.desc);
         z.generate(gen_value);
 
         const std::vector<std::size_t>& strides = {1, 1, 1, 1, 1};
@@ -122,7 +110,7 @@ protected:
             auto& o = ref_out(n, k, dhw...);
 
             o *= alpha1;
-            o += alpha2 * z(n, k, dhw...) + bias(n, k, dhw...);
+            o += alpha2 * z(n, k, dhw...) + bias(0, k, 0, 0, 0);
             o = (o > T{0}) ? o : T{0}; // TODO: hardcoded relu. Todo: use
                                        // activationHostInfer
         });

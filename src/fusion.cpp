@@ -97,8 +97,10 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
     }
     */
 
-    float falpha1 = alpha1 ? *(static_cast<const double*>(alpha1)) : 1.0f;
-    float falpha2 = alpha2 ? *(static_cast<const double*>(alpha2)) : 1.0f;
+    // TODO: The type of these pointers depends on the ConvolutionDescriptor's data
+    // type
+    float falpha1 = alpha1 ? *(static_cast<const float*>(alpha1)) : 1.0f;
+    float falpha2 = alpha2 ? *(static_cast<const float*>(alpha2)) : 1.0f;
 
     // if(z != nullptr || zDesc.GetSize() != 0)
     // MIOPEN_THROW(miopenStatusNotImplemented, "The addition of z vector is not yet supported");
