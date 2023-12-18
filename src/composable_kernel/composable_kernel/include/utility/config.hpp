@@ -8,13 +8,15 @@
 #include "bfloat16_dev.hpp"
 
 #ifdef __HIPCC_RTC__
-#ifdef WORKAROUND_ISSUE_HIPRTC_TRUE_TYPE && HIP_PACKAGE_VERSION_FLAT >= 6000023494ULL
+#ifdef WORKAROUND_ISSUE_HIPRTC_TRUE_TYPE
+#if HIP_PACKAGE_VERSION_FLAT >= 6000023494ULL
 /// Definitions from <cstdint>, <cmath> conflict with
 /// /opt/rocm/include/hip/amd_detail/amd_hip_vector_types.h.
 
 typedef int int32_t;
 typedef unsigned int uint32_t;
 
+#endif
 #else
 #include <cstdint> // int8_t, int16_t
 #endif

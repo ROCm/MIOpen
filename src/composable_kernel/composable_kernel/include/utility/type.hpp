@@ -13,13 +13,13 @@
 /// which defines std::true_type as well (which is wrong).
 
 namespace std {
-if HIP_PACKAGE_VERSION_FLAT < 6000023494ULL 
+#if(HIP_PACKAGE_VERSION_FLAT < 6000023494ULL)
 
 template <class T>
-        struct remove_reference
-    {
-        typedef T type;
-    };
+struct remove_reference
+{
+    typedef T type;
+};
 template <class T>
 struct remove_reference<T&>
 {
