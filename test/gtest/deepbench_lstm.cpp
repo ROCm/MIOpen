@@ -35,6 +35,7 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DEEPBENCH)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_FLOAT)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_HALF)
 
+namespace deepbench_lstm {
 using EnvType = std::tuple<std::pair<miopen::env::MIOPEN_TEST_DEEPBENCH, std::string_view>,
                            std::pair<miopen::env::MIOPEN_TEST_FLOAT, std::string_view>,
                            std::pair<miopen::env::MIOPEN_TEST_HALF, std::string_view>>;
@@ -128,9 +129,10 @@ class ConfigWithHalf : public testing::TestWithParam<std::vector<TestCase>>
 
 static bool IsTestSupportedForDevice()
 {
+    using namespace miopen::debug;
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
     using d_mask = disabled<Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A>;
-    return IsTestSupportedForDevice<d_mask, e_mask>();
+    return miopen::debug::IsTestSupportedForDevice<d_mask, e_mask>();
 }
 
 void Run2dDriver(miopenDataType_t prec)
@@ -178,6 +180,9 @@ void Run2dDriver(miopenDataType_t prec)
         std::cout << capture;
     }
 };
+} // namespace deepbench_lstm
+
+using namespace deepbench_lstm;
 
 TEST_P(ConfigWithFloat, FloatTest) { Run2dDriver(miopenFloat); };
 

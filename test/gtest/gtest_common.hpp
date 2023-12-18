@@ -38,6 +38,8 @@
 
 #include "../driver.hpp"
 
+namespace miopen {
+namespace debug {
 void default_check(const std::string& err) { std::cout << err; }
 
 void tuning_check(const std::string& err)
@@ -141,6 +143,8 @@ void invoke_with_params(const TestCases& params, Check&& check)
         check(testing::internal::GetCapturedStderr());
     }
 }
+} // namespace debug
+} // namespace miopen
 
 /// The types for env variables must be redefined, but
 /// do not mess up with the types - those variables are decalred in the library

@@ -27,6 +27,7 @@
 #include "lstm.hpp"
 #include "get_handle.hpp"
 #include <miopen/env.hpp>
+#include <gtest/gtest_common.hpp>
 #include <gtest/gtest.h>
 #include <boost/algorithm/string.hpp>
 
@@ -34,7 +35,28 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_FLOAT)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_HALF)
 
-static bool SkipTest(void) { return !miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)); }
+namespace lstm_extra {
+using EnvType = std::tuple<std::pair<miopen::env::MIOPEN_TEST_ALL, std::string_view>,
+                           std::pair<miopen::env::MIOPEN_TEST_FLOAT, std::string_view>,
+                           std::pair<miopen::env::MIOPEN_TEST_HALF, std::string_view>>;
+
+bool Skip(miopenDataType_t prec)
+{
+    bool flag = !miopen::IsEnabled(ENV(MIOPEN_TEST_ALL));
+    switch(prec)
+    {
+    case miopenFloat: return flag && !miopen::IsEnabled(ENV(MIOPEN_TEST_FLOAT));
+    case miopenHalf: return flag && !miopen::IsEnabled(ENV(MIOPEN_TEST_HALF));
+    case miopenFloat8:
+    case miopenBFloat8:
+    case miopenInt8:
+    case miopenBFloat16:
+    case miopenInt32:
+    case miopenDouble:
+    default: MIOPEN_THROW("Unsupported datatype");
+    }
+    return true;
+}
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -45,18 +67,92 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class ConfigWithFloat : public testing::TestWithParam<std::vector<std::string>>
+void SetEnv(EnvType env_vars)
+{
+    std::apply(
+        [](const auto&... pairs) {
+            (..., (miopen::UpdateEnvVar(pairs.first, std::string_view(pairs.second))));
+        },
+        env_vars);
+}
+
+auto GetTestCases(std::string precision)
+{
+    const auto env = std::tuple{
+        std::pair{ENV(MIOPEN_TEST_ALL), std::string_view("ON")},
+        std::pair{ENV(MIOPEN_TEST_FLOAT),
+                  precision == "--float" ? std::string_view("ON") : std::string_view("OFF")},
+        std::pair{ENV(MIOPEN_TEST_HALF),
+                  precision == "--half" ? std::string_view("ON") : std::string_view("OFF")}};
+
+    std::string flags       = "test_lstm --verbose " + precision;
+    std::string commonFlags = " --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 "
+                              "--hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0";
+
+    return std::vector{
+        std::pair{env, flags + commonFlags + " -dir-mode 0 --no-hx"},
+        std::pair{env, flags + commonFlags + " -dir-mode 0 --no-dhy"},
+        std::pair{env, flags + commonFlags + " -dir-mode 0 --no-hx --no-dhy"},
+        std::pair{env, flags + commonFlags + " -dir-mode 0 --no-cx"},
+        std::pair{env, flags + commonFlags + " -dir-mode 0 --no-hx --no-cx"},
+        std::pair{env, flags + commonFlags + " -dir-mode 0 --no-dcy"},
+        std::pair{env, flags + commonFlags + " -dir-mode 0 --no-cx --no-dcy"},
+        std::pair{env, flags + commonFlags + " -dir-mode 1 --no-hx"},
+        std::pair{env, flags + commonFlags + " -dir-mode 1 --no-dhy"},
+        std::pair{env, flags + commonFlags + " -dir-mode 1 --no-hx --no-dhy"},
+        std::pair{env, flags + commonFlags + " -dir-mode 1 --no-cx"},
+        std::pair{env, flags + commonFlags + " -dir-mode 1 --no-hx --no-cx"},
+        std::pair{env, flags + commonFlags + " -dir-mode 1 --no-dcy"},
+        std::pair{env, flags + commonFlags + " -dir-mode 1 --no-cx --no-dcy"},
+        std::pair{env, flags + commonFlags + " -dir-mode 0 --no-hy"},
+        std::pair{env, flags + commonFlags + " -dir-mode 0 --no-dhx"},
+        std::pair{env, flags + commonFlags + " -dir-mode 0 --no-hy --no-dhx"},
+        std::pair{env, flags + commonFlags + " -dir-mode 0 --no-cy"},
+        std::pair{env, flags + commonFlags + " -dir-mode 0 --no-hy --no-cy"},
+        std::pair{env, flags + commonFlags + " -dir-mode 0 --no-dcx"},
+        std::pair{env, flags + commonFlags + " -dir-mode 0 --no-cy --no-dcx"},
+        std::pair{env, flags + commonFlags + " -dir-mode 1 --no-hy"},
+        std::pair{env, flags + commonFlags + " -dir-mode 1 --no-dhx"},
+        std::pair{env, flags + commonFlags + " -dir-mode 1 --no-hy --no-dhx"},
+        std::pair{env, flags + commonFlags + " -dir-mode 1 --no-cy"},
+        std::pair{env, flags + commonFlags + " -dir-mode 1 --no-hy --no-cy"},
+        std::pair{env, flags + commonFlags + " -dir-mode 1 --no-dcx"},
+        std::pair{env, flags + commonFlags + " -dir-mode 1 --no-cy --no-dcx"},
+        std::pair{
+            env,
+            flags + commonFlags +
+                " -dir-mode 0 --no-hx --no-dhy --no-cx --no-dcy --no-hy --no-dhx --no-cy --no-dcx"},
+        std::pair{env,
+                  flags + commonFlags +
+                      " -dir-mode 1 --no-hx --no-dhy --no-cx --no-dcy --no-hy --no-dhx --no-cy "
+                      "--no-dcx"}};
+}
+
+using TestCase = decltype(GetTestCases({}))::value_type;
+
+class ConfigWithFloat : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
-class ConfigWithHalf : public testing::TestWithParam<std::vector<std::string>>
+class ConfigWithHalf : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
+
+bool IsTestSupportedForDevice()
+{
+    using namespace miopen::debug;
+    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
+    using d_mask = disabled<Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A>;
+    return miopen::debug::IsTestSupportedForDevice<d_mask, e_mask>();
+}
 
 void Run2dDriver(miopenDataType_t prec)
 {
-
-    std::vector<std::string> params;
+    if(!IsTestSupportedForDevice())
+    {
+        GTEST_SKIP();
+    }
+    std::vector<std::pair<EnvType, std::string>> params;
     switch(prec)
     {
     case miopenFloat: params = ConfigWithFloat::GetParam(); break;
@@ -78,13 +174,17 @@ void Run2dDriver(miopenDataType_t prec)
     for(const auto& test_value : params)
     {
         std::vector<std::string> tokens;
-        GetArgs(test_value, tokens);
+        GetArgs(test_value.second, tokens);
         std::vector<const char*> ptrs;
 
         std::transform(tokens.begin(), tokens.end(), std::back_inserter(ptrs), [](const auto& str) {
             return str.data();
         });
-
+        SetEnv(test_value.first);
+        if(Skip(prec))
+        {
+            GTEST_SKIP();
+        }
         testing::internal::CaptureStderr();
         test_drive<lstm_driver>(ptrs.size(), ptrs.data());
         auto capture = testing::internal::GetCapturedStderr();
@@ -92,76 +192,12 @@ void Run2dDriver(miopenDataType_t prec)
     }
 };
 
-bool IsTestSupportedForDevice(const miopen::Handle& handle) { return true; }
+} // namespace lstm_extra
+using namespace lstm_extra;
 
-TEST_P(ConfigWithFloat, FloatTest)
-{
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest() && miopen::IsEnabled(ENV(MIOPEN_TEST_FLOAT)))
-    {
-        Run2dDriver(miopenFloat);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
+TEST_P(ConfigWithFloat, FloatTest) { Run2dDriver(miopenFloat); };
 
-TEST_P(ConfigWithHalf, HalfTest)
-{
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest() && miopen::IsEnabled(ENV(MIOPEN_TEST_HALF)))
-    {
-        Run2dDriver(miopenHalf);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-std::vector<std::string> GetTestCases(std::string precision)
-{
-    std::string flags       = "test_lstm --verbose " + precision;
-    std::string commonFlags = " --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 "
-                              "--hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0";
-
-    const std::vector<std::string> test_cases = {
-        {flags + commonFlags + " -dir-mode 0 --no-hx"},
-        {flags + commonFlags + " -dir-mode 0 --no-dhy"},
-        {flags + commonFlags + " -dir-mode 0 --no-hx --no-dhy"},
-        {flags + commonFlags + " -dir-mode 0 --no-cx"},
-        {flags + commonFlags + " -dir-mode 0 --no-hx --no-cx"},
-        {flags + commonFlags + " -dir-mode 0 --no-dcy"},
-        {flags + commonFlags + " -dir-mode 0 --no-cx --no-dcy"},
-        {flags + commonFlags + " -dir-mode 1 --no-hx"},
-        {flags + commonFlags + " -dir-mode 1 --no-dhy"},
-        {flags + commonFlags + " -dir-mode 1 --no-hx --no-dhy"},
-        {flags + commonFlags + " -dir-mode 1 --no-cx"},
-        {flags + commonFlags + " -dir-mode 1 --no-hx --no-cx"},
-        {flags + commonFlags + " -dir-mode 1 --no-dcy"},
-        {flags + commonFlags + " -dir-mode 1 --no-cx --no-dcy"},
-        {flags + commonFlags + " -dir-mode 0 --no-hy"},
-        {flags + commonFlags + " -dir-mode 0 --no-dhx"},
-        {flags + commonFlags + " -dir-mode 0 --no-hy --no-dhx"},
-        {flags + commonFlags + " -dir-mode 0 --no-cy"},
-        {flags + commonFlags + " -dir-mode 0 --no-hy --no-cy"},
-        {flags + commonFlags + " -dir-mode 0 --no-dcx"},
-        {flags + commonFlags + " -dir-mode 0 --no-cy --no-dcx"},
-        {flags + commonFlags + " -dir-mode 1 --no-hy"},
-        {flags + commonFlags + " -dir-mode 1 --no-dhx"},
-        {flags + commonFlags + " -dir-mode 1 --no-hy --no-dhx"},
-        {flags + commonFlags + " -dir-mode 1 --no-cy"},
-        {flags + commonFlags + " -dir-mode 1 --no-hy --no-cy"},
-        {flags + commonFlags + " -dir-mode 1 --no-dcx"},
-        {flags + commonFlags + " -dir-mode 1 --no-cy --no-dcx"},
-        {flags + commonFlags +
-         " -dir-mode 0 --no-hx --no-dhy --no-cx --no-dcy --no-hy --no-dhx --no-cy --no-dcx"},
-        {flags + commonFlags +
-         " -dir-mode 1 --no-hx --no-dhy --no-cx --no-dcy --no-hy --no-dhx --no-cy --no-dcx"}};
-
-    return test_cases;
-}
+TEST_P(ConfigWithHalf, HalfTest) { Run2dDriver(miopenHalf); };
 
 INSTANTIATE_TEST_SUITE_P(LstmExtra, ConfigWithFloat, testing::Values(GetTestCases("--float")));
 
