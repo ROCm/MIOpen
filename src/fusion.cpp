@@ -160,7 +160,8 @@ AllocateBuffersAndMakeFusionInvokeParams(Handle& handle,
     const auto bn_inf_id = solver::fusion::GetOpIdx(plan.op_map, miopenFusionOpBatchNormInference);
     const auto bn_fwd_id = solver::fusion::GetOpIdx(plan.op_map, miopenFusionOpBatchNormFwdTrain);
     const auto bn_bwd_id = solver::fusion::GetOpIdx(plan.op_map, miopenFusionOpBatchNormBwdTrain);
-    const auto tensor_add_op_id = solver::fusion::GetOpIdx(plan.op_map, miopenFusionOpTensorScaleAdd);
+    const auto tensor_add_op_id =
+        solver::fusion::GetOpIdx(plan.op_map, miopenFusionOpTensorScaleAdd);
 
     const auto any_activ = activ_fwd_id != -1 || activ_bwd_id != -1;
     const auto any_bn    = bn_inf_id != -1 || bn_fwd_id != -1 || bn_bwd_id != -1;
@@ -219,20 +220,18 @@ AllocateBuffersAndMakeFusionInvokeParams(Handle& handle,
         }
     }
 
-    if (tensor_add_op_id != -1) {
-          const auto& tensor_add_op = dynamic_cast<const TensorScaleAddOpDescriptor&>
-                (*plan.op_map[tensor_add_op_id]);
-          assert(&tensor_add_op);
+    if(tensor_add_op_id != -1)
+    {
+        const auto& tensor_add_op =
+            dynamic_cast<const TensorScaleAddOpDescriptor&>(*plan.op_map[tensor_add_op_id]);
+        assert(&tensor_add_op);
 
-          float alpha = 1.0f;
-          const auto space = tensor_add_op.tensor_desc.GetNumBytes();
-          auto ptr           = allocate_buffer(space);
+        float alpha      = 1.0f;
+        const auto space = tensor_add_op.tensor_desc.GetNumBytes();
+        auto ptr         = allocate_buffer(space);
 
-      params.SetArg(tensor_add_op_id,
-          std::make_unique<miopen::fusion::TensorScaleAddOpInvokeParam>(
-            alpha, ptr));
-
-            
+        params.SetArg(tensor_add_op_id,
+                      std::make_unique<miopen::fusion::TensorScaleAddOpInvokeParam>(alpha, ptr));
     }
 
     if(any_bn)

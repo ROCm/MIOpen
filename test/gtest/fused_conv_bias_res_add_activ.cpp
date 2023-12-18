@@ -35,17 +35,18 @@
 // namespace conv_bias_act_res_add_fwd  {
 
 std::vector<Conv3DTestCase> ConvTestConfigs()
-{ //         g, n, c, d,  h,  w, k,  z, y, x, pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
-    return {{1, 1, 4, 14, 11, 1, 4,  3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 1, 1, 1,  4,  4, 1,  2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 1, 1, 8,  8,  8, 1,  2, 2, 2, 0, 0, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 1, 1, 8,  8,  8, 1,  2, 2, 2, 0, 0, 0, 2, 2, 2, 1, 1, 1, miopenConvolution},
-            {2, 8, 8, 12, 14, 4, 4,  3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {4, 8, 8,11, 11, 11,16,  3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {6, 8, 18,11, 11, 11,18, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {8, 8, 8, 11, 11, 11,8,  3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {4, 8, 4, 11, 11, 11,8,  3, 4, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {2, 8, 2, 11, 11, 11,2,  4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution}};
+{ //         g, n, c, d,  h,  w, k,  z, y, x, pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y
+  //         dia_z
+    return {{1, 1, 4, 14, 11, 1, 4, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {1, 1, 1, 1, 4, 4, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {1, 1, 1, 8, 8, 8, 1, 2, 2, 2, 0, 0, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {1, 1, 1, 8, 8, 8, 1, 2, 2, 2, 0, 0, 0, 2, 2, 2, 1, 1, 1, miopenConvolution},
+            {2, 8, 8, 12, 14, 4, 4, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {4, 8, 8, 11, 11, 11, 16, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {6, 8, 18, 11, 11, 11, 18, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {8, 8, 8, 11, 11, 11, 8, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {4, 8, 4, 11, 11, 11, 8, 3, 4, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {2, 8, 2, 11, 11, 11, 2, 4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution}};
 }
 
 template <typename T = float>
@@ -60,8 +61,8 @@ protected:
 
         std::tie(algo, conv_config, alpha1, alpha2, tensor_layout) = GetParam();
 
-        input   = tensor<T>{tensor_layout, conv_config.GetInput()};
-        weights = tensor<T>{tensor_layout, conv_config.GetWeights()};
+        input          = tensor<T>{tensor_layout, conv_config.GetInput()};
+        weights        = tensor<T>{tensor_layout, conv_config.GetWeights()};
         auto gen_value = [](auto...) {
             return prng::gen_A_to_B(static_cast<T>(-3.0), static_cast<T>(3.0));
         };
