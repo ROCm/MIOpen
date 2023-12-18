@@ -105,3 +105,5 @@ public:
         this->add(this->wsidx, "wsidx", this->generate_data({0, 1}));
     }
 };
+
+int main(int argc, const char* argv[]) { test_drive<pooling2d_driver>(argc, argv); }
