@@ -48,7 +48,7 @@ struct ProblemDescription : ProblemDescriptionBase
                        const TensorDescriptor& yDesc_,
                        const TensorDescriptor& meanDesc_,
                        const TensorDescriptor& rstdDesc_,
-                       int32_t num_groups_,
+                       uint64_t num_groups_,
                        float epsilon_)
         : mode(mode_),
           xDesc(xDesc_),
@@ -128,7 +128,7 @@ private:
     TensorDescriptor meanDesc;
     TensorDescriptor rstdDesc;
 
-    int32_t num_groups;
+    uint64_t num_groups;
     float epsilon;
 
     NetworkConfig MakeForwardNetworkConfig() const;

@@ -136,7 +136,7 @@ GroupNormForward::GetSolution(const ExecutionContext& context,
                    params.mean,
                    params.rstd,
                    params.epsilon,
-                   static_cast<size_t>(params.num_groups),
+                   params.num_groups,
                    num_channels,
                    numel_per_channel,
                    static_cast<bool>(params.mode));

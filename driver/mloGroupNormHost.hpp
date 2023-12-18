@@ -38,7 +38,7 @@ int32_t mloGroupNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
                                    Tcheck* outputhost,
                                    Tcheck* meanhost,
                                    Tcheck* rstdhost,
-                                   int32_t num_groups,
+                                   uint64_t num_groups,
                                    float eps,
                                    miopenNormMode_t mode)
 {

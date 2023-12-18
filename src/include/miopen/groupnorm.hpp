@@ -48,7 +48,7 @@ miopenStatus_t GroupNormForward(Handle& handle,
                                 const TensorDescriptor& rstdDesc,
                                 Data_t rstd,
                                 miopenNormMode_t mode,
-                                int32_t num_groups,
+                                uint64_t num_groups,
                                 float epsilon);
 
 } // namespace miopen

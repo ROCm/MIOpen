@@ -137,9 +137,13 @@ int GroupNormDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int GroupNormDriver<Tgpu, Tref>::GetandSetData()
 {
+    num_groups = static_cast<int>(inflags.GetValueDouble("num_groups"));
+    eps        = static_cast<double>(inflags.GetValueDouble("eps"));
+    mode       = miopenNormMode_t(inflags.GetValueInt("mode"));
+
     std::vector<int> in_len          = GetInputTensorLengthsFromCmdLine();
     std::vector<int> weight_bias_len = {in_len[1]};
-    std::vector<int> mean_rstd_len   = {in_len[0], in_len[1]};
+    std::vector<int> mean_rstd_len   = {in_len[0], num_groups};
 
     SetTensorNd(inputDesc, in_len, data_type);
     SetTensorNd(weightDesc, weight_bias_len, data_type);
@@ -147,10 +151,6 @@ int GroupNormDriver<Tgpu, Tref>::GetandSetData()
     SetTensorNd(outputDesc, in_len, data_type);
     SetTensorNd(meanDesc, mean_rstd_len, data_type);
     SetTensorNd(rstdDesc, mean_rstd_len, data_type);
-
-    num_groups = static_cast<int>(inflags.GetValueDouble("num_groups"));
-    eps        = static_cast<double>(inflags.GetValueDouble("eps"));
-    mode       = miopenNormMode_t(inflags.GetValueInt("mode"));
 
     return 0;
 }
