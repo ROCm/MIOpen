@@ -31,8 +31,7 @@
 
 #include "conv3d_test_case.hpp"
 
-// TODO: uncomment when PR 2599 is merged
-// namespace conv_bias_act_res_add_fwd  {
+namespace conv_bias_act_res_add_fwd {
 
 std::vector<Conv3DTestCase> ConvTestConfigs()
 { //         g, n, c, d,  h,  w, k,  z, y, x, pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y
@@ -157,6 +156,11 @@ struct ConvFwdBiasResAddActivTest : ConvFwdBiasResAddFixture<half_float::half>
 {
 };
 
+} // end namespace conv_bias_act_res_add_fwd
+  //
+
+using namespace conv_bias_act_res_add_fwd;
+
 TEST_P(ConvFwdBiasResAddActivTest, ConvFusedAPI)
 {
     auto status = miopenConvolutionBiasActivationForward(&get_handle(),
@@ -188,6 +192,3 @@ INSTANTIATE_TEST_SUITE_P(ConvFwdBiasActivAPI,
                                           testing::ValuesIn({1.0f, 2.0f}), // alpha1
                                           testing::ValuesIn({1.0f, 2.0f}), // alpha2
                                           testing::Values(miopenTensorNDHWC)));
-
-// TODO: uncomment when PR 2599 is merged
-// }// end namespace conv_bias_act_res_add_fwd
