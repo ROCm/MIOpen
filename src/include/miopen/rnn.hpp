@@ -273,7 +273,8 @@ struct RNNDescriptor : miopenRNNDescriptor
                                     Data_t y,
                                     const TensorDescriptor& hyDesc,
                                     Data_t hy,
-                                    Data_t reserveSpace) const;
+                                    Data_t reserveSpace,
+                                    size_t reserveSpaceSize) const;
 
     void RNNForwardInference(Handle& handle,
                              int seqLen,
