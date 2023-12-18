@@ -7,6 +7,19 @@
 #endif
 #include "bfloat16_dev.hpp"
 
+#ifdef __HIPCC_RTC__
+#ifdef WORKAROUND_ISSUE_HIPRTC_TRUE_TYPE
+/// Definitions from <cstdint>, <cmath> conflict with
+/// /opt/rocm/include/hip/amd_detail/amd_hip_vector_types.h.
+
+typedef int int32_t;
+typedef unsigned int uint32_t;
+
+#else
+#include <cstdint> // int8_t, int16_t
+#endif
+#endif // __HIPCC_RTC__
+
 // "Constant" address space for kernel parameter
 #define CONSTANT __attribute__((address_space(4)))
 
