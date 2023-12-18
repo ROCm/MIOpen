@@ -46,6 +46,7 @@
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include "cpu_conv.hpp"
+#include "workspace.hpp"
 
 #define TEST_PADDING_MODE 0
 // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
@@ -199,9 +200,10 @@ struct verify_forward_pooling
         auto out      = get_output_tensor(filter, input);
         indices.resize(out.data.size(), 0);
 
-        auto in_dev        = handle.Write(input.data);
-        auto out_dev       = handle.Create<T>(out.data.size());
-        auto workspace_dev = handle.Write(indices);
+        auto in_dev  = handle.Write(input.data);
+        auto out_dev = handle.Create<T>(out.data.size());
+        Workspace wspace{};
+        wspace.Write(indices);
 
         float alpha = 1, beta = 0;
         filter.Forward(handle,
@@ -212,10 +214,10 @@ struct verify_forward_pooling
                        out.desc,
                        out_dev.get(),
                        true,
-                       workspace_dev.get(),
-                       indices.size() * sizeof(Index));
+                       wspace.ptr(),
+                       wspace.size());
 
-        indices  = handle.Read<Index>(workspace_dev, indices.size());
+        indices  = wspace.Read<std::vector<Index>>();
         out.data = handle.Read<T>(out_dev, out.data.size());
         return out;
     }
@@ -403,9 +405,8 @@ struct verify_backward_pooling
         auto out_dev  = handle.Write(out.data);
         auto din_dev  = handle.Create<T>(dinput.data.size());
 
-        // std::vector<char> workspace(filter.GetWorkSpaceSize(out.desc));
-        // auto workspace_dev = handle.Write(workspace);
-        auto workspace_dev = handle.Write(indices);
+        Workspace wspace{};
+        wspace.Write(indices);
 
         float alpha = 1, beta = 0;
         filter.Backward(handle,
@@ -423,7 +424,7 @@ struct verify_backward_pooling
                         // dx
                         dinput.desc,
                         din_dev.get(),
-                        workspace_dev.get());
+                        wspace.ptr());
 
         dinput.data = handle.Read<T>(din_dev, dinput.data.size());
         return dinput;
