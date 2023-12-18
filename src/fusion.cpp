@@ -99,8 +99,8 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
 
     // TODO: The type of these pointers depends on the ConvolutionDescriptor's data
     // type
-    float falpha1 = alpha1 ? *(static_cast<const float*>(alpha1)) : 1.0f;
-    float falpha2 = alpha2 ? *(static_cast<const float*>(alpha2)) : 1.0f;
+    float falpha1 = alpha1 != nullptr ? *(static_cast<const float*>(alpha1)) : 1.0f;
+    float falpha2 = alpha2 != nullptr ? *(static_cast<const float*>(alpha2)) : 1.0f;
 
     // if(z != nullptr || zDesc.GetSize() != 0)
     // MIOPEN_THROW(miopenStatusNotImplemented, "The addition of z vector is not yet supported");
@@ -563,9 +563,9 @@ miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
                                                 const void* beta,
                                                 ConstData_t w)
 {
-    float* alphaptr = reinterpret_cast<float*>(const_cast<void*>(alpha));
-    float* betaptr  = reinterpret_cast<float*>(const_cast<void*>(beta));
-    auto op_args    = std::make_unique<fusion::ConvolutionOpInvokeParam>(*alphaptr, *betaptr, w);
+    float falpha = alpha != nullptr ? *reinterpret_cast<const float*>(alpha) : 1.0f;
+    float fbeta  = beta != nullptr ? *reinterpret_cast<const float*>(beta) : 0.0f;
+    auto op_args = std::make_unique<fusion::ConvolutionOpInvokeParam>(falpha, fbeta, w);
     args.SetArg(GetIdx(), std::move(op_args));
     return miopenStatusSuccess;
 }
