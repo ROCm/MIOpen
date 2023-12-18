@@ -50,18 +50,23 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                                                ConstData_t w,
                                                const TensorDescriptor& yDesc,
                                                Data_t y,
+                                               const TensorDescriptor& hyDesc,
                                                Data_t hy,
                                                Data_t reserveSpace) const
 {
 #if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
+    float ctime = 0;
+    profileRNNkernels(handle, 0, ctime);
     int seq_len = seq_array.size();
     if(seq_len == 0)
         return;
 
     std::vector<int> batches;
+    float beta = 0;
 
     int in_vec_size  = xDesc.GetLengths()[1];
     int out_vec_size = yDesc.GetLengths()[1];
+    int biNumLayers  = hyDesc.GetLengths()[0];
 
     int max_batch = seq_array[0];
     int hidden_size;
@@ -80,7 +85,30 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
 
     bacc_per_time[seq_len] = total_batch_size;
 
-    int bi         = dirMode != 0u ? 2 : 1;
+    int bi = dirMode != 0u ? 2 : 1;
+
+    if(in_vec_size <= 0 || hidden_size <= 0 || max_batch <= 0 || biNumLayers <= 0 ||
+       out_vec_size <= 0 || seq_len <= 0)
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    const auto sp_tensor_size = GetParamsSize(xDesc.GetLengths()[1]) / GetTypeSize(wDesc.GetType());
+
+    auto sp_desc = miopen::TensorDescriptor(
+        wDesc.GetType(), {1, 1, sp_tensor_size}, {sp_tensor_size, sp_tensor_size, 1});
+
+    SetTensor(handle, sp_desc, reserveSpace, &beta);
+    profileRNNkernels(handle, 1, ctime);
+
+    if(hy != nullptr)
+    {
+        const auto hy_tensor_size = biNumLayers * max_batch * hidden_size;
+        auto hy_desc              = miopen::TensorDescriptor(
+            wDesc.GetType(), {1, 1, hy_tensor_size}, {hy_tensor_size, hy_tensor_size, 1});
+        SetTensor(handle, hy_desc, hy, &beta);
+        profileRNNkernels(handle, 1, ctime);
+    }
 
     auto get_HxBuff_offset =
         [&bi, hidden_size, max_batch](int layer_id, int batch_id, int reverse) {
@@ -88,7 +116,8 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                    (size_t)hidden_size * batch_id;
         };
 
-    ReluWeightOffsets WeiBuf(in_vec_size, hidden_size, nLayers, biasMode * 2, bi, nHiddenTensorsPerLayer);
+    ReluWeightOffsets WeiBuf(
+        in_vec_size, hidden_size, nLayers, biasMode * 2, bi, nHiddenTensorsPerLayer);
     ReluReserveBufferOffsets RBuff(hidden_size, nLayers, total_batch_size, bi, workspaceScale);
 
     ActivationDescriptor activDesc;
@@ -103,8 +132,8 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
     }
 
     auto call_relu_tan_input_gemm =
-        [&RBuff, &WeiBuf, &in_vec_size, &handle, &xDesc, reserveSpace, x, w](int layer,
-                                                                             float beta_t = 1) {
+        [&RBuff, &WeiBuf, &in_vec_size, &handle, &xDesc, reserveSpace, x, w, &ctime](
+            int layer, float beta_t = 1) {
             const int m = RBuff.batches_per_layer, n = RBuff.gemm_write_size(),
                       k = layer > 0 ? RBuff.gemm_write_size() : in_vec_size;
 
@@ -156,6 +185,7 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                     MIOPEN_LOG_E("GEMM failed");
                 }
             }
+            profileRNNkernels(handle, 1, ctime);
         };
 
     auto call_relu_tan_bias_add = [*this,
@@ -169,7 +199,8 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                                    &hidden_size,
                                    &batches,
                                    &bacc_per_time,
-                                   &seq_len](int layer, float beta_t = 0) {
+                                   &seq_len,
+                                   &ctime](int layer, float beta_t = 0) {
         float alpha0 = 1;
         float alpha1 = 1;
 
@@ -199,6 +230,8 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                  WeiBuf.bias_off(layer),     // B offset
                  RBuff.layer_offset(layer)); // C offset
 
+        profileRNNkernels(handle, 1, ctime);
+
         if(hx != nullptr)
         {
             OpTensor(handle,
@@ -215,6 +248,7 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                      RBuff.layer_offset(layer),
                      WeiBuf.bias_off(layer) + WeiBuf.bias_stride(),
                      RBuff.layer_offset(layer));
+            profileRNNkernels(handle, 1, ctime);
             return;
         }
 
@@ -244,6 +278,8 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                  RBuff.layer_offset(layer) + batches.at(0) * RBuff.gemm_write_stride(),
                  true);
 
+        profileRNNkernels(handle, 1, ctime);
+
         if(dirMode == 0u)
             return;
 
@@ -264,6 +300,7 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                      WeiBuf.bias_off(layer) + WeiBuf.bias_stride() + hidden_size,
                      RBuff.layer_offset(layer) + hidden_size,
                      true);
+            profileRNNkernels(handle, 1, ctime);
             return;
         }
 
@@ -292,6 +329,7 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                      WeiBuf.bias_off(layer) + WeiBuf.bias_stride() + hidden_size,
                      static_cast<int>(offset) + hidden_size,
                      true);
+            profileRNNkernels(handle, 1, ctime);
         }
     };
 
@@ -306,7 +344,8 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                                       reserveSpace,
                                       hx,
                                       seq_len,
-                                      w](int layer, int time, int direction) {
+                                      w,
+                                      &ctime](int layer, int time, int direction) {
         if(time == 0 && hx == nullptr)
             return;
 
@@ -370,6 +409,7 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                     MIOPEN_LOG_E("GEMM failed");
                 }
             }
+            profileRNNkernels(handle, 1, ctime);
         }
 
         const miopen::GemmDescriptor gemm_desc_hx = GemmDescriptor{false,
@@ -417,6 +457,7 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                 MIOPEN_LOG_E("GEMM failed");
             }
         }
+        profileRNNkernels(handle, 1, ctime);
     };
 
     auto call_relu_tan_hidden_state_update = [&RBuff,
@@ -427,7 +468,8 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                                               &wDesc,
                                               reserveSpace,
                                               &activDesc,
-                                              seq_len](int layer_id, int time, int direction) {
+                                              seq_len,
+                                              &ctime](int layer_id, int time, int direction) {
         float alpha = 1, beta = 0;
 
         const int cur_time = direction == rnn_direction::Forward ? time : seq_len - time - 1;
@@ -463,6 +505,7 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                           RB_layer_save_points_off,
                           // output tensor offset
                           hidden_offset);
+        profileRNNkernels(handle, 1, ctime);
     };
 
     auto call_relu_tan_update_output = [&RBuff,
@@ -475,7 +518,8 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                                         hy,
                                         max_batch,
                                         &bacc_per_time,
-                                        seq_len](int layer_id, int time, int direction) {
+                                        seq_len,
+                                        &ctime](int layer_id, int time, int direction) {
         if(hy == nullptr)
             return;
 
@@ -512,6 +556,7 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                    hy,
                    RBuff.hidden_offset(layer_id, batch_id_abs, direction),
                    get_HxBuff_offset(layer_id, batch_id_relative, direction));
+        profileRNNkernels(handle, 1, ctime);
     };
 
     for(int layer_id = 0; layer_id < nLayers; layer_id++)
@@ -565,6 +610,7 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                    y,
                    RBuff.hidden_offset(nLayers - 1, 0, rnn_direction::Forward),
                    0);
+        profileRNNkernels(handle, 1, ctime);
     }
 #else
     (void)handle;
@@ -3080,7 +3126,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
        inputMode != miopenRNNskip && !(miopen::IsDisabled(ENV(MIOPEN_RNNFWD_exp))))
     {
         RNNForwardTrainingTanhRelu(
-            handle, in_n, xDesc[0], x, hxDesc, hx, wDesc, w, yDesc[0], y, hy, reserveSpace);
+            handle, in_n, xDesc[0], x, hxDesc, hx, wDesc, w, yDesc[0], y, hyDesc, hy, reserveSpace);
         if(is_profiling)
         {
             float eventTime_mS = RNNProfilingEnd(handle, start, stop);
@@ -4519,6 +4565,10 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
 {
 #if MIOPEN_USE_GEMM
 
+    float ctime = 0.;
+    // reset kernel timer
+    profileRNNkernels(handle, 0, ctime);
+
     if(paddingMode != miopenRNNIONotPadded)
     {
         MIOPEN_THROW("Padded IO is not supported by this solver");
@@ -4541,7 +4591,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
 
     int input_size   = dxDesc[0].GetLengths()[1];
     int hy_d         = dhxDesc.GetLengths()[0];
-    int max_batch    = dhxDesc.GetLengths()[1]; 
+    int max_batch    = dhxDesc.GetLengths()[1];
     int hidden_size  = dhxDesc.GetLengths()[2];
     int out_vec_size = dyDesc[0].GetLengths()[1];
     int bi           = dirMode != 0u ? 2 : 1;
@@ -4562,6 +4612,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
                                  std::vector<int>{1, 1, workSpaceDataTypeSize},
                                  std::vector<int>{workSpaceDataTypeSize, workSpaceDataTypeSize, 1});
     SetTensor(handle, reservespace_desc, workSpace, &beta);
+    profileRNNkernels(handle, 1, ctime);
 
     if(dhx != nullptr)
     {
@@ -4570,6 +4621,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
                                                 std::vector<int>{1, 1, dhx_size},
                                                 std::vector<int>{dhx_size, dhx_size, 1});
         SetTensor(handle, hx_desc, dhx, &beta);
+        profileRNNkernels(handle, 1, ctime);
     }
 
     int total_batch_size = 0;
@@ -4631,7 +4683,8 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
         activDesc = {miopenActivationTANH, 1, 1, 1};
     }
 
-    ReluWeightOffsets WeiBuf(input_size, hidden_size, nLayers, biasMode * 2, bi, nHiddenTensorsPerLayer);
+    ReluWeightOffsets WeiBuf(
+        input_size, hidden_size, nLayers, biasMode * 2, bi, nHiddenTensorsPerLayer);
 
     ReluReserveBufferOffsets RBuff(hidden_size, nLayers, total_batch_size, bi, workspaceScale);
 
@@ -4642,8 +4695,8 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
         };
 
     auto propagate_output =
-        [&RBuff, out_vec_size, &handle, rnn_data_type, workSpace, dy, &WeiBuf, w](int numLayers,
-                                                                                  int layer) {
+        [&RBuff, out_vec_size, &handle, rnn_data_type, workSpace, dy, &WeiBuf, w, &ctime](
+            int numLayers, int layer) {
             // Propagate output
             //
             if(layer == numLayers - 1)
@@ -4669,6 +4722,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
 
                 CopyTensor(
                     handle, y_src_desc, dy, y_dst_desc, workSpace, 0, RBuff.layer_offset(layer));
+                profileRNNkernels(handle, 1, ctime);
             }
             // Propagate previous layer
             //
@@ -4713,6 +4767,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
                         MIOPEN_LOG_E("GEMM failed");
                     }
                 }
+                profileRNNkernels(handle, 1, ctime);
             }
         };
 
@@ -4725,7 +4780,8 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
                                     dhy,
                                     workSpace,
                                     seqLen,
-                                    &get_HxBuff_offset](int layer, int time, int direction) {
+                                    &get_HxBuff_offset,
+                                    &ctime](int layer, int time, int direction) {
         if(dhy == nullptr)
             return;
 
@@ -4761,6 +4817,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
                  get_HxBuff_offset(layer, 0, direction),
                  RBuff.gemm_write_offset(layer, bacc_per_time[cur_time], direction),
                  RBuff.gemm_write_offset(layer, bacc_per_time[cur_time], direction));
+        profileRNNkernels(handle, 1, ctime);
     };
 
     auto propagate_hidden_prev = [&RBuff,
@@ -4775,7 +4832,8 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
                                   WeiBuf,
                                   seqLen,
                                   w,
-                                  max_batch](int layer, int time, int direction) {
+                                  max_batch,
+                                  &ctime](int layer, int time, int direction) {
         const int cur_time  = direction == rnn_direction::Forward ? time : seqLen - time - 1;
         const int next_time = direction == rnn_direction::Forward ? cur_time + 1 : cur_time - 1;
         if(direction == rnn_direction::Forward && dhy != nullptr &&
@@ -4815,6 +4873,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
                          layer, bacc_per_time[cur_time] + batches.at(next_time), direction),
                      RBuff.gemm_write_offset(
                          layer, bacc_per_time[cur_time] + batches.at(next_time), direction));
+            profileRNNkernels(handle, 1, ctime);
         }
 
         int used_batch =
@@ -4863,6 +4922,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
                 MIOPEN_LOG_E("GEMM failed");
             }
         }
+        profileRNNkernels(handle, 1, ctime);
     };
 
     auto propagate_hidden_time = [&RBuff,
@@ -4877,12 +4937,12 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
                                   &activDesc,
                                   propagate_hidden_output,
                                   propagate_hidden_prev,
-                                  max_batch](int layer, int time, int direction) {
+                                  max_batch,
+                                  &ctime](int layer, int time, int direction) {
         const int cur_time = direction == rnn_direction::Forward ? time : seqLen - time - 1;
 
-        std::vector<int> hx_stride{
-            max_batch * hidden_size,  hidden_size, 1};
-        
+        std::vector<int> hx_stride{max_batch * hidden_size, hidden_size, 1};
+
         std::vector<int> reserve_stride{
             RBuff.batches_per_layer * RBuff.gemm_write_size(), RBuff.gemm_write_size(), 1};
 
@@ -4915,6 +4975,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
                            RBuff.gemm_write_offset(layer, bacc_per_time[cur_time], direction),
                            RBuff.gemm_write_offset(layer, bacc_per_time[cur_time], direction),
                            RBuff.gemm_write_offset(layer, bacc_per_time[cur_time], direction));
+        profileRNNkernels(handle, 1, ctime);
     };
 
     auto propagate_hidden = [*this, seqLen, propagate_hidden_time](int layer) {
@@ -4938,7 +4999,8 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
                                dhx,
                                &get_HxBuff_offset,
                                workSpace,
-                               seqLen](int layer, int time, int direction) {
+                               seqLen,
+                               &ctime](int layer, int time, int direction) {
         const int cur_time  = direction == rnn_direction::Forward ? time : seqLen - time - 1;
         const int prev_time = direction == rnn_direction::Forward ? cur_time - 1 : cur_time + 1;
 
@@ -4993,6 +5055,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
                 MIOPEN_LOG_E("GEMM failed");
             }
         }
+        profileRNNkernels(handle, 1, ctime);
     };
 
     auto propagate_dhx = [*this, seqLen, &propagate_dhx_prev, &dhx](int layer) {
@@ -5049,6 +5112,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
                      static_cast<size_t>(gi) * hidden_size,
                      0,
                      0);
+            profileRNNkernels(handle, 1, ctime);
         }
     }
     else
@@ -5084,6 +5148,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
                 MIOPEN_LOG_E("GEMM failed");
             }
         }
+        profileRNNkernels(handle, 1, ctime);
     }
 
 #else

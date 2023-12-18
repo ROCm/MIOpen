@@ -271,6 +271,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                                     ConstData_t w,
                                     const TensorDescriptor& yDesc,
                                     Data_t y,
+                                    const TensorDescriptor& hyDesc,
                                     Data_t hy,
                                     Data_t reserveSpace) const;
 
