@@ -13,7 +13,7 @@
 /// which defines std::true_type as well (which is wrong).
 
 namespace std {
-
+if HIP_PACKAGE_VERSION_FLAT < 6000023494ULL
 template <class T>
 struct remove_reference
 {
@@ -62,17 +62,18 @@ struct remove_cv
 };
 
 template <class T>
+struct is_pointer : is_pointer_helper<typename std::remove_cv<T>::type>
+{
+};
+#endif
+
+template <class T>
 struct is_pointer_helper : std::false_type
 {
 };
 
 template <class T>
 struct is_pointer_helper<T*> : std::true_type
-{
-};
-
-template <class T>
-struct is_pointer : is_pointer_helper<typename std::remove_cv<T>::type>
 {
 };
 
