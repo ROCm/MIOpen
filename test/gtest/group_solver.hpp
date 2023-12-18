@@ -123,11 +123,103 @@ inline int SetTensorLayout(miopen::TensorDescriptor& desc)
     return SetTensorNd(&desc, int_lens, layout_str, desc.GetType());
 }
 
-template <typename T = float>
-struct ConvFwdSolverTest
+using Direction = miopen::conv::Direction;
+
+template <typename T, Direction CONV_DIR>
+struct Conv2DGroupTestFix
     : public ::testing::TestWithParam<
           std::tuple<miopenConvFwdAlgorithm_t, ConvTestCase, miopenTensorLayout_t>>
 {
+private:
+
+  template <typename F>
+  void SetupFwd(F&& gen_value) {
+        input.generate(gen_value);
+        weights.generate(gen_value);
+        std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
+  }
+
+  template <typename F>
+  void SetupBwd(F&& gen_value) {
+        output.generate(gen_value);
+        weights.generate(gen_value);
+        std::fill(input.begin(), input.end(), std::numeric_limits<double>::quiet_NaN());
+  }
+
+  template <typename F>
+  void SetupWrw(F&& gen_value) {
+        input.generate(gen_value);
+        output.generate(gen_value);
+        std::fill(weights.begin(), weights.end(), T{0});
+  }
+
+  void verify(const tensor<T>& computed) {
+        EXPECT_FALSE(miopen::range_zero(ref)) << "Cpu data is all zeros";
+        EXPECT_FALSE(miopen::range_zero(computed)) << "Gpu data is all zeros";
+        EXPECT_TRUE(miopen::range_distance(ref) == miopen::range_distance(computed));
+
+        double threshold       = 1.0e-5;
+        auto error             = miopen::rms_range(ref, computed);
+
+        EXPECT_FALSE(miopen::find_idx(ref, miopen::not_finite) >= 0)
+            << "Non finite number found in the reference output";
+
+        EXPECT_TRUE(error < threshold)
+            << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+  }
+
+  template <typename Solver, typename ConvTensorsType, typename InvokeParamType>
+  void RunSolverImpl() {
+    auto&& handle = get_handle();
+
+    Solver solv{};
+
+    const auto tensors =
+        ConvTensorsType{inputDesc, input, wDesc, weight, outputDesc, output};
+
+    const auto problem = miopen::conv::ProblemDescription{
+        inputDesc, wDesc, outputDesc, convDesc, CONV_DIR};
+    auto ctx = miopen::ExecutionContext{};
+
+    ctx.SetStream(&handle);
+
+    if(!solv.IsApplicable(ctx, problem))
+    {
+        test_skipped = true;
+        GTEST_SKIP() << solv.SolverDbId()
+                     << "Not Applicable for this problem"
+                     << conv_config;
+    }
+
+    if (solver.MayNeedWorkspace()) {
+      wspace.resize(solver.GetWorkSpaceSize(ctx, problem));
+    }
+
+    const auto invoke_params = InvokeParamType{tensors, wspace.ptr(), wspace.size(), false};
+
+    ASSERT_TRUE(solv.IsApplicable(ctx, problem));
+    auto sol = solv.GetSolution(ctx, problem, solv.GetDefaultPerformanceConfig(ctx, problem));
+    ASSERT_TRUE(sol.Succeeded());
+    ASSERT_TRUE(sol.invoker_factory);
+    const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
+    (invoker)(handle, invoke_params);
+    handle.Finish();
+  }
+
+  void RunSolver() {
+        if constexpr (CONV_DIR == Direction::Forward) {
+          RunSolverImpl<
+            miopen::solver::conv::ConvHipImplicitGemmGroupFwdXdlops,
+            miopen::>();
+
+        } else if constexpr (CONV_DIR == Direction::BackwardData) {
+          SetupBwd(gen_value);
+        } else {
+          static_assert(CONV_DIR == Direction::BackwardWeights);
+          SetupWrw(gen_value);
+        }
+  }
+
 protected:
     void SetUp() override
     {
@@ -138,61 +230,70 @@ protected:
         weights = tensor<T>{tensor_layout, conv_config.GetWeights()};
         SetTensorLayout(input.desc);
         SetTensorLayout(weights.desc);
-        auto gen_value = [](auto...) {
-            return prng::gen_A_to_B(static_cast<T>(-3.0), static_cast<T>(3.0));
-        };
-        input.generate(gen_value);
-        weights.generate(gen_value);
 
         conv_desc = conv_config.GetConv();
 
         miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
+            conv_desc.GetForwardOutputTensorWithLayout(input.desc, weights.desc, tensor_layout, GetDataType<T>());
         output = tensor<T>{tensor_layout, output_desc.GetLengths()};
         SetTensorLayout(output.desc);
-        std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
 
-        auto&& handle = get_handle();
+        auto gen_value = [](auto...) {
+            return prng::gen_A_to_B(static_cast<T>(-3.0), static_cast<T>(3.0));
+        };
+
+        if constexpr (CONV_DIR == Direction::Forward) {
+          SetFwd(gen_value);
+        } else if constexpr (CONV_DIR == Direction::BackwardData) {
+          SetupBwd(gen_value);
+        } else {
+          static_assert(CONV_DIR == Direction::BackwardWeights);
+          SetupWrw(gen_value);
+        }
+
+
+        auto& handle = get_handle();
         in_dev        = handle.Write(input.data);
         wei_dev       = handle.Write(weights.data);
         out_dev       = handle.Write(output.data);
     }
+
     void TearDown() override
     {
         if(test_skipped)
             return;
 
-        auto&& handle = get_handle();
+        auto& handle = get_handle();
 
-        miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
-        ref_out     = tensor<T>{tensor_layout, output_desc.GetLengths()};
-        ref_out     = ref_conv_fwd(input, weights, output, conv_desc);
-        output.data = handle.Read<T>(out_dev, output.data.size());
-        EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
-        EXPECT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
-        EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(output));
 
-        const double tolerance = 80;
-        double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
-        auto error             = miopen::rms_range(ref_out, output);
+        if constexpr (CONV_DIR == Direction::Forward) {
+          ref     = ref_conv_fwd(input, weights, output, conv_desc);
+          handle.ReadToVec(out_dev, output);
+          verify(output);
+        } else if constexpr (CONV_DIR == Direction::BackwardData) {
+          ref     = ref_conv_bwd(input, weights, output, conv_desc);
+          handle.ReadToVec(in_dev, input);
+          verify(input);
+        } else {
+          static_assert(CONV_DIR == Direction::BackwardWeights);
+          ref     = ref_conv_wrw(input, weights, output, conv_desc);
+          handle.ReadToVec(wei_dev, weights);
+          verify(weights);
+        }
 
-        EXPECT_FALSE(miopen::find_idx(ref_out, miopen::not_finite) >= 0)
-            << "Non finite number found in the CPU data";
-
-        EXPECT_TRUE(error < threshold)
-            << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
     }
+
     ConvTestCase conv_config;
     miopen::ConvolutionDescriptor conv_desc;
     tensor<T> input;
     tensor<T> weights;
     tensor<T> output;
-    tensor<T> ref_out;
+    tensor<T> ref;
     miopen::Allocator::ManageDataPtr in_dev;
     miopen::Allocator::ManageDataPtr wei_dev;
     miopen::Allocator::ManageDataPtr out_dev;
     miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoImplicitGEMM;
     bool test_skipped             = false;
     miopenTensorLayout_t tensor_layout;
+    Workspace wspace{};
 };
