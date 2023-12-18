@@ -24,13 +24,16 @@
  *
  *******************************************************************************/
 
-#include "pooling2d.hpp"
-#include "get_handle.hpp"
-#include <miopen/env.hpp>
 #include <gtest/gtest.h>
+#include <miopen/env.hpp>
+#include "get_handle.hpp"
+
+#include "pooling2d.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
+
+namespace pooling2d_asymmetric {
 
 static bool SkipTest(void) { return miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)); }
 
@@ -42,14 +45,6 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
     while(begin != end)
         tokens.push_back(*begin++);
 }
-
-class Pooling2dFloat : public testing::TestWithParam<std::vector<std::string>>
-{
-};
-
-class Pooling2dHalf : public testing::TestWithParam<std::vector<std::string>>
-{
-};
 
 void Run2dDriver(miopenDataType_t prec)
 {
@@ -92,6 +87,22 @@ void Run2dDriver(miopenDataType_t prec)
 
 bool IsTestSupportedForDevice(const miopen::Handle& handle) { return true; }
 
+std::vector<std::string> GetTestCases(const std::string& precision)
+{
+    const auto& flag_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLAGS_ARGS));
+
+    const std::vector<std::string> test_cases = {
+        // clang-format off
+    {"test_pooling2d " + precision + " --all --dataset 1 --limit 0 "+flag_arg}
+        // clang-format on
+    };
+
+    return test_cases;
+}
+
+} // namespace pooling2d_asymmetric
+using namespace pooling2d_asymmetric;
+
 TEST_P(Pooling2dFloat, FloatTest_pooling2d_asymmetric)
 {
     const auto& handle = get_handle();
@@ -117,19 +128,6 @@ TEST_P(Pooling2dHalf, HalfTest_pooling2d_asymmetric)
         GTEST_SKIP();
     }
 };
-
-std::vector<std::string> GetTestCases(const std::string& precision)
-{
-    const auto& flag_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLAGS_ARGS));
-
-    const std::vector<std::string> test_cases = {
-        // clang-format off
-    {"test_pooling2d " + precision + " --all --dataset 1 --limit 0 "+flag_arg}
-        // clang-format on
-    };
-
-    return test_cases;
-}
 
 INSTANTIATE_TEST_SUITE_P(Pooling2D, Pooling2dFloat, testing::Values(GetTestCases("--float")));
 

@@ -56,7 +56,7 @@ void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class Conv2dFloat : public testing::TestWithParam<std::vector<TestCase>>
+class Conv2dFloatDynamic : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -66,7 +66,7 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<TestCase> params;
     switch(prec)
     {
-    case miopenFloat: params = Conv2dFloat::GetParam(); break;
+    case miopenFloat: params = Conv2dFloatDynamic::GetParam(); break;
     case miopenHalf:
     case miopenInt8:
     case miopenBFloat16:
@@ -78,7 +78,7 @@ void Run2dDriver(miopenDataType_t prec)
                   "miopenDouble, miopenFloat8, miopenBFloat8 "
                   "data type not supported by conv_igemm_dynamic test";
 
-    default: params = Conv2dFloat::GetParam();
+    default: params = Conv2dFloatDynamic::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -177,7 +177,7 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
 } // namespace conv_igemm_dynamic
 using namespace conv_igemm_dynamic;
 
-TEST_P(Conv2dFloat, FloatTest_conv_igemm_dynamic)
+TEST_P(Conv2dFloatDynamic, FloatTest_conv_igemm_dynamic)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())
@@ -190,4 +190,6 @@ TEST_P(Conv2dFloat, FloatTest_conv_igemm_dynamic)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamic, Conv2dFloat, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamic,
+                         Conv2dFloatDynamic,
+                         testing::Values(GetTestCases("--float")));

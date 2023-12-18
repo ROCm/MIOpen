@@ -23,13 +23,16 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "conv3d.hpp"
-#include "get_handle.hpp"
-#include <miopen/env.hpp>
 #include <gtest/gtest.h>
+#include <miopen/env.hpp>
+#include "get_handle.hpp"
+
+#include "conv3d.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(CODECOV_TEST)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
+
+namespace conv3d_codecov {
 
 static bool SkipTest(void) { return !miopen::IsEnabled(ENV(CODECOV_TEST)); }
 
@@ -41,22 +44,6 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
     while(begin != end)
         tokens.push_back(*begin++);
 }
-
-class Conv3dFloat : public testing::TestWithParam<std::vector<std::string>>
-{
-};
-
-class Conv3dHalf : public testing::TestWithParam<std::vector<std::string>>
-{
-};
-
-class Conv3dBFloat16 : public testing::TestWithParam<std::vector<std::string>>
-{
-};
-
-class Conv3dInt8 : public testing::TestWithParam<std::vector<std::string>>
-{
-};
 
 void Run3dDriver(miopenDataType_t prec)
 {
@@ -97,6 +84,22 @@ void Run3dDriver(miopenDataType_t prec)
 };
 
 bool IsTestSupportedForDevice(const miopen::Handle& handle) { return true; }
+
+std::vector<std::string> GetTestCases(const std::string& precision)
+{
+    const auto& flag_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLAGS_ARGS));
+
+    const std::vector<std::string> test_cases = {
+        // clang-format off
+    {"test_conv3d " + precision + " --input 2 4 4 4 4 --weights 2 4 1 1 1 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 "+flag_arg}
+        // clang-format on
+    };
+
+    return test_cases;
+}
+
+} // namespace conv3d_codecov
+using namespace conv3d_codecov;
 
 TEST_P(Conv3dFloat, FloatTest_conv3d_codecov)
 {
@@ -149,19 +152,6 @@ TEST_P(Conv3dInt8, Int8Test_conv3d_codecov)
         GTEST_SKIP();
     }
 };
-
-std::vector<std::string> GetTestCases(const std::string& precision)
-{
-    const auto& flag_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLAGS_ARGS));
-
-    const std::vector<std::string> test_cases = {
-        // clang-format off
-    {"test_conv3d " + precision + " --input 2 4 4 4 4 --weights 2 4 1 1 1 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 "+flag_arg}
-        // clang-format on
-    };
-
-    return test_cases;
-}
 
 INSTANTIATE_TEST_SUITE_P(Conv3D, Conv3dFloat, testing::Values(GetTestCases("--float")));
 

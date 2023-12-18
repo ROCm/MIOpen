@@ -31,6 +31,8 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(CODECOV_TEST)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
 
+namespace immed_conv2d_codecov {
+
 template <class T>
 struct conv2d_driver : conv_driver<T, ConvApi::Immediate>
 {
@@ -132,6 +134,22 @@ void Run2dDriver(miopenDataType_t prec)
 
 bool IsTestSupportedForDevice(const miopen::Handle& handle) { return true; }
 
+std::vector<std::string> GetTestCases(const std::string& precision)
+{
+    const auto& flag_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLAGS_ARGS));
+
+    const std::vector<std::string> test_cases = {
+        // clang-format off
+    {"test_immed_conv2d " + precision + " --input  2 2 14 14 --weights 8 2 3 3 --pads_strides_dilations 0 0 1 1 1 1 "+flag_arg}
+        // clang-format on
+    };
+
+    return test_cases;
+}
+
+} // namespace immed_conv2d_codecov
+using namespace immed_conv2d_codecov;
+
 TEST_P(Conv2dFloat, FloatTest_immed_conv2d_codecov)
 {
     const auto& handle = get_handle();
@@ -183,19 +201,6 @@ TEST_P(Conv2dInt8, Int8Test_immed_conv2d_codecov)
         GTEST_SKIP();
     }
 };
-
-std::vector<std::string> GetTestCases(const std::string& precision)
-{
-    const auto& flag_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLAGS_ARGS));
-
-    const std::vector<std::string> test_cases = {
-        // clang-format off
-    {"test_immed_conv2d " + precision + " --input  2 2 14 14 --weights 8 2 3 3 --pads_strides_dilations 0 0 1 1 1 1 "+flag_arg}
-        // clang-format on
-    };
-
-    return test_cases;
-}
 
 INSTANTIATE_TEST_SUITE_P(ImmedConv2D, Conv2dFloat, testing::Values(GetTestCases("--float")));
 
