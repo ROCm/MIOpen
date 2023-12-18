@@ -15,12 +15,64 @@
 namespace std {
 
 template <class T>
+struct remove_reference
+{
+    typedef T type;
+};
+template <class T>
+struct remove_reference<T&>
+{
+    typedef T type;
+};
+template <class T>
+struct remove_reference<T&&>
+{
+    typedef T type;
+};
+
+template <class T>
+using remove_reference_t = typename remove_reference<T>::type;
+
+template <class T>
+struct remove_const
+{
+    typedef T type;
+};
+template <class T>
+struct remove_const<const T>
+{
+    typedef T type;
+};
+
+template <class T>
+struct remove_volatile
+{
+    typedef T type;
+};
+template <class T>
+struct remove_volatile<volatile T>
+{
+    typedef T type;
+};
+
+template <class T>
+struct remove_cv
+{
+    typedef typename remove_volatile<typename remove_const<T>::type>::type type;
+};
+
+template <class T>
 struct is_pointer_helper : std::false_type
 {
 };
 
 template <class T>
 struct is_pointer_helper<T*> : std::true_type
+{
+};
+
+template <class T>
+struct is_pointer : is_pointer_helper<typename std::remove_cv<T>::type>
 {
 };
 
