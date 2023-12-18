@@ -148,8 +148,8 @@ public:
                       int layers_cnt,
                       int bias_mode,
                       int bi,
-                      int wei_stride)
-        : weight_stride(wei_stride),
+                      int nHiddenTensorsPerLayer)
+        : weight_stride(hidden_vec_sz * bi * nHiddenTensorsPerLayer),
           in_vec_sz(input_vector_sz),
           h_vec_sz(hidden_vec_sz),
           num_layers(layers_cnt),
@@ -231,10 +231,10 @@ private:
     }
 
 public:
-    ReluReserveBufferOffsets(int hidden_vec_size, int layers_cnt, int batches_per_l, int bi_scale)
+    ReluReserveBufferOffsets(int hidden_vec_size, int layers_cnt, int batches_per_l, int bi_scale, int workspace_scale)
         : hidden_size(hidden_vec_size),
           batches_per_layer(batches_per_l),
-          save_point_size(hidden_vec_size * bi_scale),
+          save_point_size(hidden_vec_size * bi_scale * workspace_scale),
           layers(layers_cnt),
           strides(Reserve_Buffer_strides(save_point_size, batches_per_l, layers_cnt))
     {
