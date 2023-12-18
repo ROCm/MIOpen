@@ -44,7 +44,7 @@ struct InvokeParams : public miopen::InvokeParams
     Data_t y              = nullptr;
     Data_t mean           = nullptr;
     Data_t rstd           = nullptr;
-    int32_t num_groups    = 0;
+    uint64_t num_groups   = 0;
     float epsilon         = 0;
     miopenNormMode_t mode = MIOPEN_ELEMENTWISE_AFFINE;
 

@@ -37,16 +37,18 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
     auto dims                = xDesc.GetLengths();
     size_t numel             = xDesc.GetElementSize();
-    size_t numel_per_channel = numel / dims[0] / dims[1];
+    size_t num_batches       = dims[0];
     size_t num_channels      = dims[1];
+    size_t numel_per_channel = numel / num_batches / num_channels;
 
     auto dtype = xDesc.GetType();
 
     std::ostringstream ss;
 
     ss << "dtype" << dtype;
-    ss << "num_groups" << num_groups;
+    ss << "num_batches" << num_batches;
     ss << "num_channels" << num_channels;
+    ss << "num_groups" << num_groups;
     ss << "numel_per_channel" << numel_per_channel;
 
     return NetworkConfig{ss.str()};

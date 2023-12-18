@@ -1,0 +1,4 @@
+.vscode/*
+build/*
+install_dir/*
+src/kernels/gfx*

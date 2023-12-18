@@ -35,7 +35,7 @@ void cpu_groupnorm_forward(tensor<T> input,
                            tensor<T>& ref_output,
                            tensor<T>& ref_mean,
                            tensor<T>& ref_rstd,
-                           int32_t num_groups,
+                           uint64_t num_groups,
                            float eps,
                            miopenNormMode_t mode)
 {

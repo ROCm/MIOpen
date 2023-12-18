@@ -23,16 +23,20 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/env.hpp>
 #include "groupnorm.hpp"
+
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 std::string GetFloatArg()
 {
-    static const auto tmp = miopen::GetEnv("MIOPEN_TEST_FLOAT_ARG");
+    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
     if(tmp.empty())
     {
         return "";
     }
-    return tmp.front();
+    return tmp;
 }
 
 struct GroupNormTestFloat : GroupNormTest<float>
@@ -42,10 +46,11 @@ struct GroupNormTestFloat : GroupNormTest<float>
 TEST_P(GroupNormTestFloat, GroupNormTestFw)
 {
     const auto& handle = get_handle();
+
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
-       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") && (GetFloatArg() == "--float"))
+       miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
     {
         RunTest();
         Verify();

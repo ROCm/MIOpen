@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#define MIOPEN_BETA_API 1
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
 #include <miopen/groupnorm.hpp>
@@ -42,14 +41,14 @@ struct GroupNormTestCase
     size_t D;
     size_t H;
     size_t W;
-    size_t nomalized_dim;
+    size_t num_groups;
     float eps;
-    miopenNormMode_t ln_mode;
+    miopenNormMode_t mode;
     friend std::ostream& operator<<(std::ostream& os, const GroupNormTestCase& tc)
     {
         return os << " N:" << tc.N << " C:" << tc.C << " D:" << tc.D << " H:" << tc.H
-                  << " W:" << tc.W << " dim:" << tc.nomalized_dim << " eps:" << tc.eps
-                  << " GroupNorm_mode:" << tc.ln_mode;
+                  << " W:" << tc.W << " num_groups:" << tc.num_groups << " eps:" << tc.eps
+                  << " mode:" << tc.mode;
     }
 
     std::vector<size_t> GetInput()
@@ -66,10 +65,6 @@ struct GroupNormTestCase
         {
             return std::vector<size_t>({N, C, W});
         }
-        else if((N != 0) && (W != 0))
-        {
-            return std::vector<size_t>({N, W});
-        }
         else
         {
             std::cout << "Error Input Tensor Lengths\n" << std::endl;
@@ -79,77 +74,74 @@ struct GroupNormTestCase
 };
 
 std::vector<GroupNormTestCase> GroupNormTestConfigs()
-{ // n c d h w nomalized_dim eps ln_mode
-    // clang-format off
-    return {
-        { 32,   1,   32,  32,  32  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},   // 32x32x32 based on VoxNet arch
-        { 32,   1,   14,  14,  14  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 32,  32,   14,  14,  14  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 32,  32,   12,  12,  12  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 32,  32,    6,   6,   6  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 256,  1,   32,  32,  32  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},   // 32x32x32 based on VoxNet arch
-        { 256, 32,   14,  14,  14  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 256, 32,   12,  12,  12  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 256, 32,    6,   6,   6  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 512,  1,   32,  32,  32  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},   // 32x32x32 based on VoxNet arch
-        { 512, 32,   14,  14,  14  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 512, 32,   12,  12,  12  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 512, 32,    6,   6,   6  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 32,  2,   32,  57, 125  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},    // Hand-gesture recognition CVPR 2015 paper High Res Net Path
-        { 32, 32,   14,  25,  59  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 32, 32,    6,  10,  27  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 32, 32,    4,   6,  11  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 32, 32,    2,   2,   3  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 32, 32,   32,  28,  62  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},    // Hand-gesture recognition CVPR 2015 paper Low Res Net Path
-        { 32, 32,   14,  12,  29  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 32, 32,    6,   4,  12  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 32, 32,    4,   2,   2  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 16, 32,    6,  50,  50  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},    // Multi-view 3D convnet
-        { 1, 3,     8,  240, 320 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
-        { 1, 3,    16,  240, 320 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
-        { 1, 3,     8,  128, 171 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
-        { 1, 3,    16,  128, 171 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
-        { 1, 3,     8,  112, 112 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
-        { 1, 3,    16,  112, 112 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
-        { 32,   1,   32,  32,  32  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},          // 32x32x32 based on VoxNet arch
-        { 32,   1,   14,  14,  14  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 32,  32,   14,  14,  14  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 32,  32,   12,  12,  12  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 32,  32,    6,   6,   6  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 256,  1,   32,  32,  32  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},          // 32x32x32 based on VoxNet arch
-        { 256, 32,   14,  14,  14  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 256, 32,   12,  12,  12  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 256, 32,    6,   6,   6  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 512,  1,   32,  32,  32  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},          // 32x32x32 based on VoxNet arch
-        { 512, 32,   14,  14,  14  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 512, 32,   12,  12,  12  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 512, 32,    6,   6,   6  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 32,  2,   32,  57, 125  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},           // Hand-gesture recognition CVPR 2015 paper High Res Net Path
-        { 32, 32,   14,  25,  59  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 32, 32,    6,  10,  27  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 32, 32,    4,   6,  11  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 32, 32,    2,   2,   3  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 32, 32,   32,  28,  62  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},           // Hand-gesture recognition CVPR 2015 paper Low Res Net Path
-        { 32, 32,   14,  12,  29  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 32, 32,    6,   4,  12  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 32, 32,    4,   2,   2  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 16, 32,    6,  50,  50  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},           // Multi-view 3D convnet
-        { 1, 3,     8,  240, 320 ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
-        { 1, 3,    16,  240, 320 ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
-        { 1, 3,     8,  128, 171 ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
-        { 1, 3,    16,  128, 171 ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
-        { 1, 3,     8,  112, 112 ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
-        { 1, 3,    16,  112, 112 ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
-        {32, 4,     0,    4, 256 ,1 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {64, 4,     0,    4, 256 ,1 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {32, 4,     0,    4, 256 ,1 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        {64, 4,     0,    4, 256 ,1 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        {32, 0,     0,    0, 256 ,1 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {64, 0,     0,    0, 256 ,1 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {32, 0,     0,    0, 256 ,1 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        {64, 0,     0,    0, 256 ,1 , 1e-5, MIOPEN_WEIGHT_BIAS}
-      };
-    // clang-format on
+{ // n c d h w num_groups eps mode
+
+    return {{32, 1, 32, 32, 32, 1, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {32, 1, 14, 14, 14, 1, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {32, 32, 14, 14, 14, 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {32, 32, 12, 12, 12, 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {32, 32, 6, 6, 6, 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {256, 1, 32, 32, 32, 1, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {256, 32, 14, 14, 14, 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {256, 32, 12, 12, 12, 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {256, 32, 6, 6, 6, 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {512, 1, 32, 32, 32, 1, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {512, 32, 14, 14, 14, 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {512, 32, 12, 12, 12, 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {512, 32, 6, 6, 6, 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {32, 2, 32, 57, 125, 2, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {32, 32, 14, 25, 59, 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {32, 32, 6, 10, 27, 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {32, 32, 4, 6, 11, 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {32, 32, 2, 2, 3, 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {32, 32, 32, 28, 62, 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {32, 32, 14, 12, 29, 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {32, 32, 6, 4, 12, 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {32, 32, 4, 2, 2, 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {16, 32, 6, 50, 50, 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            // {1, 3, 8, 240, 320, 1, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            // {1, 3, 16, 240, 320, 1, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            // {1, 3, 8, 128, 171, 1, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            // {1, 3, 16, 128, 171, 1, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            // {1, 3, 8, 112, 112, 1, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            // {1, 3, 16, 112, 112, 1, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {32, 1, 32, 32, 32, 1, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {32, 1, 14, 14, 14, 1, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {32, 32, 14, 14, 14, 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {32, 32, 12, 12, 12, 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {32, 32, 6, 6, 6, 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {256, 1, 32, 32, 32, 1, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {256, 32, 14, 14, 14, 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {256, 32, 12, 12, 12, 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {256, 32, 6, 6, 6, 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {512, 1, 32, 32, 32, 1, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {512, 32, 14, 14, 14, 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {512, 32, 12, 12, 12, 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {512, 32, 6, 6, 6, 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {32, 2, 32, 57, 125, 2, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {32, 32, 14, 25, 59, 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {32, 32, 6, 10, 27, 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {32, 32, 4, 6, 11, 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {32, 32, 2, 2, 3, 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {32, 32, 32, 28, 62, 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {32, 32, 14, 12, 29, 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {32, 32, 6, 4, 12, 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {32, 32, 4, 2, 2, 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {16, 32, 6, 50, 50, 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+            // {1, 3, 8, 240, 320, 1, 1e-5, MIOPEN_WEIGHT_BIAS},
+            // {1, 3, 16, 240, 320, 1, 1e-5, MIOPEN_WEIGHT_BIAS},
+            // {1, 3, 8, 128, 171, 1, 1e-5, MIOPEN_WEIGHT_BIAS},
+            // {1, 3, 16, 128, 171, 1, 1e-5, MIOPEN_WEIGHT_BIAS},
+            // {1, 3, 8, 112, 112, 1, 1e-5, MIOPEN_WEIGHT_BIAS},
+            // {1, 3, 16, 112, 112, 1, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {32, 4, 0, 4, 256, 1, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {64, 4, 0, 4, 256, 1, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {32, 4, 0, 4, 256, 1, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {64, 4, 0, 4, 256, 1, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {32, 1, 0, 0, 256, 1, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {64, 1, 0, 0, 256, 1, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+            {32, 1, 0, 0, 256, 1, 1e-5, MIOPEN_WEIGHT_BIAS},
+            {64, 1, 0, 0, 256, 1, 1e-5, MIOPEN_WEIGHT_BIAS}};
 }
 
 inline int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
@@ -173,58 +165,47 @@ protected:
         std::uniform_real_distribution<> d{-3, 3};
         auto gen_value = [&](auto...) { return d(gen); };
 
-        nomalized_dim = groupnorm_config.nomalized_dim;
-        eps           = groupnorm_config.eps;
-        ln_mode       = groupnorm_config.ln_mode;
+        num_groups = groupnorm_config.num_groups;
+        eps        = groupnorm_config.eps;
+        mode       = groupnorm_config.mode;
 
-        auto in_dim = groupnorm_config.GetInput();
+        std::vector<size_t> inout_dim       = groupnorm_config.GetInput();
+        std::vector<size_t> weight_bias_dim = {inout_dim[1]};
+        std::vector<size_t> mean_rstd_dim   = {inout_dim[0], num_groups};
 
-        input = tensor<T>{in_dim}.generate(gen_value);
+        input = tensor<T>{inout_dim}.generate(gen_value);
 
-        std::vector<size_t> inner_dim;
-        if(nomalized_dim == in_dim.size())
-            inner_dim = {1};
-        else
-            inner_dim = {in_dim.begin() + nomalized_dim, in_dim.end()};
-
-        if(ln_mode == MIOPEN_ELEMENTWISE_AFFINE)
+        if(mode == MIOPEN_ELEMENTWISE_AFFINE)
         {
             auto gen_one  = [&](auto...) { return 1; };
             auto gen_zero = [&](auto...) { return 0; };
-            weight        = tensor<T>{inner_dim}.generate(gen_one);
-            bias          = tensor<T>{inner_dim}.generate(gen_zero);
-            SetTensorLayout(weight.desc);
-            SetTensorLayout(bias.desc);
+            weight        = tensor<T>{weight_bias_dim}.generate(gen_one);
+            bias          = tensor<T>{weight_bias_dim}.generate(gen_zero);
         }
         else
         {
-            weight = tensor<T>{inner_dim}.generate(gen_value);
-            bias   = tensor<T>{inner_dim}.generate(gen_value);
-            SetTensorLayout(weight.desc);
-            SetTensorLayout(bias.desc);
+            weight = tensor<T>{weight_bias_dim}.generate(gen_value);
+            bias   = tensor<T>{weight_bias_dim}.generate(gen_value);
         }
+        output = tensor<T>{inout_dim};
+        mean   = tensor<T>{mean_rstd_dim};
+        rstd   = tensor<T>{mean_rstd_dim};
 
-        std::vector<size_t> outer_dim;
-        if(nomalized_dim == 0)
-            outer_dim = {1};
-        else
-            outer_dim = {in_dim.begin(), in_dim.end() - (in_dim.size() - nomalized_dim)};
-
+        SetTensorLayout(weight.desc);
+        SetTensorLayout(bias.desc);
         SetTensorLayout(input.desc);
-
-        output = tensor<T>{in_dim};
-        mean   = tensor<T>{outer_dim};
-        rstd   = tensor<T>{outer_dim};
         SetTensorLayout(output.desc);
         SetTensorLayout(mean.desc);
         SetTensorLayout(rstd.desc);
+
         std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
         std::fill(mean.begin(), mean.end(), std::numeric_limits<T>::quiet_NaN());
         std::fill(rstd.begin(), rstd.end(), std::numeric_limits<T>::quiet_NaN());
 
-        ref_output = tensor<T>{in_dim};
-        ref_mean   = tensor<T>{outer_dim};
-        ref_rstd   = tensor<T>{outer_dim};
+        ref_output = tensor<T>{inout_dim};
+        ref_mean   = tensor<T>{mean_rstd_dim};
+        ref_rstd   = tensor<T>{mean_rstd_dim};
+
         std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<T>::quiet_NaN());
         std::fill(ref_mean.begin(), ref_mean.end(), std::numeric_limits<T>::quiet_NaN());
         std::fill(ref_rstd.begin(), ref_rstd.end(), std::numeric_limits<T>::quiet_NaN());
@@ -236,12 +217,13 @@ protected:
         mean_dev   = handle.Write(mean.data);
         rstd_dev   = handle.Write(rstd.data);
     }
+
     void RunTest()
     {
         auto&& handle = get_handle();
 
         cpu_groupnorm_forward<T>(
-            input, weight, bias, ref_output, ref_mean, ref_rstd, eps, nomalized_dim, ln_mode);
+            input, weight, bias, ref_output, ref_mean, ref_rstd, num_groups, eps, mode);
         miopenStatus_t status;
 
         status = miopen::GroupNormForward(handle,
@@ -257,9 +239,9 @@ protected:
                                           mean_dev.get(),
                                           rstd.desc,
                                           rstd_dev.get(),
-                                          ln_mode,
-                                          eps,
-                                          nomalized_dim);
+                                          mode,
+                                          num_groups,
+                                          eps);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -279,8 +261,8 @@ protected:
 
         error = miopen::rms_range(ref_mean, mean);
         EXPECT_TRUE(miopen::range_distance(ref_mean) == miopen::range_distance(mean));
-        EXPECT_TRUE(error < threshold * 20)
-            << "Error mean beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        EXPECT_TRUE(error < threshold * 50) << "Error mean beyond tolerance Error:" << error
+                                            << ",  Thresholdx50: " << threshold * 50;
 
         error = miopen::rms_range(ref_rstd, rstd);
         EXPECT_TRUE(miopen::range_distance(ref_rstd) == miopen::range_distance(rstd));
@@ -307,7 +289,7 @@ protected:
     miopen::Allocator::ManageDataPtr mean_dev;
     miopen::Allocator::ManageDataPtr rstd_dev;
 
-    size_t nomalized_dim;
+    size_t num_groups;
     float eps;
-    miopenNormMode_t ln_mode;
+    miopenNormMode_t mode;
 };

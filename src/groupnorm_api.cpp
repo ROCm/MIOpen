@@ -31,7 +31,7 @@
 
 static void LogCmdGroupNorm(const miopenTensorDescriptor_t xDesc,
                             const miopenNormMode_t mode,
-                            int32_t num_groups,
+                            uint64_t num_groups,
                             bool is_fwd)
 {
     if(miopen::IsLoggingCmd())
@@ -91,7 +91,7 @@ extern "C" miopenStatus_t miopenGroupNormForward(miopenHandle_t handle,
                                                  const void* weight,
                                                  const miopenTensorDescriptor_t biasDesc,
                                                  const void* bias,
-                                                 const int32_t num_groups,
+                                                 const uint64_t num_groups,
                                                  const float epsilon,
                                                  const miopenTensorDescriptor_t yDesc,
                                                  void* y,
