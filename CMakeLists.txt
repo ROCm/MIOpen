@@ -91,8 +91,7 @@ option(BUILD_SHARED_LIBS "Create shared libraries" ON)
 
 if(MIOPEN_ENABLE_SQLITE)
     # MIOpen now depends on SQLite as well
-    find_package(PkgConfig)
-    pkg_check_modules(SQLITE3 REQUIRED sqlite3)
+    find_package(SQLite3 REQUIRED)
 endif()
 find_package(BZip2)
 find_package(nlohmann_json 3.9.1 REQUIRED)
