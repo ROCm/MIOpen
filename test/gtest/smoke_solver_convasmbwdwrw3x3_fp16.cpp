@@ -29,9 +29,10 @@
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
 
-using TestCase = std::tuple<std::vector<std::string>, std::string>;
-
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
+namespace smoke_solver_convasmbwdwrw3x3_fp16 {
+
+using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
 static bool SkipTest(void) { return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)); }
 
@@ -107,19 +108,6 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
         return false;
 }
 
-TEST_P(Conv2dHalf, HalfTest)
-{
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
-    {
-        Run2dDriver(miopenHalf);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
 std::vector<TestCase> GetTestCases(void)
 {
     std::vector<std::string> env_wrw = {"MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE",
@@ -137,6 +125,23 @@ std::vector<TestCase> GetTestCases(void)
     };
     return test_cases;
 }
+
+} // namespace smoke_solver_convasmbwdwrw3x3_fp16
+
+using namespace smoke_solver_convasmbwdwrw3x3_fp16;
+
+TEST_P(Conv2dHalf, HalfTest)
+{
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    {
+        Run2dDriver(miopenHalf);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmBwdWrw3x3Fp16,
                          Conv2dHalf,

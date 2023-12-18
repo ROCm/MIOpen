@@ -29,6 +29,7 @@
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
 
+namespace smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops {
 using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
 void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
@@ -112,6 +113,29 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
         return false;
 }
 
+std::vector<TestCase> GetTestCases(void)
+{
+    std::vector<std::string> env_bwd = {
+        "MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE",
+        "MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5",
+        "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS=1",
+        "MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0",
+        "MIOPEN_FIND_MODE=normal",
+        "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmBwdDataV1R1Xdlops"};
+
+    std::string vb = " --verbose --disable-forward --disable-backward-weights";
+
+    const std::vector<TestCase> test_cases = {
+        // clang-format off
+    TestCase{env_bwd, vb + " --input 32 128 32 32 --weights 12 128 1 1 --pads_strides_dilations 0 0 1 1 1 1"}
+        // clang-format on
+    };
+    return test_cases;
+}
+
+} // namespace smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops
+using namespace smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops;
+
 TEST_P(Conv2dFloat, FloatTest)
 {
     const auto& handle = get_handle();
@@ -150,26 +174,6 @@ TEST_P(Conv2dBFloat16, BFloat16Test)
         GTEST_SKIP();
     }
 };
-
-std::vector<TestCase> GetTestCases(void)
-{
-    std::vector<std::string> env_bwd = {
-        "MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE",
-        "MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5",
-        "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS=1",
-        "MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0",
-        "MIOPEN_FIND_MODE=normal",
-        "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmBwdDataV1R1Xdlops"};
-
-    std::string vb = " --verbose --disable-forward --disable-backward-weights";
-
-    const std::vector<TestCase> test_cases = {
-        // clang-format off
-    TestCase{env_bwd, vb + " --input 32 128 32 32 --weights 12 128 1 1 --pads_strides_dilations 0 0 1 1 1 1"}
-        // clang-format on
-    };
-    return test_cases;
-}
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvHipImplicitGemmBwdDataV1R1Xdlops,
                          Conv2dFloat,
