@@ -28,7 +28,6 @@
 #include <miopen/errors.hpp>
 #include <miopen/lock_file.hpp>
 #include <miopen/logger.hpp>
-#include <miopen/md5.hpp>
 
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/filesystem.hpp>

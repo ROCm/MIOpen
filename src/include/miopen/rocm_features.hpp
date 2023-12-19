@@ -43,28 +43,6 @@
 /// To be removed as soon as support for ROCm 3.x is discontinued.
 #define WORKAROUND_MLOPEN_ISSUE_1711 (HIP_PACKAGE_VERSION_FLAT < 4000000000ULL)
 
-/// W/A for MIOpenGEMM issues with ROCm 4.1 and newer ROCm
-/// versions. The issue is highly likely related to the
-/// issues in the OpenCL compiler or in MIOpenGEMM itself.
-/// MIOpenGEMM is used only for OCL BE and deprecated.
-/// Related ticket: http://ontrack-internal.amd.com/browse/SWDEV-276757
-///
-/// Some failing cases:
-/// test_immed_conv2d --float --cmode conv --pmode default --group-count 1
-///  --input 1, 3, 224, 224 --weights 1, 3, 11, 11
-///   --pads_strides_dilations 1 1 1 1 1 1 --trans_output_pads 0 0
-///  --input 1, 3, 224, 224 --weights 1, 3, 7, 7
-///   --pads_strides_dilations 3 3 2 2 1 1 --trans_output_pads 0 0
-/// test_immed_conv3d --float --cmode conv --pmode default --group-count 1
-///  --input 1, 4, 4, 161, 700 --weights 1, 4, 3, 11, 11
-///   --pads_strides_dilations 3 3 3 2 2 2 4 4 4 --trans_output_pads 0 0 0
-///
-/// W/A is in effect only when MIOpenGEMM is used (OCL BE) and disables
-/// GEMM for the failing configs. When this happens, Naive solvers
-/// are used as backup on the Immediate Mode Fallback path.
-#define WORKAROUND_MIOPENGEMM_SINCE_ROCM41 \
-    (MIOPEN_USE_MIOPENGEMM && (HIP_PACKAGE_VERSION_FLAT >= 4001000000ULL))
-
 #define ROCM_FEATURE_TARGETID_OFF (HIP_PACKAGE_VERSION_FLAT < 4001000000ULL)
 
 /// Return type of llvm.amdgcn.buffer.atomic.fadd.f32 can't be detected.

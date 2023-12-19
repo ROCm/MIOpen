@@ -45,7 +45,6 @@ struct HIPOCProgramImpl
 
     HIPOCProgramImpl(const std::string& program_name,
                      std::string params,
-                     bool is_kernel_str,
                      const TargetProperties& target_,
                      const std::string& kernel_src);
 
@@ -65,7 +64,7 @@ struct HIPOCProgramImpl
                                  const std::string& filename);
 #endif
 
-    void BuildCodeObject(std::string params, bool is_kernel_str, const std::string& kernel_src);
+    void BuildCodeObject(std::string params, const std::string& kernel_src);
 };
 } // namespace miopen
 #endif // GUARD_MIOPEN_HIPOC_PROGRAM_IMPL_HPP
