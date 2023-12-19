@@ -24,6 +24,9 @@
  *
  *******************************************************************************/
 #pragma once
+
+#include "miopen_cstdint.hpp"
+
 #ifndef MIOPEN_ENABLE_F8_DEVICE_CODE
 #define MIOPEN_ENABLE_F8_DEVICE_CODE 0
 #endif
