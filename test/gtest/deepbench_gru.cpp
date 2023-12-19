@@ -133,7 +133,7 @@ std::vector<std::string> GetTestCases(void)
 
 using namespace deepbench_gru;
 
-TEST_P(ConfigWithFloat, FloatTest)
+TEST_P(ConfigWithFloat, FloatTest_deepbench_gru)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())

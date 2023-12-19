@@ -127,7 +127,7 @@ std::vector<std::string> GetTestCases(void)
 
 using namespace deepbench_rnn;
 
-TEST_P(ConfigWithFloat, FloatTest)
+TEST_P(ConfigWithFloat, FloatTest_deepbench_rnn)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())

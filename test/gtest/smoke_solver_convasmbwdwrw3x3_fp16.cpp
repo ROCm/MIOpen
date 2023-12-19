@@ -130,7 +130,7 @@ std::vector<TestCase> GetTestCases(void)
 
 using namespace smoke_solver_convasmbwdwrw3x3_fp16;
 
-TEST_P(Conv2dHalf, HalfTest)
+TEST_P(Conv2dHalf, HalfTest_smoke_solver_convasmbwdwrw3x3_fp16)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())

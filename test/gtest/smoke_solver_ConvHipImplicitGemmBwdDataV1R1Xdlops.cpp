@@ -136,7 +136,7 @@ std::vector<TestCase> GetTestCases(void)
 } // namespace smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops
 using namespace smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops;
 
-TEST_P(Conv2dFloat, FloatTest)
+TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle))
@@ -149,7 +149,7 @@ TEST_P(Conv2dFloat, FloatTest)
     }
 };
 
-TEST_P(Conv2dHalf, HalfTest)
+TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle))
@@ -162,7 +162,7 @@ TEST_P(Conv2dHalf, HalfTest)
     }
 };
 
-TEST_P(Conv2dBFloat16, BFloat16Test)
+TEST_P(Conv2dBFloat16, BFloat16Test_smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle))

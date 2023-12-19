@@ -136,7 +136,7 @@ std::vector<std::string> GetTestCases(void)
 } // namespace gru_extra
 using namespace gru_extra;
 
-TEST_P(ConfigWithFloat, FloatTest)
+TEST_P(ConfigWithFloat, FloatTest_gru_extra)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())
