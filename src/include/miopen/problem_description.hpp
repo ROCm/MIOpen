@@ -33,8 +33,6 @@
 #include <cstdint>
 #include <string>
 
-#define FIN_OLD_PROBLEM_DESCRIPTION_COMPAT 1
-
 namespace miopen {
 
 // Tensor Helper APIs
@@ -56,27 +54,6 @@ SetDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor, con
 
     return tensor.GetElementSpace();
 }
-
-#if FIN_OLD_PROBLEM_DESCRIPTION_COMPAT
-struct ProblemDescription : conv::ProblemDescription
-{
-    ProblemDescription() = default;
-
-    ProblemDescription(conv::ProblemDescription desc) : conv::ProblemDescription(std::move(desc))
-    {
-        conv_problem.p = this;
-    }
-
-    struct
-    {
-        void SetupFloats(ExecutionContext& ctx) const { p->SetupFloats(ctx); }
-
-    private:
-        const conv::ProblemDescription* p = nullptr;
-        friend struct ProblemDescription;
-    } conv_problem;
-};
-#endif
 
 // For mlo_construct_base
 // TODO remove this
