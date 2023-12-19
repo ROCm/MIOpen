@@ -87,7 +87,7 @@ std::vector<NonPackTestCase> ConvTestConfigs()
 }
 
 template <typename T = float>
-struct ConvFwdSolverTest
+struct ConvNonpackFwdSolverTest3D
     : public ::testing::TestWithParam<
           std::tuple<miopenConvFwdAlgorithm_t, NonPackTestCase, miopenTensorLayout_t>>
 {

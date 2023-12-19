@@ -92,7 +92,7 @@ inline std::vector<ConvTestCaseGroup> ConvTestConfigs()
             {32, 256, 1024, 28, 28, 2048, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
 }
 
-inline int SetTensorLayout(miopen::TensorDescriptor& desc)
+static int SetTensorLayout(miopen::TensorDescriptor& desc)
 {
     // get layout string names
     std::string layout_str = desc.GetLayout_str();
