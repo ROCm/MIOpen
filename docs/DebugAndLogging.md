@@ -168,8 +168,7 @@ The `ROCBLAS_LAYER` environmental variable can be set to output GEMM information
 * `ROCBLAS_LAYER=2` - is set to 2, then there is bench logging
 * `ROCBLAS_LAYER=3` - is set to 3, then there is both trace and bench logging
 
-Additionally, using environment variable "MIOPEN_GEMM_ENFORCE_BACKEND", can override the default behavior. The default behavior which is to use
-both MIOpenGEMM and rocBlas depending on the input configuration:
+Additionally, the environment variable "MIOPEN_GEMM_ENFORCE_BACKEND" can be set to override default GEMM backend (Default GEMM backend is rocBLAS):
 
 * `MIOPEN_GEMM_ENFORCE_BACKEND=1`, use rocBLAS if enabled
 * `MIOPEN_GEMM_ENFORCE_BACKEND=2`, reserved

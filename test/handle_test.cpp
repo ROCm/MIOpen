@@ -98,8 +98,15 @@ void run2s(miopen::Handle& h, std::size_t n, kernel_type_t kern_type)
     auto data_dev = h.Write(data_in);
     if(kern_type == miopenOpenCLKernelType)
     {
-        h.AddKernel("GEMM", "", Write2s(miopenOpenCLKernelType), "write", {n, 1, 1}, {n, 1, 1}, "")(
-            data_dev.get());
+        h.AddKernel("NoAlgo",
+                    "",
+                    "test_ocl.cl",
+                    "write",
+                    {n, 1, 1},
+                    {n, 1, 1},
+                    "",
+                    0,
+                    Write2s(miopenOpenCLKernelType))(data_dev.get());
     }
     else if(kern_type == miopenHIPKernelType)
     {
@@ -111,7 +118,6 @@ void run2s(miopen::Handle& h, std::size_t n, kernel_type_t kern_type)
                     {n, 1, 1},
                     "",
                     0,
-                    false,
                     Write2s(miopenHIPKernelType))(data_dev.get());
     }
     else
@@ -165,11 +171,27 @@ void test_errors(kernel_type_t kern_type)
     if(kern_type == miopenOpenCLKernelType)
     {
         EXPECT(throws([&] {
-            h.AddKernel("GEMM", "", WriteError(kern_type), "write", {1, 1, 1}, {1, 1, 1}, "");
+            h.AddKernel("NoAlgo",
+                        "",
+                        "error_ocl.cl",
+                        "write",
+                        {1, 1, 1},
+                        {1, 1, 1},
+                        "",
+                        0,
+                        WriteError(kern_type));
         }));
         try
         {
-            h.AddKernel("GEMM", "", WriteError(kern_type), "write", {1, 1, 1}, {1, 1, 1}, "");
+            h.AddKernel("NoAlgo",
+                        "",
+                        "error_ocl.cl",
+                        "write",
+                        {1, 1, 1},
+                        {1, 1, 1},
+                        "",
+                        0,
+                        WriteError(kern_type));
         }
         catch(miopen::Exception& e)
         {
@@ -187,7 +209,6 @@ void test_errors(kernel_type_t kern_type)
                         {1, 1, 1},
                         "",
                         0,
-                        false,
                         WriteError(miopenHIPKernelType));
         }));
         try
@@ -200,7 +221,6 @@ void test_errors(kernel_type_t kern_type)
                         {1, 1, 1},
                         "",
                         0,
-                        false,
                         WriteError(miopenHIPKernelType));
         }
         catch(miopen::Exception& e)
@@ -239,7 +259,15 @@ void test_warnings(kernel_type_t kern_type)
     if(kern_type == miopenOpenCLKernelType)
     {
         EXPECT(throws([&] {
-            h.AddKernel("GEMM", "", WriteNop(kern_type), "write", {1, 1, 1}, {1, 1, 1}, "");
+            h.AddKernel("NoAlgo",
+                        "",
+                        "nop_ocl.cl",
+                        "write",
+                        {1, 1, 1},
+                        {1, 1, 1},
+                        "",
+                        0,
+                        WriteNop(kern_type));
             MIOPEN_LOG_E("FAILED: Build of the OpenCL kernel should produce warnings");
         }));
     }
@@ -254,7 +282,6 @@ void test_warnings(kernel_type_t kern_type)
                         {1, 1, 1},
                         "",
                         0,
-                        false,
                         WriteNop(kern_type));
             MIOPEN_LOG_E("FAILED: Build of the HIP kernel 'nop_hip.cpp' should produce warnings");
         }));
