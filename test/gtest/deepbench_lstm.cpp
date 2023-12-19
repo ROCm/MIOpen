@@ -184,9 +184,9 @@ void Run2dDriver(miopenDataType_t prec)
 
 using namespace deepbench_lstm;
 
-TEST_P(ConfigWithFloat, FloatTest) { Run2dDriver(miopenFloat); };
+TEST_P(ConfigWithFloat, FloatTest_deepbench_lstm) { Run2dDriver(miopenFloat); };
 
-TEST_P(ConfigWithHalf, HalfTest) { Run2dDriver(miopenHalf); };
+TEST_P(ConfigWithHalf, HalfTest_deepbench_lstm) { Run2dDriver(miopenHalf); };
 
 INSTANTIATE_TEST_SUITE_P(DeepbenchLstm, ConfigWithFloat, testing::Values(GetTestCases("--float")));
 

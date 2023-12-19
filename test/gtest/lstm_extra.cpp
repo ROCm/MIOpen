@@ -195,9 +195,9 @@ void Run2dDriver(miopenDataType_t prec)
 } // namespace lstm_extra
 using namespace lstm_extra;
 
-TEST_P(ConfigWithFloat, FloatTest) { Run2dDriver(miopenFloat); };
+TEST_P(ConfigWithFloat, FloatTest_lstm_extra) { Run2dDriver(miopenFloat); };
 
-TEST_P(ConfigWithHalf, HalfTest) { Run2dDriver(miopenHalf); };
+TEST_P(ConfigWithHalf, HalfTest_lstm_extra) { Run2dDriver(miopenHalf); };
 
 INSTANTIATE_TEST_SUITE_P(LstmExtra, ConfigWithFloat, testing::Values(GetTestCases("--float")));
 
