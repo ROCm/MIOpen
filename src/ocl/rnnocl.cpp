@@ -86,8 +86,8 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
 
     int bi = dirMode != 0u ? 2 : 1;
 
-    if(in_vec_size <= 0 || hidden_size <= 0 || max_batch <= 0 || biNumLayers <= 0 ||
-       out_vec_size <= 0 || seq_len <= 0)
+    if (in_vec_size <= 0 || hidden_size <= 0 || max_batch <= 0 || biNumLayers <= 0 ||
+       out_vec_size <= 0 || seq_len == 0)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -184,7 +184,7 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
             }
         };
 
-    auto call_relu_tan_bias_add = [*this,
+    auto call_relu_tan_bias_add = [this,
                                    &RBuff,
                                    &WeiBuf,
                                    &handle,
@@ -243,6 +243,9 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                      RBuff.layer_offset(layer));
             return;
         }
+
+        if((RBuff.batches_per_layer - batches.at(0)) <= 0)
+            return;
 
         auto reserve_desc = miopen::TensorDescriptor(
             wDesc.GetType(),
@@ -3102,7 +3105,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
         return;
     }
 
-    if((rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH) && !use_dropout && nLayers > 1 &&
+    if((rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH) && !use_dropout &&
        inputMode != miopenRNNskip && !(miopen::IsDisabled(ENV(MIOPEN_RNNFWD_exp))))
     {
         RNNForwardTrainingTanhRelu(handle,
@@ -4913,8 +4916,8 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
                                   workSpace,
                                   reserveSpace,
                                   &activDesc,
-                                  propagate_hidden_output,
-                                  propagate_hidden_prev,
+                                  &propagate_hidden_output,
+                                  &propagate_hidden_prev,
                                   max_batch](int layer, int time, int direction) {
         const int cur_time = direction == rnn_direction::Forward ? time : seqLen - time - 1;
 
@@ -4954,7 +4957,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
                            RBuff.gemm_write_offset(layer, bacc_per_time[cur_time], direction));
     };
 
-    auto propagate_hidden = [*this, seqLen, propagate_hidden_time](int layer) {
+    auto propagate_hidden = [this, seqLen, propagate_hidden_time](int layer) {
         for(int time = seqLen - 1; time >= 0; time--)
         {
             propagate_hidden_time(layer, time, rnn_direction::Forward);
@@ -5032,7 +5035,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
         }
     };
 
-    auto propagate_dhx = [*this, seqLen, &propagate_dhx_prev, &dhx](int layer) {
+    auto propagate_dhx = [this, seqLen, &propagate_dhx_prev, dhx](int layer) {
         if(dhx == nullptr)
             return;
 
