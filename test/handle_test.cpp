@@ -30,7 +30,7 @@
 
 // https://gerrit-git.amd.com/c/compute/ec/clr/+/972441
 #define WORKAROUND_ISSUE_2600 \
-    (HIP_PACKAGE_VERSION_FLAT > 5007023384ULL && HIP_PACKAGE_VERSION_FLAT <= 6000023494ULL)
+    (HIP_PACKAGE_VERSION_FLAT > 6000000000ULL && HIP_PACKAGE_VERSION_FLAT <= 6000023494ULL)
 
 #include <miopen/config.h>
 #include <miopen/handle.hpp>
