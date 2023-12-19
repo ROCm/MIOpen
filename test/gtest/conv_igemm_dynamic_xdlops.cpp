@@ -34,6 +34,8 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
 
+namespace conv_igemm_dynamic_xdlops {
+
 static bool SkipTest(void)
 {
     return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)) ||
@@ -116,32 +118,6 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
         return false;
 }
 
-TEST_P(Conv2dFloat, FloatTest)
-{
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
-    {
-        Run2dDriver(miopenFloat);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-TEST_P(Conv2dHalf, HalfTest)
-{
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
-    {
-        Run2dDriver(miopenHalf);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
 std::vector<std::string> GetTestCases(const std::string& precision)
 {
     const std::string flags       = "test_conv2d " + precision + " --verbose ";
@@ -206,6 +182,35 @@ std::vector<std::string> GetTestCases(const std::string& precision)
     };
     return test_cases;
 }
+
+} // namespace conv_igemm_dynamic_xdlops
+using namespace conv_igemm_dynamic_xdlops;
+
+TEST_P(Conv2dFloat, FloatTest_Conv_Igemm_Dynamic_dlops)
+{
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    {
+        Run2dDriver(miopenFloat);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(Conv2dHalf, HalfTest_conv_igemm_dynamic_xdlops)
+{
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    {
+        Run2dDriver(miopenHalf);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
 INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamic, Conv2dFloat, testing::Values(GetTestCases("--float")));
 

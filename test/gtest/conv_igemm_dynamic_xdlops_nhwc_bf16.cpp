@@ -34,6 +34,8 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
 
+namespace conv_igemm_dynamic_xdlops_nhwc_bf16 {
+
 static bool SkipTest(void)
 {
     return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)) ||
@@ -113,19 +115,6 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
         return false;
 }
 
-TEST_P(Conv2dBf16, Bf16Test)
-{
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
-    {
-        Run2dDriver(miopenBFloat16);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
 std::vector<std::string> GetTestCases(const std::string& precision)
 {
     const std::string flags         = "test_conv2d " + precision + " --verbose ";
@@ -204,6 +193,22 @@ std::vector<std::string> GetTestCases(const std::string& precision)
     };
     return test_cases;
 }
+
+} // namespace conv_igemm_dynamic_xdlops_nhwc_bf16
+using namespace conv_igemm_dynamic_xdlops_nhwc_bf16;
+
+TEST_P(Conv2dBf16, Bf16Test_conv_igemm_dynamic_xdlops_nhwc_bf16)
+{
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    {
+        Run2dDriver(miopenBFloat16);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
 INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamicXdlopsNhwc,
                          Conv2dBf16,
