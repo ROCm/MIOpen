@@ -30,7 +30,6 @@
 #include <miopen/binary_cache.hpp>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/gemm_geometry.hpp>
 #include <miopen/handle_lock.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/kernel_cache.hpp>
@@ -441,10 +440,8 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                const std::vector<size_t>& vgd,
                                const std::string& params,
                                std::size_t cache_index,
-                               bool is_kernel_str,
                                const std::string& kernel_src) const
 {
-
     auto obj = this->impl->cache.AddKernel(*this,
                                            algorithm,
                                            network_config,
@@ -454,7 +451,6 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                            vgd,
                                            params,
                                            cache_index,
-                                           is_kernel_str,
                                            kernel_src);
     return this->Run(obj);
 }
@@ -502,7 +498,6 @@ KernelInvoke Handle::Run(Kernel k) const
 
 Program Handle::LoadProgram(const std::string& program_name,
                             std::string params,
-                            bool is_kernel_str,
                             const std::string& kernel_src) const
 {
     this->impl->set_ctx();
@@ -513,11 +508,8 @@ Program Handle::LoadProgram(const std::string& program_name,
     if(!miopen::EndsWith(program_name, ".mlir"))
         params = params + " -mcpu=" + this->GetTargetProperties().Name();
 
-    auto hsaco = miopen::LoadBinary(this->GetTargetProperties(),
-                                    this->GetMaxComputeUnits(),
-                                    program_name,
-                                    params,
-                                    is_kernel_str);
+    auto hsaco = miopen::LoadBinary(
+        this->GetTargetProperties(), this->GetMaxComputeUnits(), program_name, params);
     if(hsaco.empty())
     {
         const auto arch_target_id = miopen::SplitDelim(arch_name, ':');
@@ -528,8 +520,7 @@ Program Handle::LoadProgram(const std::string& program_name,
             hsaco                = miopen::LoadBinary(this->GetTargetProperties(),
                                        this->GetMaxComputeUnits(),
                                        program_name,
-                                       orig_params + " -mcpu=" + base_arch,
-                                       is_kernel_str);
+                                       orig_params + " -mcpu=" + base_arch);
         }
     }
 
@@ -538,9 +529,8 @@ Program Handle::LoadProgram(const std::string& program_name,
     if(hsaco.empty())
     {
         CompileTimer ct;
-        auto p = HIPOCProgram{
-            program_name, params, is_kernel_str, this->GetTargetProperties(), kernel_src};
-        ct.Log("Kernel", is_kernel_str ? std::string() : program_name);
+        auto p = HIPOCProgram{program_name, params, this->GetTargetProperties(), kernel_src};
+        ct.Log("Kernel", program_name);
 
 // Save to cache
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
@@ -550,15 +540,14 @@ Program Handle::LoadProgram(const std::string& program_name,
                            this->GetTargetProperties(),
                            this->GetMaxComputeUnits(),
                            program_name,
-                           params,
-                           is_kernel_str);
+                           params);
 #else
         auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
         if(p.IsCodeObjectInMemory())
             miopen::WriteFile(p.GetCodeObjectBlob(), path);
         else
             boost::filesystem::copy_file(p.GetCodeObjectPathname(), path);
-        miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params, is_kernel_str);
+        miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params);
 #endif
         p.FreeCodeObjectFileStorage();
         return p;

@@ -45,7 +45,6 @@ ClProgramPtr LoadProgram(cl_context ctx,
                          const TargetProperties& target,
                          const std::string& program,
                          std::string params,
-                         bool is_kernel_str,
                          const std::string& kernel_src);
 void GetProgramBinary(const ClProgramPtr& program, std::string& binary);
 void SaveProgramBinary(const ClProgramPtr& program, const std::string& name);

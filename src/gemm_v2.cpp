@@ -643,8 +643,7 @@ miopenStatus_t CallGemm(const Handle& handle,
         break;
 
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "miopenDouble data type not supported by MIOpenGEMM.");
+            MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported by rocBLAS.");
         };
         break;
         }
@@ -918,8 +917,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         }
 
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "miopenDouble data type not supported by MIOpenGEMM.");
+            MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported by rocBLAS.");
         }
         break;
         }
@@ -1191,8 +1189,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         }
 
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "miopenDouble data type not supported by MIOpenGEMM.");
+            MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported by rocBLAS.");
         }
         break;
         }

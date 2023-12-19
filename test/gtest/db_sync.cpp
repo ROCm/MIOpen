@@ -470,7 +470,7 @@ void BuildKernel(const std::string& program_file,
 #else
     try
     {
-        auto p = handle.LoadProgram(program_file, program_args, false, "");
+        auto p = handle.LoadProgram(program_file, program_args, "");
     }
     catch(std::exception&)
     {
