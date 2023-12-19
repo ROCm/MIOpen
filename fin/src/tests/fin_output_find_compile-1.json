@@ -1,0 +1,96 @@
+[
+    {
+        "process_env": [
+            "LESSOPEN=| /usr/bin/lesspipe %s",
+            "MIOPEN_SQLITE_KERN_CACHE=ON",
+            "MIOPEN_FIND_MODE=1",
+            "SHLVL=1",
+            "LD_LIBRARY_PATH=/opt/rocm/lib:",
+            "HOME=/root",
+            "OLDPWD=/root/dFin/_hip",
+            "MIOPEN_CUSTOM_CACHE_DIR=/tmp/miopenpdb/thread-0/cache",
+            "UBSAN_OPTIONS=print_stacktrace=1",
+            "TUNA_ROCM_VERSION=rocm-'5.5 50'",
+            "LC_CTYPE=C.UTF-8",
+            "TUNA_LOGLEVEL=INFO",
+            "_=./tuna/go_fish.py",
+            "TERM=xterm",
+            "PATH=/opt/rocm/miopen/bin:/opt/rocm/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS=1",
+            "MIOPEN_LOG_LEVEL=4",
+            "LS_COLORS=rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:",
+            "LESSCLOSE=/usr/bin/lesspipe %s %s",
+            "PWD=/root/MITuna",
+            "PYTHONPATH=/tuna",
+            "MIOPEN_USER_DB_PATH=/tmp/miopenpdb/thread-0/config/miopen"
+        ]
+    },
+    {
+        "arch": "gfx908:sram-ecc+:xnack-",
+        "config_tuna_id": 125734,
+        "db_key": "1024-14-14-1x1-256-14-14-128-0x0-1x1-1x1-0-NCHW-FP32-F",
+        "direction": 1,
+        "input": {
+            "arch": "gfx908:sram-ecc+:xnack-",
+            "config": {
+                "batchsize": 128,
+                "cmd": "conv",
+                "conv_stride_d": 0,
+                "conv_stride_h": 1,
+                "conv_stride_w": 1,
+                "dilation_d": 0,
+                "dilation_h": 1,
+                "dilation_w": 1,
+                "direction": "F",
+                "driver": "./bin/MIOpenDriver conv --batchsize 128 --spatial_dim 2 --pad_h 0 --pad_w 0 --pad_d 0 --conv_stride_h 1 --conv_stride_w 1 --conv_stride_d 0 --dilation_h 1 --dilation_w 1 --dilation_d 0 --group_count 1 --mode conv --pad_mode default --trans_output_pad_h 0 --trans_output_pad_w 0 --trans_output_pad_d 0 --out_layout NCHW --in_d 1 --in_h 14 --in_w 14 --fil_d 1 --fil_h 1 --fil_w 1 --in_channels 1024 --out_channels 256 --forw 1",
+                "fil_d": 1,
+                "fil_h": 1,
+                "fil_w": 1,
+                "group_count": 1,
+                "id": 125734,
+                "in_channels": 1024,
+                "in_d": 1,
+                "in_h": 14,
+                "in_layout": "NCHW",
+                "in_w": 14,
+                "mode": "conv",
+                "out_channels": 256,
+                "out_layout": "NCHW",
+                "pad_d": 0,
+                "pad_h": 0,
+                "pad_mode": "default",
+                "pad_w": 0,
+                "spatial_dim": 2,
+                "trans_output_pad_d": 0,
+                "trans_output_pad_h": 0,
+                "trans_output_pad_w": 0,
+                "valid": 1,
+                "wei_layout": "NCHW"
+            },
+            "config_tuna_id": 125734,
+            "direction": 1,
+            "dynamic_only": false,
+            "num_cu": 120,
+            "solvers": [
+                "GemmFwd1x1_0_1"
+            ],
+            "steps": [
+                "miopen_find_compile"
+            ]
+        },
+        "is_winograd_only": false,
+        "miopen_find_compile_result": [
+            {
+                "algorithm": "miopenConvolutionFwdAlgoGEMM",
+                "find_compiled": true,
+                "kernel_objects": [],
+                "params": "",
+                "reason": "Success",
+                "solver_name": "GemmFwd1x1_0_1",
+                "tunable": false,
+                "workspace": 0
+            }
+        ],
+        "network_config": "1024x14x14x1x1x256x14x14x128xNCHWxFP32x0x0x1x1x1x1x1xF"
+    }
+]
