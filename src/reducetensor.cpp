@@ -72,7 +72,7 @@ struct ReductionKernelConfigurator
     {
         GredDirectThreadWiseUpperReductionLen = warpSize;
         GredDirectWarpWiseUpperReductionLen   = blockSize;
-        GredBlockWiseUpperReductionLen        = blockSize * 4;
+        GredBlockWiseUpperReductionLen        = static_cast<size_t>(blockSize) * 4;
         GredUpperNumBlocksPerReduction        = 32;
 
         numWarpsPerBlock = blockSize / warpSize;
@@ -208,12 +208,13 @@ inline int GetDataTypeSize(miopenDataType_t t)
     case miopenHalf: return (2);
     case miopenFloat: return (4);
     case miopenDouble: return (8);
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8: return (1);
-    case miopenInt8x4: return (4);
+    case miopenInt8x4: return (4); // Support discontinued.
     case miopenBFloat16: return (2);
     case miopenInt32: return (4);
-    default:
-        MIOPEN_THROW("Only float, half, double, bfloat16, int8, int8x4 data type is supported.");
+    default: MIOPEN_THROW("Only float, half, double, bfloat16, int8 data types are supported.");
     };
 };
 
@@ -267,9 +268,11 @@ inline int GetDataTypeId(miopenDataType_t t)
     case miopenBFloat16: return (static_cast<int>('B'));
     case miopenDouble: return (static_cast<int>('D'));
     case miopenInt8:
-    case miopenInt8x4:
+    case miopenInt8x4: // Support discontinued.
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt32: return (static_cast<int>('O'));
-    default: MIOPEN_THROW("Only float, half, bfloat16 data type is supported.");
+    default: MIOPEN_THROW("Only float, half, bfloat16, float8, bfloat8 data type is supported.");
     };
 };
 
@@ -307,6 +310,8 @@ static ck::DataTypeEnum_t mapDataTypeId(miopenDataType_t t)
     case miopenInt8: return DataTypeEnum_t::Int8;
     case miopenInt8x4: return DataTypeEnum_t::Int8x4;
     case miopenInt32: return DataTypeEnum_t::Int32;
+    case miopenFloat8:
+    case miopenBFloat8:
     default: MIOPEN_THROW("Only float, half, double data type is supported.");
     };
 };
@@ -432,8 +437,9 @@ static std::pair<bool, bool> get_padding_need(ReductionMethod_t reduceImpl,
     {
     case Reduce_DirectThreadWise:
         copySliceLen     = tunable->GredThreadBufferLength;
-        src_need_padding = (invariantLen < GridSize * BlockSize || toReduceLen % copySliceLen > 0);
-        dst_need_padding = (invariantLen < GridSize * BlockSize);
+        src_need_padding = (invariantLen < static_cast<size_t>(GridSize) * BlockSize ||
+                            toReduceLen % copySliceLen > 0);
+        dst_need_padding = (invariantLen < static_cast<size_t>(GridSize) * BlockSize);
         break;
     case Reduce_DirectWarpWise:
         copySliceLen = warpSize * tunable->GredAccessesPerThreadInWarp;
@@ -450,7 +456,7 @@ static std::pair<bool, bool> get_padding_need(ReductionMethod_t reduceImpl,
         reduceSizePerBlock =
             (((toReduceLen + BlkGroupSize - 1) / BlkGroupSize + copySliceLen - 1) / copySliceLen) *
             copySliceLen;
-        src_need_padding = (toReduceLen < reduceSizePerBlock * BlkGroupSize);
+        src_need_padding = (toReduceLen < static_cast<size_t>(reduceSizePerBlock) * BlkGroupSize);
         break;
     default: MIOPEN_THROW("Invalid reduction method ID!"); break;
     };
@@ -646,7 +652,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
     const auto invariantLength = cDesc.GetElementSize();
     const auto toReduceLength  = aDesc.GetElementSize() / invariantLength;
 
-    long ws_buf2_bytes_offset = 0;
+    int64_t ws_buf2_bytes_offset = 0;
 
     if(need_indices && workspace != nullptr)
     {
@@ -684,9 +690,9 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
     float alphaVal = (srcDataType == miopenDouble)
                          ? static_cast<float>(*reinterpret_cast<const double*>(alpha))
                          : *reinterpret_cast<const float*>(alpha);
-    float betaVal = (srcDataType == miopenDouble)
-                        ? static_cast<float>(*reinterpret_cast<const double*>(beta))
-                        : *reinterpret_cast<const float*>(beta);
+    float betaVal  = (srcDataType == miopenDouble)
+                         ? static_cast<float>(*reinterpret_cast<const double*>(beta))
+                         : *reinterpret_cast<const float*>(beta);
 
     if(miopen::IsDisabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{}))
     { // use static reduction
@@ -719,6 +725,9 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
             " -DCK_PARAM_DST_DATATYPE=" + std::to_string(detailStatic::GetDataTypeId(dstDataType));
         param +=
             " -DCK_PARAM_REDUCE_COMPTYPE=" + std::to_string(detailStatic::GetDataTypeId(compType));
+        param +=
+            " -DMIOPEN_FP8_IEEE_EXPONENT_BIAS=" + std::to_string(MIOPEN_FP8_IEEE_EXPONENT_BIAS);
+        param += " -DMIOPEN_FP8_CLIPPING" + std::to_string(MIOPEN_FP8_CLIPPING);
 
         param += " -DCK_PARAM_SRC_DESC_LENGTHS=";
         for(int i = 0; i < inDescLengths.size(); i++)
@@ -800,7 +809,8 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
         param += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=0 ";
 
 #if WORKAROUND_MIOPEN_ISSUE_557
-        if(StartsWith(handle.GetDeviceName(), "gfx10"))
+        if(StartsWith(handle.GetDeviceName(), "gfx10") ||
+           StartsWith(handle.GetDeviceName(), "gfx11"))
             param += " -DCK_USE_AMD_BUFFER_ADDRESSING=0 ";
         else
         {

@@ -8,7 +8,7 @@ std::string LoadFile(const boost::filesystem::path& p) { return LoadFile(p.strin
 
 std::string LoadFile(const std::string& s)
 {
-    std::ifstream t(s);
+    const std::ifstream t(s);
     std::stringstream buffer;
     buffer << t.rdbuf();
     return buffer.str();

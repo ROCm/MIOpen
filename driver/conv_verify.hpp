@@ -119,7 +119,7 @@ void RunBackwardWeightsCPUVerify(std::vector<Tcheck_>& dwei_host,
         assert(stride_h == 1);
         assert(stride_w == 1);
 
-        std::fill(dwei_host.begin(), dwei_host.end(), (static_cast<Tcheck_>(0));
+        std::fill(dwei_host.begin(), dwei_host.end(), static_cast<Tcheck_>(0));
 
         int batch_sz              = out_n;
         int outputs               = out_c;
@@ -134,7 +134,7 @@ void RunBackwardWeightsCPUVerify(std::vector<Tcheck_>& dwei_host,
 
         int filter_size_w = wei_w;
         int filter_size_h = wei_h;
-        int kernel_sz    = filter_size_w * filter_size_h;
+        int kernel_sz     = filter_size_w * filter_size_h;
 
         int top_height = out_h;
         int top_width  = out_w;

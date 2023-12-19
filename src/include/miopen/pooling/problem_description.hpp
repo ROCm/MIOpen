@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/pooling.hpp>
 
@@ -100,14 +101,6 @@ struct ProblemDescription
     }
 
     NetworkConfig MakeNetworkConfig() const;
-
-    void Serialize(std::ostream& stream) const;
-
-    friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
-    {
-        obj.Serialize(os);
-        return os;
-    }
 
 private:
     Direction direction;

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -75,21 +75,31 @@ GetConsistentFlattenedTensorDescriptors(const TDescriptors&... real_descriptor_p
     for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
         is_all_packed &= real_descriptors[itensor]->IsPacked();
 
-    if(is_all_packed)
+    bool is_all_same_strided        = true;
+    const auto& real_desc_0_strides = real_descriptors[0]->GetStrides();
+    for(std::size_t itensor = 1; itensor < NTensor; ++itensor)
+        if(real_desc_0_strides != real_descriptors[itensor]->GetStrides())
+        {
+            is_all_same_strided = false;
+            break;
+        }
+
+    auto non1_length_strides =
+        boost::combine(real_descriptors[0]->GetLengths(), real_descriptor_pack.GetStrides()...) |
+        boost::adaptors::filtered(f_length_is_not_1_t());
+
+    if((is_all_packed && is_all_same_strided) || non1_length_strides.empty())
     {
         auto sz = real_descriptors[0]->GetElementSize();
         return create_tuple<NTensor>([&](auto itensor) {
-            return TensorDescriptor{real_descriptors[itensor]->GetType(), {sz}, {1}};
+            return TensorDescriptor{
+                real_descriptors[itensor]->GetType(), {sz}, {static_cast<std::size_t>(1)}};
         });
     }
 
     // start flattening tensors
     std::array<std::vector<std::size_t>, NTensor> array_of_flat_lengths;
     std::array<std::vector<std::size_t>, NTensor> array_of_flat_strides;
-
-    auto non1_length_strides =
-        boost::combine(real_descriptors[0]->GetLengths(), real_descriptor_pack.GetStrides()...) |
-        boost::adaptors::filtered(f_length_is_not_1_t());
 
     auto i               = non1_length_strides.begin();
     std::size_t flat_len = boost::get<0>(*i);
@@ -103,9 +113,9 @@ GetConsistentFlattenedTensorDescriptors(const TDescriptors&... real_descriptor_p
         bool is_all_full_length = true;
         repeat_n(
             [&](auto itensor) {
-                std::size_t stride          = boost::get<itensor + 1>(*i);
-                std::size_t previous_stride = boost::get<itensor + 1>(*i_previous);
-                std::size_t full_len        = previous_stride / stride;
+                const std::size_t stride          = boost::get<itensor + 1>(*i);
+                const std::size_t previous_stride = boost::get<itensor + 1>(*i_previous);
+                const std::size_t full_len        = previous_stride / stride;
                 is_all_full_length &= (len == full_len);
             },
             NTensorConstant);
@@ -172,17 +182,19 @@ void OpTensor(const Handle& handle,
               const void* beta,
               const TensorDescriptor& cTensorDesc,
               Data_t CTensor,
-              size_t Aoffset = 0,
-              size_t Boffset = 0,
-              size_t Coffset = 0);
+              size_t Aoffset         = 0,
+              size_t Boffset         = 0,
+              size_t Coffset         = 0,
+              bool nonStandardSquash = false);
 
 void CopyTensor(const Handle& handle,
                 const TensorDescriptor& srcDesc,
                 ConstData_t src,
                 const TensorDescriptor& dstDesc,
                 Data_t dst,
-                int srcOffset = 0,
-                int dstOffset = 0);
+                int srcOffset   = 0,
+                int dstOffset   = 0,
+                bool forseAsync = false);
 
 void CastTensor(const Handle& handle,
                 const void* alpha,

@@ -122,7 +122,7 @@ struct verify_forward_sofmax
                         double neg_inf = input.desc.GetType() == miopenHalf
                                              ? NEGATIVE_CUTOFF_VAL_FP16
                                              : NEGATIVE_CUTOFF_VAL_FP32;
-                        double sum = neg_inf;
+                        double sum     = neg_inf;
                         ford(in_c, in_h, in_w)([&](int w, int i, int j) {
                             sum = logaddexp(
                                 double(input[o * in_nstr + w * in_cstr + i * in_hstr + j] - max_c),
@@ -183,7 +183,7 @@ struct verify_forward_sofmax
                         double neg_inf = input.desc.GetType() == miopenHalf
                                              ? NEGATIVE_CUTOFF_VAL_FP16
                                              : NEGATIVE_CUTOFF_VAL_FP32;
-                        double sum = neg_inf;
+                        double sum     = neg_inf;
                         ford(in_c)([&](int w) {
                             sum = logaddexp(
                                 double(input[o * in_nstr + w * in_cstr + i * in_hstr + j] - max_c),
@@ -418,7 +418,7 @@ struct softmax_driver : test_driver
     {
         miopenSoftmaxAlgorithm_t algo = miopenSoftmaxAlgorithm_t(algo_cmd);
         miopenSoftmaxMode_t mode      = miopenSoftmaxMode_t(mode_cmd);
-        unsigned long max_value =
+        uint64_t max_value =
             miopen_type<T>{} == miopenHalf ? (algo == MIOPEN_SOFTMAX_LOG ? 3 : 5) : 17;
 
         /// \todo Apply mix-precision in softmax to improve the stability of fp16

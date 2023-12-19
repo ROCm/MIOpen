@@ -12,9 +12,11 @@
 
 // GPU target
 // should enable one and only one GPU target
-#if !(defined(CK_AMD_GPU_GFX803) || defined(CK_AMD_GPU_GFX900) || defined(CK_AMD_GPU_GFX906) ||  \
-      defined(CK_AMD_GPU_GFX908) || defined(CK_AMD_GPU_GFX90A) || defined(CK_AMD_GPU_GFX1030) || \
-      defined(CK_AMD_GPU_GFX1031))
+#if !(defined(CK_AMD_GPU_GFX803) || defined(CK_AMD_GPU_GFX900) || defined(CK_AMD_GPU_GFX906) ||    \
+      defined(CK_AMD_GPU_GFX940) || defined(CK_AMD_GPU_GFX908) || defined(CK_AMD_GPU_GFX90A) ||    \
+      defined(CK_AMD_GPU_GFX941) || defined(CK_AMD_GPU_GFX942) || defined(CK_AMD_GPU_GFX1030) ||   \
+      defined(CK_AMD_GPU_GFX1031) || defined(CK_AMD_GPU_GFX1100) || defined(CK_AMD_GPU_GFX1101) || \
+      defined(CK_AMD_GPU_GFX1102))
 #error Need to define (only) one GPU target
 #endif
 
@@ -28,17 +30,21 @@
 
 // buffer resourse
 #if defined(CK_AMD_GPU_GFX803) || defined(CK_AMD_GPU_GFX900) || defined(CK_AMD_GPU_GFX906) || \
+    defined(CK_AMD_GPU_GFX941) || defined(CK_AMD_GPU_GFX942) || defined(CK_AMD_GPU_GFX940) || \
     defined(CK_AMD_GPU_GFX908) || defined(CK_AMD_GPU_GFX90A)
 #define CK_BUFFER_RESOURCE_3RD_DWORD 0x00020000
-#elif defined(CK_AMD_GPU_GFX1030) || defined(CK_AMD_GPU_GFX1031)
+#elif defined(CK_AMD_GPU_GFX1030) || defined(CK_AMD_GPU_GFX1031) || defined(CK_AMD_GPU_GFX1100) || \
+    defined(CK_AMD_GPU_GFX1101) || defined(CK_AMD_GPU_GFX1102)
 #define CK_BUFFER_RESOURCE_3RD_DWORD 0x31014000
 #endif
 
 // FMA instruction
 #if defined(CK_AMD_GPU_GFX803) || defined(CK_AMD_GPU_GFX900)
 #define CK_USE_AMD_V_MAC_F32
-#elif defined(CK_AMD_GPU_GFX906) || defined(CK_AMD_GPU_GFX908) || defined(CK_AMD_GPU_GFX90a) || \
-    defined(CK_AMD_GPU_GFX1030) || defined(CK_AMD_GPU_GFX1031)
+#elif defined(CK_AMD_GPU_GFX906) || defined(CK_AMD_GPU_GFX908) || defined(CK_AMD_GPU_GFX90a) ||  \
+    defined(CK_AMD_GPU_GFX941) || defined(CK_AMD_GPU_GFX942) || defined(CK_AMD_GPU_GFX940) ||    \
+    defined(CK_AMD_GPU_GFX1030) || defined(CK_AMD_GPU_GFX1031) || defined(CK_AMD_GPU_GFX1100) || \
+    defined(CK_AMD_GPU_GFX1101) || defined(CK_AMD_GPU_GFX1102)
 #define CK_USE_AMD_V_FMAC_F32
 #define CK_USE_AMD_V_DOT2_F32_F16
 #define CK_USE_AMD_V_DOT4_I32_I8

@@ -40,7 +40,7 @@ The supported base arguments:
 
 Summary of base_args meant for different datatypes and different operations:
 
-![DatatypeSupport](driverTableCrop.png)
+![DatatypeSupport](../docs/data/driverTableCrop.png)
 
 
 ## Executing MIOpenDriver
@@ -89,6 +89,3 @@ MIOpenDriver example usages:
 `./bin/MIOpenDriver *base_arg* -?` **OR**  `./bin/MIOpenDriver *base_arg* -h (--help)`
 
 Note: By default the CPU verification is turned on. Verification can be disabled using `-V 0`.
-
-
-

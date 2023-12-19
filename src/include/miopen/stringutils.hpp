@@ -101,7 +101,7 @@ inline std::string RemovePrefix(std::string s, std::string prefix)
 inline std::vector<std::string> SplitSpaceSeparated(const std::string& in)
 {
     std::istringstream ss(in);
-    std::istream_iterator<std::string> begin(ss), end;
+    const std::istream_iterator<std::string> begin(ss), end;
     return {begin, end};
 }
 

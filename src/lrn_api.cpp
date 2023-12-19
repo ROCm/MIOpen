@@ -44,8 +44,8 @@ extern "C" miopenStatus_t miopenSetLRNDescriptor(miopenLRNDescriptor_t lrnDesc,
 {
     MIOPEN_LOG_FUNCTION(lrnDesc, mode, lrnN, lrnAlpha, lrnBeta, lrnK);
     return miopen::try_([&] {
-        std::initializer_list<double> parms = {lrnAlpha, lrnBeta, lrnK};
-        miopen::deref(lrnDesc)              = miopen::LRNDescriptor(mode, lrnN, parms.begin());
+        const std::initializer_list<double> parms = {lrnAlpha, lrnBeta, lrnK};
+        miopen::deref(lrnDesc) = miopen::LRNDescriptor(mode, lrnN, parms.begin());
     });
 }
 

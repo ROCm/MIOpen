@@ -62,6 +62,9 @@ struct WrWInvokeParams : InvokeParams
           gfx90aFp16alt(gfx90aFp16alt_)
     {
     }
+
+    std::size_t GetWorkspaceSize() const { return workSpaceSize; }
+    Data_t GetWorkspace() const { return workSpace; }
 };
 
 } // namespace conv

@@ -45,7 +45,7 @@ void cpu_bias_forward_impl(tensor<Tout>& out, const tensor<Tbias>& bias)
 {
     assert(out.desc.GetSize() == NSpatialDim + 2 and bias.desc.GetSize() == NSpatialDim + 2);
     assert(
-        bias.desc.GetLengths()[0] == 1 && bias.desc.GetLengths()[1] == out.desc.GetLengths()[0] &&
+        bias.desc.GetLengths()[0] == 1 && bias.desc.GetLengths()[1] == out.desc.GetLengths()[1] &&
         std::all_of(bias.desc.GetLengths().begin() + 2, bias.desc.GetLengths().end(), [](auto v) {
             return v == 1;
         }));

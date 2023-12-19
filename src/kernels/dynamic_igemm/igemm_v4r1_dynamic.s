@@ -6797,7 +6797,7 @@ amdhsa.kernels:
     - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: n_         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
     - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
     - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
     - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
@@ -6808,7 +6808,7 @@ amdhsa.kernels:
     - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
     - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: y_         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: __pack0   , .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_v4r1_dynamic_128x128x8_8x8_4x4x4x4x4x4_8x2x16x1_2x128
@@ -6828,7 +6828,7 @@ amdhsa.kernels:
     - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: n_         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
     - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
     - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
     - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
@@ -6839,7 +6839,7 @@ amdhsa.kernels:
     - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
     - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: y_         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: __pack0   , .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_v4r1_dynamic_128x64x8_8x8_4x4x4x4x4x2_8x1x8x2_2x64
@@ -6859,7 +6859,7 @@ amdhsa.kernels:
     - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: n_         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
     - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
     - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
     - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
@@ -6870,7 +6870,7 @@ amdhsa.kernels:
     - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
     - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: y_         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: __pack0   , .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_v4r1_dynamic_64x64x8_8x8_4x4x2x4x2x4_8x1x8x1_4x16
@@ -6890,7 +6890,7 @@ amdhsa.kernels:
     - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: n_         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
     - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
     - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
     - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
@@ -6901,7 +6901,7 @@ amdhsa.kernels:
     - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
     - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: y_         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: __pack0   , .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_v4r1_dynamic_32x128x4_8x8_4x1x4x4x4x4_4x1x16x1_4x16
@@ -6921,7 +6921,7 @@ amdhsa.kernels:
     - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: n_         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
     - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
     - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
     - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
@@ -6932,7 +6932,7 @@ amdhsa.kernels:
     - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
     - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: y_         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: __pack0   , .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_v4r1_dynamic_16x64x4_4x4_2x2x2x2x4x4_4x1x16x1_4x16
@@ -6952,7 +6952,7 @@ amdhsa.kernels:
     - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: n_         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
     - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
     - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
     - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
@@ -6963,7 +6963,7 @@ amdhsa.kernels:
     - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
     - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: y_         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: __pack0   , .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_v4r1_dynamic_32x32x4_4x4_2x2x4x2x4x2_4x2x8x1_4x16
@@ -6983,7 +6983,7 @@ amdhsa.kernels:
     - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: n_         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
     - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
     - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
     - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
@@ -6994,7 +6994,7 @@ amdhsa.kernels:
     - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
     - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: y_         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: __pack0   , .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
   - .name: igemm_v4r1_1x1_dynamic_128x128x16_8x8_4x4x4x4x4x4_16x1x16x1_4x64
@@ -7014,7 +7014,7 @@ amdhsa.kernels:
     - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: n_         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
     - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
     - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
     - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
@@ -7043,7 +7043,7 @@ amdhsa.kernels:
     - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: n_         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
     - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
     - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
     - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
@@ -7072,7 +7072,7 @@ amdhsa.kernels:
     - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: n_         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
     - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
     - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
     - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
@@ -7101,7 +7101,7 @@ amdhsa.kernels:
     - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: n_         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
     - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
     - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
     - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
@@ -7130,7 +7130,7 @@ amdhsa.kernels:
     - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: n_         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
     - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
     - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
     - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
@@ -7159,7 +7159,7 @@ amdhsa.kernels:
     - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: n_         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
     - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
     - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
     - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
@@ -7188,7 +7188,7 @@ amdhsa.kernels:
     - { .name: p_in      , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: false}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: n_         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
     - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
     - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
     - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}

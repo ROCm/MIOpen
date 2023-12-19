@@ -27,7 +27,9 @@
 
 #include <miopen/config.h>
 
-#if MIOPEN_ENABLE_SQLITE
+#if !MIOPEN_ENABLE_SQLITE
+#error "MIOPEN_ENABLE_SQLITE = Off"
+#endif
 
 #include <miopen/db_record.hpp>
 #include <miopen/db.hpp>
@@ -58,6 +60,7 @@ class path;
 
 namespace miopen {
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DISABLE_SQL_WAL)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_PERFDB_OVERRIDE)
 
 constexpr bool InMemDb = MIOPEN_EMBED_DB;
 #if MIOPEN_ENABLE_SQLITE_BACKOFF
@@ -98,7 +101,7 @@ struct SQLiteSerializable
                            clauses.push_back("(" + name + " = ? )");
                            values.push_back(std::to_string(value));
                        });
-        std::string clause = JoinStrings(clauses, " AND ");
+        const std::string clause = JoinStrings(clauses, " AND ");
         return std::make_tuple(clause, values);
     }
     std::tuple<std::string, std::vector<std::string>> InsertQuery() const
@@ -114,7 +117,7 @@ struct SQLiteSerializable
                            int_names.push_back(name);
                            values.push_back(std::to_string(value));
                        });
-        std::vector<std::string> tokens((values.size()), "?");
+        const std::vector<std::string> tokens((values.size()), "?");
         ;
 
         std::string q = "INSERT OR IGNORE INTO " + Derived::table_name() + "( " +
@@ -253,7 +256,9 @@ public:
             dbInvalid  = true;
             filename   = "";
             if(!is_system)
+            {
                 MIOPEN_THROW(miopenStatusInternalError, "Cannot open database file:" + filename_);
+            }
             else
             {
                 const auto log_level =
@@ -381,7 +386,7 @@ Derived& SQLiteBase<Derived>::GetCached(const std::string& path, bool is_system)
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
-    std::lock_guard<std::mutex> lock{mutex};
+    const std::lock_guard<std::mutex> lock{mutex};
 
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static auto instances = std::map<std::string, Derived>{};
@@ -438,6 +443,30 @@ public:
     {
         if(dbInvalid)
             return boost::none;
+
+        const auto pdb_ovr = miopen::GetStringEnv(MIOPEN_DEBUG_PERFDB_OVERRIDE{});
+        if(pdb_ovr != nullptr)
+        {
+            MIOPEN_LOG_I2("overriding tuning params with: " << pdb_ovr);
+            DbRecord ovr_rec;
+            const auto solv_vals = SplitDelim(pdb_ovr, ':');
+            bool success         = true;
+            for(const auto& solv_val : solv_vals)
+            {
+                const auto vals = SplitDelim(solv_val, ';');
+                if(vals.size() != 2)
+                {
+                    MIOPEN_LOG_W("Invalid value for MIOPEN_DEBUG_PERFDB_OVERRIDE. Format: "
+                                 "<solver1_name>;<params>:<solver2_name>;params");
+                    success = false;
+                    break;
+                }
+                MIOPEN_LOG_I2("Inserting Overriding PDB entry: " << vals[0] << ";" << vals[1]);
+                ovr_rec.SetValues(vals.at(0), vals.at(1));
+            }
+            if(success)
+                return {ovr_rec};
+        }
         std::string clause;
         std::vector<std::string> values;
         std::tie(clause, values) = problem_config.WhereClause();
@@ -494,7 +523,7 @@ public:
             return true;
         else
         {
-            std::string msg = "Unable to remove database entry: ";
+            const std::string msg = "Unable to remove database entry: ";
             MIOPEN_LOG_E(msg + sql.ErrorMessage());
             return false;
         }
@@ -610,4 +639,3 @@ public:
     }
 };
 } // namespace miopen
-#endif

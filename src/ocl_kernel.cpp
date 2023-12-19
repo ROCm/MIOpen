@@ -32,7 +32,6 @@ namespace miopen {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
-#ifndef NDEBUG
 static std::string DimToFormattedString(const size_t* dims, size_t count)
 {
     std::stringstream ss;
@@ -48,17 +47,14 @@ static std::string DimToFormattedString(const size_t* dims, size_t count)
     ss << " }";
     return ss.str();
 }
-#endif // !NDEBUG
 
 void OCLKernelInvoke::run() const
 {
-#ifndef NDEBUG
     MIOPEN_LOG_I2("kernel_name = "
                   << GetName() << ", work_dim = " << work_dim << ", global_work_offset = "
                   << DimToFormattedString(global_work_offset.data(), work_dim)
                   << ", global_work_dim = " << DimToFormattedString(gdims.data(), work_dim)
                   << ", local_work_dim = " << DimToFormattedString(ldims.data(), work_dim));
-#endif // !NDEBUG
 
     MIOPEN_HANDLE_LOCK
 

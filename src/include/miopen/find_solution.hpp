@@ -44,21 +44,26 @@ struct AnyInvokeParams;
 
 namespace solver {
 
-template <class Solver, class Context, class Db>
-auto FindSolutionImpl(
-    rank<1>, Solver s, const Context& context, Db& db, const AnyInvokeParams& invoke_ctx)
-    -> decltype(s.GetSolution(context, s.Search(context, invoke_ctx)))
+template <class Solver, class Context, class Problem, class Db>
+auto FindSolutionImpl(rank<1>,
+                      Solver s,
+                      const Context& context,
+                      const Problem& problem,
+                      Db& db,
+                      const AnyInvokeParams& invoke_ctx,
+                      const std::string& perf_cfg)
+    -> decltype(s.GetSolution(context, problem, s.Search(context, problem, invoke_ctx)))
 {
     const FindEnforce enforce;
     if(context.disable_perfdb_access)
     {
         MIOPEN_LOG_I(s.SolverDbId() << " (db access disabled)");
-        return s.GetSolution(context, s.GetDefaultPerformanceConfig(context));
+        return s.GetSolution(context, problem, s.GetDefaultPerformanceConfig(context, problem));
     }
     MIOPEN_LOG_I(s.SolverDbId());
     if(enforce.IsDbClean(context))
     {
-        if(db.Remove(context, s.SolverDbId()))
+        if(db.Remove(problem, s.SolverDbId()))
             MIOPEN_LOG_W("Perf Db: record removed: " << s.SolverDbId() << ", enforce: " << enforce);
     }
     else
@@ -70,17 +75,39 @@ auto FindSolutionImpl(
         }
         else
         {
-            using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context));
+            using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context, problem));
             PerformanceConfig config{};
-            if(db.Load(context, s.SolverDbId(), config))
+            // The passes in string needs to have priority over the entry in the database
+            if(!perf_cfg.empty())
             {
-                MIOPEN_LOG_I2("Perf Db: record loaded: " << s.SolverDbId());
-                if(s.IsValidPerformanceConfig(context, config))
+                config.Deserialize(perf_cfg);
+                if(s.IsValidPerformanceConfig(context, problem, config))
                 {
-                    return s.GetSolution(context, config);
+                    return s.GetSolution(context, problem, config);
                 }
                 MIOPEN_LOG_IE("Invalid config loaded from Perf Db: "
                               << s.SolverDbId() << ": " << config << ". Performance may degrade.");
+            }
+            else if(db.Load(problem, s.SolverDbId(), config))
+            {
+                MIOPEN_LOG_I2("Perf Db: record loaded: " << s.SolverDbId());
+                if(s.IsValidPerformanceConfig(context, problem, config))
+                {
+                    return s.GetSolution(context, problem, config);
+                }
+                MIOPEN_LOG_WE("Invalid config loaded from Perf Db: "
+                              << s.SolverDbId() << ": " << config << ". Performance may degrade.");
+            }
+            else if(!s.AltSolverDbId().empty() && db.Load(problem, s.AltSolverDbId(), config))
+            {
+                MIOPEN_LOG_I("Perf Db: alternate record loaded: " << s.AltSolverDbId());
+                if(s.IsValidPerformanceConfig(context, problem, config))
+                {
+                    return s.GetSolution(context, problem, config);
+                }
+                MIOPEN_LOG_WE("Invalid alternate record loaded from Perf Db: "
+                              << s.AltSolverDbId() << ": " << config
+                              << ". Performance may degrade.");
             }
             else
             {
@@ -93,26 +120,32 @@ auto FindSolutionImpl(
             MIOPEN_LOG_I("Starting search: " << s.SolverDbId() << ", enforce: " << enforce);
             try
             {
-                auto c = s.Search(context, invoke_ctx);
-                db.Update(context, s.SolverDbId(), c);
-                return s.GetSolution(context, c);
+                auto c = s.Search(context, problem, invoke_ctx);
+                db.Update(problem, s.SolverDbId(), c);
+                return s.GetSolution(context, problem, c);
             }
             catch(const miopen::Exception& ex)
             {
                 MIOPEN_LOG_E("Search failed for: " << s.SolverDbId() << ": " << ex.what());
+                return ConvSolution(miopenStatusInternalError);
             }
         }
     }
 
-    return s.GetSolution(context, s.GetDefaultPerformanceConfig(context));
+    return s.GetSolution(context, problem, s.GetDefaultPerformanceConfig(context, problem));
 }
 
-template <class Solver, class Context, class Db>
-auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&, const AnyInvokeParams&)
-    -> decltype(s.GetSolution(context))
+template <class Solver, class Context, class Problem, class Db>
+auto FindSolutionImpl(rank<0>,
+                      Solver s,
+                      const Context& context,
+                      const Problem& problem,
+                      Db&,
+                      const AnyInvokeParams&,
+                      const std::string&) -> decltype(s.GetSolution(context, problem))
 {
     MIOPEN_LOG_I(s.SolverDbId() << " (not searchable)");
-    return s.GetSolution(context);
+    return s.GetSolution(context, problem);
 }
 
 /// Finds optimized Solution. Generic method.
@@ -121,14 +154,18 @@ auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&, const AnyI
 /// solution-specific parameters and returns the Solution object.
 /// Could take long if an exhaustive search is requested/performed.
 /// May read/write perfDb.
-template <class Solver, class Context, class Db>
-ConvSolution
-FindSolution(Solver s, const Context& context, Db& db, const AnyInvokeParams& invoke_ctx)
+template <class Solver, class Context, class Problem, class Db>
+ConvSolution FindSolution(Solver s,
+                          const Context& context,
+                          const Problem& problem,
+                          Db& db,
+                          const AnyInvokeParams& invoke_ctx,
+                          const std::string& perf_cfg = "")
 {
     static_assert(sizeof(Solver) == sizeof(SolverBase), "Solver must be stateless");
     static_assert(std::is_base_of<SolverBase, Solver>{}, "Not derived class of SolverBase");
     // TODO: This assumes all solutions are ConvSolution
-    auto solution      = FindSolutionImpl(rank<1>{}, s, context, db, invoke_ctx);
+    auto solution      = FindSolutionImpl(rank<1>{}, s, context, problem, db, invoke_ctx, perf_cfg);
     solution.solver_id = s.SolverDbId();
     return solution;
 }
@@ -137,9 +174,10 @@ template <class... Solvers>
 struct SolverContainer
 {
     // Search for all applicable solutions among many solvers
-    template <class Context, class Db, class Solution = miopen::solver::ConvSolution>
+    template <class Context, class Problem, class Db, class Solution = miopen::solver::ConvSolution>
     std::vector<Solution>
-    SearchForAllSolutions(const Context& search_params,
+    SearchForAllSolutions(const Context& ctx,
+                          const Problem& problem,
                           Db&& db,
                           const AnyInvokeParams& invoke_ctx,
                           std::size_t limit = std::numeric_limits<std::size_t>::max()) const
@@ -158,17 +196,17 @@ struct SolverContainer
                 }
                 // For better performance, check IsDynamic() first, because
                 // it is much faster than IsApplicable().
-                else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
+                else if(ctx.use_dynamic_solutions_only && !solver.IsDynamic())
                 {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
                 }
-                else if(!solver.IsApplicable(search_params))
+                else if(!solver.IsApplicable(ctx, problem))
                 {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
                 }
                 else
                 {
-                    const Solution s = FindSolution(solver, search_params, db, invoke_ctx);
+                    const Solution s = FindSolution(solver, ctx, problem, db, invoke_ctx);
                     if(s.Succeeded())
                     {
                         ++count;
@@ -236,9 +274,10 @@ struct SolverContainer
         return ss;
     }
 
-    template <class Context>
+    template <class Context, class Problem>
     std::vector<std::pair<std::string, size_t>>
-    GetWorkspaceSizes(const Context& search_params,
+    GetWorkspaceSizes(const Context& ctx,
+                      const Problem& problem,
                       std::size_t limit = std::numeric_limits<std::size_t>::max()) const
     {
         std::vector<std::pair<std::string, size_t>> res;
@@ -258,14 +297,14 @@ struct SolverContainer
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (no workspace required)");
                 // For better performance, check IsDynamic() first, because
                 // it is much faster than IsApplicable().
-                else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
+                else if(ctx.use_dynamic_solutions_only && !solver.IsDynamic())
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
-                else if(!solver.IsApplicable(search_params))
+                else if(!solver.IsApplicable(ctx, problem))
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
                 else
                 {
                     ++count;
-                    auto sz = solver.GetWorkspaceSize(search_params);
+                    auto sz = solver.GetWorkspaceSize(ctx, problem);
                     res.push_back(std::make_pair(solver.SolverDbId(), sz));
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": " << sz);
                 }
@@ -275,8 +314,8 @@ struct SolverContainer
     }
 
     // Search for all applicable solutions among many solvers
-    template <class Context>
-    bool IsAnySolverApplicable(const Context& search_params) const
+    template <class Context, class Problem>
+    bool IsAnySolverApplicable(const Context& ctx, const Problem& problem) const
     {
         const auto find_only = GetEnvFindOnlySolver();
         auto found           = false;
@@ -290,13 +329,13 @@ struct SolverContainer
 
                 // For better performance, check IsDynamic() first, because
                 // it is much faster than IsApplicable().
-                if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
+                if(ctx.use_dynamic_solutions_only && !solver.IsDynamic())
                 {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
                     return;
                 }
 
-                if(solver.IsApplicable(search_params))
+                if(solver.IsApplicable(ctx, problem))
                 {
                     found = true;
                     return;
@@ -323,8 +362,7 @@ struct SolverContainer
             return;
         }
 
-        auto ctx = ExecutionContext{&handle};
-        ctx.DetectRocm();
+        auto ctx        = ExecutionContext{&handle};
         const auto slns = SearchForSolutions(ctx, problem, 1);
 
         if(slns.empty())

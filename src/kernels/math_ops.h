@@ -23,6 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
+#ifndef GUARD_MATH_OPS_H
+#define GUARD_MATH_OPS_H
+
 uint iDiv_legacy(uint v, uint d)
 {
     uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
@@ -40,3 +44,5 @@ uint iMod(uint v, uint u, uint d)
     uint r = v - mul24((uint)u, (uint)d);
     return (r);
 }
+
+#endif // GUARD_MATH_OPS_H

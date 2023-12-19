@@ -26,12 +26,13 @@
 #ifndef GUARD_MIOPEN_DB_PATH_HPP
 #define GUARD_MIOPEN_DB_PATH_HPP
 
+#include <boost/filesystem.hpp>
 #include <string>
 
 namespace miopen {
 
 std::string GetSystemDbPath();
-const std::string& GetUserDbPath();
+const boost::filesystem::path& GetUserDbPath();
 std::string GetUserDbSuffix();
 std::string GetSystemFindDbSuffix();
 

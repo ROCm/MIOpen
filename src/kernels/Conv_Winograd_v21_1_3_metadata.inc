@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -51,7 +51,7 @@ amdhsa.kernels:
     .max_flat_workgroup_size: \wg_x
     .wavefront_size: 64
     .args:
-    - { .size: 4, .offset:   0, .value_kind: by_value, .value_type: i32, .name: N }
+    - { .size: 4, .offset:   0, .value_kind: by_value, .value_type: i32, .name: BATCHSIZE }
     - { .size: 4, .offset:   4, .value_kind: by_value, .value_type: i32, .name: C }
     - { .size: 4, .offset:   8, .value_kind: by_value, .value_type: i32, .name: H }
     - { .size: 4, .offset:  12, .value_kind: by_value, .value_type: i32, .name: W }
@@ -120,7 +120,7 @@ kernel_end \kernel_name
 .if (.amdgcn.gfx_generation_number == 9)
     vgpr_size = 128
     workgroup_size_x = 512
-.elseif (.amdgcn.gfx_generation_number == 10)
+.elseif (.amdgcn.gfx_generation_number == 10 || .amdgcn.gfx_generation_number == 11)
     vgpr_size = 256
     workgroup_size_x = 256
 .endif
@@ -146,49 +146,10 @@ __dx10_clamp = 0
 
 .rodata
 .p2align 6
-.if (.amdgcn.gfx_generation_number >= 10)
 .amdhsa_kernel \kernel_name
     .amdhsa_group_segment_fixed_size         __group_segment_fixed_size
     .amdhsa_user_sgpr_private_segment_buffer __sgpr_private_segment_buffer
-    .amdhsa_user_sgpr_dispatch_ptr           __sgpr_dispatch_ptr
-    .amdhsa_user_sgpr_kernarg_segment_ptr    __sgpr_kernarg_segment_ptr
-    .amdhsa_system_sgpr_workgroup_id_x       __sgpr_workgroup_id_x
-    .amdhsa_system_sgpr_workgroup_id_y       __sgpr_workgroup_id_y
-    .amdhsa_system_sgpr_workgroup_id_z       __sgpr_workgroup_id_y
-    .amdhsa_system_vgpr_workitem_id          __vgpr_workitem_id
-    .amdhsa_next_free_vgpr                   .amdgcn.next_free_vgpr
-    .amdhsa_next_free_sgpr                   .amdgcn.next_free_sgpr
-    .amdhsa_reserve_vcc                      __sgpr_reserve_vcc_default
-    .amdhsa_reserve_xnack_mask               __sgpr_reserve_xnack_default
-    .amdhsa_reserve_flat_scratch             __sgpr_reserve_flatscr_default
-    .amdhsa_ieee_mode                        __ieee_mode
-    .amdhsa_dx10_clamp                       __dx10_clamp
-    .amdhsa_wavefront_size32                 0
-.end_amdhsa_kernel
-.elseif (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_stepping == 10)
-.amdhsa_kernel \kernel_name
-    .amdhsa_group_segment_fixed_size         __group_segment_fixed_size
-    .amdhsa_user_sgpr_private_segment_buffer __sgpr_private_segment_buffer
-    .amdhsa_user_sgpr_dispatch_ptr           __sgpr_dispatch_ptr
-    .amdhsa_user_sgpr_kernarg_segment_ptr    __sgpr_kernarg_segment_ptr
-    .amdhsa_system_sgpr_workgroup_id_x       __sgpr_workgroup_id_x
-    .amdhsa_system_sgpr_workgroup_id_y       __sgpr_workgroup_id_y
-    .amdhsa_system_sgpr_workgroup_id_z       __sgpr_workgroup_id_y
-    .amdhsa_system_vgpr_workitem_id          __vgpr_workitem_id
-    .amdhsa_next_free_vgpr                   .amdgcn.next_free_vgpr
-    .amdhsa_next_free_sgpr                   .amdgcn.next_free_sgpr
-    .amdhsa_reserve_vcc                      __sgpr_reserve_vcc_default
-    .amdhsa_reserve_xnack_mask               __sgpr_reserve_xnack_default
-    .amdhsa_reserve_flat_scratch             __sgpr_reserve_flatscr_default
-    .amdhsa_ieee_mode                        __ieee_mode
-    .amdhsa_dx10_clamp                       __dx10_clamp
-    .amdhsa_accum_offset                    .amdgcn.next_free_vgpr
-.end_amdhsa_kernel
-.else
-.amdhsa_kernel \kernel_name
-    .amdhsa_group_segment_fixed_size         __group_segment_fixed_size
-    .amdhsa_user_sgpr_private_segment_buffer __sgpr_private_segment_buffer
-    .amdhsa_user_sgpr_dispatch_ptr           __sgpr_dispatch_ptr
+    .amdhsa_user_sgpr_dispatch_ptr           __sgpr_dispatch_ptr // s[6:7]
     .amdhsa_user_sgpr_kernarg_segment_ptr    __sgpr_kernarg_segment_ptr
     .amdhsa_system_sgpr_workgroup_id_x       __sgpr_workgroup_id_x
     .amdhsa_system_sgpr_workgroup_id_y       __sgpr_workgroup_id_y
@@ -202,7 +163,6 @@ __dx10_clamp = 0
     .amdhsa_ieee_mode                        __ieee_mode
     .amdhsa_dx10_clamp                       __dx10_clamp
 .end_amdhsa_kernel
-.endif
 
 total_sgpr_count = .amdgcn.next_free_sgpr + 4 // vcc, xnack
 
@@ -226,7 +186,7 @@ METADATA_WRAPPER total_sgpr_count,.amdgcn.next_free_vgpr,workgroup_size_x, <\ker
 	EPILOG_KERNEL_DESCRIPTOR_WRAPPER %.amdgcn.gfx_generation_number, \kernel_name_postfix
 .endm
 
-.if (.amdgcn.gfx_generation_number != 9 && .amdgcn.gfx_generation_number != 10)
+.if (.amdgcn.gfx_generation_number != 9)
     .error "Unsupported gfx generation"
     .end
 .endif

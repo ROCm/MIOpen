@@ -242,27 +242,15 @@ struct to_miopen_data_type<bfloat16>
     static miopenDataType_t get() { return miopenBFloat16; }
 };
 
-#define RAND_INTEGER_MAX 120
-#define RAND_INTEGER_MIN -88
-
-static int gen_rand_integer()
-{
-    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static int inited = 0;
-    if(inited == 0)
-    {
-        std::srand(std::time(nullptr));
-        inited = 1;
-    }
-    return GET_RAND();
-}
+static constexpr int RAND_INTEGER_MAX = 120;
+static constexpr int RAND_INTEGER_MIN = -88;
 
 template <typename T>
 void rand_tensor_integer(tensor<T>& t, int max = RAND_INTEGER_MAX, int min = RAND_INTEGER_MIN)
 {
     // use integer to random.
-    for(int i = 0; i < t.data.size(); i++)
-        t[i] = static_cast<T>(gen_rand_integer() % (max - min) + min);
+    for(size_t i = 0; i < t.data.size(); i++)
+        t[i] = static_cast<T>(prng::gen_A_to_B(min, max));
 }
 
 template <typename T>
@@ -327,10 +315,10 @@ struct tensor_reorder_base_driver : test_driver
         std::vector<uint32_t> dim_1_list = get_dim_1_size();
         std::vector<uint32_t> dim_0_list = get_dim_0_size();
 
-        dim_3_list.push_back(gen_rand_integer() % 13 + 29);
-        dim_2_list.push_back(gen_rand_integer() % 13 + 29);
-        dim_1_list.push_back(gen_rand_integer() % 13 + 15);
-        dim_0_list.push_back(gen_rand_integer() % 4 + 3);
+        dim_3_list.push_back(prng::gen_off_range(29, 13));
+        dim_2_list.push_back(prng::gen_off_range(29, 13));
+        dim_1_list.push_back(prng::gen_off_range(15, 13));
+        dim_0_list.push_back(prng::gen_off_range(3, 4));
 
         constexpr int all_possible_order[23][4] = {
             {0, 1, 3, 2}, {0, 2, 1, 3}, {0, 2, 3, 1}, {0, 3, 1, 2}, {0, 3, 2, 1}, {1, 0, 2, 3},
@@ -367,10 +355,14 @@ struct reorder_invoke_param : public miopen::InvokeParams
         : InvokeParams{type_}, src(src_), dst(dst_)
     {
     }
+
+    Data_t GetWorkspace() const { return nullptr; }
+    std::size_t GetWorkspaceSize() const { return 0; }
 };
 template <typename T>
 struct tensor_reorder_driver : tensor_reorder_base_driver
 {
+    // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks)
     void run()
     {
         auto run_reorder = [this](uint32_t dim_0,
@@ -404,7 +396,6 @@ struct tensor_reorder_driver : tensor_reorder_base_driver
 
             miopen::ExecutionContext ctx;
             ctx.SetStream(&miopen::deref(this->handle));
-            ctx.DetectRocm();
             // ctx.SetupFloats();
             auto reorder_sol = MakeTensorReorderAttributes(ctx,
                                                            to_miopen_data_type<T>::get(),
@@ -477,7 +468,7 @@ struct tensor_reorder_driver : tensor_reorder_base_driver
                                 order_1,
                                 order_2,
                                 order_3);
-
+            invoker_factory = boost::none;
 #if MIOPEN_BACKEND_OPENCL
             status = clEnqueueReadBuffer(
                 q, dst_dev, CL_TRUE, 0, workspace, t_dst_gpu.data.data(), 0, nullptr, nullptr);
@@ -490,7 +481,6 @@ struct tensor_reorder_driver : tensor_reorder_base_driver
             hipFree(dst_dev);
             hipFree(src_dev);
 #endif
-
             // we expect excact match, since use integer
             bool valid_result = verify_tensor(t_dst_gpu, t_dst);
             std::cout << "[" << reorder_str::get(order_0, order_1, order_2, order_3) << ", b"
@@ -502,6 +492,7 @@ struct tensor_reorder_driver : tensor_reorder_base_driver
 
         iterate_reorder(run_reorder);
     }
+    // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
 };
 
 template <template <class...> class Driver>

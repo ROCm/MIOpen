@@ -103,7 +103,7 @@ BuffInfo::BuffInfo(MemLayout_t layout, int nk, int c, int h, int w, int g, int _
 {
 
     element_size       = _element_size;
-    const size_t count = nk * c * h * w * g;
+    const size_t count = static_cast<size_t>(nk) * c * h * w * g;
     total_byte_size    = count * element_size;
     size.nk            = nk;
     size.g             = g;

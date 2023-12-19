@@ -62,7 +62,7 @@ struct TunableImplicitGemmV4R1Dynamic
 
     TunableImplicitGemmV4R1Dynamic(
         int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int);
-    bool IsValid(const ConvolutionContext& ctx) const;
+    bool IsValid(const ExecutionContext&, const ProblemDescription&) const;
 };
 
 static inline const std::vector<TunableImplicitGemmV4R1Dynamic>&
@@ -124,16 +124,16 @@ static inline int GetImplicitGemmV4R1DynamicBlockSize(const TunableImplicitGemmV
            config.GemmNLevel1Cluster;
 }
 
-static inline int GetImplicitGemmV4R1DynamicGridSize(const ConvolutionContext& ctx,
+static inline int GetImplicitGemmV4R1DynamicGridSize(const ProblemDescription& problem,
                                                      const TunableImplicitGemmV4R1Dynamic& config)
 {
     const auto& N1 = config.GemmNRepeat;
     const auto& N2 = config.GemmNPerThreadSubC;
 
-    const auto& n  = ctx.batch_sz;
-    const auto& k  = ctx.n_outputs;
-    const auto& ho = ctx.out_height;
-    const auto& wo = ctx.out_width;
+    const int n  = problem.GetBatchSize_();
+    const int k  = problem.GetOutChannels_();
+    const int ho = problem.GetOutHeight_();
+    const int wo = problem.GetOutWidth_();
 
     const auto& b = (static_cast<std::size_t>(n) * ho * wo) / (static_cast<std::size_t>(N1) * N2);
     const auto& b_per_block = config.BPerBlock;
@@ -177,28 +177,29 @@ TunableImplicitGemmV4R1Dynamic::TunableImplicitGemmV4R1Dynamic(int BPerBlock_,
 {
 }
 
-bool TunableImplicitGemmV4R1Dynamic::IsValid(const ConvolutionContext& ctx) const
+bool TunableImplicitGemmV4R1Dynamic::IsValid(const ExecutionContext& ctx,
+                                             const ProblemDescription& problem) const
 {
-    std::size_t N = KernelBatchN(ctx);
-    std::size_t K = KernelOutputChannelK(ctx);
-    std::size_t C = KernelInputChannelC(ctx);
+    std::size_t N = KernelBatchN(problem);
+    std::size_t K = KernelOutputChannelK(problem);
+    std::size_t C = KernelInputChannelC(problem);
 
-    std::size_t Ho = KernelOutputHeightHo(ctx);
-    std::size_t Wo = KernelOutputWidthWo(ctx);
+    std::size_t Ho = KernelOutputHeightHo(problem);
+    std::size_t Wo = KernelOutputWidthWo(problem);
 
-    std::size_t Y = KernelFilterHeightY(ctx);
-    std::size_t X = KernelFilterWidthX(ctx);
+    std::size_t Y = KernelFilterHeightY(problem);
+    std::size_t X = KernelFilterWidthX(problem);
 
     const int N1 = GemmNRepeat;
     const int N2 = GemmNPerThreadSubC;
-    if(N % (N1 * N2) != 0)
+    if(N % static_cast<std::size_t>(N1 * N2) != 0)
         return false; // wrong! cannot divice N evenly among thread
 
-    const auto N0 = N / (N1 * N2);
+    const auto N0 = N / static_cast<std::size_t>(N1 * N2);
 
     const auto B = N0 * Ho * Wo;
 
-    const auto nonVectorizedC = C / GetEPackLength(ctx, false);
+    const auto nonVectorizedC = C / GetEPackLength(ctx, problem, false);
     const auto E              = nonVectorizedC * Y * X;
 
     if(!(EPerBlock % InBlockCopyClusterLengths_E == 0 &&
@@ -213,14 +214,14 @@ bool TunableImplicitGemmV4R1Dynamic::IsValid(const ConvolutionContext& ctx) cons
         return false; // wrong! cannot divice N evenly among thread
 
     const auto KBlockWork = K / KPerBlock;
-    if(KBlockWork % ctx.group_counts != 0)
+    if(KBlockWork % problem.GetGroupCount() != 0)
         return false;
 
     if((N1 * N2 * BPerBlock) % (GemmNPerThreadSubC * GemmNLevel0Cluster * GemmNLevel1Cluster) != 0)
         return false;
 
     // fp16/bfp16: doesn't support asymmetric matrix mul
-    if((ctx.IsFp16() || ctx.IsBfp16()) && GemmNPerThreadSubC != GemmMPerThreadSubC)
+    if((problem.IsFp16() || problem.IsBfp16()) && GemmNPerThreadSubC != GemmMPerThreadSubC)
         return false;
 
     // sanity check
@@ -256,7 +257,7 @@ bool TunableImplicitGemmV4R1Dynamic::IsValid(const ConvolutionContext& ctx) cons
     const int InBlockCopySubLengths_B  = BPerBlock / InBlockCopyClusterLengths_B;
     const int WeiBlockCopySubLengths_K = KPerBlock / WeiBlockCopyClusterLengths_K;
 
-    const std::size_t lds_size = ComputeLDSRequiredSize(ctx,
+    const std::size_t lds_size = ComputeLDSRequiredSize(problem,
                                                         BPerBlock,
                                                         KPerBlock,
                                                         EPerBlock,
@@ -264,15 +265,16 @@ bool TunableImplicitGemmV4R1Dynamic::IsValid(const ConvolutionContext& ctx) cons
                                                         GemmNPerThreadSubC,
                                                         InBlockCopySubLengths_B,
                                                         WeiBlockCopySubLengths_K,
-                                                        GetEPackLength(ctx, false));
+                                                        GetEPackLength(ctx, problem, false));
 
-    if(lds_size > 64 * 1024)
+    if(lds_size > static_cast<std::size_t>(64) * 1024)
         return false;
 
     return (InBlockCopySubLengths_E == 1 && InBlockCopySubLengths_B == 1);
 }
 
-bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ExecutionContext& ctx,
+                                                     const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1{}))
         return false;
@@ -284,22 +286,25 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ConvolutionContext& c
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!ctx.direction.IsForward())
+    if(!problem.direction.IsForward())
         return false;
 
-    if(!ctx.Is2d())
+    if(!problem.Is2d())
         return false;
 
-    if(!ctx.IsFp32())
+    if(!problem.IsFp32())
+        return false;
+
+    if(problem.IsTensorsCasted())
         return false;
 
     if(!ctx.rmv.IsV3())
         return false;
 
-    if(ctx.group_counts != 1)
+    if(problem.GetGroupCount() != 1)
         return false;
 
-    if(!ctx.IsLayoutDefault())
+    if(!problem.IsLayoutDefault())
     {
         return false;
     }
@@ -308,11 +313,13 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ConvolutionContext& c
     if(target.Xnack() && *target.Xnack())
         return false;
     auto tunables = GetImplicitGemmV4R1DynamicTunables();
-    return !std::none_of(
-        tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(ctx); });
+    return !std::none_of(tunables.begin(), tunables.end(), [&](auto tunable) {
+        return tunable.IsValid(ctx, problem);
+    });
 }
 
-bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ExecutionContext& ctx,
+                                                         const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1{}))
         return false;
@@ -324,25 +331,25 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ConvolutionContex
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!ctx.direction.IsForward())
+    if(!problem.direction.IsForward())
         return false;
 
-    if(!ctx.Is2d())
+    if(!problem.Is2d())
         return false;
 
-    if(!ctx.IsFp32())
+    if(!problem.IsFp32())
         return false;
 
     if(!ctx.rmv.IsV3())
         return false;
 
-    if(ctx.group_counts != 1)
+    if(problem.GetGroupCount() != 1)
         return false;
 
-    if((ctx.kernel_size_h != 1) || (ctx.kernel_size_w != 1))
+    if((problem.GetWeightsHeight_() != 1) || (problem.GetWeightsWidth_() != 1))
         return false;
 
-    if(!ctx.IsLayoutDefault())
+    if(!problem.IsLayoutDefault())
     {
         return false;
     }
@@ -351,11 +358,13 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ConvolutionContex
     if(target.Xnack() && *target.Xnack())
         return false;
     auto tunables = GetImplicitGemmV4R1DynamicTunables();
-    return !std::none_of(
-        tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(ctx); });
+    return !std::none_of(tunables.begin(), tunables.end(), [&](auto tunable) {
+        return tunable.IsValid(ctx, problem);
+    });
 }
 
-static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
+static inline ConvSolution GetSolutionBase(const ExecutionContext& ctx,
+                                           const ProblemDescription& problem,
                                            const TunableImplicitGemmV4R1Dynamic& config,
                                            const AsmImplicitGemmKernelV4R1Fwd_t& kernel_type)
 {
@@ -364,7 +373,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     std::string kernel_name = GetKernelNameImplicitGemmV4R1Dynamic(config, kernel_type);
 
     int block_size     = GetImplicitGemmV4R1DynamicBlockSize(config);
-    int grid_size      = GetImplicitGemmV4R1DynamicGridSize(ctx, config);
+    int grid_size      = GetImplicitGemmV4R1DynamicGridSize(problem, config);
     bool kernel_is_1x1 = (kernel_name.find("igemm_v4r1_1x1_dynamic") == 0);
 
     KernelInfo kernel;
@@ -377,7 +386,7 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
      * grid dims is in unit of work item.
      * But for api like hipModuleLaunchKernel(), grid dim is in unit of block.
      */
-    kernel.g_wk.push_back(grid_size * block_size);
+    kernel.g_wk.push_back(static_cast<std::size_t>(grid_size) * block_size);
     kernel.g_wk.push_back(1);
     kernel.g_wk.push_back(1);
     kernel.l_wk.clear();
@@ -392,43 +401,48 @@ static inline ConvSolution GetSolutionBase(const ConvolutionContext& ctx,
     MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
     if(kernel_is_1x1)
-        result.invoker_factory = conv::MakeImplGemmDynamicForward1x1InvokerFactory(ctx);
+        result.invoker_factory = conv::MakeImplGemmDynamicForward1x1InvokerFactory(problem);
     else
     {
         int packed_value = 0;
         result.invoker_factory =
-            conv::MakeImplGemmDynamicForwardInvokerFactory<int>(ctx, packed_value);
+            conv::MakeImplGemmDynamicForwardInvokerFactory<int>(problem, packed_value);
     }
     result.construction_params.push_back(kernel);
     return result;
 }
 
-ConvSolution ConvAsmImplicitGemmV4R1DynamicFwd::GetSolution(const ConvolutionContext& ctx) const
+ConvSolution ConvAsmImplicitGemmV4R1DynamicFwd::GetSolution(const ExecutionContext& ctx,
+                                                            const ProblemDescription& problem) const
 {
     auto tunables = GetImplicitGemmV4R1DynamicTunables();
-    auto it       = std::find_if(
-        tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(ctx); });
+    auto it       = std::find_if(tunables.begin(), tunables.end(), [&](auto tunable) {
+        return tunable.IsValid(ctx, problem);
+    });
 
     if(it == tunables.end())
         MIOPEN_THROW(
             miopenStatusInternalError,
             "no solution found in igemm v4r1 dynamic fwd, should call IsApplicable() first.");
 
-    return GetSolutionBase(ctx, *it, AsmImplicitGemmV4R1);
+    return GetSolutionBase(ctx, problem, *it, AsmImplicitGemmV4R1);
 }
 
-ConvSolution ConvAsmImplicitGemmV4R1DynamicFwd_1x1::GetSolution(const ConvolutionContext& ctx) const
+ConvSolution
+ConvAsmImplicitGemmV4R1DynamicFwd_1x1::GetSolution(const ExecutionContext& ctx,
+                                                   const ProblemDescription& problem) const
 {
     auto tunables = GetImplicitGemmV4R1DynamicTunables();
-    auto it       = std::find_if(
-        tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(ctx); });
+    auto it       = std::find_if(tunables.begin(), tunables.end(), [&](auto tunable) {
+        return tunable.IsValid(ctx, problem);
+    });
 
     if(it == tunables.end())
         MIOPEN_THROW(
             miopenStatusInternalError,
             "no solution found in igemm v4r1 dynamic fwd 1x1, should call IsApplicable() first.");
 
-    return GetSolutionBase(ctx, *it, AsmImplicitGemmV4R1_1x1);
+    return GetSolutionBase(ctx, problem, *it, AsmImplicitGemmV4R1_1x1);
 }
 
 } // namespace solver

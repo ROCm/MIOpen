@@ -46,6 +46,9 @@ struct InvokeParams : public miopen::InvokeParams
     double epsilon               = 0;
     Data_t resultSaveMean        = nullptr;
     Data_t resultSaveInvVariance = nullptr;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
 };
 
 struct BwdInvokeParams : public miopen::InvokeParams
@@ -61,6 +64,9 @@ struct BwdInvokeParams : public miopen::InvokeParams
     double epsilon               = 0;
     ConstData_t savedMean        = nullptr;
     ConstData_t savedInvVariance = nullptr;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
 };
 
 struct InfInvokeParams : public miopen::InvokeParams
@@ -76,6 +82,9 @@ struct InfInvokeParams : public miopen::InvokeParams
     ConstData_t estimatedMean     = nullptr;
     ConstData_t estimatedVariance = nullptr;
     double epsilon                = 0;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
 };
 
 } // namespace batchnorm

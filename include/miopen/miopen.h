@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -53,6 +53,7 @@
  * @defgroup convolutions
  * @defgroup pooling
  * @defgroup handle
+ * @defgroup layernorm
  * @defgroup LRN
  * @defgroup batchnorm
  * @defgroup activation
@@ -62,6 +63,7 @@
  * @defgroup fusion
  * @defgroup LossFunction
  * @defgroup TensorReduce
+ * @defgroup find2
  *
  */
 
@@ -107,7 +109,16 @@ typedef enum
     miopenStatusUnknownError         = 7, /*!< Unknown error occurred. */
     miopenStatusUnsupportedOp        = 8, /*!< Unsupported operator for fusion. */
     miopenStatusGpuOperationsSkipped = 9, /*!< This is not an error. */
+    miopenStatusVersionMismatch = 10, /*!< Version mismatch of the supplied binary data argment. */
 } miopenStatus_t;
+
+#ifdef MIOPEN_BETA_API
+typedef enum
+{
+    miopenF8RoundingModeStandard   = 0,
+    miopenF8RoundingModeStochastic = 1,
+} miopenF8RoundingMode_t;
+#endif
 
 /*! @brief Get character string for an error code.
  *
@@ -263,10 +274,18 @@ MIOPEN_DECLARE_OBJECT(miopenFusionOpDescriptor);
  * @brief Creates the miopenTensorDescriptor_t type
  *
  * Tensor descriptor is an object that allows the user to specify a layer's size for each
- * dimension and dimension strides. Currently only 4-D fully packed tensors are supported.
+ * dimension and dimension strides.
  *
  */
 MIOPEN_DECLARE_OBJECT(miopenTensorDescriptor);
+
+/*! @ingroup tensor
+ * @brief Creates the miopenSeqTensorDescriptor_t type
+ *
+ * SeqTensor descriptor is an object that allows the user to specify tensor with sequence dimension.
+ *
+ */
+MIOPEN_DECLARE_OBJECT(miopenSeqTensorDescriptor);
 
 /*! @ingroup convolutions
  * @brief Creates the miopenConvolutionDescriptor_t type
@@ -329,15 +348,21 @@ MIOPEN_DECLARE_OBJECT(miopenReduceTensorDescriptor);
  */
 typedef enum
 {
-    miopenHalf  = 0, /*!< 16-bit floating point (Fully supported) */
-    miopenFloat = 1, /*!< 32-bit floating point (Fully supported) */
-    miopenInt32 = 2, /*!< 32-bit int point (Partially supported) */
-    miopenInt8  = 3, /*!< 8-bit int point (Partially supported) */
-    miopenInt8x4 =
-        4, /*!< Pack of four 8-bit int points in NCHW_VECT_C format (Partially supported) */
+    miopenHalf     = 0, /*!< 16-bit floating point (Fully supported) */
+    miopenFloat    = 1, /*!< 32-bit floating point (Fully supported) */
+    miopenInt32    = 2, /*!< 32-bit int point (Partially supported) */
+    miopenInt8     = 3, /*!< 8-bit int point (Partially supported) */
+    miopenInt8x4   = 4, /*!< Pack of four Int8 in NCHW_VECT_C format (Support discontinued) */
     miopenBFloat16 = 5, /*!< 16-bit binary floating point (8-bit exponent, 7-bit fraction)
                            (Partially supported) */
     miopenDouble = 6,   /*!< 64-bit floating point (Partially supported) */
+#ifdef MIOPEN_BETA_API
+    miopenFloat8  = 7,
+    miopenBFloat8 = 8,
+#else
+// miopenReserved1 = 7,
+// miopenReserved2 = 8,
+#endif
 } miopenDataType_t;
 
 /*! @ingroup tensor
@@ -437,7 +462,18 @@ typedef enum
     miopenLRNWithinChannel = 0, /*!< Channel independent */
     miopenLRNCrossChannel  = 1, /*!< Cross Channel */
 } miopenLRNMode_t;
-
+#ifdef MIOPEN_BETA_API
+/*! @ingroup layernorm
+ * @enum miopenLayerNormAlgorithm_t
+ * LayerNorm implementation algorithms
+ */
+typedef enum
+{
+    MIOPEN_ELEMENTWISE_AFFINE = 0, /*!< initialized to ones for weights and zeros for biases */
+    MIOPEN_WEIGHT_BIAS =
+        1, /*!< learnable weights and biases of the module of shape normalized_shape */
+} miopenLayerNormMode_t;
+#endif
 /*! @ingroup batchnorm
  * @enum miopenBatchNormMode_t
  * Batch Normalization layer mode
@@ -552,10 +588,10 @@ typedef enum
  */
 typedef enum
 {
-    MIOPEN_32BIT_INDICES = 0, /*!< unsigned integer indices */
-    MIOPEN_64BIT_INDICES = 1, /*!< unsigned long indices */
-    MIOPEN_16BIT_INDICES = 2, /*!< unsigned short indices */
-    MIOPEN_8BIT_INDICES  = 3, /*!< unsigned char indices */
+    MIOPEN_32BIT_INDICES = 0, /*!< 32-bit unsigned integer indices */
+    MIOPEN_64BIT_INDICES = 1, /*!< 64-bit unsigned integer indices */
+    MIOPEN_16BIT_INDICES = 2, /*!< 16-bit unsigned integer indices */
+    MIOPEN_8BIT_INDICES  = 3, /*!< 8-bit unsigned integer indices */
 } miopenIndicesType_t;
 
 /*! @ingroup convolutions
@@ -571,6 +607,15 @@ typedef enum
     MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC =
         1, /*!< Restrict MIOpen convolutions to kernels which produce numerically deterministic
               results. 0 - disabled (default), 1 - enabled >*/
+#ifdef MIOPEN_BETA_API
+    MIOPEN_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE =
+        2, /*!<Specifies the rounding mode for the 8-bit floating data types. Currently, two
+              rounding modes are supported miopenF8RoundingModeStandard and
+              miopenF8RoundingModeStochastic. These are listed as part of the miopenF8RoundingMode_t
+              enum.>*/
+#else
+// miopenReserved1 = 2,
+#endif
 } miopenConvolutionAttrib_t;
 
 /** @addtogroup tensor
@@ -590,7 +635,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor
  *
  * Interface for setting 4-D tensor shape. MIOpen currently only implements NCHW layout.
  *
- * @param tensorDesc Tensor descriptor type (output)
+ * @param tensorDesc Tensor descriptor (input/output)
  * @param dataType   MIOpen datatype (input)
  * @param n          Mini-batch size (input)
  * @param c          Number of channels (input)
@@ -604,7 +649,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptor(
 /*! @brief Set shape of ND tensor with specific layout
  *
  * Interface for setting N-D tensor shape. This interface support NHWC, NCHW, NCHWc*, CHWNc*
- * @param tensorDesc   Tensor descriptor type (output)
+ * @param tensorDesc   Tensor descriptor (input/output)
  * @param dataType     MIOpen datatype (input)
  * @param tensorLayout Tensor layout (input)
  * @param lens         Tensor dimensions (input)
@@ -615,13 +660,13 @@ MIOPEN_EXPORT miopenStatus_t
 miopenSetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
                                       miopenDataType_t dataType,
                                       miopenTensorLayout_t tensorLayout,
-                                      int* lens,
+                                      const int* lens,
                                       int num_lens);
 /*! @brief Set shape and stride of 4D tensor
  *
  * Interface for setting 4-D tensor shape and stride.
  *
- * @param tensorDesc Tensor descriptor type (output)
+ * @param tensorDesc Tensor descriptor (input/output)
  * @param dataType   MIOpen datatype (input)
  * @param n          Mini-batch size (input)
  * @param c          Number of channels (input)
@@ -648,8 +693,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptorEx(miopenTensorDescripto
  *
  * Interface to query the 4-D tensor shape.
  *
- * @param tensorDesc Tensor descriptor type (input)
- * @param dataType   MIOpen datatype (input)
+ * @param tensorDesc Tensor descriptor (input)
+ * @param dataType   MIOpen datatype (output)
  * @param n          Mini-batch size (output)
  * @param c          Number of channels (output)
  * @param h          Data height dimension size (output)
@@ -675,7 +720,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_
  *
  * Interface for setting tensor shape. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of
  * layout.
- * @param tensorDesc   Tensor descriptor type (input)
+ * @param tensorDesc   Tensor descriptor (input/output)
  * @param dataType     MIOpen datatype (input)
  * @param nbDims       Number of dimensions in the dimsA array (input)
  * @param dimsA        Array containing the size of dimensions (input)
@@ -685,14 +730,28 @@ MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_
 MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
                                                        miopenDataType_t dataType,
                                                        int nbDims,
-                                                       int* dimsA,
-                                                       int* stridesA);
+                                                       const int* dimsA,
+                                                       const int* stridesA);
+
+#ifdef MIOPEN_BETA_API
+/*! @brief Set the tensor cast type
+ *
+ *  For tensors where the cast_type attribute is set, the tensor elements would be converted to the
+ * target type before the target operation is applied. Currently, only supported for convolution
+ * operations targeting the FP8 datatype
+ *
+ *  @param tensorDesc Tensor descriptor type (input)
+ *  @param cast_type  MIOpen datatype (input)
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetTensorCastType(miopenTensorDescriptor_t tensorDesc,
+                                                     miopenDataType_t cast_type);
+#endif
 
 /*! @brief Set shape of N-dimensional tensor
  *
  * Interface for querying tensor size. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of
  * layout.
- * @param tensorDesc   Tensor descriptor type (input)
+ * @param tensorDesc   Tensor descriptor (input)
  * @param size         number of elements in tensor described by the descriptor (output)
  * @return             miopenStatus_t
  */
@@ -701,8 +760,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGetTensorDescriptorSize(miopenTensorDescripto
 
 /*! @brief Get the details of the N-dimensional tensor descriptor.
  *
- * @param tensorDesc Tensor descriptor type (input)
- * @param dataType   MIOpen datatype (input)
+ * @param tensorDesc Tensor descriptor (input)
+ * @param dataType   MIOpen datatype (output)
  * @param dimsA      Array containing the size of dimensions (output)
  * @param stridesA   Array containing the size of stride (output)
  * @return           miopenStatus_t
@@ -714,10 +773,27 @@ MIOPEN_EXPORT miopenStatus_t miopenGetTensorDescriptor(miopenTensorDescriptor_t 
 
 /*! @brief Destroys the tensor descriptor
  *
- * @param tensorDesc Tensor descriptor type (input)
+ * @param tensorDesc Tensor descriptor (input)
  * @return           miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t tensorDesc);
+
+/*! @brief Create a Tensor Descriptor for sequence data
+ *
+ * API for creating an uninitialized sequence data tensor descriptor.
+ * @param tensorDesc Pointer to a sequence data tensor descriptor type (output)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateSeqTensorDescriptor(miopenSeqTensorDescriptor_t* tensorDesc);
+
+/*! @brief Destroys the sequence data tensor descriptor
+ *
+ * @param tensorDesc Tensor descriptor (input)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenDestroySeqTensorDescriptor(miopenSeqTensorDescriptor_t tensorDesc);
 
 /*! @brief Execute element-wise tensor operations
  *
@@ -867,10 +943,19 @@ MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDe
 MIOPEN_EXPORT miopenStatus_t
 miopenInitConvolutionNdDescriptor(miopenConvolutionDescriptor_t convDesc,
                                   int spatialDim,
-                                  int* padA,
-                                  int* strideA,
-                                  int* dilationA,
+                                  const int* padA,
+                                  const int* strideA,
+                                  const int* dilationA,
                                   miopenConvolutionMode_t c_mode);
+
+/*! @brief Retrieves the spatial dimension of a convolution layer descriptor
+ *
+ * @param convDesc              Convolution layer descriptor (input)
+ * @param spatialDim            Spatial dimension of convolution descriptor (output)
+ * @return                      miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionSpatialDim(miopenConvolutionDescriptor_t convDesc,
+                                                            int* spatialDim);
 
 /*! @brief Retrieves a 2-D convolution layer descriptor's details
  *
@@ -916,6 +1001,15 @@ miopenGetConvolutionNdDescriptor(miopenConvolutionDescriptor_t convDesc,
                                  int* dilationA,
                                  miopenConvolutionMode_t* c_mode);
 
+/*! @brief Get the number of groups to be used in Group/Depthwise convolution
+ *
+ * @param convDesc   Convolution layer descriptor (input)
+ * @param groupCount Pointer to number of groups in group/depthwise convolution (output)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionGroupCount(miopenConvolutionDescriptor_t convDesc,
+                                                            int* groupCount);
+
 /*! @brief Set the number of groups to be used in Group/Depthwise convolution
  *
  * Must be called before all computational APIs of group/depthwise convolution, it is preferable to
@@ -960,7 +1054,7 @@ miopenSetTransposeConvOutputPadding(miopenConvolutionDescriptor_t convDesc, int 
  * @return              miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenSetTransposeConvNdOutputPadding(
-    miopenConvolutionDescriptor_t convDesc, int spatialDim, int* adjA);
+    miopenConvolutionDescriptor_t convDesc, int spatialDim, const int* adjA);
 
 /*! @brief Get the shape of a resulting 4-D tensor from a 2-D convolution
  *
@@ -1046,7 +1140,7 @@ typedef enum
     miopenConvolutionFwdAlgoDirect       = 1, /*!< Direct convolutions */
     miopenConvolutionFwdAlgoFFT          = 2, /*!< Fast Fourier Transform indirect convolutions */
     miopenConvolutionFwdAlgoWinograd     = 3, /*!< Winograd indirect convolutions */
-    miopenConvolutionFwdAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions, fp32 only */
+    miopenConvolutionFwdAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions */
 } miopenConvFwdAlgorithm_t;
 
 /*! @enum miopenConvBwdWeightsAlgorithm_t
@@ -1071,7 +1165,7 @@ typedef enum
     miopenConvolutionBwdDataAlgoWinograd = 3, /*!< Winograd indirect convolutions */
     miopenTransposeBwdDataAlgoGEMM =
         4, /*!< Deprecated Transpose GEMM variant legacy, ToBe Removed */
-    miopenConvolutionBwdDataAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions, fp32 only */
+    miopenConvolutionBwdDataAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions */
 } miopenConvBwdDataAlgorithm_t;
 
 /*! @enum miopenConvAlgorithm_t
@@ -1083,7 +1177,7 @@ typedef enum
     miopenConvolutionAlgoDirect       = 1, /*!< Direct convolutions */
     miopenConvolutionAlgoFFT          = 2, /*!< Fast Fourier Transform indirect convolutions */
     miopenConvolutionAlgoWinograd     = 3, /*!< Winograd indirect convolutions */
-    miopenConvolutionAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions, fp32 only */
+    miopenConvolutionAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions */
 } miopenConvAlgorithm_t;
 
 /*! @brief Perf struct for forward, backward filter, or backward data algorithms
@@ -1633,6 +1727,8 @@ miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
  * Runs the forward convolution layer based on the selected algorithm. The function
  * miopenFindConvolutionForwardAlgorithm() must have been executed previously to
  * determine the required memory needed for the workspace and the best convolutional algorithm.
+ * The scaling parameter alpha (float) and shift parameter beta (float) are only supported for
+ * alpha = 1 and beta = 0.
  *
  * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
  * this.
@@ -1669,6 +1765,8 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
 /*! @brief Calculate element-wise scale and shift of a tensor via a bias tensor
  *
  *  This function applies an element-wise bias to a data tensor from an input bias tensor.
+ *  The scaling parameter alpha (float) and shift parameter beta (float) are only supported for
+ *  alpha = 1 and beta = 0.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -1936,6 +2034,8 @@ miopenConvolutionBackwardWeights(miopenHandle_t handle,
 /*! @brief Calculates the gradient with respect to the bias.
  *
  * Compute the convolution backwards gradient with respect to the bias tensor.
+ * The scaling parameter alpha (float) and shift parameter beta (float) are only supported for
+ * alpha = 1 and beta = 0.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -2096,9 +2196,9 @@ miopenGetPoolingForwardOutputDim(const miopenPoolingDescriptor_t poolDesc,
 MIOPEN_EXPORT miopenStatus_t miopenSetNdPoolingDescriptor(miopenPoolingDescriptor_t poolDesc,
                                                           const miopenPoolingMode_t mode,
                                                           int nbDims,
-                                                          int* windowDimA,
-                                                          int* padA,
-                                                          int* stridesA);
+                                                          const int* windowDimA,
+                                                          const int* padA,
+                                                          const int* stridesA);
 
 /*! @brief Get details of a N-D pooling layer descriptor
  *
@@ -2382,6 +2482,55 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lr
 
 /** @} */
 // CLOSEOUT LRN DOXYGEN GROUP
+
+#ifdef MIOPEN_BETA_API
+// LayerNorm APIs
+/** @addtogroup layernorm
+ *
+ *  @{
+ */
+/*! @brief Execute a layernorm forward layer
+ *
+ * This API only implements the LAYERNORM_MODE_CHANNEL in LAYERNORM_ACCURATE path.
+ *
+ * @param handle         MIOpen handle (input)
+ * @param mode           LayerNorm mode (input)
+ * @param xDesc          Tensor descriptor for data input tensor x (input)
+ * @param x              Data tensor x (input)
+ * @param weightDesc     Tensor descriptor for data input tensor weight (input)
+ * @param weight         Data tensor weight (input)
+ * @param biasDesc       Tensor descriptor for data input tensor bias (input)
+ * @param bias           Data tensor bias (input)
+ * @param epsilon        Value to stablize inverse variance calculation (input)
+ * @param normalized_dim Nomalized dimensions in the input array (input)
+ * @param yDesc          Tensor descriptor for output data tensor y (input)
+ * @param y              Data tensor y (output)
+ * @param meanDesc       Tensor descriptor for output data tensor mean (input)
+ * @param mean           Data tensor mean (output)
+ * @param rstdDesc       Tensor descriptor for output data tensor rstd (input)
+ * @param rstd           Data tensor rstd (output)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
+                                                    miopenLayerNormMode_t mode,
+                                                    const miopenTensorDescriptor_t xDesc,
+                                                    const void* x,
+                                                    const miopenTensorDescriptor_t weightDesc,
+                                                    const void* weight,
+                                                    const miopenTensorDescriptor_t biasDesc,
+                                                    const void* bias,
+                                                    const float epsilon,
+                                                    const int32_t normalized_dim,
+                                                    const miopenTensorDescriptor_t yDesc,
+                                                    void* y,
+                                                    const miopenTensorDescriptor_t meanDesc,
+                                                    void* mean,
+                                                    const miopenTensorDescriptor_t rstdDesc,
+                                                    void* rstd);
+
+/** @} */
+// CLOSEOUT LAYERNORM DOXYGEN GROUP
+#endif
 
 // Batch-Normalization APIs
 /** @addtogroup batchnorm
@@ -3178,6 +3327,32 @@ miopenExecuteFusionPlan(const miopenHandle_t handle,
                         const miopenTensorDescriptor_t outputDesc,
                         void* output,
                         miopenOperatorArgs_t args);
+
+/*! @brief Prepares and executes the Convlution+Bias+Activation Fusion
+ *
+ *
+ * @param handle           MIOpen handle (input)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenConvolutionBiasActivationForward(miopenHandle_t handle,
+                                       const void* alpha1,
+                                       const miopenTensorDescriptor_t xDesc,
+                                       const void* x,
+                                       const miopenTensorDescriptor_t wDesc,
+                                       const void* w,
+                                       const miopenConvolutionDescriptor_t convDesc,
+                                       miopenConvFwdAlgorithm_t algo,
+                                       void* workspace,
+                                       size_t workspaceSizeInBytes,
+                                       const void* alpha2,
+                                       const miopenTensorDescriptor_t zDesc,
+                                       const void* z,
+                                       const miopenTensorDescriptor_t biasDesc,
+                                       const void* bias,
+                                       const miopenActivationDescriptor_t activationDesc,
+                                       const miopenTensorDescriptor_t yDesc,
+                                       void* y);
 /** @} */
 // CLOSEOUT FUSION DOXYGEN GROUP
 
@@ -3242,6 +3417,35 @@ typedef enum
 {
     miopenRNNAlgoGEMM = 0,
 } miopenRNNGEMMalgoMode_t;
+
+/*! @enum miopenRNNPaddingMode_t
+ * Recurrent Neural Network input/output data padding mode
+ */
+typedef enum
+{
+    miopenRNNIONotPadded   = 0, /*!< Not padded data at RNN input/output */
+    miopenRNNIOWithPadding = 1, /*!< Padded data at RNN input/output */
+} miopenRNNPaddingMode_t;
+
+/*! @enum miopenRNNFWDMode_t
+ * Recurrent Neural Network Training/Inference mode
+ */
+typedef enum
+{
+    miopenRNNTraining  = 0, /*!< FWD, BWD, WRW */
+    miopenRNNInference = 1, /*!< Only FWD-inference no back-propagation */
+} miopenRNNFWDMode_t;
+
+/*! @enum miopenRNNBaseLayout_t
+ * Data layouts for RNN operations
+ */
+typedef enum
+{
+    miopenRNNDataUnknownLayout     = 0,
+    miopenRNNDataSeqMajorNotPadded = 1,
+    miopenRNNDataSeqMajorPadded    = 2,
+    miopenRNNDataBatchMajorPadded  = 3,
+} miopenRNNBaseLayout_t;
 
 /*! @brief Create a RNN layer Descriptor
  *
@@ -3318,7 +3522,7 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyRNNDescriptor(miopenRNNDescriptor_t rn
  * @param rnnMode      RNN model type (input)
  * @param biasMode     RNN bias included (input)
  * @param algo         RNN algorithm selected (input)
- * @param dataType     Only fp32 currently supported for RNNs (input)
+ * @param dataType     MIOpen datatype (input)
  * @return             miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor(miopenRNNDescriptor_t rnnDesc,
@@ -3346,7 +3550,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor(miopenRNNDescriptor_t rnnDes
  * @param rnnMode      RNN model type (input)
  * @param biasMode     RNN bias included (input)
  * @param algo         RNN algorithm selected (input)
- * @param dataType     Only fp32 currently supported for RNNs (input)
+ * @param dataType     MIOpen datatype (input)
  * @return             miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor_V2(miopenRNNDescriptor_t rnnDesc,
@@ -3359,6 +3563,59 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor_V2(miopenRNNDescriptor_t rnn
                                                        miopenRNNBiasMode_t biasMode,
                                                        miopenRNNAlgo_t algo,
                                                        miopenDataType_t dataType);
+
+/*! @brief Set shape of RNN seqData tensor
+ *
+ * Interface for setting tensor shape to be used as RNN input data
+ *
+ * @param seqTensorDesc     Tensor descriptor (input/output)
+ * @param dataType          MIOpen datatype (input)
+ * @param layout            One of the main supported layouts for RNN data(input)
+ * @param maxSequenceLen      Sequence length limit within this SeqTensor(input)
+ * @param batchSize         Number of sequences within this SeqTensor (input)
+ * @param vectorSize        Vector size (input)
+ * @param sequenceLenArray  Array containing the length of each sequence in the SeqTensor(input)
+ * @param paddingMarker     Not used, should be NULL (input)
+ * @return                  miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenSetRNNDataSeqTensorDescriptor(miopenSeqTensorDescriptor_t seqTensorDesc,
+                                    miopenDataType_t dataType,
+                                    miopenRNNBaseLayout_t layout,
+                                    int maxSequenceLen,
+                                    int batchSize,
+                                    int vectorSize,
+                                    const int* sequenceLenArray,
+                                    void* paddingMarker);
+
+/*! @brief Get shape of RNN seqData tensor
+ *
+ * Interface for setting tensor shape to be used as RNN input data
+ *
+ * @param seqTensorDesc             Tensor descriptor (input)
+ * @param dataType                  MIOpen datatype (output)
+ * @param layout                    One of the main supported layouts for RNN data(output)
+ * @param maxSequenceLen              Sequence length limit within this SeqTensor(output)
+ * @param batchSize                 Number of sequences within this SeqTensor (output)
+ * @param vectorSize                Vector size (output)
+ * @param sequenceLenArrayLimit  Limit for number of elements that can be returned to user
+ * by sequenceLenArray (input)
+ * @param sequenceLenArray          Array containing the length of each sequence in the
+ * SeqTensor. This is allowed to be a NULL pointer if sequenceLenArrayLimit is 0 (output)
+ * @param paddingMarker             Not used, should be NULL (input)
+ * @return                          miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t
+miopenGetRNNDataSeqTensorDescriptor(miopenSeqTensorDescriptor_t seqTensorDesc,
+                                    miopenDataType_t* dataType,
+                                    miopenRNNBaseLayout_t* layout,
+                                    int* maxSequenceLen,
+                                    int* batchSize,
+                                    int* vectorSize,
+                                    int sequenceLenArrayLimit,
+                                    int* sequenceLenArray,
+                                    void* paddingMarker);
 
 /*! @brief Query the amount of memory required to execute the RNN layer
  *
@@ -3404,6 +3661,29 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNTrainingReserveSize(miopenHandle_t hand
                                                              const miopenTensorDescriptor_t* xDesc,
                                                              size_t* numBytes);
 
+/*! @brief Query the amount of additional memory required for this RNN layer execution.
+ *
+ * This function calculates the size of extra buffers, depending on the layer configuration, which
+ * is determined by: RNN descriptor, isInference, and data descriptor. If isInference is True,
+ * reserve_space_size is always zero, because the reserve_space buffer is not used in Inference
+ * computation.
+ *
+ * @param handle           MIOpen handle (input)
+ * @param rnnDesc          RNN layer descriptor type (input)
+ * @param xDesc            Sequence data tensor descriptor (input)
+ * @param fwdMode          Specifies in which mode the buffers will be used.
+ * @param workSpaceSize    Minimum WorkSpace buffer size required for RNN layer execution (output)
+ * @param reserveSpaceSize Minimum ReserveSpaceSize buffer size required for RNN layer execution
+ * (output)
+ * @return                 miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetRNNTempSpaceSizes(miopenHandle_t handle,
+                                                        miopenRNNDescriptor_t rnnDesc,
+                                                        miopenSeqTensorDescriptor_t xDesc,
+                                                        miopenRNNFWDMode_t fwdMode,
+                                                        size_t* workSpaceSize,
+                                                        size_t* reserveSpaceSize);
+
 /*! @brief Query the amount of parameter memory required for RNN training
  *
  * This function calculates the amount of parameter memory required to train the RNN layer given an
@@ -3431,7 +3711,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNParamsSize(miopenHandle_t handle,
  * @param rnnDesc         Fully populated RNN layer descriptor type (input)
  * @param xDesc           A previously populated tensor descriptor (input)
  * @param wDesc           A previously allocated tensor descriptor (output)
- * @param dtype           MIOpen data type enum, currently only fp32 is supported (input)
+ * @param dtype           MIOpen data type enum (input)
  * @return                miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGetRNNParamsDescriptor(miopenHandle_t handle,
@@ -3945,6 +4225,220 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNLayerBias(miopenHandle_t handle,
                                                    const int biasID,
                                                    miopenTensorDescriptor_t biasDesc,
                                                    const void* layerBias);
+
+/*! @brief Sets a bias for a specific layer in an RNN stack
+ *
+ * This function changes padidng mode at previously created and initialized RNN descriptor.
+ * This function must be called before using miopenGetRNNWorkspaceSize()
+ * and miopenGetRNNTrainingReserveSize() functions.
+ * By default, not padded data is expected at the RNN input/output.
+ *
+ * @param rnnDesc         RNN layer descriptor type (input/output)
+ * @param paddingMode     RNN input/output data padding mode (input)
+ * @return                miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetRNNPaddingMode(miopenRNNDescriptor_t rnnDesc,
+                                                     miopenRNNPaddingMode_t paddingMode);
+
+/*! @brief This function retrieves the RNN padding mode from the RNN descriptor.
+ *
+ * @param rnnDesc         RNN layer descriptor type (input)
+ * @param paddingMode     Pointer to the RNN padding mode (output)
+ * @return                miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenGetRNNPaddingMode(miopenRNNDescriptor_t rnnDesc,
+                                                     miopenRNNPaddingMode_t* paddingMode);
+
+/*! @brief Execute forward training for recurrent layer.
+ *
+ * Interface for executing the forward training / inference pass on a RNN.
+ *
+ * @param handle                MIOpen handle (input)
+ * @param rnnDesc               RNN layer descriptor type (input)
+ *
+ * @param xDesc                 An input tensor descriptor for sequenced RNN data. This
+ * miopenSeqTensorDescriptor_t should be initialyzed by `miopenSetRNNDataSeqTensorDescriptor`
+ * function.(input)
+ * @param x                     Pointer to input tensor (input)
+ *
+ * @param hDesc                A hidden tensor descriptor that has as its first dimension
+ * of the number of layers if the direction mode is unidirectional and twice the
+ * number of layers if the direction mode is bidirectional. The second dimension of
+ * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
+ * array. The third dimension equals the hiddenSize. (input)
+ * @param hx                    Pointer to the hidden layer input tensor. If hx is NULL,
+ * then the initial hidden state will be zero initialized. (input)
+ * @param hy                    Pointer to the hidden layer output tensor. If hy is NULL,
+ * then the final hidden state will not be saved. (output)
+ *
+ * @param cDesc                A cell tensor descriptor that has as its first dimension
+ * of the number of layers if the direction mode is unidirectional and twice the
+ * number of layers if the direction mode is bidirectional. The second dimension of
+ * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
+ * array. The third dimension equals the hiddenSize. (input)
+ * @param cx                    Pointer to the cell layer input tensor. If cx is NULL,
+ * then the initial cell state will be zero initialized. (input)
+ * @param cy                    Pointer to the cell layer output tensor. If hy is NULL,
+ * then the final cell state will not be saved. (output)
+ *
+ * @param yDesc                 An array of fully packed tensor descriptors associated
+ * with the output from each time step. The first dimension of the tensor descriptors
+ * must equal the first dimension of the first descriptor (batch size) in the xDesc
+ * tensor array. The second dimension of the element of the descriptor array
+ * depends on the direction mode selected. If the direction mode is unidirectional,
+ * the second dimension is the hiddenSize. If direction mode is bidirectional
+ * the second dimension is twice the hiddenSize. (input)
+ * @param y                     Pointer to output tensor (output)
+ *
+ * @param w                     Pointer to input weights tensor (input)
+ * @param weightSpaceSize       Number of allocated bytes in memory for the weights tensor
+ * @param workSpace             Pointer to memory allocated for forward (input / output)
+ * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace (input)
+ * @param reserveSpace          Pointer to memory allocated for hidden states used durning training
+ * (input / output)
+ * @param reserveSpaceNumBytes  Number of allocated bytes in memory for use in the forward  (input)
+ * @return                      miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenRNNForward(miopenHandle_t handle,
+                                              const miopenRNNDescriptor_t rnnDesc,
+                                              miopenRNNFWDMode_t fwdMode,
+                                              const miopenSeqTensorDescriptor_t xDesc,
+                                              const void* x,
+                                              const miopenTensorDescriptor_t hDesc,
+                                              const void* hx,
+                                              void* hy,
+                                              const miopenTensorDescriptor_t cDesc,
+                                              const void* cx,
+                                              void* cy,
+                                              const miopenSeqTensorDescriptor_t yDesc,
+                                              void* y,
+                                              const void* w,
+                                              size_t weightSpaceSize,
+                                              void* workSpace,
+                                              size_t workSpaceNumBytes,
+                                              void* reserveSpace,
+                                              size_t reserveSpaceNumBytes);
+
+/*! @brief Execute backward data for recurrent layer
+ *
+ * Interface for executing the backward data pass on a RNN.
+ *
+ * @param handle                MIOpen handle (input)
+ * @param rnnDesc               RNN layer descriptor type (input)
+
+ * @param yDesc                 An output tensor descriptor for sequenced RNN data. This
+ * miopenSeqTensorDescriptor_t should be initialyzed by `miopenSetRNNDataSeqTensorDescriptor`
+ function.(input)
+ * @param y                     Pointer to input tensor (input)
+ * @param dy                    Pointer to the hidden layer input tensor (input)
+ *
+ * @param hDesc                An input hidden tensor descriptor that has as its first dimension
+ * of the number of layers if the direction mode is unidirectional and twice the
+ * number of layers if the direction mode is bidirectional. The second dimension of
+ * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
+ * array. The third dimension equals the hiddenSize. (input)
+ * @param hx                    Pointer to the hidden layer input tensor. If hx is NULL,
+ * then the initial hidden state will be zero initialized. (input)
+ * @param dhy                   Pointer to the cell layer input tensor (input)
+ * @param dhx                   Pointer to the delta hidden layer output tensor. If dhx is NULL
+ * the hidden gradient will not ouput. (output)
+ *
+ * @param cDesc                A input cell tensor descriptor that has as its first dimension
+ * of the number of layers if the direction mode is unidirectional and twice the
+ * number of layers if the direction mode is bidirectional. The second dimension of
+ * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
+ * array. The third dimension equals the hiddenSize. (input)
+ * @param cx                    Pointer to the hidden layer input tensor. If cx is NULL,
+ * then the initial cell state will be zero initialized. (input)
+ * @param dcy                   Pointer to the cell layer input tensor. If dcy is NULL,
+ * then the initial delta cell state will be zero initialized. (input)
+ * @param dcx                   Pointer to the cell layer output tensor. If dcx is NULL
+ * the cell gradient will not ouput. (output)
+
+ * @param xDesc                 An input tensor descriptor for sequenced RNN data. This
+ * miopenSeqTensorDescriptor_t should be initialyzed by `miopenSetRNNDataSeqTensorDescriptor`
+ function.(input)
+ * @param dx                    Pointer to the cell layer output tensor (output)
+ *
+ * @param w                     Pointer to input weights tensor (input)
+ * @param weightSpaceSize       Number of allocated bytes in memory for the weights tensor
+ * @param workSpace             Pointer to memory allocated for forward training (input)
+ * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace (input)
+ * @param reserveSpace          Pointer to memory allocated for random states (input / output)
+ * @param reserveSpaceNumBytes  Number of allocated bytes in memory for use in the forward (input)
+ * @return                      miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardSeqData(miopenHandle_t handle,
+                                                      const miopenRNNDescriptor_t rnnDesc,
+                                                      const miopenSeqTensorDescriptor_t yDesc,
+                                                      const void* y,
+                                                      const void* dy,
+                                                      const miopenTensorDescriptor_t hDesc,
+                                                      const void* hx,
+                                                      const void* dhy,
+                                                      void* dhx,
+                                                      const miopenTensorDescriptor_t cDesc,
+                                                      const void* cx,
+                                                      const void* dcy,
+                                                      void* dcx,
+                                                      const miopenSeqTensorDescriptor_t xDesc,
+                                                      void* dx,
+                                                      const void* w,
+                                                      size_t weightSpaceSize,
+                                                      void* workSpace,
+                                                      size_t workSpaceNumBytes,
+                                                      void* reserveSpace,
+                                                      size_t reserveSpaceNumBytes);
+
+/*! @brief Execute backward weights for recurrent layer
+ *
+ * Interface for executing the backward weights pass on a RNN.
+ *
+ * @param handle                MIOpen handle (input)
+ * @param rnnDesc               RNN layer descriptor type (input)
+
+ * @param xDesc                 An input tensor descriptor for sequenced RNN data. This
+ * miopenSeqTensorDescriptor_t should be initialyzed by `miopenSetRNNDataSeqTensorDescriptor`
+ function.(input)
+ * @param x                     Pointer to input tensor (input)
+ *
+ * @param hDesc                A hidden tensor descriptor that has as its first dimension
+ * of the number of layers if the direction mode is unidirectional and twice the
+ * number of layers if the direction mode is bidirectional. The second dimension of
+ * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
+ * array. The third dimension equals the hiddenSize. (input)
+ * @param hx                    Pointer to the hidden layer input tensor. If hx is NULL,
+ * then the initial hidden state will be zero initialized. (input)
+ *
+ * @param yDesc                 An output tensor descriptor for sequenced RNN data. This
+ * miopenSeqTensorDescriptor_t should be initialyzed by `miopenSetRNNDataSeqTensorDescriptor`
+ function.(input)
+ * @param y                     Pointer to the output tensor (input)
+ *
+ * @param dw                    Pointer to input weights tensor (input / output)
+ * @param weightSpaceSize       Number of allocated bytes in memory for the weights tensor
+ * @param workSpace             Pointer to memory allocated for forward training (input)
+ * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace (input)
+ * @param reserveSpace          Pointer to memory allocated for random states (input)
+ * @param reserveSpaceNumBytes  Number of allocated bytes in memory for use in the forward (input)
+ * @return                      miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenRNNBackwardWeightsSeqTensor(miopenHandle_t handle,
+                                  const miopenRNNDescriptor_t rnnDesc,
+                                  const miopenSeqTensorDescriptor_t xDesc,
+                                  const void* x,
+                                  const miopenTensorDescriptor_t hDesc,
+                                  const void* hx,
+                                  const miopenSeqTensorDescriptor_t yDesc,
+                                  const void* y,
+                                  void* dw,
+                                  size_t weightSpaceSize,
+                                  void* workSpace,
+                                  size_t workSpaceNumBytes,
+                                  const void* reserveSpace,
+                                  size_t reserveSpaceNumBytes);
 
 /*! @brief Execute forward training for recurrent layer
  *
@@ -4703,6 +5197,269 @@ miopenReduceTensor(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT TensorReduce DOXYGEN GROUP
+
+// Find 2.0 API
+/** @addtogroup find2
+ *
+ *  @{
+ */
+
+/*! @brief Describes a problem for different miopen operations.
+ *
+ * For now, this is only used for convolution, but could be used for other
+ * operators in the future(such as GEMM, Pooling, etc)
+ */
+MIOPEN_DECLARE_OBJECT(miopenProblem);
+
+/*! @enum miopenProblemDirection_t
+ * Directions of miopen operation.
+ */
+typedef enum
+{
+    miopenProblemDirectionForward         = 0,
+    miopenProblemDirectionBackward        = 1,
+    miopenProblemDirectionBackwardWeights = 2,
+} miopenProblemDirection_t;
+
+/*! @enum miopenTensorArgumentId_t
+ * Identifiers for tensor arguments of problems and operations.
+ */
+typedef enum
+{
+    miopenTensorArgumentIdInvalid = 0,
+    miopenTensorConvolutionX      = 1,
+    miopenTensorConvolutionW      = 2,
+    miopenTensorConvolutionY      = 3,
+} miopenTensorArgumentId_t;
+
+/*! @enum miopenTensorArgumentId_t
+ * Different ways to sort results of the find call.
+ */
+typedef enum
+{
+    miopenFindResultsOrderByTime          = 0,
+    miopenFindResultsOrderByWorkspaceSize = 1,
+} miopenFindResultsOrder_t;
+
+/*! @brief Initializes a problem object describing a convolution operation.
+ *
+ * @param problem      Pointer to the problem to initialize
+ * @param operatorDesc Descriptor of the operator to be used
+ * @param direction    Direction of the operation
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
+                                                     miopenConvolutionDescriptor_t operatorDesc,
+                                                     miopenProblemDirection_t direction);
+
+/*! @brief Destroys a problem object.
+ *
+ * @param problem Problem to destroy
+ * @return        miopenStatus_t
+ */
+miopenStatus_t miopenDestroyProblem(miopenProblem_t problem);
+
+/*! @brief Sets a tensor descriptor for the specified argument.
+ *
+ * @param problem    Problem to update
+ * @param id         Id of the argument for the descriptor
+ * @param descriptor Tensor descriptor to set
+ * @return           miopenStatus_t
+ */
+miopenStatus_t miopenSetProblemTensorDescriptor(miopenProblem_t problem,
+                                                miopenTensorArgumentId_t id,
+                                                const miopenTensorDescriptor_t descriptor);
+
+/*! @brief The miopenFindOptions allows the user to configure how find will be used.
+ */
+MIOPEN_DECLARE_OBJECT(miopenFindOptions);
+
+/*! @brief Initializes miopenFindOptions object.
+ *
+ * @param options    Pointer to options object to initialze
+ * @return           miopenStatus_t
+ */
+miopenStatus_t miopenCreateFindOptions(miopenFindOptions_t* options);
+
+/*! @brief Destroys miopenFindOptions object.
+ *
+ * @param options    Options object to destroy
+ * @return           miopenStatus_t
+ */
+miopenStatus_t miopenDestroyFindOptions(miopenFindOptions_t options);
+
+/*! @brief Sets the tuning find option. Default value is zero.
+ *
+ * @param options    Options object to update
+ * @param value      Value of zero means no tuning, value of one means tuning enabled
+ * @return           miopenStatus_t
+ */
+miopenStatus_t miopenSetFindOptionTuning(miopenFindOptions_t options, int value);
+
+/*! @brief Sets the results order find option. Default value is miopenFindResultsOrderByTime.
+ *
+ * @param options    Options object to update
+ * @param value      Specifies what order should find results have
+ * @return           miopenStatus_t
+ */
+miopenStatus_t miopenSetFindOptionResultsOrder(miopenFindOptions_t options,
+                                               miopenFindResultsOrder_t value);
+
+/*! @brief Sets the workspace limit find option. Default value is maximum of size_t
+ *
+ * @param options    Options object to update
+ * @param value      Specifies the workspace limit for find call. All solvers exceeding the limit
+ * would be ignored.
+ * @return           miopenStatus_t
+ */
+miopenStatus_t miopenSetFindOptionWorkspaceLimit(miopenFindOptions_t options, size_t value);
+
+/*! @brief Attaches the preallocated workspace to find options. Allocated by the library by default.
+ *
+ * @param options    Options object to update
+ * @param buffer     Specifies the workspace for find call
+ * @param size       Specifies the size of the buffer passed
+ * @return           miopenStatus_t
+ */
+miopenStatus_t
+miopenSetFindOptionPreallocatedWorkspace(miopenFindOptions_t options, void* buffer, size_t size);
+
+/*! @brief Attaches a preallocated tensor to find options. If not used, buffers are allocated by
+ * MIOpen internally, which is not recommended.
+ *
+ * @param options    Options object to update
+ * @param id         Specifies the id of the tensor passed
+ * @param buffer     Specifies the tensor for find call
+ * @return           miopenStatus_t
+ */
+miopenStatus_t miopenSetFindOptionPreallocatedTensor(miopenFindOptions_t options,
+                                                     miopenTensorArgumentId_t id,
+                                                     void* buffer);
+
+/*! @brief The miopenSolution object describes a prepared solution.
+ */
+MIOPEN_DECLARE_OBJECT(miopenSolution);
+
+/*! @brief Finds solutions to a problem by running different applicable solutions. Memory is
+ * automatically allocated.
+ *
+ * @param handle       Handle to execute the kernels
+ * @param problem      Problem to solve
+ * @param options      Find options. When null default values would be used
+ * @param solutions    Pointer to the first result. Must not be null
+ * @param numSolutions Pointer to the amount of results. Ignored if null
+ * @param maxSolutions Limits the amount of results
+ * @return             miopenStatus_t
+ */
+miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
+                                   miopenProblem_t problem,
+                                   miopenFindOptions_t options,
+                                   miopenSolution_t* solutions,
+                                   size_t* numSolutions,
+                                   size_t maxSolutions);
+
+/*! @brief Values of a tensor argument for the miopenRunSolution function.
+ */
+struct miopenTensorArgument_t
+{
+    /* @brief Identifier of the tensor argument.
+     */
+    miopenTensorArgumentId_t id;
+    /* @brief Tensor descriptor to override the value stored in the solution.
+     *
+     * Some solvers may support overriding input and output tensor descriptors, but right now there
+     * is no way to tell from the API. Intended for the future use.
+     */
+    miopenTensorDescriptor_t* descriptor;
+    /* @brief Pointer to the device memory buffer to use for the operation.
+     */
+    void* buffer;
+};
+
+/*! @brief Runs the solution using the passed in buffers.
+ *
+ * @param handle        Handle to execute the kernels
+ * @param solution      Solution to execute
+ * @param nInputs       Amount to inputs for the solution
+ * @param tensors       Tensor arguments described by miopenTensorArgument_t
+ * @param workspace     Pointer to device buffer used as workspace. May be null when not required.
+ * Should not be less than expected
+ * @param workspaceSize Size of the workspace buffer
+ * @return              miopenStatus_t
+ */
+miopenStatus_t miopenRunSolution(miopenHandle_t handle,
+                                 miopenSolution_t solution,
+                                 size_t nInputs,
+                                 const miopenTensorArgument_t* tensors,
+                                 void* workspace,
+                                 size_t workspaceSize);
+
+/*! @brief Destroys solution object.
+ *
+ * @param solution   Solution to destroy
+ * @return           miopenStatus_t
+ */
+miopenStatus_t miopenDestroySolution(miopenSolution_t solution);
+
+/*! @brief Loads solution object from binary data.
+ *
+ * @param solution   Pointer to the solution to load
+ * @param data       Data to load the solution from
+ * @param size       Size of the solution blob
+ * @return           miopenStatus_t
+ */
+miopenStatus_t miopenLoadSolution(miopenSolution_t* solution, const char* data, size_t size);
+
+/*! @brief Saves a solution object as binary data.
+ *
+ * @param solution   Solution to save
+ * @param data       Pointer to a buffer to save soltuion to
+ * @return           miopenStatus_t
+ */
+miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data);
+
+/*! @brief Reads the expected size of a solution.
+ *
+ * @param solution   Solution to get size
+ * @param size       Pointer to a location where to write the size of the solution blob
+ * @return           miopenStatus_t
+ */
+miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size);
+
+/*! @brief Reads the amount of workspace required to exectute the solution.
+ *
+ * @param solution      Solution to get required workspace size
+ * @param workspaceSize Pointer to a location where to write the workspace size
+ * @return              miopenStatus_t
+ */
+miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t solution, size_t* workspaceSize);
+
+/*! @brief Reads the time spent to execute the solution the last it was run.
+ *
+ * @param solution Solution to get exection time
+ * @param time     Pointer to a location where to write the execution time
+ * @return         miopenStatus_t
+ */
+miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time);
+
+/*! @brief Reads id of the solver referred by the solution.
+ *
+ * @param solution Solution to get solver id from
+ * @param solverId Pointer to a location where to write the solver id
+ * @return         miopenStatus_t
+ */
+miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution, uint64_t* solverId);
+
+/*! @brief Gets the convolution algorithm implemented by a solver.
+ *
+ * @param solverId Solver id to get convolution algorithm of
+ * @param result   Pointer to a location where to write the algorithm
+ * @return         miopenStatus_t
+ */
+miopenStatus_t miopenGetSolverIdConvAlgorithm(uint64_t solverId, miopenConvAlgorithm_t* result);
+
+/** @} */
+// CLOSEOUT find2 DOXYGEN GROUP
 
 #ifdef __cplusplus
 }

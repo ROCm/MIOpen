@@ -26,7 +26,11 @@
 #ifndef GUARD_CPU_REDUCE_UTIL_HPP
 #define GUARD_CPU_REDUCE_UTIL_HPP
 
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
 #include <half.hpp>
+#endif
 #include <limits>
 #include <cmath>
 #include <cassert>
@@ -271,7 +275,7 @@ get_all_indexes(const std::vector<T>& dimLengths, int dim, std::vector<std::vect
 
         if(dim == 0)
         {
-            assert(indexes.size() == 0);
+            assert(indexes.empty());
             assert(dimLengths[dim] > 0);
             for(T i = 0; i < dimLengths[dim]; i++)
             {
@@ -319,7 +323,7 @@ static T get_flatten_offset(const std::vector<T>& lengths, const std::vector<T>&
 {
     T offset = 0;
 
-    assert(lengths.size() == index.size() && lengths.size() > 0);
+    assert(lengths.size() == index.size() && !lengths.empty());
 
     int len  = lengths.size();
     T stride = 1;

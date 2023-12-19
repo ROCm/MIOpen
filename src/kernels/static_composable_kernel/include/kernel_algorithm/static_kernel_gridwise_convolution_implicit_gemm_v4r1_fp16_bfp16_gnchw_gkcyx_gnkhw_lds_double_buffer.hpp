@@ -293,26 +293,25 @@ struct GridwiseConvolutionImplicitGemm_v4r1_fp16_bfp16_gnchw_gkcyx_gnkhw_lds_dou
                       "GemmDataPerReadB alignment requirement is not satisfied");
 
         // input tensor blockwise copy
-        auto blockwise_in_copy =
-            BlockwiseGenericTensorSliceCopy_v4<BlockSize,
-                                               decltype(in_g_e_n1_b_n2_epack_global_desc),
-                                               decltype(in_g_e_n1_b_n2_epack_block_desc),
-                                               decltype(
-                                                   in_g_e_n1_b_n2_epack_block_desc.GetLengths()),
-                                               InBlockCopySubLengths_G_E_N1_B_N2_EPack,
-                                               InBlockCopyClusterLengths_G_E_N1_B_N2_EPack,
-                                               InBlockCopyThreadClusterArrangeOrder,
-                                               InBlockCopySrcAccessOrder,
-                                               InBlockCopyDstAccessOrder,
-                                               3,
-                                               5,
-                                               InBlockCopySrcDataPerRead_B,
-                                               InBlockCopyDstDataPerWrite_EPack,
-                                               AddressSpace::Generic,
-                                               AddressSpace::Vgpr,
-                                               AddressSpace::Lds,
-                                               InMemoryDataOperation::Set>(
-                {group_id, 0, 0, b_block_data_on_global, 0, 0}, {0, 0, 0, 0, 0, 0});
+        auto blockwise_in_copy = BlockwiseGenericTensorSliceCopy_v4<
+            BlockSize,
+            decltype(in_g_e_n1_b_n2_epack_global_desc),
+            decltype(in_g_e_n1_b_n2_epack_block_desc),
+            decltype(in_g_e_n1_b_n2_epack_block_desc.GetLengths()),
+            InBlockCopySubLengths_G_E_N1_B_N2_EPack,
+            InBlockCopyClusterLengths_G_E_N1_B_N2_EPack,
+            InBlockCopyThreadClusterArrangeOrder,
+            InBlockCopySrcAccessOrder,
+            InBlockCopyDstAccessOrder,
+            3,
+            5,
+            InBlockCopySrcDataPerRead_B,
+            InBlockCopyDstDataPerWrite_EPack,
+            AddressSpace::Generic,
+            AddressSpace::Vgpr,
+            AddressSpace::Lds,
+            InMemoryDataOperation::Set>({group_id, 0, 0, b_block_data_on_global, 0, 0},
+                                        {0, 0, 0, 0, 0, 0});
 
         // weight tensor
         //     global tensor in global memory, src of blockwise copy

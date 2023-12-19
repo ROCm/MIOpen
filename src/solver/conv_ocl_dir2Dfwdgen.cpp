@@ -34,87 +34,96 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN)
 namespace miopen {
 namespace solver {
 
-bool ConvOclDirectFwdGen::IsApplicable(const ConvolutionContext& params) const
+bool ConvOclDirectFwdGen::IsApplicable(const ExecutionContext& ctx,
+                                       const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN{}))
         return false;
-    if(!params.use_opencl_convolutions)
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
-    if(!params.Is2d())
+    if(!ctx.use_opencl_convolutions)
         return false;
-    if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
+    if(!problem.Is2d())
         return false;
-    if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
+    if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
-    if(!params.IsLayoutDefault())
+    if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
+        return false;
+
+    if(problem.IsTensorsCasted())
+        return false;
+    if(!problem.IsLayoutDefault())
     {
         return false;
     }
 
-    if(params.group_counts > 1)
+    if(problem.GetGroupCount() > 1)
         return false;
 
     // clang-format off
     { // Factored out from ConvolutionDescriptor::IsDirectSupported(), which is now dissmissed.
-        const auto& p = params; // alias
+        const auto& p = problem; // alias
         const bool supported =
-            ((p.kernel_size_h == p.kernel_size_w)
-              && ((p.kernel_size_h == 3 && p.kernel_stride_h <= 2 && p.kernel_stride_w <= 2)
-                || p.kernel_size_h == 5
-                || p.kernel_size_h == 7
-                || p.kernel_size_h == 9
-                || p.kernel_size_h == 11))
-          || (p.kernel_size_h == 5
-              && (p.kernel_size_w == 10 || p.kernel_size_w == 20)
-              && p.kernel_stride_h == 2
-              && p.kernel_stride_w == 2
-              && p.pad_h == 0
-              && p.pad_w == 0);
+            ((p.GetWeightsHeight_() == p.GetWeightsWidth_())
+              && ((p.GetWeightsHeight_() == 3 && p.GetKernelStrideH() <= 2 && p.GetKernelStrideW() <= 2)
+                || p.GetWeightsHeight_() == 5
+                || p.GetWeightsHeight_() == 7
+                || p.GetWeightsHeight_() == 9
+                || p.GetWeightsHeight_() == 11))
+          || (p.GetWeightsHeight_() == 5
+              && (p.GetWeightsWidth_() == 10 || p.GetWeightsWidth_() == 20)
+              && p.GetKernelStrideH() == 2
+              && p.GetKernelStrideW() == 2
+              && p.GetPadH() == 0
+              && p.GetPadW() == 0);
 
         if(!supported)
             return false;
     }
 
     { // Workaround for issue 1681
-        if(params.IsFp32() && params.n_inputs > 3)
+        if(problem.IsFp32() && problem.GetInChannels_() > 3)
             return false;
     }
 
-    return params.direction.IsForward()
-        && params.kernel_stride_w == params.kernel_stride_h
-        && params.pad_w == params.pad_h
-        && params.kernel_dilation_w == 1
-        && params.kernel_dilation_h == 1
-        && (params.kernel_size_w > 11
-            || params.kernel_size_h > 11
-            || (!(params.kernel_size_w == 1 && params.kernel_size_h == 1)
-                && (params.kernel_stride_w > 1 || params.kernel_stride_h > 1))); // clang-format on
+    return problem.direction.IsForward()
+        && problem.GetKernelStrideW() == problem.GetKernelStrideH()
+        && problem.GetPadW() == problem.GetPadH()
+        && problem.GetDilationW() == 1
+        && problem.GetDilationH() == 1
+        && (problem.GetWeightsWidth_() > 11
+            || problem.GetWeightsHeight_() > 11
+            || (!(problem.GetWeightsWidth_() == 1 && problem.GetWeightsHeight_() == 1)
+                && (problem.GetKernelStrideW() > 1 || problem.GetKernelStrideH() > 1))); // clang-format on
 }
 
-ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& params) const
+ConvSolution ConvOclDirectFwdGen::GetSolution(const ExecutionContext& ctx,
+                                              const ProblemDescription& problem) const
 {
     int n_in_stacks = 0;
-    if(params.kernel_size_h == 3 && params.kernel_size_w == 3)
+    if(problem.GetWeightsHeight_() == 3 && problem.GetWeightsWidth_() == 3)
     {
-        n_in_stacks =
-            ((params.batch_sz / 4) * 4 == params.batch_sz)
-                ? 4
-                : ((params.batch_sz / 2) * 2 == params.batch_sz) ? 2 : 1; // n of input batches
+        // n of input batches
+        n_in_stacks = ((problem.GetBatchSize_() / 4) * 4 == problem.GetBatchSize_())   ? 4
+                      : ((problem.GetBatchSize_() / 2) * 2 == problem.GetBatchSize_()) ? 2
+                                                                                       : 1;
     }
     else
     {
-        n_in_stacks = ((params.batch_sz / 2) * 2 == params.batch_sz) ? 2 : 1; // n of input batches
+        // n of input batches
+        n_in_stacks = ((problem.GetBatchSize_() / 2) * 2 == problem.GetBatchSize_()) ? 2 : 1;
     }
     int n_proc_supertiles = n_in_stacks; // n of prosessing groups
     auto lg2n_proc_supertiles =
         static_cast<int>(std::ceil(std::log(n_proc_supertiles) / std::log(2)));
-    int n_out_stacks = 1; // n of output sets
-    int n_proc_supertile0 =
-        ((n_in_stacks > 1) ? 32 : 16) / params.kernel_stride_w; // n  processor in process supertile
-    int n_proc_supertile1 =
-        ((n_in_stacks > 1 && (params.kernel_size_h >= 11 || params.kernel_size_w >= 11)) ? 32
-                                                                                         : 16) /
-        n_in_stacks;
+    int n_out_stacks      = 1; // n of output sets
+    int n_proc_supertile0 = ((n_in_stacks > 1) ? 32 : 16) /
+                            problem.GetKernelStrideW(); // n  processor in process supertile
+    int n_proc_supertile1 = ((n_in_stacks > 1 && (problem.GetWeightsHeight_() >= 11 ||
+                                                  problem.GetWeightsWidth_() >= 11))
+                                 ? 32
+                                 : 16) /
+                            n_in_stacks;
     auto lg2n_proc_supertile1 =
         static_cast<int>(std::ceil(std::log(n_proc_supertile1) / std::log(2)));
     int ocl_group_sz0 = n_proc_supertile0;
@@ -127,54 +136,54 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& params) 
     int n_ins0 = 1; // number of inputs each a from different stack along dim 0
     int n_ins1 = 1; // number of inputs each a from different stack along dim 1
 
-    int n_outs =
-        (params.in_width >= 384 || (params.kernel_size_w >= 11 && params.kernel_stride_w >= 4))
-            ? 16
-            : 32; // n outputs per a single input: major parameter
-    int n_out_pix_horiz =
-        (params.in_width < 320 || (params.kernel_size_w >= 11 && params.kernel_stride_w >= 4))
-            ? 1
-            : 2;            // n of output px horix per wk-item: major parameter
-    int n_out_pix_vert = 1; // n of output px horix per wk-item: major parameter
+    int n_outs          = (problem.GetInWidth_() >= 384 ||
+                  (problem.GetWeightsWidth_() >= 11 && problem.GetKernelStrideW() >= 4))
+                              ? 16
+                              : 32; // n outputs per a single input: major parameter
+    int n_out_pix_horiz = (problem.GetInWidth_() < 320 ||
+                           (problem.GetWeightsWidth_() >= 11 && problem.GetKernelStrideW() >= 4))
+                              ? 1
+                              : 2; // n of output px horix per wk-item: major parameter
+    int n_out_pix_vert  = 1;       // n of output px horix per wk-item: major parameter
 
     int n_in_pix_horiz = n_out_pix_horiz; // n of input pix per wk_item
     int n_in_pix_vert  = n_out_pix_vert;  // n of input pix per wk_item
-    int n_v_proc0      = (params.out_width + n_out_pix_horiz - 1) / n_out_pix_horiz;
-    int n_v_proc1      = (params.out_height + n_out_pix_vert - 1) / n_out_pix_vert;
+    int n_v_proc0      = (problem.GetOutWidth_() + n_out_pix_horiz - 1) / n_out_pix_horiz;
+    int n_v_proc1      = (problem.GetOutHeight_() + n_out_pix_vert - 1) / n_out_pix_vert;
 
     int big = 1;
 
     int n_procs0 = n_proc_supertile0 / n_ins0;
     int n_procs1 = n_proc_supertile1 / n_ins1;
 
-    int in_sz0 = (n_procs0 * n_out_pix_horiz - 1) * params.kernel_stride_w +
+    int in_sz0 = (n_procs0 * n_out_pix_horiz - 1) * problem.GetKernelStrideW() +
                  1 /* + kernel_size_w - 2 * pad_w*/;
-    int in_sz1 = (n_procs1 * n_out_pix_vert - 1) * params.kernel_stride_h +
+    int in_sz1 = (n_procs1 * n_out_pix_vert - 1) * problem.GetKernelStrideH() +
                  1 /* + kernel_size_h - 2 * pad_h*/;
 
     int n_ins = n_ins0 * n_ins1; // number of inputs each a from different stack
 
-    n_outs = std::min(n_outs, params.n_outputs);
-    n_ins  = std::min(n_ins, params.batch_sz);
+    n_outs = std::min(n_outs, static_cast<int>(problem.GetOutChannels_()));
+    n_ins  = std::min(n_ins, static_cast<int>(problem.GetBatchSize_()));
 
-    n_out_stacks   = (n_outs * n_out_stacks <= params.n_outputs) ? n_out_stacks : 1;
-    n_in_stacks    = (n_ins * n_in_stacks <= params.batch_sz) ? n_in_stacks : 1;
+    n_out_stacks   = (n_outs * n_out_stacks <= problem.GetOutChannels_()) ? n_out_stacks : 1;
+    n_in_stacks    = (n_ins * n_in_stacks <= problem.GetBatchSize_()) ? n_in_stacks : 1;
     int total_ins  = n_ins * n_in_stacks;
     int total_outs = n_outs * n_out_stacks;
 
-    int n_out_blocks   = ((params.n_outputs + total_outs - 1) / total_outs);
-    int n_stack_blocks = ((params.batch_sz + total_ins - 1) / total_ins);
+    int n_out_blocks   = ((problem.GetOutChannels_() + total_outs - 1) / total_outs);
+    int n_stack_blocks = ((problem.GetBatchSize_() + total_ins - 1) / total_ins);
 
     int batch_aligned = 0;
 #if 1
-    if((params.batch_sz / n_stack_blocks) * n_stack_blocks == params.batch_sz)
+    if((problem.GetBatchSize_() / n_stack_blocks) * n_stack_blocks == problem.GetBatchSize_())
     {
         batch_aligned = 1;
     }
 #endif
     int out_aligned = 0;
 #if 1
-    if((params.n_outputs / total_outs) * total_outs == params.n_outputs)
+    if((problem.GetOutChannels_() / total_outs) * total_outs == problem.GetOutChannels_())
     {
         out_aligned = 1;
     }
@@ -192,7 +201,7 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& params) 
         aligned_out = 0;
     }
 
-    int bias = params.bias;
+    int bias = problem.GetBias();
     KernelInfo construction_params;
 
     construction_params.comp_options =
@@ -205,42 +214,48 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& params) 
         std::string(" -DMLO_LCL_N_OUT_CHNLS=") + std::to_string(static_cast<long long>(n_outs)) +
         std::string(" -DMLO_OUT_STACKS=") + std::to_string(static_cast<long long>(n_out_stacks)) +
         std::string(" -DMLO_IN_STACKS=") + std::to_string(static_cast<long long>(n_in_stacks)) +
-        std::string(" -DMLO_BATCH_SZ=") + std::to_string(static_cast<long long>(params.batch_sz)) +
+        std::string(" -DMLO_BATCH_SZ=") +
+        std::to_string(static_cast<long long>(problem.GetBatchSize_())) +
         std::string(" -DMLO_FLTR_SZ0=") +
-        std::to_string(static_cast<long long>(params.kernel_size_w)) +
-        std::string(" -DMLO_FLTR_PAD_SZ0=") + std::to_string(static_cast<long long>(params.pad_w)) +
+        std::to_string(static_cast<long long>(problem.GetWeightsWidth_())) +
+        std::string(" -DMLO_FLTR_PAD_SZ0=") +
+        std::to_string(static_cast<long long>(problem.GetPadW())) +
         std::string(" -DMLO_FLTR_STRIDE0=") +
-        std::to_string(static_cast<long long>(params.kernel_stride_w)) +
+        std::to_string(static_cast<long long>(problem.GetKernelStrideW())) +
         std::string(" -DMLO_FLTR_SZ1=") +
-        std::to_string(static_cast<long long>(params.kernel_size_h)) +
-        std::string(" -DMLO_FLTR_PAD_SZ1=") + std::to_string(static_cast<long long>(params.pad_h)) +
+        std::to_string(static_cast<long long>(problem.GetWeightsHeight_())) +
+        std::string(" -DMLO_FLTR_PAD_SZ1=") +
+        std::to_string(static_cast<long long>(problem.GetPadH())) +
         std::string(" -DMLO_FLTR_STRIDE1=") +
-        std::to_string(static_cast<long long>(params.kernel_stride_h)) +
+        std::to_string(static_cast<long long>(problem.GetKernelStrideH())) +
         std::string(" -DMLO_N_OUT_CHNLS=") +
-        std::to_string(static_cast<long long>(params.n_outputs)) // total number of output channels
+        std::to_string(
+            static_cast<long long>(problem.GetOutChannels_())) // total number of output channels
         + std::string(" -DMLO_OUT_WIDTH=") +
-        std::to_string(static_cast<long long>(params.out_width)) +
+        std::to_string(static_cast<long long>(problem.GetOutWidth_())) +
         std::string(" -DMLO_OUT_HEIGHT=") +
-        std::to_string(static_cast<long long>(params.out_height)) +
+        std::to_string(static_cast<long long>(problem.GetOutHeight_())) +
         std::string(" -DMLO_OUT_STRIDE=") +
-        std::to_string(static_cast<long long>(params.out_stride)) +
+        std::to_string(static_cast<long long>(problem.GetOutStrideH_())) +
         std::string(" -DMLO_OUT_CHNL_STRIDE=") +
-        std::to_string(static_cast<long long>(params.out_channel_stride)) +
+        std::to_string(static_cast<long long>(problem.GetOutChannelStride_())) +
         std::string(" -DMLO_OUT_BATCH_STRIDE=") +
-        std::to_string(static_cast<long long>(params.out_batch_stride)) +
+        std::to_string(static_cast<long long>(problem.GetOutBatchStride_())) +
         std::string(" -DMLO_N_OUT_PIX_SZ0=") +
         std::to_string(static_cast<long long>(n_out_pix_horiz)) +
         std::string(" -DMLO_N_OUT_PIX_SZ1=") +
         std::to_string(static_cast<long long>(n_out_pix_vert)) + std::string(" -DMLO_N_IN_CHNLS=") +
-        std::to_string(static_cast<long long>(params.n_inputs)) + std::string(" -DMLO_IN_WIDTH=") +
-        std::to_string(static_cast<long long>(params.in_width)) + std::string(" -DMLO_IN_HEIGHT=") +
-        std::to_string(static_cast<long long>(params.in_height)) +
+        std::to_string(static_cast<long long>(problem.GetInChannels_())) +
+        std::string(" -DMLO_IN_WIDTH=") +
+        std::to_string(static_cast<long long>(problem.GetInWidth_())) +
+        std::string(" -DMLO_IN_HEIGHT=") +
+        std::to_string(static_cast<long long>(problem.GetInHeight_())) +
         std::string(" -DMLO_IN_STRIDE=") +
-        std::to_string(static_cast<long long>(params.in_stride)) +
+        std::to_string(static_cast<long long>(problem.GetInStrideH_())) +
         std::string(" -DMLO_IN_CHNL_STRIDE=") +
-        std::to_string(static_cast<long long>(params.in_channel_stride)) +
+        std::to_string(static_cast<long long>(problem.GetInChannelStride_())) +
         std::string(" -DMLO_IN_BATCH_STRIDE=") +
-        std::to_string(static_cast<long long>(params.in_batch_stride)) +
+        std::to_string(static_cast<long long>(problem.GetInBatchStride_())) +
         std::string(" -DMLO_N_IN_PIX_SZ0=") +
         std::to_string(
             static_cast<long long>(n_in_pix_horiz)) // size of output processing group in 0 dim
@@ -248,11 +263,13 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& params) 
         std::to_string(
             static_cast<long long>(n_in_pix_vert)) // size of output processing group in 1 dim
         + std::string(" -DMLO_WEI_SZ=") +
-        std::to_string(static_cast<long long>(params.n_outputs) * params.n_inputs *
-                       params.kernel_size_w * params.kernel_size_h) +
+        std::to_string(static_cast<long long>(problem.GetOutChannels_()) *
+                       problem.GetInChannels_() * problem.GetWeightsWidth_() *
+                       problem.GetWeightsHeight_()) +
         std::string(" -DMLO_WEIGHTS_STRIDE=") +
-        std::to_string(static_cast<long long>(params.n_inputs) * params.kernel_size_w *
-                       params.kernel_size_h) //	weights stride
+        std::to_string(static_cast<long long>(problem.GetInChannels_()) *
+                       problem.GetWeightsWidth_() *
+                       problem.GetWeightsHeight_()) //	weights stride
         + std::string(" -DMLO_N_STACKS=") +
         std::to_string(static_cast<long long>(n_stack_blocks)) // n of separate data stacks
         + std::string(" -DMLO_N_PROCS0=") +
@@ -279,7 +296,7 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& params) 
 
         //		+ std::string(" -limit-vector-registers=64 ")
 
-        + params.general_compile_options;
+        + ctx.general_compile_options;
 
     construction_params.kernel_file = "MIOpenConvDirGenFwd.cl";
     construction_params.kernel_name = (n_proc_supertiles == 1) ? "MIOpenCDFGen" : "MIOpenCDFGen4";

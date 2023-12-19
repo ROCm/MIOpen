@@ -26,7 +26,11 @@
 #ifndef GUARD_MIOPEN_REDUCE_COMMON_HPP
 #define GUARD_MIOPEN_REDUCE_COMMON_HPP
 
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
 #include <half.hpp>
+#endif
 #include <miopen/bfloat16.hpp>
 
 namespace reduce {

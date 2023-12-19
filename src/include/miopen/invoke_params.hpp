@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include <miopen/common.hpp>
 #include <miopen/errors.hpp>
 
 #include <memory>
@@ -89,6 +90,20 @@ public:
         return impl->GetInvokeType();
     }
 
+    Data_t GetWorkspace() const
+    {
+        if(!impl)
+            MIOPEN_THROW("Attempt to use empty AnyInvokeParams.");
+        return impl->GetWorkspace();
+    }
+
+    std::size_t GetWorkspaceSize() const
+    {
+        if(!impl)
+            MIOPEN_THROW("Attempt to use empty AnyInvokeParams.");
+        return impl->GetWorkspaceSize();
+    }
+
     template <class Actual>
     const std::remove_cv_t<Actual>& CastTo() const
     {
@@ -124,6 +139,8 @@ private:
 
         virtual void SetInvokeType(InvokeType type)         = 0;
         virtual InvokeType GetInvokeType() const            = 0;
+        virtual Data_t GetWorkspace() const                 = 0;
+        virtual std::size_t GetWorkspaceSize() const        = 0;
         virtual bool CanCastTo(const std::type_info&) const = 0;
         virtual void* GetRawPtr()                           = 0;
         virtual std::unique_ptr<Interface> Copy() const     = 0;
@@ -141,6 +158,8 @@ private:
 
         void SetInvokeType(InvokeType type) override { value.type = type; }
         InvokeType GetInvokeType() const override { return value.type; }
+        Data_t GetWorkspace() const override { return value.GetWorkspace(); }
+        std::size_t GetWorkspaceSize() const override { return value.GetWorkspaceSize(); }
         bool CanCastTo(const std::type_info& type) const override { return typeid(Actual) == type; }
         void* GetRawPtr() override { return &value; }
 

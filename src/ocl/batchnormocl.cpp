@@ -38,7 +38,6 @@
 #include <miopen/mlo_internal.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/batchnorm/invoke_params.hpp>
-#include <miopen/batchnorm/problem_description.hpp>
 #include <miopen/batchnorm/solvers.hpp>
 #include <miopen/find_solution.hpp>
 
@@ -132,7 +131,8 @@ void BatchNormForwardTraining(Handle& handle,
         return tmp;
     }();
 
-    const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdTrainingSpatialSingle,
+    const auto solvers = solver::SolverContainer<solver::batchnorm::BnCKFwdTraining,
+                                                 solver::batchnorm::BnFwdTrainingSpatialSingle,
                                                  solver::batchnorm::BnFwdTrainingSpatialMultiple,
                                                  solver::batchnorm::BnFwdTrainingPerActivation>{};
 
@@ -223,7 +223,8 @@ void BatchNormForwardInference(Handle& handle,
         }();
 
         const auto algo    = AlgorithmName{"miopenBatchNormalizationForwardInference"};
-        const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdInference>{};
+        const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdInference,
+                                                     solver::batchnorm::BnCKFwdInference>{};
 
         solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
     }
@@ -300,7 +301,7 @@ void BatchNormBackward(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(dxDesc.GetType() != dyDesc.GetType() || dyDesc.GetType() != xDesc.GetType())
+    if(dxDesc.GetType() != dyDesc.GetType())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -338,7 +339,6 @@ void BatchNormBackward(Handle& handle,
         tmp.dx                = dx;
         tmp.bnScale           = bnScale;
         tmp.resultBnScaleDiff = resultBnScaleDiff;
-        tmp.resultBnScaleDiff = resultBnScaleDiff;
         tmp.resultBnBiasDiff  = resultBnBiasDiff;
         tmp.epsilon           = epsilon;
         tmp.savedMean         = savedMean;
@@ -346,7 +346,8 @@ void BatchNormBackward(Handle& handle,
         return tmp;
     }();
 
-    const auto solvers = solver::SolverContainer<solver::batchnorm::BnBwdTrainingSpatialSingle,
+    const auto solvers = solver::SolverContainer<solver::batchnorm::BnCKBwdBackward,
+                                                 solver::batchnorm::BnBwdTrainingSpatialSingle,
                                                  solver::batchnorm::BnBwdTrainingSpatialMultiple,
                                                  solver::batchnorm::BnBwdTrainingPerActivation>{};
 

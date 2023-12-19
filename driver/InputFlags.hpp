@@ -50,7 +50,7 @@ struct TensorParameters
     std::vector<int> strides = {};
     std::string layout       = "";
 
-    TensorParameters FillMissing(const TensorParameters& other)
+    TensorParameters FillMissing(const TensorParameters& other) const
     {
         return {
             (lengths.empty() ? other.lengths : lengths),
@@ -74,7 +74,7 @@ public:
                       const std::string& _value,
                       const std::string& _help_text,
                       const std::string& type,
-                      const bool _convert2uppercase = false);
+                      bool _convert2uppercase = false);
 
     void AddTensorFlag(const std::string& name,
                        char short_name,
@@ -91,7 +91,7 @@ public:
     double GetValueDouble(const std::string& _long_name) const;
     TensorParameters GetValueTensor(const std::string& long_name) const;
     void SetValue(const std::string& long_name, const std::string& new_value);
-    void StoreOptionalFlagValue(char short_name, const std::string input_value);
+    void StoreOptionalFlagValue(char short_name, const std::string& input_value);
 
     virtual ~InputFlags() {}
 };

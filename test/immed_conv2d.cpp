@@ -26,9 +26,9 @@
 #include "conv_common.hpp"
 
 template <class T>
-struct conv2d_driver : conv_driver<T, true>
+struct conv2d_driver : conv_driver<T, ConvApi::Immediate>
 {
-    conv2d_driver() : conv_driver<T, true>()
+    conv2d_driver() : conv_driver<T, ConvApi::Immediate>()
     {
         this->add(this->input_dims, "input");
         this->add(this->weight_tensor_dims, "weights");

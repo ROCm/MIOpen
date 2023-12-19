@@ -182,10 +182,6 @@ private:
     static constexpr std::array<int, BoostSequence::count> arr = {{values...}};
 };
 
-template <class TValue, TValue... values>
-constexpr std::array<int, BoostSequence<TValue, values...>::count>
-    BoostSequence<TValue, values...>::arr;
-
 template <class Start, class IntegerSequence>
 struct span_impl;
 

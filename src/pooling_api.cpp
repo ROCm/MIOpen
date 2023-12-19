@@ -50,9 +50,11 @@ inline void Pooling_logging_cmd(const miopenPoolingDescriptor_t poolDesc,
         case miopenFloat: ss << "pool"; break;
         case miopenInt32:
         case miopenInt8:
-        case miopenInt8x4:
+        case miopenInt8x4: // Support discontinued.
         case miopenBFloat16:
         case miopenDouble:
+        case miopenFloat8:
+        case miopenBFloat8:
         default:
             MIOPEN_LOG_W(
                 "Pooing cmd args logging is not implemented properly for " +
@@ -204,9 +206,9 @@ extern "C" miopenStatus_t miopenGet2dPoolingDescriptor(const miopenPoolingDescri
 extern "C" miopenStatus_t miopenSetNdPoolingDescriptor(miopenPoolingDescriptor_t poolDesc,
                                                        const miopenPoolingMode_t mode,
                                                        int nbDims,
-                                                       int* windowDimA,
-                                                       int* padA,
-                                                       int* stridesA)
+                                                       const int* windowDimA,
+                                                       const int* padA,
+                                                       const int* stridesA)
 {
 
     return miopen::try_([&] {

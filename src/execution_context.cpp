@@ -24,13 +24,16 @@
  *
  *******************************************************************************/
 
-#include <miopen/env.hpp>
 #include <miopen/execution_context.hpp>
+
+#include <miopen/datatype.hpp>
+#include <miopen/env.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/hip_build_utils.hpp>
 #if MIOPEN_BACKEND_OPENCL
 #include <miopen/ocldeviceinfo.hpp>
 #endif
+#include <miopen/conv/problem_description.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/version.h>
 
@@ -203,19 +206,18 @@ bool IsHipKernelsEnabled()
 #endif
 }
 
-void miopen::ExecutionContext::DetectRocm()
+void ExecutionContext::DetectRocm()
 {
     use_binaries            = false;
     use_asm_kernels         = false;
     use_hip_kernels         = IsHipKernelsEnabled();
-    use_opencl_convolutions = !miopen::IsDisabled(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS{});
+    use_opencl_convolutions = !IsDisabled(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS{});
     rmv                     = rocm_meta_version::Default;
     if(IsAmdRocmOpencl(*this))
     {
-        use_asm_kernels =
-            !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && ValidateGcnAssembler();
+        use_asm_kernels = !IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && ValidateGcnAssembler();
 #ifndef HIP_OC_FINALIZER
-        use_binaries = !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
+        use_binaries = !IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
 #endif
     }
 }

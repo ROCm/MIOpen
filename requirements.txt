@@ -1,5 +1,9 @@
-RadeonOpenCompute/rocm-cmake@04f694df2a8dc9d7e35fa4dee4ba5fa407ec04f8 --build
 sqlite3@3.17 -DCMAKE_POSITION_INDEPENDENT_CODE=On
-boost@1.79 -DCMAKE_POSITION_INDEPENDENT_CODE=On --build
-half,https://github.com/pfultz2/half/archive/1.12.0.tar.gz -X header -H sha256:0a08660b68abb176ebc2a0cdf8de46e3182a7f46c66443bb80dbfaaec98cf969 --build
-ROCmSoftwarePlatform/llvm-project-mlir@rocm-5.3.0 -DBUILD_FAT_LIBMLIRMIOPEN=1
+boost@1.79 -DCMAKE_POSITION_INDEPENDENT_CODE=On --build -DCMAKE_CXX_FLAGS=" -std=c++14 -Wno-enum-constexpr-conversion -Wno-deprecated-builtins -Wno-deprecated-declarations "
+ROCmSoftwarePlatform/half@10abd99e7815f0ca5d892f58dd7d15a23b7cf92c --build
+ROCmSoftwarePlatform/rocMLIR@rocm-5.5.0 -H sha256:a5f62769d28a73e60bc8d61022820f050e97c977c8f6f6275488db31512e1f42 -DBUILD_FAT_LIBROCKCOMPILER=1 -DCMAKE_IGNORE_PATH=/opt/conda/envs/py_3.9 -DCMAKE_IGNORE_PREFIX_PATH=/opt/conda
+nlohmann/json@v3.9.1 -DJSON_MultipleHeaders=ON -DJSON_BuildTests=Off
+ROCmSoftwarePlatform/FunctionalPlus@v0.2.18-p0
+ROCmSoftwarePlatform/eigen@3.4.0
+ROCmSoftwarePlatform/frugally-deep@9683d557eb672ee2304f80f6682c51242d748a50
+ROCmSoftwarePlatform/composable_kernel@52b0bffec00772a4c1c8751232fa034ebb9310be -DCMAKE_BUILD_TYPE=Release -DINSTANCES_ONLY=ON

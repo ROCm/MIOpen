@@ -27,7 +27,6 @@
 #include <miopen/activ/solvers.hpp>
 
 #include <miopen/activ/invoke_params.hpp>
-#include <miopen/activ/problem_description.hpp>
 #include <miopen/visit_float.hpp>
 #include <miopen/kernel_build_params.hpp>
 
@@ -157,7 +156,7 @@ ConvSolution ActivFwdSolver1::GetSolution(const ExecutionContext&,
     constexpr const auto hw_wave_sz  = 64;
     constexpr const size_t read_unit = 4;
 
-    const size_t map_size       = wIn * hIn * nIn * cIn;
+    const size_t map_size       = static_cast<size_t>(wIn) * hIn * nIn * cIn;
     const auto map_size_aligned = (map_size + read_unit - 1) / read_unit;
     const auto N_PIXS_OFF       = map_size - (map_size / read_unit) * read_unit;
 

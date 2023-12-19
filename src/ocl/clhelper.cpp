@@ -107,10 +107,10 @@ CreateProgramWithBinary(cl_context ctx, cl_device_id device, const char* char_so
 
 static std::string BuildProgramInfo(cl_program program, cl_device_id device)
 {
-    std::vector<char> errorbuf(1024 * 1024);
+    std::vector<char> errorbuf(1024ULL * 1024);
     size_t psize;
     clGetProgramBuildInfo(
-        program, device, CL_PROGRAM_BUILD_LOG, 1024 * 1024, errorbuf.data(), &psize);
+        program, device, CL_PROGRAM_BUILD_LOG, 1024ULL * 1024, errorbuf.data(), &psize);
     return errorbuf.data();
 }
 

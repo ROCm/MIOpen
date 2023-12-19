@@ -39,7 +39,7 @@ namespace miopen {
 std::size_t GetSubbufferAlignment(const miopen::Handle* handle)
 {
 #if MIOPEN_BACKEND_OPENCL
-    constexpr const std::size_t inferred = (0x400 / 8) * 2;
+    constexpr const std::size_t inferred = (0x400ULL / 8) * 2;
     if(handle == nullptr)
         return inferred;
     return GetDeviceInfo<CL_DEVICE_MEM_BASE_ADDR_ALIGN>(GetDevice(handle->GetStream()));

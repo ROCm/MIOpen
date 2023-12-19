@@ -23,13 +23,17 @@
 # SOFTWARE.
 #
 ################################################################################
-cmake_minimum_required( VERSION 3.5 )
+cmake_minimum_required( VERSION 3.11 )
+
+if (POLICY CMP0074)
+  cmake_policy(SET CMP0074 NEW)
+endif()
 
 macro(set_var_to_condition var)
     if(${ARGN})
         set(${var} TRUE)
     else()
-        set(${name} FALSE)
+        set(${var} FALSE)
     endif()
 endmacro()
 
@@ -48,6 +52,10 @@ endif()
 
 project ( MIOpen C CXX )
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 enable_testing()
 
 find_package(ROCM 0.7.3 REQUIRED PATHS /opt/rocm)
@@ -60,7 +68,11 @@ include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 include(ROCMHeaderWrapper)
 
+# Build library with Beta APIs
+add_definitions("-DMIOPEN_BETA_API=1")
 
+set(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK On CACHE BOOL "Enable AI-based fallback for Immediate Mode")
+set(MIOPEN_ENABLE_AI_KERNEL_TUNING On CACHE BOOL "Enable AI heuristic for kernel tuning")
 set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
 # Use SQLITE for compiled kernels, when turned off this will use raw files
 set(MIOPEN_ENABLE_SQLITE_KERN_CACHE On CACHE BOOL "")
@@ -70,6 +82,7 @@ if(MIOPEN_ENABLE_SQLITE)
     pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 endif()
 find_package(BZip2)
+find_package(nlohmann_json 3.9.1 REQUIRED)
 if(MIOPEN_ENABLE_SQLITE_KERN_CACHE AND NOT MIOPEN_ENABLE_SQLITE)
     message(FATAL_ERROR "MIOPEN_ENABLE_SQLITE_KERN_CACHE requires MIOPEN_ENABLE_SQLITE")
 endif()
@@ -86,7 +99,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.18.0)
+rocm_setup_version(VERSION 3.00.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -96,11 +109,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         message(FATAL_ERROR "MIOpen requires at least gcc 5.3")
     endif()
 endif()
-
-
-############################################################
-# require C++14
-add_compile_options(-std=c++14)
 
 ############################################################
 # OPTION - MIOpen Backend
@@ -137,7 +145,6 @@ option(MIOPEN_EMBED_BINCACHE "Embed Binary Cache or KDB" Off)
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
 
-
 # MIOPEN_USE_HIP_KERNELS is a Workaround for COMgr issues
 if(MIOPEN_EMBED_BUILD)
     option(BUILD_SHARED_LIBS "Build as a shared library" Off)
@@ -149,6 +156,15 @@ else()
     option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" On)
 endif()
 
+if(MIOPEN_EMBED_BUILD)
+    if(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
+        message(FATAL_ERROR "AI-based fallback for Immediate Mode cannot be used \
+        with database embedding")
+    endif()
+    if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
+        message(FATAL_ERROR "AI Kernel tuning cannot be used with database embedding")
+    endif()
+endif()
 
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
@@ -159,7 +175,6 @@ set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
     set(MIOPEN_BACKEND_OPENCL 1)
     find_package( OpenCL REQUIRED )
-    set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
     find_program(MIOPEN_HIP_COMPILER clang++
         PATH_SUFFIXES bin
         PATHS
@@ -171,9 +186,6 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     else()
         message(FATAL_ERROR "hip compiler not found")
     endif()
-
-    # MIOpenTensile does not support opencl backend yet.
-    set(MIOPEN_USE_MIOPENTENSILE OFF CACHE BOOL "")
 
     # TODO (priority_low) Use to build HIP and ASM kernels.
     if(MIOPEN_USE_COMGR)
@@ -219,6 +231,13 @@ if( DEFINED MIOPEN_OVERRIDE_HIP_VERSION_PATCH )
     message(STATUS "MIOPEN_hip_VERSION_PATCH overriden with ${MIOPEN_OVERRIDE_HIP_VERSION_PATCH}")
 endif()
 
+# Depend on Composable Kernels
+option(MIOPEN_USE_COMPOSABLEKERNEL "Enable MIOpen to use composable kernels for various operations" On)
+if(MIOPEN_BACKEND_OPENCL)
+    set(MIOPEN_USE_COMPOSABLEKERNEL OFF)
+endif()
+message(STATUS "Enable Composable Kernels: ${MIOPEN_USE_COMPOSABLEKERNEL}")
+
 set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT (NOT DEFINED MIOPEN_BACKEND_OPENCL) AND (NOT (MIOPEN_BACKEND STREQUAL "HIPNOGPU")))
 option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_USE_COMGR_DEFAULT})
 
@@ -232,6 +251,11 @@ math(EXPR MIOPEN_hip_VERSION_FLAT "(${MIOPEN_hip_VERSION_MAJOR} * 1000 + ${MIOPE
 set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT ${MIOPEN_USE_COMGR} AND (${MIOPEN_hip_VERSION_FLAT} GREATER 900000000))
 option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MIOPEN_USE_HIPRTC_DEFAULT})
 
+# WORKAROUND_SWDEV_413293
+if(${MIOPEN_hip_VERSION_FLAT} GREATER_EQUAL 500723302)
+    string(APPEND HIP_COMPILER_FLAGS " -fno-offload-uniform-block ")
+endif()
+
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
 add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
@@ -239,15 +263,15 @@ add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
 
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
+    if(MIOPEN_USE_COMPOSABLEKERNEL)
+        find_package(composable_kernel 1.0.0 COMPONENTS device_operations)
+    endif()
     if( MIOPEN_BACKEND STREQUAL "HIPNOGPU")
         set(MIOPEN_MODE_NOGPU 1)
     endif()
     set(MIOPEN_BACKEND_HIP 1)
-    set(MIOPEN_USE_MIOPENGEMM OFF CACHE BOOL "")
-    # miopentensile default off
-    set(MIOPEN_USE_MIOPENTENSILE OFF CACHE BOOL "")
 
-    find_program(HIP_OC_COMPILER clang-ocl
+    find_program(HIP_OC_COMPILER clang
         PATH_SUFFIXES bin
         PATHS
             /opt/rocm
@@ -274,6 +298,8 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
         message(STATUS "Build without rocblas")
     endif()
 else()
+    #CK is only enabled when HIP backend is selected   
+    set(MIOPEN_USE_COMPOSABLEKERNEL Off)
     if(MIOPEN_USE_HIPRTC)
         message(FATAL_ERROR "HIPRTC cannot be used without HIP backend")
     endif()
@@ -293,41 +319,38 @@ if(MIOPEN_OFFLOADBUNDLER_BIN)
     message(STATUS "clang-offload-bundler found: ${MIOPEN_OFFLOADBUNDLER_BIN}")
     set(MIOPEN_OFFLOADBUNDLER_BIN "${MIOPEN_OFFLOADBUNDLER_BIN}")
 else()
-    # look for and register extractkernel
     message(STATUS "clang-offload-bundler not found")
-
-    find_program(EXTRACTKERNEL_BIN extractkernel
-        PATH_SUFFIXES bin
-        PATHS
-            /opt/rocm/hip
-            /opt/rocm
-            ${CMAKE_INSTALL_PREFIX}/hip
-            ${CMAKE_INSTALL_PREFIX}
-    )
-    if(EXTRACTKERNEL_BIN)
-        message(STATUS "extractkernel found: ${EXTRACTKERNEL_BIN}")
-        set(EXTRACTKERNEL_BIN "${EXTRACTKERNEL_BIN}")
-    else()
-        message(FATAL_ERROR "extractkernel not found")
-    endif()
 endif()
 
 set_var_to_condition(MIOPEN_USE_MLIR_DEFAULT NOT (NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR}))
 option(MIOPEN_USE_MLIR "Use MLIR compilation backend" ${MIOPEN_USE_MLIR_DEFAULT})
 
+set(rocMLIR_VERSION_FLAT 0)
 if(MIOPEN_USE_MLIR)
-    # REQUIRED is not supported before cmake 3.18
-    find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
     if(NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR})
         message(FATAL_ERROR "Potential symbol conflict between mlir and comgr in static build")
     endif()
-
-    if(NOT LIBMLIRMIOPEN)
-        message(FATAL_ERROR "libMLIRMIOpen not found, please reinstall dependencies. \
-        Refer to https://github.com/ROCmSoftwarePlatform/MIOpen#installing-the-dependencies")
+    # Try to find package rocMLIR
+    # REQUIRED is omitted since we do not want cmake to abort if the package is not found
+    find_package(rocMLIR 1.0.0 CONFIG)
+    if(NOT rocMLIR_FOUND)
+        message(STATUS "Falling back to find library libMLIRMIOpen")
+        # Backward compatibility with ROCm 5.3
+        # If the rocMLIR package is not found, try to find the library libMLIRMIOpen directly
+        find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
+        if(NOT LIBMLIRMIOPEN)
+            message(FATAL_ERROR "library libMLIRMIOpen not found, please reinstall dependencies. \
+            Refer to https://github.com/ROCmSoftwarePlatform/MIOpen#installing-the-dependencies")
+        else()
+            message(STATUS "Build with library libMLIRMIOpen: " ${LIBMLIRMIOPEN})
+            set(rocMLIR_VERSION_MAJOR 0)
+            set(rocMLIR_VERSION_MINOR 0)
+            set(rocMLIR_VERSION_PATCH 1)
+        endif()
     else()
-        message(STATUS "Build with libMLIRMIOpen: " ${LIBMLIRMIOPEN})
+        message(STATUS "Build with rocMLIR::rockCompiler ${rocMLIR_VERSION}")
     endif()
+    math(EXPR rocMLIR_VERSION_FLAT "(${rocMLIR_VERSION_MAJOR} * 1000 + ${rocMLIR_VERSION_MINOR}) * 100000 + ${rocMLIR_VERSION_PATCH}")
 endif()
 
 
@@ -347,31 +370,6 @@ find_program(MIOPEN_AMDGCN_ASSEMBLER
 )
 message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
 
-# miopentensile
-if(MIOPEN_USE_MIOPENTENSILE)
-    find_package(miopentensile)
-    message(STATUS "Build with miopentensile")
-else()
-    message(STATUS "Build without miopentensile")
-endif()
-
-# miopengemm
-if(MIOPEN_USE_MIOPENGEMM)
-    find_package(miopengemm PATHS /opt/rocm)
-    if(NOT miopengemm_FOUND)
-        set(MIOPEN_USE_MIOPENGEMM 0)
-    endif()
-endif()
-
-if(MIOPEN_USE_MIOPENGEMM)
-    message(STATUS "Build with miopengemm")
-else()
-    if(MIOPEN_BACKEND_OPENCL)
-        message(FATAL_ERROR "MIOpen OpenCL backend requires MIOpenGEMM")
-    endif()
-    message(STATUS "Build without miopengemm")
-endif()
-
 if(MIOPEN_USE_COMGR)
     find_package(amd_comgr REQUIRED CONFIG)
     message(STATUS "Build with comgr ${amd_comgr_VERSION}")
@@ -390,13 +388,13 @@ set(BOOST_COMPONENTS filesystem)
 add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
-find_path(HALF_INCLUDE_DIR half.hpp)
+find_path(HALF_INCLUDE_DIR half/half.hpp)
 message(STATUS "HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
 
 # FOR HANDLING ENABLE/DISABLE OPTIONAL BACKWARD COMPATIBILITY for FILE/FOLDER REORG
-option(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY "Build with file/folder reorg with backward compatibility enabled" ON)
+option(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY "Build with file/folder reorg with backward compatibility enabled" OFF)
 
 set( MIOPEN_INSTALL_DIR miopen)
 set( DATA_INSTALL_DIR ${CMAKE_INSTALL_DATAROOTDIR}/miopen )
@@ -418,20 +416,11 @@ set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix
 
 set(MIOPEN_PACKAGE_REQS "hip-rocclr")
 
-if(MIOPEN_USE_MIOPENGEMM)
-    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, miopengemm")
-endif()
-
 if(MIOPEN_USE_ROCBLAS)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocblas")
 endif()
 
 if(MIOPEN_BACKEND STREQUAL "HIP")
-    # In HIP backend, there is a posibility of COMGR disabled.
-    # In this case add the clang-ocl as dependency for runtime kernel compilation
-    if(NOT MIOPEN_USE_COMGR)
-        set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocm-clang-ocl")
-    endif()
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}")
     set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}")
 
@@ -447,6 +436,42 @@ elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
     set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-hip)
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
 endif()
+
+# Unpack DB files
+function(unpack_db db_bzip2_file)
+    set(KERNELS_DIR "${CMAKE_SOURCE_DIR}/src/kernels")
+    STRING(REPLACE ".bz2" "" db_file "${db_bzip2_file}")
+    find_program(UNZIPPER NAMES lbunzip2 bunzip2)
+    if(EXISTS "${db_file}")
+        message(STATUS "WARNING: ${db_file} already exists and will be overwritten")
+    endif()
+    if(EXISTS "${db_bzip2_file}")
+        message(STATUS "${UNZIPPER} -k -f ${db_bzip2_file}")
+        execute_process(
+            COMMAND ${UNZIPPER} -k -f ${db_bzip2_file}
+            WORKING_DIRECTORY ${KERNELS_DIR}
+            RESULT_VARIABLE ret
+            )
+        if(NOT ret EQUAL "0")
+            message(FATAL_ERROR "${db_file} could not be extracted, file is empty!")
+            execute_process(
+                COMMAND touch ${db_file}
+                WORKING_DIRECTORY ${KERNELS_DIR}
+                )
+        endif()
+    endif()
+endfunction()
+
+file(GLOB PERF_DB_BZIP_FILES "${CMAKE_SOURCE_DIR}/src/kernels/*.db.bz2")
+foreach(DB_BZIP_FILE ${PERF_DB_BZIP_FILES})
+    unpack_db(${DB_BZIP_FILE})
+endforeach()
+
+file(GLOB FIND_DB_BZIP_FILES "${CMAKE_SOURCE_DIR}/src/kernels/*.fdb.txt.bz2")
+foreach(DB_BZIP_FILE ${FIND_DB_BZIP_FILES})
+    unpack_db(${DB_BZIP_FILE})
+endforeach()
+
 # Begin KDB component install 
 function(install_kdb)
     set(oneValueArgs NAME COMPONENT_NAME)
@@ -456,22 +481,25 @@ function(install_kdb)
         set(FILE_NAME ${PARSE_NAME})
     endif()
     STRING(REPLACE - _ FILE_NAME "${ARCH_NAME}")
-    file(READ "${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb" FILE_CONTENTS LIMIT 7)
+    file(READ "${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb.bz2" FILE_CONTENTS LIMIT 7)
     string(STRIP "${FILE_CONTENTS}" FILE_CONTENTS)
     if(FILE_CONTENTS STREQUAL "version")
-        set(LFS_MISSING_FILES ${LFS_MISSING_FILES} ${FILE_NAME}.kdb PARENT_SCOPE)
+        set(LFS_MISSING_FILES ${LFS_MISSING_FILES} ${FILE_NAME}.kdb.bz2 PARENT_SCOPE)
     else()
+        unpack_db("${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb.bz2")
         message("Installing ${FILE_NAME} in component ${PARSE_COMPONENT_NAME}")
-        rocm_install(FILES
-            src/kernels/${FILE_NAME}.kdb
-        DESTINATION ${DATA_INSTALL_DIR}/db
-        COMPONENT ${PARSE_COMPONENT_NAME})
+        if( NOT ENABLE_ASAN_PACKAGING )
+          rocm_install(FILES
+              src/kernels/${FILE_NAME}.kdb
+          DESTINATION ${DATA_INSTALL_DIR}/db
+          COMPONENT ${PARSE_COMPONENT_NAME})
+        endif()
     endif()
 endfunction()
 
 # Both the lists below should be in sync always
-list(APPEND ARCH_LST gfx90a68 gfx90a6e gfx1030-36 gfx90878 gfx906-64 gfx906-60 gfx900-64 gfx900-56)
-list(APPEND ARCH_FILE_LST gfx90a-104kdb gfx90a-110kdb gfx1030-36kdb gfx908-120kdb gfx906-64kdb gfx906-60kdb gfx900-64kdb gfx900-56kdb)
+list(APPEND ARCH_LST gfx90a gfx1030 gfx908 gfx906 gfx900)
+list(APPEND ARCH_FILE_LST gfx90akdb gfx1030kdb gfx908kdb gfx906kdb gfx900kdb)
 
 list(LENGTH ARCH_LST FULL_LEN)
 math(EXPR ARCH_LST_LEN "${FULL_LEN} - 1")
@@ -490,9 +518,10 @@ if(LFS_MISSING_FILES)
     string(REPLACE ";" "; " LFS_MISSING_FILES "${LFS_MISSING_FILES}")
     message(WARNING "GIT LFS Files not pulled down, skipped: ${LFS_MISSING_FILES}")
     set(MIOPEN_NO_LFS_PULLED TRUE CACHE INTERNAL "")
+else()
+    set(CPACK_COMPONENTS_ALL ${ARCH_FILE_LST})
 endif()
 
-set(CPACK_COMPONENTS_ALL ${ARCH_FILE_LST})
 #end kdb package creation
 
 rocm_create_package(
@@ -518,9 +547,11 @@ enable_clang_tidy(
     CHECKS
         *
         -abseil-*
-        -altera-struct-pack-align
-        -altera-unroll-loops
+        -altera-*
         -android-cloexec-fopen
+        # This check is useless for us. Many objects (like tensors or problem descriptions)
+        # naturally have mutiple parameters of the same type.
+        -bugprone-easily-swappable-parameters
         -bugprone-exception-escape
         -bugprone-macro-parentheses
         # too many narrowing conversions in our code
@@ -535,7 +566,6 @@ enable_clang_tidy(
         -cert-msc51-cpp
         -clang-analyzer-alpha.core.CastToStruct
         -clang-analyzer-optin.performance.Padding
-        -clang-diagnostic-deprecated-declarations
         -clang-diagnostic-extern-c-compat
         -clang-diagnostic-unused-command-line-argument
         -cppcoreguidelines-avoid-c-arrays
@@ -560,13 +590,12 @@ enable_clang_tidy(
         -google-readability-todo
         -google-runtime-int
         -google-runtime-references
-        # We really shouldn't use bitwise operators with signed integers, but
-        # opencl leaves us no choice
         -hicpp-avoid-c-arrays
         -hicpp-braces-around-statements
         -hicpp-explicit-conversions
         -hicpp-named-parameter
         -hicpp-no-array-decay
+        # We really shouldn't use bitwise operators with signed integers, but opencl leaves us no choice
         -hicpp-signed-bitwise
         -hicpp-special-member-functions
         -hicpp-uppercase-literal-suffix
@@ -581,6 +610,8 @@ enable_clang_tidy(
         -llvmlibc-implementation-in-namespace
         -llvmlibc-restrict-system-libc-headers
         -llvm-qualified-auto
+        # This one is extremely slow, and probably has lots of FPs.
+        -misc-confusable-identifiers
         -misc-misplaced-const
         -misc-non-private-member-variables-in-classes
         -misc-no-recursion
@@ -592,31 +623,69 @@ enable_clang_tidy(
         -modernize-use-equals-default
         -modernize-use-trailing-return-type
         -modernize-use-transparent-functors
+        -modernize-use-nodiscard
+        -modernize-concat-nested-namespaces
+        -modernize-unary-static-assert
         -performance-unnecessary-value-param
         -readability-braces-around-statements
         -readability-convert-member-functions-to-static
         -readability-else-after-return
-        # we are not ready to use it, but very useful
+        # TODO We are not ready to use it, but very useful.
         -readability-function-cognitive-complexity
+        # We dont think this is a useful check. Disabled on migraphx.
+        -readability-identifier-length
         -readability-isolate-declaration
         -readability-magic-numbers
         -readability-named-parameter
         -readability-qualified-auto
         -readability-redundant-string-init
+        # There are many FPs with this, let's disable it (ditto in MIGraphX)
+        -readability-suspicious-call-argument
         -readability-uppercase-literal-suffix
-        #TODO Code Quality WORKAROUND ROCm 5.1 update
-        -altera-id-dependent-backward-branch
-        -bugprone-easily-swappable-parameters
-        -bugprone-implicit-widening-of-multiplication-result
+        ###################################################################
+        # TODO Code Quality WORKAROUND ROCm 5.1 update
+        ###################################################################
         -cert-err33-c
         -google-readability-casting
         -hicpp-use-emplace
         -modernize-use-emplace
         -performance-unnecessary-copy-initialization
         -readability-container-data-pointer
-        -readability-identifier-length
-        -readability-suspicious-call-argument
-
+        ###################################################################
+        # TODO Code Quality WORKAROUND ROCm 5.3 &&
+        # Ubuntu 22.04 && C++17 && cppcheck 2.9 update
+        ###################################################################
+        -bugprone-use-after-move
+        -hicpp-invalid-access-moved
+        -modernize-use-nodiscard
+        -modernize-unary-static-assert
+        -modernize-macro-to-enum
+        -modernize-concat-nested-namespaces
+        -readability-redundant-declaration
+        -readability-simplify-boolean-expr
+        -hicpp-deprecated-headers
+        -hicpp-member-init
+        -performance-no-automatic-move
+        -clang-analyzer-cplusplus.NewDeleteLeaks
+        -modernize-deprecated-headers
+        ###################################################################
+        # TODO Code Quality WORKAROUND ROCm 5.4.2
+        ###################################################################
+        -misc-const-correctness
+        ###################################################################
+        # TODO Code Quality WORKAROUND ROCm 5.6
+        ###################################################################
+        -cppcoreguidelines-avoid-const-or-ref-data-members
+        -cppcoreguidelines-avoid-do-while
+        -misc-use-anonymous-namespace
+        ###################################################################
+        # TODO Code Quality WORKAROUND ROCm 5.7
+        ###################################################################
+        -llvmlibc-inline-function-decl
+        -cppcoreguidelines-avoid-capture-default-when-capturing-this
+        -cppcoreguidelines-rvalue-reference-param-not-moved
+        -readability-avoid-unconditional-preprocessor-if
+        -bugprone-lambda-function-name
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER
@@ -635,6 +704,14 @@ enable_cppcheck(
     SUPPRESS
         ConfigurationNotChecked
         constStatement
+        # There is no ODR violation because of using separate executables,
+        # but cppcheck doesn't understand that as it assumes everything
+        # will be compiled together in one binary.
+        ctuOneDefinitionRuleViolation:*test/*
+        ctuOneDefinitionRuleViolation:*src/composable_kernel/composable_kernel/*/*
+        ctuOneDefinitionRuleViolation:*src/composable_kernel/host/*/*
+        # There are many FPs with this, let's disable this (ditto in MIGraphX)
+        ctuPointerArith:*test/*
         duplicateCondition
         noExplicitConstructor
         passedByValue
@@ -661,6 +738,29 @@ enable_cppcheck(
         unreadVariable:*src/composable_kernel/host/*/*
         unreadVariable:*src/composable_kernel/external/*/*
         unmatchedSuppression
+        ###################################################################
+        # TODO Code Quality WORKAROUND ROCm 5.3 &&
+        # Ubuntu 22.04 && C++17 && cppcheck 2.9 update
+        ###################################################################
+        constParameter
+        constVariable
+        variableScope
+        missingReturn
+        cstyleCast
+        uselessCallsSubstr
+        uninitMemberVar
+        overlappingWriteUnion
+        operatorEqVarError
+        returnTempReference
+        objectIndex
+        integerOverflowCond
+        rethrowNoCurrentException
+        mismatchingContainers
+        unreadVariable
+        CastIntegerToAddressAtReturn
+        knownConditionTrueFalse
+        shadowFunction
+        moduloofone
     FORCE
     SOURCES
         addkernels/
@@ -674,7 +774,6 @@ enable_cppcheck(
         ${CMAKE_CURRENT_SOURCE_DIR}/src/include
     DEFINE
         CPPCHECK=1
-        MIOPEN_USE_MIOPENGEMM=1
         __linux__=1
 )
 
@@ -684,7 +783,6 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
 add_subdirectory(addkernels)
-add_subdirectory(doc)
 add_subdirectory(src)
 if(MIOPEN_BUILD_DRIVER)
     add_subdirectory(driver)

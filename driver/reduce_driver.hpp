@@ -43,7 +43,11 @@
 #include <string>
 #include <cassert>
 #include <type_traits>
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
 #include <half.hpp>
+#endif
 #include "random.hpp"
 
 #include "miopen_Reduction.hpp"
@@ -313,8 +317,8 @@ int ReduceDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     miopenGetReductionIndicesSize(
         GetHandle(), reduceDesc, inputTensor, outputTensor, &this->indices_sizeInBytes);
 
-    size_t ws_nelem = (!this->need_indices) ? this->ws_sizeInBytes / sizeof(Tgpu)
-                                            : this->ws_sizeInBytes / (sizeof(Tgpu) + sizeof(int));
+    size_t ws_nelem      = (!this->need_indices) ? this->ws_sizeInBytes / sizeof(Tgpu)
+                                                 : this->ws_sizeInBytes / (sizeof(Tgpu) + sizeof(int));
     size_t indices_nelem = this->indices_sizeInBytes / sizeof(int);
 
 #if MIOPEN_BACKEND_OPENCL
@@ -328,7 +332,7 @@ int ReduceDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_nelem, sizeof(Tgpu)));
     ws_dev  = this->need_indices ? std::unique_ptr<GPUMem>(new GPUMem(
                                       ctx, ws_nelem * 2, std::max<int>(sizeof(Tgpu), sizeof(int))))
-                                : std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_nelem, sizeof(Tgpu)));
+                                 : std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_nelem, sizeof(Tgpu)));
 
     indices_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, indices_nelem, sizeof(int)));
 
@@ -348,7 +352,7 @@ int ReduceDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     {
         for(int i = 0; i < in_nelem; i++)
         {
-            in[i] = RAN_GEN<Tgpu>(convert_type<Tgpu>(0.0f), convert_type<Tgpu>(1.0f));
+            in[i] = prng::gen_canonical<Tgpu>();
         };
     };
 
@@ -385,9 +389,9 @@ int ReduceDriver<Tgpu, Tref>::RunForwardGPU()
     const void* const alphaPtr = std::is_same<Tgpu, double>::value
                                      ? static_cast<const void*>(&alpha64)
                                      : static_cast<const void*>(&alpha);
-    const void* const betaPtr = std::is_same<Tgpu, double>::value
-                                    ? static_cast<const void*>(&beta64)
-                                    : static_cast<const void*>(&beta);
+    const void* const betaPtr  = std::is_same<Tgpu, double>::value
+                                     ? static_cast<const void*>(&beta64)
+                                     : static_cast<const void*>(&beta);
 
     miopenReduceTensor(GetHandle(),
                        reduceDesc,

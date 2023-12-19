@@ -76,7 +76,7 @@ amdhsa.kernels:
     .max_flat_workgroup_size: \wg_x
     .wavefront_size: 64
     .args:
-    - { .size: 4, .offset: 0,   .value_kind: by_value,      .value_type: i32, .name: N }
+    - { .size: 4, .offset: 0,   .value_kind: by_value,      .value_type: i32, .name: BATCHSIZE }
     - { .size: 4, .offset: 4,   .value_kind: by_value,      .value_type: i32, .name: C }
     - { .size: 4, .offset: 8,   .value_kind: by_value,      .value_type: i32, .name: H }
     - { .size: 4, .offset: 12,  .value_kind: by_value,      .value_type: i32, .name: W }

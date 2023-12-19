@@ -50,25 +50,55 @@ inline bool IsEnvvarValueDisabled(const char* name)
 {
     // NOLINTNEXTLINE (concurrency-mt-unsafe)
     const auto value_env_p = std::getenv(name);
-    return value_env_p != nullptr &&
-           (std::strcmp(value_env_p, "disable") == 0 || std::strcmp(value_env_p, "disabled") == 0 ||
-            std::strcmp(value_env_p, "0") == 0 || std::strcmp(value_env_p, "no") == 0 ||
-            std::strcmp(value_env_p, "false") == 0);
+    if(value_env_p == nullptr)
+        return false;
+    else
+    {
+        std::string value_env_str = value_env_p;
+        for(auto& c : value_env_str)
+        {
+            if(std::isalpha(c) != 0)
+            {
+                c = std::tolower(static_cast<unsigned char>(c));
+            }
+        }
+        return (std::strcmp(value_env_str.c_str(), "disable") == 0 ||
+                std::strcmp(value_env_str.c_str(), "disabled") == 0 ||
+                std::strcmp(value_env_str.c_str(), "0") == 0 ||
+                std::strcmp(value_env_str.c_str(), "no") == 0 ||
+                std::strcmp(value_env_str.c_str(), "off") == 0 ||
+                std::strcmp(value_env_str.c_str(), "false") == 0);
+    }
 }
 
 inline bool IsEnvvarValueEnabled(const char* name)
 {
     // NOLINTNEXTLINE (concurrency-mt-unsafe)
     const auto value_env_p = std::getenv(name);
-    return value_env_p != nullptr &&
-           (std::strcmp(value_env_p, "enable") == 0 || std::strcmp(value_env_p, "enabled") == 0 ||
-            std::strcmp(value_env_p, "1") == 0 || std::strcmp(value_env_p, "yes") == 0 ||
-            std::strcmp(value_env_p, "true") == 0);
+    if(value_env_p == nullptr)
+        return false;
+    else
+    {
+        std::string value_env_str = value_env_p;
+        for(auto& c : value_env_str)
+        {
+            if(std::isalpha(c) != 0)
+            {
+                c = std::tolower(static_cast<unsigned char>(c));
+            }
+        }
+        return (std::strcmp(value_env_str.c_str(), "enable") == 0 ||
+                std::strcmp(value_env_str.c_str(), "enabled") == 0 ||
+                std::strcmp(value_env_str.c_str(), "1") == 0 ||
+                std::strcmp(value_env_str.c_str(), "yes") == 0 ||
+                std::strcmp(value_env_str.c_str(), "on") == 0 ||
+                std::strcmp(value_env_str.c_str(), "true") == 0);
+    }
 }
 
 // Return 0 if env is enabled else convert environment var to an int.
 // Supports hexadecimal with leading 0x or decimal
-inline unsigned long int EnvvarValue(const char* name, unsigned long int fallback = 0)
+inline uint64_t EnvvarValue(const char* name, uint64_t fallback = 0)
 {
     // NOLINTNEXTLINE (concurrency-mt-unsafe)
     const auto value_env_p = std::getenv(name);
@@ -78,7 +108,7 @@ inline unsigned long int EnvvarValue(const char* name, unsigned long int fallbac
     }
     else
     {
-        return strtoul(value_env_p, nullptr, 0);
+        return strtoull(value_env_p, nullptr, 0);
     }
 }
 
@@ -117,7 +147,7 @@ inline bool IsDisabled(T)
 }
 
 template <class T>
-inline unsigned long int Value(T, unsigned long int fallback = 0)
+inline uint64_t Value(T, uint64_t fallback = 0)
 {
     static const auto result = miopen::EnvvarValue(T::value(), fallback);
     return result;

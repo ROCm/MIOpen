@@ -24,6 +24,9 @@
  *
  *******************************************************************************/
 
+#ifndef GUARD_MIOPEN_TEST_DRIVER_HPP
+#define GUARD_MIOPEN_TEST_DRIVER_HPP
+
 #include "args.hpp"
 #include "get_handle.hpp"
 #include "network_data.hpp"
@@ -34,7 +37,11 @@
 
 #include <functional>
 #include <deque>
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
 #include <half.hpp>
+#endif
 #include <type_traits>
 #include <boost/filesystem.hpp>
 #include <miopen/functional.hpp>
@@ -53,33 +60,16 @@ constexpr std::is_same<T, U> is_same(const T&)
     return {};
 }
 
-struct tensor_elem_gen_integer
-{
-    unsigned long max_value = 17;
-
-    template <class... Ts>
-    double operator()(Ts... Xs) const
-    {
-        static_assert(sizeof...(Ts) < 6,
-                      "Dimensions in tensor_elem_gen_integer must be less than 6.");
-        assert(max_value > 0);
-        std::array<unsigned long, sizeof...(Ts)> left = {{Xs...}};
-        std::array<unsigned long, 5> right            = {{613, 547, 701, 877, 1049}};
-        unsigned long dot = std::inner_product(left.begin(), left.end(), right.begin(), 173ul);
-        return static_cast<double>(dot % max_value);
-    }
-};
-
 struct tensor_elem_gen_checkboard_sign
 {
     template <class... Ts>
     double operator()(Ts... Xs) const
     {
-        std::array<unsigned long, sizeof...(Ts)> dims = {{Xs...}};
+        std::array<uint64_t, sizeof...(Ts)> dims = {{Xs...}};
         return std::accumulate(dims.begin(),
                                dims.end(),
                                true,
-                               [](int init, unsigned long x) -> int { return init != (x % 2); })
+                               [](int init, uint64_t x) -> int { return init != (x % 2); })
                    ? 1
                    : -1;
     }
@@ -284,11 +274,13 @@ struct test_driver
         {
         case miopenHalf: ss << "--half "; break;
         case miopenBFloat16: ss << "--bfloat16 "; break;
-        case miopenInt8x4:
+        case miopenInt8x4: ss << "--UNSUPPORED_TYPE "; break;
         case miopenInt8: ss << "--int8 "; break;
         case miopenInt32: ss << "--int32 "; break;
         case miopenFloat: ss << "--float "; break;
         case miopenDouble: ss << "--double "; break;
+        case miopenFloat8: ss << "--float8"; break;
+        case miopenBFloat8: ss << "--bfloat8"; break;
         }
         for(auto&& arg : this->arguments)
         {
@@ -311,11 +303,13 @@ struct test_driver
         {
         case miopenHalf: ret.emplace_back("--half"); break;
         case miopenBFloat16: ret.emplace_back("--bf16"); break;
-        case miopenInt8x4:
+        case miopenInt8x4: ret.emplace_back("--UNSUPPORTED_TYPE"); break;
         case miopenInt8: ret.emplace_back("--int8"); break;
         case miopenInt32: ret.emplace_back("--int32"); break;
         case miopenFloat: ret.emplace_back("--float"); break;
         case miopenDouble: ret.emplace_back("--double"); break;
+        case miopenFloat8: ret.emplace_back("--float8"); break;
+        case miopenBFloat8: ret.emplace_back("--bfloat8"); break;
         }
 
         for(auto&& arg : this->arguments)
@@ -733,7 +727,7 @@ struct test_driver
     {
         if(disabled_cache)
             return true;
-        auto p = boost::filesystem::path{miopen::ExpandUser(cache_path)} / ".disabled";
+        auto p = miopen::ExpandUser(cache_path) / ".disabled";
         return boost::filesystem::exists(p);
     }
 
@@ -744,8 +738,7 @@ struct test_driver
         if(is_cache_disabled() or not is_const_cpu(v, xs...))
             return cpu_async(v, xs...);
         auto key = miopen::get_type_name<V>() + "-" + miopen::md5(get_command_args());
-        auto p =
-            boost::filesystem::path{miopen::ExpandUser(cache_path)} / std::to_string(cache_version);
+        auto p   = miopen::ExpandUser(cache_path) / std::to_string(cache_version);
         if(!boost::filesystem::exists(p))
             boost::filesystem::create_directories(p);
         auto f = p / key;
@@ -888,6 +881,21 @@ struct test_driver
     }
 
     template <class V, class... Ts>
+    auto verify_eps(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
+    {
+        return verify_impl(
+            [&](std::vector<double>& error, auto&& cpu, auto&& gpu) {
+                CHECK(miopen::range_distance(cpu) == miopen::range_distance(gpu));
+
+                double threshold = v.epsilon() * tolerance;
+                error            = {miopen::rms_range(cpu, gpu)};
+                return error.front() <= threshold;
+            },
+            v,
+            xs...);
+    }
+
+    template <class V, class... Ts>
     auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
     {
         return verify_impl(
@@ -927,9 +935,9 @@ struct test_driver
             }
             else
             {
-                std::srand(65521);
+                prng::reset_seed();
                 static_cast<Derived*>(this)->run();
-                std::srand(65521);
+                prng::reset_seed();
             }
         }
         this->iteration++;
@@ -1103,10 +1111,10 @@ build_configs(Driver& d,
     std::vector<typename Driver::argument*> data_args = get_data_args<Driver>(d, arg_map);
 
     run_data(data_args.begin(), data_args.end(), [&] {
-        std::srand(65521);
+        prng::reset_seed();
         std::vector<std::string> config = d.get_config();
         configs.push_back(config);
-        std::srand(65521);
+        prng::reset_seed();
     });
     std::cout << " done." << std::endl;
     return configs;
@@ -1162,9 +1170,9 @@ void run_config(std::vector<std::string>& config,
     for(int j = 0; j < test_repeat_count; j++)
     {
         run_data(config_data_args.begin(), config_data_args.end(), [&] {
-            std::srand(65521);
+            prng::reset_seed();
             config_driver.run();
-            std::srand(65521);
+            prng::reset_seed();
         });
     }
 }
@@ -1306,7 +1314,8 @@ void test_drive_impl_1(std::string program_name, std::vector<std::string> as)
             data_args.push_back(&arg);
         }
     }
-    std::srand(65521);
+
+    prng::reset_seed();
     for(int i = 0; i < d.repeat; i++)
     {
         d.iteration = 0;
@@ -1389,3 +1398,5 @@ void test_drive(int argc, const char* argv[])
         }
     }
 }
+
+#endif // GUARD_MIOPEN_TEST_DRIVER_HPP

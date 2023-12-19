@@ -154,8 +154,9 @@ struct tensor_copy_driver : test_driver
 
     void run()
     {
-        unsigned long max_value =
-            miopen_type<T>{} == miopenHalf ? 5 : miopen_type<T>{} == miopenInt8 ? 127 : 17;
+        uint64_t max_value = miopen_type<T>{} == miopenHalf   ? 5
+                             : miopen_type<T>{} == miopenInt8 ? 127
+                                                              : 17;
 
         srcSuper = tensor<T>{srcSuperLens}.generate(tensor_elem_gen_integer{max_value});
         dstSuper = tensor<T>{dstSuperLens}.generate(tensor_elem_gen_integer{max_value});
@@ -169,10 +170,8 @@ struct tensor_copy_driver : test_driver
                                                (dstSuper.desc.GetSize() - copyLens.size()),
                                            dstSuperStrides.end());
 
-        srcDesc = miopen::TensorDescriptor(
-            this->type, copyLens.data(), src_super_strides.data(), copyLens.size());
-        dstDesc = miopen::TensorDescriptor(
-            this->type, copyLens.data(), dst_super_strides.data(), copyLens.size());
+        srcDesc = miopen::TensorDescriptor(this->type, copyLens, src_super_strides);
+        dstDesc = miopen::TensorDescriptor(this->type, copyLens, dst_super_strides);
 
         if(srcDesc.GetLengths().size() == dstDesc.GetLengths().size())
         {

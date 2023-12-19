@@ -59,6 +59,8 @@
 #endif
 #endif
 
+#define MIO_DRIVER_BN_REFERENCE_COMPUTE_3D_AS_2D 1 // Resolves issue #1974
+
 //#define BN_RUNFOR_PROFILER
 
 template <typename Tgpu, typename Tref, typename Tmix = Tgpu>
@@ -431,10 +433,10 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::createSaveBuffers()
             // Populate
             for(int i = 0; i < sb_sz; i++)
             {
-                saveMean_host[i] = saveMean[i] =
-                    RAN_GEN<Tref>(static_cast<Tref>(0.0), static_cast<Tref>(1.0));
-                saveInvVariance_host[i] = saveInvVariance[i] =
-                    RAN_GEN<Tref>(static_cast<Tref>(0.0), static_cast<Tref>(1.0));
+                saveMean[i]             = prng::gen_canonical<Tmix>();
+                saveMean_host[i]        = static_cast<Tref>(saveMean[i]);
+                saveInvVariance[i]      = prng::gen_canonical<Tmix>();
+                saveInvVariance_host[i] = static_cast<Tref>(saveInvVariance[i]);
             }
         }
         else
@@ -496,9 +498,9 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::createRunningBuffers()
             // Populate
             for(int i = 0; i < sb_sz; i++)
             {
-                runningMean[i]      = RAN_GEN<Tmix>(static_cast<Tmix>(0.0), static_cast<Tmix>(1.0));
-                runningMean_host[i] = static_cast<Tref>(runningMean[i]);
-                runningVariance[i]  = RAN_GEN<Tmix>(static_cast<Tmix>(0.0), static_cast<Tmix>(1.0));
+                runningMean[i]          = prng::gen_canonical<Tmix>();
+                runningMean_host[i]     = static_cast<Tref>(runningMean[i]);
+                runningVariance[i]      = prng::gen_canonical<Tmix>();
                 runningVariance_host[i] = static_cast<Tref>(runningVariance[i]);
             }
         }
@@ -569,16 +571,16 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::AllocateBuffersAndCopy()
         // Data initialization
         for(int i = 0; i < in_sz; i++)
         {
-            in[i] = std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0)));
+            in[i] = prng::gen_canonical<Tgpu>();
         }
         status |= in_dev->ToGPU(q, in.data());
 
         // Using random beta and gamma
         for(int i = 0; i < sb_sz; i++)
         {
-            scale[i]      = RAN_GEN<Tmix>(static_cast<Tmix>(0.0), static_cast<Tmix>(1.0));
+            scale[i]      = prng::gen_canonical<Tmix>();
             scale_host[i] = static_cast<Tref>(scale[i]);
-            bias[i]       = RAN_GEN<Tmix>(static_cast<Tmix>(0.0), static_cast<Tmix>(1.0));
+            bias[i]       = prng::gen_canonical<Tmix>();
             bias_host[i]  = static_cast<Tref>(bias[i]);
         }
         status |= scale_dev->ToGPU(q, scale.data());
@@ -625,7 +627,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::AllocateBuffersAndCopy()
         // Populate
         for(int i = 0; i < sb_sz; i++)
         {
-            scale[i] = RAN_GEN<Tmix>(static_cast<Tmix>(0.0), static_cast<Tmix>(1.0));
+            scale[i] = prng::gen_canonical<Tmix>();
         }
         status |= scale_dev->ToGPU(q, scale.data());
         status |= dscale_dev->ToGPU(q, dscale.data());
@@ -633,8 +635,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::AllocateBuffersAndCopy()
 
         for(int i = 0; i < in_sz; i++)
         {
-            dyin[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-            in[i]   = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            dyin[i] = prng::gen_canonical<Tgpu>();
+            in[i]   = prng::gen_canonical<Tgpu>();
         }
         status |= dyin_dev->ToGPU(q, dyin.data());
         status |= in_dev->ToGPU(q, in.data());
@@ -954,8 +956,13 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdTrain(
     { // 1xCxHxW
         miopenBNFwdTrainPerActivationRunHost<Tgpu, Tref>(/* alpha, beta, */ batch_sz,
                                                          channels,
+#if MIO_DRIVER_BN_REFERENCE_COMPUTE_3D_AS_2D
+                                                         1,
+                                                         height * (isDepthSpecified ? depth : 1),
+#else
                                                          (isDepthSpecified ? depth : 1),
                                                          height,
+#endif
                                                          width,
                                                          in.data(),
                                                          out_host.data(),
@@ -974,8 +981,13 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdTrain(
     { // 1xCx1x1
         miopenBNFwdTrainSpatialRunHost<Tgpu, Tref>(/* alpha, beta, */ batch_sz,
                                                    channels,
+#if MIO_DRIVER_BN_REFERENCE_COMPUTE_3D_AS_2D
+                                                   1,
+                                                   height * (isDepthSpecified ? depth : 1),
+#else
                                                    (isDepthSpecified ? depth : 1),
                                                    height,
+#endif
                                                    width,
                                                    in.data(),
                                                    out_host.data(),
@@ -1204,7 +1216,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
             }
             else
             {
-                std::cout << "Forward train batch norm verification passed on running mean.\n";
+                std::cout << "Forward train batch norm verification passed on running mean ("
+                          << errorRunMean << ')' << std::endl;
             }
 
             auto errorRunVar = miopen::rms_range(runningVariance_host, runningVariance);
@@ -1232,7 +1245,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
             }
             else
             {
-                std::cout << "Forward train batch norm verification passed on running variance\n";
+                std::cout << "Forward train batch norm verification passed on running variance ("
+                          << errorRunVar << ')' << std::endl;
             }
         } // end if(keepRunningMeanVar)
 
@@ -1268,7 +1282,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
             }
             else
             {
-                std::cout << "Forward train batch norm verification passed on saved mean\n";
+                std::cout << "Forward train batch norm verification passed on saved mean ("
+                          << errorSaveMean << ')' << std::endl;
             }
 
             auto errorSaveVar = miopen::rms_range(saveInvVariance_host, saveInvVariance);
@@ -1298,7 +1313,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
             else
             {
                 std::cout
-                    << "Forward train batch norm verification passed on saved inverse variance.\n";
+                    << "Forward train batch norm verification passed on saved inverse variance ("
+                    << errorSaveVar << ')' << std::endl;
             }
         } // end if(saveMeanVar)
     }
@@ -1341,7 +1357,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
     }
     else
     {
-        std::cout << "Forward batch norm verification passed on output\n";
+        std::cout << "Forward batch norm verification passed on output (" << errorOut << ')'
+                  << std::endl;
     }
 
     // Done! Results?
@@ -1473,7 +1490,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
     }
     else
     {
-        std::cout << "Backwards prop batch norm verification passed on dx.\n";
+        std::cout << "Backwards prop batch norm verification passed on dx (" << errordxout << ')'
+                  << std::endl;
     }
 
     maxval           = static_cast<Tref>(0.0);
@@ -1504,7 +1522,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
     }
     else
     {
-        std::cout << "Backwards prop batch norm verification passed on dscale.\n";
+        std::cout << "Backwards prop batch norm verification passed on dscale (" << errordscale
+                  << ')' << std::endl;
     }
 
     auto errordbias = miopen::rms_range(dbias_host, dbias);
@@ -1531,7 +1550,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
     }
     else
     {
-        std::cout << "Backwards prop batch norm verification passed on dbias.\n";
+        std::cout << "Backwards prop batch norm verification passed on dbias (" << errordbias << ')'
+                  << std::endl;
     }
 
     if(!anError)

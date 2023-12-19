@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,7 @@
 #include <miopen/datatype.hpp>
 #include <miopen/visit_float.hpp>
 #include <miopen/util.hpp>
+#include <miopen/logger.hpp>
 #include <algorithm>
 #include <cassert>
 #include <numeric>
@@ -44,7 +45,7 @@ TensorDescriptor GetFlattenedTensorDescriptor(const TensorDescriptor& desc)
 {
     // is packed
     if(desc.IsPacked())
-        return {desc.GetType(), {desc.GetElementSize()}, {1}};
+        return {desc.GetType(), {desc.GetElementSize()}, {static_cast<std::size_t>(1)}};
 
     // start flattening tensor
     std::vector<std::size_t> flat_lengths;
@@ -80,7 +81,7 @@ TensorDescriptor GetFlattenedTensorDescriptor(const TensorDescriptor& desc)
     flat_lengths.push_back(flat_len);
     flat_strides.push_back(boost::get<1>(*i_previous));
 
-    return {desc.GetType(), std::move(flat_lengths), std::move(flat_strides)};
+    return {desc.GetType(), flat_lengths, flat_strides};
 }
 
 // Free Tensor Functions
@@ -130,7 +131,8 @@ void OpTensor3d(const Handle& handle,
                 Data_t CTensor,
                 const size_t Aoffset,
                 const size_t Boffset,
-                const size_t Coffset)
+                const size_t Coffset,
+                const bool nonStandardSquash)
 {
     auto alens = aTensorDesc.GetLengths();
     auto blens = bTensorDesc.GetLengths();
@@ -147,9 +149,9 @@ void OpTensor3d(const Handle& handle,
     auto d             = std::distance(blens.begin(), first_not_one.base());
 
     // quick fix
-    int num_wg = first_not_one != blens.rend()
-                     ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
-                     : 1;
+    int num_wg      = first_not_one != blens.rend()
+                          ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
+                          : 1;
     int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
     unsigned int bitmap = 0;
@@ -184,8 +186,18 @@ void OpTensor3d(const Handle& handle,
 
     size_t total_work = std::max(clens[2] / RD_BLCK, size_t(1));
     size_t grp_sz     = (total_work + local_threads - 1) / local_threads;
-    grp_sz            = std::min(size_t(max_num_wg), grp_sz);
-    size_t glb_sz     = local_threads * grp_sz;
+
+    // opencl kernels are no longer supported, fallback to generic case
+    bool lite_applicable = grp_sz <= size_t(max_num_wg);
+
+    bool is_lite = clens[0] == 1 && blens[0] == 1 && alens[0] == 1 &&
+                   (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2];
+
+    bool is_squashed = nonStandardSquash && !is_lite &&
+                       (blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2]);
+
+    grp_sz        = std::min(size_t(max_num_wg), grp_sz);
+    size_t glb_sz = local_threads * grp_sz;
 
     size_t local_threads2 = 64;
     size_t total_work2    = clens[1];
@@ -198,8 +210,7 @@ void OpTensor3d(const Handle& handle,
         auto miopen_alpha1 = as_float(*(static_cast<const float*>(alpha1)));
         auto miopen_beta   = as_float(*(static_cast<const float*>(beta)));
 
-        if(clens[0] == 1 && blens[0] == 1 && alens[0] == 1 &&
-           (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2])
+        if(lite_applicable && is_lite)
         {
 
             network_config += std::to_string(RD_BLCK) + "x" + std::to_string(local_threads) + "x" +
@@ -213,26 +224,26 @@ void OpTensor3d(const Handle& handle,
                 auto kernel = kernels.front();
 
                 kernel(ATensor,
-                       int(astrides[1]), // a_cstride,
+                       static_cast<int>(astrides[1]), // a_cstride,
                        BTensor,
-                       int(bstrides[1]), // b_cstride,
+                       static_cast<int>(bstrides[1]), // b_cstride,
                        CTensor,
-                       int(cstrides[1]), // c_cstride,
+                       static_cast<int>(cstrides[1]), // c_cstride,
                        miopen_alpha0,
                        miopen_alpha1,
                        miopen_beta,
-                       long(Aoffset),
-                       long(Boffset),
-                       long(Coffset),
-                       long(total_work),
-                       long(total_work2),
-                       int(!float_equal(miopen_beta, 0.0)),
-                       int(blens[1] == 1));
+                       static_cast<int64_t>(Aoffset),
+                       static_cast<int64_t>(Boffset),
+                       static_cast<int64_t>(Coffset),
+                       static_cast<int64_t>(total_work),
+                       static_cast<int64_t>(total_work2),
+                       static_cast<int>(!float_equal(miopen_beta, 0.0)),
+                       static_cast<int>(blens[1] == 1));
 
                 return;
             }
         }
-        else if(blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2])
+        else if(is_squashed)
         {
             network_config += std::to_string(RD_BLCK) + "x" + std::to_string(local_threads) + "x" +
                               std::to_string(grp_sz);
@@ -245,19 +256,19 @@ void OpTensor3d(const Handle& handle,
 
                 kernel(ATensor,
                        BTensor,
-                       int(blens[1]),    // b_c,
-                       int(bstrides[1]), // b_cstride,
+                       static_cast<int>(blens[1]),    // b_c,
+                       static_cast<int>(bstrides[1]), // b_cstride,
                        CTensor,
                        miopen_alpha0,
                        miopen_alpha1,
                        miopen_beta,
-                       long(Aoffset),
-                       long(Boffset),
-                       long(Coffset),
-                       long(total_work),
-                       int(!float_equal(miopen_alpha0, 0.0)),
-                       int(!float_equal(miopen_alpha1, 0.0)),
-                       int(!float_equal(miopen_beta, 0.0)));
+                       static_cast<int64_t>(Aoffset),
+                       static_cast<int64_t>(Boffset),
+                       static_cast<int64_t>(Coffset),
+                       static_cast<int64_t>(total_work),
+                       static_cast<int>(!float_equal(miopen_alpha0, 0.0)),
+                       static_cast<int>(!float_equal(miopen_alpha1, 0.0)),
+                       static_cast<int>(!float_equal(miopen_beta, 0.0)));
 
                 return;
             }
@@ -275,27 +286,27 @@ void OpTensor3d(const Handle& handle,
                 auto kernel = kernels.front();
 
                 kernel(ATensor,
-                       int(astrides[0]), // a_nstride,
-                       int(astrides[1]), // a_cstride,
+                       static_cast<int>(astrides[0]), // a_nstride,
+                       static_cast<int>(astrides[1]), // a_cstride,
                        BTensor,
-                       int(blens[1]),    // b_c,
-                       int(blens[2]),    // b_h,
-                       int(bstrides[0]), // b_nstride,
-                       int(bstrides[1]), // b_cstride,
+                       static_cast<int>(blens[1]),    // b_c,
+                       static_cast<int>(blens[2]),    // b_h,
+                       static_cast<int>(bstrides[0]), // b_nstride,
+                       static_cast<int>(bstrides[1]), // b_cstride,
                        CTensor,
-                       int(clens[1]),    // c_c,
-                       int(clens[2]),    // c_h,
-                       int(cstrides[0]), // c_nstride,
-                       int(cstrides[1]), // c_cstride,
+                       static_cast<int>(clens[1]),    // c_c,
+                       static_cast<int>(clens[2]),    // c_h,
+                       static_cast<int>(cstrides[0]), // c_nstride,
+                       static_cast<int>(cstrides[1]), // c_cstride,
                        miopen_alpha0,
                        miopen_alpha1,
                        miopen_beta,
                        bitmap,
                        work_per_wg,
-                       long(Aoffset),
-                       long(Boffset),
-                       long(Coffset),
-                       int(num_wg_orig));
+                       static_cast<int64_t>(Aoffset),
+                       static_cast<int64_t>(Boffset),
+                       static_cast<int64_t>(Coffset),
+                       static_cast<int>(num_wg_orig));
 
                 return;
             }
@@ -317,8 +328,7 @@ void OpTensor3d(const Handle& handle,
 
         const std::vector<size_t> vld{local_threads, 1, 1};
 
-        if(clens[0] == 1 && blens[0] == 1 && alens[0] == 1 &&
-           (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2])
+        if(lite_applicable && is_lite)
         {
             parms += " -DUSE_2D_TENSOR_LITE";
             parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_TYPE=" + READ_TYPE;
@@ -328,23 +338,23 @@ void OpTensor3d(const Handle& handle,
             handle.AddKernel(
                 "Op2dTensorLite", network_config, program_name, "Op2dTensorLite", vld, vgd1, parms)(
                 ATensor,
-                int(astrides[1]), // a_cstride,
+                static_cast<int>(astrides[1]), // a_cstride,
                 BTensor,
-                int(bstrides[1]), // b_cstride,
+                static_cast<int>(bstrides[1]), // b_cstride,
                 CTensor,
-                int(cstrides[1]), // c_cstride,
+                static_cast<int>(cstrides[1]), // c_cstride,
                 miopen_alpha0,
                 miopen_alpha1,
                 miopen_beta,
-                long(Aoffset),
-                long(Boffset),
-                long(Coffset),
-                long(total_work),
-                long(total_work2),
-                int(!float_equal(miopen_beta, 0.0)),
-                int(blens[1] == 1));
+                static_cast<int64_t>(Aoffset),
+                static_cast<int64_t>(Boffset),
+                static_cast<int64_t>(Coffset),
+                static_cast<int64_t>(total_work),
+                static_cast<int64_t>(total_work2),
+                static_cast<int>(!float_equal(miopen_beta, 0.0)),
+                static_cast<int>(blens[1] == 1));
         }
-        else if(blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2])
+        else if(is_squashed)
         {
             parms += " -DUSE_2D_TENSOR_SQUASH";
             parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_TYPE=" + READ_TYPE;
@@ -359,19 +369,19 @@ void OpTensor3d(const Handle& handle,
                              vgd1,
                              parms)(ATensor,
                                     BTensor,
-                                    int(blens[1]),    // b_c,
-                                    int(bstrides[1]), // b_cstride,
+                                    static_cast<int>(blens[1]),    // b_c,
+                                    static_cast<int>(bstrides[1]), // b_cstride,
                                     CTensor,
                                     miopen_alpha0,
                                     miopen_alpha1,
                                     miopen_beta,
-                                    long(Aoffset),
-                                    long(Boffset),
-                                    long(Coffset),
-                                    long(total_work),
-                                    int(!float_equal(miopen_alpha0, 0.0)),
-                                    int(!float_equal(miopen_alpha1, 0.0)),
-                                    int(!float_equal(miopen_beta, 0.0)));
+                                    static_cast<int64_t>(Aoffset),
+                                    static_cast<int64_t>(Boffset),
+                                    static_cast<int64_t>(Coffset),
+                                    static_cast<int64_t>(total_work),
+                                    static_cast<int>(!float_equal(miopen_alpha0, 0.0)),
+                                    static_cast<int>(!float_equal(miopen_alpha1, 0.0)),
+                                    static_cast<int>(!float_equal(miopen_beta, 0.0)));
         }
         else
         {
@@ -390,27 +400,27 @@ void OpTensor3d(const Handle& handle,
                              vld,
                              vgd,
                              parms)(ATensor,
-                                    int(astrides[0]), // a_nstride,
-                                    int(astrides[1]), // a_cstride,
+                                    static_cast<int>(astrides[0]), // a_nstride,
+                                    static_cast<int>(astrides[1]), // a_cstride,
                                     BTensor,
-                                    int(blens[1]),    // b_c,
-                                    int(blens[2]),    // b_h,
-                                    int(bstrides[0]), // b_nstride,
-                                    int(bstrides[1]), // b_cstride,
+                                    static_cast<int>(blens[1]),    // b_c,
+                                    static_cast<int>(blens[2]),    // b_h,
+                                    static_cast<int>(bstrides[0]), // b_nstride,
+                                    static_cast<int>(bstrides[1]), // b_cstride,
                                     CTensor,
-                                    int(clens[1]),    // c_c,
-                                    int(clens[2]),    // c_h,
-                                    int(cstrides[0]), // c_nstride,
-                                    int(cstrides[1]), // c_cstride,
+                                    static_cast<int>(clens[1]),    // c_c,
+                                    static_cast<int>(clens[2]),    // c_h,
+                                    static_cast<int>(cstrides[0]), // c_nstride,
+                                    static_cast<int>(cstrides[1]), // c_cstride,
                                     miopen_alpha0,
                                     miopen_alpha1,
                                     miopen_beta,
                                     bitmap,
                                     work_per_wg,
-                                    long(Aoffset),
-                                    long(Boffset),
-                                    long(Coffset),
-                                    int(num_wg_orig));
+                                    static_cast<int64_t>(Aoffset),
+                                    static_cast<int64_t>(Boffset),
+                                    static_cast<int64_t>(Coffset),
+                                    static_cast<int>(num_wg_orig));
         }
     });
 }
@@ -444,9 +454,9 @@ void OpTensor4d(const Handle& handle,
     auto d             = std::distance(blens.begin(), first_not_one.base());
 
     // quick fix
-    int num_wg = first_not_one != blens.rend()
-                     ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
-                     : 1;
+    int num_wg      = first_not_one != blens.rend()
+                          ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
+                          : 1;
     int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
     unsigned int bitmap = 0;
@@ -557,20 +567,20 @@ void OpTensor4d(const Handle& handle,
                     auto kernel = kernels.front();
                     kernel(ATensor,
                            BTensor,
-                           int(blens[1]),
+                           static_cast<int>(blens[1]),
                            CTensor,
-                           int(clens[0]),
-                           int(cstrides[0]),
-                           int(cstrides[1]),
+                           static_cast<int>(clens[0]),
+                           static_cast<int>(cstrides[0]),
+                           static_cast<int>(cstrides[1]),
                            work_per_wg,
                            miopen_alpha0,
                            miopen_alpha1,
                            miopen_beta,
-                           long(Aoffset),
-                           long(Boffset),
-                           long(Coffset),
-                           int(num_wg_orig),
-                           int(incr_wg));
+                           static_cast<int64_t>(Aoffset),
+                           static_cast<int64_t>(Boffset),
+                           static_cast<int64_t>(Coffset),
+                           static_cast<int>(num_wg_orig),
+                           static_cast<int>(incr_wg));
 
                     return;
                 }
@@ -584,27 +594,27 @@ void OpTensor4d(const Handle& handle,
                 {
                     auto kernel = kernels.front();
                     kernel(ATensor,
-                           int(astrides[0]),
-                           int(astrides[1]),
-                           int(astrides[2]),
+                           static_cast<int>(astrides[0]),
+                           static_cast<int>(astrides[1]),
+                           static_cast<int>(astrides[2]),
                            BTensor,
-                           int(blens[1]),
-                           int(bstrides[1]),
+                           static_cast<int>(blens[1]),
+                           static_cast<int>(bstrides[1]),
                            CTensor,
-                           int(clens[0]),
-                           int(clens[3]),
-                           int(cstrides[0]),
-                           int(cstrides[1]),
-                           int(cstrides[2]),
+                           static_cast<int>(clens[0]),
+                           static_cast<int>(clens[3]),
+                           static_cast<int>(cstrides[0]),
+                           static_cast<int>(cstrides[1]),
+                           static_cast<int>(cstrides[2]),
                            miopen_alpha0,
                            miopen_alpha1,
                            miopen_beta,
                            work_per_wg,
-                           long(Aoffset),
-                           long(Boffset),
-                           long(Coffset),
-                           int(num_wg_orig),
-                           int(incr_wg));
+                           static_cast<int64_t>(Aoffset),
+                           static_cast<int64_t>(Boffset),
+                           static_cast<int64_t>(Coffset),
+                           static_cast<int>(num_wg_orig),
+                           static_cast<int>(incr_wg));
                     return;
                 }
             }
@@ -623,11 +633,11 @@ void OpTensor4d(const Handle& handle,
                        miopen_alpha0,
                        miopen_alpha1,
                        miopen_beta,
-                       long(Aoffset),
-                       long(Boffset),
-                       long(Coffset),
-                       long(total_work),
-                       int(!float_equal(miopen_beta, 0.0)));
+                       static_cast<int64_t>(Aoffset),
+                       static_cast<int64_t>(Boffset),
+                       static_cast<int64_t>(Coffset),
+                       static_cast<int64_t>(total_work),
+                       static_cast<int>(!float_equal(miopen_beta, 0.0)));
                 return;
             }
         }
@@ -644,19 +654,19 @@ void OpTensor4d(const Handle& handle,
                     kernel(ATensor,
                            BTensor,
                            CTensor,
-                           int(clens[1]),
-                           int(clens[2]),
-                           int(clens[3]),
-                           int(cstrides[0]),
-                           int(cstrides[1]),
+                           static_cast<int>(clens[1]),
+                           static_cast<int>(clens[2]),
+                           static_cast<int>(clens[3]),
+                           static_cast<int>(cstrides[0]),
+                           static_cast<int>(cstrides[1]),
                            work_per_wg,
                            miopen_alpha0,
                            miopen_alpha1,
                            miopen_beta,
-                           long(Aoffset),
-                           long(Boffset),
-                           long(Coffset),
-                           int(num_wg_orig),
+                           static_cast<int64_t>(Aoffset),
+                           static_cast<int64_t>(Boffset),
+                           static_cast<int64_t>(Coffset),
+                           static_cast<int>(num_wg_orig),
                            bitmap);
 
                     return;
@@ -670,28 +680,28 @@ void OpTensor4d(const Handle& handle,
                 {
                     auto kernel = kernels.front();
                     kernel(ATensor,
-                           int(astrides[0]),
-                           int(astrides[1]),
-                           int(astrides[2]),
+                           static_cast<int>(astrides[0]),
+                           static_cast<int>(astrides[1]),
+                           static_cast<int>(astrides[2]),
                            BTensor,
-                           int(bstrides[0]),
-                           int(bstrides[1]),
-                           int(bstrides[2]),
+                           static_cast<int>(bstrides[0]),
+                           static_cast<int>(bstrides[1]),
+                           static_cast<int>(bstrides[2]),
                            CTensor,
-                           int(clens[1]),
-                           int(clens[2]),
-                           int(clens[3]),
-                           int(cstrides[0]),
-                           int(cstrides[1]),
-                           int(cstrides[2]),
+                           static_cast<int>(clens[1]),
+                           static_cast<int>(clens[2]),
+                           static_cast<int>(clens[3]),
+                           static_cast<int>(cstrides[0]),
+                           static_cast<int>(cstrides[1]),
+                           static_cast<int>(cstrides[2]),
                            miopen_alpha0,
                            miopen_alpha1,
                            miopen_beta,
                            work_per_wg,
-                           long(Aoffset),
-                           long(Boffset),
-                           long(Coffset),
-                           int(num_wg_orig),
+                           static_cast<int64_t>(Aoffset),
+                           static_cast<int64_t>(Boffset),
+                           static_cast<int64_t>(Coffset),
+                           static_cast<int>(num_wg_orig),
                            bitmap);
                     return;
                 }
@@ -705,32 +715,32 @@ void OpTensor4d(const Handle& handle,
             {
                 auto kernel = kernels.front();
                 kernel(ATensor,
-                       int(astrides[0]), // a_nstride,
-                       int(astrides[1]), // a_cstride,
-                       int(astrides[2]), // a_hstride,
+                       static_cast<int>(astrides[0]), // a_nstride,
+                       static_cast<int>(astrides[1]), // a_cstride,
+                       static_cast<int>(astrides[2]), // a_hstride,
                        BTensor,
-                       int(blens[1]),    // b_c,
-                       int(blens[2]),    // b_h,
-                       int(blens[3]),    // b_w,
-                       int(bstrides[0]), // b_nstride,
-                       int(bstrides[1]), // b_cstride,
-                       int(bstrides[2]), // b_hstride,
+                       static_cast<int>(blens[1]),    // b_c,
+                       static_cast<int>(blens[2]),    // b_h,
+                       static_cast<int>(blens[3]),    // b_w,
+                       static_cast<int>(bstrides[0]), // b_nstride,
+                       static_cast<int>(bstrides[1]), // b_cstride,
+                       static_cast<int>(bstrides[2]), // b_hstride,
                        CTensor,
-                       int(clens[1]),    // c_c,
-                       int(clens[2]),    // c_h,
-                       int(clens[3]),    // c_w,
-                       int(cstrides[0]), // c_nstride,
-                       int(cstrides[1]), // c_cstride,
-                       int(cstrides[2]), // c_hstride,
+                       static_cast<int>(clens[1]),    // c_c,
+                       static_cast<int>(clens[2]),    // c_h,
+                       static_cast<int>(clens[3]),    // c_w,
+                       static_cast<int>(cstrides[0]), // c_nstride,
+                       static_cast<int>(cstrides[1]), // c_cstride,
+                       static_cast<int>(cstrides[2]), // c_hstride,
                        miopen_alpha0,
                        miopen_alpha1,
                        miopen_beta,
                        bitmap,
                        work_per_wg,
-                       long(Aoffset),
-                       long(Boffset),
-                       long(Coffset),
-                       int(num_wg_orig));
+                       static_cast<int64_t>(Aoffset),
+                       static_cast<int64_t>(Boffset),
+                       static_cast<int64_t>(Coffset),
+                       static_cast<int>(num_wg_orig));
                 return;
             }
         }
@@ -763,20 +773,20 @@ void OpTensor4d(const Handle& handle,
                                  vgd,
                                  parms)(ATensor,
                                         BTensor,
-                                        int(blens[1]),
+                                        static_cast<int>(blens[1]),
                                         CTensor,
-                                        int(clens[0]),
-                                        int(cstrides[0]),
-                                        int(cstrides[1]),
+                                        static_cast<int>(clens[0]),
+                                        static_cast<int>(cstrides[0]),
+                                        static_cast<int>(cstrides[1]),
                                         work_per_wg,
                                         miopen_alpha0,
                                         miopen_alpha1,
                                         miopen_beta,
-                                        long(Aoffset),
-                                        long(Boffset),
-                                        long(Coffset),
-                                        int(num_wg_orig),
-                                        int(incr_wg));
+                                        static_cast<int64_t>(Aoffset),
+                                        static_cast<int64_t>(Boffset),
+                                        static_cast<int64_t>(Coffset),
+                                        static_cast<int>(num_wg_orig),
+                                        static_cast<int>(incr_wg));
             }
             else
             {
@@ -788,27 +798,27 @@ void OpTensor4d(const Handle& handle,
                                  vld,
                                  vgd,
                                  parms)(ATensor,
-                                        int(astrides[0]),
-                                        int(astrides[1]),
-                                        int(astrides[2]),
+                                        static_cast<int>(astrides[0]),
+                                        static_cast<int>(astrides[1]),
+                                        static_cast<int>(astrides[2]),
                                         BTensor,
-                                        int(blens[1]),
-                                        int(bstrides[1]),
+                                        static_cast<int>(blens[1]),
+                                        static_cast<int>(bstrides[1]),
                                         CTensor,
-                                        int(clens[0]),
-                                        int(clens[3]),
-                                        int(cstrides[0]),
-                                        int(cstrides[1]),
-                                        int(cstrides[2]),
+                                        static_cast<int>(clens[0]),
+                                        static_cast<int>(clens[3]),
+                                        static_cast<int>(cstrides[0]),
+                                        static_cast<int>(cstrides[1]),
+                                        static_cast<int>(cstrides[2]),
                                         miopen_alpha0,
                                         miopen_alpha1,
                                         miopen_beta,
                                         work_per_wg,
-                                        long(Aoffset),
-                                        long(Boffset),
-                                        long(Coffset),
-                                        int(num_wg_orig),
-                                        int(incr_wg));
+                                        static_cast<int64_t>(Aoffset),
+                                        static_cast<int64_t>(Boffset),
+                                        static_cast<int64_t>(Coffset),
+                                        static_cast<int>(num_wg_orig),
+                                        static_cast<int>(incr_wg));
             }
         }
         // precede leading_ones for bitmap = 1,1,1,1
@@ -827,11 +837,11 @@ void OpTensor4d(const Handle& handle,
                 miopen_alpha0,
                 miopen_alpha1,
                 miopen_beta,
-                long(Aoffset),
-                long(Boffset),
-                long(Coffset),
-                long(total_work),
-                int(!float_equal(miopen_beta, 0.0)));
+                static_cast<int64_t>(Aoffset),
+                static_cast<int64_t>(Boffset),
+                static_cast<int64_t>(Coffset),
+                static_cast<int64_t>(total_work),
+                static_cast<int>(!float_equal(miopen_beta, 0.0)));
         }
         else if(leading_ones)
         {
@@ -847,19 +857,19 @@ void OpTensor4d(const Handle& handle,
                                  parms)(ATensor,
                                         BTensor,
                                         CTensor,
-                                        int(clens[1]),
-                                        int(clens[2]),
-                                        int(clens[3]),
-                                        int(cstrides[0]),
-                                        int(cstrides[1]),
+                                        static_cast<int>(clens[1]),
+                                        static_cast<int>(clens[2]),
+                                        static_cast<int>(clens[3]),
+                                        static_cast<int>(cstrides[0]),
+                                        static_cast<int>(cstrides[1]),
                                         work_per_wg,
                                         miopen_alpha0,
                                         miopen_alpha1,
                                         miopen_beta,
-                                        long(Aoffset),
-                                        long(Boffset),
-                                        long(Coffset),
-                                        int(num_wg_orig),
+                                        static_cast<int64_t>(Aoffset),
+                                        static_cast<int64_t>(Boffset),
+                                        static_cast<int64_t>(Coffset),
+                                        static_cast<int>(num_wg_orig),
                                         bitmap);
             }
             else
@@ -874,28 +884,28 @@ void OpTensor4d(const Handle& handle,
                                  vld,
                                  vgd,
                                  parms)(ATensor,
-                                        int(astrides[0]),
-                                        int(astrides[1]),
-                                        int(astrides[2]),
+                                        static_cast<int>(astrides[0]),
+                                        static_cast<int>(astrides[1]),
+                                        static_cast<int>(astrides[2]),
                                         BTensor,
-                                        int(bstrides[0]),
-                                        int(bstrides[1]),
-                                        int(bstrides[2]),
+                                        static_cast<int>(bstrides[0]),
+                                        static_cast<int>(bstrides[1]),
+                                        static_cast<int>(bstrides[2]),
                                         CTensor,
-                                        int(clens[1]),
-                                        int(clens[2]),
-                                        int(clens[3]),
-                                        int(cstrides[0]),
-                                        int(cstrides[1]),
-                                        int(cstrides[2]),
+                                        static_cast<int>(clens[1]),
+                                        static_cast<int>(clens[2]),
+                                        static_cast<int>(clens[3]),
+                                        static_cast<int>(cstrides[0]),
+                                        static_cast<int>(cstrides[1]),
+                                        static_cast<int>(cstrides[2]),
                                         miopen_alpha0,
                                         miopen_alpha1,
                                         miopen_beta,
                                         work_per_wg,
-                                        long(Aoffset),
-                                        long(Boffset),
-                                        long(Coffset),
-                                        int(num_wg_orig),
+                                        static_cast<int64_t>(Aoffset),
+                                        static_cast<int64_t>(Boffset),
+                                        static_cast<int64_t>(Coffset),
+                                        static_cast<int>(num_wg_orig),
                                         bitmap);
             }
         }
@@ -910,32 +920,32 @@ void OpTensor4d(const Handle& handle,
                              vld,
                              vgd,
                              parms)(ATensor,
-                                    int(astrides[0]), // a_nstride,
-                                    int(astrides[1]), // a_cstride,
-                                    int(astrides[2]), // a_hstride,
+                                    static_cast<int>(astrides[0]), // a_nstride,
+                                    static_cast<int>(astrides[1]), // a_cstride,
+                                    static_cast<int>(astrides[2]), // a_hstride,
                                     BTensor,
-                                    int(blens[1]),    // b_c,
-                                    int(blens[2]),    // b_h,
-                                    int(blens[3]),    // b_w,
-                                    int(bstrides[0]), // b_nstride,
-                                    int(bstrides[1]), // b_cstride,
-                                    int(bstrides[2]), // b_hstride,
+                                    static_cast<int>(blens[1]),    // b_c,
+                                    static_cast<int>(blens[2]),    // b_h,
+                                    static_cast<int>(blens[3]),    // b_w,
+                                    static_cast<int>(bstrides[0]), // b_nstride,
+                                    static_cast<int>(bstrides[1]), // b_cstride,
+                                    static_cast<int>(bstrides[2]), // b_hstride,
                                     CTensor,
-                                    int(clens[1]),    // c_c,
-                                    int(clens[2]),    // c_h,
-                                    int(clens[3]),    // c_w,
-                                    int(cstrides[0]), // c_nstride,
-                                    int(cstrides[1]), // c_cstride,
-                                    int(cstrides[2]), // c_hstride,
+                                    static_cast<int>(clens[1]),    // c_c,
+                                    static_cast<int>(clens[2]),    // c_h,
+                                    static_cast<int>(clens[3]),    // c_w,
+                                    static_cast<int>(cstrides[0]), // c_nstride,
+                                    static_cast<int>(cstrides[1]), // c_cstride,
+                                    static_cast<int>(cstrides[2]), // c_hstride,
                                     miopen_alpha0,
                                     miopen_alpha1,
                                     miopen_beta,
                                     bitmap,
                                     work_per_wg,
-                                    long(Aoffset),
-                                    long(Boffset),
-                                    long(Coffset),
-                                    int(num_wg_orig));
+                                    static_cast<int64_t>(Aoffset),
+                                    static_cast<int64_t>(Boffset),
+                                    static_cast<int64_t>(Coffset),
+                                    static_cast<int>(num_wg_orig));
         }
     });
 }
@@ -963,14 +973,20 @@ void OpTensorOther(const Handle& handle,
     auto bsize    = blens.size();
     auto cstrides = cTensorDesc.GetStrides();
 
+    const bool case_1d = bsize == 1;
+    const bool case_2d = bsize == 2;
+    const bool case_5d = bsize == 5;
+
+    const bool use_hip = case_1d;
+
     // first_not_one is incorrect if btensor size equal to 1
     auto first_not_one = std::find_if(blens.rbegin(), blens.rend(), [](int i) { return i != 1; });
     auto d             = std::distance(blens.begin(), first_not_one.base());
 
     // quick fix
-    int num_wg = first_not_one != blens.rend()
-                     ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
-                     : 1;
+    int num_wg      = first_not_one != blens.rend()
+                          ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
+                          : 1;
     int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
     unsigned int bitmap = 0;
@@ -993,13 +1009,15 @@ void OpTensorOther(const Handle& handle,
 
     size_t local_threads = 256;
 
-    std::string program_name = "MIOpenTensorKernels.cl";
+    std::string program_name = use_hip ? "MIOpenTensorKernelsHip.cpp" : "MIOpenTensorKernels.cl";
 
     const std::vector<size_t> vld{local_threads, 1, 1};
 
     // Special case for adding tensors in place
     size_t global_threads;
-    global_threads = num_wg * local_threads;
+    global_threads =
+        (case_1d ? std::clamp(clens[0] / local_threads, size_t(1), size_t(max_num_wg)) : num_wg) *
+        local_threads;
 
     const std::vector<size_t> vgd{global_threads, 1, 1};
 
@@ -1013,7 +1031,7 @@ void OpTensorOther(const Handle& handle,
         auto miopen_alpha1 = as_float(*(static_cast<const float*>(alpha1)));
         auto miopen_beta   = as_float(*(static_cast<const float*>(beta)));
 
-        if(bsize == 5)
+        if(case_5d)
         {
             auto&& kernels = handle.GetKernels("Op5dTensorGeneric", network_config);
 
@@ -1021,41 +1039,41 @@ void OpTensorOther(const Handle& handle,
             {
                 auto kernel = kernels.front();
                 kernel(ATensor,
-                       int(astrides[0]),
-                       int(astrides[1]),
-                       int(astrides[2]),
-                       int(astrides[3]),
+                       static_cast<int>(astrides[0]),
+                       static_cast<int>(astrides[1]),
+                       static_cast<int>(astrides[2]),
+                       static_cast<int>(astrides[3]),
                        BTensor,
-                       int(blens[1]),    // b_c,
-                       int(blens[2]),    // b_d,
-                       int(blens[3]),    // b_h,
-                       int(blens[4]),    // b_w,
-                       int(bstrides[0]), // b_nstride,
-                       int(bstrides[1]), // b_cstride,
-                       int(bstrides[2]), // b_dstride,
-                       int(bstrides[3]), // b_hstride,
+                       static_cast<int>(blens[1]),    // b_c,
+                       static_cast<int>(blens[2]),    // b_d,
+                       static_cast<int>(blens[3]),    // b_h,
+                       static_cast<int>(blens[4]),    // b_w,
+                       static_cast<int>(bstrides[0]), // b_nstride,
+                       static_cast<int>(bstrides[1]), // b_cstride,
+                       static_cast<int>(bstrides[2]), // b_dstride,
+                       static_cast<int>(bstrides[3]), // b_hstride,
                        CTensor,
-                       int(clens[1]),    // c_c,
-                       int(clens[2]),    // c_d,
-                       int(clens[3]),    // c_h,
-                       int(clens[4]),    // c_w,
-                       int(cstrides[0]), // c_nstride,
-                       int(cstrides[1]), // c_cstride,
-                       int(cstrides[2]), // c_dstride,
-                       int(cstrides[3]), // c_hstride,
+                       static_cast<int>(clens[1]),    // c_c,
+                       static_cast<int>(clens[2]),    // c_d,
+                       static_cast<int>(clens[3]),    // c_h,
+                       static_cast<int>(clens[4]),    // c_w,
+                       static_cast<int>(cstrides[0]), // c_nstride,
+                       static_cast<int>(cstrides[1]), // c_cstride,
+                       static_cast<int>(cstrides[2]), // c_dstride,
+                       static_cast<int>(cstrides[3]), // c_hstride,
                        miopen_alpha0,
                        miopen_alpha1,
                        miopen_beta,
                        bitmap,
                        work_per_wg,
-                       long(Aoffset),
-                       long(Boffset),
-                       long(Coffset),
-                       int(num_wg_orig));
+                       static_cast<int64_t>(Aoffset),
+                       static_cast<int64_t>(Boffset),
+                       static_cast<int64_t>(Coffset),
+                       static_cast<int>(num_wg_orig));
                 return;
             }
         }
-        else if(bsize == 2)
+        else if(case_2d)
         {
             auto&& kernels = handle.GetKernels("Op2dTensorGeneric", network_config);
 
@@ -1063,26 +1081,26 @@ void OpTensorOther(const Handle& handle,
             {
                 auto kernel = kernels.front();
                 kernel(ATensor,
-                       int(astrides[0]),
+                       static_cast<int>(astrides[0]),
                        BTensor,
-                       int(blens[1]),
-                       int(bstrides[0]),
+                       static_cast<int>(blens[1]),
+                       static_cast<int>(bstrides[0]),
                        CTensor,
-                       int(clens[1]),
-                       int(cstrides[0]),
+                       static_cast<int>(clens[1]),
+                       static_cast<int>(cstrides[0]),
                        miopen_alpha0,
                        miopen_alpha1,
                        miopen_beta,
                        bitmap,
                        work_per_wg,
-                       long(Aoffset),
-                       long(Boffset),
-                       long(Coffset),
-                       int(num_wg_orig));
+                       static_cast<int64_t>(Aoffset),
+                       static_cast<int64_t>(Boffset),
+                       static_cast<int64_t>(Coffset),
+                       static_cast<int>(num_wg_orig));
                 return;
             }
         }
-        else if(bsize == 1)
+        else if(case_1d)
         {
             auto&& kernels = handle.GetKernels("Op1dTensorGeneric", network_config);
 
@@ -1092,18 +1110,18 @@ void OpTensorOther(const Handle& handle,
                 auto kernel = kernels.front();
                 kernel(ATensor,
                        BTensor,
-                       int(blens[0]),
                        CTensor,
-                       int(clens[0]),
+                       static_cast<uint64_t>(Aoffset),
+                       static_cast<uint64_t>(Boffset),
+                       static_cast<uint64_t>(Coffset),
+                       static_cast<uint32_t>(astrides[0]),
+                       static_cast<uint32_t>(blens[0] == 1 ? 0 : bstrides[0]),
+                       static_cast<uint32_t>(cstrides[0]),
                        miopen_alpha0,
                        miopen_alpha1,
                        miopen_beta,
-                       bitmap,
-                       work_per_wg,
-                       long(Aoffset),
-                       long(Boffset),
-                       long(Coffset),
-                       int(num_wg_orig));
+                       static_cast<uint32_t>(clens[0]),
+                       !float_equal(miopen_beta, 0.0));
                 return;
             }
         }
@@ -1122,7 +1140,7 @@ void OpTensorOther(const Handle& handle,
         case 3: parms += "miopenMax"; break;
         }
 
-        if(bsize == 5)
+        if(case_5d)
         {
             parms += " -DUSE_5D_TENSOR_GENERIC";
 
@@ -1133,39 +1151,39 @@ void OpTensorOther(const Handle& handle,
                              vld,
                              vgd,
                              parms)(ATensor,
-                                    int(astrides[0]),
-                                    int(astrides[1]),
-                                    int(astrides[2]),
-                                    int(astrides[3]),
+                                    static_cast<int>(astrides[0]),
+                                    static_cast<int>(astrides[1]),
+                                    static_cast<int>(astrides[2]),
+                                    static_cast<int>(astrides[3]),
                                     BTensor,
-                                    int(blens[1]),    // b_c,
-                                    int(blens[2]),    // b_d,
-                                    int(blens[3]),    // b_h,
-                                    int(blens[4]),    // b_w,
-                                    int(bstrides[0]), // b_nstride,
-                                    int(bstrides[1]), // b_cstride,
-                                    int(bstrides[2]), // b_dstride,
-                                    int(bstrides[3]), // b_hstride,
+                                    static_cast<int>(blens[1]),    // b_c,
+                                    static_cast<int>(blens[2]),    // b_d,
+                                    static_cast<int>(blens[3]),    // b_h,
+                                    static_cast<int>(blens[4]),    // b_w,
+                                    static_cast<int>(bstrides[0]), // b_nstride,
+                                    static_cast<int>(bstrides[1]), // b_cstride,
+                                    static_cast<int>(bstrides[2]), // b_dstride,
+                                    static_cast<int>(bstrides[3]), // b_hstride,
                                     CTensor,
-                                    int(clens[1]),    // c_c,
-                                    int(clens[2]),    // c_d,
-                                    int(clens[3]),    // c_h,
-                                    int(clens[4]),    // c_w,
-                                    int(cstrides[0]), // c_nstride,
-                                    int(cstrides[1]), // c_cstride,
-                                    int(cstrides[2]), // c_dstride,
-                                    int(cstrides[3]), // c_hstride,
+                                    static_cast<int>(clens[1]),    // c_c,
+                                    static_cast<int>(clens[2]),    // c_d,
+                                    static_cast<int>(clens[3]),    // c_h,
+                                    static_cast<int>(clens[4]),    // c_w,
+                                    static_cast<int>(cstrides[0]), // c_nstride,
+                                    static_cast<int>(cstrides[1]), // c_cstride,
+                                    static_cast<int>(cstrides[2]), // c_dstride,
+                                    static_cast<int>(cstrides[3]), // c_hstride,
                                     miopen_alpha0,
                                     miopen_alpha1,
                                     miopen_beta,
                                     bitmap,
                                     work_per_wg,
-                                    long(Aoffset),
-                                    long(Boffset),
-                                    long(Coffset),
-                                    int(num_wg_orig));
+                                    static_cast<int64_t>(Aoffset),
+                                    static_cast<int64_t>(Boffset),
+                                    static_cast<int64_t>(Coffset),
+                                    static_cast<int>(num_wg_orig));
         }
-        else if(bsize == 2)
+        else if(case_2d)
         {
             parms += " -DUSE_2D_TENSOR_GENERIC";
 
@@ -1176,24 +1194,24 @@ void OpTensorOther(const Handle& handle,
                              vld,
                              vgd,
                              parms)(ATensor,
-                                    int(astrides[0]),
+                                    static_cast<int>(astrides[0]),
                                     BTensor,
-                                    int(blens[1]),
-                                    int(bstrides[0]),
+                                    static_cast<int>(blens[1]),
+                                    static_cast<int>(bstrides[0]),
                                     CTensor,
-                                    int(clens[1]),
-                                    int(cstrides[0]),
+                                    static_cast<int>(clens[1]),
+                                    static_cast<int>(cstrides[0]),
                                     miopen_alpha0,
                                     miopen_alpha1,
                                     miopen_beta,
                                     bitmap,
                                     work_per_wg,
-                                    long(Aoffset),
-                                    long(Boffset),
-                                    long(Coffset),
-                                    int(num_wg_orig));
+                                    static_cast<int64_t>(Aoffset),
+                                    static_cast<int64_t>(Boffset),
+                                    static_cast<int64_t>(Coffset),
+                                    static_cast<int>(num_wg_orig));
         }
-        else if(bsize == 1)
+        else if(case_1d)
         {
             parms += " -DUSE_1D_TENSOR_GENERIC";
 
@@ -1205,18 +1223,18 @@ void OpTensorOther(const Handle& handle,
                              vgd,
                              parms)(ATensor,
                                     BTensor,
-                                    int(blens[0]),
                                     CTensor,
-                                    int(clens[0]),
+                                    static_cast<uint64_t>(Aoffset),
+                                    static_cast<uint64_t>(Boffset),
+                                    static_cast<uint64_t>(Coffset),
+                                    static_cast<uint32_t>(astrides[0]),
+                                    static_cast<uint32_t>(blens[0] == 1 ? 0 : bstrides[0]),
+                                    static_cast<uint32_t>(cstrides[0]),
                                     miopen_alpha0,
                                     miopen_alpha1,
                                     miopen_beta,
-                                    bitmap,
-                                    work_per_wg,
-                                    long(Aoffset),
-                                    long(Boffset),
-                                    long(Coffset),
-                                    int(num_wg_orig));
+                                    static_cast<uint32_t>(clens[0]),
+                                    !float_equal(miopen_beta, 0.0));
         }
     });
 }
@@ -1234,7 +1252,8 @@ void OpTensor(const Handle& handle,
               Data_t CTensor,
               const size_t Aoffset,
               const size_t Boffset,
-              const size_t Coffset)
+              const size_t Coffset,
+              bool nonStandardSquash)
 {
     if(ATensor == nullptr || BTensor == nullptr || CTensor == nullptr)
     {
@@ -1274,17 +1293,24 @@ void OpTensor(const Handle& handle,
                      std::to_string(blens.size()) + ", " + std::to_string(clens.size()));
     }
 
-    bool is_squash = clens.size() == 3 && blens[0] == 1 && clens[0] == 1 && clens[1] == 1 &&
-                     blens[1] != clens[1] && blens[2] == clens[2];
-    if(!is_squash)
+    if(!nonStandardSquash)
     {
-        for(unsigned long i = 0; i < clens.size(); i++)
+        for(std::size_t i = 0; i < clens.size(); i++)
         {
             if(blens[i] != 1 && blens[i] != clens[i])
             {
                 MIOPEN_THROW("BTensor dim != 1 && BTensor dim != CTensor dim: " +
                              std::to_string(i));
             }
+        }
+    }
+    else
+    {
+        // non standard behavior because blens[1] can be not equalt to clens[1]
+        if(!(clens.size() == 3 && blens[0] == 1 && clens[0] == 1 && blens[2] == clens[2]))
+        {
+            MIOPEN_THROW("Non standard squashed operation supported only for 3d tensors and for "
+                         "the specific configuration");
         }
     }
 
@@ -1304,7 +1330,8 @@ void OpTensor(const Handle& handle,
                    CTensor,
                    Aoffset,
                    Boffset,
-                   Coffset);
+                   Coffset,
+                   nonStandardSquash);
     }
     else if(bsize == 4)
     {
@@ -1405,9 +1432,9 @@ void SetTensor(const Handle& handle,
 #ifndef NDEBUG
     if(yDesc.GetSize() != yDesc_flat.GetSize())
     {
-        std::cout << __func__ << std::endl
-                  << "real descritor: " << yDesc << std::endl
-                  << "flat descritor: " << yDesc_flat << std::endl;
+        MIOPEN_LOG_I2(__func__ << std::endl
+                               << "real descriptor: " << yDesc << std::endl
+                               << "flat descriptor: " << yDesc_flat << std::endl);
     }
 #endif
 
@@ -1445,12 +1472,12 @@ void SetTensor(const Handle& handle,
                                           std::multiplies<std::size_t>());
 
         std::size_t wld = 256 < wgd ? 256 : wgd;
-
-        std::string parms = "-DSUBTENSOR_OP_WITH_SCALAR=SUBTENSOR_OP_WITH_SCALAR_SET" +
-                            GetDataTypeKernelParams(dataType);
+        std::stringstream ss;
+        ss << "-DSUBTENSOR_OP_WITH_SCALAR=SUBTENSOR_OP_WITH_SCALAR_SET"
+           << GetDataTypeKernelParams(dataType);
         for(int i = 0; i < yDim_flat; ++i)
         {
-            parms += " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
+            ss << " -DWORK_LENGTH_" << std::to_string(i) << "=" << std::to_string(worker_sizes[i]);
         }
 
         kernel = handle.AddKernel(kernel_name,
@@ -1459,7 +1486,7 @@ void SetTensor(const Handle& handle,
                                   kernel_name,
                                   {wld, 1, 1},
                                   {wgd, 1, 1},
-                                  parms);
+                                  ss.str());
     }
 
     switch(yDim_flat)
@@ -1469,8 +1496,8 @@ void SetTensor(const Handle& handle,
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc_flat.GetStrides()[0]),
-                   int(yDesc_flat.GetLengths()[0]));
+                   static_cast<int>(yDesc_flat.GetStrides()[0]),
+                   static_cast<int>(yDesc_flat.GetLengths()[0]));
         });
 
         break;
@@ -1480,10 +1507,10 @@ void SetTensor(const Handle& handle,
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc_flat.GetStrides()[0]),
-                   int(yDesc_flat.GetStrides()[1]),
-                   int(yDesc_flat.GetLengths()[0]),
-                   int(yDesc_flat.GetLengths()[1]));
+                   static_cast<int>(yDesc_flat.GetStrides()[0]),
+                   static_cast<int>(yDesc_flat.GetStrides()[1]),
+                   static_cast<int>(yDesc_flat.GetLengths()[0]),
+                   static_cast<int>(yDesc_flat.GetLengths()[1]));
         });
 
         break;
@@ -1493,12 +1520,12 @@ void SetTensor(const Handle& handle,
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc_flat.GetStrides()[0]),
-                   int(yDesc_flat.GetStrides()[1]),
-                   int(yDesc_flat.GetStrides()[2]),
-                   int(yDesc_flat.GetLengths()[0]),
-                   int(yDesc_flat.GetLengths()[1]),
-                   int(yDesc_flat.GetLengths()[2]));
+                   static_cast<int>(yDesc_flat.GetStrides()[0]),
+                   static_cast<int>(yDesc_flat.GetStrides()[1]),
+                   static_cast<int>(yDesc_flat.GetStrides()[2]),
+                   static_cast<int>(yDesc_flat.GetLengths()[0]),
+                   static_cast<int>(yDesc_flat.GetLengths()[1]),
+                   static_cast<int>(yDesc_flat.GetLengths()[2]));
         });
 
         break;
@@ -1508,14 +1535,14 @@ void SetTensor(const Handle& handle,
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc_flat.GetStrides()[0]),
-                   int(yDesc_flat.GetStrides()[1]),
-                   int(yDesc_flat.GetStrides()[2]),
-                   int(yDesc_flat.GetStrides()[3]),
-                   int(yDesc_flat.GetLengths()[0]),
-                   int(yDesc_flat.GetLengths()[1]),
-                   int(yDesc_flat.GetLengths()[2]),
-                   int(yDesc_flat.GetLengths()[3]));
+                   static_cast<int>(yDesc_flat.GetStrides()[0]),
+                   static_cast<int>(yDesc_flat.GetStrides()[1]),
+                   static_cast<int>(yDesc_flat.GetStrides()[2]),
+                   static_cast<int>(yDesc_flat.GetStrides()[3]),
+                   static_cast<int>(yDesc_flat.GetLengths()[0]),
+                   static_cast<int>(yDesc_flat.GetLengths()[1]),
+                   static_cast<int>(yDesc_flat.GetLengths()[2]),
+                   static_cast<int>(yDesc_flat.GetLengths()[3]));
         });
 
         break;
@@ -1525,16 +1552,16 @@ void SetTensor(const Handle& handle,
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc_flat.GetStrides()[0]),
-                   int(yDesc_flat.GetStrides()[1]),
-                   int(yDesc_flat.GetStrides()[2]),
-                   int(yDesc_flat.GetStrides()[3]),
-                   int(yDesc_flat.GetStrides()[4]),
-                   int(yDesc_flat.GetLengths()[0]),
-                   int(yDesc_flat.GetLengths()[1]),
-                   int(yDesc_flat.GetLengths()[2]),
-                   int(yDesc_flat.GetLengths()[3]),
-                   int(yDesc_flat.GetLengths()[4]));
+                   static_cast<int>(yDesc_flat.GetStrides()[0]),
+                   static_cast<int>(yDesc_flat.GetStrides()[1]),
+                   static_cast<int>(yDesc_flat.GetStrides()[2]),
+                   static_cast<int>(yDesc_flat.GetStrides()[3]),
+                   static_cast<int>(yDesc_flat.GetStrides()[4]),
+                   static_cast<int>(yDesc_flat.GetLengths()[0]),
+                   static_cast<int>(yDesc_flat.GetLengths()[1]),
+                   static_cast<int>(yDesc_flat.GetLengths()[2]),
+                   static_cast<int>(yDesc_flat.GetLengths()[3]),
+                   static_cast<int>(yDesc_flat.GetLengths()[4]));
         });
 
         break;
@@ -1559,9 +1586,9 @@ void ScaleTensor(const Handle& handle,
 #ifndef NDEBUG
     if(yDesc.GetSize() != yDesc_flat.GetSize())
     {
-        std::cout << __func__ << std::endl
-                  << "real descritor: " << yDesc << std::endl
-                  << "flat descritor: " << yDesc_flat << std::endl;
+        MIOPEN_LOG_I2(__func__ << std::endl
+                               << "real descriptor: " << yDesc << std::endl
+                               << "flat descriptor: " << yDesc_flat << std::endl);
     }
 #endif
 
@@ -1570,10 +1597,13 @@ void ScaleTensor(const Handle& handle,
     assert(yDim_flat > 0 && yDim_flat <= 5);
 
     const miopenDataType_t dataType = yDesc_flat.GetType();
-    if(dataType == miopenInt8 || dataType == miopenInt8x4 || dataType == miopenBFloat16)
+
+    if(!(dataType == miopenHalf     //
+         || dataType == miopenFloat //
+         || dataType == miopenInt32 //
+         || dataType == miopenDouble))
     {
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "Tensor scale operation is not supported for int8, int8x4, and bfloat16.");
+        MIOPEN_THROW(miopenStatusBadParm, "ScaleTensor: unsupported data type.");
     }
 
     std::string kernel_name = "SubTensorOpWithScalar" + std::to_string(yDim_flat) + "d";
@@ -1630,8 +1660,8 @@ void ScaleTensor(const Handle& handle,
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc_flat.GetStrides()[0]),
-                   int(yDesc_flat.GetLengths()[0]));
+                   static_cast<int>(yDesc_flat.GetStrides()[0]),
+                   static_cast<int>(yDesc_flat.GetLengths()[0]));
         });
 
         break;
@@ -1641,10 +1671,10 @@ void ScaleTensor(const Handle& handle,
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc_flat.GetStrides()[0]),
-                   int(yDesc_flat.GetStrides()[1]),
-                   int(yDesc_flat.GetLengths()[0]),
-                   int(yDesc_flat.GetLengths()[1]));
+                   static_cast<int>(yDesc_flat.GetStrides()[0]),
+                   static_cast<int>(yDesc_flat.GetStrides()[1]),
+                   static_cast<int>(yDesc_flat.GetLengths()[0]),
+                   static_cast<int>(yDesc_flat.GetLengths()[1]));
         });
 
         break;
@@ -1654,12 +1684,12 @@ void ScaleTensor(const Handle& handle,
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc_flat.GetStrides()[0]),
-                   int(yDesc_flat.GetStrides()[1]),
-                   int(yDesc_flat.GetStrides()[2]),
-                   int(yDesc_flat.GetLengths()[0]),
-                   int(yDesc_flat.GetLengths()[1]),
-                   int(yDesc_flat.GetLengths()[2]));
+                   static_cast<int>(yDesc_flat.GetStrides()[0]),
+                   static_cast<int>(yDesc_flat.GetStrides()[1]),
+                   static_cast<int>(yDesc_flat.GetStrides()[2]),
+                   static_cast<int>(yDesc_flat.GetLengths()[0]),
+                   static_cast<int>(yDesc_flat.GetLengths()[1]),
+                   static_cast<int>(yDesc_flat.GetLengths()[2]));
         });
 
         break;
@@ -1669,14 +1699,14 @@ void ScaleTensor(const Handle& handle,
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc_flat.GetStrides()[0]),
-                   int(yDesc_flat.GetStrides()[1]),
-                   int(yDesc_flat.GetStrides()[2]),
-                   int(yDesc_flat.GetStrides()[3]),
-                   int(yDesc_flat.GetLengths()[0]),
-                   int(yDesc_flat.GetLengths()[1]),
-                   int(yDesc_flat.GetLengths()[2]),
-                   int(yDesc_flat.GetLengths()[3]));
+                   static_cast<int>(yDesc_flat.GetStrides()[0]),
+                   static_cast<int>(yDesc_flat.GetStrides()[1]),
+                   static_cast<int>(yDesc_flat.GetStrides()[2]),
+                   static_cast<int>(yDesc_flat.GetStrides()[3]),
+                   static_cast<int>(yDesc_flat.GetLengths()[0]),
+                   static_cast<int>(yDesc_flat.GetLengths()[1]),
+                   static_cast<int>(yDesc_flat.GetLengths()[2]),
+                   static_cast<int>(yDesc_flat.GetLengths()[3]));
         });
 
         break;
@@ -1686,16 +1716,16 @@ void ScaleTensor(const Handle& handle,
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc_flat.GetStrides()[0]),
-                   int(yDesc_flat.GetStrides()[1]),
-                   int(yDesc_flat.GetStrides()[2]),
-                   int(yDesc_flat.GetStrides()[3]),
-                   int(yDesc_flat.GetStrides()[4]),
-                   int(yDesc_flat.GetLengths()[0]),
-                   int(yDesc_flat.GetLengths()[1]),
-                   int(yDesc_flat.GetLengths()[2]),
-                   int(yDesc_flat.GetLengths()[3]),
-                   int(yDesc_flat.GetLengths()[4]));
+                   static_cast<int>(yDesc_flat.GetStrides()[0]),
+                   static_cast<int>(yDesc_flat.GetStrides()[1]),
+                   static_cast<int>(yDesc_flat.GetStrides()[2]),
+                   static_cast<int>(yDesc_flat.GetStrides()[3]),
+                   static_cast<int>(yDesc_flat.GetStrides()[4]),
+                   static_cast<int>(yDesc_flat.GetLengths()[0]),
+                   static_cast<int>(yDesc_flat.GetLengths()[1]),
+                   static_cast<int>(yDesc_flat.GetLengths()[2]),
+                   static_cast<int>(yDesc_flat.GetLengths()[3]),
+                   static_cast<int>(yDesc_flat.GetLengths()[4]));
         });
 
         break;
@@ -1710,7 +1740,8 @@ void CopyTensor(const Handle& handle,
                 const TensorDescriptor& dstDesc,
                 Data_t dst,
                 int srcOffset,
-                int dstOffset)
+                int dstOffset,
+                bool forseAsync)
 {
     if(src == nullptr || dst == nullptr)
     {
@@ -1734,11 +1765,11 @@ void CopyTensor(const Handle& handle,
 #ifndef NDEBUG
     if(srcDesc.GetSize() != srcDesc_flat.GetSize())
     {
-        std::cout << __func__ << std::endl
-                  << "src real descriptor: " << srcDesc << std::endl
-                  << "src flat descriptor: " << srcDesc_flat << std::endl
-                  << "dst real descriptor: " << dstDesc << std::endl
-                  << "dst flat descriptor: " << dstDesc_flat << std::endl;
+        MIOPEN_LOG_I2(__func__ << std::endl
+                               << "src real descriptor: " << srcDesc << std::endl
+                               << "src flat descriptor: " << srcDesc_flat << std::endl
+                               << "dst real descriptor: " << dstDesc << std::endl
+                               << "dst flat descriptor: " << dstDesc_flat << std::endl);
     }
 #endif
 
@@ -1749,7 +1780,8 @@ void CopyTensor(const Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension sizes unsupported.");
     }
 
-    if(srcOffset > 0 || dstOffset > 0 || (!(srcDesc_flat.IsPacked() && dstDesc_flat.IsPacked())))
+    if(forseAsync || srcOffset > 0 || dstOffset > 0 ||
+       (!(srcDesc_flat.IsPacked() && dstDesc_flat.IsPacked())))
     {
         std::string kernel_name = "SubTensorOpWithSubTensor" + std::to_string(srcDim_flat) + "d";
 
@@ -1784,7 +1816,7 @@ void CopyTensor(const Handle& handle,
 
             std::string parms = "-DSUBTENSOR_OP_WITH_SUBTENSOR=SUBTENSOR_OP_WITH_SUBTENSOR_COPY" +
                                 GetDataTypeKernelParams(srcDesc_flat.GetType());
-            for(unsigned long i = 0; i < srcDim_flat; ++i)
+            for(std::size_t i = 0; i < srcDim_flat; ++i)
             {
                 parms +=
                     " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
@@ -1804,85 +1836,85 @@ void CopyTensor(const Handle& handle,
         case 1: {
             kernel(src,
                    srcOffset,
-                   int(srcDesc_flat.GetStrides()[0]),
-                   int(srcDesc_flat.GetLengths()[0]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[0]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[0]),
                    dst,
                    dstOffset,
-                   int(dstDesc_flat.GetStrides()[0]));
+                   static_cast<int>(dstDesc_flat.GetStrides()[0]));
 
             break;
         }
         case 2: {
             kernel(src,
                    srcOffset,
-                   int(srcDesc_flat.GetStrides()[0]),
-                   int(srcDesc_flat.GetStrides()[1]),
-                   int(srcDesc_flat.GetLengths()[0]),
-                   int(srcDesc_flat.GetLengths()[1]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[0]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[1]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[0]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[1]),
                    dst,
                    dstOffset,
-                   int(dstDesc_flat.GetStrides()[0]),
-                   int(dstDesc_flat.GetStrides()[1]));
+                   static_cast<int>(dstDesc_flat.GetStrides()[0]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[1]));
 
             break;
         }
         case 3: {
             kernel(src,
                    srcOffset,
-                   int(srcDesc_flat.GetStrides()[0]),
-                   int(srcDesc_flat.GetStrides()[1]),
-                   int(srcDesc_flat.GetStrides()[2]),
-                   int(srcDesc_flat.GetLengths()[0]),
-                   int(srcDesc_flat.GetLengths()[1]),
-                   int(srcDesc_flat.GetLengths()[2]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[0]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[1]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[2]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[0]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[1]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[2]),
                    dst,
                    dstOffset,
-                   int(dstDesc_flat.GetStrides()[0]),
-                   int(dstDesc_flat.GetStrides()[1]),
-                   int(dstDesc_flat.GetStrides()[2]));
+                   static_cast<int>(dstDesc_flat.GetStrides()[0]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[1]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[2]));
 
             break;
         }
         case 4: {
             kernel(src,
                    srcOffset,
-                   int(srcDesc_flat.GetStrides()[0]),
-                   int(srcDesc_flat.GetStrides()[1]),
-                   int(srcDesc_flat.GetStrides()[2]),
-                   int(srcDesc_flat.GetStrides()[3]),
-                   int(srcDesc_flat.GetLengths()[0]),
-                   int(srcDesc_flat.GetLengths()[1]),
-                   int(srcDesc_flat.GetLengths()[2]),
-                   int(srcDesc_flat.GetLengths()[3]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[0]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[1]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[2]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[3]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[0]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[1]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[2]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[3]),
                    dst,
                    dstOffset,
-                   int(dstDesc_flat.GetStrides()[0]),
-                   int(dstDesc_flat.GetStrides()[1]),
-                   int(dstDesc_flat.GetStrides()[2]),
-                   int(dstDesc_flat.GetStrides()[3]));
+                   static_cast<int>(dstDesc_flat.GetStrides()[0]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[1]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[2]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[3]));
 
             break;
         }
         case 5: {
             kernel(src,
                    srcOffset,
-                   int(srcDesc_flat.GetStrides()[0]),
-                   int(srcDesc_flat.GetStrides()[1]),
-                   int(srcDesc_flat.GetStrides()[2]),
-                   int(srcDesc_flat.GetStrides()[3]),
-                   int(srcDesc_flat.GetStrides()[4]),
-                   int(srcDesc_flat.GetLengths()[0]),
-                   int(srcDesc_flat.GetLengths()[1]),
-                   int(srcDesc_flat.GetLengths()[2]),
-                   int(srcDesc_flat.GetLengths()[3]),
-                   int(srcDesc_flat.GetLengths()[4]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[0]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[1]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[2]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[3]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[4]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[0]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[1]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[2]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[3]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[4]),
                    dst,
                    dstOffset,
-                   int(dstDesc_flat.GetStrides()[0]),
-                   int(dstDesc_flat.GetStrides()[1]),
-                   int(dstDesc_flat.GetStrides()[2]),
-                   int(dstDesc_flat.GetStrides()[3]),
-                   int(dstDesc_flat.GetStrides()[4]));
+                   static_cast<int>(dstDesc_flat.GetStrides()[0]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[1]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[2]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[3]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[4]));
 
             break;
         }
@@ -1905,11 +1937,14 @@ std::string GetCastTensorBuildOptionFromType(const std::string& buildOption, mio
     case miopenHalf: return option += "2";
     case miopenFloat: return option += "3";
     case miopenBFloat16: return option += "4";
+    case miopenFloat8:
+        MIOPEN_THROW(miopenStatusBadParm, "miopenFloat8 data type not supported in cast tensor.");
+    case miopenBFloat8:
+        MIOPEN_THROW(miopenStatusBadParm, "miopenBFloat8 data type not supported in cast tensor.");
     case miopenDouble:
         // TODO
         MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported in cast tensor.");
-    case miopenInt8x4:
-        MIOPEN_THROW(miopenStatusBadParm, "miopenInt8x4 data type not supported in cast tensor.");
+    case miopenInt8x4: // fallthrough
     default: MIOPEN_THROW(miopenStatusBadParm, "Invalid data type in cast tensor desc.");
     }
 }
@@ -1945,11 +1980,11 @@ void CastTensor(const Handle& handle,
 #ifndef NDEBUG
     if(srcDesc.GetSize() != srcDesc_flat.GetSize())
     {
-        std::cout << __func__ << std::endl
-                  << "src real descriptor: " << srcDesc << std::endl
-                  << "src flat descriptor: " << srcDesc_flat << std::endl
-                  << "dst real descriptor: " << dstDesc << std::endl
-                  << "dst flat descriptor: " << dstDesc_flat << std::endl;
+        MIOPEN_LOG_I2(__func__ << std::endl
+                               << "src real descriptor: " << srcDesc << std::endl
+                               << "src flat descriptor: " << srcDesc_flat << std::endl
+                               << "dst real descriptor: " << dstDesc << std::endl
+                               << "dst flat descriptor: " << dstDesc_flat << std::endl);
     }
 #endif
 
@@ -2003,7 +2038,7 @@ void CastTensor(const Handle& handle,
                 GetCastTensorBuildOptionFromType(" -DMIOPEN_SRC_TYPE=", srcDesc_flat.GetType()) +
                 GetCastTensorBuildOptionFromType(" -DMIOPEN_DST_TYPE=", dstDesc_flat.GetType());
 
-            for(unsigned long i = 0; i < srcDim_flat; ++i)
+            for(std::size_t i = 0; i < srcDim_flat; ++i)
             {
                 parms +=
                     " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
@@ -2029,11 +2064,11 @@ void CastTensor(const Handle& handle,
             kernel(src,
                    miopen_alpha,
                    srcOffset,
-                   int(srcDesc_flat.GetStrides()[0]),
-                   int(srcDesc_flat.GetLengths()[0]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[0]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[0]),
                    dst,
                    dstOffset,
-                   int(dstDesc_flat.GetStrides()[0]));
+                   static_cast<int>(dstDesc_flat.GetStrides()[0]));
 
             break;
         }
@@ -2041,14 +2076,14 @@ void CastTensor(const Handle& handle,
             kernel(src,
                    miopen_alpha,
                    srcOffset,
-                   int(srcDesc_flat.GetStrides()[0]),
-                   int(srcDesc_flat.GetStrides()[1]),
-                   int(srcDesc_flat.GetLengths()[0]),
-                   int(srcDesc_flat.GetLengths()[1]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[0]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[1]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[0]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[1]),
                    dst,
                    dstOffset,
-                   int(dstDesc_flat.GetStrides()[0]),
-                   int(dstDesc_flat.GetStrides()[1]));
+                   static_cast<int>(dstDesc_flat.GetStrides()[0]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[1]));
 
             break;
         }
@@ -2056,17 +2091,17 @@ void CastTensor(const Handle& handle,
             kernel(src,
                    miopen_alpha,
                    srcOffset,
-                   int(srcDesc_flat.GetStrides()[0]),
-                   int(srcDesc_flat.GetStrides()[1]),
-                   int(srcDesc_flat.GetStrides()[2]),
-                   int(srcDesc_flat.GetLengths()[0]),
-                   int(srcDesc_flat.GetLengths()[1]),
-                   int(srcDesc_flat.GetLengths()[2]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[0]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[1]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[2]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[0]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[1]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[2]),
                    dst,
                    dstOffset,
-                   int(dstDesc_flat.GetStrides()[0]),
-                   int(dstDesc_flat.GetStrides()[1]),
-                   int(dstDesc_flat.GetStrides()[2]));
+                   static_cast<int>(dstDesc_flat.GetStrides()[0]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[1]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[2]));
 
             break;
         }
@@ -2074,20 +2109,20 @@ void CastTensor(const Handle& handle,
             kernel(src,
                    miopen_alpha,
                    srcOffset,
-                   int(srcDesc_flat.GetStrides()[0]),
-                   int(srcDesc_flat.GetStrides()[1]),
-                   int(srcDesc_flat.GetStrides()[2]),
-                   int(srcDesc_flat.GetStrides()[3]),
-                   int(srcDesc_flat.GetLengths()[0]),
-                   int(srcDesc_flat.GetLengths()[1]),
-                   int(srcDesc_flat.GetLengths()[2]),
-                   int(srcDesc_flat.GetLengths()[3]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[0]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[1]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[2]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[3]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[0]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[1]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[2]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[3]),
                    dst,
                    dstOffset,
-                   int(dstDesc_flat.GetStrides()[0]),
-                   int(dstDesc_flat.GetStrides()[1]),
-                   int(dstDesc_flat.GetStrides()[2]),
-                   int(dstDesc_flat.GetStrides()[3]));
+                   static_cast<int>(dstDesc_flat.GetStrides()[0]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[1]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[2]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[3]));
 
             break;
         }
@@ -2095,23 +2130,23 @@ void CastTensor(const Handle& handle,
             kernel(src,
                    miopen_alpha,
                    srcOffset,
-                   int(srcDesc_flat.GetStrides()[0]),
-                   int(srcDesc_flat.GetStrides()[1]),
-                   int(srcDesc_flat.GetStrides()[2]),
-                   int(srcDesc_flat.GetStrides()[3]),
-                   int(srcDesc_flat.GetStrides()[4]),
-                   int(srcDesc_flat.GetLengths()[0]),
-                   int(srcDesc_flat.GetLengths()[1]),
-                   int(srcDesc_flat.GetLengths()[2]),
-                   int(srcDesc_flat.GetLengths()[3]),
-                   int(srcDesc_flat.GetLengths()[4]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[0]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[1]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[2]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[3]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[4]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[0]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[1]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[2]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[3]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[4]),
                    dst,
                    dstOffset,
-                   int(dstDesc_flat.GetStrides()[0]),
-                   int(dstDesc_flat.GetStrides()[1]),
-                   int(dstDesc_flat.GetStrides()[2]),
-                   int(dstDesc_flat.GetStrides()[3]),
-                   int(dstDesc_flat.GetStrides()[4]));
+                   static_cast<int>(dstDesc_flat.GetStrides()[0]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[1]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[2]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[3]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[4]));
 
             break;
         }
@@ -2182,7 +2217,7 @@ void TransformTensor(const Handle& handle,
         size_t x_batch_sz = x_batch_desc.GetElementSize();
         size_t y_batch_sz = y_batch_desc.GetElementSize();
 
-        for(unsigned long i = 0; i < batch_n; i++)
+        for(size_t i = 0; i < batch_n; i++)
         {
             size_t x_offset = i * x_batch_sz;
             size_t y_offset = i * y_batch_sz;
@@ -2204,24 +2239,6 @@ void TransformTensor(const Handle& handle,
             }
         }
     }
-    else if(xDesc.GetType() == miopenInt8 && yDesc.GetType() == miopenInt8x4 && x_len.size() >= 3)
-    {
-        if(x_len[1] <= (y_len[1] - 4) || y_len[1] % 4 != 0)
-        {
-            MIOPEN_THROW("Invalid y channel size");
-        }
-
-        transpose_NCHW2Vec(handle, x_len, x, y, 4, false, true, alpha, beta);
-    }
-    else if(xDesc.GetType() == miopenInt8x4 && yDesc.GetType() == miopenInt8 && x_len.size() >= 3)
-    {
-        if(y_len[1] <= (x_len[1] - 4) || x_len[1] % 4 != 0)
-        {
-            MIOPEN_THROW("Invalid x channel size");
-        }
-
-        transpose_NCHW2Vec(handle, y_len, x, y, 4, false, false, alpha, beta);
-    }
     else
     {
         auto x_y_len          = boost::combine(x_len, y_len);
@@ -2241,16 +2258,16 @@ void TransformTensor(const Handle& handle,
 #ifndef NDEBUG
         if(xDesc.GetSize() != xDesc_flat.GetSize())
         {
-            std::cout << __func__ << std::endl
-                      << "real descritor: " << xDesc << std::endl
-                      << "flat descritor: " << xDesc_flat << std::endl;
+            MIOPEN_LOG_I2(__func__ << std::endl
+                                   << "real descriptor: " << xDesc << std::endl
+                                   << "flat descriptor: " << xDesc_flat << std::endl);
         }
 
         if(yDesc.GetSize() != yDesc_flat.GetSize())
         {
-            std::cout << __func__ << std::endl
-                      << "real descritor: " << yDesc << std::endl
-                      << "flat descritor: " << yDesc_flat << std::endl;
+            MIOPEN_LOG_I2(__func__ << std::endl
+                                   << "real descriptor: " << yDesc << std::endl
+                                   << "flat descriptor: " << yDesc_flat << std::endl);
         }
 #endif
 
@@ -2261,12 +2278,20 @@ void TransformTensor(const Handle& handle,
         const miopenDataType_t dataTypex = xDesc_flat.GetType();
         const miopenDataType_t dataTypey = yDesc_flat.GetType();
 
-        if(dataTypex == miopenInt8 || dataTypex == miopenInt8x4)
+        if(!(dataTypex == miopenHalf        //
+             || dataTypex == miopenFloat    //
+             || dataTypex == miopenInt32    //
+             || dataTypex == miopenBFloat16 //
+             || dataTypex == miopenDouble))
         {
             MIOPEN_THROW("Tensor x is a unsupported data type");
         }
 
-        if(dataTypey == miopenInt8 || dataTypey == miopenInt8x4)
+        if(!(dataTypey == miopenHalf        //
+             || dataTypey == miopenFloat    //
+             || dataTypey == miopenInt32    //
+             || dataTypey == miopenBFloat16 //
+             || dataTypey == miopenDouble))
         {
             MIOPEN_THROW("Tensor y is a unsupported data type");
         }
@@ -2333,11 +2358,11 @@ void TransformTensor(const Handle& handle,
                        *as_float(alpha),
                        y,
                        *as_float(beta),
-                       uint(Xoffset),
-                       uint(Yoffset),
-                       uint(xDesc_flat.GetStrides()[0]),
-                       uint(yDesc_flat.GetStrides()[0]),
-                       uint(yDesc_flat.GetLengths()[0]));
+                       static_cast<unsigned>(Xoffset),
+                       static_cast<unsigned>(Yoffset),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[0]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[0]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[0]));
             });
 
             break;
@@ -2348,14 +2373,14 @@ void TransformTensor(const Handle& handle,
                        *as_float(alpha),
                        y,
                        *as_float(beta),
-                       uint(Xoffset),
-                       uint(Yoffset),
-                       uint(xDesc_flat.GetStrides()[0]),
-                       uint(xDesc_flat.GetStrides()[1]),
-                       uint(yDesc_flat.GetStrides()[0]),
-                       uint(yDesc_flat.GetStrides()[1]),
-                       uint(yDesc_flat.GetLengths()[0]),
-                       uint(yDesc_flat.GetLengths()[1]));
+                       static_cast<unsigned>(Xoffset),
+                       static_cast<unsigned>(Yoffset),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[0]),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[1]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[0]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[1]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[0]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[1]));
             });
 
             break;
@@ -2366,17 +2391,17 @@ void TransformTensor(const Handle& handle,
                        *as_float(alpha),
                        y,
                        *as_float(beta),
-                       uint(Xoffset),
-                       uint(Yoffset),
-                       uint(xDesc_flat.GetStrides()[0]),
-                       uint(xDesc_flat.GetStrides()[1]),
-                       uint(xDesc_flat.GetStrides()[2]),
-                       uint(yDesc_flat.GetStrides()[0]),
-                       uint(yDesc_flat.GetStrides()[1]),
-                       uint(yDesc_flat.GetStrides()[2]),
-                       uint(yDesc_flat.GetLengths()[0]),
-                       uint(yDesc_flat.GetLengths()[1]),
-                       uint(yDesc_flat.GetLengths()[2]));
+                       static_cast<unsigned>(Xoffset),
+                       static_cast<unsigned>(Yoffset),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[0]),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[1]),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[2]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[0]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[1]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[2]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[0]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[1]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[2]));
             });
 
             break;
@@ -2387,20 +2412,20 @@ void TransformTensor(const Handle& handle,
                        *as_float(alpha),
                        y,
                        *as_float(beta),
-                       uint(Xoffset),
-                       uint(Yoffset),
-                       uint(xDesc_flat.GetStrides()[0]),
-                       uint(xDesc_flat.GetStrides()[1]),
-                       uint(xDesc_flat.GetStrides()[2]),
-                       uint(xDesc_flat.GetStrides()[3]),
-                       uint(yDesc_flat.GetStrides()[0]),
-                       uint(yDesc_flat.GetStrides()[1]),
-                       uint(yDesc_flat.GetStrides()[2]),
-                       uint(yDesc_flat.GetStrides()[3]),
-                       uint(yDesc_flat.GetLengths()[0]),
-                       uint(yDesc_flat.GetLengths()[1]),
-                       uint(yDesc_flat.GetLengths()[2]),
-                       uint(yDesc_flat.GetLengths()[3]));
+                       static_cast<unsigned>(Xoffset),
+                       static_cast<unsigned>(Yoffset),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[0]),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[1]),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[2]),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[3]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[0]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[1]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[2]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[3]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[0]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[1]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[2]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[3]));
             });
 
             break;
@@ -2411,23 +2436,23 @@ void TransformTensor(const Handle& handle,
                        *as_float(alpha),
                        y,
                        *as_float(beta),
-                       uint(Xoffset),
-                       uint(Yoffset),
-                       uint(xDesc_flat.GetStrides()[0]),
-                       uint(xDesc_flat.GetStrides()[1]),
-                       uint(xDesc_flat.GetStrides()[2]),
-                       uint(xDesc_flat.GetStrides()[3]),
-                       uint(xDesc_flat.GetStrides()[4]),
-                       uint(yDesc_flat.GetStrides()[0]),
-                       uint(yDesc_flat.GetStrides()[1]),
-                       uint(yDesc_flat.GetStrides()[2]),
-                       uint(yDesc_flat.GetStrides()[3]),
-                       uint(yDesc_flat.GetStrides()[4]),
-                       uint(yDesc_flat.GetLengths()[0]),
-                       uint(yDesc_flat.GetLengths()[1]),
-                       uint(yDesc_flat.GetLengths()[2]),
-                       uint(yDesc_flat.GetLengths()[3]),
-                       uint(yDesc_flat.GetLengths()[4]));
+                       static_cast<unsigned>(Xoffset),
+                       static_cast<unsigned>(Yoffset),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[0]),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[1]),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[2]),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[3]),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[4]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[0]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[1]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[2]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[3]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[4]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[0]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[1]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[2]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[3]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[4]));
             });
 
             break;

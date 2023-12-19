@@ -28,7 +28,6 @@
 
 #include <algorithm>
 #include <array>
-#include <array>
 #include <cassert>
 #include <functional>
 #include <memory>
@@ -62,7 +61,7 @@ struct OCLSetKernelArg
     template <class I, class T>
     void operator()(cl_kernel kernel, I i, const T& x) const
     {
-        cl_int status =
+        const cl_int status =
             clSetKernelArg(kernel, i, sizeof(T), reinterpret_cast<const void*>(&x)); // NOLINT
         if(status != CL_SUCCESS)
         {
@@ -99,8 +98,8 @@ struct OCLKernelInvoke
     {
         for(size_t idx = 0; idx < args.size(); idx++)
         {
-            auto arg      = args[idx];
-            cl_int status = clSetKernelArg(
+            auto arg            = args[idx];
+            const cl_int status = clSetKernelArg(
                 kernel.get(), idx, arg.size(), reinterpret_cast<const void*>(&arg.buffer[0]));
             if(status != CL_SUCCESS)
             {

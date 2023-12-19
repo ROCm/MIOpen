@@ -158,8 +158,9 @@ struct verify_tensor_transform_layout
                 {
                     float tmp_fp =
                         alpha * float(srcSuper(l, k, i, j)) + beta * float(dstSuperCpu(l, k, i, j));
-                    int8_t tmp_int =
-                        tmp_fp >= 127 ? 127 : tmp_fp <= -128 ? -128 : int8_t(std::lround(tmp_fp));
+                    int8_t tmp_int          = tmp_fp >= 127    ? 127
+                                              : tmp_fp <= -128 ? -128
+                                                               : int8_t(std::lround(tmp_fp));
                     dstSuperCpu(l, k, i, j) = tmp_int;
                 }
                 else
@@ -391,8 +392,9 @@ struct tensor_transform_driver : test_driver
         float alpha = scales[0];
         float beta  = scales[1];
 
-        unsigned long max_value =
-            miopen_type<T>{} == miopenHalf ? 5 : miopen_type<T>{} == miopenInt8 ? 127 : 17;
+        uint64_t max_value = miopen_type<T>{} == miopenHalf   ? 5
+                             : miopen_type<T>{} == miopenInt8 ? 127
+                                                              : 17;
 
         bool skip_layout = !(miopen::float_equal(static_cast<const float>(alpha), 1.0) &&
                              miopen::float_equal(static_cast<const float>(beta), 0.0) &&
@@ -402,12 +404,12 @@ struct tensor_transform_driver : test_driver
             // Test tensor layout transform
             srcSuper_pad   = tensor<T>{srcLens}.generate(tensor_elem_gen_integer{max_value});
             dstSuper_depad = tensor<T>{srcLens}.generate(tensor_elem_gen_integer{max_value});
-            srcDesc        = miopen::TensorDescriptor(this->type, srcLens.data(), srcLens.size());
+            srcDesc        = miopen::TensorDescriptor(this->type, srcLens);
 
             srcLens[1]     = (srcLens[1] % 4 == 0) ? srcLens[1] : ((srcLens[1] + 3) / 4) * 4;
             dstSuper_pad   = tensor<T>{srcLens}.generate(tensor_elem_gen_integer{max_value});
             srcSuper_depad = tensor<T>{srcLens}.generate(tensor_elem_gen_integer{max_value});
-            dstDesc        = miopen::TensorDescriptor(this->type, srcLens.data(), srcLens.size());
+            dstDesc        = miopen::TensorDescriptor(this->type, srcLens);
 
             if(srcDesc.GetLengths().size() == dstDesc.GetLengths().size())
             {
@@ -420,7 +422,7 @@ struct tensor_transform_driver : test_driver
         }
 
         // Test tensor scale addition
-        if(miopen_type<T>{} == miopenInt8 || miopen_type<T>{} == miopenInt8x4)
+        if(miopen_type<T>{} == miopenInt8)
             return;
 
         super_src = tensor<T>{superLens_src}.generate(tensor_elem_gen_integer{max_value});
@@ -441,10 +443,8 @@ struct tensor_transform_driver : test_driver
                                             (super_dst.desc.GetSize() - subLens.size()),
                                         superStrides_dst.end());
 
-        subDesc_src = miopen::TensorDescriptor(
-            this->type, subLens.data(), subStrides_src.data(), subLens.size());
-        subDesc_dst = miopen::TensorDescriptor(
-            this->type, subLens.data(), subStrides_dst.data(), subLens.size());
+        subDesc_src = miopen::TensorDescriptor(this->type, subLens, subStrides_src);
+        subDesc_dst = miopen::TensorDescriptor(this->type, subLens, subStrides_dst);
 
         verify_equals(verify_tensor_transform_scale<T>{
             super_src, subDesc_src, super_dst, subDesc_dst, offset, offset, T(alpha), T(beta)});

@@ -123,7 +123,7 @@ struct tensor_scale_driver : test_driver
 
     void run()
     {
-        unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
+        uint64_t max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
 
         super = tensor<T>{superLens}.generate(tensor_elem_gen_integer{max_value});
 
@@ -131,8 +131,7 @@ struct tensor_scale_driver : test_driver
         std::vector<int> subStrides(superStrides.begin() + (super.desc.GetSize() - subLens.size()),
                                     superStrides.end());
 
-        subDesc =
-            miopen::TensorDescriptor(this->type, subLens.data(), subStrides.data(), subLens.size());
+        subDesc = miopen::TensorDescriptor(this->type, subLens, subStrides);
 
         verify_equals(verify_tensor_scale<T>{super, subDesc, offset, T(2.048)});
     }

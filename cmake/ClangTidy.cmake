@@ -126,6 +126,9 @@ macro(enable_clang_tidy)
         ${CLANG_TIDY_EXTRA_ARGS}
         ${CLANG_TIDY_ANALYZE_TEMPORARY_DTORS}
         -header-filter='${CLANG_TIDY_HEADER_FILTER}'
+        # Uncomment next line to save fixts in the fixits/ directory under the build directory.
+        # You can apply them by /opt/rocm/llvm/bin/clang-apply-replacements fixits/
+        # -fix-errors
     )
     add_custom_target(tidy ${CLANG_TIDY_ALL})
     mark_as_analyzer(tidy)

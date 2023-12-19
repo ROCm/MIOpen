@@ -32,7 +32,7 @@
 
 #include <boost/range/adaptors.hpp>
 
-#define WG_SIZE 256
+#define WG_SIZE (static_cast<size_t>(256))
 #define MAX_ACTIVE_THREADS (64 * 4 * 64)
 #define MAX_LOCAL_MEM 65536
 
@@ -80,8 +80,8 @@ float Im2d2ColGPU(const Handle& handle,
 
     int data_size_bound = c * in_h * in_w;
 
-    int data_size_bound_pack = type == miopenInt8x4 ? data_size_bound * 4 : data_size_bound;
-    int im_offset_pack       = type == miopenInt8x4 ? im_offset / 4 : im_offset;
+    int data_size_bound_pack = data_size_bound;
+    int im_offset_pack       = im_offset;
 
     if(!kernels.empty())
     {
@@ -105,7 +105,7 @@ float Im2d2ColGPU(const Handle& handle,
     }
     else
     {
-        const int c_pack = type == miopenInt8x4 ? c / 4 : c;
+        const int c_pack = c;
 
         std::string params;
         int num_ch_per_wg;
@@ -182,20 +182,17 @@ float Im2d2ColGPU(const Handle& handle,
             }
         }
 
-        params += " -DNUM_CH_PER_WG=" + std::to_string(num_ch_per_wg);
-        params += " -DNUM_IM_BLKS_X=" + std::to_string(num_blks_x);
-        params += " -DNUM_IM_BLKS=" + std::to_string(num_blks);
-        params += " -DLOCAL_MEM_SIZE=" + std::to_string(local_mem_sz);
+        params += " -DLOCAL_MEM_SIZE=" +
+                  std::to_string(local_mem_sz); // needs some changes to the kernel launch
         params += " -DSTRIDE_GT_1=" + std::to_string(static_cast<int>(stride_h * stride_w > 1));
-        params += " -DTILE_SZ_X=" + std::to_string(tile_sz_x);
-        params += " -DTILE_SZ_Y=" + std::to_string(tile_sz_y);
-        params += " -DUSE_IM_OFF_GUARD=1";
+        params += " -DNUM_IM_BLKS_EQ_1=" + std::to_string(static_cast<int>(num_blks == 1));
+        params += " -DUSE_IM_OFF_GUARD=1"; // always one
 
         params += GetDataTypeKernelParams(type);
 
         const int group_size_x = 256;
         const std::vector<size_t> vld{group_size_x, 1, 1};
-        size_t group_cnt      = std::max(1, (c_pack / num_ch_per_wg)) * num_blks;
+        size_t group_cnt = std::max(1, (c_pack / num_ch_per_wg)) * static_cast<size_t>(num_blks);
         size_t global_threads = group_size_x * group_cnt;
         const std::vector<size_t> vgd{global_threads, 1, 1};
 
@@ -272,7 +269,12 @@ float Im2d2ColGPU(const Handle& handle,
             stride_w,
             dilation_h,
             dilation_w,
-            col);
+            col,
+            num_ch_per_wg,
+            num_blks_x,
+            num_blks,
+            tile_sz_x,
+            tile_sz_y);
     }
 
     return handle.GetKernelTime();
@@ -329,9 +331,8 @@ float Im3d2ColGPU(const Handle& handle,
 
     auto&& kernels = handle.GetKernels("miopenIm3d2Col", network_config);
 
-    // int8x4 vectorize-c format
-    int im_offset_pack = type == miopenInt8x4 ? im_offset / 4 : im_offset;
-    int im_c_pack      = type == miopenInt8x4 ? im_c / 4 : im_c;
+    int im_offset_pack = im_offset;
+    int im_c_pack      = im_c;
 
     if(!kernels.empty())
     {
@@ -363,12 +364,13 @@ float Im3d2ColGPU(const Handle& handle,
     {
         std::string params = GetDataTypeKernelParams(type);
 
-        const std::vector<size_t> vld{256, 1, 1};
         size_t global_threads = std::min(
             256 * static_cast<std::size_t>(out_d * out_h * out_w * im_c * wei_d * wei_h * wei_w) /
                 8,
             static_cast<std::size_t>(256) * 1024);
         const std::vector<size_t> vgd{global_threads, 1, 1};
+        const size_t local_threads = std::min(global_threads, static_cast<std::size_t>(256));
+        const std::vector<size_t> vld{local_threads, 1, 1};
 
         handle.AddKernel(
             "miopenIm3d2Col", network_config, program_name, kernel_name, vld, vgd, params)(
@@ -462,9 +464,9 @@ float Col2Im2dGPU(const Handle& handle,
     {
         std::string params = GetDataTypeKernelParams(type);
 
-        const std::vector<size_t> vld{256, 1, 1};
-        size_t global_threads = in_c * in_h * in_w;
+        size_t global_threads = static_cast<size_t>(in_c) * in_h * in_w;
         const std::vector<size_t> vgd{global_threads, 1, 1};
+        const std::vector<size_t> vld{std::min(WG_SIZE, global_threads), 1, 1};
 
         handle.AddKernel(
             "miopenCol2Im2d", network_config, program_name, kernel_name, vld, vgd, params)(
@@ -509,7 +511,7 @@ float Col2Im3dGPU(const Handle& handle,
                   const int in_h,
                   const int in_w,
                   Data_t im,
-                  int im_offset,
+                  std::size_t im_offset,
                   miopenDataType_t type)
 {
     std::string program_name = "MIOpenCol2Im3d.cl";
@@ -565,11 +567,18 @@ float Col2Im3dGPU(const Handle& handle,
     }
     else
     {
+        std::size_t index_size = static_cast<size_t>(in_c) * out_d * out_h * out_w * wei_d * wei_w *
+                                 wei_h * sizeof(ConstData_t);
+
+        const bool use_64_bit_index = index_size > 0xffffffffULL;
+
         std::string params = GetDataTypeKernelParams(type);
 
-        const std::vector<size_t> vld{256, 1, 1};
-        size_t global_threads = in_c * in_d * in_h * in_w;
+        params += use_64_bit_index ? " -DMIOPEN_USE_64BIT_INDEX=1" : " -DMIOPEN_USE_64BIT_INDEX=0";
+
+        size_t global_threads = static_cast<size_t>(in_c) * in_d * in_h * in_w;
         const std::vector<size_t> vgd{global_threads, 1, 1};
+        const std::vector<size_t> vld{std::min(WG_SIZE, global_threads), 1, 1};
 
         handle.AddKernel(
             "miopenCol2Im3d", network_config, program_name, kernel_name, vld, vgd, params)(
@@ -762,28 +771,21 @@ float transpose_NCHW2CNHW(const Handle& handle,
 
     std::string params = GetDataTypeKernelParams(type);
 
-    if(type == miopenInt8x4)
-    {
-        c /= 4;
-        in_offset /= 4;
-        out_offset /= 4;
-    }
-
     if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
     {
         kernel_name += "_V1";
 
-        int RD_BLCK      = ((h_in * w_in) % 4 == 0) ? 4 : ((h_in * w_in) % 2 == 0) ? 2 : 1;
-        int HW_RD        = (h_in * w_in) / RD_BLCK;
-        size_t MAP_RD    = HW_RD * c;
-        size_t lcl_size0 = WG_SIZE; //((MAP_RD + 63)/64 < 4) ? ((MAP_RD + 63)/64)*64 : 256;
+        int RD_BLCK   = ((h_in * w_in) % 4 == 0) ? 4 : ((h_in * w_in) % 2 == 0) ? 2 : 1;
+        int HW_RD     = (h_in * w_in) / RD_BLCK;
+        size_t MAP_RD = static_cast<size_t>(HW_RD) * c;
+        // size_t lcl_size0 = WG_SIZE; //((MAP_RD + 63)/64 < 4) ? ((MAP_RD + 63)/64)*64 : 256;
 
         std::string READ_TYPE = (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
 
-        const std::vector<size_t> vld{lcl_size0, 1, 1};
+        const std::vector<size_t> vld{std::min(MAP_RD, WG_SIZE), 1, 1};
         std::vector<size_t> vgd{MAP_RD, 1, 1};
 
-        if(MAP_RD < MAX_ACTIVE_THREADS)
+        if(MAP_RD < static_cast<size_t>(MAX_ACTIVE_THREADS))
         {
             vgd = {MAP_RD, static_cast<size_t>(n), 1};
             kernel_name += "_2D_WG";
@@ -818,10 +820,9 @@ float transpose_NCHW2CNHW(const Handle& handle,
         const int hw_in  = h_in * w_in;
         const int hw_out = h_out * w_out;
 
-        size_t ld0 = WG_SIZE;
-        size_t gd0 = h_out * w_out;
-        const std::vector<size_t> vld{ld0, 1, 1};
+        size_t gd0 = static_cast<size_t>(h_out) * w_out;
         std::vector<size_t> vgd{gd0, 1, static_cast<size_t>(c)};
+        const std::vector<size_t> vld{std::min(WG_SIZE, gd0), 1, 1};
 
 // disable 3D_WG kernel due to idx calc overhead
 #if 0
@@ -901,28 +902,21 @@ float transpose_CNHW2NCHW(const Handle& handle,
 
     std::string params = GetDataTypeKernelParams(type);
 
-    if(type == miopenInt8x4)
-    {
-        c /= 4;
-        in_offset /= 4;
-        out_offset /= 4;
-    }
-
     if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
     {
         kernel_name += "_V1";
 
-        int RD_BLCK      = ((h_out * w_out) % 4 == 0) ? 4 : ((h_out * w_out) % 2 == 0) ? 2 : 1;
-        int HW_RD        = (h_out * w_out) / RD_BLCK;
-        size_t MAP_RD    = HW_RD * c;
-        size_t lcl_size0 = WG_SIZE; //((MAP_RD + 63)/64 < 4) ? ((MAP_RD + 63)/64)*64 : 256;
+        int RD_BLCK   = ((h_out * w_out) % 4 == 0) ? 4 : ((h_out * w_out) % 2 == 0) ? 2 : 1;
+        int HW_RD     = (h_out * w_out) / RD_BLCK;
+        size_t MAP_RD = static_cast<size_t>(HW_RD) * c;
+        // size_t lcl_size0 = WG_SIZE; //((MAP_RD + 63)/64 < 4) ? ((MAP_RD + 63)/64)*64 : 256;
 
         std::string READ_TYPE = (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
 
-        const std::vector<size_t> vld{lcl_size0, 1, 1};
+        const std::vector<size_t> vld{std::min(MAP_RD, WG_SIZE), 1, 1};
         std::vector<size_t> vgd{MAP_RD, 1, 1};
 
-        if(MAP_RD < MAX_ACTIVE_THREADS)
+        if(MAP_RD < static_cast<size_t>(MAX_ACTIVE_THREADS))
         {
             vgd = {MAP_RD, static_cast<size_t>(n), 1};
             kernel_name += "_2D_WG";
@@ -953,9 +947,8 @@ float transpose_CNHW2NCHW(const Handle& handle,
     {
         kernel_name += "_V2";
 
-        size_t ld0 = WG_SIZE;
-        size_t gd0 = h_out * w_out;
-        const std::vector<size_t> vld{ld0, 1, 1};
+        size_t gd0 = static_cast<size_t>(h_out) * w_out;
+        const std::vector<size_t> vld{std::min(gd0, WG_SIZE), 1, 1};
         std::vector<size_t> vgd{gd0, 1, static_cast<size_t>(c)};
 
 // disable 3D_WG kernel due to idx calc overhead
@@ -1070,11 +1063,8 @@ float transpose_NCHW2Vec(const Handle& handle,
 
         std::string kernel_name = "transpose_NCHW2Vec";
 
-        const std::vector<size_t> vld{WG_SIZE, 1, 1};
-        std::vector<size_t> vgd{1, 1, 1};
-
-        int RD_BLCK = ((hw) % (vec_size * 2) == 0) ? static_cast<int>(vec_size) * 2
-                                                   : static_cast<int>(vec_size);
+        int RD_BLCK   = ((hw) % (vec_size * 2) == 0) ? static_cast<int>(vec_size) * 2
+                                                     : static_cast<int>(vec_size);
         int HW_RD     = (static_cast<int>(hw) + RD_BLCK - 1) / RD_BLCK;
         size_t MAP_RD = HW_RD * (trans ? c : (c_vec / vec_size));
 
@@ -1119,22 +1109,25 @@ float transpose_NCHW2Vec(const Handle& handle,
         if(!float_equal(beta_fp, 0))
             params += " -DUSE_BETA=1";
 
-        vgd[0] = MAP_RD;
-
-        uint gd1 = trans ? static_cast<size_t>(n_vec / vec_size) : static_cast<size_t>(n);
+        const size_t gd0 = MAP_RD;
+        size_t gd1;
 
         /// disable iteration of n due to perf degrade
         /// \to-do fix the perf issue
-        // if(vgd[0] < MAX_ACTIVE_THREADS)
+        // if(gd0 < MAX_ACTIVE_THREADS)
         {
-            vgd[1] = gd1;
+            gd1 = trans ? static_cast<size_t>(n_vec / vec_size) : static_cast<size_t>(n);
             params += " -DIS_2D_WG=1";
         }
         // else
         //{
+        // gd1 = 1;
         // params += " -DIS_2D_WG=0";
         // params += " -DGD_1=" + std::to_string(gd1);
         //}
+
+        const std::vector<size_t> vgd{gd0, gd1, 1};
+        const std::vector<size_t> vld{std::min(WG_SIZE, gd0), 1, 1};
 
         handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, params)(
             in, out, alpha_fp, beta_fp);
@@ -1162,21 +1155,14 @@ float transpose_packed_MN2NM(const Handle& handle,
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
 
     std::string params = GetDataTypeKernelParams(type);
-    if(type == miopenInt8x4)
-    {
-        m /= 4;
-        in_offset /= 4;
-        out_offset /= 4;
-    }
 
-    if(!(type == miopenInt8x4 || type == miopenInt8))
+    if(type != miopenInt8)
     {
         MIOPEN_THROW("transpose_packed_MN2NM only meant for int8 variants.");
     }
 
-    size_t ld0 = WG_SIZE;
-    size_t gd0 = m * n;
-    const std::vector<size_t> vld{ld0, 1, 1};
+    size_t gd0 = static_cast<size_t>(m) * n;
+    const std::vector<size_t> vld{std::min(WG_SIZE, gd0), 1, 1};
     std::vector<size_t> vgd{gd0, 1, 1};
 
     if(!kernels.empty())

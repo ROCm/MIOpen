@@ -31,7 +31,7 @@
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/rocm_features.hpp>
-#include <miopen/solver/convolution_context_interpreter.hpp>
+#include <miopen/solver/problem_description_interpreter.hpp>
 #include <algorithm>
 #include <sstream>
 
@@ -53,8 +53,24 @@ static inline bool is_ck_supported_hardware(const Handle& handle)
            StartsWith(handle.GetDeviceName(), "gfx906") ||
            StartsWith(handle.GetDeviceName(), "gfx908") ||
            StartsWith(handle.GetDeviceName(), "gfx90a") ||
+           StartsWith(handle.GetDeviceName(), "gfx940") ||
+           StartsWith(handle.GetDeviceName(), "gfx941") ||
+           StartsWith(handle.GetDeviceName(), "gfx942") ||
+           StartsWith(handle.GetDeviceName(), "gfx1030") ||
            StartsWith(handle.GetDeviceName(), "gfx1031") ||
-           StartsWith(handle.GetDeviceName(), "gfx1030");
+           StartsWith(handle.GetDeviceName(), "gfx1100") ||
+           StartsWith(handle.GetDeviceName(), "gfx1101") ||
+           StartsWith(handle.GetDeviceName(), "gfx1102");
+}
+
+static inline bool is_conv_ck_supported_hardware(const std::string& device_name, bool is_wrw)
+{
+    auto res_wrw = StartsWith(device_name, "gfx908") || StartsWith(device_name, "gfx90a") ||
+                   StartsWith(device_name, "gfx940") || StartsWith(device_name, "gfx941") ||
+                   StartsWith(device_name, "gfx942");
+    return is_wrw ? res_wrw
+                  : (res_wrw || StartsWith(device_name, "gfx900") ||
+                     StartsWith(device_name, "gfx906"));
 }
 
 static inline bool is_support_amd_buffer_atomic_fadd(const std::string& device_name)
@@ -82,10 +98,22 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
         compiler_flag << " -DCK_AMD_GPU_GFX908";
     else if(StartsWith(device_name, "gfx90a"))
         compiler_flag << " -DCK_AMD_GPU_GFX90A";
+    else if(StartsWith(device_name, "gfx940"))
+        compiler_flag << " -DCK_AMD_GPU_GFX940";
+    else if(StartsWith(device_name, "gfx941"))
+        compiler_flag << " -DCK_AMD_GPU_GFX941";
+    else if(StartsWith(device_name, "gfx942"))
+        compiler_flag << " -DCK_AMD_GPU_GFX942";
     else if(StartsWith(device_name, "gfx1030"))
         compiler_flag << " -DCK_AMD_GPU_GFX1030";
     else if(StartsWith(device_name, "gfx1031"))
         compiler_flag << " -DCK_AMD_GPU_GFX1031";
+    else if(StartsWith(device_name, "gfx1100"))
+        compiler_flag << " -DCK_AMD_GPU_GFX1100";
+    else if(StartsWith(device_name, "gfx1101"))
+        compiler_flag << " -DCK_AMD_GPU_GFX1101";
+    else if(StartsWith(device_name, "gfx1102"))
+        compiler_flag << " -DCK_AMD_GPU_GFX1102";
 
     // buffer atomic-fadd
     compiler_flag << " -DCK_USE_AMD_BUFFER_ATOMIC_FADD="
@@ -103,37 +131,37 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
     return compiler_flag.str();
 }
 
-static inline auto get_ck_convolution_problem_descriptor(const ConvolutionContext& ctx)
+static inline auto get_ck_convolution_problem_descriptor(const ProblemDescription& problem)
 {
     ck::DataTypeEnum_t ck_datatype;
 
-    if(ctx.IsFp32())
+    if(problem.IsFp32())
         ck_datatype = ck::DataTypeEnum_t::Float;
-    else if(ctx.IsFp16())
+    else if(problem.IsFp16())
         ck_datatype = ck::DataTypeEnum_t::Half;
-    else if(ctx.IsBfp16())
+    else if(problem.IsBfp16())
         ck_datatype = ck::DataTypeEnum_t::BFloat16;
     else
         ck_datatype = ck::DataTypeEnum_t::Unknown;
 
     return ck::driver::ConvolutionProblemDescriptor{
-        miopen::solver::ConvolutionContextInterpreter::GetBatchN(ctx),
-        ConvolutionContextInterpreter::GetOutputChannelK(ctx),
-        ConvolutionContextInterpreter::GetInputChannelC(ctx),
-        ConvolutionContextInterpreter::GetFilterHeightY(ctx),
-        ConvolutionContextInterpreter::GetFilterWidthX(ctx),
-        ConvolutionContextInterpreter::GetInputHeightHi(ctx),
-        ConvolutionContextInterpreter::GetInputWidthWi(ctx),
-        ConvolutionContextInterpreter::GetOutputHeightHo(ctx),
-        ConvolutionContextInterpreter::GetOutputWidthWo(ctx),
-        ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx),
-        ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx),
-        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx),
-        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx),
-        ConvolutionContextInterpreter::GetInputLeftPadH(ctx),
-        ConvolutionContextInterpreter::GetInputLeftPadW(ctx),
-        ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx),
-        ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx),
+        ProblemInterpreter::GetBatchN(problem),
+        ProblemInterpreter::GetOutputChannelK(problem),
+        ProblemInterpreter::GetInputChannelC(problem),
+        ProblemInterpreter::GetFilterHeightY(problem),
+        ProblemInterpreter::GetFilterWidthX(problem),
+        ProblemInterpreter::GetInputHeightHi(problem),
+        ProblemInterpreter::GetInputWidthWi(problem),
+        ProblemInterpreter::GetOutputHeightHo(problem),
+        ProblemInterpreter::GetOutputWidthWo(problem),
+        ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
+        ProblemInterpreter::GetAdjustedConvolutionStrideW(problem),
+        ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
+        ProblemInterpreter::GetAdjustedConvolutionDilationW(problem),
+        ProblemInterpreter::GetInputLeftPadH(problem),
+        ProblemInterpreter::GetInputLeftPadW(problem),
+        ProblemInterpreter::GetAdjustedInputRightPadH(problem),
+        ProblemInterpreter::GetAdjustedInputRightPadW(problem),
         ck_datatype,
         ck_datatype,
         ck_datatype};
