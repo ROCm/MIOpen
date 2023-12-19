@@ -50,3 +50,8 @@ foreach(TEST ${TESTS})
     get_filename_component(BASE_NAME ${TEST} NAME_WE)
     add_gtest(${BASE_NAME})
 endforeach()
+
+message(STATUS "gtest env: MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR}")
+message(STATUS "gtest env: MIOPEN_TEST_FLOAT_ARG=${MIOPEN_TEST_FLOAT_ARG}")
+message(STATUS "gtest env: MIOPEN_TEST_ALL=${MIOPEN_TEST_ALL}")
+message(STATUS "gtest env: MIOPEN_TEST_COMPOSABLEKERNEL=${MIOPEN_TEST_COMPOSABLEKERNEL}")
