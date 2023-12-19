@@ -924,7 +924,7 @@ pipeline {
                     environment{
                         setup_flags="-DDISCRETE_GTEST=1 -DMIOPEN_TEST_DBSYNC=1"
                         config_targets='test_db_sync'
-                        execute_cmd='./bin/test_db_sync'
+                        execute_cmd='MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync'
                     }
                     steps{
                         buildHipClangJobAndReboot(lfs_pull: true, setup_flags: setup_flags, config_targets: config_targets, execute_cmd: execute_cmd,
@@ -943,7 +943,7 @@ pipeline {
                     environment{
                         setup_flags="-DDISCRETE_GTEST=1 -DMIOPEN_TEST_DBSYNC=1"
                         config_targets='test_db_sync'
-                        execute_cmd='./bin/test_db_sync'
+                        execute_cmd='MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync'
                     }
                     steps{
                         buildHipClangJobAndReboot(lfs_pull: true, setup_flags: setup_flags, config_targets: config_targets, execute_cmd: execute_cmd,
