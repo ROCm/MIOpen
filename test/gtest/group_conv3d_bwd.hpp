@@ -27,7 +27,7 @@
 
 #include "conv3d_test_case.hpp"
 
-static int SetTensorLayout(miopen::TensorDescriptor& desc)
+inline int SetTensorLayout(miopen::TensorDescriptor& desc)
 {
     // get layout string names
     std::string layout_str = desc.GetLayout_str();
