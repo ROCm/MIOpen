@@ -248,7 +248,7 @@ math(EXPR MIOPEN_hip_VERSION_FLAT "(${MIOPEN_hip_VERSION_MAJOR} * 1000 + ${MIOPE
 
 # Do not enable HIPRTC by default for older ROCm versions in order to avoid
 # build time errors, because HIPRTC is a relatively new component.
-set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT ${MIOPEN_USE_COMGR} AND (${MIOPEN_hip_VERSION_FLAT} GREATER 900000000))
+set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT ${MIOPEN_USE_COMGR} AND (${MIOPEN_hip_VERSION_FLAT} GREATER 500000000))
 option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MIOPEN_USE_HIPRTC_DEFAULT})
 
 # WORKAROUND_SWDEV_413293

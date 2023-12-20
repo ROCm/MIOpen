@@ -888,14 +888,15 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
     if(target.Xnack() && *target.Xnack())
         return false; // NOLINT (readability-simplify-boolean-expr)
 
-    if(0 == igemm_split_batch_size(ctx.out_height,
-                                   ctx.out_width,
-                                   ctx.in_height,
-                                   ctx.in_width,
-                                   ctx.batch_sz,
-                                   ctx.n_inputs,
-                                   ctx.n_outputs,
-                                   miopen::GetTypeSize(ctx.in_data_type)))
+    if(0 == igemm_split_batch_size(problem.GetOutHeight_(),
+                                   problem.GetOutWidth_(),
+                                   problem.GetInHeight_(),
+                                   problem.GetInWidth_(),
+                                   problem.GetBatchSize_(),
+                                   problem.GetInChannels_(),
+                                   problem.GetOutChannels_(),
+                                   miopen::GetTypeSize(problem.GetInDataType())))
+        return false;
 
     {
         auto largest_config = problem.IsFp32()
