@@ -37,23 +37,28 @@
 namespace miopen {
 namespace tests {
 
-static int Child(std::string_view cmd, const fs::path& path)
+namespace {
+inline int Child(const TmpDir& temp, const fs::path& exec, const fs::path& source)
 {
-    return miopen::Process{cmd}("-source " + path.string());
+    return temp.Execute(exec, "-source " + source);
 }
-
+} // namespace
 class InlinerTest
 {
 public:
     void Run(const fs::path& exe_path) const
     {
-        const TmpDir test_srcs{"test_include_inliner"};
-        const auto addkernels      = (exe_path.parent_path() / "addkernels").string();
+        const TmpDir temp{"test_include_inliner"};
+#ifdef _WIN32
+        auto addkernels = (exe_path.parent_path() / "addkernels.exe").string();
+#else
+        auto addkernels = (exe_path.parent_path() / "addkernels").string();
+#endif
         const auto header_filename = "header.h";
-        const auto asm_src         = test_srcs.path / "valid.s";
-        const auto valid_src       = test_srcs.path / "valid.cl";
-        const auto invalid_src     = test_srcs.path / "invalid.cl";
-        const auto header_src      = test_srcs.path / header_filename;
+        const auto asm_src         = temp.path / "valid.s";
+        const auto valid_src       = temp.path / "valid.cl";
+        const auto invalid_src     = temp.path / "invalid.cl";
+        const auto header_src      = temp.path / header_filename;
 
         // clang-format-off
         std::ofstream(valid_src.c_str()) << "#include <" << header_filename << ">\n"
@@ -66,9 +71,9 @@ public:
         std::ofstream(invalid_src.c_str()) << "#include <missing_header.h>" << std::endl;
         std::ofstream(header_src.c_str()) << std::endl;
 
-        EXPECT_EQUAL(0, Child(addkernels, valid_src));
-        EXPECT_EQUAL(0, Child(addkernels, asm_src));
-        EXPECT_EQUAL(1, Child(addkernels, invalid_src));
+        EXPECT_EQUAL(0, Child(temp, addkernels, valid_src));
+        EXPECT_EQUAL(0, Child(temp, addkernels, asm_src));
+        EXPECT_EQUAL(1, Child(temp, addkernels, invalid_src));
     }
 };
 

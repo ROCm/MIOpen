@@ -272,14 +272,13 @@ struct ExecutionContext
         const auto& udb = GetUserDbPath();
         if(udb.empty())
             return "";
-        std::ostringstream filename;
-        filename << GetStream().GetDbBasename();
+        const auto filename = GetStream().GetDbBasename() +
 #if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
-        filename << "_" << SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER << ".udb";
+            "_" + std::string{SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER} + ".udb";
 #else
-        filename << "." << GetUserDbSuffix() << ".udb.txt";
+            "." + GetUserDbSuffix() + ".cd.updb.txt";
 #endif
-        return (udb / filename.str()).string();
+        return udb / filename.str();
     }
 
 private:

@@ -29,6 +29,10 @@
 #include <miopen/logger.hpp>
 #include <miopen/md5.hpp>
 
+#ifdef _WIN32
+#include <boost/algorithm/string/replace.hpp>
+#endif
+
 namespace miopen {
 
 inline void LogFsError(const fs::filesystem_error& ex, const std::string_view from)
@@ -89,6 +93,15 @@ LockFile::LockFile(const fs::path& path_, PassKey) : path(path_)
 
 LockFile& LockFile::Get(const fs::path& path)
 {
+#ifdef _WIN32
+    std::string p{path_.string()};
+    // The character ':' is reserved on Windows and cannot be used
+    // for constructing a path except following a drive letter.
+    boost::replace_all(p, ":memory:", "memory_");
+    fs::path path{p};
+#else
+#define path path_
+#endif
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
     std::lock_guard<std::mutex> lock(mutex);
