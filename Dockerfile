@@ -85,25 +85,13 @@ ADD dev-requirements.txt /dev-requirements.txt
 ARG GPU_ARCH=";"
 ARG PREFIX=/usr/local
 ARG USE_FIN="OFF"
-ARG CCACHE_SECONDARY_STORAGE=""
-ARG CCACHE_DIR="/tmp"
 RUN env
-# RUN cget -p $PREFIX install https://github.com/ccache/ccache/archive/7f1572ae9ca958fa923a66235f6a64a360b03523.tar.gz -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
-ARG CCACHE_COMMIT=7f1572ae9ca958fa923a66235f6a64a360b03523
-RUN rm -rf /tmp/ccache* && mkdir /tmp/ccache
-ADD https://github.com/ccache/ccache/archive/${CCACHE_COMMIT}.tar.gz /tmp/ccache.tar.gz
-RUN tar zxvf /tmp/ccache.tar.gz -C /tmp/ && mkdir /tmp/ccache-${CCACHE_COMMIT}/build && \
-    cd /tmp/ccache-${CCACHE_COMMIT}/build && \
-    cmake -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON .. && make -j install && rm -rf /tmp/*
-RUN ccache -s 
-ARG COMPILER_LAUNCHER=""
 RUN if [ "$USE_FIN" = "ON" ]; then \
-        rbuild prepare -s fin -d $PREFIX -DAMDGPU_TARGETS=${GPU_ARCH} -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
+        rbuild prepare -s fin -d $PREFIX -DAMDGPU_TARGETS=${GPU_ARCH} ; \
     else \
-        rbuild prepare -s develop -d $PREFIX -DAMDGPU_TARGETS=${GPU_ARCH} -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
+        rbuild prepare -s develop -d $PREFIX -DAMDGPU_TARGETS=${GPU_ARCH} ; \
     fi
 
-RUN ccache -s 
 # Install doc requirements
 ADD docs/sphinx/requirements.txt /doc-requirements.txt
 RUN pip3 install -r /doc-requirements.txt

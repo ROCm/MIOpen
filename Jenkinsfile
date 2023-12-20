@@ -86,10 +86,6 @@ def cmake_build(Map conf=[:]){
         def fmode = conf.get("find_mode", "")
         setup_args = " -DMIOPEN_DEFAULT_FIND_MODE=${fmode} " + setup_args
     }
-    if(env.CCACHE_HOST)
-    {
-        setup_args = " -DCMAKE_CXX_COMPILER_LAUNCHER='ccache' -DCMAKE_C_COMPILER_LAUNCHER='ccache' " + setup_args
-    }
 
     if ( build_fin == "ON" )
     {
@@ -194,21 +190,6 @@ def getDockerImage(Map conf=[:])
     def gpu_arch = "gfx900;gfx906;gfx908;gfx90a;gfx940;gfx941;gfx942;gfx1030;gfx1100;gfx1101;gfx1102" // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
     def mlir_build = conf.get("mlir_build", "ON") // always ON
     def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg USE_MLIR='${mlir_build}' "
-    if(env.CCACHE_HOST)
-    {
-        def check_host = sh(script:"""(printf "PING\r\n";) | nc -N ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()
-        if(check_host == "+PONG")
-        {
-            echo "FOUND CCACHE SERVER: ${CCACHE_HOST}"
-        }
-        else
-        {
-            echo "CCACHE SERVER: ${CCACHE_HOST} NOT FOUND, got ${check_host} response"
-        }
-        dockerArgs = dockerArgs + " --build-arg CCACHE_SECONDARY_STORAGE='redis://${env.CCACHE_HOST}' --build-arg COMPILER_LAUNCHER='ccache' "
-        env.CCACHE_DIR = """/tmp/ccache_store"""
-        env.CCACHE_SECONDARY_STORAGE="""redis://${env.CCACHE_HOST}"""
-    }
     echo "Docker Args: ${dockerArgs}"
 
     def image = getDockerImageName(dockerArgs)
