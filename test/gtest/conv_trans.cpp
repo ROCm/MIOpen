@@ -142,7 +142,7 @@ std::vector<std::string> GetTestCases(void)
 } // namespace conv_trans
 using namespace conv_trans;
 
-TEST_P(ConfigWithFloat, FloatTest)
+TEST_P(ConfigWithFloat, FloatTest_conv_trans)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))

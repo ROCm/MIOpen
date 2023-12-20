@@ -23,13 +23,17 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "conv3d.hpp"
-#include "get_handle.hpp"
-#include <miopen/env.hpp>
 #include <gtest/gtest.h>
+#include <miopen/env.hpp>
+#include "get_handle.hpp"
+#include "test_env.hpp"
+
+#include "conv3d.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(CODECOV_TEST)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
+
+namespace conv3d_codecov {
 
 static bool SkipTest(void) { return !miopen::IsEnabled(ENV(CODECOV_TEST)); }
 
@@ -41,22 +45,6 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
     while(begin != end)
         tokens.push_back(*begin++);
 }
-
-class Conv3dFloat : public testing::TestWithParam<std::vector<std::string>>
-{
-};
-
-class Conv3dHalf : public testing::TestWithParam<std::vector<std::string>>
-{
-};
-
-class Conv3dBFloat16 : public testing::TestWithParam<std::vector<std::string>>
-{
-};
-
-class Conv3dInt8 : public testing::TestWithParam<std::vector<std::string>>
-{
-};
 
 void Run3dDriver(miopenDataType_t prec)
 {
@@ -98,58 +86,6 @@ void Run3dDriver(miopenDataType_t prec)
 
 bool IsTestSupportedForDevice(const miopen::Handle& handle) { return true; }
 
-TEST_P(Conv3dFloat, FloatTest)
-{
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
-    {
-        Run3dDriver(miopenFloat);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-TEST_P(Conv3dHalf, HalfTest)
-{
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
-    {
-        Run3dDriver(miopenHalf);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-TEST_P(Conv3dBFloat16, BFloat16Test)
-{
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
-    {
-        Run3dDriver(miopenBFloat16);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-TEST_P(Conv3dInt8, Int8Test)
-{
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
-    {
-        Run3dDriver(miopenInt8);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
 std::vector<std::string> GetTestCases(const std::string& precision)
 {
     const auto& flag_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLAGS_ARGS));
@@ -162,6 +98,61 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
     return test_cases;
 }
+
+} // namespace conv3d_codecov
+using namespace conv3d_codecov;
+
+TEST_P(Conv3dFloat, FloatTest_conv3d_codecov)
+{
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--float"))
+    {
+        Run3dDriver(miopenFloat);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(Conv3dHalf, HalfTest_conv3d_codecov)
+{
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--half"))
+    {
+        Run3dDriver(miopenHalf);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(Conv3dBFloat16, BFloat16Test_conv3d_codecov)
+{
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--bfloat16"))
+    {
+        Run3dDriver(miopenBFloat16);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(Conv3dInt8, Int8Test_conv3d_codecov)
+{
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--int8"))
+    {
+        Run3dDriver(miopenInt8);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
 INSTANTIATE_TEST_SUITE_P(Conv3D, Conv3dFloat, testing::Values(GetTestCases("--float")));
 

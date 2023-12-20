@@ -114,7 +114,6 @@ protected:
 
     ConvTestCaseBase conv_config;
     Workspace wspace{};
-
     miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoDirect;
     bool test_skipped             = false;
     miopenTensorLayout_t tensor_layout;

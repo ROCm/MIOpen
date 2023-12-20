@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <gtest/gtest.h>
 #include "conv_common.hpp"
 
 template <class T>
@@ -57,4 +58,20 @@ struct conv3d_driver : conv_driver<T>
         this->add(this->fil_layout, "fil_layout", this->generate_data({"NCDHW"}));
         this->add(this->out_layout, "out_layout", this->generate_data({"NCDHW"}));
     }
+};
+
+class Conv3dFloat : public testing::TestWithParam<std::vector<std::string>>
+{
+};
+
+class Conv3dHalf : public testing::TestWithParam<std::vector<std::string>>
+{
+};
+
+class Conv3dBFloat16 : public testing::TestWithParam<std::vector<std::string>>
+{
+};
+
+class Conv3dInt8 : public testing::TestWithParam<std::vector<std::string>>
+{
 };

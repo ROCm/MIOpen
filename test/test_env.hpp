@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,21 +24,15 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_SOLVER_GEMM_COMMON_HPP_
-#define GUARD_SOLVER_GEMM_COMMON_HPP_
+#pragma once
 
-#include <miopen/execution_context.hpp>
+#include <miopen/env.hpp>
 
-namespace miopen {
-namespace solver {
-namespace conv {
-namespace gemm {
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
-bool IsWorkaroundIssue1315(const miopen::ExecutionContext& ctx);
-
-} // namespace gemm
-} // namespace conv
-} // namespace solver
-} // namespace miopen
-
-#endif
+inline bool IsTestRunWith(const char* float_arg)
+{
+    assert(float_arg != nullptr);
+    const auto& s_envVar = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    return (s_envVar.compare(float_arg) == 0);
+}

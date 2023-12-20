@@ -237,7 +237,6 @@ set( MIOpen_Source
     solver/fft.cpp
     solver/gemm.cpp
     solver/gemm_bwd.cpp
-    solver/gemm_common.cpp
     solver/gemm_wrw.cpp
     solver/norm/forward_layernorm.cpp
     solver/norm/forward_layernorm2d_ck.cpp
@@ -829,12 +828,7 @@ endif()
 #######################################
 if(MIOPEN_ENABLE_SQLITE)
     # MIOpen depends on SQLite
-    target_include_directories(MIOpen SYSTEM PRIVATE ${SQLITE3_STATIC_INCLUDE_DIRS})
-    target_include_directories(MIOpen SYSTEM INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_INCLUDE_DIRS}>)
-    target_compile_options(MIOpen PRIVATE ${SQLITE3_STATIC_CFLAGS})
-    target_compile_options(MIOpen INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_CFLAGS}>)
-    target_link_libraries(MIOpen PRIVATE ${SQLITE3_STATIC_LDFLAGS})
-    target_link_libraries(MIOpen INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_LDFLAGS}>)
+    target_link_libraries(MIOpen PRIVATE SQLite::SQLite3)
 endif()
 ############################################################
 # MIOpen depends on librt for Boost.Interprocess

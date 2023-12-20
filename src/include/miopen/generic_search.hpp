@@ -351,7 +351,7 @@ void CompileAgent(size_t thread_index,
         {
             if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
                 continue;
-            std::ignore = profile_h.LoadProgram(kernel.kernel_file, kernel.comp_options, false, "");
+            std::ignore = profile_h.LoadProgram(kernel.kernel_file, kernel.comp_options, "");
         }
         auto tup = std::make_tuple<PerformanceConfig, ConvSolution, bool>(
             std::move(current_config), std::move(current_solution), false);

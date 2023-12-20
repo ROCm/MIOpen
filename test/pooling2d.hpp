@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include <gtest/gtest.h>
 #include "pooling_common.hpp"
 
 #define WORKAROUND_ISSUE_1670 1
@@ -104,4 +105,12 @@ public:
         // clang-format on
         this->add(this->wsidx, "wsidx", this->generate_data({0, 1}));
     }
+};
+
+class Pooling2dFloat : public testing::TestWithParam<std::vector<std::string>>
+{
+};
+
+class Pooling2dHalf : public testing::TestWithParam<std::vector<std::string>>
+{
 };

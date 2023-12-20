@@ -29,19 +29,12 @@
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/env.hpp>
-#include "../conv2d.hpp"
 #include "get_handle.hpp"
+#include "test_env.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+#include "../conv2d.hpp"
 
 namespace conv_embed_db {
-
-static bool IsTestRunWith(const char* float_arg)
-{
-    assert(float_arg != nullptr);
-    const auto& s_envVar = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    return (s_envVar.compare(float_arg) == 0);
-}
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -151,7 +144,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 } // namespace conv_embed_db
 using namespace conv_embed_db;
 
-TEST_P(ConvEmbedConfigFloat, FloatTest)
+TEST_P(ConvEmbedConfigFloat, FloatTest_conv_embed_db)
 {
 #if MIOPEN_EMBED_DB
 
@@ -170,7 +163,7 @@ TEST_P(ConvEmbedConfigFloat, FloatTest)
 #endif
 };
 
-TEST_P(ConvEmbedConfigHalf, HalfTest)
+TEST_P(ConvEmbedConfigHalf, HalfTest_conv_embed_db)
 {
 #if MIOPEN_EMBED_DB
 
@@ -189,7 +182,7 @@ TEST_P(ConvEmbedConfigHalf, HalfTest)
 #endif
 };
 
-TEST_P(ConvEmbedConfigInt8, Int8Test)
+TEST_P(ConvEmbedConfigInt8, Int8Test_conv_embed_db)
 {
 #if MIOPEN_EMBED_DB
 
@@ -208,7 +201,7 @@ TEST_P(ConvEmbedConfigInt8, Int8Test)
 #endif
 };
 
-TEST_P(ConvEmbedConfigBFloat16, BFloat16Test)
+TEST_P(ConvEmbedConfigBFloat16, BFloat16Test_conv_embed_db)
 {
 #if MIOPEN_EMBED_DB
 
