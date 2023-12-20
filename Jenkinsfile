@@ -406,7 +406,7 @@ def CheckPerfDbValid(Map conf=[:]){
 ///   * The default compiler is usually not specified.
 /// BuildType := { Release* | Debug | Install } [ BuildTypeModifier ]
 ///   * BuildTypeModifier := { NOCOMGR | Embedded | Static | Normal-Find | Fast-Find
-///                            CK | MLIR | Tensile | Tensile-Latest | Package | ... }
+///                            CK | NOMLIR | Tensile | Tensile-Latest | Package | ... }
 /// TestSet := { All | Smoke* | Performance Dataset } [ Codecov ]
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
