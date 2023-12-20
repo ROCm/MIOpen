@@ -34,7 +34,7 @@
 #define FOUR 4
 #define EIGHT 8
 #if MIOPEN_USE_FP8 == 1
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef __HIP_PLATFORM_AMD__
 #define FLOAT hip_f8<miopen_f8::hip_f8_type::fp8>
 #define FLOAT_ACCUM float
 // HIP implements the correct operators for conversion
@@ -58,7 +58,7 @@
 #endif // MIOPEN_USE_FP8
 
 #if MIOPEN_USE_BFP8 == 1
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef __HIP_PLATFORM_AMD__
 #define FLOAT hip_f8<miopen_f8::hip_f8_type::bf8>
 #define FLOAT_ACCUM float
 #else
@@ -79,7 +79,7 @@
 // #endif
 #endif // MIOPEN_USE_BFP8
 
-#ifndef __HIP_PLATFORM_HCC__
+#ifndef __HIP_PLATFORM_AMD__
 #define _FLOAT2 PPCAT(_FLOAT, TWO)
 #define _FLOAT4 PPCAT(_FLOAT, FOUR)
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
@@ -99,19 +99,19 @@
 #endif
 
 #if MIOPEN_USE_DOUBLE_ACCUM
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef __HIP_PLATFORM_AMD__
 #define FLOAT_ACCUM double
 #else
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 #define _FLOAT_ACCUM double
-#endif // __HIP_PLATFORM_HCC__
+#endif // __HIP_PLATFORM_AMD__
 #define MAX_VAL_ACCUM DBL_MAX
 #else // MIOPEN_USE_DOUBLE_ACCUM
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef __HIP_PLATFORM_AMD__
 #define FLOAT_ACCUM float
 #else
 #define _FLOAT_ACCUM float
-#endif // __HIP_PLATFORM_HCC__
+#endif // __HIP_PLATFORM_AMD__
 #ifndef FLT_MAX
 #define MAX_VAL_ACCUM 3.402823466e+38F
 #else
@@ -120,12 +120,12 @@
 #endif // MIOPEN_USE_DOUBLE_ACCUM
 
 #if MIOPEN_USE_FP16 == 1
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef __HIP_PLATFORM_AMD__
 #define FLOAT _Float16
-#else // __HIP_PLATFORM_HCC__
+#else // __HIP_PLATFORM_AMD__
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
-#endif // __HIP_PLATFORM_HCC__
+#endif // __HIP_PLATFORM_AMD__
 #define SIZEOF_FLOAT 2
 // Max value for the main datatype
 #ifndef HALF_MAX
@@ -136,11 +136,11 @@
 #endif // MIOPEN_USE_FP16
 
 #if MIOPEN_USE_FP32 == 1
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef __HIP_PLATFORM_AMD__
 #define FLOAT float
 #else
 #define _FLOAT float
-#endif // __HIP_PLATFORM_HCC__
+#endif // __HIP_PLATFORM_AMD__
 #define SIZEOF_FLOAT 4
 // Max value for the main datatype
 #ifndef FLT_MAX
@@ -151,7 +151,7 @@
 #endif // MIOPEN_USE_FP32
 
 #if MIOPEN_USE_BFP16 == 1
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef __HIP_PLATFORM_AMD__
 #define FLOAT ushort
 #else
 #define _FLOAT ushort
@@ -162,7 +162,7 @@
 #endif // MIOPEN_USE_BFP16
 
 #if MIOPEN_USE_FP16 == 1
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef __HIP_PLATFORM_AMD__
 #define CVT_FLOAT2ACCUM(x) (static_cast<FLOAT_ACCUM>(x))
 #define CVT_ACCUM2FLOAT(x) (static_cast<FLOAT>(x))
 #define CVT_INTEGRAL2ACCUM(x) (static_cast<FLOAT_ACCUM>(x))
@@ -188,7 +188,7 @@
 /// refactoring should be considered as nontrivial and requires
 /// a separate PR. Let's keep this historical stuff for now.
 /// --atamazov 30.08.2023
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef __HIP_PLATFORM_AMD__
 #define CVT_FLOAT2ACCUM(x) (static_cast<FLOAT_ACCUM>(x))
 #define CVT_ACCUM2FLOAT(x) (static_cast<FLOAT>(x))
 #define CVT_INTEGRAL2ACCUM(x) (static_cast<FLOAT_ACCUM>(x))
@@ -202,7 +202,7 @@
 #endif // MIOPEN_USE_FP32
 
 #if MIOPEN_USE_BFP16 == 1
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef __HIP_PLATFORM_AMD__
 #define CVT_FLOAT2ACCUM(x) MIOPEN_ERROR_NOT_IMLEMENTED
 #define CVT_ACCUM2FLOAT(x) MIOPEN_ERROR_NOT_IMLEMENTED
 #define CVT_INTEGRAL2ACCUM(x) MIOPEN_ERROR_NOT_IMLEMENTED
@@ -232,7 +232,7 @@
 #endif
 
 #if MIOPEN_USE_NATIVE_DATATYPE_ACCUM
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef __HIP_PLATFORM_AMD__
 #undef FLOAT_ACCUM
 #define FLOAT_ACCUM MIOPEN_ERROR_NOT_IMLEMENTED
 #else
@@ -250,7 +250,7 @@
 #define CVT_FP32_2ACCUM(x) (CVT_FP32_2FLOAT(x))
 
 #undef CVT_INTEGRAL2ACCUM
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef __HIP_PLATFORM_AMD__
 #define CVT_INTEGRAL2ACCUM(x) MIOPEN_ERROR_NOT_IMLEMENTED
 #else
 #if MIOPEN_USE_BFP16 == 1
