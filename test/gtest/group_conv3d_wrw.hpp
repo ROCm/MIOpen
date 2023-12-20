@@ -27,8 +27,7 @@
 
 #include "conv3d_test_case.hpp"
 
-/*
-static int SetTensorLayout(miopen::TensorDescriptor& desc)
+inline int SetTensorLayout(miopen::TensorDescriptor& desc)
 {
     // get layout string names
     std::string layout_str = desc.GetLayout_str();
@@ -39,7 +38,6 @@ static int SetTensorLayout(miopen::TensorDescriptor& desc)
     // set the strides for the tensor
     return SetTensorNd(&desc, int_lens, layout_str, desc.GetType());
 }
-*/
 
 template <typename T = float>
 struct ConvWrwSolverTest
