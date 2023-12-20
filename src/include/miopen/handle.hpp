@@ -63,13 +63,11 @@
 #endif
 #endif
 
+#define FIN_OLD_HANDLE_COMPAT 1
+
 namespace miopen {
 
 struct HandleImpl;
-#if MIOPEN_USE_MIOPENGEMM
-struct GemmGeometry;
-using GemmKey = std::pair<std::string, std::string>;
-#endif
 
 #if MIOPEN_USE_ROCBLAS
 using rocblas_handle_ptr = MIOPEN_MANAGE_PTR(rocblas_handle, rocblas_destroy_handle);
@@ -109,7 +107,6 @@ struct MIOPEN_EXPORT Handle : miopenHandle
                            const std::vector<size_t>& vgd,
                            const std::string& params,
                            std::size_t cache_index       = 0,
-                           bool is_kernel_str            = false,
                            const std::string& kernel_src = "") const;
 
     void ClearKernels(const std::string& algorithm, const std::string& network_config) const;
@@ -136,8 +133,17 @@ struct MIOPEN_EXPORT Handle : miopenHandle
 
     Program LoadProgram(const std::string& program_name,
                         std::string params,
-                        bool is_kernel_str,
                         const std::string& kernel_src) const;
+
+#if FIN_OLD_HANDLE_COMPAT
+    Program LoadProgram(const std::string& program_name,
+                        std::string params,
+                        bool,
+                        const std::string& kernel_src) const
+    {
+        return LoadProgram(program_name, params, kernel_src);
+    }
+#endif
 
     bool HasProgram(const std::string& program_name, const std::string& params) const;
     void ClearProgram(const std::string& program_name, const std::string& params) const;
@@ -225,9 +231,6 @@ public:
 
     std::unique_ptr<HandleImpl> impl;
     std::unordered_map<std::string, std::vector<miopenConvSolution_t>> find_map;
-#if MIOPEN_USE_MIOPENGEMM
-    std::unordered_map<GemmKey, std::unique_ptr<GemmGeometry>, SimpleHash> geo_map;
-#endif
 
     Invoker PrepareInvoker(const InvokerFactory& factory,
                            const std::vector<solver::KernelInfo>& kernels) const;

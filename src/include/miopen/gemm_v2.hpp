@@ -124,11 +124,11 @@ struct GemmDescriptor
 miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
                                    GemmDescriptor gemm_desc,
                                    ConstData_t A,
-                                   int a_offset,
+                                   std::size_t a_offset,
                                    ConstData_t B,
-                                   int b_offset,
+                                   std::size_t b_offset,
                                    Data_t C,
-                                   int c_offset,
+                                   std::size_t c_offset,
                                    bool time_precision,
                                    CallGemmType_t call_gemm_type,
                                    GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
@@ -137,33 +137,33 @@ MIOPEN_EXPORT
 miopenStatus_t CallGemm(const Handle& handle,
                         GemmDescriptor gemm_desc,
                         ConstData_t A,
-                        int a_offset,
+                        std::size_t a_offset,
                         ConstData_t B,
-                        int b_offset,
+                        std::size_t b_offset,
                         Data_t C,
-                        int c_offset,
+                        std::size_t c_offset,
                         GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
 
 MIOPEN_EXPORT
 miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                       GemmDescriptor gemm_desc,
                                       ConstData_t A,
-                                      int a_offset,
+                                      std::size_t a_offset,
                                       ConstData_t B,
-                                      int b_offset,
+                                      std::size_t b_offset,
                                       Data_t C,
-                                      int c_offset,
+                                      std::size_t c_offset,
                                       GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
 
 miopenStatus_t
 CallGemmStridedBatchedSequential(const Handle& handle,
                                  GemmDescriptor gemm_desc,
                                  ConstData_t A,
-                                 int a_offset,
+                                 std::size_t a_offset,
                                  ConstData_t B,
-                                 int b_offset,
+                                 std::size_t b_offset,
                                  Data_t C,
-                                 int c_offset,
+                                 std::size_t c_offset,
                                  GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
 
 // GEMM parameters for Convolution (using Im2Col) Fwd

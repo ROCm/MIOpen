@@ -238,7 +238,6 @@ set( MIOpen_Source
     solver/fft.cpp
     solver/gemm.cpp
     solver/gemm_bwd.cpp
-    solver/gemm_common.cpp
     solver/gemm_wrw.cpp
     solver/norm/forward_layernorm.cpp
     solver/norm/forward_layernorm2d_ck.cpp
