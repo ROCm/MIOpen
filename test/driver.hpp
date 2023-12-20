@@ -688,7 +688,8 @@ struct test_driver
                               << out_gpu[gpu_nan_idx] << std::endl;
                 }
             }
-            else if(miopen::range_zero(out_cpu) and miopen::range_zero(out_gpu))
+            else if(miopen::range_zero(out_cpu) and miopen::range_zero(out_gpu) and
+                    (miopen::range_distance(out_cpu) != 0))
             {
                 show_command();
                 std::cout << "Warning: Both CPU and GPU data is all zero" << std::endl;
