@@ -27,7 +27,6 @@
 #include <miopen/pooling.hpp>
 
 #include <miopen/pooling/invoke_params.hpp>
-#include <miopen/pooling/problem_description.hpp>
 #include <miopen/pooling/solvers.hpp>
 #include <miopen/check_numerics.hpp>
 #include <miopen/datatype.hpp>
@@ -42,6 +41,7 @@ static auto PoolingForwardSolvers()
 {
     return solver::SolverContainer<solver::pooling::PoolingForward2d,
                                    solver::pooling::PoolingForwardNd,
+                                   solver::pooling::PoolingForwardNaive,
                                    solver::pooling::TransposedPoolingFwd2d,
                                    solver::pooling::TransposedPoolingFwdNd>{};
 }
@@ -63,7 +63,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
                                           Data_t y,
                                           bool save_index,
                                           Data_t workSpace,
-                                          size_t /*workSpaceSize*/) const
+                                          size_t workSpaceSize) const
 {
 
     if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
@@ -88,24 +88,21 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
 
     auto index_max = get_index_max(GetIndexType());
 
-    // for kernel implementation max pooling backward pass,
-    //   "index_max" means ghost, and thus should not be reached
+    /// \anchor max_pooling_index_max_restriction
+    /// For kernel implementation max pooling backward pass,
+    /// "index_max" means ghost, and thus should not be reached.
     if(mode == miopenPoolingMax && save_index)
     {
-        if((workspaceIndexMode == miopenPoolingWorkspaceIndexMask &&
-            !(index_max >= std::accumulate(lens.begin(), lens.end(), 1, std::multiplies<int>()))) ||
-           (workspaceIndexMode == miopenPoolingWorkspaceIndexImage &&
-            !(index_max >= std::accumulate(xDesc.GetLengths().begin() + 2,
-                                           xDesc.GetLengths().end(),
-                                           1,
-                                           std::multiplies<int>()))))
+        if((workspaceIndexMode == miopenPoolingWorkspaceIndexMask                                 //
+            && index_max <= std::accumulate(lens.begin(), lens.end(), 1, std::multiplies<int>())) //
+           ||                                                                                     //
+           (workspaceIndexMode == miopenPoolingWorkspaceIndexImage                                //
+            && index_max <= std::accumulate(xDesc.GetLengths().begin() + 2,
+                                            xDesc.GetLengths().end(),
+                                            1,
+                                            std::multiplies<int>())))
         {
             MIOPEN_THROW("Index range not enough for max pooling bwd");
-        }
-
-        if(workspaceIndexMode == miopenPoolingWorkspaceIndexMask && pool_dim == 5)
-        {
-            MIOPEN_THROW("3D pooling doesn't support workspace index mask mode");
         }
 
         if(workSpace == nullptr)
@@ -115,19 +112,20 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
         }
     }
 
-    const auto algo_name =
-        AlgorithmName{pool_dim == 5 ? "miopenPoolingNdForward" : "miopenPooling2dForward"};
-    const auto problem = pooling::ProblemDescription{*this, xDesc, yDesc, save_index};
+    // So far, all pooling solvers implement the Direct (trivial) computation algorithm.
+    const auto algo_name = AlgorithmName{"miopenPoolingForwardDirect"};
+    const auto problem   = pooling::ProblemDescription{*this, xDesc, yDesc, save_index};
 
     const auto invoke_params = [&]() {
-        auto tmp      = pooling::FwdInvokeParams{};
-        tmp.type      = InvokeType::Run;
-        tmp.xDesc     = xDesc;
-        tmp.yDesc     = yDesc;
-        tmp.pooling   = *this;
-        tmp.x         = x;
-        tmp.y         = y;
-        tmp.workspace = workSpace;
+        auto tmp           = pooling::FwdInvokeParams{};
+        tmp.type           = InvokeType::Run;
+        tmp.xDesc          = xDesc;
+        tmp.yDesc          = yDesc;
+        tmp.pooling        = *this;
+        tmp.x              = x;
+        tmp.y              = y;
+        tmp.workspace      = workSpace;
+        tmp.workspace_size = workSpaceSize;
         return tmp;
     }();
 
@@ -179,9 +177,8 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
         MIOPEN_THROW("Unsupported pooling dimension");
     }
 
-    const auto problem = pooling::ProblemDescription{*this, xDesc, yDesc, dxDesc, dyDesc};
-    const auto algo_name =
-        AlgorithmName{pool_dim == 5 ? "miopenPoolingNdBackward" : "miopenPooling2dBackward"};
+    const auto problem   = pooling::ProblemDescription{*this, xDesc, yDesc, dxDesc, dyDesc};
+    const auto algo_name = AlgorithmName{"miopenPoolingBackwardDirect"};
 
     const auto invoke_params = [&]() {
         auto tmp      = pooling::BwdInvokeParams{};

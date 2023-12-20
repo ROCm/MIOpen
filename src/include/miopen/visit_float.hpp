@@ -28,7 +28,11 @@
 #define GUARD_MLOPEN_VISIT_FLOAT_HPP
 
 #include <miopen/miopen.h>
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
 #include <half.hpp>
+#endif
 #include <miopen/bfloat16.hpp>
 
 namespace miopen {
@@ -73,7 +77,8 @@ void visit_float(miopenDataType_t t, F f)
         f(as_float<bfloat16>{});
         break;
     }
-    case miopenInt8x4:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8: {
         f(as_float<int8_t>{});
         break;
@@ -86,6 +91,7 @@ void visit_float(miopenDataType_t t, F f)
         f(as_float<double>{});
         break;
     }
+    case miopenInt8x4: MIOPEN_THROW("miopenInt8x4: Support discontinued.");
     }
 }
 

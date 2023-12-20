@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include <miopen/problem_description_base.hpp>
 #include <miopen/activ.hpp>
 #include <miopen/tensor.hpp>
 
@@ -45,7 +46,7 @@ enum class Direction
     Backward,
 };
 
-struct ProblemDescription
+struct ProblemDescription : ProblemDescriptionBase
 {
     // Forward
     ProblemDescription(miopenBatchNormMode_t bn_mode_,
@@ -83,6 +84,8 @@ struct ProblemDescription
           scaleBiasDesc(bnScaleBiasMeanVarDesc_),
           epsilon(epsilon_)
     {
+        in_layout  = xDesc.GetLayout(xDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
+        out_layout = yOrDyDesc.GetLayout(yOrDyDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
     }
 
     // Backward
@@ -175,14 +178,6 @@ struct ProblemDescription
 
     NetworkConfig MakeNetworkConfig() const;
 
-    void Serialize(std::ostream& stream) const;
-
-    friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
-    {
-        obj.Serialize(os);
-        return os;
-    }
-
 private:
     Direction direction;
     miopenBatchNormMode_t bn_mode;
@@ -190,8 +185,19 @@ private:
     TensorDescriptor yOrDyDesc;
     TensorDescriptor dxDesc;
     TensorDescriptor scaleBiasDesc;
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-private-field"
+#endif
+
     double expAvgFactor = 0;
     double epsilon;
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
     bool resultsave        = false;
     bool resultrunning     = false;
     bool useSaved          = false;

@@ -38,6 +38,7 @@
 #include "driver.hpp"
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
+#include "random.hpp"
 #include "verify.hpp"
 
 std::string to_name(miopenActivationMode_t m)
@@ -304,6 +305,12 @@ struct activation_driver : test_driver
     void run(miopenActivationMode_t m, Forward f, Backward b)
     {
         auto desc = make_descriptor(m);
+
+        auto gen_sign_value = [=](auto... is) {
+            return prng::gen_A_to_B(-4., 4.) * tensor_elem_gen_checkboard_sign{}(is...);
+        };
+        input.generate(gen_sign_value);
+
         auto out  = verify(verify_forward_activation<T>{input, desc}, f);
         auto dout = out.first;
         dout.generate([&](int n, int c, int h, int w) {

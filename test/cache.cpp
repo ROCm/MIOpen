@@ -30,9 +30,11 @@
 
 #include <miopen/md5.hpp>
 #include "test.hpp"
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
 #include "random.hpp"
+#endif
 
-#if MIOPEN_ENABLE_SQLITE
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
 std::string random_string(size_t length)
 {
     auto randchar = []() -> char {
@@ -40,7 +42,7 @@ std::string random_string(size_t length)
                                "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                "abcdefghijklmnopqrstuvwxyz";
         const size_t max_index = (sizeof(charset) - 1);
-        return charset[GET_RAND() % max_index];
+        return charset[prng::gen_0_to_B(max_index)];
     };
     std::string str(length, 0);
     std::generate_n(str.begin(), length, randchar);
@@ -52,6 +54,7 @@ void check_bz2_compress()
     std::string to_compress;
     bool success = false;
     std::string cmprsd;
+    // NOLINTNEXTLINE (bugprone-assignment-in-if-condition)
     CHECK(throws([&]() { cmprsd = miopen::compress(to_compress, &success); }));
 
     to_compress = random_string(4096);
@@ -68,6 +71,7 @@ void check_bz2_decompress()
     std::string empty_string;
 
     std::string decompressed_str;
+    // NOLINTNEXTLINE (bugprone-assignment-in-if-condition)
     CHECK(throws([&]() { decompressed_str = miopen::decompress(empty_string, 0); }));
 
     auto orig_str = random_string(4096);
@@ -79,6 +83,7 @@ void check_bz2_decompress()
     decompressed_str = miopen::decompress(compressed_str, orig_str.size());
     EXPECT(decompressed_str == orig_str);
 
+    // NOLINTNEXTLINE (bugprone-assignment-in-if-condition)
     CHECK(throws([&]() { decompressed_str = miopen::decompress(compressed_str, 10); }));
 
     EXPECT(decompressed_str == miopen::decompress(compressed_str, orig_str.size() + 10));
@@ -149,7 +154,7 @@ int main()
 {
     check_cache_file();
     check_cache_str();
-#if MIOPEN_ENABLE_SQLITE
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
     check_bz2_compress();
     check_bz2_decompress();
     check_kern_db();

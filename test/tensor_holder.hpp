@@ -33,8 +33,21 @@
 #include <miopen/type_name.hpp>
 #include <miopen/each_args.hpp>
 #include <miopen/bfloat16.hpp>
+#include "../driver/random.hpp"
 
+#include "serialize.hpp"
+
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
 #include <half.hpp>
+#endif
+using half         = half_float::half;
+using hip_bfloat16 = bfloat16;
+#include <miopen/hip_float8.hpp>
+using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
+using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
+
 #include <iomanip>
 #include <fstream>
 
@@ -103,13 +116,32 @@ struct miopen_type<int> : std::integral_constant<miopenDataType_t, miopenInt32>
 {
 };
 
+template <>
+struct miopen_type<float8> : std::integral_constant<miopenDataType_t, miopenFloat8>
+{
+};
+
+template <>
+struct miopen_type<bfloat8> : std::integral_constant<miopenDataType_t, miopenBFloat8>
+{
+};
+
 template <class T>
 struct tensor
 {
     miopen::TensorDescriptor desc;
     std::vector<T> data;
 
-    tensor() : desc(miopen_type<T>{}, {}) {}
+#if defined(__clang__) || defined(__GNUG__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
+    tensor() : desc(miopen_type<T>{}) {}
+
+#if defined(__clang__) || defined(__GNUG__)
+#pragma GCC diagnostic pop
+#endif
 
     template <class X>
     tensor(const std::vector<X>& dims) : desc(miopen_type<T>{}, dims), data(desc.GetElementSpace())
@@ -163,9 +195,10 @@ struct tensor
 
     tensor(miopen::TensorDescriptor rhs) : desc(std::move(rhs))
     {
-        assert(rhs.GetType() == miopen_type<T>{} ||
-               ((miopen_type<T>{} == miopenInt8 || miopen_type<T>{} == miopenInt8x4) &&
-                rhs.GetType() == miopenFloat));
+        assert(desc.GetType() == miopen_type<T>{}    //
+               || (miopen_type<T>{} == miopenInt8    //
+                   && (desc.GetType() == miopenFloat //
+                       || desc.GetType() == miopenInt32)));
         data.resize(desc.GetElementSpace());
     }
 
@@ -201,7 +234,7 @@ struct tensor
                                     });
         seed ^= data.size();
         seed ^= desc.GetLengths().size();
-        std::srand(seed);
+        prng::reset_seed(seed);
         auto iterator = data.begin();
         auto assign   = [&](T x) {
             *iterator = x;
@@ -223,7 +256,7 @@ struct tensor
                                     });
         seed ^= data.size();
         seed ^= desc.GetLengths().size();
-        std::srand(seed);
+        prng::reset_seed(seed);
         auto iterator     = data.begin();
         auto vectorLength = desc.GetVectorLength();
         auto assign       = [&](T x) {
@@ -392,23 +425,14 @@ tensor<T> make_tensor(std::initializer_list<std::size_t> dims, G g)
 template <class T>
 tensor<T> make_tensor(const std::vector<std::size_t>& dims)
 {
-    std::vector<int> tmpDims;
-
-    tmpDims.resize(dims.size());
-
-    for(int i = 0; i < tmpDims.size(); i++)
-        tmpDims[i] = static_cast<int>(dims[i]);
-
-    return tensor<T>{miopen::TensorDescriptor{
-        miopen_type<T>{}, tmpDims.data(), static_cast<int>(tmpDims.size())}};
+    return tensor<T>{miopen::TensorDescriptor{miopen_type<T>{}, dims}};
 };
 
 template <class T, class X>
 tensor<T> make_tensor(const std::vector<X>& dims)
 {
     // TODO: Compute float
-    return tensor<T>{
-        miopen::TensorDescriptor{miopen_type<T>{}, dims.data(), static_cast<int>(dims.size())}};
+    return tensor<T>{miopen::TensorDescriptor{miopen_type<T>{}, dims}};
 }
 
 template <class T, class X, class G>
@@ -519,5 +543,23 @@ void generate_unary_one(F f, std::vector<int> input, G g)
 {
     f(make_tensor<T>(input, g));
 }
+
+struct tensor_elem_gen_integer
+{
+    uint64_t max_value = 17;
+
+    template <class... Ts>
+    double operator()(Ts... Xs) const
+    {
+        static_assert(sizeof...(Ts) < 6,
+                      "Dimensions in tensor_elem_gen_integer must be less than 6.");
+        assert(max_value > 0);
+        std::array<uint64_t, sizeof...(Ts)> left = {{Xs...}};
+        std::array<uint64_t, 5> right            = {{613, 547, 701, 877, 1049}};
+        uint64_t dot =
+            std::inner_product(left.begin(), left.end(), right.begin(), static_cast<uint64_t>(173));
+        return static_cast<double>(dot % max_value);
+    }
+};
 
 #endif

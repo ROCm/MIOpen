@@ -73,6 +73,9 @@ struct TransposeInvokeParams : InvokeParams
         : in(in_), out(out_), in_desc(in_desc_), out_desc(out_desc_)
     {
     }
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
 };
 
 struct TransposePseudoSolver
@@ -81,6 +84,10 @@ struct TransposePseudoSolver
     virtual std::string GetTranspose() const                                = 0;
     virtual ConvSolution GetSolution(const ExecutionContext& ctx,
                                      const TransposeProblem& problem) const = 0;
+
+protected:
+    TransposePseudoSolver()                             = default;
+    TransposePseudoSolver(const TransposePseudoSolver&) = default;
 };
 
 template <class Derived, class Interface>
@@ -192,9 +199,9 @@ struct UniversalTransposeSolver : TransposePseudoSolver
             const auto kernel = kernels.front();
             return [kernel](const Handle& handle, const AnyInvokeParams& any_params) {
                 const auto& params      = any_params.CastTo<TransposeInvokeParams>();
-                const auto& lens        = GetNCDHW<unsigned long>(params.in_desc.GetLengths());
-                const auto& in_strides  = GetNCDHW<unsigned long>(params.in_desc.GetStrides());
-                const auto& out_strides = GetNCDHW<unsigned long>(params.out_desc.GetStrides());
+                const auto& lens        = GetNCDHW<uint64_t>(params.in_desc.GetLengths());
+                const auto& in_strides  = GetNCDHW<uint64_t>(params.in_desc.GetStrides());
+                const auto& out_strides = GetNCDHW<uint64_t>(params.out_desc.GetStrides());
 
                 // clang-format off
                 handle.Run(kernel)(

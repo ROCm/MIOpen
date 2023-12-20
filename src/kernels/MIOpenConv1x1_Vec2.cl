@@ -224,9 +224,11 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
                                       MLO_WEI_CHANNEL_STRIDE);
 #endif
 
-            _FLOAT2 wei_val = (_FLOAT2)(
-                (wei_off_r.x < MLO_N_OUTPUTS * MLO_N_INPUTS) ? wei_ptr[wei_off_r.x] : (_FLOAT)0,
-                (wei_off_r.y < MLO_N_OUTPUTS * MLO_N_INPUTS) ? wei_ptr[wei_off_r.y] : (_FLOAT)0);
+            _FLOAT2 wei_val =
+                (_FLOAT2)((wei_off_r.x < MLO_N_OUTPUTS * MLO_N_INPUTS) ? wei_ptr[wei_off_r.x]
+                                                                       : (_FLOAT)0,
+                          (wei_off_r.y < MLO_N_OUTPUTS * MLO_N_INPUTS) ? wei_ptr[wei_off_r.y]
+                                                                       : (_FLOAT)0);
             lcl_wei_stage[w].x = wei_val.x;
 #if MLO_IN_LOOP % (2 * MLO_WEIGHTS_PER_LOOP) <= MLO_WEIGHTS_PER_LOOP && \
     MLO_IN_LOOP % (2 * MLO_WEIGHTS_PER_LOOP) > 0

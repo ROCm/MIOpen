@@ -54,8 +54,8 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
 
-    unsigned int in_cstride = h * w;
-    unsigned int in_nhw     = n * in_cstride;
+    const unsigned int in_cstride = h * w;
+    const unsigned int in_nhw     = n * in_cstride;
 
     size_t xlocalsize = 1024;
     if(((in_cstride < 256) && (n < 256)) || ((in_cstride < 100) && (n <= 256)))
@@ -285,12 +285,12 @@ NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
                 if(bfp32parm)
                 {
                     xlocalsize = 1024;
-                    xgridsize  = 1024 * c;
+                    xgridsize  = 1024 * static_cast<size_t>(c);
                 }
                 else
                 {
                     xlocalsize = 256;
-                    xgridsize  = 256 * c;
+                    xgridsize  = 256 * static_cast<size_t>(c);
                 }
                 ldsgcn = xlocalsize / 64;
             }
@@ -329,10 +329,10 @@ NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
     }
     else
     {
-        ylocalsize           = (64 >= in_cstride) ? 64 : 256;
-        unsigned int segment = std::ceil(double(in_cstride) / double(ylocalsize));
-        xgridsize            = c;
-        ygridsize            = segment * ylocalsize;
+        ylocalsize                 = (64 >= in_cstride) ? 64 : 256;
+        const unsigned int segment = std::ceil(double(in_cstride) / double(ylocalsize));
+        xgridsize                  = c;
+        ygridsize                  = segment * ylocalsize;
 
         ss << "gx" << xgridsize;
         ss << "gy" << ygridsize;

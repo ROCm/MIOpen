@@ -81,12 +81,27 @@ std::string GetSystemDbPath()
 }
 
 namespace {
-std::string PrepareUserDbPath()
+boost::filesystem::path PrepareUserDbPath()
 {
-    auto p = GetStringEnv(MIOPEN_USER_DB_PATH{});
-    if(p == nullptr)
-        p = "${MIOPEN_USER_DB_PATH}";
-    return ExpandUser(p);
+    /// If MIOPEN_USER_DB_PATH is set in the environment, then assume that the user wants
+    /// the library to use exactly that path.
+    const auto p = GetStringEnv(MIOPEN_USER_DB_PATH{});
+    if(p != nullptr)
+        return ExpandUser(p);
+    /// \anchor nfs-detection
+    /// Otherwise, check if the user-db-path denotes a network filesystem. If this is the case, then
+    /// let's assume that the library is running on a cluster system, where home directory is shared
+    /// between all the nodes. In order to prevent the slowdown due to concurrent file access, let's
+    /// use the local temporary directory.
+    /// WARNING: This makes all the library's user databases non-persistent. However, for now, we
+    /// assume that the performance hit associated with the usage of shared home dir is worse than
+    /// the deletion of user databases.
+    const auto udb_path = ExpandUser("${MIOPEN_USER_DB_PATH}");
+#if !MIOPEN_BUILD_DEV
+    if(IsNetworkedFilesystem(udb_path))
+        return boost::filesystem::temp_directory_path();
+#endif
+    return udb_path;
 }
 } // namespace
 
@@ -94,7 +109,7 @@ std::string GetUserDbSuffix() { return "${MIOPEN_USER_DB_SUFFIX}"; }
 
 std::string GetSystemFindDbSuffix() { return "${MIOPEN_SYSTEM_FIND_DB_SUFFIX}"; }
 
-const std::string& GetUserDbPath()
+const boost::filesystem::path& GetUserDbPath()
 {
     static const auto instance = PrepareUserDbPath();
     return instance;

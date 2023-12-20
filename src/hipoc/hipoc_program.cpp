@@ -254,7 +254,12 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
         if(miopen::IsEnabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP{}))
             params += " -mwavefrontsize64 -mcumode";
         WriteFile(src, dir->path / filename);
-        dir->Execute(HIP_OC_COMPILER, params + " " + filename + " -o " + hsaco_file.string());
+        params += " -target amdgcn-amd-amdhsa -x cl -D__AMD__=1  -O3";
+        params += " -cl-kernel-arg-info -cl-denorms-are-zero";
+        params += " -cl-std=CL1.2 -mllvm -amdgpu-early-inline-all";
+        params += " -mllvm -amdgpu-internalize-symbols ";
+        params += " " + filename + " -o " + hsaco_file.string();
+        dir->Execute(HIP_OC_COMPILER, params);
     }
     if(!boost::filesystem::exists(hsaco_file))
         MIOPEN_THROW("Cant find file: " + hsaco_file.string());
@@ -306,7 +311,7 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params,
 {
     std::string filename = is_kernel_str ? "tinygemm.cl" // Fixed name for miopengemm.
                                          : program;
-    const auto src = [&]() -> std::string {
+    const auto src       = [&]() -> std::string {
         if(miopen::EndsWith(filename, ".mlir"))
             return {}; // MLIR solutions do not use source code.
         if(!kernel_src.empty())
@@ -316,23 +321,20 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params,
         return GetKernelSrc(program);
     }();
 
+#if MIOPEN_BUILD_DEV
     if(miopen::EndsWith(filename, ".cpp"))
     {
-#if MIOPEN_BUILD_DEV
         params += " -Werror" + HipKernelWarningsString();
-#else
-        params += " -Wno-everything";
-#endif
     }
     else if(miopen::EndsWith(filename, ".cl"))
     {
-#if MIOPEN_BUILD_DEV
         params +=
             " -Werror" + (is_kernel_str ? MiopengemmWarningsString() : OclKernelWarningsString());
+    }
 #else
+    if(miopen::EndsWith(filename, ".cpp") || miopen::EndsWith(filename, ".cl"))
         params += " -Wno-everything";
 #endif
-    }
 
 #if MIOPEN_USE_COMGR /// \todo Refactor when functionality stabilize.
     BuildCodeObjectInMemory(params, src, filename);

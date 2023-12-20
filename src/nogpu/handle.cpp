@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/common.hpp"
 #include <miopen/config.h>
 #include <miopen/handle.hpp>
 #include <miopen/binary_cache.hpp>
@@ -69,6 +70,9 @@ Handle::~Handle() {}
 
 void Handle::SetStream(miopenAcceleratorQueue_t /* streamID */) const {}
 
+void Handle::SetStreamFromPool(int) const {}
+void Handle::ReserveExtraStreamsInPool(int) const {}
+
 miopenAcceleratorQueue_t Handle::GetStream() const { return {}; }
 
 void Handle::SetAllocator(miopenAllocatorFunction /* allocator */,
@@ -94,6 +98,8 @@ void Handle::ReadTo(void* /* data */,
                     std::size_t /* sz */) const
 {
 }
+
+void Handle::ReadTo(void* /* data */, ConstData_t /* ddata */, std::size_t /* sz */) const {}
 
 void Handle::Copy(ConstData_t /* src */, Data_t /* dest */, std::size_t /* size */) const {}
 
@@ -156,11 +162,6 @@ const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
                                                   const std::string& network_config) const
 {
     return this->impl->cache.GetKernels(algorithm, network_config);
-}
-
-bool Handle::HasKernel(const std::string& algorithm, const std::string& network_config) const
-{
-    return this->impl->cache.HasKernels(algorithm, network_config);
 }
 
 KernelInvoke Handle::Run(Kernel /* k */) const { return {}; }
@@ -286,7 +287,10 @@ shared<ConstData_t> Handle::CreateSubBuffer(ConstData_t data, std::size_t offset
 }
 
 #if MIOPEN_USE_ROCBLAS
-rocblas_handle_ptr Handle::CreateRocblasHandle() const
+
+const rocblas_handle_ptr& Handle::rhandle() const { return this->impl->rhandle_; }
+
+rocblas_handle_ptr Handle::CreateRocblasHandle(miopenAcceleratorQueue_t) const
 {
     rocblas_handle x = nullptr;
     rocblas_create_handle(&x);

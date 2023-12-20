@@ -267,8 +267,9 @@ void readDataTileVec2(__local _FLOAT2* lcl_data,
                 (invis) ? (_FLOAT2)(padding_val) : (_FLOAT2)(gbl_data[g_off.x], gbl_data[g_off.y]);
 #else
             lcl_data[y_lcl_off + i].x = (invis) ? padding_val : gbl_data[g_off.x];
-            lcl_data[y_lcl_off + i].y =
-                (IsLast) ? (_FLOAT)0 : (invis) ? padding_val : gbl_data[g_off.y];
+            lcl_data[y_lcl_off + i].y = (IsLast)  ? (_FLOAT)0
+                                        : (invis) ? padding_val
+                                                  : gbl_data[g_off.y];
 #endif
         }
     }

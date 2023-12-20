@@ -1230,7 +1230,7 @@ amdhsa.kernels:
     .max_flat_workgroup_size: \wg_x
     .wavefront_size: 64
     .args:
-    - { .size: 4, .offset:  0, .value_kind: by_value, .value_type: i32, .name: N }
+    - { .size: 4, .offset:  0, .value_kind: by_value, .value_type: i32, .name: BATCHSIZE }
     - { .size: 4, .offset:  4, .value_kind: by_value, .value_type: i32, .name: C }
     - { .size: 4, .offset:  8, .value_kind: by_value, .value_type: i32, .name: H }
     - { .size: 4, .offset: 12, .value_kind: by_value, .value_type: i32, .name: W }
@@ -1240,7 +1240,7 @@ amdhsa.kernels:
     - { .size: 4, .offset: 28, .value_kind: by_value, .value_type: i32, .name: unused_1 }
     - { .size: 8, .offset: 32, .value_kind: global_buffer, .value_type: f32, .name: x,        .address_space: global, .is_const: true }
     - { .size: 8, .offset: 40, .value_kind: global_buffer, .value_type: f32, .name: w,        .address_space: global, .is_const: true }
-    - { .size: 8, .offset: 48, .value_kind: global_buffer, .value_type: f32, .name: y,        .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 48, .value_kind: global_buffer, .value_type: f32, .name: y_,        .address_space: global, .is_const: false }
     - { .size: 8, .offset: 56, .value_kind: global_buffer, .value_type: i32, .name: ret_addr, .address_space: global, .is_const: false }
 ...
 .end_amdgpu_metadata
@@ -1270,7 +1270,7 @@ amdhsa.kernels:
     - { .size: 2, .offset:  4, .value_kind: by_value, .value_type: f16, .name: gamma }
     - { .size: 2, .offset:  6, .value_kind: by_value, .value_type: f16, .name: unused }
     - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32, .name: x,        .address_space: global, .is_const: true }
-    - { .size: 8, .offset: 16, .value_kind: global_buffer, .value_type: f32, .name: y,        .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 16, .value_kind: global_buffer, .value_type: f32, .name: y_,        .address_space: global, .is_const: false }
     - { .size: 8, .offset: 24, .value_kind: global_buffer, .value_type: f32, .name: w,        .address_space: global, .is_const: true }
     - { .size: 8, .offset: 32, .value_kind: global_buffer, .value_type: f16, .name: bias,     .address_space: global, .is_const: true }
 ...
@@ -1301,7 +1301,7 @@ amdhsa.kernels:
     - { .size: 4, .offset:  8, .value_kind: by_value, .value_type: f32, .name: gamma }
     - { .size: 4, .offset: 12, .value_kind: by_value, .value_type: f32, .name: unused }
     - { .size: 8, .offset: 16, .value_kind: global_buffer, .value_type: f32, .name: x,        .address_space: global, .is_const: true }
-    - { .size: 8, .offset: 24, .value_kind: global_buffer, .value_type: f32, .name: y,        .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 24, .value_kind: global_buffer, .value_type: f32, .name: y_,        .address_space: global, .is_const: false }
     - { .size: 8, .offset: 32, .value_kind: global_buffer, .value_type: f32, .name: w,        .address_space: global, .is_const: true }
     - { .size: 8, .offset: 40, .value_kind: global_buffer, .value_type: f32, .name: bias,     .address_space: global, .is_const: true }
 ...
@@ -1332,7 +1332,7 @@ amdhsa.kernels:
     - { .size: 4, .offset:  8, .value_kind: by_value, .value_type: f32, .name: gamma }
     - { .size: 4, .offset: 12, .value_kind: by_value, .value_type: f32, .name: unused }
     - { .size: 8, .offset: 16, .value_kind: global_buffer, .value_type: f32, .name: x,        .address_space: global, .is_const: true }
-    - { .size: 8, .offset: 24, .value_kind: global_buffer, .value_type: f32, .name: y,        .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 24, .value_kind: global_buffer, .value_type: f32, .name: y_,        .address_space: global, .is_const: false }
     - { .size: 8, .offset: 32, .value_kind: global_buffer, .value_type: f32, .name: w,        .address_space: global, .is_const: true }
 ...
 .end_amdgpu_metadata
@@ -1362,7 +1362,7 @@ amdhsa.kernels:
     - { .size: 2, .offset:  4, .value_kind: by_value, .value_type: f16, .name: gamma }
     - { .size: 2, .offset:  6, .value_kind: by_value, .value_type: f16, .name: unused }
     - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32, .name: x,        .address_space: global, .is_const: true }
-    - { .size: 8, .offset: 16, .value_kind: global_buffer, .value_type: f32, .name: y,        .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 16, .value_kind: global_buffer, .value_type: f32, .name: y_,        .address_space: global, .is_const: false }
     - { .size: 8, .offset: 24, .value_kind: global_buffer, .value_type: f32, .name: w,        .address_space: global, .is_const: true }
 ...
 .end_amdgpu_metadata
@@ -1388,7 +1388,7 @@ amdhsa.kernels:
     .wavefront_size: 64
     .args:
     - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32, .name: x,        .address_space: global, .is_const: true }
-    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32, .name: y,        .address_space: global, .is_const: false }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32, .name: y_,        .address_space: global, .is_const: false }
     - { .size: 8, .offset: 16, .value_kind: global_buffer, .value_type: f32, .name: w,        .address_space: global, .is_const: true }
     - { .size: 8, .offset: 24, .value_kind: global_buffer, .value_type: f32, .name: bias,     .address_space: global, .is_const: true }
 ...
@@ -1415,7 +1415,7 @@ amdhsa.kernels:
     .wavefront_size: 64
     .args:
     - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32, .name: x,        .address_space: global, .is_const: true }
-    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32, .name: y,        .address_space: global, .is_const: false }
+    - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32, .name: y_,        .address_space: global, .is_const: false }
     - { .size: 8, .offset: 16, .value_kind: global_buffer, .value_type: f32, .name: w,        .address_space: global, .is_const: true }
     - { .size: 8, .offset: 24, .value_kind: global_buffer, .value_type: f16, .name: bias,     .address_space: global, .is_const: true }
 ...

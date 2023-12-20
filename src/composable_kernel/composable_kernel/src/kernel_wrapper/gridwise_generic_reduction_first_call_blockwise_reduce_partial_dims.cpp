@@ -213,12 +213,12 @@ struct get_ref_desc_types
     static constexpr auto ref_toReduceLen  = ref_src2dDesc.GetLength(Number<1>{});
 
     // used by the BlockWise and MultiBlock method
-    using refType_src2dDesc_padded_34 = decltype(
-        transform_tensor_descriptor(ref_src2dDesc,
-                                    make_tuple(make_pass_through_transform(ref_invariantLen),
-                                               make_pad_transform(ref_toReduceLen, 0, 2)),
-                                    make_tuple(Sequence<0>{}, Sequence<1>{}),
-                                    make_tuple(Sequence<0>{}, Sequence<1>{})));
+    using refType_src2dDesc_padded_34 = decltype(transform_tensor_descriptor(
+        ref_src2dDesc,
+        make_tuple(make_pass_through_transform(ref_invariantLen),
+                   make_pad_transform(ref_toReduceLen, 0, 2)),
+        make_tuple(Sequence<0>{}, Sequence<1>{}),
+        make_tuple(Sequence<0>{}, Sequence<1>{})));
 
     using refType_dst1dDesc_padded =
         decltype(transform_tensor_descriptor(ref_dst1dDesc,

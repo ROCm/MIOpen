@@ -57,34 +57,26 @@ struct verify_tensor_ops
     float alpha1;
     float beta;
 
-    verify_tensor_ops(const tensor<T>& pa,
-                      const tensor<T>& pb,
-                      const tensor<T>& pc,
+    bool no_validate;
+
+    verify_tensor_ops(tensor<T>&& pa,
+                      tensor<T>&& pb,
+                      tensor<T>&& pc,
                       const std::vector<int>& offsets,
-                      float palpha0 = 1,
-                      float palpha1 = 1,
-                      float pbeta   = 0)
+                      const std::vector<float>& alphabeta,
+                      bool no_validate_param)
+        : a{std::move(pa)},
+          b{std::move(pb)},
+          c{std::move(pc)},
+          Aoffset{offsets[0]},
+          Boffset{offsets[1]},
+          Coffset{offsets[2]},
+          alpha0{alphabeta[0]},
+          alpha1{alphabeta[1]},
+          beta{alphabeta[2]},
+          no_validate{no_validate_param}
     {
-        a = pa;
-        b = pb;
-        c = pc;
-
-        Aoffset = offsets[0];
-        Boffset = offsets[1];
-        Coffset = offsets[2];
-
-        alpha0 = palpha0;
-        alpha1 = palpha1;
-        beta   = pbeta;
     }
-
-    // verify_tensor_ops(const tensor<T>& pa, const tensor<T>& pb, const tensor<T>& pc, const
-    // std::vector<T>& dims)
-    //{
-    // a = pa(dims);
-    // b = pb(dims);
-    // c = pc(dims);
-    //}
 
     static T add_elem(T aelem, T belem) { return aelem + belem; }
     static T mul_elem(T aelem, T belem) { return aelem * belem; }
@@ -130,8 +122,8 @@ struct verify_tensor_ops
                        cten[cindex + CtenOffset],
                        aindex + AtenOffset,
                        aten[aindex + AtenOffset],
-                       bindex + Btenoffset,
-                       bten[bindex + Btenoffset]);
+                       bindex + BtenOffset,
+                       bten[bindex + BtenOffset]);
 #endif
                 cten[cindex + CtenOffset] =
                     // add_elem(aten[aindex + AtenOffset] * palpha0, bten[bindex + BtenOffset] *
@@ -146,7 +138,6 @@ struct verify_tensor_ops
             }
             if(dim < (a_dims.size() - 1))
             {
-
                 tensor_for_loop(aten,
                                 bten,
                                 cten,
@@ -168,8 +159,7 @@ struct verify_tensor_ops
 
     tensor<T> cpu() const
     {
-        auto r = c;
-        std::fill(r.begin(), r.end(), 1);
+        auto r     = c;
         auto clens = r.desc.GetLengths();
         auto blens = b.desc.GetLengths();
 
@@ -186,12 +176,8 @@ struct verify_tensor_ops
     tensor<T> gpu() const
     {
         auto&& handle = get_handle();
-        auto r        = c;
 
-        // return c;
-        std::fill(r.begin(), r.end(), 1);
-
-        auto c_dev = handle.Write(r.data);
+        auto c_dev = handle.Write(c.data);
         auto a_dev = handle.Write(a.data);
         auto b_dev = handle.Write(b.data);
 
@@ -207,22 +193,28 @@ struct verify_tensor_ops
                          b.desc,
                          b_dev.get(),
                          &beta,
-                         r.desc,
+                         c.desc,
                          c_dev.get(),
                          Aoffset,
                          Boffset,
-                         Coffset);
+                         Coffset,
+                         false); // it does not verify non-standard behaviour
 
-        r.data = handle.Read<T>(c_dev, r.data.size());
-
+        if(not no_validate)
+        {
+            auto r = c;
+            r.data = handle.Read<T>(c_dev, r.data.size());
 #if(MIO_OPS_DEBUG)
-        handle.Finish();
-        auto clens    = r.desc.GetLengths();
-        auto cstrides = r.desc.GetStrides();
-        for(int i = 0; i < r.desc.GetElementSize(); i++)
-            printf("GPU_C[%d]: %f\n", i, c.data[i + Coffset]);
+            handle.Finish();
+            auto clens    = r.desc.GetLengths();
+            auto cstrides = r.desc.GetStrides();
+            for(int i = 0; i < r.desc.GetElementSize(); i++)
+                printf("GPU_C[%d]: %f\n", i, c.data[i + Coffset]);
 #endif
-        return r;
+            return r;
+        }
+
+        return c;
     }
 
     void fail(int = 0) const
@@ -238,14 +230,12 @@ struct verify_tensor_ops
 template <class T>
 struct tensor_ops_driver : test_driver
 {
-
-    tensor<T> super_a;
-    tensor<T> super_b;
-    tensor<T> super_c;
-
     std::vector<int> tensorlens_ac;
     std::vector<int> tensorlens_b;
     std::vector<int> offsets;
+    std::vector<int> stride_a;
+    std::vector<int> stride_b;
+    std::vector<int> stride_c;
     std::vector<float> alphabeta;
     bool packed = false;
 
@@ -283,58 +273,100 @@ struct tensor_ops_driver : test_driver
 
     tensor_ops_driver()
     {
-        disabled_cache         = true;
-        std::vector<int> alens = {{32, 16, 20, 16, 8}};
-        std::vector<int> blens = {{32, 16, 20, 16, 8}};
-        std::vector<int> clens = {{32, 16, 20, 16, 8}};
+        disabled_cache = true;
 
-        unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
-
-        super_a = tensor<T>{alens}.generate(tensor_elem_gen_integer{max_value});
-        super_b = tensor<T>{blens}.generate(tensor_elem_gen_integer{max_value});
-        super_c = tensor<T>{clens}.generate(tensor_elem_gen_integer{max_value});
-
-        std::vector<std::vector<int>> get_offsets     = {{64, 32, 16}, {32, 16, 32}, {32, 16, 32}};
+        std::vector<std::vector<int>> get_offsets = {
+            {0, 0, 0}, {64, 32, 16}, {32, 16, 32}, {32, 16, 32}};
         std::vector<std::vector<float>> get_alphabeta = {{1, 1, 0}, {-1, 1, 1}, {1.0, 0.5, 0.3}};
+        std::vector<std::vector<int>> get_strides = {{8 * 16 * 20 * 16, 8 * 16 * 20, 8 * 16, 8, 1}};
 
         add(tensorlens_ac, "a", generate_data(get_sub_tensor_a()));
         add(tensorlens_b, "b", generate_data(get_sub_tensor_b()));
+        add(stride_a, "sa", generate_data(get_strides));
+        add(stride_b, "sb", generate_data(get_strides));
+        add(stride_c, "sc", generate_data(get_strides));
         add(offsets, "offsets", generate_data(get_offsets));
         add(alphabeta, "alpha-beta", generate_data(get_alphabeta));
         add(packed, "packed", generate_data({false, true}));
     }
 
-    tensor<T> get_subtensors(tensor<T>& super_tensor, std::vector<int>& lens, bool isPacked)
+    tensor<T> get_subtensors(const std::vector<int>& lens,
+                             const std::vector<int>& strides,
+                             int offset,
+                             bool isPacked)
     {
+        uint64_t max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
+
         if(!isPacked)
         {
-            std::vector<size_t> superStrides = super_tensor.desc.GetStrides();
-            std::vector<int> strides(superStrides.begin() + (5 - lens.size()), superStrides.end());
-            tensor<T> t = tensor<T>{lens, strides};
-            t.data      = super_tensor.data;
-            return t;
+            std::vector<int> real_strides(strides.begin() + (strides.size() - lens.size()),
+                                          strides.end());
+            auto r = tensor<T>{lens, real_strides}.generate(tensor_elem_gen_integer{max_value});
+            r.data.resize(r.data.size() + offset);
+            return r;
         }
         else
         {
-            tensor<T> t = tensor<T>{lens};
-            t.data      = super_tensor.data;
-            return t;
+            return tensor<T>{lens}.generate(tensor_elem_gen_integer{max_value});
         }
     }
 
     void run()
     {
-        if(tensorlens_ac.size() == tensorlens_b.size() && tensorlens_ac >= tensorlens_b)
+        if(tensorlens_ac.size() == tensorlens_b.size())
         {
-            tensor<T> aTensor = get_subtensors(super_a, tensorlens_ac, packed);
-            tensor<T> bTensor = get_subtensors(super_b, tensorlens_b, packed);
-            tensor<T> cTensor = get_subtensors(super_c, tensorlens_ac, packed);
+            for(size_t idx = 0; idx < tensorlens_b.size(); ++idx)
+            {
+                if((tensorlens_b[idx] != 1) && (tensorlens_ac[idx] != tensorlens_b[idx]))
+                    return;
+            }
 
-            if(packed)
-                offsets = {0, 0, 0, 0, 0};
+            std::vector<int> final_offsets{0, 0, 0};
+            if(!packed)
+            {
+                if(std::any_of(offsets.begin(), offsets.end(), [](int o) { return o < 0; }))
+                    return;
 
-            verify(verify_tensor_ops<T>{
-                aTensor, bTensor, cTensor, offsets, alphabeta[0], alphabeta[1], alphabeta[2]});
+                final_offsets = offsets;
+            }
+
+            auto checkStride = [p = packed](const std::vector<int>& lens,
+                                            const std::vector<int>& strides) {
+                if(p)
+                    return true;
+
+                if(lens.size() > strides.size())
+                    return false;
+
+                // only sparsed case allowed, since all the kernels do not support the last
+                // dimension strides
+                if(strides.back() == 1)
+                {
+                    auto packedStrides =
+                        miopen::TensorDescriptor(miopen_type<T>{}, lens).GetStrides();
+                    return std::equal(packedStrides.rbegin(),
+                                      packedStrides.rend(),
+                                      strides.rbegin(),
+                                      [](int ps, int s) { return s >= ps; });
+                }
+
+                // currently tensor operations do not support non-one stride in the last dimention.
+                return false;
+            };
+
+            if(!checkStride(tensorlens_ac, stride_a))
+                return;
+            if(!checkStride(tensorlens_b, stride_b))
+                return;
+            if(!checkStride(tensorlens_ac, stride_c))
+                return;
+
+            verify(verify_tensor_ops<T>{get_subtensors(tensorlens_ac, stride_a, offsets[0], packed),
+                                        get_subtensors(tensorlens_b, stride_b, offsets[1], packed),
+                                        get_subtensors(tensorlens_ac, stride_c, offsets[2], packed),
+                                        final_offsets,
+                                        alphabeta,
+                                        no_validate});
         }
     }
 };

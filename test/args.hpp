@@ -24,6 +24,9 @@
  *
  *******************************************************************************/
 
+#ifndef GUARD_MIOPEN_TEST_ARGS_HPP
+#define GUARD_MIOPEN_TEST_ARGS_HPP
+
 #include <algorithm>
 #include <cassert>
 #include <functional>
@@ -94,7 +97,7 @@ struct requires_bool
     static const bool value = B;
 };
 
-template <class T, long N>
+template <class T, int64_t N>
 struct requires_unwrap : T
 {
 };
@@ -288,3 +291,5 @@ struct read_value
 };
 
 } // namespace args
+
+#endif // GUARD_MIOPEN_TEST_ARGS_HPP

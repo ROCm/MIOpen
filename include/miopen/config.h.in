@@ -48,6 +48,9 @@
 #cmakedefine01 MIOPEN_LOG_FUNC_TIME_ENABLE
 #cmakedefine01 MIOPEN_ENABLE_SQLITE_BACKOFF
 #cmakedefine01 MIOPEN_USE_MLIR
+#cmakedefine01 MIOPEN_USE_COMPOSABLEKERNEL
+#cmakedefine01 MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
+#cmakedefine01 MIOPEN_ENABLE_AI_KERNEL_TUNING
 
 // "_PACKAGE_" to avoid name contentions: the macros like
 // HIP_VERSION_MAJOR are defined in hip_version.h.
@@ -71,6 +74,8 @@
 //     remain in the future)  perform final conversion (and rounding) of FP32
 //     to BF16 results. This affects the main functionality of the library.
 #cmakedefine01 MIOPEN_USE_RNE_BFLOAT16
+#cmakedefine01 MIOPEN_FP8_IEEE_EXPONENT_BIAS
+#cmakedefine01 MIOPEN_FP8_CLIPPING
 
 // clang-format off
 #cmakedefine MIOPEN_DEFAULT_FIND_MODE @MIOPEN_DEFAULT_FIND_MODE@
@@ -78,7 +83,6 @@
 #cmakedefine MIOPEN_AMDGCN_ASSEMBLER "@MIOPEN_AMDGCN_ASSEMBLER@"
 #cmakedefine HIP_OC_COMPILER "@HIP_OC_COMPILER@"
 #cmakedefine MIOPEN_HIP_COMPILER "@MIOPEN_HIP_COMPILER@"
-#cmakedefine EXTRACTKERNEL_BIN "@EXTRACTKERNEL_BIN@"
 #cmakedefine MIOPEN_OFFLOADBUNDLER_BIN "@MIOPEN_OFFLOADBUNDLER_BIN@"
 #cmakedefine MIOPEN_CACHE_DIR "@MIOPEN_CACHE_DIR@"
 
@@ -150,5 +154,7 @@
 #if MIOPEN_BACKEND_HIP
 #include <hip/hip_version.h>
 #endif
+
+#define MIOPEN_GOLDEN_DB_VERSION 18
 
 #endif // GUARD_CONFIG_H_IN

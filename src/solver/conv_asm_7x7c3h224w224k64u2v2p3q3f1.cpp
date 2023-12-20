@@ -37,24 +37,28 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_7X7C3H224W224)
 namespace miopen {
 namespace solver {
 
-bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ConvolutionContext& params) const
+bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ExecutionContext& ctx,
+                                                     const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_7X7C3H224W224{}))
         return false;
-    if(!params.use_asm_kernels)
+    if(!ctx.use_asm_kernels)
         return false;
-    if(!params.Is2d())
+    if(!problem.Is2d())
         return false;
-    if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
+    if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
-    if(!params.rmv.IsV2orV3())
+    if(!ctx.rmv.IsV2orV3())
         return false;
 
-    const auto target = params.GetStream().GetTargetProperties();
+    if(problem.IsTensorsCasted())
+        return false;
+
+    const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
 
-    const std::string name = params.GetStream().GetDeviceName();
+    const std::string name = ctx.GetStream().GetDeviceName();
 #if WORKAROUND_ISSUE_1146
     if(name == "gfx90a")
         return false;
@@ -64,47 +68,48 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ConvolutionContext& p
     {
         return false;
     }
-    if(!params.direction.IsForward())
+    if(!problem.direction.IsForward())
     {
         return false;
     }
-    if(!params.IsLayoutDefault())
+    if(!problem.IsLayoutDefault())
     {
         return false;
     }
 
     // clang-format off
-    return params.pad_w == 3            // -q
-        && params.pad_h == 3            // -p
-        && params.kernel_stride_w == 2    // -v
-        && params.kernel_stride_h == 2    // -u
-        && params.kernel_size_w == 7    // -x
-        && params.kernel_size_h == 7    // -y
-        && params.kernel_dilation_w == 1
-        && params.kernel_dilation_h == 1
-        && params.n_inputs == 3         // -c
-        && params.n_outputs == 64       // -k
-        && params.in_width == 224       // -W
-        && params.in_height == 224      // -H
-        && params.IsFp32()
-        && params.group_counts == 1
-        && params.in_layout == "NCHW";
+    return problem.GetPadW() == 3            // -q
+        && problem.GetPadH() == 3            // -p
+        && problem.GetKernelStrideW() == 2   // -v
+        && problem.GetKernelStrideH() == 2   // -u
+        && problem.GetWeightsWidth_() == 7   // -x
+        && problem.GetWeightsHeight_() == 7  // -y
+        && problem.GetDilationW() == 1
+        && problem.GetDilationH() == 1
+        && problem.GetInChannels_() == 3     // -c
+        && problem.GetOutChannels_() == 64   // -k
+        && problem.GetInWidth_() == 224      // -W
+        && problem.GetInHeight_() == 224     // -H
+        && problem.IsFp32()
+        && problem.GetGroupCount() == 1
+        && problem.GetInLayout() == "NCHW";
         // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
     // clang-format on
 }
 
-ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ConvolutionContext& params) const
+ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ExecutionContext& ctx,
+                                                            const ProblemDescription& problem) const
 {
     ConvSolution result;
-    const int out_w =
-        (params.in_width + params.pad_w * 2 + params.kernel_stride_w - params.kernel_size_w) /
-        params.kernel_stride_w; // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
-    const int out_h =
-        (params.in_height + params.pad_h * 2 + params.kernel_stride_h - params.kernel_size_h) /
-        params.kernel_stride_h; // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
+    const int out_w = (static_cast<int>(problem.GetInWidth_()) + problem.GetPadW() * 2 +
+                       problem.GetKernelStrideW() - static_cast<int>(problem.GetWeightsWidth_())) /
+                      problem.GetKernelStrideW(); // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
+    const int out_h = (static_cast<int>(problem.GetInHeight_()) + problem.GetPadH() * 2 +
+                       problem.GetKernelStrideH() - static_cast<int>(problem.GetWeightsHeight_())) /
+                      problem.GetKernelStrideH(); // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
 
     std::ostringstream options;
-    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
     KernelInfo constr_params;
     constr_params.comp_options = options.str();
 
@@ -114,8 +119,9 @@ ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ConvolutionCon
 
     // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k/2,8), batch_n]
     constr_params.g_wk.push_back(AlignUp(out_w, 64));
-    constr_params.g_wk.push_back(AlignUp(out_h, 4) / 4 * AlignUp(params.n_outputs / 2, 8));
-    constr_params.g_wk.push_back(params.batch_sz);
+    constr_params.g_wk.push_back(
+        static_cast<size_t>(AlignUp(out_h, 4) / 4 * AlignUp(problem.GetOutChannels_() / 2, 8)));
+    constr_params.g_wk.push_back(problem.GetBatchSize_());
 
     constr_params.kernel_file = "conv7x7c3h224w224k64u2v2p3q3f1.s";
     constr_params.kernel_name = "miopenGcnAsmConv7x7c3h224w224k64u2v2p3q3f1";

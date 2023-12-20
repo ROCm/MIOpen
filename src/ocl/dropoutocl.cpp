@@ -57,58 +57,59 @@ inline void SquashPairedTensor(const std::vector<T> x_len,
         MIOPEN_THROW("Input/Output tensor lengths do not match");
     }
 
-    *(in_len.end() - 1)  = *(x_len.end() - 1);
-    *(in_str.end() - 1)  = *(x_str.end() - 1);
-    *(out_len.end() - 1) = *(y_len.end() - 1);
-    *(out_str.end() - 1) = *(y_str.end() - 1);
+    in_len.back()  = x_len.back();
+    in_str.back()  = x_str.back();
+    out_len.back() = y_len.back();
+    out_str.back() = y_str.back();
 
-    auto itr_xl = x_len.end() - 2;
-    auto itr_yl = y_len.end() - 2;
-    auto itr_xs = x_str.end() - 2;
-    auto itr_ys = y_str.end() - 2;
+    int xl_idx = x_len.size() - 2;
+    int yl_idx = y_len.size() - 2;
+    int xs_idx = x_str.size() - 2;
+    int ys_idx = y_str.size() - 2;
 
-    auto itr_il = in_len.end() - 1;
-    auto itr_ol = out_len.end() - 1;
-    auto itr_is = in_str.end() - 2;
-    auto itr_os = out_str.end() - 2;
+    int il_idx = in_len.size() - 1;
+    int ol_idx = out_len.size() - 1;
+    int is_idx = in_str.size() - 2;
+    int os_idx = out_str.size() - 2;
 
-    while(*itr_xs == *(itr_xl + 1) * *(itr_xs + 1) && *itr_ys == *(itr_yl + 1) * *(itr_ys + 1) &&
-          itr_xl >= x_len.begin())
+    while(xl_idx >= 0 && x_str[xs_idx] == x_len[xl_idx + 1] * x_str[xs_idx + 1] &&
+          y_str[ys_idx] == y_len[yl_idx + 1] * y_str[ys_idx + 1])
     {
-        *itr_il *= *(itr_xl--);
-        *itr_ol *= *(itr_yl--);
-        itr_xs--;
-        itr_ys--;
+        in_len[il_idx] *= x_len[xl_idx--];
+        out_len[ol_idx] *= y_len[yl_idx--];
+
+        xs_idx--;
+        ys_idx--;
     }
 
-    if(itr_xl < x_len.begin() && itr_is >= in_str.begin())
+    if(xl_idx < 0 && is_idx >= 0)
     {
-        *(itr_is--) = *itr_il;
-        *(itr_os--) = *itr_ol;
+        in_str[is_idx--]  = in_len[il_idx];
+        out_str[os_idx--] = out_len[ol_idx];
     }
-    else if(itr_xl >= x_len.begin())
+    else if(xl_idx >= 0)
     {
-        itr_il--;
-        itr_ol--;
+        il_idx--;
+        ol_idx--;
 
-        while(itr_xl >= x_len.begin() && itr_il >= in_len.begin())
+        while(xl_idx >= 0 && il_idx >= 0)
         {
-            *(itr_il--) = *(itr_xl--);
-            *(itr_is--) = *(itr_xs--);
+            in_len[il_idx--] = x_len[xl_idx--];
+            in_str[is_idx--] = x_str[xs_idx--];
         }
 
-        while(itr_yl >= y_len.begin() && itr_ol >= out_len.begin())
+        while(yl_idx >= 0 && ol_idx >= 0)
         {
-            *(itr_ol--) = *(itr_yl--);
-            *(itr_os--) = *(itr_ys--);
+            out_len[ol_idx--] = y_len[yl_idx--];
+            out_str[os_idx--] = y_str[ys_idx--];
         }
     }
 
-    while(itr_is >= in_str.begin())
-        *(itr_is--) = *(itr_is + 1) * *(itr_is + 1 - in_str.begin() + in_len.begin());
+    while(is_idx >= 0)
+        in_str[is_idx--] = in_str[is_idx + 1] * in_len[is_idx + 1];
 
-    while(itr_os >= out_str.begin())
-        *(itr_os--) = *(itr_os + 1) * *(itr_os + 1 - out_str.begin() + out_len.begin());
+    while(os_idx >= 0)
+        out_str[os_idx--] = out_str[os_idx + 1] * out_len[os_idx + 1];
 
     if(!std::equal(in_len.begin(), in_len.end(), out_len.begin()))
     {
@@ -132,18 +133,17 @@ void DropoutDescriptor::InitPRNGState(Handle& handle,
         MIOPEN_THROW("PRNG state size should not exceed system maximum memory allocation size.");
     }
 
-    size_t states_num = prng_stateSizeInBytes / sizeof(prngStates);
-    size_t wk_grp_num = std::min(size_t(MAX_PRNG_STATE / 256), (states_num + 255) / 256);
+    unsigned long long states_num = prng_stateSizeInBytes / sizeof(prngStates);
+    size_t wk_grp_num =
+        std::min(static_cast<unsigned long long>(MAX_PRNG_STATE / 256), (states_num + 255) / 256);
 
-    std::string network_config = "initprngs-" + std::to_string(states_num) + "x" +
-                                 std::to_string(sizeof(prngStates)) + "x" +
-                                 std::to_string(rng_mode) + "x" + std::to_string(prng_seed) + "x" +
-                                 std::to_string(wk_grp_num);
+    std::string network_config = "initprngs-" + std::to_string(sizeof(prngStates)) + "x" +
+                                 std::to_string(rng_mode) + "x" + std::to_string(wk_grp_num);
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
     if(!kernels.empty())
     {
-        kernels.front()(prng_states);
+        kernels.front()(prng_states, prng_seed, states_num);
     }
     else
     {
@@ -152,14 +152,12 @@ void DropoutDescriptor::InitPRNGState(Handle& handle,
 
         std::string params;
         params += " -DRUN_INIT_PRNG=1";
-        params += " -DPRNG_SEED=" + std::to_string(prng_seed);
-        params += " -DSTATES_NUM=" + std::to_string(states_num);
 #if DROPOUT_DEBUG
         std::cout << "Threads allocated for PRNG states: " << vgd[0] << std::endl;
         std::cout << "Memory allocated for PRNG states: " << stateSizeInBytes << std::endl;
 #endif
         handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
-            prng_states);
+            prng_states, prng_seed, states_num);
 #if DROPOUT_DEBUG
         std::cout << "Succeeded in launching InitPRNGState()." << stateSizeInBytes << std::endl;
 #endif
@@ -255,8 +253,8 @@ void DropoutDescriptor::DropoutForward(const Handle& handle,
     size_t RD_BLCK    = /* (in_len[4] % 4 == 0) ? 4 : */ (in_len[2] % 2 == 0) ? 2 : 1;
     size_t total_work = (in_len[4] / RD_BLCK) * in_len[3] * in_len[2] * in_len[1] * in_len[0];
 
-    size_t max_wk_grp =
-        use_mask ? MAX_WORKITEM_NUM : std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth());
+    size_t max_wk_grp = use_mask ? size_t(MAX_WORKITEM_NUM)
+                                 : std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth());
     size_t wk_grp_num =
         std::min(max_wk_grp / 256,
                  ((in_len[4] * in_len[3] * in_len[2] * in_len[1] * in_len[0] + 255) / 256));
@@ -290,25 +288,25 @@ void DropoutDescriptor::DropoutForward(const Handle& handle,
         kernels.front()(pstates,
                         dropout,
                         amp_scale,
-                        int(in_len[1]),
-                        int(in_len[2]),
-                        int(in_len[3]),
-                        int(in_len[4]),
+                        static_cast<int>(in_len[1]),
+                        static_cast<int>(in_len[2]),
+                        static_cast<int>(in_len[3]),
+                        static_cast<int>(in_len[4]),
                         y,
-                        int(out_str[0]),
-                        int(out_str[1]),
-                        int(out_str[2]),
-                        int(out_str[3]),
+                        static_cast<int>(out_str[0]),
+                        static_cast<int>(out_str[1]),
+                        static_cast<int>(out_str[2]),
+                        static_cast<int>(out_str[3]),
                         x,
-                        int(in_str[0]),
-                        int(in_str[1]),
-                        int(in_str[2]),
-                        int(in_str[3]),
+                        static_cast<int>(in_str[0]),
+                        static_cast<int>(in_str[1]),
+                        static_cast<int>(in_str[2]),
+                        static_cast<int>(in_str[3]),
                         reserveSpace,
-                        uint(total_work),
-                        uint(in_offset),
-                        uint(out_offset),
-                        uint(rsvsp_offset));
+                        static_cast<unsigned>(total_work),
+                        static_cast<unsigned>(in_offset),
+                        static_cast<unsigned>(out_offset),
+                        static_cast<unsigned>(rsvsp_offset));
     }
     else
     {
@@ -320,7 +318,9 @@ void DropoutDescriptor::DropoutForward(const Handle& handle,
 
         params += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_DAT_TYPE=" + READ_DAT_TYPE +
                   " -DREAD_BOOL_TYPE=" +
-                  std::string(RD_BLCK == 4 ? "uint" : RD_BLCK == 2 ? "ushort" : "uchar");
+                  std::string(RD_BLCK == 4   ? "uint"
+                              : RD_BLCK == 2 ? "ushort"
+                                             : "uchar");
 
         if(xDesc.GetType() == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
@@ -339,25 +339,25 @@ void DropoutDescriptor::DropoutForward(const Handle& handle,
             pstates,
             dropout,
             amp_scale,
-            int(in_len[1]),
-            int(in_len[2]),
-            int(in_len[3]),
-            int(in_len[4]),
+            static_cast<int>(in_len[1]),
+            static_cast<int>(in_len[2]),
+            static_cast<int>(in_len[3]),
+            static_cast<int>(in_len[4]),
             y,
-            int(out_str[0]),
-            int(out_str[1]),
-            int(out_str[2]),
-            int(out_str[3]),
+            static_cast<int>(out_str[0]),
+            static_cast<int>(out_str[1]),
+            static_cast<int>(out_str[2]),
+            static_cast<int>(out_str[3]),
             x,
-            int(in_str[0]),
-            int(in_str[1]),
-            int(in_str[2]),
-            int(in_str[3]),
+            static_cast<int>(in_str[0]),
+            static_cast<int>(in_str[1]),
+            static_cast<int>(in_str[2]),
+            static_cast<int>(in_str[3]),
             reserveSpace,
-            uint(total_work),
-            uint(in_offset),
-            uint(out_offset),
-            uint(rsvsp_offset));
+            static_cast<unsigned>(total_work),
+            static_cast<unsigned>(in_offset),
+            static_cast<unsigned>(out_offset),
+            static_cast<unsigned>(rsvsp_offset));
     }
 
     if(miopen::CheckNumericsEnabled())
@@ -456,8 +456,8 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
     size_t RD_BLCK    = /* (in_len[4] % 4 == 0) ? 4 : */ (in_len[2] % 2 == 0) ? 2 : 1;
     size_t total_work = (in_len[4] / RD_BLCK) * in_len[3] * in_len[2] * in_len[1] * in_len[0];
 
-    size_t max_wk_grp =
-        use_prng ? std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth()) : MAX_WORKITEM_NUM;
+    size_t max_wk_grp = use_prng ? std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth())
+                                 : size_t(MAX_WORKITEM_NUM);
     size_t wk_grp_num =
         std::min(max_wk_grp / 256,
                  ((in_len[4] * in_len[3] * in_len[2] * in_len[1] * in_len[0] + 255) / 256));
@@ -493,25 +493,25 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
         kernels.front()(pstates,
                         dropout,
                         amp_scale,
-                        int(in_len[1]),
-                        int(in_len[2]),
-                        int(in_len[3]),
-                        int(in_len[4]),
+                        static_cast<int>(in_len[1]),
+                        static_cast<int>(in_len[2]),
+                        static_cast<int>(in_len[3]),
+                        static_cast<int>(in_len[4]),
                         dy,
-                        int(out_str[0]),
-                        int(out_str[1]),
-                        int(out_str[2]),
-                        int(out_str[3]),
+                        static_cast<int>(out_str[0]),
+                        static_cast<int>(out_str[1]),
+                        static_cast<int>(out_str[2]),
+                        static_cast<int>(out_str[3]),
                         dx,
-                        int(in_str[0]),
-                        int(in_str[1]),
-                        int(in_str[2]),
-                        int(in_str[3]),
+                        static_cast<int>(in_str[0]),
+                        static_cast<int>(in_str[1]),
+                        static_cast<int>(in_str[2]),
+                        static_cast<int>(in_str[3]),
                         reserveSpace,
-                        uint(total_work),
-                        uint(in_offset),
-                        uint(out_offset),
-                        uint(rsvsp_offset));
+                        static_cast<unsigned>(total_work),
+                        static_cast<unsigned>(in_offset),
+                        static_cast<unsigned>(out_offset),
+                        static_cast<unsigned>(rsvsp_offset));
     }
     else
     {
@@ -523,7 +523,9 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
 
         params += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_DAT_TYPE=" + READ_DAT_TYPE +
                   " -DREAD_BOOL_TYPE=" +
-                  std::string(RD_BLCK == 4 ? "uint" : RD_BLCK == 2 ? "ushort" : "uchar");
+                  std::string(RD_BLCK == 4   ? "uint"
+                              : RD_BLCK == 2 ? "ushort"
+                                             : "uchar");
 
         if(use_prng)
         {
@@ -544,25 +546,25 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
             pstates,
             dropout,
             amp_scale,
-            int(in_len[1]),
-            int(in_len[2]),
-            int(in_len[3]),
-            int(in_len[4]),
+            static_cast<int>(in_len[1]),
+            static_cast<int>(in_len[2]),
+            static_cast<int>(in_len[3]),
+            static_cast<int>(in_len[4]),
             dy,
-            int(out_str[0]),
-            int(out_str[1]),
-            int(out_str[2]),
-            int(out_str[3]),
+            static_cast<int>(out_str[0]),
+            static_cast<int>(out_str[1]),
+            static_cast<int>(out_str[2]),
+            static_cast<int>(out_str[3]),
             dx,
-            int(in_str[0]),
-            int(in_str[1]),
-            int(in_str[2]),
-            int(in_str[3]),
+            static_cast<int>(in_str[0]),
+            static_cast<int>(in_str[1]),
+            static_cast<int>(in_str[2]),
+            static_cast<int>(in_str[3]),
             reserveSpace,
-            uint(total_work),
-            uint(in_offset),
-            uint(out_offset),
-            uint(rsvsp_offset));
+            static_cast<unsigned>(total_work),
+            static_cast<unsigned>(in_offset),
+            static_cast<unsigned>(out_offset),
+            static_cast<unsigned>(rsvsp_offset));
     }
 
     if(miopen::CheckNumericsEnabled())

@@ -28,7 +28,9 @@
 
 #include <miopen/db_path.hpp>
 #include <miopen/handle.hpp>
+#if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
+#endif
 #if MIOPEN_EMBED_DB
 #include <miopen_data.hpp>
 #endif
@@ -63,8 +65,15 @@ public:
 
 namespace miopen {
 
+namespace conv {
+struct ProblemDescription;
+} // namespace conv
+
 struct ExecutionContext
 {
+    // Solution-specific
+    std::string general_compile_options;
+
     // Operation modes & environment
     bool do_search               = false;
     bool db_update               = false;
@@ -81,14 +90,20 @@ struct ExecutionContext
     // performance config.
     bool disable_perfdb_access      = false;
     bool use_dynamic_solutions_only = false;
+    bool is_for_generic_search      = false;
 
     inline Handle& GetStream() const { return *stream; }
     inline void SetStream(Handle* stream_) { stream = stream_; }
 
-    ExecutionContext() = default;
-    ExecutionContext(Handle* stream_) : stream(stream_) {}
+    ExecutionContext() { DetectRocm(); }
+    ExecutionContext(Handle* stream_) : stream(stream_) { DetectRocm(); }
 
-    void DetectRocm();
+    virtual ~ExecutionContext()               = default;
+    ExecutionContext(const ExecutionContext&) = default;
+    ExecutionContext(ExecutionContext&&)      = default;
+    ExecutionContext& operator=(const ExecutionContext&) = default;
+    ExecutionContext& operator=(ExecutionContext&&) = default;
+
 #if MIOPEN_EMBED_DB
     std::string GetPerfDbPathEmbed() const
     {
@@ -161,7 +176,7 @@ struct ExecutionContext
     std::string GetPerfDbPathFile() const
     {
         static const auto result = [&] {
-            boost::filesystem::path pdb_path(GetSystemDbPath());
+            const boost::filesystem::path pdb_path(GetSystemDbPath());
             std::ostringstream filename;
             // clang-format off
         filename << GetStream().GetDbBasename();
@@ -250,42 +265,27 @@ struct ExecutionContext
     {
         // an empty user-db path indicates user intent to disable
         // the database. Default in when dev builds are on
-        // clang-format off
-	const auto& udb = GetUserDbPath();
-	if(udb.empty())
-		return "";
-        boost::filesystem::path pdb_path(udb);
+        const auto& udb = GetUserDbPath();
+        if(udb.empty())
+            return "";
         std::ostringstream filename;
         filename << GetStream().GetDbBasename();
 #if MIOPEN_ENABLE_SQLITE
         filename << "_" << SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER << ".udb";
 #else
-        filename << "."
-             << GetUserDbSuffix()
-             << ".cd.updb.txt";
+        filename << "." << GetUserDbSuffix() << ".cd.updb.txt";
 #endif
-        // clang-format on
-        return (pdb_path / filename.str()).string();
+        return (udb / filename.str()).string();
     }
 
 private:
     Handle* stream = nullptr;
+
+    void DetectRocm();
 };
 
-class AutoUseFastDynamicSolutions
+struct [[deprecated]] ConvolutionContext : ExecutionContext
 {
-    bool prev_use_dynamic_;
-    ExecutionContext* const ctx;
-
-public:
-    AutoUseFastDynamicSolutions(ExecutionContext& ctx_) : ctx(&ctx_)
-    {
-        prev_use_dynamic_ = ctx->use_dynamic_solutions_only;
-
-        ctx->use_dynamic_solutions_only = true;
-    }
-
-    ~AutoUseFastDynamicSolutions() { ctx->use_dynamic_solutions_only = prev_use_dynamic_; }
 };
 
 bool IsHipKernelsEnabled();

@@ -45,8 +45,9 @@ struct HandleImpl
             &HandleImpl::elapsed_time, this, std::placeholders::_1, std::placeholders::_2);
     }
 
-    bool enable_profiling  = false;
-    StreamPtr stream       = nullptr;
+    bool enable_profiling = false;
+    StreamPtr stream      = nullptr;
+    rocblas_handle_ptr rhandle_;
     float profiling_result = 0.0;
     int device             = -1;
     std::string device_name;

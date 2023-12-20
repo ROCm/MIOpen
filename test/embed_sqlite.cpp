@@ -31,7 +31,7 @@
 
 #if MIOPEN_EMBED_DB
 #include <miopen_data.hpp>
-#include <miopen/conv/context.hpp>
+#include <miopen/execution_context.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/db.hpp>
 #include <miopen/sqlite_db.hpp>
@@ -64,10 +64,11 @@ struct EmbedSQLite : test_driver
     void run()
     {
         // create a context/problem decriptor
-        miopen::ConvolutionContext ctx{
+        const auto conv_problem = miopen::conv::ProblemDescription{
             x.desc, w.desc, y.desc, filter, miopen::conv::Direction::Forward};
+        const auto problem = miopen::ProblemDescription{conv_problem};
+        miopen::ExecutionContext ctx{};
         ctx.SetStream(&handle);
-        ctx.DetectRocm();
         // Check PerfDb
         {
             // Get filename for the sys db
@@ -78,12 +79,12 @@ struct EmbedSQLite : test_driver
             // find all the entries in perf db
             // Assert result is non-empty
             auto pdb = GetDb(ctx);
-            EXPECT(pdb.FindRecord(ctx));
+            EXPECT(pdb.FindRecord(problem));
         }
         // Check FindDb
         {
             // FindDb will throw if the file is not present
-            FindDbRecord rec{handle, ctx};
+            FindDbRecord rec{handle, problem};
             EXPECT(!rec.empty());
         }
     }

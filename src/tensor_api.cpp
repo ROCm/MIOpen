@@ -29,12 +29,19 @@
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/seq_tensor.hpp>
 #include <miopen/tensor_ops.hpp>
 
 extern "C" miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor_t* tensorDesc)
 {
     MIOPEN_LOG_FUNCTION(tensorDesc);
     return miopen::try_([&] { miopen::deref(tensorDesc) = new miopen::TensorDescriptor(); });
+}
+
+extern "C" miopenStatus_t miopenCreateSeqTensorDescriptor(miopenSeqTensorDescriptor_t* tensorDesc)
+{
+    MIOPEN_LOG_FUNCTION(tensorDesc);
+    return miopen::try_([&] { miopen::deref(tensorDesc) = new miopen::SeqTensorDescriptor(); });
 }
 
 extern "C" miopenStatus_t miopenSet4dTensorDescriptor(
@@ -44,21 +51,25 @@ extern "C" miopenStatus_t miopenSet4dTensorDescriptor(
     MIOPEN_LOG_FUNCTION(tensorDesc, dataType, n, c, h, w);
     return miopen::try_([&] {
         std::initializer_list<int> lens = {n, c, h, w};
-        miopen::deref(tensorDesc)       = miopen::TensorDescriptor(dataType, lens.begin(), 4);
+        miopen::deref(tensorDesc)       = miopen::TensorDescriptor(dataType, lens);
     });
 }
 
 extern "C" miopenStatus_t miopenSetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
                                                                 miopenDataType_t dataType,
                                                                 miopenTensorLayout_t tensorLayout,
-                                                                int* lens,
+                                                                const int* lens,
                                                                 int num_lens)
 {
+    if(miopen::IsLoggingFunctionCalls())
+    {
+        const miopen::logger::CArray<int, int> lens_in(lens, num_lens);
+        MIOPEN_LOG_FUNCTION(tensorDesc, dataType, tensorLayout, lens_in.values, num_lens);
+    }
 
-    MIOPEN_LOG_FUNCTION(tensorDesc, dataType, tensorLayout, lens, num_lens);
     return miopen::try_([&] {
         miopen::deref(tensorDesc) =
-            miopen::TensorDescriptor(dataType, tensorLayout, lens, num_lens);
+            miopen::TensorDescriptor::MakeDescriptor(dataType, tensorLayout, lens, num_lens);
     });
 }
 
@@ -77,8 +88,7 @@ extern "C" miopenStatus_t miopenSet4dTensorDescriptorEx(miopenTensorDescriptor_t
     return miopen::try_([&] {
         std::initializer_list<int> lens    = {n, c, h, w};
         std::initializer_list<int> strides = {nStride, cStride, hStride, wStride};
-        miopen::deref(tensorDesc) =
-            miopen::TensorDescriptor(dataType, lens.begin(), strides.begin(), 4);
+        miopen::deref(tensorDesc)          = miopen::TensorDescriptor(dataType, lens, strides);
     });
 }
 
@@ -165,8 +175,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGet5dTensorDescriptorStrides(miopenTensorDesc
 extern "C" miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
                                                     miopenDataType_t dataType,
                                                     int nbDims,
-                                                    int* dimsA,
-                                                    int* stridesA)
+                                                    const int* dimsA,
+                                                    const int* stridesA)
 {
     if(miopen::IsLoggingFunctionCalls())
     {
@@ -178,11 +188,44 @@ extern "C" miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t ten
     return miopen::try_([&] {
         if(stridesA == nullptr)
         {
-            miopen::deref(tensorDesc) = miopen::TensorDescriptor(dataType, dimsA, nbDims);
+            miopen::deref(tensorDesc) =
+                miopen::TensorDescriptor::MakeDescriptor(dataType, dimsA, nbDims);
         }
         else
         {
-            miopen::deref(tensorDesc) = miopen::TensorDescriptor(dataType, dimsA, stridesA, nbDims);
+            miopen::deref(tensorDesc) =
+                miopen::TensorDescriptor::MakeDescriptor(dataType, dimsA, stridesA, nbDims);
+        }
+    });
+}
+
+extern "C" miopenStatus_t miopenSetTensorCastType(miopenTensorDescriptor_t tensorDesc,
+                                                  miopenDataType_t cast_type)
+{
+    if(miopen::IsLoggingFunctionCalls())
+    {
+        MIOPEN_LOG_FUNCTION(tensorDesc, cast_type);
+    }
+
+    return miopen::try_([&] { miopen::deref(tensorDesc).SetCastType(cast_type); });
+}
+
+extern "C" miopenStatus_t miopenGetTensorCastType(miopenTensorDescriptor_t tensorDesc,
+                                                  miopenDataType_t& cast_type)
+{
+    if(miopen::IsLoggingFunctionCalls())
+    {
+        MIOPEN_LOG_FUNCTION(tensorDesc);
+    }
+    return miopen::try_([&] {
+        const auto c_type = miopen::deref(tensorDesc).GetCastType();
+        if(c_type)
+        {
+            cast_type = *c_type;
+        }
+        else
+        {
+            cast_type = miopen::deref(tensorDesc).GetType();
         }
     });
 }
@@ -236,6 +279,12 @@ extern "C" miopenStatus_t miopenGetTensorDescriptor(miopenTensorDescriptor_t ten
 }
 
 extern "C" miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t tensorDesc)
+{
+    MIOPEN_LOG_FUNCTION(tensorDesc);
+    return miopen::try_([&] { miopen_destroy_object(tensorDesc); });
+}
+
+extern "C" miopenStatus_t miopenDestroySeqTensorDescriptor(miopenSeqTensorDescriptor_t tensorDesc)
 {
     MIOPEN_LOG_FUNCTION(tensorDesc);
     return miopen::try_([&] { miopen_destroy_object(tensorDesc); });

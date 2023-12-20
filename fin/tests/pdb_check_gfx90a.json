@@ -1,8 +1,0 @@
-[
-{
-"pdb_verif": true,
-"arch": "gfx90a",
-"num_cu": 110,
-"steps": ["perf_db_test"]
-}
-]

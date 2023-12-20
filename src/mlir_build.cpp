@@ -51,7 +51,7 @@ public:
     MiirHandle operator()() { return handle; }
 };
 
-void check_miir_error(MiirStatus status, const std::string& miir_fn_name)
+void check_miir_error(MiirStatus status, [[maybe_unused]] const std::string& miir_fn_name)
 {
     switch(status)
     {
@@ -95,10 +95,8 @@ void MiirGenBin(const std::string& params, std::vector<char>& buffer)
 int MiirGetKernelCount(const std::string& params)
 {
     AutoMiirHandle handle(params);
-    const auto kernel_count = miirGetKernelCount(handle());
-    if(kernel_count < 1)
-        MIOPEN_THROW("miirGetKernelCount invalid count: " + std::to_string(kernel_count));
-    return kernel_count;
+    const auto n = miirGetKernelCount(handle());
+    return n < 0 ? 0 : n;
 }
 
 int MiirGetWorkspaceSize(const std::string& params)

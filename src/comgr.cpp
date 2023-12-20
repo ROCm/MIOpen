@@ -38,7 +38,11 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/stringutils.hpp>
 
+#if HIP_PACKAGE_VERSION_FLAT >= 5004000000ULL
+#include <amd_comgr/amd_comgr.h>
+#else
 #include <amd_comgr.h>
+#endif
 #include <hip/hip_runtime_api.h>
 #if MIOPEN_USE_HIPRTC
 #include <miopen/manage_ptr.hpp>
@@ -463,10 +467,10 @@ static void PrintVersion()
     std::ignore            = once;
 }
 
-static std::string GetStatusText(const amd_comgr_status_t status)
+static std::string GetStatusText(const amd_comgr_status_t status, const bool unknown_error = false)
 {
     const char* reason = nullptr;
-    if(AMD_COMGR_STATUS_SUCCESS != amd_comgr_status_string(status, &reason))
+    if(unknown_error || AMD_COMGR_STATUS_SUCCESS != amd_comgr_status_string(status, &reason))
         reason = "<Unknown>";
     return std::string(reason) + " (" + std::to_string(static_cast<int>(status)) + ')';
 }
@@ -520,17 +524,26 @@ static std::string GetLog(const Dataset& dataset, bool comgr_error_handling = fa
 struct ComgrError : std::exception
 {
     amd_comgr_status_t status;
+    bool unknown;
     std::string text;
 
-    ComgrError(const amd_comgr_status_t s) : status(s) {}
-    ComgrError(const amd_comgr_status_t s, const std::string& t) : status(s), text(t) {}
+    ComgrError(const amd_comgr_status_t s, bool u) : status(s), unknown(u) {}
+    ComgrError(const amd_comgr_status_t s, bool u, const std::string& t)
+        : status(s), unknown(u), text(t)
+    {
+    }
     const char* what() const noexcept override { return text.c_str(); }
 };
 
-[[noreturn]] static void Throw(const amd_comgr_status_t s) { throw ComgrError{s}; }
+static std::string GetStatusText(const ComgrError& ex)
+{
+    return GetStatusText(ex.status, ex.unknown);
+}
+
+[[noreturn]] static void Throw(const amd_comgr_status_t s) { throw ComgrError{s, false}; }
 [[noreturn]] static void Throw(const amd_comgr_status_t s, const std::string& text)
 {
-    throw ComgrError{s, text};
+    throw ComgrError{s, false, text};
 }
 
 struct ComgrOwner
@@ -839,7 +852,8 @@ void BuildHip(const std::string& name,
 #if WORKAROUND_ISSUE_1431
             if(compiler::lc::hip::IsPchEnabled())
             {
-                if(StartsWith(target.Name(), "gfx10") && !IsWave64Enforced(optCompile))
+                if((StartsWith(target.Name(), "gfx10") || StartsWith(target.Name(), "gfx11")) &&
+                   !IsWave64Enforced(optCompile))
                     optCompile.emplace_back("-DWORKAROUND_ISSUE_1431=1");
             }
 #endif
@@ -850,7 +864,8 @@ void BuildHip(const std::string& name,
             OptionList addDevLibs;
             // Use device libs for wavefrontsize64 for non-gfx10 targets
             // or when enforced via option.
-            if(!StartsWith(target.Name(), "gfx10") || IsWave64Enforced(optCompile))
+            if(!(StartsWith(target.Name(), "gfx10") || StartsWith(target.Name(), "gfx11")) ||
+               IsWave64Enforced(optCompile))
             {
                 addDevLibs.push_back("wavefrontsize64");
             }
@@ -876,9 +891,8 @@ void BuildHip(const std::string& name,
             action.Do(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE, relocatable, exe);
         }
 
-        constexpr auto INTENTIONALY_UNKNOWN = static_cast<amd_comgr_status_t>(0xffff);
         if(exe.GetDataCount(AMD_COMGR_DATA_KIND_EXECUTABLE) < 1)
-            throw ComgrError{INTENTIONALY_UNKNOWN, "Executable binary not found"};
+            throw ComgrError{AMD_COMGR_STATUS_ERROR, true, "Executable binary not found"};
         // Assume that the first exec data contains the binary we need.
         const auto data = exe.GetData(AMD_COMGR_DATA_KIND_EXECUTABLE, 0);
         data.GetBytes(binary);
@@ -886,7 +900,7 @@ void BuildHip(const std::string& name,
     catch(ComgrError& ex)
     {
         binary.resize(0); // Necessary when "get binary" fails.
-        MIOPEN_LOG_E("comgr status = " << GetStatusText(ex.status));
+        MIOPEN_LOG_E("comgr status = " << GetStatusText(ex));
         if(!ex.text.empty())
             MIOPEN_LOG_W(ex.text);
     }
@@ -929,7 +943,8 @@ void BuildOcl(const std::string& name,
         OptionList optLink;
         // Use device libs for wavefrontsize64 for non-gfx10 targets
         // or when enforced via option.
-        if(!StartsWith(target.Name(), "gfx10") || IsWave64Enforced(optCompile))
+        if(!(StartsWith(target.Name(), "gfx10") || StartsWith(target.Name(), "gfx11")) ||
+           IsWave64Enforced(optCompile))
         {
             optLink.push_back("wavefrontsize64");
         }
@@ -962,9 +977,8 @@ void BuildOcl(const std::string& name,
         const Dataset exe;
         action.Do(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE, relocatable, exe);
 
-        constexpr auto INTENTIONALY_UNKNOWN = static_cast<amd_comgr_status_t>(0xffff);
         if(exe.GetDataCount(AMD_COMGR_DATA_KIND_EXECUTABLE) < 1)
-            throw ComgrError{INTENTIONALY_UNKNOWN, "Executable binary not found"};
+            throw ComgrError{AMD_COMGR_STATUS_ERROR, true, "Executable binary not found"};
         // Assume that the first exec data contains the binary we need.
         const auto data = exe.GetData(AMD_COMGR_DATA_KIND_EXECUTABLE, 0);
         data.GetBytes(binary);
@@ -972,7 +986,7 @@ void BuildOcl(const std::string& name,
     catch(ComgrError& ex)
     {
         binary.resize(0);
-        MIOPEN_LOG_E("comgr status = " << GetStatusText(ex.status));
+        MIOPEN_LOG_E("comgr status = " << GetStatusText(ex));
         if(!ex.text.empty())
             MIOPEN_LOG_W(ex.text);
     }
@@ -1008,9 +1022,8 @@ void BuildAsm(const std::string& name,
         const Dataset exe;
         action.Do(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE, relocatable, exe);
 
-        constexpr auto INTENTIONALY_UNKNOWN = static_cast<amd_comgr_status_t>(0xffff);
         if(exe.GetDataCount(AMD_COMGR_DATA_KIND_EXECUTABLE) < 1)
-            throw ComgrError{INTENTIONALY_UNKNOWN, "Executable binary not found"};
+            throw ComgrError{AMD_COMGR_STATUS_ERROR, true, "Executable binary not found"};
         // Assume that the first exec data contains the binary we need.
         const auto data = exe.GetData(AMD_COMGR_DATA_KIND_EXECUTABLE, 0);
         data.GetBytes(binary);
@@ -1018,7 +1031,7 @@ void BuildAsm(const std::string& name,
     catch(ComgrError& ex)
     {
         binary.resize(0);
-        MIOPEN_LOG_E("comgr status = " << GetStatusText(ex.status));
+        MIOPEN_LOG_E("comgr status = " << GetStatusText(ex));
         if(!ex.text.empty())
             MIOPEN_LOG_W(ex.text);
     }
@@ -1028,7 +1041,11 @@ void BuildAsm(const std::string& name,
 
 #if MIOPEN_USE_HIPRTC
 
-#define WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H 1 // See SWDEV-307838 Issue #1648
+#define WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H 1 // See SWDEV-307838, issue #1648.
+#define WORKAROUND_ISSUE_1674 (HIP_PACKAGE_VERSION_FLAT >= 5003022305ULL)
+/// No assumption that HIP kernels are launched with uniform block size for backward compatibility
+/// SWDEV-413293 and https://reviews.llvm.org/D155213 effective HIP_FLAT_VERSION 500723302
+#define WORKAROUND_SWDEV_413293 (HIP_PACKAGE_VERSION_FLAT >= 5007023302ULL)
 
 namespace hiprtc {
 
@@ -1250,7 +1267,7 @@ private:
                 return {error_handling ? "warning: HIPRTC error log empty" : ""};
             std::vector<char> buffer(n);
             HIPRTC_CALL_INFO_THROW(hiprtcGetProgramLog(prog.get(), buffer.data()), n);
-            assert(buffer.back() == 0);
+            assert(buffer.back() == 0 || buffer.back() == '\n' || buffer.back() == '\0');
             return {buffer.begin(), buffer.end() - 1};
         }
         catch(Error&)
@@ -1285,17 +1302,25 @@ void BuildHip(const std::string& name,
         opts.push_back("-DHIP_PACKAGE_VERSION_FLAT=" + std::to_string(HIP_PACKAGE_VERSION_FLAT));
         opts.push_back("-DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1");
 #if WORKAROUND_ISSUE_1431
-        if(StartsWith(target.Name(), "gfx10") && !miopen::comgr::IsWave64Enforced(opts))
+        if((StartsWith(target.Name(), "gfx10") || StartsWith(target.Name(), "gfx11")) &&
+           !miopen::comgr::IsWave64Enforced(opts))
             opts.push_back("-DWORKAROUND_ISSUE_1431=1");
 #endif
 #if WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H
         opts.push_back("-Wno-newline-eof");
         opts.push_back("-Wno-reserved-identifier");
         opts.push_back("-Wno-old-style-cast");
+        opts.push_back("-Wno-extra-semi-stmt");
+#endif
+#if WORKAROUND_ISSUE_1674
+        opts.push_back("-Wno-gnu-line-marker");
 #endif
         opts.push_back("-Wno-cuda-compat");
         opts.push_back("-fno-gpu-rdc");
         opts.push_back("-O3");
+#if WORKAROUND_SWDEV_413293
+        opts.push_back("-fno-offload-uniform-block");
+#endif
         if(std::none_of(opts.begin(), opts.end(), [](const std::string& s) {
                return StartsWith(s, "--std=") || StartsWith(s, "-std=");
            }))

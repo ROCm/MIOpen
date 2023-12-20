@@ -40,9 +40,9 @@ void Bin2Hex(std::istream& source,
              size_t lineSize)
 {
     source.seekg(0, std::ios::end);
-    std::unique_ptr<unsigned char[]> buffer(new unsigned char[bufferSize]);
-    std::streamoff sourceSize = source.tellg();
-    std::streamoff blockStart = 0;
+    const std::unique_ptr<unsigned char[]> buffer(new unsigned char[bufferSize]);
+    const std::streamoff sourceSize = source.tellg();
+    std::streamoff blockStart       = 0;
 
     if(variable.length() != 0)
     {
@@ -60,14 +60,14 @@ void Bin2Hex(std::istream& source,
     {
         source.read(reinterpret_cast<char*>(buffer.get()), bufferSize);
 
-        std::streamoff pos       = source.tellg();
-        std::streamoff blockSize = (pos < 0 ? sourceSize : pos) - blockStart;
-        std::streamoff i         = 0;
+        const std::streamoff pos       = source.tellg();
+        const std::streamoff blockSize = (pos < 0 ? sourceSize : pos) - blockStart;
+        std::streamoff i               = 0;
 
         while(i < blockSize)
         {
-            size_t j   = i;
-            size_t end = std::min<size_t>(i + lineSize, blockSize);
+            size_t j         = i;
+            const size_t end = std::min<size_t>(i + lineSize, blockSize);
 
             for(; j < end; j++)
                 target << "0x" << std::setw(2) << static_cast<unsigned>(buffer[j]) << ",";

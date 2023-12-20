@@ -109,16 +109,18 @@ size_t CTCLossDescriptor::GetCTCLossWorkspaceSize(Handle& handle,
     wksp_sz_lb += total_label_len;
 
     // labels with blanks
-    wksp_sz_lb += batch_size * (2 * max_label_len + 1);
+    wksp_sz_lb += static_cast<size_t>(batch_size) * (2 * static_cast<size_t>(max_label_len) + 1);
 
     // logsoftmax of probs
-    wksp_sz_dat += max_time_step * batch_size * class_sz;
+    wksp_sz_dat += static_cast<size_t>(max_time_step) * batch_size * class_sz;
 
     // alphas
-    wksp_sz_dat += max_time_step * batch_size * (2 * max_label_len + 1);
+    wksp_sz_dat += static_cast<size_t>(max_time_step) * batch_size *
+                   (2 * static_cast<size_t>(max_label_len) + 1);
 
     // beta buffer
-    wksp_sz_dat += 2 * batch_size * (2 * max_label_len + 1);
+    wksp_sz_dat +=
+        2 * static_cast<size_t>(batch_size) * (2 * static_cast<size_t>(max_label_len) + 1);
 
     size_t total_size = wksp_sz_dat * sizeof(float) + wksp_sz_lb * sizeof(int);
     if(total_size > handle.GetMaxMemoryAllocSize())

@@ -110,7 +110,8 @@ if(DEFINED CMAKE_TOOLCHAIN_FILE)
 endif()
 # Initialize directory
 cget(init ${TOOLCHAIN_FLAG} -DCMAKE_INSTALL_RPATH=${PREFIX}/lib ${PARSE_UNPARSED_ARGUMENTS})
+cget(ignore pcre)
 
 # Install dependencies
-cget(install -U pfultz2/rocm-recipes)
+cget(install -U ROCmSoftwarePlatform/rocm-recipes@7c09d33ac418c31cd5fe1f6e3c2605061dd367c6)
 cget(install -U -f requirements.txt)

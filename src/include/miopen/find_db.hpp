@@ -72,8 +72,6 @@ testing_find_db_path_override(); /// \todo Remove when #1723 is resolved.
 
 } // namespace debug
 
-bool CheckInvokerSupport(const std::string& algo);
-
 template <class TDb>
 class FindDbRecord_t
 {
@@ -172,8 +170,6 @@ private:
     boost::optional<DbRecord> content{boost::none};
     bool in_sync = false;
 
-    static bool HasKernel(Handle& handle, const FindDbKCacheKey& key);
-
     static std::string GetInstalledPath(Handle& handle);
     static std::string GetInstalledPathEmbed(Handle& handle);
     static std::string GetInstalledPathFile(Handle& handle);
@@ -183,8 +179,7 @@ private:
     bool Validate(Handle& handle, const NetworkConfig& config) const;
     void CopyTo(std::vector<PerfField>& to) const;
 
-    void LogFindDbItem(const std::pair<std::string, FindDbData>& pair,
-                       bool log_as_error = false) const;
+    void LogFindDbItem(const std::pair<std::string, FindDbData>& item) const;
 };
 
 extern template class FindDbRecord_t<FindDb>;

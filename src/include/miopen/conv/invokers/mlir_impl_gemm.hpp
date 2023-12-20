@@ -27,14 +27,15 @@
 #pragma once
 
 #include <miopen/invoker.hpp>
-#include <miopen/conv/context.hpp>
+#include <miopen/problem_description.hpp>
 
 namespace miopen {
 namespace conv {
 
-InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx);
-InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx);
-InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx, size_t workspace_req);
+InvokerFactory MakeMlirFwdInvokerFactory(const miopen::ProblemDescription& problem);
+InvokerFactory MakeMlirBwdInvokerFactory(const miopen::ProblemDescription& problem);
+InvokerFactory MakeMlirWrWInvokerFactory(const miopen::ProblemDescription& problem,
+                                         size_t workspace_req);
 
 } // namespace conv
 } // namespace miopen

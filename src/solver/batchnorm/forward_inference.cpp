@@ -27,7 +27,6 @@
 #include <miopen/batchnorm/solvers.hpp>
 
 #include <miopen/batchnorm/invoke_params.hpp>
-#include <miopen/batchnorm/problem_description.hpp>
 #include <miopen/batch_norm.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/visit_float.hpp>
@@ -42,7 +41,11 @@ namespace batchnorm {
 bool BnFwdInference::IsApplicable(const ExecutionContext&,
                                   const miopen::batchnorm::ProblemDescription& problem) const
 {
-    return problem.GetDirection() == miopen::batchnorm::Direction::ForwardInference;
+    if(problem.IsLayoutNHWC())
+        return false;
+    if(problem.GetDirection() != miopen::batchnorm::Direction::ForwardInference)
+        return false;
+    return true;
 }
 
 ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
@@ -103,6 +106,7 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
             {"MIO_BN_GRP0", xlocalsize},
             {"MIO_BN_GRP1", ylocalsize},
             {"MIO_BN_GRP2", zlocalsize},
+            {"MIO_BN_GFX110X", (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0")},
             {"MIO_BN_GFX103X", (StartsWith(handle.GetDeviceName(), "gfx103") ? "1" : "0")},
         };
 

@@ -72,13 +72,43 @@ boost::optional<const Invoker&> InvokerCache::GetFound1_0(const std::string& net
     return invoker->second;
 }
 
+boost::optional<const std::string&>
+InvokerCache::GetFound1_0SolverId(const std::string& network_config,
+                                  const std::string& algorithm) const
+{
+    const auto item = invokers.find(network_config);
+    if(item == invokers.end())
+    {
+        MIOPEN_LOG_I2("No invokers found for " << network_config);
+        return boost::none;
+    }
+    if(item->second.found_1_0.empty())
+    {
+        MIOPEN_LOG_I2("Invokers found for " << network_config
+                                            << " but there is no find 1.0 result.");
+        return boost::none;
+    }
+    const auto& found_1_0_ids = item->second.found_1_0;
+    const auto found_1_0_id   = found_1_0_ids.find(algorithm);
+    if(found_1_0_id == found_1_0_ids.end())
+    {
+        MIOPEN_LOG_I2("Invokers found for "
+                      << network_config << " but there is no one with an algorithm " << algorithm);
+        return boost::none;
+    }
+    return found_1_0_id->second;
+}
+
 void InvokerCache::Register(const Key& key, const Invoker& invoker)
 {
     auto it = invokers.find(key.first);
     if(it != invokers.end())
         it->second.invokers.insert({key.second, invoker});
-    auto& item = invokers.insert({key.first, Item{}}).first->second;
-    item.invokers.insert({key.second, invoker});
+    else
+    {
+        auto& item = invokers.insert({key.first, Item{}}).first->second;
+        item.invokers.insert({key.second, invoker});
+    }
     MIOPEN_LOG_I2("Invoker registered for algorithm " << key.first << " and solver " << key.second);
 }
 

@@ -99,6 +99,13 @@ inline static bool IsLinear(const int v)
     return L <= v && v <= H;
 }
 
+static inline size_t divide_round_plus_inf(const size_t x, const unsigned y)
+{
+    if(x % y != 0)
+        return x / y + 1;
+    return x / y;
+}
+
 enum class MemLayout : int
 {
     NCHW = 0,
@@ -107,12 +114,12 @@ enum class MemLayout : int
 
 struct config_helper
 {
-    config_helper(const ConvolutionContext& conf, const PerformanceConfigConvAsm1x1UV2& perf)
+    config_helper(const ProblemDescription& problem, const PerformanceConfigConvAsm1x1UV2& config)
     {
-        if(conf.direction.IsForward())
+        if(problem.direction.IsForward())
         {
-            stride_w   = conf.kernel_stride_w;
-            stride_h   = conf.kernel_stride_h;
+            stride_w   = problem.GetKernelStrideW();
+            stride_h   = problem.GetKernelStrideH();
             dilation_w = 1;
             dilation_h = 1;
         }
@@ -120,16 +127,16 @@ struct config_helper
         {
             stride_w   = 1;
             stride_h   = 1;
-            dilation_w = conf.kernel_stride_w;
-            dilation_h = conf.kernel_stride_h;
+            dilation_w = problem.GetKernelStrideW();
+            dilation_h = problem.GetKernelStrideH();
         }
 
-        in_strided_w = divide_round_plus_inf(conf.in_width, stride_w);
-        in_strided_h = divide_round_plus_inf(conf.in_height, stride_h);
+        in_strided_w = divide_round_plus_inf(problem.GetInWidth_(), stride_w);
+        in_strided_h = divide_round_plus_inf(problem.GetInHeight_(), stride_h);
 
-        w_per_wave  = static_cast<int>(divide_round_plus_inf(perf.dwords_per_ld, stride_w) *
-                                      perf.w_mult * (perf.chunk_size / perf.h_per_chunk));
-        h_per_wave  = perf.h_per_chunk * perf.h_mult;
+        w_per_wave  = static_cast<int>(divide_round_plus_inf(config.dwords_per_ld, stride_w) *
+                                      config.w_mult * (config.chunk_size / config.h_per_chunk));
+        h_per_wave  = config.h_per_chunk * config.h_mult;
         gid_hw_size = static_cast<int>(divide_round_plus_inf(in_strided_w, h_per_wave) *
                                        divide_round_plus_inf(in_strided_h, w_per_wave));
     }
@@ -154,7 +161,7 @@ struct buff_info
     buff_info(MemLayout layout, int nk, int c, int h, int w, int vec_c, int data_len_t)
     {
         int c_hi        = (c + vec_c - 1) / vec_c;
-        int count       = nk * c_hi * h * w * vec_c;
+        auto count      = static_cast<size_t>(nk) * c_hi * h * w * vec_c;
         total_byte_size = count * data_len_t;
         size.nk         = nk;
         size.c          = c;
@@ -187,7 +194,7 @@ struct buff_info
     }
 };
 
-bool PerformanceConfigConvAsm1x1UV2::SetNextValue(const ConvolutionContext& /*config*/)
+bool PerformanceConfigConvAsm1x1UV2::SetNextValue(const ProblemDescription&)
 {
     // Increment with wrap-around:
     do
@@ -319,26 +326,27 @@ bool PerformanceConfigConvAsm1x1UV2::IsValidValue() const
         ; // clang-format on
 }
 
-bool PerformanceConfigConvAsm1x1UV2::IsValid(const ConvolutionContext& config) const
+bool PerformanceConfigConvAsm1x1UV2::IsValid(const ProblemDescription& problem) const
 {
-    const auto elements_in_dword = 4 / GetTypeSize(config.in_data_type);
+    const auto elements_in_dword = 4 / static_cast<int>(GetTypeSize(problem.GetInDataType()));
 
     if(!IsValidValue())
         return false;
     if(!(waves_c_in_group * waves_k_in_group <= 16))
         return false;
-    if(!(waves_c_in_group <= config.n_inputs))
+    if(!(waves_c_in_group <= problem.GetInChannels_()))
         return false;
     if(!(h_per_chunk <= chunk_size))
         return false;
-    if(!(k_mult * waves_k_in_group <= config.n_outputs))
+    if(!(k_mult * waves_k_in_group <= problem.GetOutChannels_()))
         return false;
 
     // cppcheck-suppress unreadVariable
-    const config_helper uv_lj(config, *this);
+    const config_helper uv_lj(problem, *this);
 
     const auto elements_per_ld = (dwords_per_ld * elements_in_dword);
-    const auto active_elements = divide_round_plus_inf(elements_per_ld, uv_lj.stride_w);
+    const auto active_elements =
+        static_cast<int>(divide_round_plus_inf(elements_per_ld, uv_lj.stride_w));
 
     const auto in_gprs  = dwords_per_ld * w_mult * h_mult * c_mult * n_mult * 2;
     const auto acc_gprs = active_elements * w_mult * h_mult * k_mult * n_mult;
@@ -371,45 +379,47 @@ bool PerformanceConfigConvAsm1x1UV2::IsValid(const ConvolutionContext& config) c
     const auto sgprs = 25 + 2 * k_mult * c_mult;
     if(!(sgprs < 102))
         return false;
-    const auto total_n_blocks = (config.batch_sz + GetNPerGpr() - 1) / GetNPerGpr();
+    const auto total_n_blocks = (problem.GetBatchSize_() + GetNPerGpr() - 1) / GetNPerGpr();
     if(!(n_mult <= total_n_blocks))
         return false;
 
-    const auto c_per_wave      = (config.n_inputs + waves_c_in_group - 1) / waves_c_in_group;
-    const auto c_per_last_wave = config.n_inputs - (c_per_wave * (waves_c_in_group - 1));
+    const auto c_per_wave = (problem.GetInChannels_() + waves_c_in_group - 1) / waves_c_in_group;
+    const auto c_per_last_wave = problem.GetInChannels_() - (c_per_wave * (waves_c_in_group - 1));
 
-    if(config.direction.IsBackwardData() && !(config.n_outputs % k_mult == 0))
+    if(problem.direction.IsBackwardData() && !(problem.GetOutChannels_() % k_mult == 0))
         return false;
 
     {
         // cppcheck-suppress unreadVariable
         buff_info ibuf(MemLayout::NCHW,
-                       config.batch_sz,
-                       config.n_inputs,
-                       config.in_height,
-                       config.in_width,
+                       problem.GetBatchSize_(),
+                       problem.GetInChannels_(),
+                       problem.GetInHeight_(),
+                       problem.GetInWidth_(),
                        1,
-                       GetTypeSize(config.in_data_type));
+                       GetTypeSize(problem.GetInDataType()));
         // cppcheck-suppress unreadVariable
         buff_info obuf(MemLayout::NCHW,
-                       config.batch_sz,
-                       config.n_outputs,
-                       config.out_height,
-                       config.out_width,
+                       problem.GetBatchSize_(),
+                       problem.GetOutChannels_(),
+                       problem.GetOutHeight_(),
+                       problem.GetOutWidth_(),
                        1,
-                       GetTypeSize(config.out_data_type));
+                       GetTypeSize(problem.GetOutDataType()));
         int n_miss = n_mult * GetNPerGpr() - 1;
-        if((static_cast<long>(config.n_inputs) + n_miss) * ibuf.byte_stride.nk >= (1LL << 31) ||
-           (static_cast<long>(config.n_outputs) + n_miss) * obuf.byte_stride.nk >= (1LL << 31))
+        if((static_cast<int64_t>(problem.GetInChannels_()) + n_miss) * ibuf.byte_stride.nk >=
+               (1LL << 31) ||
+           (static_cast<int64_t>(problem.GetOutChannels_()) + n_miss) * obuf.byte_stride.nk >=
+               (1LL << 31))
             return false;
     }
     return (c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0);
 }
 
-void PerformanceConfigConvAsm1x1UV2::HeuristicInit(const ConvolutionContext& config)
+void PerformanceConfigConvAsm1x1UV2::HeuristicInit(const ProblemDescription& problem)
 {
-    int c_check   = config.direction.IsForward() ? config.n_inputs : 0;
-    int k_check   = config.direction.IsForward() ? 0 : config.n_inputs;
+    int c_check   = problem.direction.IsForward() ? problem.GetInChannels_() : 0;
+    int k_check   = problem.direction.IsForward() ? 0 : problem.GetInChannels_();
     chunk_size    = 16;
     dwords_per_ld = 1;
     c_mult        = (c_check % 2 == 0) ? 2 : ((c_check % 3 == 0) ? 3 : 1);
@@ -421,23 +431,23 @@ void PerformanceConfigConvAsm1x1UV2::HeuristicInit(const ConvolutionContext& con
     waves_c_in_group = 1;
     waves_k_in_group = 1;
 
-    if(!IsValid(config))
+    if(!IsValid(problem))
     {
         MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
         h_per_chunk = chunk_size;
     }
-    if(!IsValid(config))
+    if(!IsValid(problem))
     {
         MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
         c_mult = 1;
         k_mult = 1;
     }
-    if(!IsValid(config))
+    if(!IsValid(problem))
     {
         MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
         h_per_chunk = 1;
     }
-    if(!IsValid(config))
+    if(!IsValid(problem))
     {
         MIOPEN_LOG_I("!IsValid(): " << ToString());
         MIOPEN_LOG_E("All attempts failed");
@@ -450,71 +460,79 @@ void PerformanceConfigConvAsm1x1UV2::HeuristicInit(const ConvolutionContext& con
 }
 
 PerformanceConfigConvAsm1x1UV2
-ConvAsm1x1UV2::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
+ConvAsm1x1UV2::GetDefaultPerformanceConfig(const ExecutionContext&,
+                                           const ProblemDescription& problem) const
 {
     PerformanceConfigConvAsm1x1UV2 pp;
-    pp.HeuristicInit(params);
+    pp.HeuristicInit(problem);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
 
-bool ConvAsm1x1UV2::IsValidPerformanceConfig(const ConvolutionContext& problem,
-                                             const PerformanceConfigConvAsm1x1UV2& c) const
+bool ConvAsm1x1UV2::IsValidPerformanceConfig(const ExecutionContext&,
+                                             const ProblemDescription& problem,
+                                             const PerformanceConfigConvAsm1x1UV2& config) const
 {
-    return c.IsValidValue() && c.IsValid(problem);
+    return config.IsValidValue() && config.IsValid(problem);
 }
 
-bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
+bool ConvAsm1x1UV2::IsApplicable(const ExecutionContext& ctx,
+                                 const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2{}))
         return false;
-    if(!params.use_asm_kernels)
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
-    if(!params.Is2d())
+    if(!ctx.use_asm_kernels)
         return false;
-    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
+    if(!problem.Is2d())
         return false;
-    if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
+    if(!(problem.direction.IsForward() || problem.direction.IsBackwardData()))
         return false;
-    if(!params.rmv.IsV2orV3())
+    if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
-    if(!params.IsFp32())
+    if(!ctx.rmv.IsV2orV3())
+        return false;
+    if(!problem.IsFp32())
         return false;
 
-    const auto target = params.GetStream().GetTargetProperties();
+    if(problem.IsTensorsCasted())
+        return false;
+
+    const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
 
-    const std::string name = params.GetStream().GetDeviceName();
+    const std::string name = ctx.GetStream().GetDeviceName();
     if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
     {
         return false;
     }
-    if(!params.IsLayoutDefault())
+    if(!problem.IsLayoutDefault())
     {
         return false;
     }
 
-    if(name == "gfx90a" && params.conv_problem.IsGfx90aFp16altRequired())
+    if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
 
-    const auto elements_in_dword = 4 / GetTypeSize(params.in_data_type);
+    const auto elements_in_dword = 4 / GetTypeSize(problem.GetInDataType());
     // clang-format off
-    const auto img_hw = params.out_height * params.out_width;
-    bool ok = (params.pad_w == 0
-        && params.pad_h == 0
-        && params.kernel_size_w == 1
-        && params.kernel_size_h == 1
-        && params.kernel_stride_w <= 2
-        && params.kernel_stride_w == params.kernel_stride_h
-        && params.kernel_dilation_w == 1
-        && params.kernel_dilation_h == 1
-        && params.bias == 0
-        && params.in_layout == "NCHW"
-        && params.group_counts == 1
+    const auto img_hw = problem.GetOutHeight_() * problem.GetOutWidth_();
+    bool ok = (problem.GetPadW() == 0
+        && problem.GetPadH() == 0
+        && problem.GetWeightsWidth_() == 1
+        && problem.GetWeightsHeight_() == 1
+        && problem.GetKernelStrideW() <= 2
+        && problem.GetKernelStrideW() == problem.GetKernelStrideH()
+        && problem.GetDilationW() == 1
+        && problem.GetDilationH() == 1
+        && problem.GetBias() == 0
+        && problem.GetInLayout() == "NCHW"
+        && problem.GetGroupCount() == 1
         && img_hw >= elements_in_dword);
 
-    if(params.kernel_stride_w == 1){
+    if(problem.GetKernelStrideW() == 1){
         // save search time for non-strided convolutions
         // now this kernel much slower than conv1x1u.s
         ok = false;
@@ -525,16 +543,16 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
     }
 
     // Check limits:
-    auto h_w = static_cast<long>(params.in_height) * params.in_width;
-    const auto r_s     = static_cast<long>(params.kernel_size_h) * params.kernel_size_w;
-    const auto c_h_w   = static_cast<long>(params.n_inputs) * h_w;    // C*H*W
-    const auto k_h_w   = static_cast<long>(params.n_outputs) * h_w;   // K*H*W
-    const auto n_c_h_w = static_cast<long>(params.batch_sz) * c_h_w;  // N*C*H*W
-    const auto n_k_h_w = static_cast<long>(params.batch_sz) * k_h_w;  // N*K*H*W
-    const auto c_k_r_s = static_cast<long>(params.n_inputs) * params.n_outputs * r_s; // C*K*R*S
-    ok = params.batch_sz < std::pow(2, 16)      // -n   N batch_size
-         && params.n_inputs < std::pow(2, 16)   // -c   C input_channels
-         && params.n_outputs < std::pow(2, 16)  // -k   K output_channels
+    auto h_w = static_cast<int64_t>(problem.GetInHeight_()) * problem.GetInWidth_();
+    const auto r_s     = static_cast<int64_t>(problem.GetWeightsHeight_()) * problem.GetWeightsWidth_();
+    const auto c_h_w   = static_cast<int64_t>(problem.GetInChannels_()) * h_w;  // C*H*W
+    const auto k_h_w   = static_cast<int64_t>(problem.GetOutChannels_()) * h_w; // K*H*W
+    const auto n_c_h_w = static_cast<int64_t>(problem.GetBatchSize_()) * c_h_w; // N*C*H*W
+    const auto n_k_h_w = static_cast<int64_t>(problem.GetBatchSize_()) * k_h_w; // N*K*H*W
+    const auto c_k_r_s = static_cast<int64_t>(problem.GetInChannels_()) * problem.GetOutChannels_() * r_s; // C*K*R*S
+    ok = problem.GetBatchSize_() < std::pow(2, 16)       // -n   N batch_size
+         && problem.GetInChannels_() < std::pow(2, 16)   // -c   C input_channels
+         && problem.GetOutChannels_() < std::pow(2, 16)  // -k   K output_channels
          && c_h_w < std::pow(2, 24)
          && k_h_w < std::pow(2, 24)
          && n_c_h_w < std::pow(2, 29)
@@ -545,36 +563,39 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
         /// Hotfix for issue 1810 (HeuristicInit problem of this solver).
         /// Modified copy from PerformanceConfigConvAsm1x1UV2::IsValid()
         /// \todo Refactor this.
-        const auto& config = params; // alias
+        const auto& config = problem; // alias
         // cppcheck-suppress unreadVariable
         buff_info ibuf(MemLayout::NCHW,
-                       config.batch_sz,
-                       config.n_inputs,
-                       config.in_height,
-                       config.in_width,
+                       config.GetBatchSize_(),
+                       config.GetInChannels_(),
+                       config.GetInHeight_(),
+                       config.GetInWidth_(),
                        1,
-                       GetTypeSize(config.in_data_type));
+                       GetTypeSize(config.GetInDataType()));
         // cppcheck-suppress unreadVariable
         buff_info obuf(MemLayout::NCHW,
-                       config.batch_sz,
-                       config.n_outputs,
-                       config.out_height,
-                       config.out_width,
+                       config.GetBatchSize_(),
+                       config.GetOutChannels_(),
+                       config.GetOutHeight_(),
+                       config.GetOutWidth_(),
                        1,
-                       GetTypeSize(config.out_data_type));
+                       GetTypeSize(config.GetOutDataType()));
 
         const int eurictic_init_min_n_mult     = 1;
         const int eurictic_init_max_chunk_size = 16;
         const int n_miss = eurictic_init_min_n_mult * (64 / eurictic_init_max_chunk_size) - 1;
 
-        if((static_cast<long>(config.n_inputs) + n_miss) * ibuf.byte_stride.nk >= (1LL << 31) ||
-           (static_cast<long>(config.n_outputs) + n_miss) * obuf.byte_stride.nk >= (1LL << 31))
+        if((static_cast<int64_t>(config.GetInChannels_()) + n_miss) * ibuf.byte_stride.nk >=
+               (1LL << 31) ||
+           (static_cast<int64_t>(config.GetOutChannels_()) + n_miss) * obuf.byte_stride.nk >=
+               (1LL << 31))
             ok = false;
     }
     return ok;
 }
 
-ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
+ConvSolution ConvAsm1x1UV2::GetSolution(const ExecutionContext& ctx,
+                                        const ProblemDescription& problem,
                                         const PerformanceConfigConvAsm1x1UV2& config) const
 {
     ConvSolution result;
@@ -582,7 +603,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
 
     result.workspace_sz = 0;
 
-    int data_len                               = GetTypeSize(params.out_data_type);
+    int data_len                               = GetTypeSize(problem.GetOutDataType());
     const PerformanceConfigConvAsm1x1UV2* pcfg = &config;
 
     PerformanceConfigConvAsm1x1UV2 fromEnv;
@@ -610,7 +631,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
     }
 
     // cppcheck-suppress unreadVariable
-    const config_helper uv_lj(params, *pcfg);
+    const config_helper uv_lj(problem, *pcfg);
 
     GenerateClangDefsym(options, "stride_h", uv_lj.stride_h);
     GenerateClangDefsym(options, "stride_w", uv_lj.stride_w);
@@ -618,21 +639,21 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "idilation_h", uv_lj.dilation_h);
     GenerateClangDefsym(options, "idilation_w", uv_lj.dilation_w);
 
-    GenerateClangDefsym(options, "img_h", params.in_height); // H
-    GenerateClangDefsym(options, "img_w", params.in_width);  // W
+    GenerateClangDefsym(options, "img_h", problem.GetInHeight_()); // H
+    GenerateClangDefsym(options, "img_w", problem.GetInWidth_());  // W
 
-    GenerateClangDefsym(options, "out_h", params.out_height); // H
-    GenerateClangDefsym(options, "out_w", params.out_width);  // W
+    GenerateClangDefsym(options, "out_h", problem.GetOutHeight_()); // H
+    GenerateClangDefsym(options, "out_w", problem.GetOutWidth_());  // W
 
-    // Note that params.n_outputs and params.n_inputs are swapped for backward convolutions.
-    GenerateClangDefsym(options, "batch_size", params.batch_sz);       // N
-    GenerateClangDefsym(options, "input_channels", params.n_inputs);   // C
-    GenerateClangDefsym(options, "output_channels", params.n_outputs); // K
-    GenerateClangDefsym(options, "wei_h", params.kernel_size_h);       // R
-    GenerateClangDefsym(options, "wei_w", params.kernel_size_w);       // S
-    GenerateClangDefsym(options, "pad_h", params.pad_h);
-    GenerateClangDefsym(options, "pad_w", params.pad_w);
-    GenerateClangDefsym(options, "weights_layout", params.direction.IsForward() ? 0 : 1);
+    // Note that problem.n_outputs and problem.n_inputs are swapped for backward convolutions.
+    GenerateClangDefsym(options, "batch_size", problem.GetBatchSize_());        // N
+    GenerateClangDefsym(options, "input_channels", problem.GetInChannels_());   // C
+    GenerateClangDefsym(options, "output_channels", problem.GetOutChannels_()); // K
+    GenerateClangDefsym(options, "wei_h", problem.GetWeightsHeight_());         // R
+    GenerateClangDefsym(options, "wei_w", problem.GetWeightsWidth_());          // S
+    GenerateClangDefsym(options, "pad_h", problem.GetPadH());
+    GenerateClangDefsym(options, "pad_w", problem.GetPadW());
+    GenerateClangDefsym(options, "weights_layout", problem.direction.IsForward() ? 0 : 1);
 
     GenerateClangDefsym(options, "vec_c_in", 1);
     GenerateClangDefsym(options, "vec_k_out", 1);
@@ -643,24 +664,24 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
 
     // cppcheck-suppress unreadVariable
     buff_info ibuf(MemLayout::NCHW,
-                   params.batch_sz,
-                   params.n_inputs,
-                   params.in_height,
-                   params.in_width,
+                   problem.GetBatchSize_(),
+                   problem.GetInChannels_(),
+                   problem.GetInHeight_(),
+                   problem.GetInWidth_(),
                    1,
                    data_len);
     // cppcheck-suppress unreadVariable
     buff_info obuf(MemLayout::NCHW,
-                   params.batch_sz,
-                   params.n_outputs,
-                   params.out_height,
-                   params.out_width,
+                   problem.GetBatchSize_(),
+                   problem.GetOutChannels_(),
+                   problem.GetOutHeight_(),
+                   problem.GetOutWidth_(),
                    1,
                    data_len);
     // cppcheck-suppress unreadVariable
-    buff_info fbuf(params.direction.IsForward() ? MemLayout::NCHW : MemLayout::CNHW,
-                   params.n_outputs,
-                   params.n_inputs,
+    buff_info fbuf(problem.direction.IsForward() ? MemLayout::NCHW : MemLayout::CNHW,
+                   problem.GetOutChannels_(),
+                   problem.GetInChannels_(),
                    1,
                    1,
                    1,
@@ -684,7 +705,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "filter_buffer_size", fbuf.total_byte_size);
     GenerateClangDefsym(options, "output_buffer_size", obuf.total_byte_size);
 
-    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
 
     GenerateClangDefsym(options, "chunk_size", pcfg->GetChunkSize());
     GenerateClangDefsym(options, "dwords_per_ld", pcfg->GetDwordsPerLd());
@@ -702,7 +723,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
 
     const int waves_in_group = pcfg->GetWavesCInGroup() * pcfg->GetWavesKInGroup();
     kinfo.l_wk.clear(); // workgroupsize
-    kinfo.l_wk.push_back(64 * waves_in_group);
+    kinfo.l_wk.push_back(64ULL * waves_in_group);
     kinfo.l_wk.push_back(1);
     kinfo.l_wk.push_back(1);
 
@@ -715,9 +736,9 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
                          divide_round_plus_inf(uv_lj.in_strided_w, uv_lj.w_per_wave) *
                          divide_round_plus_inf(uv_lj.in_strided_h, uv_lj.h_per_wave));
 
-    kinfo.g_wk.push_back(divide_round_plus_inf(params.n_outputs, k_per_wave));
+    kinfo.g_wk.push_back(divide_round_plus_inf(problem.GetOutChannels_(), k_per_wave));
 
-    kinfo.g_wk.push_back(divide_round_plus_inf(params.batch_sz, n_per_wave));
+    kinfo.g_wk.push_back(divide_round_plus_inf(problem.GetBatchSize_(), n_per_wave));
 
     kinfo.kernel_file = "conv1x1u_stride2.s";
     kinfo.kernel_name = "miopenGcnAsmConv1x1U_stride2";
@@ -726,17 +747,18 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
 
     {
         int N, C, H, W, K, n_groups;
-        GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);
+        GetCompiledInParameters(ctx, problem, &N, &C, &H, &W, &K, &n_groups);
         result.invoker_factory = conv::MakeGcnAsm1x1UInvokerFactory(N, C, H, W, K, n_groups);
     }
 
     return result;
 }
 
-PerformanceConfigConvAsm1x1UV2 ConvAsm1x1UV2::Search(const ConvolutionContext& context,
+PerformanceConfigConvAsm1x1UV2 ConvAsm1x1UV2::Search(const ExecutionContext& ctx,
+                                                     const ProblemDescription& problem,
                                                      const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearch(*this, context, invoke_ctx);
+    return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
 } // namespace solver

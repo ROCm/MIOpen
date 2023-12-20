@@ -30,15 +30,6 @@
 namespace miopen {
 
 // operator args
-OperatorArgs::OperatorArgs() {}
-
-void OperatorArgs::ins_arg(std::string name, OpKernelArg v)
-{
-    args_map.emplace(std::make_pair(name, v));
-    //    args_map[name] = std::move(v);
-    args_vec.push_back(v);
-}
-
 std::ostream& operator<<(std::ostream& stream, const OperatorArgs&) // x )
 {
     /*MIOPEN_LOG_ENUM(stream,

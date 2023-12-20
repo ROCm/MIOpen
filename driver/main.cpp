@@ -36,11 +36,16 @@
 #include "pool_driver.hpp"
 #include "softmax_driver.hpp"
 #include "rnn_driver.hpp"
+#include "rnn_seq_driver.hpp"
 #include "ctc_driver.hpp"
 #include "dropout_driver.hpp"
 #include "tensorop_driver.hpp"
 #include "reduce_driver.hpp"
-#include "miopen/config.h"
+#include <miopen/config.h>
+#include <miopen/stringutils.hpp>
+#ifdef MIOPEN_BETA_API
+#include "layernorm_driver.hpp"
+#endif
 
 int main(int argc, char* argv[])
 {
@@ -78,6 +83,14 @@ int main(int argc, char* argv[])
     else if(base_arg == "convint8")
     {
         drv = new ConvDriver<int8_t, int32_t>();
+    }
+    else if(base_arg == "convfp8")
+    {
+        drv = new ConvDriver<float8, float>();
+    }
+    else if(base_arg == "convbfp8")
+    {
+        drv = new ConvDriver<bfloat8, float>();
     }
     else if(base_arg == "CBAInfer")
     {
@@ -138,6 +151,14 @@ int main(int argc, char* argv[])
     {
         drv = new BatchNormDriver<float16, double, float>();
     }
+    else if(base_arg == "rnn_seq")
+    {
+        drv = new RNNSeqDriver<float, double>();
+    }
+    else if(base_arg == "rnn_seqfp16")
+    {
+        drv = new RNNSeqDriver<float16, double>();
+    }
     else if(base_arg == "rnn")
     {
         drv = new RNNDriver<float, double>();
@@ -178,6 +199,20 @@ int main(int argc, char* argv[])
     {
         drv = new ReduceDriver<double, double>();
     }
+#ifdef MIOPEN_BETA_API
+    else if(base_arg == "layernorm")
+    {
+        drv = new LayerNormDriver<float, float>();
+    }
+    else if(base_arg == "layernormfp16")
+    {
+        drv = new LayerNormDriver<float16, float>();
+    }
+    else if(base_arg == "layernormbfp16")
+    {
+        drv = new LayerNormDriver<bfloat16, float>();
+    }
+#endif
     else
     {
         printf("Incorrect BaseArg\n");
@@ -199,10 +234,9 @@ int main(int argc, char* argv[])
         return rc;
     }
 
-    int fargval = ((base_arg != "CBAInfer") && (base_arg != "CBAInferfp16"))
-                      ? drv->GetInputFlags().GetValueInt("forw")
-                      : 1;
-    bool bnFwdInVer   = (fargval == 2 && (base_arg == "bnorm"));
+    int fargval =
+        !miopen::StartsWith(base_arg, "CBAInfer") ? drv->GetInputFlags().GetValueInt("forw") : 1;
+    bool bnFwdInVer   = (fargval == 2 && miopen::StartsWith(base_arg, "bnorm"));
     bool verifyarg    = (drv->GetInputFlags().GetValueInt("verify") == 1);
     int cumulative_rc = 0; // Do not stop running tests in case of errors.
 

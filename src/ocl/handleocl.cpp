@@ -1,4 +1,4 @@
-﻿/*******************************************************************************
+/*******************************************************************************
  *
  * MIT License
  *
@@ -252,18 +252,18 @@ Handle::Handle() : impl(new HandleImpl())
     // Create an OpenCL command queue
     /////////////////////////////////////////////////////////////////
     cl_int status = 0;
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-    impl->queue = HandleImpl::AqPtr{clCreateCommandQueue(
+#ifdef CL_VERSION_2_0
+    const cl_queue_properties cq_props[] = {CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0};
+
+    impl->queue = HandleImpl::AqPtr{
+        clCreateCommandQueueWithProperties(impl->context.get(), impl->device, cq_props, &status)};
+#else
+    impl->queue  = HandleImpl::AqPtr{clCreateCommandQueue(
         impl->context.get(), impl->device, CL_QUEUE_PROFILING_ENABLE, &status)};
-#ifdef __clang__
-#pragma clang diagnostic pop
 #endif
     if(status != CL_SUCCESS)
     {
-        MIOPEN_THROW("Creating Command Queue. (clCreateCommandQueue)");
+        MIOPEN_THROW("Error creating command queue");
     }
     this->SetAllocator(nullptr, nullptr, nullptr);
     this->impl->target_properties.Init(this);
@@ -284,6 +284,12 @@ void Handle::SetStream(miopenAcceleratorQueue_t streamID) const
     impl->queue = HandleImpl::AqPtr{streamID};
     this->impl->target_properties.Init(this);
     MIOPEN_LOG_NQI(*this);
+}
+
+void Handle::SetStreamFromPool(int) const { MIOPEN_THROW("Error streamPool unsupported at OCl"); }
+void Handle::ReserveExtraStreamsInPool(int) const
+{
+    MIOPEN_THROW("Error streamPool unsupported at OCl");
 }
 
 miopenAcceleratorQueue_t Handle::GetStream() const { return impl->queue.get(); }
@@ -355,11 +361,6 @@ Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
         built.push_back(kernel);
     }
     return factory(built);
-}
-
-bool Handle::HasKernel(const std::string& algorithm, const std::string& network_config) const
-{
-    return this->impl->cache.HasKernels(algorithm, network_config);
 }
 
 void Handle::ClearKernels(const std::string& algorithm, const std::string& network_config) const
@@ -537,10 +538,15 @@ Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t s
 
 void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz) const
 {
+    ReadTo(data, ddata.get(), sz);
+}
+
+void Handle::ReadTo(void* data, ConstData_t ddata, std::size_t sz) const
+{
     MIOPEN_HANDLE_LOCK
     this->Finish();
-    auto status = clEnqueueReadBuffer(
-        this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
+    auto status =
+        clEnqueueReadBuffer(this->GetStream(), ddata, CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
     if(status != CL_SUCCESS)
     {
         MIOPEN_THROW_CL_STATUS(status, "OpenCL error reading from buffer: " + std::to_string(sz));

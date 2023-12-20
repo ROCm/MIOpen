@@ -115,20 +115,20 @@ void ADNN_mm_cpu(const Dtype* a_ptr,
                 {
                     mm_e += a_ptr[m * a_stride + n] * b_ptr[m * b_stride + k];
 #if 0
-					if (
-						(n == 0 && k == 33
-						|| n == 1 && k == 32
-						|| n == 3 && k == 1
-						|| n == 4 && k == 0
+                    if (
+                        (n == 0 && k == 33
+                        || n == 1 && k == 32
+                        || n == 3 && k == 1
+                        || n == 4 && k == 0
 
-						)
-						&& a_ptr[m*a_stride + n] * b_ptr[m*b_stride + k] != 0
-						)
-					{
-						printf("C:mm:%d %d %d   %11.9f %11.9f %11.9f %11.9f\n",
-							n, k, m,
-							mm_e, a_ptr[m*a_stride + n], b_ptr[m*b_stride + k], a_ptr[m*a_stride + n] * b_ptr[m*b_stride + k]);
-					}
+                        )
+                        && a_ptr[m*a_stride + n] * b_ptr[m*b_stride + k] != 0
+                        )
+                    {
+                        printf("C:mm:%d %d %d   %11.9f %11.9f %11.9f %11.9f\n",
+                            n, k, m,
+                            mm_e, a_ptr[m*a_stride + n], b_ptr[m*b_stride + k], a_ptr[m*a_stride + n] * b_ptr[m*b_stride + k]);
+                    }
 #endif
                 }
                 c_ptr[n * c_stride + k] = beta * c_ptr[n * c_stride + k] + alpha * mm_e;
@@ -147,10 +147,10 @@ void ADNN_mm_cpu(const Dtype* a_ptr,
                 {
                     mm_e += a_ptr[n * a_stride + m] * b_ptr[k * b_stride + m];
 #if 0
-					if (n == 0 && k == 6 && a_ptr[n*a_stride + m] * b_ptr[k*b_stride + m] != 0)
-					{
-						printf("%4d  %11.9f %11.9f %11.9f\n", m, mm_e, a_ptr[n*a_stride + m], b_ptr[k*b_stride + m]);
-					}
+                    if (n == 0 && k == 6 && a_ptr[n*a_stride + m] * b_ptr[k*b_stride + m] != 0)
+                    {
+                        printf("%4d  %11.9f %11.9f %11.9f\n", m, mm_e, a_ptr[n*a_stride + m], b_ptr[k*b_stride + m]);
+                    }
 #endif
                 }
                 c_ptr[n * c_stride + k] = beta * c_ptr[n * c_stride + k] + alpha * mm_e;
@@ -250,10 +250,10 @@ void ADNN_col2im_cpu(const Dtype* data_col,
                     data_im[(c_im * height + h_pad) * width + w_pad] +=
                         data_col[(c * height_col + h) * width_col + w];
 #if 0
-					if (c_im == 3 && h_pad == 30 && w_pad == 23)
-					{
-						printf("C:c2i: %d %d   %d %d %d %d    %14.12f %14.12f\n", c, h * width_col + w, w, h, w_pad, h_pad, data_im[(c_im * height + h_pad) * width + w_pad], data_col[(c * height_col + h) * width_col + w]);
-					}
+                    if (c_im == 3 && h_pad == 30 && w_pad == 23)
+                    {
+                        printf("C:c2i: %d %d   %d %d %d %d    %14.12f %14.12f\n", c, h * width_col + w, w, h, w_pad, h_pad, data_im[(c_im * height + h_pad) * width + w_pad], data_col[(c * height_col + h) * width_col + w]);
+                    }
 #endif
                 }
             }
@@ -340,14 +340,14 @@ int mloConvForwarDirectOnHost(
 
                                 accum += data_val * wei_val;
 #if 0
-								if (b == 0 && o == 0 && j == 1 && i == 0)
-								{
-									printf("c: %f %f %f\n",
-										accum/* + bias_ptr[o]*/,
-										data_val,
-										wei_val
-										);
-								}
+                                if (b == 0 && o == 0 && j == 1 && i == 0)
+                                {
+                                    printf("c: %f %f %f\n",
+                                        accum/* + bias_ptr[o]*/,
+                                        data_val,
+                                        wei_val
+                                        );
+                                }
 #endif
                             }
                         }
@@ -518,20 +518,20 @@ int mloBackwardDirectOnHost(
                                     run_bot_ptr[bot_data_off] += data_val * wei_val;
 
 #if 0
-									if (b == 0 && o == 0 && bot_y == 0 && bot_x == 0)
-									{
-										printf("c: %d %d %d %d %d %d  %f %f %f\n",
-											bot_data_off,
-											k_j,
-											k_i,
-											j,
-											i,
-											out_data_off,
-											run_bot_ptr[bot_data_off],
-											data_val,
-											wei_val
-										);
-									}
+                                    if (b == 0 && o == 0 && bot_y == 0 && bot_x == 0)
+                                    {
+                                        printf("c: %d %d %d %d %d %d  %f %f %f\n",
+                                            bot_data_off,
+                                            k_j,
+                                            k_i,
+                                            j,
+                                            i,
+                                            out_data_off,
+                                            run_bot_ptr[bot_data_off],
+                                            data_val,
+                                            wei_val
+                                        );
+                                    }
 #endif
                                 }
                             }
@@ -842,14 +842,14 @@ int mloDirectSPConvHost5x5(int MLO_GRP_SZ1,
                                                               k_i + l] *
                                                     wei_stage[k_i];
 #if 0
-												if (o_i == 1 && l1 == 0 && l0 == 0 && g0==0 && g1==0 && g2==0)
-												{
-													printf("ek: %f %f %f\n",
-														out_tiles[o_i * MLO_OUT_TILE1 * MLO_OUT_TILE0 + m*MLO_OUT_TILE0 + l],
-														bot_stage[m * (MLO_OUT_TILE0 + MLO_FILTER_SIZE1 - 1) + k_i + l],
-														wei_stage[k_i]
-														);
-												}
+                                                if (o_i == 1 && l1 == 0 && l0 == 0 && g0==0 && g1==0 && g2==0)
+                                                {
+                                                    printf("ek: %f %f %f\n",
+                                                        out_tiles[o_i * MLO_OUT_TILE1 * MLO_OUT_TILE0 + m*MLO_OUT_TILE0 + l],
+                                                        bot_stage[m * (MLO_OUT_TILE0 + MLO_FILTER_SIZE1 - 1) + k_i + l],
+                                                        wei_stage[k_i]
+                                                        );
+                                                }
 #endif
                                             }
                                         }
@@ -1028,46 +1028,44 @@ bool mloVerify(const miopenTensorDescriptor_t& cpu_,
                const miopenTensorDescriptor_t& gpu_,
                const Tcheck_* c_ptr,
                const Tgpu_* g_ptr,
-               Tcheck_ eps,
-               Tcheck_ max_abs_diff,
-               Tcheck_ max_sqr,
-               bool get_error_pos
-               //	int dir,
-               //	std::string name
-)
-
+               float ulps_tolerance,
+               Tcheck_ diff_tolerance,
+               double rms_tolerance,
+               bool check_ulps,
+               double& report_err)
 {
     const auto& cpu = miopen::deref(cpu_);
     const auto& gpu = miopen::deref(gpu_);
 
-    int spatial_dim = cpu.GetSize();
+    const auto spatial_dim = cpu.GetLengths().size() - 2;
 
-    int n_batchs, n_channels, depth, height, width;
-    int c_batch_stride, c_channel_stride, c_depth_stride, c_height_stride, c_width_stride;
-    int g_batch_stride, g_channel_stride, g_depth_stride, g_height_stride, g_width_stride;
+    size_t n_batchs, n_channels, depth, height, width;
+    size_t c_batch_stride, c_channel_stride, c_depth_stride, c_height_stride, c_width_stride;
+    size_t g_batch_stride, g_channel_stride, g_depth_stride, g_height_stride, g_width_stride;
 
     std::tie(n_batchs, n_channels, depth, height, width) =
-        miopen::GetNCDHW(cpu.GetSize(), cpu.GetLengths());
+        miopen::GetNCDHW(spatial_dim, cpu.GetLengths());
     std::tie(c_batch_stride, c_channel_stride, c_depth_stride, c_height_stride, c_width_stride) =
-        miopen::GetNCDHW(cpu.GetSize(), cpu.GetStrides());
+        miopen::GetNCDHW(spatial_dim, cpu.GetStrides());
     std::tie(g_batch_stride, g_channel_stride, g_depth_stride, g_height_stride, g_width_stride) =
-        miopen::GetNCDHW(gpu.GetSize(), gpu.GetStrides());
+        miopen::GetNCDHW(spatial_dim, gpu.GetStrides());
 
-    Tcheck_ sqr_accum = static_cast<Tcheck_>(0);
-    Tcheck_ c_val_err = static_cast<Tcheck_>(0);
-    Tcheck_ g_val_err = static_cast<Tcheck_>(0);
-    Tcheck_ max_err   = max_abs_diff;
-    int max_b = 0, max_c = 0, max_i = 0, max_j = 0, max_k = 0;
+    bool match          = true;
+    double rms_accum    = 0.0;
+    Tcheck_ worst_c_val = static_cast<Tcheck_>(0);
+    Tcheck_ worst_g_val = static_cast<Tcheck_>(0);
+    Tcheck_ worst_diff  = static_cast<Tcheck_>(0);
+    size_t worst_b = 0, worst_c = 0, worst_i = 0, worst_j = 0, worst_k = 0;
 
-    for(int b = 0; b < n_batchs; ++b)
+    for(size_t b = 0; b < n_batchs; ++b)
     {
-        for(int c = 0; c < n_channels; ++c)
+        for(size_t c = 0; c < n_channels; ++c)
         {
-            for(int k = 0; k < depth; ++k)
+            for(size_t k = 0; k < depth; ++k)
             {
-                for(int j = 0; j < height; ++j)
+                for(size_t j = 0; j < height; ++j)
                 {
-                    for(int i = 0; i < width; ++i)
+                    for(size_t i = 0; i < width; ++i)
                     {
                         Tcheck_ c_val =
                             c_ptr[b * c_batch_stride + c * c_channel_stride + k * c_depth_stride +
@@ -1076,18 +1074,21 @@ bool mloVerify(const miopenTensorDescriptor_t& cpu_,
                             g_ptr[b * g_batch_stride + c * g_channel_stride + k * g_depth_stride +
                                   j * g_height_stride + i * g_width_stride]);
 
-                        sqr_accum += (c_val - g_val) * (c_val - g_val);
-                        Tcheck_ err = std::abs(c_val - static_cast<Tcheck_>(g_val));
-                        if(err > max_err)
+                        Tcheck_ diff = std::abs(c_val - g_val);
+                        rms_accum += diff * diff;
+                        // Register worst (max) abs error and its position.
+                        // This info will be used to show additional diagnostics,
+                        // but only if sgr_accum is too big.
+                        if(diff > worst_diff)
                         {
-                            max_err   = err;
-                            c_val_err = c_val;
-                            g_val_err = g_val;
-                            max_b     = b;
-                            max_c     = c;
-                            max_i     = i;
-                            max_j     = j;
-                            max_k     = k;
+                            worst_diff  = diff;
+                            worst_c_val = c_val;
+                            worst_g_val = g_val;
+                            worst_b     = b;
+                            worst_c     = c;
+                            worst_i     = i;
+                            worst_j     = j;
+                            worst_k     = k;
                         }
                     }
                 }
@@ -1095,63 +1096,73 @@ bool mloVerify(const miopenTensorDescriptor_t& cpu_,
         }
     }
 
-    sqr_accum = std::sqrt(sqr_accum /
-                          (static_cast<Tcheck_>(n_batchs * n_channels * depth * height * width)));
+    const double rms = std::sqrt(
+        rms_accum / (static_cast<double>(n_batchs * n_channels * depth * height * width)));
+    report_err = rms;
 
-    bool match = true;
-
-    if(sqr_accum > max_sqr || std::isnan(sqr_accum) || !std::isfinite(sqr_accum))
+    if(rms > rms_tolerance || std::isnan(rms) || !std::isfinite(rms))
     {
-        std::cout << "Sqr error : " << std::fixed << std::setw(15) << std::setprecision(13)
-                  << sqr_accum << " Max err: " << std::fixed << std::setw(15)
-                  << std::setprecision(13) << max_err << " at " << max_b << ", " << max_c << ", ";
+        match = false;
+
+        std::cout << "RMS too big: " << rms << ". Max diff: " << worst_diff << " at {" << worst_b
+                  << ',' << worst_c << ',';
         if(spatial_dim == 3)
-        {
-            std::cout << max_k << ", ";
-        }
-        std::cout << max_j << ", " << max_i << " c_v = " << std::fixed << std::setw(14)
-                  << std::setprecision(12) << c_val_err << " vs g_v = " << std::fixed
-                  << std::setw(14) << std::setprecision(12) << g_val_err << std::endl;
+            std::cout << worst_k << ',';
+        std::cout << worst_j << ',' << worst_i << "}, cpu_v = " << worst_c_val
+                  << " vs gpu_v = " << worst_g_val << std::endl;
+    }
 
-        if(get_error_pos)
+    if(check_ulps)
+    {
+        static int n_logged = 0;
+        for(size_t b = 0; b < n_batchs && match; ++b)
         {
-
-            for(int b = 0; b < n_batchs && match; ++b)
+            for(size_t c = 0; c < n_channels && match; ++c)
             {
-                for(int c = 0; c < n_channels && match; ++c)
+                for(size_t k = 0; k < depth && match; ++k)
                 {
-                    for(int k = 0; k < depth && match; ++k)
+                    for(size_t j = 0; j < height && match; ++j)
                     {
-                        for(int j = 0; j < height && match; ++j)
+                        for(size_t i = 0; i < width && match; ++i)
                         {
-                            for(int i = 0; i < width && match; ++i)
-                            {
-                                Tcheck_ c_val = c_ptr[b * c_batch_stride + c * c_channel_stride +
-                                                      k * c_depth_stride + j * c_height_stride +
-                                                      i * c_width_stride];
-                                Tcheck_ g_val = static_cast<Tcheck_>(
-                                    g_ptr[b * g_batch_stride + c * g_channel_stride +
-                                          k * g_depth_stride + j * g_height_stride +
-                                          i * g_width_stride]);
+                            auto c_val =
+                                static_cast<Tgpu_>(c_ptr[b * c_batch_stride + c * c_channel_stride +
+                                                         k * c_depth_stride + j * c_height_stride +
+                                                         i * c_width_stride]);
+                            auto g_val =
+                                static_cast<Tgpu_>(g_ptr[b * g_batch_stride + c * g_channel_stride +
+                                                         k * g_depth_stride + j * g_height_stride +
+                                                         i * g_width_stride]);
 
-                                Tcheck_ err = CalcErr<Tcheck_>(c_val, g_val);
-                                if((err > eps && std::abs(c_val - g_val) > max_abs_diff) ||
-                                   std::isnan(c_val) || std::isnan(g_val) ||
-                                   !std::isfinite(c_val) || !std::isfinite(g_val))
+                            const auto diff = std::abs(c_val - g_val);
+                            const auto ulps = ApproxUlps(c_val, g_val);
+                            const bool check_failed =
+                                (diff > diff_tolerance && ulps > ulps_tolerance) //
+                                || std::isnan(c_val)                             //
+                                || std::isnan(g_val)                             //
+                                || !std::isfinite(c_val)                         //
+                                || !std::isfinite(g_val);
+
+                            if(check_failed)
+                                match = false;
+
+                            if(check_failed)
+                            {
+                                if(!(n_logged >= 10))
                                 {
-                                    std::cout << "Difference : " << err
-                                              << " too large (eps=" << std::fixed << std::setw(14)
-                                              << std::setprecision(12) << eps << ") at " << b << ","
-                                              << c << ", ";
+                                    std::cout << "ULPs: " << ulps;
+                                    if(check_failed)
+                                        std::cout << " is too large (> " << ulps_tolerance << ")";
+                                    std::cout << " at {" << b << ',' << c << ',';
                                     if(spatial_dim == 3)
-                                    {
-                                        std::cout << k << ", ";
-                                    }
-                                    std::cout << j << "," << i << " c_v = " << std::fixed
-                                              << std::setw(14) << std::setprecision(12) << c_val
-                                              << " vs g_v = " << std::fixed << std::setw(14)
-                                              << std::setprecision(12) << g_val << std::endl;
-                                    match = false;
+                                        std::cout << k << ',';
+                                    std::cout << j << ',' << i << "}, cpu_val = " << c_val
+                                              << ", gpu_val = " << g_val << " (diff = " << diff
+                                              << ')' << std::endl;
+                                    ++n_logged;
+                                    if(n_logged >= 10)
+                                        std::cout << "(too many lines logged, truncating output...)"
+                                                  << std::endl;
                                 }
                             }
                         }
@@ -1160,8 +1171,7 @@ bool mloVerify(const miopenTensorDescriptor_t& cpu_,
             }
         }
     }
-
-    return (match);
+    return match;
 }
 
 #endif

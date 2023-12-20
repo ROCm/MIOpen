@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_CONTEXT_HPP_
-#define GUARD_MIOPEN_CONTEXT_HPP_
+#ifndef GUARD_MIOPEN_HANDLE_HPP_
+#define GUARD_MIOPEN_HANDLE_HPP_
 
 #include <miopen/config.h>
 #include <miopen/kernel_info.hpp>
@@ -51,6 +51,10 @@
 #include <unordered_map>
 
 #if MIOPEN_USE_ROCBLAS
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-macros"
+#define ROCBLAS_BETA_FEATURES_API 1
+#pragma clang diagnostic pop
 #include <miopen/manage_ptr.hpp>
 #if MIOPEN_ROCBLAS_VERSION_FLAT < 2045000
 #include <rocblas.h>
@@ -82,6 +86,8 @@ struct Handle : miopenHandle
 
     miopenAcceleratorQueue_t GetStream() const;
     void SetStream(miopenAcceleratorQueue_t streamID) const;
+    void SetStreamFromPool(int streamID) const;
+    void ReserveExtraStreamsInPool(int cnt) const;
 
     void SetAllocator(miopenAllocatorFunction allocator,
                       miopenDeallocatorFunction deallocator,
@@ -105,8 +111,6 @@ struct Handle : miopenHandle
                            std::size_t cache_index       = 0,
                            bool is_kernel_str            = false,
                            const std::string& kernel_src = "") const;
-
-    bool HasKernel(const std::string& algorithm, const std::string& network_config) const;
 
     void ClearKernels(const std::string& algorithm, const std::string& network_config) const;
 
@@ -149,8 +153,8 @@ struct Handle : miopenHandle
     std::size_t GetMaxComputeUnits() const;
     std::size_t GetMaxHardwareComputeUnits() const
     {
-        std::size_t num_cu = this->GetMaxComputeUnits();
-        std::string name   = this->GetDeviceName();
+        const std::size_t num_cu = this->GetMaxComputeUnits();
+        const std::string name   = this->GetDeviceName();
         return StartsWith(name, "gfx1") ? num_cu * 2 /* CUs per WGP */ : num_cu;
     }
 
@@ -171,6 +175,7 @@ public:
     Allocator::ManageDataPtr&
     WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz) const;
     void ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz) const;
+    void ReadTo(void* data, ConstData_t ddata, std::size_t sz) const;
     shared<Data_t> CreateSubBuffer(Data_t data, std::size_t offset, std::size_t size) const;
 #if MIOPEN_BACKEND_HIP
     shared<ConstData_t>
@@ -230,10 +235,11 @@ public:
     void RegisterInvoker(const Invoker& invoker,
                          const NetworkConfig& config,
                          const std::string& solver,
-                         const AlgorithmName& algo)
+                         const boost::optional<AlgorithmName>& algo = boost::none)
     {
         invokers.Register({config, solver}, invoker);
-        invokers.SetAsFound1_0(config, algo, solver);
+        if(algo.has_value())
+            invokers.SetAsFound1_0(config, *algo, solver);
     }
 
     boost::optional<const Invoker&>
@@ -254,12 +260,17 @@ public:
         return invokers.GetFound1_0(config, *algo);
     }
 
+    boost::optional<const std::string&> GetFound1_0SolverId(const NetworkConfig& config,
+                                                            const AlgorithmName& algo) const
+    {
+        return invokers.GetFound1_0SolverId(config, algo);
+    }
+
 #if MIOPEN_USE_ROCBLAS
-    const rocblas_handle_ptr& rhandle() const { return rhandle_; }
+    const rocblas_handle_ptr& rhandle() const;
 
 private:
-    rocblas_handle_ptr CreateRocblasHandle() const;
-    rocblas_handle_ptr rhandle_;
+    rocblas_handle_ptr CreateRocblasHandle(miopenAcceleratorQueue_t streamID) const;
 #else
 private:
 #endif
@@ -290,4 +301,4 @@ private:
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenHandle, miopen::Handle);
 
-#endif // GUARD_MIOPEN_CONTEXT_HPP_
+#endif // GUARD_MIOPEN_HANDLE_HPP_

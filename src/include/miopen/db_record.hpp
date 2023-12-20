@@ -70,7 +70,7 @@ class DbRecord
 {
 public:
     template <class TValue>
-    class Iterator : public std::iterator<std::input_iterator_tag, std::pair<std::string, TValue>>
+    class Iterator
     {
         friend class DbRecord;
 
@@ -78,6 +78,12 @@ public:
         using InnerIterator = Container::const_iterator;
 
     public:
+        using iterator_category = std::input_iterator_tag;
+        using value_type        = std::pair<std::string, TValue>;
+        using difference_type   = std::size_t;
+        using pointer           = std::pair<std::string, TValue>*;
+        using reference         = std::pair<std::string, TValue>&;
+
         using Value = std::pair<std::string, TValue>;
 
         Value operator*() const
@@ -224,7 +230,7 @@ public:
 
         const bool ok = values.Deserialize(s);
         if(!ok)
-            MIOPEN_LOG_IE(
+            MIOPEN_LOG_WE(
                 "Perf db record is obsolete or corrupt: " << s << ". Performance may degrade.");
         return ok;
     }

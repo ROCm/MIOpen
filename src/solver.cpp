@@ -29,8 +29,11 @@
 #include <miopen/activ/solvers.hpp>
 #include <miopen/batchnorm/solvers.hpp>
 #include <miopen/pooling/solvers.hpp>
+#include <miopen/fusion/solvers.hpp>
+
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
+#include <miopen/env.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/par_for.hpp>
 #include <miopen/stringutils.hpp>
@@ -40,10 +43,10 @@
 #include <boost/range/adaptor/transformed.hpp>
 #include <ostream>
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
+
 namespace miopen {
 namespace solver {
-
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_COMPILE_PARALLEL_LEVEL)
 
 std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
 {
@@ -63,7 +66,8 @@ std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<Kernel
 
     // clang-format off
     par_for_strided(kernels.size(),
-                    max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)},
+                    // max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)},
+                    max_threads{GetTuningThreadsMax()},
                     [&](auto i) {
                         const KernelInfo& k = kernels[i];
                         programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
@@ -113,7 +117,7 @@ struct IdRegistryEntry
     std::string str_value          = "";
     Primitive primitive            = Primitive::Convolution;
     miopenConvAlgorithm_t convAlgo = miopenConvolutionAlgoDirect;
-    AnySolver solver               = {};
+    AnySolver solver;
 };
 
 struct IdRegistryData
@@ -221,11 +225,23 @@ Register(IdRegistryData& registry, uint64_t value, Primitive primitive, const st
 
     auto entry      = IdRegistryEntry{};
     entry.str_value = str;
-    entry.primitive = primitive;
+    entry.primitive = {primitive};
 
     registry.value_to_entry.emplace(value, std::move(entry));
     registry.str_to_value.emplace(str, value);
     registry.primitive_to_ids[primitive].emplace_back(ForceInit{}, value);
+    return true;
+}
+
+inline bool Register(IdRegistryData& registry,
+                     uint64_t value,
+                     Primitive primitive,
+                     const std::string& str,
+                     miopenConvAlgorithm_t algo)
+{
+    if(!Register(registry, value, primitive, str))
+        return false;
+    registry.value_to_entry.at(value).convAlgo = algo;
     return true;
 }
 
@@ -258,11 +274,14 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     uint64_t id = 0; // 0 is reserved for invalid value.
 
     // IMPORTANT: New solvers should be added to the end of the function!
-
     RegisterWithSolver(registry, ++id, ConvAsm3x3U{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm1x1U{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm1x1UV2{}, miopenConvolutionAlgoDirect);
-    RegisterWithSolver(registry, ++id, ConvBiasActivAsm1x1U{}, miopenConvolutionAlgoDirect);
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             solver::fusion::ConvBiasActivAsm1x1U{}.SolverDbId(),
+             miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm5x10u2v2f1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm5x10u2v2b1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(
@@ -271,7 +290,11 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(registry, ++id, ConvOclDirectFwdGen{}, miopenConvolutionAlgoDirect);
     ++id; // removed ConvOclDirectFwd3x3
     RegisterWithSolver(registry, ++id, ConvOclDirectFwd{}, miopenConvolutionAlgoDirect);
-    RegisterWithSolver(registry, ++id, ConvOclDirectFwdFused{}, miopenConvolutionAlgoDirect);
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             solver::fusion::ConvOclDirectFwdFused{}.SolverDbId(),
+             miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvOclDirectFwd1x1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvBinWinograd3x3U{}, miopenConvolutionAlgoWinograd);
     RegisterWithSolver(registry, ++id, ConvBinWinogradRxS{}, miopenConvolutionAlgoWinograd);
@@ -508,8 +531,64 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        ++id,
                        ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC{},
                        miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemmFwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemmBwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             solver::fusion::ConvBinWinogradRxSFused{}.SolverDbId(),
+             miopenConvolutionAlgoWinograd);
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             solver::fusion::ConvBinWinogradRxSf2x3g1Fused{}.SolverDbId(),
+             miopenConvolutionAlgoWinograd);
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             solver::fusion::BnFwdInferActivationFused{}.SolverDbId());
+    Register(
+        registry, ++id, Primitive::Fusion, solver::fusion::BnFwdTrgActivationFused{}.SolverDbId());
+    Register(
+        registry, ++id, Primitive::Fusion, solver::fusion::BnBwdTrgActivationFused{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             solver::fusion::ConvCKIgemmFwdBiasActivFused{}.SolverDbId(),
+             miopenConvolutionAlgoImplicitGEMM);
+    Register(registry, ++id, Primitive::Pooling, pooling::PoolingForwardNaive{}.SolverDbId());
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemmGroupFwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemm3DGroupFwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry, ++id, ConvWinoFuryRxS<2, 3>{}, miopenConvolutionAlgoWinograd);
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemm3DGroupWrwXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemm3DGroupBwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+    Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdInference{}.SolverDbId());
+    Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKBwdBackward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdTraining{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
+}
+
+bool ThisSolverIsDeprecatedStatic::IsDisabled(const ExecutionContext& ctx)
+{
+    static const bool device_is_allowed = [&]() {
+        if(miopen::IsEnabled(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS{}))
+            return true;
+        const auto device = ctx.GetStream().GetTargetProperties().Name();
+        return device == "gfx803"                       // Fiji
+               || device == "gfx900"                    // Vega10
+               || device == "gfx906"                    // Vega20, MI50/60
+               || device == "gfx908"                    // MI100
+               || device == "gfx90a"                    // MI200
+               || miopen::StartsWith(device, "gfx103"); // Navi2x
+    }();
+    return !device_is_allowed;
 }
 
 } // namespace solver

@@ -211,6 +211,7 @@ void test_warnings(kernel_type_t kern_type)
     if(kern_type == miopenOpenCLKernelType)
         EXPECT(throws([&] {
             h.AddKernel("GEMM", "", WriteNop(kern_type), "write", {1, 1, 1}, {1, 1, 1}, "");
+            MIOPEN_LOG_E("FAILED: Build of the OpenCL kernel should produce warnings");
         }));
     else if(kern_type == miopenHIPKernelType)
         EXPECT(throws([&] {
@@ -223,7 +224,8 @@ void test_warnings(kernel_type_t kern_type)
                         "",
                         0,
                         false,
-                        WriteNop(miopenHIPKernelType));
+                        WriteNop(kern_type));
+            MIOPEN_LOG_E("FAILED: Build of the HIP kernel 'nop_hip.cpp' should produce warnings");
         }));
 #else
     (void)kern_type;
@@ -234,7 +236,19 @@ void test_warnings(kernel_type_t kern_type)
 void test_arch_name()
 {
     auto&& h        = get_handle();
-    auto known_arch = {"gfx908", "gfx90a", "gfx906", "gfx900", "gfx803", "gfx1030", "gfx1031"};
+    auto known_arch = {"gfx908",
+                       "gfx90a",
+                       "gfx906",
+                       "gfx900",
+                       "gfx940",
+                       "gfx941",
+                       "gfx942",
+                       "gfx803",
+                       "gfx1030",
+                       "gfx1031",
+                       "gfx1100",
+                       "gfx1101",
+                       "gfx1102"};
     auto this_arch  = h.GetDeviceName();
     EXPECT(std::any_of(
         known_arch.begin(), known_arch.end(), [&](std::string arch) { return arch == this_arch; }));

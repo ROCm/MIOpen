@@ -8,13 +8,29 @@ MIOpen supports two programming models -
 1. [HIP](https://github.com/ROCm-Developer-Tools/HIP) (Primary Support).
 2. OpenCL.
 
+## Documentation
+
+For a detailed description of the **MIOpen** library see the [Documentation](https://rocmdocs.amd.com/projects/MIOpen/en/latest/).
+
+### How to build documentation
+
+Run the steps below to build documentation locally.
+
+```
+cd docs
+
+pip3 install -r .sphinx/requirements.txt
+
+python3 -m sphinx -T -E -b html -d _build/doctrees -D language=en . _build/html
+```
+
 ## Prerequisites
+
 * More information about ROCm stack via [ROCm Information Portal](https://docs.amd.com/).
 * A ROCm enabled platform, more info [here](https://rocm.github.io/install.html).
 * Base software stack, which includes:
   * HIP - 
     * HIP and HCC libraries and header files.
-    * [clang-ocl](https://github.com/RadeonOpenCompute/clang-ocl) -- **required**
   * OpenCL - OpenCL libraries and header files.
 * [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) - enable various functionalities including transposed and dilated convolutions. 
   * This is optional on the HIP backend, and required on the OpenCL backend.
@@ -25,12 +41,13 @@ MIOpen supports two programming models -
   * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html)
   * Version 1.79 is recommended, older version may need patches to work on newer systems, e.g. boost1{69,70,72} w/glibc-2.34
 * [SQLite3](https://sqlite.org/index.html) - reading and writing performance database
+* lbzip2 - multi-threaded compress or decompress utility
 * [MIOpenTENSILE](https://github.com/ROCmSoftwarePlatform/MIOpenTensile) - users can enable this library using the cmake configuration flag`-DMIOPEN_USE_MIOPENTENSILE=On`. (deprecated after ROCm 5.1.1)
 * [rocBLAS](https://github.com/ROCmSoftwarePlatform/rocBLAS) - AMD library for Basic Linear Algebra Subprograms (BLAS) on the ROCm platform.
   * Minimum version branch for pre-ROCm 3.5 [master-rocm-2.10](https://github.com/ROCmSoftwarePlatform/rocBLAS/tree/master-rocm-2.10)
   * Minimum version branch for post-ROCm 3.5 [master-rocm-3.5](https://github.com/ROCmSoftwarePlatform/rocBLAS/releases/tag/rocm-3.5.0)
 * [MLIR](https://github.com/ROCmSoftwarePlatform/llvm-project-mlir) - (Multi-Level Intermediate Representation) with its MIOpen dialect to support and complement kernel development.
-* [Comopsable Kernel](https://github.com/ROCmSoftwarePlatform/composable_kernel) - C++ templated device library for GEMM-like and reduction-like operators.
+* [Composable Kernel](https://github.com/ROCmSoftwarePlatform/composable_kernel) - C++ templated device library for GEMM-like and reduction-like operators.
 
 ## Installing MIOpen with pre-built packages
 
@@ -45,6 +62,8 @@ Currently both the backends cannot be installed on the same system simultaneousl
 ## Installing MIOpen kernels package
 
 MIOpen provides an optional pre-compiled kernels package to reduce the startup latency. These precompiled kernels comprise a select set of popular input configurations and will expand in future release to contain additional coverage.
+
+Note that all compiled kernels are locally cached in the folder `$HOME/.cache/miopen/`, so precompiled kernels reduce the startup latency only for the first execution of a neural network. Precompiled kernels do not reduce startup time on subsequent runs.
 
 To install the kernels package for your GPU architecture, use the following command:
 
@@ -63,6 +82,8 @@ The script `utils/install_precompiled_kernels.sh` provided as part of MIOpen aut
 ```
 
 The above script depends on the __rocminfo__ package to query the GPU architecture.
+
+More info can be found [here](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/develop/doc/src/cache.md#installing-pre-compiled-kernels).
 
 ## Installing the dependencies
 
@@ -201,27 +222,6 @@ cmake --build . --config Release --target test_tensor
 ./bin/test_tensor
 ```
 
-## Building the documentation
-
-HTML and PDF documentation can be built using:
-
-`cmake --build . --config Release --target doc` **OR** `make doc`
-
-This will build a local searchable web site inside the ./MIOpen/doc/html folder and a PDF document inside the ./MIOpen/doc/pdf folder.
-
-Documentation is built using generated using [Doxygen](http://www.stack.nl/~dimitri/doxygen/download.html) and should be installed separately.
-
-HTML and PDFs are generated using [Sphinx](http://www.sphinx-doc.org/en/stable/index.html) and [Breathe](https://breathe.readthedocs.io/en/latest/), with the [ReadTheDocs theme](https://github.com/rtfd/sphinx_rtd_theme).
-
-Requirements for both Sphinx, Breathe, and the ReadTheDocs theme can be filled for these in the MIOpen/doc folder:
-
-```
-pip install -r ./requirements.txt
-```
-
-
-Depending on your setup `sudo` may be required for the pip install.
-
 ## Formatting the code
 
 All the code is formatted using clang-format. To format a file, use:
@@ -234,6 +234,40 @@ Also, githooks can be installed to format the code per-commit:
 
 ```
 ./.githooks/install
+```
+
+## Storing large file using Git LFS
+
+Git Large File Storage (LFS) replaces large files such as audio samples, videos, datasets, and graphics with text pointers inside Git, while storing the file contents on a remote server. In MIOpen, we use git LFS to store the large files, such as the kernel database files (*.kdb) which are normally > 0.5GB. Steps:
+
+Git LFS can be installed and set up by:
+
+```
+sudo apt install git-lfs
+git lfs install
+```
+
+In the Git repository that you want to use Git LFS, track the file type that you's like by (if the file type has been tracked, this step can be skipped):
+
+```
+git lfs track "*.file_type"
+git add .gitattributes
+```
+
+Pull all or a single large file that you would like to update by:
+
+```
+git lfs pull --exclude=
+or
+git lfs pull --exclude= --include "filename"
+```
+
+Update the large files and push to the github by:
+
+```
+git add my_large_files
+git commit -m "the message"
+git push
 ```
 
 ## Installing the dependencies manually
@@ -253,7 +287,6 @@ however, this is not recommended.
 
 The `half` header needs to be installed from [here](http://half.sourceforge.net/). 
 
-
 ## Using docker
 
 The easiest way is to use docker. You can build the top-level docker file:
@@ -270,10 +303,8 @@ Prebuilt docker images can be found on [ROCm's public docker hub here](https://h
 
 ## Citing MIOpen
 
-
 MIOpen's paper is freely available and can be accessed on arXiv:  
 [MIOpen: An Open Source Library For Deep Learning Primitives](https://arxiv.org/abs/1910.00078)
-
 
 ### Citation BibTeX
 ```
@@ -292,4 +323,3 @@ MIOpen's paper is freely available and can be accessed on arXiv:
 The [porting
 guide](https://github.com/ROCmSoftwarePlatform/MIOpen/tree/develop/doc/src/MIOpen_Porting_Guide.md)
 highlights the key differences between the current cuDNN and MIOpen APIs.
-

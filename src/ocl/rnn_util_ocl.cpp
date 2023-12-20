@@ -62,7 +62,7 @@ void LSTMForwardHiddenStateUpdate(const Handle& handle,
 
     size_t max_active_threads = handle.GetMaxComputeUnits() * handle.GetWavefrontWidth() * 32;
 
-    size_t total_work = max_batch * hy_h;
+    size_t total_work = static_cast<size_t>(max_batch) * hy_h;
 
     size_t RD_BLCK = (total_work >= 4 * max_active_threads && hy_h % 4 == 0)
                          ? 4
@@ -190,7 +190,7 @@ void LSTMBackwardHiddenStateUpdate(const Handle& handle,
 
     size_t max_active_threads = handle.GetMaxComputeUnits() * handle.GetWavefrontWidth() * 32;
 
-    size_t total_work = max_batch * hy_h;
+    size_t total_work = static_cast<size_t>(max_batch) * hy_h;
 
     size_t RD_BLCK = (total_work >= 4 * max_active_threads && hy_h % 4 == 0)
                          ? 4

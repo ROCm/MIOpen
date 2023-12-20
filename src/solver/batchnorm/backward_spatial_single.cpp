@@ -27,7 +27,6 @@
 #include <miopen/batchnorm/solvers.hpp>
 
 #include <miopen/batchnorm/invoke_params.hpp>
-#include <miopen/batchnorm/problem_description.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/visit_float.hpp>
 #include <miopen/kernel_build_params.hpp>
@@ -167,7 +166,7 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
             {
                 variant    = 0;
                 xlocalsize = 1024;
-                xgridsize  = 1024 * c;
+                xgridsize  = static_cast<size_t>(1024) * c;
                 ldsgcn     = xlocalsize / wavesize;
                 ldsnogcn   = xlocalsize;
             }
@@ -231,7 +230,7 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
 #if WORKAROUND_ISSUE_1146
              && (handle.GetDeviceName() != "gfx90a")
 #endif
-                 )) &&
+             && (!StartsWith(handle.GetDeviceName(), "gfx94")))) &&
            (!handle.GetTargetProperties().Xnack() || !*handle.GetTargetProperties().Xnack()))
         {
             kernel.kernel_file = "gcnAsmBNBwdTrainSpatial.s";
@@ -258,6 +257,7 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
             kernel.kernel_name = "MIOpenBatchNormBwdSpatial";
 
             build_params << KernelBuildParameters{
+                {"MIO_BN_GFX110X", (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0")},
                 {"MIO_BN_GFX103X", (StartsWith(handle.GetDeviceName(), "gfx103") ? "1" : "0")},
             };
 

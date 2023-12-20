@@ -29,10 +29,15 @@
 #include <miopen/config.h>
 
 #include <string>
+#include <cmath>
 #include <ostream>
 #include <tuple>
 #include <vector>
 #include <limits>
+
+/// W/A for issue 1979: igemm solver does not support group conv. See:
+/// https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1979
+#define WORKAROUND_ISSUE_1979 1
 
 namespace miopen {
 
@@ -246,19 +251,35 @@ static inline int igemm_split_batch_size(const int hi,
     if(image_size >= max_tensor_size)
         return 0;
 
+    // Round up splits: we must find the largest multiple of n, max_n, s.t.
+    // max_n * image_size <= max_tensor_size
     size_t max_n = max_tensor_size / image_size;
-
-    // Round up splits, we must match
-    // 1. max_n * image_size < max_tensor_size
-    // 2. n % max_n == 0
-    // if(max_n >= n)
-    //     return 1;
-    while(max_n > 1)
+    if(max_n > n)
+        max_n = n % max_n;
+    else if(max_n < n)
     {
-        if(n % max_n == 0)
-            break;
-        max_n--;
+        // find the smallest multiple m of n such that (n / m) * image_size <= max_tensor_size.
+        // once m is known, max_n := (n / m)
+        size_t m       = std::ceil(n / max_n); // m >= n * (image_size / max_tensor_size)
+        size_t _sqrt_n = std::sqrt(n);
+        while(n % max_n != 0)
+        {
+            if(n % m == 0)
+                max_n = n / m;
+            else
+            {
+                m += 1;
+                if(m > _sqrt_n)
+                {
+                    // if m > sqrt_n, then there must exist u < sqrt_n s.t. u * m = sqrt_n, but
+                    // such a u cannot exist since m is the smallest multiple of n. Thus, the
+                    // search is over, and we know m = max_n
+                    max_n = 1;
+                }
+            }
+        }
     }
+
     return n / max_n;
 }
 

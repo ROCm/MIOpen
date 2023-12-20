@@ -256,11 +256,12 @@ std::string PerformanceConfigAsmImplicitGemmGTC::ToString() const
     return ss.str();
 }
 
-std::string PerformanceConfigAsmImplicitGemmGTC::ToKernelName(const ConvolutionContext& ctx) const
+std::string PerformanceConfigAsmImplicitGemmGTC::ToKernelName(const ExecutionContext& ctx) const
 {
     std::ostringstream kernel_name;
     const auto device_name = ctx.GetStream().GetDeviceName();
-    std::string gtc_str    = device_name == "gfx908" ? "_gtcx_" : "_gtcx2_";
+    std::string gtc_str =
+        device_name == "gfx908" ? "_gtcx_" : (device_name == "gfx90a" ? "_gtcx2_" : "_gtcx3_");
     kernel_name << "igemm_" << direction << gtc_str << tensor_layout << "_" << precision << "_bx"
                 << nxb << "_ex" << nxe << "_bt" << gemm_m_per_block << "x" << gemm_n_per_block
                 << "x" << gemm_k_per_block << "_wt" << wave_tile_m << "x" << wave_tile_n << "x"
@@ -486,7 +487,7 @@ std::string PerformanceConfigAsmImplicitGemmGTCvector::ToString() const
 }
 
 std::string
-PerformanceConfigAsmImplicitGemmGTCvector::ToKernelName(const ConvolutionContext& ctx) const
+PerformanceConfigAsmImplicitGemmGTCvector::ToKernelName(const ExecutionContext& ctx) const
 {
     std::ostringstream kernel_name;
     const auto device_name    = ctx.GetStream().GetDeviceName();
