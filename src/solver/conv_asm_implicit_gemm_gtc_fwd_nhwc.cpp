@@ -875,6 +875,15 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
         return false;
 #endif
 
+#if WORKAROUND_ISSUE_2624
+    {
+        const int c           = problem.GetInChannels_();
+        const auto dilation_h = problem.GetWeightsHeight_() > 1 ? problem.GetDilationH() : 1;
+        if(c <= 4 && dilation_h > 1)
+            return false;
+    }
+#endif
+
     const auto device_name = ctx.GetStream().GetDeviceName();
     if((device_name != "gfx908") && (device_name != "gfx90a") &&
        (!StartsWith(device_name, "gfx94")))
