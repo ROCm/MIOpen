@@ -67,6 +67,8 @@ typedef float data_t;
 
 #include "math_ops.h"
 
+typedef unsigned long arg_size_t;
+
 // N - batch size
 // C - # of maps
 // H - map height
@@ -82,8 +84,8 @@ typedef float data_t;
 
 __kernel void transpose_NCHW2CNHW_V1_1D_WG_float(const global data_t* in,
                                                  global data_t* out,
-                                                 const int in_off,
-                                                 const int out_off,
+                                                 const arg_size_t in_off,
+                                                 const arg_size_t out_off,
                                                  const int rd_blck,
                                                  const int hw_rd,
                                                  const int N,
@@ -96,8 +98,8 @@ __kernel void transpose_NCHW2CNHW_V1_1D_WG_float(const global data_t* in,
     uint c_i      = iDiv(c_p_blck, hw_rd);
     uint p_blck   = iMod(c_p_blck, c_i, hw_rd);
 
-    uint in_offset          = c_p_blck * rd_blck + in_off;
-    uint out_offset         = c_i * N * H * W + p_blck * rd_blck + out_off;
+    size_t in_offset        = c_p_blck * rd_blck + in_off;
+    size_t out_offset       = c_i * N * H * W + p_blck * rd_blck + out_off;
     const global float* cin = (const global float*)(in + in_offset);
     global float* cout      = (global float*)(out + out_offset);
 
@@ -109,8 +111,8 @@ __kernel void transpose_NCHW2CNHW_V1_1D_WG_float(const global data_t* in,
 
 __kernel void transpose_NCHW2CNHW_V1_1D_WG_float2(const global data_t* in,
                                                   global data_t* out,
-                                                  const int in_off,
-                                                  const int out_off,
+                                                  const arg_size_t in_off,
+                                                  const arg_size_t out_off,
                                                   const int rd_blck,
                                                   const int hw_rd,
                                                   const int N,
@@ -123,8 +125,8 @@ __kernel void transpose_NCHW2CNHW_V1_1D_WG_float2(const global data_t* in,
     uint c_i      = iDiv(c_p_blck, hw_rd);
     uint p_blck   = iMod(c_p_blck, c_i, hw_rd);
 
-    uint in_offset           = c_p_blck * rd_blck + in_off;
-    uint out_offset          = c_i * N * H * W + p_blck * rd_blck + out_off;
+    size_t in_offset         = c_p_blck * rd_blck + in_off;
+    size_t out_offset        = c_i * N * H * W + p_blck * rd_blck + out_off;
     const global float2* cin = (const global float2*)(in + in_offset);
     global float2* cout      = (global float2*)(out + out_offset);
 
@@ -136,8 +138,8 @@ __kernel void transpose_NCHW2CNHW_V1_1D_WG_float2(const global data_t* in,
 
 __kernel void transpose_NCHW2CNHW_V1_1D_WG_float4(const global data_t* in,
                                                   global data_t* out,
-                                                  const int in_off,
-                                                  const int out_off,
+                                                  const arg_size_t in_off,
+                                                  const arg_size_t out_off,
                                                   const int rd_blck,
                                                   const int hw_rd,
                                                   const int N,
@@ -150,8 +152,8 @@ __kernel void transpose_NCHW2CNHW_V1_1D_WG_float4(const global data_t* in,
     uint c_i      = iDiv(c_p_blck, hw_rd);
     uint p_blck   = iMod(c_p_blck, c_i, hw_rd);
 
-    uint in_offset           = c_p_blck * rd_blck + in_off;
-    uint out_offset          = c_i * N * H * W + p_blck * rd_blck + out_off;
+    size_t in_offset         = c_p_blck * rd_blck + in_off;
+    size_t out_offset        = c_i * N * H * W + p_blck * rd_blck + out_off;
     const global float4* cin = (const global float4*)(in + in_offset);
     global float4* cout      = (global float4*)(out + out_offset);
 
@@ -163,8 +165,8 @@ __kernel void transpose_NCHW2CNHW_V1_1D_WG_float4(const global data_t* in,
 
 __kernel void transpose_NCHW2CNHW_V1_2D_WG_float(const global data_t* in,
                                                  global data_t* out,
-                                                 const int in_off,
-                                                 const int out_off,
+                                                 const arg_size_t in_off,
+                                                 const arg_size_t out_off,
                                                  const int rd_blck,
                                                  const int hw_rd,
                                                  const int N,
@@ -177,8 +179,8 @@ __kernel void transpose_NCHW2CNHW_V1_2D_WG_float(const global data_t* in,
     uint c_i      = iDiv(c_p_blck, hw_rd);
     uint p_blck   = iMod(c_p_blck, c_i, hw_rd);
 
-    uint in_offset          = c_p_blck * rd_blck + in_off;
-    uint out_offset         = c_i * N * H * W + p_blck * rd_blck + out_off;
+    size_t in_offset        = c_p_blck * rd_blck + in_off;
+    size_t out_offset       = c_i * N * H * W + p_blck * rd_blck + out_off;
     const global float* cin = (const global float*)(in + in_offset);
     global float* cout      = (global float*)(out + out_offset);
 
@@ -188,8 +190,8 @@ __kernel void transpose_NCHW2CNHW_V1_2D_WG_float(const global data_t* in,
 
 __kernel void transpose_NCHW2CNHW_V1_2D_WG_float2(const global data_t* in,
                                                   global data_t* out,
-                                                  const int in_off,
-                                                  const int out_off,
+                                                  const arg_size_t in_off,
+                                                  const arg_size_t out_off,
                                                   const int rd_blck,
                                                   const int hw_rd,
                                                   const int N,
@@ -202,8 +204,8 @@ __kernel void transpose_NCHW2CNHW_V1_2D_WG_float2(const global data_t* in,
     uint c_i      = iDiv(c_p_blck, hw_rd);
     uint p_blck   = iMod(c_p_blck, c_i, hw_rd);
 
-    uint in_offset           = c_p_blck * rd_blck + in_off;
-    uint out_offset          = c_i * N * H * W + p_blck * rd_blck + out_off;
+    size_t in_offset         = c_p_blck * rd_blck + in_off;
+    size_t out_offset        = c_i * N * H * W + p_blck * rd_blck + out_off;
     const global float2* cin = (const global float2*)(in + in_offset);
     global float2* cout      = (global float2*)(out + out_offset);
 
@@ -213,8 +215,8 @@ __kernel void transpose_NCHW2CNHW_V1_2D_WG_float2(const global data_t* in,
 
 __kernel void transpose_NCHW2CNHW_V1_2D_WG_float4(const global data_t* in,
                                                   global data_t* out,
-                                                  const int in_off,
-                                                  const int out_off,
+                                                  const arg_size_t in_off,
+                                                  const arg_size_t out_off,
                                                   const int rd_blck,
                                                   const int hw_rd,
                                                   const int N,
@@ -227,8 +229,8 @@ __kernel void transpose_NCHW2CNHW_V1_2D_WG_float4(const global data_t* in,
     uint c_i      = iDiv(c_p_blck, hw_rd);
     uint p_blck   = iMod(c_p_blck, c_i, hw_rd);
 
-    uint in_offset           = c_p_blck * rd_blck + in_off;
-    uint out_offset          = c_i * N * H * W + p_blck * rd_blck + out_off;
+    size_t in_offset         = c_p_blck * rd_blck + in_off;
+    size_t out_offset        = c_i * N * H * W + p_blck * rd_blck + out_off;
     const global float4* cin = (const global float4*)(in + in_offset);
     global float4* cout      = (global float4*)(out + out_offset);
 
@@ -238,8 +240,8 @@ __kernel void transpose_NCHW2CNHW_V1_2D_WG_float4(const global data_t* in,
 
 __kernel void transpose_NCHW2CNHW_V2_2D_WG(const global data_t* in,
                                            global data_t* out,
-                                           const int in_off,
-                                           const int out_off,
+                                           const arg_size_t in_off,
+                                           const arg_size_t out_off,
                                            const int w_in,
                                            const int w_out,
                                            const int N,
@@ -255,8 +257,8 @@ __kernel void transpose_NCHW2CNHW_V2_2D_WG(const global data_t* in,
     uint h_i = iDiv(hw_i, w_out);
     uint w_i = iMod(hw_i, h_i, w_out);
 
-    uint in_offset           = c_i * hw_in + h_i * h_stride * w_in + w_i * w_stride + in_off;
-    uint out_offset          = c_i * N * hw_out + hw_i + out_off;
+    size_t in_offset         = c_i * hw_in + h_i * h_stride * w_in + w_i * w_stride + in_off;
+    size_t out_offset        = c_i * N * hw_out + hw_i + out_off;
     const global data_t* cin = (const global data_t*)(in + in_offset);
     global data_t* cout      = (global data_t*)(out + out_offset);
 
@@ -266,8 +268,8 @@ __kernel void transpose_NCHW2CNHW_V2_2D_WG(const global data_t* in,
 
 __kernel void transpose_NCHW2CNHW_V2_3D_WG(const global data_t* in,
                                            global data_t* out,
-                                           const int in_off,
-                                           const int out_off,
+                                           const arg_size_t in_off,
+                                           const arg_size_t out_off,
                                            const int w_in,
                                            const int w_out,
                                            const int N,
@@ -285,8 +287,8 @@ __kernel void transpose_NCHW2CNHW_V2_3D_WG(const global data_t* in,
     uint h_i = iDiv(hw_i, w_out);
     uint w_i = iMod(hw_i, h_i, w_out);
 
-    uint in_offset           = c_i * hw_in + h_i * h_stride * w_in + w_i * w_stride + in_off;
-    uint out_offset          = c_i * N * hw_out + hw_i + out_off;
+    size_t in_offset         = c_i * hw_in + h_i * h_stride * w_in + w_i * w_stride + in_off;
+    size_t out_offset        = c_i * N * hw_out + hw_i + out_off;
     const global data_t* cin = (const global data_t*)(in + in_offset);
     global data_t* cout      = (global data_t*)(out + out_offset);
 
@@ -296,8 +298,8 @@ __kernel void transpose_NCHW2CNHW_V2_3D_WG(const global data_t* in,
 
 __kernel void transpose_CNHW2NCHW_V1_1D_WG_float(const global data_t* in,
                                                  global data_t* out,
-                                                 const int in_off,
-                                                 const int out_off,
+                                                 const arg_size_t in_off,
+                                                 const arg_size_t out_off,
                                                  const int rd_blck,
                                                  const int hw_rd,
                                                  const int N,
@@ -310,8 +312,8 @@ __kernel void transpose_CNHW2NCHW_V1_1D_WG_float(const global data_t* in,
     uint c_i      = iDiv(c_p_blck, hw_rd);
     uint p_blck   = iMod(c_p_blck, c_i, hw_rd);
 
-    uint in_offset          = c_i * N * H * W + p_blck * rd_blck + in_off;
-    uint out_offset         = c_p_blck * rd_blck + out_off;
+    size_t in_offset        = c_i * N * H * W + p_blck * rd_blck + in_off;
+    size_t out_offset       = c_p_blck * rd_blck + out_off;
     const global float* cin = (const global float*)(in + in_offset);
     global float* cout      = (global float*)(out + out_offset);
 
@@ -323,8 +325,8 @@ __kernel void transpose_CNHW2NCHW_V1_1D_WG_float(const global data_t* in,
 
 __kernel void transpose_CNHW2NCHW_V1_1D_WG_float2(const global data_t* in,
                                                   global data_t* out,
-                                                  const int in_off,
-                                                  const int out_off,
+                                                  const arg_size_t in_off,
+                                                  const arg_size_t out_off,
                                                   const int rd_blck,
                                                   const int hw_rd,
                                                   const int N,
@@ -337,8 +339,8 @@ __kernel void transpose_CNHW2NCHW_V1_1D_WG_float2(const global data_t* in,
     uint c_i      = iDiv(c_p_blck, hw_rd);
     uint p_blck   = iMod(c_p_blck, c_i, hw_rd);
 
-    uint in_offset           = c_i * N * H * W + p_blck * rd_blck + in_off;
-    uint out_offset          = c_p_blck * rd_blck + out_off;
+    size_t in_offset         = c_i * N * H * W + p_blck * rd_blck + in_off;
+    size_t out_offset        = c_p_blck * rd_blck + out_off;
     const global float2* cin = (const global float2*)(in + in_offset);
     global float2* cout      = (global float2*)(out + out_offset);
 
@@ -350,8 +352,8 @@ __kernel void transpose_CNHW2NCHW_V1_1D_WG_float2(const global data_t* in,
 
 __kernel void transpose_CNHW2NCHW_V1_1D_WG_float4(const global data_t* in,
                                                   global data_t* out,
-                                                  const int in_off,
-                                                  const int out_off,
+                                                  const arg_size_t in_off,
+                                                  const arg_size_t out_off,
                                                   const int rd_blck,
                                                   const int hw_rd,
                                                   const int N,
@@ -364,8 +366,8 @@ __kernel void transpose_CNHW2NCHW_V1_1D_WG_float4(const global data_t* in,
     uint c_i      = iDiv(c_p_blck, hw_rd);
     uint p_blck   = iMod(c_p_blck, c_i, hw_rd);
 
-    uint in_offset           = c_i * N * H * W + p_blck * rd_blck + in_off;
-    uint out_offset          = c_p_blck * rd_blck + out_off;
+    size_t in_offset         = c_i * N * H * W + p_blck * rd_blck + in_off;
+    size_t out_offset        = c_p_blck * rd_blck + out_off;
     const global float4* cin = (const global float4*)(in + in_offset);
     global float4* cout      = (global float4*)(out + out_offset);
 
@@ -377,8 +379,8 @@ __kernel void transpose_CNHW2NCHW_V1_1D_WG_float4(const global data_t* in,
 
 __kernel void transpose_CNHW2NCHW_V1_2D_WG_float(const global data_t* in,
                                                  global data_t* out,
-                                                 const int in_off,
-                                                 const int out_off,
+                                                 const arg_size_t in_off,
+                                                 const arg_size_t out_off,
                                                  const int rd_blck,
                                                  const int hw_rd,
                                                  const int N,
@@ -391,8 +393,8 @@ __kernel void transpose_CNHW2NCHW_V1_2D_WG_float(const global data_t* in,
     uint c_i      = iDiv(c_p_blck, hw_rd);
     uint p_blck   = iMod(c_p_blck, c_i, hw_rd);
 
-    uint in_offset          = c_i * N * H * W + p_blck * rd_blck + in_off;
-    uint out_offset         = c_p_blck * rd_blck + out_off;
+    size_t in_offset        = c_i * N * H * W + p_blck * rd_blck + in_off;
+    size_t out_offset       = c_p_blck * rd_blck + out_off;
     const global float* cin = (const global float*)(in + in_offset);
     global float* cout      = (global float*)(out + out_offset);
 
@@ -402,8 +404,8 @@ __kernel void transpose_CNHW2NCHW_V1_2D_WG_float(const global data_t* in,
 
 __kernel void transpose_CNHW2NCHW_V1_2D_WG_float2(const global data_t* in,
                                                   global data_t* out,
-                                                  const int in_off,
-                                                  const int out_off,
+                                                  const arg_size_t in_off,
+                                                  const arg_size_t out_off,
                                                   const int rd_blck,
                                                   const int hw_rd,
                                                   const int N,
@@ -416,8 +418,8 @@ __kernel void transpose_CNHW2NCHW_V1_2D_WG_float2(const global data_t* in,
     uint c_i      = iDiv(c_p_blck, hw_rd);
     uint p_blck   = iMod(c_p_blck, c_i, hw_rd);
 
-    uint in_offset           = c_i * N * H * W + p_blck * rd_blck + in_off;
-    uint out_offset          = c_p_blck * rd_blck + out_off;
+    size_t in_offset         = c_i * N * H * W + p_blck * rd_blck + in_off;
+    size_t out_offset        = c_p_blck * rd_blck + out_off;
     const global float2* cin = (const global float2*)(in + in_offset);
     global float2* cout      = (global float2*)(out + out_offset);
 
@@ -427,8 +429,8 @@ __kernel void transpose_CNHW2NCHW_V1_2D_WG_float2(const global data_t* in,
 
 __kernel void transpose_CNHW2NCHW_V1_2D_WG_float4(const global data_t* in,
                                                   global data_t* out,
-                                                  const int in_off,
-                                                  const int out_off,
+                                                  const arg_size_t in_off,
+                                                  const arg_size_t out_off,
                                                   const int rd_blck,
                                                   const int hw_rd,
                                                   const int N,
@@ -441,8 +443,8 @@ __kernel void transpose_CNHW2NCHW_V1_2D_WG_float4(const global data_t* in,
     uint c_i      = iDiv(c_p_blck, hw_rd);
     uint p_blck   = iMod(c_p_blck, c_i, hw_rd);
 
-    uint in_offset           = c_i * N * H * W + p_blck * rd_blck + in_off;
-    uint out_offset          = c_p_blck * rd_blck + out_off;
+    size_t in_offset         = c_i * N * H * W + p_blck * rd_blck + in_off;
+    size_t out_offset        = c_p_blck * rd_blck + out_off;
     const global float4* cin = (const global float4*)(in + in_offset);
     global float4* cout      = (global float4*)(out + out_offset);
 
@@ -452,8 +454,8 @@ __kernel void transpose_CNHW2NCHW_V1_2D_WG_float4(const global data_t* in,
 
 __kernel void transpose_CNHW2NCHW_V2_2D_WG(const global data_t* in,
                                            global data_t* out,
-                                           const int in_off,
-                                           const int out_off,
+                                           const arg_size_t in_off,
+                                           const arg_size_t out_off,
                                            const int w_in,
                                            const int w_out,
                                            const int N,
@@ -469,8 +471,8 @@ __kernel void transpose_CNHW2NCHW_V2_2D_WG(const global data_t* in,
     uint h_i = iDiv(hw_i, w_out);
     uint w_i = iMod(hw_i, h_i, w_out);
 
-    uint in_offset           = c_i * N * hw_out + hw_i + in_off;
-    uint out_offset          = c_i * hw_in + h_i * h_stride * w_in + w_i * w_stride + out_off;
+    size_t in_offset         = c_i * N * hw_out + hw_i + in_off;
+    size_t out_offset        = c_i * hw_in + h_i * h_stride * w_in + w_i * w_stride + out_off;
     const global data_t* cin = (const global data_t*)(in + in_offset);
     global data_t* cout      = (global data_t*)(out + out_offset);
 
@@ -482,8 +484,8 @@ __kernel void transpose_CNHW2NCHW_V2_2D_WG(const global data_t* in,
 
 __kernel void transpose_CNHW2NCHW_V2_3D_WG(const global data_t* in,
                                            global data_t* out,
-                                           const int in_off,
-                                           const int out_off,
+                                           const arg_size_t in_off,
+                                           const arg_size_t out_off,
                                            const int w_in,
                                            const int w_out,
                                            const int N,
@@ -499,8 +501,8 @@ __kernel void transpose_CNHW2NCHW_V2_3D_WG(const global data_t* in,
     uint h_i = iDiv(hw_i, w_out);
     uint w_i = iMod(hw_i, h_i, w_out);
 
-    uint in_offset           = c_i * N * hw_out + hw_i + in_off;
-    uint out_offset          = c_i * hw_in + h_i * h_stride * w_in + w_i * w_stride + out_off;
+    size_t in_offset         = c_i * N * hw_out + hw_i + in_off;
+    size_t out_offset        = c_i * hw_in + h_i * h_stride * w_in + w_i * w_stride + out_off;
     const global data_t* cin = (const global data_t*)(in + in_offset);
     global data_t* cout      = (global data_t*)(out + out_offset);
 
@@ -512,18 +514,18 @@ __kernel void transpose_packed_MN2NM(const global data_t* in,
                                      global data_t* out,
                                      const int N,
                                      const int M,
-                                     const int in_off,
-                                     const int out_off)
+                                     const arg_size_t in_off,
+                                     const arg_size_t out_off)
 {
     uint i = get_global_id(0);
 
     if(i < M * N)
     {
-        uint m_i = iDiv(i, N);
-        uint n_i = iMod(i, m_i, N);
+        const uint m_i = iDiv(i, N);
+        const uint n_i = iMod(i, m_i, N);
 
-        uint in_offset  = m_i * N + n_i + in_off;
-        uint out_offset = n_i * M + m_i + out_off;
+        const size_t in_offset  = m_i * N + n_i + in_off;
+        const size_t out_offset = n_i * M + m_i + out_off;
 
         const global data_t* cin = (const global data_t*)(in + in_offset);
         global data_t* cout      = (global data_t*)(out + out_offset);
