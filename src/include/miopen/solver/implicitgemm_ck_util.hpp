@@ -107,25 +107,36 @@ ConvSolution MakeInvokerFactory(const ProblemDescriptionType& problem, const std
     }
 
     ConvSolution result;
-    result.invoker_factory =
-        [ck_args     = CKArgsType{problem},
-         sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)}](const std::vector<Kernel>&) mutable {
-            return [ck_args = std::move(ck_args), sh_conv_ptr = std::move(sh_conv_ptr)](
-                       const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                const auto& data_ctx = primitive_parameters.CastTo<CastType>();
-                auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx.tensors);
-                auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
-
-                const auto enable_profiling = handle.IsProfilingEnabled();
-                float elapsed_time =
+    result.invoker_factory = [ck_args     = CKArgsType{problem},
+                              sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)}](
+                                 const std::vector<Kernel>&) mutable {
+        return [ck_args = std::move(ck_args), sh_conv_ptr = std::move(sh_conv_ptr)](
+                   const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            const auto& data_ctx        = primitive_parameters.CastTo<CastType>();
+            const auto enable_profiling = handle.IsProfilingEnabled();
+            float elapsed_time          = 0.0;
+            if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams> ||
+                         std::is_same_v<CastType, miopen::conv::WrWInvokeParams>)
+            {
+                auto argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx.tensors);
+                auto invoker_ptr  = sh_conv_ptr->MakeInvokerPointer();
+                elapsed_time =
                     invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
-                if(enable_profiling)
-                {
-                    handle.ResetKernelTime();
-                    handle.AccumKernelTime(elapsed_time);
-                }
-            };
+            }
+            else
+            {
+                auto argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx);
+                auto invoker_ptr  = sh_conv_ptr->MakeInvokerPointer();
+                elapsed_time =
+                    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
+            }
+            if(enable_profiling)
+            {
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed_time);
+            }
         };
+    };
     return result;
 }
 

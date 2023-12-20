@@ -86,6 +86,7 @@ set( MIOpen_Source
     activ/problem_description.cpp
     activ_api.cpp
     api/find2_0_commons.cpp
+    api/gemm_api.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
@@ -99,7 +100,7 @@ set( MIOpen_Source
     conv/invokers/impl_gemm_dynamic.cpp
     conv/invokers/ocl_wrw_rdc.cpp
     conv/problem_description.cpp
-        conv/solver_finders.cpp
+    conv/solver_finders.cpp
     conv_algo_name.cpp
     convolution.cpp
     convolution_api.cpp
@@ -127,6 +128,7 @@ set( MIOpen_Source
     lock_file.cpp
     logger.cpp
     lrn_api.cpp
+    matrixOps/problem_description.cpp
     norm/problem_description.cpp
     op_args.cpp
     operator.cpp
@@ -238,6 +240,7 @@ set( MIOpen_Source
     solver/gemm.cpp
     solver/gemm_bwd.cpp
     solver/gemm_wrw.cpp
+    solver/matrixOps/ck_fwd_gemm_add_activ.cpp
     solver/norm/forward_layernorm.cpp
     solver/norm/forward_layernorm2d_ck.cpp
     solver/norm/forward_layernorm4d_ck.cpp
@@ -545,6 +548,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernel_cache.cpp
         layer_norm.cpp
         lrn.cpp
+        matrixOps.cpp
         mlo_dir_conv.cpp
         exec_utils.cpp
         ocl/activ_ocl.cpp

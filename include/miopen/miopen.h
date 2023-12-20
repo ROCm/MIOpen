@@ -65,6 +65,8 @@
  * @defgroup TensorReduce
  * @defgroup find2
  * @defgroup sum
+ * @defgroup gemm
+ * @defgroup matAdd
  *
  */
 
@@ -343,6 +345,22 @@ MIOPEN_DECLARE_OBJECT(miopenDropoutDescriptor);
  */
 MIOPEN_DECLARE_OBJECT(miopenReduceTensorDescriptor);
 
+/*! @ingroup gemm
+ * @brief Creates the miopenGemmDescriptor_t type
+ *
+ * Gemm descriptor is an object that allows the user to specify matrix multiplication.
+ * eg: C = A * B
+ */
+MIOPEN_DECLARE_OBJECT(miopenGemmDescriptor);
+
+/*! @ingroup matAdd
+ * @brief Creates the miopenMatrixAdditionDescriptor type
+ *
+ * MatrixAddition descriptor is an object that allows the user to add matrices.
+ * eg: C = A + B
+ */
+MIOPEN_DECLARE_OBJECT(miopenMatrixAdditionDescriptor);
+
 /*! @ingroup tensor
  * @enum miopenDataType_t
  * MIOpen floating point datatypes. Both 32-bit and 16-bit floats are supported in MIOpen.
@@ -373,15 +391,17 @@ typedef enum
  */
 typedef enum
 {
-    miopenTensorNCHW   = 0, /*!< NCHW memory layout (Fully supported) */
-    miopenTensorNHWC   = 1, /*!< NHWC memory layout (Fully supported) */
-    miopenTensorCHWN   = 2, /*!< CHWN memory layout (Not supported) */
-    miopenTensorNCHWc4 = 3, /*!< NCHWc4 memory layout (Partially supported) */
-    miopenTensorNCHWc8 = 4, /*!< NCHWc8 memory layout (Partially supported) */
-    miopenTensorCHWNc4 = 5, /*!< CHWNc4 memory layout (Partially supported) */
-    miopenTensorCHWNc8 = 6, /*!< CHWNc8 memory layout (Partially supported) */
-    miopenTensorNCDHW  = 7, /*!< NCDHW memory layout (Fully supported) */
-    miopenTensorNDHWC  = 8, /*!< NCDHW memory layout (Fully supported) */
+    miopenTensorNCHW        = 0, /*!< NCHW memory layout (Fully supported) */
+    miopenTensorNHWC        = 1, /*!< NHWC memory layout (Fully supported) */
+    miopenTensorCHWN        = 2, /*!< CHWN memory layout (Not supported) */
+    miopenTensorNCHWc4      = 3, /*!< NCHWc4 memory layout (Partially supported) */
+    miopenTensorNCHWc8      = 4, /*!< NCHWc8 memory layout (Partially supported) */
+    miopenTensorCHWNc4      = 5, /*!< CHWNc4 memory layout (Partially supported) */
+    miopenTensorCHWNc8      = 6, /*!< CHWNc8 memory layout (Partially supported) */
+    miopenTensorNCDHW       = 7, /*!< NCDHW memory layout (Fully supported) */
+    miopenTensorNDHWC       = 8, /*!< NCDHW memory layout (Fully supported) */
+    miopenTensorRowMajor    = 9,
+    miopenTensorColumnMajor = 10,
 } miopenTensorLayout_t;
 
 /*! @ingroup pooling
@@ -505,6 +525,8 @@ typedef enum
     miopenActivationELU =
         9, /*!< Exponential Rectified Linear Unit \f$ \alpha * (e^{x} - 1) | x <= 0; x | x > 0 \f$
             */
+    miopenActivationFGELU = 10, /* Fast GeLU  https://paperswithcode.com/method/gelu
+                                y = 0.5*x*(1+tanh(sqrt(2/pi)*(x+0.044715*x^3))) */
 } miopenActivationMode_t;
 
 /*! @ingroup softmax
@@ -2849,6 +2871,45 @@ MIOPEN_EXPORT miopenStatus_t miopenActivationBackward(miopenHandle_t handle,
  */
 MIOPEN_EXPORT miopenStatus_t
 miopenDestroyActivationDescriptor(miopenActivationDescriptor_t activDesc);
+
+// Gemm APIs
+/** @addtogroup gemm
+ *
+ *  @{
+ */
+/*! @brief Creates the Gemm descriptor object
+ *
+ * @param gemmDesc Pointer to an gemm tensor descriptor type
+ * @return          miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenInitGemmDescriptor(miopenGemmDescriptor_t* gemmDesc,
+                                                      long long int m_,
+                                                      long long int n_,
+                                                      long long int k_,
+                                                      long long int strideA_,
+                                                      long long int strideB_,
+                                                      long long int strideC_,
+                                                      bool isColMajor_,
+                                                      bool transA_,
+                                                      bool transB_);
+
+MIOPEN_EXPORT miopenStatus_t miopenDestroyGemmDescriptor(miopenGemmDescriptor_t gemmDesc);
+
+MIOPEN_EXPORT miopenStatus_t
+miopenInitMatrixAdditionDescriptor(miopenMatrixAdditionDescriptor_t* gemmDesc,
+                                   long long int m_,
+                                   long long int n_,
+                                   long long int k_,
+                                   long long int strideC_,
+                                   long long int strideD_,
+                                   long long int strideE_,
+                                   bool isColMajor_,
+                                   bool transA_,
+                                   bool transB_);
+
+MIOPEN_EXPORT miopenStatus_t
+miopenDestroyMatrixAdditionDescriptor(miopenMatrixAdditionDescriptor_t gemmDesc);
 
 /** @} */
 // CLOSEOUT ACTIVATION DOXYGEN GROUP

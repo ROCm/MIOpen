@@ -35,6 +35,7 @@
 #include <miopen/fusion_ops.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
 #include <miopen/activ.hpp>
+#include <miopen/matrixOps.hpp>
 
 #include <set>
 #include <vector>
@@ -227,6 +228,50 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
 
 private:
     conv::ProblemDescription GetConvProblem();
+};
+
+struct GemmForwardInferenceOpDescriptor : FusionOpDescriptor
+{
+    GemmForwardInferenceOpDescriptor(const matrixOps::GemmDescriptor& gemm_descriptor_,
+                                     const TensorDescriptor& B_descriptor_,
+                                     const TensorDescriptor& C_descriptor_)
+        : gemm_descriptor(gemm_descriptor_), B_desc(B_descriptor_), C_desc(C_descriptor_){};
+    miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
+    miopenStatus_t SetArgs(OperatorArgs& args, ConstData_t B_data, ConstData_t C_data);
+    miopenStatus_t GetNetworkConfig(std::ostringstream& network_config) override;
+    bool isASMApplicable(Handle& handle);
+    miopenFusionOp_t kind() const override { return miopenFusionOpGEMM; };
+
+    matrixOps::GemmDescriptor gemm_descriptor;
+    TensorDescriptor B_desc;
+    TensorDescriptor C_desc;
+
+private:
+    ProblemDescription GetGemmProblem();
+};
+
+// E = C + D
+struct MatrixAddOpDescriptor : FusionOpDescriptor
+{
+    MatrixAddOpDescriptor(const matrixOps::MatrixAdditionDescriptor& matrix_add_descriptor_,
+                          const TensorDescriptor& D_desc_,
+                          const TensorDescriptor& E_desc_,
+                          int index_on_fusionPlan_)
+        : matrix_add_descriptor(matrix_add_descriptor_),
+          D_desc(D_desc_),
+          E_desc(E_desc_),
+          index_on_fusionPlan(index_on_fusionPlan_)
+    {
+    }
+    miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
+    miopenStatus_t SetArgs(OperatorArgs& args, ConstData_t d_data, ConstData_t e_data);
+    miopenStatus_t GetNetworkConfig(std::ostringstream& network_config) override;
+    miopenFusionOp_t kind() const override { return miopenFusionOpMatrixAdd; };
+
+    matrixOps::MatrixAdditionDescriptor matrix_add_descriptor;
+    TensorDescriptor D_desc;
+    TensorDescriptor E_desc;
+    int index_on_fusionPlan;
 };
 
 namespace fusion {

@@ -235,6 +235,8 @@ struct na_fusion_driver : test_driver
             activ_mode = miopenActivationLEAKYRELU;
         else if(amode == "ELU")
             activ_mode = miopenActivationELU;
+        else if(amode == "FGELU")
+            activ_mode = miopenActivationFGELU;
         // NOLINTEND(*-braces-around-statements)
 
         int input_c, input_h, input_w;

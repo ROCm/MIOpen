@@ -150,6 +150,26 @@ struct BatchNormBwdTrainingOpInvokeParam : FusionOpInvokeParamBase
     ConstData_t savedInvVariance;
 };
 
+struct GemmOpInvokeParam : FusionOpInvokeParamBase
+{
+    GemmOpInvokeParam(ConstData_t b_data_, ConstData_t c_data_) : b_data(b_data_), c_data(c_data_)
+    {
+    }
+
+    ConstData_t b_data = nullptr;
+    ConstData_t c_data = nullptr;
+};
+
+struct MatrixAddOpInvokeParam : FusionOpInvokeParamBase
+{
+    MatrixAddOpInvokeParam(ConstData_t d_data_, ConstData_t e_data_)
+        : d_data(d_data_), e_data(e_data_)
+    {
+    }
+    ConstData_t d_data = nullptr;
+    ConstData_t e_data = nullptr;
+};
+
 struct FusionInvokeParams : InvokeParams
 {
     FusionInvokeParams(const miopen::OperatorArgs& op_args_,

@@ -274,6 +274,12 @@ int ActivationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             in[i] = i % 2 ? prng::gen_A_to_B(static_cast<Tgpu>(0.005), static_cast<Tgpu>(2.0))
                           : prng::gen_A_to_B(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(-0.005));
             break;
+        case miopenActivationFGELU: // Fast GeLU  https://paperswithcode.com/method/gelu
+            // 0.5*x*(1+tanh(sqrt(2/pi)*(x+0.044715*x^3)))
+            // pi =  std::atan(1)*4
+            in[i] = 0.5 * i *
+                    (1 + tanh(sqrt(2 / (std::atan(1) * 4)) * (i + 0.044715 * std::pow(i, 3))));
+            break;
         }
     }
 

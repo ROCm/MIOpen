@@ -51,7 +51,7 @@
 
 // miopenLastTensorLayout must be changed if new layouts are added
 #define miopenFirstTensorLayout miopenTensorNCHW
-#define miopenLastTensorLayout miopenTensorNDHWC
+#define miopenLastTensorLayout miopenTensorColumnMajor
 
 namespace {
 

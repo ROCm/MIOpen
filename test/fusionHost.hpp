@@ -707,6 +707,14 @@ void visitActivationHostInfer(
     case miopenActivationELU: // alpah * (exp(x)-1) | x<=0; x | x>0
         f([=](double x) { return ((x > 0.) ? x : alpha * std::expm1(x)); });
         break;
+    case miopenActivationFGELU: // Fast GeLU  https://paperswithcode.com/method/gelu
+        // 0.5*x*(1+tanh(sqrt(2/pi)*(x+0.044715*x^3)))
+        // pi =  std::atan(1)*4
+        f([=](double x) {
+            return 0.5 * x *
+                   (1 + tanh(sqrt(2 / (std::atan(1) * 4)) * (x + 0.044715 * std::pow(x, 3))));
+        });
+        break;
         // default: printf("ERROR: unknown neuron type: %d\n", activMode); break;
     }
 }
@@ -768,6 +776,9 @@ void visitActivationHostBwd(
         break;
     case miopenActivationELU: // alpah * (exp(x)-1) | x<=0; x | x>0
         f([=](double dy, double x, double y) { return dy * ((x > 0) ? 1 : y + alpha); });
+        break;
+    case miopenActivationFGELU: // Fast GeLU  https://paperswithcode.com/method/gelu
+        // TODO : derivative of FGELU
         break;
         // default: printf("ERROR: unknown neuron type: %d\n", activMode); break;
     }
