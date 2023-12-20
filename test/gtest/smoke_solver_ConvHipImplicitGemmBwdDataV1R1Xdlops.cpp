@@ -49,15 +49,15 @@ void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class Conv2dFloat : public testing::TestWithParam<std::vector<TestCase>>
+class SmokeSolverHIPConv2dBwdFloat : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
-class Conv2dHalf : public testing::TestWithParam<std::vector<TestCase>>
+class SmokeSolverHIPConv2dBwdHalf : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
-class Conv2dBFloat16 : public testing::TestWithParam<std::vector<TestCase>>
+class SmokeSolverConv2dBwdBFloat16 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -67,9 +67,9 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<TestCase> params;
     switch(prec)
     {
-    case miopenHalf: params = Conv2dHalf::GetParam(); break;
-    case miopenBFloat16: params = Conv2dBFloat16::GetParam(); break;
-    case miopenFloat: params = Conv2dFloat::GetParam(); break;
+    case miopenHalf: params = SmokeSolverHIPConv2dBwdHalf::GetParam(); break;
+    case miopenBFloat16: params = SmokeSolverConv2dBwdBFloat16::GetParam(); break;
+    case miopenFloat: params = SmokeSolverHIPConv2dBwdFloat::GetParam(); break;
     case miopenInt8:
     case miopenInt32:
     case miopenDouble:
@@ -80,7 +80,7 @@ void Run2dDriver(miopenDataType_t prec)
                   "data type not supported by "
                   "smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops test";
 
-    default: params = Conv2dFloat::GetParam();
+    default: params = SmokeSolverHIPConv2dBwdFloat::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -136,7 +136,7 @@ std::vector<TestCase> GetTestCases(void)
 } // namespace smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops
 using namespace smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops;
 
-TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops)
+TEST_P(SmokeSolverHIPConv2dBwdFloat, FloatTest_smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle))
@@ -149,7 +149,7 @@ TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops)
     }
 };
 
-TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops)
+TEST_P(SmokeSolverHIPConv2dBwdHalf, HalfTest_smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle))
@@ -162,7 +162,7 @@ TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops)
     }
 };
 
-TEST_P(Conv2dBFloat16, BFloat16Test_smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops)
+TEST_P(SmokeSolverConv2dBwdBFloat16, BFloat16Test_smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle))
@@ -176,13 +176,13 @@ TEST_P(Conv2dBFloat16, BFloat16Test_smoke_solver_ConvHipImplicitGemmBwdDataV1R1X
 };
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvHipImplicitGemmBwdDataV1R1Xdlops,
-                         Conv2dFloat,
+                         SmokeSolverHIPConv2dBwdFloat,
                          testing::Values(GetTestCases()));
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvHipImplicitGemmBwdDataV1R1Xdlops,
-                         Conv2dHalf,
+                         SmokeSolverHIPConv2dBwdHalf,
                          testing::Values(GetTestCases()));
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvHipImplicitGemmBwdDataV1R1Xdlops,
-                         Conv2dBFloat16,
+                         SmokeSolverConv2dBwdBFloat16,
                          testing::Values(GetTestCases()));

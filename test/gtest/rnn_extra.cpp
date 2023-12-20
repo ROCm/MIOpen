@@ -43,7 +43,7 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class ConfigWithFloat : public testing::TestWithParam<std::vector<std::string>>
+class RNNExtraConfigWithFloat : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -53,7 +53,7 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenFloat: params = ConfigWithFloat::GetParam(); break;
+    case miopenFloat: params = RNNExtraConfigWithFloat::GetParam(); break;
     case miopenHalf:
     case miopenFloat8:
     case miopenBFloat8:
@@ -65,7 +65,7 @@ void Run2dDriver(miopenDataType_t prec)
                   "data type not supported by "
                   "rnn_vanilla test";
 
-    default: params = ConfigWithFloat::GetParam();
+    default: params = RNNExtraConfigWithFloat::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -148,7 +148,7 @@ std::vector<std::string> GetTestCases(void)
 } // namespace rnn_extra
 using namespace rnn_extra;
 
-TEST_P(ConfigWithFloat, FloatTest_rnn_extra)
+TEST_P(RNNExtraConfigWithFloat, FloatTest_rnn_extra)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())
@@ -161,4 +161,4 @@ TEST_P(ConfigWithFloat, FloatTest_rnn_extra)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvTrans, ConfigWithFloat, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(ConvTrans, RNNExtraConfigWithFloat, testing::Values(GetTestCases()));

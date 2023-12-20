@@ -44,7 +44,7 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class ConfigWithFloat : public testing::TestWithParam<std::vector<std::string>>
+class GRUExtraConfigWithFloat : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -54,7 +54,7 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenFloat: params = ConfigWithFloat::GetParam(); break;
+    case miopenFloat: params = GRUExtraConfigWithFloat::GetParam(); break;
     case miopenHalf:
     case miopenFloat8:
     case miopenBFloat8:
@@ -66,7 +66,7 @@ void Run2dDriver(miopenDataType_t prec)
                   "data type not supported by "
                   "rnn_vanilla test";
 
-    default: params = ConfigWithFloat::GetParam();
+    default: params = GRUExtraConfigWithFloat::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -136,7 +136,7 @@ std::vector<std::string> GetTestCases(void)
 } // namespace gru_extra
 using namespace gru_extra;
 
-TEST_P(ConfigWithFloat, FloatTest_gru_extra)
+TEST_P(GRUExtraConfigWithFloat, FloatTest_gru_extra)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())
@@ -149,4 +149,4 @@ TEST_P(ConfigWithFloat, FloatTest_gru_extra)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvTrans, ConfigWithFloat, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(ConvTrans, GRUExtraConfigWithFloat, testing::Values(GetTestCases()));

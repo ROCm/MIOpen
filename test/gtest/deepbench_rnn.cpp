@@ -43,7 +43,7 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class ConfigWithFloat : public testing::TestWithParam<std::vector<std::string>>
+class DeepBenchRNNConfigWithFloat : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -53,7 +53,7 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenFloat: params = ConfigWithFloat::GetParam(); break;
+    case miopenFloat: params = DeepBenchRNNConfigWithFloat::GetParam(); break;
     case miopenHalf:
     case miopenFloat8:
     case miopenBFloat8:
@@ -65,7 +65,7 @@ void Run2dDriver(miopenDataType_t prec)
                   "data type not supported by "
                   "rnn_vanilla test";
 
-    default: params = ConfigWithFloat::GetParam();
+    default: params = DeepBenchRNNConfigWithFloat::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -127,7 +127,7 @@ std::vector<std::string> GetTestCases(void)
 
 using namespace deepbench_rnn;
 
-TEST_P(ConfigWithFloat, FloatTest_deepbench_rnn)
+TEST_P(DeepBenchRNNConfigWithFloat, FloatTest_deepbench_rnn)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())
@@ -140,4 +140,4 @@ TEST_P(ConfigWithFloat, FloatTest_deepbench_rnn)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvTrans, ConfigWithFloat, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(ConvTrans, DeepBenchRNNConfigWithFloat, testing::Values(GetTestCases()));

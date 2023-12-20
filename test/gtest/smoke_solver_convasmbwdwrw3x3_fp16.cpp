@@ -53,7 +53,7 @@ void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class Conv2dHalf : public testing::TestWithParam<std::vector<TestCase>>
+class SmokeSolverASMConv2dBwdHalf : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -63,7 +63,7 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<TestCase> params;
     switch(prec)
     {
-    case miopenHalf: params = Conv2dHalf::GetParam(); break;
+    case miopenHalf: params = SmokeSolverASMConv2dBwdHalf::GetParam(); break;
     case miopenFloat:
     case miopenBFloat16:
     case miopenInt8:
@@ -75,7 +75,7 @@ void Run2dDriver(miopenDataType_t prec)
                   "miopenDouble, miopenFloat8, miopenBFloat8 "
                   "data type not supported by smoke_solver_convasmbwdwrw3x3_fp16 test";
 
-    default: params = Conv2dHalf::GetParam();
+    default: params = SmokeSolverASMConv2dBwdHalf::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -130,7 +130,7 @@ std::vector<TestCase> GetTestCases(void)
 
 using namespace smoke_solver_convasmbwdwrw3x3_fp16;
 
-TEST_P(Conv2dHalf, HalfTest_smoke_solver_convasmbwdwrw3x3_fp16)
+TEST_P(SmokeSolverASMConv2dBwdHalf, HalfTest_smoke_solver_convasmbwdwrw3x3_fp16)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())
@@ -144,5 +144,5 @@ TEST_P(Conv2dHalf, HalfTest_smoke_solver_convasmbwdwrw3x3_fp16)
 };
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmBwdWrw3x3Fp16,
-                         Conv2dHalf,
+                         SmokeSolverASMConv2dBwdHalf,
                          testing::Values(GetTestCases()));
