@@ -108,7 +108,7 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
     }
 
     auto get_HxBuff_offset =
-        [&bi, hidden_size, max_batch](int layer_id, int batch_id, int reverse) {
+        [bi, hidden_size, max_batch](int layer_id, int batch_id, int reverse) {
             return (static_cast<size_t>(hidden_size) * (max_batch)) * (bi * layer_id + reverse) +
                    (size_t)hidden_size * batch_id;
         };
@@ -4597,11 +4597,11 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
     float beta = 0;
 
     auto workSpaceDataTypeSize = workSpaceSize / GetTypeSize(rnn_data_type);
-    auto reservespace_desc =
+    auto workSpace_desc =
         miopen::TensorDescriptor(rnn_data_type,
                                  std::vector<int>{1, 1, workSpaceDataTypeSize},
                                  std::vector<int>{workSpaceDataTypeSize, workSpaceDataTypeSize, 1});
-    SetTensor(handle, reservespace_desc, workSpace, &beta);
+    SetTensor(handle, workSpace_desc, workSpace, &beta);
 
     if(dhx != nullptr)
     {
@@ -4677,7 +4677,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
     ReluReserveBufferOffsets RBuff(hidden_size, nLayers, total_batch_size, bi, workspaceScale);
 
     auto get_HxBuff_offset =
-        [&bi, hidden_size, max_batch](int layer_id, int batch_id, int reverse) {
+        [bi, hidden_size, max_batch](int layer_id, int batch_id, int reverse) {
             return (static_cast<size_t>(hidden_size) * (max_batch)) * (bi * layer_id + reverse) +
                    static_cast<size_t>(hidden_size) * batch_id;
         };
@@ -5287,7 +5287,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
     y_stride[0]  = batch_n * out_stride;
     y_stride[1]  = out_stride;
 
-    if(dhx != nullptr)
+    if(dhx != nullptr || (rnnMode == miopenLSTM && dcx != nullptr))
     {
         hx_size[2]   = hy_d * hy_n * hy_h;
         hx_stride[0] = hx_size[2];
