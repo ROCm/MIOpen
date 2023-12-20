@@ -81,6 +81,16 @@ struct BiasFusionOpDescriptor : FusionOpDescriptor
     TensorDescriptor base_desc;
 };
 
+struct TensorScaleAddOpDescriptor : public FusionOpDescriptor
+{
+    TensorScaleAddOpDescriptor(const TensorDescriptor& desc) : tensor_desc(desc) {}
+    miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
+    miopenStatus_t GetNetworkConfig(std::ostringstream& network_config) override;
+    miopenStatus_t SetArgs(OperatorArgs& args, float alpha, ConstData_t tensor_ptr);
+    miopenFusionOp_t kind() const override { return miopenFusionOpTensorScaleAdd; };
+    TensorDescriptor tensor_desc;
+};
+
 struct ActivFwdFusionOpDescriptor : FusionOpDescriptor
 {
     ActivFwdFusionOpDescriptor(miopenActivationMode_t mode) : activMode(mode) {}
@@ -215,6 +225,7 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
           conv_compiler_options(""){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
     miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t w);
+    // miopenStatus_t SetArgs(OperatorArgs& args, float alpha, float beta, ConstData_t w);
     miopenStatus_t GetNetworkConfig(std::ostringstream& network_config) override;
     bool isASMApplicable(Handle& handle);
     miopenFusionOp_t kind() const override { return miopenFusionOpConvForward; };
