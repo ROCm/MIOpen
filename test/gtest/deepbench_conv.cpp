@@ -23,85 +23,85 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/miopen.h>
-#include <gtest/gtest.h>
-#include <miopen/env.hpp>
+#include <tuple>
+#include <string_view>
+
+#include "gtest_common.hpp"
+
 #include "../conv2d.hpp"
-#include "get_handle.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DEEPBENCH)
 
-static bool SkipTest(void) { return miopen::IsDisabled(ENV(MIOPEN_TEST_DEEPBENCH)); }
+namespace deepbench_conv {
 
-void GetArgs(const std::string& param, std::vector<std::string>& tokens)
+auto GetTestCases()
 {
-    std::stringstream ss(param);
-    std::istream_iterator<std::string> begin(ss);
-    std::istream_iterator<std::string> end;
-    while(begin != end)
-        tokens.push_back(*begin++);
+    const std::string v = " --verbose";
+
+    return std::vector{
+        // clang-format off
+    std::pair{std::tuple<>{}, v + "	--input	4	1	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	8	1	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	16	1	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	32	1	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	4	32	79	341	--weights	32	32	5	10	--pads_strides_dilations	0	0	2	2	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	8	32	79	341	--weights	32	32	5	10	--pads_strides_dilations	0	0	2	2	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	16	32	79	341	--weights	32	32	5	10	--pads_strides_dilations	0	0	2	2	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	32	32	79	341	--weights	32	32	5	10	--pads_strides_dilations	0	0	2	2	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	16	1	48	480	--weights	16	1	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	16	16	24	240	--weights	32	16	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	16	32	12	120	--weights	64	32	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	16	64	6	60	--weights	128	64	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	8	3	108	108	--weights	64	3	3	3	--pads_strides_dilations	1	1	2	2	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	8	64	54	54	--weights	64	64	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	8	128	27	27	--weights	128	128	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	8	128	14	14	--weights	256	128	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	8	256	7	7	--weights	512	256	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	8	3	224	224	--weights	64	3	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	8	64	112	112	--weights	128	64	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	8	128	56	56	--weights	256	128	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	8	256	28	28	--weights	512	256	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	8	512	14	14	--weights	512	512	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	8	512	7	7	--weights	512	512	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	16	3	224	224	--weights	64	3	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	16	64	112	112	--weights	128	64	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	16	128	56	56	--weights	256	128	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	16	256	28	28	--weights	512	256	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	16	512	14	14	--weights	512	512	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	16	512	7	7	--weights	512	512	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	16	3	224	224	--weights	64	3	7	7	--pads_strides_dilations	3	3	2	2	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	16	192	28	28	--weights	32	192	5	5	--pads_strides_dilations	2	2	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	16	512	14	14	--weights	48	512	5	5	--pads_strides_dilations	2	2	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	16	832	7	7	--weights	128	832	5	5	--pads_strides_dilations	2	2	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	16	192	28	28	--weights	32	192	1	1	--pads_strides_dilations	0	0	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	16	512	14	14	--weights	48	512	1	1	--pads_strides_dilations	0	0	1	1	1	1"},
+    std::pair{std::tuple<>{}, v + "	--input	16	832	7	7	--weights	128	832	1	1	--pads_strides_dilations	0	0	1	1	1	1"}
+        // clang-format on
+    };
 }
 
-class Conv2dFloat : public testing::TestWithParam<std::vector<std::string>>
+using TestCase = decltype(GetTestCases())::value_type;
+
+bool SkipTest() { return miopen::IsDisabled(ENV(MIOPEN_TEST_DEEPBENCH)); }
+
+class Conv2dFloat : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-void Run2dDriver(miopenDataType_t prec)
+bool IsTestSupportedForDevice()
 {
-    std::vector<std::string> params;
-    switch(prec)
-    {
-    case miopenFloat: params = Conv2dFloat::GetParam(); break;
-    case miopenInt8:
-    case miopenBFloat8:
-    case miopenFloat8:
-    case miopenHalf:
-    case miopenBFloat16:
-    case miopenInt32:
-    case miopenDouble:
-        FAIL() << "miopenInt8, miopenBFloat8, miopenFloat8, miopenHalf, miopenBFloat16, "
-                  "miopenInt32, "
-                  "miopenDouble data "
-                  "type not supported by "
-                  "deepbench_conv test";
-
-    default: params = Conv2dFloat::GetParam();
-    }
-
-    for(const auto& test_value : params)
-    {
-        std::vector<std::string> tokens;
-        GetArgs(test_value, tokens);
-        std::vector<const char*> ptrs;
-
-        std::transform(tokens.begin(), tokens.end(), std::back_inserter(ptrs), [](const auto& str) {
-            return str.data();
-        });
-
-        testing::internal::CaptureStderr();
-        test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
-        auto capture = testing::internal::GetCapturedStderr();
-        std::cout << capture;
-    }
-};
-
-bool IsTestSupportedForDevice(const miopen::Handle& handle)
-{
-    std::string devName = handle.GetDeviceName();
-    if(devName == "gfx900" || devName == "gfx906" || devName == "gfx908" || devName == "gfx90a" ||
-       miopen::StartsWith(devName, "gfx94") || miopen::StartsWith(devName, "gfx103") ||
-       miopen::StartsWith(devName, "gfx110"))
-        return true;
-    else
-        return false;
+    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
+    using d_mask = disabled<Gpu::Default>;
+    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
+} // namespace deepbench_conv
+using namespace deepbench_conv;
 
-TEST_P(Conv2dFloat, FloatTest)
+TEST_P(Conv2dFloat, FloatTest_deepbench_conv)
 {
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    if(IsTestSupportedForDevice() && !SkipTest())
     {
-        Run2dDriver(miopenFloat);
+        invoke_with_params<conv2d_driver, Conv2dFloat>(default_check);
     }
     else
     {
@@ -109,52 +109,4 @@ TEST_P(Conv2dFloat, FloatTest)
     }
 };
 
-std::vector<std::string> GetTestCases(const std::string& precision)
-{
-    std::string v = " --verbose";
-
-    std::vector<std::string> test_cases = {
-        // clang-format off
-    {v + "	--input	4	1	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1"},
-    {v + "	--input	8	1	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1"},
-    {v + "	--input	16	1	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1"},
-    {v + "	--input	32	1	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1"},
-    {v + "	--input	4	32	79	341	--weights	32	32	5	10	--pads_strides_dilations	0	0	2	2	1	1"},
-    {v + "	--input	8	32	79	341	--weights	32	32	5	10	--pads_strides_dilations	0	0	2	2	1	1"},
-    {v + "	--input	16	32	79	341	--weights	32	32	5	10	--pads_strides_dilations	0	0	2	2	1	1"},
-    {v + "	--input	32	32	79	341	--weights	32	32	5	10	--pads_strides_dilations	0	0	2	2	1	1"},
-    {v + "	--input	16	1	48	480	--weights	16	1	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
-    {v + "	--input	16	16	24	240	--weights	32	16	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
-    {v + "	--input	16	32	12	120	--weights	64	32	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
-    {v + "	--input	16	64	6	60	--weights	128	64	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
-    {v + "	--input	8	3	108	108	--weights	64	3	3	3	--pads_strides_dilations	1	1	2	2	1	1"},
-    {v + "	--input	8	64	54	54	--weights	64	64	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
-    {v + "	--input	8	128	27	27	--weights	128	128	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
-    {v + "	--input	8	128	14	14	--weights	256	128	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
-    {v + "	--input	8	256	7	7	--weights	512	256	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
-    {v + "	--input	8	3	224	224	--weights	64	3	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
-    {v + "	--input	8	64	112	112	--weights	128	64	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
-    {v + "	--input	8	128	56	56	--weights	256	128	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
-    {v + "	--input	8	256	28	28	--weights	512	256	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
-    {v + "	--input	8	512	14	14	--weights	512	512	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
-    {v + "	--input	8	512	7	7	--weights	512	512	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
-    {v + "	--input	16	3	224	224	--weights	64	3	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
-    {v + "	--input	16	64	112	112	--weights	128	64	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
-    {v + "	--input	16	128	56	56	--weights	256	128	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
-    {v + "	--input	16	256	28	28	--weights	512	256	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
-    {v + "	--input	16	512	14	14	--weights	512	512	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
-    {v + "	--input	16	512	7	7	--weights	512	512	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
-    {v + "	--input	16	3	224	224	--weights	64	3	7	7	--pads_strides_dilations	3	3	2	2	1	1"},
-    {v + "	--input	16	192	28	28	--weights	32	192	5	5	--pads_strides_dilations	2	2	1	1	1	1"},
-    {v + "	--input	16	512	14	14	--weights	48	512	5	5	--pads_strides_dilations	2	2	1	1	1	1"},
-    {v + "	--input	16	832	7	7	--weights	128	832	5	5	--pads_strides_dilations	2	2	1	1	1	1"},
-    {v + "	--input	16	192	28	28	--weights	32	192	1	1	--pads_strides_dilations	0	0	1	1	1	1"},
-    {v + "	--input	16	512	14	14	--weights	48	512	1	1	--pads_strides_dilations	0	0	1	1	1	1"},
-    {v + "	--input	16	832	7	7	--weights	128	832	1	1	--pads_strides_dilations	0	0	1	1	1	1"}
-        // clang-format on
-    };
-
-    return test_cases;
-}
-
-INSTANTIATE_TEST_SUITE_P(DeepbenchConv, Conv2dFloat, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(DeepbenchConv, Conv2dFloat, testing::Values(GetTestCases()));
