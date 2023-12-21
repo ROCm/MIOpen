@@ -37,7 +37,7 @@
 // therefore, when this file is used from the host side, compilation takes much
 // longer. By guarding the __device__ directive we can control that such compilation
 // only happens for kernels which include this file.
-#define MIOPEN_HIP_HOST_DEVICE __host__ __device__
+#define MIOPEN_HIP_HOST_DEVICE __device__
 #else
 #define MIOPEN_HIP_HOST_DEVICE
 #endif
@@ -513,6 +513,7 @@ public:
         return miopen_f8::F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>();
     }
 
+    /// \todo This is wrong. min() should minimum normalized positive value.
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> min()
     {
         return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(-1.0f) *
@@ -540,6 +541,8 @@ public:
         return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(
             miopen_f8::F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>());
     }
+
+    /// \todo This is wrong. min() should minimum normalized positive value.
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> min()
     {
         return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(-1.0f) *
