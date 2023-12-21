@@ -406,7 +406,7 @@ def CheckPerfDbValid(Map conf=[:]){
 ///   * The default compiler is usually not specified.
 /// BuildType := { Release* | Debug | Install } [ BuildTypeModifier ]
 ///   * BuildTypeModifier := { NOCOMGR | Embedded | Static | Normal-Find | Fast-Find
-///                            CK | NOMLIR | Tensile | Tensile-Latest | Package | ... }
+///                            NOCK | NOMLIR | Tensile | Tensile-Latest | Package | ... }
 /// TestSet := { All | Smoke* | Performance Dataset } [ Codecov ]
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
@@ -533,6 +533,7 @@ pipeline {
         Smoke_targets   = " check MIOpenDriver"
         NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
         NOMLIR_flags    = " -DMIOPEN_USE_MLIR=Off"
+        NOCK_flags      = " -DMIOPEN_USE_COMPOSABLEKERNEL=Off"
     }
     triggers{
         
@@ -727,6 +728,23 @@ pipeline {
                     }
                     steps{
                         buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOMLIR_flags, build_cmd: NOMLIR_build_cmd, test_flags: ' --verbose ')
+                    }
+                }
+                stage('Fp32 Hip Debug NOCK gfx908/gfx90a') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX908 || params.TARGET_GFX90A }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx908 || gfx90a") }
+                    environment{
+                        // Can be removed altogether with when WORKAROUND_SWDEV_290754.
+                        NOCK_build_cmd = "CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
+                    }
+                    steps{
+                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOCK_flags, build_cmd: NOCK_build_cmd, test_flags: ' --verbose ')
                     }
                 }
                 stage('Fp32 Hip Debug Embedded Vega20') {
