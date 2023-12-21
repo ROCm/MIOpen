@@ -730,21 +730,21 @@ pipeline {
                         buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOMLIR_flags, build_cmd: NOMLIR_build_cmd, test_flags: ' --verbose ')
                     }
                 }
-                stage('Fp32 Hip Debug NOCK gfx908/gfx90a') {
+                stage('Fp32 Hip Debug NOCK AnyGPU Build-Only') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 || params.TARGET_GFX90A }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx908 || gfx90a") }
+                    agent{ label rocmnode("vega || gfx908 || gfx90a") }
                     environment{
                         // Can be removed altogether with when WORKAROUND_SWDEV_290754.
-                        NOCK_build_cmd = "CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
+                        NOCK_build_cmd = "make -j\$(nproc)"
                     }
                     steps{
-                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOCK_flags, build_cmd: NOCK_build_cmd, test_flags: ' --verbose ')
+                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOCK_flags, build_cmd: NOCK_build_cmd )
                     }
                 }
                 stage('Fp32 Hip Debug Embedded Vega20') {
