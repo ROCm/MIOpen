@@ -84,7 +84,7 @@ using TestCase = decltype(GetTestCases())::value_type;
 
 bool SkipTest() { return miopen::IsDisabled(ENV(MIOPEN_TEST_DEEPBENCH)); }
 
-class Conv2dFloat : public FloatTestCase<std::vector<TestCase>>
+class Conv2dFloat_deepbench : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
@@ -97,11 +97,11 @@ bool IsTestSupportedForDevice()
 } // namespace deepbench_conv
 using namespace deepbench_conv;
 
-TEST_P(Conv2dFloat, FloatTest_deepbench_conv)
+TEST_P(Conv2dFloat_deepbench, FloatTest_deepbench_conv)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dFloat>(default_check);
+        invoke_with_params<conv2d_driver, Conv2dFloat_deepbench>(default_check);
     }
     else
     {
@@ -109,4 +109,4 @@ TEST_P(Conv2dFloat, FloatTest_deepbench_conv)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(DeepbenchConv, Conv2dFloat, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(DeepbenchConv, Conv2dFloat_deepbench, testing::Values(GetTestCases()));
