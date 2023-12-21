@@ -83,8 +83,8 @@ GroupNormForward::GetSolution(const ExecutionContext& context,
         auto dtype = problem.GetXDesc().GetType();
         auto dims  = problem.GetXDesc().GetLengths();
 
-        size_t num_groups        = problem.GetNumGroups();
-        size_t outer_size        = dims[0] * num_groups;
+        size_t num_groups = problem.GetNumGroups();
+        size_t outer_size = dims[0] * num_groups;
 
         size_t xlocalsize = LOCAL_SIZE;
         size_t xgridsize  = outer_size * xlocalsize;

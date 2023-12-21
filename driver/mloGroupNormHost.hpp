@@ -42,9 +42,9 @@ int32_t mloGroupNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
                                    float eps,
                                    miopenNormMode_t mode)
 {
-    auto dims         = miopen::deref(inputDesc).GetLengths();
+    auto dims = miopen::deref(inputDesc).GetLengths();
 
-    size_t numel      = miopen::deref(inputDesc).GetElementSize();
+    size_t numel             = miopen::deref(inputDesc).GetElementSize();
     size_t numel_per_channel = numel / dims[0] / dims[1];
     size_t num_channels      = dims[1];
 

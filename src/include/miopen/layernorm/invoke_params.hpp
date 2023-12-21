@@ -38,15 +38,15 @@ struct InvokeParams : public miopen::InvokeParams
 
     const TensorDescriptor* xDesc = nullptr;
 
-    ConstData_t x              = nullptr;
-    ConstData_t weight         = nullptr;
-    ConstData_t bias           = nullptr;
-    Data_t y                   = nullptr;
-    Data_t mean                = nullptr;
-    Data_t rstd                = nullptr;
-    float epsilon              = 0;
-    int32_t normalized_dim     = 0;
-    miopenNormMode_t mode      = MIOPEN_ELEMENTWISE_AFFINE;
+    ConstData_t x          = nullptr;
+    ConstData_t weight     = nullptr;
+    ConstData_t bias       = nullptr;
+    Data_t y               = nullptr;
+    Data_t mean            = nullptr;
+    Data_t rstd            = nullptr;
+    float epsilon          = 0;
+    int32_t normalized_dim = 0;
+    miopenNormMode_t mode  = MIOPEN_ELEMENTWISE_AFFINE;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
