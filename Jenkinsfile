@@ -407,7 +407,7 @@ def CheckPerfDbValid(Map conf=[:]){
 /// BuildType := { Release* | Debug | Install } [ BuildTypeModifier ]
 ///   * BuildTypeModifier := { NOCOMGR | Embedded | Static | Normal-Find | Fast-Find
 ///                            NOCK | NOMLIR | Tensile | Tensile-Latest | Package | ... }
-/// TestSet := { All | Smoke* | Performance Dataset } [ Codecov ]
+/// TestSet := { All | Smoke* | <Performance Dataset> | Build-only } [ Codecov ]
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
 ///   * "Codecov" is optional code coverage analysis.
@@ -533,7 +533,6 @@ pipeline {
         Smoke_targets   = " check MIOpenDriver"
         NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
         NOMLIR_flags    = " -DMIOPEN_USE_MLIR=Off"
-        NOCK_flags      = " -DMIOPEN_USE_COMPOSABLEKERNEL=Off"
     }
     triggers{
         
@@ -739,12 +738,8 @@ pipeline {
                         retry(2)
                     }
                     agent{ label rocmnode("vega || gfx908 || gfx90a") }
-                    environment{
-                        // Can be removed altogether with when WORKAROUND_SWDEV_290754.
-                        NOCK_build_cmd = "make -j\$(nproc)"
-                    }
                     steps{
-                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOCK_flags, build_cmd: NOCK_build_cmd )
+                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: "-DMIOPEN_USE_COMPOSABLEKERNEL=Off", config_targets: "")
                     }
                 }
                 stage('Fp32 Hip Debug Embedded Vega20') {
