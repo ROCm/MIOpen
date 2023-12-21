@@ -151,6 +151,6 @@ std::vector<std::string> GetTestCases(const std::string& precision)
     return test_cases;
 }
 
-INSTANTIATE_TEST_SUITE_P(Conv3dFloatTest,
-                         Conv3dFloat,
+INSTANTIATE_TEST_SUITE_P(Conv3dTest,
+                         ConfigWithInt8,
                          testing::ValuesIn(GetTestCases("--int8")));
