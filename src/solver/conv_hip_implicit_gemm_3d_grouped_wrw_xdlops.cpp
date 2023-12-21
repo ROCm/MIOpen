@@ -84,14 +84,15 @@ struct CKArgs
         Do = ProblemInterpreter::GetOutputDepthDo(problem);
         Z  = ProblemInterpreter::GetFilterDepthZ(problem);
 
-        // On a backward pass, out is in and in is out and this is silly
-        output = {G, N, C, Di, Hi, Wi};
-        input  = {G, N, K, Do, Ho, Wo};
+        input  = {G, N, C, Di, Hi, Wi};
+        output = {G, N, K, Do, Ho, Wo};
         weight = {G, K, C, Z, Y, X};
 
         // miopen strides to CK strides
-        auto miopen_in_strides  = problem.GetIn().GetStrides();
-        auto miopen_out_strides = problem.GetOut().GetStrides();
+        // On a backward pass, problem.GetIn() means y(or out),
+        // and problem.GetOut means x(or in)
+        auto miopen_in_strides  = problem.GetOut().GetStrides();
+        auto miopen_out_strides = problem.GetIn().GetStrides();
         auto miopen_wei_strides = problem.GetWeights().GetStrides();
         miopen_in_strides.insert(miopen_in_strides.begin(), C);
         miopen_out_strides.insert(miopen_out_strides.begin(), K);
@@ -120,6 +121,28 @@ struct CKArgs
     template <typename ConvPtr>
     auto MakeArgPtr(const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy) const
     {
+#if 0 // Leaving for debugging needs
+        std::cout << "y ptr = " << dy << std::endl;
+        std::cout << "w ptr = " << dw << std::endl;
+        std::cout << "x ptr = " << x << std::endl;
+
+        auto print_vec = [](const char* name, const auto& vec) {
+            std::cout << name << " = [ ";
+            for(const auto& v : vec)
+            {
+                std::cout << v << ", ";
+            }
+            std::cout << "]\n";
+        };
+#define PRINT_VEC(x) print_vec(#x, x);
+
+        PRINT_VEC(output);
+        PRINT_VEC(out_strides);
+        PRINT_VEC(input);
+        PRINT_VEC(in_strides);
+        PRINT_VEC(weight);
+        PRINT_VEC(wei_strides);
+#endif
         return conv_ptr->MakeArgumentPointer(x,
                                              dw,
                                              dy,
