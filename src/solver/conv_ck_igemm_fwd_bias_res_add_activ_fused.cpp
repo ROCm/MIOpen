@@ -47,6 +47,7 @@ namespace solver {
 namespace fusion {
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+
 using CK_OutLayout = ck::tensor_layout::convolution::NDHWGK;
 
 // DataType also applies to weights
@@ -72,7 +73,7 @@ namespace {
 
 struct CKArgs
 {
-    CKArgs(const ProblemDescription& problem)
+    CKArgs(const miopen::conv::ProblemDescription& problem)
     {
         G  = ProblemInterpreter::GetGroupCountG(problem);
         N  = ProblemInterpreter::GetBatchN(problem);
