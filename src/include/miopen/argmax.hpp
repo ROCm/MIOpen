@@ -38,7 +38,8 @@ miopenStatus_t ArgmaxForward(Handle& handle,
                              ConstData_t x,
                              const TensorDescriptor& yDesc,
                              Data_t y,
-                             int32_t dim);
+                             int32_t* dims,
+                             int32_t dim_size);
 
 } // namespace miopen
 #endif // _MIOPEN_ARGMAX_HPP_

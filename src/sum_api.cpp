@@ -85,16 +85,16 @@ static void LogCmdSum(const miopenTensorDescriptor_t xDesc,
 
 extern "C" miopenStatus_t miopenGetSumWorkspaceSize(miopenHandle_t handle,
                                                     const miopenTensorDescriptor_t xDesc,
-                                                    int32_t dim,
+                                                    int32_t* dims,
+                                                    int32_t dim_size,
                                                     const miopenTensorDescriptor_t yDesc,
                                                     size_t* sizeInBytes)
 {
-
-    MIOPEN_LOG_FUNCTION(handle, xDesc, dim, yDesc, sizeInBytes);
+    MIOPEN_LOG_FUNCTION(handle, xDesc, dims, dim_size, yDesc, sizeInBytes);
 
     return miopen::try_([&] {
         miopen::deref(sizeInBytes) = miopen::GetSumWorkspaceSize(
-            miopen::deref(handle), miopen::deref(xDesc), miopen::deref(yDesc), dim);
+            miopen::deref(handle), miopen::deref(xDesc), miopen::deref(yDesc), dims, dim_size);
     });
 };
 
@@ -104,12 +104,21 @@ extern "C" miopenStatus_t miopenSumForward(miopenHandle_t handle,
                                            size_t workspaceSizeInBytes,
                                            const miopenTensorDescriptor_t xDesc,
                                            const void* x,
-                                           const int32_t dim,
+                                           int32_t* dims,
+                                           int32_t dim_size,
                                            const miopenTensorDescriptor_t yDesc,
                                            void* y)
 {
-    MIOPEN_LOG_FUNCTION(
-        handle, nanPropagation, workspace, workspaceSizeInBytes, xDesc, x, dim, yDesc, y);
+    MIOPEN_LOG_FUNCTION(handle,
+                        nanPropagation,
+                        workspace,
+                        workspaceSizeInBytes,
+                        xDesc,
+                        x,
+                        dims,
+                        dim_size,
+                        yDesc,
+                        y);
 
     LogCmdSum(xDesc, nanPropagation, true);
     return miopen::try_([&] {
@@ -121,6 +130,7 @@ extern "C" miopenStatus_t miopenSumForward(miopenHandle_t handle,
                            miopen::deref(yDesc),
                            DataCast(y),
                            nanPropagation,
-                           dim);
+                           dims,
+                           dim_size);
     });
 }

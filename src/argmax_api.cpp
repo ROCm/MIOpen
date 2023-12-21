@@ -84,11 +84,12 @@ static void LogCmdArgmax(const miopenTensorDescriptor_t xDesc, bool is_fwd)
 extern "C" miopenStatus_t miopenArgmaxForward(miopenHandle_t handle,
                                               const miopenTensorDescriptor_t xDesc,
                                               const void* x,
-                                              const int32_t dim,
+                                              int32_t* dims,
+                                              int32_t dim_size,
                                               const miopenTensorDescriptor_t yDesc,
                                               void* y)
 {
-    MIOPEN_LOG_FUNCTION(handle, xDesc, x, dim, yDesc, y);
+    MIOPEN_LOG_FUNCTION(handle, xDesc, x, dims, dim_size, yDesc, y);
 
     LogCmdArgmax(xDesc, true);
     return miopen::try_([&] {
@@ -97,6 +98,7 @@ extern "C" miopenStatus_t miopenArgmaxForward(miopenHandle_t handle,
                               DataCast(x),
                               miopen::deref(yDesc),
                               DataCast(y),
-                              dim);
+                              dims,
+                              dim_size);
     });
 }

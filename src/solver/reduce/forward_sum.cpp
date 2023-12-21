@@ -71,28 +71,38 @@ bool is_parallelism(size_t reqd_work_item_cnt, size_t output_numel, size_t reduc
 bool IsImprovementOverROCm(const ExecutionContext& context,
                            const miopen::reduce::ProblemDescription& problem)
 {
-    auto xdims = problem.GetXDesc().GetLengths();
-    auto ydims = problem.GetYDesc().GetLengths();
-    auto dim   = problem.GetDim();
+    auto xdims     = problem.GetXDesc().GetLengths();
+    auto dims      = problem.GetDims();
+    auto dims_size = problem.GetDims_size();
+    auto sort_dims = dims;
 
-    auto reduce_size = xdims[dim];
-    auto output_numel =
-        std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
+    std::sort(sort_dims, sort_dims + (dims_size - 1));
 
-    auto reqd_work_item_cnt = get_reqd_work_item_cnt(context);
+    auto output_dims = xdims;
 
-    if(is_parallelism(reqd_work_item_cnt, output_numel, reduce_size))
+    for(int32_t idx = 0; idx < dims_size; idx++)
     {
-        // It's large enough to parallelization, but calling the kernel twice is overhead.
-        // For cases smaller than this, ROCm pytorch performed better.
-        bool is_improvement_ROCm = (output_numel * reduce_size < reqd_work_item_cnt * 64);
-        // But the reduce size is small, MIOpen HIP performed better.
-        bool is_reduce_large = (reduce_size > 64);
+        auto dim         = sort_dims[dims_size - 1 - idx];
+        output_dims[dim] = 1;
 
-        if(is_improvement_ROCm && is_reduce_large)
-            return false;
+        auto reduce_size  = xdims[dim];
+        auto output_numel = std::accumulate(
+            output_dims.begin(), output_dims.end(), 1ULL, std::multiplies<size_t>());
+
+        auto reqd_work_item_cnt = get_reqd_work_item_cnt(context);
+
+        if(is_parallelism(reqd_work_item_cnt, output_numel, reduce_size))
+        {
+            // It's large enough to parallelization, but calling the kernel twice is overhead.
+            // For cases smaller than this, ROCm pytorch performed better.
+            bool is_improvement_ROCm = (output_numel * reduce_size < reqd_work_item_cnt * 64);
+            // But the reduce size is small, MIOpen HIP performed better.
+            bool is_reduce_large = (reduce_size > 64);
+
+            if(is_improvement_ROCm && is_reduce_large)
+                return false;
+        }
     }
-
     return true;
 }
 
@@ -121,196 +131,253 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
 
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto dtype = problem.GetXDesc().GetType();
-    auto xdims = problem.GetXDesc().GetLengths();
-    auto ydims = problem.GetYDesc().GetLengths();
-    auto dim   = problem.GetDim();
+    auto dtype     = problem.GetXDesc().GetType();
+    auto xdims     = problem.GetXDesc().GetLengths();
+    auto dims      = problem.GetDims();
+    auto dims_size = problem.GetDims_size();
+    auto sort_dims = dims;
 
-    auto reduce_size = xdims[dim];
-    auto output_numel =
-        std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
+    std::sort(sort_dims, sort_dims + (dims_size - 1));
 
-    auto reqd_work_item_cnt = get_reqd_work_item_cnt(context);
+    auto output_dims = xdims;
 
-    if(is_parallelism(reqd_work_item_cnt, output_numel, reduce_size))
+    for(int32_t idx = 0; idx < dims_size; idx++)
     {
-        auto parallelism_size = get_parallelism_size(reqd_work_item_cnt, output_numel, reduce_size);
+        auto dim         = sort_dims[dims_size - 1 - idx];
+        output_dims[dim] = 1;
 
-        size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize  = AlignUp(parallelism_size * output_numel, xlocalsize);
-        size_t ylocalsize = 1;
-        size_t ygridsize  = 1;
-        size_t zlocalsize = 1;
-        size_t zgridsize  = 1;
+        auto reduce_size  = xdims[dim];
+        auto output_numel = std::accumulate(
+            output_dims.begin(), output_dims.end(), 1ULL, std::multiplies<size_t>());
 
-        auto kernel = KernelInfo{};
+        auto reqd_work_item_cnt = get_reqd_work_item_cnt(context);
 
-        kernel.kernel_file = "MIOpenSum.cpp";
-        kernel.kernel_name = "SumParallelFwdContiguous";
+        if(is_parallelism(reqd_work_item_cnt, output_numel, reduce_size))
+        {
+            auto parallelism_size =
+                get_parallelism_size(reqd_work_item_cnt, output_numel, reduce_size);
 
-        const auto build_params = KernelBuildParameters{
-            {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
-            {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
-            {"MIOPEN_USE_FP64", static_cast<int32_t>(dtype == miopenDouble)},
-            {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
-        };
+            size_t xlocalsize = LOCAL_SIZE;
+            size_t xgridsize  = AlignUp(parallelism_size * output_numel, xlocalsize);
+            size_t ylocalsize = 1;
+            size_t ygridsize  = 1;
+            size_t zlocalsize = 1;
+            size_t zgridsize  = 1;
 
-        kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
+            auto kernel = KernelInfo{};
 
-        kernel.l_wk.push_back(xlocalsize);
-        kernel.l_wk.push_back(ylocalsize);
-        kernel.l_wk.push_back(zlocalsize);
+            kernel.kernel_file = "MIOpenSum.cpp";
+            kernel.kernel_name = "SumParallelFwdContiguous";
 
-        kernel.g_wk.push_back(xgridsize);
-        kernel.g_wk.push_back(ygridsize);
-        kernel.g_wk.push_back(zgridsize);
+            const auto build_params = KernelBuildParameters{
+                {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
+                {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
+                {"MIOPEN_USE_FP64", static_cast<int32_t>(dtype == miopenDouble)},
+                {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
+            };
 
-        result.construction_params.push_back(kernel);
+            kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
+
+            kernel.l_wk.push_back(xlocalsize);
+            kernel.l_wk.push_back(ylocalsize);
+            kernel.l_wk.push_back(zlocalsize);
+
+            kernel.g_wk.push_back(xgridsize);
+            kernel.g_wk.push_back(ygridsize);
+            kernel.g_wk.push_back(zgridsize);
+
+            result.construction_params.push_back(kernel);
+        }
+
+        {
+            size_t xlocalsize = LOCAL_SIZE;
+            size_t xgridsize  = AlignUp(output_numel, xlocalsize);
+            size_t ylocalsize = 1;
+            size_t ygridsize  = 1;
+            size_t zlocalsize = 1;
+            size_t zgridsize  = 1;
+
+            auto kernel = KernelInfo{};
+
+            kernel.kernel_file = "MIOpenSum.cpp";
+            kernel.kernel_name = "SumFwdContiguous";
+
+            const auto build_params = KernelBuildParameters{
+                {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+                {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+                {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
+                {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+            };
+
+            kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
+
+            kernel.l_wk.push_back(xlocalsize);
+            kernel.l_wk.push_back(ylocalsize);
+            kernel.l_wk.push_back(zlocalsize);
+
+            kernel.g_wk.push_back(xgridsize);
+            kernel.g_wk.push_back(ygridsize);
+            kernel.g_wk.push_back(zgridsize);
+
+            result.construction_params.push_back(kernel);
+        }
     }
 
-    {
-        size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize  = AlignUp(output_numel, xlocalsize);
-        size_t ylocalsize = 1;
-        size_t ygridsize  = 1;
-        size_t zlocalsize = 1;
-        size_t zgridsize  = 1;
+    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+            decltype(auto) params = raw_params.CastTo<miopen::reduce::InvokeParams>();
 
-        auto kernel = KernelInfo{};
+            int32_t kernels_idx = 0;
+            auto xdims          = params.xDesc->GetLengths();
+            auto dims           = params.dims;
+            auto dims_size      = params.dims_size;
+            auto sort_dims      = dims;
 
-        kernel.kernel_file = "MIOpenSum.cpp";
-        kernel.kernel_name = "SumFwdContiguous";
+            std::sort(sort_dims, sort_dims + (dims_size - 1));
 
-        const auto build_params = KernelBuildParameters{
-            {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-            {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-            {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
-            {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-        };
+            std::size_t x_workspace_offset = 0;
+            std::size_t y_workspace_offset = 0;
+            auto output_dims               = xdims;
 
-        kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
+            auto elapsed = 0.f;
 
-        kernel.l_wk.push_back(xlocalsize);
-        kernel.l_wk.push_back(ylocalsize);
-        kernel.l_wk.push_back(zlocalsize);
-
-        kernel.g_wk.push_back(xgridsize);
-        kernel.g_wk.push_back(ygridsize);
-        kernel.g_wk.push_back(zgridsize);
-
-        result.construction_params.push_back(kernel);
-    }
-
-    if(is_parallelism(reqd_work_item_cnt, output_numel, reduce_size))
-    {
-        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-                decltype(auto) parallel_kernel = handle_.Run(kernels[0]);
-                decltype(auto) kernel          = handle_.Run(kernels[1]);
-                decltype(auto) params          = raw_params.CastTo<miopen::reduce::InvokeParams>();
-
-                auto xdims = params.xDesc->GetLengths();
-                auto ydims = params.yDesc->GetLengths();
-                auto dim   = params.dim;
-
-                auto reduce_size = xdims[dim];
-                auto output_numel =
-                    std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
+            for(int32_t idx = 0; idx < dims_size; idx++)
+            {
+                auto dim = sort_dims[dims_size - 1 - idx];
 
                 auto inner_size = 1ULL;
-                for(int32_t i = dim + 1; i < xdims.size(); i++)
+                for(int32_t i = dim + 1; i < output_dims.size(); i++)
                 {
-                    inner_size *= xdims[i];
+                    inner_size *= output_dims[i];
                 }
+
+                output_dims[dim] = 1;
 
                 auto reqd_work_item_cnt = get_reqd_work_item_cnt(handle_);
-                auto parallelism_size =
-                    get_parallelism_size(reqd_work_item_cnt, output_numel, reduce_size);
 
-                auto elapsed = 0.f;
+                auto reduce_size  = xdims[dim];
+                auto output_numel = std::accumulate(
+                    output_dims.begin(), output_dims.end(), 1ULL, std::multiplies<size_t>());
 
-                parallel_kernel(params.x,
-                                params.workspace,
-                                output_numel,
-                                reduce_size,
-                                parallelism_size,
-                                inner_size,
-                                static_cast<bool>(params.nanPropagation));
-
-                if(handle_.IsProfilingEnabled())
-                    elapsed = handle_.GetKernelTime();
-
-                kernel(params.workspace,
-                       params.y,
-                       output_numel,
-                       parallelism_size,
-                       inner_size,
-                       dim,
-                       static_cast<bool>(params.nanPropagation));
-
-                if(handle_.IsProfilingEnabled())
+                if(is_parallelism(reqd_work_item_cnt, output_numel, reduce_size))
                 {
-                    elapsed += handle_.GetKernelTime();
-                    handle_.ResetKernelTime();
-                    handle_.AccumKernelTime(elapsed);
-                };
-            };
-        };
-    }
-    else
-    {
-        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-                decltype(auto) kernel = handle_.Run(kernels.front());
-                decltype(auto) params = raw_params.CastTo<miopen::reduce::InvokeParams>();
+                    decltype(auto) parallel_kernel = handle_.Run(kernels[kernels_idx++]);
+                    decltype(auto) kernel          = handle_.Run(kernels[kernels_idx++]);
 
-                auto xdims = params.xDesc->GetLengths();
-                auto ydims = params.yDesc->GetLengths();
-                auto dim   = params.dim;
+                    auto parallelism_size =
+                        get_parallelism_size(reqd_work_item_cnt, output_numel, reduce_size);
 
-                auto reduce_size = xdims[dim];
-                auto output_numel =
-                    std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
+                    parallel_kernel(idx == 0 ? params.x : params.workspace,
+                                    params.workspace,
+                                    output_numel,
+                                    reduce_size,
+                                    parallelism_size,
+                                    inner_size,
+                                    static_cast<bool>(params.nanPropagation),
+                                    x_workspace_offset,
+                                    y_workspace_offset);
 
-                size_t inner_size = 1;
-                for(int32_t i = dim + 1; i < xdims.size(); i++)
-                {
-                    inner_size *= xdims[i];
+                    if(handle_.IsProfilingEnabled())
+                    {
+                        elapsed += handle_.GetKernelTime();
+                        handle_.ResetKernelTime();
+                        handle_.AccumKernelTime(elapsed);
+                    };
+
+                    x_workspace_offset = y_workspace_offset;
+                    y_workspace_offset = y_workspace_offset + parallelism_size * output_numel;
+
+                    kernel(params.workspace,
+                           idx == (dims_size - 1) ? params.y : params.workspace,
+                           output_numel,
+                           parallelism_size,
+                           inner_size,
+                           dim,
+                           static_cast<bool>(params.nanPropagation),
+                           x_workspace_offset,
+                           idx == (dims_size - 1) ? 0 : y_workspace_offset);
+
+                    if(handle_.IsProfilingEnabled())
+                    {
+                        elapsed += handle_.GetKernelTime();
+                        handle_.ResetKernelTime();
+                        handle_.AccumKernelTime(elapsed);
+                    };
+
+                    x_workspace_offset = y_workspace_offset;
+                    y_workspace_offset = y_workspace_offset + output_numel;
                 }
+                else
+                {
+                    decltype(auto) kernel = handle_.Run(kernels[kernels_idx++]);
 
-                kernel(params.x,
-                       params.y,
-                       output_numel,
-                       reduce_size,
-                       inner_size,
-                       dim,
-                       static_cast<bool>(params.nanPropagation));
-            };
+                    kernel(idx == 0 ? params.x : params.workspace,
+                           idx == (dims_size - 1) ? params.y : params.workspace,
+                           output_numel,
+                           reduce_size,
+                           inner_size,
+                           dim,
+                           static_cast<bool>(params.nanPropagation),
+                           x_workspace_offset,
+                           idx == (dims_size - 1) ? 0 : y_workspace_offset);
+
+                    if(handle_.IsProfilingEnabled())
+                    {
+                        elapsed += handle_.GetKernelTime();
+                        handle_.ResetKernelTime();
+                        handle_.AccumKernelTime(elapsed);
+                    };
+
+                    x_workspace_offset = y_workspace_offset;
+                    y_workspace_offset = y_workspace_offset + output_numel;
+                }
+            }
         };
-    }
+    };
+
     return result;
 }
 
 std::size_t SumForward::GetWorkspaceSize(const ExecutionContext& context,
                                          const miopen::reduce::ProblemDescription& problem) const
 {
-    auto xdims = problem.GetXDesc().GetLengths();
-    auto ydims = problem.GetYDesc().GetLengths();
+    auto xdims     = problem.GetXDesc().GetLengths();
+    auto dims      = problem.GetDims();
+    auto dims_size = problem.GetDims_size();
+    auto sort_dims = dims;
 
-    auto reduce_size = xdims[problem.GetDim()];
-    auto output_numel =
-        std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
+    std::sort(sort_dims, sort_dims + (dims_size - 1));
 
-    auto reqd_work_item_cnt = get_reqd_work_item_cnt(context);
+    std::size_t workspacesize = 0;
+    auto output_dims          = xdims;
 
-    if(is_parallelism(reqd_work_item_cnt, output_numel, reduce_size))
+    for(int32_t idx = 0; idx < dims_size; idx++)
     {
-        auto parallelism_size = get_parallelism_size(reqd_work_item_cnt, output_numel, reduce_size);
+        auto dim         = sort_dims[dims_size - 1 - idx];
+        output_dims[dim] = 1;
 
-        return parallelism_size * output_numel * get_data_size(problem.GetXDesc().GetType());
+        auto reduce_size  = xdims[dim];
+        auto output_numel = std::accumulate(
+            output_dims.begin(), output_dims.end(), 1ULL, std::multiplies<size_t>());
+
+        auto reqd_work_item_cnt = get_reqd_work_item_cnt(context);
+
+        if(idx != dims_size - 1)
+        {
+            workspacesize += output_numel * get_data_size(problem.GetXDesc().GetType());
+        }
+
+        if(is_parallelism(reqd_work_item_cnt, output_numel, reduce_size))
+        {
+            auto parallelism_size =
+                get_parallelism_size(reqd_work_item_cnt, output_numel, reduce_size);
+
+            workspacesize +=
+                parallelism_size * output_numel * get_data_size(problem.GetXDesc().GetType());
+        }
     }
 
-    return 0;
+    return workspacesize;
 }
 
 } // namespace reduce

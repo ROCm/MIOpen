@@ -43,7 +43,8 @@ struct InvokeParams : public miopen::InvokeParams
     Data_t y                                 = nullptr;
     Data_t workspace                         = nullptr;
     std::size_t workspace_size               = 0;
-    int32_t dim                              = 0;
+    int32_t* dims                            = nullptr;
+    int32_t dims_size                        = 0;
     miopenSumNanPropagation_t nanPropagation = MIOPEN_SUM_NOT_PROPAGATE_NAN;
 
     std::size_t GetWorkspaceSize() const { return workspace_size; }

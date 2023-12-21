@@ -39,6 +39,11 @@ namespace solver {
 
 namespace reduce {
 
+bool IsDimsSizeOne(const miopen::reduce::ProblemDescription& problem)
+{
+    return (problem.GetDims_size() == 1);
+}
+
 bool ArgmaxForward::IsApplicable(const ExecutionContext&,
                                  const miopen::reduce::ProblemDescription& problem) const
 {
@@ -49,6 +54,8 @@ bool ArgmaxForward::IsApplicable(const ExecutionContext&,
     if(!problem.IsAllPacked())
         return false;
     if(!problem.IsNotLastDim())
+        return false;
+    if(!IsDimsSizeOne(problem))
         return false;
     return true;
 }
@@ -109,7 +116,7 @@ ConvSolution ArgmaxForward::GetSolution(const ExecutionContext& context,
 
             auto xdims = params.xDesc->GetLengths();
             auto ydims = params.yDesc->GetLengths();
-            auto dim   = params.dim;
+            auto dim   = params.dims[0];
 
             int32_t reduce_size = static_cast<int32_t>(xdims[dim]);
             auto output_numel =

@@ -40,18 +40,20 @@ miopenStatus_t ArgmaxForward(Handle& handle,
                              ConstData_t x,
                              const TensorDescriptor& yDesc,
                              Data_t y,
-                             int32_t dim)
+                             int32_t* dims,
+                             int32_t dims_size)
 {
-    const auto problem = reduce::ProblemDescription{xDesc, yDesc, dim};
+    const auto problem = reduce::ProblemDescription{xDesc, yDesc, dims, dims_size};
 
     const auto invoke_params = [&]() {
-        auto tmp  = reduce::InvokeParams{};
-        tmp.type  = InvokeType::Run;
-        tmp.xDesc = &xDesc;
-        tmp.yDesc = &yDesc;
-        tmp.x     = x;
-        tmp.y     = y;
-        tmp.dim   = dim;
+        auto tmp      = reduce::InvokeParams{};
+        tmp.type      = InvokeType::Run;
+        tmp.xDesc     = &xDesc;
+        tmp.yDesc     = &yDesc;
+        tmp.x         = x;
+        tmp.y         = y;
+        tmp.dims      = dims;
+        tmp.dims_size = dims_size;
         return tmp;
     }();
 

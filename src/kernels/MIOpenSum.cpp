@@ -44,7 +44,9 @@ extern "C" __global__ void SumParallelFwdContiguous(const FLOAT* __restrict__ x,
                                                     uint64_t reduce_size,
                                                     uint64_t parallelism_size,
                                                     uint64_t inner_size,
-                                                    bool nanPropagation)
+                                                    bool nanPropagation,
+                                                    uint64_t x_offset,
+                                                    uint64_t y_offset)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
     if(gid >= parallelism_size * output_numel)
@@ -62,7 +64,7 @@ extern "C" __global__ void SumParallelFwdContiguous(const FLOAT* __restrict__ x,
     FLOAT_ACCUM sum = static_cast<FLOAT_ACCUM>(0);
     for(uint64_t k = parallel_id; k < reduce_size; k += parallelism_size)
     {
-        FLOAT_ACCUM val = CVT_FLOAT2ACCUM(x[input_idx]);
+        FLOAT_ACCUM val = CVT_FLOAT2ACCUM(x[input_idx + x_offset]);
         if(nanPropagation && isnan(val))
         {
             val = static_cast<FLOAT_ACCUM>(0);
@@ -71,7 +73,7 @@ extern "C" __global__ void SumParallelFwdContiguous(const FLOAT* __restrict__ x,
         input_idx += inner_size * parallelism_size;
     }
 
-    y[gid] = CVT_ACCUM2FLOAT(sum);
+    y[gid + y_offset] = CVT_ACCUM2FLOAT(sum);
 }
 
 extern "C" __global__ void SumFwdContiguous(const FLOAT* __restrict__ x,
@@ -80,7 +82,9 @@ extern "C" __global__ void SumFwdContiguous(const FLOAT* __restrict__ x,
                                             uint64_t reduce_size,
                                             uint64_t inner_size,
                                             int32_t dim,
-                                            bool nanPropagation)
+                                            bool nanPropagation,
+                                            uint64_t x_offset,
+                                            uint64_t y_offset)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
     if(gid >= output_numel)
@@ -91,7 +95,7 @@ extern "C" __global__ void SumFwdContiguous(const FLOAT* __restrict__ x,
     FLOAT_ACCUM sum = static_cast<FLOAT_ACCUM>(0);
     for(uint64_t k = 0; k < reduce_size; ++k)
     {
-        FLOAT_ACCUM val = CVT_FLOAT2ACCUM(x[input_idx]);
+        FLOAT_ACCUM val = CVT_FLOAT2ACCUM(x[input_idx + x_offset]);
         if(nanPropagation && isnan(val))
         {
             val = static_cast<FLOAT_ACCUM>(0);
@@ -100,5 +104,5 @@ extern "C" __global__ void SumFwdContiguous(const FLOAT* __restrict__ x,
         input_idx += inner_size;
     }
 
-    y[gid] = CVT_ACCUM2FLOAT(sum);
+    y[gid + y_offset] = CVT_ACCUM2FLOAT(sum);
 }

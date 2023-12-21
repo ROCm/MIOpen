@@ -266,7 +266,7 @@ int ArgmaxDriver<Tgpu, Tref>::RunForwardGPU()
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
         miopenArgmaxForward(
-            GetHandle(), inputDesc, in_dev->GetMem(), dim, outputDesc, out_dev->GetMem());
+            GetHandle(), inputDesc, in_dev->GetMem(), &dim, 1, outputDesc, out_dev->GetMem());
 
         float time = 0;
         miopenGetKernelTime(GetHandle(), &time);

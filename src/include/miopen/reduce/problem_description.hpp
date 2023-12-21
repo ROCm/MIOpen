@@ -42,20 +42,29 @@ struct ProblemDescription : ProblemDescriptionBase
     ProblemDescription(miopenSumNanPropagation_t nanPropagation_,
                        const TensorDescriptor& xDesc_,
                        const TensorDescriptor& yDesc_,
-                       int32_t dim_)
-        : nanPropagation(nanPropagation_), xDesc(xDesc_), yDesc(yDesc_), dim(dim_)
+                       int32_t* dims_,
+                       int32_t dims_size_)
+        : nanPropagation(nanPropagation_),
+          xDesc(xDesc_),
+          yDesc(yDesc_),
+          dims(dims_),
+          dims_size(dims_size_)
     {
     }
 
-    ProblemDescription(const TensorDescriptor& xDesc_, const TensorDescriptor& yDesc_, int32_t dim_)
-        : xDesc(xDesc_), yDesc(yDesc_), dim(dim_)
+    ProblemDescription(const TensorDescriptor& xDesc_,
+                       const TensorDescriptor& yDesc_,
+                       int32_t* dims_,
+                       int32_t dims_size_)
+        : xDesc(xDesc_), yDesc(yDesc_), dims(dims_), dims_size(dims_size_)
     {
     }
 
     miopenSumNanPropagation_t GetNanPropagation_() const { return nanPropagation; }
     const TensorDescriptor& GetXDesc() const { return xDesc; }
     const TensorDescriptor& GetYDesc() const { return yDesc; }
-    int32_t GetDim() const { return dim; }
+    int32_t* GetDims() const { return dims; }
+    int32_t GetDims_size() const { return dims_size; }
 
     bool IsSameType() const
     {
@@ -68,29 +77,47 @@ struct ProblemDescription : ProblemDescriptionBase
 
     bool IsRightLength() const
     {
-        int32_t posy = 0;
-        for(int32_t i = 0; i < xDesc.GetLengths().size(); i++)
+        auto in_length = xDesc.GetLengths();
+        std::vector<std::size_t> out_length;
+        for(int i = 0; i < in_length.size(); i++)
         {
-            if(i == dim)
-                continue;
+            bool not_reduce = true;
+            for(int j = 0; j < dims_size; j++)
+            {
+                if(i == dims[j])
+                {
+                    not_reduce = false;
+                    continue;
+                }
+            }
+            if(not_reduce)
+            {
+                out_length.push_back(in_length[i]);
+                not_reduce = true;
+            }
+        }
 
-            if(xDesc.GetLengths()[i] != yDesc.GetLengths()[posy])
+        for(int32_t i = 0; i < out_length.size(); i++)
+        {
+            if(out_length[i] != yDesc.GetLengths()[i])
             {
                 MIOPEN_THROW(miopenStatusBadParm, "Reduce: Tensor dimension lengths do not match.");
             }
-
-            posy++;
         }
         return true;
     }
 
     bool IsRightDim() const
     {
-        if((dim < 0) || (dim > xDesc.GetLengths().size()))
+        for(int32_t i = 0; i < dims_size; i++)
         {
-            MIOPEN_THROW(
-                miopenStatusBadParm,
-                "Reduce: is greater than 0 and less than or equal tensor dimension length.");
+            int32_t dim = dims[i];
+            if((dim < 0) || (dim > xDesc.GetLengths().size()))
+            {
+                MIOPEN_THROW(
+                    miopenStatusBadParm,
+                    "Reduce: is greater than 0 and less than or equal tensor dimension length.");
+            }
         }
         return true;
     }
@@ -106,8 +133,12 @@ struct ProblemDescription : ProblemDescriptionBase
 
     bool IsNotLastDim() const
     {
-        if(dim == xDesc.GetLengths().size() - 1)
-            return false;
+        for(int32_t i = 0; i < dims_size; i++)
+        {
+            int32_t dim = dims[i];
+            if(dim == xDesc.GetLengths().size() - 1)
+                return false;
+        }
         return true;
     }
 
@@ -118,7 +149,8 @@ private:
     TensorDescriptor xDesc;
     TensorDescriptor yDesc;
 
-    int32_t dim;
+    int32_t* dims;
+    int32_t dims_size;
 
     NetworkConfig MakeForwardNetworkConfig() const;
 };

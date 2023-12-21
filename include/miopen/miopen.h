@@ -5548,14 +5548,16 @@ typedef enum
  *
  * @param handle                   MIOpen Handle (input)
  * @param xDesc                    Tensor descriptor for data input tensor x (input)
- * @param dim                      Dimensions to sum. (input)
+ * @param dims                     Dimensions to sum. (input)
+ * @param dims_size                Size of dimensions to sum. (input)
  * @param yDesc                    Tensor descriptor for output data tensor y (input)
  * @param sizeInBytes              Pointer to data to return the minimum workspace size
  * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGetSumWorkspaceSize(miopenHandle_t handle,
                                                        const miopenTensorDescriptor_t xDesc,
-                                                       const int32_t dim,
+                                                       int32_t* dims,
+                                                       int32_t dims_size,
                                                        const miopenTensorDescriptor_t yDesc,
                                                        size_t* sizeInBytes);
 
@@ -5567,7 +5569,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGetSumWorkspaceSize(miopenHandle_t handle,
  * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
  * @param xDesc                    Tensor descriptor for data input tensor x (input)
  * @param x                        Data tensor x (input)
- * @param dim                      Dimensions to sum. (input)
+ * @param dims                     Dimensions to sum. (input)
+ * @param dims_size                Size of dimensions to sum. (input)
  * @param yDesc                    Tensor descriptor for output data tensor y (input)
  * @param y                        Data tensor y (output)
  * @return                         miopenStatus_t
@@ -5578,7 +5581,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSumForward(miopenHandle_t handle,
                                               size_t workspaceSizeInBytes,
                                               const miopenTensorDescriptor_t xDesc,
                                               const void* x,
-                                              const int32_t dim,
+                                              int32_t* dims,
+                                              int32_t dims_size,
                                               const miopenTensorDescriptor_t yDesc,
                                               void* y);
 
@@ -5593,7 +5597,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSumForward(miopenHandle_t handle,
  * @param handle                   MIOpen handle (input)
  * @param xDesc                    Tensor descriptor for data input tensor x (input)
  * @param x                        Data tensor x (input)
- * @param dim                      Dimensions to reduce argmax. (input)
+ * @param dims                     Dimensions to reduce argmax. (input)
+ * @param dims_size                Size of dimensions to reduce argmax. (input)
  * @param yDesc                    Tensor descriptor for output indice data tensor y (input)
  * @param y                        Data tensor y (output)
  * @return                         miopenStatus_t
@@ -5601,7 +5606,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSumForward(miopenHandle_t handle,
 MIOPEN_EXPORT miopenStatus_t miopenArgmaxForward(miopenHandle_t handle,
                                                  const miopenTensorDescriptor_t xDesc,
                                                  const void* x,
-                                                 const int32_t dim,
+                                                 int32_t* dims,
+                                                 int32_t dims_size,
                                                  const miopenTensorDescriptor_t yDesc,
                                                  void* y);
 

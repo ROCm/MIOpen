@@ -45,16 +45,16 @@
 #ifndef MLO_SUMMHOST_H_
 #define MLO_SUMMHOST_H_
 
-template <typename Tgpu, typename Tcheck>
-int32_t mloSumForwardRunHost(miopenTensorDescriptor_t inputDesc,
-                             miopenTensorDescriptor_t outputDesc,
-                             Tgpu* input,
-                             Tcheck* outputhost,
-                             int32_t dim,
-                             miopenSumNanPropagation_t nanPropagation)
+template <typename Tcheck>
+int mloSumForwardRunHost(std::vector<int> inputDesc,
+                         std::vector<int> outputDesc,
+                         Tcheck* input,
+                         Tcheck* outputhost,
+                         int dim,
+                         miopenSumNanPropagation_t nanPropagation)
 {
-    auto input_dims  = miopen::deref(inputDesc).GetLengths();
-    auto output_dims = miopen::deref(outputDesc).GetLengths();
+    auto input_dims  = inputDesc;
+    auto output_dims = outputDesc;
 
     auto reduce_size = input_dims[dim];
     auto output_numel =
@@ -107,6 +107,7 @@ public:
 
     int GetandSetData() override;
     std::vector<int> GetInputTensorLengthsFromCmdLine();
+    std::vector<int> GetDimsToReduceFromCmdLine();
 
     int AllocateBuffersAndCopy() override;
 
@@ -120,6 +121,7 @@ public:
     int VerifyForward() override;
     ~SumDriver() override
     {
+        delete[] dims;
         miopenDestroyTensorDescriptor(inputDesc);
         miopenDestroyTensorDescriptor(outputDesc);
     }
@@ -139,10 +141,15 @@ private:
     std::vector<Tgpu> in;
     std::vector<Tgpu> out;
     std::vector<Tref> outhost;
+    std::vector<Tref> workspacehost;
+
+    std::vector<int> in_len;
+    std::vector<int> out_len;
 
     size_t ws_sizeInBytes;
 
-    int dim;
+    int* dims;
+    int dims_size;
     miopenSumNanPropagation_t nanPropagation;
 };
 
@@ -161,18 +168,29 @@ int SumDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int SumDriver<Tgpu, Tref>::GetandSetData()
 {
-    std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
-    dim                     = inflags.GetValueInt("DimToReduce");
+    in_len                    = GetInputTensorLengthsFromCmdLine();
+    std::vector<int> dims_vec = GetDimsToReduceFromCmdLine();
+    dims_size                 = dims_vec.size();
+    dims                      = new int(dims_size);
+    std::memcpy(dims, dims_vec.data(), dims_size * sizeof(int));
 
     SetTensorNd(inputDesc, in_len, data_type);
 
-    std::vector<int> out_len;
-
     for(int i = 0; i < in_len.size(); i++)
     {
-        if(i != dim)
+        bool not_reduce = true;
+        for(int j = 0; j < dims_size; j++)
+        {
+            if(i == dims[j])
+            {
+                not_reduce = false;
+                continue;
+            }
+        }
+        if(not_reduce)
         {
             out_len.push_back(in_len[i]);
+            not_reduce = true;
         }
     }
 
@@ -187,14 +205,18 @@ template <typename Tgpu, typename Tref>
 int SumDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Sum (Default=1)", "int");
-    inflags.AddInputFlag("batchsize", 'n', "256", "Mini-batch size (Default=100)", "int");
-    inflags.AddInputFlag("in_channels", 'c', "4", "Number of Input Channels (Default=3)", "int");
+    inflags.AddInputFlag("batchsize", 'n', "256", "Input BatchSize (Default=256)", "int");
+    inflags.AddInputFlag("in_channels", 'c', "4", "Input Channels (Default=4)", "int");
     inflags.AddInputFlag("in_d", 'D', "0", "Input Depth (Default=0)", "int");
-    inflags.AddInputFlag("in_h", 'H', "0", "Input Height (Default=32)", "int");
-    inflags.AddInputFlag("in_w", 'W', "8732", "Input Width (Default=32)", "int");
+    inflags.AddInputFlag("in_h", 'H', "0", "Input Height (Default=0)", "int");
+    inflags.AddInputFlag("in_w", 'W', "8732", "Input Width (Default=8732)", "int");
 
-    inflags.AddInputFlag(
-        "DimToReduce", 'R', "1", "The indice of the dimensions to be reduced(Default=1)", "int");
+    inflags.AddInputFlag("reduce_0", '0', "1", "Reduce 0 dimention (Default=1)", "int");
+    inflags.AddInputFlag("reduce_1", '1', "0", "Reduce 1 dimention (Default=0)", "int");
+    inflags.AddInputFlag("reduce_2", '2', "0", "Reduce 2 dimention (Default=0)", "int");
+    inflags.AddInputFlag("reduce_3", '3', "0", "Reduce 3 dimention (Default=0)", "int");
+    inflags.AddInputFlag("reduce_4", '4', "0", "Reduce 4 dimention (Default=0)", "int");
+
     inflags.AddInputFlag("NanPropagation",
                          'N',
                          "0",
@@ -243,12 +265,47 @@ std::vector<int> SumDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 }
 
 template <typename Tgpu, typename Tref>
+std::vector<int> SumDriver<Tgpu, Tref>::GetDimsToReduceFromCmdLine()
+{
+    int reduce_0 = inflags.GetValueInt("reduce_0");
+    int reduce_1 = inflags.GetValueInt("reduce_1");
+    int reduce_2 = inflags.GetValueInt("reduce_2");
+    int reduce_3 = inflags.GetValueInt("reduce_3");
+    int reduce_4 = inflags.GetValueInt("reduce_4");
+
+    std::vector<int> reduce_dim;
+
+    if(reduce_0 == 1)
+        reduce_dim.push_back(0);
+    if(reduce_1 == 1)
+        reduce_dim.push_back(1);
+    if(reduce_2 == 1)
+        reduce_dim.push_back(2);
+    if(reduce_3 == 1)
+        reduce_dim.push_back(3);
+    if(reduce_4 == 1)
+        reduce_dim.push_back(4);
+
+    for(int i = 0; i < reduce_dim.size(); i++)
+    {
+        int dim = reduce_dim[i];
+        if((dim < 0) || (dim > in_len.size()))
+        {
+            std::cerr << "Error Dims To Reduce\n" << std::endl;
+            return std::vector<int>({-1});
+        }
+    }
+
+    return reduce_dim;
+}
+
+template <typename Tgpu, typename Tref>
 int SumDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
     size_t in_sz  = GetTensorSize(inputDesc);
     size_t out_sz = GetTensorSize(outputDesc);
 
-    miopenGetSumWorkspaceSize(GetHandle(), inputDesc, dim, outputDesc, &ws_sizeInBytes);
+    miopenGetSumWorkspaceSize(GetHandle(), inputDesc, dims, dims_size, outputDesc, &ws_sizeInBytes);
     if(ws_sizeInBytes == static_cast<size_t>(-1))
         return miopenStatusAllocFailed;
 
@@ -293,7 +350,8 @@ int SumDriver<Tgpu, Tref>::RunForwardGPU()
                          ws_sizeInBytes,
                          inputDesc,
                          in_dev->GetMem(),
-                         dim,
+                         dims,
+                         dims_size,
                          outputDesc,
                          out_dev->GetMem());
 
@@ -326,8 +384,36 @@ int SumDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int SumDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloSumForwardRunHost<Tgpu, Tref>(
-        inputDesc, outputDesc, in.data(), outhost.data(), dim, nanPropagation);
+    auto sort_dims = dims;
+    std::sort(sort_dims, sort_dims + (dims_size - 1));
+    std::vector<int> input_len     = in_len;
+    std::vector<int> workspace_len = in_len;
+
+    size_t in_sz = GetTensorSize(inputDesc);
+    auto input   = std::vector<Tref>(in_sz, static_cast<Tref>(0));
+
+    for(int i = 0; i < in_sz; i++)
+        input[i] = in[i];
+
+    for(int idx = 0; idx < dims_size - 1; idx++)
+    {
+        auto dim           = sort_dims[dims_size - 1 - idx];
+        workspace_len[dim] = 1;
+
+        auto workspace_sz = static_cast<size_t>(
+            std::accumulate(workspace_len.begin(), workspace_len.end(), 1, std::multiplies<int>()));
+        workspacehost = std::vector<Tref>(workspace_sz, static_cast<Tref>(0));
+
+        mloSumForwardRunHost<Tref>(
+            input_len, workspace_len, input.data(), workspacehost.data(), dim, nanPropagation);
+
+        input     = workspacehost;
+        input_len = workspace_len;
+    }
+
+    auto dim = sort_dims[0];
+    mloSumForwardRunHost<Tref>(
+        input_len, out_len, input.data(), outhost.data(), dim, nanPropagation);
 
     return miopenStatusSuccess;
 }

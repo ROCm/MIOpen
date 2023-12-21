@@ -36,7 +36,8 @@ struct TensorDescriptor;
 std::size_t GetSumWorkspaceSize(Handle& handle,
                                 const TensorDescriptor& xDesc,
                                 const TensorDescriptor& yDesc,
-                                int32_t dim);
+                                int32_t* dims,
+                                int32_t dims_size);
 
 miopenStatus_t SumForward(Handle& handle,
                           Data_t workspace,
@@ -46,7 +47,8 @@ miopenStatus_t SumForward(Handle& handle,
                           const TensorDescriptor& yDesc,
                           Data_t y,
                           miopenSumNanPropagation_t nanPropagation,
-                          int32_t dim);
+                          int32_t* dims,
+                          int32_t dims_size);
 
 } // namespace miopen
 #endif // _MIOPEN_SUM_HPP_
