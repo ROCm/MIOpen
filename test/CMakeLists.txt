@@ -1665,6 +1665,12 @@ add_custom_test(test_regression_issue_1206 SKIP_UNLESS_ALL GFX900_DISABLED GFX90
     COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 32 256 38 38 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
 )
 
+add_custom_test(test_regression_issue_2624 SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED
+    # Regression test for SWDEV-433714 (issue 2624)
+    ENVIRONMENT ${IMPLICITGEMM_TESTING_ENV} MIOPEN_LOG_LEVEL=5
+    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 2 1 22 22 --weights 1 1 4 4 --pads_strides_dilations 1 2 4 4 3 2 --disable-backward-data --disable-backward-weights
+)
+
 # MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW is explicitly enabled due to the kernel is disabled by default via #2306
 set(CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV
     MIOPEN_FIND_MODE=normal
