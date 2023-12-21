@@ -55,8 +55,9 @@ void SolverWrw(const miopen::TensorDescriptor& inputDesc,
     const auto tensors =
         miopen::ConvWrwTensors{outputDesc, output, inputDesc, input, wDesc, weight};
 
+    // order for bwd weights pass is dy, dw, x
     const auto problem = miopen::conv::ProblemDescription{
-        inputDesc, wDesc, outputDesc, convDesc, miopen::conv::Direction::BackwardWeights};
+        outputDesc, wDesc, inputDesc, convDesc, miopen::conv::Direction::BackwardWeights};
     auto ctx = miopen::ExecutionContext{};
 
     ctx.SetStream(&handle);
