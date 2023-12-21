@@ -50,7 +50,7 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class ConfigWithInt8 : public testing::TestWithParam<std::vector<std::string>>
+class ConfigWithFloat : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -59,20 +59,18 @@ void Run3dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenInt8: params = ConfigWithInt8::GetParam(); break;
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat: params = ConfigWithFloat::GetParam(); break;
+    case miopenInt8: 
     case miopenHalf:
     case miopenBFloat16:
-    case miopenFloat:
     case miopenInt32:
     case miopenDouble:
-        FAIL() << "miopenHalf, miopenBFloat16, miopenFloat, miopenInt32, "
+        FAIL() << "miopenHalf, miopenBFloat16, miopenInt8, miopenInt32, "
                   "miopenDouble data "
                   "type not supported by "
                   "test_conv_hip_igemm_xdlops test";
 
-    default: params = ConfigWithInt8::GetParam();
+    default: params = ConfigWithFloat::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -101,7 +99,7 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
         return false;
 }
 
-TEST_P(ConfigWithInt8, Int8Test)
+TEST_P(ConfigWithFloat, FloatTest)
 {
 #if MIOPEN_BACKEND_OPENCL
 
@@ -110,9 +108,9 @@ TEST_P(ConfigWithInt8, Int8Test)
 #else // MIOPEN_BACKEND_HIP, OCL_DISABLED
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && miopen::IsEnabled(ENV(MIOPEN_TEST_COMPOSABLEKERNEL)) &&
-       miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && IsTestRunWith("--int8"))
+       miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && IsTestRunWith("--float"))
     {
-        Run3dDriver(miopenInt8);
+        Run3dDriver(miopenFloat);
     }
     else
     {
@@ -152,5 +150,5 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 }
 
 INSTANTIATE_TEST_SUITE_P(Conv3dTest,
-                         ConfigWithInt8,
-                         testing::ValuesIn(GetTestCases("--int8")));
+                         ConfigWithFloat,
+                         testing::ValuesIn(GetTestCases("--float")));
