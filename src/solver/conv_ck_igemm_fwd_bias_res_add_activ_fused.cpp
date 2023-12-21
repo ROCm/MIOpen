@@ -46,6 +46,8 @@ namespace miopen {
 namespace solver {
 namespace fusion {
 
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+
 using CK_OutLayout = ck::tensor_layout::convolution::NDHWGK;
 
 // DataType also applies to weights
@@ -67,7 +69,6 @@ using DeviceOp = ck::tensor_operation::device::instance::DeviceOperationInstance
         ck::tensor_operation::element_wise::
             ScaleAddScaleAddRelu>>; // end DeviceOperationInstanceFactory
 
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 namespace {
 
 struct CKArgs
