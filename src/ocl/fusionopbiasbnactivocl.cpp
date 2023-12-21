@@ -52,6 +52,12 @@ miopenStatus_t BiasFusionOpDescriptor::GetNetworkConfig(std::ostringstream& netw
     return miopenStatusSuccess;
 }
 
+miopenStatus_t TensorScaleAddOpDescriptor::GetNetworkConfig(std::ostringstream& network_config)
+{
+    network_config << "tensorScaleAdd"; // for bias
+    return miopenStatusSuccess;
+}
+
 miopenStatus_t ActivFwdFusionOpDescriptor::GetNetworkConfig(std::ostringstream& network_config)
 {
     network_config << "ActivFwd" << std::to_string(activMode);
