@@ -25,12 +25,6 @@
  *******************************************************************************/
 #pragma once
 
-#ifdef __HIPCC_RTC__
-#ifndef WORKAROUND_ISSUE_HIPRTC_TRUE_TYPE
-#include <cstdint>
-#endif
-#endif // __HIPCC_RTC__
-
 /// \todo Uncomment when hip RTC accepts std::array -- amberhassaan
 // #include <hip/amd_detail/amd_hip_vector_types.h>
 // using StrideIndexType = int;

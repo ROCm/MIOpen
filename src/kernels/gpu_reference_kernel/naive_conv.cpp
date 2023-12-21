@@ -28,11 +28,6 @@
 #include <hip/hip_runtime.h>
 #endif
 
-#ifdef WORKAROUND_ISSUE_HIPRTC_TRUE_TYPE
-typedef float float_t;
-#else
-#include <cmath> // float_t
-#endif
 #include "miopen_cstdint.hpp"
 
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS

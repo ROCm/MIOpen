@@ -30,47 +30,8 @@
 
 #include <hip/hip_bfloat16.h>
 
-// Copied over from naive_conv.cpp
-#ifdef __HIPCC_RTC__
-#ifdef WORKAROUND_ISSUE_HIPRTC_TRUE_TYPE
-/// Definitions from <cstdint>, <cmath> conflict with
-/// /opt/rocm/include/hip/amd_detail/amd_hip_vector_types.h.
-
-typedef unsigned char uint8_t;
-typedef signed char int8_t;
-typedef signed short int16_t;
-typedef unsigned short uint16_t;
-typedef float float_t;
-
-// std::conditional requires type_traits which has a few other things
-// which result in collision with amd_hip_vector_types.h
-
-namespace std {
-template <bool predicate, typename X, typename Y>
-struct conditional;
-
-template <typename X, typename Y>
-struct conditional<true, X, Y>
-{
-    using type = X;
-};
-
-template <typename X, typename Y>
-struct conditional<false, X, Y>
-{
-    using type = Y;
-};
-
-template <bool predicate, typename X, typename Y>
-using conditional_t = typename conditional<predicate, X, Y>::type;
-} // namespace std
-#else
-#include <cstdint> // int8_t, int16_t
-#include <cmath>   // float_t
-#endif
-#endif // __HIPCC_RTC__
-
-#include <limits> // std::numeric_limits
+/// \todo miopen_limits.hpp
+#include <limits>
 
 #define MIOPEN_ENABLE_F8_DEVICE_CODE 1
 #include "hip_float8.hpp"
