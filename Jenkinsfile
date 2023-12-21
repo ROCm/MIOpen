@@ -435,15 +435,15 @@ pipeline {
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_FP32",
-            defaultValue: true, //env.BRANCH_NAME == env.NIGHTLY_BRANCH ? true : false,
+            defaultValue: true,
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_AUX1",
-            defaultValue: true, //env.BRANCH_NAME == env.NIGHTLY_BRANCH ? true : false,
+            defaultValue: true,
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_FP16_BF16_INT8",
-            defaultValue: true, //env.BRANCH_NAME == env.NIGHTLY_BRANCH ? true : false,
+            defaultValue: true,
             description: "")
         booleanParam(
             name: "BUILD_FULL_TESTS",
@@ -535,10 +535,10 @@ pipeline {
         NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
         NOMLIR_flags    = " -DMIOPEN_USE_MLIR=Off"
     }
-    //triggers{
-    //    
-    //    cron(env.BRANCH_NAME == env.NIGHTLY_BRANCH ? env.NIGHTLY_SCHEDULE : '')
-    //}
+    triggers{
+        
+        cron(env.BRANCH_NAME == env.NIGHTLY_BRANCH ? env.NIGHTLY_SCHEDULE : '')
+    }
     stages{
         stage('Build Docker'){
             when {
@@ -939,7 +939,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     environment{
-                        setup_flags=" -DMIOPEN_TEST_DBSYNC=1"
+                        setup_flags="-DMIOPEN_TEST_DBSYNC=1"
                         config_targets='test_db_sync'
                         execute_cmd='MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync'
                     }
@@ -958,7 +958,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     environment{
-                        setup_flags=" -DMIOPEN_TEST_DBSYNC=1"
+                        setup_flags="-DMIOPEN_TEST_DBSYNC=1"
                         config_targets='test_db_sync'
                         execute_cmd='MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync'
                     }
