@@ -195,7 +195,8 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                                    &hidden_size,
                                    &batches,
                                    &bacc_per_time,
-                                   &seq_len](int layer, float beta_t = 0) {
+                                   &seq_len,
+                                   max_batch](int layer, float beta_t = 0) {
         float alpha0 = 1;
         float alpha1 = 1;
 
@@ -244,12 +245,12 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
             return;
         }
 
-        if((RBuff.batches_per_layer - batches.at(0)) <= 0)
+        if((RBuff.batches_per_layer - max_batch) <= 0)
             return;
 
         auto reserve_desc = miopen::TensorDescriptor(
             wDesc.GetType(),
-            std::vector<size_t>{1, RBuff.batches_per_layer - batches.at(0), hidden_size},
+            std::vector<size_t>{1, RBuff.batches_per_layer - max_batch, hidden_size},
             std::vector<size_t>{RBuff.layer_stride(), RBuff.gemm_write_stride(), 1});
 
         bias_desc = miopen::TensorDescriptor(
@@ -268,15 +269,15 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                  &beta_t,
                  reserve_desc,
                  reserveSpace,
-                 RBuff.layer_offset(layer) + batches.at(0) * RBuff.gemm_write_stride(),
+                 RBuff.layer_offset(layer) + max_batch * RBuff.gemm_write_stride(),
                  WeiBuf.bias_off(layer) + WeiBuf.bias_stride(),
-                 RBuff.layer_offset(layer) + batches.at(0) * RBuff.gemm_write_stride(),
+                 RBuff.layer_offset(layer) + max_batch * RBuff.gemm_write_stride(),
                  true);
 
         if(dirMode == 0u)
             return;
 
-        if(batches.at(0) == batches.at(seq_len - 1))
+        if(max_batch == batches.at(seq_len - 1))
         {
             OpTensor(handle,
                      miopenTensorOpAdd,
