@@ -389,6 +389,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/inst_wrappers.inc
         kernels/miopen_cstdint.hpp
         kernels/miopen_type_traits.hpp
+        kernels/miopen_utility.hpp
         kernels/neuron.inc
         kernels/rocm_version.inc
         kernels/stride_array.hpp
