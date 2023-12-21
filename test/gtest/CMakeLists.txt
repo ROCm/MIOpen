@@ -48,7 +48,7 @@ foreach(SOURCE ${SKIP_TESTS})
     list(REMOVE_ITEM TESTS ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE})
 endforeach()
 
-if( DISCRETE_GTEST )
+if( MIOPEN_TEST_DISCRETE )
   foreach(TEST ${TESTS})
     get_filename_component(BASE_NAME ${TEST} NAME_WE)
     add_gtest(test_${BASE_NAME} ${BASE_NAME}.cpp)

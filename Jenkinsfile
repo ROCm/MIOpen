@@ -48,6 +48,7 @@ def cmake_build(Map conf=[:]){
 
     if (package_build == true) {
         config_targets = "package"
+        setup_args = " -DMIOPEN_TEST_DISCRETE=OFF " + setup_args
     }
 
     def miopen_install_path = "${env.WORKSPACE}/install"
@@ -938,7 +939,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     environment{
-                        setup_flags="-DDISCRETE_GTEST=1 -DMIOPEN_TEST_DBSYNC=1"
+                        setup_flags=" -DMIOPEN_TEST_DBSYNC=1"
                         config_targets='test_db_sync'
                         execute_cmd='MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync'
                     }
@@ -957,7 +958,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     environment{
-                        setup_flags="-DDISCRETE_GTEST=1 -DMIOPEN_TEST_DBSYNC=1"
+                        setup_flags=" -DMIOPEN_TEST_DBSYNC=1"
                         config_targets='test_db_sync'
                         execute_cmd='MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync'
                     }
