@@ -30,7 +30,7 @@
 
 #include "../conv2d.hpp"
 
-namespace smoke_solver_ConvOclBwdWrW1x1 {
+namespace {
 
 auto GetTestCases()
 {
@@ -49,14 +49,6 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-class Conv2dHalf : public HalfTestCase<std::vector<TestCase>>
-{
-};
-
-class Conv2dBf16 : public Bf16TestCase<std::vector<TestCase>>
-{
-};
-
 bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::Default>;
@@ -65,14 +57,21 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-} // namespace smoke_solver_ConvOclBwdWrW1x1
-using namespace smoke_solver_ConvOclBwdWrW1x1;
+} // namespace
 
-TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvOclBwdWrW1x1)
+class Conv2dDefaultHalf : public HalfTestCase<std::vector<TestCase>>
+{
+};
+
+class Conv2dDefaultBf16 : public Bf16TestCase<std::vector<TestCase>>
+{
+};
+
+TEST_P(Conv2dDefaultHalf, HalfTest_smoke_solver_ConvOclBwdWrW1x1)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dHalf>(default_check);
+        invoke_with_params<conv2d_driver, Conv2dDefaultHalf>(default_check);
     }
     else
     {
@@ -80,11 +79,11 @@ TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvOclBwdWrW1x1)
     }
 };
 
-TEST_P(Conv2dBf16, Bf16Test_smoke_solver_ConvOclBwdWrW1x1)
+TEST_P(Conv2dDefaultBf16, Bf16Test_smoke_solver_ConvOclBwdWrW1x1)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dBf16>(default_check);
+        invoke_with_params<conv2d_driver, Conv2dDefaultBf16>(default_check);
     }
     else
     {
@@ -92,5 +91,9 @@ TEST_P(Conv2dBf16, Bf16Test_smoke_solver_ConvOclBwdWrW1x1)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvOclBwdWrW1x1, Conv2dHalf, testing::Values(GetTestCases()));
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvOclBwdWrW1x1, Conv2dBf16, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(SmokeSolverConvOclBwdWrW1x1,
+                         Conv2dDefaultHalf,
+                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(SmokeSolverConvOclBwdWrW1x1,
+                         Conv2dDefaultBf16,
+                         testing::Values(GetTestCases()));

@@ -32,7 +32,7 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
-namespace smoke_solver_ConvBinWinogradRxSf3x2 {
+namespace {
 
 auto GetTestCases()
 {
@@ -45,7 +45,7 @@ auto GetTestCases()
 
     return std::vector{
         // clang-format off
-    std::pair{env3x2," --input 1 40 20 20 --weights 20 40 3 3 --pads_strides_dilations 1 1 1 1 1 1"}
+    std::pair{env3x2,std::string(" --input 1 40 20 20 --weights 20 40 3 3 --pads_strides_dilations 1 1 1 1 1 1")}
         // clang-format on
     };
 }
@@ -54,14 +54,6 @@ using TestCase = decltype(GetTestCases())::value_type;
 
 bool SkipTest() { return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)); }
 
-class Conv2dFloat : public FloatTestCase<std::vector<TestCase>>
-{
-};
-
-class Conv2dHalf : public HalfTestCase<std::vector<TestCase>>
-{
-};
-
 bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X>;
@@ -69,14 +61,21 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-} // namespace smoke_solver_ConvBinWinogradRxSf3x2
-using namespace smoke_solver_ConvBinWinogradRxSf3x2;
+} // namespace
 
-TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvBinWinogradRxSf3x2)
+class Conv2dTuningAltFloat : public FloatTestCase<std::vector<TestCase>>
+{
+};
+
+class Conv2dTuningAltHalf : public HalfTestCase<std::vector<TestCase>>
+{
+};
+
+TEST_P(Conv2dTuningAltFloat, FloatTest_smoke_solver_ConvBinWinogradRxSf3x2)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dFloat>(default_check);
+        invoke_with_params<conv2d_driver, Conv2dTuningAltFloat>(default_check);
     }
     else
     {
@@ -84,11 +83,11 @@ TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvBinWinogradRxSf3x2)
     }
 };
 
-TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvBinWinogradRxSf3x2)
+TEST_P(Conv2dTuningAltHalf, HalfTest_smoke_solver_ConvBinWinogradRxSf3x2)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dHalf>(default_check);
+        invoke_with_params<conv2d_driver, Conv2dTuningAltHalf>(default_check);
     }
     else
     {
@@ -97,9 +96,9 @@ TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvBinWinogradRxSf3x2)
 };
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvBinWinogradRxSf3x2,
-                         Conv2dFloat,
+                         Conv2dTuningAltFloat,
                          testing::Values(GetTestCases()));
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvBinWinogradRxSf3x2,
-                         Conv2dHalf,
+                         Conv2dTuningAltHalf,
                          testing::Values(GetTestCases()));

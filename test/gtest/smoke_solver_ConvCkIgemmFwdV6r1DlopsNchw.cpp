@@ -33,7 +33,7 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
-namespace smoke_solver_ConvCkIgemmFwdV6r1DlopsNchw {
+namespace {
 
 auto GetTestCases()
 {
@@ -60,10 +60,6 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-class Conv2dHalf : public HalfTestCase<std::vector<TestCase>>
-{
-};
-
 bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::gfx103X>;
@@ -71,14 +67,17 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-} // namespace smoke_solver_ConvCkIgemmFwdV6r1DlopsNchw
-using namespace smoke_solver_ConvCkIgemmFwdV6r1DlopsNchw;
+} // namespace
 
-TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvCkIgemmFwdV6r1DlopsNchw)
+class Conv2dTuningV6R1Half : public HalfTestCase<std::vector<TestCase>>
+{
+};
+
+TEST_P(Conv2dTuningV6R1Half, HalfTest_smoke_solver_ConvCkIgemmFwdV6r1DlopsNchw)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dHalf>(tuning_check);
+        invoke_with_params<conv2d_driver, Conv2dTuningV6R1Half>(tuning_check);
     }
     else
     {
@@ -87,5 +86,5 @@ TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvCkIgemmFwdV6r1DlopsNchw)
 };
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvCkIgemmFwdV6r1DlopsNchw,
-                         Conv2dHalf,
+                         Conv2dTuningV6R1Half,
                          testing::Values(GetTestCases()));

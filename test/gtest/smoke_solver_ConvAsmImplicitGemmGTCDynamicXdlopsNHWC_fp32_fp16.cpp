@@ -32,7 +32,7 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
-namespace smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_fp32_fp16 {
+namespace {
 
 auto GetTestCases()
 {
@@ -62,14 +62,6 @@ using TestCase = decltype(GetTestCases())::value_type;
 
 bool SkipTest() { return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)); }
 
-class Conv2dFloat : public FloatTestCase<std::vector<TestCase>>
-{
-};
-
-class Conv2dHalf : public HalfTestCase<std::vector<TestCase>>
-{
-};
-
 bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::gfx94X>;
@@ -77,14 +69,21 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-} // namespace smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_fp32_fp16
-using namespace smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_fp32_fp16;
+} // namespace
 
-TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_fp32_fp16)
+class Conv2dTuningFloat : public FloatTestCase<std::vector<TestCase>>
+{
+};
+
+class Conv2dTuningHalf : public HalfTestCase<std::vector<TestCase>>
+{
+};
+
+TEST_P(Conv2dTuningFloat, FloatTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_fp32_fp16)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dFloat>(tuning_check);
+        invoke_with_params<conv2d_driver, Conv2dTuningFloat>(tuning_check);
     }
     else
     {
@@ -92,11 +91,11 @@ TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNH
     }
 };
 
-TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_fp32_fp16)
+TEST_P(Conv2dTuningHalf, HalfTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_fp32_fp16)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dHalf>(tuning_check);
+        invoke_with_params<conv2d_driver, Conv2dTuningHalf>(tuning_check);
     }
     else
     {
@@ -105,9 +104,9 @@ TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC
 };
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmImplicitGemmGTCDynamicXdlopsNhwcFp32Fp16,
-                         Conv2dFloat,
+                         Conv2dTuningFloat,
                          testing::Values(GetTestCases()));
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmImplicitGemmGTCDynamicXdlopsNhwcFp32Fp16,
-                         Conv2dHalf,
+                         Conv2dTuningHalf,
                          testing::Values(GetTestCases()));

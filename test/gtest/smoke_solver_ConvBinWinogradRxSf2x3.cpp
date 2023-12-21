@@ -33,22 +33,20 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
-
-namespace smoke_solver_ConvBinWinogradRxSf2x3 {
+namespace {
 
 auto GetTestCases()
 {
-    const auto env =
-        std::tuple{std::pair{ENV(MIOPEN_FIND_ENFORCE), std::string_view("SEARCH_DB_UPDATE")},
-                 std::pair{ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX), std::string_view("5")},
-                 std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), std::string_view("0")},
-                 std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-                 std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvBinWinogradRxSf2x3")}};
+    const auto env = std::tuple{
+        std::pair{ENV(MIOPEN_FIND_ENFORCE), std::string_view("SEARCH_DB_UPDATE")},
+        std::pair{ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX), std::string_view("5")},
+        std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), std::string_view("0")},
+        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
+        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvBinWinogradRxSf2x3")}};
 
     return std::vector{
         // clang-format off
-    //smoke_solver_ConvAsmImplicitGemmV4R1Dynamic
-    std::pair{env," --input 1 40 20 20 --weights 20 20 3 3 --pads_strides_dilations 1 1 1 1 1 1 --group-count 2"}
+    std::pair{env, std::string(" --input 1 40 20 20 --weights 20 20 3 3 --pads_strides_dilations 1 1 1 1 1 1 --group-count 2")}
         // clang-format on
     };
 }
@@ -57,14 +55,6 @@ using TestCase = decltype(GetTestCases())::value_type;
 
 bool SkipTest() { return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)); }
 
-class Conv2dFloat : public FloatTestCase<std::vector<TestCase>>
-{
-};
-
-class Conv2dHalf : public HalfTestCase<std::vector<TestCase>>
-{
-};
-
 bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X>;
@@ -72,14 +62,21 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-} // namespace smoke_solver_ConvBinWinogradRxSf2x3
-using namespace smoke_solver_ConvBinWinogradRxSf2x3;
+} // namespace
 
-TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvBinWinogradRxSf2x3)
+class Conv2dAltTuningFloat : public FloatTestCase<std::vector<TestCase>>
+{
+};
+
+class Conv2dAltTuningHalf : public HalfTestCase<std::vector<TestCase>>
+{
+};
+
+TEST_P(Conv2dAltTuningFloat, FloatTest_smoke_solver_ConvBinWinogradRxSf2x3)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dFloat>( tuning_check);
+        invoke_with_params<conv2d_driver, Conv2dAltTuningFloat>(tuning_check);
     }
     else
     {
@@ -87,11 +84,11 @@ TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvBinWinogradRxSf2x3)
     }
 };
 
-TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvBinWinogradRxSf2x3)
+TEST_P(Conv2dAltTuningHalf, HalfTest_smoke_solver_ConvBinWinogradRxSf2x3)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dHalf>( tuning_check);
+        invoke_with_params<conv2d_driver, Conv2dAltTuningHalf>(tuning_check);
     }
     else
     {
@@ -100,9 +97,9 @@ TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvBinWinogradRxSf2x3)
 };
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvBinWinogradRxSf2x3,
-                         Conv2dFloat,
+                         Conv2dAltTuningFloat,
                          testing::Values(GetTestCases()));
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvBinWinogradRxSf2x3,
-                         Conv2dHalf,
+                         Conv2dAltTuningHalf,
                          testing::Values(GetTestCases()));

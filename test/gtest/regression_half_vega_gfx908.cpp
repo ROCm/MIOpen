@@ -30,7 +30,7 @@
 
 #include "../conv2d.hpp"
 
-namespace regression_half_vega_gfx908 {
+namespace {
 
 auto GetTestCases()
 {
@@ -51,10 +51,6 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-class Conv2dHalf : public HalfTestCase<std::vector<TestCase>>
-{
-};
-
 bool IsTestSupportedForDevice()
 {
     // Issue #894.
@@ -64,14 +60,17 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-} // namespace regression_half_vega_gfx908
-using namespace regression_half_vega_gfx908;
+} // namespace
 
-TEST_P(Conv2dHalf, HalfTest_regression_half_vega_gfx908)
+class Conv2dDEfaultHalf : public HalfTestCase<std::vector<TestCase>>
+{
+};
+
+TEST_P(Conv2dDEfaultHalf, HalfTest_regression_half_vega_gfx908)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dHalf>(default_check);
+        invoke_with_params<conv2d_driver, Conv2dDEfaultHalf>(default_check);
     }
     else
     {
@@ -79,4 +78,6 @@ TEST_P(Conv2dHalf, HalfTest_regression_half_vega_gfx908)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(RegressionHalfVegaGfx908, Conv2dHalf, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(RegressionHalfVegaGfx908,
+                         Conv2dDEfaultHalf,
+                         testing::Values(GetTestCases()));

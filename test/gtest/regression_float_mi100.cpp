@@ -61,7 +61,7 @@ using TestCase = decltype(GetTestCases())::value_type;
 
 bool SkipTest() { return miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)); }
 
-class Conv2dFloat : public FloatTestCase<std::vector<TestCase>>
+class Conv2dFloat_regression_float_mi100 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
@@ -75,11 +75,11 @@ bool IsTestSupportedForDevice()
 } // namespace regression_float_mi100
 using namespace regression_float_mi100;
 
-TEST_P(Conv2dFloat, FloatTest_regression_float_mi100)
+TEST_P(Conv2dFloat_regression_float_mi100, FloatTest)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dFloat>(default_check);
+        invoke_with_params<conv2d_driver, Conv2dFloat_regression_float_mi100>(default_check);
     }
     else
     {
@@ -87,4 +87,6 @@ TEST_P(Conv2dFloat, FloatTest_regression_float_mi100)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(RegressionMi100, Conv2dFloat, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(RegressionMi100,
+                         Conv2dFloat_regression_float_mi100,
+                         testing::Values(GetTestCases()));

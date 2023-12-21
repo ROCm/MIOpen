@@ -34,7 +34,7 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_MLIR)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-namespace conv_igemm_mlir_xdlops_fwd {
+namespace {
 
 auto GetTestCases()
 {
@@ -68,14 +68,6 @@ bool SkipTest()
     return !(miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR))) || miopen::IsDisabled(ENV(MIOPEN_TEST_ALL));
 }
 
-class Conv2dHalf : public FloatTestCase<std::vector<TestCase>>
-{
-};
-
-class Conv2dInt8 : public Int8TestCase<std::vector<TestCase>>
-{
-};
-
 bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::Default>;
@@ -83,14 +75,21 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-} // namespace conv_igemm_mlir_xdlops_fwd
-using namespace conv_igemm_mlir_xdlops_fwd;
+} // namespace
 
-TEST_P(Conv2dHalf, HalfTest_conv_igemm_mlir_xdlops_fwd)
+class Conv2dDefaultHalf : public FloatTestCase<std::vector<TestCase>>
+{
+};
+
+class Conv2dDefaultInt8 : public Int8TestCase<std::vector<TestCase>>
+{
+};
+
+TEST_P(Conv2dDefaultHalf, HalfTest_conv_igemm_mlir_xdlops_fwd)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dHalf>(db_check);
+        invoke_with_params<conv2d_driver, Conv2dDefaultHalf>(db_check);
     }
     else
     {
@@ -98,11 +97,11 @@ TEST_P(Conv2dHalf, HalfTest_conv_igemm_mlir_xdlops_fwd)
     }
 };
 
-TEST_P(Conv2dInt8, Int8Test_conv_igemm_mlir_xdlops_fwd)
+TEST_P(Conv2dDefaultInt8, Int8Test_conv_igemm_mlir_xdlops_fwd)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dInt8>(db_check);
+        invoke_with_params<conv2d_driver, Conv2dDefaultInt8>(db_check);
     }
     else
     {
@@ -111,6 +110,6 @@ TEST_P(Conv2dInt8, Int8Test_conv_igemm_mlir_xdlops_fwd)
 };
 
 // Half for FWD, BWD, WRW
-INSTANTIATE_TEST_SUITE_P(ConvIgemmMlirXdlops, Conv2dHalf, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmMlirXdlops, Conv2dDefaultHalf, testing::Values(GetTestCases()));
 // Int8 for FWD
-INSTANTIATE_TEST_SUITE_P(ConvIgemmMlirXdlops, Conv2dInt8, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmMlirXdlops, Conv2dDefaultInt8, testing::Values(GetTestCases()));

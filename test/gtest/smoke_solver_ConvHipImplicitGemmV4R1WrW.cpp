@@ -32,7 +32,7 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
-namespace smoke_solver_ConvHipImplicitGemmV4R1WrW {
+namespace {
 
 auto GetTestCases()
 {
@@ -55,18 +55,6 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-class Conv2dFloat : public FloatTestCase<std::vector<TestCase>>
-{
-};
-
-class Conv2dHalf : public HalfTestCase<std::vector<TestCase>>
-{
-};
-
-class Conv2dBf16 : public Bf16TestCase<std::vector<TestCase>>
-{
-};
-
 bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::gfx103X>;
@@ -74,14 +62,25 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-} // namespace smoke_solver_ConvHipImplicitGemmV4R1WrW
-using namespace smoke_solver_ConvHipImplicitGemmV4R1WrW;
+} // namespace
 
-TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvHipImplicitGemmV4R1WrW)
+class Conv2dTuningAltFloat : public FloatTestCase<std::vector<TestCase>>
+{
+};
+
+class Conv2dTuningAltHalf : public HalfTestCase<std::vector<TestCase>>
+{
+};
+
+class Conv2dTuningAltBf16 : public Bf16TestCase<std::vector<TestCase>>
+{
+};
+
+TEST_P(Conv2dTuningAltFloat, FloatTest_smoke_solver_ConvHipImplicitGemmV4R1WrW)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dFloat>(tuning_check);
+        invoke_with_params<conv2d_driver, Conv2dTuningAltFloat>(tuning_check);
     }
     else
     {
@@ -89,11 +88,11 @@ TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvHipImplicitGemmV4R1WrW)
     }
 };
 
-TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvHipImplicitGemmV4R1WrW)
+TEST_P(Conv2dTuningAltHalf, HalfTest_smoke_solver_ConvHipImplicitGemmV4R1WrW)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dHalf>(tuning_check);
+        invoke_with_params<conv2d_driver, Conv2dTuningAltHalf>(tuning_check);
     }
     else
     {
@@ -101,11 +100,11 @@ TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvHipImplicitGemmV4R1WrW)
     }
 };
 
-TEST_P(Conv2dBf16, Bf16Test_smoke_solver_ConvHipImplicitGemmV4R1WrW)
+TEST_P(Conv2dTuningAltBf16, Bf16Test_smoke_solver_ConvHipImplicitGemmV4R1WrW)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dBf16>(tuning_check);
+        invoke_with_params<conv2d_driver, Conv2dTuningAltBf16>(tuning_check);
     }
     else
     {
@@ -114,13 +113,13 @@ TEST_P(Conv2dBf16, Bf16Test_smoke_solver_ConvHipImplicitGemmV4R1WrW)
 };
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvHipImplicitGemmV4R1WrW,
-                         Conv2dFloat,
+                         Conv2dTuningAltFloat,
                          testing::Values(GetTestCases()));
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvHipImplicitGemmV4R1WrW,
-                         Conv2dHalf,
+                         Conv2dTuningAltHalf,
                          testing::Values(GetTestCases()));
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvHipImplicitGemmV4R1WrW,
-                         Conv2dBf16,
+                         Conv2dTuningAltBf16,
                          testing::Values(GetTestCases()));

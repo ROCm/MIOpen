@@ -33,7 +33,7 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
-namespace conv_igemm_dynamic_xdlops {
+namespace {
 
 auto GetTestCases()
 {
@@ -113,14 +113,6 @@ bool SkipTest()
            miopen::IsDisabled(ENV(MIOPEN_TEST_ALL));
 }
 
-class Conv2dFloat : public FloatTestCase<std::vector<TestCase>>
-{
-};
-
-class Conv2dHalf : public HalfTestCase<std::vector<TestCase>>
-{
-};
-
 bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::Default>;
@@ -128,14 +120,21 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-} // namespace conv_igemm_dynamic_xdlops
-using namespace conv_igemm_dynamic_xdlops;
+} // namespace
 
-TEST_P(Conv2dFloat, FloatTest_conv_igemm_dynamic_xdlops)
+class Conv2dDefaultFloat : public FloatTestCase<std::vector<TestCase>>
+{
+};
+
+class Conv2dDefaultHalf : public HalfTestCase<std::vector<TestCase>>
+{
+};
+
+TEST_P(Conv2dDefaultFloat, FloatTest_conv_igemm_dynamic_xdlops)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dFloat>(default_check);
+        invoke_with_params<conv2d_driver, Conv2dDefaultFloat>(default_check);
     }
     else
     {
@@ -143,11 +142,11 @@ TEST_P(Conv2dFloat, FloatTest_conv_igemm_dynamic_xdlops)
     }
 };
 
-TEST_P(Conv2dHalf, HalfTest_conv_igemm_dynamic_xdlops)
+TEST_P(Conv2dDefaultHalf, HalfTest_conv_igemm_dynamic_xdlops)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dHalf>(default_check);
+        invoke_with_params<conv2d_driver, Conv2dDefaultHalf>(default_check);
     }
     else
     {
@@ -155,5 +154,5 @@ TEST_P(Conv2dHalf, HalfTest_conv_igemm_dynamic_xdlops)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamic, Conv2dFloat, testing::Values(GetTestCases()));
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamic, Conv2dHalf, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamic, Conv2dDefaultFloat, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamic, Conv2dDefaultHalf, testing::Values(GetTestCases()));

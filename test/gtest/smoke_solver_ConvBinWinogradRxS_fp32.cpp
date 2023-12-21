@@ -32,7 +32,7 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
-namespace smoke_solver_ConvBinWinogradRxS_fp32 {
+namespace {
 
 auto GetTestCases()
 {
@@ -58,10 +58,6 @@ using TestCase = decltype(GetTestCases())::value_type;
 
 bool SkipTest() { return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)); }
 
-class Conv2dFloat : public FloatTestCase<std::vector<TestCase>>
-{
-};
-
 bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::Default>;
@@ -69,14 +65,17 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-} // namespace smoke_solver_ConvBinWinogradRxS_fp32
-using namespace smoke_solver_ConvBinWinogradRxS_fp32;
+} // namespace
 
-TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvBinWinogradRxS_fp32)
+class Conv2dDefaultFloat : public FloatTestCase<std::vector<TestCase>>
+{
+};
+
+TEST_P(Conv2dDefaultFloat, FloatTest_smoke_solver_ConvBinWinogradRxS_fp32)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dFloat>(default_check);
+        invoke_with_params<conv2d_driver, Conv2dDefaultFloat>(default_check);
     }
     else
     {
@@ -85,5 +84,5 @@ TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvBinWinogradRxS_fp32)
 };
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvBinWinogradRxSFp32,
-                         Conv2dFloat,
+                         Conv2dDefaultFloat,
                          testing::Values(GetTestCases()));

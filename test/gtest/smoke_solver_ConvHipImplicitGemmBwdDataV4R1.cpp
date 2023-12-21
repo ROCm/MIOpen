@@ -32,7 +32,7 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
-namespace smoke_solver_ConvHipImplicitGemmBwdDataV4R1 {
+namespace {
 
 auto GetTestCases()
 {
@@ -58,10 +58,6 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-class Conv2dFloat : public FloatTestCase<std::vector<TestCase>>
-{
-};
-
 bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::gfx103X>;
@@ -69,14 +65,17 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-} // namespace smoke_solver_ConvHipImplicitGemmBwdDataV4R1
-using namespace smoke_solver_ConvHipImplicitGemmBwdDataV4R1;
+} // namespace
 
-TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvHipImplicitGemmBwdDataV4R1)
+class Conv2dTuningV4R1BWDFloat : public FloatTestCase<std::vector<TestCase>>
+{
+};
+
+TEST_P(Conv2dTuningV4R1BWDFloat, FloatTest_smoke_solver_ConvHipImplicitGemmBwdDataV4R1)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dFloat>(tuning_check);
+        invoke_with_params<conv2d_driver, Conv2dTuningV4R1BWDFloat>(tuning_check);
     }
     else
     {
@@ -85,5 +84,5 @@ TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvHipImplicitGemmBwdDataV4R1)
 };
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvHipImplicitGemmBwdDataV4R1,
-                         Conv2dFloat,
+                         Conv2dTuningV4R1BWDFloat,
                          testing::Values(GetTestCases()));

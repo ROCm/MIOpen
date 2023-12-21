@@ -32,7 +32,7 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
-namespace smoke_solver_ConvHipImplicitGemmDataV4RxXdlops {
+namespace {
 
 auto GetTestCases()
 {
@@ -122,14 +122,6 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-class Conv2dHalf : public HalfTestCase<std::vector<TestCase>>
-{
-};
-
-class Conv2dBf16 : public Bf16TestCase<std::vector<TestCase>>
-{
-};
-
 bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::Default>;
@@ -137,14 +129,21 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-} // namespace smoke_solver_ConvHipImplicitGemmDataV4RxXdlops
-using namespace smoke_solver_ConvHipImplicitGemmDataV4RxXdlops;
+} // namespace
 
-TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvHipImplicitGemmDataV4RxXdlops)
+class Conv2dTuningV4RxHalf : public HalfTestCase<std::vector<TestCase>>
+{
+};
+
+class Conv2dTuningV4RxBf16 : public Bf16TestCase<std::vector<TestCase>>
+{
+};
+
+TEST_P(Conv2dTuningV4RxHalf, HalfTest_smoke_solver_ConvHipImplicitGemmDataV4RxXdlops)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dHalf>(tuning_check);
+        invoke_with_params<conv2d_driver, Conv2dTuningV4RxHalf>(tuning_check);
     }
     else
     {
@@ -152,11 +151,11 @@ TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvHipImplicitGemmDataV4RxXdlops)
     }
 };
 
-TEST_P(Conv2dBf16, Bf16Test_smoke_solver_ConvHipImplicitGemmDataV4RxXdlops)
+TEST_P(Conv2dTuningV4RxBf16, Bf16Test_smoke_solver_ConvHipImplicitGemmDataV4RxXdlops)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dBf16>(tuning_check);
+        invoke_with_params<conv2d_driver, Conv2dTuningV4RxBf16>(tuning_check);
     }
     else
     {
@@ -165,9 +164,9 @@ TEST_P(Conv2dBf16, Bf16Test_smoke_solver_ConvHipImplicitGemmDataV4RxXdlops)
 };
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvHipImplicitGemmDataV4RxXdlops,
-                         Conv2dHalf,
+                         Conv2dTuningV4RxHalf,
                          testing::Values(GetTestCases()));
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvHipImplicitGemmDataV4RxXdlops,
-                         Conv2dBf16,
+                         Conv2dTuningV4RxBf16,
                          testing::Values(GetTestCases()));

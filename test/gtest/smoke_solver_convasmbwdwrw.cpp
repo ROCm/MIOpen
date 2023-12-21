@@ -32,7 +32,7 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
-namespace smoke_solver_convasmbwdwrw {
+namespace {
 
 auto GetTestCases()
 {
@@ -55,18 +55,6 @@ using TestCase = decltype(GetTestCases())::value_type;
 
 bool SkipTest() { return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)); }
 
-class Conv2dFloat : public FloatTestCase<std::vector<TestCase>>
-{
-};
-
-class Conv2dHalf : public HalfTestCase<std::vector<TestCase>>
-{
-};
-
-class Conv2dBf16 : public Bf16TestCase<std::vector<TestCase>>
-{
-};
-
 bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::Default>;
@@ -74,14 +62,25 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-} // namespace smoke_solver_convasmbwdwrw
-using namespace smoke_solver_convasmbwdwrw;
+} // namespace
 
-TEST_P(Conv2dFloat, FloatTest_smoke_solver_convasmbwdwrw)
+class Conv2dTuningFloat : public FloatTestCase<std::vector<TestCase>>
+{
+};
+
+class Conv2dTuningHalf : public HalfTestCase<std::vector<TestCase>>
+{
+};
+
+class Conv2dTuningBf16 : public Bf16TestCase<std::vector<TestCase>>
+{
+};
+
+TEST_P(Conv2dTuningFloat, FloatTest_smoke_solver_convasmbwdwrw)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dFloat>(tuning_check);
+        invoke_with_params<conv2d_driver, Conv2dTuningFloat>(tuning_check);
     }
     else
     {
@@ -89,11 +88,11 @@ TEST_P(Conv2dFloat, FloatTest_smoke_solver_convasmbwdwrw)
     }
 };
 
-TEST_P(Conv2dHalf, HalfTest_smoke_solver_convasmbwdwrw)
+TEST_P(Conv2dTuningHalf, HalfTest_smoke_solver_convasmbwdwrw)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dHalf>(tuning_check);
+        invoke_with_params<conv2d_driver, Conv2dTuningHalf>(tuning_check);
     }
     else
     {
@@ -101,11 +100,11 @@ TEST_P(Conv2dHalf, HalfTest_smoke_solver_convasmbwdwrw)
     }
 };
 
-TEST_P(Conv2dBf16, Bf16Test_smoke_solver_convasmbwdwrw)
+TEST_P(Conv2dTuningBf16, Bf16Test_smoke_solver_convasmbwdwrw)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dBf16>(tuning_check);
+        invoke_with_params<conv2d_driver, Conv2dTuningBf16>(tuning_check);
     }
     else
     {
@@ -113,6 +112,6 @@ TEST_P(Conv2dBf16, Bf16Test_smoke_solver_convasmbwdwrw)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmBwd, Conv2dFloat, testing::Values(GetTestCases()));
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmBwd, Conv2dHalf, testing::Values(GetTestCases()));
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmBwd, Conv2dBf16, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmBwd, Conv2dTuningFloat, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmBwd, Conv2dTuningHalf, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmBwd, Conv2dTuningBf16, testing::Values(GetTestCases()));

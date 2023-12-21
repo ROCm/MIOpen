@@ -33,7 +33,7 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
-namespace conv_igemm_dynamic_dlops {
+namespace {
 
 auto GetTestCases()
 {
@@ -152,10 +152,6 @@ bool SkipTest()
            miopen::IsDisabled(ENV(MIOPEN_TEST_ALL));
 }
 
-class Conv2dHalf : public HalfTestCase<std::vector<TestCase>>
-{
-};
-
 bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::gfx103X>;
@@ -163,14 +159,17 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-} // namespace conv_igemm_dynamic_dlops
-using namespace conv_igemm_dynamic_dlops;
+} // namespace
 
-TEST_P(Conv2dHalf, HalfTest_conv_igemm_dynamic_dlops)
+class Conv2dDefaultHalf : public HalfTestCase<std::vector<TestCase>>
+{
+};
+
+TEST_P(Conv2dDefaultHalf, HalfTest_conv_igemm_dynamic_dlops)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dHalf>(default_check);
+        invoke_with_params<conv2d_driver, Conv2dDefaultHalf>(default_check);
     }
     else
     {
@@ -178,4 +177,6 @@ TEST_P(Conv2dHalf, HalfTest_conv_igemm_dynamic_dlops)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamicDlopsFwd, Conv2dHalf, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamicDlopsFwd,
+                         Conv2dDefaultHalf,
+                         testing::Values(GetTestCases()));

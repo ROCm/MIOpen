@@ -31,7 +31,9 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_CONV)
 
-static bool SkipTest(void) { return miopen::IsDisabled(ENV(MIOPEN_TEST_CONV)); }
+namespace miopen_conv {
+
+bool SkipTest() { return miopen::IsDisabled(ENV(MIOPEN_TEST_CONV)); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -42,7 +44,7 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class Conv2dFloat : public testing::TestWithParam<std::vector<std::string>>
+class Conv2dFloat_miopen_conv : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -51,7 +53,7 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenFloat: params = Conv2dFloat::GetParam(); break;
+    case miopenFloat: params = Conv2dFloat_miopen_conv::GetParam(); break;
     case miopenInt8:
     case miopenBFloat8:
     case miopenFloat8:
@@ -65,7 +67,7 @@ void Run2dDriver(miopenDataType_t prec)
                   "type not supported by "
                   "miopen_conv test";
 
-    default: params = Conv2dFloat::GetParam();
+    default: params = Conv2dFloat_miopen_conv::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -95,19 +97,6 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
     else
         return false;
 }
-
-TEST_P(Conv2dFloat, FloatTest)
-{
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
-    {
-        Run2dDriver(miopenFloat);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
 
 std::vector<std::string> GetTestCases(const std::string& precision)
 {
@@ -161,4 +150,22 @@ std::vector<std::string> GetTestCases(const std::string& precision)
     return test_cases;
 }
 
-INSTANTIATE_TEST_SUITE_P(MiopenConv, Conv2dFloat, testing::Values(GetTestCases("--float")));
+} // namespace miopen_conv
+using namespace miopen_conv;
+
+TEST_P(Conv2dFloat_miopen_conv, FloatTest)
+{
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    {
+        Run2dDriver(miopenFloat);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(MiopenConv,
+                         Conv2dFloat_miopen_conv,
+                         testing::Values(GetTestCases("--float")));

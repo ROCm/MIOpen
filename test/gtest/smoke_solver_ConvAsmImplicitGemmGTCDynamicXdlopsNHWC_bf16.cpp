@@ -32,7 +32,7 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
-namespace smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_bf16 {
+namespace {
 
 auto GetTestCases()
 {
@@ -62,10 +62,6 @@ using TestCase = decltype(GetTestCases())::value_type;
 
 bool SkipTest() { return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)); }
 
-class Conv2dBf16 : public Bf16TestCase<std::vector<TestCase>>
-{
-};
-
 bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::gfx94X>;
@@ -73,14 +69,17 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-} // namespace smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_bf16
-using namespace smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_bf16;
+} // namespace
 
-TEST_P(Conv2dBf16, Bf16Test_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_bf16)
+class Conv2dTuningBf16 : public Bf16TestCase<std::vector<TestCase>>
+{
+};
+
+TEST_P(Conv2dTuningBf16, Bf16Test_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_bf16)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dBf16>(tuning_check);
+        invoke_with_params<conv2d_driver, Conv2dTuningBf16>(tuning_check);
     }
     else
     {
@@ -89,5 +88,5 @@ TEST_P(Conv2dBf16, Bf16Test_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC
 };
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmImplicitGemmGTCDynamicXdlopsNhwcBf16,
-                         Conv2dBf16,
+                         Conv2dTuningBf16,
                          testing::Values(GetTestCases()));

@@ -33,7 +33,7 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
-namespace smoke_solver_convasm {
+namespace {
 
 auto GetTestCases()
 {
@@ -66,10 +66,6 @@ using TestCase = decltype(GetTestCases())::value_type;
 
 bool SkipTest() { return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)); }
 
-class Conv2dFloat : public FloatTestCase<std::vector<TestCase>>
-{
-};
-
 bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::Default>;
@@ -77,14 +73,17 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-} // namespace smoke_solver_convasm
-using namespace smoke_solver_convasm;
+} // namespace
 
-TEST_P(Conv2dFloat, FloatTest_smoke_solver_convasm)
+class Conv2dTuningFloat : public FloatTestCase<std::vector<TestCase>>
+{
+};
+
+TEST_P(Conv2dTuningFloat, FloatTest_smoke_solver_convasm)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dFloat>(tuning_check);
+        invoke_with_params<conv2d_driver, Conv2dTuningFloat>(tuning_check);
     }
     else
     {
@@ -92,4 +91,4 @@ TEST_P(Conv2dFloat, FloatTest_smoke_solver_convasm)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsm, Conv2dFloat, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsm, Conv2dTuningFloat, testing::Values(GetTestCases()));

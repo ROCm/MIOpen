@@ -77,11 +77,11 @@ auto GetTestCases()
 using TestCase = decltype(GetTestCases())::value_type;
 
 bool SkipTest() { return miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)); }
-class Conv2dFloat : public FloatTestCase<std::vector<TestCase>>
+class Conv2dFloat_conv_ck_igemm_fwd_v6r1_dlops_nchw : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dHalf : public HalfTestCase<std::vector<TestCase>>
+class Conv2dHalf_conv_ck_igemm_fwd_v6r1_dlops_nchw : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
@@ -95,11 +95,12 @@ bool IsTestSupportedForDevice()
 } // namespace conv_ck_igemm_fwd_v6r1_dlops_nchw
 using namespace conv_ck_igemm_fwd_v6r1_dlops_nchw;
 
-TEST_P(Conv2dFloat, FloatTest_conv_ck_igemm_fwd_v6r1_dlops_nchw)
+TEST_P(Conv2dFloat_conv_ck_igemm_fwd_v6r1_dlops_nchw, FloatTest)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dFloat>(default_check);
+        invoke_with_params<conv2d_driver, Conv2dFloat_conv_ck_igemm_fwd_v6r1_dlops_nchw>(
+            default_check);
     }
     else
     {
@@ -107,11 +108,12 @@ TEST_P(Conv2dFloat, FloatTest_conv_ck_igemm_fwd_v6r1_dlops_nchw)
     }
 };
 
-TEST_P(Conv2dHalf, HalfTest_conv_ck_igemm_fwd_v6r1_dlops_nchw)
+TEST_P(Conv2dHalf_conv_ck_igemm_fwd_v6r1_dlops_nchw, HalfTest)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dHalf>(default_check);
+        invoke_with_params<conv2d_driver, Conv2dHalf_conv_ck_igemm_fwd_v6r1_dlops_nchw>(
+            default_check);
     }
     else
     {
@@ -119,6 +121,10 @@ TEST_P(Conv2dHalf, HalfTest_conv_ck_igemm_fwd_v6r1_dlops_nchw)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvCkIgemmFwdV6r1DlopsNchw, Conv2dFloat, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(ConvCkIgemmFwdV6r1DlopsNchw,
+                         Conv2dFloat_conv_ck_igemm_fwd_v6r1_dlops_nchw,
+                         testing::Values(GetTestCases()));
 
-INSTANTIATE_TEST_SUITE_P(ConvCkIgemmFwdV6r1DlopsNchw, Conv2dHalf, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(ConvCkIgemmFwdV6r1DlopsNchw,
+                         Conv2dHalf_conv_ck_igemm_fwd_v6r1_dlops_nchw,
+                         testing::Values(GetTestCases()));

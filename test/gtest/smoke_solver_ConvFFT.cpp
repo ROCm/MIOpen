@@ -30,7 +30,7 @@
 
 #include "../conv2d.hpp"
 
-namespace smoke_solver_ConvFFT {
+namespace {
 
 auto GetTestCases()
 {
@@ -51,10 +51,6 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-class Conv2dFloat : public FloatTestCase<std::vector<TestCase>>
-{
-};
-
 bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::gfx103X, Gpu::gfx110X>;
@@ -62,14 +58,17 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-} // namespace smoke_solver_ConvFFT
-using namespace smoke_solver_ConvFFT;
+} // namespace
 
-TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvFFT)
+class Conv2dDefaultFloat : public FloatTestCase<std::vector<TestCase>>
+{
+};
+
+TEST_P(Conv2dDefaultFloat, FloatTest_smoke_solver_ConvFFT)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dFloat>(default_check);
+        invoke_with_params<conv2d_driver, Conv2dDefaultFloat>(default_check);
     }
     else
     {
@@ -77,4 +76,4 @@ TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvFFT)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvFft, Conv2dFloat, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(SmokeSolverConvFft, Conv2dDefaultFloat, testing::Values(GetTestCases()));

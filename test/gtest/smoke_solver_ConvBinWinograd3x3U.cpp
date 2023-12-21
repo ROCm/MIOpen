@@ -32,7 +32,7 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
-namespace smoke_solver_ConvBinWinograd3x3U {
+namespace {
 
 auto GetTestCases()
 {
@@ -56,10 +56,6 @@ using TestCase = decltype(GetTestCases())::value_type;
 
 bool SkipTest() { return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)); }
 
-class Conv2dFloat : public FloatTestCase<std::vector<TestCase>>
-{
-};
-
 bool IsTestSupportedForDevice()
 {
     // std::string devName = ;
@@ -69,14 +65,17 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-} // namespace smoke_solver_ConvBinWinograd3x3U
-using namespace smoke_solver_ConvBinWinograd3x3U;
+} // namespace
 
-TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvBinWinograd3x3U)
+class Conv2dDefaultFloat : public FloatTestCase<std::vector<TestCase>>
+{
+};
+
+TEST_P(Conv2dDefaultFloat, FloatTest_smoke_solver_ConvBinWinograd3x3U)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dFloat>(default_check);
+        invoke_with_params<conv2d_driver, Conv2dDefaultFloat>(default_check);
     }
     else
     {
@@ -85,5 +84,5 @@ TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvBinWinograd3x3U)
 };
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvBinWinograd3x3U,
-                         Conv2dFloat,
+                         Conv2dDefaultFloat,
                          testing::Values(GetTestCases()));

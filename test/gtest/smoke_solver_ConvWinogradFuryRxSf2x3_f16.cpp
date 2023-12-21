@@ -32,7 +32,7 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
-namespace smoke_solver_ConvWinogradFuryRxSf2x3_f16 {
+namespace {
 
 auto GetTestCases()
 {
@@ -55,10 +55,6 @@ using TestCase = decltype(GetTestCases())::value_type;
 
 bool SkipTest() { return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)); }
 
-class Conv2dHalf : public HalfTestCase<std::vector<TestCase>>
-{
-};
-
 bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::gfx110X>;
@@ -66,14 +62,17 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-} // namespace smoke_solver_ConvWinogradFuryRxSf2x3_f16
-using namespace smoke_solver_ConvWinogradFuryRxSf2x3_f16;
+} // namespace
 
-TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvWinogradFuryRxSf2x3_f16)
+class Conv2dDefaultHalf : public HalfTestCase<std::vector<TestCase>>
+{
+};
+
+TEST_P(Conv2dDefaultHalf, HalfTest_smoke_solver_ConvWinogradFuryRxSf2x3_f16)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dHalf>(default_check);
+        invoke_with_params<conv2d_driver, Conv2dDefaultHalf>(default_check);
     }
     else
     {
@@ -82,5 +81,5 @@ TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvWinogradFuryRxSf2x3_f16)
 };
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvBinWinogradRxSf2x3g13x2F16,
-                         Conv2dHalf,
+                         Conv2dDefaultHalf,
                          testing::Values(GetTestCases()));
