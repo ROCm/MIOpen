@@ -81,7 +81,7 @@ struct remove_cv
     typedef typename remove_volatile<typename remove_const<T>::type>::type type;
 };
 
-#if HIP_PACKAGE_VERSION_FLAT >= 6000023494ULL
+#if HIP_PACKAGE_VERSION_FLAT >= 6001000000ULL
 template <class T, T v>
 struct integral_constant
 {
@@ -126,6 +126,24 @@ template <class T>
 struct is_pointer : is_pointer_helper<typename remove_cv<T>::type>
 {
 };
+
+template <bool predicate, typename X, typename Y>
+struct conditional;
+
+template <typename X, typename Y>
+struct conditional<true, X, Y>
+{
+    using type = X;
+};
+
+template <typename X, typename Y>
+struct conditional<false, X, Y>
+{
+    using type = Y;
+};
+
+template <bool predicate, typename X, typename Y>
+using conditional_t = typename conditional<predicate, X, Y>::type;
 
 } // namespace std
 #else

@@ -26,11 +26,11 @@
 #pragma once
 
 #ifdef WORKAROUND_ISSUE_HIPRTC_TRUE_TYPE
-/// Definitions from <cstdint>, <cmath> conflict with
-/// /opt/rocm/include/hip/amd_detail/amd_hip_vector_types.h.
 typedef signed char int8_t;
+typedef unsigned char uint8_t;
 typedef signed short int16_t;
-#if HIP_PACKAGE_VERSION_FLAT >= 6000023494ULL
+typedef unsigned short uint16_t;
+#if HIP_PACKAGE_VERSION_FLAT >= 6001000000ULL
 typedef signed int int32_t;
 typedef unsigned int uint32_t;
 typedef __hip_internal::uint64_t uint64_t;
