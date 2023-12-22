@@ -34,6 +34,8 @@ MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_COMPOSABLEKERNEL)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
+namespace conv3d_test {
+
 static bool IsTestRunWith(const char* float_arg)
 {
     assert(float_arg != nullptr);
@@ -60,7 +62,7 @@ void Run3dDriver(miopenDataType_t prec)
     switch(prec)
     {
     case miopenFloat: params = ConfigWithFloat::GetParam(); break;
-    case miopenInt8: 
+    case miopenInt8:
     case miopenHalf:
     case miopenBFloat16:
     case miopenInt32:
@@ -99,26 +101,6 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
         return false;
 }
 
-TEST_P(ConfigWithFloat, FloatTest)
-{
-#if MIOPEN_BACKEND_OPENCL
-
-    GTEST_SKIP() << "MIOPEN_BACKEND_HIP needed for this test";
-
-#else // MIOPEN_BACKEND_HIP, OCL_DISABLED
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && miopen::IsEnabled(ENV(MIOPEN_TEST_COMPOSABLEKERNEL)) &&
-       miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && IsTestRunWith("--float"))
-    {
-        Run3dDriver(miopenFloat);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-#endif
-};
-
 std::vector<std::string> GetTestCases(const std::string& precision)
 {
     std::string psd0 = " --pads_strides_dilations 0 0 0 1 1 1 1 1 1";
@@ -144,10 +126,34 @@ std::vector<std::string> GetTestCases(const std::string& precision)
     {precision + "--input 1 16 4 161 700 --weights 16 16 3 11 11" + psd5 },
     {precision + "--input 1 16 4 140 602 --weights 16 16 3 11 11" + psd4 },
     {precision + "--input 1 16 4 140 602 --weights 16 16 3 11 11" + psd5 }
-
+        // clang-format on
     };
     return test_cases;
 }
+
+}// namespace conv3d_test
+
+using namespace conv3d_test;
+
+TEST_P(ConfigWithFloat, FloatTest_conv3d_test)
+{
+#if MIOPEN_BACKEND_OPENCL
+
+    GTEST_SKIP() << "MIOPEN_BACKEND_HIP needed for this test";
+
+#else // MIOPEN_BACKEND_HIP, OCL_DISABLED
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && miopen::IsEnabled(ENV(MIOPEN_TEST_COMPOSABLEKERNEL)) &&
+       miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && IsTestRunWith("--float"))
+    {
+        Run3dDriver(miopenFloat);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+#endif
+};
 
 INSTANTIATE_TEST_SUITE_P(Conv3dTest,
                          ConfigWithFloat,
