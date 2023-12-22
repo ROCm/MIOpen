@@ -48,6 +48,7 @@ def cmake_build(Map conf=[:]){
 
     if (package_build == true) {
         make_targets = "package"
+        setup_args = " -DMIOPEN_TEST_DISCRETE=OFF " + setup_args
     }
 
     def miopen_install_path = "${env.WORKSPACE}/install"
@@ -953,7 +954,7 @@ pipeline {
                     environment{
                         setup_flags="-DMIOPEN_TEST_DBSYNC=1"
                         make_targets='test_db_sync'
-                        execute_cmd='./bin/test_db_sync'
+                        execute_cmd='MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync'
                     }
                     steps{
                         buildHipClangJobAndReboot(lfs_pull: true, setup_flags: setup_flags, make_targets: make_targets, execute_cmd: execute_cmd,
@@ -972,7 +973,7 @@ pipeline {
                     environment{
                         setup_flags="-DMIOPEN_TEST_DBSYNC=1"
                         make_targets='test_db_sync'
-                        execute_cmd='./bin/test_db_sync'
+                        execute_cmd='MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync'
                     }
                     steps{
                         buildHipClangJobAndReboot(lfs_pull: true, setup_flags: setup_flags, make_targets: make_targets, execute_cmd: execute_cmd,

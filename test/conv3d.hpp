@@ -23,18 +23,19 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <gtest/gtest.h>
 #include "conv_common.hpp"
 
 template <class T>
-struct conv2d_driver : conv_driver<T, ConvApi::Immediate>
+struct conv3d_driver : conv_driver<T>
 {
-    conv2d_driver() : conv_driver<T, ConvApi::Immediate>()
+    conv3d_driver() : conv_driver<T>()
     {
         this->add(this->input_dims, "input");
         this->add(this->weight_tensor_dims, "weights");
         this->add(this->batch_size,
                   "batch_size",
-                  this->generate_data_limited(this->get_batch_sizes(), 1, {16}));
+                  this->generate_data_limited(this->get_batch_sizes(), 1, {8}));
         this->add(this->input_channels,
                   "input_channels",
                   this->generate_data_limited(this->get_input_channels(), 1, {32}));
@@ -43,20 +44,34 @@ struct conv2d_driver : conv_driver<T, ConvApi::Immediate>
                   this->generate_data_limited(this->get_output_channels(), 1, {32}));
         this->add(this->spatial_dim_elements,
                   "spatial_dim_elements",
-                  this->generate_data_limited(this->get_2d_spatial_dims(), 1, {56, 56}));
+                  this->generate_data_limited(this->get_3d_spatial_dims(), 1, {16, 16, 16}));
         this->add(this->filter_dims,
                   "filter_dims",
-                  this->generate_data_limited(this->get_2d_filter_dims(), 2, {3, 3}));
+                  this->generate_data_limited(this->get_3d_filter_dims(), 2, {3, 3, 3}));
         this->add(this->pads_strides_dilations,
                   "pads_strides_dilations",
-                  this->generate_data_limited(this->get_2d_pads_strides_dilations(), 2));
+                  this->generate_data_limited(this->get_3d_pads_strides_dilations(), 2));
         this->add(this->trans_output_pads,
                   "trans_output_pads",
-                  this->generate_data_limited(this->get_2d_trans_output_pads(), 1));
-        this->add(this->in_layout, "in_layout", this->generate_data({"NCHW"}));
-        this->add(this->fil_layout, "fil_layout", this->generate_data({"NCHW"}));
-        this->add(this->out_layout, "out_layout", this->generate_data({"NCHW"}));
+                  this->generate_data_limited(this->get_3d_trans_output_pads(), 1));
+        this->add(this->in_layout, "in_layout", this->generate_data({"NCDHW"}));
+        this->add(this->fil_layout, "fil_layout", this->generate_data({"NCDHW"}));
+        this->add(this->out_layout, "out_layout", this->generate_data({"NCDHW"}));
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<conv2d_driver>(argc, argv); }
+class Conv3dFloat : public testing::TestWithParam<std::vector<std::string>>
+{
+};
+
+class Conv3dHalf : public testing::TestWithParam<std::vector<std::string>>
+{
+};
+
+class Conv3dBFloat16 : public testing::TestWithParam<std::vector<std::string>>
+{
+};
+
+class Conv3dInt8 : public testing::TestWithParam<std::vector<std::string>>
+{
+};

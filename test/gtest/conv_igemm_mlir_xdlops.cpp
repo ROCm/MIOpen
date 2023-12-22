@@ -4,24 +4,17 @@
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/env.hpp>
-#include "conv_2d.hpp"
 #include "get_handle.hpp"
+#include "test_env.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+#include "conv2d.hpp"
+
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_MLIR)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-using TestCase = std::tuple<std::vector<std::string>, std::string>;
+namespace conv_igemm_mlir_xdlops {
 
-std::string GetFloatArg()
-{
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-};
+using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
 void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
 {
@@ -40,10 +33,10 @@ void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class ConfigWithHalf : public testing::TestWithParam<std::vector<TestCase>>
+class ConvIgemmMlirXdlopsConfigHalf : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
-class ConfigWithInt8 : public testing::TestWithParam<std::vector<TestCase>>
+class ConvIgemmMlirXdlopsConfigInt8 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -53,8 +46,8 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<TestCase> params;
     switch(prec)
     {
-    case miopenHalf: params = ConfigWithHalf::GetParam(); break;
-    case miopenInt8: params = ConfigWithInt8::GetParam(); break;
+    case miopenHalf: params = ConvIgemmMlirXdlopsConfigHalf::GetParam(); break;
+    case miopenInt8: params = ConvIgemmMlirXdlopsConfigInt8::GetParam(); break;
     case miopenBFloat16:
     case miopenFloat:
     case miopenInt32:
@@ -66,7 +59,7 @@ void Run2dDriver(miopenDataType_t prec)
                      "type not supported by "
                      "conv_igemm_mlir_xdlops test");
 
-    default: params = ConfigWithHalf::GetParam();
+    default: params = ConvIgemmMlirXdlopsConfigHalf::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -84,50 +77,6 @@ void Run2dDriver(miopenDataType_t prec)
         auto capture = testing::internal::GetCapturedStderr();
         EXPECT_FALSE(capture.find("Perf Db: record not found") != std::string::npos);
     }
-};
-
-TEST_P(ConfigWithHalf, HalfTest)
-{
-#if MIOPEN_USE_MLIR
-
-    const auto& handle = get_handle();
-    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx90a")) &&
-       miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR)) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-       GetFloatArg() == "--half")
-    {
-        Run2dDriver(miopenHalf);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-
-#else
-    GTEST_SKIP();
-#endif
-};
-
-TEST_P(ConfigWithInt8, Int8Test)
-{
-#if MIOPEN_USE_MLIR
-
-    const auto& handle = get_handle();
-    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx90a")) &&
-       miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR)) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-       GetFloatArg() == "--int8")
-    {
-        Run2dDriver(miopenInt8);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-
-#else
-    GTEST_SKIP();
-#endif
 };
 
 std::vector<TestCase> GetTestCases(const std::string& precision)
@@ -194,11 +143,59 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
 
     return test_cases;
 }
+
+} // namespace conv_igemm_mlir_xdlops
+using namespace conv_igemm_mlir_xdlops;
+
+TEST_P(ConvIgemmMlirXdlopsConfigHalf, HalfTest_conv_igemm_mlir_xdlops)
+{
+#if MIOPEN_USE_MLIR
+
+    const auto& handle = get_handle();
+    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx90a")) &&
+       miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR)) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
+       IsTestRunWith("--half"))
+    {
+        Run2dDriver(miopenHalf);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+
+#else
+    GTEST_SKIP();
+#endif
+};
+
+TEST_P(ConvIgemmMlirXdlopsConfigInt8, Int8Test_conv_igemm_mlir_xdlops)
+{
+#if MIOPEN_USE_MLIR
+
+    const auto& handle = get_handle();
+    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx90a")) &&
+       miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR)) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
+       IsTestRunWith("--int8"))
+    {
+        Run2dDriver(miopenInt8);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+
+#else
+    GTEST_SKIP();
+#endif
+};
+
 // Half for FWD, BWD, WRW
 INSTANTIATE_TEST_SUITE_P(ConvIgemmMlirXdlops,
-                         ConfigWithHalf,
+                         ConvIgemmMlirXdlopsConfigHalf,
                          testing::Values(GetTestCases("--half")));
 // Int8 for FWD
 INSTANTIATE_TEST_SUITE_P(ConvIgemmMlirXdlops,
-                         ConfigWithInt8,
+                         ConvIgemmMlirXdlopsConfigInt8,
                          testing::Values(GetTestCases("--int8")));

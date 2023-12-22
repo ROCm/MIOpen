@@ -31,7 +31,7 @@
 
 struct AIModelTestCase
 {
-    struct ConvTestCase conv;
+    struct ConvTestCaseBase conv;
     miopen::conv::Direction direction;
     miopenDataType_t data_type;
     miopenTensorLayout_t layout;

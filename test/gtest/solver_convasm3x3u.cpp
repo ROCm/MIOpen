@@ -38,5 +38,5 @@ TEST_P(ConvFwdSolverTestFloat, ConvASM3x3UFwd)
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
                          ConvFwdSolverTestFloat,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoDirect),
-                                          testing::ValuesIn(ConvTestConfigs()),
+                                          testing::ValuesIn(ConvTestConfigs<ConvTestCaseBase>()),
                                           testing::Values(miopenTensorNCHW)));

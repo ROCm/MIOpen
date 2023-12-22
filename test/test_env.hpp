@@ -23,48 +23,16 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
+#pragma once
+
 #include <miopen/env.hpp>
-#include "layernorm.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-namespace layernorm {
-
-std::string GetFloatArg()
+inline bool IsTestRunWith(const char* float_arg)
 {
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
+    assert(float_arg != nullptr);
+    const auto& s_envVar = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    return (s_envVar.compare(float_arg) == 0);
 }
-
-struct LayerNormTestFloat : LayerNormTest<float>
-{
-};
-
-} // namespace layernorm
-using namespace layernorm;
-
-TEST_P(LayerNormTestFloat, LayerNormTestFw)
-{
-    const auto& handle = get_handle();
-    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
-       miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
-                         LayerNormTestFloat,
-                         testing::ValuesIn(LayerNormTestConfigs()));
