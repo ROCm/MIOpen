@@ -48,10 +48,10 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
     std::cout << " ActivationDescriptor::Forward " << "\n";
     std::cout << " alpha " << *(float*)alpha << "\n";
     std::cout << " xDesc " << xDesc << "\n";
-    std::cout << " x " << x << "\n";
+    //std::cout << " x " << x << "\n";
     std::cout << " beta " << *(float*)beta << "\n";
     std::cout << " yDesc " << yDesc << "\n";
-    std::cout << " y " << y << "\n";
+    //std::cout << " y " << y << "\n";
     std::cout << " xOffset " << xOffset << "\n";
     std::cout << " yOffset " << yOffset << "\n";
 
@@ -104,14 +104,14 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
     std::cout << " ActivationDescriptor::Backward " << "\n";
     std::cout << " alpha " << *(float*)alpha << "\n";
     std::cout << " yDesc " << yDesc << "\n";
-    std::cout << " y " << y << "\n";
+    //std::cout << " y " << y << "\n";
     std::cout << " dyDesc " << dyDesc << "\n";
-    std::cout << " dy " << dy << "\n";
+    //std::cout << " dy " << dy << "\n";
     std::cout << " xDesc " << xDesc << "\n";
-    std::cout << " x " << x << "\n";
+    //std::cout << " x " << x << "\n";
     std::cout << " beta " << *(float*)beta << "\n";
     std::cout << " dxDesc " << dxDesc << "\n";
-    std::cout << " dx " << dx << "\n";
+    //std::cout << " dx " << dx << "\n";
     std::cout << " yOffset " << yOffset << "\n";
     std::cout << " dyOffset " << dyOffset << "\n";
     std::cout << " xOffset " << xOffset << "\n";
