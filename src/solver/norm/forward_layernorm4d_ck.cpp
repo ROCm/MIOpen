@@ -31,7 +31,7 @@
 #include <miopen/solver/ck_utility_common.hpp>
 #include <ck/library/tensor_operation_instance/gpu/normalization_fwd.hpp>
 #endif
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_LAYERNORM4DCKFORWARD_CONV_CK_LN)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_LAYERNORM4DCKFORWARD_CONV_CK_LN)
 
 namespace miopen {
 namespace solver {
@@ -168,10 +168,7 @@ typename LnPtrsType::iterator FindLnPtr(LnPtrsType& ln_ptrs,
     });
 }
 
-template <typename DeviceOpType,
-          typename CKArgsType,
-          typename CastType,
-          typename ProblemDescriptionType = ProblemDescription>
+template <typename DeviceOpType, typename CKArgsType, typename CastType>
 ConvSolution MakeInvokerFactory([[maybe_unused]] const ExecutionContext& context,
                                 const miopen::norm::ProblemDescription& problem)
 {
@@ -224,7 +221,7 @@ bool Layernorm4DCKForward::IsApplicable(
     [[maybe_unused]] const miopen::norm::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(MIOPEN_DEBUG_LAYERNORM4DCKFORWARD_CONV_CK_LN{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_LAYERNORM4DCKFORWARD_CONV_CK_LN)))
         return false;
     if(!problem.IsSameType())
         return false;

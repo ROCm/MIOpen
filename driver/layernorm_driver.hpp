@@ -139,7 +139,7 @@ int LayerNormDriver<Tgpu, Tref>::GetandSetData()
 {
     std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
 
-    dim = static_cast<int>(inflags.GetValueDouble("nomalized_dim"));
+    dim = inflags.GetValueInt("normalized_dim");
 
     std::vector<int> inner_len;
     if(dim == in_len.size())
@@ -378,10 +378,6 @@ Tref LayerNormDriver<Tgpu, Tref>::GetTolerance()
     else if(data_type == miopenFloat)
     {
         return 5e-5;
-    }
-    else if(data_type == miopenDouble)
-    {
-        return 1e-10;
     }
     else if(data_type == miopenBFloat16)
     {

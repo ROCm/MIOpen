@@ -28,7 +28,6 @@
 
 #include <miopen/common.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/problem.hpp>
 #include <miopen/search_options.hpp>
@@ -62,7 +61,7 @@ miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
                                        miopenConvolutionDescriptor_t operatorDesc,
                                        miopenProblemDirection_t direction)
 {
-    MIOPEN_LOG_FUNCTION(problem);
+    MIOPEN_LOG_FUNCTION(problem, operatorDesc, direction);
     return MakeProblem(problem, operatorDesc, direction);
 }
 
@@ -70,8 +69,24 @@ miopenStatus_t miopenCreateActivationProblem(miopenProblem_t* problem,
                                              miopenActivationDescriptor_t operatorDesc,
                                              miopenProblemDirection_t direction)
 {
-    MIOPEN_LOG_FUNCTION(problem);
+    MIOPEN_LOG_FUNCTION(problem, operatorDesc, direction);
     return MakeProblem(problem, operatorDesc, direction);
+}
+
+miopenStatus_t miopenCreateBiasProblem(miopenProblem_t* problem, miopenProblemDirection_t direction)
+{
+    MIOPEN_LOG_FUNCTION(problem, direction);
+
+    return miopen::try_([&] {
+        miopen::deref(problem) = new miopen::ProblemContainer();
+        auto& container_deref  = miopen::deref(*problem);
+
+        container_deref.item = miopen::Problem();
+        auto& problem_deref  = boost::get<miopen::Problem>(container_deref.item);
+
+        problem_deref.SetOperatorDescriptor(miopen::BiasDescriptor{});
+        problem_deref.SetDirection(direction);
+    });
 }
 
 miopenStatus_t miopenFuseProblems(miopenProblem_t problem1, miopenProblem_t problem2)
@@ -245,6 +260,9 @@ inline std::ostream& operator<<(std::ostream& stream, const miopenTensorArgument
     case miopenTensorActivationDX: stream << "ActivDX"; break;
     case miopenTensorActivationY: stream << "ActivY"; break;
     case miopenTensorActivationDY: stream << "ActivDY"; break;
+    case miopenTensorBias: stream << "Bias"; break;
+    case miopenTensorBiasX: stream << "BiasX"; break;
+    case miopenTensorBiasY: stream << "BiasY"; break;
     case miopenTensorArgumentIdInvalid: stream << "Invalid"; break;
     }
 
@@ -336,7 +354,7 @@ miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data)
 
 miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size)
 {
-    MIOPEN_LOG_FUNCTION(solution, size);
+    MIOPEN_LOG_FUNCTION(solution);
 
     return miopen::try_([&] {
         if(size == nullptr)
@@ -356,7 +374,7 @@ miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size)
 
 miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t solution, size_t* workspaceSize)
 {
-    MIOPEN_LOG_FUNCTION(solution, workspaceSize);
+    MIOPEN_LOG_FUNCTION(solution);
 
     return miopen::try_([&] {
         const auto& solution_deref = miopen::deref(solution);
@@ -366,7 +384,7 @@ miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t solution, size_t*
 
 miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time)
 {
-    MIOPEN_LOG_FUNCTION(solution, time);
+    MIOPEN_LOG_FUNCTION(solution);
 
     return miopen::try_([&] {
         const auto& solution_deref = miopen::deref(solution);
@@ -376,7 +394,7 @@ miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time)
 
 miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution, uint64_t* solverId)
 {
-    MIOPEN_LOG_FUNCTION(solution, solverId);
+    MIOPEN_LOG_FUNCTION(solution);
 
     return miopen::try_([&] {
         const auto& solution_deref = miopen::deref(solution);
@@ -386,7 +404,7 @@ miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution, uint64_t* so
 
 miopenStatus_t miopenGetSolverIdConvAlgorithm(uint64_t solverId, miopenConvAlgorithm_t* result)
 {
-    MIOPEN_LOG_FUNCTION(solverId, result);
+    MIOPEN_LOG_FUNCTION(solverId);
 
     return miopen::try_([&] {
         const auto id_deref = miopen::solver::Id{solverId};

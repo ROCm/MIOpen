@@ -39,12 +39,11 @@
 #include <miopen/logger.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
-#include <nlohmann/json_fwd.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR)
 
 namespace miopen {
 namespace solver {
@@ -161,7 +160,7 @@ bool PerformanceConfigConvAsm1x1U::SetNextValue(const ProblemDescription&)
     {
         if(!NextLinear<1, 4>(read_size))
             break;
-        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED{}))
+        if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)))
         {
             /// Narrow search space in optimized mode.
             if(use_spare_set ? !Next_1_4(k_mult) : !NextTwoPower<8, 32>(k_mult))
@@ -205,7 +204,7 @@ bool PerformanceConfigConvAsm1x1U::SetNextValue(const ProblemDescription&)
 PerformanceConfigConvAsm1x1U::PerformanceConfigConvAsm1x1U(bool spare)
     : PerformanceConfigConvAsm1x1U(1, 1, 1, 1, 1, 1, 1, 1, spare)
 {
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED{}))
+    if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)))
     {
         k_mult     = spare ? 1 : 8;
         chunk_size = spare ? 1 : 16;
@@ -367,37 +366,27 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
     }
     return true;
 }
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
 
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
 bool PerformanceConfigConvAsm1x1U::ModelApplyToken(int index,
-                                                   int value,
+                                                   std::string value,
                                                    const ProblemDescription& problem)
 {
+    int val = stoi(value);
     switch(index)
     {
-    case 0: read_size = value; break;
-    case 1: k_mult = value; break;
-    case 2: chunks_per_wave = value; break;
-    case 3: chunk_size = value; break;
-    case 4: n_mult = value; break;
-    case 5: c_mult = value; break;
-    case 6: waves_c_in_group = value; break;
-    case 7: waves_k_in_group = value; break;
+    case 0: read_size = val; break;
+    case 1: k_mult = val; break;
+    case 2: chunks_per_wave = val; break;
+    case 3: chunk_size = val; break;
+    case 4: n_mult = val; break;
+    case 5: c_mult = val; break;
+    case 6: waves_c_in_group = val; break;
+    case 7: waves_k_in_group = val; break;
     default: return false;
     }
     // this function may leave PerformanceConfigConvAsm1x1U in a partially valid or invalid state
     return this->IsPartiallyValid(problem, index + 1);
-}
-
-static bool IsModelApplicable(const ExecutionContext& ctx, const ProblemDescription& problem)
-{
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR{}))
-        return false;
-    if(ctx.GetStream().GetDeviceName() != "gfx908")
-        return false;
-    if(problem.GetKernelStrideH() != 1)
-        return false;
-    return true;
 }
 
 static std::vector<float> TransformFeatures(const ProblemDescription& problem, std::size_t n)
@@ -418,21 +407,21 @@ static std::vector<float> TransformFeatures(const ProblemDescription& problem, s
     return features;
 }
 
-void PerformanceConfigConvAsm1x1U::RunParmeterPredictionModel(const ExecutionContext& ctx,
-                                                              const ProblemDescription& problem,
-                                                              bool& valid)
+bool PerformanceConfigConvAsm1x1U::RunParameterPredictionModel(const ExecutionContext& ctx,
+                                                               const ProblemDescription& problem)
 {
     static const std::size_t n      = 8;
     static const std::string& arch  = ctx.GetStream().GetDeviceName();
     static const std::string solver = "ConvAsm1x1U";
     std::vector<float> features     = TransformFeatures(problem, n);
-    if(ai::tuning::ModelSetParams(arch, solver, features, [&](int idx, int value) {
+    if(ai::tuning::ModelSetParams(arch, solver, features, true, [&](int idx, std::string value) {
            return this->ModelApplyToken(idx, value, problem);
        }))
     {
         MIOPEN_LOG_I("Params set by AI: " << ToString());
-        valid = true;
+        return true;
     }
+    return false;
 }
 #endif
 
@@ -482,22 +471,30 @@ void PerformanceConfigConvAsm1x1U::StaticHeuristic(const ProblemDescription& pro
     }
 }
 
-void PerformanceConfigConvAsm1x1U::HeuristicInit(const ExecutionContext& ctx,
+bool PerformanceConfigConvAsm1x1U::IsModelApplicable(const ExecutionContext& ctx,
+                                                     const ProblemDescription& problem) const
+{
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR)))
+        return false;
+    if(ctx.GetStream().GetDeviceName() != "gfx908")
+        return false;
+    if(problem.GetKernelStrideH() != 1)
+        return false;
+    return true;
+}
+
+void PerformanceConfigConvAsm1x1U::HeuristicInit([[maybe_unused]] const ExecutionContext& ctx,
                                                  const ProblemDescription& problem)
 {
     if(problem.GetInDataType() == miopenDouble)
         MIOPEN_THROW("Double data type is not supported by ConvAsm1x1U");
-
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
     if(IsModelApplicable(ctx, problem))
     {
-        bool valid = false;
-        RunParmeterPredictionModel(ctx, problem, valid);
-        if(valid)
+
+        if(RunParameterPredictionModel(ctx, problem))
             return;
     }
-#else
-    std::ignore = ctx;
 #endif
     StaticHeuristic(problem);
     MIOPEN_LOG_I(ToString());
@@ -522,7 +519,7 @@ bool ConvAsm1x1U::IsValidPerformanceConfig(const ExecutionContext&,
 
 bool ConvAsm1x1U::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U)))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
@@ -827,24 +824,19 @@ ConvSolution ConvAsm1x1U::GetSolution(const ExecutionContext& ctx,
 
     PerformanceConfigConvAsm1x1U fromEnv;
     {
-        std::string s;
-        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS{});
-        if(p_asciz != nullptr)
+        const auto& s = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS));
+        if(!s.empty()) // else nothing to parse.
         {
-            s = std::string(p_asciz);
-            if(!s.empty()) // else nothing to parse.
+            if(!fromEnv.Deserialize(s) || !fromEnv.IsValidValue())
             {
-                if(!fromEnv.Deserialize(s) || !fromEnv.IsValidValue())
-                {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS: "
-                                 "Bad format or invalid for the problem config: "
-                                 << s);
-                }
-                else
-                {
-                    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
-                    pcfg = &fromEnv;
-                }
+                MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS: "
+                             "Bad format or invalid for the problem config: "
+                             << s);
+            }
+            else
+            {
+                MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
+                pcfg = &fromEnv;
             }
         }
     }

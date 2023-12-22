@@ -30,7 +30,7 @@
 #include <miopen/pooling/invoke_params.hpp>
 #include <miopen/pooling/solvers.hpp>
 
-#define WORKAROUND_ISSUE_MIFIN_80 1 // https://github.com/ROCmSoftwarePlatform/MIFin/issues/80
+#define WORKAROUND_ISSUE_MIFIN_80 1 // https://github.com/ROCm/MIFin/issues/80
 
 namespace miopen {
 

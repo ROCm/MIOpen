@@ -948,7 +948,7 @@ int RNNSeqDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
 
     // Unless seed is persistent between runs validation using cache stored in file is impossible.
-    srand(0);
+    prng::reset_seed();
 
     auto fill_array_via_gen = [](auto& dst, size_t dst_sz, double range_l, double range_r) {
         for(size_t it = 0; it < dst_sz; it++)

@@ -56,7 +56,17 @@ std::size_t sizeof_local_memory(const miopen::norm::ProblemDescription& problem)
 bool LayernormForward::IsApplicable(const ExecutionContext&,
                                     const miopen::norm::ProblemDescription& problem) const
 {
-    return (sizeof_local_memory(problem) <= TargetProperties::GetMaxLocalMemorySize());
+    if(!problem.IsSameType())
+        return false;
+    if(!problem.IsSameLength())
+        return false;
+    if(!problem.IsAllPacked())
+        return false;
+    if(!problem.IsRightNormDim())
+        return false;
+    if(!(sizeof_local_memory(problem) <= TargetProperties::GetMaxLocalMemorySize()))
+        return false;
+    return true;
 }
 
 ConvSolution LayernormForward::GetSolution(const ExecutionContext& context,

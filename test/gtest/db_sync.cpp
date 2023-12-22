@@ -50,6 +50,8 @@
 #define SKIP_KDB_PDB_TESTING 0       // Allows testing FDB on gfx1030.
 #define SKIP_CONVOCLDIRECTFWDFUSED 0 // Allows testing FDB on gfx1030 (legacy fdb).
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DBSYNC)
+
 struct KDBKey
 {
     std::string program_file;
@@ -438,14 +440,17 @@ void SetupPaths(boost::filesystem::path& fdb_file_path,
 
 TEST(DBSync, KDBTargetID)
 {
-    boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_DBSYNC)))
+    {
+        boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
 #if WORKAROUND_ISSUE_2493
-    SetEnvironmentVariable("MIOPEN_DEBUG_WORKAROUND_ISSUE_2493", "0");
+        SetEnvironmentVariable("MIOPEN_DEBUG_WORKAROUND_ISSUE_2493", "0");
 #endif
-    SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, get_handle());
-    std::ignore = fdb_file_path;
-    std::ignore = pdb_file_path;
-    EXPECT_FALSE(!SKIP_KDB_PDB_TESTING && miopen::CheckKDBForTargetID(kdb_file_path));
+        SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, get_handle());
+        std::ignore = fdb_file_path;
+        std::ignore = pdb_file_path;
+        EXPECT_FALSE(!SKIP_KDB_PDB_TESTING && miopen::CheckKDBForTargetID(kdb_file_path));
+    }
 }
 
 bool LogBuildMessage()
@@ -470,7 +475,7 @@ void BuildKernel(const std::string& program_file,
 #else
     try
     {
-        auto p = handle.LoadProgram(program_file, program_args, false, "");
+        auto p = handle.LoadProgram(program_file, program_args, "");
     }
     catch(std::exception&)
     {
@@ -820,10 +825,13 @@ struct DBSync : testing::TestWithParam<std::pair<std::string, size_t>>
 
 TEST_P(DBSync, StaticFDBSync)
 {
-    std::string arch;
-    size_t num_cu;
-    std::tie(arch, num_cu) = GetParam();
-    StaticFDBSync(arch, num_cu);
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_DBSYNC)))
+    {
+        std::string arch;
+        size_t num_cu;
+        std::tie(arch, num_cu) = GetParam();
+        StaticFDBSync(arch, num_cu);
+    }
 }
 
 INSTANTIATE_TEST_SUITE_P(DBSyncSuite,

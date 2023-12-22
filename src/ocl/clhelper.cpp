@@ -45,7 +45,7 @@
 #include <string>
 #include <vector>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
 
 namespace miopen {
 
@@ -154,26 +154,17 @@ ClProgramPtr LoadProgram(cl_context ctx,
                          const TargetProperties& target,
                          const std::string& program,
                          std::string params,
-                         bool is_kernel_str,
                          const std::string& kernel_src)
 {
     std::string source;
     std::string program_name;
 
-    if(is_kernel_str)
-    {
-        source       = program;
-        program_name = "(unknown)";
-    }
+    program_name = program;
+    // For mlir build, leave both source and kernel_src to be empty
+    if((kernel_src.empty()) && !(miopen::EndsWith(program_name, ".mlir")))
+        source = miopen::GetKernelSrc(program_name);
     else
-    {
-        program_name = program;
-        // For mlir build, leave both source and kernel_src to be empty
-        if((kernel_src.empty()) && !(miopen::EndsWith(program_name, ".mlir")))
-            source = miopen::GetKernelSrc(program_name);
-        else
-            source = kernel_src;
-    }
+        source = kernel_src;
 
     bool load_binary = false;
     if(miopen::EndsWith(program_name, ".s"))
@@ -211,12 +202,12 @@ ClProgramPtr LoadProgram(cl_context ctx,
     else // OpenCL programs.
     {
         ClProgramPtr result{CreateProgram(ctx, source.data(), source.size())};
-        if(miopen::IsEnabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP{}))
+        if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)))
             params += " -Wf,-mwavefrontsize64 -Wf,-mcumode";
 #if MIOPEN_BUILD_DEV
         params += " -Werror";
 #ifdef __linux__
-        params += is_kernel_str ? MiopengemmWarningsString() : OclKernelWarningsString();
+        params += OclKernelWarningsString();
 #endif
 #endif
         params += " -cl-std=CL1.2";

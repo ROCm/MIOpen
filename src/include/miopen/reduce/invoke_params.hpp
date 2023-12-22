@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,36 +24,32 @@
  *
  *******************************************************************************/
 
-#include <miopen/config.h>
-#include <miopen/solver/gemm_common.hpp>
+#pragma once
 
-#include <tuple> // std::ignore
-
-/// This W/A disables all GEMM convolution solvers for xDLOPs
-/// targets when MIOpenGEMM is used (OCL BE). More info at
-/// https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1315.
-///
-/// W/A affects ROCm releases starting from 4.5 and also
-/// pre-5.0 Mainline HIP builds, e.g. 9148.
-#define WORKAROUND_ISSUE_1315 (MIOPEN_USE_MIOPENGEMM && (HIP_PACKAGE_VERSION_FLAT >= 4004000000ULL))
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
-namespace solver {
-namespace conv {
-namespace gemm {
+namespace reduce {
 
-bool IsWorkaroundIssue1315(const miopen::ExecutionContext& ctx)
+struct InvokeParams : public miopen::InvokeParams
 {
-#if WORKAROUND_ISSUE_1315
-    const auto device = ctx.GetStream().GetTargetProperties().Name();
-    return (device == "gfx908") || (device == "gfx90a");
-#else
-    std::ignore = ctx;
-    return false;
-#endif
-}
+    InvokeParams() = default;
 
-} // namespace gemm
-} // namespace conv
-} // namespace solver
+    const TensorDescriptor* xDesc = nullptr;
+    const TensorDescriptor* yDesc = nullptr;
+
+    ConstData_t x                            = nullptr;
+    Data_t y                                 = nullptr;
+    Data_t workspace                         = nullptr;
+    std::size_t workspace_size               = 0;
+    int32_t dim                              = 0;
+    miopenSumNanPropagation_t nanPropagation = MIOPEN_SUM_NOT_PROPAGATE_NAN;
+
+    std::size_t GetWorkspaceSize() const { return workspace_size; }
+    Data_t GetWorkspace() const { return workspace; }
+};
+
+} // namespace reduce
+
 } // namespace miopen

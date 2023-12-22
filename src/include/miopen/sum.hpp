@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,40 +23,30 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_MIOPENGEMM_HPP_
-#define GUARD_MIOPEN_MIOPENGEMM_HPP_
+#ifndef MIOPEN_SUM_HPP_
+#define MIOPEN_SUM_HPP_
 
-#include <miopen/config.h>
-
-#if MIOPEN_USE_MIOPENGEMM
-#include <miopengemm/miogemm.hpp>
+#include <miopen/common.hpp>
 
 namespace miopen {
 
 struct Handle;
+struct TensorDescriptor;
 
-void AddMiopengemmSolution(const Handle& handle,
-                           const std::string& algorithm_name,
-                           const std::string& network_config,
-                           const MIOpenGEMM::Geometry& mgg,
-                           ConstData_t A,
-                           ConstData_t B,
-                           Data_t C,
-                           float time,
-                           bool enforce_determinism);
+std::size_t GetSumWorkspaceSize(Handle& handle,
+                                const TensorDescriptor& xDesc,
+                                const TensorDescriptor& yDesc,
+                                int32_t dim);
 
-void RunMiopengemmSolution(const Handle& handle,
-                           const decltype(handle.GetKernels("_", "_"))& kernels,
-                           float alpha,
-                           ConstData_t A,
-                           int a_offset,
-                           ConstData_t B,
-                           int b_offset,
-                           float beta,
-                           Data_t C,
-                           int c_offset);
+miopenStatus_t SumForward(Handle& handle,
+                          Data_t workspace,
+                          size_t workspaceSizeInBytes,
+                          const TensorDescriptor& xDesc,
+                          ConstData_t x,
+                          const TensorDescriptor& yDesc,
+                          Data_t y,
+                          miopenSumNanPropagation_t nanPropagation,
+                          int32_t dim);
 
 } // namespace miopen
-#endif // MIOPEN_USE_MIOPENGEMM
-
-#endif // GUARD_MIOPEN_MIOPENGEMM_HPP_
+#endif // _MIOPEN_SUM_HPP_
