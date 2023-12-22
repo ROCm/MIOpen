@@ -33,19 +33,37 @@
 
 namespace conv_bias_act_res_add_fwd {
 
-std::vector<Conv3DTestCase> ConvTestConfigs()
-{ //         g, n, c, d,  h,  w, k,  z, y, x, pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y
-  //         dia_z
-    return {{1, 1, 4, 14, 11, 1, 4, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 1, 1, 1, 4, 4, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 1, 1, 8, 8, 8, 1, 2, 2, 2, 0, 0, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 1, 1, 8, 8, 8, 1, 2, 2, 2, 0, 0, 0, 2, 2, 2, 1, 1, 1, miopenConvolution},
-            {2, 8, 8, 12, 14, 4, 4, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {4, 8, 8, 11, 11, 11, 16, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {6, 8, 18, 11, 11, 11, 18, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {8, 8, 8, 11, 11, 11, 8, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {4, 8, 4, 11, 11, 11, 8, 3, 4, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {2, 8, 2, 11, 11, 11, 2, 4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution}};
+void GatherFusedCBRAATestCases(std::vector<Conv3DTestCase>& fused_cbraa_test_cases)
+{
+    const auto dev_name = get_handle().GetDeviceName();
+
+    if(!miopen::StartsWith(dev_name, "gfx10") && !miopen::StartsWith(dev_name, "gfx11"))
+    {
+        // clang-format off
+        //       g, n, c, d,  h,  w, k,  z, y, x, pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
+        fused_cbraa_test_cases.push_back(Conv3DTestCase{1, 1, 4, 14, 11, 1, 4, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution});
+        fused_cbraa_test_cases.push_back(Conv3DTestCase{1, 1, 1, 1, 4, 4, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution});
+        fused_cbraa_test_cases.push_back(Conv3DTestCase{1, 1, 1, 8, 8, 8, 1, 2, 2, 2, 0, 0, 0, 1, 1, 1, 1, 1, 1, miopenConvolution});
+        fused_cbraa_test_cases.push_back(Conv3DTestCase{1, 1, 1, 8, 8, 8, 1, 2, 2, 2, 0, 0, 0, 2, 2, 2, 1, 1, 1, miopenConvolution});
+        fused_cbraa_test_cases.push_back(Conv3DTestCase{2, 8, 8, 12, 14, 4, 4, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution});
+        fused_cbraa_test_cases.push_back(Conv3DTestCase{4, 8, 8, 11, 11, 11, 16, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution});
+        fused_cbraa_test_cases.push_back(Conv3DTestCase{6, 8, 18, 11, 11, 11, 18, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution});
+        fused_cbraa_test_cases.push_back(Conv3DTestCase{8, 8, 8, 11, 11, 11, 8, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution});
+        fused_cbraa_test_cases.push_back(Conv3DTestCase{4, 8, 4, 11, 11, 11, 8, 3, 4, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution});
+        fused_cbraa_test_cases.push_back(Conv3DTestCase{2, 8, 2, 11, 11, 11, 2, 4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution});
+        // clang-format on
+    }
+    else
+    {
+        GTEST_SKIP() << " Skipping fusion test on unsupported ASIC";
+    }
+}
+
+std::vector<Conv3DTestCase> FusedCBRAATestConfigs()
+{
+    std::vector<Conv3DTestCase> fused_cbraa_test_cases;
+    GatherFusedCBRAATestCases(fused_cbraa_test_cases);
+    return fused_cbraa_test_cases;
 }
 
 template <typename T = float>
@@ -188,7 +206,7 @@ TEST_P(ConvFwdBiasResAddActivTest, ConvFusedAPI)
 INSTANTIATE_TEST_SUITE_P(ConvFwdBiasActivAPI,
                          ConvFwdBiasResAddActivTest,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
-                                          testing::ValuesIn(ConvTestConfigs()),
+                                          testing::ValuesIn(FusedCBRAATestConfigs()),
                                           testing::ValuesIn({1.0f, 2.0f}), // alpha1
                                           testing::ValuesIn({1.0f, 2.0f}), // alpha2
                                           testing::Values(miopenTensorNDHWC)));
