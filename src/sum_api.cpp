@@ -89,7 +89,7 @@ extern "C" miopenStatus_t miopenGetSumWorkspaceSize(miopenHandle_t handle,
                                                     size_t* sizeInBytes)
 {
 
-    MIOPEN_LOG_FUNCTION(handle, xDesc, dim, yDesc, sizeInBytes);
+    MIOPEN_LOG_FUNCTION(handle, xDesc, dim, yDesc);
 
     return miopen::try_([&] {
         miopen::deref(sizeInBytes) = miopen::GetSumWorkspaceSize(
