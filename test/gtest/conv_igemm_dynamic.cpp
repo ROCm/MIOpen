@@ -113,7 +113,7 @@ using TestCase = decltype(GetTestCases())::value_type;
 
 bool SkipTest() { return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)); }
 
-class Conv2dFloat : public FloatTestCase<std::vector<TestCase>>
+class Conv2dFloatDynamic : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
@@ -127,11 +127,11 @@ bool IsTestSupportedForDevice()
 } // namespace conv_igemm_dynamic
 using namespace conv_igemm_dynamic;
 
-TEST_P(Conv2dFloat, FloatTest_conv_igemm_dynamic)
+TEST_P(Conv2dFloatDynamic, FloatTest_conv_igemm_dynamic)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dFloat>(default_check);
+        invoke_with_params<conv2d_driver, Conv2dFloatDynamic>(default_check);
     }
     else
     {
@@ -139,4 +139,4 @@ TEST_P(Conv2dFloat, FloatTest_conv_igemm_dynamic)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamic, Conv2dFloat, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamic, Conv2dFloatDynamic, testing::Values(GetTestCases()));
