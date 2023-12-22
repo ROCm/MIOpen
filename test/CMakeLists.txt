@@ -68,6 +68,7 @@ option( MIOPEN_TEST_CONV "" OFF)
 option( MIOPEN_TEST_DEEPBENCH "" OFF)
 option( MIOPEN_TEST_DRIVER_ITER_MODE "" OFF)
 option( MIOPEN_TEST_COMPOSABLEKERNEL "Test with composable_kernel library" ${MIOPEN_USE_COMPOSABLEKERNEL} )
+option( MIOPEN_TEST_DISCRETE "Build Discrete Test Binaries" ON)
 
 set_var_to_condition(MIOPEN_TEST_WITH_MIOPENDRIVER_DEFAULT MIOPEN_BUILD_DRIVER)
 option( MIOPEN_TEST_WITH_MIOPENDRIVER "Use MIOpenDriver in tests" ${MIOPEN_TEST_WITH_MIOPENDRIVER_DEFAULT})
@@ -673,20 +674,6 @@ function(add_custom_test NAME)
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
     endif()
 endfunction()
-if(${CODECOV_TEST})
-    add_custom_test(test_conv3d_codecov
-        COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 4 4 4 4 --weights 2 4 1 1 1 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    )
-    add_custom_test(test_immed_conv2d_codecov
-        COMMAND $<TARGET_FILE:test_immed_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input  2 2 14 14 --weights 8 2 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    )
-    add_custom_test(test_immed_conv3d_codecov
-        COMMAND $<TARGET_FILE:test_immed_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 4 4 4 4 --weights 2 4 3 3 3 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    )
-    add_custom_test(test_pooling2d_codecov
-        COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --input 1, 192, 28, 28 --lens 2 2 --strides 2 2 --pads 0 0 ${MIOPEN_TEST_FLAGS_ARGS}
-    )
-endif()
 
 if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
     add_custom_test(test_miopendriver_regression_issue_1576 SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED HALF_ENABLED
@@ -775,14 +762,6 @@ set(IMPLICITGEMM_MLIR_ENV_W ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY
 set(TEST_CONV_VERBOSE_F ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-backward-data --disable-backward-weights)
 set(TEST_CONV_VERBOSE_B ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-forward --disable-backward-weights)
 set(TEST_CONV_VERBOSE_W ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-forward --disable-backward-data)
-
-add_custom_test(test_pooling2d_asymmetric SKIP_UNLESS_ALL HALF_ENABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
-    COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --all --dataset 1 --limit 0 ${MIOPEN_TEST_FLAGS_ARGS}
-)
-
-add_custom_test(test_pooling2d_wide SKIP_UNLESS_ALL HALF_ENABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
-    COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --all --dataset 2 --limit 0 ${MIOPEN_TEST_FLAGS_ARGS}
-)
 
 set(IMPLICITGEMM_MLIR_ENV_F_XDLOPS ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvMlirIgemmFwdXdlops)
 set(IMPLICITGEMM_MLIR_ENV_B_XDLOPS ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvMlirIgemmBwdXdlops)
@@ -1663,6 +1642,12 @@ add_custom_test(test_regression_issue_1206 SKIP_UNLESS_ALL GFX900_DISABLED GFX90
     # Regression test for SWDEV-305815 (issue 1206)
     ENVIRONMENT ${IMPLICITGEMM_TESTING_ENV} MIOPEN_LOG_LEVEL=5
     COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 32 256 38 38 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+)
+
+add_custom_test(test_regression_issue_2624 SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED
+    # Regression test for SWDEV-433714 (issue 2624)
+    ENVIRONMENT ${IMPLICITGEMM_TESTING_ENV} MIOPEN_LOG_LEVEL=5
+    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 2 1 22 22 --weights 1 1 4 4 --pads_strides_dilations 1 2 4 4 3 2 --disable-backward-data --disable-backward-weights
 )
 
 # MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW is explicitly enabled due to the kernel is disabled by default via #2306
