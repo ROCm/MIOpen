@@ -30,11 +30,10 @@
 
 #include <hip/hip_bfloat16.h>
 
-/// \todo miopen_limits.hpp
-#include <limits>
-
 #define MIOPEN_ENABLE_F8_DEVICE_CODE 1
 #include "hip_float8.hpp"
+
+#include "miopen_limits.hpp"
 
 struct Numerics
 {

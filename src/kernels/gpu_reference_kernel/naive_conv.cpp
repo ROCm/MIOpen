@@ -29,10 +29,7 @@
 #endif
 
 #include "miopen_cstdint.hpp"
-
-#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
-#include <limits> // std::numeric_limits
-#endif
+#include "miopen_limits.hpp"
 
 #include "stride_array.hpp"
 

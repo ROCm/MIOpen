@@ -32,11 +32,7 @@
 
 #include "miopen_cstdint.hpp"
 #include "miopen_type_traits.hpp"
-
-/// \todo miopen_limits.hpp
-#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
-#include <limits>
-#endif
+#include "miopen_limits.hpp"
 
 #define MIOPEN_ENABLE_F8_DEVICE_CODE 1
 #include "hip_float8.hpp"
