@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "conv3d_test_case.hpp"
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/solver_id.hpp>
@@ -31,6 +30,9 @@
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
 #include "f8_cast_util.hpp"
+#include "conv3d_test_case.hpp"
+
+namespace conv_f8_fwd {
 
 std::vector<Conv3DTestCase> ConvTestConfigs()
 { // g    n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
@@ -65,7 +67,7 @@ protected:
         weights.desc.SetCastType(miopenFloat8);
 
         miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
         output = tensor<T>{tensor_layout, output_desc.GetLengths()};
         std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
         auto&& handle = get_handle();
@@ -81,7 +83,7 @@ protected:
         auto&& handle = get_handle();
 
         miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
         ref_out        = tensor<T>{tensor_layout, output_desc.GetLengths()};
         using FI       = Fp8Cast<T, T>;
         using FW       = Fp8Cast<T, T>;
@@ -172,6 +174,9 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     (invoker)(handle, invoke_params);
     handle.Finish();
 }
+
+} // namespace conv_f8_fwd
+using namespace conv_f8_fwd;
 
 TEST_P(ConvFwdSolverTestF8, CKConvF8Fwd)
 {
