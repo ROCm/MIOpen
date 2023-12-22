@@ -55,7 +55,11 @@ struct BNTestCase
     std::vector<size_t> GetInput() const { return {N, C, H, W}; }
 };
 
-std::vector<BNTestCase> Network1()
+template <typename T>
+std::vector<T> Network1();
+
+template <>
+inline std::vector<BNTestCase> Network1()
 {
     // pyt_mlperf_resnet50v1.5
     return {
