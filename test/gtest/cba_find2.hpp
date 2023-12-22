@@ -45,11 +45,11 @@
 template <typename T = float>
 struct ConvBiasActivInferFind2Test
     : public ::testing::TestWithParam<
-          std::tuple<miopenActivationMode_t, ConvTestCase, miopenTensorLayout_t>>,
+          std::tuple<miopenActivationMode_t, ConvTestCaseBase, miopenTensorLayout_t>>,
       ConvFwdSolverTestBase<T>
 {
 protected:
-    ConvTestCase conv_config;
+    ConvTestCaseBase conv_config;
     miopen::ActivationDescriptor activ_desc;
     tensor<T> bias;
     miopen::Allocator::ManageDataPtr bias_dev;

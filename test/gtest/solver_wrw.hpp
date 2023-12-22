@@ -44,7 +44,7 @@
 
 template <typename T = float, typename Tref = float, bool use_cpu_ref = false>
 struct ConvWrwSolverTest
-    : public ::testing::TestWithParam<std::tuple<miopenConvFwdAlgorithm_t, ConvTestCase>>
+    : public ::testing::TestWithParam<std::tuple<miopenConvFwdAlgorithm_t, ConvTestCaseBase>>
 {
 
     template <typename Solver>
@@ -103,7 +103,7 @@ protected:
         conv_desc = conv_config.GetConv();
 
         miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
 
         output = tensor<T>{output_desc.GetLengths()};
         output.generate(GenData<T>{});
@@ -123,7 +123,7 @@ protected:
         auto&& handle = get_handle();
 
         miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
         ref_weights = tensor<Tref>{output_desc.GetLengths()};
         if(use_cpu_ref)
         {
@@ -167,7 +167,7 @@ protected:
         EXPECT_TRUE(error < threshold)
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
     }
-    ConvTestCase conv_config;
+    ConvTestCaseBase conv_config;
     miopen::ConvolutionDescriptor conv_desc;
     tensor<T> input;
     tensor<T> weights;

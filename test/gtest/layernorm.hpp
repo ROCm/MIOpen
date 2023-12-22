@@ -151,7 +151,7 @@ std::vector<LayerNormTestCase> LayerNormTestConfigs()
     // clang-format on
 }
 
-inline int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
+static int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
 {
     std::vector<std::size_t> lens = desc.GetLengths();
     std::vector<int32_t> int32_t_lens(lens.begin(), lens.end());
@@ -168,6 +168,7 @@ protected:
     {
         auto&& handle    = get_handle();
         layernorm_config = GetParam();
+
         std::mt19937 gen(0);
         std::uniform_real_distribution<> d{-3, 3};
         auto gen_value = [&](auto...) { return d(gen); };
