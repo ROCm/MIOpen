@@ -47,7 +47,6 @@ struct HIPOCProgram
     /// Other ctors only guarantee to initialize module.
     HIPOCProgram(const std::string& program_name,
                  std::string params,
-                 bool is_kernel_str,
                  const TargetProperties& target,
                  const std::string& kernel_src);
     HIPOCProgram(const std::string& program_name, const boost::filesystem::path& hsaco);

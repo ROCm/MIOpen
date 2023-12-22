@@ -91,8 +91,7 @@ option(BUILD_SHARED_LIBS "Create shared libraries" ON)
 
 if(MIOPEN_ENABLE_SQLITE)
     # MIOpen now depends on SQLite as well
-    find_package(PkgConfig)
-    pkg_check_modules(SQLITE3 REQUIRED sqlite3)
+    find_package(SQLite3 REQUIRED)
 endif()
 find_package(BZip2)
 find_package(nlohmann_json 3.9.1 REQUIRED)
@@ -112,7 +111,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 3.00.0)
+rocm_setup_version(VERSION 3.1.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -381,9 +380,7 @@ if(MIOPEN_USE_HIPRTC)
     if(NOT MIOPEN_USE_COMGR)
         message(FATAL_ERROR "HIPRTC can be used only together with COMGR")
     endif()
-    if(WIN32)
-        find_package(hiprtc REQUIRED)
-    endif()
+    find_package(hiprtc REQUIRED)
     message(STATUS "Build with HIPRTC")
 endif()
 
@@ -402,6 +399,11 @@ option(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY "Build with file/folder reorg wit
 
 set( MIOPEN_INSTALL_DIR miopen)
 set( DATA_INSTALL_DIR ${CMAKE_INSTALL_DATAROOTDIR}/miopen )
+
+if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
+    find_package(frugally-deep CONFIG REQUIRED)
+    find_package(Eigen3 REQUIRED)
+endif()
 
 set(MIOPEN_GPU_SYNC Off CACHE BOOL "")
 if(BUILD_DEV)
@@ -628,6 +630,19 @@ enable_cppcheck(
         knownConditionTrueFalse
         shadowFunction
         moduloofone
+        ###################################################################
+        # TODO Code Quality WORKAROUND ROCm 6.0 &&
+        # Ubuntu 22.04 && cppcheck 2.12.1 update
+        ###################################################################
+        duplInheritedMember
+        constParameterCallback
+        constParameterReference
+        constParameterPointer
+        constVariableReference
+        constVariablePointer
+        useStlAlgorithm
+        uselessOverride
+        unusedScopedObject   
     FORCE
     SOURCES
         addkernels/

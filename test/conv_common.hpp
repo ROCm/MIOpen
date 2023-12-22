@@ -25,6 +25,7 @@
  *******************************************************************************/
 #pragma once
 #include "test.hpp"
+#include "workspace.hpp"
 #include <array>
 #include <iostream>
 #include <iterator>
@@ -59,7 +60,7 @@
 #include "cpu_bias.hpp"
 #include "random.hpp"
 
-#define TEST_DIRECT_SUPPORTED_CONFIG_ONLY (!MIOPEN_USE_ROCBLAS && !MIOPEN_USE_MIOPENTENSILE)
+#define TEST_DIRECT_SUPPORTED_CONFIG_ONLY (!MIOPEN_USE_ROCBLAS)
 
 #define WORKAROUND_MI100_ROM37_HIP_COMPILER_CRASH \
     (HIP_PACKAGE_VERSION_MAJOR == 3 && HIP_PACKAGE_VERSION_MINOR == 7)
@@ -330,13 +331,11 @@ protected:
             EXPECT_EQUAL(miopenStatusSuccess,
                          miopenGetSolutionWorkspaceSize(solution, &workspace_size));
 
-            const auto workspace_dev = workspace_size != 0
-                                           ? get_handle().Write(std::vector<char>(workspace_size))
-                                           : nullptr;
+            Workspace wspace{workspace_size};
 
-            EXPECT_EQUAL(miopenStatusSuccess,
-                         miopenRunSolution(
-                             handle, solution, 3, arguments, workspace_dev.get(), workspace_size));
+            EXPECT_EQUAL(
+                miopenStatusSuccess,
+                miopenRunSolution(handle, solution, 3, arguments, wspace.ptr(), wspace.size()));
         }
 
         const auto& solution_deref = miopen::deref(solutions.front());
@@ -596,19 +595,6 @@ struct verify_forward_conv : conv_base<T, Tout>
         return rout;
     }
 
-    void resize_workspace(miopen::Handle& h,
-                          const std::size_t sz,
-                          std::vector<char>& ws,
-                          miopen::Allocator::ManageDataPtr& ws_dev) const
-    {
-        ws_dev.reset();
-        if(sz > 0)
-        {
-            ws.resize(sz);
-            ws_dev = h.Write(ws);
-        }
-    }
-
     tensor<Tout> gpu()
     {
         auto&& handle = get_handle();
@@ -629,8 +615,7 @@ struct verify_forward_conv : conv_base<T, Tout>
         bool fallback_path_taken      = false;
         std::size_t count             = 0;
 
-        std::vector<char> ws;
-        miopen::Allocator::ManageDataPtr ws_dev = nullptr;
+        Workspace wspace{};
 
         const auto ctx     = ExecutionContext{&handle};
         const auto problem = ConvProblemDescription{
@@ -649,8 +634,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                 {
                     int ret_algo_count;
                     miopenConvAlgoPerf_t perf;
-                    const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
-                    resize_workspace(handle, workspace_size, ws, ws_dev);
+                    wspace.resize(filter.GetWorkSpaceSize(ctx, problem));
 
                     filter.FindConvBwdDataAlgorithm(handle,
                                                     input.desc,
@@ -662,8 +646,8 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                     1,
                                                     &ret_algo_count,
                                                     &perf,
-                                                    ws_dev.get(),
-                                                    workspace_size,
+                                                    wspace.ptr(),
+                                                    wspace.size(),
                                                     search);
                 }
                 count = filter.GetSolutionCount(ctx, problem);
@@ -696,7 +680,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                                   << " != " << ws_size << std::endl;
                     }
                 }
-                resize_workspace(handle, selected.workspace_size, ws, ws_dev);
+                wspace.resize(selected.workspace_size);
 
                 filter.CompileSolution(ctx, problem, selected.solution_id);
 
@@ -707,8 +691,8 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                     wei_dev.get(),
                                                     rout.desc,
                                                     out_dev.get(),
-                                                    ws_dev.get(),
-                                                    selected.workspace_size,
+                                                    wspace.ptr(),
+                                                    wspace.size(),
                                                     selected.solution_id);
             }
             else
@@ -717,8 +701,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                 {
                     int ret_algo_count;
                     miopenConvAlgoPerf_t perf;
-                    const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
-                    resize_workspace(handle, workspace_size, ws, ws_dev);
+                    wspace.resize(filter.GetWorkSpaceSize(ctx, problem));
 
                     filter.FindConvFwdAlgorithm(handle,
                                                 input.desc,
@@ -730,8 +713,8 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                 1,
                                                 &ret_algo_count,
                                                 &perf,
-                                                ws_dev.get(),
-                                                workspace_size,
+                                                wspace.ptr(),
+                                                wspace.size(),
                                                 search);
                 }
 
@@ -765,7 +748,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                                   << " != " << ws_size << std::endl;
                     }
                 }
-                resize_workspace(handle, selected.workspace_size, ws, ws_dev);
+                wspace.resize(selected.workspace_size);
 
                 filter.CompileSolution(ctx, problem, selected.solution_id);
 
@@ -776,8 +759,8 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                    in_dev.get(),
                                                    rout.desc,
                                                    out_dev.get(),
-                                                   ws_dev.get(),
-                                                   selected.workspace_size,
+                                                   wspace.ptr(),
+                                                   wspace.size(),
                                                    selected.solution_id);
             }
             break;
@@ -832,9 +815,7 @@ struct verify_forward_conv : conv_base<T, Tout>
 
                 if(api == ConvApi::Find_1_0)
                 {
-                    const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
-                    std::vector<char> workspace(workspace_size);
-                    auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
+                    wspace.resize(filter.GetWorkSpaceSize(ctx, problem));
 
                     int ret_algo_count;
                     miopenConvAlgoPerf_t perf;
@@ -851,15 +832,13 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                 1,
                                                 &ret_algo_count,
                                                 &perf,
-                                                workspace_dev.get(),
-                                                workspace_size,
+                                                wspace.ptr(),
+                                                wspace.size(),
                                                 search);
 
-                    workspace_dev.reset();
                     if(perf.memory > 0)
                     {
-                        workspace.resize(perf.memory);
-                        workspace_dev = handle.Write(workspace);
+                        wspace.resize(perf.memory);
                     }
 
                     filter.ConvolutionForward(handle,
@@ -872,8 +851,8 @@ struct verify_forward_conv : conv_base<T, Tout>
                                               &beta,
                                               rout.desc,
                                               out_dev.get(),
-                                              workspace_dev.get(),
-                                              workspace_size);
+                                              wspace.ptr(),
+                                              wspace.size());
 
                     /// \ref read_solver_name
                     auto solutions = filter.GetSolutions(ctx, problem, 1, &fallback_path_taken);
@@ -904,9 +883,7 @@ struct verify_forward_conv : conv_base<T, Tout>
             {
                 if(api == ConvApi::Find_1_0)
                 {
-                    const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
-                    std::vector<char> workspace(workspace_size);
-                    auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
+                    wspace.resize(filter.GetWorkSpaceSize(ctx, problem));
 
                     int ret_algo_count;
                     miopenConvAlgoPerf_t perf;
@@ -925,15 +902,13 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                         1,
                                                         &ret_algo_count,
                                                         &perf,
-                                                        workspace_dev.get(),
-                                                        workspace_size,
+                                                        wspace.ptr(),
+                                                        wspace.size(),
                                                         search);
 
-                        workspace_dev.reset();
                         if(perf.memory > 0)
                         {
-                            workspace.resize(perf.memory);
-                            workspace_dev = handle.Write(workspace);
+                            wspace.resize(perf.memory);
                         }
 
                         filter.ConvolutionBackwardData(handle,
@@ -946,8 +921,8 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                        &beta,
                                                        rout.desc,
                                                        out_dev.get(),
-                                                       workspace_dev.get(),
-                                                       workspace_size);
+                                                       wspace.ptr(),
+                                                       wspace.size());
                     }
                     else
                     {
@@ -961,15 +936,13 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                     1,
                                                     &ret_algo_count,
                                                     &perf,
-                                                    workspace_dev.get(),
-                                                    workspace_size,
+                                                    wspace.ptr(),
+                                                    wspace.size(),
                                                     search);
 
-                        workspace_dev.reset();
                         if(perf.memory > 0)
                         {
-                            workspace.resize(perf.memory);
-                            workspace_dev = handle.Write(workspace);
+                            wspace.resize(perf.memory);
                         }
 
                         filter.ConvolutionForward(handle,
@@ -982,8 +955,8 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                   &beta,
                                                   rout.desc,
                                                   out_dev.get(),
-                                                  workspace_dev.get(),
-                                                  workspace_size);
+                                                  wspace.ptr(),
+                                                  wspace.size());
                     }
 
                     /// \ref read_solver_name
@@ -1118,6 +1091,8 @@ struct verify_backward_conv : conv_base<T>
         auto wei_dev = handle.Write(weights.data);
         auto in_dev  = handle.Write(rinput.data);
 
+        Workspace wspace{};
+
         miopenConvSolution_t selected;
         bool fallback_path_taken = false;
         std::size_t count        = 0;
@@ -1133,9 +1108,7 @@ struct verify_backward_conv : conv_base<T>
         switch(api)
         {
         case ConvApi::Immediate: {
-            const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
-            std::vector<char> workspace(workspace_size);
-            auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
+            wspace.resize(filter.GetWorkSpaceSize(ctx, problem));
 
             int ret_algo_count;
             miopenConvAlgoPerf_t perf;
@@ -1154,8 +1127,8 @@ struct verify_backward_conv : conv_base<T>
                                                 1,
                                                 &ret_algo_count,
                                                 &perf,
-                                                workspace_dev.get(),
-                                                workspace_size,
+                                                wspace.ptr(),
+                                                wspace.size(),
                                                 search);
                 }
                 count = filter.GetSolutionCount(ctx, problem);
@@ -1183,18 +1156,14 @@ struct verify_backward_conv : conv_base<T>
                 });
                 selected = std::move(solutions.front());
 
-                std::size_t ws_size;
-
-                ws_size = filter.GetForwardSolutionWorkspaceSize(
+                [[maybe_unused]] std::size_t ws_size = filter.GetForwardSolutionWorkspaceSize(
                     handle, weights.desc, out.desc, rinput.desc, selected.solution_id);
 
                 filter.CompileSolution(ctx, problem, selected.solution_id);
 
-                workspace_dev.reset();
                 if(selected.workspace_size > 0)
                 {
-                    workspace.resize(selected.workspace_size);
-                    workspace_dev = handle.Write(workspace);
+                    wspace.resize(selected.workspace_size);
                 }
 
                 filter.ConvolutionForwardImmediate(handle,
@@ -1204,8 +1173,8 @@ struct verify_backward_conv : conv_base<T>
                                                    out_dev.get(),
                                                    rinput.desc,
                                                    in_dev.get(),
-                                                   workspace_dev.get(),
-                                                   ws_size,
+                                                   wspace.ptr(),
+                                                   wspace.size(),
                                                    selected.solution_id);
             }
             else
@@ -1222,8 +1191,8 @@ struct verify_backward_conv : conv_base<T>
                                                     1,
                                                     &ret_algo_count,
                                                     &perf,
-                                                    workspace_dev.get(),
-                                                    workspace_size,
+                                                    wspace.ptr(),
+                                                    wspace.size(),
                                                     search);
                 }
                 count = filter.GetSolutionCount(ctx, problem);
@@ -1250,18 +1219,14 @@ struct verify_backward_conv : conv_base<T>
                 });
                 selected = std::move(solutions.front());
 
-                std::size_t ws_size;
-
-                ws_size = filter.GetBackwardSolutionWorkspaceSize(
+                [[maybe_unused]] std::size_t ws_size = filter.GetBackwardSolutionWorkspaceSize(
                     handle, out.desc, weights.desc, rinput.desc, selected.solution_id);
 
                 filter.CompileSolution(ctx, problem, selected.solution_id);
 
-                workspace_dev.reset();
                 if(selected.workspace_size > 0)
                 {
-                    workspace.resize(selected.workspace_size);
-                    workspace_dev = handle.Write(workspace);
+                    wspace.resize(selected.workspace_size);
                 }
 
                 filter.ConvolutionBackwardImmediate(handle,
@@ -1271,16 +1236,14 @@ struct verify_backward_conv : conv_base<T>
                                                     wei_dev.get(),
                                                     rinput.desc,
                                                     in_dev.get(),
-                                                    workspace_dev.get(),
-                                                    ws_size,
+                                                    wspace.ptr(),
+                                                    wspace.size(),
                                                     selected.solution_id);
             }
             break;
         }
         case ConvApi::Find_1_0: {
-            const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
-            std::vector<char> workspace(workspace_size);
-            auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
+            wspace.resize(filter.GetWorkSpaceSize(ctx, problem));
 
             int ret_algo_count;
             miopenConvAlgoPerf_t perf;
@@ -1299,15 +1262,13 @@ struct verify_backward_conv : conv_base<T>
                                             1,
                                             &ret_algo_count,
                                             &perf,
-                                            workspace_dev.get(),
-                                            workspace_size,
+                                            wspace.ptr(),
+                                            wspace.size(),
                                             search);
 
-                workspace_dev.reset();
                 if(perf.memory > 0)
                 {
-                    workspace.resize(perf.memory);
-                    workspace_dev = handle.Write(workspace);
+                    wspace.resize(perf.memory);
                 }
 
                 filter.ConvolutionForward(handle,
@@ -1320,8 +1281,8 @@ struct verify_backward_conv : conv_base<T>
                                           &beta,
                                           rinput.desc,
                                           in_dev.get(),
-                                          workspace_dev.get(),
-                                          workspace_size);
+                                          wspace.ptr(),
+                                          wspace.size());
             }
             else
             {
@@ -1335,15 +1296,13 @@ struct verify_backward_conv : conv_base<T>
                                                 1,
                                                 &ret_algo_count,
                                                 &perf,
-                                                workspace_dev.get(),
-                                                workspace_size,
+                                                wspace.ptr(),
+                                                wspace.size(),
                                                 search);
 
-                workspace_dev.reset();
                 if(perf.memory > 0)
                 {
-                    workspace.resize(perf.memory);
-                    workspace_dev = handle.Write(workspace);
+                    wspace.resize(perf.memory);
                 }
 
                 filter.ConvolutionBackwardData(handle,
@@ -1356,8 +1315,8 @@ struct verify_backward_conv : conv_base<T>
                                                &beta,
                                                rinput.desc,
                                                in_dev.get(),
-                                               workspace_dev.get(),
-                                               workspace_size);
+                                               wspace.ptr(),
+                                               wspace.size());
             }
 
             /// \ref read_solver_name
@@ -1487,6 +1446,7 @@ struct verify_backward_weights_conv : conv_base<T>
         auto out_dev = handle.Write(out.data);
         auto wei_dev = handle.Write(rweights.data);
         auto in_dev  = handle.Write(input.data);
+        Workspace wspace{};
 
         miopenConvSolution_t selected;
         bool fallback_path_taken = false;
@@ -1503,9 +1463,7 @@ struct verify_backward_weights_conv : conv_base<T>
         switch(api)
         {
         case ConvApi::Immediate: {
-            const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
-            std::vector<char> workspace(workspace_size);
-            auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
+            wspace.resize(filter.GetWorkSpaceSize(ctx, problem));
 
             int ret_algo_count;
             miopenConvAlgoPerf_t perf;
@@ -1523,8 +1481,8 @@ struct verify_backward_weights_conv : conv_base<T>
                     1,
                     &ret_algo_count,
                     &perf,
-                    workspace_dev.get(),
-                    workspace_size,
+                    wspace.ptr(),
+                    wspace.size(),
                     search);
             }
 
@@ -1551,9 +1509,7 @@ struct verify_backward_weights_conv : conv_base<T>
             });
             selected = std::move(solutions.front());
 
-            std::size_t ws_size;
-
-            ws_size = filter.GetWrwSolutionWorkspaceSize(
+            [[maybe_unused]] std::size_t ws_size = filter.GetWrwSolutionWorkspaceSize(
                 handle,
                 filter.mode == miopenTranspose ? input.desc : out.desc,
                 filter.mode == miopenTranspose ? out.desc : input.desc,
@@ -1562,11 +1518,9 @@ struct verify_backward_weights_conv : conv_base<T>
 
             filter.CompileSolution(ctx, problem, selected.solution_id);
 
-            workspace_dev.reset();
             if(selected.workspace_size > 0)
             {
-                workspace.resize(selected.workspace_size);
-                workspace_dev = handle.Write(workspace);
+                wspace.resize(selected.workspace_size);
             }
 
             filter.ConvolutionWrwImmediate(
@@ -1577,16 +1531,14 @@ struct verify_backward_weights_conv : conv_base<T>
                 filter.mode == miopenTranspose ? out_dev.get() : in_dev.get(),
                 rweights.desc,
                 wei_dev.get(),
-                workspace_dev.get(),
-                ws_size,
+                wspace.ptr(),
+                wspace.size(),
                 selected.solution_id);
             break;
         }
         case ConvApi::Find_1_0: {
 
-            const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
-            std::vector<char> workspace(workspace_size);
-            auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
+            wspace.resize(filter.GetWorkSpaceSize(ctx, problem));
 
             int ret_algo_count;
             miopenConvAlgoPerf_t perf;
@@ -1603,15 +1555,13 @@ struct verify_backward_weights_conv : conv_base<T>
                 1,
                 &ret_algo_count,
                 &perf,
-                workspace_dev.get(),
-                workspace_size,
+                wspace.ptr(),
+                wspace.size(),
                 search);
 
-            workspace_dev.reset();
             if(perf.memory > 0)
             {
-                workspace.resize(perf.memory);
-                workspace_dev = handle.Write(workspace);
+                wspace.resize(perf.memory);
             }
 
             filter.ConvolutionBackwardWeights(
@@ -1625,8 +1575,8 @@ struct verify_backward_weights_conv : conv_base<T>
                 &beta,
                 rweights.desc,
                 wei_dev.get(),
-                workspace_dev.get(),
-                workspace_size);
+                wspace.ptr(),
+                wspace.size());
 
             /// \ref read_solver_name
             const auto solutions = filter.GetSolutions(ctx, problem, 1, &fallback_path_taken);
@@ -1778,9 +1728,7 @@ struct verify_forward_conv_int8 : conv_base<T>
                                     wei_vpad_dev.get());
         }
 
-        const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
-        std::vector<char> workspace(workspace_size);
-        auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
+        Workspace wspace{filter.GetWorkSpaceSize(ctx, problem)};
 
         int ret_algo_count;
         miopenConvAlgoPerf_t perf;
@@ -1797,8 +1745,8 @@ struct verify_forward_conv_int8 : conv_base<T>
                                         1,
                                         &ret_algo_count,
                                         &perf,
-                                        workspace_dev.get(),
-                                        workspace_size,
+                                        wspace.ptr(),
+                                        wspace.size(),
                                         search);
         }
 
@@ -1826,9 +1774,7 @@ struct verify_forward_conv_int8 : conv_base<T>
         });
         auto selected = std::move(solutions.front());
 
-        std::size_t ws_size;
-
-        ws_size =
+        [[maybe_unused]] std::size_t ws_size =
             filter.GetForwardSolutionWorkspaceSize(handle,
                                                    (is_transform ? weight_vpad_desc : weights.desc),
                                                    (is_transform ? input_vpad_desc : input.desc),
@@ -1837,11 +1783,9 @@ struct verify_forward_conv_int8 : conv_base<T>
 
         filter.CompileSolution(ctx, problem, selected.solution_id);
 
-        workspace_dev.reset();
         if(selected.workspace_size > 0)
         {
-            workspace.resize(selected.workspace_size);
-            workspace_dev = handle.Write(workspace);
+            wspace.resize(selected.workspace_size);
         }
 
         filter.ConvolutionForwardImmediate(handle,
@@ -1851,8 +1795,8 @@ struct verify_forward_conv_int8 : conv_base<T>
                                            (is_transform ? in_vpad_dev.get() : in_dev.get()),
                                            rout.desc,
                                            out_dev.get(),
-                                           workspace_dev.get(),
-                                           ws_size,
+                                           wspace.ptr(),
+                                           wspace.size(),
                                            selected.solution_id);
 
         if(count != 0)
