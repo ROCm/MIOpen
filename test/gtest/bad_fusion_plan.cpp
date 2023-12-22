@@ -29,8 +29,11 @@
 
 #include "tensor_holder.hpp"
 #include "get_handle.hpp"
+#include "conv_test_base.hpp"
 
 #if MIOPEN_BACKEND_HIP
+
+namespace bad_fusion_plan {
 
 void setEnvironmentVariable(const std::string& name, const std::string& value)
 {
@@ -45,16 +48,7 @@ void setEnvironmentVariable(const std::string& name, const std::string& value)
     EXPECT_EQ(ret, 0);
 }
 
-template <typename T>
-miopenDataType_t GetDataType();
-
-template <>
-miopenDataType_t GetDataType<half_float::half>()
-{
-    return miopenHalf;
-}
-
-struct ConvTestCase
+struct ConvTestCaseFusion
 {
     size_t N;
     size_t C;
@@ -69,7 +63,7 @@ struct ConvTestCase
     size_t stride_y;
     size_t dilation_x;
     size_t dilation_y;
-    friend std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
+    friend std::ostream& operator<<(std::ostream& os, const ConvTestCaseFusion& tc)
     {
         return os << "(N: " << tc.N << " C:" << tc.C << " H:" << tc.H << " W:" << tc.W
                   << " k: " << tc.k << " y:" << tc.y << " x:" << tc.x << " pad_y:" << tc.pad_y
@@ -88,7 +82,7 @@ struct ConvTestCase
     }
 };
 
-const static ConvTestCase conv_config = {64, 64, 56, 56, 64, 3, 3, 1, 1, 1, 1, 1, 1};
+const static ConvTestCaseFusion conv_config = {64, 64, 56, 56, 64, 3, 3, 1, 1, 1, 1, 1, 1};
 
 template <typename Solver, typename T>
 class TestFusionPlan
@@ -171,6 +165,9 @@ private:
     const float activ_gamma = static_cast<double>(0.5f);
     bool skip_test;
 };
+
+} // namespace bad_fusion_plan
+using namespace bad_fusion_plan;
 
 TEST(TestFusionPlan, GoodFusionPlan)
 {

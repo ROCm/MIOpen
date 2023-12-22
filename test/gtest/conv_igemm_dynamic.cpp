@@ -28,12 +28,16 @@
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
-#include "../conv2d.hpp"
 #include "get_handle.hpp"
+#include "test_env.hpp"
+
+#include "../conv2d.hpp"
 
 using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
+
+namespace conv_igemm_dynamic {
 
 static bool SkipTest(void) { return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)); }
 
@@ -54,7 +58,7 @@ void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class Conv2dFloat : public testing::TestWithParam<std::vector<TestCase>>
+class Conv2dFloatDynamic : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -64,7 +68,7 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<TestCase> params;
     switch(prec)
     {
-    case miopenFloat: params = Conv2dFloat::GetParam(); break;
+    case miopenFloat: params = Conv2dFloatDynamic::GetParam(); break;
     case miopenHalf:
     case miopenInt8:
     case miopenBFloat16:
@@ -76,7 +80,7 @@ void Run2dDriver(miopenDataType_t prec)
                   "miopenDouble, miopenFloat8, miopenBFloat8 "
                   "data type not supported by conv_igemm_dynamic test";
 
-    default: params = Conv2dFloat::GetParam();
+    default: params = Conv2dFloatDynamic::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -105,19 +109,6 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
     else
         return false;
 }
-
-TEST_P(Conv2dFloat, FloatTest)
-{
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
-    {
-        Run2dDriver(miopenFloat);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
 
 std::vector<TestCase> GetTestCases(const std::string& precision)
 {
@@ -185,4 +176,22 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
     return test_cases;
 }
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamic, Conv2dFloat, testing::Values(GetTestCases("--float")));
+} // namespace conv_igemm_dynamic
+using namespace conv_igemm_dynamic;
+
+TEST_P(Conv2dFloatDynamic, FloatTest_conv_igemm_dynamic)
+{
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--float"))
+    {
+        Run2dDriver(miopenFloat);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamic,
+                         Conv2dFloatDynamic,
+                         testing::Values(GetTestCases("--float")));

@@ -32,27 +32,7 @@
 
 #include "../driver/tensor_driver.hpp"
 #include "conv_common.hpp"
-
-template <typename T>
-miopenDataType_t GetDataType();
-
-template <>
-miopenDataType_t GetDataType<float>()
-{
-    return miopenFloat;
-}
-
-template <>
-miopenDataType_t GetDataType<half_float::half>()
-{
-    return miopenHalf;
-}
-
-template <>
-miopenDataType_t GetDataType<int8_t>()
-{
-    return miopenInt8;
-}
+#include "conv_test_base.hpp"
 
 struct Conv3DTestCase
 {
