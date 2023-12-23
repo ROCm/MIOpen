@@ -82,8 +82,11 @@ struct not_finite_fn
     template <class T>
     bool operator()(T x) const
     {
-        using std::isfinite;
-        return not isfinite(x);
+        // The standard library from MSVC does not implement std::isfinite() for integer
+        // types - no additional overloads are provided. According to the documentation,
+        // integer types should be treaded as doubles.
+        // Refer to https://en.cppreference.com/w/cpp/numeric/math/isfinite for more information.
+        return not std::isfinite(static_cast<double>(x));
     }
 };
 static constexpr not_finite_fn not_finite{};
