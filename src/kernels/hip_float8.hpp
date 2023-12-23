@@ -561,6 +561,7 @@ public:
 // Assume that if hipRTC is used, then we get <cmath> for F8
 // from the precompiled header.
 #else
+// NOLINTBEGIN(cert-dcl58-cpp)
 namespace std {
 inline bool isfinite(miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> x) // NOLINT
 {
@@ -583,8 +584,10 @@ inline bool isnan(miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> x) // NOLINT
 }
 
 } // namespace std
+  // NOLINTEND(cert-dcl58-cpp)
 #endif
 
+// NOLINTBEGIN(cert-dcl58-cpp)
 namespace std {
 
 template <typename T>
@@ -603,6 +606,7 @@ class numeric_limits<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>
 };
 
 } // namespace std
+// NOLINTEND(cert-dcl58-cpp)
 
 template <miopen_f8::hip_f8_type T>
 struct hip_f8x4
