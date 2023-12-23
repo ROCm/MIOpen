@@ -188,6 +188,7 @@ set( MIOpen_Source
     solver/conv_bin_winoRxS_fused.cpp
     solver/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
     solver/conv_ck_igemm_fwd_bias_activ_fused.cpp
+    solver/conv_ck_igemm_fwd_bias_res_add_activ_fused.cpp
     solver/conv_direct_naive_conv.cpp
     solver/conv_direct_naive_conv_bwd.cpp
     solver/conv_direct_naive_conv_fwd.cpp
@@ -237,7 +238,6 @@ set( MIOpen_Source
     solver/fft.cpp
     solver/gemm.cpp
     solver/gemm_bwd.cpp
-    solver/gemm_common.cpp
     solver/gemm_wrw.cpp
     solver/norm/forward_layernorm.cpp
     solver/norm/forward_layernorm2d_ck.cpp
@@ -769,7 +769,7 @@ elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     endif()
     if(ENABLE_HIP_WORKAROUNDS)
         # Workaround hip not setting its usage requirements correctly
-        target_compile_definitions( MIOpen PRIVATE -D__HIP_PLATFORM_HCC__=1 )
+        target_compile_definitions( MIOpen PRIVATE -D__HIP_PLATFORM_AMD__=1 )
     endif()
     # This is helpful for the tests
     target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:hip::device> )
@@ -828,12 +828,7 @@ endif()
 #######################################
 if(MIOPEN_ENABLE_SQLITE)
     # MIOpen depends on SQLite
-    target_include_directories(MIOpen SYSTEM PRIVATE ${SQLITE3_STATIC_INCLUDE_DIRS})
-    target_include_directories(MIOpen SYSTEM INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_INCLUDE_DIRS}>)
-    target_compile_options(MIOpen PRIVATE ${SQLITE3_STATIC_CFLAGS})
-    target_compile_options(MIOpen INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_CFLAGS}>)
-    target_link_libraries(MIOpen PRIVATE ${SQLITE3_STATIC_LDFLAGS})
-    target_link_libraries(MIOpen INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_LDFLAGS}>)
+    target_link_libraries(MIOpen PRIVATE SQLite::SQLite3)
 endif()
 ############################################################
 # MIOpen depends on librt for Boost.Interprocess

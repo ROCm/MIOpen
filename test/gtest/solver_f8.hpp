@@ -26,39 +26,26 @@
 #pragma once
 
 #include <gtest/gtest.h>
+#include <random>
 #include "cpu_conv.hpp"
 #include "get_handle.hpp"
 #include "tensor_util.hpp"
 #include <fusionHost.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include "conv_common.hpp"
-#include <miopen/hip_float8.hpp>
+#include "hip_float8.hpp"
 #include "verify.hpp"
-using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
-using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
 
-template <typename T>
-miopenDataType_t GetDataType();
+#include "conv_test_base.hpp"
+#include "f8_cast_util.hpp"
 
-template <>
-miopenDataType_t GetDataType<float8>()
+float scalar_gen_random_float(float low, float high)
 {
-    return miopenFloat8;
+    float r = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * (high + low) - low;
+    return r;
 }
 
-template <>
-miopenDataType_t GetDataType<bfloat8>()
-{
-    return miopenBFloat8;
-}
-
-template <>
-miopenDataType_t GetDataType<float>()
-{
-    return miopenFloat;
-}
-
-struct ConvTestCase
+struct ConvTestCaseF8
 {
     size_t N;
     size_t C;
@@ -74,7 +61,7 @@ struct ConvTestCase
     size_t dialtion_x;
     size_t dilation_y;
     miopenConvolutionMode_t conv_mode;
-    friend std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
+    friend std::ostream& operator<<(std::ostream& os, const ConvTestCaseF8& tc)
     {
         return os << "N: " << tc.N << " C:" << tc.C << " H:" << tc.H << " W:" << tc.W
                   << " k: " << tc.k << " y:" << tc.y << " x:" << tc.x << " pad_y:" << tc.pad_y
@@ -91,68 +78,9 @@ struct ConvTestCase
     }
 };
 
-std::vector<ConvTestCase> ConvTestConfigs()
-{           // n  c   h   w   k   y  x pad_x pad_y stri_x stri_y dia_x dia_y
-    return {// New tests begin
-            {1, 32, 4, 4, 16, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {2, 32, 4, 4, 16, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {4, 32, 4, 4, 16, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {8, 32, 4, 4, 16, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {16, 32, 4, 4, 16, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {16, 128, 16, 16, 128, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 128, 28, 28, 128, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 128, 64, 64, 64, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 128, 128, 64, 64, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 128, 128, 128, 64, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 128, 128, 128, 128, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 256, 128, 128, 128, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 256, 256, 128, 128, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 256, 256, 256, 128, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 256, 256, 256, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {128, 256, 256, 256, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {128, 256, 512, 256, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {128, 256, 512, 512, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {128, 256, 1024, 512, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {128, 256, 1024, 1024, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {128, 512, 1024, 1024, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {128, 512, 1024, 1024, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {128, 1024, 1024, 1024, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {128, 1024, 1024, 1024, 1024, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {256, 1024, 1024, 1024, 1024, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {1024, 1024, 1024, 1024, 1024, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {1024, 2048, 2048, 2048, 2048, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            // New tests end
-            {16, 128, 16, 16, 128, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 128, 28, 28, 128, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 256, 14, 14, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 512, 7, 7, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 1024, 14, 14, 1024, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution}};
-}
-
-template <typename U, typename V>
-struct Fp8Cast
-{
-    uint64_t seed = 1234;
-    bool is_stoch = true;
-    V operator()(U x)
-    {
-        if(is_stoch)
-        {
-            auto tmp =
-                float8(static_cast<float>(x), miopen_f8::hip_f8_rounding_mode::stochastic, seed);
-            return static_cast<V>(tmp);
-        }
-        else
-        {
-            auto tmp = float8(static_cast<float>(x));
-            return static_cast<V>(tmp);
-        }
-    }
-};
-
 template <typename T, typename Tout = T, typename Tacc = float>
-struct ConvFwdSolverTest
-    : public ::testing::TestWithParam<std::tuple<miopenConvFwdAlgorithm_t, ConvTestCase>>
+struct ConvFwdSolverTestF8
+    : public ::testing::TestWithParam<std::tuple<miopenConvFwdAlgorithm_t, ConvTestCaseF8>>
 {
 protected:
     void SetUp() override
@@ -163,7 +91,7 @@ protected:
         weights = tensor<T>{conv_config.k, conv_config.C, conv_config.y, conv_config.x};
 
         auto gen_fp8_value = [=](auto...) {
-            const auto tmp = float8(scalar_gen_random_float{-0.5, 0.5}());
+            const auto tmp = float8(scalar_gen_random_float(-0.5, 0.5));
             return tmp;
         };
 
@@ -173,7 +101,7 @@ protected:
         conv_desc = conv_config.GetConv();
 
         miopen::TensorDescriptor output_desc = conv_desc.GetForwardOutputTensor(
-            input.desc, weights.desc, GetDataType<Tout>()); // Tgpu Datatype?
+            input.desc, weights.desc, miopen_type<Tout>{}); // Tgpu Datatype?
 
         output = tensor<Tout>{output_desc.GetLengths()}; // half_float::half instead?
 
@@ -192,7 +120,7 @@ protected:
         auto&& handle = get_handle();
 
         miopen::TensorDescriptor output_desc = conv_desc.GetForwardOutputTensor(
-            input.desc, weights.desc, GetDataType<Tout>()); // miopenFloat or GetDataType<Tgpu>() ?
+            input.desc, weights.desc, miopen_type<Tout>{}); // miopenFloat or miopen_type<Tgpu>{} ?
         ref_out = tensor<Tout>{output_desc.GetLengths()};
 
         using FI       = Fp8Cast<T, T>;
@@ -249,7 +177,7 @@ protected:
         EXPECT_TRUE(error < threshold)
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
     }
-    ConvTestCase conv_config;
+    ConvTestCaseF8 conv_config;
     miopen::ConvolutionDescriptor conv_desc;
     tensor<T> input;
     tensor<T> weights;

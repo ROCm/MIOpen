@@ -91,8 +91,7 @@ option(BUILD_SHARED_LIBS "Create shared libraries" ON)
 
 if(MIOPEN_ENABLE_SQLITE)
     # MIOpen now depends on SQLite as well
-    find_package(PkgConfig)
-    pkg_check_modules(SQLITE3 REQUIRED sqlite3)
+    find_package(SQLite3 REQUIRED)
 endif()
 find_package(BZip2 REQUIRED)
 find_package(nlohmann_json 3.9.1 REQUIRED)
@@ -112,7 +111,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 3.00.0)
+rocm_setup_version(VERSION 3.1.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -626,6 +625,19 @@ enable_cppcheck(
         knownConditionTrueFalse
         shadowFunction
         moduloofone
+        ###################################################################
+        # TODO Code Quality WORKAROUND ROCm 6.0 &&
+        # Ubuntu 22.04 && cppcheck 2.12.1 update
+        ###################################################################
+        duplInheritedMember
+        constParameterCallback
+        constParameterReference
+        constParameterPointer
+        constVariableReference
+        constVariablePointer
+        useStlAlgorithm
+        uselessOverride
+        unusedScopedObject   
     FORCE
     SOURCES
         addkernels/

@@ -24,13 +24,17 @@
  *
  *******************************************************************************/
 
-#include "pooling2d.hpp"
-#include "get_handle.hpp"
-#include <miopen/env.hpp>
 #include <gtest/gtest.h>
+#include <miopen/env.hpp>
+#include "get_handle.hpp"
+#include "test_env.hpp"
+
+#include "pooling2d.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(CODECOV_TEST)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
+
+namespace pooling2d_codecov {
 
 static bool SkipTest(void) { return !miopen::IsEnabled(ENV(CODECOV_TEST)); }
 
@@ -42,14 +46,6 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
     while(begin != end)
         tokens.push_back(*begin++);
 }
-
-class Pooling2dFloat : public testing::TestWithParam<std::vector<std::string>>
-{
-};
-
-class Pooling2dHalf : public testing::TestWithParam<std::vector<std::string>>
-{
-};
 
 void Run2dDriver(miopenDataType_t prec)
 {
@@ -92,32 +88,6 @@ void Run2dDriver(miopenDataType_t prec)
 
 bool IsTestSupportedForDevice(const miopen::Handle& handle) { return true; }
 
-TEST_P(Pooling2dFloat, FloatTest)
-{
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
-    {
-        Run2dDriver(miopenFloat);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-TEST_P(Pooling2dHalf, HalfTest)
-{
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
-    {
-        Run2dDriver(miopenHalf);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
 std::vector<std::string> GetTestCases(const std::string& precision)
 {
     const auto& flag_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLAGS_ARGS));
@@ -130,6 +100,35 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
     return test_cases;
 }
+
+} // namespace pooling2d_codecov
+using namespace pooling2d_codecov;
+
+TEST_P(Pooling2dFloat, FloatTest_pooling2d_codecov)
+{
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--float"))
+    {
+        Run2dDriver(miopenFloat);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(Pooling2dHalf, HalfTest_pooling2d_codecov)
+{
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--half"))
+    {
+        Run2dDriver(miopenHalf);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
 INSTANTIATE_TEST_SUITE_P(Pooling2D, Pooling2dFloat, testing::Values(GetTestCases("--float")));
 
