@@ -25,7 +25,7 @@
  *******************************************************************************/
 #pragma once
 
-#ifdef WORKAROUND_ISSUE_HIPRTC_TRUE_TYPE
+#ifdef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 
 #include "miopen_type_traits.hpp" // std::remove_reference
 

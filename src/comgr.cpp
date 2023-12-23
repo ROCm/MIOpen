@@ -1292,7 +1292,6 @@ void BuildHip(const std::string& name,
         auto opts =
             miopen::SplitSpaceSeparated(options, miopen::comgr::compiler::lc::GetOptionsNoSplit());
         compiler::lc::RemoveOptionsUnwanted(opts);
-        opts.push_back("-DWORKAROUND_ISSUE_HIPRTC_TRUE_TYPE=1"); // Workaround for SWDEV-308073
 #if HIP_PACKAGE_VERSION_MAJOR < 6
         opts.push_back("-D__HIP_PLATFORM_HCC__=1"); // Workaround?
 #endif
