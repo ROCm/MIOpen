@@ -26,11 +26,6 @@
 #pragma once
 
 #ifdef WORKAROUND_ISSUE_HIPRTC_TRUE_TYPE
-/// We need <type_traits> for std::remove_reference and std::remove_cv.
-/// But <type_traits> also defines std::true_type, per Standard.
-/// However the latter definition conflicts with
-/// /opt/rocm/include/hip/amd_detail/amd_hip_vector_types.h,
-/// which defines std::true_type as well (which is wrong).
 
 namespace std {
 
