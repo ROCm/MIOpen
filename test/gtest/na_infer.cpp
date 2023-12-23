@@ -47,7 +47,6 @@ void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
     Solver solv{};
     const auto fusion_problem = miopen::FusionDescription{&fusePlanDesc};
     auto fusion_ctx           = miopen::FusionContext{handle};
-    fusion_ctx.DetectRocm();
     if(!solv.IsApplicable(fusion_ctx, fusion_problem))
     {
         test_skipped = true;
@@ -72,7 +71,7 @@ TEST_P(BNActivInferFloat, BnFwdInferActivationFused)
 INSTANTIATE_TEST_SUITE_P(BNActivInferFloatSuite,
                          BNActivInferFloat,
                          testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(Network1())));
+                                          testing::ValuesIn(Networkna1())));
 TEST_P(BNActivInferHalf, DISABLED_BnFwdInferActivationFused)
 {
     const auto plan_params = miopen::fusion::FusionInvokeParams(
@@ -84,4 +83,4 @@ TEST_P(BNActivInferHalf, DISABLED_BnFwdInferActivationFused)
 INSTANTIATE_TEST_SUITE_P(BNActivInferHalfSuite,
                          BNActivInferHalf,
                          testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(Network1())));
+                                          testing::ValuesIn(Networkna1())));

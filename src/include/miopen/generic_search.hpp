@@ -29,9 +29,9 @@
 
 #include <miopen/binary_cache.hpp>
 #include <miopen/config.h>
-#include <miopen/conv/context.hpp>
 #include <miopen/conv_solution.hpp>
 #include <miopen/env.hpp>
+#include <miopen/execution_context.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/invoke_params.hpp>
 #include <miopen/logger.hpp>
@@ -51,6 +51,19 @@
 
 namespace miopen {
 namespace solver {
+
+namespace debug {
+// This struct is not MT-safe, meaning one should use it before starting threads, thus avoiding
+// constructing it inside a worker thread.
+struct TuningIterationScopedLimiter
+{
+    TuningIterationScopedLimiter(std::size_t new_limit);
+    ~TuningIterationScopedLimiter();
+
+private:
+    std::optional<std::size_t> old_limit;
+};
+} // namespace debug
 
 /// This STL-like container together with corresponding iterator provide access
 /// to a set of all available performance configs for the given problem config.
@@ -121,9 +134,11 @@ public:
     bool operator!=(ComputedIterator const& other) const
     {
         if(p == other.p)
+        {
             if(p == nullptr // Ends are always equal.
                || v == other.v)
                 return false;
+        }
         return true;
     }
     bool operator==(ComputedIterator const& other) const { return !(*this != other); }
@@ -255,7 +270,7 @@ using RunAndMeasure_t =
                                                           std::declval<Top>(),
                                                           std::declval<ConstData_t>(),
                                                           std::declval<ConstData_t>(),
-                                                          std::declval<ConvolutionContext>(),
+                                                          std::declval<ExecutionContext>(),
                                                           std::declval<ConvSolution>(),
                                                           std::declval<float&>()));
 
@@ -336,7 +351,7 @@ void CompileAgent(size_t thread_index,
         {
             if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
                 continue;
-            std::ignore = profile_h.LoadProgram(kernel.kernel_file, kernel.comp_options, false, "");
+            std::ignore = profile_h.LoadProgram(kernel.kernel_file, kernel.comp_options, "");
         }
         auto tup = std::make_tuple<PerformanceConfig, ConvSolution, bool>(
             std::move(current_config), std::move(current_solution), false);
@@ -381,8 +396,25 @@ auto GenericSearch(const Solver s,
     std::random_device rd{};
     auto rng = std::default_random_engine{rd()};
     std::shuffle(all_configs.begin(), all_configs.end(), rng);
-    const std::size_t n_runs_total = std::min(all_configs.size(), GetTuningIterationsMax());
+    std::size_t n_runs_total = std::min(all_configs.size(), GetTuningIterationsMax());
     all_configs.resize(n_runs_total);
+
+    if(all_configs.empty())
+    {
+        const auto default_config = s.GetDefaultPerformanceConfig(context, problem);
+
+        if(default_config.IsValid(context, problem))
+        {
+            all_configs.emplace_back(default_config);
+            n_runs_total += 1;
+        }
+        else
+        {
+            const auto id = s.SolverDbId();
+            MIOPEN_THROW("Generic search has failed. Solver " + id +
+                         " cannot produce any valid configuration.");
+        }
+    }
 
     bool is_passed  = false; // left false only if all iterations failed.
     float best_time = std::numeric_limits<float>::max();
@@ -408,7 +440,7 @@ auto GenericSearch(const Solver s,
                                     std::ref(solution_queue));
     }
 
-    if(!IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
+    if(!IsEnabled(ENV(MIOPEN_DEBUG_COMPILE_ONLY)))
     {
         size_t n_current       = 0;
         auto threads_remaining = total_threads;
@@ -425,7 +457,9 @@ auto GenericSearch(const Solver s,
             {
                 threads_remaining--;
                 if(threads_remaining == 0)
+                {
                     break;
+                }
                 else
                 {
                     continue;

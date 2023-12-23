@@ -37,7 +37,11 @@
 
 #include <functional>
 #include <deque>
+#if !defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL)
+#include <half/half.hpp>
+#else
 #include <half.hpp>
+#endif
 #include <type_traits>
 #include <boost/filesystem.hpp>
 #include <miopen/functional.hpp>
@@ -61,11 +65,11 @@ struct tensor_elem_gen_checkboard_sign
     template <class... Ts>
     double operator()(Ts... Xs) const
     {
-        std::array<unsigned long, sizeof...(Ts)> dims = {{Xs...}};
+        std::array<uint64_t, sizeof...(Ts)> dims = {{Xs...}};
         return std::accumulate(dims.begin(),
                                dims.end(),
                                true,
-                               [](int init, unsigned long x) -> int { return init != (x % 2); })
+                               [](int init, uint64_t x) -> int { return init != (x % 2); })
                    ? 1
                    : -1;
     }
@@ -96,7 +100,7 @@ auto cpu_async(V& v, Ts&&... xs) -> std::future<decltype(v.cpu(xs...))>
     return std::async(std::launch::deferred, [&] { return v.cpu(xs...); });
 }
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_VERIFY_CACHE_PATH)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_VERIFY_CACHE_PATH)
 
 struct test_driver
 {
@@ -147,11 +151,11 @@ struct test_driver
 
     static std::string compute_cache_path()
     {
-        auto e = miopen::GetStringEnv(MIOPEN_VERIFY_CACHE_PATH{});
-        if(e == nullptr)
+        auto s = miopen::GetStringEnv(ENV(MIOPEN_VERIFY_CACHE_PATH));
+        if(s.empty())
             return "~/.cache/miopen/tests";
         else
-            return e;
+            return s;
     }
 
     std::string program_name;
@@ -270,11 +274,12 @@ struct test_driver
         {
         case miopenHalf: ss << "--half "; break;
         case miopenBFloat16: ss << "--bfloat16 "; break;
-        case miopenInt8x4:
         case miopenInt8: ss << "--int8 "; break;
         case miopenInt32: ss << "--int32 "; break;
         case miopenFloat: ss << "--float "; break;
         case miopenDouble: ss << "--double "; break;
+        case miopenFloat8: ss << "--float8"; break;
+        case miopenBFloat8: ss << "--bfloat8"; break;
         }
         for(auto&& arg : this->arguments)
         {
@@ -297,11 +302,12 @@ struct test_driver
         {
         case miopenHalf: ret.emplace_back("--half"); break;
         case miopenBFloat16: ret.emplace_back("--bf16"); break;
-        case miopenInt8x4:
         case miopenInt8: ret.emplace_back("--int8"); break;
         case miopenInt32: ret.emplace_back("--int32"); break;
         case miopenFloat: ret.emplace_back("--float"); break;
         case miopenDouble: ret.emplace_back("--double"); break;
+        case miopenFloat8: ret.emplace_back("--float8"); break;
+        case miopenBFloat8: ret.emplace_back("--bfloat8"); break;
         }
 
         for(auto&& arg : this->arguments)
@@ -494,7 +500,9 @@ struct test_driver
                     return dims;
             }
             else
+            {
                 return {single};
+            }
         }};
     }
 
@@ -542,10 +550,14 @@ struct test_driver
                     return subvec;
                 }
                 else
+                {
                     return dims;
+                }
             }
             else
+            {
                 return {dims.front()};
+            }
         }};
     }
 
@@ -664,15 +676,20 @@ struct test_driver
 
                 auto cpu_nan_idx = find_idx(out_cpu, miopen::not_finite);
                 if(cpu_nan_idx >= 0)
+                {
                     std::cout << "Non finite number found in cpu at " << cpu_nan_idx << ": "
                               << out_cpu[cpu_nan_idx] << std::endl;
+                }
 
                 auto gpu_nan_idx = find_idx(out_gpu, miopen::not_finite);
                 if(gpu_nan_idx >= 0)
+                {
                     std::cout << "Non finite number found in gpu at " << gpu_nan_idx << ": "
                               << out_gpu[gpu_nan_idx] << std::endl;
+                }
             }
-            else if(miopen::range_zero(out_cpu) and miopen::range_zero(out_gpu))
+            else if(miopen::range_zero(out_cpu) and miopen::range_zero(out_gpu) and
+                    (miopen::range_distance(out_cpu) != 0))
             {
                 show_command();
                 std::cout << "Warning: Both CPU and GPU data is all zero" << std::endl;
@@ -705,10 +722,12 @@ struct test_driver
                 [&](auto i) {
                     // cppcheck-suppress knownConditionTrueFalse
                     if(continue_)
+                    {
                         continue_ = this->compare_and_report(
                             std::get<i>(out_cpu), std::get<i>(out_gpu), compare, report, [&](int) {
                                 return fail(i);
                             });
+                    }
                 },
                 is...);
             return continue_;
@@ -873,6 +892,21 @@ struct test_driver
     }
 
     template <class V, class... Ts>
+    auto verify_eps(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
+    {
+        return verify_impl(
+            [&](std::vector<double>& error, auto&& cpu, auto&& gpu) {
+                CHECK(miopen::range_distance(cpu) == miopen::range_distance(gpu));
+
+                double threshold = v.epsilon() * tolerance;
+                error            = {miopen::rms_range(cpu, gpu)};
+                return error.front() <= threshold;
+            },
+            v,
+            xs...);
+    }
+
+    template <class V, class... Ts>
     auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
     {
         return verify_impl(
@@ -912,9 +946,9 @@ struct test_driver
             }
             else
             {
-                std::srand(65521);
+                prng::reset_seed();
                 static_cast<Derived*>(this)->run();
-                std::srand(65521);
+                prng::reset_seed();
             }
         }
         this->iteration++;
@@ -936,10 +970,12 @@ void run_data(Iterator start, Iterator last, Action a)
         run_data(std::next(start), last, a);
     }
     else
+    {
         for(auto&& src : sources)
         {
             src([=] { run_data(std::next(start), last, a); });
         }
+    }
 }
 
 struct keyword_set
@@ -1088,10 +1124,10 @@ build_configs(Driver& d,
     std::vector<typename Driver::argument*> data_args = get_data_args<Driver>(d, arg_map);
 
     run_data(data_args.begin(), data_args.end(), [&] {
-        std::srand(65521);
+        prng::reset_seed();
         std::vector<std::string> config = d.get_config();
         configs.push_back(config);
-        std::srand(65521);
+        prng::reset_seed();
     });
     std::cout << " done." << std::endl;
     return configs;
@@ -1147,9 +1183,9 @@ void run_config(std::vector<std::string>& config,
     for(int j = 0; j < test_repeat_count; j++)
     {
         run_data(config_data_args.begin(), config_data_args.end(), [&] {
-            std::srand(65521);
+            prng::reset_seed();
             config_driver.run();
-            std::srand(65521);
+            prng::reset_seed();
         });
     }
 }
@@ -1205,6 +1241,11 @@ void test_drive_impl_1(std::string program_name, std::vector<std::string> as)
 {
     Driver d{};
     d.program_name = program_name;
+
+    std::cout << program_name << " ";
+    for(const auto& str : as)
+        std::cout << str << " ";
+    std::cout << std::endl;
 
     std::set<std::string> keywords{
         "--help", "-h", "--half", "--float", "--double", "--int8", "--bfloat16"};
@@ -1291,7 +1332,8 @@ void test_drive_impl_1(std::string program_name, std::vector<std::string> as)
             data_args.push_back(&arg);
         }
     }
-    std::srand(65521);
+
+    prng::reset_seed();
     for(int i = 0; i < d.repeat; i++)
     {
         d.iteration = 0;
@@ -1312,7 +1354,7 @@ void test_drive_impl(std::string program_name, std::vector<std::string> as)
         std::cout << "*****************************************************************************"
                      "*******************************************"
                   << std::endl;
-        std::cout << "***** WARNING: test_drive was called more than once. This should function "
+        std::cout << "***** WARNING: test_drive was called more than once. This function "
                      "should only be called once."
                   << std::endl;
         std::cout << "***** This may abort in the future. Please update the test driver. "
@@ -1344,7 +1386,7 @@ template <template <class...> class Driver>
 void test_drive(int argc, const char* argv[])
 {
     std::vector<std::string> as(argv + 1, argv + argc);
-    as.emplace_back("--float");
+    // as.emplace_back("--float");
     for(auto&& arg : as)
     {
         if(arg == "--half")

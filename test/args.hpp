@@ -97,7 +97,7 @@ struct requires_bool
     static const bool value = B;
 };
 
-template <class T, long N>
+template <class T, int64_t N>
 struct requires_unwrap : T
 {
 };

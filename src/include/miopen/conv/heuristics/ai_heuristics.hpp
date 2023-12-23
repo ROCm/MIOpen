@@ -37,7 +37,6 @@
 #include <queue>
 #include <fstream>
 #include <miopen/miopen.h>
-#include <miopen/conv/context.hpp>
 #include <miopen/solver.hpp>
 #include <nlohmann/json.hpp>
 #include <miopen/db_path.hpp>
@@ -71,8 +70,8 @@ public:
     size_t EncodeLayout(const std::string& layout) const;
 };
 class Model;
-std::vector<uint64_t> PredictSolver(const ProblemDescription& problem,
-                                    const ConvolutionContext& ctx,
+std::vector<uint64_t> PredictSolver(const conv::ProblemDescription& problem,
+                                    const ExecutionContext& ctx,
                                     const std::string& device);
 } // namespace immed_mode
 
@@ -82,14 +81,15 @@ namespace tuning {
 struct Metadata
 {
     std::size_t num_tuning_params;
-    std::unordered_map<std::string, int> tuning_decodings;
+    std::unordered_map<std::string, std::string> tuning_decodings;
     Metadata(const std::string& arch, const std::string& solver);
 };
 
 bool ModelSetParams(const std::string& arch,
                     const std::string& solver,
                     const std::vector<float>& features,
-                    std::function<bool(int, int)> validator);
+                    bool transform_features,
+                    std::function<bool(std::size_t, std::string)> validator);
 } // namespace tuning
 #endif // MIOPEN_ENABLE_AI_KERNEL_TUNING
 } // namespace ai

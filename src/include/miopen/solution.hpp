@@ -53,8 +53,8 @@ struct Solution : miopenSolution
 
     struct SerializationMetadata final
     {
-        unsigned long validation_number;
-        unsigned long version;
+        uint64_t validation_number;
+        uint64_t version;
 
         static constexpr SerializationMetadata Current() { return {0x123456789ABCDEF0, 1}; }
 
@@ -74,6 +74,8 @@ struct Solution : miopenSolution
             if(argument.descriptor != nullptr)
                 descriptor = miopen::deref(*argument.descriptor);
         }
+
+        inline RunInput(Data_t buffer_) : buffer(buffer_) {}
     };
 
     float GetTime() const { return time; }
@@ -83,13 +85,15 @@ struct Solution : miopenSolution
     const solver::Id& GetSolver() const { return solver; }
     void SetSolver(solver::Id value) { solver = value; }
     void SetPerfConfig(const std::optional<std::string>& cfg) { perf_cfg = cfg; }
-    const Problem& GetProblem() const { return problem; }
-    void SetProblem(Problem value) { problem = std::move(value); }
+    const ProblemContainer& GetProblem() const { return problem; }
+    void SetProblem(ProblemContainer value) { problem = std::move(value); }
 
     void Run(Handle& handle,
              const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
              Data_t workspace,
              size_t workspace_size);
+
+    void LogDriverCommand() const;
 
     friend void to_json(nlohmann::json& json, const Solution& solution);
     friend void from_json(const nlohmann::json& json, Solution& solution);
@@ -98,7 +102,7 @@ private:
     float time                     = 0;
     std::size_t workspace_required = 0;
     solver::Id solver;
-    Problem problem;
+    ProblemContainer problem;
     std::optional<std::string> perf_cfg = std::nullopt;
 
     void RunImpl(Handle& handle,
@@ -107,7 +111,19 @@ private:
                  std::size_t workspace_size,
                  const ConvolutionDescriptor& conv_desc);
 
+    void RunImpl(Handle& handle,
+                 const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
+                 Data_t workspace,
+                 std::size_t workspace_size,
+                 const FusedProblem& problem_);
+
     static Problem Transpose(const Problem& problem, RunInput* x, const RunInput& w, RunInput* y);
+
+    void LogDriverCommand(const ConvolutionDescriptor& desc) const;
+    void LogDriverCommand(const ActivationDescriptor& desc) const;
+
+    void LogDriverCommand(const Problem& problem_) const;
+    void LogDriverCommand(const FusedProblem& problem_) const;
 };
 
 } // namespace miopen

@@ -27,8 +27,8 @@
 #pragma once
 
 #include <miopen/problem_description_base.hpp>
-#include <miopen/activ.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/activ.hpp>
 
 #include <string>
 
@@ -88,7 +88,7 @@ struct ProblemDescription : ProblemDescriptionBase
         return yDesc;
     }
 
-    NetworkConfig MakeNetworkConfig() const;
+    NetworkConfig MakeNetworkConfig() const override;
 
 private:
     Direction direction;

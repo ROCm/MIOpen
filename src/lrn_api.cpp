@@ -56,8 +56,7 @@ extern "C" miopenStatus_t miopenGetLRNDescriptor(const miopenLRNDescriptor_t lrn
                                                  double* lrnBeta,
                                                  double* lrnK)
 {
-
-    MIOPEN_LOG_FUNCTION(lrnDesc, mode, lrnN, lrnAlpha, lrnBeta, lrnK);
+    MIOPEN_LOG_FUNCTION(lrnDesc);
     return miopen::try_([&] {
         *mode     = miopen::deref(lrnDesc).GetMode();
         *lrnN     = miopen::deref(lrnDesc).GetN();
@@ -70,6 +69,7 @@ extern "C" miopenStatus_t miopenGetLRNDescriptor(const miopenLRNDescriptor_t lrn
 extern "C" miopenStatus_t miopenLRNGetWorkSpaceSize(const miopenTensorDescriptor_t yDesc,
                                                     size_t* workSpaceSize)
 {
+    MIOPEN_LOG_FUNCTION(yDesc);
 
     // TODO: Supporting size 4 bytes only
     return miopen::try_([&] {

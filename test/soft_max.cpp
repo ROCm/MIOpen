@@ -96,6 +96,7 @@ struct verify_forward_sofmax
             miopen::tien<4>(out.desc.GetStrides());
 
         if(mode == MIOPEN_SOFTMAX_MODE_INSTANCE)
+        {
             par_ford(in_n)([&](int o) {
                 if(algo == MIOPEN_SOFTMAX_FAST)
                 {
@@ -156,7 +157,9 @@ struct verify_forward_sofmax
                     }
                 }
             });
+        }
         else
+        {
             par_ford(in_n, in_h, in_w)([&](int o, int i, int j) {
                 if(algo == MIOPEN_SOFTMAX_FAST)
                 {
@@ -217,6 +220,7 @@ struct verify_forward_sofmax
                     }
                 }
             });
+        }
         return out;
     }
 
@@ -286,57 +290,77 @@ struct verify_backward_sofmax
             miopen::tien<4>(dout.desc.GetStrides());
 
         if(mode == MIOPEN_SOFTMAX_MODE_INSTANCE)
+        {
             par_ford(in_n)([&](int o) {
                 double sum = 0;
                 ford(in_c, in_h, in_w)([&](int c, int i, int j) {
                     if(algo == MIOPEN_SOFTMAX_LOG)
+                    {
                         sum += dout[o * out_nstr + c * out_cstr + i * out_hstr + j];
+                    }
                     else
+                    {
                         sum += out[o * out_nstr + c * out_cstr + i * out_hstr + j] *
                                dout[o * out_nstr + c * out_cstr + i * out_hstr + j];
+                    }
                 });
 
                 ford(in_c, in_h, in_w)([&](int c, int i, int j) {
                     if(algo == MIOPEN_SOFTMAX_LOG)
+                    {
                         din[o * in_nstr + c * in_cstr + i * in_hstr + j] =
                             T(alpha *
                                   (dout[o * out_nstr + c * out_cstr + i * out_hstr + j] -
                                    sum * std::exp(
                                              out[o * out_nstr + c * out_cstr + i * out_hstr + j])) +
                               beta * din[o * in_nstr + c * in_cstr + i * in_hstr + j]);
+                    }
                     else
+                    {
                         din[o * in_nstr + c * in_cstr + i * in_hstr + j] =
                             alpha * (out[o * out_nstr + c * out_cstr + i * out_hstr + j] *
                                      (dout[o * out_nstr + c * out_cstr + i * out_hstr + j] - sum)) +
                             beta * din[o * in_nstr + c * in_cstr + i * in_hstr + j];
+                    }
                 });
             });
+        }
         else
+        {
             par_ford(in_n, in_h, in_w)([&](int o, int i, int j) {
                 double sum = 0;
                 ford(in_c)([&](int c) {
                     if(algo == MIOPEN_SOFTMAX_LOG)
+                    {
                         sum += dout[o * out_nstr + c * out_cstr + i * out_hstr + j];
+                    }
                     else
+                    {
                         sum += out[o * out_nstr + c * out_cstr + i * out_hstr + j] *
                                dout[o * out_nstr + c * out_cstr + i * out_hstr + j];
+                    }
                 });
 
                 ford(in_c)([&](int c) {
                     if(algo == MIOPEN_SOFTMAX_LOG)
+                    {
                         din[o * in_nstr + c * in_cstr + i * in_hstr + j] =
                             alpha *
                                 (dout[o * out_nstr + c * out_cstr + i * out_hstr + j] -
                                  sum * std::exp(
                                            out[o * out_nstr + c * out_cstr + i * out_hstr + j])) +
                             beta * din[o * in_nstr + c * in_cstr + i * in_hstr + j];
+                    }
                     else
+                    {
                         din[o * in_nstr + c * in_cstr + i * in_hstr + j] =
                             alpha * (out[o * out_nstr + c * out_cstr + i * out_hstr + j] *
                                      (dout[o * out_nstr + c * out_cstr + i * out_hstr + j] - sum)) +
                             beta * din[o * in_nstr + c * in_cstr + i * in_hstr + j];
+                    }
                 });
             });
+        }
         return din;
     }
 
@@ -418,7 +442,7 @@ struct softmax_driver : test_driver
     {
         miopenSoftmaxAlgorithm_t algo = miopenSoftmaxAlgorithm_t(algo_cmd);
         miopenSoftmaxMode_t mode      = miopenSoftmaxMode_t(mode_cmd);
-        unsigned long max_value =
+        uint64_t max_value =
             miopen_type<T>{} == miopenHalf ? (algo == MIOPEN_SOFTMAX_LOG ? 3 : 5) : 17;
 
         /// \todo Apply mix-precision in softmax to improve the stability of fp16

@@ -87,13 +87,15 @@ public:
         return record->GetValues(id, value);
     }
 
-private:
     struct CacheItem
     {
         int line;
         std::string content;
     };
 
+    const std::unordered_map<std::string, CacheItem>& GetCacheMap() const { return cache; }
+
+private:
     std::string db_path;
     std::unordered_map<std::string, CacheItem> cache;
 

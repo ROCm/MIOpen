@@ -194,7 +194,7 @@ struct na_fusion_driver : test_driver
     miopenBatchNormMode_t bnmode{};
     int batchnormMode = 1;
 
-    unsigned long max_value = miopen_type<T>{} == miopenHalf ? 3 : 17;
+    uint64_t max_value = miopen_type<T>{} == miopenHalf ? 3 : 17;
     double alpha = 0., beta = 0., gamma = 0.;
 
     na_fusion_driver()
@@ -214,6 +214,7 @@ struct na_fusion_driver : test_driver
     {
         amode = transform_mode(amode);
 
+        // NOLINTBEGIN(*-braces-around-statements)
         if(amode == "PASSTHRU")
             activ_mode = miopenActivationPASTHRU;
         else if(amode == "LOGISTIC")
@@ -234,6 +235,7 @@ struct na_fusion_driver : test_driver
             activ_mode = miopenActivationLEAKYRELU;
         else if(amode == "ELU")
             activ_mode = miopenActivationELU;
+        // NOLINTEND(*-braces-around-statements)
 
         int input_c, input_h, input_w;
         std::tie(std::ignore, input_c, input_h, input_w) = miopen::tien<4>(input.desc.GetLengths());
@@ -263,18 +265,17 @@ struct na_fusion_driver : test_driver
         estVariance = tensor<PREC_TYPE>{
             ssn, ssc, ssh, ssw}; //.generate(                tensor_elem_gen_integer{max_value});;
 
-        srand(0);
+        const double Data_scale = 0.01;
         for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
         {
-
-            scale[i]   = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(GET_RAND() % 100);
-            shift[i]   = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(GET_RAND() % 100);
-            estMean[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(GET_RAND() % 100);
-            estVariance[i] = (1e-2 * (PREC_TYPE(GET_RAND() % 100) + 1));
+            scale[i]       = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
+            shift[i]       = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
+            estMean[i]     = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
+            estVariance[i] = static_cast<PREC_TYPE>(Data_scale * prng::gen_off_range(1, 100));
         }
         for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
         {
-            input[i] = 1e-2 * (((GET_RAND() % 2) == 1) ? -1 : 1) * T(GET_RAND() % 100);
+            input[i] = prng::gen_descreet_uniform_sign<T>(Data_scale, 100);
         }
 
         auto&& handle = get_handle();

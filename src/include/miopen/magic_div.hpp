@@ -71,12 +71,14 @@ static inline magic_div_u32_t magic_div_u32_gen(uint32_t d)
     assert(d >= 1 && d <= INT32_MAX);
     uint8_t shift;
     for(shift = 0; shift < 32; shift++)
+    {
         if((1U << shift) >= d)
             break;
+    }
 
     constexpr uint64_t one = 1;
     uint64_t magic         = ((one << 32) * ((one << shift) - d)) / d + 1;
-    assert(magic <= 0xffffffffUL);
+    assert(magic <= 0xffffffffU);
 
     return {static_cast<uint32_t>(magic), shift};
 }

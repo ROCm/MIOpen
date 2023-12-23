@@ -31,10 +31,13 @@
 
 #include <cstddef>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 PerformanceImplicitGemmV4R4Fwd::PerformanceImplicitGemmV4R4Fwd(int BlockSize_,
                                                                int GemmMPerBlock_,
@@ -471,7 +474,7 @@ bool PerformanceImplicitGemmV4R4Fwd::IsValid(const ProblemDescription& problem) 
     return (valid and lds_size <= get_lds_max_number_of_byte());
 }
 
-void PerformanceImplicitGemmV4R4Fwd::HeuristicInit(const ConvolutionContext& ctx,
+void PerformanceImplicitGemmV4R4Fwd::HeuristicInit(const ExecutionContext& ctx,
                                                    const ProblemDescription& problem)
 {
     std::ignore = ctx;
@@ -572,22 +575,24 @@ ConvHipImplicitGemmV4R4Fwd::CalculateGemmSize(const ProblemDescription& problem)
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
 }
 
-bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ConvolutionContext& ctx,
+bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ExecutionContext& ctx,
                                               const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4)))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.GetConv().attribute.deterministic)
         return false;
     if(!ctx.use_hip_kernels)
         return false;
     if(!problem.IsLayoutDefault())
         return false;
+    if(problem.HasNonPackedTensors())
+        return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
     if(!problem.Is2d() && !problem.Is3d())
         return false;
@@ -596,6 +601,9 @@ bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ConvolutionContext& ctx,
     if(problem.GetGroupCount() != 1)
         return false;
     if(!IsIndexRangeLargeEnough(problem))
+        return false;
+
+    if(problem.IsTensorsCasted())
         return false;
 
     int gemm_m = 0;
@@ -607,14 +615,14 @@ bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ConvolutionContext& ctx,
 }
 
 PerformanceImplicitGemmV4R4Fwd
-ConvHipImplicitGemmV4R4Fwd::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
+ConvHipImplicitGemmV4R4Fwd::GetDefaultPerformanceConfig(const ExecutionContext& ctx,
                                                         const ProblemDescription& problem) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmV4R4Fwd>(ctx, problem);
 }
 
 bool ConvHipImplicitGemmV4R4Fwd::IsValidPerformanceConfig(
-    const ConvolutionContext&,
+    const ExecutionContext&,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmV4R4Fwd& config) const
 {
@@ -623,7 +631,7 @@ bool ConvHipImplicitGemmV4R4Fwd::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmV4R4Fwd
-ConvHipImplicitGemmV4R4Fwd::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmV4R4Fwd::Search(const ExecutionContext& ctx,
                                    const ProblemDescription& problem,
                                    const AnyInvokeParams& invoke_ctx) const
 {
@@ -631,7 +639,7 @@ ConvHipImplicitGemmV4R4Fwd::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution
-ConvHipImplicitGemmV4R4Fwd::GetSolution(const ConvolutionContext& ctx,
+ConvHipImplicitGemmV4R4Fwd::GetSolution(const ExecutionContext& ctx,
                                         const ProblemDescription& problem,
                                         const PerformanceImplicitGemmV4R4Fwd& config) const
 {
@@ -765,10 +773,11 @@ ConvHipImplicitGemmV4R4Fwd::GetSolution(const ConvolutionContext& ctx,
 
     // clang-format on
 
-    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(problem);
+    result.invoker_factory = miopen::conv::MakeImplGemmDataInvokerFactory(problem);
     result.construction_params.push_back(construction_parameters);
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen
