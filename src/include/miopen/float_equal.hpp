@@ -41,7 +41,11 @@ struct float_equal_fn
     template <class T>
     static bool apply(T x, T y)
     {
-        return std::isfinite(x) and std::isfinite(y) and
+        // The standard library from MSVC does not implement std::isfinite() for integer
+        // types - no additional overloads are provided. According to the documentation,
+        // integer types should be treaded as doubles.
+        // Refer to https://en.cppreference.com/w/cpp/numeric/math/isfinite for more information.
+        return std::isfinite(static_cast<double>(x)) and std::isfinite(static_cast<double>(y)) and
                std::nextafter(x, std::numeric_limits<T>::lowest()) <= y and
                std::nextafter(x, std::numeric_limits<T>::max()) >= y;
     }
