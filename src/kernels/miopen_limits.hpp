@@ -25,11 +25,11 @@
  *******************************************************************************/
 #pragma once
 
-/// For now, use only standard <limits> to avoid possibility of correctnes
-/// or performance regressions.
-/// \todo Test and enable local implementation.
-/// #ifdef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
-#if 0
+#ifndef WORKAROUND_DO_NOT_USE_CUSTOM_LIMITS
+#define WORKAROUND_DO_NOT_USE_CUSTOM_LIMITS 0
+#endif
+
+#if defined(MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS) && !WORKAROUND_DONT_USE_CUSTOM_LIMITS
 
 #include <hip/hip_bfloat16.h>
 
