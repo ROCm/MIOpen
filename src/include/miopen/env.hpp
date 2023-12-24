@@ -29,6 +29,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <miopen/errors.hpp>
@@ -205,6 +206,13 @@ void UpdateEnvVar(EnvVar, const ValueType& val)
 {
     static_assert(std::is_same_v<typename EnvVar::value_type, ValueType>);
     EnvVar::Ref().UpdateValue(val);
+}
+
+template <typename EnvVar>
+void UpdateEnvVar(EnvVar, const std::string_view& val)
+{
+    EnvVar::Ref().UpdateValue(
+        miopen::internal::ParseEnvVal<typename EnvVar::value_type>::go(val.data()));
 }
 
 } // namespace miopen

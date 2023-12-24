@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-#include "conv3d_test_case.hpp"
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/solver_id.hpp>
@@ -32,6 +31,9 @@
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
 #include "f8_cast_util.hpp"
+#include "conv3d_test_case.hpp"
+
+namespace conv_f8_wrw {
 
 std::vector<Conv3DTestCase> ConvTestConfigs()
 { // g   n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
@@ -68,7 +70,7 @@ protected:
         conv_desc = conv_config.GetConv();
 
         miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
         output = tensor<T>{tensor_layout, output_desc.GetLengths()};
         output.generate(gen_value);
         auto&& handle = get_handle();
@@ -177,6 +179,8 @@ void SolverWrw(const miopen::TensorDescriptor& inputDesc,
     (invoker)(handle, invoke_params);
     handle.Finish();
 }
+} // namespace conv_f8_wrw
+using namespace conv_f8_wrw;
 
 TEST_P(ConvWrwSolverTestF8, CKConvF8Wrw)
 {
