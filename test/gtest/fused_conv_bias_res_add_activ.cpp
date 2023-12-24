@@ -102,7 +102,7 @@ protected:
         conv_desc = conv_config.GetConv();
 
         miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>());
         output = tensor<T>{tensor_layout, output_desc.GetLengths()};
         std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
 
@@ -134,7 +134,7 @@ protected:
         auto&& handle = get_handle();
 
         miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>());
 
         ref_out = tensor<T>{tensor_layout, output_desc.GetLengths()};
         ref_out = ref_conv_fwd(input, weights, output, conv_desc);
