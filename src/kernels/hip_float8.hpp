@@ -29,7 +29,7 @@
 #endif
 
 // FP8 header version 0.4, 2021/05/11
-#if defined __HIP_PLATFORM_HCC__ && MIOPEN_ENABLE_F8_DEVICE_CODE
+#if defined __HIP_PLATFORM_AMD__ && MIOPEN_ENABLE_F8_DEVICE_CODE
 // MIOpen by default does not have device code in the regular compilation paths,
 // therefore, when this file is used from the host side, compilation takes much
 // longer. By guarding the __device__ directive we can control that such compilation

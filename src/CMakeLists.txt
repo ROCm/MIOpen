@@ -99,7 +99,7 @@ set( MIOpen_Source
     conv/invokers/impl_gemm_dynamic.cpp
     conv/invokers/ocl_wrw_rdc.cpp
     conv/problem_description.cpp
-        conv/solver_finders.cpp
+    conv/solver_finders.cpp
     conv_algo_name.cpp
     convolution.cpp
     convolution_api.cpp
@@ -188,6 +188,7 @@ set( MIOpen_Source
     solver/conv_bin_winoRxS_fused.cpp
     solver/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
     solver/conv_ck_igemm_fwd_bias_activ_fused.cpp
+    solver/conv_ck_igemm_fwd_bias_res_add_activ_fused.cpp
     solver/conv_direct_naive_conv.cpp
     solver/conv_direct_naive_conv_bwd.cpp
     solver/conv_direct_naive_conv_fwd.cpp
@@ -769,7 +770,7 @@ elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     endif()
     if(ENABLE_HIP_WORKAROUNDS)
         # Workaround hip not setting its usage requirements correctly
-        target_compile_definitions( MIOpen PRIVATE -D__HIP_PLATFORM_HCC__=1 )
+        target_compile_definitions( MIOpen PRIVATE -D__HIP_PLATFORM_AMD__=1 )
     endif()
     # This is helpful for the tests
     target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:hip::device> )
@@ -840,7 +841,7 @@ if(NOT WIN32 AND NOT APPLE)
     endif()
 endif()
 
-if(NOT WIN32)
+if(MIOPEN_USE_ROCTRACER)
     target_link_libraries(MIOpen PRIVATE roctx64)
 endif()
 
