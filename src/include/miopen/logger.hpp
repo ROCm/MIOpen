@@ -38,7 +38,7 @@
 #include <miopen/object.hpp>
 #include <miopen/config.h>
 
-#ifndef _WIN32
+#if MIOPEN_USE_ROCTRACER
 #include <roctracer/roctx.h>
 #endif
 
@@ -224,7 +224,9 @@ std::string LoggingPrefix();
 bool IsLogging(LoggingLevel level, bool disableQuieting = false);
 bool IsLoggingCmd();
 bool IsLoggingFunctionCalls();
+#if MIOPEN_USE_ROCTRACER
 bool IsLoggingToRoctx();
+#endif
 
 namespace logger {
 
@@ -307,8 +309,23 @@ LogParam(std::ostream& os, std::string name, const std::vector<T>& vec, bool ind
         miopen::LogParam(miopen_log_func_ostream, #param, param, false) << " | "; \
     } while(false);
 
+#if MIOPEN_USE_ROCTRACER
+#define MIOPEN_LOG_ROCTX_DEFINE_OBJECT miopen::LogScopeRoctx logtx;
+#define MIOPEN_LOG_ROCTX_DO_LOGGING(...)                                 \
+    if(miopen::IsLoggingToRoctx())                                       \
+    {                                                                    \
+        std::ostringstream miopen_log_func_ss;                           \
+        miopen_log_func_ss << "s_api = " << __FUNCTION__ << " | ";       \
+        MIOPEN_PP_EACH_ARGS(MIOPEN_LOG_FUNCTION_EACH_ROCTX, __VA_ARGS__) \
+        logtx.logRange(miopen_log_func_ss.str());                        \
+    }
+#else
+#define MIOPEN_LOG_ROCTX_DEFINE_OBJECT
+#define MIOPEN_LOG_ROCTX_DO_LOGGING(...)
+#endif
+
 #define MIOPEN_LOG_FUNCTION(...)                                                        \
-    miopen::LogScopeRoctx logtx;                                                        \
+    MIOPEN_LOG_ROCTX_DEFINE_OBJECT                                                      \
     do                                                                                  \
     {                                                                                   \
         if(miopen::IsLoggingFunctionCalls())                                            \
@@ -322,13 +339,7 @@ LogParam(std::ostream& os, std::string name, const std::vector<T>& vec, bool ind
             miopen_log_func_ss << miopen::LoggingPrefix() << "}" << std::endl;          \
             std::cerr << miopen_log_func_ss.str();                                      \
         }                                                                               \
-        if(miopen::IsLoggingToRoctx())                                                  \
-        {                                                                               \
-            std::ostringstream miopen_log_func_ss;                                      \
-            miopen_log_func_ss << "s_api = " << __FUNCTION__ << " | ";                  \
-            MIOPEN_PP_EACH_ARGS(MIOPEN_LOG_FUNCTION_EACH_ROCTX, __VA_ARGS__)            \
-            logtx.logRange(miopen_log_func_ss.str());                                   \
-        }                                                                               \
+        MIOPEN_LOG_ROCTX_DO_LOGGING(__VA_ARGS__)                                        \
     } while(false)
 #else
 #define MIOPEN_LOG_FUNCTION(...)
@@ -412,7 +423,7 @@ private:
 #define MIOPEN_LOG_SCOPE_TIME
 #endif
 
-#ifndef _WIN32
+#if MIOPEN_USE_ROCTRACER
 class LogScopeRoctx
 {
 public:
