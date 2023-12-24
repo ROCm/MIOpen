@@ -4,9 +4,7 @@
 #include "statically_indexed_array.hpp"
 
 #include "miopen_cstdint.hpp"
-
-/// \todo miopen_limits.hpp
-#include <limits>
+#include "miopen_limits.hpp"
 
 namespace ck {
 
