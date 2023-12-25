@@ -34,22 +34,29 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/mlir_common.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
-bool ConvMlirIgemmWrWXdlops::IsApplicable(const ConvolutionContext& ctx,
+using ProblemDescription = miopen::conv::ProblemDescription;
+
+bool ConvMlirIgemmWrWXdlops::IsApplicable(const ExecutionContext& ctx,
                                           const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW_XDLOPS{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW_XDLOPS)))
         return false;
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.GetConv().attribute.deterministic)
         return false;
     if(!IsXdlopsSupport(ctx))
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
+        return false;
+    if(problem.HasNonPackedTensors())
+        return false;
+    if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
@@ -63,14 +70,14 @@ bool ConvMlirIgemmWrWXdlops::IsApplicable(const ConvolutionContext& ctx,
 }
 
 PerformanceConvMlirIgemmXdlops
-ConvMlirIgemmWrWXdlops::GetDefaultPerformanceConfig(const ConvolutionContext&,
+ConvMlirIgemmWrWXdlops::GetDefaultPerformanceConfig(const ExecutionContext&,
                                                     const ProblemDescription&) const
 {
     return PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest();
 }
 
 bool ConvMlirIgemmWrWXdlops::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceConvMlirIgemmXdlops& config) const
 {
@@ -79,14 +86,14 @@ bool ConvMlirIgemmWrWXdlops::IsValidPerformanceConfig(
 }
 
 PerformanceConvMlirIgemmXdlops
-ConvMlirIgemmWrWXdlops::Search(const ConvolutionContext& ctx,
+ConvMlirIgemmWrWXdlops::Search(const ExecutionContext& ctx,
                                const ProblemDescription& problem,
                                const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-ConvSolution ConvMlirIgemmWrWXdlops::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvMlirIgemmWrWXdlops::GetSolution(const ExecutionContext& ctx,
                                                  const ProblemDescription& problem,
                                                  const PerformanceConvMlirIgemmXdlops& config) const
 {
@@ -117,7 +124,7 @@ ConvSolution ConvMlirIgemmWrWXdlops::GetSolution(const ConvolutionContext& ctx,
     }
 
     size_t workspace_req   = GetWorkspaceSize(ctx, problem);
-    result.invoker_factory = conv::MakeMlirWrWInvokerFactory(problem, workspace_req);
+    result.invoker_factory = miopen::conv::MakeMlirWrWInvokerFactory(problem, workspace_req);
     result.workspace_sz    = workspace_req;
     return result;
 #else
@@ -128,7 +135,7 @@ ConvSolution ConvMlirIgemmWrWXdlops::GetSolution(const ConvolutionContext& ctx,
 #endif
 }
 
-std::size_t ConvMlirIgemmWrWXdlops::GetWorkspaceSize(const ConvolutionContext& ctx,
+std::size_t ConvMlirIgemmWrWXdlops::GetWorkspaceSize(const ExecutionContext& ctx,
                                                      const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
@@ -141,5 +148,6 @@ std::size_t ConvMlirIgemmWrWXdlops::GetWorkspaceSize(const ConvolutionContext& c
 #endif
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

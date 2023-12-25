@@ -29,6 +29,7 @@
 #include "tensor_holder.hpp"
 #include "test.hpp"
 #include "verify.hpp"
+#include "workspace.hpp"
 #include "rnn_util.hpp"
 #include "random.hpp"
 #include <array>
@@ -139,8 +140,10 @@ void ctc_alpha_cpu(std::vector<int>& probsDesc,
             T alpha_t1s = alpha[aidx_t1s];
             T alpha_ts  = i == 0 ? alpha_t1s : logaddexp_cpu(&alpha_t1s, &alpha_t1s1);
             if(i >= 2)
+            {
                 if(lb_cur != blank_lb && lb_cur != lb_pre)
                     alpha_ts = logaddexp_cpu(&alpha_ts, &alpha_t1s2);
+            }
 
             alpha_ts += probs_logits[pidx];
             alpha[aidx_ts] = std::max(alpha_ts, T(NEGATIVE_CUTOFF_VAL));
@@ -237,12 +240,18 @@ void ctc_gradient_cpu(std::vector<int>& probsDesc,
 
             T beta_temp = j % 2 == 0 ? beta_buff1[k1] : beta_buff0[k1];
             if(k1 <= label_prime_len - 2)
+            {
                 beta_temp = logaddexp_cpu(
                     &beta_temp, j % 2 == 0 ? &(beta_buff1[k1 + 1]) : &(beta_buff0[k1 + 1]));
+            }
             if(k1 <= label_prime_len - 3)
+            {
                 if(lb_cur != blank_lb && lb_cur != lb_pre)
+                {
                     beta_temp = logaddexp_cpu(
                         &beta_temp, j % 2 == 0 ? &(beta_buff1[k1 + 2]) : &(beta_buff0[k1 + 2]));
+                }
+            }
 
             beta_temp += probs_logits[pidx];
             beta_temp = std::max(beta_temp, T(NEGATIVE_CUTOFF_VAL));
@@ -306,14 +315,20 @@ void launchCTCLoss(const int class_sz,
               Tref(NEGATIVE_CUTOFF_VAL));
 
     if(is_softmax_applied)
+    {
         for(int j = 0; j < max_time_step * batch_size; j++)
+        {
             subvec_logsoftmax_cpu(&(probs[0]),
                                   &(workspace_cpu[problog_offset]),
                                   j * class_sz,
                                   j * class_sz,
                                   class_sz);
+        }
+    }
     else
+    {
         std::copy(probs.begin(), probs.end(), workspace_cpu.begin() + problog_offset);
+    }
 
     for(int j = 0; j < batch_size; j++)
     {
@@ -402,8 +417,10 @@ void VerifyCTCLoss(std::vector<int>& probsDesc,
                 return;
             }
             if(j > 0)
+            {
                 if(labels[labels_offset[i] + j] == labels[labels_offset[i] + j - 1])
                     repeat[i]++;
+            }
         }
 
         if(labelLengths[i] + repeat[i] > inputLengths[i])
@@ -501,8 +518,10 @@ void GetCTCLossWorkspaceSizeCPU(std::vector<int> probsDesc,
                 return;
             }
             if(j > 0)
+            {
                 if(labels[labels_offset[i] + j] == labels[labels_offset[i] + j - 1])
                     repeat[i]++;
+            }
         }
 
         if(labelLengths[i] + repeat[i] > inputLengths[i])
@@ -528,14 +547,14 @@ void GetCTCLossWorkspaceSizeCPU(std::vector<int> probsDesc,
     wksp_sz_lb += total_label_len;
 
     // labels with blanks
-    wksp_sz_lb += static_cast<unsigned long>(batch_size) * (2UL * max_label_len + 1);
+    wksp_sz_lb += static_cast<size_t>(batch_size) * (static_cast<size_t>(2) * max_label_len + 1);
 
     // logsoftmax of probs
-    wksp_sz_dat += static_cast<unsigned long>(max_time_step) * batch_size * class_sz;
+    wksp_sz_dat += static_cast<size_t>(max_time_step) * batch_size * class_sz;
 
     // alphas
-    wksp_sz_dat +=
-        static_cast<unsigned long>(max_time_step) * batch_size * (2UL * max_label_len + 1);
+    wksp_sz_dat += static_cast<size_t>(max_time_step) * batch_size *
+                   (static_cast<size_t>(2) * max_label_len + 1);
 
     *workSpaceSizeCPU = (wksp_sz_dat + wksp_sz_lb) * sizeof(T);
 }
@@ -633,8 +652,7 @@ struct verify_ctcloss
                                                                    inputLengths.data(),
                                                                    miopenCTCLossAlgo_t(0));
 
-        auto workSpace     = tensor<T>{workSpaceSize / sizeof(T)};
-        auto workSpace_dev = handle.Write(workSpace.data);
+        Workspace wspace{workSpaceSize};
 
         auto losses_gpu = losses;
         auto grads_gpu  = grads;
@@ -653,8 +671,8 @@ struct verify_ctcloss
                             grads.desc,
                             grads_dev.get(),
                             miopenCTCLossAlgo_t(0),
-                            workSpace_dev.get(),
-                            workSpaceSize);
+                            wspace.ptr(),
+                            wspace.size());
 
         losses_gpu.data = handle.Read<T>(losses_dev, losses_gpu.data.size());
         grads_gpu.data  = handle.Read<T>(grads_dev, grads_gpu.data.size());
@@ -721,14 +739,16 @@ struct ctc_driver : test_driver
         std::vector<int> labelLengths(batchSize, labelLen);
 
         for(int i = 0; i < batchSize; i++)
-            inputLengths[i] = GET_RAND() % inputLen + 1;
+            inputLengths[i] = prng::gen_A_to_B(1, inputLen - 1);
 
         for(int i = 0; i < batchSize; i++)
-            labelLengths[i] = GET_RAND() % labelLen + 1;
+            labelLengths[i] = prng::gen_A_to_B(1, labelLen - 1);
 
         for(int i = 0; i < batchSize; i++)
+        {
             if(inputLengths[i] < labelLengths[i] * 2 + 1)
                 inputLengths[i] = labelLengths[i] * 2 + 1;
+        }
 
         int batch_sz      = batchSize;
         int class_sz      = numClass + 1;
@@ -737,7 +757,7 @@ struct ctc_driver : test_driver
         std::vector<int> probsDims  = {max_time_step, batch_sz, class_sz};
         std::vector<int> lossesDims = {batch_sz};
 
-        unsigned long max_value = 17;
+        uint64_t max_value = 17;
 
         probs = tensor<T>{probsDims}.generate(tensor_elem_gen_integer{max_value});
         for(int j = 0; j < batch_sz * max_time_step; j++)
@@ -762,7 +782,7 @@ struct ctc_driver : test_driver
         int blank_lb = ctcLossDesc.blank_label_id;
         for(size_t i = 0; i < labels_sz; i++)
         {
-            labels[i] = static_cast<int>(GET_RAND() % numClass + 1);
+            labels[i] = prng::gen_off_range(1, numClass);
             if(blank_lb > numClass)
                 labels[i] = labels[i] == numClass ? numClass - 1 : labels[i];
             else if(blank_lb < 0)

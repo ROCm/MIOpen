@@ -26,7 +26,7 @@
 #ifndef GUARD_MIOPEN_TENSOR_DRIVER_HPP
 #define GUARD_MIOPEN_TENSOR_DRIVER_HPP
 
-#include "driver.hpp"
+#define UNPACK_VEC4(v) (v[0]), (v[1]), (v[2]), (v[3])
 
 #include <algorithm>
 #include <iterator>
@@ -67,26 +67,18 @@ inline void LengthReorder(std::vector<int>& lens, const std::initializer_list<in
     lens = std::move(out_lens);
 }
 
-inline std::size_t GetTensorVectorLength(miopenTensorDescriptor_t& tensor)
+inline std::size_t GetTensorVectorLength(const miopenTensorDescriptor_t& tensor)
 {
     std::size_t vectorLength;
 
     int size = 0;
     miopenGetTensorDescriptorSize(tensor, &size);
 
-    if(size == 4 || size == 5)
-    {
-        miopenGetNdTensorDescriptorVectorLength(tensor, &vectorLength);
-        return vectorLength;
-    }
-    else
-    {
-        MIOPEN_THROW("We only support 4D layout in vector format");
-    }
-    return 0;
+    miopenGetNdTensorDescriptorVectorLength(tensor, &vectorLength);
+    return vectorLength;
 }
 
-inline std::vector<int> GetTensorLengths(miopenTensorDescriptor_t& tensor)
+inline std::vector<int> GetTensorLengths(const miopenTensorDescriptor_t& tensor)
 {
     int n;
     int c;
@@ -115,7 +107,7 @@ inline std::vector<int> GetTensorLengths(miopenTensorDescriptor_t& tensor)
     return tensor_len;
 }
 
-inline std::vector<int> GetTensorStrides(miopenTensorDescriptor_t& tensor)
+inline std::vector<int> GetTensorStrides(const miopenTensorDescriptor_t& tensor)
 {
     int nstride;
     int cstride;
@@ -226,7 +218,7 @@ inline int SetTensorNd(miopenTensorDescriptor_t t,
 // memory required for an "unpacked" tensor. In such cases GetTensorSpace should be used instead.
 // For "packed" tensors result may be interpreted as an amount of memory required for the tensor.
 // The implementation is a copy-paste from miopen::TensorDescriptor.
-inline size_t GetTensorSize(miopenTensorDescriptor_t& tensor)
+inline size_t GetTensorSize(const miopenTensorDescriptor_t& tensor)
 {
     assert(miopen::deref(tensor).IsPacked() &&
            "GetTensorSize should not be used on an unpacked tensor.");
@@ -240,7 +232,7 @@ inline size_t GetTensorSize(miopenTensorDescriptor_t& tensor)
 // The result of this function may be interpreted as a correct amount of memory required for both
 // "packed" and "unpacked" tensors. In general it should be used for such purposes rather than
 // GetTensorSize. Unless, of course, there is absolutely zero chance to receive an unpacked tensor.
-inline size_t GetTensorSpace(miopenTensorDescriptor_t& tensor)
+inline size_t GetTensorSpace(const miopenTensorDescriptor_t& tensor)
 {
     return miopen::deref(tensor).GetElementSpace();
 }

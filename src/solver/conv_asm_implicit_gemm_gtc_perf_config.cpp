@@ -30,6 +30,7 @@
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 PerformanceConfigAsmImplicitGemmGTC::PerformanceConfigAsmImplicitGemmGTC(
     std::string dir,
@@ -208,6 +209,7 @@ bool PerformanceConfigAsmImplicitGemmGTC::operator==(
         && std::equal(std::begin(tensor_b_cluster_lengths), std::end(tensor_b_cluster_lengths), std::begin(other.tensor_b_cluster_lengths));
     // clang-format on
 }
+
 void PerformanceConfigAsmImplicitGemmGTC::CopyParameters(
     const PerformanceConfigAsmImplicitGemmGTC& other)
 {
@@ -256,11 +258,12 @@ std::string PerformanceConfigAsmImplicitGemmGTC::ToString() const
     return ss.str();
 }
 
-std::string PerformanceConfigAsmImplicitGemmGTC::ToKernelName(const ConvolutionContext& ctx) const
+std::string PerformanceConfigAsmImplicitGemmGTC::ToKernelName(const ExecutionContext& ctx) const
 {
     std::ostringstream kernel_name;
     const auto device_name = ctx.GetStream().GetDeviceName();
-    std::string gtc_str    = device_name == "gfx908" ? "_gtcx_" : "_gtcx2_";
+    std::string gtc_str =
+        device_name == "gfx908" ? "_gtcx_" : (device_name == "gfx90a" ? "_gtcx2_" : "_gtcx3_");
     kernel_name << "igemm_" << direction << gtc_str << tensor_layout << "_" << precision << "_bx"
                 << nxb << "_ex" << nxe << "_bt" << gemm_m_per_block << "x" << gemm_n_per_block
                 << "x" << gemm_k_per_block << "_wt" << wave_tile_m << "x" << wave_tile_n << "x"
@@ -288,6 +291,7 @@ std::string PerformanceConfigAsmImplicitGemmGTC::ToKernelName(const ConvolutionC
 
     return kernel_name.str();
 }
+
 int PerformanceConfigAsmImplicitGemmGTC::BlockSize() const
 {
     return std::accumulate(std::begin(tensor_a_cluster_lengths),
@@ -444,6 +448,7 @@ bool PerformanceConfigAsmImplicitGemmGTCvector::operator==(
         && std::equal(std::begin(tensor_b_cluster_lengths), std::end(tensor_b_cluster_lengths), std::begin(other.tensor_b_cluster_lengths));
     // clang-format on
 }
+
 void PerformanceConfigAsmImplicitGemmGTCvector::CopyParameters(
     const PerformanceConfigAsmImplicitGemmGTCvector& other)
 {
@@ -486,7 +491,7 @@ std::string PerformanceConfigAsmImplicitGemmGTCvector::ToString() const
 }
 
 std::string
-PerformanceConfigAsmImplicitGemmGTCvector::ToKernelName(const ConvolutionContext& ctx) const
+PerformanceConfigAsmImplicitGemmGTCvector::ToKernelName(const ExecutionContext& ctx) const
 {
     std::ostringstream kernel_name;
     const auto device_name    = ctx.GetStream().GetDeviceName();
@@ -508,6 +513,7 @@ PerformanceConfigAsmImplicitGemmGTCvector::ToKernelName(const ConvolutionContext
 
     return kernel_name.str();
 }
+
 int PerformanceConfigAsmImplicitGemmGTCvector::BlockSize() const
 {
     return std::accumulate(std::begin(tensor_a_cluster_lengths),
@@ -516,5 +522,6 @@ int PerformanceConfigAsmImplicitGemmGTCvector::BlockSize() const
                            std::multiplies<int>());
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

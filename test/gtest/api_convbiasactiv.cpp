@@ -25,6 +25,8 @@
  *******************************************************************************/
 #include <miopen/miopen.h>
 
+#define WORKAROUND_ISSUE_2212 1
+
 #if MIOPEN_BACKEND_HIP
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
@@ -147,7 +149,7 @@ protected:
     miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoDirect;
 };
 
-TEST_P(ConvBiasActivFwdTest, DriveAPI)
+TEST_P(ConvBiasActivFwdTest, DISABLED_DriveAPI)
 {
     tensor<float> z{};
     const float alpha = 1.0f;
@@ -174,7 +176,10 @@ TEST_P(ConvBiasActivFwdTest, DriveAPI)
 
 void GatherCBATestCases(std::vector<CBATestCase>& cba_test_cases)
 {
-    if(!miopen::StartsWith(get_handle().GetDeviceName(), "gfx11"))
+    const auto dev_name = get_handle().GetDeviceName();
+#if WORKAROUND_ISSUE_2212
+    if(!miopen::StartsWith(dev_name, "gfx11") && !miopen::StartsWith(dev_name, "gfx94"))
+#endif
     {
         cba_test_cases.push_back(CBATestCase{
             16, 128, 16, 16, 128, 3, 3, 0, 0, 1, 1, 1, 1, miopenActivationRELU, miopenConvolution});

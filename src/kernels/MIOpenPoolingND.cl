@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-#include "float_types.h"
 #include "pooling_functions.h"
 
 #ifndef USE_GLOBAL_INDEX
@@ -46,6 +45,14 @@
 #else
 #define AVERAGE_OPS 0
 #endif
+
+// Let's use extended-precision accumulator only in FP16 pooling and only for averaging.
+// For all other ops and datatypes, redefine macros used for accum-float conversion
+// and accum types, so they do nothing, i.e. treate FLOAT_ACCUM as FLOAT.
+#if !(AVERAGE_OPS && MIOPEN_USE_FP16)
+#define MIOPEN_USE_NATIVE_DATATYPE_ACCUM 1
+#endif
+#include "float_types.h"
 
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
 #define MLO_POOLING_OP(A, B) (fmax((A), (B)))
@@ -164,11 +171,11 @@ mloPoolingNDFwd(const __global _FLOAT* bot,
                     pool_size = (pool_size == 0) ? 1 : pool_size;
 #endif
 
-                    _FLOAT top_val =
+                    _FLOAT_ACCUM top_val =
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-                        (_FLOAT)(-MAX_VAL);
+                        (_FLOAT_ACCUM)(-MAX_VAL_ACCUM);
 #elif AVERAGE_OPS
-                        0;
+                        (_FLOAT_ACCUM)(0);
 #endif
 
 #if USE_MASK
@@ -182,8 +189,8 @@ mloPoolingNDFwd(const __global _FLOAT* bot,
                             for(uint i = 0; i < KERNEL_SZ_W; i++)
                             {
 
-                                _FLOAT bot_val =
-                                    bot_data[h + m * STRIDE_D][j + k * STRIDE_H][i + l * STRIDE_W];
+                                _FLOAT_ACCUM bot_val = CVT_FLOAT2ACCUM(
+                                    bot_data[h + m * STRIDE_D][j + k * STRIDE_H][i + l * STRIDE_W]);
 
 #if USE_MASK
                                 if(bot_val > top_val)
@@ -207,7 +214,7 @@ mloPoolingNDFwd(const __global _FLOAT* bot,
                     }
 
 #if AVERAGE_OPS
-                    top_val *= ((_FLOAT)1.f / (_FLOAT)pool_size);
+                    top_val *= CVT_FP32_2ACCUM(1.f) / (_FLOAT_ACCUM)pool_size;
 #endif
 
                     if(top_d_id + m < top_d && top_h_id + k < top_h && top_w_id + l < top_w &&

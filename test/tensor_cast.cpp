@@ -29,7 +29,6 @@
 #include <iterator>
 #include <limits>
 #include <memory>
-#include <sys/time.h>
 #include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
@@ -118,6 +117,7 @@ struct verify_tensor_cast
 
         miopen::CastTensor(handle,
                            &alpha,
+                           true,
                            srcDesc,
                            srcSuper_dev.get(),
                            dstDesc,
@@ -170,7 +170,7 @@ struct tensor_cast_driver : test_driver
 
     void run()
     {
-        unsigned long max_value =
+        uint64_t max_value =
             miopen_type<T>{} == miopenHalf ? 5 : (miopen_type<T>{} == miopenInt8 ? 126 : 32767);
         max_val = miopen_type<T>{} == miopenHalf       ? 65504.0
                   : miopen_type<T>{} == miopenInt8     ? 127.0

@@ -1,28 +1,24 @@
 #include <miopen/fusion.hpp>
 
-#include <miopen/gcn_asm_utils.hpp>
-#include <miopen/invoke_params.hpp>
-#include <miopen/solver.hpp>
-
 namespace miopen {
 
-// Conv op in ocl
-mlo_construct_direct2D_fusion ConvForwardOpDescriptor::ConstructParams(Handle& handle)
+conv::ProblemDescription ConvForwardOpDescriptor::GetConvProblem()
 {
     TensorDescriptor o_desc;
     GetOutputDesc(o_desc);
-    mlo_construct_direct2D_fusion construct_params(
+
+    conv::ProblemDescription conv_problem(
         input_desc, filter_desc, o_desc, base_desc, miopen::conv::Direction::Forward);
-    construct_params.setStream(&handle);
-    return construct_params;
+
+    return conv_problem;
 }
-miopenStatus_t ConvForwardOpDescriptor::GetNetworkConfig(std::stringstream& network_config,
-                                                         Handle& handle)
+
+miopenStatus_t ConvForwardOpDescriptor::GetNetworkConfig(std::ostringstream& network_config)
 {
-    mlo_construct_direct2D_fusion construct_params = ConstructParams(handle);
+    const conv::ProblemDescription conv_problem = GetConvProblem();
 
     std::string conv_config;
-    construct_params.mloBuildConf_Key(conv_config);
+    conv_problem.MakeNetworkConfig(conv_config);
     network_config << conv_config;
     return miopenStatusSuccess;
 }

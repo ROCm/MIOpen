@@ -28,7 +28,6 @@
 #include <miopen/errors.hpp>
 #include <miopen/lock_file.hpp>
 #include <miopen/logger.hpp>
-#include <miopen/md5.hpp>
 
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/filesystem.hpp>
@@ -149,7 +148,7 @@ boost::optional<DbRecord> PlainTextDb::FindRecordUnsafe(const std::string& key,
 
     MIOPEN_LOG_I2("Looking for key " << key << " in file " << filename);
 
-    std::ifstream file(filename);
+    std::ifstream file(filename, std::ios::binary);
 
     if(!file)
     {
@@ -242,7 +241,7 @@ bool PlainTextDb::FlushUnsafe(const DbRecord& record, const RecordPositions* pos
     if(pos->begin < 0 || pos->end < 0)
     {
         {
-            std::ofstream file(filename, std::ios::app);
+            std::ofstream file(filename, std::ios::app | std::ios::binary);
 
             if(!file)
             {
@@ -258,7 +257,7 @@ bool PlainTextDb::FlushUnsafe(const DbRecord& record, const RecordPositions* pos
     }
     else
     {
-        std::ifstream from(filename, std::ios::ate);
+        std::ifstream from(filename, std::ios::ate | std::ios::binary);
 
         if(!from)
         {
@@ -267,7 +266,7 @@ bool PlainTextDb::FlushUnsafe(const DbRecord& record, const RecordPositions* pos
         }
 
         const auto temp_name = filename + ".temp";
-        std::ofstream to(temp_name);
+        std::ofstream to(temp_name, std::ios::binary);
 
         if(!to)
         {

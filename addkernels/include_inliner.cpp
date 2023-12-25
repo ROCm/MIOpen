@@ -38,8 +38,8 @@
 
 #include "include_inliner.hpp"
 
-namespace PathHelpers {
-static int GetMaxPath()
+namespace {
+int GetMaxPath()
 {
 #ifdef _WIN32
     return MAX_PATH;
@@ -48,7 +48,7 @@ static int GetMaxPath()
 #endif
 }
 
-static std::string GetAbsolutePath(const std::string& path)
+std::string GetAbsolutePath(const std::string& path)
 {
     std::string result(GetMaxPath(), ' ');
 #ifdef _WIN32
@@ -64,7 +64,7 @@ static std::string GetAbsolutePath(const std::string& path)
 #endif
     return result;
 }
-} // namespace PathHelpers
+} // namespace
 
 std::string IncludeFileExceptionBase::What() const
 {
@@ -152,7 +152,7 @@ void IncludeInliner::ProcessCore(std::istream& input,
             const std::string include_file_path =
                 line.substr(first_quote_pos + 1, second_quote_pos - first_quote_pos - 1);
             const std::string abs_include_file_path(
-                PathHelpers::GetAbsolutePath(root + "/" + include_file_path)); // NOLINT
+                GetAbsolutePath(root + "/" + include_file_path)); // NOLINT
 
             if(abs_include_file_path.empty())
             {
@@ -164,8 +164,10 @@ void IncludeInliner::ProcessCore(std::istream& input,
             std::ifstream include_file(abs_include_file_path, std::ios::in);
 
             if(!include_file.good())
+            {
                 throw IncludeCantBeOpenedException(include_file_path,
                                                    GetIncludeStackTrace(current_line));
+            }
 
             ProcessCore(include_file,
                         output,

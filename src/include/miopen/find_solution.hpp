@@ -32,6 +32,7 @@
 #include <miopen/execution_context.hpp>
 #include <miopen/find_controls.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/search_options.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/solver.hpp>
 
@@ -51,10 +52,12 @@ auto FindSolutionImpl(rank<1>,
                       const Problem& problem,
                       Db& db,
                       const AnyInvokeParams& invoke_ctx,
-                      const std::string& perf_cfg)
+                      const std::string& perf_cfg,
+                      const std::optional<FindOptions>& options)
     -> decltype(s.GetSolution(context, problem, s.Search(context, problem, invoke_ctx)))
 {
-    const FindEnforce enforce;
+    const FindEnforce enforce =
+        options && options->find_enforce ? *options->find_enforce : FindEnforce{};
     if(context.disable_perfdb_access)
     {
         MIOPEN_LOG_I(s.SolverDbId() << " (db access disabled)");
@@ -77,7 +80,18 @@ auto FindSolutionImpl(rank<1>,
         {
             using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context, problem));
             PerformanceConfig config{};
-            if(db.Load(problem, s.SolverDbId(), config))
+            // The passes in string needs to have priority over the entry in the database
+            if(!perf_cfg.empty())
+            {
+                config.Deserialize(perf_cfg);
+                if(s.IsValidPerformanceConfig(context, problem, config))
+                {
+                    return s.GetSolution(context, problem, config);
+                }
+                MIOPEN_LOG_WE("Invalid config loaded from Perf Db: "
+                              << s.SolverDbId() << ": " << config << ". Performance may degrade.");
+            }
+            else if(db.Load(problem, s.SolverDbId(), config))
             {
                 MIOPEN_LOG_I2("Perf Db: record loaded: " << s.SolverDbId());
                 if(s.IsValidPerformanceConfig(context, problem, config))
@@ -98,16 +112,6 @@ auto FindSolutionImpl(rank<1>,
                               << s.AltSolverDbId() << ": " << config
                               << ". Performance may degrade.");
             }
-            else if(!perf_cfg.empty())
-            {
-                config.Deserialize(perf_cfg);
-                if(s.IsValidPerformanceConfig(context, problem, config))
-                {
-                    return s.GetSolution(context, problem, config);
-                }
-                MIOPEN_LOG_WE("Invalid config loaded from Perf Db: "
-                              << s.SolverDbId() << ": " << config << ". Performance may degrade.");
-            }
             else
             {
                 MIOPEN_LOG_I("Perf Db: record not found for: " << s.SolverDbId());
@@ -126,6 +130,7 @@ auto FindSolutionImpl(rank<1>,
             catch(const miopen::Exception& ex)
             {
                 MIOPEN_LOG_E("Search failed for: " << s.SolverDbId() << ": " << ex.what());
+                return ConvSolution(miopenStatusInternalError);
             }
         }
     }
@@ -140,7 +145,9 @@ auto FindSolutionImpl(rank<0>,
                       const Problem& problem,
                       Db&,
                       const AnyInvokeParams&,
-                      const std::string&) -> decltype(s.GetSolution(context, problem))
+                      const std::string&,
+                      const std::optional<FindOptions>&)
+    -> decltype(s.GetSolution(context, problem))
 {
     MIOPEN_LOG_I(s.SolverDbId() << " (not searchable)");
     return s.GetSolution(context, problem);
@@ -158,12 +165,14 @@ ConvSolution FindSolution(Solver s,
                           const Problem& problem,
                           Db& db,
                           const AnyInvokeParams& invoke_ctx,
-                          const std::string& perf_cfg = "")
+                          const std::string& perf_cfg               = "",
+                          const std::optional<FindOptions>& options = std::nullopt)
 {
     static_assert(sizeof(Solver) == sizeof(SolverBase), "Solver must be stateless");
     static_assert(std::is_base_of<SolverBase, Solver>{}, "Not derived class of SolverBase");
     // TODO: This assumes all solutions are ConvSolution
-    auto solution      = FindSolutionImpl(rank<1>{}, s, context, problem, db, invoke_ctx, perf_cfg);
+    auto solution =
+        FindSolutionImpl(rank<1>{}, s, context, problem, db, invoke_ctx, perf_cfg, options);
     solution.solver_id = s.SolverDbId();
     return solution;
 }
@@ -171,6 +180,29 @@ ConvSolution FindSolution(Solver s,
 template <class... Solvers>
 struct SolverContainer
 {
+    template <class... SolversRight>
+    auto operator+(SolverContainer<SolversRight...>) const
+    {
+        return SolverContainer<Solvers..., SolversRight...>{};
+    }
+
+    ///\todo: remove when AnySolver would be able to work with non-conv solvers
+    template <class Functor>
+    void FindById(solver::Id id, Functor&& receiver)
+    {
+        bool found = false;
+
+        miopen::each_args(
+            [&](auto solver) {
+                if(found || id != solver::Id{solver.SolverDbId()})
+                    return;
+
+                found = true;
+                receiver(solver);
+            },
+            Solvers{}...);
+    }
+
     // Search for all applicable solutions among many solvers
     template <class Context, class Problem, class Db, class Solution = miopen::solver::ConvSolution>
     std::vector<Solution>
@@ -178,7 +210,8 @@ struct SolverContainer
                           const Problem& problem,
                           Db&& db,
                           const AnyInvokeParams& invoke_ctx,
-                          std::size_t limit = std::numeric_limits<std::size_t>::max()) const
+                          std::size_t limit = std::numeric_limits<std::size_t>::max(),
+                          const std::optional<FindOptions>& options = std::nullopt) const
     {
         std::vector<Solution> ss;
         std::size_t count    = 0;
@@ -204,7 +237,8 @@ struct SolverContainer
                 }
                 else
                 {
-                    const Solution s = FindSolution(solver, ctx, problem, db, invoke_ctx);
+                    const Solution s =
+                        FindSolution(solver, ctx, problem, db, invoke_ctx, "", options);
                     if(s.Succeeded())
                     {
                         ++count;
@@ -251,7 +285,9 @@ struct SolverContainer
                 // else if(problem.use_dynamic_solutions_only && !solver.IsDynamic())
                 //    MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
                 else if(!solver.IsApplicable(ctx, problem))
+                {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
+                }
                 else
                 {
                     auto s      = solver.GetSolution(ctx, problem);
@@ -292,13 +328,19 @@ struct SolverContainer
                 { // Do nothing (and keep silence for the sake of Tuna), just skip.
                 }
                 else if(!solver.MayNeedWorkspace())
+                {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (no workspace required)");
+                }
                 // For better performance, check IsDynamic() first, because
                 // it is much faster than IsApplicable().
                 else if(ctx.use_dynamic_solutions_only && !solver.IsDynamic())
+                {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
+                }
                 else if(!solver.IsApplicable(ctx, problem))
+                {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
+                }
                 else
                 {
                     ++count;
@@ -360,8 +402,7 @@ struct SolverContainer
             return;
         }
 
-        auto ctx = ExecutionContext{&handle};
-        ctx.DetectRocm();
+        auto ctx        = ExecutionContext{&handle};
         const auto slns = SearchForSolutions(ctx, problem, 1);
 
         if(slns.empty())

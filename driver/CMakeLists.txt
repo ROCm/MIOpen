@@ -23,13 +23,16 @@
 # SOFTWARE.
 # 
 ################################################################################
-cmake_minimum_required( VERSION 3.5)
 
 find_package(Threads REQUIRED)
 
 add_executable(MIOpenDriver main.cpp InputFlags.cpp)
-target_link_libraries(MIOpenDriver MIOpen)
-target_link_libraries(MIOpenDriver ${CMAKE_THREAD_LIBS_INIT})
+if(WIN32)
+    # Refer to https://en.cppreference.com/w/cpp/language/types for details.
+    target_compile_options(MIOpenDriver PRIVATE $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:Clang>:-U__LP64__>>)
+endif()
+target_include_directories(MIOpenDriver PRIVATE ../src/kernels)
+target_link_libraries(MIOpenDriver MIOpen Threads::Threads)
 if(NOT MIOPEN_EMBED_DB STREQUAL "")
 target_link_libraries(MIOpenDriver $<BUILD_INTERFACE:miopen_data> )
 endif()
@@ -37,6 +40,9 @@ endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU") 
     set_target_properties(MIOpenDriver PROPERTIES COMPILE_FLAGS -pthread LINK_FLAGS -pthread)
 endif()
-install(TARGETS MIOpenDriver 
-    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-    DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+if( NOT ENABLE_ASAN_PACKAGING )
+  install(TARGETS MIOpenDriver 
+      PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+      DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()

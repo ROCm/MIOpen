@@ -41,29 +41,31 @@ bool IsWinograd(const std::vector<solver::AnySolver>& ss)
 
 } // namespace fusion
 
-miopenStatus_t FusionOpDescriptor::GetNetworkConfig(std::stringstream& /*network_config*/,
-                                                    Handle& /*handle*/)
+miopenStatus_t FusionOpDescriptor::GetNetworkConfig(std::ostringstream& /*network_config*/)
 {
     return miopenStatusSuccess;
 }
 
-miopenStatus_t BiasFusionOpDescriptor::GetNetworkConfig(std::stringstream& network_config,
-                                                        Handle& /*handle*/)
+miopenStatus_t BiasFusionOpDescriptor::GetNetworkConfig(std::ostringstream& network_config)
 {
     network_config << "biasOn"; // for bias
     return miopenStatusSuccess;
 }
 
-miopenStatus_t ActivFwdFusionOpDescriptor::GetNetworkConfig(std::stringstream& network_config,
-                                                            Handle& /*handle*/)
+miopenStatus_t TensorScaleAddOpDescriptor::GetNetworkConfig(std::ostringstream& network_config)
+{
+    network_config << "tensorScaleAdd"; // for bias
+    return miopenStatusSuccess;
+}
+
+miopenStatus_t ActivFwdFusionOpDescriptor::GetNetworkConfig(std::ostringstream& network_config)
 {
     network_config << "ActivFwd" << std::to_string(activMode);
     return miopenStatusSuccess;
 }
 
 // Activations backward prop ----------------------------
-miopenStatus_t ActivBwdFusionOpDescriptor::GetNetworkConfig(std::stringstream& network_config,
-                                                            Handle& /*handle*/)
+miopenStatus_t ActivBwdFusionOpDescriptor::GetNetworkConfig(std::ostringstream& network_config)
 {
     network_config << "ActivBwd" << std::to_string(activMode);
     return miopenStatusSuccess;
@@ -74,8 +76,7 @@ miopenStatus_t ActivBwdFusionOpDescriptor::GetNetworkConfig(std::stringstream& n
 /// BATCH NORMALIZATION inference start ================
 
 miopenStatus_t
-BatchNormInferenceFusionOpDescriptor::GetNetworkConfig(std::stringstream& network_config,
-                                                       Handle& /*handle*/)
+BatchNormInferenceFusionOpDescriptor::GetNetworkConfig(std::ostringstream& network_config)
 {
     network_config << "bn" << std::to_string(mode);
     return miopenStatusSuccess;
@@ -124,8 +125,7 @@ BatchNormInferenceFusionOpDescriptor::GetGlobalWGSz(Handle& /*handle*/,
 /// END BN inference ------------------------------------------
 
 // BN Bwd Training start
-void BatchNormBwdTrainFusionOpDescriptor::calcBNParams(Handle& handle,
-                                                       std::vector<size_t> in_lens,
+void BatchNormBwdTrainFusionOpDescriptor::calcBNParams(std::vector<size_t> in_lens,
                                                        int& variant,
                                                        size_t& in_cstride,
                                                        size_t& in_nstride,
@@ -133,10 +133,7 @@ void BatchNormBwdTrainFusionOpDescriptor::calcBNParams(Handle& handle,
                                                        unsigned int& ldsgcn,
                                                        unsigned int& ldsnogcn)
 {
-    size_t xlocalsize, ylocalsize, zlocalsize;
-    std::tie(xlocalsize, ylocalsize, zlocalsize) = tien<3>(GetLocalWGSz(handle, ""));
-    size_t zgridsize, ygridsize, xgridsize;
-    std::tie(xgridsize, ygridsize, zgridsize) = tien<3>(GetGlobalWGSz(handle, ""));
+    const auto [xlocalsize, _0, _1] = tien<3>(GetLocalWGSz());
     int n, c, h, w;
     variant              = 0;
     std::tie(n, c, h, w) = tien<4>(in_lens);
@@ -165,27 +162,20 @@ void BatchNormBwdTrainFusionOpDescriptor::calcBNParams(Handle& handle,
     }
 }
 miopenStatus_t
-BatchNormBwdTrainFusionOpDescriptor::GetNetworkConfig(std::stringstream& network_config,
-                                                      Handle& handle)
+BatchNormBwdTrainFusionOpDescriptor::GetNetworkConfig(std::ostringstream& network_config)
 {
     int n, c, h, w;
     int variant          = 0;
     std::tie(n, c, h, w) = tien<4>(input_desc.GetLengths());
     size_t in_cstride, in_nstride, in_nchw;
     size_t xlocalsize, ylocalsize, zlocalsize;
-    std::tie(xlocalsize, ylocalsize, zlocalsize) = tien<3>(GetLocalWGSz(handle, ""));
+    std::tie(xlocalsize, ylocalsize, zlocalsize) = tien<3>(GetLocalWGSz());
     size_t zgridsize, ygridsize, xgridsize;
-    std::tie(xgridsize, ygridsize, zgridsize) = tien<3>(GetGlobalWGSz(handle, ""));
+    std::tie(xgridsize, ygridsize, zgridsize) = tien<3>(GetGlobalWGSz());
     unsigned int ldsgcn                       = 0;
     unsigned int ldsnogcn                     = 0;
-    calcBNParams(handle,
-                 input_desc.GetLengths(),
-                 variant,
-                 in_cstride,
-                 in_nstride,
-                 in_nchw,
-                 ldsgcn,
-                 ldsnogcn);
+    calcBNParams(
+        input_desc.GetLengths(), variant, in_cstride, in_nstride, in_nchw, ldsgcn, ldsnogcn);
 
     if(input_desc.GetLengths().empty())
         MIOPEN_THROW("The input descriptor is not set");
@@ -200,9 +190,7 @@ BatchNormBwdTrainFusionOpDescriptor::GetNetworkConfig(std::stringstream& network
     return miopenStatusSuccess;
 }
 
-std::vector<size_t>
-BatchNormBwdTrainFusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/,
-                                                  std::string /*algorithm_name*/)
+std::vector<size_t> BatchNormBwdTrainFusionOpDescriptor::GetLocalWGSz()
 {
     size_t xlocalsize, ylocalsize, zlocalsize;
     int h, w;
@@ -217,7 +205,7 @@ BatchNormBwdTrainFusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/,
     {
         if(in_cstride <= 1024 && in_cstride > 512)
         {
-            xlocalsize = std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned long>(1024));
+            xlocalsize = std::min(64 * ((in_cstride + 63) / 64), static_cast<size_t>(1024));
         }
         else
         {
@@ -231,13 +219,12 @@ BatchNormBwdTrainFusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/,
     return {xlocalsize, ylocalsize, zlocalsize};
 }
 
-std::vector<size_t> BatchNormBwdTrainFusionOpDescriptor::GetGlobalWGSz(Handle& handle,
-                                                                       std::string algorithm_name)
+std::vector<size_t> BatchNormBwdTrainFusionOpDescriptor::GetGlobalWGSz()
 {
     int c, h, w;
     std::tie(std::ignore, c, h, w) = tien<4>(input_desc.GetLengths());
     size_t xlocalsize, ylocalsize;
-    std::tie(xlocalsize, ylocalsize, std::ignore) = tien<3>(GetLocalWGSz(handle, algorithm_name));
+    std::tie(xlocalsize, ylocalsize, std::ignore) = tien<3>(GetLocalWGSz());
 
     size_t xgridsize = 1;
     size_t zgridsize = 1;
@@ -270,8 +257,7 @@ std::vector<size_t> BatchNormBwdTrainFusionOpDescriptor::GetGlobalWGSz(Handle& h
 
 /// BATCH NORMALIZATION training forward start ================
 
-void BatchNormFwdTrainFusionOpDescriptor::calcBNParams(Handle& handle,
-                                                       std::vector<size_t> in_lens,
+void BatchNormFwdTrainFusionOpDescriptor::calcBNParams(std::vector<size_t> in_lens,
                                                        int& variant,
                                                        size_t& in_cstride,
                                                        size_t& in_nstride,
@@ -279,10 +265,7 @@ void BatchNormFwdTrainFusionOpDescriptor::calcBNParams(Handle& handle,
                                                        unsigned int& ldsgcn,
                                                        unsigned int& ldsnogcn)
 {
-    size_t xlocalsize, ylocalsize, zlocalsize;
-    std::tie(xlocalsize, ylocalsize, zlocalsize) = tien<3>(GetLocalWGSz(handle, ""));
-    size_t zgridsize, ygridsize, xgridsize;
-    std::tie(xgridsize, ygridsize, zgridsize) = tien<3>(GetGlobalWGSz(handle, ""));
+    const auto [xlocalsize, _0, _1] = tien<3>(GetLocalWGSz());
     int n, c, h, w;
     variant              = 0;
     std::tie(n, c, h, w) = tien<4>(in_lens);
@@ -309,8 +292,7 @@ void BatchNormFwdTrainFusionOpDescriptor::calcBNParams(Handle& handle,
 }
 
 miopenStatus_t
-BatchNormFwdTrainFusionOpDescriptor::GetNetworkConfig(std::stringstream& network_config,
-                                                      Handle& handle)
+BatchNormFwdTrainFusionOpDescriptor::GetNetworkConfig(std::ostringstream& network_config)
 {
     int n, c, h, w;
     int variant               = 0;
@@ -319,18 +301,12 @@ BatchNormFwdTrainFusionOpDescriptor::GetNetworkConfig(std::stringstream& network
     std::tie(n, c, h, w)      = tien<4>(input_desc.GetLengths());
     size_t in_cstride, in_nstride, in_nchw;
     size_t xlocalsize, ylocalsize, zlocalsize;
-    std::tie(xlocalsize, ylocalsize, zlocalsize) = tien<3>(GetLocalWGSz(handle, ""));
+    std::tie(xlocalsize, ylocalsize, zlocalsize) = tien<3>(GetLocalWGSz());
     size_t zgridsize, ygridsize, xgridsize;
-    std::tie(xgridsize, ygridsize, zgridsize) = tien<3>(GetGlobalWGSz(handle, ""));
+    std::tie(xgridsize, ygridsize, zgridsize) = tien<3>(GetGlobalWGSz());
     unsigned int ldsgcn, ldsnogcn;
-    calcBNParams(handle,
-                 input_desc.GetLengths(),
-                 variant,
-                 in_cstride,
-                 in_nstride,
-                 in_nchw,
-                 ldsgcn,
-                 ldsnogcn);
+    calcBNParams(
+        input_desc.GetLengths(), variant, in_cstride, in_nstride, in_nchw, ldsgcn, ldsnogcn);
 
     if(input_desc.GetLengths().empty())
         MIOPEN_THROW("The input descriptor is not set");
@@ -346,9 +322,7 @@ BatchNormFwdTrainFusionOpDescriptor::GetNetworkConfig(std::stringstream& network
     return miopenStatusSuccess;
 }
 
-std::vector<size_t>
-BatchNormFwdTrainFusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/,
-                                                  std::string /*algorithm_name*/)
+std::vector<size_t> BatchNormFwdTrainFusionOpDescriptor::GetLocalWGSz()
 {
     size_t xlocalsize, ylocalsize, zlocalsize;
     int h, w;
@@ -375,13 +349,12 @@ BatchNormFwdTrainFusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/,
     return vgd;
 }
 
-std::vector<size_t> BatchNormFwdTrainFusionOpDescriptor::GetGlobalWGSz(Handle& handle,
-                                                                       std::string algorithm_name)
+std::vector<size_t> BatchNormFwdTrainFusionOpDescriptor::GetGlobalWGSz()
 {
     int c, h, w;
     std::tie(std::ignore, c, h, w) = tien<4>(input_desc.GetLengths());
     size_t xlocalsize, ylocalsize, zlocalsize;
-    std::tie(xlocalsize, ylocalsize, zlocalsize) = tien<3>(GetLocalWGSz(handle, algorithm_name));
+    std::tie(xlocalsize, ylocalsize, zlocalsize) = tien<3>(GetLocalWGSz());
 
     size_t xgridsize = c * xlocalsize;
     size_t zgridsize = 1;

@@ -41,7 +41,7 @@
 #include <functional>
 #include <vector>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DISABLE_FIND_DB)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_DISABLE_FIND_DB)
 
 namespace miopen {
 
@@ -87,14 +87,17 @@ public:
     FindDbRecord_t& operator=(const FindDbRecord_t&) = delete;
 
     template <class TProblemDescription, class TTestDb = TDb>
-    FindDbRecord_t(Handle& handle, const TProblemDescription& problem, is_immediate_t<TTestDb> = 0)
+    FindDbRecord_t(Handle& handle,
+                   const TProblemDescription& problem,
+                   const std::string& path_suffix = "",
+                   is_immediate_t<TTestDb>        = 0)
         : path(debug::testing_find_db_path_override() ? *debug::testing_find_db_path_override()
-                                                      : GetUserPath(handle)),
+                                                      : GetUserPath(handle, path_suffix)),
           installed_path(debug::testing_find_db_path_override()
                              ? *debug::testing_find_db_path_override()
-                             : GetInstalledPath(handle)),
+                             : GetInstalledPath(handle, path_suffix)),
           db(boost::make_optional<DbTimer<TDb>>(debug::testing_find_db_enabled &&
-                                                    !IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{}),
+                                                    !IsEnabled(ENV(MIOPEN_DEBUG_DISABLE_FIND_DB)),
                                                 DbTimer<TDb>{installed_path, path}))
     {
         if(!db.is_initialized())
@@ -105,14 +108,17 @@ public:
     }
 
     template <class TProblemDescription, class TTestDb = TDb>
-    FindDbRecord_t(Handle& handle, const TProblemDescription& problem, is_find_t<TTestDb> = 0)
+    FindDbRecord_t(Handle& handle,
+                   const TProblemDescription& problem,
+                   const std::string& path_suffix = "",
+                   is_find_t<TTestDb>             = 0)
         : path(debug::testing_find_db_path_override() ? *debug::testing_find_db_path_override()
-                                                      : GetUserPath(handle)),
+                                                      : GetUserPath(handle, path_suffix)),
 #if MIOPEN_DISABLE_USERDB
           db(boost::optional<DbTimer<TDb>>{})
 #else
           db(boost::make_optional<DbTimer<TDb>>(debug::testing_find_db_enabled &&
-                                                    !IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{}),
+                                                    !IsEnabled(ENV(MIOPEN_DEBUG_DISABLE_FIND_DB)),
                                                 DbTimer<TDb>{path, false}))
 #endif
     {
@@ -140,12 +146,13 @@ public:
     template <class TProblemDescription>
     static std::vector<PerfField> TryLoad(Handle& handle,
                                           const TProblemDescription& problem,
-                                          const std::function<void(DbRecord&)>& regenerator)
+                                          const std::function<void(DbRecord&)>& regenerator,
+                                          const std::string& path_suffix = "")
     {
         auto ret = std::vector<PerfField>{};
-        FindDbRecord_t<TDb> record{handle, problem};
+        FindDbRecord_t<TDb> record{handle, problem, path_suffix};
 
-        const auto network_config = problem.BuildConfKey();
+        const auto network_config = problem.MakeNetworkConfig();
 
         if(record.in_sync && !record.Validate(handle, network_config))
         {
@@ -170,10 +177,10 @@ private:
     boost::optional<DbRecord> content{boost::none};
     bool in_sync = false;
 
-    static std::string GetInstalledPath(Handle& handle);
-    static std::string GetInstalledPathEmbed(Handle& handle);
-    static std::string GetInstalledPathFile(Handle& handle);
-    static std::string GetUserPath(Handle& handle);
+    static std::string GetInstalledPath(Handle& handle, const std::string& path_suffix);
+    static std::string GetInstalledPathEmbed(Handle& handle, const std::string& path_suffix);
+    static std::string GetInstalledPathFile(Handle& handle, const std::string& path_suffix);
+    static std::string GetUserPath(Handle& handle, const std::string& path_suffix);
 
     // Returns true if rebuild is required
     bool Validate(Handle& handle, const NetworkConfig& config) const;
