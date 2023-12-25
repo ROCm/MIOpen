@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,36 +24,44 @@
  *
  *******************************************************************************/
 
-#include <miopen/config.h>
-#include <miopen/solver/gemm_common.hpp>
+#ifndef MIOPEN_GUARD_MLOPEN_PROCESS_HPP
+#define MIOPEN_GUARD_MLOPEN_PROCESS_HPP
 
-#include <tuple> // std::ignore
-
-/// This W/A disables all GEMM convolution solvers for xDLOPs
-/// targets when MIOpenGEMM is used (OCL BE). More info at
-/// https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1315.
-///
-/// W/A affects ROCm releases starting from 4.5 and also
-/// pre-5.0 Mainline HIP builds, e.g. 9148.
-#define WORKAROUND_ISSUE_1315 (MIOPEN_USE_MIOPENGEMM && (HIP_PACKAGE_VERSION_FLAT >= 4004000000ULL))
+#include <boost/filesystem.hpp>
+#include <memory>
+#include <string_view>
 
 namespace miopen {
-namespace solver {
-namespace conv {
-namespace gemm {
 
-bool IsWorkaroundIssue1315(const miopen::ExecutionContext& ctx)
+struct ProcessImpl;
+
+struct Process
 {
-#if WORKAROUND_ISSUE_1315
-    const auto device = ctx.GetStream().GetTargetProperties().Name();
-    return (device == "gfx908") || (device == "gfx90a");
-#else
-    std::ignore = ctx;
-    return false;
-#endif
-}
+    Process(const boost::filesystem::path& cmd);
+    ~Process() noexcept;
 
-} // namespace gemm
-} // namespace conv
-} // namespace solver
+    int operator()(std::string_view args = "", const boost::filesystem::path& cwd = "");
+
+private:
+    std::unique_ptr<ProcessImpl> impl;
+};
+
+struct ProcessAsync
+{
+    ProcessAsync(const boost::filesystem::path& cmd,
+                 std::string_view args              = "",
+                 const boost::filesystem::path& cwd = "");
+    ~ProcessAsync() noexcept;
+
+    ProcessAsync(ProcessAsync&&) noexcept;
+    ProcessAsync& operator=(ProcessAsync&&) noexcept;
+
+    int Wait();
+
+private:
+    std::unique_ptr<ProcessImpl> impl;
+};
+
 } // namespace miopen
+
+#endif // MIOPEN_GUARD_MLOPEN_PROCESS_HPP

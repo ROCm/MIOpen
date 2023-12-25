@@ -45,7 +45,9 @@
 #include <mutex>
 #include <sstream>
 
+#if defined(__linux__)
 #include <unistd.h>
+#endif
 
 /// 0 or undef or wrong - auto-detect
 /// 1 - <blank> / "-Xclang -target-feature -Xclang +code-object-v3"
@@ -198,12 +200,11 @@ HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name, const std::s
 
 HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
                                    std::string params,
-                                   bool is_kernel_str,
                                    const TargetProperties& target_,
                                    const std::string& kernel_src)
     : program(program_name), target(target_)
 {
-    BuildCodeObject(params, is_kernel_str, kernel_src);
+    BuildCodeObject(params, kernel_src);
     if(!binary.empty())
     {
         module = CreateModuleInMem(binary);
@@ -311,19 +312,14 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
 }
 #endif // MIOPEN_USE_COMGR
 
-void HIPOCProgramImpl::BuildCodeObject(std::string params,
-                                       bool is_kernel_str,
-                                       const std::string& kernel_src)
+void HIPOCProgramImpl::BuildCodeObject(std::string params, const std::string& kernel_src)
 {
-    std::string filename = is_kernel_str ? "tinygemm.cl" // Fixed name for miopengemm.
-                                         : program;
+    std::string filename = program;
     const auto src       = [&]() -> std::string {
         if(miopen::EndsWith(filename, ".mlir"))
             return {}; // MLIR solutions do not use source code.
         if(!kernel_src.empty())
             return kernel_src;
-        if(is_kernel_str)
-            return program;
         return GetKernelSrc(program);
     }();
 
@@ -334,8 +330,7 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params,
     }
     else if(miopen::EndsWith(filename, ".cl"))
     {
-        params +=
-            " -Werror" + (is_kernel_str ? MiopengemmWarningsString() : OclKernelWarningsString());
+        params += " -Werror" + OclKernelWarningsString();
     }
 #else
     if(miopen::EndsWith(filename, ".cpp") || miopen::EndsWith(filename, ".cl"))
@@ -352,11 +347,9 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params,
 HIPOCProgram::HIPOCProgram() {}
 HIPOCProgram::HIPOCProgram(const std::string& program_name,
                            std::string params,
-                           bool is_kernel_str,
                            const TargetProperties& target,
                            const std::string& kernel_src)
-    : impl(std::make_shared<HIPOCProgramImpl>(
-          program_name, params, is_kernel_str, target, kernel_src))
+    : impl(std::make_shared<HIPOCProgramImpl>(program_name, params, target, kernel_src))
 {
 }
 

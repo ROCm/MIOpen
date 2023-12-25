@@ -91,10 +91,9 @@ option(BUILD_SHARED_LIBS "Create shared libraries" ON)
 
 if(MIOPEN_ENABLE_SQLITE)
     # MIOpen now depends on SQLite as well
-    find_package(PkgConfig)
-    pkg_check_modules(SQLITE3 REQUIRED sqlite3)
+    find_package(SQLite3 REQUIRED)
 endif()
-find_package(BZip2)
+find_package(BZip2 REQUIRED)
 find_package(nlohmann_json 3.9.1 REQUIRED)
 if(MIOPEN_ENABLE_SQLITE_KERN_CACHE AND NOT MIOPEN_ENABLE_SQLITE)
     message(FATAL_ERROR "MIOPEN_ENABLE_SQLITE_KERN_CACHE requires MIOPEN_ENABLE_SQLITE")
@@ -112,7 +111,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 3.00.0)
+rocm_setup_version(VERSION 3.1.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -259,6 +258,10 @@ if(MIOPEN_hip_VERSION VERSION_GREATER_EQUAL 5.7.23302)
     string(APPEND HIP_COMPILER_FLAGS " -fno-offload-uniform-block ")
 endif()
 
+if(WIN32)
+    string(REPLACE "\\" "/" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+endif()
+
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
 add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:HIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}>)
@@ -309,7 +312,7 @@ endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
 
 # look for and register clang-offload-bundler
-if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+$")
+if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+.*")
     find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler
         PATH_SUFFIXES bin
         PATHS
@@ -341,7 +344,7 @@ if(MIOPEN_USE_MLIR)
         find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
         if(NOT LIBMLIRMIOPEN)
             message(FATAL_ERROR "library libMLIRMIOpen not found, please reinstall dependencies. \
-            Refer to https://github.com/ROCmSoftwarePlatform/MIOpen#installing-the-dependencies")
+            Refer to https://github.com/ROCm/MIOpen#installing-the-dependencies")
         else()
             message(STATUS "Build with library libMLIRMIOpen: " ${LIBMLIRMIOPEN})
             set(rocMLIR_VERSION 0.0.1)
@@ -351,6 +354,7 @@ if(MIOPEN_USE_MLIR)
     endif()
 endif()
 
+set(MIOPEN_PACKAGE_REQS "hip-rocclr")
 
 # Online assembler
 find_program(MIOPEN_AMDGCN_ASSEMBLER
@@ -371,14 +375,15 @@ message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
 if(MIOPEN_USE_COMGR)
     find_package(amd_comgr REQUIRED CONFIG)
     message(STATUS "Build with comgr ${amd_comgr_VERSION}")
+    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, amd_comgr")
 endif()
 
 if(MIOPEN_USE_HIPRTC)
     if(NOT MIOPEN_USE_COMGR)
         message(FATAL_ERROR "HIPRTC can be used only together with COMGR")
-    else()
-        message(STATUS "Build with HIPRTC")
     endif()
+    find_package(hiprtc REQUIRED)
+    message(STATUS "Build with HIPRTC")
 endif()
 
 option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)
@@ -397,6 +402,11 @@ option(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY "Build with file/folder reorg wit
 set( MIOPEN_INSTALL_DIR miopen)
 set( DATA_INSTALL_DIR ${CMAKE_INSTALL_DATAROOTDIR}/miopen )
 
+if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
+    find_package(frugally-deep CONFIG REQUIRED)
+    find_package(Eigen3 REQUIRED)
+endif()
+
 set(MIOPEN_GPU_SYNC Off CACHE BOOL "")
 if(BUILD_DEV)
     set(MIOPEN_BUILD_DEV 1)
@@ -412,7 +422,23 @@ else()
 endif()
 set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix for the system find-db files")
 
-set(MIOPEN_PACKAGE_REQS "hip-rocclr")
+# PR-2391 Add the ability to log function calls to roctx.
+# This allows attached profilers to see which MIOpen calls are being called by application and which kernels are being invoked by MIOpen.
+# Enabled via the MIOPEN_ENABLE_LOGGING_ROCTX env var.
+set(MIOPEN_USE_ROCTRACER ON CACHE BOOL "")
+if(NOT WIN32 AND MIOPEN_USE_ROCTRACER)
+    find_library(rocTracer roctx64)
+    if(rocTracer)
+        MESSAGE(STATUS "Build with rocTracer: " ${rocTracer})
+        set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, roctracer")
+    else()
+        message(WARNING "rocTracer cannot be found! Build without rocTracer")
+        set(MIOPEN_USE_ROCTRACER OFF)
+    endif()
+else()
+    message(STATUS "Build without rocTracer")
+    set(MIOPEN_USE_ROCTRACER OFF)
+endif()
 
 if(MIOPEN_USE_ROCBLAS)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocblas")
@@ -617,6 +643,19 @@ enable_cppcheck(
         knownConditionTrueFalse
         shadowFunction
         moduloofone
+        ###################################################################
+        # TODO Code Quality WORKAROUND ROCm 6.0 &&
+        # Ubuntu 22.04 && cppcheck 2.12.1 update
+        ###################################################################
+        duplInheritedMember
+        constParameterCallback
+        constParameterReference
+        constParameterPointer
+        constVariableReference
+        constVariablePointer
+        useStlAlgorithm
+        uselessOverride
+        unusedScopedObject   
     FORCE
     SOURCES
         addkernels/

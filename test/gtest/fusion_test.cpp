@@ -99,7 +99,7 @@ TEST_P(FusionSetArgTestFloat, TestSetArgApiCall)
 INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
                          FusionSetArgTestFloat,
                          testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(GetNetwork1()),
+                                          testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
                                           testing::Values(miopenTensorNCHW)));
 
 #endif
