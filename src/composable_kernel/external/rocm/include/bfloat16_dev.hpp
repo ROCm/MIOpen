@@ -30,7 +30,7 @@
 extern "C" {
 #endif
 
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef __HIP_PLATFORM_AMD__
 #define EXECUTION_SPECIFIER __device__
 #else
 #define EXECUTION_SPECIFIER
@@ -43,7 +43,7 @@ typedef union
 
 // Composable kernels are written in HIP language. The language doesnt support
 // ushort2.hi or ushort2.low.
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef __HIP_PLATFORM_AMD__
     ushort ushortvec[2];
 #endif // MIOPEN_BACKEND_HIP
     float f32;
@@ -53,7 +53,7 @@ EXECUTION_SPECIFIER float bfloat16_to_float(ushort src_val)
 {
     cvt_bf16_fp32_t target_val;
 
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef __HIP_PLATFORM_AMD__
     target_val.ushortx2 = make_ushort2(0, src_val);
 #else
     target_val.ushortx2 = (ushort2)(0, src_val);
@@ -102,7 +102,7 @@ EXECUTION_SPECIFIER ushort float_to_bfloat16(float src_val)
 // When the bfloat16 value has an exponent of 0xFE and a mantissa of 0x7F,
 // incrementing it causes it to become an exponent of 0xFF and a mantissa
 // of 0x00, which is Inf, the next higher value to the unrounded value.
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef __HIP_PLATFORM_AMD__
         target_val.u32 += (0x7fff + (target_val.ushortvec[1] & 1));
 #else
         target_val.u32 +=
@@ -111,7 +111,7 @@ EXECUTION_SPECIFIER ushort float_to_bfloat16(float src_val)
 #endif // MIOPEN_USE_RNE_BFLOAT16
     }
 
-#ifdef __HIP_PLATFORM_HCC__
+#ifdef __HIP_PLATFORM_AMD__
     return target_val.ushortvec[1];
 #else
     return target_val.ushortx2.hi;
