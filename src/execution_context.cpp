@@ -46,8 +46,8 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER)
 namespace miopen {
 namespace debug {
 
-MIOPEN_EXPORT bool IsWarmupOngoing =
-    false; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+MIOPEN_EXPORT bool IsWarmupOngoing = false;
 
 } // namespace debug
 } // namespace miopen
