@@ -25,13 +25,43 @@
  *******************************************************************************/
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
+#include <miopen/env.hpp>
+#if MIOPEN_USE_COMPOSABLEKERNEL
+#include <miopen/solver/ck_utility_common.hpp>
+#endif
 
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
 
 #include "conv3d_test_case.hpp"
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+
+#if MIOPEN_USE_COMPOSABLEKERNEL
+#define WORAROUND_ISSUE_2533 1
+#endif
+
 namespace conv_bias_act_res_add_fwd {
+
+bool TestIsApplicable()
+{
+#if MIOPEN_USE_COMPOSABLEKERNEL
+    const auto float_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    return
+#if WORAROUND_ISSUE_2533
+        miopen::solver::ck_utility::is_ck_whitelist(get_handle().GetDeviceName()) //
+#else
+    /// \todo Check against specific ASCIs.
+#endif
+        && (float_arg == "--half" // So far only test for fp16 is implemented.
+            || float_arg.empty()) // Empty when gtest is run without parameters.
+        && !miopen::IsDisabled(
+               ENV(MIOPEN_TEST_ALL)); // Not disabled when gtest is run without parameters.
+#else
+    return false;
+#endif
+}
 
 std::vector<Conv3DTestCase> ConvTestConfigs()
 { //         g, n, c, d,  h,  w, k,  z, y, x, pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y
@@ -57,6 +87,8 @@ struct ConvFwdBiasResAddFixture
 protected:
     void SetUp() override
     {
+        if(!TestIsApplicable())
+            return;
 
         std::tie(algo, conv_config, alpha1, alpha2, tensor_layout) = GetParam();
 
@@ -94,6 +126,8 @@ protected:
     }
     void TearDown() override
     {
+        if(!TestIsApplicable())
+            return;
 
         miopenDestroyActivationDescriptor(activ_desc);
 
@@ -163,26 +197,33 @@ using namespace conv_bias_act_res_add_fwd;
 
 TEST_P(ConvFwdBiasResAddActivTest, ConvFusedAPI)
 {
-    auto status = miopenConvolutionBiasActivationForward(&get_handle(),
-                                                         &alpha1,
-                                                         &input.desc,
-                                                         in_dev.get(),
-                                                         &weights.desc,
-                                                         wei_dev.get(),
-                                                         &conv_desc,
-                                                         algo,
-                                                         nullptr, // workspace
-                                                         0ull,    // workspace size
-                                                         &alpha2,
-                                                         &z.desc,
-                                                         z_dev.get(),
-                                                         &bias.desc,
-                                                         bias_dev.get(),
-                                                         activ_desc,
-                                                         &output.desc,
-                                                         out_dev.get());
+    if(TestIsApplicable())
+    {
+        auto status = miopenConvolutionBiasActivationForward(&get_handle(),
+                                                             &alpha1,
+                                                             &input.desc,
+                                                             in_dev.get(),
+                                                             &weights.desc,
+                                                             wei_dev.get(),
+                                                             &conv_desc,
+                                                             algo,
+                                                             nullptr, // workspace
+                                                             0ull,    // workspace size
+                                                             &alpha2,
+                                                             &z.desc,
+                                                             z_dev.get(),
+                                                             &bias.desc,
+                                                             bias_dev.get(),
+                                                             activ_desc,
+                                                             &output.desc,
+                                                             out_dev.get());
 
-    EXPECT_EQ(status, miopenStatusSuccess);
+        EXPECT_EQ(status, miopenStatusSuccess);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvFwdBiasActivAPI,

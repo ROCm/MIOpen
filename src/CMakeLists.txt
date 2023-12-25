@@ -99,7 +99,7 @@ set( MIOpen_Source
     conv/invokers/impl_gemm_dynamic.cpp
     conv/invokers/ocl_wrw_rdc.cpp
     conv/problem_description.cpp
-        conv/solver_finders.cpp
+    conv/solver_finders.cpp
     conv_algo_name.cpp
     convolution.cpp
     convolution_api.cpp
@@ -134,6 +134,7 @@ set( MIOpen_Source
     pooling/problem_description.cpp
     pooling_api.cpp
     problem.cpp
+    process.cpp
     ramdb.cpp
     readonlyramdb.cpp
     reducetensor.cpp
@@ -717,10 +718,9 @@ if(WIN32)
 endif()
 
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
-target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
-# Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS} 
+# Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS}
 #               We can remove ${CMAKE_DL_LIBS} once root cause is identified.
-target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} Threads::Threads ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
+target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} Threads::Threads BZip2::BZip2 ${MIOPEN_CK_LINK_FLAGS})
 miopen_generate_export_header(MIOpen)
 
 if(BUILD_TESTING)
@@ -841,7 +841,7 @@ if(NOT WIN32 AND NOT APPLE)
     endif()
 endif()
 
-if(NOT WIN32)
+if(MIOPEN_USE_ROCTRACER)
     target_link_libraries(MIOpen PRIVATE roctx64)
 endif()
 
