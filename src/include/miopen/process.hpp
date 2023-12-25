@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,52 +24,44 @@
  *
  *******************************************************************************/
 
-#include <miopen/tmp_dir.hpp>
-#include <miopen/env.hpp>
-#include <boost/filesystem.hpp>
-#include <miopen/errors.hpp>
-#include <miopen/logger.hpp>
-#include <miopen/process.hpp>
+#ifndef MIOPEN_GUARD_MLOPEN_PROCESS_HPP
+#define MIOPEN_GUARD_MLOPEN_PROCESS_HPP
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_SAVE_TEMP_DIR)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_EXIT_STATUS_TEMP_DIR)
+#include <boost/filesystem.hpp>
+#include <memory>
+#include <string_view>
 
 namespace miopen {
 
-TmpDir::TmpDir(std::string prefix)
-    : path(boost::filesystem::temp_directory_path() /
-           boost::filesystem::unique_path("miopen-" + prefix + "-%%%%-%%%%-%%%%-%%%%"))
-{
-    boost::filesystem::create_directories(this->path);
-}
+struct ProcessImpl;
 
-TmpDir& TmpDir::operator=(TmpDir&& other) noexcept
+struct Process
 {
-    this->path = other.path;
-    other.path = "";
-    return *this;
-}
+    Process(const boost::filesystem::path& cmd);
+    ~Process() noexcept;
 
-void TmpDir::Execute(std::string_view exe, std::string_view args) const
-{
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_SAVE_TEMP_DIR)))
-    {
-        MIOPEN_LOG_I2(this->path.string());
-    }
-    auto status = Process(exe)(args, this->path);
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_EXIT_STATUS_TEMP_DIR)))
-    {
-        MIOPEN_LOG_I2(status);
-    }
-}
+    int operator()(std::string_view args = "", const boost::filesystem::path& cwd = "");
 
-TmpDir::~TmpDir()
+private:
+    std::unique_ptr<ProcessImpl> impl;
+};
+
+struct ProcessAsync
 {
-    if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_SAVE_TEMP_DIR)))
-    {
-        if(!this->path.empty())
-            boost::filesystem::remove_all(this->path);
-    }
-}
+    ProcessAsync(const boost::filesystem::path& cmd,
+                 std::string_view args              = "",
+                 const boost::filesystem::path& cwd = "");
+    ~ProcessAsync() noexcept;
+
+    ProcessAsync(ProcessAsync&&) noexcept;
+    ProcessAsync& operator=(ProcessAsync&&) noexcept;
+
+    int Wait();
+
+private:
+    std::unique_ptr<ProcessImpl> impl;
+};
 
 } // namespace miopen
+
+#endif // MIOPEN_GUARD_MLOPEN_PROCESS_HPP
