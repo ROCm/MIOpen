@@ -46,7 +46,7 @@ bool IsUnderXCountLimit(const miopen::cat::ProblemDescription& problem)
 {
     if(problem.GetXCount() > MAX_TENSOR_X_COUNT)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "CatForward: Exceeded the number of tensors.");
+        return false;
     }
     return true;
 }

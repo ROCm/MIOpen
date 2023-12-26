@@ -68,7 +68,7 @@ struct ProblemDescription : ProblemDescriptionBase
         {
             if(xDescs[i]->GetType() != dtype)
             {
-                MIOPEN_THROW(miopenStatusBadParm, "CatForward: Tensor types do not match.");
+                return false;
             }
         }
         return true;
@@ -84,16 +84,14 @@ struct ProblemDescription : ProblemDescriptionBase
 
             if(ydims.size() != xdims.size())
             {
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "CatForward: Tensor dimension lengths do not match.");
+                return false;
             }
 
             for(int j = 0; j < ydims.size(); j++)
             {
                 if((j != dim) && (ydims[j] != xdims[j]))
                 {
-                    MIOPEN_THROW(miopenStatusBadParm,
-                                 "CatForward: Tensor dimension lengths do not match.");
+                    return false;
                 }
             }
             ydims[dim] += xdims[dim];
@@ -101,7 +99,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
         if(ydims[dim] != yDesc.GetLengths()[dim])
         {
-            MIOPEN_THROW(miopenStatusBadParm, "CatForward: Tensor dimension lengths do not match.");
+            return false;
         }
 
         return true;
@@ -111,9 +109,7 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if((dim < 0) || (dim > yDesc.GetLengths().size()))
         {
-            MIOPEN_THROW(
-                miopenStatusBadParm,
-                "CatForward: is greater than 0 and less than or equal tensor dimension length.");
+            return false;
         }
         return true;
     }
@@ -124,13 +120,13 @@ struct ProblemDescription : ProblemDescriptionBase
         {
             if(!xDescs[i]->IsPacked())
             {
-                MIOPEN_THROW(miopenStatusBadParm, "CatForward: Unpacked tensors not supported.");
+                return false;
             }
         }
 
         if(!yDesc.IsPacked())
         {
-            MIOPEN_THROW(miopenStatusBadParm, "CatForward: Unpacked tensors not supported.");
+            return false;
         }
         return true;
     }
