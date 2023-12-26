@@ -108,7 +108,6 @@ ConvSolution CatForward::GetSolution(const ExecutionContext& context,
 
     size_t xlocalsize = std::min(static_cast<int>(x_dim_size_max * stride), LOCAL_SIZE);
     size_t ylocalsize = std::max(static_cast<int>(LOCAL_SIZE / xlocalsize), 1);
-    ;
     size_t zlocalsize = 1;
     size_t ygridsize  = AlignUp(outer_size, ylocalsize);
     size_t xgridsize =
@@ -164,7 +163,6 @@ ConvSolution CatForward::GetSolution(const ExecutionContext& context,
                        params.y,
                        params.GetXDimSize(0),
                        params.GetXDimSize(1),
-                       dim,
                        outer_size,
                        stride,
                        y_dim_size);
@@ -194,7 +192,6 @@ ConvSolution CatForward::GetSolution(const ExecutionContext& context,
                        params.GetXDimSize(1),
                        params.GetXDimSize(2),
                        params.GetXDimSize(3),
-                       dim,
                        outer_size,
                        stride,
                        y_dim_size);
@@ -232,7 +229,6 @@ ConvSolution CatForward::GetSolution(const ExecutionContext& context,
                        params.GetXDimSize(5),
                        params.GetXDimSize(6),
                        params.GetXDimSize(7),
-                       dim,
                        outer_size,
                        stride,
                        y_dim_size);
