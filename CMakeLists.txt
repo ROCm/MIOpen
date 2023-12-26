@@ -383,7 +383,7 @@ if(MIOPEN_USE_HIPRTC)
         message(FATAL_ERROR "HIPRTC can be used only together with COMGR")
     endif()
     find_package(hiprtc REQUIRED)
-    message(STATUS "Build with HIPRTC")
+    message(STATUS "Build with HIPRTC ${hiprtc_VERSION}")
 endif()
 
 option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)
