@@ -28,23 +28,8 @@
 #include <hip/hip_runtime.h>
 #endif
 
-#ifdef __HIPCC_RTC__
-#ifdef WORKAROUND_ISSUE_HIPRTC_TRUE_TYPE
-/// Definitions from <cstdint>, <cmath> conflict with
-/// /opt/rocm/include/hip/amd_detail/amd_hip_vector_types.h.
-
-typedef signed char int8_t;
-typedef signed short int16_t;
-typedef float float_t;
-#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
-#include <limits> // std::numeric_limits
-#endif
-
-#else
-#include <cstdint> // int8_t, int16_t
-#include <cmath>   // float_t
-#endif
-#endif // __HIPCC_RTC__
+#include "miopen_cstdint.hpp"
+#include "miopen_limits.hpp"
 
 #include "stride_array.hpp"
 
