@@ -43,7 +43,7 @@ __device__ size_t cat_copy_buf(const T* __restrict__ input,
                                size_t output_offset)
 {
     if(!input)
-        return;
+        return output_offset;
 
     size_t gid0         = blockIdx.x * blockDim.x + threadIdx.x;
     size_t gid1         = blockIdx.y * blockDim.y + threadIdx.y;
