@@ -70,6 +70,7 @@ extern "C" miopenStatus_t miopenGetActivationDescriptor(miopenActivationDescript
 }
 
 namespace miopen::debug {
+MIOPEN_EXPORT
 void LogCmdActivation(const miopen::TensorDescriptor& x_desc,
                       const miopen::ActivationDescriptor& activ_desc,
                       bool fwd)
