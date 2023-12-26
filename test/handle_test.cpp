@@ -29,8 +29,12 @@
 #define WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS 1
 
 // https://gerrit-git.amd.com/c/compute/ec/clr/+/972441
-#define WORKAROUND_ISSUE_2600 \
-    (HIP_PACKAGE_VERSION_FLAT > 5007023384ULL && HIP_PACKAGE_VERSION_FLAT <= 6000023494ULL)
+// "HIP_PACKAGE_VERSION_FLAT == 6001000000ULL" is for ROCm 6.1 RC where issue #2600 is not
+// yet fixed in the compiler. In order to test such release candidates, we have to
+// override HIP version to 6.1.0.
+#define WORKAROUND_ISSUE_2600                                                                    \
+    ((HIP_PACKAGE_VERSION_FLAT >= 6000000000ULL && HIP_PACKAGE_VERSION_FLAT <= 6000999999ULL) || \
+     HIP_PACKAGE_VERSION_FLAT == 6001000000ULL)
 
 #include <miopen/config.h>
 #include <miopen/handle.hpp>
