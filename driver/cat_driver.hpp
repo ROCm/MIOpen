@@ -50,7 +50,7 @@ int32_t mloCatForwardRunHost(std::vector<miopenTensorDescriptor_t> inputDescs,
                              std::vector<Tgpu*> inputs,
                              miopenTensorDescriptor_t outputDesc,
                              Tcheck* outputhost,
-                             int32_t dim)
+                             uint32_t dim)
 {
     auto shape             = miopen::deref(outputDesc).GetLengths();
     size_t outer_size      = 1;
@@ -130,8 +130,8 @@ public:
 private:
     InputFlags inflags;
 
-    int forw;
-    int dim_size;
+    uint32_t dim_size;
+    uint32_t dim;
 
     std::vector<miopenTensorDescriptor_t> inputDescs;
     miopenTensorDescriptor_t outputDesc;
@@ -145,7 +145,6 @@ private:
 
     std::vector<void*> in_devs_ptr;
     std::vector<Tgpu*> ins_ptr;
-    int dim;
 };
 
 template <typename Tgpu, typename Tref>
@@ -166,7 +165,7 @@ int CatDriver<Tgpu, Tref>::GetandSetData()
     miopenTensorDescriptor_t inputDesc;
     size_t output_dim_size = 0;
     auto in_lens           = GetInputTensorLengthsFromCmdLine();
-    dim                    = inflags.GetValueDouble("dim");
+    dim                    = inflags.GetValueInt("dim");
 
     for(auto in_len : in_lens)
     {
