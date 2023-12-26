@@ -48,7 +48,8 @@ namespace miopen {
 
 namespace debug {
 
-bool FindEnforceDisable = false; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+MIOPEN_EXPORT bool FindEnforceDisable = false;
 
 } // namespace debug
 

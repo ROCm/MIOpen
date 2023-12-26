@@ -73,7 +73,7 @@ struct HandleImpl;
 using rocblas_handle_ptr = MIOPEN_MANAGE_PTR(rocblas_handle, rocblas_destroy_handle);
 #endif
 
-struct Handle : miopenHandle
+struct MIOPEN_EXPORT Handle : miopenHandle
 {
     friend struct TargetProperties;
 
