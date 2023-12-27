@@ -32,10 +32,6 @@
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/target_properties.hpp>
 
-#define LOCAL_SIZE 256
-#define MAX_TENSOR_X_COUNT 8
-#define MIN_OUTPUT_TENSOR_SIZE 1000000
-
 namespace miopen {
 
 namespace solver {
@@ -44,7 +40,8 @@ namespace cat {
 
 bool IsUnderXCountLimit(const miopen::cat::ProblemDescription& problem)
 {
-    if(problem.GetXCount() > MAX_TENSOR_X_COUNT)
+    constexpr int32_t max_tensor_x_count = 8;
+    if(problem.GetXCount() > max_tensor_x_count)
     {
         return false;
     }
@@ -53,7 +50,8 @@ bool IsUnderXCountLimit(const miopen::cat::ProblemDescription& problem)
 
 bool IsImprovementOverROCm(const miopen::cat::ProblemDescription& problem)
 {
-    if(problem.GetYDesc().GetElementSize() < MIN_OUTPUT_TENSOR_SIZE)
+    constexpr size_t min_output_tensor_size = 1000000;
+    if(problem.GetYDesc().GetElementSize() < min_output_tensor_size)
     {
         return false;
     }
@@ -106,8 +104,10 @@ ConvSolution CatForward::GetSolution(const ExecutionContext& context,
     auto outer_size =
         std::accumulate(ydims.begin(), ydims.begin() + dim, 1ULL, std::multiplies<size_t>());
 
-    size_t xlocalsize = std::min(static_cast<int>(x_dim_size_max * stride), LOCAL_SIZE);
-    size_t ylocalsize = std::max(static_cast<int>(LOCAL_SIZE / xlocalsize), 1);
+    constexpr size_t local_size = 256;
+
+    size_t xlocalsize = std::min(x_dim_size_max * stride, local_size);
+    size_t ylocalsize = std::max(static_cast<int>(local_size / xlocalsize), 1);
     size_t zlocalsize = 1;
     size_t ygridsize  = AlignUp(outer_size, ylocalsize);
     size_t xgridsize =
