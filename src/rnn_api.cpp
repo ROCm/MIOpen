@@ -529,7 +529,7 @@ static void LogCmdRNN(const miopenTensorDescriptor_t* xDesc,
                       const int seqLength,
                       const RNNDir_t dir)
 {
-    if(miopen::IsLoggingCmd())
+    if(miopen::IsLoggingCmd() && seqLength > 0)
     {
         std::string mode;
         miopenRNNMode_t rnnMode = miopen::deref(rnnDesc).rnnMode;
