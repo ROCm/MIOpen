@@ -32,10 +32,10 @@
 
 template <typename TI, typename TO>
 __device__ void argmaxfwdcontiguous(const TI* __restrict__ x,
-                                               TO* __restrict__ y,
-                                               uint64_t output_numel,
-                                               int32_t reduce_size,
-                                               uint64_t inner_size)
+                                    TO* __restrict__ y,
+                                    uint64_t output_numel,
+                                    int32_t reduce_size,
+                                    uint64_t inner_size)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
     if(gid >= output_numel)

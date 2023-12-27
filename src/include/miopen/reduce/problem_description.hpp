@@ -83,7 +83,7 @@ struct ProblemDescription : ProblemDescriptionBase
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
                 MIOPEN_THROW(miopenStatusBadParm, "Reduce: Tensor dimension lengths do not match.");
 #else
-            return false;
+                return false;
 #endif
             }
 

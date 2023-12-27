@@ -234,17 +234,12 @@ bool Layernorm2DCKForward::IsApplicable(
         return CheckCKApplicability<DeviceOpLnFwdPtrs<F16, F16, F16, F16, F32>>(problem);
     case miopenFloat:
         return CheckCKApplicability<DeviceOpLnFwdPtrs<F32, F32, F32, F32, F32>>(problem);
-    case miopenBFloat16: return false;
+    case miopenBFloat16:
     case miopenDouble:
     case miopenInt32:
     case miopenInt8:
     case miopenFloat8:
-    case miopenBFloat8:
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-    default: MIOPEN_THROW("Unsupported datatype");
-#else
-    return false;
-#endif
+    case miopenBFloat8: return false;
     }
 #endif
     return false;

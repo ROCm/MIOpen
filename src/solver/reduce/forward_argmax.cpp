@@ -58,10 +58,10 @@ ConvSolution ArgmaxForward::GetSolution(const ExecutionContext&,
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto input_dtype = miopen::GetDataType(problem.GetXDesc().GetType());
+    auto input_dtype  = miopen::GetDataType(problem.GetXDesc().GetType());
     auto output_dtype = miopen::GetDataType(problem.GetYDesc().GetType());
-    auto xdims = problem.GetXDesc().GetLengths();
-    auto ydims = problem.GetYDesc().GetLengths();
+    auto xdims        = problem.GetXDesc().GetLengths();
+    auto ydims        = problem.GetYDesc().GetLengths();
 
     auto output_numel =
         std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
@@ -83,7 +83,7 @@ ConvSolution ArgmaxForward::GetSolution(const ExecutionContext&,
 
         const auto build_params = KernelBuildParameters{
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-            {"OUTPUT_TYPE", output_dtype  == "bfloat16" ? "ushort" : output_dtype},
+            {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -112,7 +112,8 @@ ConvSolution ArgmaxForward::GetSolution(const ExecutionContext&,
             auto output_numel =
                 std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
 
-            auto inner_size = std::accumulate(xdims.begin() + dim + 1, xdims.end(), 1ULL, std::multiplies<size_t>());
+            auto inner_size = std::accumulate(
+                xdims.begin() + dim + 1, xdims.end(), 1ULL, std::multiplies<size_t>());
 
             kernel(params.x, params.y, output_numel, reduce_size, inner_size);
         };

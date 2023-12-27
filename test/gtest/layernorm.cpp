@@ -30,10 +30,7 @@
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-std::string GetFloatArg()
-{
-    return miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-}
+std::string GetFloatArg() { return miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)); }
 
 struct LayerNormTestFloat : LayerNormTest<float>
 {
@@ -41,12 +38,13 @@ struct LayerNormTestFloat : LayerNormTest<float>
 
 TEST_P(LayerNormTestFloat, LayerNormTestFw)
 {
-    auto TypeArg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    auto TypeArg       = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
     const auto& handle = get_handle();
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
-       !miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float" || GetFloatArg().empty()))
+       !miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)) &&
+       (GetFloatArg() == "--float" || GetFloatArg().empty()))
     {
         RunTest();
         Verify();

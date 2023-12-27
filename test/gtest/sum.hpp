@@ -101,7 +101,7 @@ std::vector<SumTestCase> SumTestConfigs()
 
 inline int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
 {
-    std::vector<std::size_t> lens = desc.GetLengths();
+    const std::vector<std::size_t>& lens = desc.GetLengths();
     std::vector<int32_t> int32_t_lens(lens.begin(), lens.end());
 
     // set the strides for the tensor
@@ -114,8 +114,8 @@ struct SumTest : public ::testing::TestWithParam<SumTestCase>
 protected:
     void SetUp() override
     {
-        auto&& handle = get_handle();
-        sum_config    = GetParam();
+        auto&& handle  = get_handle();
+        sum_config     = GetParam();
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
         dim            = sum_config.dim;

@@ -30,10 +30,7 @@
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-std::string GetFloatArg()
-{
-    return miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-}
+std::string GetFloatArg() { return miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)); }
 
 struct SumTestFloat : SumTest<float>
 {
@@ -41,7 +38,8 @@ struct SumTestFloat : SumTest<float>
 
 TEST_P(SumTestFloat, SumTestFw)
 {
-    if(!miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float" || GetFloatArg().empty()))
+    if(!miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)) &&
+       (GetFloatArg() == "--float" || GetFloatArg().empty()))
     {
         RunTest();
         Verify();

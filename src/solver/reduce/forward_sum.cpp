@@ -215,8 +215,9 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
                 auto output_numel =
                     std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
 
-                auto inner_size = std::accumulate(xdims.begin() + dim + 1, xdims.end(), 1ULL, std::multiplies<size_t>());
-                
+                auto inner_size = std::accumulate(
+                    xdims.begin() + dim + 1, xdims.end(), 1ULL, std::multiplies<size_t>());
+
                 auto reqd_work_item_cnt = get_reqd_work_item_cnt(handle_);
                 auto parallelism_size =
                     get_parallelism_size(reqd_work_item_cnt, output_numel, reduce_size);
@@ -265,7 +266,8 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
                 auto output_numel =
                     std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
 
-                auto inner_size = std::accumulate(xdims.begin() + dim + 1, xdims.end(), 1ULL, std::multiplies<size_t>());
+                auto inner_size = std::accumulate(
+                    xdims.begin() + dim + 1, xdims.end(), 1ULL, std::multiplies<size_t>());
 
                 kernel(params.x,
                        params.y,

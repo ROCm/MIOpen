@@ -111,8 +111,8 @@ struct ArgmaxTest : public ::testing::TestWithParam<ArgmaxTestCase>
 protected:
     void SetUp() override
     {
-        auto&& handle = get_handle();
-        argmax_config = GetParam();
+        auto&& handle  = get_handle();
+        argmax_config  = GetParam();
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
         dim = argmax_config.dim;
