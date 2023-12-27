@@ -25,6 +25,10 @@
  *******************************************************************************/
 // #include <miopen/bfloat16.hpp>
 // #include <half.hpp>
+
+#include "miopen_cstdint.hpp"
+#include "miopen_type_traits.hpp"
+
 namespace miopen_hip_f8_impl {
 
 #ifndef __HIP_PLATFORM_AMD__
