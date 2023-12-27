@@ -343,7 +343,7 @@ Tref SumDriver<Tgpu, Tref>::GetTolerance()
 {
     // Computation error of fp16 is ~2^13 (=8192) bigger than
     // the one of fp32 because mantissa is shorter by 13 bits.
-    auto tolerance = (sizeof(Tgpu) == 4 || sizeof(Tgpu) == 1) ? 1.5e-6 : 8.2e-3;
+    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
 
     // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
     if(std::is_same<Tgpu, bfloat16>::value)

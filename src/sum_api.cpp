@@ -48,7 +48,7 @@ static void LogCmdSum(const miopenTensorDescriptor_t xDesc,
         }
         else if(dtype == miopenBFloat16)
         {
-            ss << "sumbf16";
+            ss << "sumbfp16";
         }
 
         int32_t size = {0};

@@ -32,12 +32,7 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 std::string GetFloatArg()
 {
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
+    return miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
 }
 
 struct ArgmaxTestFloat : ArgmaxTest<float>
@@ -46,7 +41,7 @@ struct ArgmaxTestFloat : ArgmaxTest<float>
 
 TEST_P(ArgmaxTestFloat, ArgmaxTestFw)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    if(!miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float" || GetFloatArg().empty()))
     {
         RunTest();
         Verify();

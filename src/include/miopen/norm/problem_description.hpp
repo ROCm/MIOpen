@@ -25,10 +25,10 @@
  *******************************************************************************/
 #pragma once
 
-#include <cassert>
 #include <miopen/activ.hpp>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
+#include <cassert>
 #include <string>
 
 namespace miopen {
@@ -74,7 +74,11 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(xDesc.GetType() != yDesc.GetType())
         {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "LayerNormForward: Tensor types do not match.");
+#else
+            return false;
+#endif
         }
         return true;
     }
@@ -83,8 +87,12 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(xDesc.GetLengths() != yDesc.GetLengths())
         {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm,
                          "LayerNormForward: Tensor dimension lengths do not match.");
+#else
+            return false;
+#endif
         }
         return true;
     }
@@ -93,10 +101,14 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if((normalized_dim < 0) || (normalized_dim > xDesc.GetLengths().size()))
         {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(
                 miopenStatusBadParm,
                 "LayerNormForward: normalized dim is greater than 0 and less than or equal "
                 "Tensor dimension length.");
+#else
+            return false;
+#endif
         }
         return true;
     }
@@ -106,7 +118,11 @@ struct ProblemDescription : ProblemDescriptionBase
         if(!(xDesc.IsPacked() && weightDesc.IsPacked() && biasDesc.IsPacked() && yDesc.IsPacked() &&
              meanDesc.IsPacked() && rstdDesc.IsPacked()))
         {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "LayerNormForward: Unpacked tensors not supported.");
+#else
+            return false;
+#endif
         }
         return true;
     }

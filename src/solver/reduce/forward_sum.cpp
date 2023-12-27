@@ -117,8 +117,6 @@ bool SumForward::IsApplicable(const ExecutionContext& context,
 ConvSolution SumForward::GetSolution(const ExecutionContext& context,
                                      const miopen::reduce::ProblemDescription& problem) const
 {
-    std::ignore = context;
-
     auto result = ConvSolution{miopenStatusSuccess};
 
     auto dtype = problem.GetXDesc().GetType();
@@ -217,12 +215,8 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
                 auto output_numel =
                     std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
 
-                auto inner_size = 1ULL;
-                for(int32_t i = dim + 1; i < xdims.size(); i++)
-                {
-                    inner_size *= xdims[i];
-                }
-
+                auto inner_size = std::accumulate(xdims.begin() + dim + 1, xdims.end(), 1ULL, std::multiplies<size_t>());
+                
                 auto reqd_work_item_cnt = get_reqd_work_item_cnt(handle_);
                 auto parallelism_size =
                     get_parallelism_size(reqd_work_item_cnt, output_numel, reduce_size);
@@ -245,7 +239,6 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
                        output_numel,
                        parallelism_size,
                        inner_size,
-                       dim,
                        static_cast<bool>(params.nanPropagation));
 
                 if(handle_.IsProfilingEnabled())
@@ -272,18 +265,13 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
                 auto output_numel =
                     std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
 
-                size_t inner_size = 1;
-                for(int32_t i = dim + 1; i < xdims.size(); i++)
-                {
-                    inner_size *= xdims[i];
-                }
+                auto inner_size = std::accumulate(xdims.begin() + dim + 1, xdims.end(), 1ULL, std::multiplies<size_t>());
 
                 kernel(params.x,
                        params.y,
                        output_numel,
                        reduce_size,
                        inner_size,
-                       dim,
                        static_cast<bool>(params.nanPropagation));
             };
         };

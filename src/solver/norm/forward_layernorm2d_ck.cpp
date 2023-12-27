@@ -240,7 +240,11 @@ bool Layernorm2DCKForward::IsApplicable(
     case miopenInt8:
     case miopenFloat8:
     case miopenBFloat8:
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
     default: MIOPEN_THROW("Unsupported datatype");
+#else
+    return false;
+#endif
     }
 #endif
     return false;

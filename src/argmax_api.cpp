@@ -46,7 +46,7 @@ static void LogCmdArgmax(const miopenTensorDescriptor_t xDesc, bool is_fwd)
         }
         else if(dtype == miopenBFloat16)
         {
-            ss << "argmaxbf16";
+            ss << "argmaxbfp16";
         }
 
         int32_t size = {0};

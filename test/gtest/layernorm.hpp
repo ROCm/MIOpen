@@ -27,12 +27,12 @@
 #include "../driver/tensor_driver.hpp"
 #include "cpu_layernorm.hpp"
 #include "get_handle.hpp"
+#include "random.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include <gtest/gtest.h>
 #include <miopen/layernorm.hpp>
 #include <miopen/miopen.h>
-#include <random>
 
 struct LayerNormTestCase
 {
@@ -168,9 +168,7 @@ protected:
     {
         auto&& handle    = get_handle();
         layernorm_config = GetParam();
-        std::mt19937 gen(0);
-        std::uniform_real_distribution<> d{-3, 3};
-        auto gen_value = [&](auto...) { return d(gen); };
+        auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
         nomalized_dim = layernorm_config.nomalized_dim;
         eps           = layernorm_config.eps;

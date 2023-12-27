@@ -68,11 +68,9 @@ bool LayernormForward::IsApplicable(const ExecutionContext&,
     return true;
 }
 
-ConvSolution LayernormForward::GetSolution(const ExecutionContext& context,
+ConvSolution LayernormForward::GetSolution(const ExecutionContext&,
                                            const miopen::norm::ProblemDescription& problem) const
 {
-    std::ignore = context;
-
     auto result = ConvSolution{miopenStatusSuccess};
 
     {

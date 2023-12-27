@@ -27,12 +27,12 @@
 #include "../driver/tensor_driver.hpp"
 #include "cpu_sum.hpp"
 #include "get_handle.hpp"
+#include "random.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/sum.hpp>
-#include <random>
 
 struct SumTestCase
 {
@@ -116,9 +116,7 @@ protected:
     {
         auto&& handle = get_handle();
         sum_config    = GetParam();
-        std::mt19937 gen(0);
-        std::uniform_real_distribution<> d{-3, 3};
-        auto gen_value = [&](auto...) { return d(gen); };
+        auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
         dim            = sum_config.dim;
         nanPropagation = sum_config.nanPropagation;

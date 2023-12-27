@@ -25,10 +25,10 @@
  *******************************************************************************/
 #pragma once
 
-#include <cassert>
 #include <miopen/activ.hpp>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
+#include <cassert>
 #include <string>
 
 namespace miopen {
@@ -61,7 +61,11 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(xDesc.GetType() != yDesc.GetType())
         {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "Reduce: Tensor types do not match.");
+#else
+            return false;
+#endif
         }
         return true;
     }
@@ -76,7 +80,11 @@ struct ProblemDescription : ProblemDescriptionBase
 
             if(xDesc.GetLengths()[i] != yDesc.GetLengths()[posy])
             {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
                 MIOPEN_THROW(miopenStatusBadParm, "Reduce: Tensor dimension lengths do not match.");
+#else
+            return false;
+#endif
             }
 
             posy++;
@@ -88,9 +96,13 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if((dim < 0) || (dim > xDesc.GetLengths().size()))
         {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(
                 miopenStatusBadParm,
                 "Reduce: is greater than 0 and less than or equal tensor dimension length.");
+#else
+            return false;
+#endif
         }
         return true;
     }
@@ -99,7 +111,11 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(!(xDesc.IsPacked() && yDesc.IsPacked()))
         {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "Reduce: Unpacked tensors not supported.");
+#else
+            return false;
+#endif
         }
         return true;
     }
