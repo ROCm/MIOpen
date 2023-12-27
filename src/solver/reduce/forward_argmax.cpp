@@ -39,6 +39,16 @@ namespace solver {
 
 namespace reduce {
 
+bool OverMaxGridSize(const miopen::reduce::ProblemDescription& problem)
+{
+    auto ydims = problem.GetYDesc().GetLengths();
+    auto output_numel =
+        std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
+    if(AlignUp(output_numel, LOCAL_SIZE) > 4294967295ULL)
+        return false;
+    return true;
+}
+
 bool ArgmaxForward::IsApplicable(const ExecutionContext&,
                                  const miopen::reduce::ProblemDescription& problem) const
 {
@@ -49,6 +59,8 @@ bool ArgmaxForward::IsApplicable(const ExecutionContext&,
     if(!problem.IsAllPacked())
         return false;
     if(!problem.IsNotLastDim())
+        return false;
+    if(!OverMaxGridSize(problem))
         return false;
     return true;
 }
