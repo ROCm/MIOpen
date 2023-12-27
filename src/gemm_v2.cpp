@@ -50,7 +50,11 @@
 #else
 #include <rocblas/rocblas.h>
 /// rocblas_gemm_ex3 supports F8 datatypes.
+#ifdef _WIN32
+#define USE_ROCBLAS_GEMM_EX3 ((MIOPEN_ROCBLAS_VERSION_FLAT >= 3000000) && ROCBLAS_BETA_FEATURES_API)
+#else
 #define USE_ROCBLAS_GEMM_EX3 ((MIOPEN_ROCBLAS_VERSION_FLAT >= 2047000) && ROCBLAS_BETA_FEATURES_API)
+#endif
 #endif
 #include <miopen/perf_field.hpp>
 #endif
@@ -115,8 +119,6 @@ static inline rocblas_computetype rocBlasComputeType_ex3(const miopen::GemmDescr
 
 static inline rocblas_datatype rocBlasComputeType(const miopen::GemmDescriptor& desc)
 {
-    // Complex compute types are only supported in newer version of the API
-    assert(desc.dataType == desc.a_cast_type && desc.dataType == desc.b_cast_type);
     if(desc.dataType == miopenInt8)
         return rocblas_datatype::rocblas_datatype_i32_r;
     else

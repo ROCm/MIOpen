@@ -6,6 +6,7 @@
 #include "number.hpp"
 #include "type.hpp"
 #include "tuple.hpp"
+#include "miopen_cstdint.hpp"
 
 namespace ck {
 

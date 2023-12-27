@@ -99,7 +99,7 @@ std::vector<SumTestCase> SumTestConfigs()
     // clang-format on
 }
 
-inline int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
+static int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
 {
     const std::vector<std::size_t>& lens = desc.GetLengths();
     std::vector<int32_t> int32_t_lens(lens.begin(), lens.end());
