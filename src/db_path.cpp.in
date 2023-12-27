@@ -42,10 +42,10 @@ MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_USER_DB_PATH)
 
 namespace miopen {
 
+#ifdef __linux__
 boost::filesystem::path GetLibPath()
 {
     boost::filesystem::path path = {""};
-#ifdef __linux__
     Dl_info info;
 
     if(dladdr(reinterpret_cast<void*>(miopenCreate), &info) != 0)
@@ -58,17 +58,17 @@ boost::filesystem::path GetLibPath()
         path = path.parent_path();
     }
     return path;
-#else
-    MIOPEN_THROW(miopenStatusNotImplemented);
-#endif
 }
+#endif
 
 std::string GetSystemDbPath()
 {
     auto p = GetStringEnv(ENV(MIOPEN_SYSTEM_DB_PATH));
     if(p.empty())
-#if MIOPEN_BUILD_DEV
+#if MIOPEN_BUILD_DEV || defined(_WIN32)
     {
+        // Here, by default, MIOPEN_SYSTEM_DB_PATH is an empty path on Windows.
+        // MIOpen.dll will be searching for System DB files in local directory.
         return "${MIOPEN_SYSTEM_DB_PATH}";
     }
 #else
