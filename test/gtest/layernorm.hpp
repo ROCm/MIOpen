@@ -170,7 +170,6 @@ protected:
         layernorm_config = GetParam();
         auto gen_value   = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
-
         nomalized_dim = layernorm_config.nomalized_dim;
         eps           = layernorm_config.eps;
         ln_mode       = layernorm_config.ln_mode;

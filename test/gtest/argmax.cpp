@@ -30,11 +30,16 @@
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
+namespace argmax {
+
 std::string GetFloatArg() { return miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)); }
 
 struct ArgmaxTestFloat : ArgmaxTest<float>
 {
 };
+
+} // namespace argmax
+using namespace argmax;
 
 TEST_P(ArgmaxTestFloat, ArgmaxTestFw)
 {
@@ -51,3 +56,4 @@ TEST_P(ArgmaxTestFloat, ArgmaxTestFw)
 };
 
 INSTANTIATE_TEST_SUITE_P(ArgmaxTestSet, ArgmaxTestFloat, testing::ValuesIn(ArgmaxTestConfigs()));
+}
