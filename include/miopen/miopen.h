@@ -5632,7 +5632,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSumForward(miopenHandle_t handle,
 
 #ifdef MIOPEN_BETA_API
 
-/*! @brief Find the index of the maximum value of a tensor across dimensions.
+/*! @ingroup argmax
+ * @brief Find the index of the maximum value of a tensor across dimensions.
  *
  * @param handle                   MIOpen handle (input)
  * @param xDesc                    Tensor descriptor for data input tensor x (input)
@@ -5649,8 +5650,6 @@ MIOPEN_EXPORT miopenStatus_t miopenArgmaxForward(miopenHandle_t handle,
                                                  const miopenTensorDescriptor_t yDesc,
                                                  void* y);
 
-/** @} */
-// CLOSEOUT ARGMAX DOXYGEN GROUP
 #endif
 
 #ifdef __cplusplus
