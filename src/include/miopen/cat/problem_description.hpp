@@ -68,7 +68,11 @@ struct ProblemDescription : ProblemDescriptionBase
         {
             if(xDescs[i]->GetType() != dtype)
             {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+                MIOPEN_THROW(miopenStatusBadParm, "CatForward: Tensor types do not match.");
+#else
                 return false;
+#endif
             }
         }
         return true;
@@ -84,14 +88,24 @@ struct ProblemDescription : ProblemDescriptionBase
 
             if(ydims.size() != xdims.size())
             {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "CatForward: Tensor dimension lengths do not match.");
+#else
                 return false;
+#endif
             }
 
             for(int j = 0; j < ydims.size(); j++)
             {
                 if((j != dim) && (ydims[j] != xdims[j]))
                 {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+                    MIOPEN_THROW(miopenStatusBadParm,
+                                 "CatForward: Tensor dimension lengths do not match.");
+#else
                     return false;
+#endif
                 }
             }
             ydims[dim] += xdims[dim];
@@ -99,7 +113,11 @@ struct ProblemDescription : ProblemDescriptionBase
 
         if(ydims[dim] != yDesc.GetLengths()[dim])
         {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+            MIOPEN_THROW(miopenStatusBadParm, "CatForward: Tensor dimension lengths do not match.");
+#else
             return false;
+#endif
         }
 
         return true;
@@ -107,9 +125,14 @@ struct ProblemDescription : ProblemDescriptionBase
 
     bool IsRightDim() const
     {
-        if((dim < 0) || (dim > yDesc.GetLengths().size()))
+        if((dim < 0) || (dim >= yDesc.GetLengths().size()))
         {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "CatForward: Is less than 0 or greater than tensor dimension length.");
+#else
             return false;
+#endif
         }
         return true;
     }
@@ -120,13 +143,21 @@ struct ProblemDescription : ProblemDescriptionBase
         {
             if(!xDescs[i]->IsPacked())
             {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+                MIOPEN_THROW(miopenStatusBadParm, "CatForward: Unpacked tensors not supported.");
+#else
                 return false;
+#endif
             }
         }
 
         if(!yDesc.IsPacked())
         {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+            MIOPEN_THROW(miopenStatusBadParm, "CatForward: Unpacked tensors not supported.");
+#else
             return false;
+#endif
         }
         return true;
     }
