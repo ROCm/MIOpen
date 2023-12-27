@@ -56,13 +56,12 @@ int32_t mloCatForwardRunHost(std::vector<miopenTensorDescriptor_t> inputDescs,
     size_t outer_size      = 1;
     size_t inner_size      = 1;
     size_t output_dim_size = shape[dim];
-    size_t i               = 0;
-    for(; i < dim; i++)
+    for(size_t i = 0; i < dim; i++)
     {
         outer_size *= shape[i];
     }
 
-    for(; i < shape.size(); i++)
+    for(size_t i = dim + 1; i < shape.size(); i++)
     {
         inner_size *= shape[i];
     }
@@ -70,14 +69,14 @@ int32_t mloCatForwardRunHost(std::vector<miopenTensorDescriptor_t> inputDescs,
     int32_t ret                = 0;
     size_t output_start_offset = 0;
 
-    for(i = 0; i < inputs.size(); i++)
+    for(size_t i = 0; i < inputs.size(); i++)
     {
         auto input       = inputs[i];
         size_t dim_size  = miopen::deref(inputDescs[i]).GetLengths()[dim];
-        size_t copy_size = inner_size / output_dim_size * dim_size;
+        size_t copy_size = inner_size * dim_size;
         for(size_t o = 0; o < outer_size; o++)
         {
-            size_t output_offset = output_start_offset + (o * inner_size);
+            size_t output_offset = output_start_offset + (o * inner_size * output_dim_size);
             for(size_t j = 0; j < copy_size; j++)
             {
                 outputhost[output_offset + j] = input[copy_size * o + j];
@@ -129,8 +128,6 @@ public:
 
 private:
     InputFlags inflags;
-
-    uint32_t dim_size;
     uint32_t dim;
 
     std::vector<miopenTensorDescriptor_t> inputDescs;
