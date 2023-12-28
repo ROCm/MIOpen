@@ -24,16 +24,15 @@
  *
  *******************************************************************************/
 #define MIOPEN_BETA_API 1
-#include <miopen/miopen.h>
-#include <gtest/gtest.h>
-#include <miopen/cat.hpp>
-
-#include "tensor_holder.hpp"
+#include "../driver/tensor_driver.hpp"
 #include "cpu_cat.hpp"
 #include "get_handle.hpp"
-#include "../driver/tensor_driver.hpp"
+#include "random.hpp"
+#include "tensor_holder.hpp"
 #include "verify.hpp"
-#include <random>
+#include <gtest/gtest.h>
+#include <miopen/cat.hpp>
+#include <miopen/miopen.h>
 
 struct CatTestCase
 {
@@ -116,11 +115,9 @@ struct CatTest : public ::testing::TestWithParam<CatTestCase>
 protected:
     void SetUp() override
     {
-        auto&& handle = get_handle();
-        cat_config    = GetParam();
-        std::mt19937 gen(0);
-        std::uniform_real_distribution<> d{-3, 3};
-        auto gen_value = [&](auto...) { return d(gen); };
+        auto&& handle  = get_handle();
+        cat_config     = GetParam();
+        auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
         dim = cat_config.dim;
 
