@@ -25,6 +25,12 @@
  *******************************************************************************/
 #ifdef MIOPEN_BETA_API
 
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
+#include <hip/hip_fp16.h>
+#include <hip/hip_runtime.h>
+#endif
+
+#include "miopen_cstdint.hpp"
 #include "float_types.h"
 
 //#if MIOPEN_USE_BFP16 == 1

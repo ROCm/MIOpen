@@ -104,8 +104,6 @@ static inline rocblas_computetype rocBlasComputeType_ex3(const miopen::GemmDescr
 
 static inline rocblas_datatype rocBlasComputeType(const miopen::GemmDescriptor& desc)
 {
-    // Complex compute types are only supported in newer version of the API
-    assert(desc.dataType == desc.a_cast_type && desc.dataType == desc.b_cast_type);
     if(desc.dataType == miopenInt8)
         return rocblas_datatype::rocblas_datatype_i32_r;
     else
