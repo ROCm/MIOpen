@@ -188,6 +188,7 @@ set( MIOpen_Source
     solver/conv_bin_winoRxS_fused.cpp
     solver/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
     solver/conv_ck_igemm_fwd_bias_activ_fused.cpp
+    solver/conv_ck_igemm_fwd_bias_res_add_activ_fused.cpp
     solver/conv_direct_naive_conv.cpp
     solver/conv_direct_naive_conv_bwd.cpp
     solver/conv_direct_naive_conv_fwd.cpp
@@ -237,7 +238,6 @@ set( MIOpen_Source
     solver/fft.cpp
     solver/gemm.cpp
     solver/gemm_bwd.cpp
-    solver/gemm_common.cpp
     solver/gemm_wrw.cpp
     solver/norm/forward_layernorm.cpp
     solver/norm/forward_layernorm2d_ck.cpp
@@ -711,6 +711,11 @@ if(MIOPEN_USE_COMPOSABLEKERNEL)
 set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_other_operations composable_kernel::device_gemm_operations composable_kernel::device_conv_operations composable_kernel::device_contraction_operations composable_kernel::device_reduction_operations hip::host)
 endif()
 
+if(WIN32)
+    # Refer to https://en.cppreference.com/w/cpp/language/types for details.
+    target_compile_options(MIOpen PRIVATE $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:Clang>:-U__LP64__>>)
+endif()
+
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
 target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
 # Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS} 
@@ -718,43 +723,34 @@ target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
 target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} Threads::Threads ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
 miopen_generate_export_header(MIOpen)
 
-if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
-        find_path(FDEEP_INCLUDE_DIR "fdeep/fdeep.hpp")
-        if(${FDEEP_INCLUDE_DIR} STREQUAL "FDEEP_INCLUDE_DIR-NOTFOUND")
-            if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
-                message(FATAL_ERROR "MIOPEN_ENABLE_AI_KERNEL_TUNING requirement frugally-deep not found")
-            endif()
-            if(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
-                message(FATAL_ERROR "MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK requirement frugally-deep not found")
-            endif()
-        endif()
-
-        find_path(EIGEN_INCLUDE_DIR "eigen3/Eigen/Core")
-        if(${EIGEN_INCLUDE_DIR} STREQUAL "EIGEN_INCLUDE_DIR-NOTFOUND")
-            if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
-                message(FATAL_ERROR "MIOPEN_ENABLE_AI_KERNEL_TUNING requirement Eigen not found")
-            endif()
-            if(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
-                message(FATAL_ERROR "MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK requirement frugally-deep not found")
-            endif()
-        endif()
-
-        target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${FDEEP_INCLUDE_DIR}>)
-        target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${EIGEN_INCLUDE_DIR}/eigen3>)
-        if(NOT BUILD_DEV)
-            file(GLOB MODEL_FILES kernels/*.model)
-            if( NOT ENABLE_ASAN_PACKAGING )
-              install(FILES ${MODEL_FILES} DESTINATION ${DATA_INSTALL_DIR}/db)
-            endif ()
-            foreach(MODEL_FILE ${MODEL_FILES})
-                get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
-                configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${MODEL_FILE_FILENAME}" COPYONLY)
-            endforeach()
-        endif()
+if(BUILD_TESTING)
+    # On Windows, export all symbols only when tests are built, too.
+    # The officially released binaries must not have internals exposed
+    # because it violates threat model requirements.
+    # The property applies only to MS-compatible tools on Windows, and
+    # is ignored for the rest.
+    set_target_properties(MIOpen PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
-set(PACKAGE_DEPENDS)
-set(PACKAGE_STATIC_DEPENDS)
+if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
+    target_link_libraries(MIOpen PRIVATE frugally-deep::fdeep Eigen3::Eigen)
+    if(NOT TARGET nlohmann_json)
+	# frugally-deep has broken linking to nlohmann_json
+        add_library(nlohmann_json INTERFACE IMPORTED GLOBAL)
+	target_link_libraries(nlohmann_json INTERFACE nlohmann_json::nlohmann_json)
+    endif()	    
+    if(NOT BUILD_DEV)
+        file(GLOB MODEL_FILES kernels/*.model)
+        if( NOT ENABLE_ASAN_PACKAGING )
+            install(FILES ${MODEL_FILES} DESTINATION ${DATA_INSTALL_DIR}/db)
+        endif ()
+        foreach(MODEL_FILE ${MODEL_FILES})
+            get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
+            configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${MODEL_FILE_FILENAME}" COPYONLY)
+        endforeach()
+    endif()
+endif()
+
 ############################################################
 # MIOpen depends on OpenCL
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
@@ -765,9 +761,16 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
 elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     target_link_libraries( MIOpen PRIVATE hip::device )
     target_link_libraries( MIOpen INTERFACE hip::host )
+    if(MIOPEN_USE_HIPRTC)
+        if(WIN32) 
+            target_link_libraries( MIOpen PRIVATE hiprtc::hiprtc )
+        else()
+            target_link_libraries( MIOpen PRIVATE hiprtc)
+        endif()
+    endif()
     if(ENABLE_HIP_WORKAROUNDS)
         # Workaround hip not setting its usage requirements correctly
-        target_compile_definitions( MIOpen PRIVATE -D__HIP_PLATFORM_HCC__=1 )
+        target_compile_definitions( MIOpen PRIVATE -D__HIP_PLATFORM_AMD__=1 )
     endif()
     # This is helpful for the tests
     target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:hip::device> )
@@ -826,12 +829,7 @@ endif()
 #######################################
 if(MIOPEN_ENABLE_SQLITE)
     # MIOpen depends on SQLite
-    target_include_directories(MIOpen SYSTEM PRIVATE ${SQLITE3_STATIC_INCLUDE_DIRS})
-    target_include_directories(MIOpen SYSTEM INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_INCLUDE_DIRS}>)
-    target_compile_options(MIOpen PRIVATE ${SQLITE3_STATIC_CFLAGS})
-    target_compile_options(MIOpen INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_CFLAGS}>)
-    target_link_libraries(MIOpen PRIVATE ${SQLITE3_STATIC_LDFLAGS})
-    target_link_libraries(MIOpen INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_LDFLAGS}>)
+    target_link_libraries(MIOpen PRIVATE SQLite::SQLite3)
 endif()
 ############################################################
 # MIOpen depends on librt for Boost.Interprocess

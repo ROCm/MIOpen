@@ -58,7 +58,7 @@
 
 /// Correctness problems on MI200 with base driver 5.11.14 (~ROCm 4.3.1).
 /// With base driver 5.11.32 the errors disappear.
-/// More info at https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1257.
+/// More info at https://github.com/ROCm/MIOpen/issues/1257.
 #define WORKAROUND_ISSUE_1257 (HIP_PACKAGE_VERSION_FLAT >= 4003021331ULL)
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_LOG_CALLS)
@@ -1131,7 +1131,7 @@ static void PrintVersion()
 }
 
 /// \ref
-/// https://github.com/ROCmSoftwarePlatform/AMDMIGraphX/blob/21193e875fe2133b38872decb7b2d0f985f48496/src/targets/gpu/compile_hip.cpp#L44
+/// https://github.com/ROCm/AMDMIGraphX/blob/21193e875fe2133b38872decb7b2d0f985f48496/src/targets/gpu/compile_hip.cpp#L44
 /// Workaround hiprtc's broken API
 static void hiprtc_program_destroy(hiprtcProgram prog) { hiprtcDestroyProgram(&prog); }
 using hiprtc_program_ptr = MIOPEN_MANAGE_PTR(hiprtcProgram, hiprtc_program_destroy);
@@ -1293,8 +1293,10 @@ void BuildHip(const std::string& name,
             miopen::SplitSpaceSeparated(options, miopen::comgr::compiler::lc::GetOptionsNoSplit());
         compiler::lc::RemoveOptionsUnwanted(opts);
         opts.push_back("-DWORKAROUND_ISSUE_HIPRTC_TRUE_TYPE"); // Workaround for SWDEV-308073
-        opts.push_back("-D__HIP_PLATFORM_HCC__=1");            // Workaround?
-        opts.push_back("-D__HIP_PLATFORM_AMD__=1");            // Workaround?
+#if HIP_PACKAGE_VERSION_FLAT < 6000023494ULL
+        opts.push_back("-D__HIP_PLATFORM_HCC__=1"); // Workaround?
+#endif
+        opts.push_back("-D__HIP_PLATFORM_AMD__=1"); // Workaround?
 #if ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
         if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
             opts.push_back("-DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1");

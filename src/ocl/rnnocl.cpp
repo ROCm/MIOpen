@@ -570,6 +570,26 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
             const std::vector<size_t> hcy_dst_stride{
                 static_cast<size_t>(hidden_size * max_batch), static_cast<size_t>(hidden_size), 1};
 
+            if(in_n.at(0) < max_batch)
+            {
+                float beta = 0.;
+                const std::vector<size_t> zero_set_size{1,
+                                                        static_cast<size_t>(max_batch - in_n.at(0)),
+                                                        static_cast<size_t>(hidden_size)};
+                auto set_batch_offset = in_n.at(0) * hidden_size;
+
+                auto set_desc =
+                    miopen::TensorDescriptor(wDesc.GetType(), zero_set_size, hcy_dst_stride);
+                if(hy != nullptr)
+                {
+                    SetTensor(handle, set_desc, hy, &beta, hcy_layer_offset + set_batch_offset);
+                }
+                if(cy != nullptr)
+                {
+                    SetTensor(handle, set_desc, cy, &beta, hcy_layer_offset + set_batch_offset);
+                }
+            }
+
             for(int time_i = seq_len - 1; time_i >= 0; time_i--)
             {
                 auto copy_batch = (time_i == seq_len - 1) ? in_n.at(time_i)
@@ -2879,86 +2899,89 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
             }
             else
             {
-                sp_size[1] = batch_n - in_n.at(0);
-                sp_size[2] = wei_len;
-                sp_desc    = miopen::TensorDescriptor(wDesc.GetType(), sp_size, sp_stride);
-                w_size[1]  = 1;
-                w_size[2]  = wei_len;
-                w_desc     = miopen::TensorDescriptor(wDesc.GetType(), w_size, w_stride);
-
-                OpTensor(handle,
-                         miopenTensorOpAdd,
-                         &alpha0,
-                         sp_desc,
-                         reserveSpace,
-                         &alpha1,
-                         w_desc,
-                         w,
-                         &beta_t,
-                         sp_desc,
-                         reserveSpace,
-                         hid_shift + in_n.at(0) * hy_stride,
-                         wei_shift_bias_temp,
-                         hid_shift + in_n.at(0) * hy_stride,
-                         true);
-                // Update time
-                profileRNNkernels(handle, 1, ctime);
-
-                if(dirMode != 0u)
+                if(batch_n - in_n.at(0) > 0)
                 {
-                    if(in_n.at(0) == in_n.at(seqLen - 1))
+                    sp_size[1] = batch_n - in_n.at(0);
+                    sp_size[2] = wei_len;
+                    sp_desc    = miopen::TensorDescriptor(wDesc.GetType(), sp_size, sp_stride);
+                    w_size[1]  = 1;
+                    w_size[2]  = wei_len;
+                    w_desc     = miopen::TensorDescriptor(wDesc.GetType(), w_size, w_stride);
+
+                    OpTensor(handle,
+                             miopenTensorOpAdd,
+                             &alpha0,
+                             sp_desc,
+                             reserveSpace,
+                             &alpha1,
+                             w_desc,
+                             w,
+                             &beta_t,
+                             sp_desc,
+                             reserveSpace,
+                             hid_shift + in_n.at(0) * hy_stride,
+                             wei_shift_bias_temp,
+                             hid_shift + in_n.at(0) * hy_stride,
+                             true);
+                    // Update time
+                    profileRNNkernels(handle, 1, ctime);
+
+                    if(dirMode != 0u)
                     {
-                        OpTensor(handle,
-                                 miopenTensorOpAdd,
-                                 &alpha0,
-                                 sp_desc,
-                                 reserveSpace,
-                                 &alpha1,
-                                 w_desc,
-                                 w,
-                                 &beta_t,
-                                 sp_desc,
-                                 reserveSpace,
-                                 hid_shift + wei_len,
-                                 wei_shift_bias_temp + wei_len,
-                                 hid_shift + wei_len,
-                                 true);
-                        // Update time
-                        profileRNNkernels(handle, 1, ctime);
-                    }
-                    else
-                    {
-                        int cur_batch = 0;
-                        for(int ti = 0; ti < seqLen; ti++)
+                        if(in_n.at(0) == in_n.at(seqLen - 1))
                         {
-                            if(ti != (seqLen - 1))
+                            OpTensor(handle,
+                                     miopenTensorOpAdd,
+                                     &alpha0,
+                                     sp_desc,
+                                     reserveSpace,
+                                     &alpha1,
+                                     w_desc,
+                                     w,
+                                     &beta_t,
+                                     sp_desc,
+                                     reserveSpace,
+                                     hid_shift + wei_len,
+                                     wei_shift_bias_temp + wei_len,
+                                     hid_shift + wei_len,
+                                     true);
+                            // Update time
+                            profileRNNkernels(handle, 1, ctime);
+                        }
+                        else
+                        {
+                            int cur_batch = 0;
+                            for(int ti = 0; ti < seqLen; ti++)
                             {
-                                offset = hid_shift + cur_batch * hy_stride;
+                                if(ti != (seqLen - 1))
+                                {
+                                    offset = hid_shift + cur_batch * hy_stride;
 
-                                sp_size[1] = in_n.at(ti + 1);
-                                sp_size[2] = wei_len;
-                                sp_desc =
-                                    miopen::TensorDescriptor(wDesc.GetType(), sp_size, sp_stride);
+                                    sp_size[1] = in_n.at(ti + 1);
+                                    sp_size[2] = wei_len;
+                                    sp_desc    = miopen::TensorDescriptor(
+                                        wDesc.GetType(), sp_size, sp_stride);
 
-                                OpTensor(handle,
-                                         miopenTensorOpAdd,
-                                         &alpha0,
-                                         sp_desc,
-                                         reserveSpace,
-                                         &alpha1,
-                                         w_desc,
-                                         w,
-                                         &beta_t,
-                                         sp_desc,
-                                         reserveSpace,
-                                         static_cast<int>(offset) + wei_len,
-                                         wei_shift_bias_temp + wei_len,
-                                         static_cast<int>(offset) + wei_len,
-                                         true);
-                                // Update time
-                                profileRNNkernels(handle, 1, ctime);
+                                    OpTensor(handle,
+                                             miopenTensorOpAdd,
+                                             &alpha0,
+                                             sp_desc,
+                                             reserveSpace,
+                                             &alpha1,
+                                             w_desc,
+                                             w,
+                                             &beta_t,
+                                             sp_desc,
+                                             reserveSpace,
+                                             static_cast<int>(offset) + wei_len,
+                                             wei_shift_bias_temp + wei_len,
+                                             static_cast<int>(offset) + wei_len,
+                                             true);
+                                    // Update time
+                                    profileRNNkernels(handle, 1, ctime);
+                                }
+                                cur_batch += in_n.at(ti);
                             }
-                            cur_batch += in_n.at(ti);
                         }
                     }
                 }
@@ -5374,18 +5397,17 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
     // dinput
     if(inputMode == miopenRNNskip)
     {
-        sp_size[1] = batch_n;
-        sp_size[2] = hy_h;
-        x_size[1]  = batch_n;
-        x_size[2]  = hy_h;
-        x_desc     = miopen::TensorDescriptor(rnn_data_type, x_size, x_stride);
-        sp_desc    = miopen::TensorDescriptor(rnn_data_type, sp_size, sp_stride);
+        const std::vector<int> dx_size{1, batch_n, hy_h};
+        x_desc  = miopen::TensorDescriptor(rnn_data_type, dx_size, x_stride);
+        sp_desc = miopen::TensorDescriptor(rnn_data_type, dx_size, sp_stride);
 
         alpha0 = 1;
         alpha1 = 1;
         beta_t = 0;
 
-        for(int gi = 0; gi < nHiddenTensorsPerLayer * bi; gi++)
+        CopyTensor(handle, sp_desc, workSpace, x_desc, dx, 0, 0, true);
+        profileRNNkernels(handle, 1, ctime);
+        for(int gi = 1; gi < nHiddenTensorsPerLayer * bi; gi++)
         {
             OpTensor(handle,
                      miopenTensorOpAdd,
