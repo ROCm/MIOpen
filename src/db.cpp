@@ -38,6 +38,7 @@
 #include <cassert>
 #include <chrono>
 #include <cstdio>
+#include <filesystem>
 #include <fstream>
 #include <ios>
 #include <mutex>
@@ -263,7 +264,7 @@ bool PlainTextDb::FlushUnsafe(const DbRecord& record, const RecordPositions* pos
             return false;
         }
 
-        const auto temp_name = filename.string() + ".temp";
+        const auto temp_name = filename + ".temp";
         std::ofstream to(temp_name, std::ios::binary);
 
         if(!to)

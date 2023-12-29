@@ -48,7 +48,9 @@
 #include <miopen/miopen.h>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
+#include <filesystem>
 
 namespace miopen {
 

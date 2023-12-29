@@ -285,7 +285,7 @@ protected:
     }
 
     template <class TKey, class TValue, size_t count>
-    static void RawWrite(const std::string& db_path,
+    static void RawWrite(const fs::path& db_path,
                          const TKey& key,
                          const std::array<std::pair<const std::string, TValue>, count> values)
     {
@@ -934,8 +934,7 @@ public:
         std::vector<std::thread> threads;
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
-        const std::string p = temp_file;
-        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, p, false));
+        const auto c = [this]() MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, temp_file, false));
         DBMultiThreadedTestWork::FillForReading(c);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test threads...");
@@ -1015,18 +1014,17 @@ public:
 
         fs::remove(lock_file_path);
 
-        const std::string p = temp_file;
-        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, p, false));
+        const auto c = [this]() MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, temp_file, false));
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Validating results...");
         DBMultiThreadedTestWork::ValidateCommonPart(c);
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Validation passed...");
     }
 
-    static void WorkItem(unsigned int id, const std::string& db_path, bool write)
+    static void WorkItem(unsigned int id, const fs::path& db_path, bool write)
     {
         {
-            auto& file_lock = LockFile::Get(LockFilePath(db_path).c_str());
+            auto& file_lock = LockFile::Get(LockFilePath(db_path));
             std::lock_guard<LockFile> lock(file_lock);
         }
 
@@ -1040,7 +1038,7 @@ public:
     }
 
 private:
-    static std::string LockFilePath(const std::string& db_path) { return db_path + ".test.lock"; }
+    static fs::path LockFilePath(const fs::path& db_path) { return db_path.string() + ".test.lock"; }
 };
 
 template <class TDb>
@@ -1060,8 +1058,7 @@ public:
         const auto lock_file_path = LockFilePath(temp_file);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
-        std::string p = temp_file;
-        const auto c  = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, p, false));
+        const auto c = [this]() MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, temp_file, false));
         DBMultiThreadedTestWork::FillForReading(c);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test processes...");
@@ -1076,7 +1073,7 @@ public:
             {
                 auto args =
                     std::string{"--"} + ArgsHelper::id_arg + " " + std::to_string(id++) +
-                               " --" + ArgsHelper::path_arg + " " + p +
+                               " --" + ArgsHelper::path_arg + " " + temp_file +
                                " --" + ArgsHelper::db_class_arg + " " + ArgsHelper::db_class::Get<TDb>();
 
                 if(thread_logs_root())

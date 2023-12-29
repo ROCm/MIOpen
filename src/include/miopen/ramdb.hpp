@@ -69,7 +69,7 @@ public:
     static RamDb& GetCached(DbKinds db_kind_, const fs::path& path, bool is_system);
 
     static RamDb& GetCached(DbKinds db_kind_,
-                            const std::string& path,
+                            const fs::path& path,
                             bool is_system,
                             const std::string& /*arch*/,
                             std::size_t /*num_cu*/)

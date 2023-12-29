@@ -32,6 +32,7 @@
 #if MIOPEN_USE_COMGR
 
 #include <miopen/target_properties.hpp>
+#include <filesystem>
 #include <string>
 #include <vector>
 

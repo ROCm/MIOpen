@@ -919,7 +919,7 @@ public:
         const auto lock_file_path = LockFilePath(temp_file);
 
         std::cout << "Initializing test data..." << std::endl;
-            const auto c = [this]() { return SQLitePerfDb(DbKinds::PerfDb, temp_file, false); };
+        const auto c = [this]() { return SQLitePerfDb(DbKinds::PerfDb, temp_file, false); };
         DBMultiThreadedTestWork::FillForReading(c);
 
         std::cout << "Launching test processes..." << std::endl;
@@ -944,7 +944,7 @@ public:
                 if(full_set())
                     args += " --all";
 
-                std::cout << exe_path().string() + " " + args << std::endl;
+                std::cout << exe_path() << " " << args << std::endl;
                 children.emplace_back(exe_path(), args);
             }
             // clang-format on

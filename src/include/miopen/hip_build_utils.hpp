@@ -32,6 +32,7 @@
 #include <miopen/tmp_dir.hpp>
 #include <miopen/write_file.hpp>
 #include <boost/optional.hpp>
+#include <filesystem>
 #include <string>
 
 namespace miopen {

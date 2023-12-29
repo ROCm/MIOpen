@@ -37,7 +37,7 @@ std::vector<char> LoadFile(const fs::path& path)
 {
     std::ifstream in(path, std::ios::binary | std::ios::ate);
     if(!in.is_open())
-        MIOPEN_THROW("Unable to open file: " + path.string());
+        MIOPEN_THROW("Unable to open file: " + path);
     in.unsetf(std::ios::skipws);
     auto size = in.tellg();
     in.seekg(0, std::ios::beg);

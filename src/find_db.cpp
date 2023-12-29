@@ -133,7 +133,7 @@ fs::path FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle, const std::st
         const auto file_path = root_path / (base_name + "." + suffix + ext);
         if(fs::exists(file_path))
         {
-            MIOPEN_LOG_I2("Found exact find database file: " + file_path.string());
+            MIOPEN_LOG_I2("Found exact find database file: " << file_path);
             return file_path;
         }
         else
@@ -141,7 +141,7 @@ fs::path FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle, const std::st
             MIOPEN_LOG_I2("inexact find database search");
             if(fs::is_directory(root_path))
             {
-                MIOPEN_LOG_I2("Iterating over find db directory " << root_path.string());
+                MIOPEN_LOG_I2("Iterating over find db directory " << root_path);
                 std::vector<fs::path> all_files;
                 std::vector<fs::path> contents;
                 std::copy(fs::directory_iterator(root_path), fs::directory_iterator(), std::back_inserter(contents));

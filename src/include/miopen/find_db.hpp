@@ -38,6 +38,7 @@
 
 #include <boost/optional.hpp>
 
+#include <filesystem>
 #include <functional>
 #include <vector>
 #include <filesystem>

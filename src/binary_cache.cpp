@@ -145,7 +145,11 @@ KDb GetDb(const TargetProperties& target, size_t num_cu)
 
 fs::path GetCacheFile(const std::string& device, const fs::path& name, const std::string& args)
 {
-    const auto filename = name.string() + ".o";
+#ifdef _WIN32
+    const auto filename = name + ".obj";
+#else
+    const auto filename = name + ".o";
+#endif
     return GetCachePath(false) / miopen::md5(device + ":" + args) / filename;
 }
 
@@ -160,8 +164,12 @@ std::vector<char> LoadBinary(const TargetProperties& target,
 
     auto db = GetDb(target, num_cu);
 
-    const auto filename = name.string() + ".o";
-    const KernelConfig cfg{filename, args, {}};
+#ifdef _WIN32
+    const auto filename = name + ".obj";
+#else
+    const auto filename = name + ".o";
+#endif
+    const KernelConfig cfg{filename.string(), args, {}};
 
     MIOPEN_LOG_I2("Loading binary for: " << filename << "; args: " << args);
     auto record = db.FindRecord(cfg);
@@ -188,8 +196,8 @@ void SaveBinary(const std::vector<char>& hsaco,
 
     auto db = GetDb(target, num_cu);
 
-    const auto filename = name.string() + ".o";
-    KernelConfig cfg{filename, args, hsaco};
+    const auto filename = name + ".o";
+    KernelConfig cfg{filename.string(), args, hsaco};
 
     MIOPEN_LOG_I2("Saving binary for: " << filename << "; args: " << args);
     db.StoreRecord(cfg);

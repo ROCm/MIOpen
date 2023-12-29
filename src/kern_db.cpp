@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include "miopen/bz2.hpp"
 #include <miopen/kern_db.hpp>
 
 namespace miopen {

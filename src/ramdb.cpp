@@ -42,7 +42,7 @@
 
 namespace miopen {
 
-fs::path RamDb::GetTimeFilePath(const fs::path& path) { return path.string() + ".time"; }
+fs::path RamDb::GetTimeFilePath(const fs::path& path) { return path + ".time"; }
 
 static ramdb_clock::time_point GetDbModificationTime(const fs::path& path)
 {
@@ -68,7 +68,7 @@ static void UpdateDbModificationTime(const fs::path& path)
 
     if(!file)
     {
-        MIOPEN_LOG_E("Cannot update database modification time: " + time_file_path.string());
+        MIOPEN_LOG_E("Cannot update database modification time: " << time_file_path);
         return;
     }
 

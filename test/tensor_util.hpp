@@ -32,6 +32,7 @@
 #include <miopen/tensor.hpp>
 #include <utility>
 #include <cstdlib>
+#include <filesystem>
 #include "tensor_holder.hpp"
 
 // loop over sub-tensor, and operate on each data
@@ -75,14 +76,12 @@ void operate_over_subtensor_impl(const data_operator_t<T>& r_data_operator,
 }
 
 template <typename T>
-void output_tensor_to_csv(const tensor<T>& x, std::string filename)
+void output_tensor_to_csv(const tensor<T>& x, const std::filesystem::path& filename)
 {
     int dim = x.desc.GetSize();
     std::vector<int> index(dim);
 
-    std::ofstream file;
-
-    file.open(filename);
+    std::ofstream file{filename};
 
     for(int j = 0; j < dim; ++j)
         file << "d" << j << ", ";
@@ -103,15 +102,13 @@ void output_tensor_to_csv(const tensor<T>& x, std::string filename)
         }
         file << x[i] << std::endl;
     }
-
-    file.close();
 }
 
 template <typename T>
-void output_tensor_to_bin(const char* fileName, T* data, size_t dataNumItems)
+void output_tensor_to_bin(const std::filesystem::path& fileName, T* data, size_t dataNumItems)
 {
     std::ofstream outFile(fileName, std::ios::binary);
-    if(outFile)
+    if(outFile.is_open())
     {
         outFile.write(reinterpret_cast<char*>(data), dataNumItems * sizeof(T));
         outFile.close();

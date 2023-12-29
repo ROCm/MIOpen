@@ -95,10 +95,10 @@ class SQLite::impl
         if(is_system)
         {
 
-            const auto& it_p = miopen_data().find(filepath.filename().string() + ".o");
+            const auto& it_p = miopen_data().find(filepath.filename() + ".o");
             if(it_p == miopen_data().end())
             {
-                MIOPEN_LOG_I("Unknown database: " + filepath.string() + " in internal file cache");
+                MIOPEN_LOG_I("Unknown database: " + filepath + " in internal file cache");
                 return SQLITE_ERROR;
             }
             const auto& p    = it_p->second;
@@ -263,7 +263,7 @@ int SQLite::Retry(std::function<int()> f, [[maybe_unused]] fs::path filename)
         else
             return rc;
     }
-    MIOPEN_THROW("Timeout while waiting for Database: " + filename.string());
+    MIOPEN_THROW("Timeout while waiting for Database: " + filename);
 #endif
 }
 

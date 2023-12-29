@@ -1091,8 +1091,8 @@ static void PrintVersion()
 static void hiprtc_program_destroy(hiprtcProgram prog) { hiprtcDestroyProgram(&prog); }
 using hiprtc_program_ptr = MIOPEN_MANAGE_PTR(hiprtcProgram, hiprtc_program_destroy);
 
-static hiprtc_program_ptr CreateProgram(const char* src,
-                                        const char* name,
+static hiprtc_program_ptr CreateProgram(std::string_view src,
+                                        const fs::path& name,
                                         int numHeaders,
                                         const char** headers,
                                         const char** includeNames)
@@ -1100,7 +1100,7 @@ static hiprtc_program_ptr CreateProgram(const char* src,
     hiprtcProgram prog = nullptr;
     hiprtcResult status;
     HIPRTC_CALL_INFO_NOSTATUSDEF(
-        hiprtcCreateProgram(&prog, src, name, numHeaders, headers, includeNames), name);
+        hiprtcCreateProgram(&prog, src.data(), name.string().c_str(), numHeaders, headers, includeNames), name.c_str());
     hiprtc_program_ptr p{prog}; // To destroy prog even if hiprtcCreateProgram() failed.
     if(status != HIPRTC_SUCCESS)
     {
@@ -1160,8 +1160,8 @@ public:
             include_names.push_back(inc_name);
             include_texts.push_back(inc_text);
         }
-        prog = CreateProgram(src_text.c_str(),
-                             src_name.string().c_str(),
+        prog = CreateProgram(src_text,
+                             src_name,
                              include_texts.size(),
                              include_texts.data(),
                              include_names.data());

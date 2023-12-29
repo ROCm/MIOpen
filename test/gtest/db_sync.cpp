@@ -560,7 +560,11 @@ void CheckDynamicFDBEntry(size_t thread_index,
                 for(const auto& kern : sol.construction_params)
                 {
                     std::string compile_options = kern.comp_options;
+#ifdef _WIN32
+                    fs::path program_file = kern.kernel_file.string() + ".obj";
+#else
                     fs::path program_file = kern.kernel_file.string() + ".o";
+#endif
                     ASSERT_TRUE(kern.kernel_file.extension() != ".mlir")
                         << "MLIR detected in dynamic solvers";
                     compile_options += " -mcpu=" + handle.GetDeviceName();

@@ -172,15 +172,13 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #endif
 
     // hip version
-    params +=
-        std::string(" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
+    params += " -DHIP_PACKAGE_VERSION_FLAT=" + std::to_string(HIP_PACKAGE_VERSION_FLAT) + " ";
 
-    params += " ";
-    auto bin_file = tmp_dir->path / (filename.string() + ".o");
+    auto bin_file = tmp_dir->path / (filename + ".o");
 
     // compile
     {
-        auto args = params + filename.string() + " -o " + bin_file.string();
+        auto args = params + filename + " -o " + bin_file;
 #ifndef _WIN32
         // Windows uses WIN32 API to execute a subprocess, and no command shell is spawned.
         args += (testing_mode ? " 1>/dev/null 2>&1" : "");
@@ -205,7 +203,7 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 
     if(hsaco == fs::directory_iterator{})
     {
-        MIOPEN_LOG_E("failed to find *.hsaco in " << hsaco->path().string());
+        MIOPEN_LOG_E("failed to find *.hsaco in " << hsaco->path());
     }
     return hsaco->path();
 #endif

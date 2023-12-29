@@ -150,7 +150,7 @@ solver::KernelInfo GenericReorderSolutionImpl::GetKernelInfo() const
                          (block_size * kernel_param_heuristic.tile_x);
     std::size_t grid_size = dim_total;
 
-    std::string kernel_name      = GetKernelName();
+    std::string kernel_name   = GetKernelName();
     fs::path kernel_file_name = GetKernelFileName();
     solver::KernelInfo kernel;
     kernel.kernel_file = kernel_file_name;

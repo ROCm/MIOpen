@@ -52,7 +52,7 @@ fs::path LockFilePath(const fs::path& filename_)
             fs::permissions(directory, fs::perms::all);
         }
         const auto hash = md5(filename_.parent_path().string());
-        const auto file = directory / (hash + "_" + filename_.filename().string() + ".lock");
+        const auto file = directory / (hash + "_" + filename_.filename() + ".lock");
 
         return file;
     }
@@ -70,7 +70,7 @@ LockFile::LockFile(const fs::path& path_, PassKey) : path(path_)
         if(!fs::exists(path))
         {
             if(!std::ofstream{path})
-                MIOPEN_THROW(std::string("Error creating file <") + path.string() + "> for locking.");
+                MIOPEN_THROW("Error creating file <" + path + "> for locking.");
             fs::permissions(path, fs::perms::all);
         }
         flock = path.string().c_str();

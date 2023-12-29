@@ -136,7 +136,7 @@ void ReadonlyRamDb::Prefetch(bool warn_if_unreadable)
         {
 #if MIOPEN_EMBED_DB
             fs::path filepath(db_path);
-            const auto& it_p = miopen_data().find(filepath.filename().string() + ".o");
+            const auto& it_p = miopen_data().find(filepath.filename() + ".o");
             if(it_p == miopen_data().end())
                 MIOPEN_THROW(miopenStatusInternalError,
                              "Unknown database: " + filepath.filename().string() +

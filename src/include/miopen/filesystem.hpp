@@ -27,6 +27,9 @@
 #ifndef GUARD_MIOPEN_FILESYSTEM_HPP_
 #define GUARD_MIOPEN_FILESYSTEM_HPP_
 
+#include <string>
+#include <string_view>
+
 #if defined(CPPCHECK)
 #define MIOPEN_HAS_FILESYSTEM 1
 #define MIOPEN_HAS_FILESYSTEM_TS 1

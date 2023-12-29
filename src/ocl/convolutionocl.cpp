@@ -360,7 +360,7 @@ void DumpTensorToFileFromDevice(const miopen::Handle& handle,
 
     if(!file_stream.is_open())
     {
-        MIOPEN_LOG_E("Cannot write to file : " << path.string());
+        MIOPEN_LOG_E("Cannot write to file : " << path);
         return;
     }
 
@@ -373,7 +373,7 @@ void DumpTensorToFileFromDevice(const miopen::Handle& handle,
     // write tensor data to file
     file_stream.write(hdata.data(), num_bytes);
     file_stream.close();
-    MIOPEN_LOG_I("Dumping tensor to file : " << path.string());
+    MIOPEN_LOG_I("Dumping tensor to file : " << path);
 }
 
 static void ConvForwardCheckNumerics(const Handle& handle,
