@@ -27,11 +27,12 @@
 #include "test.hpp"
 #include "driver.hpp"
 
-#include <miopen/problem_description.hpp>
+#include <miopen/conv/problem_description.hpp>
 #include <miopen/sqlite_db.hpp>
 #include <miopen/db.hpp>
 #include <miopen/db_record.hpp>
 #include <miopen/lock_file.hpp>
+#include <miopen/process.hpp>
 #include <miopen/temp_file.hpp>
 
 #include <boost/filesystem/operations.hpp>
@@ -49,7 +50,6 @@
 #include <thread>
 #include <vector>
 
-#if MIOPEN_ENABLE_SQLITE
 namespace miopen {
 namespace tests {
 static boost::filesystem::path& exe_path()
@@ -78,13 +78,17 @@ static bool& full_set()
 class Random
 {
 public:
-    Random(unsigned int seed = 0) : rng(seed) {}
+    Random(unsigned int seed = 0) : rng(seed), dist_positive(1) {}
 
     std::mt19937::result_type Next() { return dist(rng); }
+    auto NextNonNegative() { return dist_non_negative(rng); }
+    auto NextPositive() { return dist_positive(rng); }
 
 private:
     std::mt19937 rng;
     std::uniform_int_distribution<std::mt19937::result_type> dist;
+    std::uniform_int_distribution<> dist_non_negative;
+    std::uniform_int_distribution<> dist_positive;
 };
 
 static Random& Rnd()
@@ -96,7 +100,7 @@ static Random& Rnd()
 
 struct ProblemData : SQLiteSerializable<ProblemData>
 {
-    ProblemDescription prob;
+    conv::ProblemDescription prob;
 
     struct NoInit
     {
@@ -104,56 +108,66 @@ struct ProblemData : SQLiteSerializable<ProblemData>
 
     ProblemData(NoInit) {}
     ProblemData() : ProblemData(Rnd()) {}
-    ProblemData(Random& rnd) : prob(conv::Direction::Forward)
+    ProblemData(Random& rnd)
     {
-        prob.n_inputs          = rnd.Next();
-        prob.in_height         = rnd.Next();
-        prob.in_width          = rnd.Next();
-        prob.kernel_size_h     = rnd.Next();
-        prob.kernel_size_w     = rnd.Next();
-        prob.n_outputs         = rnd.Next();
-        prob.batch_sz          = rnd.Next();
-        prob.pad_h             = rnd.Next();
-        prob.pad_w             = rnd.Next();
-        prob.kernel_stride_h   = rnd.Next();
-        prob.kernel_stride_w   = rnd.Next();
-        prob.kernel_dilation_h = rnd.Next();
-        prob.kernel_dilation_w = rnd.Next();
-        prob.bias              = rnd.Next();
-        prob.in_layout         = "NCHW";
-        prob.in_data_type      = miopenFloat;
-        prob.weights_data_type = miopenFloat;
-        prob.out_data_type     = miopenFloat;
-        prob.group_counts      = 1;
+        const int n_inputs          = rnd.NextPositive();
+        const int in_height         = rnd.NextPositive();
+        const int in_width          = rnd.NextPositive();
+        const int kernel_size_h     = rnd.NextPositive();
+        const int kernel_size_w     = rnd.NextPositive();
+        const int n_outputs         = rnd.NextPositive();
+        const int batch_sz          = rnd.NextPositive();
+        const int pad_h             = rnd.NextNonNegative();
+        const int pad_w             = rnd.NextNonNegative();
+        const int kernel_stride_h   = rnd.NextPositive();
+        const int kernel_stride_w   = rnd.NextPositive();
+        const int kernel_dilation_h = rnd.NextPositive();
+        const int kernel_dilation_w = rnd.NextPositive();
+        const int bias              = rnd.Next();
+
+        const TensorDescriptor in        = {miopenFloat, {batch_sz, n_inputs, in_height, in_width}};
+        const TensorDescriptor weights   = {miopenFloat, {1, 1, kernel_size_h, kernel_size_w}};
+        const TensorDescriptor out       = {miopenFloat, {1, n_outputs, 1, 1}};
+        const ConvolutionDescriptor conv = {{pad_h, pad_w},
+                                            {kernel_stride_h, kernel_stride_w},
+                                            {kernel_dilation_h, kernel_dilation_w}};
+
+        prob = {in, weights, out, conv, conv::Direction::Forward, bias};
     }
-    ProblemData(int i) : prob(conv::Direction::Forward)
+    ProblemData(int i)
     {
-        prob.n_inputs          = i;
-        prob.in_height         = i;
-        prob.in_width          = i;
-        prob.kernel_size_h     = i;
-        prob.kernel_size_w     = i;
-        prob.n_outputs         = i;
-        prob.batch_sz          = i;
-        prob.pad_h             = i;
-        prob.pad_w             = i;
-        prob.kernel_stride_h   = i;
-        prob.kernel_stride_w   = i;
-        prob.kernel_dilation_h = i;
-        prob.kernel_dilation_w = i;
-        prob.bias              = i;
-        prob.in_layout         = "NCHW";
-        prob.in_data_type      = miopenFloat;
-        prob.weights_data_type = miopenFloat;
-        prob.out_data_type     = miopenFloat;
-        prob.group_counts      = 1;
+        i += 1;
+
+        const int n_inputs          = i;
+        const int in_height         = i;
+        const int in_width          = i;
+        const int kernel_size_h     = i;
+        const int kernel_size_w     = i;
+        const int n_outputs         = i;
+        const int batch_sz          = i;
+        const int pad_h             = i;
+        const int pad_w             = i;
+        const int kernel_stride_h   = i;
+        const int kernel_stride_w   = i;
+        const int kernel_dilation_h = i;
+        const int kernel_dilation_w = i;
+        const int bias              = i;
+
+        const TensorDescriptor in        = {miopenFloat, {batch_sz, n_inputs, in_height, in_width}};
+        const TensorDescriptor weights   = {miopenFloat, {1, 1, kernel_size_h, kernel_size_w}};
+        const TensorDescriptor out       = {miopenFloat, {1, n_outputs, 1, 1}};
+        const ConvolutionDescriptor conv = {{pad_h, pad_w},
+                                            {kernel_stride_h, kernel_stride_w},
+                                            {kernel_dilation_h, kernel_dilation_w}};
+
+        prob = {in, weights, out, conv, conv::Direction::Forward, bias};
     }
 
     static std::string table_name() { return "config"; }
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
-        ProblemDescription::Visit(self.prob, f);
+        conv::ProblemDescription::Visit(self.prob, f);
     }
 };
 
@@ -750,10 +764,12 @@ public:
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::WorkItem(i, c, "mt");
                 });
+            }
         }
 
         std::cout << "Waiting for test threads..." << std::endl;
@@ -787,10 +803,12 @@ public:
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
                 });
+            }
         }
 
         std::cout << "Waiting for test threads..." << std::endl;
@@ -811,7 +829,7 @@ public:
         std::cout << "Testing db for multiprocess write access..." << std::endl;
 
         ResetDb();
-        std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
+        std::vector<ProcessAsync> children{};
         const auto lock_file_path = LockFilePath(temp_file);
 
         std::cout << "Initializing test data..." << std::endl;
@@ -824,29 +842,31 @@ public:
 
             auto id = 0;
 
-            for(auto& child : children)
+            // clang-format off
+            for(auto i = 0; i < DBMultiThreadedTestWork::threads_count; ++i)
             {
-                auto command = exe_path().string() + " --" + write_arg + " --" + id_arg + " " +
-                               std::to_string(id++) + " --" + path_arg + " " + temp_file.Path();
+                auto args =
+                    std::string{"--"} + write_arg +
+                                " --" + id_arg + " " + std::to_string(id++) +
+                                " --" + path_arg + " " + temp_file.Path();
 
                 if(thread_logs_root())
-                    command += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " +
-                               *thread_logs_root();
+                {
+                    args += std::string{" --"} + DbMultiThreadedTest::logs_path_arg + " " + *thread_logs_root();
+                }
 
                 if(full_set())
-                    command += " --all";
+                    args += " --all";
 
-                child = popen(command.c_str(), "w");
+                children.emplace_back(exe_path(), args);
             }
+            // clang-format on
         }
 
         std::cout << "Waiting for test processes..." << std::endl;
-        for(auto child : children)
+        for(auto&& child : children)
         {
-            auto status          = pclose(child);
-            const auto exit_code = WEXITSTATUS(status);
-
-            EXPECT_EQUAL(exit_code, 0);
+            EXPECT_EQUAL(child.Wait(), 0);
         }
 
         std::remove(lock_file_path.c_str());
@@ -885,7 +905,8 @@ public:
     {
         std::cout << "Testing db for multiprocess read access..." << std::endl;
 
-        std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
+        std::vector<ProcessAsync> children{};
+
         const auto lock_file_path = LockFilePath(temp_file);
 
         std::cout << "Initializing test data..." << std::endl;
@@ -900,31 +921,31 @@ public:
 
             auto id = 0;
 
-            for(auto& child : children)
+            // clang-format off
+            for(auto i = 0; i < DBMultiThreadedTestWork::threads_count; ++i)
             {
-                auto command = exe_path().string() + " --" + DbMultiProcessTest::id_arg + " " +
-                               std::to_string(id++) + " --" + DbMultiProcessTest::path_arg + " " +
-                               p;
+                auto args =
+                    std::string{"--"} + DbMultiProcessTest::id_arg + " " + std::to_string(id++) +
+                                " --" + DbMultiProcessTest::path_arg + " " + p;
 
                 if(thread_logs_root())
-                    command += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " +
-                               *thread_logs_root();
+                {
+                    args += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " + *thread_logs_root();
+                }
 
                 if(full_set())
-                    command += " --all";
+                    args += " --all";
 
-                std::cout << command << std::endl;
-                child = popen(command.c_str(), "w");
+                std::cout << exe_path().string() + " " + args << std::endl;
+                children.emplace_back(exe_path(), args);
             }
+            // clang-format on
         }
 
         std::cout << "Waiting for test processes..." << std::endl;
-        for(auto child : children)
+        for(auto&& child : children)
         {
-            auto status          = pclose(child);
-            const auto exit_code = WEXITSTATUS(status);
-
-            EXPECT_EQUAL(exit_code, 0);
+            EXPECT_EQUAL(child.Wait(), 0);
         }
 
         std::remove(lock_file_path.c_str());
@@ -1170,10 +1191,12 @@ public:
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
                 });
+            }
         }
 
         std::cout << "Waiting for test threads..." << std::endl;
@@ -1208,10 +1231,12 @@ public:
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::WorkItem(i, c, "mt");
                 });
+            }
         }
 
         std::cout << "Waiting for test threads..." << std::endl;
@@ -1278,14 +1303,9 @@ private:
 };
 } // namespace tests
 } // namespace miopen
-#endif
+
 int main(int argc, const char* argv[])
 {
-#if MIOPEN_ENABLE_SQLITE && !MIOPEN_EMBED_DB
     miopen::tests::exe_path() = argv[0];
     test_drive<miopen::tests::PerfDbDriver>(argc, argv);
-#else
-    (void)(argc);
-    (void)(argv);
-#endif
 }

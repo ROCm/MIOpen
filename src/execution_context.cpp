@@ -33,16 +33,24 @@
 #if MIOPEN_BACKEND_OPENCL
 #include <miopen/ocldeviceinfo.hpp>
 #endif
-#include <miopen/conv/problem_description.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/version.h>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_KERNELS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GCN_ASM_KERNELS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_KERNELS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER)
+
+namespace miopen {
+namespace debug {
+
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+MIOPEN_EXPORT bool IsWarmupOngoing = false;
+
+} // namespace debug
+} // namespace miopen
 
 static std::ostream& operator<<(std::ostream& os, const rocm_meta_version& rmv)
 {
@@ -78,7 +86,7 @@ static std::ostream& operator<<(std::ostream& os, const rocm_meta_version& rmv)
 bool rocm_meta_version::UseV3() const
 {
     if(val == AMDHSA_COv2_COv3)
-        return !miopen::IsEnabled(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER{});
+        return !miopen::IsEnabled(ENV(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER));
     return (val == AMDHSA_COv3);
 }
 
@@ -130,7 +138,7 @@ static bool CalculateIsAmdRocmOpencl(const miopen::ExecutionContext& context)
 static rocm_meta_version AmdRocmMetadataVersionGetEnv()
 {
     const rocm_meta_version val(
-        static_cast<int>(miopen::Value(MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE{})));
+        static_cast<int>(miopen::Value(ENV(MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE))));
     if(!val.IsValid())
     {
         MIOPEN_LOG_W("Incorrect MIOPEN_DEBUG_AMD_ROCM_ENFORCE_MDVERSION = " << val.getValue()
@@ -200,27 +208,26 @@ static bool IsAmdRocmOpencl(miopen::ExecutionContext& context)
 bool IsHipKernelsEnabled()
 {
 #if MIOPEN_USE_HIP_KERNELS
-    return !miopen::IsDisabled(MIOPEN_DEBUG_HIP_KERNELS{});
+    return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_HIP_KERNELS));
 #else
-    return miopen::IsEnabled(MIOPEN_DEBUG_HIP_KERNELS{});
+    return miopen::IsEnabled(ENV(MIOPEN_DEBUG_HIP_KERNELS));
 #endif
 }
 
-ExecutionContext& ExecutionContext::DetectRocm()
+void ExecutionContext::DetectRocm()
 {
     use_binaries            = false;
     use_asm_kernels         = false;
     use_hip_kernels         = IsHipKernelsEnabled();
-    use_opencl_convolutions = !IsDisabled(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS{});
+    use_opencl_convolutions = !IsDisabled(ENV(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS));
     rmv                     = rocm_meta_version::Default;
     if(IsAmdRocmOpencl(*this))
     {
-        use_asm_kernels = !IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && ValidateGcnAssembler();
+        use_asm_kernels = !IsDisabled(ENV(MIOPEN_DEBUG_GCN_ASM_KERNELS)) && ValidateGcnAssembler();
 #ifndef HIP_OC_FINALIZER
-        use_binaries = !IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
+        use_binaries = !IsDisabled(ENV(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES));
 #endif
     }
-    return *this;
 }
 
 } // namespace miopen

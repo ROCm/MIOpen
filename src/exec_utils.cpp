@@ -63,8 +63,10 @@ int Run(const std::string& p, std::istream* in, std::ostream* out)
         if(redirect_stdout)
         {
             while(feof(pipe.get()) == 0)
+            {
                 if(fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
                     *out << buffer.data();
+            }
         }
         else
         {

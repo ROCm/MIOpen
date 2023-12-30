@@ -47,8 +47,9 @@ bool IsDataTypeSupported(miopenDataType_t t)
     case miopenHalf:
     case miopenFloat:
     case miopenInt32:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8:
-    case miopenInt8x4:
     case miopenBFloat16:
     case miopenDouble: return true;
     }
@@ -83,7 +84,7 @@ bool CheckLengths(const std::vector<T>& lens)
 }
 
 std::vector<std::size_t> ConvertLengthsOrThrow(const std::vector<int>& lens_in,
-                                               const std::string& err_msg)
+                                               [[maybe_unused]] const std::string& err_msg)
 {
     if(!CheckLengths(lens_in))
         MIOPEN_THROW(miopenStatusBadParm, err_msg);
@@ -226,6 +227,7 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
         SetStrideNd(GetLayout_str());
     }
 }
+
 void TensorDescriptor::SetStrideNd(const std::string& layout)
 {
     std::string default_layout = miopen::tensor_layout_get_default(layout.size());
@@ -337,6 +339,13 @@ std::size_t TensorDescriptor::GetElementSize() const
 }
 
 miopenDataType_t TensorDescriptor::GetType() const { return this->type; }
+
+std::optional<miopenDataType_t> TensorDescriptor::GetCastType() const { return this->cast_type; }
+
+void TensorDescriptor::SetCastType(const miopenDataType_t cast_type_)
+{
+    this->cast_type = cast_type_;
+}
 
 miopenTensorLayout_t TensorDescriptor::GetLayout_t() const { return this->tensorLayout; }
 
@@ -453,8 +462,22 @@ std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t)
     LogRange(stream << "{", t.lens, ", ") << "}, ";
     LogRange(stream << "{", t.strides, ", ") << "}, ";
     if(t.packed)
+    {
         stream << "packed"
                << ", ";
+    }
+
+    if(t.cast_type)
+    {
+        stream << "cast_type: ";
+        const auto ct = *t.cast_type;
+        if(ct == miopenFloat8)
+            stream << "miopenFloat8";
+        else if(ct == miopenBFloat8)
+            stream << "miopenBFloat8";
+        else
+            stream << "Other";
+    }
 
     return stream;
 }
@@ -479,8 +502,6 @@ void from_json(const nlohmann::json& j, TensorDescriptor& descriptor)
 
 } // namespace miopen
 
-// TODO(paul): Remove
-MIOPEN_EXPORT
 int miopenGetTensorIndex(miopenTensorDescriptor_t tensorDesc, std::initializer_list<int> indices)
 {
     return miopen::deref(tensorDesc).GetIndex(indices);

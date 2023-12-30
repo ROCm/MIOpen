@@ -37,46 +37,49 @@
 #include <miopen/tensor.hpp>
 #include <miopen/solver.hpp>
 
-#if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
+#if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
 #define WORKAROUND_SWDEV_203031 1 // See also issues #2075, #2067
 #define WORKAROUND_SWDEV_234193 1
 #endif
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X2)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X3)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X3)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X4)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX)
+
 namespace miopen {
 namespace solver {
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X2)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X3)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X3)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X4)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX)
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 // Introduces a number of shader-specific aliases (names) in the current scope at zero cost.
 // These names represent shader parameters, e.g. shader C is batch_size etc and useful for
 // programming.
-#define DEFINE_GETXFORMHWSIZE(problem)                                                            \
-    const auto                                                                                    \
-        wino_xform_h =                                                                            \
-            solver::ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
-                GetSolverWinoXformHWSize(problem, 0),                                             \
-        wino_xform_w =                                                                            \
-            solver::ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
-                GetSolverWinoXformHWSize(problem, 1);
+#define DEFINE_GETXFORMHWSIZE(problem)                                                           \
+    const auto wino_xform_h =                                                                    \
+                   ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
+                       GetSolverWinoXformHWSize(problem, 0),                                     \
+               wino_xform_w =                                                                    \
+                   ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
+                       GetSolverWinoXformHWSize(problem, 1);
 
-#define DEFINE_SHADER_ALIASES(problem)           \
-    const auto& C     = (problem).batch_sz;      \
-    const auto& N     = (problem).n_outputs;     \
-    const auto& K     = (problem).n_inputs;      \
-    const auto& out_H = (problem).kernel_size_h; \
-    const auto& out_W = (problem).kernel_size_w; \
-    const auto& R     = (problem).in_height;     \
-    const auto& S     = (problem).in_width;      \
-    const auto& H     = (problem).out_height;    \
-    const auto& W     = (problem).out_width;     \
+#define DEFINE_SHADER_ALIASES(problem)               \
+    const int C     = (problem).GetBatchSize_();     \
+    const int N     = (problem).GetOutChannels_();   \
+    const int K     = (problem).GetInChannels_();    \
+    const int out_H = (problem).GetWeightsHeight_(); \
+    const int out_W = (problem).GetWeightsWidth_();  \
+    const int R     = (problem).GetInHeight_();      \
+    const int S     = (problem).GetInWidth_();       \
+    const int H     = (problem).GetOutHeight_();     \
+    const int W     = (problem).GetOutWidth_();      \
     DEFINE_GETXFORMHWSIZE(problem)
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
@@ -95,7 +98,7 @@ struct InTransform
             R,
             S,
             GetSwappedNCLayout(MemLayout_t::HWCN),
-            GetTypeSize(problem.in_data_type),
+            GetTypeSize(problem.GetInDataType()),
             ConvWinoBuffType::Input,
             wino_xform_h,
             wino_xform_w);
@@ -120,8 +123,8 @@ struct InTransform
                 && wino_info.buff_info.size.c < (1<<30)
                 && N < u16limit
                 && chw_step < u16limit
-                && problem.pad_h <= 3
-                && problem.pad_w <= 3;
+                && problem.GetPadH() <= 3
+                && problem.GetPadW() <= 3;
         // clang-format on
     }
 
@@ -148,8 +151,8 @@ struct InTransform
         GenerateClangDefsym(options, "xformy_d_size", wino_xform_h);
         GenerateClangDefsym(options, "xformx_f_size", WinoFilterW);
         GenerateClangDefsym(options, "xformy_f_size", WinoFilterH);
-        GenerateClangDefsym(options, "fdilation_w", problem.kernel_stride_w);
-        GenerateClangDefsym(options, "fdilation_h", problem.kernel_stride_h);
+        GenerateClangDefsym(options, "fdilation_w", problem.GetKernelStrideW());
+        GenerateClangDefsym(options, "fdilation_h", problem.GetKernelStrideH());
 
         GenerateClangDefsym(options, "MIOPEN_USE_RNE_BFLOAT16", MIOPEN_USE_RNE_BFLOAT16);
 
@@ -176,7 +179,7 @@ struct InTransform
             R,
             S,
             MemLayout_t::HWNC,
-            GetTypeSize(problem.in_data_type),
+            GetTypeSize(problem.GetInDataType()),
             ConvWinoBuffType::Input,
             wino_xform_h,
             wino_xform_w);
@@ -202,7 +205,7 @@ struct FilterTransform
             R,
             S,
             GetSwappedNCLayout(MemLayout_t::HWCN),
-            GetTypeSize(problem.in_data_type),
+            GetTypeSize(problem.GetInDataType()),
             ConvWinoBuffType::Input,
             wino_xform_h,
             wino_xform_w);
@@ -226,8 +229,8 @@ struct FilterTransform
                 && wino_info.buff_info.size.c < (1<<30)
                 && K < u16limit
                 && chw_step < u16limit
-                && problem.pad_h <= 3
-                && problem.pad_w <= 3;
+                && problem.GetPadH() <= 3
+                && problem.GetPadW() <= 3;
         // clang-format on
     }
 
@@ -256,8 +259,8 @@ struct FilterTransform
         GenerateClangDefsym(options, "xformy_d_size", wino_xform_h);
         GenerateClangDefsym(options, "xformx_f_size", WinoFilterW);
         GenerateClangDefsym(options, "xformy_f_size", WinoFilterH);
-        GenerateClangDefsym(options, "fdilation_w", problem.kernel_stride_w);
-        GenerateClangDefsym(options, "fdilation_h", problem.kernel_stride_h);
+        GenerateClangDefsym(options, "fdilation_w", problem.GetKernelStrideW());
+        GenerateClangDefsym(options, "fdilation_h", problem.GetKernelStrideH());
         return KernelInfo{
             options.str(),
             l_wk,
@@ -282,7 +285,7 @@ struct FilterTransform
                                   R,
                                   S,
                                   MemLayout_t::HWNC,
-                                  GetTypeSize(problem.in_data_type),
+                                  GetTypeSize(problem.GetInDataType()),
                                   ConvWinoBuffType::Weight,
                                   wino_xform_h,
                                   wino_xform_w);
@@ -331,8 +334,8 @@ struct OutTransform
         GenerateClangDefsym(options, "xformy_d_size", wino_xform_h);
         GenerateClangDefsym(options, "xformx_f_size", WinoFilterW);
         GenerateClangDefsym(options, "xformy_f_size", WinoFilterH);
-        GenerateClangDefsym(options, "fdilation_w", problem.kernel_stride_w);
-        GenerateClangDefsym(options, "fdilation_h", problem.kernel_stride_h);
+        GenerateClangDefsym(options, "fdilation_w", problem.GetKernelStrideW());
+        GenerateClangDefsym(options, "fdilation_h", problem.GetKernelStrideH());
 
         return KernelInfo{
             options.str(),
@@ -358,7 +361,7 @@ struct OutTransform
             R,
             S,
             GetSwappedNCLayout(MemLayout_t::HWNC),
-            GetTypeSize(problem.in_data_type),
+            GetTypeSize(problem.GetInDataType()),
             ConvWinoBuffType::Output,
             wino_xform_h,
             wino_xform_w);
@@ -375,73 +378,103 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
     // HIP backend required for sending ptr (buffer + offset)
     // ROCBLAS for GEMM step
 
-#if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
+#if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
     static const int wino_data_tile   = std::max(WinoDataH, WinoDataW);
     static const int wino_filter_tile = std::max(WinoFilterH, WinoFilterW);
 
     if(wino_data_tile == 3 && wino_filter_tile == 2)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2{}) ||
-           problem.kernel_stride_h == 1)
+    {
+        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2)) ||
+           problem.GetKernelStrideH() == 1)
+        {
             return false;
+        }
+    }
     if(wino_data_tile == 3 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3{}) ||
-           problem.kernel_stride_h == 1)
+    {
+        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3)) ||
+           problem.GetKernelStrideH() == 1)
+        {
             return false;
+        }
+    }
 
     const std::string name = ctx.GetStream().GetDeviceName();
 #if WORKAROUND_SWDEV_234193
     if(problem.IsFp16() && (StartsWith(name, "gfx908") || StartsWith(name, "gfx906")))
     {
         if(wino_data_tile == 3 && wino_filter_tile == 4)
-            if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4{}))
+        {
+            if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4)))
                 return false;
+        }
         if(wino_data_tile == 3 && wino_filter_tile == 5)
-            if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5{}))
+        {
+            if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5)))
                 return false;
+        }
         if(wino_data_tile == 3 && wino_filter_tile == 6)
-            if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6{}))
+        {
+            if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6)))
                 return false;
+        }
     }
     else
 #endif
     {
         if(wino_data_tile == 3 && wino_filter_tile == 4)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4{}))
+        {
+            if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4)))
                 return false;
+        }
         if(wino_data_tile == 3 && wino_filter_tile == 5)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5{}))
+        {
+            if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5)))
                 return false;
+        }
         if(wino_data_tile == 3 && wino_filter_tile == 6)
-            if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6{}))
+        {
+            if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6)))
                 return false;
+        }
     }
 
     if(wino_data_tile == 7 && wino_filter_tile == 2)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X2{}))
+    {
+        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X2)))
             return false;
+    }
     if(wino_data_tile == 7 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X3{}))
+    {
+        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X3)))
             return false;
+    }
     if(wino_data_tile == 5 && wino_filter_tile == 3)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X3{}))
+    {
+        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X3)))
             return false;
+    }
     if(wino_data_tile == 5 && wino_filter_tile == 4)
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X4{}))
+    {
+        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X4)))
             return false;
+    }
     if(!ctx.use_asm_kernels)
         return false;
     if(!ctx.rmv.IsV2orV3())
         return false;
     if(!problem.Is2d())
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
+        return false;
+    if(problem.HasNonPackedTensors())
         return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
-    if(!problem.IsLayoutDefault())
-    {
+    if(problem.IsTensorsCasted())
         return false;
-    }
+    if(!problem.IsLayoutDefault())
+        return false;
 
     const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
@@ -453,13 +486,13 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
                                                                                        problem)))
         return false;
 
-    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
+    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")) || StartsWith(name, "gfx94"))
         return false;
-    if(name == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
+    if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 
     {
-        std::size_t limit = miopen::Value(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX{});
+        std::size_t limit = miopen::Value(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX));
 #if WORKAROUND_SWDEV_203031
         if(limit == 0)
         {
@@ -483,42 +516,40 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 
     // int offset for Workspace buffers.
     if((InTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetBufferSize(problem) /
-            GetTypeSize(problem.in_data_type) +
+            GetTypeSize(problem.GetInDataType()) +
         OutTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetBufferSize(problem) /
-            GetTypeSize(problem.in_data_type)) >= (1LL << 31))
+            GetTypeSize(problem.GetInDataType())) >= (1LL << 31))
     {
         return false;
     }
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     // clang-format off
     {
-        const long input_line_size = 4L * problem.in_width;
-        const long input_feature_map_size = input_line_size * problem.in_height;
-        const long input_stack_size = input_feature_map_size * problem.n_inputs;
+        const int64_t input_line_size = static_cast<int64_t>(4) * problem.GetInWidth_();
+        const int64_t input_feature_map_size = input_line_size * problem.GetInHeight_();
+        const int64_t input_stack_size = input_feature_map_size * problem.GetInChannels_();
         if (! (input_stack_size < (1U << 24)))
             return false;
     }
     bool ok = (
-           (problem.kernel_size_w == WinoDataW && problem.kernel_size_h == WinoDataH)
-        && (problem.kernel_stride_w == 1
+           (problem.GetWeightsWidth_() == WinoDataW && problem.GetWeightsHeight_() == WinoDataH)
+        && (problem.GetKernelStrideW() == 1
             ||
-            (problem.kernel_stride_w == 2 && problem.kernel_size_h == 3 && problem.kernel_size_w == 3)
+            (problem.GetKernelStrideW() == 2 && problem.GetWeightsHeight_() == 3 && problem.GetWeightsWidth_() == 3)
             )
-        && problem.kernel_stride_h == problem.kernel_stride_w
-        && problem.kernel_dilation_w == 1
-        && problem.kernel_dilation_h == 1
-        && problem.batch_sz < std::pow(2, 24)
-        && problem.n_inputs < std::pow(2, 24)
-        && problem.n_outputs < std::pow(2, 24)
-        && problem.in_height < std::pow(2, 24)
-        && problem.in_width < std::pow(2, 24)
-        && problem.bias == 0
-        && problem.in_layout == "NCHW"
-        && problem.group_counts == 1);
+        && problem.GetKernelStrideH() == problem.GetKernelStrideW()
+        && problem.GetDilationW() == 1
+        && problem.GetDilationH() == 1
+        && problem.GetBatchSize_() < std::pow(2, 24)
+        && problem.GetInChannels_() < std::pow(2, 24)
+        && problem.GetOutChannels_() < std::pow(2, 24)
+        && problem.GetInHeight_() < std::pow(2, 24)
+        && problem.GetInWidth_() < std::pow(2, 24)
+        && problem.GetBias() == 0
+        && problem.GetInLayout() == "NCHW"
+        && problem.GetGroupCount() == 1);
     // clang-format on
     return ok;
 #else
@@ -563,7 +594,7 @@ InvokerFactory
 ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::PrepareInvokerFactory(
     const ExecutionContext& ctx, const ProblemDescription& problem, std::size_t ws_sz) const
 {
-#if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
+#if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
     int flags         = 0;
     int reserved      = 0;
     int* reserved_ptr = nullptr;
@@ -575,18 +606,18 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
     // clang-format off
     BuffInfo
         in_buff_info(
-            GetSwappedNCLayout(GetMemLayout_t(problem.in_layout)),
+            GetSwappedNCLayout(GetMemLayout_t(problem.GetInLayout())),
             N, C, H, W,
-            GetTypeSize(problem.in_data_type)),
+            GetTypeSize(problem.GetInDataType())),
         out_buff_info(
-            GetSwappedNCLayout(GetMemLayout_t(problem.out_layout)),
+            GetSwappedNCLayout(GetMemLayout_t(problem.GetOutLayout())),
             N, K, out_H, out_W,
-            GetTypeSize(problem.out_data_type)),
+            GetTypeSize(problem.GetOutDataType())),
         weights_buff_info(
-            // weights_layout unsupported ... GetSwappedNCLayout(GetMemLayout_t(problem.weights_layout))
+            // weights_layout unsupported ... GetSwappedNCLayout(GetMemLayout_t(problem.GetWeightsLayout()))
             GetSwappedNCLayout(MemLayout_t::NCHW),
             K, C, R, S,
-            GetTypeSize(problem.weights_data_type));
+            GetTypeSize(problem.GetWeightsDataType()));
 
     int wino_xform_h = GetSolverWinoXformHWSize(problem, 0),
         wino_xform_w = GetSolverWinoXformHWSize(problem, 1);
@@ -594,21 +625,21 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
         // cppcheck-suppress unreadVariable
         wino_in(N,K,C,out_H,out_W,R,S,
             MemLayout_t::HWNC,
-            GetTypeSize(problem.in_data_type),
+            GetTypeSize(problem.GetInDataType()),
             ConvWinoBuffType::Input,
             wino_xform_h,
             wino_xform_w),
         // cppcheck-suppress unreadVariable
         wino_out(N,K,C,out_H,out_W,R,S,
             MemLayout_t::HWNC,
-            GetTypeSize(problem.out_data_type),
+            GetTypeSize(problem.GetOutDataType()),
             ConvWinoBuffType::Output,
             wino_xform_h,
             wino_xform_w),
         // cppcheck-suppress unreadVariable
         wino_wei(N,K,C,out_H,out_W,R,S,
             MemLayout_t::HWNC,
-            GetTypeSize(problem.weights_data_type),
+            GetTypeSize(problem.GetWeightsDataType()),
             ConvWinoBuffType::Weight,
             wino_xform_h,
             wino_xform_w);
@@ -617,13 +648,13 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
     const size_t wino_in_offset = 0, wino_out_offset = wino_in.buff_info.total_byte_size,
                  wino_wei_offset = wino_out_offset + wino_out.buff_info.total_byte_size;
 
-    const auto in_data_type = problem.in_data_type;
-    const auto pad_H        = problem.pad_h;
-    const auto pad_W        = problem.pad_w;
+    const auto in_data_type = problem.GetInDataType();
+    const auto pad_H        = problem.GetPadH();
+    const auto pad_W        = problem.GetPadW();
 
     return [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            decltype(auto) invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+            decltype(auto) invoke_params = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
             const auto& tensors          = invoke_params.tensors;
             float total_time             = 0;
 
@@ -676,7 +707,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                     // clang-format off
                     GemmDescriptor wino_gemm_desc{false,false,true,m,n,k,
                         lda,ldb,ldc,batch_count,strideA,strideB,
-                                        strideC,alpha,beta,in_data_type, problem.conv_problem.GetConv().attribute.deterministic};
+                                        strideC,alpha,beta,in_data_type, problem.GetConv().attribute.deterministic};
 
                     CallGemmStridedBatched(handle,
                                         wino_gemm_desc,
@@ -686,7 +717,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                                         static_cast<int>(wino_wei_offset / GetTypeSize(in_data_type)),
                                         invoke_params.workSpace,
                                         static_cast<int>(wino_out_offset / GetTypeSize(in_data_type)),
-                                GemmBackend_t::miopentensile);
+                                GemmBackend_t::rocblas);
                     // clang-format on
 
                     if(handle.IsProfilingEnabled())
@@ -779,5 +810,6 @@ template struct ConvWinograd3x3MultipassWrW<7, 3, 1, 1>;
 template struct ConvWinograd3x3MultipassWrW<5, 3>;
 template struct ConvWinograd3x3MultipassWrW<5, 4>;
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

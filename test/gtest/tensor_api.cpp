@@ -29,8 +29,10 @@
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 
+#include <string>
+#include <sstream>
+#include <iomanip>
 #include <vector>
-#include <functional>
 
 // Compiler uses undefined behavior sanitizer
 // -fsanitize=enum (or -fsanitize=undefined)
@@ -43,7 +45,18 @@
 // We use out-of-range values for miopenDataType_t and miopenTensorLayout_t
 #define USE_OUT_OF_RANGE_ENUM (UBSAN_ENABLED == 0)
 
+// miopenLastDataType must be changed if new data types are added
+#define miopenFirstDataType miopenHalf
+#define miopenLastDataType miopenBFloat8
+
+// miopenLastTensorLayout must be changed if new layouts are added
+#define miopenFirstTensorLayout miopenTensorNCHW
+#define miopenLastTensorLayout miopenTensorNDHWC
+
 namespace {
+
+using testDataType_t     = int;
+using testTensorLayout_t = int;
 
 enum class TestStatus
 {
@@ -54,8 +67,8 @@ enum class TestStatus
 
 struct TensorParams
 {
-    miopenDataType_t dataType;
-    miopenTensorLayout_t tensorLayout;
+    testDataType_t dataType;
+    testTensorLayout_t tensorLayout;
     int nbDims;
     int* dimsA;
     int* stridesA;
@@ -67,6 +80,7 @@ struct TestConfig
     bool null_tensor_descriptor;
     TensorParams params;
     bool valid;
+    bool skip;
 };
 
 template <class L1, class L2>
@@ -92,12 +106,13 @@ TestStatus Set4dTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
     if(check_skip)
         return TestStatus::Passed;
 
-    miopenStatus_t status = miopenSet4dTensorDescriptor(tensorDesc,
-                                                        params.dataType,
-                                                        params.dimsA[0],
-                                                        params.dimsA[1],
-                                                        params.dimsA[2],
-                                                        params.dimsA[3]);
+    miopenStatus_t status =
+        miopenSet4dTensorDescriptor(tensorDesc,
+                                    static_cast<miopenDataType_t>(params.dataType),
+                                    params.dimsA[0],
+                                    params.dimsA[1],
+                                    params.dimsA[2],
+                                    params.dimsA[3]);
     if(status == miopenStatusSuccess)
         return TestStatus::Passed;
 
@@ -115,7 +130,11 @@ TestStatus SetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
         return TestStatus::Passed;
 
     miopenStatus_t status = miopenSetNdTensorDescriptorWithLayout(
-        tensorDesc, params.dataType, params.tensorLayout, params.dimsA, params.nbDims);
+        tensorDesc,
+        static_cast<miopenDataType_t>(params.dataType),
+        static_cast<miopenTensorLayout_t>(params.tensorLayout),
+        params.dimsA,
+        params.nbDims);
     if(status == miopenStatusSuccess)
         return TestStatus::Passed;
 
@@ -134,16 +153,17 @@ TestStatus Set4dTensorDescriptorEx(miopenTensorDescriptor_t tensorDesc,
     if(check_skip)
         return TestStatus::Passed;
 
-    miopenStatus_t status = miopenSet4dTensorDescriptorEx(tensorDesc,
-                                                          params.dataType,
-                                                          params.dimsA[0],
-                                                          params.dimsA[1],
-                                                          params.dimsA[2],
-                                                          params.dimsA[3],
-                                                          params.stridesA[0],
-                                                          params.stridesA[1],
-                                                          params.stridesA[2],
-                                                          params.stridesA[3]);
+    miopenStatus_t status =
+        miopenSet4dTensorDescriptorEx(tensorDesc,
+                                      static_cast<miopenDataType_t>(params.dataType),
+                                      params.dimsA[0],
+                                      params.dimsA[1],
+                                      params.dimsA[2],
+                                      params.dimsA[3],
+                                      params.stridesA[0],
+                                      params.stridesA[1],
+                                      params.stridesA[2],
+                                      params.stridesA[3]);
     if(status == miopenStatusSuccess)
         return TestStatus::Passed;
 
@@ -167,7 +187,7 @@ TestStatus SetTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
 
     miopenStatus_t status =
         miopenSetTensorDescriptor(tensorDesc,
-                                  params.dataType,
+                                  static_cast<miopenDataType_t>(params.dataType),
                                   params.nbDims,
                                   params.dimsA,
                                   params.use_strides ? params.stridesA : nullptr);
@@ -244,136 +264,137 @@ TestStatus GetTensorDescriptor(miopenTensorDescriptor_t tensorDesc, const Tensor
 
 const auto get_tensor_descr_funcs = {Get4dTensorDescriptor, GetTensorDescriptor};
 
-// Generate test data and run tests
-void RunValidTestConfigs(bool use_strides, std::function<void(const TestConfig&)> run_test)
+class TestSetTensor : public ::testing::TestWithParam<TestConfig>
 {
-    const auto datatypes = {miopenHalf, miopenDouble};
-    const auto layouts   = {miopenTensorNCHW, miopenTensorNCDHW};
-    static int dims[]    = {4, 4, 16, 9, 16};
-    static int strides[] = {9216, 2304, 144, 16, 1};
-    static_assert(sizeof(dims) == sizeof(strides));
-    const auto max_ndims = sizeof(dims) / sizeof(dims[0]);
-
-    for(auto datatype : datatypes)
+protected:
+    static void GenerateValidConfigs(bool use_strides, std::vector<TestConfig>& configs)
     {
-        for(auto layout : layouts)
+        const auto datatypes = {miopenFirstDataType, miopenLastDataType};
+        const auto layouts   = {miopenTensorNCHW, miopenTensorNCDHW};
+        static int dims[]    = {4, 4, 16, 9, 16};
+        static int strides[] = {9216, 2304, 144, 16, 1};
+        static_assert(sizeof(dims) == sizeof(strides));
+        const auto max_ndims = sizeof(dims) / sizeof(dims[0]);
+
+        for(auto datatype : datatypes)
         {
-            for(int ndims = 1; ndims <= max_ndims; ndims++)
+            for(auto layout : layouts)
             {
-                const TestConfig config = {false,
-                                           {datatype,
-                                            layout,
-                                            ndims,
-                                            dims + (max_ndims - ndims),
-                                            use_strides ? (strides + (max_ndims - ndims)) : nullptr,
-                                            use_strides},
-                                           true};
-                ASSERT_NO_FATAL_FAILURE(run_test(config));
+                for(int ndims = 1; ndims <= max_ndims; ndims++)
+                {
+                    const TestConfig config = {
+                        false,
+                        {datatype,
+                         layout,
+                         ndims,
+                         dims + (max_ndims - ndims),
+                         use_strides ? (strides + (max_ndims - ndims)) : nullptr,
+                         use_strides},
+                        true,
+                        false};
+                    configs.push_back(config);
+                }
             }
         }
     }
-}
 
-void RunValidTestConfigs(std::function<void(const TestConfig&)> run_test)
-{
-    ASSERT_NO_FATAL_FAILURE(RunValidTestConfigs(false, run_test));
-    ASSERT_NO_FATAL_FAILURE(RunValidTestConfigs(true, run_test));
-}
-
-void RunWrongTestConfigs(const TestConfig& valid_config,
-                         std::function<void(const TestConfig&)> run_test)
-{
-#if USE_OUT_OF_RANGE_ENUM
-    const auto wrong_datatypes = {static_cast<miopenDataType_t>(miopenHalf - 1),
-                                  static_cast<miopenDataType_t>(miopenDouble + 1)};
-    const auto wrong_layouts   = {static_cast<miopenTensorLayout_t>(miopenTensorNCHW - 1),
-                                static_cast<miopenTensorLayout_t>(miopenTensorNDHWC + 1)};
-#endif
-    const auto wrong_ndims     = {-1, 0};
-    static int wrong_dims[][8] = {{0, 0, 0, 0, 0, 0, 0, 0}, {-1, -1, -1, -1, -1, -1, -1, -1}};
-
-    // tensorDesc = nullptr
+    static std::vector<TestConfig> GenerateValidConfigs()
     {
-        auto config                   = valid_config;
-        config.null_tensor_descriptor = true;
-        config.valid                  = false;
-        ASSERT_NO_FATAL_FAILURE(run_test(config));
+        std::vector<TestConfig> configs;
+        GenerateValidConfigs(false, configs);
+        GenerateValidConfigs(true, configs);
+        return configs;
     }
 
-#if USE_OUT_OF_RANGE_ENUM
-    // wrong data type
-    for(auto datatype : wrong_datatypes)
+    static void GenerateWrongConfigs(const TestConfig& valid_config,
+                                     std::vector<TestConfig>& wrong_configs)
     {
-        auto config            = valid_config;
-        config.params.dataType = datatype;
-        config.valid           = false;
-        ASSERT_NO_FATAL_FAILURE(run_test(config));
-    }
-#endif
+        const auto wrong_datatypes = {static_cast<testDataType_t>(miopenFirstDataType) - 1,
+                                      static_cast<testDataType_t>(miopenLastDataType) + 1};
+        const auto wrong_layouts   = {static_cast<testTensorLayout_t>(miopenFirstTensorLayout) - 1,
+                                    static_cast<testTensorLayout_t>(miopenLastTensorLayout) + 1};
+        const auto wrong_ndims     = {-1, 0};
+        static int wrong_dims[][8] = {{0, 0, 0, 0, 0, 0, 0, 0}, {-1, -1, -1, -1, -1, -1, -1, -1}};
 
-#if USE_OUT_OF_RANGE_ENUM
-    // wrong layout
-    for(auto layout : wrong_layouts)
-    {
-        auto config                = valid_config;
-        config.params.tensorLayout = layout;
-        config.valid               = false;
-        ASSERT_NO_FATAL_FAILURE(run_test(config));
-    }
-#endif
+        // tensorDesc = nullptr
+        {
+            auto config                   = valid_config;
+            config.null_tensor_descriptor = true;
+            config.valid                  = false;
+            wrong_configs.push_back(config);
+        }
 
-    // wrong number of dimensions
-    for(auto ndims : wrong_ndims)
-    {
-        auto config          = valid_config;
-        config.params.nbDims = ndims;
-        config.valid         = false;
-        ASSERT_NO_FATAL_FAILURE(run_test(config));
-    }
-
-    // dimsA = nullptr
-    {
-        auto config         = valid_config;
-        config.params.dimsA = nullptr;
-        config.valid        = false;
-        ASSERT_NO_FATAL_FAILURE(run_test(config));
-    }
-
-    // wrong dimensions
-    for(auto dims : wrong_dims)
-    {
-        auto config         = valid_config;
-        config.params.dimsA = dims;
-        config.valid        = false;
-        ASSERT_NO_FATAL_FAILURE(run_test(config));
-    }
-
-    if(valid_config.params.use_strides)
-    {
-        // wrong strides
-        for(auto strides : wrong_dims)
+        // wrong data type
+        for(auto datatype : wrong_datatypes)
         {
             auto config            = valid_config;
-            config.params.stridesA = strides;
+            config.params.dataType = datatype;
             config.valid           = false;
-            ASSERT_NO_FATAL_FAILURE(run_test(config));
+#if !USE_OUT_OF_RANGE_ENUM
+            config.skip = true;
+#endif
+            wrong_configs.push_back(config);
+        }
+
+        // wrong layout
+        for(auto layout : wrong_layouts)
+        {
+            auto config                = valid_config;
+            config.params.tensorLayout = layout;
+            config.valid               = false;
+#if !USE_OUT_OF_RANGE_ENUM
+            config.skip = true;
+#endif
+            wrong_configs.push_back(config);
+        }
+
+        // wrong number of dimensions
+        for(auto ndims : wrong_ndims)
+        {
+            auto config          = valid_config;
+            config.params.nbDims = ndims;
+            config.valid         = false;
+            wrong_configs.push_back(config);
+        }
+
+        // dimsA = nullptr
+        {
+            auto config         = valid_config;
+            config.params.dimsA = nullptr;
+            config.valid        = false;
+            wrong_configs.push_back(config);
+        }
+
+        // wrong dimensions
+        for(auto dims : wrong_dims)
+        {
+            auto config         = valid_config;
+            config.params.dimsA = dims;
+            config.valid        = false;
+            wrong_configs.push_back(config);
+        }
+
+        if(valid_config.params.use_strides)
+        {
+            // wrong strides
+            for(auto strides : wrong_dims)
+            {
+                auto config            = valid_config;
+                config.params.stridesA = strides;
+                config.valid           = false;
+                wrong_configs.push_back(config);
+            }
         }
     }
-}
 
-void RunWrongTestConfigs(std::function<void(const TestConfig&)> run_test)
-{
-    RunValidTestConfigs([run_test](const TestConfig& valid_config) {
-        RunWrongTestConfigs(valid_config, run_test);
-    });
-}
-
-} // namespace
-
-class TestTensorApi : public ::testing::Test
-{
-protected:
-    void SetUp() override {}
+    static std::vector<TestConfig> GenerateWrongConfigs()
+    {
+        const auto& valid_configs = GetValidConfigs();
+        std::vector<TestConfig> wrong_configs;
+        for(const auto& valid_config : valid_configs)
+            GenerateWrongConfigs(valid_config, wrong_configs);
+        return wrong_configs;
+    }
 
     static void RunTest(const TestConfig& config)
     {
@@ -415,14 +436,98 @@ protected:
             }
         }
     }
+
+    static void RunTest()
+    {
+        const auto& config = GetParam();
+        if(config.skip)
+            GTEST_SKIP();
+        RunTest(config);
+    }
+
+public:
+    static const std::vector<TestConfig>& GetValidConfigs()
+    {
+        static const auto configs = GenerateValidConfigs();
+        return configs;
+    }
+
+    static const std::vector<TestConfig>& GetWrongConfigs()
+    {
+        static const auto configs = GenerateWrongConfigs();
+        return configs;
+    }
+
+    static std::string GetNameSuffix(const ::testing::TestParamInfo<TestConfig> param_info)
+    {
+        std::ostringstream ss;
+        const TestConfig& config   = param_info.param;
+        const TensorParams& params = config.params;
+
+        auto val_to_str = [](int v) {
+            auto s = std::to_string(std::abs(v));
+            return v >= 0 ? s : ("N" + s);
+        };
+
+        ss << std::setw(4) << std::setfill('0') << param_info.index << std::setfill(' ') << "_";
+        ss << (config.valid ? "V" : "N") << "_";
+        ss << (config.null_tensor_descriptor ? "N" : "V") << "_";
+        ss << val_to_str(params.dataType) << "_";
+        ss << val_to_str(params.tensorLayout) << "_";
+        ss << val_to_str(params.nbDims) << "_";
+        if(params.dimsA == nullptr)
+        {
+            ss << "NULL";
+        }
+        else if(params.nbDims <= 0)
+        {
+            ss << "FAIL";
+        }
+        else
+        {
+            for(unsigned i = 0; i < params.nbDims; i++)
+            {
+                if(i != 0)
+                    ss << "x";
+                ss << val_to_str(params.dimsA[i]);
+            }
+        }
+        if(params.use_strides)
+        {
+            ss << "_";
+            if(params.stridesA == nullptr)
+            {
+                ss << "NULL";
+            }
+            else if(params.nbDims <= 0)
+            {
+                ss << "FAIL";
+            }
+            else
+            {
+                for(unsigned i = 0; i < params.nbDims; i++)
+                {
+                    if(i != 0)
+                        ss << "x";
+                    ss << val_to_str(params.stridesA[i]);
+                }
+            }
+        }
+
+        return ss.str();
+    }
 };
 
-TEST_F(TestTensorApi, SetTensor)
-{
-    RunValidTestConfigs([](const TestConfig& valid_config) { RunTest(valid_config); });
-}
+} // namespace
 
-TEST_F(TestTensorApi, SetWrongTensor)
-{
-    RunWrongTestConfigs([](const TestConfig& wrong_config) { RunTest(wrong_config); });
-}
+TEST_P(TestSetTensor, SetTensor) { RunTest(); }
+
+INSTANTIATE_TEST_SUITE_P(TensorApiSetTensor,
+                         TestSetTensor,
+                         testing::ValuesIn(TestSetTensor::GetValidConfigs()),
+                         TestSetTensor::GetNameSuffix);
+
+INSTANTIATE_TEST_SUITE_P(TensorApiSetWrongTensor,
+                         TestSetTensor,
+                         testing::ValuesIn(TestSetTensor::GetWrongConfigs()),
+                         TestSetTensor::GetNameSuffix);

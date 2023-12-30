@@ -37,8 +37,8 @@
 #include <sstream>
 #include <string>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_VERBOSE)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_DUMP)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_VERBOSE)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_DUMP)
 
 namespace miopen {
 
@@ -73,7 +73,7 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     auto env = std::string("");
 
     if(params.find("-std=") == std::string::npos)
-        params += " --std=c++11";
+        params += " --std=c++17";
 
 #if HIP_PACKAGE_VERSION_FLAT < 4001000000ULL
     params += " --cuda-gpu-arch=" + lots.device;
@@ -91,11 +91,11 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #endif
 
 #if MIOPEN_BUILD_DEV
-    if(miopen::IsEnabled(MIOPEN_DEBUG_HIP_VERBOSE{}))
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_HIP_VERBOSE)))
     {
         params += " -v";
     }
-    if(miopen::IsEnabled(MIOPEN_DEBUG_HIP_DUMP{}))
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_HIP_DUMP)))
     {
         params += " -gline-tables-only";
         params += " -save-temps";

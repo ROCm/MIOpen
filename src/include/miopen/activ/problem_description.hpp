@@ -27,8 +27,8 @@
 #pragma once
 
 #include <miopen/problem_description_base.hpp>
-#include <miopen/activ.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/activ.hpp>
 
 #include <string>
 
@@ -88,15 +88,7 @@ struct ProblemDescription : ProblemDescriptionBase
         return yDesc;
     }
 
-    NetworkConfig MakeNetworkConfig() const;
-
-    void Serialize(std::ostream& stream) const;
-
-    friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
-    {
-        obj.Serialize(os);
-        return os;
-    }
+    NetworkConfig MakeNetworkConfig() const override;
 
 private:
     Direction direction;

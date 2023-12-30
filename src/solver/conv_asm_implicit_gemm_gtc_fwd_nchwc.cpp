@@ -32,13 +32,16 @@
 #include <miopen/conv/asm_implicit_gemm.hpp>
 #include <miopen/util_sol.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_DLOPS_NCHWC)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_DLOPS_NCHWC)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
 
 // #define DEBUG_IGEMM_ASM_FWD_NCHWC_CHECK_VALID_TILE_LIST
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 static const inline std::vector<PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC>&
 GetFwdDlopsNCHWCConfigList()
@@ -257,22 +260,22 @@ static std::tuple<std::string, // kernel_name
                   size_t,      // grid_size
                   size_t>      // splits_4G
 GetImplicitGemmGtcDynamicFwdDlopsNCHWCKernel(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config)
 {
-    const auto& n     = problem.batch_sz;
-    const auto& k     = problem.n_outputs * config.vector_c;
-    const auto& ho    = problem.out_height;
-    const auto& wo    = problem.out_width;
-    const auto& group = problem.group_counts;
+    const int n      = problem.GetBatchSize_();
+    const int k      = problem.GetOutChannels_() * config.vector_c;
+    const int ho     = problem.GetOutHeight_();
+    const int wo     = problem.GetOutWidth_();
+    const auto group = problem.GetGroupCount();
 
-    const auto& hi = problem.in_height;
-    const auto& wi = problem.in_width;
-    const auto& c  = problem.n_inputs;
+    const int hi = problem.GetInHeight_();
+    const int wi = problem.GetInWidth_();
+    const int c  = problem.GetInChannels_();
 
-    auto splits_4G =
-        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.in_data_type));
+    auto splits_4G = igemm_split_batch_size(
+        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
 
     const auto gemm_m = k / group;
     const auto gemm_n = (n / splits_4G) * ho * wo;
@@ -370,14 +373,14 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(
     }
 #endif
 
-    const auto& n     = problem.batch_sz;
-    const auto& c     = problem.n_inputs;
-    const auto& k     = problem.n_outputs;
-    const auto& ho    = problem.out_height;
-    const auto& wo    = problem.out_width;
-    const auto& y     = problem.kernel_size_h;
-    const auto& x     = problem.kernel_size_w;
-    const auto& group = problem.group_counts;
+    const int n      = problem.GetBatchSize_();
+    const int c      = problem.GetInChannels_();
+    const int k      = problem.GetOutChannels_();
+    const int ho     = problem.GetOutHeight_();
+    const int wo     = problem.GetOutWidth_();
+    const int y      = problem.GetWeightsHeight_();
+    const int x      = problem.GetWeightsWidth_();
+    const auto group = problem.GetGroupCount();
 
     size_t gemm_m = static_cast<size_t>(n) * ho * wo;
     size_t gemm_n = k / group;
@@ -389,7 +392,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(
         gemm_m,
         gemm_n,
         gemm_k,
-        (problem.IsFp16() && problem.vectorLength == 4) ? tile_list_Halfx4 : tile_list_Halfx8);
+        (problem.IsFp16() && problem.GetVectorLength() == 4) ? tile_list_Halfx4 : tile_list_Halfx8);
 
     auto find_with_gemm_k_pad = [&]() {
         const auto& config_list = GetFwdDlopsNCHWCConfigList();
@@ -398,9 +401,10 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(
         for(size_t i = 0; i < config_list.size(); i++)
         {
             const auto& config = config_list[i];
-            if(!(((problem.IsFp16() && problem.vectorLength == 4) &&
+            if(!(((problem.IsFp16() && problem.GetVectorLength() == 4) &&
                   config.precision == "Halfx4") ||
-                 ((problem.IsFp16() && problem.vectorLength == 8) && config.precision == "Halfx8")))
+                 ((problem.IsFp16() && problem.GetVectorLength() == 8) &&
+                  config.precision == "Halfx8")))
                 continue;
 
             if(!((problem.IsNCHWc_NCHWc() && config.tensor_layout == "nchwc_kcyxc") ||
@@ -454,40 +458,42 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::SetNextValue(const Proble
         return false;
     }
 }
+
 bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValidValue() const
 {
     if(IsDefaultConstructed())
         return true;
     const auto& config_list = GetFwdDlopsNCHWCConfigList();
-    if(index >= config_list.size())
-        return false;
-    return *this == config_list[index];
+    if(index < config_list.size() && *this == config_list[index])
+        return true;
+    return miopen::any_of(config_list, [&](auto v) { return (*this == v); });
 }
+
 bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValid(
     const ProblemDescription& problem) const
 {
     if(IsDefaultConstructed())
         return false;
 
-    if(!(((problem.IsFp16() && problem.vectorLength == 4) && precision == "Halfx4") ||
-         ((problem.IsFp16() && problem.vectorLength == 8) && precision == "Halfx8")))
+    if(!(((problem.IsFp16() && problem.GetVectorLength() == 4) && precision == "Halfx4") ||
+         ((problem.IsFp16() && problem.GetVectorLength() == 8) && precision == "Halfx8")))
         return false;
 
     if(!((problem.IsNCHWc_NCHWc() && tensor_layout == "nchwc_kcyxc") ||
          (problem.IsNCHWc_CHWNc() && tensor_layout == "nchwc_cyxkc")))
         return false;
 
-    const auto& c         = problem.n_inputs;
-    const auto& k         = problem.n_outputs;
-    const auto& group     = problem.group_counts;
-    const auto stride_h   = problem.out_height > 1 ? problem.kernel_stride_h : 1;
-    const auto stride_w   = problem.out_width > 1 ? problem.kernel_stride_w : 1;
-    const auto dilation_h = problem.kernel_size_h > 1 ? problem.kernel_dilation_h : 1;
-    const auto dilation_w = problem.kernel_size_w > 1 ? problem.kernel_dilation_w : 1;
-    const auto& pad_h     = problem.pad_h;
-    const auto& pad_w     = problem.pad_w;
-    const auto& y         = problem.kernel_size_h;
-    const auto& x         = problem.kernel_size_w;
+    const int c           = problem.GetInChannels_();
+    const int k           = problem.GetOutChannels_();
+    const auto group      = problem.GetGroupCount();
+    const auto stride_h   = problem.GetOutHeight_() > 1 ? problem.GetKernelStrideH() : 1;
+    const auto stride_w   = problem.GetOutWidth_() > 1 ? problem.GetKernelStrideW() : 1;
+    const auto dilation_h = problem.GetWeightsHeight_() > 1 ? problem.GetDilationH() : 1;
+    const auto dilation_w = problem.GetWeightsWidth_() > 1 ? problem.GetDilationW() : 1;
+    const auto pad_h      = problem.GetPadH();
+    const auto pad_w      = problem.GetPadW();
+    const int y           = problem.GetWeightsHeight_();
+    const int x           = problem.GetWeightsWidth_();
 
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
@@ -517,7 +523,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValid(
 
 PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC
 ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetDefaultPerformanceConfig(
-    const ConvolutionContext&, const ProblemDescription& problem) const
+    const ExecutionContext&, const ProblemDescription& problem) const
 {
     PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC pp;
     pp.HeuristicInit(problem);
@@ -526,14 +532,15 @@ ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetDefaultPerformanceConfig(
 }
 
 bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsValidPerformanceConfig(
-    const ConvolutionContext&,
+    const ExecutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config) const
 {
     return config.IsValidValue() && config.IsValid(problem);
 }
+
 PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC
-ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::Search(const ConvolutionContext& ctx,
+ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::Search(const ExecutionContext& ctx,
                                                    const ProblemDescription& problem,
                                                    const AnyInvokeParams& invoke_ctx) const
 {
@@ -541,9 +548,9 @@ ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::Search(const ConvolutionContext& ctx
 }
 
 bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_DLOPS_NCHWC{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_DLOPS_NCHWC)))
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
@@ -553,17 +560,23 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
 
     if(!problem.Is2d())
         return false;
 
-    if(!problem.IsLayoutNCHWC())
+    if(problem.HasNonPackedTensors())
         return false;
 
-    if(!(problem.IsFp16() && problem.vectorLength == 4) &&
-       !(problem.IsFp16() && problem.vectorLength == 8))
+    if(!problem.IsLayoutNCHWc())
+        return false;
+
+    if(!(problem.IsFp16() && problem.GetVectorLength() == 4) &&
+       !(problem.IsFp16() && problem.GetVectorLength() == 8))
+        return false;
+
+    if(problem.IsTensorsCasted())
         return false;
 
     if(!ctx.rmv.IsV3())
@@ -573,21 +586,21 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(
     if(target.Xnack() && *target.Xnack())
         return false; // NOLINT (readability-simplify-boolean-expr)
 
-    if(0 == igemm_split_batch_size(problem.in_height,
-                                   problem.in_width,
-                                   problem.out_height,
-                                   problem.out_width,
-                                   problem.batch_sz,
-                                   problem.n_outputs,
-                                   problem.n_inputs,
-                                   miopen::GetTypeSize(problem.in_data_type)))
+    if(0 == igemm_split_batch_size(problem.GetInHeight_(),
+                                   problem.GetInWidth_(),
+                                   problem.GetOutHeight_(),
+                                   problem.GetOutWidth_(),
+                                   problem.GetBatchSize_(),
+                                   problem.GetOutChannels_(),
+                                   problem.GetInChannels_(),
+                                   miopen::GetTypeSize(problem.GetInDataType())))
         return false;
 
     return true;
 }
 
 ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config) const
 {
@@ -613,7 +626,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    if(!problem.IsLayoutNCHWC())
+    if(!problem.IsLayoutNCHWc())
         MIOPEN_THROW("Tensor layout is not in vectorized");
 
     result.construction_params.push_back(kernel);
@@ -627,9 +640,10 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(
     MIOPEN_LOG_I2(SolverDbId() << ": " << config.ToString() << msg.str());
 
     result.invoker_factory =
-        conv::MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(problem, config);
+        miopen::conv::MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(problem, config);
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

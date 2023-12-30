@@ -29,99 +29,192 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <string_view>
 #include <vector>
+
+#include <miopen/errors.hpp>
 
 namespace miopen {
 
-/// \todo Rework: Case-insensitive string compare, ODR, (?) move to .cpp
+namespace internal {
 
-// Declare a cached environment variable
-#define MIOPEN_DECLARE_ENV_VAR(x)                 \
-    struct x                                      \
-    {                                             \
-        static const char* value() { return #x; } \
-    };
-
-/*
- * Returns false if a feature-controlling environment variable is defined
- * and set to something which disables a feature.
- */
-inline bool IsEnvvarValueDisabled(const char* name)
+template <typename T>
+struct ParseEnvVal
 {
-    // NOLINTNEXTLINE (concurrency-mt-unsafe)
-    const auto value_env_p = std::getenv(name);
-    return value_env_p != nullptr &&
-           (std::strcmp(value_env_p, "disable") == 0 || std::strcmp(value_env_p, "disabled") == 0 ||
-            std::strcmp(value_env_p, "0") == 0 || std::strcmp(value_env_p, "no") == 0 ||
-            std::strcmp(value_env_p, "false") == 0);
-}
+};
 
-inline bool IsEnvvarValueEnabled(const char* name)
+template <>
+struct ParseEnvVal<bool>
 {
-    // NOLINTNEXTLINE (concurrency-mt-unsafe)
-    const auto value_env_p = std::getenv(name);
-    return value_env_p != nullptr &&
-           (std::strcmp(value_env_p, "enable") == 0 || std::strcmp(value_env_p, "enabled") == 0 ||
-            std::strcmp(value_env_p, "1") == 0 || std::strcmp(value_env_p, "yes") == 0 ||
-            std::strcmp(value_env_p, "true") == 0);
-}
-
-// Return 0 if env is enabled else convert environment var to an int.
-// Supports hexadecimal with leading 0x or decimal
-inline unsigned long int EnvvarValue(const char* name, unsigned long int fallback = 0)
-{
-    // NOLINTNEXTLINE (concurrency-mt-unsafe)
-    const auto value_env_p = std::getenv(name);
-    if(value_env_p == nullptr)
+    static bool go(const char* vp)
     {
-        return fallback;
+        std::string value_env_str{vp};
+
+        for(auto& c : value_env_str)
+        {
+            if(std::isalpha(c) != 0)
+            {
+                c = std::tolower(static_cast<unsigned char>(c));
+            }
+        }
+
+        if(value_env_str == "disable" || value_env_str == "disabled" || value_env_str == "0" ||
+           value_env_str == "no" || value_env_str == "off" || value_env_str == "false")
+        {
+            return false;
+        }
+        else if(value_env_str == "enable" || value_env_str == "enabled" || value_env_str == "1" ||
+                value_env_str == "yes" || value_env_str == "on" || value_env_str == "true")
+        {
+            return true;
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusInvalidValue, "Invalid value for env variable");
+        }
+
+        return false; // shouldn't reach here
     }
-    else
+};
+
+// Supports hexadecimals (with leading "0x"), octals (if prefix is "0") and decimals (default).
+// Returns 0 if environment variable is in wrong format (strtoull fails to parse the string).
+template <>
+struct ParseEnvVal<uint64_t>
+{
+    static uint64_t go(const char* vp) { return std::strtoull(vp, nullptr, 0); }
+};
+
+template <>
+struct ParseEnvVal<std::string>
+{
+    static std::string go(const char* vp) { return std::string{vp}; }
+};
+
+template <typename T>
+struct EnvVar
+{
+private:
+    T value{};
+    bool is_unset = true;
+
+public:
+    const T& GetValue() const { return value; }
+
+    bool IsUnset() const { return is_unset; }
+
+    void Unset() { is_unset = true; }
+
+    void UpdateValue(const T& val)
     {
-        return strtoul(value_env_p, nullptr, 0);
+        is_unset = false;
+        value    = val;
     }
+
+    explicit EnvVar(const char* const name, const T& def_val)
+    {
+        // NOLINTNEXTLINE (concurrency-mt-unsafe)
+        const char* vp = std::getenv(name);
+        if(vp != nullptr) // a value was provided
+        {
+            is_unset = false;
+            value    = ParseEnvVal<T>::go(vp);
+        }
+        else // no value provided, use default value
+        {
+            value = def_val;
+        }
+    }
+};
+
+} // end namespace internal
+
+// static inside function hides the variable and provides
+// thread-safety/locking
+// Used in global namespace
+#define MIOPEN_DECLARE_ENV_VAR(name, type, default_val)                            \
+    namespace miopen::env {                                                        \
+    struct name                                                                    \
+    {                                                                              \
+        static_assert(std::is_same_v<name, ::miopen::env::name>,                   \
+                      "MIOPEN_DECLARE_ENV* must be used in the global namespace"); \
+        using value_type = type;                                                   \
+        static miopen::internal::EnvVar<type>& Ref()                               \
+        {                                                                          \
+            static miopen::internal::EnvVar<type> var{#name, default_val};         \
+            return var;                                                            \
+        }                                                                          \
+    };                                                                             \
+    }
+
+#define MIOPEN_DECLARE_ENV_VAR_BOOL(name) MIOPEN_DECLARE_ENV_VAR(name, bool, false)
+
+#define MIOPEN_DECLARE_ENV_VAR_UINT64(name) MIOPEN_DECLARE_ENV_VAR(name, uint64_t, 0)
+
+#define MIOPEN_DECLARE_ENV_VAR_STR(name) MIOPEN_DECLARE_ENV_VAR(name, std::string, "")
+
+#define ENV(name) \
+    miopen::env::name {}
+
+/// \todo the following functions should be renamed to either include the word Env
+/// or put inside a namespace 'env'. Right now we have a function named Value()
+/// that returns env var value as only 64-bit ints
+
+template <class EnvVar>
+inline const std::string& GetStringEnv(EnvVar)
+{
+    static_assert(std::is_same_v<typename EnvVar::value_type, std::string>);
+    return EnvVar::Ref().GetValue();
 }
 
-inline std::vector<std::string> GetEnv(const char* name)
+template <class EnvVar>
+inline bool IsEnabled(EnvVar)
 {
-    // NOLINTNEXTLINE (concurrency-mt-unsafe)
-    const auto p = std::getenv(name);
-    if(p == nullptr)
-        return {};
-    else
-        return {{p}};
+    static_assert(std::is_same_v<typename EnvVar::value_type, bool>);
+    return !EnvVar::Ref().IsUnset() && EnvVar::Ref().GetValue();
 }
 
-template <class T>
-inline const char* GetStringEnv(T)
+template <class EnvVar>
+inline bool IsDisabled(EnvVar)
 {
-    static const std::vector<std::string> result = GetEnv(T::value());
-    if(result.empty())
-        return nullptr;
-    else
-        return result.front().c_str();
+    static_assert(std::is_same_v<typename EnvVar::value_type, bool>);
+    return !EnvVar::Ref().IsUnset() && !EnvVar::Ref().GetValue();
 }
 
-template <class T>
-inline bool IsEnabled(T)
+template <class EnvVar>
+inline uint64_t Value(EnvVar)
 {
-    static const bool result = miopen::IsEnvvarValueEnabled(T::value());
-    return result;
+    static_assert(std::is_same_v<typename EnvVar::value_type, uint64_t>);
+    return EnvVar::Ref().GetValue();
 }
 
-template <class T>
-inline bool IsDisabled(T)
+template <class EnvVar>
+inline bool IsUnset(EnvVar)
 {
-    static const bool result = miopen::IsEnvvarValueDisabled(T::value());
-    return result;
+    return EnvVar::Ref().IsUnset();
 }
 
-template <class T>
-inline unsigned long int Value(T, unsigned long int fallback = 0)
+template <class EnvVar>
+void Unset(EnvVar)
 {
-    static const auto result = miopen::EnvvarValue(T::value(), fallback);
-    return result;
+    EnvVar::Ref().Unset();
 }
+
+/// updates the cached value of an environment variable
+template <typename EnvVar, typename ValueType>
+void UpdateEnvVar(EnvVar, const ValueType& val)
+{
+    static_assert(std::is_same_v<typename EnvVar::value_type, ValueType>);
+    EnvVar::Ref().UpdateValue(val);
+}
+
+template <typename EnvVar>
+void UpdateEnvVar(EnvVar, const std::string_view& val)
+{
+    EnvVar::Ref().UpdateValue(
+        miopen::internal::ParseEnvVal<typename EnvVar::value_type>::go(val.data()));
+}
+
 } // namespace miopen
 
 #endif

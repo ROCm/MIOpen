@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,9 +34,67 @@
 #include <vector>
 #include <cstdlib>
 #include "random.hpp"
+#include <numeric>
 
 #define RNN_MM_TRANSPOSE 1
 #define RNN_MM_USEPARAGEMM 0
+
+// complexity O(NlogN)
+inline std::vector<int> GetReverseOrderIndex(const std::vector<int>& base_index)
+{
+    std::vector<int> reverse_index(base_index.size());
+    unsigned next_rev_index = 0;
+    for(auto id : base_index)
+        reverse_index[id] = next_rev_index++;
+    return reverse_index;
+};
+
+inline std::vector<int> GetSamplesIndexDescendingOrder(const std::vector<size_t>& unsorted_seq_lens)
+{
+    const auto sample_count = unsorted_seq_lens.size();
+
+    std::vector<int> index_v(sample_count);
+    std::iota(index_v.begin(), index_v.end(), 0);
+
+    auto seq_len_cmp = [&unsorted_seq_lens](unsigned a_id, unsigned b_id) {
+        return unsorted_seq_lens[a_id] > unsorted_seq_lens[b_id];
+    };
+
+    std::stable_sort(index_v.begin(), index_v.end(), seq_len_cmp);
+
+    return index_v;
+}
+
+template <typename Tgpu>
+inline void HiddenTensorReorder(const std::vector<Tgpu>& src_array,
+                                std::vector<Tgpu>& dst_array,
+                                const std::vector<int>& batch_order,
+                                const std::vector<size_t> hid_len,
+                                bool is_dst_direct_order)
+{
+    const size_t copy_size = hid_len[2];
+
+    const size_t batch_stride = hid_len[2];
+    const size_t layer_stride = batch_stride * hid_len[1];
+
+    for(size_t batch_id = 0; batch_id < hid_len[1]; batch_id++)
+    {
+        const auto src_batch_off =
+            batch_stride * (is_dst_direct_order ? batch_order[batch_id] : batch_id);
+        const auto dst_batch_off =
+            batch_stride * (is_dst_direct_order ? batch_id : batch_order[batch_id]);
+
+        for(size_t layer_id = 0; layer_id < hid_len[0]; layer_id++)
+        {
+            const auto dst_offset = dst_batch_off + layer_id * layer_stride;
+            const auto src_offset = src_batch_off + layer_id * layer_stride;
+
+            std::copy(src_array.begin() + src_offset,
+                      src_array.begin() + src_offset + copy_size,
+                      dst_array.begin() + dst_offset);
+        }
+    }
+}
 
 inline void createTensorDescArray(std::vector<miopen::TensorDescriptor>& td,
                                   std::vector<miopenTensorDescriptor_t>& ptd,
@@ -52,6 +110,62 @@ inline void createTensorDescArray(std::vector<miopen::TensorDescriptor>& td,
     std::transform(td.begin(), td.end(), std::back_inserter(ptd), [](miopen::TensorDescriptor& x) {
         return &x;
     });
+}
+
+inline std::tuple<size_t, size_t>
+GetTempPackedBuffersSize(std::vector<int> batchs, int in_vec, int out_vec)
+{
+    size_t total_batch = std::accumulate(batchs.begin(), batchs.end(), 0);
+
+    size_t in_buff_size  = total_batch * in_vec;
+    size_t out_buff_size = total_batch * out_vec;
+    return {in_buff_size, out_buff_size};
+}
+
+inline size_t getSuperTensorSize(const std::vector<int>& bs,
+                                 int seqLength,
+                                 int inputSize,
+                                 int hiddenSize,
+                                 int maxPaddingVal,
+                                 bool isBidirect,
+                                 bool isInput,
+                                 bool isPadded)
+{
+    return static_cast<size_t>(isPadded ? seqLength * maxPaddingVal
+                                        : std::accumulate(bs.begin(), bs.end(), 0)) *
+           static_cast<size_t>(isInput ? inputSize : hiddenSize * (isBidirect ? 2 : 1));
+}
+
+template <typename Tgpu>
+void ChangeDataPadding(const std::vector<Tgpu>& src_array,
+                       std::vector<Tgpu>& dst_array,
+                       const std::vector<int>& batch_list,
+                       int max_batch,
+                       int sample_size,
+                       bool is_src_packed)
+{
+    auto seq_len = batch_list.size();
+
+    auto scr_ptr = &src_array[0];
+    auto dst_ptr = &dst_array[0];
+
+    for(int seq_id = 0; seq_id < seq_len; seq_id++)
+    {
+        auto packed_size = batch_list[seq_id] * sample_size;
+
+        std::copy(scr_ptr, scr_ptr + packed_size, dst_ptr);
+
+        if(is_src_packed)
+        {
+            dst_ptr += max_batch * sample_size;
+            scr_ptr += packed_size;
+        }
+        else
+        {
+            scr_ptr += max_batch * sample_size;
+            dst_ptr += packed_size;
+        }
+    }
 }
 
 // RNN VANILLA configs
@@ -90,15 +204,16 @@ inline std::vector<int> get_gru_hidden_size() { return {67}; }
 inline std::vector<std::vector<int>> generate_batchSeq(const int batchSize, const int seqLength)
 {
 
-    int modval = 3;
-    srand(modval);
+    static constexpr int modval = 3;
+
     int currentval = batchSize;
     std::vector<int> batchSeq;
+    batchSeq.reserve(seqLength);
     for(int i = 0; i < seqLength; i++)
     {
         if(i > 0)
         {
-            int nvalue = currentval - GET_RAND() % modval;
+            int nvalue = currentval - prng::gen_0_to_B(modval);
             currentval = (nvalue < 1) ? 1 : nvalue;
             // printf("current value: %d\n", currentval);
         }

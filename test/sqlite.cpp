@@ -29,7 +29,6 @@
 #include <miopen/sqlite_db.hpp>
 #include <miopen/temp_file.hpp>
 
-#if MIOPEN_ENABLE_SQLITE
 const char* const lfs_db = R"(version https://git-lfs.github.com/spec/v1
 oid sha256:cc45c32e44560074b5e4b0c0e48472a86e6b3bb1c73c189580f950f098d2a8d7
 size 357490688)";
@@ -50,12 +49,11 @@ bool test_lfs_db(bool is_system)
     return lfs_sqdb.dbInvalid;
 }
 
-#endif
 int main(int argc, char* argv[])
 {
     std::ignore = argc;
     std::ignore = argv;
-#if MIOPEN_ENABLE_SQLITE
+
     CHECK(test_lfs_db(
         true)); // System DB should pass, since the lfs file was installed in the sys directory
 // Embedded user dbs ignore the filename and just creates an in-memory database
@@ -63,9 +61,5 @@ int main(int argc, char* argv[])
     CHECK(throws(std::bind(
         test_lfs_db, false))); // User db should fail since MIOpen should not create such a file
                                // ever, if it exists its a corrupt file which should be reported.
-#endif
-#else
-    return 0;
-
 #endif
 }

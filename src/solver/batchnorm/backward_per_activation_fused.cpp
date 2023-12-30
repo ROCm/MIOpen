@@ -33,7 +33,7 @@
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/fusion/solvers.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_BN_BWDTRG_ACTIV_FUSED)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_BN_BWDTRG_ACTIV_FUSED)
 
 namespace miopen {
 
@@ -47,7 +47,7 @@ bool BnBwdTrgActivationFused::IsApplicable(const FusionContext& /*context*/,
     const auto& desc = *problem.fusion_plan_desc;
     if(desc.op_map.empty())
         MIOPEN_THROW("");
-    if(miopen::IsDisabled(MIOPEN_DEBUG_BN_BWDTRG_ACTIV_FUSED{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_BN_BWDTRG_ACTIV_FUSED)))
         return false;
     if(desc.op_map.size() != 2)
         return false;
@@ -96,8 +96,7 @@ ConvSolution BnBwdTrgActivationFused::GetSolution(const FusionContext& context,
         if(mode == miopenBNSpatial)
         {
             if(in_cstride <= 1024 && in_cstride > 512)
-                xlocalsize =
-                    std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned long>(1024));
+                xlocalsize = std::min(64 * ((in_cstride + 63) / 64), static_cast<size_t>(1024));
             else
                 xlocalsize = 1024;
         }
@@ -168,6 +167,7 @@ ConvSolution BnBwdTrgActivationFused::GetSolution(const FusionContext& context,
             {"MIO_BN_USESAVED", static_cast<int>(true)},
             {"MIO_BN_VARIANT", static_cast<int>(variant)},
             {"MIO_BN_GFX103X", static_cast<int>(StartsWith(handle.GetDeviceName(), "gfx103"))},
+            {"MIO_BN_GFX110X", static_cast<int>(StartsWith(handle.GetDeviceName(), "gfx110"))},
             {"MIO_BN_CBA_WRITE_INTERMEDIATE", static_cast<int>(0)},
             {"MIOPEN_YES_ACTIV", static_cast<int>(1)},
             {"MIOPEN_NRN_OP_ID", static_cast<int>(activ_op.activMode)},

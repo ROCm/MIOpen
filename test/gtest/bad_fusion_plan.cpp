@@ -29,19 +29,26 @@
 
 #include "tensor_holder.hpp"
 #include "get_handle.hpp"
+#include "conv_test_base.hpp"
 
 #if MIOPEN_BACKEND_HIP
 
-template <typename T>
-miopenDataType_t GetDataType();
+namespace bad_fusion_plan {
 
-template <>
-miopenDataType_t GetDataType<half_float::half>()
+void setEnvironmentVariable(const std::string& name, const std::string& value)
 {
-    return miopenHalf;
+    int ret = 0;
+
+#ifdef _WIN32
+    std::string env_var(name + "=" + value);
+    ret = _putenv(env_var.c_str());
+#else
+    ret = setenv(name.c_str(), value.c_str(), 1);
+#endif
+    EXPECT_EQ(ret, 0);
 }
 
-struct ConvTestCase
+struct ConvTestCaseFusion
 {
     size_t N;
     size_t C;
@@ -56,7 +63,7 @@ struct ConvTestCase
     size_t stride_y;
     size_t dilation_x;
     size_t dilation_y;
-    friend std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
+    friend std::ostream& operator<<(std::ostream& os, const ConvTestCaseFusion& tc)
     {
         return os << "(N: " << tc.N << " C:" << tc.C << " H:" << tc.H << " W:" << tc.W
                   << " k: " << tc.k << " y:" << tc.y << " x:" << tc.x << " pad_y:" << tc.pad_y
@@ -75,7 +82,7 @@ struct ConvTestCase
     }
 };
 
-const static ConvTestCase conv_config = {64, 64, 56, 56, 64, 3, 3, 1, 1, 1, 1, 1, 1};
+const static ConvTestCaseFusion conv_config = {64, 64, 56, 56, 64, 3, 3, 1, 1, 1, 1, 1, 1};
 
 template <typename Solver, typename T>
 class TestFusionPlan
@@ -129,9 +136,14 @@ public:
         Solver solv{};
         const auto fusion_problem = miopen::FusionDescription{&fusePlanDesc};
         auto fusion_ctx           = miopen::FusionContext{handle};
-        fusion_ctx.DetectRocm();
 
         return solv.IsApplicable(fusion_ctx, fusion_problem);
+    }
+
+    void CanCompile()
+    {
+        miopenStatus_t status = fusePlanDesc.Compile(handle);
+        EXPECT_EQ(status, miopenStatusUnsupportedOp);
     }
 
 private:
@@ -153,6 +165,9 @@ private:
     const float activ_gamma = static_cast<double>(0.5f);
     bool skip_test;
 };
+
+} // namespace bad_fusion_plan
+using namespace bad_fusion_plan;
 
 TEST(TestFusionPlan, GoodFusionPlan)
 {
@@ -230,6 +245,18 @@ TEST(TestFusionPlan, BadEmptyFusionPlan)
     if(obj.Skip())
         GTEST_SKIP();
     EXPECT_ANY_THROW(obj.Applicability());
+}
+
+TEST(TestFusionPlan, UnSupportedFusionPlanDuringSearchMode)
+{
+    setEnvironmentVariable("MIOPEN_FIND_ENFORCE", "3");
+    TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
+        miopenTensorNHWC, miopenActivationRELU);
+    if(obj.Skip())
+        GTEST_SKIP();
+    obj.AddBias();
+    obj.AddConv();
+    obj.CanCompile();
 }
 
 #endif

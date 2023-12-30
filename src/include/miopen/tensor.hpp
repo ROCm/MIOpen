@@ -41,6 +41,7 @@
 #include <cassert>
 #include <numeric>
 #include <vector>
+#include <optional>
 
 namespace miopen {
 
@@ -100,11 +101,12 @@ inline std::size_t GetTypeSize(miopenDataType_t d)
     case miopenFloat: return 4;
     case miopenHalf:
     case miopenBFloat16: return 2;
-    case miopenInt8x4:
-    case miopenInt8: return 1;
+    case miopenInt8:
+    case miopenFloat8:
+    case miopenBFloat8: return 1;
     case miopenDouble: return 8;
     }
-    MIOPEN_THROW("Unknown data type");
+    MIOPEN_THROW("Unknown or unsupported data type");
 }
 
 template <class X, class Y>
@@ -121,7 +123,7 @@ std::ptrdiff_t integer_division_ceil(X x, Y y)
     return (tx + ty - 1) / ty;
 }
 
-struct TensorDescriptor : miopenTensorDescriptor
+struct MIOPEN_EXPORT TensorDescriptor : miopenTensorDescriptor
 {
     TensorDescriptor();
 
@@ -185,6 +187,8 @@ struct TensorDescriptor : miopenTensorDescriptor
     std::string GetLayout_str() const;
 
     std::size_t GetVectorLength() const;
+    std::optional<miopenDataType_t> GetCastType() const;
+    void SetCastType(miopenDataType_t cast_type_);
 
     std::size_t GetElementSize() const;
 
@@ -259,15 +263,15 @@ struct TensorDescriptor : miopenTensorDescriptor
     friend void to_json(nlohmann::json& j, const TensorDescriptor& descriptor);
     friend void from_json(const nlohmann::json& j, TensorDescriptor& descriptor);
 
-    void SetStrideNd(const std::string& layout);
-    void LensReorder(const std::string& layout);
-
 private:
     TensorDescriptor(miopenDataType_t t,
                      miopenTensorLayout_t layout_in,
                      const std::vector<std::size_t>& lens_in,
                      const std::vector<std::size_t>& strides_in,
                      bool use_strides);
+
+    void SetStrideNd(const std::string& layout);
+    void LensReorder(const std::string& layout);
 
     void CalculateStrides();
     void CalculateVectorLength();
@@ -280,12 +284,13 @@ private:
     bool packed;
     std::size_t vector_length = 1;
 
-    miopenDataType_t type             = miopenFloat;
+    miopenDataType_t type = miopenFloat;
+    std::optional<miopenDataType_t> cast_type;
     miopenTensorLayout_t tensorLayout = GetDefaultLayout();
 };
 
 template <class TElement>
-constexpr auto GetNCDHW(int spatial_dims, const std::vector<TElement>& data)
+constexpr auto GetNCDHW(unsigned spatial_dims, const std::vector<TElement>& data)
 {
     if(spatial_dims == 3)
         return miopen::tien<5>(data, 1);

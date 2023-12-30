@@ -84,6 +84,8 @@ struct ProblemDescription : ProblemDescriptionBase
           scaleBiasDesc(bnScaleBiasMeanVarDesc_),
           epsilon(epsilon_)
     {
+        in_layout  = xDesc.GetLayout(xDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
+        out_layout = yOrDyDesc.GetLayout(yOrDyDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
     }
 
     // Backward
@@ -174,15 +176,7 @@ struct ProblemDescription : ProblemDescriptionBase
                                               : ((in_layout == "NDHWC") && (out_layout == "NDHWC"));
     }
 
-    NetworkConfig MakeNetworkConfig() const;
-
-    void Serialize(std::ostream& stream) const;
-
-    friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
-    {
-        obj.Serialize(os);
-        return os;
-    }
+    NetworkConfig MakeNetworkConfig() const override;
 
 private:
     Direction direction;
@@ -191,8 +185,19 @@ private:
     TensorDescriptor yOrDyDesc;
     TensorDescriptor dxDesc;
     TensorDescriptor scaleBiasDesc;
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-private-field"
+#endif
+
     double expAvgFactor = 0;
     double epsilon;
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
     bool resultsave        = false;
     bool resultrunning     = false;
     bool useSaved          = false;

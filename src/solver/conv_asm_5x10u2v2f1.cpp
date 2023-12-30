@@ -32,19 +32,24 @@
 
 #define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 bool ConvAsm5x10u2v2f1::IsApplicable(const ExecutionContext& ctx,
                                      const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)))
         return false;
     if(!ctx.use_asm_kernels)
         return false;
     if(!problem.Is2d())
+        return false;
+    if(problem.HasNonPackedTensors())
         return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
@@ -64,45 +69,41 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ExecutionContext& ctx,
         return false;
 #endif
     if(!device_is_gfx8_9_no_xnack)
-    {
         return false;
-    }
-    if(!problem.direction.IsForward())
-    {
+    if(!problem.IsDirectionForward())
         return false;
-    }
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
+    if(problem.IsTensorsCasted())
+        return false;
 
     // Min image + padding shall be not smaller than filter matrix.
-    const int min_in_width  = problem.kernel_size_w - problem.pad_w * 2;
-    const int min_in_height = problem.kernel_size_h - problem.pad_h * 2;
+    const int min_in_width  = static_cast<int>(problem.GetWeightsWidth_()) - problem.GetPadW() * 2;
+    const int min_in_height = static_cast<int>(problem.GetWeightsHeight_()) - problem.GetPadH() * 2;
     // These two found experimentally.
     const int max_in_width  = 8192 - 1;
     const int max_in_height = 131077 - 1;
 
     // clang-format off
-    return 0 <= problem.pad_w && problem.pad_w <= 5 // -q   pad_w   // [0..5] for now FIXME
-        && 0 <= problem.pad_h && problem.pad_h <= 5 // -p   pad_h   // [0..5] for now FIXME
-        && problem.kernel_stride_w == 2           // -v   inp_v   fixed
-        && problem.kernel_stride_h == 2           // -u   inp_u   fixed
-        && problem.kernel_size_w == 10            // -x   wei_w   fixed
-        && problem.kernel_size_h == 5             // -y   wei_h   fixed
-        && problem.kernel_dilation_w == 1
-        && problem.kernel_dilation_h == 1
-        && problem.n_inputs >= 1                 // -c   wei_c   no upper limit
-        && problem.n_outputs % 16 == 0           // -k   wei_k   no upper limit
-        && problem.n_outputs >= 1
-        && problem.in_width >= min_in_width      // -W   inp_w
-        && problem.in_width <= max_in_width
-        && problem.in_height >= min_in_height    // -H   inp_h
-        && problem.in_height <= max_in_height
+    return 0 <= problem.GetPadW() && problem.GetPadW() <= 5 // -q   pad_w   // [0..5] for now FIXME
+        && 0 <= problem.GetPadH() && problem.GetPadH() <= 5 // -p   pad_h   // [0..5] for now FIXME
+        && problem.GetKernelStrideW() == 2           // -v   inp_v   fixed
+        && problem.GetKernelStrideH() == 2           // -u   inp_u   fixed
+        && problem.GetWeightsWidth_() == 10          // -x   wei_w   fixed
+        && problem.GetWeightsHeight_() == 5          // -y   wei_h   fixed
+        && problem.GetDilationW() == 1
+        && problem.GetDilationH() == 1
+        && problem.GetInChannels_() >= 1             // -c   wei_c   no upper limit
+        && problem.GetOutChannels_() % 16 == 0       // -k   wei_k   no upper limit
+        && problem.GetOutChannels_() >= 1
+        && static_cast<int>(problem.GetInWidth_()) >= min_in_width     // -W   inp_w
+        && problem.GetInWidth_() <= max_in_width
+        && static_cast<int>(problem.GetInHeight_()) >= min_in_height   // -H   inp_h
+        && problem.GetInHeight_() <= max_in_height
         && problem.IsFp32()
-        && problem.group_counts == 1
-        && problem.in_layout == "NCHW";          // hardcoded
-        // && (problem.forward ? problem.weights_layout == "KCHW" : problem.weights_layout == "CKHW" )
+        && problem.GetGroupCount() == 1
+        && problem.GetInLayout() == "NCHW";         // hardcoded
+        // && (problem.forward ? problem.GetWeightsLayout() == "KCHW" : problem.GetWeightsLayout() == "CKHW" )
     // clang-format on
 }
 
@@ -115,21 +116,21 @@ ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ExecutionContext& ctx,
                                             const ProblemDescription& problem) const
 {
     ConvSolution result;
-    const int out_w =
-        (problem.in_width + problem.pad_w * 2 + problem.kernel_stride_w - problem.kernel_size_w) /
-        problem.kernel_stride_w; // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
-    const int out_h =
-        (problem.in_height + problem.pad_h * 2 + problem.kernel_stride_h - problem.kernel_size_h) /
-        problem.kernel_stride_h; // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
+    const int out_w = (static_cast<int>(problem.GetInWidth_()) + problem.GetPadW() * 2 +
+                       problem.GetKernelStrideW() - static_cast<int>(problem.GetWeightsWidth_())) /
+                      problem.GetKernelStrideW(); // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
+    const int out_h = (static_cast<int>(problem.GetInHeight_()) + problem.GetPadH() * 2 +
+                       problem.GetKernelStrideH() - static_cast<int>(problem.GetWeightsHeight_())) /
+                      problem.GetKernelStrideH(); // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
 
     std::ostringstream options;
-    GenerateClangDefsym(options, "inp_h", problem.in_height);
-    GenerateClangDefsym(options, "inp_w", problem.in_width);
-    GenerateClangDefsym(options, "wei_c", problem.n_inputs);
-    GenerateClangDefsym(options, "wei_k", problem.n_outputs);
+    GenerateClangDefsym(options, "inp_h", problem.GetInHeight_());
+    GenerateClangDefsym(options, "inp_w", problem.GetInWidth_());
+    GenerateClangDefsym(options, "wei_c", problem.GetInChannels_());
+    GenerateClangDefsym(options, "wei_k", problem.GetOutChannels_());
     GenerateClangDefsym(options, "wei_layout", 0); // 0: KCHW, 1: CKHW
-    GenerateClangDefsym(options, "pad_w", problem.pad_w);
-    GenerateClangDefsym(options, "pad_h", problem.pad_h);
+    GenerateClangDefsym(options, "pad_w", problem.GetPadW());
+    GenerateClangDefsym(options, "pad_h", problem.GetPadH());
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
 
     KernelInfo construction_params;
@@ -142,16 +143,18 @@ ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ExecutionContext& ctx,
     // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k/2,8), batch_n]
     construction_params.g_wk.push_back(AlignUp(out_w, 64));
     construction_params.g_wk.push_back(
-        static_cast<size_t>(AlignUp(out_h, 4) / 4 * AlignUp(problem.n_outputs / 2, 8)));
-    construction_params.g_wk.push_back(problem.batch_sz);
+        static_cast<size_t>(AlignUp(out_h, 4) / 4 * AlignUp(problem.GetOutChannels_() / 2, 8)));
+    construction_params.g_wk.push_back(problem.GetBatchSize_());
 
     construction_params.kernel_file = "conv5x10u2v2f1.s";
     construction_params.kernel_name = "miopenConv5x10u2v2f1";
 
     result.construction_params.push_back(construction_params);
-    result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
+    result.invoker_factory = &miopen::conv::MakeGenericXWYPadInvoker;
 
     return result;
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen

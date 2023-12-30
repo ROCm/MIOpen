@@ -28,7 +28,6 @@
 #include <limits>
 #include <cassert>
 
-#include <miopen/conv/fused_data_invoke_params.hpp>
 #include <miopen/conv/tensors.hpp>
 #include <miopen/env.hpp>
 #include <miopen/gcn_asm_utils.hpp>
@@ -39,21 +38,24 @@
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
 
-#include "half.hpp"
+#if !defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL)
+#include <half/half.hpp>
+#else
+#include <half.hpp>
+#endif
 
 using half_float::half;
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
 namespace miopen {
 namespace solver {
-
 namespace fusion {
 
 void PerformanceConfigConvBiasActivAsm1x1U::HeuristicInit(const FusionContext& ctx,
                                                           const FusionDescription& problem)
 {
-    auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     auto conv_ctx     = ctx.GetConvContext(conv_problem);
     PerformanceConfigConvAsm1x1U::HeuristicInit(conv_ctx, conv_problem);
 }
@@ -61,13 +63,13 @@ void PerformanceConfigConvBiasActivAsm1x1U::HeuristicInit(const FusionContext& c
 bool PerformanceConfigConvBiasActivAsm1x1U::SetNextValue(const FusionDescription& problem)
 {
     return PerformanceConfigConvAsm1x1U::SetNextValue(
-        problem.GetConvProblem(0, conv::Direction::Forward));
+        problem.GetConvProblem(0, miopen::conv::Direction::Forward));
 }
 
 bool PerformanceConfigConvBiasActivAsm1x1U::IsValid(const FusionDescription& problem) const
 {
     return PerformanceConfigConvAsm1x1U::IsValid(
-        problem.GetConvProblem(0, conv::Direction::Forward));
+        problem.GetConvProblem(0, miopen::conv::Direction::Forward));
 }
 
 PerformanceConfigConvBiasActivAsm1x1U
@@ -88,39 +90,12 @@ bool ConvBiasActivAsm1x1U::IsValidPerformanceConfig(
     return c.IsValidValue() && c.IsValid(problem);
 }
 
-PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionContext& context,
-                                                                   const FusionDescription& problem,
-                                                                   const AnyInvokeParams&) const
+PerformanceConfigConvBiasActivAsm1x1U
+ConvBiasActivAsm1x1U::Search(const FusionContext& context,
+                             const FusionDescription& problem,
+                             const AnyInvokeParams& invoke_params) const
 {
-    auto conv_problem    = problem.GetConvProblem(0, conv::Direction::Forward);
-    conv_problem.bias    = 1;
-    conv_problem.bias_sz = static_cast<size_t>(conv_problem.n_outputs) *
-                           ((conv_problem.out_data_type == miopenHalf) ? 2 : 4);
-    const auto conv_ctx = context.GetConvContext(conv_problem);
-
-    if(!conv_problem.direction.IsForward())
-        MIOPEN_THROW("Only inference supported.");
-
-    /// Workaround: Fused conv API does not pass user-allocated buffers here,
-    /// but we need these buffers for search.
-    auto& handle = conv_ctx.GetStream();
-
-    const auto bias_buf = handle.Create(conv_problem.bias_sz);
-    const auto in_buf   = handle.Create(conv_problem.bot_sz);
-    const auto wei_buf  = handle.Create(conv_problem.weights_sz);
-    const auto out_buf  = handle.Create(conv_problem.top_sz);
-
-    auto tensors             = FusedConvDataTensors{};
-    tensors.in               = in_buf.get();
-    tensors.w                = wei_buf.get();
-    tensors.out              = out_buf.get();
-    tensors.inDesc           = conv_problem.conv_problem.GetIn();
-    tensors.wDesc            = conv_problem.conv_problem.GetWeights();
-    tensors.outDesc          = conv_problem.conv_problem.GetOut();
-    tensors.bias             = bias_buf.get();
-    const auto gfx90aaltimpl = conv_problem.conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
-    const auto fused_invoke_ctx = conv::FusedDataInvokeParams(tensors, nullptr, 0, gfx90aaltimpl);
-    return GenericSearch(*this, context, problem, fused_invoke_ctx);
+    return GenericSearch(*this, context, problem, invoke_params);
 }
 
 ConvSolution
@@ -128,9 +103,9 @@ ConvBiasActivAsm1x1U::GetSolution(const FusionContext& context,
                                   const FusionDescription& problem,
                                   const PerformanceConfigConvBiasActivAsm1x1U& config) const
 {
-    const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     const auto conv_ctx     = context.GetConvContext(conv_problem);
-    ConvAsm1x1U base_sol{};
+    conv::ConvAsm1x1U base_sol{};
 
     auto sol = base_sol.GetSolution(conv_ctx, conv_problem, config);
 
@@ -166,7 +141,7 @@ ConvBiasActivAsm1x1U::GetSolution(const FusionContext& context,
     }
     kernel_info.comp_options += cba_options.str();
 
-    const auto out_data_type = conv_problem.conv_problem.GetOutDataType();
+    const auto out_data_type = conv_problem.GetOutDataType();
     sol.weight               = 50.0f;
 
     sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
@@ -181,11 +156,15 @@ ConvBiasActivAsm1x1U::GetSolution(const FusionContext& context,
             const auto& top_ocl_buf  = invoke_ctx.out;
             const auto& bias_ocl_buf = [&]() -> ConstData_t {
                 if(has_bias)
+                {
                     return dynamic_cast<miopen::fusion::BiasOpInvokeParam&>(
                                *invoke_ctx.op_args.params[1])
                         .bdata;
+                }
                 else
+                {
                     return nullptr;
+                }
             }();
 
             if(activ_idx == -1) // skip the activation args
@@ -243,7 +222,7 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
     {
         MIOPEN_THROW("");
     }
-    if(miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_GCN_ASM_KERNELS)))
         return false;
     // check the sequence of prims
     if(desc.op_map.size() > 3)
@@ -263,21 +242,21 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
             return false;
     }
 
-    ConvAsm1x1U sol{};
-    const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    conv::ConvAsm1x1U sol{};
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     const auto conv_ctx     = context.GetConvContext(conv_problem);
 
-    if(conv_problem.pad_h != conv_problem.pad_w)
+    if(conv_problem.GetPadH() != conv_problem.GetPadW())
         return false;
-    if(conv_problem.pad_h != 0)
+    if(conv_problem.GetPadH() != 0)
         return false;
-    if(conv_problem.conv_problem.GetKernelStrideH() != conv_problem.conv_problem.GetKernelStrideW())
+    if(conv_problem.GetKernelStrideH() != conv_problem.GetKernelStrideW())
         return false;
-    if(conv_problem.conv_problem.GetKernelStrideH() != 1)
+    if(conv_problem.GetKernelStrideH() != 1)
         return false;
-    if(conv_problem.conv_problem.GetDilationH() != conv_problem.conv_problem.GetDilationW())
+    if(conv_problem.GetDilationH() != conv_problem.GetDilationW())
         return false;
-    if(conv_problem.conv_problem.GetDilationH() != 1)
+    if(conv_problem.GetDilationH() != 1)
         return false;
 
     // Check if the conovlution part is applicable

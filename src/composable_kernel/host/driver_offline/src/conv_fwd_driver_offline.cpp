@@ -3,7 +3,11 @@
 #include <initializer_list>
 #include <cstdlib>
 #include <stdlib.h>
+#if !defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL)
+#include <half/half.hpp>
+#else
 #include <half.hpp>
+#endif
 #include "config.hpp"
 #include "print.hpp"
 #include "device.hpp"

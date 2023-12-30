@@ -255,7 +255,7 @@ void xorwow_lite_init(prngStates* cur_state,
 
     cur_state->d = 6615241;
 
-    // Adopt constants choice of rocRAND (https://github.com/ROCmSoftwarePlatform/rocRAND)
+    // Adopt constants choice of rocRAND (https://github.com/ROCm/rocRAND)
     const uint s0 = (uint)(seed) ^ 0x2c7f967fU;
     const uint s1 = (uint)(seed >> 32) ^ 0xa03697cbU;
     const uint t0 = 1228688033 * s0;
@@ -273,13 +273,13 @@ void xorwow_lite_init(prngStates* cur_state,
     cur_state->d += (uint)(offset)*362437;
 }
 
-__kernel void InitKernelState(__global prngStates* state)
+__kernel void InitKernelState(__global prngStates* state, ulong prng_seed, ulong states_num)
 {
-    for(uint gid = get_global_id(0); gid < STATES_NUM; gid += get_global_size(0))
+    for(uint gid = get_global_id(0); gid < states_num; gid += get_global_size(0))
     {
         prngStates state_gid;
         xorwow_lite_init(&state_gid,
-                         (unsigned long long)PRNG_SEED,
+                         (unsigned long long)prng_seed,
                          (unsigned long long)gid,
                          (unsigned long long)0);
 

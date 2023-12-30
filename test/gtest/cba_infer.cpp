@@ -36,13 +36,32 @@
 #include "get_handle.hpp"
 #include "cba.hpp"
 
+namespace cba_infer {
+
 struct ConvBiasActivInferTestFloat : ConvBiasActivInferTest<float>
+{
+};
+
+struct ConvBiasActivInferTestFloatFusionCompileStep : ConvBiasActivInferTest<float>
 {
 };
 
 struct ConvBiasActivInferTestHalf : ConvBiasActivInferTest<half_float::half>
 {
 };
+
+void setEnvironmentVariable(const std::string& name, const std::string& value)
+{
+    int ret = 0;
+
+#ifdef _WIN32
+    std::string env_var(name + "=" + value);
+    ret = _putenv(env_var.c_str());
+#else
+    ret = setenv(name.c_str(), value.c_str(), 1);
+#endif
+    EXPECT_EQ(ret, 0);
+}
 
 template <typename Solver, typename TestCase>
 void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
@@ -54,7 +73,6 @@ void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
     Solver solv{};
     const auto fusion_problem = miopen::FusionDescription{&fusePlanDesc};
     auto fusion_ctx           = miopen::FusionContext{handle};
-    fusion_ctx.DetectRocm();
     if(!solv.IsApplicable(fusion_ctx, fusion_problem))
     {
         test_skipped = true;
@@ -71,14 +89,13 @@ void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
 template <typename Solver>
 void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
                       const std::unique_ptr<miopen::fusion::FusionInvokeParams>& plan_params,
-                      const ConvTestCase& conv_config,
+                      const ConvTestCaseBase& conv_config,
                       bool& test_skipped)
 {
     auto& handle = get_handle();
     Solver solv{};
     const auto fusion_problem = miopen::FusionDescription{&fusePlanDesc};
     auto fusion_ctx           = miopen::FusionContext{handle};
-    fusion_ctx.DetectRocm();
     if(!solv.IsApplicable(fusion_ctx, fusion_problem))
     {
         test_skipped = true;
@@ -93,6 +110,8 @@ void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
     (invoker)(handle, *(plan_params.get()));
     handle.Finish();
 }
+} // namespace cba_infer
+using namespace cba_infer;
 
 TEST_P(ConvBiasActivInferTestFloat, ConvBiasActivAsm1x1UFloat)
 {
@@ -131,14 +150,35 @@ TEST_P(ConvBiasActivInferTestHalf, ConvCKIgemmFwdBiasActivFused)
         fusePlanDesc, plan_params, conv_config, test_skipped);
 }
 
+#if MIOPEN_BACKEND_HIP
+TEST_P(ConvBiasActivInferTestFloatFusionCompileStep, ConvBiasActivAsm1x1UFloat_testCompile)
+{
+    setEnvironmentVariable("MIOPEN_FIND_ENFORCE", "SEARCH_DB_UPDATE");
+    setEnvironmentVariable("MIOPEN_DEBUG_TUNING_ITERATIONS_MAX", "5");
+    fusePlanDesc.Compile(get_handle());
+    const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
+        params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);
+    RunTunableSolver<miopen::solver::fusion::ConvBiasActivAsm1x1U>(
+        fusePlanDesc, plan_params, conv_config, test_skipped);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    CBAInferSolverTest,
+    ConvBiasActivInferTestFloatFusionCompileStep,
+    testing::Combine(testing::Values(miopenActivationRELU),
+                     testing::ValuesIn(GetNetworkForFusionCompileStepTest<ConvTestCaseBase>()),
+                     testing::Values(miopenTensorNCHW)));
+
+#endif
+
 INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
                          ConvBiasActivInferTestFloat,
                          testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(GetNetwork1()),
+                                          testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
                                           testing::Values(miopenTensorNCHW)));
 
 INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
                          ConvBiasActivInferTestHalf,
                          testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(GetNetwork1()),
+                                          testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
                                           testing::Values(miopenTensorNHWC)));

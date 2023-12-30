@@ -31,19 +31,24 @@
 
 #define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 bool ConvAsm5x10u2v2b1::IsApplicable(const ExecutionContext& ctx,
                                      const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)))
         return false;
     if(!ctx.use_asm_kernels)
         return false;
     if(!problem.Is2d())
+        return false;
+    if(problem.HasNonPackedTensors())
         return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
@@ -63,17 +68,13 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ExecutionContext& ctx,
         return false;
 #endif
     if(!device_is_gfx8_9_no_xnack)
-    {
         return false;
-    }
-    if(!problem.direction.IsBackwardData())
-    {
+    if(!problem.IsDirectionBackwardData())
         return false;
-    }
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
+    if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
+        return false;
 
     // Min image + padding shall be not smaller than filter matrix.
     const int min_out_width  = 138;
@@ -83,23 +84,23 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ExecutionContext& ctx,
     const int max_out_height = 131077 - 1;
 
     // clang-format off
-    return problem.pad_w == 0                     // -q   pad_w   fixed
-        && problem.pad_h == 0                     // -p   pad_h   fixed
-        && problem.kernel_stride_w == 2             // -v   inp_v   fixed
-        && problem.kernel_stride_h == 2             // -u   inp_u   fixed
-        && problem.kernel_size_w == 10            // -x   wei_w   fixed
-        && problem.kernel_size_h == 5             // -y   wei_h   fixed
-        && problem.kernel_dilation_w == 1
-        && problem.kernel_dilation_h == 1
-        && problem.n_outputs % 16 == 0            // -c   wei_c   no upper limit
-        && problem.n_inputs >= 16                 // -k   wei_k   no upper limit
-        && problem.out_width >= min_out_width     // -W   inp_w
-        && problem.out_width <= max_out_width
-        && problem.out_height >= min_out_height   // -H   inp_h
-        && problem.out_height <= max_out_height
+    return problem.GetPadW() == 0                    // -q   pad_w   fixed
+        && problem.GetPadH() == 0                    // -p   pad_h   fixed
+        && problem.GetKernelStrideW() == 2           // -v   inp_v   fixed
+        && problem.GetKernelStrideH() == 2           // -u   inp_u   fixed
+        && problem.GetWeightsWidth_() == 10          // -x   wei_w   fixed
+        && problem.GetWeightsHeight_() == 5          // -y   wei_h   fixed
+        && problem.GetDilationW() == 1
+        && problem.GetDilationH() == 1
+        && problem.GetOutChannels_() % 16 == 0       // -c   wei_c   no upper limit
+        && problem.GetInChannels_() >= 16            // -k   wei_k   no upper limit
+        && problem.GetOutWidth_() >= min_out_width   // -W   inp_w
+        && problem.GetOutWidth_() <= max_out_width
+        && problem.GetOutHeight_() >= min_out_height // -H   inp_h
+        && problem.GetOutHeight_() <= max_out_height
         && problem.IsFp32()
-        && problem.group_counts == 1
-        && problem.out_layout == "NCHW";          // hardcoded
+        && problem.GetGroupCount() == 1
+        && problem.GetOutLayout() == "NCHW";          // hardcoded
         // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
     // clang-format on
 }
@@ -109,10 +110,10 @@ ConvSolution ConvAsm5x10u2v2b1::GetSolution(const ExecutionContext& ctx,
 {
     ConvSolution result;
     std::ostringstream options;
-    GenerateClangDefsym(options, "inp_h", problem.out_height);
-    GenerateClangDefsym(options, "inp_w", problem.out_width);
-    GenerateClangDefsym(options, "wei_c", problem.n_outputs);
-    GenerateClangDefsym(options, "wei_k", problem.n_inputs);
+    GenerateClangDefsym(options, "inp_h", problem.GetOutHeight_());
+    GenerateClangDefsym(options, "inp_w", problem.GetOutWidth_());
+    GenerateClangDefsym(options, "wei_c", problem.GetOutChannels_());
+    GenerateClangDefsym(options, "wei_k", problem.GetInChannels_());
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
 
     KernelInfo constr_params;
@@ -123,17 +124,19 @@ ConvSolution ConvAsm5x10u2v2b1::GetSolution(const ExecutionContext& ctx,
     constr_params.l_wk.push_back(1);
 
     // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_c/2,8), batch_n]
-    constr_params.g_wk.push_back(AlignUp(problem.in_width, 64));
-    constr_params.g_wk.push_back(
-        static_cast<size_t>(AlignUp(problem.in_height, 4) / 4 * AlignUp(problem.n_outputs / 2, 8)));
-    constr_params.g_wk.push_back(problem.batch_sz);
+    constr_params.g_wk.push_back(AlignUp(problem.GetInWidth_(), 64));
+    constr_params.g_wk.push_back(static_cast<size_t>(AlignUp(problem.GetInHeight_(), 4) / 4 *
+                                                     AlignUp(problem.GetOutChannels_() / 2, 8)));
+    constr_params.g_wk.push_back(problem.GetBatchSize_());
 
     constr_params.kernel_file = "conv5x10u2v2b1.s";
     constr_params.kernel_name = "miopenConv5x10u2v2b1";
 
     result.construction_params.push_back(constr_params);
-    result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
+    result.invoker_factory = &miopen::conv::MakeGenericXWYPadInvoker;
     return result;
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen

@@ -172,10 +172,15 @@ bool Next(const TRange& range, TValue& value)
 template <class TValue, TValue... values>
 struct BoostSequence
 {
-    using ValueType      = TValue;
+    using value_type     = TValue;
     using const_iterator = const TValue*;
+#ifdef _MSC_VER
+    constexpr const_iterator begin() const { return arr.begin()._Unwrapped(); }
+    constexpr const_iterator end() const { return arr.end()._Unwrapped(); }
+#else
     constexpr const_iterator begin() const { return arr.begin(); }
     constexpr const_iterator end() const { return arr.end(); }
+#endif
 
 private:
     static constexpr std::size_t count                         = sizeof...(values);
@@ -188,7 +193,7 @@ struct span_impl;
 template <class Start, class T, T... Ns>
 struct span_impl<Start, std::integer_sequence<T, Ns...>>
 {
-    using ValueType       = T;
+    using value_type      = T;
     using const_iterator  = const T*;
     T data[sizeof...(Ns)] = {(Ns + Start{})...};
 
@@ -371,8 +376,10 @@ private:
         const auto start = std::chrono::steady_clock::now();
 
         for(auto i = 0; i < iterations; i++)
+        {
             for(auto j = 0; j < 128 * 1024 * 1024; j++)
                 rule_getter().Next(td);
+        }
 
         const auto time = std::chrono::duration_cast<std::chrono::microseconds>(
                               std::chrono::steady_clock::now() - start)

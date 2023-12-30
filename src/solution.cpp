@@ -26,14 +26,26 @@
 
 #include <miopen/solution.hpp>
 
+#include <miopen/any_solver.hpp>
 #include <miopen/check_numerics.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
-#include <miopen/any_solver.hpp>
 
 #include <nlohmann/json.hpp>
 
 #include <boost/hof/match.hpp>
+#include "miopen/fusion/problem_description.hpp"
+#include "miopen/fusion/context.hpp"
+
+namespace miopen::debug {
+// Todo: This should be updated when a separate driver command is implemented
+void LogCmdConvolution(const miopen::TensorDescriptor& x,
+                       const miopen::TensorDescriptor& w,
+                       const miopen::ConvolutionDescriptor& conv,
+                       const miopen::TensorDescriptor& y,
+                       miopenProblemDirection_t dir,
+                       std::optional<uint64_t> solver_id);
+} // namespace miopen::debug
 
 namespace miopen {
 
@@ -43,16 +55,73 @@ void Solution::Run(Handle& handle,
                    std::size_t workspace_size)
 {
     if(workspace_size < workspace_required)
+    {
         MIOPEN_THROW(miopenStatusBadParm,
                      GetSolver().ToString() + " requires at least " +
                          std::to_string(workspace_required) + " workspace, while " +
                          std::to_string(workspace_size) + " was provided");
+    }
 
-    const auto run = boost::hof::match([&](const ConvolutionDescriptor& op_desc) {
-        RunImpl(handle, inputs, workspace, workspace_size, op_desc);
-    });
+    boost::apply_visitor(
+        boost::hof::match(
+            [&](const Problem& problem_) {
+                boost::apply_visitor(
+                    boost::hof::match(
+                        [&](const ConvolutionDescriptor& op_desc) {
+                            RunImpl(handle, inputs, workspace, workspace_size, op_desc);
+                        },
+                        [&](const ActivationDescriptor& /*op_desc*/) {
+                            MIOPEN_THROW(miopenStatusNotImplemented);
+                        },
+                        [&](const BiasDescriptor& /*op_desc*/) {
+                            MIOPEN_THROW(miopenStatusNotImplemented);
+                        }),
+                    problem_.GetOperatorDescriptor());
+            },
+            [&](const FusedProblem& problem_) {
+                RunImpl(handle, inputs, workspace, workspace_size, problem_);
+            }),
+        problem.item);
+}
 
-    boost::apply_visitor(run, problem.GetOperatorDescriptor());
+void Solution::LogDriverCommand() const
+{
+    boost::apply_visitor([&](const auto& problem_) { LogDriverCommand(problem_); }, problem.item);
+}
+
+void Solution::LogDriverCommand(const ConvolutionDescriptor& desc) const
+{
+    auto problem_ = boost::get<const Problem&>(problem.item);
+    const auto& x_desc =
+        problem_.GetTensorDescriptorChecked(miopenTensorConvolutionX, "miopenTensorConvolutionX");
+    const auto& w_desc =
+        problem_.GetTensorDescriptorChecked(miopenTensorConvolutionW, "miopenTensorConvolutionW");
+    const auto& y_desc =
+        problem_.GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
+    miopen::debug::LogCmdConvolution(
+        x_desc, w_desc, desc, y_desc, problem_.GetDirection(), solver.Value());
+}
+
+void Solution::LogDriverCommand(const ActivationDescriptor& desc) const
+{
+    std::ignore = desc;
+    boost::get<Problem>(problem.item).LogDriverCommand();
+    /// \todo: when possible, add some command for reproducing a specific case rather than the whole
+    /// problem
+}
+
+void Solution::LogDriverCommand(const Problem& problem_) const
+{
+    boost::apply_visitor(
+        boost::hof::match([&](const BiasDescriptor&) { /* \todo: think on how to log bias */ },
+                          [&](const auto& op_desc) { LogDriverCommand(op_desc); }),
+        problem_.GetOperatorDescriptor());
+}
+
+void Solution::LogDriverCommand(const FusedProblem& problem_) const
+{
+    std::ignore = problem_;
+    /// \todo: add logging of some command to reproduce current solution or at least problem
 }
 
 void Solution::RunImpl(Handle& handle,
@@ -61,14 +130,18 @@ void Solution::RunImpl(Handle& handle,
                        std::size_t workspace_size,
                        const ConvolutionDescriptor& conv_desc)
 {
+    const auto& problem_casted = boost::get<const Problem&>(problem.item);
+
     const auto get_input_checked = [&](auto name, const std::string& name_str) {
         const auto& found = inputs.find(name);
         if(found == inputs.end())
+        {
             MIOPEN_THROW(miopenStatusInvalidValue,
                          "Problem is missing " + name_str + " tensor descriptor.");
+        }
         auto ret = found->second;
         if(!ret.descriptor.has_value())
-            ret.descriptor = GetProblem().GetTensorDescriptorChecked(name, name_str);
+            ret.descriptor = problem_casted.GetTensorDescriptorChecked(name, name_str);
         return ret;
     };
 
@@ -77,9 +150,10 @@ void Solution::RunImpl(Handle& handle,
     auto y       = get_input_checked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
 
     const auto problem_ =
-        conv_desc.mode == miopenTranspose ? Transpose(GetProblem(), &x, w, &y) : GetProblem();
+        conv_desc.mode == miopenTranspose ? Transpose(problem_casted, &x, w, &y) : problem_casted;
 
-    if(y.descriptor->GetLengths()[1] != w.descriptor->GetLengths()[0])
+    if(problem_.GetDirection() == miopenProblemDirectionBackward &&
+       y.descriptor->GetLengths()[1] != w.descriptor->GetLengths()[0])
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -123,7 +197,7 @@ void Solution::RunImpl(Handle& handle,
         }
     }();
 
-    const auto net_cfg       = conv_problem.BuildConfKey();
+    const auto net_cfg       = conv_problem.MakeNetworkConfig();
     const auto found_invoker = handle.GetInvoker(net_cfg, GetSolver());
 
     const auto checkNumericsOutput_ = [&]() {
@@ -145,19 +219,57 @@ void Solution::RunImpl(Handle& handle,
         return;
     }
 
-    const auto legacy_problem = ProblemDescription{conv_problem};
-    auto conv_ctx             = ConvolutionContext{{&handle}};
-    conv_ctx.DetectRocm();
+    auto conv_ctx = ExecutionContext{&handle};
     conv_problem.SetupFloats(conv_ctx);
 
     decltype(auto) db        = GetDb(conv_ctx);
     const auto conv_solution = GetSolver().GetSolver().FindSolution(
-        conv_ctx, legacy_problem, db, invoke_ctx, perf_cfg.value_or(""));
+        conv_ctx, conv_problem, db, invoke_ctx, perf_cfg.value_or(""));
     decltype(auto) invoker =
         handle.PrepareInvoker(*conv_solution.invoker_factory, conv_solution.construction_params);
     handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
     invoker(handle, invoke_ctx);
     checkNumericsOutput_();
+}
+
+void Solution::RunImpl(Handle& handle,
+                       const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
+                       Data_t /*workspace*/,
+                       std::size_t /*workspace_size*/,
+                       const FusedProblem& problem_)
+{
+    const auto buffer_getter = [&](auto id, auto&& descriptor) {
+        const auto found = inputs.find(id);
+        if(found == inputs.end())
+            MIOPEN_THROW(miopenStatusInvalidValue,
+                         "Problem is missing " + std::to_string(id) + " tensor descriptor.");
+        if(found->second.descriptor.has_value() && *found->second.descriptor != descriptor)
+            MIOPEN_THROW(miopenStatusNotImplemented,
+                         "Providing new descriptors for a fused solution is not supported.");
+        return found->second.buffer;
+    };
+
+    OperatorArgs op_args;
+    const auto invoke_params = problem_.MakeInvokeParams(buffer_getter, op_args);
+
+    const auto plan           = problem_.AsFusionPlan();
+    const auto fusion_problem = FusionDescription{&plan};
+    const auto net_cfg        = fusion_problem.MakeNetworkConfig();
+
+    const auto found_invoker = handle.GetInvoker(net_cfg, GetSolver());
+
+    if(found_invoker)
+    {
+        (*found_invoker)(handle, invoke_params);
+        return;
+    }
+
+    const auto ctx      = FusionContext{handle};
+    const auto solution = MakeFusedSolution(ctx, solver, perf_cfg, fusion_problem, invoke_params);
+    decltype(auto) invoker =
+        handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
+    handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
+    invoker(handle, invoke_params);
 }
 
 Problem Solution::Transpose(const Problem& problem, RunInput* x, const RunInput& w, RunInput* y)
@@ -210,12 +322,16 @@ void from_json(const nlohmann::json& json, Solution& solution)
         constexpr const auto check_header = Solution::SerializationMetadata::Current();
 
         if(header.validation_number != check_header.validation_number)
+        {
             MIOPEN_THROW(miopenStatusInvalidValue,
                          "Invalid buffer has been passed to the solution deserialization.");
+        }
         if(header.version != check_header.version)
+        {
             MIOPEN_THROW(
                 miopenStatusVersionMismatch,
                 "Data from wrong version has been passed to the solution deserialization.");
+        }
     }
 
     json.at("time").get_to(solution.time);

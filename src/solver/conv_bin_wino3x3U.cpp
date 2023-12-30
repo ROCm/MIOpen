@@ -35,19 +35,22 @@
 
 #include <boost/any.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 bool ConvBinWinograd3x3U::IsApplicable(const ExecutionContext& ctx,
                                        const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_3X3{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)))
         return false;
     if(!problem.Is2d())
         return false;
-    if(!(problem.direction.IsForward() || problem.direction.IsBackwardData()))
+    if(!(problem.IsDirectionForward() || problem.IsDirectionBackwardData()))
         return false;
     if(!(ctx.rmv.IsV2orV3() && ctx.use_asm_kernels))
         return false;
@@ -64,35 +67,40 @@ bool ConvBinWinograd3x3U::IsApplicable(const ExecutionContext& ctx,
     // and able to correctly run with given parameters.
     const auto device_is_gfx8         = StartsWith(name, "gfx8");
     const auto grid_workgroup_count_x = ctx.GetStream().GetMaxComputeUnits();
-    if(!problem.IsLayoutDefault())
-    {
+
+    if(problem.HasNonPackedTensors())
         return false;
-    }
+
+    if(!problem.IsLayoutDefault())
+        return false;
+
+    if(problem.IsTensorsCasted())
+        return false;
 
     // clang-format off
-    return problem.pad_w == 1
-        && problem.pad_h == 1
-        && problem.kernel_size_w == 3
-        && problem.kernel_size_h == 3
-        && problem.kernel_stride_w == 1
-        && problem.kernel_stride_h == 1
-        && problem.kernel_dilation_w == 1
-        && problem.kernel_dilation_h == 1
-        && problem.batch_sz < std::pow(2, 16)
-        && problem.n_inputs < std::pow(2, 16)
-        && problem.n_outputs < std::pow(2, 16)
-        && problem.in_height < std::pow(2, 16)
-        && problem.in_width < std::pow(2, 16)
+    return problem.GetPadW() == 1
+        && problem.GetPadH() == 1
+        && problem.GetWeightsWidth_() == 3
+        && problem.GetWeightsHeight_() == 3
+        && problem.GetKernelStrideW() == 1
+        && problem.GetKernelStrideH() == 1
+        && problem.GetDilationW() == 1
+        && problem.GetDilationH() == 1
+        && problem.GetBatchSize_() < std::pow(2, 16)
+        && problem.GetInChannels_() < std::pow(2, 16)
+        && problem.GetOutChannels_() < std::pow(2, 16)
+        && problem.GetInHeight_() < std::pow(2, 16)
+        && problem.GetInWidth_() < std::pow(2, 16)
         && grid_workgroup_count_x < std::pow(2, 16)
-        && (problem.n_inputs * problem.in_height * problem.in_width) <= std::pow(2, 28)
-        && (problem.n_outputs * problem.in_height * problem.in_width) <= std::pow(2, 28)
-        && (problem.n_inputs * problem.kernel_size_w * problem.kernel_size_h) <= std::pow(2, 28)
-        && (problem.n_outputs * problem.kernel_size_w * problem.kernel_size_h) <= std::pow(2, 28)
-        && problem.n_inputs % 2 == 0
-        && problem.n_inputs >= (device_is_gfx8 ? 16 : 18)
+        && (problem.GetInChannels_() * problem.GetInHeight_() * problem.GetInWidth_()) <= std::pow(2, 28)
+        && (problem.GetOutChannels_() * problem.GetInHeight_() * problem.GetInWidth_()) <= std::pow(2, 28)
+        && (problem.GetInChannels_() * problem.GetWeightsWidth_() * problem.GetWeightsHeight_()) <= std::pow(2, 28)
+        && (problem.GetOutChannels_() * problem.GetWeightsWidth_() * problem.GetWeightsHeight_()) <= std::pow(2, 28)
+        && problem.GetInChannels_() % 2 == 0
+        && problem.GetInChannels_() >= (device_is_gfx8 ? 16 : 18)
         && problem.IsFp32()
-        && problem.group_counts == 1
-        && problem.in_layout == "NCHW";
+        && problem.GetGroupCount() == 1
+        && problem.GetInLayout() == "NCHW";
         /// && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
         /// Actually, K<->C flpping is controlled by separate flag, so we can support either
         /// layout in both directions.
@@ -134,7 +142,7 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ExecutionContext& ctx,
 
     result.construction_params.push_back(kernel);
 
-    const auto is_forward = problem.direction.IsForward();
+    const auto is_forward = problem.IsDirectionForward();
 
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         constexpr int F_REVERSE_R = 1 << 0;
@@ -163,7 +171,7 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ExecutionContext& ctx,
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto k        = handle.Run(kernels[0]);
-            const auto& fwd_ctx = primitive_params.CastTo<conv::DataInvokeParams>();
+            const auto& fwd_ctx = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
             const auto& tensors = fwd_ctx.tensors;
 
             k(N,
@@ -183,5 +191,7 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ExecutionContext& ctx,
 
     return result;
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen

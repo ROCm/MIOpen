@@ -32,8 +32,8 @@
 
 #define WORKAROUND_ISSUE_1204 1 // ROCm may incorrectly report "sramecc-" for gfx900.
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENFORCE_DEVICE)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_ENFORCE_DEVICE)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEVICE_ARCH)
 
 namespace miopen {
 
@@ -55,9 +55,9 @@ static std::string GetDeviceNameFromMap(const std::string& in)
         {"10.3.0 Sienna_Cichlid 18", "gfx1030"},
     };
 
-    const char* const p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_ENFORCE_DEVICE{});
-    if(p_asciz != nullptr && strlen(p_asciz) > 0)
-        return {p_asciz};
+    const auto& dev_str = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_ENFORCE_DEVICE));
+    if(!dev_str.empty())
+        return dev_str;
 
     const auto name = in.substr(0, in.find(':')); // str.substr(0, npos) returns str.
 
@@ -71,11 +71,13 @@ static std::string GetDeviceNameFromMap(const std::string& in)
 const std::size_t TargetProperties::MaxWaveScratchSize =
     (static_cast<const std::size_t>(256) * 4) * ((1 << 13) - 1);
 
+const std::size_t TargetProperties::MaxLocalMemorySize = static_cast<const std::size_t>(64) * 1024;
+
 void TargetProperties::Init(const Handle* const handle)
 {
     const auto rawName = [&]() -> std::string {
-        const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
-        if(arch != nullptr && strlen(arch) > 0)
+        const auto& arch = miopen::GetStringEnv(ENV(MIOPEN_DEVICE_ARCH));
+        if(!arch.empty())
             return arch;
         return handle->GetDeviceNameImpl();
     }();

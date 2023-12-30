@@ -29,16 +29,19 @@
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/env.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_WRW)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_WRW)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
-bool ConvDirectNaiveConvWrw::IsApplicable(const ConvolutionContext& ctx,
+using ProblemDescription = miopen::conv::ProblemDescription;
+
+bool ConvDirectNaiveConvWrw::IsApplicable(const ExecutionContext& ctx,
                                           const ProblemDescription& problem) const
 {
     if(!miopen::debug::AlwaysEnableConvDirectNaive &&
-       miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_WRW{}))
+       miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_WRW)))
         return false;
 
     if(!ConvDirectNaiveConvIsApplicableByKernelType(ctx, problem))
@@ -47,42 +50,60 @@ bool ConvDirectNaiveConvWrw::IsApplicable(const ConvolutionContext& ctx,
     if(!problem.IsLayoutDefault() && !problem.IsLayoutNHWC())
         return false;
 
-    if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
+    if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsFp8() ||
+         problem.IsBfp8()))
         return false;
 
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
+    if(problem.IsTensorsCasted())
+    {
+        auto test_cast = [&](const TensorDescriptor& desc) {
+            if(desc.GetCastType())
+            {
+                const auto cast_type = *desc.GetCastType();
+                if(cast_type == miopenFloat8 || cast_type == miopenBFloat8)
+                    return false;
+            }
+            // all tested tensors must have cast type set
+            return true;
+        };
+        if(test_cast(problem.GetIn()))
+            return false;
+        if(test_cast(problem.GetOut()))
+            return false;
+    }
 
     return true;
 }
 
-ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ExecutionContext& ctx,
                                                  const ProblemDescription& problem) const
 {
     ConvSolution result;
 
-    int di          = problem.out_depth;
-    int hi          = problem.out_height;
-    int wi          = problem.out_width;
-    int n           = problem.batch_sz;
-    int k           = problem.n_inputs;
-    int c           = problem.n_outputs;
-    int do_         = problem.in_depth;
-    int ho          = problem.in_height;
-    int wo          = problem.in_width;
-    int sz          = problem.in_depth > 1 ? problem.kernel_stride_d : 1;
-    int sy          = problem.in_height > 1 ? problem.kernel_stride_h : 1;
-    int sx          = problem.in_width > 1 ? problem.kernel_stride_w : 1;
-    int dz          = problem.kernel_size_d > 1 ? problem.kernel_dilation_d : 1;
-    int dy          = problem.kernel_size_h > 1 ? problem.kernel_dilation_h : 1;
-    int dx          = problem.kernel_size_w > 1 ? problem.kernel_dilation_w : 1;
-    int pz          = problem.pad_d;
-    int py          = problem.pad_h;
-    int px          = problem.pad_w;
-    int fz          = problem.kernel_size_d;
-    int fy          = problem.kernel_size_h;
-    int fx          = problem.kernel_size_w;
-    int group       = problem.group_counts;
+    int di          = problem.GetOutDepth_();
+    int hi          = problem.GetOutHeight_();
+    int wi          = problem.GetOutWidth_();
+    int n           = problem.GetBatchSize_();
+    int k           = problem.GetInChannels_();
+    int c           = problem.GetOutChannels_();
+    int do_         = problem.GetInDepth_();
+    int ho          = problem.GetInHeight_();
+    int wo          = problem.GetInWidth_();
+    int sz          = problem.GetInDepth_() > 1 ? problem.GetKernelStrideD() : 1;
+    int sy          = problem.GetInHeight_() > 1 ? problem.GetKernelStrideH() : 1;
+    int sx          = problem.GetInWidth_() > 1 ? problem.GetKernelStrideW() : 1;
+    int dz          = problem.GetWeightsDepth_() > 1 ? problem.GetDilationD() : 1;
+    int dy          = problem.GetWeightsHeight_() > 1 ? problem.GetDilationH() : 1;
+    int dx          = problem.GetWeightsWidth_() > 1 ? problem.GetDilationW() : 1;
+    int pz          = problem.GetPadD();
+    int py          = problem.GetPadH();
+    int px          = problem.GetPadW();
+    int fz          = problem.GetWeightsDepth_();
+    int fy          = problem.GetWeightsHeight_();
+    int fx          = problem.GetWeightsWidth_();
+    int group       = problem.GetGroupCount();
     int c_per_group = c / group;
     int k_per_group = k / group;
 
@@ -91,7 +112,7 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
 
     KernelInfo kernel;
 
-    kernel.kernel_file = ConvDirectNaiveConvKernelFile();
+    kernel.kernel_file = ConvDirectNaiveConvKernelFile(ctx, problem);
     kernel.kernel_name = ConvDirectNaiveConvKernelName(problem);
     kernel.g_wk.clear();
 
@@ -103,35 +124,84 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx);
+    const auto is_f8 = (kernel.kernel_file == "fp8_naive_conv.cpp");
+
+    kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx, problem);
+
+    int G_stride_idx = conv_internal::GetGroupStrideIndex(problem);
 
     if(problem.Is2d())
+    {
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                decltype(auto) data_ctx = primitive_parameters.CastTo<conv::WrWInvokeParams>();
-                const auto& tensors     = data_ctx.tensors;
-                float elapsed           = 0;
+                decltype(auto) data_ctx =
+                    primitive_parameters.CastTo<miopen::conv::WrWInvokeParams>();
+                const auto& tensors = data_ctx.tensors;
+                float elapsed       = 0;
 
-                handle.Run(kern)(tensors.x,
-                                 tensors.dw,
-                                 tensors.dy,
-                                 hi,
-                                 wi,
-                                 n,
-                                 k_per_group,
-                                 c_per_group,
-                                 ho,
-                                 wo,
-                                 sy,
-                                 sx,
-                                 dy,
-                                 dx,
-                                 py,
-                                 px,
-                                 fy,
-                                 fx,
-                                 group);
+                auto in_strides = conv_internal::MakeStrideArray<5>(conv_internal::SplitStrideCtoGC(
+                    group, tensors.xDesc.GetStrides(), G_stride_idx));
+                // For weights, we split K to (G, K_per_group), which is always index 0
+                auto wei_strides = conv_internal::MakeStrideArray<5>(
+                    conv_internal::SplitWeiStrideKtoGK(k_per_group, tensors.dwDesc.GetStrides()));
+                auto out_strides =
+                    conv_internal::MakeStrideArray<5>(conv_internal::SplitStrideCtoGC(
+                        group, tensors.dyDesc.GetStrides(), G_stride_idx));
+
+                if(is_f8)
+                {
+                    handle.Run(kern)(tensors.x,
+                                     tensors.dw,
+                                     tensors.dy,
+                                     in_strides,
+                                     wei_strides,
+                                     out_strides,
+                                     hi,
+                                     wi,
+                                     n,
+                                     k_per_group,
+                                     c_per_group,
+                                     ho,
+                                     wo,
+                                     sy,
+                                     sx,
+                                     dy,
+                                     dx,
+                                     py,
+                                     px,
+                                     fy,
+                                     fx,
+                                     group,
+                                     problem.GetConv().attribute.fp8rounding_mode.Get() ==
+                                         miopenF8RoundingModeStochastic,
+                                     problem.GetConv().attribute.fp8rounding_mode.GetSeed());
+                }
+                else
+                {
+                    handle.Run(kern)(tensors.x,
+                                     tensors.dw,
+                                     tensors.dy,
+                                     in_strides,
+                                     wei_strides,
+                                     out_strides,
+                                     hi,
+                                     wi,
+                                     n,
+                                     k_per_group,
+                                     c_per_group,
+                                     ho,
+                                     wo,
+                                     sy,
+                                     sx,
+                                     dy,
+                                     dx,
+                                     py,
+                                     px,
+                                     fy,
+                                     fx,
+                                     group);
+                }
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
 
@@ -142,17 +212,32 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
                 }
             };
         };
+    }
     else
+    {
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                decltype(auto) data_ctx = primitive_parameters.CastTo<conv::WrWInvokeParams>();
-                const auto& tensors     = data_ctx.tensors;
-                float elapsed           = 0;
+                decltype(auto) data_ctx =
+                    primitive_parameters.CastTo<miopen::conv::WrWInvokeParams>();
+                const auto& tensors = data_ctx.tensors;
+                float elapsed       = 0;
+
+                auto in_strides = conv_internal::MakeStrideArray<6>(conv_internal::SplitStrideCtoGC(
+                    group, tensors.xDesc.GetStrides(), G_stride_idx));
+                // For weights, we split K to (G, K_per_group), which is always index 0
+                auto wei_strides = conv_internal::MakeStrideArray<6>(
+                    conv_internal::SplitWeiStrideKtoGK(k_per_group, tensors.dwDesc.GetStrides()));
+                auto out_strides =
+                    conv_internal::MakeStrideArray<6>(conv_internal::SplitStrideCtoGC(
+                        group, tensors.dyDesc.GetStrides(), G_stride_idx));
 
                 handle.Run(kern)(tensors.x,
                                  tensors.dw,
                                  tensors.dy,
+                                 in_strides,
+                                 wei_strides,
+                                 out_strides,
                                  di,
                                  hi,
                                  wi,
@@ -185,9 +270,11 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
                 }
             };
         };
+    }
     result.construction_params.push_back(kernel);
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

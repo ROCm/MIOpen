@@ -33,6 +33,9 @@
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 bool PerformanceImplicitGemm::operator==(const PerformanceImplicitGemm& other) const
 {
@@ -57,7 +60,7 @@ bool PerformanceImplicitGemm::operator==(const PerformanceImplicitGemm& other) c
     // clang-format on
 }
 
-bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx,
+bool PerformanceImplicitGemm::IsValid(const ExecutionContext& ctx,
                                       const ProblemDescription& problem) const
 {
     std::size_t N = KernelBatchN(problem);
@@ -89,7 +92,7 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx,
          N2 % InBlockCopyClusterLengths_N2 == 0))
         return false;
 
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
     {
         if(!((X * Y) % (EPerBlock / WeiBlockCopyClusterLengths_E) == 0))
             return false;
@@ -105,7 +108,7 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx,
 #endif
 
     const auto KBlockWork = K / KPerBlock;
-    if(KBlockWork % problem.group_counts != 0)
+    if(KBlockWork % problem.GetGroupCount() != 0)
         return false;
 
     if((N1 * N2 * BPerBlock) % (GemmNPerThreadSubC * GemmNLevel0Cluster * GemmNLevel1Cluster) != 0)
@@ -173,7 +176,7 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx,
     return (InBlockCopySubLengths_E == 1 && InBlockCopySubLengths_B == 1);
 }
 
-bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx,
+bool PerformanceImplicitGemmV4R1::IsValid(const ExecutionContext& ctx,
                                           const ProblemDescription& problem) const
 {
     std::size_t N = KernelBatchN(problem);
@@ -210,7 +213,7 @@ bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx,
         return false; // wrong! cannot divice N evenly among thread
 
     const auto KBlockWork = K / KPerBlock;
-    if(KBlockWork % problem.group_counts != 0)
+    if(KBlockWork % problem.GetGroupCount() != 0)
         return false;
 
     if((N1 * N2 * BPerBlock) % (GemmNPerThreadSubC * GemmNLevel0Cluster * GemmNLevel1Cluster) != 0)
@@ -278,7 +281,7 @@ bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx,
     return (InBlockCopySubLengths_E == 1 && InBlockCopySubLengths_B == 1);
 }
 
-void PerformanceImplicitGemm::HeuristicInit(const ConvolutionContext& ctx,
+void PerformanceImplicitGemm::HeuristicInit(const ExecutionContext& ctx,
                                             const ProblemDescription& problem)
 {
     // default
@@ -551,5 +554,6 @@ PerformanceImplicitGemm::PerformanceImplicitGemm(int BPerBlock_,
 {
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

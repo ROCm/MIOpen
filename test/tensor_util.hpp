@@ -50,7 +50,7 @@ template <typename T, template <typename> class data_operator_t>
 void operate_over_subtensor_impl(const data_operator_t<T>& r_data_operator,
                                  tensor<T>& rSuperTensor,
                                  const miopen::TensorDescriptor& rSubDesc,
-                                 const uint current_dim,
+                                 const unsigned current_dim,
                                  const int offset)
 {
     auto max_dim        = static_cast<int>(rSubDesc.GetLengths().size() - 1);
@@ -61,10 +61,14 @@ void operate_over_subtensor_impl(const data_operator_t<T>& r_data_operator,
     for(int i = 0; i < rSubDesc.GetLengths()[current_dim]; ++i)
     {
         if(current_dim == max_dim)
+        {
             r_data_operator(rSuperTensor[index]);
+        }
         else
+        {
             operate_over_subtensor_impl<T, data_operator_t>(
                 r_data_operator, rSuperTensor, rSubDesc, current_dim + 1, index);
+        }
 
         index += current_stride;
     }

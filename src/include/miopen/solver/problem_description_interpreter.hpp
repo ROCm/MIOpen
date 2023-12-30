@@ -27,10 +27,7 @@
 #ifndef PROBLEM_DESCRIPTION_INTERPRETER_HPP_
 #define PROBLEM_DESCRIPTION_INTERPRETER_HPP_
 
-#include <miopen/env.hpp>
-#include <miopen/mlo_internal.hpp>
-#include <miopen/rocm_features.hpp>
-#include <algorithm>
+#include <miopen/conv/problem_description.hpp>
 
 namespace miopen {
 namespace solver {
@@ -42,158 +39,195 @@ namespace solver {
 // 4. adjust dilation to 1 if filter size is 1
 struct ProblemInterpreter
 {
-    static auto GetGroupCountG(const ProblemDescription& problem) { return problem.group_counts; }
-
-    static auto GetBatchN(const ProblemDescription& problem) { return problem.batch_sz; }
-
-    static auto GetOutputLayout(const ProblemDescription& problem)
+    static auto GetGroupCountG(const miopen::conv::ProblemDescription& problem)
     {
-        if(problem.direction.IsForward())
-            return problem.out_layout;
+        return problem.GetGroupCount();
+    }
+
+    static int GetBatchN(const miopen::conv::ProblemDescription& problem)
+    {
+        return problem.GetBatchSize_();
+    }
+
+    static auto GetOutputLayout(const miopen::conv::ProblemDescription& problem)
+    {
+        if(problem.IsDirectionForward())
+            return problem.GetOutLayout();
         else
-            return problem.in_layout;
+            return problem.GetInLayout();
     }
 
-    static auto GetOutputChannelK(const ProblemDescription& problem)
+    static int GetOutputChannelK(const miopen::conv::ProblemDescription& problem)
     {
-        if(problem.direction.IsForward())
-            return problem.n_outputs;
+        if(problem.IsDirectionForward())
+            return problem.GetOutChannels_();
         else
-            return problem.n_inputs;
+            return problem.GetInChannels_();
     }
 
-    static auto GetInputLayout(const ProblemDescription& problem)
+    static auto GetInputLayout(const miopen::conv::ProblemDescription& problem)
     {
-        if(problem.direction.IsForward())
-            return problem.in_layout;
+        if(problem.IsDirectionForward())
+            return problem.GetInLayout();
         else
-            return problem.out_layout;
+            return problem.GetOutLayout();
     }
 
-    static auto GetInputChannelC(const ProblemDescription& problem)
+    static int GetInputChannelC(const miopen::conv::ProblemDescription& problem)
     {
-        if(problem.direction.IsForward())
-            return problem.n_inputs;
+        if(problem.IsDirectionForward())
+            return problem.GetInChannels_();
         else
-            return problem.n_outputs;
+            return problem.GetOutChannels_();
     }
 
-    static auto GetInputDepthDi(const ProblemDescription& problem)
+    static int GetInputDepthDi(const miopen::conv::ProblemDescription& problem)
     {
-        if(problem.direction.IsForward())
-            return problem.in_depth;
+        if(problem.IsDirectionForward())
+            return problem.GetInDepth_();
         else
-            return problem.out_depth;
+            return problem.GetOutDepth_();
     }
 
-    static auto GetInputHeightHi(const ProblemDescription& problem)
+    static int GetInputHeightHi(const miopen::conv::ProblemDescription& problem)
     {
-        if(problem.direction.IsForward())
-            return problem.in_height;
+        if(problem.IsDirectionForward())
+            return problem.GetInHeight_();
         else
-            return problem.out_height;
+            return problem.GetOutHeight_();
     }
 
-    static auto GetInputWidthWi(const ProblemDescription& problem)
+    static int GetInputWidthWi(const miopen::conv::ProblemDescription& problem)
     {
-        if(problem.direction.IsForward())
-            return problem.in_width;
+        if(problem.IsDirectionForward())
+            return problem.GetInWidth_();
         else
-            return problem.out_width;
+            return problem.GetOutWidth_();
     }
 
-    static auto GetOutputDepthDo(const ProblemDescription& problem)
+    static auto GetInputCastType(const miopen::conv::ProblemDescription& problem)
     {
-        if(problem.direction.IsForward())
-            return problem.out_depth;
+        if(problem.IsDirectionForward())
+            return problem.GetInCastType();
         else
-            return problem.in_depth;
+            return problem.GetOutCastType();
     }
 
-    static auto GetOutputHeightHo(const ProblemDescription& problem)
+    static int GetOutputDepthDo(const miopen::conv::ProblemDescription& problem)
     {
-        if(problem.direction.IsForward())
-            return problem.out_height;
+        if(problem.IsDirectionForward())
+            return problem.GetOutDepth_();
         else
-            return problem.in_height;
+            return problem.GetInDepth_();
     }
 
-    static auto GetOutputWidthWo(const ProblemDescription& problem)
+    static int GetOutputHeightHo(const miopen::conv::ProblemDescription& problem)
     {
-        if(problem.direction.IsForward())
-            return problem.out_width;
+        if(problem.IsDirectionForward())
+            return problem.GetOutHeight_();
         else
-            return problem.in_width;
+            return problem.GetInHeight_();
     }
 
-    static auto GetOutputDataType(const ProblemDescription& problem)
+    static int GetOutputWidthWo(const miopen::conv::ProblemDescription& problem)
     {
-        return problem.direction.IsForward() ? problem.out_data_type : problem.in_data_type;
+        if(problem.IsDirectionForward())
+            return problem.GetOutWidth_();
+        else
+            return problem.GetInWidth_();
     }
 
-    static auto GetInputDataType(const ProblemDescription& problem)
+    static auto GetOutputCastType(const miopen::conv::ProblemDescription& problem)
     {
-        return problem.direction.IsForward() ? problem.in_data_type : problem.out_data_type;
+        if(problem.IsDirectionForward())
+            return problem.GetOutCastType();
+        else
+            return problem.GetInCastType();
     }
 
-    static auto GetFilterDepthZ(const ProblemDescription& problem) { return problem.kernel_size_d; }
-
-    static auto GetFilterLayout(const ProblemDescription& problem)
+    static auto GetOutputDataType(const miopen::conv::ProblemDescription& problem)
     {
-        return problem.weights_layout;
+        return problem.IsDirectionForward() ? problem.GetOutDataType() : problem.GetInDataType();
     }
 
-    static auto GetFilterHeightY(const ProblemDescription& problem)
+    static auto GetInputDataType(const miopen::conv::ProblemDescription& problem)
     {
-        return problem.kernel_size_h;
+        return problem.IsDirectionForward() ? problem.GetInDataType() : problem.GetOutDataType();
     }
 
-    static auto GetFilterWidthX(const ProblemDescription& problem) { return problem.kernel_size_w; }
+    static int GetFilterDepthZ(const miopen::conv::ProblemDescription& problem)
+    {
+        return problem.GetWeightsDepth_();
+    }
+
+    static auto GetFilterLayout(const miopen::conv::ProblemDescription& problem)
+    {
+        return problem.GetWeightsLayout();
+    }
+
+    static int GetFilterHeightY(const miopen::conv::ProblemDescription& problem)
+    {
+        return problem.GetWeightsHeight_();
+    }
+
+    static int GetFilterWidthX(const miopen::conv::ProblemDescription& problem)
+    {
+        return problem.GetWeightsWidth_();
+    }
 
     // adjust conv_stride_d to 1 if Do is 1
-    static auto GetAdjustedConvolutionStrideD(const ProblemDescription& problem)
+    static auto GetAdjustedConvolutionStrideD(const miopen::conv::ProblemDescription& problem)
     {
-        return GetOutputDepthDo(problem) > 1 ? problem.kernel_stride_d : 1;
+        return GetOutputDepthDo(problem) > 1 ? problem.GetKernelStrideD() : 1;
     }
 
     // adjust conv_stride_h to 1 if Ho is 1
-    static auto GetAdjustedConvolutionStrideH(const ProblemDescription& problem)
+    static auto GetAdjustedConvolutionStrideH(const miopen::conv::ProblemDescription& problem)
     {
-        return GetOutputHeightHo(problem) > 1 ? problem.kernel_stride_h : 1;
+        return GetOutputHeightHo(problem) > 1 ? problem.GetKernelStrideH() : 1;
     }
 
     // adjust conv_stride_w to 1 if Wo is 1
-    static auto GetAdjustedConvolutionStrideW(const ProblemDescription& problem)
+    static auto GetAdjustedConvolutionStrideW(const miopen::conv::ProblemDescription& problem)
     {
-        return GetOutputWidthWo(problem) > 1 ? problem.kernel_stride_w : 1;
+        return GetOutputWidthWo(problem) > 1 ? problem.GetKernelStrideW() : 1;
     }
 
     // adjust conv_dilation_d to 1 if Z is 1
-    static auto GetAdjustedConvolutionDilationD(const ProblemDescription& problem)
+    static auto GetAdjustedConvolutionDilationD(const miopen::conv::ProblemDescription& problem)
     {
-        return GetFilterDepthZ(problem) > 1 ? problem.kernel_dilation_d : 1;
+        return GetFilterDepthZ(problem) > 1 ? problem.GetDilationD() : 1;
     }
 
     // adjust conv_dilation_h to 1 if Y is 1
-    static auto GetAdjustedConvolutionDilationH(const ProblemDescription& problem)
+    static auto GetAdjustedConvolutionDilationH(const miopen::conv::ProblemDescription& problem)
     {
-        return GetFilterHeightY(problem) > 1 ? problem.kernel_dilation_h : 1;
+        return GetFilterHeightY(problem) > 1 ? problem.GetDilationH() : 1;
     }
 
     // adjust conv_dilation_w to 1 if X is 1
-    static auto GetAdjustedConvolutionDilationW(const ProblemDescription& problem)
+    static auto GetAdjustedConvolutionDilationW(const miopen::conv::ProblemDescription& problem)
     {
-        return GetFilterWidthX(problem) > 1 ? problem.kernel_dilation_w : 1;
+        return GetFilterWidthX(problem) > 1 ? problem.GetDilationW() : 1;
     }
 
-    static auto GetInputLeftPadD(const ProblemDescription& problem) { return problem.pad_d; }
+    static auto GetInputLeftPadD(const miopen::conv::ProblemDescription& problem)
+    {
+        return problem.GetPadD();
+    }
 
-    static auto GetInputLeftPadH(const ProblemDescription& problem) { return problem.pad_h; }
+    static auto GetInputLeftPadH(const miopen::conv::ProblemDescription& problem)
+    {
+        return problem.GetPadH();
+    }
 
-    static auto GetInputLeftPadW(const ProblemDescription& problem) { return problem.pad_w; }
+    static auto GetInputLeftPadW(const miopen::conv::ProblemDescription& problem)
+    {
+        return problem.GetPadW();
+    }
 
     // adjust right padding size so that filter will not move out-of-bound
-    static auto GetAdjustedInputRightPadD(const ProblemDescription& problem)
+    static auto GetAdjustedInputRightPadD(const miopen::conv::ProblemDescription& problem)
     {
         const int di              = GetInputDepthDi(problem);
         const int dout            = GetOutputDepthDo(problem);
@@ -211,7 +245,7 @@ struct ProblemInterpreter
     }
 
     // adjust right padding size so that filter will not move out-of-bound
-    static auto GetAdjustedInputRightPadH(const ProblemDescription& problem)
+    static auto GetAdjustedInputRightPadH(const miopen::conv::ProblemDescription& problem)
     {
         const int hi              = GetInputHeightHi(problem);
         const int ho              = GetOutputHeightHo(problem);
@@ -229,7 +263,7 @@ struct ProblemInterpreter
     }
 
     // adjust right padding size so that filter will not move out-of-bound
-    static auto GetAdjustedInputRightPadW(const ProblemDescription& problem)
+    static auto GetAdjustedInputRightPadW(const miopen::conv::ProblemDescription& problem)
     {
         const int wi              = GetInputWidthWi(problem);
         const int wo              = GetOutputWidthWo(problem);

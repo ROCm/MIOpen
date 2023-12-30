@@ -29,9 +29,8 @@
 #cmakedefine01 MIOPEN_BACKEND_OPENCL
 #cmakedefine01 MIOPEN_BACKEND_HIP
 #cmakedefine01 MIOPEN_MODE_NOGPU
-#cmakedefine01 MIOPEN_USE_MIOPENTENSILE
-#cmakedefine01 MIOPEN_USE_MIOPENGEMM
 #cmakedefine01 MIOPEN_USE_ROCBLAS
+#cmakedefine01 MIOPEN_USE_ROCTRACER
 #cmakedefine01 MIOPEN_BUILD_DEV
 #cmakedefine01 MIOPEN_GPU_SYNC
 
@@ -49,6 +48,7 @@
 #cmakedefine01 MIOPEN_ENABLE_SQLITE_BACKOFF
 #cmakedefine01 MIOPEN_USE_MLIR
 #cmakedefine01 MIOPEN_USE_COMPOSABLEKERNEL
+#cmakedefine01 MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
 #cmakedefine01 MIOPEN_ENABLE_AI_KERNEL_TUNING
 
 // "_PACKAGE_" to avoid name contentions: the macros like
@@ -73,6 +73,8 @@
 //     remain in the future)  perform final conversion (and rounding) of FP32
 //     to BF16 results. This affects the main functionality of the library.
 #cmakedefine01 MIOPEN_USE_RNE_BFLOAT16
+#cmakedefine01 MIOPEN_FP8_IEEE_EXPONENT_BIAS
+#cmakedefine01 MIOPEN_FP8_CLIPPING
 
 // clang-format off
 #cmakedefine MIOPEN_DEFAULT_FIND_MODE @MIOPEN_DEFAULT_FIND_MODE@
@@ -83,7 +85,7 @@
 #cmakedefine MIOPEN_OFFLOADBUNDLER_BIN "@MIOPEN_OFFLOADBUNDLER_BIN@"
 #cmakedefine MIOPEN_CACHE_DIR "@MIOPEN_CACHE_DIR@"
 
-#define MIOPEN_USE_GEMM (MIOPEN_USE_MIOPENTENSILE || MIOPEN_USE_MIOPENGEMM || MIOPEN_USE_ROCBLAS)
+#define MIOPEN_USE_GEMM (MIOPEN_USE_ROCBLAS)
 
 // Usage of "defined" operator within macro expansion is undefined behavior,
 // so "defined(NDEBUG)" cannot be used there... unlike the following macro:
@@ -145,13 +147,13 @@
 
 /// WORKAROUND_BOOST_ISSUE_392
 /// Workaround for https://github.com/boostorg/config/issues/392#issuecomment-1109889533
-/// See also https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1490#issuecomment-1109928102,
-/// https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1543
+/// See also https://github.com/ROCm/MIOpen/pull/1490#issuecomment-1109928102,
+/// https://github.com/ROCm/MIOpen/pull/1543
 /// TODO: Remove the W/A as soon we switch to the properly fixed boost.
 #if MIOPEN_BACKEND_HIP
 #include <hip/hip_version.h>
 #endif
 
-#define MIOPEN_GOLDEN_DB_VERSION 16
+#define MIOPEN_GOLDEN_DB_VERSION 19
 
 #endif // GUARD_CONFIG_H_IN

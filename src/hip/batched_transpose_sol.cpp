@@ -55,7 +55,8 @@ static inline std::string GetNameTrait(std::size_t type_size)
     MIOPEN_THROW("data type not supported");
 }
 
-static inline const std::vector<BatchedTransposeParam>& GetKernelList(std::size_t data_size)
+static inline const std::vector<BatchedTransposeParam>& GetKernelList(const ExecutionContext& ctx,
+                                                                      std::size_t data_size)
 {
     if(data_size == 1)
     {
@@ -112,7 +113,28 @@ static inline const std::vector<BatchedTransposeParam>& GetKernelList(std::size_
             {64, 64, 4, 4, 4, 4},
             // clang-format on
         };
-        return half_kernel_list;
+        // TODO: gfx940 compiler has bug for some of the kernel, where pack/ediv is not 1
+        // unify this when bug is fixed
+        static const std::vector<BatchedTransposeParam> half_kernel_list_gfx94x{
+            // clang-format off
+            {16, 16, 1, 1, 1, 1},
+            {32, 16, 1, 1, 1, 1},
+            {16, 32, 1, 1, 1, 1},
+            {32, 32, 1, 1, 1, 1},
+
+            {4, 64, 1, 1, 1, 1},
+            {64, 4, 1, 1, 1, 1},
+            {4, 128, 1, 1, 1, 1},
+            {128, 4, 1, 1, 1, 1},
+            {4, 256, 1, 1, 1, 1},
+            {256, 4, 1, 1, 1, 1},
+            // clang-format on
+        };
+        const auto device_name = ctx.GetStream().GetDeviceName();
+        if(StartsWith(device_name, "gfx94"))
+            return half_kernel_list_gfx94x;
+        else
+            return half_kernel_list;
     }
     if(data_size == 4)
     {
@@ -190,8 +212,11 @@ static inline std::size_t GetExtraPaddingSize(uint32_t /* batch */,
     return static_cast<std::size_t>(padded_h) * padded_w - static_cast<std::size_t>(height) * width;
 }
 
-static inline BatchedTransposeParam
-HeuristicGet(std::size_t data_size, uint32_t batch, uint32_t height, uint32_t width)
+static inline BatchedTransposeParam HeuristicGet(const ExecutionContext& ctx,
+                                                 std::size_t data_size,
+                                                 uint32_t batch,
+                                                 uint32_t height,
+                                                 uint32_t width)
 {
     /*
      * Iterate from big tile size to small tile size, and try match ediv first
@@ -200,7 +225,7 @@ HeuristicGet(std::size_t data_size, uint32_t batch, uint32_t height, uint32_t wi
      * samllest.
      */
 
-    const auto& kernel_list = GetKernelList(data_size);
+    const auto& kernel_list = GetKernelList(ctx, data_size);
     BatchedTransposeParam best_kernel;
     std::size_t extra_padding_size = std::numeric_limits<std::size_t>::max();
     float hw_radio                 = GetNormalizedRadio(height, width);
@@ -227,9 +252,12 @@ HeuristicGet(std::size_t data_size, uint32_t batch, uint32_t height, uint32_t wi
 
     for(auto it = kernel_list.rbegin(); it != kernel_list.rend(); it++)
     {
-        if(it->tile_x == 4 || it->tile_y == 4) // We don't want such kernel to be selected here,
-                                               // they should be used in above cases
+        if(it->tile_x == 4 || it->tile_y == 4)
+        {
+            // We don't want such kernel to be selected here,
+            // they should be used in above cases
             continue;
+        }
         if(!IsApplicable(batch, height, width, &(*it)))
             continue;
         std::size_t current_padding_size = GetExtraPaddingSize(batch, height, width, &(*it));
@@ -297,11 +325,15 @@ BatchedTransposeSolution::BatchedTransposeSolution(const ExecutionContext& ctx,
                                                    uint32_t width_)
     : data_type(data_type_), batch(batch_), height(height_), width(width_)
 {
-    if(data_type == miopenInt8x4 || data_type == miopenDouble)
+    if(!(data_type == miopenHalf     //
+         || data_type == miopenFloat //
+         || data_type == miopenInt32 //
+         || data_type == miopenInt8  //
+         || data_type == miopenBFloat16))
         MIOPEN_THROW("These data type are not supported");
     num_cu                 = ctx.GetStream().GetMaxComputeUnits();
     std::size_t data_size  = miopen::GetTypeSize(data_type);
-    kernel_param_heuristic = batched_transpose::HeuristicGet(data_size, batch, height, width);
+    kernel_param_heuristic = batched_transpose::HeuristicGet(ctx, data_size, batch, height, width);
 }
 
 solver::KernelInfo BatchedTransposeSolution::GetKernelInfo() const

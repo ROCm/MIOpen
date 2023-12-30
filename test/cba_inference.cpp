@@ -248,7 +248,7 @@ struct cba_fusion_driver : test_driver
     bool enable_backward_weights = false;
     bool do_backward_data        = true;
     int search                   = 0;
-    unsigned long max_value      = miopen_type<T>{} == miopenHalf ? 5 : 17;
+    uint64_t max_value           = miopen_type<T>{} == miopenHalf ? 5 : 17;
     double alpha = 0., beta = 0., gamma = 0.;
 
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
@@ -384,10 +384,9 @@ struct cba_fusion_driver : test_driver
                 else
                 {
                     bias = tensor<T>{1, output.desc.GetLengths()[1], 1, 1};
-                    srand(0);
                     for(std::size_t i = 0; i < bias.desc.GetElementSize(); i++)
                     {
-                        bias[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * (0.1 * T(GET_RAND() % 100));
+                        bias[i] = prng::gen_descreet_uniform_sign<T>(0.1, 100);
                     }
                 }
 
