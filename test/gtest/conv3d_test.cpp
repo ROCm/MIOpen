@@ -131,7 +131,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
     return test_cases;
 }
 
-}// namespace conv3d_test
+} // namespace conv3d_test
 
 using namespace conv3d_test;
 
@@ -155,6 +155,4 @@ TEST_P(ConfigWithFloat, FloatTest_conv3d_test)
 #endif
 };
 
-INSTANTIATE_TEST_SUITE_P(Conv3dTest,
-                         ConfigWithFloat,
-                         testing::ValuesIn(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Conv3dTest, ConfigWithFloat, testing::ValuesIn(GetTestCases("--float")));
