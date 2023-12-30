@@ -24,12 +24,16 @@
  *
  *******************************************************************************/
 #pragma once
+
+#include "miopen_cstdint.hpp"
+
 #ifndef MIOPEN_ENABLE_F8_DEVICE_CODE
 #define MIOPEN_ENABLE_F8_DEVICE_CODE 0
 #endif
 
 // FP8 header version 0.4, 2021/05/11
-#if defined __HIP_PLATFORM_HCC__ && MIOPEN_ENABLE_F8_DEVICE_CODE
+// Updated by atamazov 2023/12/22
+#if defined __HIP_PLATFORM_AMD__ && MIOPEN_ENABLE_F8_DEVICE_CODE
 // MIOpen by default does not have device code in the regular compilation paths,
 // therefore, when this file is used from the host side, compilation takes much
 // longer. By guarding the __device__ directive we can control that such compilation
@@ -510,11 +514,14 @@ public:
         return miopen_f8::F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>();
     }
 
+    /// \todo This is wrong. min() should minimum normalized positive value.
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> min()
     {
         return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(-1.0f) *
                miopen_f8::F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>();
     }
+
+    static constexpr int digits = 4;
 };
 
 template <>
@@ -537,16 +544,24 @@ public:
         return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(
             miopen_f8::F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>());
     }
+
+    /// \todo This is wrong. min() should minimum normalized positive value.
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> min()
     {
         return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(-1.0f) *
                miopen_f8::F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>();
     }
+
+    static constexpr int digits = 3;
 };
 
 } // namespace miopen_f8
 
-#ifndef __HIPCC_RTC__
+#ifdef __HIPCC_RTC__
+// Assume that if hipRTC is used, then we get <cmath> for F8
+// from the precompiled header.
+#else
+// NOLINTBEGIN(cert-dcl58-cpp)
 namespace std {
 inline bool isfinite(miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> x) // NOLINT
 {
@@ -568,6 +583,16 @@ inline bool isnan(miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> x) // NOLINT
     return x.is_nan();
 }
 
+} // namespace std
+  // NOLINTEND(cert-dcl58-cpp)
+#endif
+
+// NOLINTBEGIN(cert-dcl58-cpp)
+namespace std {
+
+template <typename T>
+class numeric_limits;
+
 template <>
 class numeric_limits<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>
     : public miopen_f8::numeric_limits<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>
@@ -581,7 +606,7 @@ class numeric_limits<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>
 };
 
 } // namespace std
-#endif
+// NOLINTEND(cert-dcl58-cpp)
 
 template <miopen_f8::hip_f8_type T>
 struct hip_f8x4

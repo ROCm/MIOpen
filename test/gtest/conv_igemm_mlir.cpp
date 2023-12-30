@@ -29,24 +29,17 @@
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/env.hpp>
-#include "../conv2d.hpp"
 #include "get_handle.hpp"
+#include "test_env.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+#include "../conv2d.hpp"
+
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_MLIR)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-using TestCase = std::tuple<std::vector<std::string>, std::string>;
+namespace conv_igemm_mlir {
 
-std::string GetFloatArg()
-{
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-};
+using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
 void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
 {
@@ -65,13 +58,13 @@ void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class ConfigWithFloat : public testing::TestWithParam<std::vector<TestCase>>
+class ConvIgemmMlirConfigFloat : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
-class ConfigWithHalf : public testing::TestWithParam<std::vector<TestCase>>
+class ConvIgemmMlirConfigHalf : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
-class ConfigWithInt8 : public testing::TestWithParam<std::vector<TestCase>>
+class ConvIgemmMlirConfigInt8 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -81,9 +74,9 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<TestCase> params;
     switch(prec)
     {
-    case miopenHalf: params = ConfigWithHalf::GetParam(); break;
-    case miopenInt8: params = ConfigWithInt8::GetParam(); break;
-    case miopenFloat: params = ConfigWithFloat::GetParam(); break;
+    case miopenHalf: params = ConvIgemmMlirConfigHalf::GetParam(); break;
+    case miopenInt8: params = ConvIgemmMlirConfigInt8::GetParam(); break;
+    case miopenFloat: params = ConvIgemmMlirConfigFloat::GetParam(); break;
     case miopenBFloat16:
     case miopenInt32:
     case miopenFloat8:
@@ -93,7 +86,7 @@ void Run2dDriver(miopenDataType_t prec)
                      "miopenBFloat16, miopenInt32, miopenFloat8, miopenBFloat8, "
                      "miopenDouble data type not supported by conv_igemm_mlir test");
 
-    default: params = ConfigWithFloat::GetParam();
+    default: params = ConvIgemmMlirConfigFloat::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -111,72 +104,6 @@ void Run2dDriver(miopenDataType_t prec)
         auto capture = testing::internal::GetCapturedStderr();
         EXPECT_FALSE(capture.find("Perf Db: record not found") != std::string::npos);
     }
-};
-
-TEST_P(ConfigWithFloat, FloatTest)
-{
-#if MIOPEN_USE_MLIR
-
-    const auto& handle = get_handle();
-    if((miopen::StartsWith(handle.GetDeviceName(), "gfx103") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx906")) &&
-       miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR)) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-       GetFloatArg() == "--float")
-    {
-        Run2dDriver(miopenFloat);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-
-#else
-    GTEST_SKIP();
-#endif
-};
-
-TEST_P(ConfigWithHalf, HalfTest)
-{
-#if MIOPEN_USE_MLIR
-
-    const auto& handle = get_handle();
-    if((miopen::StartsWith(handle.GetDeviceName(), "gfx103") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx906")) &&
-       miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR)) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-       GetFloatArg() == "--half")
-    {
-        Run2dDriver(miopenHalf);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-
-#else
-    GTEST_SKIP();
-#endif
-};
-
-TEST_P(ConfigWithInt8, Int8Test)
-{
-#if MIOPEN_USE_MLIR
-
-    const auto& handle = get_handle();
-    if((miopen::StartsWith(handle.GetDeviceName(), "gfx103") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx906")) &&
-       miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR)) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-       GetFloatArg() == "--int8")
-    {
-        Run2dDriver(miopenInt8);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-
-#else
-    GTEST_SKIP();
-#endif
 };
 
 std::vector<TestCase> GetTestCases(const std::string& precision)
@@ -242,9 +169,85 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
 
     return test_cases;
 }
+
+} // namespace conv_igemm_mlir
+using namespace conv_igemm_mlir;
+
+TEST_P(ConvIgemmMlirConfigFloat, FloatTest_conv_igemm_mlir)
+{
+#if MIOPEN_USE_MLIR
+
+    const auto& handle = get_handle();
+    if((miopen::StartsWith(handle.GetDeviceName(), "gfx103") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx906")) &&
+       miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR)) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
+       IsTestRunWith("--float"))
+    {
+        Run2dDriver(miopenFloat);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+
+#else
+    GTEST_SKIP();
+#endif
+};
+
+TEST_P(ConvIgemmMlirConfigHalf, HalfTest_conv_igemm_mlir)
+{
+#if MIOPEN_USE_MLIR
+
+    const auto& handle = get_handle();
+    if((miopen::StartsWith(handle.GetDeviceName(), "gfx103") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx906")) &&
+       miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR)) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
+       IsTestRunWith("--half"))
+    {
+        Run2dDriver(miopenHalf);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+
+#else
+    GTEST_SKIP();
+#endif
+};
+
+TEST_P(ConvIgemmMlirConfigInt8, Int8Test_conv_igemm_mlir)
+{
+#if MIOPEN_USE_MLIR
+
+    const auto& handle = get_handle();
+    if((miopen::StartsWith(handle.GetDeviceName(), "gfx103") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx906")) &&
+       miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR)) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
+       IsTestRunWith("--int8"))
+    {
+        Run2dDriver(miopenInt8);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+
+#else
+    GTEST_SKIP();
+#endif
+};
+
 // Float for FWD, BWD, WRW
-INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, ConfigWithFloat, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir,
+                         ConvIgemmMlirConfigFloat,
+                         testing::Values(GetTestCases("--float")));
 // Half for FWD, BWD, WRW
-INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, ConfigWithHalf, testing::Values(GetTestCases("--half")));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir,
+                         ConvIgemmMlirConfigHalf,
+                         testing::Values(GetTestCases("--half")));
 // Int8 for FWD
-INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, ConfigWithInt8, testing::Values(GetTestCases("--int8")));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir,
+                         ConvIgemmMlirConfigInt8,
+                         testing::Values(GetTestCases("--int8")));

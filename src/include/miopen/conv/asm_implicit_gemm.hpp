@@ -36,8 +36,12 @@
 #include <limits>
 
 /// W/A for issue 1979: igemm solver does not support group conv. See:
-/// https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1979
+/// https://github.com/ROCm/MIOpen/issues/1979
 #define WORKAROUND_ISSUE_1979 1
+
+/// W/A for issue 2624: asm igemm fwd error when c <=4 and dilation_y > 1
+/// https://github.com/ROCm/MIOpen/issues/2624
+#define WORKAROUND_ISSUE_2624 1
 
 namespace miopen {
 

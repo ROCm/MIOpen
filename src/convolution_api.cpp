@@ -166,7 +166,7 @@ extern "C" miopenStatus_t miopenInitConvolutionNdDescriptor(miopenConvolutionDes
 extern "C" miopenStatus_t miopenGetConvolutionGroupCount(miopenConvolutionDescriptor_t convDesc,
                                                          int* groupCount)
 {
-    MIOPEN_LOG_FUNCTION(convDesc, groupCount);
+    MIOPEN_LOG_FUNCTION(convDesc);
     return miopen::try_([&] { miopen::deref(groupCount) = miopen::deref(convDesc).group_count; });
 }
 
@@ -254,7 +254,7 @@ extern "C" miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDescri
                                                          int* dilation_h,
                                                          int* dilation_w)
 {
-    MIOPEN_LOG_FUNCTION(convDesc, c_mode, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w);
+    MIOPEN_LOG_FUNCTION(convDesc);
     return miopen::try_([&] {
         if(miopen::deref(convDesc).GetSpatialDimension() != 2)
         {
@@ -279,8 +279,7 @@ extern "C" miopenStatus_t miopenGetConvolutionNdDescriptor(miopenConvolutionDesc
                                                            int* dilationA,
                                                            miopenConvolutionMode_t* c_mode)
 {
-    MIOPEN_LOG_FUNCTION(
-        convDesc, requestedSpatialDim, spatialDim, padA, strideA, dilationA, c_mode);
+    MIOPEN_LOG_FUNCTION(convDesc, requestedSpatialDim);
     return miopen::try_([&] {
         int spatial_dim = miopen::deref(convDesc).GetSpatialDimension();
         if(spatial_dim < requestedSpatialDim)
@@ -305,7 +304,7 @@ extern "C" miopenStatus_t miopenGetConvolutionNdDescriptor(miopenConvolutionDesc
 extern "C" miopenStatus_t miopenGetConvolutionSpatialDim(miopenConvolutionDescriptor_t convDesc,
                                                          int* spatialDim)
 {
-    MIOPEN_LOG_FUNCTION(convDesc, spatialDim);
+    MIOPEN_LOG_FUNCTION(convDesc);
     return miopen::try_(
         [&] { miopen::deref(spatialDim) = miopen::deref(convDesc).GetSpatialDimension(); });
 }
@@ -319,7 +318,7 @@ miopenGetConvolutionForwardOutputDim(miopenConvolutionDescriptor_t convDesc,
                                      int* h,
                                      int* w)
 {
-    MIOPEN_LOG_FUNCTION(convDesc, inputTensorDesc, filterDesc, n, c, h, w);
+    MIOPEN_LOG_FUNCTION(convDesc, inputTensorDesc, filterDesc);
     return miopen::try_([&] {
         if(miopen::deref(convDesc).GetSpatialDimension() != 2)
         {
@@ -340,7 +339,7 @@ miopenGetConvolutionNdForwardOutputDim(miopenConvolutionDescriptor_t convDesc,
                                        int* nDim,
                                        int* outputTensorDimA)
 {
-    MIOPEN_LOG_FUNCTION(convDesc, inputTensorDesc, filterDesc, nDim, outputTensorDimA);
+    MIOPEN_LOG_FUNCTION(convDesc, inputTensorDesc, filterDesc);
     return miopen::try_([&] {
         auto out_desc = miopen::deref(convDesc).GetForwardOutputTensor(
             miopen::deref(inputTensorDesc), miopen::deref(filterDesc));
@@ -369,7 +368,7 @@ miopenConvolutionForwardGetWorkSpaceSize(miopenHandle_t handle,
                                          size_t* workSpaceSize)
 {
 
-    MIOPEN_LOG_FUNCTION(handle, wDesc, xDesc, convDesc, yDesc, workSpaceSize);
+    MIOPEN_LOG_FUNCTION(handle, wDesc, xDesc, convDesc, yDesc);
     return miopen::try_([&] {
         auto ctx               = ExecutionContext{};
         auto problem           = ProblemDescription{};
@@ -690,7 +689,7 @@ miopenConvolutionForwardGetSolutionWorkspaceSize(miopenHandle_t handle,
                                                  const uint64_t solution_id,
                                                  size_t* workSpaceSize)
 {
-    MIOPEN_LOG_FUNCTION(handle, wDesc, xDesc, convDesc, yDesc, solution_id, workSpaceSize);
+    MIOPEN_LOG_FUNCTION(handle, wDesc, xDesc, convDesc, yDesc, solution_id);
     return miopen::try_([&] {
         if(miopen::deref(convDesc).mode == miopenTranspose)
         {
@@ -806,7 +805,7 @@ miopenConvolutionBackwardDataGetSolution(miopenHandle_t handle,
                                          size_t* solutionCount,
                                          miopenConvSolution_t* solutions)
 {
-    MIOPEN_LOG_FUNCTION(handle, dyDesc, wDesc, convDesc, dxDesc, maxSolutionCount, solutionCount);
+    MIOPEN_LOG_FUNCTION(handle, dyDesc, wDesc, convDesc, dxDesc, maxSolutionCount);
     return miopen::try_([&] {
         auto ctx               = ExecutionContext{};
         auto problem           = ProblemDescription{};
@@ -829,7 +828,7 @@ miopenConvolutionBackwardDataGetSolutionWorkspaceSize(miopenHandle_t handle,
                                                       const uint64_t solution_id,
                                                       size_t* workSpaceSize)
 {
-    MIOPEN_LOG_FUNCTION(handle, dyDesc, wDesc, convDesc, dxDesc, solution_id, workSpaceSize);
+    MIOPEN_LOG_FUNCTION(handle, dyDesc, wDesc, convDesc, dxDesc, solution_id);
     return miopen::try_([&] {
         if(miopen::deref(convDesc).mode == miopenTranspose)
         {
@@ -924,7 +923,7 @@ miopenConvolutionBackwardWeightsGetSolutionCount(miopenHandle_t handle,
                                                  const miopenTensorDescriptor_t dwDesc,
                                                  size_t* solutionCount)
 {
-    MIOPEN_LOG_FUNCTION(handle, dyDesc, xDesc, convDesc, dwDesc, solutionCount);
+    MIOPEN_LOG_FUNCTION(handle, dyDesc, xDesc, convDesc, dwDesc);
     return miopen::try_([&] {
         auto ctx               = ExecutionContext{};
         auto problem           = ProblemDescription{};
@@ -944,7 +943,7 @@ miopenConvolutionBackwardWeightsGetSolution(miopenHandle_t handle,
                                             size_t* solutionCount,
                                             miopenConvSolution_t* solutions)
 {
-    MIOPEN_LOG_FUNCTION(handle, dyDesc, xDesc, convDesc, dwDesc, maxSolutionCount, solutionCount);
+    MIOPEN_LOG_FUNCTION(handle, dyDesc, xDesc, convDesc, dwDesc, maxSolutionCount);
     return miopen::try_([&] {
         auto ctx               = ExecutionContext{};
         auto problem           = ProblemDescription{};
@@ -967,7 +966,7 @@ extern "C" miopenStatus_t miopenConvolutionBackwardWeightsGetSolutionWorkspaceSi
     const uint64_t solution_id,
     size_t* workSpaceSize)
 {
-    MIOPEN_LOG_FUNCTION(handle, dyDesc, xDesc, convDesc, dwDesc, solution_id, workSpaceSize);
+    MIOPEN_LOG_FUNCTION(handle, dyDesc, xDesc, convDesc, dwDesc, solution_id);
     return miopen::try_([&] {
         if(miopen::deref(convDesc).mode == miopenTranspose)
         {
@@ -1208,8 +1207,7 @@ miopenConvolutionBackwardDataGetWorkSpaceSize(miopenHandle_t handle,
                                               const miopenTensorDescriptor_t dxDesc,
                                               size_t* workSpaceSize)
 {
-
-    MIOPEN_LOG_FUNCTION(handle, dyDesc, wDesc, convDesc, dxDesc, workSpaceSize);
+    MIOPEN_LOG_FUNCTION(handle, dyDesc, wDesc, convDesc, dxDesc);
     return miopen::try_([&] {
         auto ctx               = ExecutionContext{};
         auto problem           = ProblemDescription{};
@@ -1226,8 +1224,7 @@ miopenConvolutionBackwardWeightsGetWorkSpaceSize(miopenHandle_t handle,
                                                  const miopenTensorDescriptor_t dwDesc,
                                                  size_t* workSpaceSize)
 {
-
-    MIOPEN_LOG_FUNCTION(handle, dyDesc, xDesc, convDesc, dwDesc, workSpaceSize);
+    MIOPEN_LOG_FUNCTION(handle, dyDesc, xDesc, convDesc, dwDesc);
     return miopen::try_([&] {
         auto ctx               = ExecutionContext{};
         auto problem           = ProblemDescription{};
@@ -1378,7 +1375,7 @@ extern "C" miopenStatus_t miopenGetConvolutionAttribute(miopenConvolutionDescrip
                                                         const miopenConvolutionAttrib_t attr,
                                                         int* const value)
 {
-    MIOPEN_LOG_FUNCTION(convDesc, attr, value);
+    MIOPEN_LOG_FUNCTION(convDesc, attr);
     return miopen::try_(
         [&] { miopen::deref(value) = miopen::deref(convDesc).attribute.Get(attr); });
 }

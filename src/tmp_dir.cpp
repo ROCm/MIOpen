@@ -29,22 +29,12 @@
 #include <boost/filesystem.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/process.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_SAVE_TEMP_DIR)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_EXIT_STATUS_TEMP_DIR)
 
 namespace miopen {
-
-void SystemCmd(std::string cmd)
-{
-    MIOPEN_LOG_I2(cmd);
-// We shouldn't call system commands
-#ifdef MIOPEN_USE_CLANG_TIDY
-    (void)cmd;
-#else
-    if(std::system(cmd.c_str()) != 0)
-        MIOPEN_THROW("Can't execute " + cmd);
-#endif
-}
 
 TmpDir::TmpDir(std::string prefix)
     : path(boost::filesystem::temp_directory_path() /
@@ -60,15 +50,17 @@ TmpDir& TmpDir::operator=(TmpDir&& other) noexcept
     return *this;
 }
 
-void TmpDir::Execute(std::string exe, std::string args) const
+void TmpDir::Execute(std::string_view exe, std::string_view args) const
 {
     if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_SAVE_TEMP_DIR)))
     {
         MIOPEN_LOG_I2(this->path.string());
     }
-    std::string cd  = "cd " + this->path.string() + "; ";
-    std::string cmd = cd + exe + " " + args; // + " > /dev/null";
-    SystemCmd(cmd);
+    auto status = Process(exe)(args, this->path);
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_EXIT_STATUS_TEMP_DIR)))
+    {
+        MIOPEN_LOG_I2(status);
+    }
 }
 
 TmpDir::~TmpDir()

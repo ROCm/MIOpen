@@ -31,7 +31,7 @@
 #include <cstddef>
 
 /// Disable ConvHipImplicitGemmBwdDataV4R1Xdlops for FP32 by default.
-/// \ref https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1206.
+/// \ref https://github.com/ROCm/MIOpen/issues/1206.
 #define WORKAROUND_ISSUE_1206 1
 
 #define WORKAROUND_SWDEV_329642 1

@@ -28,6 +28,14 @@
 /// \todo Create dedicated ticket and rename macro.
 #define WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS 1
 
+// https://gerrit-git.amd.com/c/compute/ec/clr/+/972441
+// "HIP_PACKAGE_VERSION_FLAT == 6001000000ULL" is for ROCm 6.1 RC where issue #2600 is not
+// yet fixed in the compiler. In order to test such release candidates, we have to
+// override HIP version to 6.1.0.
+#define WORKAROUND_ISSUE_2600                                                                    \
+    ((HIP_PACKAGE_VERSION_FLAT >= 6000000000ULL && HIP_PACKAGE_VERSION_FLAT <= 6000999999ULL) || \
+     HIP_PACKAGE_VERSION_FLAT == 6001000000ULL)
+
 #include <miopen/config.h>
 #include <miopen/handle.hpp>
 #include <miopen/execution_context.hpp>
@@ -94,8 +102,15 @@ void run2s(miopen::Handle& h, std::size_t n, kernel_type_t kern_type)
     auto data_dev = h.Write(data_in);
     if(kern_type == miopenOpenCLKernelType)
     {
-        h.AddKernel("GEMM", "", Write2s(miopenOpenCLKernelType), "write", {n, 1, 1}, {n, 1, 1}, "")(
-            data_dev.get());
+        h.AddKernel("NoAlgo",
+                    "",
+                    "test_ocl.cl",
+                    "write",
+                    {n, 1, 1},
+                    {n, 1, 1},
+                    "",
+                    0,
+                    Write2s(miopenOpenCLKernelType))(data_dev.get());
     }
     else if(kern_type == miopenHIPKernelType)
     {
@@ -107,7 +122,6 @@ void run2s(miopen::Handle& h, std::size_t n, kernel_type_t kern_type)
                     {n, 1, 1},
                     "",
                     0,
-                    false,
                     Write2s(miopenHIPKernelType))(data_dev.get());
     }
     else
@@ -161,11 +175,27 @@ void test_errors(kernel_type_t kern_type)
     if(kern_type == miopenOpenCLKernelType)
     {
         EXPECT(throws([&] {
-            h.AddKernel("GEMM", "", WriteError(kern_type), "write", {1, 1, 1}, {1, 1, 1}, "");
+            h.AddKernel("NoAlgo",
+                        "",
+                        "error_ocl.cl",
+                        "write",
+                        {1, 1, 1},
+                        {1, 1, 1},
+                        "",
+                        0,
+                        WriteError(kern_type));
         }));
         try
         {
-            h.AddKernel("GEMM", "", WriteError(kern_type), "write", {1, 1, 1}, {1, 1, 1}, "");
+            h.AddKernel("NoAlgo",
+                        "",
+                        "error_ocl.cl",
+                        "write",
+                        {1, 1, 1},
+                        {1, 1, 1},
+                        "",
+                        0,
+                        WriteError(kern_type));
         }
         catch(miopen::Exception& e)
         {
@@ -183,7 +213,6 @@ void test_errors(kernel_type_t kern_type)
                         {1, 1, 1},
                         "",
                         0,
-                        false,
                         WriteError(miopenHIPKernelType));
         }));
         try
@@ -196,7 +225,6 @@ void test_errors(kernel_type_t kern_type)
                         {1, 1, 1},
                         "",
                         0,
-                        false,
                         WriteError(miopenHIPKernelType));
         }
         catch(miopen::Exception& e)
@@ -231,11 +259,19 @@ std::string WriteNop(kernel_type_t kern_type)
 void test_warnings(kernel_type_t kern_type)
 {
     auto&& h = get_handle();
-#if MIOPEN_BUILD_DEV
+#if MIOPEN_BUILD_DEV && !WORKAROUND_ISSUE_2600
     if(kern_type == miopenOpenCLKernelType)
     {
         EXPECT(throws([&] {
-            h.AddKernel("GEMM", "", WriteNop(kern_type), "write", {1, 1, 1}, {1, 1, 1}, "");
+            h.AddKernel("NoAlgo",
+                        "",
+                        "nop_ocl.cl",
+                        "write",
+                        {1, 1, 1},
+                        {1, 1, 1},
+                        "",
+                        0,
+                        WriteNop(kern_type));
             MIOPEN_LOG_E("FAILED: Build of the OpenCL kernel should produce warnings");
         }));
     }
@@ -250,7 +286,6 @@ void test_warnings(kernel_type_t kern_type)
                         {1, 1, 1},
                         "",
                         0,
-                        false,
                         WriteNop(kern_type));
             MIOPEN_LOG_E("FAILED: Build of the HIP kernel 'nop_hip.cpp' should produce warnings");
         }));

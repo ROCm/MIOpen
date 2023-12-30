@@ -60,7 +60,7 @@ extern "C" miopenStatus_t miopenGetActivationDescriptor(miopenActivationDescript
                                                         double* activGamma)
 {
 
-    MIOPEN_LOG_FUNCTION(activDesc, mode, activAlpha, activBeta, activGamma);
+    MIOPEN_LOG_FUNCTION(activDesc);
     return miopen::try_([&] {
         *mode       = miopen::deref(activDesc).GetMode();
         *activAlpha = miopen::deref(activDesc).GetAlpha();
@@ -70,6 +70,7 @@ extern "C" miopenStatus_t miopenGetActivationDescriptor(miopenActivationDescript
 }
 
 namespace miopen::debug {
+MIOPEN_EXPORT
 void LogCmdActivation(const miopen::TensorDescriptor& x_desc,
                       const miopen::ActivationDescriptor& activ_desc,
                       bool fwd)
