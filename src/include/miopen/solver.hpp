@@ -55,7 +55,7 @@ namespace debug {
 /// If set to true, then always enable ConvDirectNaive* solver, regardless of environment value
 /// MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_* that control enable/disable of these solvers.
 /// Currently used during driver using naive kernel as gpu reference.
-extern bool
+MIOPEN_EXPORT extern bool
     AlwaysEnableConvDirectNaive; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
 } // namespace debug

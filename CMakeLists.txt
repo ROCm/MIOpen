@@ -93,7 +93,7 @@ if(MIOPEN_ENABLE_SQLITE)
     # MIOpen now depends on SQLite as well
     find_package(SQLite3 REQUIRED)
 endif()
-find_package(BZip2)
+find_package(BZip2 REQUIRED)
 find_package(nlohmann_json 3.9.1 REQUIRED)
 if(MIOPEN_ENABLE_SQLITE_KERN_CACHE AND NOT MIOPEN_ENABLE_SQLITE)
     message(FATAL_ERROR "MIOPEN_ENABLE_SQLITE_KERN_CACHE requires MIOPEN_ENABLE_SQLITE")
@@ -111,7 +111,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 3.00.0)
+rocm_setup_version(VERSION 3.1.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -354,6 +354,7 @@ if(MIOPEN_USE_MLIR)
     endif()
 endif()
 
+set(MIOPEN_PACKAGE_REQS "hip-rocclr")
 
 # Online assembler
 find_program(MIOPEN_AMDGCN_ASSEMBLER
@@ -374,6 +375,7 @@ message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
 if(MIOPEN_USE_COMGR)
     find_package(amd_comgr REQUIRED CONFIG)
     message(STATUS "Build with comgr ${amd_comgr_VERSION}")
+    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, comgr")
 endif()
 
 if(MIOPEN_USE_HIPRTC)
@@ -381,7 +383,7 @@ if(MIOPEN_USE_HIPRTC)
         message(FATAL_ERROR "HIPRTC can be used only together with COMGR")
     endif()
     find_package(hiprtc REQUIRED)
-    message(STATUS "Build with HIPRTC")
+    message(STATUS "Build with HIPRTC ${hiprtc_VERSION}")
 endif()
 
 option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)
@@ -414,13 +416,34 @@ if(BUILD_DEV)
     set(MIOPEN_CACHE_DIR "" CACHE STRING "")
 else()
     set(MIOPEN_BUILD_DEV 0)
-    set(MIOPEN_USER_DB_PATH "~/.config/miopen/" CACHE STRING "Default path of user db files")
-    set(MIOPEN_CACHE_DIR "~/.cache/miopen/" CACHE STRING "")
+    if(WIN32)
+        set(MIOPEN_USER_DB_PATH "$USERPROFILE\\\\.miopen\\\\db\\\\" CACHE STRING "Default path to user db files")
+        set(MIOPEN_CACHE_DIR "$USERPROFILE\\\\.miopen\\\\cache\\\\" CACHE STRING "")
+    else()
+        set(MIOPEN_USER_DB_PATH "~/.config/miopen/" CACHE STRING "Default path of user db files")
+        set(MIOPEN_CACHE_DIR "~/.cache/miopen/" CACHE STRING "")
+    endif()
     set(MIOPEN_USER_DB_SUFFIX "${MIOPEN_BACKEND}.${MIOpen_VERSION_MAJOR}_${MIOpen_VERSION_MINOR}_${MIOpen_VERSION_PATCH}_${MIOpen_VERSION_TWEAK}" CACHE PATH "Filename suffix for the user find-db files")
 endif()
 set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix for the system find-db files")
 
-set(MIOPEN_PACKAGE_REQS "hip-rocclr")
+# PR-2391 Add the ability to log function calls to roctx.
+# This allows attached profilers to see which MIOpen calls are being called by application and which kernels are being invoked by MIOpen.
+# Enabled via the MIOPEN_ENABLE_LOGGING_ROCTX env var.
+set(MIOPEN_USE_ROCTRACER ON CACHE BOOL "")
+if(NOT WIN32 AND MIOPEN_USE_ROCTRACER)
+    find_library(rocTracer roctx64)
+    if(rocTracer)
+        MESSAGE(STATUS "Build with rocTracer: " ${rocTracer})
+        set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, roctracer")
+    else()
+        message(WARNING "rocTracer cannot be found! Build without rocTracer")
+        set(MIOPEN_USE_ROCTRACER OFF)
+    endif()
+else()
+    message(STATUS "Build without rocTracer")
+    set(MIOPEN_USE_ROCTRACER OFF)
+endif()
 
 if(MIOPEN_USE_ROCBLAS)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocblas")
@@ -625,6 +648,19 @@ enable_cppcheck(
         knownConditionTrueFalse
         shadowFunction
         moduloofone
+        ###################################################################
+        # TODO Code Quality WORKAROUND ROCm 6.0 &&
+        # Ubuntu 22.04 && cppcheck 2.12.1 update
+        ###################################################################
+        duplInheritedMember
+        constParameterCallback
+        constParameterReference
+        constParameterPointer
+        constVariableReference
+        constVariablePointer
+        useStlAlgorithm
+        uselessOverride
+        unusedScopedObject   
     FORCE
     SOURCES
         addkernels/

@@ -66,8 +66,9 @@ using UserFindDbRecord = FindDbRecord_t<UserFindDb>;
 namespace debug {
 
 // For unit tests.
-extern bool testing_find_db_enabled; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
-extern boost::optional<std::string>&
+MIOPEN_EXPORT extern bool
+    testing_find_db_enabled; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+MIOPEN_EXPORT extern boost::optional<std::string>&
 testing_find_db_path_override(); /// \todo Remove when #1723 is resolved.
 
 } // namespace debug
