@@ -375,7 +375,7 @@ message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
 if(MIOPEN_USE_COMGR)
     find_package(amd_comgr REQUIRED CONFIG)
     message(STATUS "Build with comgr ${amd_comgr_VERSION}")
-    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, amd_comgr")
+    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, comgr")
 endif()
 
 if(MIOPEN_USE_HIPRTC)
