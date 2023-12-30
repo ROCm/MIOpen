@@ -132,8 +132,8 @@ int TensorTransformDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int TensorTransformDriver<Tgpu, Tref>::GetandSetData()
 {
-    std::vector<int> inLengths    = GetInputTensorLengthsFromCmdLine();
-    std::vector<int> outLengths   = inLengths;
+    std::vector<int> inLengths  = GetInputTensorLengthsFromCmdLine();
+    std::vector<int> outLengths = inLengths;
     std::vector<int> invariantDims;
 
     assert(toReduceDims.size() <= inLengths.size());
@@ -263,17 +263,17 @@ int TensorTransformDriver<Tgpu, Tref>::RunForwardGPU()
                                      : static_cast<const void*>(&beta);
 
     miopenTensorTransform(GetHandle(),
-                       reduceDesc,
-                       this->need_indices ? indices_dev->GetMem() : nullptr, // indices
-                       this->need_indices ? indices_sizeInBytes : 0,    // indices size in bytes
-                       ws_sizeInBytes > 0 ? ws_dev->GetMem() : nullptr, // workspace
-                       ws_sizeInBytes,                                  // workspace size in bytes
-                       alphaPtr,
-                       inputTensor,
-                       in_dev->GetMem(),
-                       betaPtr,
-                       outputTensor,
-                       out_dev->GetMem());
+                          reduceDesc,
+                          this->need_indices ? indices_dev->GetMem() : nullptr, // indices
+                          this->need_indices ? indices_sizeInBytes : 0,    // indices size in bytes
+                          ws_sizeInBytes > 0 ? ws_dev->GetMem() : nullptr, // workspace
+                          ws_sizeInBytes, // workspace size in bytes
+                          alphaPtr,
+                          inputTensor,
+                          in_dev->GetMem(),
+                          betaPtr,
+                          outputTensor,
+                          out_dev->GetMem());
 
     Timer t;
     START_TIME
@@ -281,17 +281,17 @@ int TensorTransformDriver<Tgpu, Tref>::RunForwardGPU()
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
         miopenTensorTransform(GetHandle(),
-                           reduceDesc,
-                           this->need_indices ? indices_dev->GetMem() : nullptr, // indices
-                           this->need_indices ? indices_sizeInBytes : 0,    // indices size in bytes
-                           ws_sizeInBytes > 0 ? ws_dev->GetMem() : nullptr, // workspace
-                           ws_sizeInBytes, // workspace size in bytes
-                           alphaPtr,
-                           inputTensor,
-                           in_dev->GetMem(),
-                           betaPtr,
-                           outputTensor,
-                           out_dev->GetMem());
+                              reduceDesc,
+                              this->need_indices ? indices_dev->GetMem() : nullptr, // indices
+                              this->need_indices ? indices_sizeInBytes : 0, // indices size in bytes
+                              ws_sizeInBytes > 0 ? ws_dev->GetMem() : nullptr, // workspace
+                              ws_sizeInBytes, // workspace size in bytes
+                              alphaPtr,
+                              inputTensor,
+                              in_dev->GetMem(),
+                              betaPtr,
+                              outputTensor,
+                              out_dev->GetMem());
     }
 
     if(inflags.GetValueInt("time") == 1)
@@ -324,10 +324,8 @@ int TensorTransformDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 int TensorTransformDriver<Tgpu, Tref>::VerifyForward()
 {
-    miopenReductionHost<Tgpu, Tref> hostReduction(this->reduceDesc,
-                                                  this->inputTensor,
-                                                  this->outputTensor,
-                                                  this->dimsInvariant);
+    miopenReductionHost<Tgpu, Tref> hostReduction(
+        this->reduceDesc, this->inputTensor, this->outputTensor, this->dimsInvariant);
 
     auto alpha = static_cast<float>(this->inflags.GetValueDouble("alpha"));
     auto beta  = static_cast<float>(this->inflags.GetValueDouble("beta"));
@@ -364,7 +362,8 @@ int TensorTransformDriver<Tgpu, Tref>::VerifyForward()
 
             if(!std::isfinite(error2) || std::abs(static_cast<float>(error2)) != 0.0f)
             {
-                std::cout << "TensorTransform() with indices output FAILED: " << error2 << std::endl;
+                std::cout << "TensorTransform() with indices output FAILED: " << error2
+                          << std::endl;
             }
             else
             {
