@@ -556,8 +556,11 @@ pipeline {
             parallel {
                 stage("HIP Package") {
                     agent{ label rocmnode("nogpu") }
+                    environment{
+                        execute_cmd = "dpkg -i *.deb"
+                    }
                     steps{
-                        buildHipClangJobAndReboot( package_build: "true", needs_gpu:false, needs_reboot:false)
+                        buildHipClangJobAndReboot( package_build: "true", execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false)
                     }
                 }
             }
