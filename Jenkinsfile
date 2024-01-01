@@ -557,7 +557,7 @@ pipeline {
                 stage("HIP Package") {
                     agent{ label rocmnode("nogpu") }
                     environment{
-                        execute_cmd = "dpkg -i *.deb"
+                        execute_cmd = "sudo dpkg -i *.deb"
                     }
                     steps{
                         buildHipClangJobAndReboot( package_build: "true", execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false)
