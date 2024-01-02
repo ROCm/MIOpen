@@ -56,4 +56,3 @@ TEST_P(ArgmaxTestFloat, ArgmaxTestFw)
 };
 
 INSTANTIATE_TEST_SUITE_P(ArgmaxTestSet, ArgmaxTestFloat, testing::ValuesIn(ArgmaxTestConfigs()));
-}
