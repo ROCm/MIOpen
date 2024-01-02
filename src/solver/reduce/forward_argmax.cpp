@@ -39,17 +39,24 @@ namespace solver {
 
 namespace reduce {
 
-bool OverMaxGridSize(const miopen::reduce::ProblemDescription& problem)
+size_t XGridSize(std::vector<size_t> ydims)
 {
-    auto ydims = problem.GetYDesc().GetLengths();
     auto output_numel =
         std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
-    if(AlignUp(output_numel, LOCAL_SIZE) > 4294967295ULL)
+    return AlignUp(output_numel, LOCAL_SIZE);
+}
+
+/// \todo https://github.com/ROCm/MIOpen/pull/2583#discussion_r1437054128
+bool OverMaxGridSize(const ExecutionContext& context,
+                     const miopen::reduce::ProblemDescription& problem)
+{
+    auto ydims = problem.GetYDesc().GetLengths();
+    if(XGridSize(ydims) > context.GetStream().GetImage3dMaxWidth())
         return false;
     return true;
 }
 
-bool ArgmaxForward::IsApplicable(const ExecutionContext&,
+bool ArgmaxForward::IsApplicable(const ExecutionContext& context,
                                  const miopen::reduce::ProblemDescription& problem) const
 {
     if(!problem.IsRightDim())
@@ -60,7 +67,7 @@ bool ArgmaxForward::IsApplicable(const ExecutionContext&,
         return false;
     if(!problem.IsNotLastDim())
         return false;
-    if(!OverMaxGridSize(problem))
+    if(!OverMaxGridSize(context, problem))
         return false;
     return true;
 }
@@ -75,9 +82,6 @@ ConvSolution ArgmaxForward::GetSolution(const ExecutionContext&,
     auto xdims        = problem.GetXDesc().GetLengths();
     auto ydims        = problem.GetYDesc().GetLengths();
 
-    auto output_numel =
-        std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
-
     {
         size_t xlocalsize;
         size_t xgridsize;
@@ -91,7 +95,7 @@ ConvSolution ArgmaxForward::GetSolution(const ExecutionContext&,
         kernel.kernel_file = "MIOpenArgmax.cpp";
         kernel.kernel_name = "ArgmaxFwdContiguous";
         xlocalsize         = LOCAL_SIZE;
-        xgridsize          = AlignUp(output_numel, xlocalsize);
+        xgridsize          = XGridSize(ydims);
 
         const auto build_params = KernelBuildParameters{
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
