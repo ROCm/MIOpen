@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,46 +28,12 @@
 #include "get_handle.hpp"
 #include "test_env.hpp"
 
-#include "conv3d.hpp"
+#include "immed_conv3d.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(CODECOV_TEST)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
 
 namespace immed_conv3d_codecov {
-
-template <class T>
-struct conv3d_driver : conv_driver<T, ConvApi::Immediate>
-{
-    conv3d_driver() : conv_driver<T, ConvApi::Immediate>()
-    {
-        this->add(this->input_dims, "input");
-        this->add(this->weight_tensor_dims, "weights");
-        this->add(this->batch_size,
-                  "batch_size",
-                  this->generate_data_limited(this->get_batch_sizes(), 1, {8}));
-        this->add(this->input_channels,
-                  "input_channels",
-                  this->generate_data_limited(this->get_input_channels(), 1, {2}));
-        this->add(this->output_channels,
-                  "output_channels",
-                  this->generate_data_limited(this->get_output_channels(), 1, {16}));
-        this->add(this->spatial_dim_elements,
-                  "spatial_dim_elements",
-                  this->generate_data_limited(this->get_3d_spatial_dims(), 1, {16, 16, 16}));
-        this->add(this->filter_dims,
-                  "filter_dims",
-                  this->generate_data_limited(this->get_3d_filter_dims(), 2, {5, 5, 5}));
-        this->add(this->pads_strides_dilations,
-                  "pads_strides_dilations",
-                  this->generate_data_limited(this->get_3d_pads_strides_dilations(), 2));
-        this->add(this->trans_output_pads,
-                  "trans_output_pads",
-                  this->generate_data_limited(this->get_3d_trans_output_pads(), 1));
-        this->add(this->in_layout, "in_layout", this->generate_data({"NCDHW"}));
-        this->add(this->fil_layout, "fil_layout", this->generate_data({"NCDHW"}));
-        this->add(this->out_layout, "out_layout", this->generate_data({"NCDHW"}));
-    }
-};
 
 static bool SkipTest(void) { return !miopen::IsEnabled(ENV(CODECOV_TEST)); }
 

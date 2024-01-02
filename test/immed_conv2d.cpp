@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "conv3d.hpp"
+#include "immed_conv2d.hpp"
 
-int main(int argc, const char* argv[]) { test_drive<conv3d_driver>(argc, argv); }
+
+int main(int argc, const char* argv[]) { test_drive<conv2d_driver>(argc, argv); }
