@@ -72,6 +72,9 @@ struct ProblemDescription : ProblemDescriptionBase
 
     bool IsRightLength() const
     {
+        if(xDesc.GetLengths().size() == 1)
+            return true;
+
         int32_t posy = 0;
         for(int32_t i = 0; i < xDesc.GetLengths().size(); i++)
         {

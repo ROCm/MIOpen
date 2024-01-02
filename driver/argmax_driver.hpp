@@ -165,6 +165,9 @@ int ArgmaxDriver<Tgpu, Tref>::GetandSetData()
         }
     }
 
+    if(out_len.empty())
+        out_len.push_back(1);
+
     SetTensorNd(outputDesc, out_len, miopenInt32);
 
     return 0;
@@ -214,6 +217,10 @@ std::vector<int> ArgmaxDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
     else if((in_n != 0) && (in_w != 0))
     {
         return std::vector<int>({in_n, in_w});
+    }
+    else if(in_n != 0)
+    {
+        return std::vector<int>({in_n});
     }
     else
     {

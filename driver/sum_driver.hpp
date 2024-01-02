@@ -176,6 +176,9 @@ int SumDriver<Tgpu, Tref>::GetandSetData()
         }
     }
 
+    if(out_len.empty())
+        out_len.push_back(1);
+
     SetTensorNd(outputDesc, out_len, data_type);
 
     nanPropagation = static_cast<miopenSumNanPropagation_t>(inflags.GetValueInt("NanPropagation"));
@@ -234,6 +237,10 @@ std::vector<int> SumDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
     else if((in_n != 0) && (in_w != 0))
     {
         return std::vector<int>({in_n, in_w});
+    }
+    else if(in_n != 0)
+    {
+        return std::vector<int>({in_n});
     }
     else
     {
