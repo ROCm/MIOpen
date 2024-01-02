@@ -30,7 +30,7 @@ typedef signed char int8_t;
 typedef unsigned char uint8_t;
 typedef signed short int16_t;
 typedef unsigned short uint16_t;
-#if HIP_PACKAGE_VERSION_FLAT >= 6001000000ULL
+#if HIP_PACKAGE_VERSION_FLAT >= 6001024000ULL
 typedef signed int int32_t;
 typedef unsigned int uint32_t;
 typedef __hip_internal::uint64_t uint64_t;

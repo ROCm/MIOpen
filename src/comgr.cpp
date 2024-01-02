@@ -65,8 +65,7 @@
 /// \todo Test and enable "custom" local implementation.
 /// Hence the workaround is applicable for a range of hipRTC versions
 /// and potentially in the future
-#define WORKAROUND_HIPRTC_LIMITS \
-    (HIP_PACKAGE_VERSION_FLAT >= 6000023464ULL && HIP_PACKAGE_VERSION_FLAT < 6000023494ULL)
+#define WORKAROUND_DONT_USE_CUSTOM_LIMITS (HIP_PACKAGE_VERSION_FLAT < 6001024000ULL) 
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_LOG_CALLS)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)
@@ -1309,7 +1308,7 @@ void BuildHip(const std::string& name,
 #endif
         opts.push_back("-DHIP_PACKAGE_VERSION_FLAT=" + std::to_string(HIP_PACKAGE_VERSION_FLAT));
         opts.push_back("-DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS");
-#if !WORKAROUND_HIPRTC_LIMITS
+#if WORKAROUND_DONT_USE_CUSTOM_LIMITS
         opts.push_back("-DWORKAROUND_DONT_USE_CUSTOM_LIMITS=1");
 #endif
 #if WORKAROUND_ISSUE_1431

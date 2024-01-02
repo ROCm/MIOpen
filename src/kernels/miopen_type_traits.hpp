@@ -76,7 +76,7 @@ struct remove_cv
     typedef typename remove_volatile<typename remove_const<T>::type>::type type;
 };
 
-#if HIP_PACKAGE_VERSION_FLAT >= 6001000000ULL
+#if HIP_PACKAGE_VERSION_FLAT >= 6001024000ULL
 template <class T, T v>
 struct integral_constant
 {
