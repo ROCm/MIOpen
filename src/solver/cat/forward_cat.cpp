@@ -64,12 +64,6 @@ bool CatForward::IsApplicable(const ExecutionContext& context,
 {
     if(!IsUnderXCountLimit(problem))
         return false;
-    if(!problem.IsSameType())
-        return false;
-    if(!problem.IsRightDim())
-        return false;
-    if(!problem.IsRightLength())
-        return false;
     if(!problem.IsAllPacked())
         return false;
     if(!IsImprovementOverROCm(problem))
