@@ -399,18 +399,28 @@ option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
 # FOR HANDLING ENABLE/DISABLE OPTIONAL BACKWARD COMPATIBILITY for FILE/FOLDER REORG
 option(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY "Build with file/folder reorg with backward compatibility enabled" OFF)
 
-set( MIOPEN_INSTALL_DIR miopen)
-set( DATA_INSTALL_DIR ${CMAKE_INSTALL_DATAROOTDIR}/miopen )
+if(WIN32)
+    set( DATABASE_INSTALL_DIR bin )
+else()
+    set( MIOPEN_INSTALL_DIR miopen)
+    set( DATA_INSTALL_DIR ${CMAKE_INSTALL_DATAROOTDIR}/${MIOPEN_INSTALL_DIR} )
+    set( DATABASE_INSTALL_DIR ${DATA_INSTALL_DIR}/db )
+endif()    
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
     find_package(frugally-deep CONFIG REQUIRED)
     find_package(Eigen3 REQUIRED)
 endif()
 
+if(WIN32)
+    set(KERNELS_BINARY_DIR ${CMAKE_BINARY_DIR}/bin)
+else()
+    set(KERNELS_BINARY_DIR ${CMAKE_BINARY_DIR}/share/miopen/db)
+endif()
+
 set(MIOPEN_GPU_SYNC Off CACHE BOOL "")
 if(BUILD_DEV)
     set(MIOPEN_BUILD_DEV 1)
-    set(KERNELS_BINARY_DIR ${PROJECT_BINARY_DIR}/share/miopen/db)
     set(MIOPEN_SYSTEM_DB_PATH "${KERNELS_BINARY_DIR}" CACHE PATH "Default path of system db files")
     set(MIOPEN_USER_DB_PATH "${KERNELS_BINARY_DIR}" CACHE PATH "Default path of user db files")
     set(MIOPEN_USER_DB_SUFFIX "${MIOPEN_BACKEND}.${MIOpen_VERSION_MAJOR}_${MIOpen_VERSION_MINOR}_${MIOpen_VERSION_PATCH}" CACHE PATH "Filename suffix for the user find-db files")
@@ -467,14 +477,7 @@ elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
 endif()
 
-if(NOT BUILD_DEV)
-    if(WIN32)
-        set(KERNELS_BINARY_DIR ${PROJECT_BINARY_DIR}/bin)
-    else()
-        set(KERNELS_BINARY_DIR ${PROJECT_BINARY_DIR}/share/miopen/db)
-    endif()
-endif()
-set(KERNELS_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/kernels)
+set(KERNELS_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src/kernels)
 
 find_program(UNZIPPER lbzcat bzcat REQUIRED)
 file(MAKE_DIRECTORY ${KERNELS_BINARY_DIR})
@@ -508,7 +511,7 @@ function(install_kdb FILE_NAME COMPONENT_NAME)
         unpack_db(${FILE_NAME})
         if( NOT ENABLE_ASAN_PACKAGING )
             rocm_install(FILES ${KERNELS_BINARY_DIR}/${__fname}
-                         DESTINATION ${DATA_INSTALL_DIR}/db
+                         DESTINATION ${DATABASE_INSTALL_DIR}
                          COMPONENT ${COMPONENT_NAME})
         endif()
         set(CPACK_COMPONENTS_ALL
