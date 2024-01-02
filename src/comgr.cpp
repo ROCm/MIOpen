@@ -60,6 +60,12 @@
 /// With base driver 5.11.32 the errors disappear.
 /// More info at https://github.com/ROCm/MIOpen/issues/1257.
 #define WORKAROUND_ISSUE_1257 (HIP_PACKAGE_VERSION_FLAT >= 4003021331ULL)
+/// For now, use only standard <limits> to avoid possibility of
+/// correctnes or performance regressions.
+/// \todo Test and enable "custom" local implementation.
+/// Hence the workaround is applicable for a range of hipRTC versions 
+/// and potentially in the future
+#define WORKAROUND_HIPRTC_LIMITS (HIP_PACKAGE_VERSION_FLAT >= 6000023464ULL && HIP_PACKAGE_VERSION_FLAT < 6000023494ULL)
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_LOG_CALLS)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)
@@ -1302,10 +1308,9 @@ void BuildHip(const std::string& name,
 #endif
         opts.push_back("-DHIP_PACKAGE_VERSION_FLAT=" + std::to_string(HIP_PACKAGE_VERSION_FLAT));
         opts.push_back("-DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS");
-        /// For now, use only standard <limits> to avoid possibility of
-        /// correctnes or performance regressions.
-        /// \todo Test and enable "custom" local implementation.
+#if !WORKAROUND_HIPRTC_LIMITS
         opts.push_back("-DWORKAROUND_DONT_USE_CUSTOM_LIMITS=1");
+#endif
 #if WORKAROUND_ISSUE_1431
         if((StartsWith(target.Name(), "gfx10") || StartsWith(target.Name(), "gfx11")) &&
            !miopen::comgr::IsWave64Enforced(opts))
