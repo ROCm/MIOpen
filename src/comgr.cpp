@@ -63,9 +63,10 @@
 /// For now, use only standard <limits> to avoid possibility of
 /// correctnes or performance regressions.
 /// \todo Test and enable "custom" local implementation.
-/// Hence the workaround is applicable for a range of hipRTC versions 
+/// Hence the workaround is applicable for a range of hipRTC versions
 /// and potentially in the future
-#define WORKAROUND_HIPRTC_LIMITS (HIP_PACKAGE_VERSION_FLAT >= 6000023464ULL && HIP_PACKAGE_VERSION_FLAT < 6000023494ULL)
+#define WORKAROUND_HIPRTC_LIMITS \
+    (HIP_PACKAGE_VERSION_FLAT >= 6000023464ULL && HIP_PACKAGE_VERSION_FLAT < 6000023494ULL)
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_LOG_CALLS)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)
