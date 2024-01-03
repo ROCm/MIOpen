@@ -163,17 +163,16 @@ const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
 
 KernelInvoke Handle::Run(Kernel /* k */) const { return {}; }
 
-Program Handle::LoadProgram(const std::string& program_name,
+Program Handle::LoadProgram(const fs::path& program_name,
                             std::string params,
                             const std::string& kernel_src) const
 {
-    if(!miopen::EndsWith(program_name, ".mlir"))
+    if(program_name.extension() == ".mlir")
     {
         params += " -mcpu=" + this->GetTargetProperties().Name();
     }
 
-    auto hsaco = miopen::LoadBinary(
-        this->GetTargetProperties(), this->GetMaxComputeUnits(), program_name, params);
+    auto hsaco = miopen::LoadBinary(GetTargetProperties(), GetMaxComputeUnits(), program_name, params);
     auto pgmImpl     = std::make_shared<HIPOCProgramImpl>();
     pgmImpl->program = program_name;
     pgmImpl->target  = this->GetTargetProperties();
@@ -189,7 +188,7 @@ Program Handle::LoadProgram(const std::string& program_name,
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
         miopen::SaveBinary(p.IsCodeObjectInMemory()
                                ? p.GetCodeObjectBlob()
-                               : miopen::LoadFile(p.GetCodeObjectPathname().string()),
+                               : miopen::LoadFile(p.GetCodeObjectPathname()),
                            this->GetTargetProperties(),
                            this->GetMaxComputeUnits(),
                            program_name,
@@ -200,7 +199,7 @@ Program Handle::LoadProgram(const std::string& program_name,
             miopen::WriteFile(p.GetCodeObjectBlob(), path);
         else
             fs::copy_file(p.GetCodeObjectPathname(), path);
-        miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params);
+        miopen::SaveBinary(path, GetTargetProperties(), program_name, params);
 #endif
     }
     else

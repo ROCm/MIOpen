@@ -39,8 +39,6 @@
 #include <boost/thread.hpp>
 
 #include <array>
-#include <cstdio>
-#include <cstdlib>
 #include <fstream>
 #include <mutex>
 #include <random>

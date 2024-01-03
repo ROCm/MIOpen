@@ -38,8 +38,6 @@
 #include <boost/optional.hpp>
 
 #include <array>
-#include <cstdio>
-#include <cstdlib>
 #include <fstream>
 #include <mutex>
 #include <limits>

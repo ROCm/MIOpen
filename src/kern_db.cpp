@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include "miopen/bz2.hpp"
 #include <miopen/kern_db.hpp>
+#include <filesystem>
 
 namespace miopen {
 KernDb::KernDb(DbKinds db_kind, const fs::path& filename_, bool is_system_)

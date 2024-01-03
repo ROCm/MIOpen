@@ -91,7 +91,7 @@ LockFile::LockFile(const fs::path& path_, PassKey) : path(path_)
     }
 }
 
-LockFile& LockFile::Get(const fs::path& path)
+LockFile& LockFile::Get(const fs::path& path_)
 {
 #ifdef _WIN32
     std::string p{path_.string()};

@@ -47,7 +47,7 @@ namespace miopen {
 struct KernelConfig
 {
     static std::string table_name() { return "kern_db"; }
-    std::string kernel_name;
+    std::filesystem::path kernel_name;
     std::string kernel_args;
     std::vector<char> kernel_blob;
     static std::vector<std::string> FieldNames()
