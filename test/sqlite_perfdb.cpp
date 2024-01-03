@@ -33,7 +33,6 @@
 #include <miopen/db_record.hpp>
 #include <miopen/lock_file.hpp>
 #include <miopen/process.hpp>
-#include <miopen/temp_file.hpp>
 #include <miopen/filesystem.hpp>
 
 #include <boost/optional.hpp>
@@ -245,14 +244,15 @@ class DbTest
 {
 public:
     DbTest()
-        : temp_file("miopen.tests.perfdb"), db_inst{DbKinds::PerfDb, std::string(temp_file), false}
+        : temp_file{(tmp / "perf.db").string()}, db_inst{DbKinds::PerDb, temp_file, false}
     {
     }
 
     virtual ~DbTest() {}
 
 protected:
-    TempFile temp_file;
+    TmpDir tmp;
+    std::string temp_file;
     SQLitePerfDb db_inst;
 
     static const std::array<std::pair<std::string, SolverData>, 2>& common_data()
@@ -270,7 +270,7 @@ protected:
         db.sql.Exec("delete from config; delete from perf_db;");
     }
 
-    void ResetDb() const { db_inst.sql.Exec("delete from config; delete from perf_db;"); }
+    virtual void ResetDb() const { db_inst.sql.Exec("delete from config; delete from perf_db;"); }
 
     static const ProblemData& key()
     {
@@ -414,7 +414,7 @@ public:
         const SolverData to_be_rewritten(7, 8);
 
         {
-            SQLitePerfDb db(DbKinds::PerfDb, std::string(temp_file), false);
+            SQLitePerfDb db(DbKinds::PerfDb, temp_file, false);
 
             EXPECT(db.Update(p, id0(), to_be_rewritten));
             EXPECT(db.Update(p, id1(), to_be_rewritten));
@@ -428,7 +428,7 @@ public:
         }
 
         {
-            SQLitePerfDb db(DbKinds::PerfDb, std::string(temp_file), false);
+            SQLitePerfDb db(DbKinds::PerfDb, temp_file, false);
 
             // Rewriting existing value to store it to file.
             EXPECT(db.Update(p, id0(), value0()));
@@ -437,7 +437,7 @@ public:
         {
             SolverData read0, read1, read_missing;
             const auto read_missing_cmp(read_missing);
-            SQLitePerfDb db(DbKinds::PerfDb, std::string(temp_file), false);
+            SQLitePerfDb db(DbKinds::PerfDb, temp_file, false);
 
             // Loading by id not present in record should execute well but return false as nothing
             // was read.
@@ -466,7 +466,7 @@ public:
         {
             SolverData read0, read1;
             const auto read_missing_cmp(read0);
-            SQLitePerfDb db(DbKinds::PerfDb, std::string(temp_file), false);
+            SQLitePerfDb db(DbKinds::PerfDb, temp_file, false);
 
             EXPECT(!db.Load(p, id0(), read0));
             EXPECT(db.Load(p, id1(), read1));
@@ -487,12 +487,12 @@ public:
 
         ProblemData p;
 
-        SQLitePerfDb db(DbKinds::PerfDb, std::string(temp_file), false);
+        SQLitePerfDb db(DbKinds::PerfDb, temp_file, false);
         EXPECT(db.Update(p, id0(), value0()));
 
         {
-            SQLitePerfDb db0(DbKinds::PerfDb, std::string(temp_file), false);
-            SQLitePerfDb db1(DbKinds::PerfDb, std::string(temp_file), false);
+            SQLitePerfDb db0(DbKinds::PerfDb, temp_file, false);
+            SQLitePerfDb db1(DbKinds::PerfDb, temp_file, false);
 
             auto r0 = db0.FindRecord(p);
             auto r1 = db1.FindRecord(p);
@@ -850,7 +850,7 @@ public:
                 auto args =
                     std::string{"--"} + write_arg +
                                 " --" + id_arg + " " + std::to_string(id++) +
-                                " --" + path_arg + " " + temp_file.Path();
+                                " --" + path_arg + " " + temp_file;
 
                 if(thread_logs_root())
                 {
@@ -971,9 +971,11 @@ private:
 class DbMultiFileTest : public DbTest
 {
 protected:
-    const std::string user_db_path = temp_file.Path() + ".user";
+    DbMultiFileTest() : DbTest(), user_db_path{(tmp / "user.db").string()} {}
 
-    void ResetDb() const
+    const std::string user_db_path;
+
+    void ResetDb() const override
     {
         DbTest::ResetDb();
         // (void)std::ofstream(user_db_path);
