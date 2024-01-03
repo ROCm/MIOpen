@@ -42,6 +42,15 @@ template <typename T>
 class numeric_limits;
 
 template <>
+class numeric_limits<int>
+{
+public:
+    static constexpr __device__ int max() noexcept { return __INT_MAX__; }
+
+    static constexpr __device__ int min() noexcept { return -__INT_MAX__ - 1; }
+};
+
+template <>
 class numeric_limits<float>
 {
 public:
