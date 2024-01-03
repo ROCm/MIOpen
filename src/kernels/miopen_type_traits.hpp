@@ -26,6 +26,9 @@
 #pragma once
 
 #ifdef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
+/// \todo: exact version from which this WA is needed should be updated in release
+/// https://github.com/ROCm/MIOpen/issues/2651
+#define WORKAROUND_USE_MORE_CUSTOM_TYPE_TRAITS (HIP_PACKAGE_VERSION_FLAT > 6001024000ULL)
 
 namespace std {
 
@@ -76,7 +79,7 @@ struct remove_cv
     typedef typename remove_volatile<typename remove_const<T>::type>::type type;
 };
 
-#if HIP_PACKAGE_VERSION_FLAT >= 6001024000ULL
+#if WORKAROUND_USE_MORE_CUSTOM_TYPE_TRAITS
 template <class T, T v>
 struct integral_constant
 {
@@ -105,7 +108,7 @@ using enable_if = __hip_internal::enable_if<B, T>;
 
 template <bool B, typename T = void>
 using enable_if_t = typename __hip_internal::enable_if<B, T>::type;
-#endif
+#endif // WORKAROUND_USE_MORE_CUSTOM_TYPE_TRAITS
 
 template <class T>
 struct is_pointer_helper : false_type

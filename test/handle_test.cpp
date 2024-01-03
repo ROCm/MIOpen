@@ -32,6 +32,8 @@
 // "HIP_PACKAGE_VERSION_FLAT == 6001024000ULL" is for ROCm 6.1 RC where issue #2600 is not
 // yet fixed in the compiler. In order to test such release candidates, we have to
 // override HIP version to 6.1.0.
+/// \todo: exact version from which this WA is needed should be updated in release
+/// https://github.com/ROCm/MIOpen/issues/2651
 #define WORKAROUND_ISSUE_2600                                                                    \
     ((HIP_PACKAGE_VERSION_FLAT >= 6000000000ULL && HIP_PACKAGE_VERSION_FLAT <= 6000999999ULL) || \
      HIP_PACKAGE_VERSION_FLAT == 6001024000ULL)

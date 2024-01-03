@@ -63,9 +63,9 @@
 /// For now, use only standard <limits> to avoid possibility of
 /// correctnes or performance regressions.
 /// \todo Test and enable "custom" local implementation.
-/// Hence the workaround is applicable for a range of hipRTC versions
-/// and potentially in the future
-#define WORKAROUND_DONT_USE_CUSTOM_LIMITS (HIP_PACKAGE_VERSION_FLAT < 6001024000ULL) 
+/// \todo: exact version from which this WA is needed should be updated in release
+/// https://github.com/ROCm/MIOpen/issues/2651
+#define WORKAROUND_DONT_USE_CUSTOM_LIMITS (HIP_PACKAGE_VERSION_FLAT < 6001024000ULL)
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_LOG_CALLS)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)

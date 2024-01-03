@@ -26,15 +26,20 @@
 #pragma once
 
 #ifdef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
+/// \todo: exact version from which this WA is needed should be updated in release
+/// https://github.com/ROCm/MIOpen/issues/2651
+#define WORKAROUND_USE_MORE_CUSTOM_CSTDINT (HIP_PACKAGE_VERSION_FLAT >= 6001024000ULL)
+
 typedef signed char int8_t;
 typedef unsigned char uint8_t;
 typedef signed short int16_t;
 typedef unsigned short uint16_t;
-#if HIP_PACKAGE_VERSION_FLAT >= 6001024000ULL
+
+#if WORKAROUND_USE_MORE_CUSTOM_CSTDINT
 typedef signed int int32_t;
 typedef unsigned int uint32_t;
 typedef __hip_internal::uint64_t uint64_t;
-#endif
+#endif // WORKAROUND_USE_MORE_CUSTOM_CSTDINT
 
 #else
 #include <cstdint> // int8_t, int16_t
