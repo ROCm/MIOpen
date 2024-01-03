@@ -96,15 +96,6 @@ std::vector<ArgmaxTestCase> ArgmaxTestConfigs()
     // clang-format on
 }
 
-inline int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
-{
-    const std::vector<std::size_t>& lens = desc.GetLengths();
-    std::vector<int32_t> int32_t_lens(lens.begin(), lens.end());
-
-    // set the strides for the tensor
-    return SetTensorNd(&desc, int32_t_lens, desc.GetType());
-}
-
 template <typename T = float>
 struct ArgmaxTest : public ::testing::TestWithParam<ArgmaxTestCase>
 {
@@ -131,10 +122,7 @@ protected:
             }
         }
 
-        SetTensorLayout(input.desc);
-
         output = tensor<int>{out_dims};
-        SetTensorLayout(output.desc);
         std::fill(output.begin(), output.end(), std::numeric_limits<int>::quiet_NaN());
 
         ref_output = tensor<int>{out_dims};
