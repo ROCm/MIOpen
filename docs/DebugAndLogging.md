@@ -94,7 +94,7 @@ Direct Solutions:
 * `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11` - `ConvOclDirectFwd11x11`.
 * `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN` - `ConvOclDirectFwdGen`.
 * `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD` - `ConvOclDirectFwd`.
-* `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1` - `ConvOclDirectFwd`.
+* `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1` - `ConvOclDirectFwd1x1`.
 * `MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2` - `ConvOclBwdWrW2<n>` (where n = `{1,2,4,8,16}`), and `ConvOclBwdWrW2NonTunable`.
 * `MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW53` - `ConvOclBwdWrW53`.
 * `MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1` - `ConvOclBwdWrW1x1`
@@ -168,18 +168,17 @@ The `ROCBLAS_LAYER` environmental variable can be set to output GEMM information
 * `ROCBLAS_LAYER=2` - is set to 2, then there is bench logging
 * `ROCBLAS_LAYER=3` - is set to 3, then there is both trace and bench logging
 
-Additionally, using environment variable "MIOPEN_GEMM_ENFORCE_BACKEND", can override the default behavior. The default behavior which is to use
-both MIOpenGEMM and rocBlas depending on the input configuration:
+Additionally, the environment variable "MIOPEN_GEMM_ENFORCE_BACKEND" can be set to override default GEMM backend (Default GEMM backend is rocBLAS):
 
 * `MIOPEN_GEMM_ENFORCE_BACKEND=1`, use rocBLAS if enabled
-* `MIOPEN_GEMM_ENFORCE_BACKEND=2`, use MIOpenGEMM for FP32, use rocBLAS for FP16 if enabled
+* `MIOPEN_GEMM_ENFORCE_BACKEND=2`, reserved
 * `MIOPEN_GEMM_ENFORCE_BACKEND=3`, no gemm will be called
-* `MIOPEN_GEMM_ENFORCE_BACKEND=4`, use MIOpenTensile for FP32, use rocBLAS for FP16 if enabled
+* `MIOPEN_GEMM_ENFORCE_BACKEND=4`, reserved
 * `MIOPEN_GEMM_ENFORCE_BACKEND=<any other value>`, use default behavior
 
 To disable using rocBlas entirely, set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off` during MIOpen configuration.
 
-More information on logging with rocBlas can be found [here](https://github.com/ROCmSoftwarePlatform/rocBLAS/wiki/5.Logging).
+More information on logging with rocBlas can be found [here](https://github.com/ROCm/rocBLAS/wiki/5.Logging).
 
 
 ## Numerical Checking

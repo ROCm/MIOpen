@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,40 +23,16 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_MIOPENGEMM_HPP_
-#define GUARD_MIOPEN_MIOPENGEMM_HPP_
 
-#include <miopen/config.h>
+#pragma once
 
-#if MIOPEN_USE_MIOPENGEMM
-#include <miopengemm/miogemm.hpp>
+#include <miopen/env.hpp>
 
-namespace miopen {
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
-struct Handle;
-
-void AddMiopengemmSolution(const Handle& handle,
-                           const std::string& algorithm_name,
-                           const std::string& network_config,
-                           const MIOpenGEMM::Geometry& mgg,
-                           ConstData_t A,
-                           ConstData_t B,
-                           Data_t C,
-                           float time,
-                           bool enforce_determinism);
-
-void RunMiopengemmSolution(const Handle& handle,
-                           const decltype(handle.GetKernels("_", "_"))& kernels,
-                           float alpha,
-                           ConstData_t A,
-                           int a_offset,
-                           ConstData_t B,
-                           int b_offset,
-                           float beta,
-                           Data_t C,
-                           int c_offset);
-
-} // namespace miopen
-#endif // MIOPEN_USE_MIOPENGEMM
-
-#endif // GUARD_MIOPEN_MIOPENGEMM_HPP_
+inline bool IsTestRunWith(const char* float_arg)
+{
+    assert(float_arg != nullptr);
+    const auto& s_envVar = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    return (s_envVar.compare(float_arg) == 0);
+}

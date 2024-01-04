@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,22 +23,19 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#pragma once
 
-#ifndef GUARD_SOLVER_GEMM_COMMON_HPP_
-#define GUARD_SOLVER_GEMM_COMMON_HPP_
+#ifdef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
+typedef signed char int8_t;
+typedef unsigned char uint8_t;
+typedef signed short int16_t;
+typedef unsigned short uint16_t;
+#if HIP_PACKAGE_VERSION_FLAT >= 6001000000ULL
+typedef signed int int32_t;
+typedef unsigned int uint32_t;
+typedef __hip_internal::uint64_t uint64_t;
+#endif
 
-#include <miopen/execution_context.hpp>
-
-namespace miopen {
-namespace solver {
-namespace conv {
-namespace gemm {
-
-bool IsWorkaroundIssue1315(const miopen::ExecutionContext& ctx);
-
-} // namespace gemm
-} // namespace conv
-} // namespace solver
-} // namespace miopen
-
+#else
+#include <cstdint> // int8_t, int16_t
 #endif

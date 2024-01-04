@@ -1,12 +1,10 @@
 #ifndef MIOPEN_GUARD_MLOPEN_TMP_DIR_HPP
 #define MIOPEN_GUARD_MLOPEN_TMP_DIR_HPP
 
-#include <string>
+#include <string_view>
 #include <boost/filesystem/path.hpp>
 
 namespace miopen {
-
-void SystemCmd(std::string cmd);
 
 struct TmpDir
 {
@@ -19,7 +17,7 @@ struct TmpDir
     TmpDir(TmpDir&& other) noexcept { (*this) = std::move(other); }
     TmpDir& operator=(TmpDir&& other) noexcept;
 
-    void Execute(std::string exe, std::string args) const;
+    void Execute(std::string_view exe, std::string_view args) const;
 
     ~TmpDir();
 };

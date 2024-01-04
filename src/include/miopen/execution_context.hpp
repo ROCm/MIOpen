@@ -71,7 +71,8 @@ namespace debug {
 /// is in progress. The library can use this, for example, to disable some
 /// workarounds that would affect warm-up otherwise.
 /// WARNING: This switch is not intended for use in multi-threaded applications.
-extern bool IsWarmupOngoing; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+MIOPEN_EXPORT extern bool
+    IsWarmupOngoing; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
 } // namespace debug
 
