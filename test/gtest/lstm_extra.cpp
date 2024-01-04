@@ -117,10 +117,10 @@ class ConfigWithHalf : public testing::TestWithParam<std::vector<TestCase>>
 
 bool IsTestSupportedForDevice()
 {
-    //using namespace miopen::debug;
-    //using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
-    //using d_mask = disabled<Gpu::Default>;
-    //return miopen::debug::IsTestSupportedForDevice<d_mask, e_mask>();
+    // using namespace miopen::debug;
+    // using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
+    // using d_mask = disabled<Gpu::Default>;
+    // return miopen::debug::IsTestSupportedForDevice<d_mask, e_mask>();
     return true;
 }
 
@@ -174,8 +174,8 @@ using namespace lstm_extra;
 
 TEST_P(ConfigWithFloat, FloatTest_lstm_extra) { Run2dDriver(miopenFloat); };
 
-//TEST_P(ConfigWithHalf, HalfTest_lstm_extra) { Run2dDriver(miopenHalf); };
+// TEST_P(ConfigWithHalf, HalfTest_lstm_extra) { Run2dDriver(miopenHalf); };
 
 INSTANTIATE_TEST_SUITE_P(LstmExtra, ConfigWithFloat, testing::Values(GetTestCases("--float")));
 
-//INSTANTIATE_TEST_SUITE_P(LstmExtra, ConfigWithHalf, testing::Values(GetTestCases("--half")));
+// INSTANTIATE_TEST_SUITE_P(LstmExtra, ConfigWithHalf, testing::Values(GetTestCases("--half")));
