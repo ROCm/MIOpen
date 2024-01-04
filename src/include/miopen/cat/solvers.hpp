@@ -47,8 +47,8 @@ struct CatForward final : CatSolver
                       const miopen::cat::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::cat::ProblemDescription& problem) const override;
-    std::size_t GetWorkspaceSize(const ExecutionContext& context,
-                                 const miopen::cat::ProblemDescription& problem) const override
+    std::size_t GetWorkspaceSize(const ExecutionContext& /*context*/,
+                                 const miopen::cat::ProblemDescription& /*problem*/) const override
     {
         return 0;
     }

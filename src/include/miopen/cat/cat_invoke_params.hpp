@@ -44,7 +44,6 @@ struct CatInvokeParams : public miopen::InvokeParams
     {
     }
 
-    miopenHandle_t handle;
     const int32_t xCount;
     const TensorDescriptor* const* xDescs;
     const void* const* xs;

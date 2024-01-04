@@ -34,7 +34,7 @@ struct Handle;
 struct TensorDescriptor;
 
 miopenStatus_t CatForward(Handle& handle,
-                          const int32_t xCount,
+                          int32_t xCount,
                           const TensorDescriptor* const* xDescs,
                           const ConstData_t* xs,
                           const TensorDescriptor& yDesc,
