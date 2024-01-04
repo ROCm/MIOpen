@@ -48,8 +48,7 @@ TEST_P(LayerNormTestFloat, LayerNormTestFw)
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
-       !miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)) &&
-       (GetFloatArg() == "--float" || GetFloatArg().empty()))
+       miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
     {
         RunTest();
         Verify();

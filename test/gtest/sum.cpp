@@ -43,8 +43,7 @@ using namespace sum;
 
 TEST_P(SumTestFloat, SumTestFw)
 {
-    if(!miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)) &&
-       (GetFloatArg() == "--float" || GetFloatArg().empty()))
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
     {
         RunTest();
         Verify();

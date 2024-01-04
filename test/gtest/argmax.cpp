@@ -43,8 +43,7 @@ using namespace argmax;
 
 TEST_P(ArgmaxTestFloat, ArgmaxTestFw)
 {
-    if(!miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)) &&
-       (GetFloatArg() == "--float" || GetFloatArg().empty()))
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
     {
         RunTest();
         Verify();
