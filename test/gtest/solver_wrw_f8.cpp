@@ -40,4 +40,4 @@ TEST_P(ConvWrwFp8Naive, DISABLED_Wrw)
 INSTANTIATE_TEST_SUITE_P(ConvWrwTest,
                          ConvWrwFp8Naive,
                          testing::Combine(testing::Values(miopenConvolutionAlgoGEMM),
-                                          testing::ValuesIn(ConvTestConfigs())));
+                                          testing::ValuesIn(ConvTestConfigs<ConvTestCaseBase>())));

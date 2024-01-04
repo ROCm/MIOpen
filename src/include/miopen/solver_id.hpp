@@ -57,7 +57,7 @@ enum class Primitive
     Cat
 };
 
-struct Id
+struct MIOPEN_EXPORT Id
 {
     static constexpr uint64_t invalid_value = 0;
 
