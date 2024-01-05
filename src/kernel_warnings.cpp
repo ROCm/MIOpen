@@ -23,10 +23,11 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <iterator>
 #include <miopen/config.h>
 #include <miopen/kernel_warnings.hpp>
 #include <miopen/stringutils.hpp>
+
+#include <iterator>
 #include <numeric>
 #include <sstream>
 
@@ -48,6 +49,9 @@ static std::vector<std::string> OclKernelWarnings()
         "-Wno-shorten-64-to-32",
         "-Wno-sign-compare",
         "-Wno-sign-conversion",
+#if HIP_PACKAGE_VERSION_FLAT >= 6001024000ULL
+        "-Wno-unsafe-buffer-usage",
+#endif
         "-Wno-unused-function",
         "-Wno-unused-macros",
         "-Wno-declaration-after-statement", // W/A for SWDEV-337356
@@ -58,7 +62,7 @@ static std::vector<std::string> OclKernelWarnings()
 
 static std::vector<std::string> HipKernelWarnings()
 {
-    return {
+    std::vector<std::string> rv = {
         "-Weverything",
         "-Wno-c++98-compat",
         "-Wno-c++98-compat-pedantic",
@@ -83,7 +87,12 @@ static std::vector<std::string> HipKernelWarnings()
         "-Wno-covered-switch-default",
         "-Wno-disabled-macro-expansion",
         "-Wno-undefined-reinterpret-cast",
+#if HIP_PACKAGE_VERSION_FLAT >= 6001024000ULL
+        "-Wno-unsafe-buffer-usage",
+#endif
     };
+
+    return rv;
 }
 
 static std::string MakeKernelWarningsString(const std::vector<std::string>& kernel_warnings,
