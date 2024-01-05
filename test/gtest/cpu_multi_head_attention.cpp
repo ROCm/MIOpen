@@ -1,4 +1,5 @@
 #include "cpu_multi_head_attention.hpp"
+#include <hip_float8.hpp>
 
 struct CPUMHATestFloat : test::cpu::CPUMHATest<float>
 {

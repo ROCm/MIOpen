@@ -39,87 +39,69 @@
 #include "../driver/tensor_driver.hpp"
 #include "verify.hpp"
 #include <random>
+#include <hip_float8.hpp>
+
+using float8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
 
 namespace test {
 namespace cpu {
 
 template <typename T>
-auto squareRoot(T value) -> decltype(std::sqrt(value))
+void print5(const tensor<T>& tensor_val, std::string header_msg = "start")
 {
-    static_assert(std::is_arithmetic<T>::value, "squareRoot only supports arithmetic types");
-    return std::sqrt(value);
-}
-
-template <typename T>
-void BrodcastParMul(tensor<T> A_mat, tensor<T> B_mat, tensor<T>& ret_value)
-{
-    // std::mutex coutMutex;
-    size_t A_col = A_mat.desc.GetLengths()[3];
-    ret_value.par_for_each([&](size_t b_id, size_t h_id, size_t s_id, size_t d_id) {
-        T sum(0);
-
-        for(size_t pd_id = 0; pd_id < A_col; ++pd_id)
-        {
-            // std::lock_guard<std::mutex> guard(coutMutex);
-            sum += A_mat(b_id, 0, s_id, pd_id) * B_mat(0, h_id, pd_id, d_id);
-        }
-        ret_value(b_id, h_id, s_id, d_id) = sum;
-    });
-}
-
-template <typename T>
-void ParMul(tensor<T> A_mat, tensor<T> B_mat, tensor<T>& ret_value, size_t key_dim = 1)
-{
-    std::mutex coutMutex;
-    size_t A_col = A_mat.desc.GetLengths()[3];
-    ret_value.par_for_each([&](size_t b_id, size_t h_id, size_t s_id, size_t d_id) {
-        T sum(0);
-        std::lock_guard<std::mutex> guard(coutMutex);
-        for(size_t pd_id = 0; pd_id < A_col; ++pd_id)
-        {
-            sum += A_mat(b_id, h_id, s_id, pd_id) * B_mat(b_id, h_id, pd_id, d_id);
-        }
-        ret_value(b_id, h_id, s_id, d_id) = sum;
-    });
-}
-
-template <typename T>
-void ParMulAttention(tensor<T> A_mat, tensor<T> B_mat, tensor<T>& ret_value, size_t d_k)
-{
-    std::mutex coutMutex;
-    // sequence length
-    size_t A_col = A_mat.desc.GetLengths()[3];
-    ret_value.par_for_each([&](size_t b_id, size_t h_id, size_t s_id, size_t d_id) {
-        T sum(0);
-        size_t dk_id = d_id % d_k;
-        std::lock_guard<std::mutex> guard(coutMutex);
-        for(size_t pd_id = 0; pd_id < A_col; ++pd_id)
-        {
-            sum += A_mat(b_id, h_id, s_id, pd_id) * B_mat(b_id, h_id, pd_id, dk_id);
-        }
-        ret_value(b_id, h_id, s_id, d_id) = sum;
-    });
-}
-
-template <typename T>
-void print(const tensor<T>& tensor_val)
-{
-    std::cout << "\n=================start=====================\n";
-    size_t batch_size = tensor_val.desc.GetLengths()[0];
-    size_t head_size  = tensor_val.desc.GetLengths()[1];
-    size_t row_size   = tensor_val.desc.GetLengths()[2];
-    size_t col_size   = tensor_val.desc.GetLengths()[3];
-    for(size_t b = 0; b < batch_size; ++b)
+    std::cout << "\n================= " << header_msg << " =====================\n";
+    for(auto it : tensor_val.desc.GetLengths())
     {
-        std::cout << "batch = " << b << std::endl;
-        for(size_t h = 0; h < head_size; ++h)
+        std::cout << it << ",";
+    }
+    std::cout << "\n\n";
+    size_t i_size = tensor_val.desc.GetLengths()[0];
+    size_t j_size = tensor_val.desc.GetLengths()[1];
+    size_t k_size = tensor_val.desc.GetLengths()[2];
+    size_t l_size = tensor_val.desc.GetLengths()[3];
+    size_t m_size = tensor_val.desc.GetLengths()[4];
+    for(size_t i = 0; i < i_size; ++i)
+    {
+        for(size_t j = 0; j < j_size; ++j)
         {
-            std::cout << "head = " << h << std::endl;
-            for(size_t r = 0; r < row_size; ++r)
+            for(size_t k = 0; k < k_size; ++k)
             {
-                for(size_t c = 0; c < col_size; ++c)
+                for(size_t l = 0; l < l_size; ++l)
                 {
-                    std::cout << std::fixed << std::setprecision(2) << tensor_val(b, h, r, c)
+                    for(size_t m = 0; m < m_size; ++m)
+                    {
+                        std::cout << std::fixed << std::setprecision(2) << tensor_val(i, j, k, l, m)
+                                  << " , ";
+                    }
+                    std::cout << "\n";
+                }
+                std::cout << "\n";
+            }
+            std::cout << "\n";
+        }
+        std::cout << "\n";
+    }
+    std::cout << "\n=================end=====================\n";
+}
+
+template <typename T>
+void print4(const tensor<T>& tensor_val, std::string header_msg = "start")
+{
+    std::cout << "\n================= " << header_msg << " =====================\n";
+    size_t i_size = tensor_val.desc.GetLengths()[0];
+    size_t j_size = tensor_val.desc.GetLengths()[1];
+    size_t k_size = tensor_val.desc.GetLengths()[2];
+    size_t l_size = tensor_val.desc.GetLengths()[3];
+    std::cout << i_size << "," << j_size << ", " << k_size << "," << l_size << std::endl;
+    for(size_t i = 0; i < i_size; ++i)
+    {
+        for(size_t j = 0; j < j_size; ++j)
+        {
+            for(size_t k = 0; k < k_size; ++k)
+            {
+                for(size_t l = 0; l < l_size; ++l)
+                {
+                    std::cout << std::fixed << std::setprecision(2) << tensor_val(i, j, k, l)
                               << " , ";
                 }
                 std::cout << "\n";
@@ -132,123 +114,189 @@ void print(const tensor<T>& tensor_val)
 }
 
 template <typename T>
-void SetupMask(tensor<T>& mask)
+void print3(const tensor<T>& tensor_val, std::string header_msg = "start")
 {
-    // std::mutex coutMutex;
-    mask.par_for_each([&](size_t b_id, size_t h_id, size_t s_id, size_t p_id) {
-        // make anything above diagonal inf
-        if(p_id > s_id)
+    std::cout << "\n================= " << header_msg << " =====================\n";
+    size_t i_size = tensor_val.desc.GetLengths()[0];
+    size_t j_size = tensor_val.desc.GetLengths()[1];
+    size_t k_size = tensor_val.desc.GetLengths()[2];
+    std::cout << i_size << "," << j_size << ", " << k_size << std::endl;
+    for(size_t i = 0; i < i_size; ++i)
+    {
+        for(size_t j = 0; j < j_size; ++j)
         {
-            // std::lock_guard<std::mutex> guard(coutMutex);
-            // std::cout << s_id << "," << p_id << std::endl;
-            mask(b_id, h_id, s_id, p_id) = -std::numeric_limits<T>::infinity();
+            for(size_t k = 0; k < k_size; ++k)
+            {
+                std::cout << std::fixed << std::setprecision(2) << tensor_val(i, j, k) << " , ";
+            }
+            std::cout << "\n";
         }
+        std::cout << "\n";
+    }
+    std::cout << "\n=================end=====================\n";
+}
+
+// C_mat = A_mat.dot(B_mat)
+// A_mat : 4D
+// B_mat : 3D
+// C_mat : 5D
+template <typename T>
+void Dot_4D_3D(const tensor<T>& A_mat, const tensor<T>& B_mat, tensor<T>& C_mat)
+{
+    size_t k_val = A_mat.desc.GetLengths()[3];
+    assert(k_val == B_mat.desc.GetLengths()[1]);
+    C_mat.par_for_each([&](size_t b_id, size_t sc_id, size_t h_id, size_t sl_id, size_t dk_id) {
+        double sum(0);
+        for(size_t k_id = 0; k_id < k_val; ++k_id)
+        {
+            sum += A_mat(b_id, sc_id, sl_id, k_id) * B_mat(h_id, k_id, dk_id);
+        }
+        C_mat(b_id, sc_id, h_id, sl_id, dk_id) = sum;
     });
 }
 
 template <typename T>
-void MatTranspose(const tensor<T>& mat_val, tensor<T>& trans_mat)
+void Dot_5D_3D(const tensor<T>& A_mat, const tensor<T>& B_mat, tensor<T>& C_mat)
 {
-    trans_mat.par_for_each([&](size_t b_id, size_t h_id, size_t dk_id, size_t sl_id) {
-        trans_mat(b_id, h_id, dk_id, sl_id) = mat_val(b_id, h_id, sl_id, dk_id);
+    size_t k_val = A_mat.desc.GetLengths()[4];
+    // assert(k_val == B_mat.desc.GetLengths()[1]);
+    C_mat.par_for_each([&](size_t b_id, size_t sc_id, size_t h_id, size_t sl_id, size_t dk_id) {
+        double sum(0);
+        for(size_t k_id = 0; k_id < k_val; ++k_id)
+        {
+            sum += A_mat(b_id, sc_id, h_id, sl_id, k_id) * B_mat(h_id, k_id, dk_id);
+        }
+        C_mat(b_id, sc_id, h_id, sl_id, dk_id) = sum;
     });
+}
+
+// C_mat = A_mat.dot(B_mat)
+// A_mat : 5D
+// B_mat : 5D
+// C_mat : 5D
+template <typename T>
+void Dot_5D_5D(const tensor<T>& A_mat, const tensor<T>& B_mat, tensor<T>& C_mat)
+{
+    size_t k_val = A_mat.desc.GetLengths()[4];
+    assert(k_val == B_mat.desc.GetLengths()[3]);
+    C_mat.par_for_each([&](size_t b_id, size_t sc_id, size_t h_id, size_t sl_id, size_t dk_id) {
+        double sum(0);
+        for(size_t k_id = 0; k_id < k_val; ++k_id)
+        {
+            sum += A_mat(b_id, sc_id, h_id, sl_id, k_id) * B_mat(b_id, sc_id, h_id, k_id, dk_id);
+        }
+
+        C_mat(b_id, sc_id, h_id, sl_id, dk_id) = sum;
+    });
+}
+
+template <typename T>
+void AddMask5D_2D(tensor<T>& mat_A_val, const tensor<T>& mat_mask)
+{
+    mat_A_val.par_for_each(
+        [&](size_t b_id, size_t sc_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
+            mat_A_val(b_id, sc_id, h_id, sl_i_id, sl_j_id) =
+                mat_A_val(b_id, sc_id, h_id, sl_i_id, sl_j_id) + mat_mask(sl_i_id, sl_j_id);
+        });
+}
+
+// Computes the sum of the row in A_mat
+// A_mat : 5D
+// rrm_tensor : 5D
+template <class T>
+void RowReductionMax(const tensor<T>& A_mat, tensor<T>& rrm_tensor)
+{
+    size_t sl_dim = A_mat.desc.GetLengths()[3];
+    rrm_tensor.par_for_each(
+        [&](size_t b_id, size_t sc_id, size_t h_id, size_t sl_id, size_t sl0_id) {
+            T max(A_mat(b_id, sc_id, h_id, sl_id, sl0_id));
+            for(size_t id = 0; id < sl_dim; ++id)
+            {
+                if(A_mat(b_id, sc_id, h_id, sl_id, id) > max)
+                {
+                    max = A_mat(b_id, sc_id, h_id, sl_id, id);
+                }
+            }
+            rrm_tensor(b_id, sc_id, h_id, sl_id, sl0_id) = max;
+        });
+}
+
+template <class T>
+void Zinv(const tensor<T>& A_mat, tensor<T>& zinv_tensor)
+{
+    size_t sl_dim = A_mat.desc.GetLengths()[3];
+    T one(1);
+    zinv_tensor.par_for_each(
+        [&](size_t b_id, size_t sc_id, size_t h_id, size_t sl_id, size_t sl0_id) {
+            double sum(0);
+            for(size_t id = 0; id < sl_dim; ++id)
+            {
+                sum += A_mat(b_id, sc_id, h_id, sl_id, id);
+            }
+            zinv_tensor(b_id, sc_id, h_id, sl_id, sl0_id) = one / sum;
+        });
 }
 
 template <typename T>
 void Scale(tensor<T>& mat_val, double scale_factor)
 {
     // assert scale_factor is != 0.0 .. tolerance
-    mat_val.par_for_each([&](size_t b_id, size_t h_id, size_t sl_id, size_t dk_id) {
-        mat_val(b_id, h_id, sl_id, dk_id) = mat_val(b_id, h_id, sl_id, dk_id) * scale_factor;
-    });
-}
-
-template <typename T>
-void AddMask(tensor<T>& mat_A_val, const tensor<T>& mat_mask)
-{
-    mat_A_val.par_for_each([&](size_t b_id, size_t h_id, size_t sl_id, size_t dk_id) {
-        mat_A_val(b_id, h_id, sl_id, dk_id) =
-            mat_A_val(b_id, h_id, sl_id, dk_id) + mat_mask(0, 0, sl_id, dk_id);
-    });
+    mat_val.par_for_each(
+        [&](size_t b_id, size_t sc_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
+            mat_val(b_id, sc_id, h_id, sl_i_id, sl_j_id) =
+                mat_val(b_id, sc_id, h_id, sl_i_id, sl_j_id) * scale_factor;
+        });
 }
 
 template <typename T>
 void Sub(tensor<T>& mat_A_val, const tensor<T>& mat_sub)
 {
-    mat_A_val.par_for_each([&](size_t b_id, size_t h_id, size_t sl_id, size_t dk_id) {
-        mat_A_val(b_id, h_id, sl_id, dk_id) =
-            mat_A_val(b_id, h_id, sl_id, dk_id) - mat_sub(b_id, h_id, sl_id, 0);
-    });
-}
-
-template <class T>
-void RowReductionMax(tensor<T>& tensor_val, tensor<T>& m_tensor)
-{
-    size_t batch  = tensor_val.desc.GetLengths()[0];
-    size_t head   = tensor_val.desc.GetLengths()[1];
-    size_t sq_len = tensor_val.desc.GetLengths()[2];
-
-    m_tensor = tensor<T>{batch, head, sq_len, 1};
-
-    for(int b = 0; b < batch; ++b)
-    {
-        for(int h = 0; h < head; ++h)
-        {
-            T max_score_in_row;
-            for(int sl = 0; sl < sq_len; ++sl)
-            {
-                size_t start_index =
-                    b * (head * sq_len * sq_len) + h * (sq_len * sq_len) + sl * sq_len;
-                size_t end_index   = start_index + sq_len;
-                max_score_in_row   = *std::max_element(tensor_val.begin() + start_index,
-                                                     tensor_val.begin() + end_index);
-                m_tensor(b, h, sl) = max_score_in_row;
-            }
-        }
-    }
-}
-
-template <class T>
-void Zinv(tensor<T>& tensor_val, tensor<T>& zinv_tensor)
-{
-    size_t batch  = tensor_val.desc.GetLengths()[0];
-    size_t head   = tensor_val.desc.GetLengths()[1];
-    size_t sq_len = tensor_val.desc.GetLengths()[2];
-
-    zinv_tensor = tensor<T>{batch, head, sq_len, 1};
-
-    for(int b = 0; b < batch; ++b)
-    {
-        for(int h = 0; h < head; ++h)
-        {
-            T sum(0);
-            for(int sl = 0; sl < sq_len; ++sl)
-            {
-                size_t start_index =
-                    b * (head * sq_len * sq_len) + h * (sq_len * sq_len) + sl * sq_len;
-                size_t end_index = start_index + sq_len;
-                sum              = std::accumulate(
-                    tensor_val.begin() + start_index, tensor_val.begin() + end_index, 0.0);
-                zinv_tensor(b, h, sl) = 1 / sum;
-            }
-        }
-    }
+    mat_A_val.par_for_each(
+        [&](size_t b_id, size_t sc_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
+            mat_A_val(b_id, sc_id, h_id, sl_i_id, sl_j_id) =
+                mat_A_val(b_id, sc_id, h_id, sl_i_id, sl_j_id) -
+                mat_sub(b_id, sc_id, h_id, sl_i_id, 0);
+        });
 }
 
 template <class T>
 void Exponent(tensor<T>& tensor_val)
 {
-    tensor_val.par_for_each([&](size_t b_id, size_t h_id, size_t sl_id, size_t dk_id) {
-        tensor_val(b_id, h_id, sl_id, dk_id) = std::exp(tensor_val(b_id, h_id, sl_id, dk_id));
-    });
+    tensor_val.par_for_each(
+        [&](size_t b_id, size_t sc_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
+            tensor_val(b_id, sc_id, h_id, sl_i_id, sl_j_id) =
+                std::exp(tensor_val(b_id, sc_id, h_id, sl_i_id, sl_j_id));
+        });
 }
 
 template <class T>
-void ZinvMultiply(tensor<T>& q_dot_k_transpose, tensor<T>& zinv_tensors)
+void ZinvMultiply(tensor<T>& q_dot_k_transpose, const tensor<T>& zinv_tensors)
 {
-    q_dot_k_transpose.par_for_each([&](size_t b_id, size_t h_id, size_t sl_r_id, size_t sl_c_id) {
-        q_dot_k_transpose(b_id, h_id, sl_r_id, sl_c_id) =
-            q_dot_k_transpose(b_id, h_id, sl_r_id, sl_c_id) / zinv_tensors(b_id, h_id, sl_r_id);
+    q_dot_k_transpose.par_for_each(
+        [&](size_t b_id, size_t sc_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
+            q_dot_k_transpose(b_id, sc_id, h_id, sl_i_id, sl_j_id) =
+                q_dot_k_transpose(b_id, sc_id, h_id, sl_i_id, sl_j_id) *
+                zinv_tensors(b_id, sc_id, h_id, sl_i_id, 0);
+        });
+}
+
+template <typename T>
+void SetupMask(tensor<T>& mask)
+{
+    mask.par_for_each([&](size_t s_id, size_t p_id) {
+        // make anything above diagonal inf
+        if(p_id > s_id)
+        {
+            mask(s_id, p_id) = -std::numeric_limits<T>::infinity();
+        }
+    });
+}
+
+template <typename T>
+void Transpose_5D(const tensor<T>& mat_val, tensor<T>& trans_mat)
+{
+    trans_mat.par_for_each([&](size_t b_id, size_t sc_id, size_t h_id, size_t sl_id, size_t dk_id) {
+        trans_mat(b_id, sc_id, h_id, sl_id, dk_id) = mat_val(b_id, sc_id, h_id, dk_id, sl_id);
     });
 }
 
@@ -257,23 +305,43 @@ void DropOut(tensor<T>& q_dot_k_transpose, const double& drop_out_rate)
 {
     tensor<T> rand_dis(q_dot_k_transpose.desc.GetLengths());
     rand_dis.generate(GenData<T>{});
-    q_dot_k_transpose.par_for_each([&](size_t b_id, size_t h_id, size_t sl_r_id, size_t sl_c_id) {
-        if(rand_dis(b_id, h_id, sl_r_id, sl_c_id) < drop_out_rate)
-        {
-            q_dot_k_transpose(b_id, h_id, sl_r_id, sl_c_id) = T(0);
-        }
-    });
+    q_dot_k_transpose.par_for_each(
+        [&](size_t b_id, size_t sc_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
+            if(rand_dis(b_id, sc_id, h_id, sl_i_id, sl_j_id) < drop_out_rate)
+            {
+                q_dot_k_transpose(b_id, sc_id, h_id, sl_i_id, sl_j_id) = T(0);
+            }
+        });
 }
 
 struct CPUMHATestCase
 {
     size_t batch_size;
+    size_t sequence_count;
     size_t num_heads;
     size_t sequence_length;
     size_t problem_dimension;
     float drop_out_rate;
+
+    friend std::ostream& operator<<(std::ostream& os, const CPUMHATestCase& tc)
+    {
+        return os << "(batch_size: " << tc.batch_size << " sequence_count:" << tc.sequence_count
+                  << " num_heads:" << tc.num_heads << " sequence_length:" << tc.sequence_length
+                  << " problem_dimension:" << tc.problem_dimension
+                  << " drop_out_rate:" << tc.drop_out_rate << " )";
+    }
 };
-std::vector<CPUMHATestCase> CPUMHAConfigs() { return {{2, 2, 4, 4, 0.2}}; }
+std::vector<CPUMHATestCase> CPUMHAConfigs()
+{
+    return {
+        {// batch_size, sequence_count, num_heads, sequence_length, problem_dimension, drop_out_rate
+         2,
+         1,
+         2,
+         5,
+         4,
+         0.0}};
+}
 
 template <typename T = float>
 struct CPUMHATest : public ::testing::TestWithParam<CPUMHATestCase>
@@ -283,55 +351,68 @@ protected:
     {
         cpu_mha_test_case = GetParam();
         d_k               = cpu_mha_test_case.problem_dimension / cpu_mha_test_case.num_heads;
+        // Initialize the tensors
         init();
         // mult-head attention begin
-        // 0) create Q, K and V
-        BrodcastParMul(word_position, q_weights, q_val);
-        BrodcastParMul(word_position, k_weights, k_val);
-        BrodcastParMul(word_position, v_weights, v_val);
 
-        // //  1) Reshape Transpose
-        MatTranspose(k_val, k_transpose);
-        // //  2) BMM
-        ParMul(q_val, k_val, q_dot_k_transpose);
+        // create Q, K and V
+        Dot_4D_3D(word_position, q_weights, q_val);
+        Dot_4D_3D(word_position, k_weights, k_val);
+        Dot_4D_3D(word_position, v_weights, v_val);
 
-        // // 2.2) Adding mask
-        AddMask(q_dot_k_transpose, mask);
+        // Reshape K
+        Transpose_5D(k_val, k_transpose);
 
-        // //   3) Attention Scale
-        double sqrt_dk = 1.0 / squareRoot(d_k);
+        // Attention
+        Dot_5D_5D(q_val, k_transpose, q_dot_k_transpose);
+
+        // Attention Scale
+        double sqrt_dk = 1.0 / std::sqrt(d_k);
         Scale(q_dot_k_transpose, sqrt_dk);
+        // print5(q_dot_k_transpose, "q_dot_k_transpose");
 
-        double fp8_scale = 1.0 / 1.0;
-        // //   4) descale Q
-        Scale(q_val, fp8_scale);
-        // //   5) descale K
-        Scale(k_val, fp8_scale);
-        // //   6) Row Reduction Max => M
-        RowReductionMax(q_dot_k_transpose, rrm);
+        // AddMask5D_2D(q_dot_k_transpose, mask);
 
-        // //   7) rrm substraction
-        Sub(q_dot_k_transpose, rrm);
-        // //   8) pointwise exponentiation
-        Exponent(q_dot_k_transpose);
+        // *** seperate softmax operation
+        // double fp8_descale = 1.0 / 2.0;
+        // // //   descale Q
+        // Scale(q_val, fp8_descale);
+        // // //   descale K
+        // Scale(k_val, fp8_descale);
 
-        // //   9) Zinv
-        Zinv(q_dot_k_transpose, zinv_tensors);
-        // //  10) Zinv reciprocal
-        ZinvMultiply(q_dot_k_transpose, zinv_tensors);
+        // soft-max
+        {
+            // Row Reduction Max => M
+            RowReductionMax(q_dot_k_transpose, rrm);
 
-        // //  11) drop out
-        DropOut(q_dot_k_transpose, cpu_mha_test_case.drop_out_rate);
+            // rrm substraction
+            Sub(q_dot_k_transpose, rrm);
 
-        // //  11.1) drop out scalse
-        double drop_out_scale = 1.0 / (1.0 - d_k);
+            // pointwise exponentiation
+            Exponent(q_dot_k_transpose);
+
+            Zinv(q_dot_k_transpose, zinv_tensors);
+
+            // Zinv reciprocal
+            ZinvMultiply(q_dot_k_transpose, zinv_tensors);
+        }
+
+        // drop out
+        // DropOut(q_dot_k_transpose, cpu_mha_test_case.drop_out_rate);
+
+        // drop out scalse
+        double drop_out_scale = 1.0 / (1.0 - cpu_mha_test_case.drop_out_rate);
         Scale(q_dot_k_transpose, drop_out_scale);
 
-        // //  12) descale Q
-        double scale_s = 1.0;
-        Scale(q_dot_k_transpose, scale_s);
-        // //  13) O = A*V
-        ParMulAttention(q_dot_k_transpose, v_val, atten_heads, d_k);
+        // print5(q_dot_k_transpose, "softrmaxxx");
+
+        // descale Q
+        // double scale_s = 1.0;
+        // Scale(q_dot_k_transpose, scale_s);
+
+        // O = (Q.dot(Kt)).dot(V)
+        Dot_5D_5D(q_dot_k_transpose, v_val, atten_heads);
+        // print5(atten_heads, "atten_heads ");
     }
 
     void TearDown() override
@@ -342,39 +423,56 @@ protected:
 private:
     void init()
     {
-        mask =
-            tensor<T>{1, 1, cpu_mha_test_case.sequence_length, cpu_mha_test_case.sequence_length};
+        mask = tensor<T>{
+            std::vector<int>{cpu_mha_test_case.sequence_length, cpu_mha_test_case.sequence_length}};
         SetupMask(mask);
 
         q_val = tensor<T>{cpu_mha_test_case.batch_size,
+                          cpu_mha_test_case.sequence_count,
                           cpu_mha_test_case.num_heads,
                           cpu_mha_test_case.sequence_length,
                           d_k};
         k_val = q_val;
         v_val = q_val;
 
-        q_weights =
-            tensor<T>{1, cpu_mha_test_case.num_heads, cpu_mha_test_case.problem_dimension, d_k};
+        q_weights = tensor<T>(std::vector<int>{
+            cpu_mha_test_case.num_heads, cpu_mha_test_case.problem_dimension, d_k});
         k_weights = q_weights;
         v_weights = q_weights;
 
-        atten_heads = tensor<T>{cpu_mha_test_case.batch_size,
+        atten_heads       = tensor<T>{cpu_mha_test_case.batch_size,
+                                cpu_mha_test_case.sequence_count,
                                 cpu_mha_test_case.num_heads,
                                 cpu_mha_test_case.sequence_length,
-                                cpu_mha_test_case.problem_dimension};
+                                d_k};
+        final_atten_heads = atten_heads;
 
         k_transpose = tensor<T>{cpu_mha_test_case.batch_size,
+                                cpu_mha_test_case.sequence_count,
                                 cpu_mha_test_case.num_heads,
                                 d_k,
                                 cpu_mha_test_case.sequence_length};
 
         q_dot_k_transpose = tensor<T>{cpu_mha_test_case.batch_size,
+                                      cpu_mha_test_case.sequence_count,
                                       cpu_mha_test_case.num_heads,
                                       cpu_mha_test_case.sequence_length,
                                       cpu_mha_test_case.sequence_length};
+        // reduce row max
+        rrm = tensor<T>{cpu_mha_test_case.batch_size,
+                        cpu_mha_test_case.sequence_count,
+                        cpu_mha_test_case.num_heads,
+                        cpu_mha_test_case.sequence_length,
+                        1};
+        //
+        zinv_tensors = tensor<T>{cpu_mha_test_case.batch_size,
+                                 cpu_mha_test_case.sequence_count,
+                                 cpu_mha_test_case.num_heads,
+                                 cpu_mha_test_case.sequence_length,
+                                 1};
 
         word_position = tensor<T>{cpu_mha_test_case.batch_size,
-                                  1,
+                                  cpu_mha_test_case.sequence_count,
                                   cpu_mha_test_case.sequence_length,
                                   cpu_mha_test_case.problem_dimension};
 
@@ -396,6 +494,7 @@ private:
     tensor<T> q_dot_k_transpose;
 
     tensor<T> atten_heads;
+    tensor<T> final_atten_heads;
 
     tensor<T> word_position;
 
