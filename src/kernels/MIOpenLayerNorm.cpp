@@ -28,6 +28,7 @@
 #include <hip/hip_runtime.h>
 #endif
 
+#include "miopen_cstdint.hpp"
 #include "float_types.h"
 
 #if MIOPEN_USE_BFP16 == 1
