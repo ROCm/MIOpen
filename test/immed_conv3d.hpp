@@ -58,19 +58,3 @@ struct conv3d_driver : conv_driver<T, ConvApi::Immediate>
         this->add(this->out_layout, "out_layout", this->generate_data({"NCDHW"}));
     }
 };
-
-class Conv3dFloat : public testing::TestWithParam<std::vector<std::string>>
-{
-};
-
-class Conv3dHalf : public testing::TestWithParam<std::vector<std::string>>
-{
-};
-
-class Conv3dBFloat16 : public testing::TestWithParam<std::vector<std::string>>
-{
-};
-
-class Conv3dInt8 : public testing::TestWithParam<std::vector<std::string>>
-{
-};
