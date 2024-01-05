@@ -25,8 +25,8 @@
  *******************************************************************************/
 #pragma once
 
-#ifndef WORKAROUND_DO_NOT_USE_CUSTOM_LIMITS
-#define WORKAROUND_DO_NOT_USE_CUSTOM_LIMITS 0
+#ifndef WORKAROUND_DONT_USE_CUSTOM_LIMITS
+#define WORKAROUND_DONT_USE_CUSTOM_LIMITS 0
 #endif
 
 #if defined(MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS) && !WORKAROUND_DONT_USE_CUSTOM_LIMITS

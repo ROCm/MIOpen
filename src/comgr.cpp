@@ -1302,10 +1302,9 @@ void BuildHip(const std::string& name,
 #endif
         opts.push_back("-DHIP_PACKAGE_VERSION_FLAT=" + std::to_string(HIP_PACKAGE_VERSION_FLAT));
         opts.push_back("-DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS");
-        /// For now, use only standard <limits> to avoid possibility of
-        /// correctnes or performance regressions.
-        /// \todo Test and enable "custom" local implementation.
+#if HIP_PACKAGE_VERSION_FLAT < 6001024000ULL
         opts.push_back("-DWORKAROUND_DONT_USE_CUSTOM_LIMITS=1");
+#endif
 #if WORKAROUND_ISSUE_1431
         if((StartsWith(target.Name(), "gfx10") || StartsWith(target.Name(), "gfx11")) &&
            !miopen::comgr::IsWave64Enforced(opts))

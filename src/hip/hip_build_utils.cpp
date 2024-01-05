@@ -75,6 +75,20 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     if(params.find("-std=") == std::string::npos)
         params += " --std=c++17";
 
+#if HIP_PACKAGE_VERSION_FLAT >= 6001024000ULL
+    size_t pos = 0;
+    while((pos = params.find("-mcpu=", pos)) != std::string::npos)
+    {
+        size_t endpos = params.find(' ', pos);
+        if(endpos == std::string::npos)
+        {
+            params.erase(pos, std::string::npos);
+            break;
+        }
+        params.erase(pos, endpos - pos);
+    }
+#endif
+
 #if HIP_PACKAGE_VERSION_FLAT < 4001000000ULL
     params += " --cuda-gpu-arch=" + lots.device;
 #else
@@ -110,11 +124,14 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     auto bin_file = tmp_dir->path / (filename + ".o");
 
     // compile
-    const std::string redirector = testing_mode ? " 1>/dev/null 2>&1" : "";
-    tmp_dir->Execute(env + std::string(" ") + MIOPEN_HIP_COMPILER,
-                     params + filename + " -o " + bin_file.string() + redirector);
-    if(!boost::filesystem::exists(bin_file))
-        MIOPEN_THROW(filename + " failed to compile");
+    {
+        const std::string redirector = testing_mode ? " 1>/dev/null 2>&1" : "";
+        const std::string cmd        = env + std::string(" ") + MIOPEN_HIP_COMPILER;
+        const std::string args       = params + filename + " -o " + bin_file.string() + redirector;
+        tmp_dir->Execute(cmd, args);
+        if(!boost::filesystem::exists(bin_file))
+            MIOPEN_THROW("Failed cmd: '" + cmd + "', args: '" + args + '\'');
+    }
 
 #if defined(MIOPEN_OFFLOADBUNDLER_BIN) && !MIOPEN_BACKEND_HIP
     // Unbundling is not required for HIP runtime && hip-clang
