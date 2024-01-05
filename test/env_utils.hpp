@@ -41,6 +41,7 @@ inline void setEnvironmentVariable(std::string_view name, std::string_view value
     BOOL ret = SetEnvironmentVariable(name.data(), value.data());
     EXPECT_EQUAL(ret, TRUE);
 #else
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
     int ret = setenv(name.data(), value.data(), 1);
     EXPECT_EQUAL(ret, 0);
 #endif
@@ -52,6 +53,7 @@ inline void unsetEnvironmentVariable(std::string_view name)
     BOOL ret = SetEnvironmentVariable(name.data(), nullptr);
     EXPECT_EQUAL(ret, TRUE);
 #else
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
     int ret = unsetenv(name.data());
     EXPECT_EQUAL(ret, 0);
 #endif
