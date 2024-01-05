@@ -117,11 +117,10 @@ class ConfigWithHalf : public testing::TestWithParam<std::vector<TestCase>>
 
 bool IsTestSupportedForDevice()
 {
-    // using namespace miopen::debug;
-    // using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
-    // using d_mask = disabled<Gpu::Default>;
-    // return miopen::debug::IsTestSupportedForDevice<d_mask, e_mask>();
-    return true;
+    using namespace miopen::debug;
+    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
+    using d_mask = disabled<Gpu::Default>;
+    return miopen::debug::IsTestSupportedForDevice<d_mask, e_mask>();
 }
 
 void Run2dDriver(miopenDataType_t prec)
