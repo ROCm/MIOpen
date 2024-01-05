@@ -108,7 +108,7 @@ const char* getOffloadBundlerBinPath()
 namespace miopen {
 
 static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
-                             const std::string& filename,
+                             const fs::path& filename,
                              std::string src,
                              std::string params,
                              const TargetProperties& target,
@@ -134,8 +134,6 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 
     // cppcheck-suppress unreadVariable
     const LcOptionTargetStrings lots(target);
-
-    auto env = std::string("");
 
     if(params.find("-std=") == std::string::npos)
         params += " --std=c++17";
@@ -178,16 +176,18 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
         std::string(" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
 
     params += " ";
-    auto bin_file = tmp_dir->path / (filename + ".o");
+    auto bin_file = tmp_dir->path / (filename.string() + ".o");
 
     // compile
     {
-        const std::string redirector = testing_mode ? " 1>/dev/null 2>&1" : "";
-        const std::string cmd        = env + std::string(" ") + MIOPEN_HIP_COMPILER;
-        const std::string args       = params + filename + " -o " + bin_file.string() + redirector;
-        tmp_dir->Execute(cmd, args);
+        auto args = params + filename.string() + " -o " + bin_file.string();
+#ifndef _WIN32
+        // Windows uses WIN32 API to execute a subprocess, and no command shell is spawned.
+        args += (testing_mode ? " 1>/dev/null 2>&1" : "");
+#endif
+        tmp_dir->Execute(MIOPEN_HIP_COMPILER, args);
         if(!fs::exists(bin_file))
-            MIOPEN_THROW("Failed cmd: '" + cmd + "', args: '" + args + '\'');
+            MIOPEN_THROW("Failed cmd: '" MIOPEN_HIP_COMPILER "', args: '" + args + '\'');
     }
 
 #if defined(MIOPEN_OFFLOADBUNDLER_BIN) && !MIOPEN_BACKEND_HIP
@@ -218,7 +218,7 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 }
 
 fs::path HipBuild(boost::optional<TmpDir>& tmp_dir,
-                  const std::string& filename,
+                  const fs::path& filename,
                   std::string src,
                   std::string params,
                   const TargetProperties& target)
@@ -230,7 +230,7 @@ fs::path HipBuild(boost::optional<TmpDir>& tmp_dir,
 
 void bin_file_to_str(const fs::path& file, std::string& buf)
 {
-    std::ifstream bin_file_ptr(file.string().c_str(), std::ios::binary);
+    std::ifstream bin_file_ptr(file, std::ios::binary);
     std::ostringstream bin_file_strm;
     bin_file_strm << bin_file_ptr.rdbuf();
     buf = bin_file_strm.str();

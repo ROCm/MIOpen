@@ -73,6 +73,21 @@ namespace fs = ::std::filesystem;
 namespace fs = ::std::experimental::filesystem;
 #endif
 
+inline std::string operator+(const std::string_view s, const fs::path& p)
+{
+    return p.string().insert(0, s);
+}
+
+inline std::string operator+(const fs::path& p, const std::string_view s)
+{
+    return p.string().append(s);
+}
+
+inline fs::path append_extension(const fs::path& p, const std::string_view s)
+{
+    return fs::path{p}.replace_extension(p.extension().string().append(s));
+}
+
 } // namespace miopen
 
 #if MIOPEN_HAS_FILESYSTEM_TS

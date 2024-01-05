@@ -188,14 +188,14 @@ std::string GetHomeDir()
     // need to figure out what is the correct thing to do here
     // in tensoflow unit tests run via bazel, $HOME is not set, so this can happen
     // setting home_dir to the /tmp for now
-    return {fs::temp_directory_path().string()};
+    return fs::temp_directory_path().string();
 }
 } // namespace
 
 fs::path ExpandUser(const std::string& path)
 {
-    static const std::string home_dir = GetHomeDir();
-    return {ReplaceString(path, "~", home_dir)};
+    static const auto home_dir = GetHomeDir();
+    return {ReplaceString(path.string(), "~", home_dir)};
 }
 
 #else
@@ -216,7 +216,7 @@ std::optional<std::string> GetEnvironmentVariable(const std::string_view name)
 }
 
 std::optional<std::pair<std::string::size_type, std::string>>
-ReplaceVariable(const std::string& path, std::string_view name, std::size_t offset = 0)
+ReplaceVariable(std::string_view path, std::string_view name, std::size_t offset = 0)
 {
     std::vector<std::string> variables{
         "$" + std::string{name}, "$env:" + std::string{name}, "%" + std::string{name} + "%"};
@@ -225,7 +225,7 @@ ReplaceVariable(const std::string& path, std::string_view name, std::size_t offs
         auto pos{path.find(variable, offset)};
         if(pos != std::string::npos)
         {
-            auto result{path};
+            std::string result{path};
             auto value{GetEnvironmentVariable(name)};
             if(!value)
             {
@@ -241,15 +241,15 @@ ReplaceVariable(const std::string& path, std::string_view name, std::size_t offs
 }
 } // namespace
 
-fs::path ExpandUser(const std::string& path)
+fs::path ExpandUser(const fs::path& path)
 {
-    auto result{ReplaceVariable(path, "USERPROFILE")};
+    auto result{ReplaceVariable(path.string(), "USERPROFILE")};
     if(!result)
     {
-        result = ReplaceVariable(path, "HOME");
+        result = ReplaceVariable(path.string(), "HOME");
         if(!result)
         {
-            result = ReplaceVariable(path, "HOMEDRIVE");
+            result = ReplaceVariable(path.string(), "HOMEDRIVE");
             if(result)
             {
                 result = ReplaceVariable(std::get<1>(*result), "HOMEPATH", std::get<0>(*result));

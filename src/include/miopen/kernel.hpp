@@ -30,9 +30,10 @@
 #include <vector>
 
 #include <miopen/config.h>
+#include <miopen/filesystem.hpp>
 
 namespace miopen {
-std::string GetKernelSrc(std::string name);
+std::string GetKernelSrc(const fs::path& name);
 std::string GetKernelInc(std::string key);
 const std::string* GetKernelIncPtr(std::string key);
 std::vector<std::string> GetKernelIncList();

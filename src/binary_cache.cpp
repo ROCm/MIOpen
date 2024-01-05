@@ -51,8 +51,7 @@ namespace miopen {
 
 static fs::path ComputeSysCachePath()
 {
-    const std::string cache_dir = GetSystemDbPath();
-    auto p                      = miopen::ExpandUser(cache_dir);
+    auto p = miopen::ExpandUser(GetSystemDbPath());
     if(!fs::exists(p))
         return {};
     else
@@ -144,32 +143,32 @@ KDb GetDb(const TargetProperties& target, size_t num_cu)
 }
 #endif
 
-fs::path GetCacheFile(const std::string& device, const std::string& name, const std::string& args)
+fs::path GetCacheFile(const std::string& device, const fs::path& name, const std::string& args)
 {
-    const std::string filename = name + ".o";
+    const auto filename = name.string() + ".o";
     return GetCachePath(false) / miopen::md5(device + ":" + args) / filename;
 }
 
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
-std::string LoadBinary(const TargetProperties& target,
-                       const size_t num_cu,
-                       const std::string& name,
-                       const std::string& args)
+std::vector<char> LoadBinary(const TargetProperties& target,
+                             const size_t num_cu,
+                             const fs::path& name,
+                             const std::string& args)
 {
     if(miopen::IsCacheDisabled())
         return {};
 
     auto db = GetDb(target, num_cu);
 
-    const std::string filename = name + ".o";
-    const KernelConfig cfg{filename, args, ""};
+    const auto filename = name.string() + ".o";
+    const KernelConfig cfg{filename, args, {}};
 
     MIOPEN_LOG_I2("Loading binary for: " << filename << "; args: " << args);
     auto record = db.FindRecord(cfg);
     if(record)
     {
         MIOPEN_LOG_I2("Successfully loaded binary for: " << filename << "; args: " << args);
-        return record.get();
+        return *record;
     }
     else
     {
@@ -178,10 +177,10 @@ std::string LoadBinary(const TargetProperties& target,
     }
 }
 
-void SaveBinary(const std::string& hsaco,
+void SaveBinary(const std::vector<char>& hsaco,
                 const TargetProperties& target,
                 const std::size_t num_cu,
-                const std::string& name,
+                const fs::path& name,
                 const std::string& args)
 {
     if(miopen::IsCacheDisabled())
@@ -189,7 +188,7 @@ void SaveBinary(const std::string& hsaco,
 
     auto db = GetDb(target, num_cu);
 
-    const std::string filename = name + ".o";
+    const auto filename = name.string() + ".o";
     KernelConfig cfg{filename, args, hsaco};
 
     MIOPEN_LOG_I2("Saving binary for: " << filename << "; args: " << args);
@@ -198,7 +197,7 @@ void SaveBinary(const std::string& hsaco,
 #else
 fs::path LoadBinary(const TargetProperties& target,
                     const size_t num_cu,
-                    const std::string& name,
+                    const fs::path& name,
                     const std::string& args)
 {
     if(miopen::IsCacheDisabled())
@@ -208,7 +207,7 @@ fs::path LoadBinary(const TargetProperties& target,
     auto f = GetCacheFile(target.DbId(), name, args);
     if(fs::exists(f))
     {
-        return f.string();
+        return f;
     }
     else
     {
@@ -218,7 +217,7 @@ fs::path LoadBinary(const TargetProperties& target,
 
 void SaveBinary(const fs::path& binary_path,
                 const TargetProperties& target,
-                const std::string& name,
+                const fs::path& name,
                 const std::string& args)
 {
     if(miopen::IsCacheDisabled())

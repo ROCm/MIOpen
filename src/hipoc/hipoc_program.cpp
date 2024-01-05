@@ -165,13 +165,13 @@ hipModulePtr CreateModuleInMem(const T& blob)
     return m;
 }
 
-HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name, const fs::path& filespec)
+HIPOCProgramImpl::HIPOCProgramImpl(const fs::path& program_name, const fs::path& filespec)
     : program(program_name), hsaco_file(filespec)
 {
     module = CreateModule(hsaco_file);
 }
 
-HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name, const std::string& blob)
+HIPOCProgramImpl::HIPOCProgramImpl(const fs::path& program_name, const std::vector<char>& blob)
     : program(program_name) ///, module(CreateModuleInMem(blob))
 {
     const auto& arch = miopen::GetStringEnv(ENV(MIOPEN_DEVICE_ARCH));
@@ -180,7 +180,7 @@ HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name, const std::s
     module = CreateModuleInMem(blob);
 }
 
-HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
+HIPOCProgramImpl::HIPOCProgramImpl(const fs::path& program_name,
                                    std::string params,
                                    const TargetProperties& target_,
                                    const std::string& kernel_src)
@@ -202,29 +202,27 @@ HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
 }
 
 #if !MIOPEN_USE_COMGR
-void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
-                                             const std::string& src,
-                                             const std::string& filename)
+void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params, const std::string& src, const fs::path& filename)
 {
 
     dir.emplace(filename);
     hsaco_file = dir->path / (filename + ".o");
 
-    if(miopen::EndsWith(filename, ".so"))
+    if(filename.extension() == ".so")
     {
         WriteFile(src, hsaco_file);
     }
-    else if(miopen::EndsWith(filename, ".s"))
+    else if(filename.extension() == ".s")
     {
         const auto assembled = AmdgcnAssemble(src, params, target);
         WriteFile(assembled, hsaco_file);
     }
-    else if(miopen::EndsWith(filename, ".cpp"))
+    else if(filename.extension() == ".cpp")
     {
         hsaco_file = HipBuild(dir, filename, src, params, target);
     }
 #if MIOPEN_USE_MLIR
-    else if(miopen::EndsWith(filename, ".mlir"))
+    else if(filename.extension() == ".mlir")
     {
         std::vector<char> buffer;
         MiirGenBin(params, buffer);
@@ -249,11 +247,9 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
 }
 
 #else // MIOPEN_USE_COMGR
-void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
-                                               const std::string& src,
-                                               const std::string& filename)
+void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params, const std::string& src, const fs::path& filename)
 {
-    if(miopen::EndsWith(filename, ".so"))
+    if(filename.extension() == ".so")
     {
         std::size_t sz = src.length();
         binary.resize(sz);
@@ -265,7 +261,7 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
         static std::mutex mutex;
         std::lock_guard<std::mutex> lock(mutex);
 #endif
-        if(miopen::EndsWith(filename, ".cpp"))
+        if(filename.extension() == ".cpp")
         {
 #if MIOPEN_USE_HIPRTC
             if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_USE_HIPRTC)))
@@ -274,12 +270,12 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
 #endif // MIOPEN_USE_HIPRTC
                 comgr::BuildHip(filename, src, params, target, binary);
         }
-        else if(miopen::EndsWith(filename, ".s"))
+        else if(filename.extension() == ".s")
         {
             comgr::BuildAsm(filename, src, params, target, binary);
         }
 #if MIOPEN_USE_MLIR
-        else if(miopen::EndsWith(filename, ".mlir"))
+        else if(filename.extension() == ".mlir")
         {
             MiirGenBin(params, binary);
         }
@@ -290,15 +286,14 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
         }
     }
     if(binary.empty())
-        MIOPEN_THROW("Code object build failed. Source: " + filename);
+        MIOPEN_THROW("Code object build failed. Source: " + filename.string());
 }
 #endif // MIOPEN_USE_COMGR
 
 void HIPOCProgramImpl::BuildCodeObject(std::string params, const std::string& kernel_src)
 {
-    std::string filename = program;
     const auto src       = [&]() -> std::string {
-        if(miopen::EndsWith(filename, ".mlir"))
+        if(program.extension() == ".mlir")
             return {}; // MLIR solutions do not use source code.
         if(!kernel_src.empty())
             return kernel_src;
@@ -306,28 +301,28 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params, const std::string& ke
     }();
 
 #if MIOPEN_BUILD_DEV
-    if(miopen::EndsWith(filename, ".cpp"))
+    if(program.extension() == ".cpp")
     {
         params += " -Werror" + HipKernelWarningsString();
     }
-    else if(miopen::EndsWith(filename, ".cl"))
+    else if(program.extension() == ".cl")
     {
         params += " -Werror" + OclKernelWarningsString();
     }
 #else
-    if(miopen::EndsWith(filename, ".cpp") || miopen::EndsWith(filename, ".cl"))
+    if(program.extension() == ".cpp" || program.extension() == ".cl")
         params += " -Wno-everything";
 #endif
 
 #if MIOPEN_USE_COMGR /// \todo Refactor when functionality stabilize.
-    BuildCodeObjectInMemory(params, src, filename);
+    BuildCodeObjectInMemory(params, src, program);
 #else
-    BuildCodeObjectInFile(params, src, filename);
+    BuildCodeObjectInFile(params, src, program);
 #endif
 }
 
 HIPOCProgram::HIPOCProgram() {}
-HIPOCProgram::HIPOCProgram(const std::string& program_name,
+HIPOCProgram::HIPOCProgram(const fs::path& program_name,
                            std::string params,
                            const TargetProperties& target,
                            const std::string& kernel_src)
@@ -335,12 +330,12 @@ HIPOCProgram::HIPOCProgram(const std::string& program_name,
 {
 }
 
-HIPOCProgram::HIPOCProgram(const std::string& program_name, const fs::path& hsaco)
+HIPOCProgram::HIPOCProgram(const fs::path& program_name, const fs::path& hsaco)
     : impl(std::make_shared<HIPOCProgramImpl>(program_name, hsaco))
 {
 }
 
-HIPOCProgram::HIPOCProgram(const std::string& program_name, const std::string& hsaco)
+HIPOCProgram::HIPOCProgram(const fs::path& program_name, const std::vector<char>& hsaco)
     : impl(std::make_shared<HIPOCProgramImpl>(program_name, hsaco))
 {
 }
@@ -359,9 +354,9 @@ fs::path HIPOCProgram::GetCodeObjectPathname() const
     }
 }
 
-std::string HIPOCProgram::GetCodeObjectBlob() const
+std::vector<char> HIPOCProgram::GetCodeObjectBlob() const
 {
-    return {impl->binary.data(), impl->binary.size()};
+    return impl->binary;
 }
 
 void HIPOCProgram::FreeCodeObjectFileStorage()

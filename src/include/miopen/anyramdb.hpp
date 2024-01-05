@@ -33,6 +33,7 @@
 #include <boost/any.hpp>
 
 #include <chrono>
+#include <filesystem>
 #include <map>
 #include <string>
 #include <sstream>
@@ -46,15 +47,15 @@ struct AnyRamDb
     using TRecord = std::vector<boost::any>;
 
 public:
-    AnyRamDb(std::string filename_)
-        : filename(filename_), lock_file(LockFile::Get(LockFilePath(filename_).c_str())){};
+    AnyRamDb(const fs::path& filename_)
+        : filename(filename_), lock_file(LockFile::Get(LockFilePath(filename_))){};
 
     AnyRamDb(const AnyRamDb&) = delete;
     AnyRamDb(AnyRamDb&&)      = delete;
     AnyRamDb& operator=(const AnyRamDb&) = delete;
     AnyRamDb& operator=(AnyRamDb&&) = delete;
 
-    static AnyRamDb& GetCached(const std::string& path);
+    static AnyRamDb& GetCached(const fs::path& path);
 
     boost::optional<AnyRamDb::TRecord> FindRecord(const std::string& problem);
     bool RemoveRecord(const std::string& key);
@@ -88,7 +89,7 @@ public:
 
 private:
     std::map<std::string, std::vector<boost::any>> cache;
-    std::string filename;
+    fs::path filename;
     LockFile& lock_file;
     boost::optional<TRecord> FindRecordUnsafe(const std::string& problem);
     void UpdateCacheEntryUnsafe(const std::string& key, const TRecord& value);

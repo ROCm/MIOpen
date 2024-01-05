@@ -38,6 +38,7 @@
 #include <boost/none.hpp>
 #include <boost/optional/optional.hpp>
 
+#include <functional>
 #include <string>
 #include <chrono>
 #include <thread>
@@ -48,7 +49,7 @@ struct KernelConfig
     static std::string table_name() { return "kern_db"; }
     std::string kernel_name;
     std::string kernel_args;
-    std::string kernel_blob;
+    std::vector<char> kernel_blob;
     static std::vector<std::string> FieldNames()
     {
         return {"kernel_name", "kernel_args", "kernel_blob"};
@@ -80,17 +81,16 @@ struct KernelConfig
 
 class KernDb : public SQLiteBase<KernDb>
 {
-    std::function<std::string(std::string, bool*)> compress_fn;
-    std::function<std::string(std::string, unsigned int)> decompress_fn;
+    std::function<std::vector<char>(std::vector<char>, bool*)> compress_fn;
+    std::function<std::vector<char>(std::vector<char>, unsigned int)> decompress_fn;
 
 public:
-    KernDb(DbKinds db_kind, const std::string& filename_, bool is_system);
+    KernDb(DbKinds db_kind, const fs::path& filename_, bool is_system);
     // This constructor is only intended for testing
-    KernDb(DbKinds db_kind,
-           const std::string& filename_,
+    KernDb(DbKinds db_kinds, const fs::path& filename_,
            bool is_system_,
-           std::function<std::string(std::string, bool*)> compress_fn_,
-           std::function<std::string(std::string, unsigned int)> decompress_fn_);
+           std::function<std::vector<char>(std::vector<char>, bool*)> compress_fn_,
+           std::function<std::vector<char>(std::vector<char>, unsigned int)> decompress_fn_);
     template <typename T>
     bool RemoveRecordUnsafe(const T& problem_config)
     {
@@ -112,7 +112,7 @@ public:
     }
 
     template <typename T>
-    boost::optional<std::string> FindRecordUnsafe(const T& problem_config)
+    boost::optional<std::vector<char>> FindRecordUnsafe(const T& problem_config)
     {
         if(filename.empty())
             return boost::none;
@@ -128,7 +128,7 @@ public:
             auto compressed_blob           = stmt.ColumnBlob(0);
             auto md5_hash                  = stmt.ColumnText(1);
             auto uncompressed_size         = stmt.ColumnInt64(2);
-            std::string& decompressed_blob = compressed_blob;
+            std::vector<char>& decompressed_blob = compressed_blob;
             if(uncompressed_size != 0)
             {
                 decompressed_blob = decompress_fn(compressed_blob, uncompressed_size);

@@ -24,7 +24,9 @@
  *
  *******************************************************************************/
 #include <algorithm>
+#include <filesystem>
 #include <map>
+#include <string>
 #include <miopen/kernel.hpp>
 #include <miopen/stringutils.hpp>
 
@@ -36,9 +38,9 @@ ${KERNELS_DECLS}
 
 namespace miopen {
 
-const std::map<std::string, std::string>& kernels()
+const std::map<fs::path, std::string>& kernels()
 {
-    static const std::map<std::string, std::string> data{
+    static const std::map<fs::path, std::string> data{
 #ifndef MIOPEN_USE_CLANG_TIDY // Huge generated source
         ${INIT_KERNELS}
 #endif
@@ -46,20 +48,12 @@ const std::map<std::string, std::string>& kernels()
     return data;
 }
 
-std::string GetKernelSrc(std::string name)
+std::string GetKernelSrc(const fs::path& name)
 {
     // Use the base name of the string
-    int start  = 0;
-    auto slash = static_cast<int>(name.find_last_of("/\\"));
-    if(slash != std::string::npos)
-    {
-        start = slash + 1;
-    }
-    auto key = name.substr(start);
-
-    auto it = kernels().find(key);
+    auto it = kernels().find(name.filename());
     if(it == kernels().end())
-        MIOPEN_THROW("Failed to load kernel source: " + key);
+        MIOPEN_THROW("Failed to load kernel source: " + name.filename().string());
 
     return it->second;
 }

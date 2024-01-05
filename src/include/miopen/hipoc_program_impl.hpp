@@ -33,22 +33,26 @@
 #include <boost/optional.hpp>
 #include <hip/hip_runtime_api.h>
 
+#include <filesystem>
+#include <string>
+#include <vector>
+
 namespace miopen {
 
 using hipModulePtr = MIOPEN_MANAGE_PTR(hipModule_t, hipModuleUnload);
 struct HIPOCProgramImpl
 {
     HIPOCProgramImpl(){};
-    HIPOCProgramImpl(const std::string& program_name, const fs::path& filespec);
+    HIPOCProgramImpl(const fs::path& program_name, const fs::path& filespec);
 
-    HIPOCProgramImpl(const std::string& program_name, const std::string& blob);
+    HIPOCProgramImpl(const fs::path& program_name, const std::vector<char>& blob);
 
-    HIPOCProgramImpl(const std::string& program_name,
+    HIPOCProgramImpl(const fs::path& program_name,
                      std::string params,
                      const TargetProperties& target_,
                      const std::string& kernel_src);
 
-    std::string program;
+    fs::path program;
     TargetProperties target;
     fs::path hsaco_file;
     hipModulePtr module;
@@ -59,9 +63,7 @@ struct HIPOCProgramImpl
     void
     BuildCodeObjectInFile(std::string& params, const std::string& src, const std::string& filename);
 #else
-    void BuildCodeObjectInMemory(const std::string& params,
-                                 const std::string& src,
-                                 const std::string& filename);
+    void BuildCodeObjectInMemory(const std::string& params, const std::string& src, const fs::path& filename);
 #endif
 
     void BuildCodeObject(std::string params, const std::string& kernel_src);

@@ -44,7 +44,6 @@
 #endif
 #include <hip/hip_runtime_api.h>
 #if MIOPEN_USE_HIPRTC
-#include <miopen/manage_ptr.hpp>
 #include <hip/hiprtc.h>
 #endif
 
@@ -582,14 +581,14 @@ public:
     ~Dataset() { EC(amd_comgr_destroy_data_set(handle)); }
     auto GetHandle() const { return handle; }
     void AddData(const Data& d) const { EC_THROW(amd_comgr_data_set_add(handle, d.GetHandle())); }
-    void AddData(const std::string& name,
+    void AddData(const fs::path& name,
                  const std::string& content,
                  const amd_comgr_data_kind_t type) const
     {
         const Data d(type);
         if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)))
             MIOPEN_LOG_I(name << ' ' << content.size() << " bytes");
-        d.SetName(name);
+        d.SetName(name.string());
         d.SetBytes(content);
         AddData(d);
         const auto show_first = miopen::Value(ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT));
@@ -742,7 +741,7 @@ static inline bool IsWave64Enforced(const OptionList& opts)
         opts.begin(), opts.end(), [](const std::string& s) { return s == "-mwavefrontsize64"; });
 }
 
-void BuildHip(const std::string& name,
+void BuildHip(const fs::path& name,
               const std::string& text,
               const std::string& options,
               const miopen::TargetProperties& target,
@@ -868,7 +867,7 @@ void BuildHip(const std::string& name,
     }
 }
 
-void BuildOcl(const std::string& name,
+void BuildOcl(const fs::path& name,
               const std::string& text,
               const std::string& options,
               const miopen::TargetProperties& target,
@@ -954,7 +953,7 @@ void BuildOcl(const std::string& name,
     }
 }
 
-void BuildAsm(const std::string& name,
+void BuildAsm(const fs::path& name,
               const std::string& text,
               const std::string& options,
               const miopen::TargetProperties& target,
@@ -1047,10 +1046,6 @@ struct Error : std::exception
     throw Error{s, text};
 }
 
-static inline std::string to_string(const std::string& v) { return {v}; }
-static inline std::string to_string(const char* v) { return {v}; }
-static inline auto to_string(const std::size_t& v) { return std::to_string(v); }
-
 static std::string GetStatusText(const hiprtcResult status)
 {
     const char* reason = hiprtcGetErrorString(status);
@@ -1063,11 +1058,11 @@ static std::string GetStatusText(const hiprtcResult status)
         statusdef status = (call);                                                              \
         if(status != HIPRTC_SUCCESS)                                                            \
         {                                                                                       \
-            MIOPEN_LOG_E("\'" #call "\' " << to_string(info) << ": " << GetStatusText(status)); \
+            MIOPEN_LOG_E("\'" #call "\' " << info << ": " << GetStatusText(status));            \
             (action);                                                                           \
         }                                                                                       \
         else if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_LOG_CALLS)))                           \
-            MIOPEN_LOG_I("Ok \'" #call "\' " << to_string(info));                               \
+            MIOPEN_LOG_I("Ok \'" #call "\' " << info);                                          \
     } while(false)
 
 /// \ref comgr_throw_macros
@@ -1148,11 +1143,11 @@ class HiprtcProgram
     string_ptr_array include_texts{}; // Copying of text is not necessary.
     string_array include_names{};
 
-    const std::string& src_name;
+    const fs::path& src_name;
     const std::string& src_text;
 
 public:
-    HiprtcProgram(const std::string& src_name_, const std::string& src_text_)
+    HiprtcProgram(const fs::path& src_name_, const std::string& src_text_)
         : src_name(src_name_), src_text(src_text_)
     {
         LogInputFile(src_name, src_text);
@@ -1166,7 +1161,7 @@ public:
             include_texts.push_back(inc_text);
         }
         prog = CreateProgram(src_text.c_str(),
-                             src_name.c_str(),
+                             src_name.string().c_str(),
                              include_texts.size(),
                              include_texts.data(),
                              include_names.data());
@@ -1199,7 +1194,7 @@ public:
     }
 
 private:
-    void LogInputFile(const std::string& name, const std::string& content)
+    void LogInputFile(const fs::path& name, const std::string& content)
     {
         if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)))
             MIOPEN_LOG_I(name << ' ' << content.size() << " bytes");
@@ -1240,7 +1235,7 @@ private:
     }
 };
 
-void BuildHip(const std::string& name,
+void BuildHip(const fs::path& name,
               const std::string& text,
               const std::string& options,
               const miopen::TargetProperties& target,

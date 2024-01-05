@@ -42,7 +42,9 @@
 #include <cstring>
 #include <cstdint>
 #include <sstream>
+#include <vector>
 #include <iomanip>
+#include <string>
 
 #define MD5_DIGEST_LENGTH 16
 
@@ -303,13 +305,13 @@ static void MD5_Final(unsigned char* result, MD5_CTX* ctx)
 
 namespace miopen {
 
-std::string md5(std::string s)
+std::string md5(const void* data, size_t length)
 {
     std::array<unsigned char, MD5_DIGEST_LENGTH> result{};
 
     MD5_CTX ctx{};
     MD5_Init(&ctx);
-    MD5_Update(&ctx, s.data(), s.length());
+    MD5_Update(&ctx, data, length);
     MD5_Final(result.data(), &ctx);
 
     std::ostringstream sout;
@@ -319,4 +321,15 @@ std::string md5(std::string s)
 
     return sout.str();
 }
+
+std::string md5(const std::string& s)
+{
+    return md5(s.data(), s.size());
+}
+
+std::string md5(const std::vector<char>& v)
+{
+    return md5(v.data(), v.size());
+}
+
 } // namespace miopen

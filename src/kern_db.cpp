@@ -26,16 +26,16 @@
 #include <miopen/kern_db.hpp>
 
 namespace miopen {
-KernDb::KernDb(DbKinds db_kind, const std::string& filename_, bool is_system_)
+KernDb::KernDb(DbKinds db_kind, const fs::path& filename_, bool is_system_)
     : KernDb(db_kind, filename_, is_system_, compress, decompress)
 {
 }
 
 KernDb::KernDb(DbKinds db_kind,
-               const std::string& filename_,
+               const fs::path& filename_,
                bool is_system_,
-               std::function<std::string(std::string, bool*)> compress_fn_,
-               std::function<std::string(std::string, unsigned int)> decompress_fn_)
+               std::function<std::vector<char>(std::vector<char>, bool*)> compress_fn_,
+               std::function<std::vector<char>(std::vector<char>, unsigned int)> decompress_fn_)
     : SQLiteBase(db_kind, filename_, is_system_),
       compress_fn(compress_fn_),
       decompress_fn(decompress_fn_)
@@ -48,7 +48,7 @@ KernDb::KernDb(DbKinds db_kind,
         if(filename.empty())
             MIOPEN_LOG_I("database not present");
         else
-            MIOPEN_LOG_I(filename + " database invalid");
+            MIOPEN_LOG_I(filename << " database invalid");
         return;
     }
     if(!is_system)

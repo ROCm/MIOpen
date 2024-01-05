@@ -40,7 +40,7 @@ inline void LogFsError(const fs::filesystem_error& ex, const std::string& from)
     // clang-format on
 }
 
-std::string LockFilePath(const fs::path& filename_)
+fs::path LockFilePath(const fs::path& filename_)
 {
     try
     {
@@ -54,7 +54,7 @@ std::string LockFilePath(const fs::path& filename_)
         const auto hash = md5(filename_.parent_path().string());
         const auto file = directory / (hash + "_" + filename_.filename().string() + ".lock");
 
-        return file.string();
+        return file;
     }
     catch(const fs::filesystem_error& ex)
     {
@@ -63,17 +63,17 @@ std::string LockFilePath(const fs::path& filename_)
     }
 }
 
-LockFile::LockFile(const char* path_, PassKey) : path(path_)
+LockFile::LockFile(const fs::path& path_, PassKey) : path(path_)
 {
     try
     {
         if(!fs::exists(path))
         {
             if(!std::ofstream{path})
-                MIOPEN_THROW(std::string("Error creating file <") + path + "> for locking.");
+                MIOPEN_THROW(std::string("Error creating file <") + path.string() + "> for locking.");
             fs::permissions(path, fs::perms::all);
         }
-        flock = path;
+        flock = path.string().c_str();
     }
     catch(const fs::filesystem_error& ex)
     {
@@ -87,7 +87,7 @@ LockFile::LockFile(const char* path_, PassKey) : path(path_)
     }
 }
 
-LockFile& LockFile::Get(const char* path)
+LockFile& LockFile::Get(const fs::path& path)
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;

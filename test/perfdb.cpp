@@ -71,14 +71,14 @@ static fs::path& exe_path()
     return exe_path;
 }
 
-static boost::optional<std::string>& thread_logs_root()
+static boost::optional<fs::path>& thread_logs_root()
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
     std::lock_guard<std::mutex> lock(mutex);
 
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static boost::optional<std::string> path(boost::none);
+    static boost::optional<fs::path> path(boost::none);
     return path;
 }
 
@@ -712,9 +712,9 @@ private:
         if(thread_logs_root())
         {
             const auto out_path =
-                *thread_logs_root() + "/thread-" + std::to_string(id) + "_" + log_postfix + ".log";
-            const auto err_path = *thread_logs_root() + "/thread-" + std::to_string(id) + "_" +
-                                  log_postfix + "-err.log";
+                *thread_logs_root() / ("thread-" + std::to_string(id) + "_" + log_postfix + ".log");
+            const auto err_path = *thread_logs_root() / ("thread-" + std::to_string(id) + "_" +
+                                  log_postfix + "-err.log");
 
             fs::remove(out_path);
             fs::remove(err_path);
@@ -996,7 +996,7 @@ public:
 
                 if(thread_logs_root())
                 {
-                    args += std::string{" --"} + ArgsHelper::logs_path_arg + " " + *thread_logs_root();
+                    args += std::string{" --"} + ArgsHelper::logs_path_arg + " " + thread_logs_root()->string();
                 }
 
                 if(full_set())
@@ -1081,7 +1081,7 @@ public:
 
                 if(thread_logs_root())
                 {
-                    args += std::string{" --"} + ArgsHelper::logs_path_arg + " " + *thread_logs_root();
+                    args += std::string{" --"} + ArgsHelper::logs_path_arg + " " + thread_logs_root()->string();
                 }
 
                 if(full_set())

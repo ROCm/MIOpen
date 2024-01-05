@@ -56,13 +56,13 @@ static fs::path& exe_path()
     static fs::path exe_path;
     return exe_path;
 }
-static boost::optional<std::string>& thread_logs_root()
+static boost::optional<fs::path>& thread_logs_root()
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
     std::lock_guard<std::mutex> lock(mutex);
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static boost::optional<std::string> path(boost::none);
+    static boost::optional<fs::path> path(boost::none);
     return path;
 }
 
@@ -244,15 +244,15 @@ class DbTest
 {
 public:
     DbTest()
-        : temp_file{(tmp / "perf.db").string()}, db_inst{DbKinds::PerDb, temp_file, false}
+        : temp_file{tmp / "perf.db"}, db_inst{DbKinds::PerfDb, temp_file, false}
     {
     }
 
     virtual ~DbTest() {}
 
 protected:
-    TmpDir tmp;
-    std::string temp_file;
+    TmpDir tmp{};
+    fs::path temp_file;
     SQLitePerfDb db_inst;
 
     static const std::array<std::pair<std::string, SolverData>, 2>& common_data()
@@ -334,11 +334,11 @@ protected:
     }
 
     template <class TKey, class TValue, size_t count>
-    static void RawWrite(const std::string& db_path,
+    static void RawWrite(const fs::path& db_path,
                          const TKey& key,
                          const std::array<std::pair<std::string, TValue>, count> values)
     {
-        SQLitePerfDb tmp_inst(DbKinds::PerfDb, std::string(db_path), false);
+        SQLitePerfDb tmp_inst(DbKinds::PerfDb, db_path, false);
         for(const auto& id_values : values)
         {
             tmp_inst.UpdateUnsafe(key, id_values.first, id_values.second);
@@ -592,10 +592,17 @@ private:
 
         if(thread_logs_root())
         {
-            const auto out_path =
-                *thread_logs_root() + "/thread-" + std::to_string(id) + "_" + log_postfix + ".log";
-            const auto err_path = *thread_logs_root() + "/thread-" + std::to_string(id) + "_" +
-                                  log_postfix + "-err.log";
+            fs::path out_path;
+            if(thread_logs_root())
+                out_path = *thread_logs_root();
+
+            out_path /= "thread-" + std::to_string(id) + "_" + log_postfix + ".log";
+
+            fs::path err_path;
+            if(thread_logs_root())
+                err_path = *thread_logs_root();
+
+            err_path /= "thread-" + std::to_string(id) + "_" + log_postfix + ".err";
 
             fs::remove(out_path);
             fs::remove(err_path);
@@ -759,8 +766,7 @@ public:
 
         std::cout << "Launching test threads..." << std::endl;
         threads.reserve(DBMultiThreadedTestWork::threads_count);
-        const std::string p = temp_file;
-        const auto c        = [&p]() { return SQLitePerfDb(DbKinds::PerfDb, p, false); };
+        const auto c = [this]() { return SQLitePerfDb(DbKinds::PerfDb, temp_file, false); };
 
         {
             std::unique_lock<std::mutex> lock(mutex);
@@ -794,8 +800,7 @@ public:
         std::vector<std::thread> threads;
 
         std::cout << "Initializing test data..." << std::endl;
-        const std::string p = temp_file;
-        const auto c        = [&p]() { return SQLitePerfDb(DbKinds::PerfDb, p, false); };
+        const auto c = [this]() { return SQLitePerfDb(DbKinds::PerfDb, temp_file, false); };
         DBMultiThreadedTestWork::FillForReading(c);
 
         std::cout << "Launching test threads..." << std::endl;
@@ -854,7 +859,7 @@ public:
 
                 if(thread_logs_root())
                 {
-                    args += std::string{" --"} + DbMultiThreadedTest::logs_path_arg + " " + *thread_logs_root();
+                    args += std::string{" --"} + DbMultiThreadedTest::logs_path_arg + " " + thread_logs_root()->string();
                 }
 
                 if(full_set())
@@ -873,8 +878,7 @@ public:
 
         fs::remove(lock_file_path);
 
-        const std::string p = temp_file;
-        const auto c        = [&p]() { return SQLitePerfDb(DbKinds::PerfDb, p, false); };
+        const auto c = [this]() { return SQLitePerfDb(DbKinds::PerfDb, temp_file, false); };
 
         std::cout << "Validating results..." << std::endl;
         DBMultiThreadedTestWork::ValidateCommonPart(c);
@@ -897,7 +901,10 @@ public:
     }
 
 private:
-    static std::string LockFilePath(const std::string& db_path) { return db_path + ".test.lock"; }
+    static fs::path LockFilePath(const fs::path& db_path)
+    {
+        return append_extension(db_path, ".test.lock");
+    }
 };
 
 class DbMultiProcessReadTest : public DbTest
@@ -912,8 +919,7 @@ public:
         const auto lock_file_path = LockFilePath(temp_file);
 
         std::cout << "Initializing test data..." << std::endl;
-        std::string p = temp_file;
-        const auto c  = [&p]() { return SQLitePerfDb(DbKinds::PerfDb, p, false); };
+            const auto c = [this]() { return SQLitePerfDb(DbKinds::PerfDb, temp_file, false); };
         DBMultiThreadedTestWork::FillForReading(c);
 
         std::cout << "Launching test processes..." << std::endl;
@@ -928,11 +934,11 @@ public:
             {
                 auto args =
                     std::string{"--"} + DbMultiProcessTest::id_arg + " " + std::to_string(id++) +
-                                " --" + DbMultiProcessTest::path_arg + " " + p;
+                                " --" + DbMultiProcessTest::path_arg + " " + temp_file;
 
                 if(thread_logs_root())
                 {
-                    args += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " + *thread_logs_root();
+                    args += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " + thread_logs_root()->string();
                 }
 
                 if(full_set())
@@ -965,15 +971,15 @@ public:
     }
 
 private:
-    static std::string LockFilePath(const std::string& db_path) { return db_path + ".test.lock"; }
+    static fs::path LockFilePath(const fs::path& db_path) { return append_extension(db_path, ".test.lock"); }
 };
 
 class DbMultiFileTest : public DbTest
 {
 protected:
-    DbMultiFileTest() : DbTest(), user_db_path{(tmp / "user.db").string()} {}
+    DbMultiFileTest() : DbTest(), user_db_path{tmp / "user.db"} {}
 
-    const std::string user_db_path;
+    const fs::path user_db_path;
 
     void ResetDb() const override
     {
@@ -1187,10 +1193,8 @@ public:
         std::vector<std::thread> threads;
 
         std::cout << "Initializing test data..." << std::endl;
-        const std::string p = temp_file;
-        const auto& up      = user_db_path;
-        const auto c        = [&p, up]() {
-            return MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>(DbKinds::PerfDb, p, up);
+        const auto c = [this]() {
+            return MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>(DbKinds::PerfDb, temp_file, user_db_path);
         };
         ResetDb();
         DBMultiThreadedTestWork::FillForReading(c);
@@ -1234,10 +1238,8 @@ public:
 
         std::cout << "Launching test threads..." << std::endl;
         threads.reserve(DBMultiThreadedTestWork::threads_count);
-        const std::string p = temp_file;
-        const auto up       = user_db_path;
-        const auto c        = [&p, &up]() {
-            return MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>(DbKinds::PerfDb, p, up);
+        const auto c = [this]() {
+            return MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>(DbKinds::PerfDb, temp_file, user_db_path);
         };
 
         {

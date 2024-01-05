@@ -43,6 +43,7 @@
 #include <boost/any.hpp>
 
 #include <string>
+#include <filesystem>
 #include <tuple>
 #include <vector>
 #include <unordered_map>
@@ -386,7 +387,7 @@ std::ostream& operator<<(std::ostream& stream, const ConvolutionDescriptor& c);
 void DumpTensorToFileFromDevice(const miopen::Handle& handle,
                                 const miopen::TensorDescriptor& tDesc,
                                 ConstData_t dData,
-                                const std::string& filename);
+                                const fs::path& filename);
 
 } // namespace miopen
 

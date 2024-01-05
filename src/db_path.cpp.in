@@ -44,14 +44,14 @@ namespace miopen {
 #ifdef __linux__
 fs::path GetLibPath()
 {
-    fs::path path = {""};
+    fs::path path;
     Dl_info info;
 
     if(dladdr(reinterpret_cast<void*>(miopenCreate), &info) != 0)
     {
         path = fs::canonical(fs::path{info.dli_fname});
         MIOPEN_LOG_I2(std::string("Lib Path: ") + path.string());
-        if(path.empty())
+        if(!path.has_parent_path())
             return path;
 
         path = path.parent_path();
@@ -60,7 +60,7 @@ fs::path GetLibPath()
 }
 #endif
 
-std::string GetSystemDbPath()
+fs::path GetSystemDbPath()
 {
     auto p = GetStringEnv(ENV(MIOPEN_SYSTEM_DB_PATH));
     if(p.empty())
@@ -73,7 +73,7 @@ std::string GetSystemDbPath()
 #else
     {
         // Get the module path and construct the db path
-        static const auto lib_path = (GetLibPath().parent_path() / "share/miopen/db/").string();
+        static const auto lib_path = GetLibPath().parent_path() / "share/miopen/db";
         return lib_path;
     }
 #endif

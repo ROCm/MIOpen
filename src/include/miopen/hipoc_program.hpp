@@ -45,19 +45,19 @@ struct HIPOCProgram
     /// is initialized. GetModule(), GetCodeObjectPathname(),
     /// GetCodeObjectBlob() return appropriate data after this ctor.
     /// Other ctors only guarantee to initialize module.
-    HIPOCProgram(const std::string& program_name,
+    HIPOCProgram(const fs::path& program_name,
                  std::string params,
                  const TargetProperties& target,
                  const std::string& kernel_src);
-    HIPOCProgram(const std::string& program_name, const fs::path& hsaco);
-    HIPOCProgram(const std::string& program_name, const std::string& hsaco);
+    HIPOCProgram(const fs::path& program_name, const fs::path& hsaco);
+    HIPOCProgram(const fs::path& program_name, const std::vector<char>& hsaco);
     std::shared_ptr<HIPOCProgramImpl> impl;
     hipModule_t GetModule() const;
     /// \return Pathname of CO file, if it resides on the filesystem.
     /// This function should not be called after FreeCodeObjectFileStorage().
     fs::path GetCodeObjectPathname() const;
     /// \return Copy of in-memory CO blob.
-    std::string GetCodeObjectBlob() const;
+    std::vector<char> GetCodeObjectBlob() const;
     /// \return True if CO blob resides in-memory.
     /// False if CO resides on filesystem.
     bool IsCodeObjectInMemory() const;
