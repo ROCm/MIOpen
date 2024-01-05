@@ -839,4 +839,5 @@ INSTANTIATE_TEST_SUITE_P(DBSyncSuite,
                          testing::Values(std::make_pair("gfx90a", 104),
                                          std::make_pair("gfx1030", 36),
                                          std::make_pair("gfx90a", 110),
-                                         std::make_pair("gfx908", 120)));
+                                         std::make_pair("gfx908", 120),
+                                         std::make_pair("gfx942", 304)));
