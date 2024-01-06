@@ -55,7 +55,7 @@ namespace debug {
 /// If set to true, then always enable ConvDirectNaive* solver, regardless of environment value
 /// MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_* that control enable/disable of these solvers.
 /// Currently used during driver using naive kernel as gpu reference.
-extern bool
+MIOPEN_EXPORT extern bool
     AlwaysEnableConvDirectNaive; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
 } // namespace debug
@@ -2910,7 +2910,7 @@ struct ConvDirectNaiveConvFwd final : ConvSolver
                       const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
-    /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
+    /// GEMM is disabled.
     float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override
     {
         return 0.01f;
@@ -2930,7 +2930,7 @@ struct ConvDirectNaiveConvBwd final : ConvSolver
                       const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
-    /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
+    /// GEMM is disabled.
     float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override
     {
         return 0.01f;
@@ -2950,7 +2950,7 @@ struct ConvDirectNaiveConvWrw final : ConvSolver
                       const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
-    /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
+    /// GEMM is disabled.
     float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override
     {
         return 0.01f;
@@ -3090,10 +3090,6 @@ struct GemmBwd1x1_stride1 final : GemmBwdBase
 
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription& problem) const override;
-
-private:
-    bool IsApplicableBeforeWorkaround(const ExecutionContext&,
-                                      const miopen::conv::ProblemDescription&) const;
 
     friend struct GemmBwdRest;
 };

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,36 +24,15 @@
  *
  *******************************************************************************/
 
-#include <miopen/config.h>
-#include <miopen/solver/gemm_common.hpp>
+#pragma once
 
-#include <tuple> // std::ignore
+#include <miopen/env.hpp>
 
-/// This W/A disables all GEMM convolution solvers for xDLOPs
-/// targets when MIOpenGEMM is used (OCL BE). More info at
-/// https://github.com/ROCm/MIOpen/issues/1315.
-///
-/// W/A affects ROCm releases starting from 4.5 and also
-/// pre-5.0 Mainline HIP builds, e.g. 9148.
-#define WORKAROUND_ISSUE_1315 (MIOPEN_USE_MIOPENGEMM && (HIP_PACKAGE_VERSION_FLAT >= 4004000000ULL))
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
-namespace miopen {
-namespace solver {
-namespace conv {
-namespace gemm {
-
-bool IsWorkaroundIssue1315(const miopen::ExecutionContext& ctx)
+inline bool IsTestRunWith(const char* float_arg)
 {
-#if WORKAROUND_ISSUE_1315
-    const auto device = ctx.GetStream().GetTargetProperties().Name();
-    return (device == "gfx908") || (device == "gfx90a");
-#else
-    std::ignore = ctx;
-    return false;
-#endif
+    assert(float_arg != nullptr);
+    const auto& s_envVar = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    return (s_envVar.compare(float_arg) == 0);
 }
-
-} // namespace gemm
-} // namespace conv
-} // namespace solver
-} // namespace miopen

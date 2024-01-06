@@ -289,7 +289,7 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
         }
     }
 
-    std::size_t out_c;
+    std::size_t out_c = 0;
     std::vector<std::size_t> out_lens(spatial_dim + 2);
 
     auto out_spatial = boost::adaptors::slice(out_lens, 2, 2 + spatial_dim);

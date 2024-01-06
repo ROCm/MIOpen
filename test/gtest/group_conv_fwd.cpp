@@ -32,7 +32,9 @@
 #include "get_handle.hpp"
 #include "group_solver.hpp"
 
-struct GroupConv2DFloat : GroupConvTestFix<float>
+using namespace group_conv_2d;
+
+struct GroupConv2DFloat : GroupConvTestFix<float, Direction::Forward>
 {
 };
 

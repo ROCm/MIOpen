@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,22 +23,30 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#pragma once
 
-#ifndef GUARD_SOLVER_GEMM_COMMON_HPP_
-#define GUARD_SOLVER_GEMM_COMMON_HPP_
+#ifdef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 
-#include <miopen/execution_context.hpp>
+#include "miopen_type_traits.hpp" // std::remove_reference
 
-namespace miopen {
-namespace solver {
-namespace conv {
-namespace gemm {
+namespace std {
 
-bool IsWorkaroundIssue1315(const miopen::ExecutionContext& ctx);
+template <typename T>
+constexpr T&& forward(typename remove_reference<T>::type& t_) noexcept
+{
+    return static_cast<T&&>(t_);
+}
 
-} // namespace gemm
-} // namespace conv
-} // namespace solver
-} // namespace miopen
+template <typename T>
+constexpr T&& forward(typename remove_reference<T>::type&& t_) noexcept
+{
+    return static_cast<T&&>(t_);
+}
+
+} // namespace std
+
+#else
+
+#include <utility>
 
 #endif

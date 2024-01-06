@@ -1,6 +1,8 @@
 #ifndef CK_ENABLE_IF_HPP
 #define CK_ENABLE_IF_HPP
 
+#include "miopen_type_traits.hpp"
+
 namespace ck {
 
 template <bool B, typename T = void>
