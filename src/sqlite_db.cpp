@@ -235,7 +235,7 @@ int SQLite::Retry(std::function<int()> f, [[maybe_unused]] fs::path filename)
     int rc = f();
     if(rc == SQLITE_BUSY)
     {
-        MIOPEN_THROW("Timeout while waiting for Database: " + filename);
+        MIOPEN_THROW("Timeout while waiting for Database: " + filename.string());
     }
     else
         return rc;
