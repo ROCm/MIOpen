@@ -113,12 +113,12 @@ struct CKArgs
     CKArgs& operator=(const CKArgs&) = default;
 
     template <typename ConvPtr>
-    auto MakeArgPtr(const ConvPtr& conv_ptr, ConstData_t in, ConstData_t w, Data_t out) const
+    auto MakeArgPtr(const ConvPtr& conv_ptr, ConstData_t out, ConstData_t w, Data_t in) const
     {
-        return conv_ptr->MakeArgumentPointer(in,
+        return conv_ptr->MakeArgumentPointer(out,
                                              w,
                                              {},
-                                             out,
+                                             in,
                                              output,
                                              out_strides,
                                              weight,

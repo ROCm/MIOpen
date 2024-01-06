@@ -32,67 +32,16 @@
 #include "get_handle.hpp"
 #include "group_solver.hpp"
 
-struct ConvFwdSolverTestFloat : ConvFwdSolverTest<float>
+struct GroupConv2DFloat : GroupConvTestFix<float>
 {
 };
 
-template <typename Solver>
-void SolverFwd(const miopen::TensorDescriptor& inputDesc,
-               ConstData_t input,
-               const miopen::TensorDescriptor& wDesc,
-               ConstData_t weight,
-               const miopen::TensorDescriptor& outputDesc,
-               Data_t output,
-               const miopen::ConvolutionDescriptor& convDesc,
-               const ConvTestCase& conv_config,
-               bool& test_skipped)
+TEST_P(GroupConv2DFloat, GroupConv2DFwdFloat)
 {
-    auto&& handle = get_handle();
-
-    Solver solv{};
-
-    const auto tensors =
-        miopen::ConvFwdTensors{inputDesc, input, wDesc, weight, outputDesc, output};
-
-    const auto problem = miopen::conv::ProblemDescription{
-        inputDesc, wDesc, outputDesc, convDesc, miopen::conv::Direction::Forward};
-    auto ctx = miopen::ExecutionContext{};
-
-    ctx.SetStream(&handle);
-
-    if(!solv.IsApplicable(ctx, problem))
-    {
-        test_skipped = true;
-        GTEST_SKIP() << solv.SolverDbId()
-                     << "ConvHipImplicitGemmFwdXdlops Not Applicable for this problem"
-                     << conv_config;
-    }
-    const auto invoke_params = miopen::conv::DataInvokeParams{tensors, nullptr, 0, false};
-
-    ASSERT_TRUE(solv.IsApplicable(ctx, problem));
-    auto sol = solv.GetSolution(ctx, problem, solv.GetDefaultPerformanceConfig(ctx, problem));
-    ASSERT_TRUE(sol.Succeeded());
-    ASSERT_TRUE(sol.invoker_factory);
-    const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
-    (invoker)(handle, invoke_params);
-    handle.Finish();
+  RunSolver();
 }
 
-TEST_P(ConvFwdSolverTestFloat, CKGroupConvFwd)
-{
-    SolverFwd<miopen::solver::conv::ConvHipImplicitGemmGroupFwdXdlops>(input.desc,
-                                                                       in_dev.get(),
-                                                                       weights.desc,
-                                                                       wei_dev.get(),
-                                                                       output.desc,
-                                                                       out_dev.get(),
-                                                                       conv_desc,
-                                                                       conv_config,
-                                                                       test_skipped);
-}
-
-INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
-                         ConvFwdSolverTestFloat,
-                         testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
-                                          testing::ValuesIn(ConvTestConfigs()),
+INSTANTIATE_TEST_SUITE_P(GroupConv2DSuite,
+                         GroupConv2DFloat,
+                         testing::Combine(testing::ValuesIn(ConvTestConfigs()),
                                           testing::Values(miopenTensorNHWC)));

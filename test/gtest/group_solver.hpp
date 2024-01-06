@@ -33,6 +33,8 @@
 #include "../driver/tensor_driver.hpp"
 #include "conv_common.hpp"
 
+namespace group_conv_2d {
+
 template <typename T>
 miopenDataType_t GetDataType();
 
@@ -111,22 +113,10 @@ std::vector<ConvTestCase> ConvTestConfigs()
             {32, 256, 1024, 28, 28, 2048, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
 }
 
-inline int SetTensorLayout(miopen::TensorDescriptor& desc)
-{
-    // get layout string names
-    std::string layout_str = desc.GetLayout_str();
-
-    std::vector<std::size_t> lens = desc.GetLengths();
-    std::vector<int> int_lens(lens.begin(), lens.end());
-
-    // set the strides for the tensor
-    return SetTensorNd(&desc, int_lens, layout_str, desc.GetType());
-}
-
 using Direction = miopen::conv::Direction;
 
 template <typename T, Direction CONV_DIR>
-struct Conv2DGroupTestFix
+struct GroupConvTestFix
     : public ::testing::TestWithParam<
           std::tuple<miopenConvFwdAlgorithm_t, ConvTestCase, miopenTensorLayout_t>>
 {
@@ -168,17 +158,17 @@ private:
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
   }
 
-  template <typename Solver, typename ConvTensorsType, typename InvokeParamType>
-  void RunSolverImpl() {
+  /// \todo had to pull out tensor and problem construction because the order of
+  /// tensors and tensor-descriptors varies by direction. Will move these
+  /// constructors back in this method once we have a uniform order of (x, w, y)
+  /// tensors everywhere. 
+  template <typename Solver, typename InvokeParamType, typename ConvTensorsType, typename ProblemDescription>
+  void RunSolverImpl(const ConvTensorsType& tensors, const ProblemDescription& problem) {
+
     auto&& handle = get_handle();
 
     Solver solv{};
 
-    const auto tensors =
-        ConvTensorsType{inputDesc, input, wDesc, weight, outputDesc, output};
-
-    const auto problem = miopen::conv::ProblemDescription{
-        inputDesc, wDesc, outputDesc, convDesc, CONV_DIR};
     auto ctx = miopen::ExecutionContext{};
 
     ctx.SetStream(&handle);
@@ -209,14 +199,45 @@ private:
   void RunSolver() {
         if constexpr (CONV_DIR == Direction::Forward) {
           RunSolverImpl<
-            miopen::solver::conv::ConvHipImplicitGemmGroupFwdXdlops,
-            miopen::>();
+            miopen::solver::conv::ConvHipImplicitGemmGroupFwdXdlops, miopen::conv::DataInvokeParams>(
+                miopen::ConvDataTensors{
+                  input.desc, in_dev.get(), 
+                  weights.desc, wei_dev.get(), 
+                  output.desc, out_de.get()v
+                },
+                miopen::conv::ProblemDescription{
+                  input.desc, 
+                  weights.desc, 
+                  ouput.desc, 
+                  conv_desc, CONV_DIR});
 
         } else if constexpr (CONV_DIR == Direction::BackwardData) {
-          SetupBwd(gen_value);
+          RunSolverImpl<
+            miopen::solver::conv::ConvHipImplicitGemmGroupBwdXdlops, miopen::conv::DataInvokeParams>(
+                miopen::ConvDataTensors{
+                  output.desc, out_dev.get(),
+                  weights.desc, wei_dev.get(), 
+                  input.desc, in_dev.get() 
+                },
+                miopen::conv::ProblemDescription{
+                  ouput.desc, 
+                  weights.desc, 
+                  input.desc, 
+                  conv_desc, CONV_DIR});
         } else {
           static_assert(CONV_DIR == Direction::BackwardWeights);
-          SetupWrw(gen_value);
+          RunSolverImpl<
+            miopen::solver::conv::ConvHipImplicitGemmGroupFwdXdlops, miopen::conv::DataInvokeParams>(
+                miopen::ConvWrwTensors{
+                  output.desc, out_dev.get(),
+                  weights.desc, wei_dev.get(), 
+                  input.desc, in_dev.get() 
+                },
+                miopen::conv::ProblemDescription{
+                  ouput.desc, 
+                  weights.desc, 
+                  input.desc, 
+                  conv_desc, CONV_DIR});
         }
   }
 
@@ -224,19 +245,16 @@ protected:
     void SetUp() override
     {
         test_skipped                               = false;
-        std::tie(algo, conv_config, tensor_layout) = GetParam();
+        std::tie(conv_config, tensor_layout) = GetParam();
 
         input   = tensor<T>{tensor_layout, conv_config.GetInput()};
         weights = tensor<T>{tensor_layout, conv_config.GetWeights()};
-        SetTensorLayout(input.desc);
-        SetTensorLayout(weights.desc);
 
         conv_desc = conv_config.GetConv();
 
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensorWithLayout(input.desc, weights.desc, tensor_layout, GetDataType<T>());
         output = tensor<T>{tensor_layout, output_desc.GetLengths()};
-        SetTensorLayout(output.desc);
 
         auto gen_value = [](auto...) {
             return prng::gen_A_to_B(static_cast<T>(-3.0), static_cast<T>(3.0));
@@ -292,8 +310,9 @@ protected:
     miopen::Allocator::ManageDataPtr in_dev;
     miopen::Allocator::ManageDataPtr wei_dev;
     miopen::Allocator::ManageDataPtr out_dev;
-    miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoImplicitGEMM;
     bool test_skipped             = false;
-    miopenTensorLayout_t tensor_layout;
+    miopenTensorLayout_t tensor_layout = miopenTensorNHWC;
     Workspace wspace{};
 };
+
+} // namespace group_conv_2d
