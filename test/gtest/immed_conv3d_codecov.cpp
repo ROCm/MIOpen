@@ -35,6 +35,22 @@ MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
 
 namespace immed_conv3d_codecov {
 
+class Conv3dFloat : public testing::TestWithParam<std::vector<std::string>>
+{
+};
+
+class Conv3dHalf : public testing::TestWithParam<std::vector<std::string>>
+{
+};
+
+class Conv3dBFloat16 : public testing::TestWithParam<std::vector<std::string>>
+{
+};
+
+class Conv3dInt8 : public testing::TestWithParam<std::vector<std::string>>
+{
+};
+
 static bool SkipTest(void) { return !miopen::IsEnabled(ENV(CODECOV_TEST)); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
@@ -98,22 +114,6 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
     return test_cases;
 }
-
-class Conv3dFloat : public testing::TestWithParam<std::vector<std::string>>
-{
-};
-
-class Conv3dHalf : public testing::TestWithParam<std::vector<std::string>>
-{
-};
-
-class Conv3dBFloat16 : public testing::TestWithParam<std::vector<std::string>>
-{
-};
-
-class Conv3dInt8 : public testing::TestWithParam<std::vector<std::string>>
-{
-};
 
 } // namespace immed_conv3d_codecov
 using namespace immed_conv3d_codecov;
