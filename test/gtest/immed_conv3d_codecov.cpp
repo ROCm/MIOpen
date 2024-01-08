@@ -99,7 +99,6 @@ std::vector<std::string> GetTestCases(const std::string& precision)
     return test_cases;
 }
 
-
 class Conv3dFloat : public testing::TestWithParam<std::vector<std::string>>
 {
 };
