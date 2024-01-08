@@ -153,7 +153,7 @@ struct ConvolutionAttribute
     friend void from_json(const nlohmann::json& json, ConvolutionAttribute& conv);
 };
 
-struct ConvolutionDescriptor : miopenConvolutionDescriptor
+struct MIOPEN_EXPORT ConvolutionDescriptor : miopenConvolutionDescriptor
 {
     ConvolutionDescriptor(std::size_t spatial_dim,
                           miopenConvolutionMode_t c_mode,
