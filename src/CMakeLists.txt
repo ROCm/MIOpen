@@ -99,7 +99,7 @@ set( MIOpen_Source
     conv/invokers/impl_gemm_dynamic.cpp
     conv/invokers/ocl_wrw_rdc.cpp
     conv/problem_description.cpp
-        conv/solver_finders.cpp
+    conv/solver_finders.cpp
     conv_algo_name.cpp
     convolution.cpp
     convolution_api.cpp
@@ -134,6 +134,7 @@ set( MIOpen_Source
     pooling/problem_description.cpp
     pooling_api.cpp
     problem.cpp
+    process.cpp
     ramdb.cpp
     readonlyramdb.cpp
     reducetensor.cpp
@@ -380,23 +381,27 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_stride1.inc
         kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_stride2.inc
         kernels/Conv_Winograd_v30_3_1_metadata.inc
-        kernels/xform_bidirect_winograd_code.inc
-        kernels/rocm_version.inc
-        kernels/inst_wrappers.inc
+        kernels/bfloat16_dev.hpp
         kernels/conv_common.inc
+        kernels/conv_sizes.inc
+        kernels/float_types.h
+        kernels/gpr_alloc.inc
+        kernels/hip_f8_impl.hpp
+        kernels/hip_float8.hpp
+        kernels/inst_wrappers.inc
+        kernels/miopen_cstdint.hpp
+        kernels/miopen_limits.hpp
+        kernels/miopen_type_traits.hpp
+        kernels/miopen_utility.hpp
+        kernels/neuron.inc
+        kernels/rocm_version.inc
+        kernels/stride_array.hpp
         kernels/utilities.inc
+        kernels/workaround_issue_1431.hpp
+        kernels/xform_bidirect_winograd_code.inc
         kernels/xform_data_filter.inc
         kernels/xform_kd_cov2.inc
         kernels/xform_metadata.inc
-        kernels/neuron.inc
-        kernels/conv_sizes.inc
-        kernels/gpr_alloc.inc
-        kernels/bfloat16_dev.hpp
-        kernels/float_types.h
-        kernels/workaround_issue_1431.hpp
-        kernels/hip_f8_impl.hpp
-        kernels/hip_float8.hpp
-        kernels/stride_array.hpp
         )
 
     set(MIOPEN_KERNELS
@@ -717,10 +722,9 @@ if(WIN32)
 endif()
 
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
-target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
-# Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS} 
+# Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS}
 #               We can remove ${CMAKE_DL_LIBS} once root cause is identified.
-target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} Threads::Threads ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
+target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} Threads::Threads BZip2::BZip2 ${MIOPEN_CK_LINK_FLAGS})
 miopen_generate_export_header(MIOpen)
 
 if(BUILD_TESTING)
@@ -841,7 +845,7 @@ if(NOT WIN32 AND NOT APPLE)
     endif()
 endif()
 
-if(NOT WIN32)
+if(MIOPEN_USE_ROCTRACER)
     target_link_libraries(MIOpen PRIVATE roctx64)
 endif()
 
