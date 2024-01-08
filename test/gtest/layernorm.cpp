@@ -32,7 +32,15 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace layernorm {
 
-std::string GetFloatArg() { return miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)); }
+std::string GetFloatArg()
+{
+    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    if(tmp.empty())
+    {
+        return "";
+    }
+    return tmp;
+}
 
 struct LayerNormTestFloat : LayerNormTest<float>
 {
