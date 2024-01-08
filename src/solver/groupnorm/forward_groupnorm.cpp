@@ -66,7 +66,8 @@ bool GroupNormForward::IsApplicable(const ExecutionContext&,
         return false;
     if(!(sizeof_local_memory(problem) <= TargetProperties::GetMaxLocalMemorySize()))
         return false;
-    if(problem.GetXDesc().GetLengths()[0] * problem.GetNumGroups() < 32)
+    if(problem.GetXDesc().GetLengths()[0] * problem.GetNumGroups() < 32 ||
+       problem.GetXDesc().GetLengths()[1] / problem.GetNumGroups() >= 64)
         return false;
     return true;
 }
