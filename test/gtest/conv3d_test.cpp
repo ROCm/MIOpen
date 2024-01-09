@@ -70,7 +70,7 @@ void Run3dDriver(miopenDataType_t prec)
         FAIL() << "miopenHalf, miopenBFloat16, miopenInt8, miopenInt32, "
                   "miopenDouble data "
                   "type not supported by "
-                  "test_conv_hip_igemm_xdlops test";
+                  "test_conv3d_extra test";
 
     default: params = ConfigWithFloat::GetParam();
     }
@@ -95,7 +95,9 @@ void Run3dDriver(miopenDataType_t prec)
 bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
     std::string devName = handle.GetDeviceName();
-    if(devName == "gfx94" || devName == "gfx103" || devName == "gfx110")
+    if(devName == "gfx900" || devName == "gfx906" || devName == "gfx908" || devName == "gfx90a" ||
+       miopen::StartsWith(devName, "gfx94") || miopen::StartsWith(devName, "gfx103") ||
+       miopen::StartsWith(devName, "gfx110"))
         return true;
     else
         return false;
@@ -137,14 +139,8 @@ using namespace conv3d_test;
 
 TEST_P(ConfigWithFloat, FloatTest_conv3d_test)
 {
-#if MIOPEN_BACKEND_OPENCL
-
-    GTEST_SKIP() << "MIOPEN_BACKEND_HIP needed for this test";
-
-#else // MIOPEN_BACKEND_HIP, OCL_DISABLED
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && miopen::IsEnabled(ENV(MIOPEN_TEST_COMPOSABLEKERNEL)) &&
-       miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && IsTestRunWith("--float"))
+    if(IsTestSupportedForDevice(handle) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
+       IsTestRunWith("--float"))
     {
         Run3dDriver(miopenFloat);
     }
@@ -152,7 +148,8 @@ TEST_P(ConfigWithFloat, FloatTest_conv3d_test)
     {
         GTEST_SKIP();
     }
-#endif
 };
 
-INSTANTIATE_TEST_SUITE_P(Conv3dTest, ConfigWithFloat, testing::ValuesIn(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Conv3dTestExtra,
+                         ConfigWithFloat,
+                         testing::ValuesIn(GetTestCases("--float")));
