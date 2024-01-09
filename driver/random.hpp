@@ -5,7 +5,7 @@
 #include <iostream>
 #include <random>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DRIVER_PRNG_SEED)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DRIVER_PRNG_SEED, uint64_t, 12345678)
 namespace prng {
 namespace details {
 using glibc_gen = std::linear_congruential_engine<std::uint32_t, 1103515245, 12345, 2147483648>;
@@ -13,7 +13,7 @@ using glibc_gen = std::linear_congruential_engine<std::uint32_t, 1103515245, 123
 inline std::random_device::result_type get_default_seed()
 {
     static std::random_device::result_type seed{[] {
-        auto external_seed = miopen::Value(MIOPEN_DEBUG_DRIVER_PRNG_SEED{}, 12345678);
+        auto external_seed = miopen::Value(ENV(MIOPEN_DEBUG_DRIVER_PRNG_SEED));
 
         auto seed = external_seed == 0
                         ? std::random_device{}()
@@ -109,7 +109,9 @@ inline T gen_subnorm()
     if constexpr(!std::is_integral_v<T> && !std::is_same_v<T, double> &&
                  details::has_digits<T>::value)
     {
-        using BitType = std::conditional_t<sizeof(T) == 2, uint16_t, uint32_t>;
+        using BitType = std::conditional_t<sizeof(T) == 1,
+                                           uint8_t,
+                                           std::conditional_t<sizeof(T) == 2, uint16_t, uint32_t>>;
         static_assert(sizeof(T) == sizeof(BitType));
 
         // -1 because ::digits counts the first implicit digit

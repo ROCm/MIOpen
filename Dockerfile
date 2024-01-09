@@ -1,4 +1,4 @@
-FROM ubuntu:20.04 as miopen
+FROM ubuntu:22.04 as miopen
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Support multiarch
@@ -18,17 +18,17 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 RUN curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/rocm-keyring.gpg
 
-RUN wget https://repo.radeon.com/amdgpu-install/5.7.1/ubuntu/focal/amdgpu-install_5.7.50701-1_all.deb --no-check-certificate
+RUN wget https://repo.radeon.com/amdgpu-install/6.0/ubuntu/jammy/amdgpu-install_6.0.60000-1_all.deb --no-check-certificate
 RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
-    ./amdgpu-install_5.7.50701-1_all.deb
+    ./amdgpu-install_6.0.60000-1_all.deb
 
 # Add rocm repository
-RUN export ROCM_APT_VER=5.7.1;\
+RUN export ROCM_APT_VER=6.0;\
 echo $ROCM_APT_VER &&\
-sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/amdgpu/$ROCM_APT_VER/ubuntu focal main > /etc/apt/sources.list.d/amdgpu.list' &&\
-sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/rocm/apt/$ROCM_APT_VER focal main > /etc/apt/sources.list.d/rocm.list'
-RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu focal main universe | tee -a /etc/apt/sources.list"
+sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/amdgpu/$ROCM_APT_VER/ubuntu jammy main > /etc/apt/sources.list.d/amdgpu.list' &&\
+sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/rocm/apt/$ROCM_APT_VER jammy main > /etc/apt/sources.list.d/rocm.list'
+RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu jammy main universe | tee -a /etc/apt/sources.list"
 
 RUN amdgpu-install -y --usecase=rocm --no-dkms
 
@@ -50,6 +50,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     python3-pip \
     python3-venv \
     rocblas \
+    rocm-developer-tools \
     rpm \
     software-properties-common && \
     apt-get clean && \
@@ -96,28 +97,25 @@ RUN tar zxvf /tmp/ccache.tar.gz -C /tmp/ && mkdir /tmp/ccache-${CCACHE_COMMIT}/b
     cd /tmp/ccache-${CCACHE_COMMIT}/build && \
     cmake -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON .. && make -j install && rm -rf /tmp/*
 RUN ccache -s 
+
+# purge existing composable kernel installed with ROCm
+# hence cannot use autoremove since it will remove more components
+RUN apt-get update && \
+DEBIAN_FRONTEND=noninteractive apt-get purge -y --allow-unauthenticated \
+    composablekernel-dev
 ARG COMPILER_LAUNCHER=""
 RUN if [ "$USE_FIN" = "ON" ]; then \
-        rbuild prepare -s fin -d $PREFIX -DAMDGPU_TARGETS=${GPU_ARCH} -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
+        rbuild prepare -s fin -d $PREFIX -DGPU_TARGETS=${GPU_ARCH} -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
     else \
-        rbuild prepare -s develop -d $PREFIX -DAMDGPU_TARGETS=${GPU_ARCH} -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
+        rbuild prepare -s develop -d $PREFIX -DGPU_TARGETS=${GPU_ARCH} -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
     fi
 
 RUN ccache -s 
 # Install doc requirements
-ADD docs/.sphinx/requirements.txt /doc-requirements.txt
+ADD docs/sphinx/requirements.txt /doc-requirements.txt
 RUN pip3 install -r /doc-requirements.txt
 
 # Composable Kernel requires this version cmake
 RUN pip3 install --upgrade cmake==3.27.5
-
-# Use parallel job to accelerate tensile build
-# Workaround for Tensile with TargetID feature
-ARG USE_TARGETID="OFF"
-RUN if [ "$USE_TARGETID" = "ON" ] ; then export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4' && export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4' && rm -f /usr/bin/hipcc; fi
-
-# install last released miopentensile in default (master), install latest commits when MIOTENSILE_VER="latest" (develop)
-ARG MIOTENSILE_VER="default"
-RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; fi
 
 RUN groupadd -f render

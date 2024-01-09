@@ -28,6 +28,8 @@
 #include <hip/hip_fp16.h>
 #endif
 
+#include "miopen_cstdint.hpp"
+
 #ifndef BATCHED_TRANSPOSE_OCCUPANCY
 #define BATCHED_TRANSPOSE_OCCUPANCY 4
 #endif

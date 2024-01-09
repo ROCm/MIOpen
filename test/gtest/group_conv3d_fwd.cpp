@@ -32,7 +32,26 @@
 #include "get_handle.hpp"
 #include "group_conv3d_fwd.hpp"
 
-struct ConvFwdSolverTest3D : ConvFwdSolverTest<half_float::half>
+namespace group_conv3d_fwd {
+
+std::vector<Conv3DTestCase> ConvTestConfigs()
+{ // g    n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
+    return {{1, 128, 64, 14, 28, 28, 64, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {1, 64, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {2, 128, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {32, 128, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {2, 128, 32, 28, 28, 28, 32, 3, 3, 3, 0, 0, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {8, 64, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {16, 64, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {2, 128, 32, 28, 28, 28, 32, 3, 3, 3, 0, 0, 0, 2, 2, 2, 1, 1, 1, miopenConvolution},
+            {8, 64, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 2, 2, 2, 1, 1, 1, miopenConvolution},
+            {16, 64, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 2, 2, 2, 1, 1, 1, miopenConvolution},
+            {3, 48, 48, 28, 28, 28, 48, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {3, 48, 39, 28, 28, 28, 39, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {5, 120, 60, 28, 28, 28, 60, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution}};
+}
+
+struct ConvGroupFwdSolverTest3D : ConvFwdSolverTest<half_float::half>
 {
 };
 
@@ -78,7 +97,10 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     handle.Finish();
 }
 
-TEST_P(ConvFwdSolverTest3D, CKGroupConvFwd3D)
+} // namespace group_conv3d_fwd
+using namespace group_conv3d_fwd;
+
+TEST_P(ConvGroupFwdSolverTest3D, CKGroupConvFwd3D)
 {
     SolverFwd<miopen::solver::conv::ConvHipImplicitGemm3DGroupFwdXdlops>(input.desc,
                                                                          in_dev.get(),
@@ -92,7 +114,7 @@ TEST_P(ConvFwdSolverTest3D, CKGroupConvFwd3D)
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
-                         ConvFwdSolverTest3D,
+                         ConvGroupFwdSolverTest3D,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
                                           testing::ValuesIn(ConvTestConfigs()),
                                           testing::Values(miopenTensorNDHWC)));

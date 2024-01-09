@@ -52,10 +52,11 @@ enum class Primitive
     Bias,
     Fusion,
     Pooling,
-    Normalization
+    Normalization,
+    Reduce
 };
 
-struct Id
+struct MIOPEN_EXPORT Id
 {
     static constexpr uint64_t invalid_value = 0;
 

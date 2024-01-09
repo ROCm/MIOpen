@@ -93,10 +93,12 @@ void callCpuGemmStridedBatched(bool isColMajor,
                                         : a_offset + strideA * bi + lda * mi + ki;
                     int bindex = transB ? b_offset + strideB * bi + ldb * ni + ki
                                         : b_offset + strideB * bi + ldb * ki + ni;
-                    y += a_ptr[aindex] * b_ptr[bindex];
+                    y += static_cast<double>(a_ptr[aindex]) * static_cast<double>(b_ptr[bindex]);
                 }
-                int cindex    = c_offset + strideC * bi + ldc * mi + ni;
-                c_ptr[cindex] = alpha * y + beta * c_ptr[cindex];
+                int cindex = c_offset + strideC * bi + ldc * mi + ni;
+                c_ptr[cindex] =
+                    static_cast<T>(static_cast<double>(alpha) * y +
+                                   static_cast<double>(beta) * static_cast<double>(c_ptr[cindex]));
             }
         }
     }
@@ -141,7 +143,8 @@ private:
 
     T alpha, beta;
 
-    miopen::GemmDescriptor gemm_desc;
+    miopen::GemmDescriptor gemm_desc = {
+        false, false, false, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.0f, 0.0f, miopenFloat, false};
 };
 
 template <typename T>
@@ -180,13 +183,29 @@ int GemmDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename T>
 int GemmDriver<T>::GetandSetData()
 {
-    gemm_desc.isColMajor = inflags.GetValueInt("isColMajor");
+    if constexpr(std::is_same_v<T, float>)
+    {
+        gemm_desc.dataType = miopenFloat;
+    }
+    else if constexpr(std::is_same_v<T, float16>)
+    {
+        gemm_desc.dataType = miopenHalf;
+    }
+    else
+    {
+        static_assert(!"unsupported type");
+    }
+
+    gemm_desc.a_cast_type = data_type;
+    gemm_desc.b_cast_type = data_type;
+
+    gemm_desc.isColMajor = inflags.GetValueInt("isColMajor") != 0;
     gemm_desc.m          = inflags.GetValueInt("a_h");
     gemm_desc.k          = inflags.GetValueInt("a_w");
     gemm_desc.n          = inflags.GetValueInt("b_w");
 
-    gemm_desc.transA = inflags.GetValueInt("transA");
-    gemm_desc.transB = inflags.GetValueInt("transB");
+    gemm_desc.transA = inflags.GetValueInt("transA") != 0;
+    gemm_desc.transB = inflags.GetValueInt("transB") != 0;
 
     gemm_desc.alpha = inflags.GetValueDouble("alpha");
     gemm_desc.beta  = inflags.GetValueDouble("beta");
@@ -207,6 +226,7 @@ int GemmDriver<T>::GetandSetData()
     gemm_desc.strideB = gemm_desc.k * gemm_desc.n;
     gemm_desc.strideC = gemm_desc.m * gemm_desc.n;
 
+    gemm_desc.deterministic = false;
     return (0);
 }
 
@@ -230,27 +250,28 @@ int GemmDriver<T>::AllocateBuffersAndCopy()
     a = std::vector<T>(a_sz);
     b = std::vector<T>(b_sz);
 #if GEMM_DRIVER_DEBUG
-    c = std::vector<T>(c_sz, 1.);
+    c = std::vector<T>(c_sz, static_cast<T>(1));
 #else
-    c                 = std::vector<T>(c_sz, 0.);
+
+    c = std::vector<T>(c_sz, static_cast<T>(0));
 #endif
     chost = c;
 
     for(int i = 0; i < a_sz; i++)
     {
 #if GEMM_DRIVER_DEBUG
-        a[i] = static_cast<double>(i);
+        a[i] = static_cast<T>(i);
 #else
-        a[i] = prng::gen_canonical<double>();
+        a[i] = prng::gen_canonical<T>();
 #endif
     }
 
     for(int i = 0; i < b_sz; i++)
     {
 #if GEMM_DRIVER_DEBUG
-        b[i] = static_cast<double>(i);
+        b[i] = static_cast<T>(i);
 #else
-        b[i] = prng::gen_A_to_B(-0.5, 0.5) * 0.001;
+        b[i] = prng::gen_A_to_B(static_cast<T>(-0.5), static_cast<T>(0.5));
 #endif
     }
 #if MIOPEN_BACKEND_OPENCL
