@@ -2566,8 +2566,6 @@ MIOPEN_EXPORT miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
  */
 /*! @brief Execute a cat forward layer
  *
- * This API only implements the LAYERNORM_MODE_CHANNEL in LAYERNORM_ACCURATE path.
- *
  * @param handle         MIOpen handle (input)
  * @param xCount         Number of input tensor x (input)
  * @param xDescs         Tensor descriptor of input tensor x (input)
