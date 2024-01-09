@@ -78,7 +78,6 @@ public:
     int VerifyForward() override;
     ~GroupNormDriver() override
     {
-
         miopenDestroyTensorDescriptor(inputDesc);
         miopenDestroyTensorDescriptor(weightDesc);
         miopenDestroyTensorDescriptor(biasDesc);
@@ -137,8 +136,8 @@ int GroupNormDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int GroupNormDriver<Tgpu, Tref>::GetandSetData()
 {
-    num_groups = static_cast<int>(inflags.GetValueDouble("num_groups"));
-    eps        = static_cast<double>(inflags.GetValueDouble("eps"));
+    num_groups = inflags.GetValueInt("num_groups");
+    eps        = static_cast<float>(inflags.GetValueDouble("eps"));
     mode       = miopenNormMode_t(inflags.GetValueInt("mode"));
 
     std::vector<int> in_len          = GetInputTensorLengthsFromCmdLine();
@@ -203,15 +202,9 @@ std::vector<int> GroupNormDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
         dim_size = 3;
         return std::vector<int>({in_n, in_c, in_w});
     }
-    else if((in_n != 0) && (in_w != 0))
-    {
-        dim_size = 2;
-        return std::vector<int>({in_n, in_w});
-    }
     else
     {
-        std::cout << "Error Input Tensor Lengths\n" << std::endl;
-        return std::vector<int>({0});
+        MIOPEN_THROW("Error Input Tensor Lengths");
     }
 }
 

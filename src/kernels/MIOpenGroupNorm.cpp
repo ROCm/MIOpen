@@ -119,7 +119,7 @@ extern "C" __global__ void GroupNormFwdContiguous(const FLOAT* __restrict__ x,
         FLOAT_ACCUM pweight;
         FLOAT_ACCUM pbias;
 
-        size_t c = (idx / numel_per_channel) % num_channels;
+        size_t c = mode ? (idx / numel_per_channel) % num_channels : 0;
         pweight  = mode ? CVT_FLOAT2ACCUM(weight[c]) : CVT_FP32_2ACCUM(1.0f);
         pbias    = mode ? CVT_FLOAT2ACCUM(bias[c]) : static_cast<FLOAT>(0);
 

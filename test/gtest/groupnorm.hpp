@@ -30,6 +30,7 @@
 #include "tensor_holder.hpp"
 #include "cpu_groupnorm.hpp"
 #include "get_handle.hpp"
+#include "random.hpp"
 #include "../driver/tensor_driver.hpp"
 #include "verify.hpp"
 #include <random>
@@ -146,7 +147,7 @@ std::vector<GroupNormTestCase> GroupNormTestConfigs()
 
 inline int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
 {
-    std::vector<std::size_t> lens = desc.GetLengths();
+    const std::vector<std::size_t> lens = desc.GetLengths();
     std::vector<int32_t> int32_t_lens(lens.begin(), lens.end());
 
     // set the strides for the tensor
@@ -161,9 +162,7 @@ protected:
     {
         auto&& handle    = get_handle();
         groupnorm_config = GetParam();
-        std::mt19937 gen(0);
-        std::uniform_real_distribution<> d{-3, 3};
-        auto gen_value = [&](auto...) { return d(gen); };
+        auto gen_value   = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
         num_groups = groupnorm_config.num_groups;
         eps        = groupnorm_config.eps;

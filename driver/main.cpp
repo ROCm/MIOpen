@@ -180,15 +180,15 @@ int main(int argc, char* argv[])
     }
     else if(base_arg == "groupnorm")
     {
-        drv = new GroupNormDriver<float, float>();
+        drv = new GroupNormDriver<float, double>();
     }
     else if(base_arg == "groupnormfp16")
     {
-        drv = new GroupNormDriver<float16, float>();
+        drv = new GroupNormDriver<float16, double>();
     }
     else if(base_arg == "groupnormbfp16")
     {
-        drv = new GroupNormDriver<bfloat16, float>();
+        drv = new GroupNormDriver<bfloat16, double>();
     }
     else if(base_arg == "tensorop")
     {

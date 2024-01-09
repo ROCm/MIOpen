@@ -48,9 +48,7 @@ std::size_t sizeof_kernel_FLOAT_ACCUM(const miopen::groupnorm::ProblemDescriptio
 
 std::size_t sizeof_local_memory(const miopen::groupnorm::ProblemDescription& problem)
 {
-    std::size_t rv = 0;
-    rv += LOCAL_SIZE * sizeof_kernel_FLOAT_ACCUM(problem) * 2;
-    return rv;
+    return LOCAL_SIZE * sizeof_kernel_FLOAT_ACCUM(problem) * 2;
 }
 
 bool GroupNormForward::IsApplicable(const ExecutionContext&,

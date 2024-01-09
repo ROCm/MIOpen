@@ -60,6 +60,32 @@ struct ProblemDescription : ProblemDescriptionBase
           num_groups(num_groups_),
           epsilon(epsilon_)
     {
+        if(xDesc.GetType() != yDesc.GetType())
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "GroupNormForward: Tensor types do not match.");
+        }
+        if(meanDesc.GetType() != rstdDesc.GetType())
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "GroupNormForward: Tensor types do not match.");
+        }
+        if(xDesc.GetLengths() != yDesc.GetLengths())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "GroupNormForward: Tensor dimension lengths do not match.");
+        }
+        if((num_groups < 1) || (xDesc.GetLengths().size() < 3) ||
+           (xDesc.GetLengths()[1] % num_groups != 0))
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "GroupNormForward: The channel size of input tensor should be divisible "
+                         "by num_groups.");
+        }
+        if(!(xDesc.IsPacked() && weightDesc.IsPacked() && biasDesc.IsPacked() && yDesc.IsPacked() &&
+             meanDesc.IsPacked() && rstdDesc.IsPacked()))
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "GroupNormForward: Unpacked tensors are not supported.");
+        }
     }
 
     miopenNormMode_t GetMode() const { return mode; }
@@ -76,11 +102,11 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(xDesc.GetType() != yDesc.GetType())
         {
-            MIOPEN_THROW(miopenStatusBadParm, "GroupNormForward: Tensor types do not match.");
+            return false;
         }
         if(meanDesc.GetType() != rstdDesc.GetType())
         {
-            MIOPEN_THROW(miopenStatusBadParm, "GroupNormForward: Tensor types do not match.");
+            return false;
         }
         return true;
     }
@@ -89,20 +115,17 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(xDesc.GetLengths() != yDesc.GetLengths())
         {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "GroupNormForward: Tensor dimension lengths do not match.");
+            return false;
         }
         return true;
     }
 
     bool IsNumGroupsValid() const
     {
-        if((num_groups < 1) || (xDesc.GetLengths().size() < 2) ||
+        if((num_groups < 1) || (xDesc.GetLengths().size() < 3) ||
            (xDesc.GetLengths()[1] % num_groups != 0))
         {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "GroupNormForward: The channel size of input tensor should be divisible "
-                         "by num_groups.");
+            return false;
         }
         return true;
     }
@@ -112,7 +135,7 @@ struct ProblemDescription : ProblemDescriptionBase
         if(!(xDesc.IsPacked() && weightDesc.IsPacked() && biasDesc.IsPacked() && yDesc.IsPacked() &&
              meanDesc.IsPacked() && rstdDesc.IsPacked()))
         {
-            MIOPEN_THROW(miopenStatusBadParm, "GroupNormForward: Unpacked tensors not supported.");
+            return false;
         }
         return true;
     }
