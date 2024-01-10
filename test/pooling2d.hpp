@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-#include <gtest/gtest.h>
 #include "pooling_common.hpp"
 
 #define WORKAROUND_ISSUE_1670 1

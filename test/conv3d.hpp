@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <gtest/gtest.h>
 #include "conv_common.hpp"
 
 template <class T>
