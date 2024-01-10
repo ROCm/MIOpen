@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -58,20 +58,4 @@ struct conv3d_driver : conv_driver<T>
         this->add(this->fil_layout, "fil_layout", this->generate_data({"NCDHW"}));
         this->add(this->out_layout, "out_layout", this->generate_data({"NCDHW"}));
     }
-};
-
-class Conv3dFloat : public testing::TestWithParam<std::vector<std::string>>
-{
-};
-
-class Conv3dHalf : public testing::TestWithParam<std::vector<std::string>>
-{
-};
-
-class Conv3dBFloat16 : public testing::TestWithParam<std::vector<std::string>>
-{
-};
-
-class Conv3dInt8 : public testing::TestWithParam<std::vector<std::string>>
-{
 };
