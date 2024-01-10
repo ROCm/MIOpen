@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,36 +23,45 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_CONV_ALGO_NAME_HPP
-#define GUARD_MIOPEN_CONV_ALGO_NAME_HPP
 
-#include <string>
-#include <miopen/errors.hpp>
-#include <miopen/export.h>
+#ifndef MIOPEN_GUARD_MLOPEN_PROCESS_HPP
+#define MIOPEN_GUARD_MLOPEN_PROCESS_HPP
+
+#include <boost/filesystem.hpp>
+#include <memory>
+#include <string_view>
 
 namespace miopen {
 
-namespace conv {
+struct ProcessImpl;
 
-enum class Direction
+struct Process
 {
-    Forward,
-    BackwardData,
-    BackwardWeights,
+    Process(const boost::filesystem::path& cmd);
+    ~Process() noexcept;
+
+    int operator()(std::string_view args = "", const boost::filesystem::path& cwd = "");
+
+private:
+    std::unique_ptr<ProcessImpl> impl;
 };
 
-} // namespace conv
+struct ProcessAsync
+{
+    ProcessAsync(const boost::filesystem::path& cmd,
+                 std::string_view args              = "",
+                 const boost::filesystem::path& cwd = "");
+    ~ProcessAsync() noexcept;
 
-miopenConvFwdAlgorithm_t StringToConvolutionFwdAlgo(const std::string& s);
-miopenConvBwdDataAlgorithm_t StringToConvolutionBwdDataAlgo(const std::string& s);
-miopenConvBwdWeightsAlgorithm_t StringToConvolutionBwdWeightsAlgo(const std::string& s);
+    ProcessAsync(ProcessAsync&&) noexcept;
+    ProcessAsync& operator=(ProcessAsync&&) noexcept;
 
-MIOPEN_EXPORT
-std::string ConvolutionAlgoToString(miopenConvAlgorithm_t algo);
-std::string ConvolutionAlgoToDirectionalString(miopenConvAlgorithm_t algo, conv::Direction dir);
+    int Wait();
 
-bool IsValidConvolutionDirAlgo(const std::string& s);
+private:
+    std::unique_ptr<ProcessImpl> impl;
+};
 
 } // namespace miopen
 
-#endif // GUARD_MIOPEN_CONV_ALGO_NAME_HPP
+#endif // MIOPEN_GUARD_MLOPEN_PROCESS_HPP
