@@ -370,10 +370,10 @@ private:
             RunSolverImpl<WrwSolver, miopen::conv::WrWInvokeParams>(
                 miopen::ConvWrwTensors{output.desc,
                                        out_dev.get(),
-                                       weights.desc,
-                                       wei_dev.get(),
                                        input.desc,
-                                       in_dev.get()},
+                                       in_dev.get(),
+                                       weights.desc,
+                                       wei_dev.get()},
                 miopen::conv::ProblemDescription{
                     output.desc, weights.desc, input.desc, conv_desc, CONV_DIR});
         }
