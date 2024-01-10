@@ -34,16 +34,14 @@
 
 using namespace group_conv_2d;
 
-struct GroupConv2DFloat : GroupConvTestFix<float, Direction::Forward>
-{
-};
-
-TEST_P(GroupConv2DFloat, GroupConv2DFwdFloat)
-{
-  RunSolver();
-}
-
-INSTANTIATE_TEST_SUITE_P(GroupConv2DSuite,
-                         GroupConv2DFloat,
-                         testing::Combine(testing::ValuesIn(ConvTestConfigs()),
+#define DEFINE_GROUP_CONV_TESTS(type, dir) \
+struct GroupConv2D_##dir##_##type : GroupConvTestFix<type, Direction::dir> {}; \
+TEST_P(GroupConv2D_##dir##_##type , GroupConv2D_##dir##_##type##_Test) { RunSolver(); } \
+INSTANTIATE_TEST_SUITE_P(GroupConv2D_##dir##_##type##_Suite, \
+                         GroupConv2D_##dir##_##type, \
+                         testing::Combine(testing::ValuesIn(ConvTestConfigs()), \
                                           testing::Values(miopenTensorNHWC)));
+
+DEFINE_GROUP_CONV_TESTS(float, Forward);
+DEFINE_GROUP_CONV_TESTS(half, Forward);
+DEFINE_GROUP_CONV_TESTS(int8_t, Forward);

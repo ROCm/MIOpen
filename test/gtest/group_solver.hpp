@@ -36,6 +36,16 @@
 
 namespace group_conv_2d {
 
+template <typename T, typename M = void>
+struct HasGetWorkspaceSize {
+  constexpr static bool value = false;
+};
+
+template <typename T>
+struct HasGetWorkspaceSize<T, decltype(&T::GetWorkSpaceSize)> {
+  constexpr static bool value = true;
+};
+
 struct ConvTestCaseGroup
 {
     size_t G;
@@ -83,7 +93,7 @@ struct ConvTestCaseGroup
     }
 };
 
-template <>
+// TODO: use Direction to control configs template <>
 inline std::vector<ConvTestCaseGroup> ConvTestConfigs()
 { // g  n  c   h   w   k   y  x pad_x pad_y stri_x stri_y dia_x dia_y
     return {{1, 256, 192, 28, 28, 192, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
@@ -97,8 +107,7 @@ inline std::vector<ConvTestCaseGroup> ConvTestConfigs()
 using Direction = miopen::conv::Direction;
 
 template <typename T, Direction CONV_DIR>
-    : public ::testing::TestWithParam<
-          std::tuple<onvTestCaseGroup, miopenTensorLayout_t>>
+struct GroupConvTestFix: public ::testing::TestWithParam< std::tuple<ConvTestCaseGroup, miopenTensorLayout_t>>
 {
 private:
 
@@ -161,8 +170,10 @@ private:
                      << conv_config;
     }
 
-    if (solver.MayNeedWorkspace()) {
-      wspace.resize(solver.GetWorkSpaceSize(ctx, problem));
+    if constexpr (HasGetWorkspaceSize<Solver>::value) {
+    if (solv.MayNeedWorkspace()) {
+      wspace.resize(solv.GetWorkSpaceSize(ctx, problem));
+    }
     }
 
     const auto invoke_params = InvokeParamType{tensors, wspace.ptr(), wspace.size(), false};
@@ -176,6 +187,7 @@ private:
     handle.Finish();
   }
 
+public:
   void RunSolver() {
         if constexpr (CONV_DIR == Direction::Forward) {
           RunSolverImpl<
@@ -183,12 +195,12 @@ private:
                 miopen::ConvDataTensors{
                   input.desc, in_dev.get(), 
                   weights.desc, wei_dev.get(), 
-                  output.desc, out_de.get()v
+                  output.desc, out_dev.get()
                 },
                 miopen::conv::ProblemDescription{
                   input.desc, 
                   weights.desc, 
-                  ouput.desc, 
+                  output.desc, 
                   conv_desc, CONV_DIR});
 
         } else if constexpr (CONV_DIR == Direction::BackwardData) {
@@ -200,7 +212,7 @@ private:
                   input.desc, in_dev.get() 
                 },
                 miopen::conv::ProblemDescription{
-                  ouput.desc, 
+                  output.desc, 
                   weights.desc, 
                   input.desc, 
                   conv_desc, CONV_DIR});
@@ -214,7 +226,7 @@ private:
                   input.desc, in_dev.get() 
                 },
                 miopen::conv::ProblemDescription{
-                  ouput.desc, 
+                  output.desc, 
                   weights.desc, 
                   input.desc, 
                   conv_desc, CONV_DIR});
@@ -233,7 +245,7 @@ protected:
         conv_desc = conv_config.GetConv();
 
         miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensorWithLayout(input.desc, weights.desc, tensor_layout, GetDataType<T>());
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
         output = tensor<T>{tensor_layout, output_desc.GetLengths()};
 
         auto gen_value = [](auto...) {
@@ -241,7 +253,7 @@ protected:
         };
 
         if constexpr (CONV_DIR == Direction::Forward) {
-          SetFwd(gen_value);
+          SetupFwd(gen_value);
         } else if constexpr (CONV_DIR == Direction::BackwardData) {
           SetupBwd(gen_value);
         } else {
@@ -266,16 +278,16 @@ protected:
 
         if constexpr (CONV_DIR == Direction::Forward) {
           ref     = ref_conv_fwd(input, weights, output, conv_desc);
-          handle.ReadToVec(out_dev, output);
+          handle.ReadToVec(out_dev, output.data);
           verify(output);
         } else if constexpr (CONV_DIR == Direction::BackwardData) {
           ref     = ref_conv_bwd(input, weights, output, conv_desc);
-          handle.ReadToVec(in_dev, input);
+          handle.ReadToVec(in_dev, input.data);
           verify(input);
         } else {
           static_assert(CONV_DIR == Direction::BackwardWeights);
           ref     = ref_conv_wrw(input, weights, output, conv_desc);
-          handle.ReadToVec(wei_dev, weights);
+          handle.ReadToVec(wei_dev, weights.data);
           verify(weights);
         }
 
