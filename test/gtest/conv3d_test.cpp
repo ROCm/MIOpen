@@ -92,17 +92,6 @@ void Run3dDriver(miopenDataType_t prec)
     }
 };
 
-bool IsTestSupportedForDevice(const miopen::Handle& handle)
-{
-    std::string devName = handle.GetDeviceName();
-    if(devName == "gfx900" || devName == "gfx906" || devName == "gfx908" || devName == "gfx90a" ||
-       miopen::StartsWith(devName, "gfx94") || miopen::StartsWith(devName, "gfx103") ||
-       miopen::StartsWith(devName, "gfx110"))
-        return true;
-    else
-        return false;
-}
-
 std::vector<std::string> GetTestCases(const std::string& precision)
 {
     std::string psd0 = " --pads_strides_dilations 0 0 0 1 1 1 1 1 1";
@@ -139,8 +128,7 @@ using namespace conv3d_test;
 
 TEST_P(ConfigWithFloat, FloatTest_conv3d_test)
 {
-    if(IsTestSupportedForDevice(handle) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-       IsTestRunWith("--float"))
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && IsTestRunWith("--float"))
     {
         Run3dDriver(miopenFloat);
     }
