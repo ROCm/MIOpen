@@ -34,7 +34,6 @@
 
 using namespace group_conv;
 
-
 DEFINE_GROUP_CONV2D_TEST(float, Forward);
 DEFINE_GROUP_CONV2D_TEST(half, Forward);
 DEFINE_GROUP_CONV2D_TEST(int8_t, Forward);
