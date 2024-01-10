@@ -24,13 +24,14 @@
  *
  *******************************************************************************/
 
-#include <miopen/cat/solvers.hpp>
+#include <miopen/softmax/solvers.hpp>
 
-#include <miopen/cat/cat_invoke_params.hpp>
+#include <miopen/softmax/invoke_params.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/softmax.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/target_properties.hpp>
+#include <miopen/float_equal.hpp>
 
 namespace miopen {
 
@@ -45,10 +46,17 @@ bool SoftmaxForward::IsApplicable(const ExecutionContext& context,
 }
 
 
-ConvSolution CatForward::GetSolution(const ExecutionContext& context,
+ConvSolution SoftmaxForward::GetSolution(const ExecutionContext& context,
                                      const miopen::softmax::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
+
+    auto xDesc = problem.GetXDesc();
+    auto yDesc = problem.GetYDesc();
+    auto alpha = problem.GetAlpha();
+    auto beta = problem.GetBeta();
+    auto mode = problem.GetMode();
+    auto algorithm = problem.GetAlgorithm();
 
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(yDesc.GetLengths());
@@ -64,7 +72,7 @@ ConvSolution CatForward::GetSolution(const ExecutionContext& context,
     int spatial_dim = mode == MIOPEN_SOFTMAX_MODE_INSTANCE ? 1 : h * w;
     int vector_size = mode == MIOPEN_SOFTMAX_MODE_INSTANCE ? c * h * w : c;
     // num_spatial_dims or pixels each workgroup can compute
-    int num_batch = vector_size < 256 ? nextPow2(256 / vector_size) : 1;
+    int num_batch = vector_size < 256 ? miopen::softmax::nextPow2(256 / vector_size) : 1;
 
     const std::vector<size_t> vld{256, 1, 1};
 
@@ -85,7 +93,7 @@ ConvSolution CatForward::GetSolution(const ExecutionContext& context,
     {
         int batch_size = 256 / num_batch;
         // num_channels each threads iterates over to cover all the channels
-        int u_batch_size = (vector_size > batch_size) ? nextPow2(vector_size / batch_size) : 1;
+        int u_batch_size = (vector_size > batch_size) ? miopen::softmax::nextPow2(vector_size / batch_size) : 1;
 
         build_params.Define("-DBATCH_SIZE", batch_size);
         build_params.Define("-DU_BATCH_SIZE", u_batch_size);
@@ -143,7 +151,7 @@ ConvSolution CatForward::GetSolution(const ExecutionContext& context,
         kernel.g_wk.push_back(vgd[i]);
     }
 
-    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::softmax::InvokeParams>();

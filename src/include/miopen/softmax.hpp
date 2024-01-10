@@ -34,7 +34,7 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-miopenStatus_t SoftmaxForward(const Handle& handle,
+miopenStatus_t SoftmaxForward(Handle& handle,
                               const void* alpha,
                               const void* beta,
                               const TensorDescriptor& xDesc,

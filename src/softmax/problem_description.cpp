@@ -33,6 +33,26 @@ namespace miopen {
 
 namespace softmax {
 
+int nextPow2(int v)
+{
+
+    if(v == 1)
+    {
+        return (v << 1);
+    }
+    else
+    {
+        v--;
+        v |= v >> 1;
+        v |= v >> 2;
+        v |= v >> 4;
+        v |= v >> 8;
+        v |= v >> 16;
+        v++;
+        return v;
+    }
+}
+
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {  
     std::string network_config;
@@ -110,4 +130,3 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 } // namespace softmax
 
 } // namespace miopen
- 

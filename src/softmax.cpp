@@ -29,6 +29,11 @@
 #include <miopen/check_numerics.hpp>
 #include <miopen/tensor.hpp>
 
+#include <miopen/softmax/invoke_params.hpp>
+#include <miopen/softmax/solvers.hpp>
+#include <miopen/find_solution.hpp>
+
+
 namespace miopen {
 
 int nextPow2(int v)
@@ -51,7 +56,7 @@ int nextPow2(int v)
     }
 }
 
-miopenStatus_t SoftmaxForward(const Handle& handle,
+miopenStatus_t SoftmaxForward(Handle& handle,
                               const void* alpha,
                               const void* beta,
                               const TensorDescriptor& xDesc,
@@ -63,6 +68,21 @@ miopenStatus_t SoftmaxForward(const Handle& handle,
                               int x_offset,
                               int y_offset)
 {
+    if(x == nullptr || y == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
+    }
+
+    if(xDesc.GetType() != yDesc.GetType())
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor types do not match.");
+    }
+
+    if(xDesc.GetLengths() != yDesc.GetLengths())
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
+    }
+
     const auto problem       = softmax::ProblemDescription{alpha, beta, xDesc, yDesc, algorithm, mode};
     const auto invoke_params = softmax::InvokeParams{alpha, beta, xDesc, x, yDesc, y, algorithm, mode, x_offset, y_offset};
     const auto algo          = problem.GetNumBatch() == 1 ? AlgorithmName{"SoftmaxForwardOneBatch"} : AlgorithmName{"SoftmaxForwardMultiBatch"};

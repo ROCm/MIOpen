@@ -27,6 +27,7 @@
 #pragma once
 
 #include <miopen/problem_description_base.hpp>
+#include <miopen/tensor.hpp>
 
 
 namespace miopen {
@@ -35,6 +36,7 @@ struct NetworkConfig;
 
 namespace softmax {
 
+int nextPow2(int v);
 
 struct ProblemDescription : ProblemDescriptionBase
 {
@@ -43,12 +45,9 @@ struct ProblemDescription : ProblemDescriptionBase
                         const TensorDescriptor& xDesc_,
                         const TensorDescriptor& yDesc_,
                         miopenSoftmaxAlgorithm_t algorithm_,
-                        miopenSoftmaxMode_t mode_,
-)
-        : alpha(alpha_), beta(beta_), xDesc(xDesc_), yDesc(yDesc_), algorithm(algorithm_), mode(mode_)
+                        miopenSoftmaxMode_t mode_) :
+        alpha(alpha_), beta(beta_), xDesc(xDesc_), yDesc(yDesc_), algorithm(algorithm_), mode(mode_)
     {
-        CheckParamsAndThrowExceptionIfNeccessary();
-
         int n, c, h, w;
         std::tie(n, c, h, w) = tien<4>(yDesc.GetLengths());
 
@@ -57,35 +56,24 @@ struct ProblemDescription : ProblemDescriptionBase
         calculatedNumBatches = vector_size < 256 ? nextPow2(256 / vector_size) : 1;
     }
 
-    void CheckParamsAndThrowExceptionIfNeccessary()
-    {
-        if(x == nullptr || y == nullptr)
-        {
-            MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
-        }
-
-        if(xDesc.GetType() != yDesc.GetType())
-        {
-            MIOPEN_THROW(miopenStatusBadParm, "Tensor types do not match.");
-        }
-
-        if(xDesc.GetLengths() != yDesc.GetLengths())
-        {
-            MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
-        }
-    }
-
     NetworkConfig MakeNetworkConfig() const override;
 
     int GetNumBatch() const {return calculatedNumBatches;}
+
+    const void* GetAlpha() const {return alpha;}
+    const void* GetBeta() const {return beta;}
+    const TensorDescriptor& GetXDesc() const {return xDesc;}
+    const TensorDescriptor& GetYDesc() const {return yDesc;}
+    const miopenSoftmaxAlgorithm_t GetAlgorithm() const {return algorithm;}
+    const miopenSoftmaxMode_t GetMode() const {return mode;}
 
 private:
     const void* alpha;
     const void* beta;
     const TensorDescriptor& xDesc;
     const TensorDescriptor& yDesc;
-    miopenSoftmaxAlgorithm_t algorithm;
-    miopenSoftmaxMode_t mode;
+    const miopenSoftmaxAlgorithm_t algorithm;
+    const miopenSoftmaxMode_t mode;
 
     int calculatedNumBatches;
 };

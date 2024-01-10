@@ -32,9 +32,9 @@
 namespace miopen {
 namespace softmax {
 
-struct SoftmaxInvokeParams : public miopen::InvokeParams
+struct InvokeParams : public miopen::InvokeParams
 {
-    SoftmaxInvokeParamss( const void* alpha_,
+    InvokeParams( const void* alpha_,
                             const void* beta_,
                             const TensorDescriptor& xDesc_,
                             ConstData_t x_,
@@ -42,27 +42,26 @@ struct SoftmaxInvokeParams : public miopen::InvokeParams
                             Data_t y_,
                             miopenSoftmaxAlgorithm_t algorithm_,
                             miopenSoftmaxMode_t mode_,
-                            int x_offset = 0_,
-                            int y_offset = 0_);
-
-        : alpha(alpha_), beta(beta_), xDesc(xDesc_), x(x_), yDesc(yDesc), y(y_), algorithm_(algorithm_), mode)mode_), x_offset(x_offset_), y_offset(y_offset_)
+                            int x_offset_ = 0,
+                            int y_offset_ = 0)
+        : alpha(alpha_), beta(beta_), xDesc(xDesc_), x(x_), yDesc(yDesc_), y(y_), algorithm(algorithm_), mode(mode_), x_offset(x_offset_), y_offset(y_offset_)
     {
     }
 
-    //miopenHandle_t handle;
-    const void* alpha,
-    const void* beta,
-    const TensorDescriptor& xDesc,
-    ConstData_t x,
-    const TensorDescriptor& yDesc,
-    Data_t y,
-    miopenSoftmaxAlgorithm_t algorithm,
-    miopenSoftmaxMode_t mode,
-    int x_offset = 0,
-    int y_offset = 0;
-
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
+
+    //miopenHandle_t handle;
+    const void* alpha;
+    const void* beta;
+    const TensorDescriptor& xDesc;
+    ConstData_t x;
+    const TensorDescriptor& yDesc;
+    Data_t y;
+    miopenSoftmaxAlgorithm_t algorithm;
+    miopenSoftmaxMode_t mode;
+    int x_offset = 0;
+    int y_offset = 0;
 };
 
 } // namespace cat
