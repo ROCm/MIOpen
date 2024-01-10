@@ -86,8 +86,10 @@ struct CKArgs
         weight = {G, K, C, Y, X};
 
         // miopen strides to CK strides
-        auto miopen_in_strides  = problem.GetIn().GetStrides();
-        auto miopen_out_strides = problem.GetOut().GetStrides();
+        // On a backward pass, problem.GetIn() means y(or out),
+        // and problem.GetOut means x(or in)
+        auto miopen_in_strides  = problem.GetOut().GetStrides();
+        auto miopen_out_strides = problem.GetIn().GetStrides();
         auto miopen_wei_strides = problem.GetWeights().GetStrides();
         miopen_in_strides.insert(miopen_in_strides.begin(), C);
         miopen_out_strides.insert(miopen_out_strides.begin(), K);
