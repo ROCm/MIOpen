@@ -24,12 +24,7 @@
  *
  *******************************************************************************/
 #include <gtest/gtest.h>
-#include <miopen/miopen.h>
-#include <miopen/solver_id.hpp>
-#include <serialize.hpp>
 
-#include "tensor_util.hpp"
-#include "get_handle.hpp"
 #include "group_conv.hpp"
 
 using namespace group_conv;
