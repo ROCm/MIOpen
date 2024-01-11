@@ -484,19 +484,6 @@ inline MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<T> fabs(miopen_f8::hip_f8<T> v)
 }
 
 template <class T>
-MIOPEN_HIP_HOST_DEVICE T F8_Max()
-{
-    union
-    {
-        uint8_t bits;
-        T value;
-    } x;
-
-    x.bits = 0x7F;
-    return x.value;
-}
-
-template <class T>
 MIOPEN_HIP_HOST_DEVICE T Generate(uint8_t bits)
 {
     union
@@ -530,11 +517,9 @@ public:
             MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x77 : 0x7f);
     }
 
-    /// \todo This is wrong. min() should minimum normalized positive value.
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> min()
     {
-        return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(-1.0f) *
-               miopen_f8::F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>();
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(0x08);
     }
 
     static constexpr int digits = 4;
@@ -562,11 +547,9 @@ public:
                 MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x7b : 0x7f));
     }
 
-    /// \todo This is wrong. min() should minimum normalized positive value.
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> min()
     {
-        return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(-1.0f) *
-               miopen_f8::F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>();
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(0x04);
     }
 
     static constexpr int digits = 3;
