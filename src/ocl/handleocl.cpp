@@ -87,9 +87,6 @@ struct HandleImpl
     {
         std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(device);
         MIOPEN_LOG_NQI("Raw device name: " << name);
-#if WORKAROUND_MLOPEN_ISSUE_1711
-        WorkaroundIssue1711(name);
-#endif
         return name;
     }
 

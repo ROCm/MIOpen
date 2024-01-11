@@ -43,7 +43,6 @@ bool ValidateGcnAssembler() { return true; }
 #include <miopen/kernel.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/exec_utils.hpp>
-#include <miopen/rocm_features.hpp>
 #include <sstream>
 
 #ifdef __linux__

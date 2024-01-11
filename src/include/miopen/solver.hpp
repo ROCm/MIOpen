@@ -33,7 +33,6 @@
 #include <miopen/logger.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/legacy_exhaustive_search.hpp>
-#include <miopen/rocm_features.hpp>
 #include <miopen/type_name.hpp>
 #include <miopen/miopen.h>
 #include <miopen/buffer_info.hpp>
