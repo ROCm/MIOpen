@@ -475,12 +475,14 @@ inline MIOPEN_HIP_HOST_DEVICE bool operator>(const miopen_f8::hip_f8<T>& lhs,
     return static_cast<float>(lhs) > static_cast<float>(rhs);
 }
 
+/// \todo Do not convert nan to 0 in Nan_0x80 mode (MIOPEN_FP8_IEEE_EXPONENT_BIAS=0)
 template <miopen_f8::hip_f8_type T>
 inline MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<T> fabs(miopen_f8::hip_f8<T> v)
 {
     v.data = v.data & 0x7f;
     return v;
 }
+
 template <class T>
 MIOPEN_HIP_HOST_DEVICE T F8_Max()
 {
@@ -491,6 +493,19 @@ MIOPEN_HIP_HOST_DEVICE T F8_Max()
     } x;
 
     x.bits = 0x7F;
+    return x.value;
+}
+
+template <class T>
+MIOPEN_HIP_HOST_DEVICE T Generate(uint8_t bits)
+{
+    union
+    {
+        uint8_t bits;
+        T value;
+    } x;
+
+    x.bits = bits;
     return x.value;
 }
 
@@ -511,7 +526,8 @@ public:
 
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> max()
     {
-        return miopen_f8::F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>();
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(
+            MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x77 : 0x7f);
     }
 
     /// \todo This is wrong. min() should minimum normalized positive value.
@@ -542,7 +558,8 @@ public:
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> max()
     {
         return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(
-            miopen_f8::F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>());
+            miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(
+                MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x7b : 0x7f));
     }
 
     /// \todo This is wrong. min() should minimum normalized positive value.
