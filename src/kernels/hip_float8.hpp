@@ -507,8 +507,8 @@ public:
 
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> quiet_NaN()
     {
-        return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(
-            static_cast<uint8_t>(miopen_f8::get_hip_f8_bias_mode() ? 0X80 : 0x79));
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(
+            MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x7c : 0x80);
     }
 
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> max()
@@ -536,8 +536,8 @@ public:
 
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> quiet_NaN()
     {
-        return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(
-            static_cast<uint8_t>(miopen_f8::get_hip_f8_bias_mode() ? 0X80 : 0x7d));
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(
+            MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x7e : 0x80);
     }
 
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> max()
