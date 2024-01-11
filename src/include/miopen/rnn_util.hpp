@@ -35,10 +35,53 @@
 
 namespace miopen {
 
-enum rnn_direction
+enum class RnnDirection
 {
     Forward  = 0,
     Backward = 1
+};
+
+struct RnnBatches
+{
+
+    int at(int time, RnnDirection direction) const { return batches.at(cur_time(time, direction)); }
+
+    int next(int time, RnnDirection direction) const
+    {
+        return batches.at(next_time(time, direction));
+    }
+
+    int prev(int time, RnnDirection direction) const
+    {
+        return batches.at(prev_time(time, direction));
+    }
+
+    void push_back(int batch) { batches.push_back(batch); }
+
+    RnnBatches(std::vector<int>& input) : batches(input){};
+    RnnBatches(){};
+
+    int back() const { return batches.back(); }
+
+private:
+    int cur_time(int time, RnnDirection direction) const
+    {
+        return direction == RnnDirection::Forward ? time : batches.size() - time - 1;
+    }
+
+    int next_time(int time, RnnDirection direction) const
+    {
+        return direction == RnnDirection::Forward ? cur_time(time, direction) + 1
+                                                  : cur_time(time, direction) - 1;
+    }
+
+    int prev_time(int time, RnnDirection direction) const
+    {
+        return direction == RnnDirection::Forward ? cur_time(time, direction) - 1
+                                                  : cur_time(time, direction) + 1;
+    }
+
+    std::vector<int> batches;
 };
 
 #if MIOPEN_BACKEND_HIP
@@ -127,20 +170,7 @@ void LSTMBackwardHiddenStateUpdate(const Handle& handle,
                                    std::size_t dhidden_offset,
                                    std::size_t f_offset_pre);
 
-struct RNNWeightOffsets
-{
-
-public:
-    int input_offset(int layer) const;
-    int hidden_offset(int layer) const;
-    int bias_off();
-    int bias_off(int layer) const;
-
-private:
-    int first_layer_offset() const;
-};
-
-struct ReluWeightOffsets : public RNNWeightOffsets
+struct ReluWeightOffsets
 {
 public:
     ReluWeightOffsets(int input_vector_sz,
@@ -165,12 +195,12 @@ public:
                                 (h_vec_sz + h_vec_sz * bi_scale) * weight_stride * (layer - 1);
     }
 
-    int hidden_weight_offset(int layer, int reverse = 0) const
+    int hidden_weight_offset(int layer, RnnDirection reverse) const
     {
         return layer == 0 ? input_weight_offset(layer) + in_vec_sz * weight_stride +
-                                reverse * h_vec_sz * h_vec_sz
+                                static_cast<int>(reverse) * h_vec_sz * h_vec_sz
                           : input_weight_offset(layer) + bi_scale * h_vec_sz * weight_stride +
-                                reverse * h_vec_sz * h_vec_sz;
+                                static_cast<int>(reverse) * h_vec_sz * h_vec_sz;
     }
 
     size_t bias_stride() const { return static_cast<size_t>(h_vec_sz) * bi_scale; }
@@ -195,22 +225,7 @@ public:
     int first_layer_offset() const { return (in_vec_sz + h_vec_sz) * weight_stride; }
 };
 
-struct RNNOffsets
-{
-    size_t layer_offset(int layer_id) const;
-
-    size_t layer_stride() const;
-
-    int gemm_write_size() const;
-
-    size_t gemm_write_stride() const;
-
-    size_t gemm_write_offset(int layer_id, int batch_id = 0, int reverse = 0) const;
-
-    size_t hidden_offset(int layer_id, int batch_id = 0, int reverse = 0) const;
-};
-
-struct ReluReserveBufferOffsets : public RNNOffsets
+struct ReluReserveBufferOffsets
 {
     struct RBuffHelper
     {
@@ -231,7 +246,8 @@ private:
     }
 
 public:
-    ReluReserveBufferOffsets(int hidden_vec_size, int layers_cnt, int batches_per_l, int bi_scale, int workspace_scale)
+    ReluReserveBufferOffsets(
+        int hidden_vec_size, int layers_cnt, int batches_per_l, int bi_scale, int workspace_scale)
         : hidden_size(hidden_vec_size),
           batches_per_layer(batches_per_l),
           save_point_size(hidden_vec_size * bi_scale * workspace_scale),
@@ -251,13 +267,13 @@ public:
 
     size_t gemm_write_stride() const { return strides.batch; }
 
-    size_t gemm_write_offset(int layer_id, int batch_id, int reverse) const
+    size_t gemm_write_offset(int layer_id, int batch_id, RnnDirection reverse) const
     {
         return layer_offset(layer_id) + static_cast<size_t>(gemm_write_stride()) * batch_id +
-               (size_t)reverse * hidden_size;
+               static_cast<size_t>(reverse) * hidden_size;
     }
 
-    size_t hidden_offset(int layer_id, int batch_id, int reverse) const
+    size_t hidden_offset(int layer_id, int batch_id, RnnDirection reverse) const
     {
         return strides.table + gemm_write_offset(layer_id, batch_id, reverse);
     }
