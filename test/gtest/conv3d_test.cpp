@@ -94,14 +94,14 @@ void Run3dDriver(miopenDataType_t prec)
 
 std::vector<std::string> GetTestCases(const std::string& precision)
 {
-    std::string psd0 = " --pads_strides_dilations 0 0 0 1 1 1 1 1 1";
-    std::string psd1 = " --pads_strides_dilations 0 0 0 2 2 2 1 1 1";
-    std::string psd2 = " --pads_strides_dilations 2 2 2 1 1 1 1 1 1";
-    std::string psd3 = " --pads_strides_dilations 0 0 0 1 1 1 2 2 2";
-    std::string psd4 = " --pads_strides_dilations 1 1 1 1 1 1 1 1 1";
-    std::string psd5 = " --pads_strides_dilations 0 0 0 1 1 1 1 1 1";
+    const std::string psd0 = " --pads_strides_dilations 0 0 0 1 1 1 1 1 1";
+    const std::string psd1 = " --pads_strides_dilations 0 0 0 2 2 2 1 1 1";
+    const std::string psd2 = " --pads_strides_dilations 2 2 2 1 1 1 1 1 1";
+    const std::string psd3 = " --pads_strides_dilations 0 0 0 1 1 1 2 2 2";
+    const std::string psd4 = " --pads_strides_dilations 1 1 1 1 1 1 1 1 1";
+    const std::string psd5 = " --pads_strides_dilations 0 0 0 1 1 1 1 1 1";
 
-    std::vector<std::string> test_cases = {
+    const std::vector<std::string> test_cases = {
         // clang-format off
     // test_conv3d_extra
     {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5" + psd0},
