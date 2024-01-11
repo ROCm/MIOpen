@@ -126,62 +126,89 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
         activDesc = {miopenActivationTANH, 1, 1, 1};
     }
 
-    auto call_relu_tan_input_gemm =
-        [&RBuff, &WeiBuf, &in_vec_size, &handle, &xDesc, reserveSpace, x, w](int layer,
-                                                                             float beta_t = 1) {
-            const int m = RBuff.batches_per_layer, n = RBuff.gemm_write_size(),
-                      k = layer > 0 ? RBuff.gemm_write_size() : in_vec_size;
+    auto call_relu_tan_input_gemm = [this,
+                                     &RBuff,
+                                     &WeiBuf,
+                                     &in_vec_size,
+                                     &handle,
+                                     &xDesc,
+                                     reserveSpace,
+                                     x,
+                                     w,
+                                     hidden_size,
+                                     wDesc,
+                                     bi](int layer, float beta_t = 1) {
+        if(inputMode == miopenRNNskip && layer == 0)
+        {
+            auto input_desc =
+                miopen::TensorDescriptor(wDesc.GetType(),
+                                         {1, RBuff.batches_per_layer, hidden_size},
+                                         {1, RBuff.batches_per_layer * in_vec_size, in_vec_size});
+            auto reserve_desc =
+                miopen::TensorDescriptor(wDesc.GetType(),
+                                         {1, RBuff.batches_per_layer, hidden_size},
+                                         {RBuff.layer_stride(), RBuff.gemm_write_stride(), 1});
 
-            const int lda = layer > 0 ? RBuff.gemm_write_stride() : in_vec_size, ldb = k,
-                      ldc = RBuff.gemm_write_stride();
-
-            const miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
-                                                                    false,
-                                                                    true,
-                                                                    m,
-                                                                    n,
-                                                                    k,
-                                                                    lda,
-                                                                    ldb,
-                                                                    ldc,
-                                                                    1,      // batch count
-                                                                    0,      // Stride A
-                                                                    0,      // Stride B
-                                                                    0,      // Stride C
-                                                                    1,      // alpha
-                                                                    beta_t, // beta
-                                                                    xDesc.GetType(),
-                                                                    false};
-
-            const auto input_weight_offset = WeiBuf.input_weight_offset(layer);
-            const auto output_offset       = RBuff.layer_offset(layer);
-
-            const auto input_offset =
-                layer > 0 ? RBuff.hidden_offset(layer - 1, 0, RnnDirection::Forward) : 0;
-
-            const auto input_ptr = layer > 0 ? reserveSpace : x;
-
-            const miopenStatus_t gemm_status = CallGemm(handle,
-                                                        gemm_desc,
-                                                        input_ptr,
-                                                        input_offset,
-                                                        w,
-                                                        input_weight_offset,
-                                                        reserveSpace,
-                                                        output_offset,
-                                                        GemmBackend_t::rocblas);
-            if(gemm_status != miopenStatusSuccess)
+            for(int gi = 0; gi < nHiddenTensorsPerLayer * bi; gi++)
             {
-                if(gemm_status == miopenStatusNotImplemented)
-                {
-                    MIOPEN_LOG_E("GEMM not implemented");
-                }
-                else
-                {
-                    MIOPEN_LOG_E("GEMM failed");
-                }
+                CopyTensor(handle, x_desc, x, sp_desc, reserveSpace, 0, gi * hidden_size);
             }
-        };
+            return;
+        }
+
+        const int m = RBuff.batches_per_layer, n = RBuff.gemm_write_size(),
+                  k = layer > 0 ? RBuff.gemm_write_size() : in_vec_size;
+
+        const int lda = layer > 0 ? RBuff.gemm_write_stride() : in_vec_size, ldb = k,
+                  ldc = RBuff.gemm_write_stride();
+
+        const miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                                false,
+                                                                true,
+                                                                m,
+                                                                n,
+                                                                k,
+                                                                lda,
+                                                                ldb,
+                                                                ldc,
+                                                                1,      // batch count
+                                                                0,      // Stride A
+                                                                0,      // Stride B
+                                                                0,      // Stride C
+                                                                1,      // alpha
+                                                                beta_t, // beta
+                                                                xDesc.GetType(),
+                                                                false};
+
+        const auto input_weight_offset = WeiBuf.input_weight_offset(layer);
+        const auto output_offset       = RBuff.layer_offset(layer);
+
+        const auto input_offset =
+            layer > 0 ? RBuff.hidden_offset(layer - 1, 0, RnnDirection::Forward) : 0;
+
+        const auto input_ptr = layer > 0 ? reserveSpace : x;
+
+        const miopenStatus_t gemm_status = CallGemm(handle,
+                                                    gemm_desc,
+                                                    input_ptr,
+                                                    input_offset,
+                                                    w,
+                                                    input_weight_offset,
+                                                    reserveSpace,
+                                                    output_offset,
+                                                    GemmBackend_t::rocblas);
+        if(gemm_status != miopenStatusSuccess)
+        {
+            if(gemm_status == miopenStatusNotImplemented)
+            {
+                MIOPEN_LOG_E("GEMM not implemented");
+            }
+            else
+            {
+                MIOPEN_LOG_E("GEMM failed");
+            }
+        }
+    };
 
     auto call_relu_tan_bias_add = [this,
                                    &RBuff,
