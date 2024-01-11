@@ -477,14 +477,17 @@ protected:
 };
 
 template <unsigned NDIM>
-std::vector<miopenTensorLayout_t> GetLayoutValues() {
-  static_assert(NDIM == 2u || NDIM == 3u);
-  if constexpr (NDIM == 2u) {
-    return {miopenTensorNHWC};
-  } 
-  else {
-    return {miopenTensorNDHWC};
-  }
+std::vector<miopenTensorLayout_t> GetLayoutValues()
+{
+    static_assert(NDIM == 2u || NDIM == 3u);
+    if constexpr(NDIM == 2u)
+    {
+        return {miopenTensorNHWC};
+    }
+    else
+    {
+        return {miopenTensorNDHWC};
+    }
 }
 
 } // namespace group_conv
