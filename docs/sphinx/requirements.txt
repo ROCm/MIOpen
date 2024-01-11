@@ -40,7 +40,7 @@ fastjsonschema==2.16.3
     # via rocm-docs-core
 gitdb==4.0.10
     # via gitpython
-gitpython==3.1.37
+gitpython==3.1.41
     # via rocm-docs-core
 idna==3.4
     # via requests
