@@ -476,6 +476,17 @@ protected:
     Workspace wspace{};
 };
 
+template <unsigned NDIM>
+std::vector<miopenTensorLayout_t> GetLayoutValues() {
+  static_assert(NDIM == 2u || NDIM == 3u);
+  if constexpr (NDIM == 2u) {
+    return {miopenTensorNHWC};
+  } 
+  else {
+    return {miopenTensorNDHWC};
+  }
+}
+
 } // namespace group_conv
 
 #define DEFINE_GROUP_CONV_TEST(ndim, type, dir)                                             \
@@ -491,7 +502,7 @@ protected:
         GroupConv##ndim##D_##dir##_##type,                                                  \
         testing::Combine(                                                                   \
             testing::ValuesIn(GroupConvTestConfig<ndim>::GetConfigs<Direction::dir>()),     \
-            testing::Values(miopenTensorNHWC)));
+            testing::ValuesIn(GetLayoutValues<ndim>())));
 
 #define DEFINE_GROUP_CONV2D_TEST(type, dir) DEFINE_GROUP_CONV_TEST(2, type, dir)
 #define DEFINE_GROUP_CONV3D_TEST(type, dir) DEFINE_GROUP_CONV_TEST(3, type, dir)
