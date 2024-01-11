@@ -542,9 +542,8 @@ public:
 
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> max()
     {
-        return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(
-            miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(
-                MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x7b : 0x7f));
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(
+            MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x7b : 0x7f);
     }
 
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> min()
