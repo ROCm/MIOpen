@@ -40,7 +40,9 @@ static bool IsTestRunWith(const char* float_arg)
 {
     assert(float_arg != nullptr);
     const auto& s_envVar = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    return (!s_envVar.empty() && std::strcmp(s_envVar.c_str(), float_arg) == 0);
+    return ((!s_envVar.empty() && std::strcmp(s_envVar.c_str(), float_arg) == 0 &&
+             miopen::IsEnabled(ENV(MIOPEN_TEST_ALL))) ||
+            (s_envVar.empty() && miopen::IsDisabled(ENV(MIOPEN_TEST_ALL))));
 }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
@@ -128,7 +130,7 @@ using namespace conv3d_test;
 
 TEST_P(ConfigWithFloat, FloatTest_conv3d_test)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && IsTestRunWith("--float"))
+    if(IsTestRunWith("--float"))
     {
         Run3dDriver(miopenFloat);
     }
