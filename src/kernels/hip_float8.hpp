@@ -475,10 +475,15 @@ inline MIOPEN_HIP_HOST_DEVICE bool operator>(const miopen_f8::hip_f8<T>& lhs,
     return static_cast<float>(lhs) > static_cast<float>(rhs);
 }
 
-/// \todo Do not convert nan to 0 in Nan_0x80 mode (MIOPEN_FP8_IEEE_EXPONENT_BIAS=0)
 template <miopen_f8::hip_f8_type T>
 inline MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<T> fabs(miopen_f8::hip_f8<T> v)
 {
+#if !MIOPEN_FP8_IEEE_EXPONENT_BIAS
+    // Preserve "universal" nan.
+    // Otherwise it will be converted to valid 0.
+    if(v.data == 0x80)
+        return v;
+#endif
     v.data = v.data & 0x7f;
     return v;
 }
@@ -575,7 +580,7 @@ public:
         return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(0x01);
     }
 
-   static constexpr int digits = 3;
+    static constexpr int digits = 3;
 };
 
 } // namespace miopen_f8
