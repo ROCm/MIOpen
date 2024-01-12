@@ -59,7 +59,17 @@ ConvSolution SoftmaxForward::GetSolution(const ExecutionContext& context,
     auto algorithm = problem.GetAlgorithm();
 
     int n, c, h, w;
-    std::tie(n, c, h, w) = tien<4>(yDesc.GetLengths());
+    // using workgroup size of 256 by default
+    int grid_size, spatial_dim, vector_size, num_batch;
+
+    std::vector<size_t> vld;
+    std::vector<size_t> vgd;
+
+    bool usefp16, usefp32;
+
+    size_t workgroups;
+    int batch_size;
+    int u_batch_size;
 
     int in_nstr, in_cstr, in_hstr;
     std::tie(in_nstr, in_cstr, in_hstr, std::ignore) = tien<4>(xDesc.GetStrides());
@@ -67,22 +77,7 @@ ConvSolution SoftmaxForward::GetSolution(const ExecutionContext& context,
     int out_nstr, out_cstr, out_hstr;
     std::tie(out_nstr, out_cstr, out_hstr, std::ignore) = tien<4>(yDesc.GetStrides());
 
-    // using workgroup size of 256 by default
-    int grid_size   = mode == MIOPEN_SOFTMAX_MODE_INSTANCE ? n : n * h * w;
-    int spatial_dim = mode == MIOPEN_SOFTMAX_MODE_INSTANCE ? 1 : h * w;
-    int vector_size = mode == MIOPEN_SOFTMAX_MODE_INSTANCE ? c * h * w : c;
-    // num_spatial_dims or pixels each workgroup can compute
-    int num_batch = vector_size < 256 ? miopen::softmax::nextPow2(256 / vector_size) : 1;
-
-    const std::vector<size_t> vld{256, 1, 1};
-
-    bool usefp16 = false;
-    bool usefp32 = true;
-    if(yDesc.GetType() == miopenHalf)
-    {
-        usefp16 = true;
-        usefp32 = false;
-    }
+    miopen::softmax::getParams(yDesc, mode, n, c, h, w, grid_size, spatial_dim, vector_size, num_batch, usefp16, usefp32, vld, vgd, workgroups, batch_size, u_batch_size);
 
     auto alpha_fp = *(static_cast<const float*>(alpha));
     auto beta_fp  = *(static_cast<const float*>(beta));
@@ -91,10 +86,6 @@ ConvSolution SoftmaxForward::GetSolution(const ExecutionContext& context,
 
     if (num_batch > 1)
     {
-        int batch_size = 256 / num_batch;
-        // num_channels each threads iterates over to cover all the channels
-        int u_batch_size = (vector_size > batch_size) ? miopen::softmax::nextPow2(vector_size / batch_size) : 1;
-
         build_params.Define("BATCH_SIZE", batch_size);
         build_params.Define("U_BATCH_SIZE", u_batch_size);
     }
@@ -131,20 +122,7 @@ ConvSolution SoftmaxForward::GetSolution(const ExecutionContext& context,
 
     kernel.kernel_file = "MIOpenSoftmax.cl";
     kernel.kernel_name = "SoftmaxForward";
-
-    size_t workgroups = 0;
-    
-    if (num_batch == 1)
-    {
-        workgroups = std::min(grid_size, 64 * 40 * 8);
-    }
-    else
-    {
-        workgroups = (grid_size % num_batch == 0) ? (grid_size / num_batch) : (grid_size / num_batch + 1);
-    }
-
-    const std::vector<size_t> vgd{workgroups * vld[0], 1, 1};
-
+   
     for (unsigned int i = 0; i < 2; ++i)
     {
         kernel.l_wk.push_back(vld[i]);
