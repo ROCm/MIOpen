@@ -511,6 +511,12 @@ public:
             MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x7c : 0x80);
     }
 
+    static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> signaling_NaN()
+    {
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(
+            MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x79 : 0x80);
+    }
+
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> max()
     {
         return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(
@@ -538,6 +544,12 @@ public:
     {
         return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(
             MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x7e : 0x80);
+    }
+
+    static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> signaling_NaN()
+    {
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(
+            MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x7d : 0x80);
     }
 
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> max()
