@@ -502,7 +502,8 @@ class numeric_limits<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>
 public:
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> epsilon()
     {
-        return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(float(0.0625));
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(
+            MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x20 : 0x28); // 0.125
     }
 
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> quiet_NaN()
@@ -537,7 +538,8 @@ class numeric_limits<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>
 public:
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> epsilon()
     {
-        return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(float(0.125));
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(
+            MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x34 : 0x38); // 0.25
     }
 
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> quiet_NaN()
