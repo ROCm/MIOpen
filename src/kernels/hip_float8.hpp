@@ -521,12 +521,17 @@ public:
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> max()
     {
         return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(
-            MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x77 : 0x7f);
+            MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x77 : 0x7f); // 240
     }
 
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> min()
     {
         return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(0x08);
+    }
+
+    static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> denorm_min()
+    {
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(0x01);
     }
 
     static constexpr int digits = 4;
@@ -557,7 +562,7 @@ public:
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> max()
     {
         return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(
-            MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x7b : 0x7f);
+            MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x7b : 0x7f); // 57344
     }
 
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> min()
@@ -565,7 +570,12 @@ public:
         return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(0x04);
     }
 
-    static constexpr int digits = 3;
+    static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> denorm_min()
+    {
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(0x01);
+    }
+
+   static constexpr int digits = 3;
 };
 
 } // namespace miopen_f8
