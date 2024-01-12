@@ -48,17 +48,7 @@ struct ProblemDescription : ProblemDescriptionBase
                         miopenSoftmaxMode_t mode_) :
         alpha(alpha_), beta(beta_), xDesc(xDesc_), yDesc(yDesc_), algorithm(algorithm_), mode(mode_)
     {
-        int n, c, h, w;
-        std::tie(n, c, h, w) = tien<4>(yDesc.GetLengths());
-
-        int vector_size = mode == MIOPEN_SOFTMAX_MODE_INSTANCE ? c * h * w : c;
-
-        calculatedNumBatches = vector_size < 256 ? nextPow2(256 / vector_size) : 1;
     }
-
-    NetworkConfig MakeNetworkConfig() const override;
-
-    int GetNumBatch() const {return calculatedNumBatches;}
 
     const void* GetAlpha() const {return alpha;}
     const void* GetBeta() const {return beta;}
@@ -67,6 +57,8 @@ struct ProblemDescription : ProblemDescriptionBase
     const miopenSoftmaxAlgorithm_t GetAlgorithm() const {return algorithm;}
     const miopenSoftmaxMode_t GetMode() const {return mode;}
 
+    NetworkConfig MakeNetworkConfig() const override;    
+
 private:
     const void* alpha;
     const void* beta;
@@ -74,8 +66,6 @@ private:
     const TensorDescriptor& yDesc;
     const miopenSoftmaxAlgorithm_t algorithm;
     const miopenSoftmaxMode_t mode;
-
-    int calculatedNumBatches;
 };
 
 } // namespace softmax

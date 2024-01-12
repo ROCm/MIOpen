@@ -87,7 +87,7 @@ ConvSolution SoftmaxForward::GetSolution(const ExecutionContext& context,
     auto alpha_fp = *(static_cast<const float*>(alpha));
     auto beta_fp  = *(static_cast<const float*>(beta));
 
-    KernelBuildParameters build_params = KernelBuildParameters{{"-DNUM_BATCH", num_batch}};
+    KernelBuildParameters build_params = KernelBuildParameters{{"NUM_BATCH", num_batch}};
 
     if (num_batch > 1)
     {
@@ -95,35 +95,35 @@ ConvSolution SoftmaxForward::GetSolution(const ExecutionContext& context,
         // num_channels each threads iterates over to cover all the channels
         int u_batch_size = (vector_size > batch_size) ? miopen::softmax::nextPow2(vector_size / batch_size) : 1;
 
-        build_params.Define("-DBATCH_SIZE", batch_size);
-        build_params.Define("-DU_BATCH_SIZE", u_batch_size);
+        build_params.Define("BATCH_SIZE", batch_size);
+        build_params.Define("U_BATCH_SIZE", u_batch_size);
     }
 
-    build_params.Define("-DMIOPEN_USE_FP16", static_cast<int>(usefp16));
-    build_params.Define("-DMIOPEN_USE_FP32", static_cast<int>(usefp32));
+    build_params.Define("MIOPEN_USE_FP16", static_cast<int>(usefp16));
+    build_params.Define("MIOPEN_USE_FP32", static_cast<int>(usefp32));
 
     if(algorithm == MIOPEN_SOFTMAX_LOG)
-        build_params.Define("-DUSE_SOFTMAX_LOG", 1);
+        build_params.Define("USE_SOFTMAX_LOG", 1);
     else if(algorithm == MIOPEN_SOFTMAX_FAST)
-        build_params.Define("-DUSE_SOFTMAX_FAST", 1);
+        build_params.Define("USE_SOFTMAX_FAST", 1);
     else
-        build_params.Define("-DUSE_SOFTMAX_ACCURATE", 1);
+        build_params.Define("USE_SOFTMAX_ACCURATE", 1);
 
     if(mode == MIOPEN_SOFTMAX_MODE_INSTANCE)
-        build_params.Define("-DUSE_SOFTMAX_MODE_INSTANCE", 1);
+        build_params.Define("USE_SOFTMAX_MODE_INSTANCE", 1);
     else
-        build_params.Define("-DUSE_SOFTMAX_MODE_CHANNEL", 1);
+        build_params.Define("USE_SOFTMAX_MODE_CHANNEL", 1);
 
-    build_params.Define("-DRUN_FORWARD", 1);
+    build_params.Define("RUN_FORWARD", 1);
 
-    build_params.Define("-DIS_INPUT_PACKED", static_cast<int>(xDesc.IsPacked()));
-    build_params.Define("-DIS_OUTPUT_PACKED", static_cast<int>(yDesc.IsPacked()));
+    build_params.Define("IS_INPUT_PACKED", static_cast<int>(xDesc.IsPacked()));
+    build_params.Define("IS_OUTPUT_PACKED", static_cast<int>(yDesc.IsPacked()));
 
     if(!float_equal(alpha_fp, 1.0))
-        build_params.Define("-DUSE_ALPHA", 1);
+        build_params.Define("USE_ALPHA", 1);
 
     if(!float_equal(beta_fp, 0))
-        build_params.Define("-DUSE_BETA", 1);
+        build_params.Define("USE_BETA", 1);
 
     auto kernel = KernelInfo{};
 

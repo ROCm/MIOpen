@@ -85,7 +85,7 @@ miopenStatus_t SoftmaxForward(Handle& handle,
 
     const auto problem       = softmax::ProblemDescription{alpha, beta, xDesc, yDesc, algorithm, mode};
     const auto invoke_params = softmax::InvokeParams{alpha, beta, xDesc, x, yDesc, y, algorithm, mode, x_offset, y_offset};
-    const auto algo          = problem.GetNumBatch() == 1 ? AlgorithmName{"SoftmaxForwardOneBatch"} : AlgorithmName{"SoftmaxForwardMultiBatch"};
+    const auto algo          = AlgorithmName{"Softmax"};
     const auto solvers       = solver::SolverContainer<solver::softmax::SoftmaxForward>{};
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
