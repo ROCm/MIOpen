@@ -114,4 +114,4 @@ cget(ignore pcre)
 
 # Install dependencies
 cget(install -U ROCmSoftwarePlatform/rocm-recipes@d7b71f8ff71572833c8cf15b74279dd034e66f9d)
-cget(install -U -f dev-requirements.txt)
+cget(install -U -f requirements.txt)

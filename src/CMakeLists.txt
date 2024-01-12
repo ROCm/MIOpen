@@ -148,7 +148,7 @@ set( MIOpen_Source
     softmax_api.cpp
     softmax/problem_description.cpp
     solution.cpp
-    solver.cpp   
+    solver.cpp
     solver/activ/bwd_0.cpp
     solver/activ/bwd_1.cpp
     solver/activ/fwd_0.cpp
