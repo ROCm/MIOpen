@@ -588,12 +588,12 @@ public:
 namespace std {
 inline bool isfinite(miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> x) // NOLINT
 {
-    return x.is_inf();
+    return !(x.is_inf() || x.is_nan());
 }
 
 inline bool isfinite(miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> x) // NOLINT
 {
-    return x.is_inf();
+    return !(x.is_inf() || x.is_nan());
 }
 
 inline bool isnan(miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> x) // NOLINT
