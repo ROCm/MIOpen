@@ -150,6 +150,7 @@ static Invoker PrepareInvoker(ExecutionContext ctx,
 {
     problem.SetupFloats(ctx);
     ctx.do_search = false;
+    ctx.disable_search_enforce = true;
 
     const auto solver = solver_id.GetSolver();
     auto db           = GetDb(ctx);
