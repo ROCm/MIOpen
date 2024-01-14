@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include "include_inliner.hpp"
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -124,7 +125,7 @@ void PrintHelp()
     WrongUsage(ss.str());
 }
 
-void Process(const std::string& sourcePath,
+void Process(const std::filesystem::path& sourcePath,
              std::ostream& target,
              size_t bufferSize,
              size_t lineSize,
@@ -132,44 +133,33 @@ void Process(const std::string& sourcePath,
              bool as_extern,
              bool mark_includes)
 {
-    std::string fileName(sourcePath);
-    std::string extension, root;
-    std::stringstream inlinerTemp;
-    auto extPos   = fileName.rfind('.');
-    auto slashPos = fileName.rfind('/');
-
-    if(extPos != std::string::npos)
-    {
-        extension = fileName.substr(extPos + 1);
-        fileName  = fileName.substr(0, extPos);
-    }
-
-    if(slashPos != std::string::npos)
-    {
-        root     = fileName.substr(0, slashPos + 1);
-        fileName = fileName.substr(slashPos + 1);
-    }
-
-    std::string variable(fileName);
-    std::ifstream sourceFile(sourcePath, std::ios::in | std::ios::binary);
-    std::istream* source = &sourceFile;
-
-    if(!sourceFile.good())
+    if(!std::filesystem::exists(sourcePath))
     {
         std::cerr << "File not found: " << sourcePath << std::endl;
         // NOLINTNEXTLINE (concurrency-mt-unsafe)
         std::exit(1);
     }
 
-    const auto is_asm    = extension == "s";
-    const auto is_cl     = extension == "cl";
-    const auto is_hip    = extension == "cpp";
-    const auto is_header = extension == "hpp";
+    std::filesystem::path root{sourcePath.has_parent_path() ? sourcePath.parent_path() : ""};
+    std::ifstream sourceFile{sourcePath, std::ios::in | std::ios::binary};
+    std::istream* source = &sourceFile;
 
+    if(!sourceFile.is_open())
+    {
+        std::cerr << "Error opening file: " << sourcePath << std::endl;
+        // NOLINTNEXTLINE (concurrency-mt-unsafe)
+        std::exit(1);
+    }
+
+    const auto is_asm    = sourcePath.extension() == ".s";
+    const auto is_cl     = sourcePath.extension() == ".cl";
+    const auto is_hip    = sourcePath.extension() == ".cpp";
+    const auto is_header = sourcePath.extension() == ".hpp";
+
+    std::stringstream inlinerTemp;
     if(is_asm || is_cl || is_hip || is_header)
     {
         IncludeInliner inliner;
-
         try
         {
             if(is_asm)
@@ -190,15 +180,14 @@ void Process(const std::string& sourcePath,
         }
         catch(const InlineException& ex)
         {
-            std::cerr << ex.What() << std::endl;
-            std::cerr << ex.GetTrace() << std::endl;
+            std::cerr << ex.What() << '\n' << ex.GetTrace() << std::endl;
             // NOLINTNEXTLINE (concurrency-mt-unsafe)
             std::exit(1);
         }
-
         source = &inlinerTemp;
     }
 
+    auto variable{sourcePath.stem().string()};
     std::transform(variable.begin(), variable.end(), variable.begin(), ::toupper);
 
     if(mark_includes)
