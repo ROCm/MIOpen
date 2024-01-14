@@ -35,6 +35,7 @@
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
 #include "cba.hpp"
+#include "../env_utils.hpp"
 
 namespace cba_infer {
 
@@ -49,19 +50,6 @@ struct ConvBiasActivInferTestFloatFusionCompileStep : ConvBiasActivInferTest<flo
 struct ConvBiasActivInferTestHalf : ConvBiasActivInferTest<half_float::half>
 {
 };
-
-void setEnvironmentVariable(const std::string& name, const std::string& value)
-{
-    int ret = 0;
-
-#ifdef _WIN32
-    std::string env_var(name + "=" + value);
-    ret = _putenv(env_var.c_str());
-#else
-    ret = setenv(name.c_str(), value.c_str(), 1);
-#endif
-    EXPECT_EQ(ret, 0);
-}
 
 template <typename Solver, typename TestCase>
 void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
