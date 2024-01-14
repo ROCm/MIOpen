@@ -23,26 +23,40 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef SOURCE_FILE_DESC_HPP
-#define SOURCE_FILE_DESC_HPP
 
-#include <filesystem>
-#include <memory>
-#include <string>
+#ifndef GUARD_MIOPEN_ENV_UTILS_HPP
+#define GUARD_MIOPEN_ENV_UTILS_HPP
 
-class SourceFileDesc
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#endif
+
+#include "test.hpp"
+#include <string_view>
+
+inline void setEnvironmentVariable(std::string_view name, std::string_view value)
 {
-public:
-    std::filesystem::path path;
-    int included_line;
-    std::shared_ptr<SourceFileDesc> included_from;
+#ifdef _WIN32
+    BOOL ret = SetEnvironmentVariable(name.data(), value.data());
+    EXPECT_EQUAL(ret, TRUE);
+#else
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    int ret = setenv(name.data(), value.data(), 1);
+    EXPECT_EQUAL(ret, 0);
+#endif
+}
 
-    SourceFileDesc(const std::filesystem::path& path_,
-                   std::shared_ptr<SourceFileDesc> from,
-                   int line)
-        : path(path_), included_line(line), included_from(from)
-    {
-    }
-};
+inline void unsetEnvironmentVariable(std::string_view name)
+{
+#ifdef _WIN32
+    BOOL ret = SetEnvironmentVariable(name.data(), nullptr);
+    EXPECT_EQUAL(ret, TRUE);
+#else
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    int ret = unsetenv(name.data());
+    EXPECT_EQUAL(ret, 0);
+#endif
+}
 
-#endif // SOURCE_FILE_DESC_HPP
+#endif // GUARD_MIOPEN_ENV_UTILS_HPP
