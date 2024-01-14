@@ -83,7 +83,7 @@ public:
 
     void Parse(int argc, char* argv[]);
     char FindShortName(const std::string& _long_name) const;
-    void Print() const;
+    [[noreturn]] void Print() const;
 
     std::string GetValueStr(const std::string& _long_name) const;
     int GetValueInt(const std::string& _long_name) const;
