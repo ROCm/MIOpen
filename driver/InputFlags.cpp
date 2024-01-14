@@ -101,7 +101,7 @@ void InputFlags::AddTensorFlag(const std::string& name,
     AddInputFlag(name, short_name, default_value, desc.str(), "tensor descriptor");
 }
 
-[[gnu::noreturn]] void InputFlags::Print() const
+void InputFlags::Print() const
 {
     printf("MIOpen Driver Input Flags: \n\n");
 
