@@ -108,7 +108,7 @@ void PrintHelp()
               << std::endl;
 }
 
-[[gnu::noreturn]] void WrongUsage(const std::string& error)
+[[noreturn]] void WrongUsage(const std::string& error)
 {
     std::cout << "Wrong usage: " << error << std::endl;
     std::cout << std::endl;
@@ -117,7 +117,7 @@ void PrintHelp()
     std::exit(1);
 }
 
-[[gnu::noreturn]] void UnknownArgument(const std::string& arg)
+[[noreturn]] void UnknownArgument(const std::string& arg)
 {
     std::ostringstream ss;
     ss << "unknown argument - " << arg;
