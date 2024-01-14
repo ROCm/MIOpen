@@ -28,6 +28,7 @@
 #include "driver.hpp"
 #include "get_handle.hpp"
 #include "workspace.hpp"
+#include "env_utils.hpp"
 
 #include <miopen/convolution.hpp>
 #include <miopen/conv/problem_description.hpp>
@@ -38,12 +39,6 @@
 #include <miopen/hip_build_utils.hpp>
 
 #include <chrono>
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-#else
-#include <cstdlib>
-#endif
 #include <functional>
 
 namespace miopen {
@@ -229,14 +224,8 @@ private:
 
 int main(int argc, const char* argv[])
 {
-#ifdef _WIN32
-    SetEnvironmentVariable("MIOPEN_LOG_LEVEL", "6");
-    SetEnvironmentVariable("MIOPEN_COMPILE_PARALLEL_LEVEL", "1");
-    SetEnvironmentVariable("MIOPEN_ENABLE_LOGGING_ELAPSED_TIME", "1");
-#else
-    setenv("MIOPEN_LOG_LEVEL", "6", 1);                   // NOLINT (concurrency-mt-unsafe)
-    setenv("MIOPEN_COMPILE_PARALLEL_LEVEL", "1", 1);      // NOLINT (concurrency-mt-unsafe)
-    setenv("MIOPEN_ENABLE_LOGGING_ELAPSED_TIME", "1", 1); // NOLINT (concurrency-mt-unsafe)
-#endif
+    setEnvironmentVariable("MIOPEN_LOG_LEVEL", "6");
+    setEnvironmentVariable("MIOPEN_COMPILE_PARALLEL_LEVEL", "1");
+    setEnvironmentVariable("MIOPEN_ENABLE_LOGGING_ELAPSED_TIME", "1");
     test_drive<miopen::FindDbTest>(argc, argv);
 }
