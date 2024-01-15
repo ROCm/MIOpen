@@ -43,6 +43,7 @@
 #include "reduce_driver.hpp"
 #include "layernorm_driver.hpp"
 #include "sum_driver.hpp"
+#include "transform_driver.hpp"
 #include <miopen/config.h>
 #include <miopen/stringutils.hpp>
 
@@ -220,6 +221,10 @@ int main(int argc, char* argv[])
     else if(base_arg == "sumbfp16")
     {
         drv = new SumDriver<bfloat16, float>();
+    }
+    else if(base_arg == "tensortrans")
+    {
+        drv = new TensorTransformDriver();
     }
     else
     {
