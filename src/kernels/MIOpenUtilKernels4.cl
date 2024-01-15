@@ -526,12 +526,12 @@ __kernel void transpose_CNHW2NCHW_V2_3D_WG_off64(const global data_t* in,
     cout[C * hw_in * n_i] = cin[hw_out * n_i];
 }
 
-__kernel void transpose_packed_MN2NM(const global data_t* in,
-                                     global data_t* out,
-                                     const int N,
-                                     const int M,
-                                     const arg_size_t in_off,
-                                     const arg_size_t out_off)
+__kernel void transpose_packed_MN2NM_off64(const global data_t* in,
+                                           global data_t* out,
+                                           const int N,
+                                           const int M,
+                                           const arg_size_t in_off,
+                                           const arg_size_t out_off)
 {
     uint i = get_global_id(0);
 

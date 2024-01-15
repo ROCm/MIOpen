@@ -1158,7 +1158,7 @@ float transpose_packed_MN2NM(const Handle& handle,
 
     std::string network_config = "t" + std::to_string(type);
 
-    std::string kernel_name = "transpose_packed_MN2NM";
+    std::string kernel_name = "transpose_packed_MN2NM_off64";
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
 
