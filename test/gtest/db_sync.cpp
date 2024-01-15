@@ -46,6 +46,11 @@
 
 #define WORKAROUND_ISSUE_2493 1
 
+#if WORKAROUND_ISSUE_2493 && defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#endif
+
 #define WORKAROUND_ISSUE_1987 0      // Allows testing FDB on gfx1030 (legacy fdb).
 #define SKIP_KDB_PDB_TESTING 0       // Allows testing FDB on gfx1030.
 #define SKIP_CONVOCLDIRECTFWDFUSED 0 // Allows testing FDB on gfx1030 (legacy fdb).
@@ -74,14 +79,10 @@ struct std::hash<KDBKey>
     }
 };
 
-#if WORKAROUND_ISSUE_2493
-static void SetEnvironmentVariable(const std::string& name, const std::string& value)
+#if WORKAROUND_ISSUE_2493 && !defined(_WIN32)
+static void SetEnvironmentVariable(std::string_view name, std::string_view value)
 {
-#ifdef _WIN32
-    const auto ret = _putenv_s(env_var.c_str(), value.c_str());
-#else
-    const auto ret = setenv(name.c_str(), value.c_str(), 1);
-#endif
+    const auto ret = setenv(name.data(), value.data(), 1);
     ASSERT_TRUE(ret == 0);
 }
 #endif // WORKAROUND_ISSUE_2493
