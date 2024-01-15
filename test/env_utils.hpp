@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,19 +23,40 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
 
-#ifdef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
-typedef signed char int8_t;
-typedef unsigned char uint8_t;
-typedef signed short int16_t;
-typedef unsigned short uint16_t;
-#if HIP_PACKAGE_VERSION_FLAT >= 6000024000ULL
-typedef signed int int32_t;
-typedef unsigned int uint32_t;
-typedef __hip_internal::uint64_t uint64_t;
+#ifndef GUARD_MIOPEN_ENV_UTILS_HPP
+#define GUARD_MIOPEN_ENV_UTILS_HPP
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #endif
 
+#include "test.hpp"
+#include <string_view>
+
+inline void setEnvironmentVariable(std::string_view name, std::string_view value)
+{
+#ifdef _WIN32
+    BOOL ret = SetEnvironmentVariable(name.data(), value.data());
+    EXPECT_EQUAL(ret, TRUE);
 #else
-#include <cstdint> // int8_t, int16_t
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    int ret = setenv(name.data(), value.data(), 1);
+    EXPECT_EQUAL(ret, 0);
 #endif
+}
+
+inline void unsetEnvironmentVariable(std::string_view name)
+{
+#ifdef _WIN32
+    BOOL ret = SetEnvironmentVariable(name.data(), nullptr);
+    EXPECT_EQUAL(ret, TRUE);
+#else
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    int ret = unsetenv(name.data());
+    EXPECT_EQUAL(ret, 0);
+#endif
+}
+
+#endif // GUARD_MIOPEN_ENV_UTILS_HPP
