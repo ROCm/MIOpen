@@ -919,7 +919,7 @@ endif()
          endif()
          foreach(DB_FILE ${FIND_DB_FILES})
             get_filename_component(DB_FILE_FILENAME "${DB_FILE}" NAME)
-            configure_file("${DB_FILE}" "${DATABASE_INSTALL_DIR}/${DB_FILE_FILENAME}" COPYONLY)
+	    configure_file("${DB_FILE}" "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${DB_FILE_FILENAME}" COPYONLY)
          endforeach()
 
     endif()
