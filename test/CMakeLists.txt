@@ -43,11 +43,11 @@ endforeach()
 if( NOT ENABLE_ASAN_PACKAGING )
   install(FILES
       ${MODEL_FILES}
-   DESTINATION ${DATA_INSTALL_DIR}/perf_models)
+      DESTINATION ${DATA_INSTALL_DIR}/perf_models)
 endif()
  foreach(MODEL_FILE ${MODEL_FILES})
     get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
-    configure_file("${MODEL_FILE}" "${DATA_INSTALL_DIR}/perf_models/${MODEL_FILE_FILENAME}" COPYONLY)
+    configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/${DATA_INSTALL_DIR}/perf_models/${MODEL_FILE_FILENAME}" COPYONLY)
  endforeach()
 
 include(CheckCXXCompilerFlag)
