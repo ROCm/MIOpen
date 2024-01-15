@@ -366,7 +366,7 @@ std::string LogCmdConvolutionFusion(const miopenFusionPlanDescriptor_t fusePlanD
                                    miopen::deref(convDesc),
                                    miopen::deref(yDesc),
                                    miopenProblemDirection_t::miopenProblemDirectionForward,
-                                   false,
+                                   std::nullopt,
                                    false);
 
     return str;
