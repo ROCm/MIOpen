@@ -39,7 +39,7 @@ inline void failed(const char* msg, const char* file, int line)
     std::cout << ss.str();
 }
 
-[[gnu::noreturn]] inline void failed_abort(const char* msg, const char* file, int line)
+[[noreturn]] inline void failed_abort(const char* msg, const char* file, int line)
 {
     failed(msg, file, line);
     std::abort();
