@@ -8,7 +8,7 @@ The latest released documentation can be read online [here](https://rocm.docs.am
 
 MIOpen supports two programming models, or backends:
 
-1. [HIP](https://github.com/ROCm-Developer-Tools/HIP)
+1. [HIP](https://github.com/ROCm/HIP)
 2. OpenCL (deprecated).
 
 ## Documentation
@@ -35,7 +35,7 @@ python3 -m sphinx -T -E -b html -d _build/doctrees -D language=en . _build/html
   * HIP -
     * HIP and HCC libraries and header files.
   * OpenCL - OpenCL libraries and header files.
-* [ROCm cmake](https://github.com/RadeonOpenCompute/rocm-cmake) - provide cmake modules for common build tasks needed for the ROCM software stack.
+* [ROCm cmake](https://github.com/ROCm/rocm-cmake) - provide cmake modules for common build tasks needed for the ROCM software stack.
 * [Half](http://half.sourceforge.net/) - IEEE 754-based half-precision floating point library
 * [Boost](http://www.boost.org/)
   * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://rocm.docs.amd.com/projects/MIOpen/en/latest/cache.html)
