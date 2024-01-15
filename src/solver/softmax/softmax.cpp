@@ -40,22 +40,21 @@ namespace solver {
 namespace softmax {
 
 bool SoftmaxForward::IsApplicable(const ExecutionContext& context,
-            	              const miopen::softmax::ProblemDescription& problem) const
+                                  const miopen::softmax::ProblemDescription& problem) const
 {
     return true;
 }
 
-
 ConvSolution SoftmaxForward::GetSolution(const ExecutionContext& context,
-                                     const miopen::softmax::ProblemDescription& problem) const
+                                         const miopen::softmax::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto xDesc = problem.GetXDesc();
-    auto yDesc = problem.GetYDesc();
-    auto alpha = problem.GetAlpha();
-    auto beta = problem.GetBeta();
-    auto mode = problem.GetMode();
+    auto xDesc     = problem.GetXDesc();
+    auto yDesc     = problem.GetYDesc();
+    auto alpha     = problem.GetAlpha();
+    auto beta      = problem.GetBeta();
+    auto mode      = problem.GetMode();
     auto algorithm = problem.GetAlgorithm();
 
     int n, c, h, w;
@@ -77,14 +76,30 @@ ConvSolution SoftmaxForward::GetSolution(const ExecutionContext& context,
     int out_nstr, out_cstr, out_hstr;
     std::tie(out_nstr, out_cstr, out_hstr, std::ignore) = tien<4>(yDesc.GetStrides());
 
-    miopen::softmax::getParams(yDesc, mode, n, c, h, w, grid_size, spatial_dim, vector_size, num_batch, usefp16, usefp32, vld, vgd, workgroups, batch_size, u_batch_size);
+    miopen::softmax::getParams(yDesc,
+                               mode,
+                               n,
+                               c,
+                               h,
+                               w,
+                               grid_size,
+                               spatial_dim,
+                               vector_size,
+                               num_batch,
+                               usefp16,
+                               usefp32,
+                               vld,
+                               vgd,
+                               workgroups,
+                               batch_size,
+                               u_batch_size);
 
     auto alpha_fp = *(static_cast<const float*>(alpha));
     auto beta_fp  = *(static_cast<const float*>(beta));
 
     KernelBuildParameters build_params = KernelBuildParameters{{"NUM_BATCH", num_batch}};
 
-    if (num_batch > 1)
+    if(num_batch > 1)
     {
         build_params.Define("BATCH_SIZE", batch_size);
         build_params.Define("U_BATCH_SIZE", u_batch_size);
@@ -122,8 +137,8 @@ ConvSolution SoftmaxForward::GetSolution(const ExecutionContext& context,
 
     kernel.kernel_file = "MIOpenSoftmax.cl";
     kernel.kernel_name = "SoftmaxForward";
-   
-    for (unsigned int i = 0; i < 2; ++i)
+
+    for(unsigned int i = 0; i < 2; ++i)
     {
         kernel.l_wk.push_back(vld[i]);
         kernel.g_wk.push_back(vgd[i]);
@@ -135,22 +150,22 @@ ConvSolution SoftmaxForward::GetSolution(const ExecutionContext& context,
             decltype(auto) params = raw_params.CastTo<miopen::softmax::InvokeParams>();
 
             kernel(params.x,
-                    params.y,
-                    vector_size,
-                    grid_size,
-                    spatial_dim,
-                    h,
-                    w,
-                    in_nstr,
-                    in_cstr,
-                    in_hstr,
-                    out_nstr,
-                    out_cstr,
-                    out_hstr,
-                    params.x_offset,
-                    params.y_offset,
-                    alpha_fp,
-                    beta_fp);
+                   params.y,
+                   vector_size,
+                   grid_size,
+                   spatial_dim,
+                   h,
+                   w,
+                   in_nstr,
+                   in_cstr,
+                   in_hstr,
+                   out_nstr,
+                   out_cstr,
+                   out_hstr,
+                   params.x_offset,
+                   params.y_offset,
+                   alpha_fp,
+                   beta_fp);
         };
     };
 

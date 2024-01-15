@@ -33,7 +33,6 @@
 #include <miopen/softmax/solvers.hpp>
 #include <miopen/find_solution.hpp>
 
-
 namespace miopen {
 
 int nextPow2(int v)
@@ -83,10 +82,21 @@ miopenStatus_t SoftmaxForward(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
     }
 
-    const auto problem       = softmax::ProblemDescription{alpha, beta, xDesc, yDesc, algorithm, mode};
-    const auto invoke_params = softmax::InvokeParams{alpha, beta, xDesc, x, yDesc, y, algorithm, mode, x_offset, y_offset};
-    const auto algo          = AlgorithmName{"Softmax"};
-    const auto solvers       = solver::SolverContainer<solver::softmax::SoftmaxForward>{};
+    if(alpha == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Alpha value is nullptr");
+    }
+
+    if(beta == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Beta value is nullptr");
+    }
+
+    const auto problem = softmax::ProblemDescription{alpha, beta, xDesc, yDesc, algorithm, mode};
+    const auto invoke_params =
+        softmax::InvokeParams{alpha, beta, xDesc, x, yDesc, y, algorithm, mode, x_offset, y_offset};
+    const auto algo    = AlgorithmName{"Softmax"};
+    const auto solvers = solver::SolverContainer<solver::softmax::SoftmaxForward>{};
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
     return miopenStatusSuccess;

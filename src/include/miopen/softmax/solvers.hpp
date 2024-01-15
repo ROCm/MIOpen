@@ -58,7 +58,7 @@ struct SoftmaxForward final : SoftmaxSolver
     bool MayNeedWorkspace() const override { return false; }
 };
 
-} // namespace cat
+} // namespace softmax
 
 } // namespace solver
 

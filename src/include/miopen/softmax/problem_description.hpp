@@ -29,7 +29,6 @@
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
 
-
 namespace miopen {
 
 struct NetworkConfig;
@@ -38,44 +37,49 @@ namespace softmax {
 
 int nextPow2(int v);
 
-void getParams(const TensorDescriptor& in_yDesc, 
-                miopenSoftmaxMode_t in_mode, 
-                int& out_n, 
-                int& out_c, 
-                int& out_h, 
-                int& out_w, 
-                int& out_grid_size, 
-                int& out_spatial_dim,
-                int& out_vector_size,
-                int& out_num_batch,
-                bool& out_usefp16,
-                bool& out_usefp32,
-                std::vector<size_t>& out_vld,
-                std::vector<size_t>& out_vgd,
-                size_t& out_workgroups,
-                int& out_batch_size,
-                int& out_u_batch_size);
+void getParams(const TensorDescriptor& in_yDesc,
+               miopenSoftmaxMode_t in_mode,
+               int& out_n,
+               int& out_c,
+               int& out_h,
+               int& out_w,
+               int& out_grid_size,
+               int& out_spatial_dim,
+               int& out_vector_size,
+               int& out_num_batch,
+               bool& out_usefp16,
+               bool& out_usefp32,
+               std::vector<size_t>& out_vld,
+               std::vector<size_t>& out_vgd,
+               size_t& out_workgroups,
+               int& out_batch_size,
+               int& out_u_batch_size);
 
 struct ProblemDescription : ProblemDescriptionBase
 {
-    ProblemDescription( const void* alpha_,
-                        const void* beta_,
-                        const TensorDescriptor& xDesc_,
-                        const TensorDescriptor& yDesc_,
-                        miopenSoftmaxAlgorithm_t algorithm_,
-                        miopenSoftmaxMode_t mode_) :
-        alpha(alpha_), beta(beta_), xDesc(xDesc_), yDesc(yDesc_), algorithm(algorithm_), mode(mode_)
+    ProblemDescription(const void* alpha_,
+                       const void* beta_,
+                       const TensorDescriptor& xDesc_,
+                       const TensorDescriptor& yDesc_,
+                       miopenSoftmaxAlgorithm_t algorithm_,
+                       miopenSoftmaxMode_t mode_)
+        : alpha(alpha_),
+          beta(beta_),
+          xDesc(xDesc_),
+          yDesc(yDesc_),
+          algorithm(algorithm_),
+          mode(mode_)
     {
     }
 
-    const void* GetAlpha() const {return alpha;}
-    const void* GetBeta() const {return beta;}
-    const TensorDescriptor& GetXDesc() const {return xDesc;}
-    const TensorDescriptor& GetYDesc() const {return yDesc;}
-    const miopenSoftmaxAlgorithm_t GetAlgorithm() const {return algorithm;}
-    const miopenSoftmaxMode_t GetMode() const {return mode;}
+    const void* GetAlpha() const { return alpha; }
+    const void* GetBeta() const { return beta; }
+    const TensorDescriptor& GetXDesc() const { return xDesc; }
+    const TensorDescriptor& GetYDesc() const { return yDesc; }
+    const miopenSoftmaxAlgorithm_t GetAlgorithm() const { return algorithm; }
+    const miopenSoftmaxMode_t GetMode() const { return mode; }
 
-    NetworkConfig MakeNetworkConfig() const override;    
+    NetworkConfig MakeNetworkConfig() const override;
 
 private:
     const void* alpha;
