@@ -672,7 +672,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, codecov: (env.BRANCH_NAME == "rk_codecov_nightly") ? true : false)
                     }
                 }
                 stage('Fp32 Hip Debug gfx90a') {
@@ -685,7 +685,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, codecov: (env.BRANCH_NAME == "rk_codecov_nightly") ? true : false)
                     }
                 }
                 stage('Fp32 Hip Debug gfx94X') {
@@ -1028,7 +1028,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true", codecov: (env.BRANCH_NAME == "rk_codecov_nightly") ? true : false)
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true", codecov: (env.BRANCH_NAME == "rk_codecov_nightly_") ? true : false)
                     }
                 }
                 stage('Bf16 Hip Install All gfx94X') {
@@ -1080,7 +1080,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test, codecov: (env.BRANCH_NAME == "rk_codecov_nightly") ? true : false)
+                        buildHipClangJobAndReboot(setup_flags: Full_test, codecov: (env.BRANCH_NAME == "rk_codecov_nightly_") ? true : false)
                     }
                 }
                 // stage('Fp32 Hip All gfx90a Xnack+') {
@@ -1168,7 +1168,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true", codecov: (env.BRANCH_NAME == "rk_codecov_nightly") ? true : false)
+                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true", codecov: (env.BRANCH_NAME == "rk_codecov_nightly_") ? true : false)
                     }
                 }
                 stage('Fp16 Hip All Install gfx94X') {
