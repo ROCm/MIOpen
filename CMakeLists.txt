@@ -542,6 +542,7 @@ endif()
 if(LFS_MISSING_FILES)
     string(REPLACE ";" ", " __lfs_missing_files "${LFS_MISSING_FILES}")
     message(WARNING "GIT LFS file not pulled down, skipping: ${__lfs_missing_files}")
+    set(MIOPEN_NO_LFS_PULLED TRUE CACHE INTERNAL "")
 endif()
 
 # End KDB package creation
