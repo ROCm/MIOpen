@@ -304,16 +304,16 @@ __kernel void transpose_NCHW2CNHW_V2_3D_WG(const global data_t* in,
     cout[hw_out * n_i] = cin[C * hw_in * n_i];
 }
 
-__kernel void transpose_CNHW2NCHW_V1_1D_WG_float(const global data_t* in,
-                                                 global data_t* out,
-                                                 const arg_size_t in_off,
-                                                 const arg_size_t out_off,
-                                                 const int rd_blck,
-                                                 const int hw_rd,
-                                                 const int N,
-                                                 const int C,
-                                                 const int H,
-                                                 const int W)
+__kernel void transpose_CNHW2NCHW_V1_1D_WG_float_off64(const global data_t* in,
+                                                       global data_t* out,
+                                                       const arg_size_t in_off,
+                                                       const arg_size_t out_off,
+                                                       const int rd_blck,
+                                                       const int hw_rd,
+                                                       const int N,
+                                                       const int C,
+                                                       const int H,
+                                                       const int W)
 {
     // to reduce granularity loss
     uint c_p_blck = get_global_id(0);
@@ -332,16 +332,16 @@ __kernel void transpose_CNHW2NCHW_V1_1D_WG_float(const global data_t* in,
     }
 }
 
-__kernel void transpose_CNHW2NCHW_V1_1D_WG_float2(const global data_t* in,
-                                                  global data_t* out,
-                                                  const arg_size_t in_off,
-                                                  const arg_size_t out_off,
-                                                  const int rd_blck,
-                                                  const int hw_rd,
-                                                  const int N,
-                                                  const int C,
-                                                  const int H,
-                                                  const int W)
+__kernel void transpose_CNHW2NCHW_V1_1D_WG_float2_off64(const global data_t* in,
+                                                        global data_t* out,
+                                                        const arg_size_t in_off,
+                                                        const arg_size_t out_off,
+                                                        const int rd_blck,
+                                                        const int hw_rd,
+                                                        const int N,
+                                                        const int C,
+                                                        const int H,
+                                                        const int W)
 {
     // to reduce granularity loss
     uint c_p_blck = get_global_id(0);
@@ -360,16 +360,16 @@ __kernel void transpose_CNHW2NCHW_V1_1D_WG_float2(const global data_t* in,
     }
 }
 
-__kernel void transpose_CNHW2NCHW_V1_1D_WG_float4(const global data_t* in,
-                                                  global data_t* out,
-                                                  const arg_size_t in_off,
-                                                  const arg_size_t out_off,
-                                                  const int rd_blck,
-                                                  const int hw_rd,
-                                                  const int N,
-                                                  const int C,
-                                                  const int H,
-                                                  const int W)
+__kernel void transpose_CNHW2NCHW_V1_1D_WG_float4_off64(const global data_t* in,
+                                                        global data_t* out,
+                                                        const arg_size_t in_off,
+                                                        const arg_size_t out_off,
+                                                        const int rd_blck,
+                                                        const int hw_rd,
+                                                        const int N,
+                                                        const int C,
+                                                        const int H,
+                                                        const int W)
 {
     // to reduce granularity loss
     uint c_p_blck = get_global_id(0);
@@ -388,16 +388,16 @@ __kernel void transpose_CNHW2NCHW_V1_1D_WG_float4(const global data_t* in,
     }
 }
 
-__kernel void transpose_CNHW2NCHW_V1_2D_WG_float(const global data_t* in,
-                                                 global data_t* out,
-                                                 const arg_size_t in_off,
-                                                 const arg_size_t out_off,
-                                                 const int rd_blck,
-                                                 const int hw_rd,
-                                                 const int N,
-                                                 const int C,
-                                                 const int H,
-                                                 const int W)
+__kernel void transpose_CNHW2NCHW_V1_2D_WG_float_off64(const global data_t* in,
+                                                       global data_t* out,
+                                                       const arg_size_t in_off,
+                                                       const arg_size_t out_off,
+                                                       const int rd_blck,
+                                                       const int hw_rd,
+                                                       const int N,
+                                                       const int C,
+                                                       const int H,
+                                                       const int W)
 {
     // to reduce granularity loss
     uint c_p_blck = get_global_id(0);
@@ -414,16 +414,16 @@ __kernel void transpose_CNHW2NCHW_V1_2D_WG_float(const global data_t* in,
     cout[b * C * hw_rd] = cin[b * hw_rd];
 }
 
-__kernel void transpose_CNHW2NCHW_V1_2D_WG_float2(const global data_t* in,
-                                                  global data_t* out,
-                                                  const arg_size_t in_off,
-                                                  const arg_size_t out_off,
-                                                  const int rd_blck,
-                                                  const int hw_rd,
-                                                  const int N,
-                                                  const int C,
-                                                  const int H,
-                                                  const int W)
+__kernel void transpose_CNHW2NCHW_V1_2D_WG_float2_off64(const global data_t* in,
+                                                        global data_t* out,
+                                                        const arg_size_t in_off,
+                                                        const arg_size_t out_off,
+                                                        const int rd_blck,
+                                                        const int hw_rd,
+                                                        const int N,
+                                                        const int C,
+                                                        const int H,
+                                                        const int W)
 {
     // to reduce granularity loss
     uint c_p_blck = get_global_id(0);
@@ -440,16 +440,16 @@ __kernel void transpose_CNHW2NCHW_V1_2D_WG_float2(const global data_t* in,
     cout[b * C * hw_rd] = cin[b * hw_rd];
 }
 
-__kernel void transpose_CNHW2NCHW_V1_2D_WG_float4(const global data_t* in,
-                                                  global data_t* out,
-                                                  const arg_size_t in_off,
-                                                  const arg_size_t out_off,
-                                                  const int rd_blck,
-                                                  const int hw_rd,
-                                                  const int N,
-                                                  const int C,
-                                                  const int H,
-                                                  const int W)
+__kernel void transpose_CNHW2NCHW_V1_2D_WG_float4_off64(const global data_t* in,
+                                                        global data_t* out,
+                                                        const arg_size_t in_off,
+                                                        const arg_size_t out_off,
+                                                        const int rd_blck,
+                                                        const int hw_rd,
+                                                        const int N,
+                                                        const int C,
+                                                        const int H,
+                                                        const int W)
 {
     // to reduce granularity loss
     uint c_p_blck = get_global_id(0);
@@ -466,18 +466,18 @@ __kernel void transpose_CNHW2NCHW_V1_2D_WG_float4(const global data_t* in,
     cout[b * C * hw_rd] = cin[b * hw_rd];
 }
 
-__kernel void transpose_CNHW2NCHW_V2_2D_WG(const global data_t* in,
-                                           global data_t* out,
-                                           const arg_size_t in_off,
-                                           const arg_size_t out_off,
-                                           const int w_in,
-                                           const int w_out,
-                                           const int N,
-                                           const int C,
-                                           const int h_stride,
-                                           const int w_stride,
-                                           const int hw_in,
-                                           const int hw_out)
+__kernel void transpose_CNHW2NCHW_V2_2D_WG_off64(const global data_t* in,
+                                                 global data_t* out,
+                                                 const arg_size_t in_off,
+                                                 const arg_size_t out_off,
+                                                 const int w_in,
+                                                 const int w_out,
+                                                 const int N,
+                                                 const int C,
+                                                 const int h_stride,
+                                                 const int w_stride,
+                                                 const int hw_in,
+                                                 const int hw_out)
 {
     uint hw_i = get_global_id(0);
     uint c_i  = get_global_id(2);
@@ -497,18 +497,18 @@ __kernel void transpose_CNHW2NCHW_V2_2D_WG(const global data_t* in,
     }
 }
 
-__kernel void transpose_CNHW2NCHW_V2_3D_WG(const global data_t* in,
-                                           global data_t* out,
-                                           const arg_size_t in_off,
-                                           const arg_size_t out_off,
-                                           const int w_in,
-                                           const int w_out,
-                                           const int N,
-                                           const int C,
-                                           const int h_stride,
-                                           const int w_stride,
-                                           const int hw_in,
-                                           const int hw_out)
+__kernel void transpose_CNHW2NCHW_V2_3D_WG_off64(const global data_t* in,
+                                                 global data_t* out,
+                                                 const arg_size_t in_off,
+                                                 const arg_size_t out_off,
+                                                 const int w_in,
+                                                 const int w_out,
+                                                 const int N,
+                                                 const int C,
+                                                 const int h_stride,
+                                                 const int w_stride,
+                                                 const int hw_in,
+                                                 const int hw_out)
 {
     uint hw_i = get_global_id(0);
     uint c_i  = get_global_id(2);

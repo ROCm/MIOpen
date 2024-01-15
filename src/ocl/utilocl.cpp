@@ -964,6 +964,12 @@ float transpose_CNHW2NCHW(const Handle& handle,
             kernel_name += "_2D_WG";
         }
 
+        /// After switching to 64-bit offsets, do not use old kernels
+        /// from the binary cache that use 32-bit offsets.
+        /// See https://github.com/ROCm/MIOpen/pull/2613#issuecomment-1864781888
+        /// for details.
+        kernel_name += "_off64";
+
         const int hw_in  = h_in * w_in;
         const int hw_out = h_out * w_out;
 
