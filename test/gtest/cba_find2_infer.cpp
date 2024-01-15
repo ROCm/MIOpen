@@ -38,6 +38,8 @@
 #include "get_handle.hpp"
 #include "cba_find2.hpp"
 
+namespace cba_find2_infer {
+
 struct ConvBiasActivFind2InferTestFloat : ConvBiasActivInferFind2Test<float>
 {
 };
@@ -78,7 +80,7 @@ void RunSolver(miopen::FusedProblem& problem,
 template <typename Solver>
 void RunTunableSolver(miopen::FusedProblem& problem,
                       const miopen::AnyInvokeParams& invoke_ctx,
-                      const ConvTestCase& conv_config,
+                      const ConvTestCaseBase& conv_config,
                       bool& test_skipped)
 {
     auto& handle = get_handle();
@@ -100,6 +102,9 @@ void RunTunableSolver(miopen::FusedProblem& problem,
     (invoker)(handle, invoke_ctx);
     handle.Finish();
 }
+
+} // namespace cba_find2_infer
+using namespace cba_find2_infer;
 
 TEST_P(ConvBiasActivFind2InferTestFloat, ConvBiasActivAsm1x1UFind2Float)
 {
@@ -143,6 +148,7 @@ TEST_P(ConvBiasActivFind2InferTestFloatFusionFind, ConvBiasActivFind2Float_testF
         {miopenTensorConvolutionX, in_dev.get()},
         {miopenTensorConvolutionW, wei_dev.get()},
         {miopenTensorActivationY, out_dev.get()},
+        {miopenTensorBias, bias_dev.get()},
     };
 
     for(auto& solution : solutions)
@@ -152,22 +158,23 @@ TEST_P(ConvBiasActivFind2InferTestFloatFusionFind, ConvBiasActivFind2Float_testF
     }
 }
 
-INSTANTIATE_TEST_SUITE_P(CBAFind2InferSolverTest,
-                         ConvBiasActivFind2InferTestFloatFusionFind,
-                         testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(GetNetworkForFusionCompileStepTest()),
-                                          testing::Values(miopenTensorNCHW)));
+INSTANTIATE_TEST_SUITE_P(
+    CBAFind2InferSolverTest,
+    ConvBiasActivFind2InferTestFloatFusionFind,
+    testing::Combine(testing::Values(miopenActivationRELU),
+                     testing::ValuesIn(GetNetworkForFusionCompileStepTest<ConvTestCaseBase>()),
+                     testing::Values(miopenTensorNCHW)));
 
 #endif
 
 INSTANTIATE_TEST_SUITE_P(CBAFind2InferSolverTest,
                          ConvBiasActivFind2InferTestFloat,
                          testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(GetNetwork1()),
+                                          testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
                                           testing::Values(miopenTensorNCHW)));
 
 INSTANTIATE_TEST_SUITE_P(CBAFind2InferSolverTest,
                          ConvBiasActivFind2InferTestHalf,
                          testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(GetNetwork1()),
+                                          testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
                                           testing::Values(miopenTensorNHWC)));

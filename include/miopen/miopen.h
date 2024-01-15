@@ -64,6 +64,7 @@
  * @defgroup LossFunction
  * @defgroup TensorReduce
  * @defgroup find2
+ * @defgroup sum
  *
  */
 
@@ -633,7 +634,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor
 
 /*! @brief Set shape of 4D tensor
  *
- * Interface for setting 4-D tensor shape. MIOpen currently only implements NCHW layout.
+ * Interface for setting 4-D tensor shape. MIOpen currently implements NCHW and NHWC layout.
  *
  * @param tensorDesc Tensor descriptor (input/output)
  * @param dataType   MIOpen datatype (input)
@@ -648,7 +649,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptor(
 
 /*! @brief Set shape of ND tensor with specific layout
  *
- * Interface for setting N-D tensor shape. This interface support NHWC, NCHW, NCHWc*, CHWNc*
+ * Interface for setting N-D packed tensor shape. This interface support NHWC, NCHW, NCHWc*, CHWNc*
  * @param tensorDesc   Tensor descriptor (input/output)
  * @param dataType     MIOpen datatype (input)
  * @param tensorLayout Tensor layout (input)
@@ -664,7 +665,10 @@ miopenSetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
                                       int num_lens);
 /*! @brief Set shape and stride of 4D tensor
  *
- * Interface for setting 4-D tensor shape and stride.
+ * Interface for setting 4-D tensor shape and stride. It allows to create the non-packed tensor.
+ * A non-packed tensor refers to the tensor where the elements are not compressed or packed in any
+ * specific way. Each element in the tensor is stored individually, and there is no special
+ * compression applied to the storage.
  *
  * @param tensorDesc Tensor descriptor (input/output)
  * @param dataType   MIOpen datatype (input)
@@ -718,8 +722,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_
 
 /*! @brief Set shape of N-dimensional tensor
  *
- * Interface for setting tensor shape. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of
- * layout.
+ * Interface for setting non-packed tensor shape.
  * @param tensorDesc   Tensor descriptor (input/output)
  * @param dataType     MIOpen datatype (input)
  * @param nbDims       Number of dimensions in the dimsA array (input)
@@ -1730,6 +1733,14 @@ miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
  * The scaling parameter alpha (float) and shift parameter beta (float) are only supported for
  * alpha = 1 and beta = 0.
  *
+ * The forward convolution is designed to accommodate both packed and non-packed tensor strides for
+ * multiple data types and dimensions across various platforms. This flexibility ensures optimal
+ * performance in handling diverse computational scenarios. To configure tensor parameters,
+ * including strides, users can utilize the APIs miopenSetTensorDescriptor() and
+ * miopenGetTensorDescriptor(). These APIs empower developers to seamlessly set and retrieve tensor
+ * information, facilitating a more intuitive and efficient workflow. The tensor strides are
+ * non-packed by default.
+ *
  * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
  * this.
  *
@@ -1874,6 +1885,14 @@ miopenFindConvolutionBackwardDataAlgorithm(miopenHandle_t handle,
  * determine the required memory needed for the workspace and the best convolutional
  * algorithm.
  *
+ * The backward data convolution is designed to accommodate both packed and non-packed tensor
+ * strides for multiple data types and dimensions across various platforms. This flexibility ensures
+ * optimal performance in handling diverse computational scenarios. To configure tensor parameters,
+ * including strides, users can utilize the APIs miopenSetTensorDescriptor() and
+ * miopenGetTensorDescriptor(). These APIs empower developers to seamlessly set and retrieve tensor
+ * information, facilitating a more intuitive and efficient workflow. The tensor strides are
+ * non-packed by default.
+ *
  * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
  * this.
  *
@@ -1997,6 +2016,14 @@ miopenFindConvolutionBackwardWeightsAlgorithm(miopenHandle_t handle,
  * miopenFindConvolutionBackwardWeightsAlgorithm() must have
  * been executed previously to determine the required memory needed for the workspace and the
  * best convolutional algorithm.
+ *
+ * The backward weights convolution is designed to accommodate both packed and non-packed tensor
+ * strides for multiple data types and dimensions across various platforms. This flexibility ensures
+ * optimal performance in handling diverse computational scenarios. To configure tensor parameters,
+ * including strides, users can utilize the APIs miopenSetTensorDescriptor() and
+ * miopenGetTensorDescriptor(). These APIs empower developers to seamlessly set and retrieve tensor
+ * information, facilitating a more intuitive and efficient workflow. The tensor strides are
+ * non-packed by default.
  *
  * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
  * this.
@@ -2993,9 +3020,10 @@ MIOPEN_EXPORT miopenStatus_t miopenFusionPlanGetOp(miopenFusionPlanDescriptor_t 
                                                    miopenFusionOpDescriptor_t* op);
 
 /*! @brief Query the workspace size required for the fusion plan
- *
+ * @param handle         MIOpen handle (input)
  * @param fusePlanDesc   A fusion plan descriptor (input)
  * @param workSpaceSize  Pointer to memory to return size in bytes (output)
+ * @param algo           Algorithm selected (inputs)
  * @return               miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -3326,12 +3354,29 @@ miopenExecuteFusionPlan(const miopenHandle_t handle,
                         void* output,
                         miopenOperatorArgs_t args);
 
-/*! @brief Prepares and executes the Convlution+Bias+Activation Fusion
+/*! @brief Prepares and executes the Convlution+Bias+Activation Fusion.
  *
  *
- * @param handle           MIOpen handle (input)
- * @return           miopenStatus_t
+ * @param handle               MIOpen handle (input)
+ * @param alpha1               floating point scaling factor, allocated on the host (input)
+ * @param xDesc                Tensor descriptor for input data tensor x (input)
+ * @param x                    Data tensor x (input)
+ * @param wDesc                Tensor descriptor for weight tensor w (input)
+ * @param w                    Weights tensor w (input)
+ * @param convDesc             Convolution layer descriptor (input)
+ * @param algo                 Algorithm selected (inputs)
+ * @param workspace            Pointer to workspace required (input)
+ * @param workspaceSizeInBytes Size of the memory in bytes pointed to by workSpace above
+ * @param alpha2               floating point scaling factor, allocated on the host (input)
+ * @param zDesc                Tensor descriptor for tensor z (input)
+ * @param z                    Data tensor z (input)
+ * @param biasDesc             Tensor descriptor for input data tensor x (input)
+ * @param bias                 Data tensor bias (input)
+ * @param activationDesc       Activation descriptor that specifies the activation mode
+ * @param yDesc                Tensor descriptor for output data tensor y (input)
+ * @param y                    Output data tensor
  */
+
 MIOPEN_EXPORT miopenStatus_t
 miopenConvolutionBiasActivationForward(miopenHandle_t handle,
                                        const void* alpha1,
@@ -4254,7 +4299,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNPaddingMode(miopenRNNDescriptor_t rnnDe
  *
  * @param handle                MIOpen handle (input)
  * @param rnnDesc               RNN layer descriptor type (input)
- *
+ * @param fwdMode          Specifies in which mode the buffers will be used.
  * @param xDesc                 An input tensor descriptor for sequenced RNN data. This
  * miopenSeqTensorDescriptor_t should be initialyzed by `miopenSetRNNDataSeqTensorDescriptor`
  * function.(input)
@@ -5233,6 +5278,9 @@ typedef enum
     miopenTensorActivationY  = 5,
     miopenTensorActivationDX = 6,
     miopenTensorActivationDY = 7,
+    miopenTensorBiasX        = 8,
+    miopenTensorBiasY        = 9,
+    miopenTensorBias         = 10,
 #endif
 } miopenTensorArgumentId_t;
 
@@ -5506,10 +5554,80 @@ miopenCreateActivationProblem(miopenProblem_t* problem,
  */
 MIOPEN_EXPORT miopenStatus_t miopenFuseProblems(miopenProblem_t problem1, miopenProblem_t problem2);
 
+/*! @brief Initializes a problem object describing an bias operation.
+ * @note As of now there is no way to actually get any solution for this kind of problems.
+ *
+ * @param problem        Pointer to the problem to initialize
+ * @param direction      Direction of the operation
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenCreateBiasProblem(miopenProblem_t* problem,
+                                                     miopenProblemDirection_t direction);
+
 #endif
 
 /** @} */
 // CLOSEOUT find2 DOXYGEN GROUP
+
+#ifdef MIOPEN_BETA_API
+
+/*! @ingroup sum
+ * @enum miopenSumNanPropagation_t
+ * Nan numbers propagation modes for sum
+ */
+typedef enum
+{
+    MIOPEN_SUM_NOT_PROPAGATE_NAN = 0, /*!< does not propagate Nan number */
+    MIOPEN_SUM_PROPAGATE_NAN     = 1, /*!< propagate the Nan number by the Reduction operation */
+} miopenSumNanPropagation_t;
+
+// Sum APIs
+/** @addtogroup sum
+ *
+ *  @{
+ */
+
+/*! @brief Helper function to query the minimum workspace size required by the ReduceTensor call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param xDesc                    Tensor descriptor for data input tensor x (input)
+ * @param dim                      Dimensions to sum. (input)
+ * @param yDesc                    Tensor descriptor for output data tensor y (input)
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetSumWorkspaceSize(miopenHandle_t handle,
+                                                       const miopenTensorDescriptor_t xDesc,
+                                                       const int32_t dim,
+                                                       const miopenTensorDescriptor_t yDesc,
+                                                       size_t* sizeInBytes);
+
+/*! @brief Execute a sum forward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param nanPropagation           Nan number propagation mode (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param xDesc                    Tensor descriptor for data input tensor x (input)
+ * @param x                        Data tensor x (input)
+ * @param dim                      Dimensions to sum. (input)
+ * @param yDesc                    Tensor descriptor for output data tensor y (input)
+ * @param y                        Data tensor y (output)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSumForward(miopenHandle_t handle,
+                                              miopenSumNanPropagation_t nanPropagation,
+                                              void* workspace,
+                                              size_t workspaceSizeInBytes,
+                                              const miopenTensorDescriptor_t xDesc,
+                                              const void* x,
+                                              const int32_t dim,
+                                              const miopenTensorDescriptor_t yDesc,
+                                              void* y);
+
+/** @} */
+// CLOSEOUT SUM DOXYGEN GROUP
+#endif
 
 #ifdef __cplusplus
 }

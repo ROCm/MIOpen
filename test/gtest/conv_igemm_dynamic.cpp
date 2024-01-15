@@ -28,14 +28,18 @@
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
-#include "../conv2d.hpp"
 #include "get_handle.hpp"
+#include "test_env.hpp"
+
+#include "../conv2d.hpp"
 
 using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_TEST_GPU_XNACK_ENABLED)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
-static bool SkipTest(void) { return miopen::IsEnabled(MIOPEN_TEST_GPU_XNACK_ENABLED{}); }
+namespace conv_igemm_dynamic {
+
+static bool SkipTest(void) { return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)); }
 
 void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
 {
@@ -54,7 +58,7 @@ void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class Conv2dFloat : public testing::TestWithParam<std::vector<TestCase>>
+class Conv2dFloatDynamic : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -64,7 +68,7 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<TestCase> params;
     switch(prec)
     {
-    case miopenFloat: params = Conv2dFloat::GetParam(); break;
+    case miopenFloat: params = Conv2dFloatDynamic::GetParam(); break;
     case miopenHalf:
     case miopenInt8:
     case miopenBFloat16:
@@ -76,7 +80,7 @@ void Run2dDriver(miopenDataType_t prec)
                   "miopenDouble, miopenFloat8, miopenBFloat8 "
                   "data type not supported by conv_igemm_dynamic test";
 
-    default: params = Conv2dFloat::GetParam();
+    default: params = Conv2dFloatDynamic::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -106,19 +110,6 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
         return false;
 }
 
-TEST_P(Conv2dFloat, FloatTest)
-{
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
-    {
-        Run2dDriver(miopenFloat);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
 std::vector<TestCase> GetTestCases(const std::string& precision)
 {
 
@@ -143,17 +134,17 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
 
     const std::vector<TestCase> test_cases = {
     // clang-format off
-#if CODECOV_TEST        
+#if CODECOV_TEST
     TestCase{env, precision + v +  " --input  32  32 17 17 --weights 32  32 1 7 --pads_strides_dilations 0 3 1 1 1 1" + dis_bk_data + dis_bk_wei + dis_vali},
     TestCase{env_wrw, precision + v + " --input  64  64 28 28 --weights 32  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data + dis_vali},
     TestCase{env_bwd, precision + v + " --input  64  64 28 28 --weights 16  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei + dis_vali},
-#else    
+#else
     TestCase{env, precision + v + " --input  16  16 56 56 --weights 64  16 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
     TestCase{env, precision + v + " --input  16  64 34 34 --weights 64  64 3 3 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
     TestCase{env, precision + v + " --input  32  32 17 17 --weights 32  32 1 7 --pads_strides_dilations 0 3 1 1 1 1" + dis_bk_data + dis_bk_wei},
     TestCase{env_1x1, precision + v + " --input  16 384  8  8 --weights 64 384 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
     TestCase{env_wrw, precision + v + " --input  64  64 28 28 --weights 32  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},
-    TestCase{env_wrw, precision + v + " --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},    
+    TestCase{env_wrw, precision + v + " --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},
     TestCase{env_bwd, precision + v + " --input  64  64 28 28 --weights 16  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei},
     TestCase{env_bwd, precision + v + " --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei},
 #endif
@@ -185,4 +176,22 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
     return test_cases;
 }
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamic, Conv2dFloat, testing::Values(GetTestCases("--float")));
+} // namespace conv_igemm_dynamic
+using namespace conv_igemm_dynamic;
+
+TEST_P(Conv2dFloatDynamic, FloatTest_conv_igemm_dynamic)
+{
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--float"))
+    {
+        Run2dDriver(miopenFloat);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamic,
+                         Conv2dFloatDynamic,
+                         testing::Values(GetTestCases("--float")));

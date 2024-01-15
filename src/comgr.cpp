@@ -58,30 +58,30 @@
 
 /// Correctness problems on MI200 with base driver 5.11.14 (~ROCm 4.3.1).
 /// With base driver 5.11.32 the errors disappear.
-/// More info at https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1257.
+/// More info at https://github.com/ROCm/MIOpen/issues/1257.
 #define WORKAROUND_ISSUE_1257 (HIP_PACKAGE_VERSION_FLAT >= 4003021331ULL)
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_CALLS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_LOG_CALLS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)
 
 /// 0: Off.
 /// 1: Logs each option on a separate line.
 /// 2: Logs all options altogether, on single line.
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_OPTIONS)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_COMGR_LOG_OPTIONS)
 
 /// Integer, set to max number of first characters
 /// you would like to log onto console.
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT)
 
 /// \todo Temporary for debugging:
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_COMPILER_OPTIONS_INSERT)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_COMGR_COMPILER_OPTIONS_INSERT)
 /// \todo Temporary for debugging:
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN)
 
 /// \todo see issue #1222, PR #1316
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
 
 #ifndef MIOPEN_AMD_COMGR_VERSION_MAJOR
 #define MIOPEN_AMD_COMGR_VERSION_MAJOR 0
@@ -137,7 +137,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
 /// have wavesize != 64 (currently gfx10 with default build settings).
 #define WORKAROUND_ISSUE_1431 PCH_IS_SUPPORTED
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)
 
 #define COMPILER_LC 1
 
@@ -151,7 +151,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)
                                                << GetStatusText(status)); \
             (action);                                                     \
         }                                                                 \
-        else if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_CALLS{}))        \
+        else if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_LOG_CALLS)))     \
             MIOPEN_LOG_I("Ok \'" #comgrcall "\' " << to_string(info));    \
     } while(false)
 
@@ -227,7 +227,7 @@ static void AddCompilerOptions(OptionList& list, const miopen::TargetProperties&
 #endif
     list.push_back("-mllvm");
     list.push_back("-amdgpu-prelink");
-    if(miopen::IsEnabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP{}))
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)))
     {
         list.push_back("-mwavefrontsize64");
         list.push_back("-mcumode");
@@ -268,14 +268,14 @@ static void RemoveOptionsUnwanted(OptionList& list)
 namespace hip {
 
 #if PCH_IS_SUPPORTED
-static bool IsPchEnabled() { return !miopen::IsDisabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE{}); }
+static bool IsPchEnabled() { return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)); }
 #endif
 
 static std::string GetPchEnableStatus()
 {
 #if PCH_IS_SUPPORTED
     auto rv = std::string{IsPchEnabled() ? "1" : "0"};
-    if(miopen::IsDisabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)))
         return rv += " (enforced)";
     return rv;
 #else
@@ -322,7 +322,7 @@ static void RemoveCompilerOptionsUnwanted(OptionList& list)
     list.erase(remove_if(list.begin(),
                          list.end(),
                          [&](const auto& option) { // clang-format off
-                             return (!miopen::IsEnabled(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN{})
+                             return (!miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN))
                                     && (IsLinkerOption(option))); // clang-format on
                          }),
                list.end());
@@ -477,7 +477,7 @@ static std::string GetStatusText(const amd_comgr_status_t status, const bool unk
 
 static void LogOptions(const char* options[], size_t count)
 {
-    static const auto control = miopen::Value(MIOPEN_DEBUG_COMGR_LOG_OPTIONS{}, 0);
+    static const auto control = miopen::Value(ENV(MIOPEN_DEBUG_COMGR_LOG_OPTIONS));
     if(!(control != 0 && miopen::IsLogging(miopen::LoggingLevel::Info)))
         return;
     if(control == 2)
@@ -621,12 +621,12 @@ public:
                  const amd_comgr_data_kind_t type) const
     {
         const Data d(type);
-        if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES{}))
+        if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)))
             MIOPEN_LOG_I(name << ' ' << content.size() << " bytes");
         d.SetName(name);
         d.SetBytes(content);
         AddData(d);
-        const auto show_first = miopen::Value(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT{}, 0);
+        const auto show_first = miopen::Value(ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT));
         if(show_first > 0 && miopen::IsLogging(miopen::LoggingLevel::Info) &&
            (type == AMD_COMGR_DATA_KIND_SOURCE || type == AMD_COMGR_DATA_KIND_INCLUDE))
         {
@@ -640,7 +640,7 @@ public:
     {
         const char name[] = "hip.pch";
         const Data d(AMD_COMGR_DATA_KIND_PRECOMPILED_HEADER);
-        if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES{}))
+        if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)))
         {
             MIOPEN_LOG_I(name << ' ' << size
                               << " bytes,  ptr = " << static_cast<const void*>(content));
@@ -766,9 +766,7 @@ static void SetIsaName(const ActionInfo& action,
 
 static std::string GetDebugCompilerOptionsInsert()
 {
-    const char* p = miopen::GetStringEnv(MIOPEN_DEBUG_COMGR_COMPILER_OPTIONS_INSERT{});
-    if(p == nullptr)
-        p = "";
+    const auto& p = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_COMGR_COMPILER_OPTIONS_INSERT));
     return {p};
 }
 
@@ -815,7 +813,7 @@ void BuildHip(const std::string& name,
         action.SetLogging(true);
 
         const Dataset exe;
-        if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN{}))
+        if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN)))
         {
             auto raw = options                                 //
                        + " " + GetDebugCompilerOptionsInsert() //
@@ -1108,7 +1106,7 @@ static std::string GetStatusText(const hiprtcResult status)
             MIOPEN_LOG_E("\'" #call "\' " << to_string(info) << ": " << GetStatusText(status)); \
             (action);                                                                           \
         }                                                                                       \
-        else if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_CALLS{}))                              \
+        else if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_LOG_CALLS)))                           \
             MIOPEN_LOG_I("Ok \'" #call "\' " << to_string(info));                               \
     } while(false)
 
@@ -1133,7 +1131,7 @@ static void PrintVersion()
 }
 
 /// \ref
-/// https://github.com/ROCmSoftwarePlatform/AMDMIGraphX/blob/21193e875fe2133b38872decb7b2d0f985f48496/src/targets/gpu/compile_hip.cpp#L44
+/// https://github.com/ROCm/AMDMIGraphX/blob/21193e875fe2133b38872decb7b2d0f985f48496/src/targets/gpu/compile_hip.cpp#L44
 /// Workaround hiprtc's broken API
 static void hiprtc_program_destroy(hiprtcProgram prog) { hiprtcDestroyProgram(&prog); }
 using hiprtc_program_ptr = MIOPEN_MANAGE_PTR(hiprtcProgram, hiprtc_program_destroy);
@@ -1243,11 +1241,11 @@ public:
 private:
     void LogInputFile(const std::string& name, const std::string& content)
     {
-        if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES{}))
+        if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)))
             MIOPEN_LOG_I(name << ' ' << content.size() << " bytes");
         if(miopen::IsLogging(miopen::LoggingLevel::Info))
         {
-            const auto show_first = miopen::Value(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT{}, 0);
+            const auto show_first = miopen::Value(ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT));
             if(show_first > 0)
             {
                 const auto text_length =
@@ -1294,15 +1292,19 @@ void BuildHip(const std::string& name,
         auto opts =
             miopen::SplitSpaceSeparated(options, miopen::comgr::compiler::lc::GetOptionsNoSplit());
         compiler::lc::RemoveOptionsUnwanted(opts);
-        opts.push_back("-DWORKAROUND_ISSUE_HIPRTC_TRUE_TYPE"); // Workaround for SWDEV-308073
-        opts.push_back("-D__HIP_PLATFORM_HCC__=1");            // Workaround?
-        opts.push_back("-D__HIP_PLATFORM_AMD__=1");            // Workaround?
+#if HIP_PACKAGE_VERSION_MAJOR < 6
+        opts.push_back("-D__HIP_PLATFORM_HCC__=1"); // Workaround?
+#endif
+        opts.push_back("-D__HIP_PLATFORM_AMD__=1"); // Workaround?
 #if ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
         if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
             opts.push_back("-DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1");
 #endif
         opts.push_back("-DHIP_PACKAGE_VERSION_FLAT=" + std::to_string(HIP_PACKAGE_VERSION_FLAT));
-        opts.push_back("-DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1");
+        opts.push_back("-DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS");
+#if HIP_PACKAGE_VERSION_FLAT < 6001024000ULL
+        opts.push_back("-DWORKAROUND_DONT_USE_CUSTOM_LIMITS=1");
+#endif
 #if WORKAROUND_ISSUE_1431
         if((StartsWith(target.Name(), "gfx10") || StartsWith(target.Name(), "gfx11")) &&
            !miopen::comgr::IsWave64Enforced(opts))

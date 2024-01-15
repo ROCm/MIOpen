@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,22 +23,51 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#pragma once
 
-#ifndef GUARD_SOLVER_GEMM_COMMON_HPP_
-#define GUARD_SOLVER_GEMM_COMMON_HPP_
+#include <hip_float8.hpp>
+#include "verify.hpp"
+using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
+using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
 
-#include <miopen/execution_context.hpp>
+template <typename U, typename V>
+struct Fp8Cast
+{
+    uint64_t seed = 1234;
+    bool is_stoch = true;
+    V operator()(U x)
+    {
+        if(is_stoch)
+        {
+            auto tmp =
+                float8(static_cast<float>(x), miopen_f8::hip_f8_rounding_mode::stochastic, seed);
+            return static_cast<V>(tmp);
+        }
+        else
+        {
+            auto tmp = float8(static_cast<float>(x));
+            return static_cast<V>(tmp);
+        }
+    }
+};
 
-namespace miopen {
-namespace solver {
-namespace conv {
-namespace gemm {
-
-bool IsWorkaroundIssue1315(const miopen::ExecutionContext& ctx);
-
-} // namespace gemm
-} // namespace conv
-} // namespace solver
-} // namespace miopen
-
-#endif
+template <typename U, typename V>
+struct Bf8Cast
+{
+    uint64_t seed = 1234;
+    bool is_stoch = true;
+    V operator()(U x)
+    {
+        if(is_stoch)
+        {
+            auto tmp =
+                bfloat8(static_cast<float>(x), miopen_f8::hip_f8_rounding_mode::stochastic, seed);
+            return static_cast<V>(tmp);
+        }
+        else
+        {
+            auto tmp = bfloat8(static_cast<float>(x));
+            return static_cast<V>(tmp);
+        }
+    }
+};

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,40 +23,33 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_MIOPENGEMM_HPP_
-#define GUARD_MIOPEN_MIOPENGEMM_HPP_
 
-#include <miopen/config.h>
+#pragma once
 
-#if MIOPEN_USE_MIOPENGEMM
-#include <miopengemm/miogemm.hpp>
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
+namespace reduce {
 
-struct Handle;
+struct InvokeParams : public miopen::InvokeParams
+{
+    InvokeParams() = default;
 
-void AddMiopengemmSolution(const Handle& handle,
-                           const std::string& algorithm_name,
-                           const std::string& network_config,
-                           const MIOpenGEMM::Geometry& mgg,
-                           ConstData_t A,
-                           ConstData_t B,
-                           Data_t C,
-                           float time,
-                           bool enforce_determinism);
+    const TensorDescriptor* xDesc = nullptr;
+    const TensorDescriptor* yDesc = nullptr;
 
-void RunMiopengemmSolution(const Handle& handle,
-                           const decltype(handle.GetKernels("_", "_"))& kernels,
-                           float alpha,
-                           ConstData_t A,
-                           int a_offset,
-                           ConstData_t B,
-                           int b_offset,
-                           float beta,
-                           Data_t C,
-                           int c_offset);
+    ConstData_t x                            = nullptr;
+    Data_t y                                 = nullptr;
+    Data_t workspace                         = nullptr;
+    std::size_t workspace_size               = 0;
+    int32_t dim                              = 0;
+    miopenSumNanPropagation_t nanPropagation = MIOPEN_SUM_NOT_PROPAGATE_NAN;
+
+    std::size_t GetWorkspaceSize() const { return workspace_size; }
+    Data_t GetWorkspace() const { return workspace; }
+};
+
+} // namespace reduce
 
 } // namespace miopen
-#endif // MIOPEN_USE_MIOPENGEMM
-
-#endif // GUARD_MIOPEN_MIOPENGEMM_HPP_

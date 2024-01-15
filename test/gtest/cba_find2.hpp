@@ -45,11 +45,11 @@
 template <typename T = float>
 struct ConvBiasActivInferFind2Test
     : public ::testing::TestWithParam<
-          std::tuple<miopenActivationMode_t, ConvTestCase, miopenTensorLayout_t>>,
+          std::tuple<miopenActivationMode_t, ConvTestCaseBase, miopenTensorLayout_t>>,
       ConvFwdSolverTestBase<T>
 {
 protected:
-    ConvTestCase conv_config;
+    ConvTestCaseBase conv_config;
     miopen::ActivationDescriptor activ_desc;
     tensor<T> bias;
     miopen::Allocator::ManageDataPtr bias_dev;
@@ -87,7 +87,7 @@ protected:
         // Setup the fusion problem
         fused_problem = miopen::FusedProblem{{
             MakeConvProblem(),
-            // MakeBiasProblem(),
+            MakeBiasProblem(),
             MakeActivationProblem(),
         }};
 
@@ -121,6 +121,14 @@ private:
         return problem;
     }
 
+    [[nodiscard]] miopen::Problem MakeBiasProblem() const
+    {
+        auto problem = miopen::Problem{};
+        problem.SetOperatorDescriptor(miopen::BiasDescriptor{});
+        problem.RegisterTensorDescriptor(miopenTensorBias, bias.desc);
+        return problem;
+    }
+
     [[nodiscard]] miopen::Problem MakeActivationProblem() const
     {
         auto problem = miopen::Problem{};
@@ -147,6 +155,11 @@ private:
                     EXPECT_EQ(desc, cfsb::output.desc);
                     return cfsb::out_dev.get();
                 }
+                if(id == miopenTensorBias)
+                {
+                    EXPECT_EQ(desc, bias.desc);
+                    return bias_dev.get();
+                }
                 MIOPEN_THROW(miopenStatusInternalError);
             },
             params);
@@ -159,7 +172,7 @@ private:
 
         cpu_values_calculated = true;
         cfsb::TearDownConv();
-        // cpu_bias_forward(cfsb::ref_out, bias);
+        cpu_bias_forward(cfsb::ref_out, bias);
 
         activationHostInfer(activ_mode,
                             activ_gamma,
