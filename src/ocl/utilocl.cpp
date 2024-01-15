@@ -837,6 +837,8 @@ float transpose_NCHW2CNHW(const Handle& handle,
             kernel_name += "_2D_WG";
         }
 
+        kernel_name += "_off64";
+
         auto&& kernels = handle.GetKernels(kernel_name, network_config);
         if(!kernels.empty())
         {
