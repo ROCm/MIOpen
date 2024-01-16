@@ -433,7 +433,7 @@ pipeline {
     options {
         parallelsAlwaysFailFast()
         // disable stage-wise timeout due to long wait with queue (limited resources)
-        // timeout(time: 90, unit:'MINUTES')
+        timeout(time: 600, unit:'MINUTES')
     }
     parameters {
         booleanParam(
