@@ -608,7 +608,6 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdInference{}.SolverDbId());
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKBwdBackward{}.SolverDbId());
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdTraining{}.SolverDbId());
-    Register(registry, ++id, Primitive::Normalization, groupnorm::GroupNormForward{}.SolverDbId());
     Register(
         registry, ++id, Primitive::Normalization, layernorm::Layernorm2DCKForward{}.SolverDbId());
     Register(
@@ -632,6 +631,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              Primitive::Fusion,
              fusion::ConvCKIgemmFwdBiasResAddActivFused{}.SolverDbId(),
              miopenConvolutionAlgoImplicitGEMM);
+    Register(registry, ++id, Primitive::Normalization, groupnorm::GroupNormForward{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }

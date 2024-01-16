@@ -151,7 +151,7 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
            "pool[fp16], lrn[fp16], "
            "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm[fp16], ctc, dropout[fp16], "
            "tensorop[fp16], reduce[fp16|fp64], layernorm[bfp16|fp16], sum[bfp16|fp16], "
-           "groupnorm[bfp16,fp16]\n");
+           "groupnorm[bfp16|fp16]\n");
     exit(0); // NOLINT (concurrency-mt-unsafe)
 }
 

@@ -62,29 +62,36 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(xDesc.GetType() != yDesc.GetType())
         {
-            MIOPEN_THROW(miopenStatusBadParm, "GroupNormForward: Tensor types do not match.");
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "groupnorm::ProblemDescription: Tensor types do not match.");
         }
         if(meanDesc.GetType() != rstdDesc.GetType())
         {
-            MIOPEN_THROW(miopenStatusBadParm, "GroupNormForward: Tensor types do not match.");
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "groupnorm::ProblemDescription: Tensor types do not match.");
         }
         if(xDesc.GetLengths() != yDesc.GetLengths())
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "GroupNormForward: Tensor dimension lengths do not match.");
+                         "groupnorm::ProblemDescription: Tensor dimension lengths do not match.");
         }
-        if((num_groups < 1) || (xDesc.GetLengths().size() < 3) ||
-           (xDesc.GetLengths()[1] % num_groups != 0))
+        if((num_groups < 1) || (xDesc.GetLengths()[1] % num_groups != 0))
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "GroupNormForward: The channel size of input tensor should be divisible "
-                         "by num_groups.");
+                         "groupnorm::ProblemDescription: The channel size of input tensor should "
+                         "be divisible by num_groups.");
+        }
+        if(xDesc.GetLengths().size() < 3)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "groupnorm::ProblemDescription: The number of dimensions of the input "
+                         "tensor should be at least 3.");
         }
         if(!(xDesc.IsPacked() && weightDesc.IsPacked() && biasDesc.IsPacked() && yDesc.IsPacked() &&
              meanDesc.IsPacked() && rstdDesc.IsPacked()))
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "GroupNormForward: Unpacked tensors are not supported.");
+                         "groupnorm::ProblemDescription: Unpacked tensors are not supported.");
         }
     }
 
@@ -97,48 +104,6 @@ struct ProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetRstdDesc() const { return rstdDesc; }
     int32_t GetNumGroups() const { return num_groups; }
     float GetEpsilon() const { return epsilon; }
-
-    bool IsSameType() const
-    {
-        if(xDesc.GetType() != yDesc.GetType())
-        {
-            return false;
-        }
-        if(meanDesc.GetType() != rstdDesc.GetType())
-        {
-            return false;
-        }
-        return true;
-    }
-
-    bool IsSameLength() const
-    {
-        if(xDesc.GetLengths() != yDesc.GetLengths())
-        {
-            return false;
-        }
-        return true;
-    }
-
-    bool IsNumGroupsValid() const
-    {
-        if((num_groups < 1) || (xDesc.GetLengths().size() < 3) ||
-           (xDesc.GetLengths()[1] % num_groups != 0))
-        {
-            return false;
-        }
-        return true;
-    }
-
-    bool IsAllPacked() const
-    {
-        if(!(xDesc.IsPacked() && weightDesc.IsPacked() && biasDesc.IsPacked() && yDesc.IsPacked() &&
-             meanDesc.IsPacked() && rstdDesc.IsPacked()))
-        {
-            return false;
-        }
-        return true;
-    }
 
     NetworkConfig MakeNetworkConfig() const override;
 
