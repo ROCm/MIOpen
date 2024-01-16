@@ -797,6 +797,7 @@ float transpose_NCHW2CNHW(const Handle& handle,
         }
 
         kernel_name += "_" + READ_TYPE;
+        kernel_name += "_off64";
 
         auto&& kernels = handle.GetKernels(kernel_name, network_config);
         if(!kernels.empty())
@@ -929,6 +930,7 @@ float transpose_CNHW2NCHW(const Handle& handle,
         }
 
         kernel_name += "_" + READ_TYPE;
+        kernel_name += "_off64";
 
         auto&& kernels = handle.GetKernels(kernel_name, network_config);
         if(!kernels.empty())
