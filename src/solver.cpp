@@ -631,6 +631,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              Primitive::Fusion,
              fusion::ConvCKIgemmFwdBiasResAddActivFused{}.SolverDbId(),
              miopenConvolutionAlgoImplicitGEMM);
+    Register(registry, ++id, Primitive::Reduce, reduce::ArgmaxForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Normalization, groupnorm::GroupNormForward{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!

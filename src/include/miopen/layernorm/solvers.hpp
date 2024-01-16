@@ -23,12 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #pragma once
 
-#include <miopen/solver.hpp>
 #include <miopen/layernorm/problem_description.hpp>
-
+#include <miopen/solver.hpp>
 #include <utility>
 
 namespace miopen {
