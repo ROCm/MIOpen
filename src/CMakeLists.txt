@@ -86,6 +86,7 @@ set( MIOpen_Source
     activ/problem_description.cpp
     activ_api.cpp
     api/find2_0_commons.cpp
+    argmax_api.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
@@ -250,6 +251,7 @@ set( MIOpen_Source
     solver/pooling/forwardNd.cpp
     solver/pooling/backward2d.cpp
     solver/pooling/backwardNd.cpp
+    solver/reduce/forward_argmax.cpp
     solver/reduce/forward_sum.cpp
     solver/softmax/softmax.cpp
     subbuffers.cpp
@@ -417,7 +419,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${GPU_BATCHED_TRANSPOSE_KERNEL_HIP}
         ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_SOURCE}
         kernels/detect_llvm_amdgcn_buffer_atomic_fadd_f32_float.cpp
-        kernels/MIOpenCheckNumerics.cpp
+        kernels/MIOpenArgmax.cpp
+	kernels/MIOpenCheckNumerics.cpp
         kernels/MIOpenBatchNormActivBwdPerAct.cl
         kernels/MIOpenBatchNormActivBwdSpatial.cl
         kernels/MIOpenBatchNormActivFwdTrainPerAct.cl
@@ -551,7 +554,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
     list(APPEND MIOpen_Source
         activ.cpp
-        kernel_cache.cpp
+        argmax.cpp
+	kernel_cache.cpp
         layer_norm.cpp
         lrn.cpp
         mlo_dir_conv.cpp
