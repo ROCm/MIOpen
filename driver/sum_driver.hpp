@@ -176,6 +176,9 @@ int SumDriver<Tgpu, Tref>::GetandSetData()
         }
     }
 
+    if(out_len.empty())
+        out_len.push_back(1);
+
     SetTensorNd(outputDesc, out_len, data_type);
 
     nanPropagation = static_cast<miopenSumNanPropagation_t>(inflags.GetValueInt("NanPropagation"));
@@ -234,6 +237,10 @@ std::vector<int> SumDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
     else if((in_n != 0) && (in_w != 0))
     {
         return std::vector<int>({in_n, in_w});
+    }
+    else if(in_n != 0)
+    {
+        return std::vector<int>({in_n});
     }
     else
     {
@@ -309,11 +316,12 @@ int SumDriver<Tgpu, Tref>::RunForwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            printf("Wall-clock Time Forward Sum Elapsed: %f ms\n", t.gettime_ms() / iter);
+            std::cout << "Wall-clock Time Forward Sum Elapsed: " << t.gettime_ms() / iter
+                      << " ms\n";
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        printf("GPU Kernel Time Forward Sum Elapsed: %f ms\n", kernel_average_time);
+        std::cout << "GPU Kernel Time Forward Sum Elapsed: " << kernel_average_time << " ms\n";
     }
 
     if(out_dev->FromGPU(GetStream(), out.data()) != 0)
@@ -342,7 +350,7 @@ Tref SumDriver<Tgpu, Tref>::GetTolerance()
 {
     // Computation error of fp16 is ~2^13 (=8192) bigger than
     // the one of fp32 because mantissa is shorter by 13 bits.
-    auto tolerance = (sizeof(Tgpu) == 4 || sizeof(Tgpu) == 1) ? 1.5e-6 : 8.2e-3;
+    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
 
     // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
     if(std::is_same<Tgpu, bfloat16>::value)

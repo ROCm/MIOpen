@@ -36,6 +36,14 @@ MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
 
 namespace pooling2d_codecov {
 
+class Pooling2dFloat : public testing::TestWithParam<std::vector<std::string>>
+{
+};
+
+class Pooling2dHalf : public testing::TestWithParam<std::vector<std::string>>
+{
+};
+
 static bool SkipTest(void) { return !miopen::IsEnabled(ENV(CODECOV_TEST)); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
