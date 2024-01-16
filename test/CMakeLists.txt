@@ -35,7 +35,7 @@ if( NOT ENABLE_ASAN_PACKAGING )
 endif()
 
 set(MODEL_FILES)
-file (GLOB model_src perf_models/*.txt)
+file (GLOB model_src CONFIGURE_DEPENDS perf_models/*.txt)
 foreach (src ${model_src})
     list (APPEND MODEL_FILES ${src})
 endforeach()
@@ -43,11 +43,11 @@ endforeach()
 if( NOT ENABLE_ASAN_PACKAGING )
   install(FILES
       ${MODEL_FILES}
-   DESTINATION ${DATA_INSTALL_DIR}/perf_models)
+      DESTINATION ${DATA_INSTALL_DIR}/perf_models)
 endif()
  foreach(MODEL_FILE ${MODEL_FILES})
     get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
-    configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/perf_models/${MODEL_FILE_FILENAME}" COPYONLY)
+    configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/${DATA_INSTALL_DIR}/perf_models/${MODEL_FILE_FILENAME}" COPYONLY)
  endforeach()
 
 include(CheckCXXCompilerFlag)
