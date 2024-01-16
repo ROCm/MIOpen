@@ -60,17 +60,16 @@ template <>
 struct GroupConvTestConfig<2u>
 {
 
-    struct Size2D 
+    struct Size2D
     {
-      size_t y;
-      size_t x;
+        size_t y;
+        size_t x;
     };
 
     size_t G;
     size_t N;
     size_t C;
     size_t K;
-
 
     Size2D img;
     Size2D filter;
@@ -81,9 +80,8 @@ struct GroupConvTestConfig<2u>
     friend std::ostream& operator<<(std::ostream& os, const GroupConvTestConfig& tc)
     {
         return os << " G:" << tc.G << " N:" << tc.N << " C:" << tc.C << " K:" << tc.K
-                  << " H:" << tc.img.y << " W:" << tc.img.x 
-                  << " y:" << tc.filter.y << " x:" << tc.filter.x
-                  << " pad.y:" << tc.pad.y << " pad.x:" << tc.pad.x 
+                  << " H:" << tc.img.y << " W:" << tc.img.x << " y:" << tc.filter.y
+                  << " x:" << tc.filter.x << " pad.y:" << tc.pad.y << " pad.x:" << tc.pad.x
                   << " stride.y:" << tc.stride.y << "stride.x" << tc.stride.x
                   << " dilation.y:" << tc.dilation.y << " dilation.x" << tc.dilation.x;
     }
@@ -153,10 +151,11 @@ template <>
 struct GroupConvTestConfig<3u>
 {
 
-    struct Size3D {
-      size_t  z;
-      size_t  y;
-      size_t  x;
+    struct Size3D
+    {
+        size_t z;
+        size_t y;
+        size_t x;
     };
 
     size_t G;
@@ -172,12 +171,13 @@ struct GroupConvTestConfig<3u>
 
     friend std::ostream& operator<<(std::ostream& os, const GroupConvTestConfig<3u>& tc)
     {
-        return os << " G:" << tc.G << " N:" << tc.N << " C:" << tc.C << " K:" << tc.K 
-          <<" D:" << tc.img.z << " H:" << tc.img.y << " W:" << tc.img.x 
-          << " z:" << tc.filter.z << " y:" << tc.filter.y << " x:" << tc.filter.x 
-          << " pad.z:" << tc.pad.z << " pad.y:" << tc.pad.y << " pad.x:" << tc.pad.x 
-          << " stride.z:" << tc.stride.z << " stride.y:" << tc.stride.y << " stride.x:" << tc.stride.x
-                  << " dilation.z:" << tc.dilation.z << " dilation.y:" << tc.dilation.y << " dilation.x:" << tc.dilation.x;
+        return os << " G:" << tc.G << " N:" << tc.N << " C:" << tc.C << " K:" << tc.K
+                  << " D:" << tc.img.z << " H:" << tc.img.y << " W:" << tc.img.x
+                  << " z:" << tc.filter.z << " y:" << tc.filter.y << " x:" << tc.filter.x
+                  << " pad.z:" << tc.pad.z << " pad.y:" << tc.pad.y << " pad.x:" << tc.pad.x
+                  << " stride.z:" << tc.stride.z << " stride.y:" << tc.stride.y
+                  << " stride.x:" << tc.stride.x << " dilation.z:" << tc.dilation.z
+                  << " dilation.y:" << tc.dilation.y << " dilation.x:" << tc.dilation.x;
     }
 
     std::vector<size_t> GetInput() { return {N, C, img.z, img.y, img.x}; }
@@ -195,7 +195,9 @@ struct GroupConvTestConfig<3u>
             miopenPaddingDefault,
             {static_cast<int>(pad.z), static_cast<int>(pad.y), static_cast<int>(pad.x)},
             {static_cast<int>(stride.z), static_cast<int>(stride.y), static_cast<int>(stride.x)},
-            {static_cast<int>(dilation.z), static_cast<int>(dilation.y), static_cast<int>(dilation.x)},
+            {static_cast<int>(dilation.z),
+             static_cast<int>(dilation.y),
+             static_cast<int>(dilation.x)},
             {0, 0, 0},
             static_cast<int>(G),
             1.0};
@@ -207,7 +209,7 @@ struct GroupConvTestConfig<3u>
 
         if constexpr(DIR == Direction::Forward)
         {
-          // clang-format off
+            // clang-format off
             return {
               // g   n   C    K      img         filter      pad        stride    dilation
                 {1 , 128, 64, 64, {14, 28, 28}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}},
@@ -224,11 +226,11 @@ struct GroupConvTestConfig<3u>
                 {3 , 48 , 39, 39, {28, 28, 28}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}},
                 {5 , 120, 60, 60, {28, 28, 28}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}},
             };
-          // clang-format on
+            // clang-format on
         }
         else if constexpr(DIR == Direction::BackwardData || DIR == Direction::BackwardWeights)
         {
-          // clang-format off
+            // clang-format off
             return {
               // g   n   C   K      img         filter      pad      stride     dilation
                 {1, 1  , 4 , 4 ,{14, 28, 28}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}},
@@ -242,7 +244,7 @@ struct GroupConvTestConfig<3u>
                 {4, 128, 4 , 8 ,{28, 28, 28}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}},
                 {2, 128, 2 , 2 ,{28, 28, 28}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}},
             };
-          // clang-format on
+            // clang-format on
         }
         else
         {
