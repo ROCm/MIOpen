@@ -36,6 +36,14 @@ MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
 
 namespace pooling2d_asymmetric {
 
+class Pooling2dFloat : public testing::TestWithParam<std::vector<std::string>>
+{
+};
+
+class Pooling2dHalf : public testing::TestWithParam<std::vector<std::string>>
+{
+};
+
 static bool SkipTest(void) { return miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
