@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "conv3d.hpp"
 
-int main(int argc, const char* argv[]) { test_drive<conv3d_driver>(argc, argv); }
+#include "pooling2d.hpp"
+
+int main(int argc, const char* argv[]) { test_drive<pooling2d_driver>(argc, argv); }
