@@ -2579,7 +2579,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCatForward(miopenHandle_t handle,
                                               const int32_t xCount,
                                               const miopenTensorDescriptor_t* xDescs,
                                               const void* const* xs,
-                                              const miopenTensorDescriptor_t& yDesc,
+                                              const miopenTensorDescriptor_t yDesc,
                                               void* y,
                                               const int32_t dim);
 
