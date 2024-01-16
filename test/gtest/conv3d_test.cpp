@@ -142,4 +142,4 @@ TEST_P(ConfigWithFloat, FloatTest_conv3d_test)
 
 INSTANTIATE_TEST_SUITE_P(Conv3dTestExtra,
                          ConfigWithFloat,
-                         testing::ValuesIn(GetTestCases("--float")));
+                         testing::Values(GetTestCases("--float")));
