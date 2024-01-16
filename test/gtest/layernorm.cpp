@@ -23,8 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/env.hpp>
+
 #include "layernorm.hpp"
+#include <miopen/env.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
@@ -50,6 +51,7 @@ using namespace layernorm;
 
 TEST_P(LayerNormTestFloat, LayerNormTestFw)
 {
+    auto TypeArg       = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
     const auto& handle = get_handle();
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
