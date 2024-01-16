@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_SUM_DRIVER_HPP
-#define GUARD_MIOPEN_SUM_DRIVER_HPP
+#ifndef GUARD_MIOPEN_ARGMAX_DRIVER_HPP
+#define GUARD_MIOPEN_ARGMAX_DRIVER_HPP
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
@@ -42,29 +42,22 @@
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
 
-#ifndef MLO_SUMMHOST_H_
-#define MLO_SUMMHOST_H_
-
 template <typename Tgpu, typename Tcheck>
-int32_t mloSumForwardRunHost(miopenTensorDescriptor_t inputDesc,
-                             miopenTensorDescriptor_t outputDesc,
-                             Tgpu* input,
-                             Tcheck* outputhost,
-                             int32_t dim,
-                             miopenSumNanPropagation_t nanPropagation)
+int32_t mloArgmaxForwardRunHost(miopenTensorDescriptor_t inputDesc,
+                                miopenTensorDescriptor_t outputDesc,
+                                Tgpu* input,
+                                int32_t* outputhost,
+                                int32_t dim)
 {
     auto input_dims  = miopen::deref(inputDesc).GetLengths();
     auto output_dims = miopen::deref(outputDesc).GetLengths();
 
-    auto reduce_size = input_dims[dim];
+    int32_t reduce_size = static_cast<int32_t>(input_dims[dim]);
     auto output_numel =
         std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
 
-    auto inner_size = 1ULL;
-    for(int32_t i = dim + 1; i < input_dims.size(); i++)
-    {
-        inner_size *= input_dims[i];
-    }
+    auto inner_size = std::accumulate(
+        input_dims.begin() + dim + 1, input_dims.end(), 1ULL, std::multiplies<uint64_t>());
 
     int32_t ret = 0;
 
@@ -72,28 +65,29 @@ int32_t mloSumForwardRunHost(miopenTensorDescriptor_t inputDesc,
     {
         size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
 
-        Tcheck sum = 0.0f;
-        for(size_t i = 0; i < reduce_size; i++)
+        int32_t max_idx = 0;
+        Tcheck max      = static_cast<Tcheck>(input[input_idx]);
+
+        for(int32_t i = 1; i < reduce_size; i++)
         {
-            Tcheck val = static_cast<Tcheck>(input[input_idx]);
-            if(nanPropagation && isnan(val))
-            {
-                val = 0.0f;
-            }
-            sum += val;
             input_idx += inner_size;
+            Tcheck val = static_cast<Tcheck>(input[input_idx]);
+            if(max < val)
+            {
+                max     = val;
+                max_idx = i;
+            }
         }
-        outputhost[o] = sum;
+        outputhost[o] = max_idx;
     }
     return ret;
 }
-#endif
 
 template <typename Tgpu, typename Tref>
-class SumDriver : public Driver
+class ArgmaxDriver : public Driver
 {
 public:
-    SumDriver() : Driver()
+    ArgmaxDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputDesc);
         miopenCreateTensorDescriptor(&outputDesc);
@@ -115,10 +109,9 @@ public:
 
     int RunBackwardGPU() override;
 
-    Tref GetTolerance();
     int VerifyBackward() override;
     int VerifyForward() override;
-    ~SumDriver() override
+    ~ArgmaxDriver() override
     {
         miopenDestroyTensorDescriptor(inputDesc);
         miopenDestroyTensorDescriptor(outputDesc);
@@ -134,20 +127,16 @@ private:
 
     std::unique_ptr<GPUMem> in_dev;
     std::unique_ptr<GPUMem> out_dev;
-    std::unique_ptr<GPUMem> workspace_dev;
 
     std::vector<Tgpu> in;
-    std::vector<Tgpu> out;
-    std::vector<Tref> outhost;
-
-    size_t ws_sizeInBytes;
+    std::vector<int> out;
+    std::vector<int> outhost;
 
     int dim;
-    miopenSumNanPropagation_t nanPropagation;
 };
 
 template <typename Tgpu, typename Tref>
-int SumDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
+int ArgmaxDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
@@ -159,7 +148,7 @@ int SumDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 }
 
 template <typename Tgpu, typename Tref>
-int SumDriver<Tgpu, Tref>::GetandSetData()
+int ArgmaxDriver<Tgpu, Tref>::GetandSetData()
 {
     std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
     dim                     = inflags.GetValueInt("DimToReduce");
@@ -179,31 +168,22 @@ int SumDriver<Tgpu, Tref>::GetandSetData()
     if(out_len.empty())
         out_len.push_back(1);
 
-    SetTensorNd(outputDesc, out_len, data_type);
-
-    nanPropagation = static_cast<miopenSumNanPropagation_t>(inflags.GetValueInt("NanPropagation"));
+    SetTensorNd(outputDesc, out_len, miopenInt32);
 
     return 0;
 }
 
 template <typename Tgpu, typename Tref>
-int SumDriver<Tgpu, Tref>::AddCmdLineArgs()
+int ArgmaxDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Sum (Default=1)", "int");
-    inflags.AddInputFlag("batchsize", 'n', "256", "Mini-batch size (Default=100)", "int");
-    inflags.AddInputFlag("in_channels", 'c', "4", "Number of Input Channels (Default=3)", "int");
+    inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Argmax (Default=1)", "int");
+    inflags.AddInputFlag("batchsize", 'n', "21", "Mini-batch size (Default=100)", "int");
+    inflags.AddInputFlag("in_channels", 'c', "500", "Number of Input Channels (Default=3)", "int");
     inflags.AddInputFlag("in_d", 'D', "0", "Input Depth (Default=0)", "int");
     inflags.AddInputFlag("in_h", 'H', "0", "Input Height (Default=32)", "int");
-    inflags.AddInputFlag("in_w", 'W', "8732", "Input Width (Default=32)", "int");
-
+    inflags.AddInputFlag("in_w", 'W', "375", "Input Width (Default=32)", "int");
     inflags.AddInputFlag(
-        "DimToReduce", 'R', "1", "The indice of the dimensions to be reduced(Default=1)", "int");
-    inflags.AddInputFlag("NanPropagation",
-                         'N',
-                         "0",
-                         "Nan number propagation mode (check the miopenSumNanPropagation_t in "
-                         "miopen.h) (Default=0 to indicate no Nan propagation)",
-                         "int");
+        "DimToReduce", 'R', "0", "The indice of the dimensions to be reduced(Default=1)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -214,7 +194,7 @@ int SumDriver<Tgpu, Tref>::AddCmdLineArgs()
 }
 
 template <typename Tgpu, typename Tref>
-std::vector<int> SumDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
+std::vector<int> ArgmaxDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
     int in_n = inflags.GetValueInt("batchsize");
     int in_c = inflags.GetValueInt("in_channels");
@@ -250,24 +230,19 @@ std::vector<int> SumDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 }
 
 template <typename Tgpu, typename Tref>
-int SumDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
+int ArgmaxDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
     size_t in_sz  = GetTensorSize(inputDesc);
     size_t out_sz = GetTensorSize(outputDesc);
 
-    miopenGetSumWorkspaceSize(GetHandle(), inputDesc, dim, outputDesc, &ws_sizeInBytes);
-    if(ws_sizeInBytes == static_cast<size_t>(-1))
-        return miopenStatusAllocFailed;
-
     uint32_t ctx = 0;
 
-    in_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-    out_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-    workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sizeInBytes, sizeof(std::byte)));
+    in_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(int)));
 
     in      = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-    out     = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    outhost = std::vector<Tref>(out_sz, static_cast<Tref>(0));
+    out     = std::vector<int>(out_sz, static_cast<int>(0));
+    outhost = std::vector<int>(out_sz, static_cast<int>(0));
 
     for(int i = 0; i < in_sz; i++)
     {
@@ -284,7 +259,7 @@ int SumDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 }
 
 template <typename Tgpu, typename Tref>
-int SumDriver<Tgpu, Tref>::RunForwardGPU()
+int ArgmaxDriver<Tgpu, Tref>::RunForwardGPU()
 {
     float kernel_total_time = 0;
     float kernel_first_time = 0;
@@ -294,17 +269,10 @@ int SumDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenSumForward(GetHandle(),
-                         nanPropagation,
-                         workspace_dev->GetMem(),
-                         ws_sizeInBytes,
-                         inputDesc,
-                         in_dev->GetMem(),
-                         dim,
-                         outputDesc,
-                         out_dev->GetMem());
+        miopenArgmaxForward(
+            GetHandle(), inputDesc, in_dev->GetMem(), dim, outputDesc, out_dev->GetMem());
 
-        float time = 0.0;
+        float time = 0;
         miopenGetKernelTime(GetHandle(), &time);
         kernel_total_time += time;
         if(i == 0)
@@ -316,12 +284,12 @@ int SumDriver<Tgpu, Tref>::RunForwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            std::cout << "Wall-clock Time Forward Sum Elapsed: " << t.gettime_ms() / iter
+            std::cout << "Wall-clock Time Forward Argmax Elapsed: " << t.gettime_ms() / iter
                       << " ms\n";
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        std::cout << "GPU Kernel Time Forward Sum Elapsed: " << kernel_average_time << " ms\n";
+        std::cout << "GPU Kernel Time Forward Argmax Elapsed: " << kernel_average_time << " ms\n";
     }
 
     if(out_dev->FromGPU(GetStream(), out.data()) != 0)
@@ -331,58 +299,42 @@ int SumDriver<Tgpu, Tref>::RunForwardGPU()
 }
 
 template <typename Tgpu, typename Tref>
-int SumDriver<Tgpu, Tref>::RunForwardCPU()
+int ArgmaxDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloSumForwardRunHost<Tgpu, Tref>(
-        inputDesc, outputDesc, in.data(), outhost.data(), dim, nanPropagation);
+    mloArgmaxForwardRunHost<Tgpu, Tref>(inputDesc, outputDesc, in.data(), outhost.data(), dim);
 
     return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
-int SumDriver<Tgpu, Tref>::RunBackwardGPU()
+int ArgmaxDriver<Tgpu, Tref>::RunBackwardGPU()
 {
     return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
-Tref SumDriver<Tgpu, Tref>::GetTolerance()
-{
-    // Computation error of fp16 is ~2^13 (=8192) bigger than
-    // the one of fp32 because mantissa is shorter by 13 bits.
-    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
-
-    // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-    if(std::is_same<Tgpu, bfloat16>::value)
-        tolerance *= 8.0;
-    return tolerance;
-}
-
-template <typename Tgpu, typename Tref>
-int SumDriver<Tgpu, Tref>::VerifyForward()
+int ArgmaxDriver<Tgpu, Tref>::VerifyForward()
 {
     RunForwardCPU();
-    const Tref tolerance = GetTolerance();
-    auto error           = miopen::rms_range(outhost, out);
+    auto error = miopen::rms_range(outhost, out);
 
-    if(!std::isfinite(error) || error > tolerance)
+    if(!std::isfinite(error) || std::abs(static_cast<float>(error)) != 0.0f)
     {
-        std::cout << "Forward Sum FAILED: " << error << " > " << tolerance << std::endl;
+        std::cout << "Forward Argmax FAILED: Result does not equal" << std::endl;
         return EC_VerifyFwd;
     }
     else
     {
-        std::cout << "Forward Sum Verifies OK on CPU reference (" << error << " < " << tolerance
-                  << ')' << std::endl;
+        std::cout << "Forward Argmax Verifies on CPU and GPU (err=" << error << ")\n";
     }
 
     return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
-int SumDriver<Tgpu, Tref>::VerifyBackward()
+int ArgmaxDriver<Tgpu, Tref>::VerifyBackward()
 {
     return miopenStatusSuccess;
 }
 
-#endif // GUARD_MIOPEN_SUM_DRIVER_HPP
+#endif // GUARD_MIOPEN_ARGMAX_DRIVER_HPP
