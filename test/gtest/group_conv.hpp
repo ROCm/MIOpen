@@ -268,7 +268,7 @@ private:
     {
         input.generate(gen_value);
         weights.generate(gen_value);
-        std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
+        std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
     }
 
     template <typename F>
@@ -276,7 +276,7 @@ private:
     {
         output.generate(gen_value);
         weights.generate(gen_value);
-        std::fill(input.begin(), input.end(), std::numeric_limits<double>::quiet_NaN());
+        std::fill(input.begin(), input.end(), std::numeric_limits<T>::quiet_NaN());
     }
 
     template <typename F>
