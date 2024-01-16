@@ -309,7 +309,7 @@ private:
         EXPECT_FALSE(miopen::find_idx(ref, miopen::not_finite) >= 0)
             << "Non finite number found in the reference output";
 
-        EXPECT_TRUE(error < threshold)
+        EXPECT_TRUE(error <= threshold)
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
     }
 
