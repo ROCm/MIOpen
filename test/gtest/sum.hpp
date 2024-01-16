@@ -23,16 +23,16 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/miopen.h>
-#include <gtest/gtest.h>
-#include <miopen/sum.hpp>
 
-#include "tensor_holder.hpp"
+#include "../driver/tensor_driver.hpp"
 #include "cpu_sum.hpp"
 #include "get_handle.hpp"
-#include "../driver/tensor_driver.hpp"
+#include "random.hpp"
+#include "tensor_holder.hpp"
 #include "verify.hpp"
-#include <random>
+#include <gtest/gtest.h>
+#include <miopen/miopen.h>
+#include <miopen/sum.hpp>
 
 struct SumTestCase
 {
@@ -101,7 +101,7 @@ std::vector<SumTestCase> SumTestConfigs()
 
 static int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
 {
-    std::vector<std::size_t> lens = desc.GetLengths();
+    const std::vector<std::size_t>& lens = desc.GetLengths();
     std::vector<int32_t> int32_t_lens(lens.begin(), lens.end());
 
     // set the strides for the tensor
@@ -114,11 +114,9 @@ struct SumTest : public ::testing::TestWithParam<SumTestCase>
 protected:
     void SetUp() override
     {
-        auto&& handle = get_handle();
-        sum_config    = GetParam();
-        std::mt19937 gen(0);
-        std::uniform_real_distribution<> d{-3, 3};
-        auto gen_value = [&](auto...) { return d(gen); };
+        auto&& handle  = get_handle();
+        sum_config     = GetParam();
+        auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
         dim            = sum_config.dim;
         nanPropagation = sum_config.nanPropagation;

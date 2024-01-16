@@ -24,11 +24,11 @@
  *
  *******************************************************************************/
 
+#include <miopen/argmax.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
-#include <miopen/layernorm.hpp>
-#include <miopen/norm/invoke_params.hpp>
-#include <miopen/norm/solvers.hpp>
+#include <miopen/reduce/invoke_params.hpp>
+#include <miopen/reduce/solvers.hpp>
 #include <miopen/target_properties.hpp>
 
 #define LOCAL_SIZE 256
@@ -37,54 +37,54 @@ namespace miopen {
 
 namespace solver {
 
-namespace norm {
+namespace reduce {
 
-std::size_t sizeof_kernel_FLOAT(const miopen::norm::ProblemDescription& problem)
+size_t XGridSize(std::vector<size_t> ydims)
 {
-    const auto datatype = problem.GetXDesc().GetType();
-    return get_data_size(datatype);
+    auto output_numel =
+        std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
+    return AlignUp(output_numel, LOCAL_SIZE);
 }
 
-std::size_t sizeof_local_memory(const miopen::norm::ProblemDescription& problem)
+/// \todo https://github.com/ROCm/MIOpen/pull/2583#discussion_r1437054128
+bool OverMaxGridSize(const ExecutionContext& context,
+                     const miopen::reduce::ProblemDescription& problem)
 {
-    std::size_t rv = 0;
-    rv += LOCAL_SIZE * sizeof_kernel_FLOAT(problem) * 2;
-    return rv;
-}
-
-bool LayernormForward::IsApplicable(const ExecutionContext&,
-                                    const miopen::norm::ProblemDescription& problem) const
-{
-    if(!problem.IsSameType())
-        return false;
-    if(!problem.IsSameLength())
-        return false;
-    if(!problem.IsAllPacked())
-        return false;
-    if(!problem.IsRightNormDim())
-        return false;
-    if(!(sizeof_local_memory(problem) <= TargetProperties::GetMaxLocalMemorySize()))
+    auto ydims = problem.GetYDesc().GetLengths();
+    if(XGridSize(ydims) > context.GetStream().GetImage3dMaxWidth())
         return false;
     return true;
 }
 
-ConvSolution LayernormForward::GetSolution(const ExecutionContext&,
-                                           const miopen::norm::ProblemDescription& problem) const
+bool ArgmaxForward::IsApplicable(const ExecutionContext& context,
+                                 const miopen::reduce::ProblemDescription& problem) const
+{
+    if(!problem.IsRightDim())
+        return false;
+    if(!problem.IsRightLength())
+        return false;
+    if(!problem.IsAllPacked())
+        return false;
+    if(!problem.IsNotLastDim())
+        return false;
+    if(!OverMaxGridSize(context, problem))
+        return false;
+    return true;
+}
+
+ConvSolution ArgmaxForward::GetSolution(const ExecutionContext&,
+                                        const miopen::reduce::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
+    auto input_dtype  = miopen::GetDataType(problem.GetXDesc().GetType());
+    auto output_dtype = miopen::GetDataType(problem.GetYDesc().GetType());
+    auto xdims        = problem.GetXDesc().GetLengths();
+    auto ydims        = problem.GetYDesc().GetLengths();
+
     {
-        auto dtype = problem.GetXDesc().GetType();
-        auto dims  = problem.GetXDesc().GetLengths();
-
-        size_t outer_size = 1;
-        for(size_t i = 0; i < problem.GetNormalizedDim(); i++)
-        {
-            outer_size *= dims[i];
-        }
-
-        size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize  = outer_size * xlocalsize;
+        size_t xlocalsize;
+        size_t xgridsize;
         size_t ylocalsize = 1;
         size_t ygridsize  = 1;
         size_t zlocalsize = 1;
@@ -92,15 +92,14 @@ ConvSolution LayernormForward::GetSolution(const ExecutionContext&,
 
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenLayerNorm.cpp";
-        kernel.kernel_name = "LayernormFwdContiguous";
+        kernel.kernel_file = "MIOpenArgmax.cpp";
+        kernel.kernel_name = "ArgmaxFwdContiguous";
+        xlocalsize         = LOCAL_SIZE;
+        xgridsize          = XGridSize(ydims);
 
         const auto build_params = KernelBuildParameters{
-            {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-            {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-            {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
-            {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-            {"LOCAL_SIZE", LOCAL_SIZE},
+            {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
+            {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -119,32 +118,27 @@ ConvSolution LayernormForward::GetSolution(const ExecutionContext&,
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::norm::InvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::reduce::InvokeParams>();
 
-            auto dims         = params.xDesc->GetLengths();
-            size_t inner_size = 1;
+            auto xdims = params.xDesc->GetLengths();
+            auto ydims = params.yDesc->GetLengths();
+            auto dim   = params.dim;
 
-            for(size_t i = params.normalized_dim; i < dims.size(); i++)
-            {
-                inner_size *= dims[i];
-            }
+            int32_t reduce_size = static_cast<int32_t>(xdims[dim]);
+            auto output_numel =
+                std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
 
-            kernel(params.x,
-                   params.y,
-                   params.weight,
-                   params.bias,
-                   params.mean,
-                   params.rstd,
-                   params.epsilon,
-                   inner_size,
-                   static_cast<bool>(params.mode));
+            auto inner_size = std::accumulate(
+                xdims.begin() + dim + 1, xdims.end(), 1ULL, std::multiplies<size_t>());
+
+            kernel(params.x, params.y, output_numel, reduce_size, inner_size);
         };
     };
 
     return result;
 }
 
-} // namespace norm
+} // namespace reduce
 
 } // namespace solver
 

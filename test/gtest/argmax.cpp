@@ -24,13 +24,13 @@
  *
  *******************************************************************************/
 
-#include "layernorm.hpp"
+#include "argmax.hpp"
 #include <miopen/env.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-namespace layernorm {
+namespace argmax {
 
 std::string GetFloatArg()
 {
@@ -42,21 +42,16 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct LayerNormTestFloat : LayerNormTest<float>
+struct ArgmaxTestFloat : ArgmaxTest<float>
 {
 };
 
-} // namespace layernorm
-using namespace layernorm;
+} // namespace argmax
+using namespace argmax;
 
-TEST_P(LayerNormTestFloat, LayerNormTestFw)
+TEST_P(ArgmaxTestFloat, ArgmaxTestFw)
 {
-    auto TypeArg       = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    const auto& handle = get_handle();
-    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
-       miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
     {
         RunTest();
         Verify();
@@ -67,6 +62,4 @@ TEST_P(LayerNormTestFloat, LayerNormTestFw)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
-                         LayerNormTestFloat,
-                         testing::ValuesIn(LayerNormTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(ArgmaxTestSet, ArgmaxTestFloat, testing::ValuesIn(ArgmaxTestConfigs()));

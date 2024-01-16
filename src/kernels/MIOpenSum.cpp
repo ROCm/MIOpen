@@ -79,7 +79,6 @@ extern "C" __global__ void SumFwdContiguous(const FLOAT* __restrict__ x,
                                             uint64_t output_numel,
                                             uint64_t reduce_size,
                                             uint64_t inner_size,
-                                            int32_t dim,
                                             bool nanPropagation)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;

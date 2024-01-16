@@ -23,4 +23,5 @@ API Reference
     reduction
     layernorm
     sum
+    argmax
 

@@ -23,12 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #pragma once
 
-#include <miopen/solver.hpp>
 #include <miopen/reduce/problem_description.hpp>
-
+#include <miopen/solver.hpp>
 #include <utility>
 
 namespace miopen {
@@ -50,6 +48,16 @@ struct SumForward final : ReduceSolver
     std::size_t GetWorkspaceSize(const ExecutionContext& context,
                                  const miopen::reduce::ProblemDescription& problem) const override;
     bool MayNeedWorkspace() const override { return true; }
+};
+
+struct ArgmaxForward final : ReduceSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<ArgmaxForward>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::reduce::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::reduce::ProblemDescription& problem) const override;
 };
 
 } // namespace reduce
