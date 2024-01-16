@@ -23,13 +23,11 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #pragma once
 
-#include <miopen/problem_description_base.hpp>
 #include <miopen/activ.hpp>
+#include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
-
 #include <cassert>
 #include <string>
 
@@ -49,6 +47,11 @@ struct ProblemDescription : ProblemDescriptionBase
     {
     }
 
+    ProblemDescription(const TensorDescriptor& xDesc_, const TensorDescriptor& yDesc_, int32_t dim_)
+        : xDesc(xDesc_), yDesc(yDesc_), dim(dim_)
+    {
+    }
+
     miopenSumNanPropagation_t GetNanPropagation_() const { return nanPropagation; }
     const TensorDescriptor& GetXDesc() const { return xDesc; }
     const TensorDescriptor& GetYDesc() const { return yDesc; }
@@ -58,13 +61,20 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(xDesc.GetType() != yDesc.GetType())
         {
-            MIOPEN_THROW(miopenStatusBadParm, "SumForward: Tensor types do not match.");
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+            MIOPEN_THROW(miopenStatusBadParm, "Reduce: Tensor types do not match.");
+#else
+            return false;
+#endif
         }
         return true;
     }
 
     bool IsRightLength() const
     {
+        if(xDesc.GetLengths().size() == 1)
+            return true;
+
         int32_t posy = 0;
         for(int32_t i = 0; i < xDesc.GetLengths().size(); i++)
         {
@@ -73,8 +83,11 @@ struct ProblemDescription : ProblemDescriptionBase
 
             if(xDesc.GetLengths()[i] != yDesc.GetLengths()[posy])
             {
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "SumForward: Tensor dimension lengths do not match.");
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+                MIOPEN_THROW(miopenStatusBadParm, "Reduce: Tensor dimension lengths do not match.");
+#else
+                return false;
+#endif
             }
 
             posy++;
@@ -86,9 +99,13 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if((dim < 0) || (dim > xDesc.GetLengths().size()))
         {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(
                 miopenStatusBadParm,
-                "SumForward: is greater than 0 and less than or equal tensor dimension length.");
+                "Reduce: is greater than 0 and less than or equal tensor dimension length.");
+#else
+            return false;
+#endif
         }
         return true;
     }
@@ -97,8 +114,19 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(!(xDesc.IsPacked() && yDesc.IsPacked()))
         {
-            MIOPEN_THROW(miopenStatusBadParm, "SumForward: Unpacked tensors not supported.");
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+            MIOPEN_THROW(miopenStatusBadParm, "Reduce: Unpacked tensors not supported.");
+#else
+            return false;
+#endif
         }
+        return true;
+    }
+
+    bool IsNotLastDim() const
+    {
+        if(dim == xDesc.GetLengths().size() - 1)
+            return false;
         return true;
     }
 

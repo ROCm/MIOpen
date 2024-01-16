@@ -24,15 +24,13 @@
  *
  *******************************************************************************/
 
-#include <miopen/sum.hpp>
+#include <miopen/argmax.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
-static void LogCmdSum(const miopenTensorDescriptor_t xDesc,
-                      const miopenSumNanPropagation_t nanPropagation,
-                      bool is_fwd)
+static void LogCmdArgmax(const miopenTensorDescriptor_t xDesc, bool is_fwd)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -40,15 +38,15 @@ static void LogCmdSum(const miopenTensorDescriptor_t xDesc,
         auto dtype = miopen::deref(xDesc).GetType();
         if(dtype == miopenHalf)
         {
-            ss << "sumfp16";
+            ss << "argmaxfp16";
         }
         else if(dtype == miopenFloat)
         {
-            ss << "sumfp32";
+            ss << "argmaxfp32";
         }
         else if(dtype == miopenBFloat16)
         {
-            ss << "sumbfp16";
+            ss << "argmaxbfp16";
         }
 
         int32_t size = {0};
@@ -77,50 +75,28 @@ static void LogCmdSum(const miopenTensorDescriptor_t xDesc,
             ss << " -c " << miopen::deref(xDesc).GetLengths()[1];
         }
 
-        ss << " -F " << ((is_fwd) ? "1" : "2") << " -n " << nanPropagation;
+        ss << " -F " << ((is_fwd) ? "1" : "2");
 
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 }
 
-extern "C" miopenStatus_t miopenGetSumWorkspaceSize(miopenHandle_t handle,
-                                                    const miopenTensorDescriptor_t xDesc,
-                                                    int32_t dim,
-                                                    const miopenTensorDescriptor_t yDesc,
-                                                    size_t* sizeInBytes)
+extern "C" miopenStatus_t miopenArgmaxForward(miopenHandle_t handle,
+                                              const miopenTensorDescriptor_t xDesc,
+                                              const void* x,
+                                              const int32_t dim,
+                                              const miopenTensorDescriptor_t yDesc,
+                                              void* y)
 {
+    MIOPEN_LOG_FUNCTION(handle, xDesc, x, dim, yDesc, y);
 
-    MIOPEN_LOG_FUNCTION(handle, xDesc, dim, yDesc);
-
+    LogCmdArgmax(xDesc, true);
     return miopen::try_([&] {
-        miopen::deref(sizeInBytes) = miopen::GetSumWorkspaceSize(
-            miopen::deref(handle), miopen::deref(xDesc), miopen::deref(yDesc), dim);
-    });
-};
-
-extern "C" miopenStatus_t miopenSumForward(miopenHandle_t handle,
-                                           miopenSumNanPropagation_t nanPropagation,
-                                           void* workspace,
-                                           size_t workspaceSizeInBytes,
-                                           const miopenTensorDescriptor_t xDesc,
-                                           const void* x,
-                                           const int32_t dim,
-                                           const miopenTensorDescriptor_t yDesc,
-                                           void* y)
-{
-    MIOPEN_LOG_FUNCTION(
-        handle, nanPropagation, workspace, workspaceSizeInBytes, xDesc, x, dim, yDesc, y);
-
-    LogCmdSum(xDesc, nanPropagation, true);
-    return miopen::try_([&] {
-        miopen::SumForward(miopen::deref(handle),
-                           DataCast(workspace),
-                           workspaceSizeInBytes,
-                           miopen::deref(xDesc),
-                           DataCast(x),
-                           miopen::deref(yDesc),
-                           DataCast(y),
-                           nanPropagation,
-                           dim);
+        miopen::ArgmaxForward(miopen::deref(handle),
+                              miopen::deref(xDesc),
+                              DataCast(x),
+                              miopen::deref(yDesc),
+                              DataCast(y),
+                              dim);
     });
 }

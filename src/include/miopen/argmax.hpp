@@ -23,50 +23,22 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifndef MIOPEN_ARGMAX_HPP_
+#define MIOPEN_ARGMAX_HPP_
 
-#include "layernorm.hpp"
-#include <miopen/env.hpp>
+#include <miopen/common.hpp>
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
+namespace miopen {
 
-namespace layernorm {
+struct Handle;
+struct TensorDescriptor;
 
-std::string GetFloatArg()
-{
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
+miopenStatus_t ArgmaxForward(Handle& handle,
+                             const TensorDescriptor& xDesc,
+                             ConstData_t x,
+                             const TensorDescriptor& yDesc,
+                             Data_t y,
+                             int32_t dim);
 
-struct LayerNormTestFloat : LayerNormTest<float>
-{
-};
-
-} // namespace layernorm
-using namespace layernorm;
-
-TEST_P(LayerNormTestFloat, LayerNormTestFw)
-{
-    auto TypeArg       = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    const auto& handle = get_handle();
-    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
-       miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
-                         LayerNormTestFloat,
-                         testing::ValuesIn(LayerNormTestConfigs()));
+} // namespace miopen
+#endif // _MIOPEN_ARGMAX_HPP_

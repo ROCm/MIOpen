@@ -23,50 +23,44 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifndef GUARD_CPU_ARGMAX_HPP
+#define GUARD_CPU_ARGMAX_HPP
 
-#include "layernorm.hpp"
-#include <miopen/env.hpp>
+#include "tensor_holder.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
-namespace layernorm {
-
-std::string GetFloatArg()
+template <class T>
+void cpu_argmax_forward(tensor<T> input, tensor<int>& ref_output, int32_t dim)
 {
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
+    auto input_dims  = input.desc.GetLengths();
+    auto output_dims = ref_output.desc.GetLengths();
+
+    auto reduce_size = input_dims[dim];
+    auto output_numel =
+        std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
+
+    auto inner_size = 1ULL;
+    for(int32_t i = dim + 1; i < input_dims.size(); i++)
     {
-        return "";
+        inner_size *= input_dims[i];
     }
-    return tmp;
+
+    par_ford(output_numel)([&](size_t o) {
+        size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
+
+        int32_t max_idx = 0;
+        T max           = input[input_idx];
+
+        ford(reduce_size)([&](size_t i) {
+            T val = input[input_idx];
+            if(max < val)
+            {
+                max     = val;
+                max_idx = i;
+            }
+            input_idx += inner_size;
+        });
+
+        ref_output[o] = max_idx;
+    });
 }
-
-struct LayerNormTestFloat : LayerNormTest<float>
-{
-};
-
-} // namespace layernorm
-using namespace layernorm;
-
-TEST_P(LayerNormTestFloat, LayerNormTestFw)
-{
-    auto TypeArg       = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    const auto& handle = get_handle();
-    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
-       miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
-                         LayerNormTestFloat,
-                         testing::ValuesIn(LayerNormTestConfigs()));
+#endif

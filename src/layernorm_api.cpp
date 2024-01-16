@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #include <miopen/layernorm.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
@@ -46,7 +47,7 @@ LogCmdLayerNorm(const miopenTensorDescriptor_t xDesc, const miopenLayerNormMode_
         }
         else if(dtype == miopenBFloat16)
         {
-            ss << "layernormbf16";
+            ss << "layernormbfp16";
         }
 
         int32_t size = {0};
