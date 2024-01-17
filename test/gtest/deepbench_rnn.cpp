@@ -32,7 +32,11 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DEEPBENCH)
 
 namespace deepbench_rnn {
-static bool SkipTest(void) { return miopen::IsDisabled(ENV(MIOPEN_TEST_DEEPBENCH)); }
+static bool SkipTest(void)
+{
+    return (miopen::IsDisabled(ENV(MIOPEN_TEST_DEEPBENCH)) ||
+            !miopen::IsEnabled(ENV(MIOPEN_TEST_DEEPBENCH)));
+}
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -61,11 +65,10 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenBFloat16:
     case miopenInt32:
     case miopenDouble:
+    default:
         FAIL() << "miopenHalf, miopenInt8, miopenBFloat16, miopenInt32, miopenDouble "
                   "data type not supported by "
                   "rnn_vanilla test";
-
-    default: params = DeepBenchRNNConfigWithFloat::GetParam();
     }
 
     for(const auto& test_value : params)
