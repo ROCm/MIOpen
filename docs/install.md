@@ -3,12 +3,12 @@
 * More information about ROCm stack via [ROCm Information Portal](https://docs.amd.com/).
 * A ROCm enabled platform, more info [here](https://rocm.github.io/install.html).
 * Base software stack, which includes:
-  * HIP - 
+  * HIP -
     * HIP and HCC libraries and header files.
   * OpenCL - OpenCL libraries and header files.
 * [ROCm cmake](https://github.com/RadeonOpenCompute/rocm-cmake) - provide cmake modules for common build tasks needed for the ROCM software stack.
 * [Half](http://half.sourceforge.net/) - IEEE 754-based half-precision floating point library
-* [Boost](http://www.boost.org/) 
+* [Boost](http://www.boost.org/)
   * MIOpen uses `boost-system` and `boost-filesystem` packages
   * Version 1.83 is recommended
 * [SQLite3](https://sqlite.org/index.html) - reading and writing performance database, enabling persistent [kernel cache](https://rocm.docs.amd.com/projects/MIOpen/en/latest/cache.html)
@@ -37,14 +37,14 @@ Note that all compiled kernels are locally cached in the folder `$HOME/.cache/mi
 To install the kernels package for your GPU architecture, use the following command:
 
 ```
-apt-get install miopenkernels-<arch>-<num cu>
+apt-get install miopen-<backend>-<arch>-<num_cu>kdb
 ```
 
-Where `<arch>` is the GPU architecture ( for example, `gfx900`, `gfx906`, `gfx1030` ) and `<num cu>` is the number of CUs available in the GPU (for example 56 or 64 etc). 
+Where `<backend>` is either `hip` or `opencl`, `<arch>` is the GPU architecture ( for example, `gfx900`, `gfx906`, `gfx1030` ) and `<num cu>` is the number of CUs available in the GPU (for example 56 or 64 etc)
 
 Not installing these packages would not impact the functioning of MIOpen, since MIOpen will compile these kernels on the target machine once the kernel is run. However, the compilation step may significantly increase the startup time for different operations.
 
-The script `utils/install_precompiled_kernels.sh` provided as part of MIOpen automates the above process, it queries the user machine for the GPU architecture and then installs the appropriate package. It may be invoked as: 
+The script `utils/install_precompiled_kernels.sh` provided as part of MIOpen automates the above process, it queries the user machine for the GPU architecture and then installs the appropriate package. It may be invoked as:
 
 ```
 ./utils/install_precompiled_kernels.sh
