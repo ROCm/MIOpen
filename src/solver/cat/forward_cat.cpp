@@ -78,6 +78,7 @@ ConvSolution CatForward::GetSolution(const ExecutionContext& context,
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
+    auto dtype  = problem.GetYDesc().GetType();
     auto ydims  = problem.GetYDesc().GetLengths();
     auto dim    = problem.GetDim();
     auto stride = problem.GetYDesc().GetStrides()[dim];
@@ -99,14 +100,18 @@ ConvSolution CatForward::GetSolution(const ExecutionContext& context,
 
     constexpr size_t local_size = 256;
 
-    size_t xlocalsize = std::min(x_dim_size_max * stride, local_size);
+    auto data_size = get_data_size(dtype);
+
+    size_t xlocalsize = std::min((x_dim_size_max * stride * data_size + 7) / 8, local_size);
     size_t ylocalsize = std::max(static_cast<int>(local_size / xlocalsize), 1);
     size_t zlocalsize = 1;
     size_t ygridsize  = AlignUp(outer_size, ylocalsize);
     size_t xgridsize =
         std::max(static_cast<int>(numCu * 8 / (ygridsize / ylocalsize)), 1) * xlocalsize;
     size_t zgridsize = 1;
-    xgridsize        = std::min(xgridsize, AlignUp(x_dim_size_max * stride, xlocalsize));
+
+    xgridsize =
+        std::min(xgridsize, AlignUp((x_dim_size_max * stride * data_size + 7) / 8, xlocalsize));
 
     KernelBuildParameters build_params;
 

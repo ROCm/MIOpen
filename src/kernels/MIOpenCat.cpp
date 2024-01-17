@@ -40,25 +40,23 @@ __device__ char* cat_copy_buf(const char* __restrict__ input,
     size_t gid1 = blockIdx.y * blockDim.y + threadIdx.y;
     size_t gsz0 = gridDim.x * blockDim.x;
     size_t end  = input_dim_size * stride * data_size;
+    size_t step = gsz0 * 8;
 
     input += gid1 * end;
 
-    switch(data_size)
+    size_t i = gid0 * 8;
+    for(; (i + 7) < end; i += step)
+        *reinterpret_cast<int64_t*>(output + i) = *reinterpret_cast<const int64_t*>(input + i);
+
+    if((i + 3) < end)
     {
-    case sizeof(int64_t):
-        for(size_t i = gid0 * data_size; i < end; i += gsz0 * data_size)
-            *reinterpret_cast<int64_t*>(output + i) = *reinterpret_cast<const int64_t*>(input + i);
-        break;
-    case sizeof(int32_t):
-        for(size_t i = gid0 * data_size; i < end; i += gsz0 * data_size)
-            *reinterpret_cast<int32_t*>(output + i) = *reinterpret_cast<const int32_t*>(input + i);
-        break;
-    case sizeof(short):
-        for(size_t i = gid0 * data_size; i < end; i += gsz0 * data_size)
-            *reinterpret_cast<short*>(output + i) = *reinterpret_cast<const short*>(input + i);
-        break;
-    default: break;
+        *reinterpret_cast<int32_t*>(output + i) = *reinterpret_cast<const int32_t*>(input + i);
+        i += 4;
     }
+
+    if(i < end)
+        *reinterpret_cast<short*>(output + i) = *reinterpret_cast<const short*>(input + i);
+
     return output + end;
 }
 
