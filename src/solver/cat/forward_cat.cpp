@@ -78,7 +78,6 @@ ConvSolution CatForward::GetSolution(const ExecutionContext& context,
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto dtype  = problem.GetYDesc().GetType();
     auto ydims  = problem.GetYDesc().GetLengths();
     auto dim    = problem.GetDim();
     auto stride = problem.GetYDesc().GetStrides()[dim];
@@ -109,12 +108,7 @@ ConvSolution CatForward::GetSolution(const ExecutionContext& context,
     size_t zgridsize = 1;
     xgridsize        = std::min(xgridsize, AlignUp(x_dim_size_max * stride, xlocalsize));
 
-    const auto build_params = KernelBuildParameters{
-        {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-        {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-        {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
-        {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-    };
+    KernelBuildParameters build_params;
 
     auto kernel = KernelInfo{};
 
@@ -151,6 +145,7 @@ ConvSolution CatForward::GetSolution(const ExecutionContext& context,
                 auto y_dim_size = ydims[dim];
                 auto outer_size = std::accumulate(
                     ydims.begin(), ydims.begin() + dim, 1ULL, std::multiplies<size_t>());
+                auto data_size = get_data_size(params.yDesc.GetType());
 
                 kernel(params.GetX(0),
                        params.GetX(1),
@@ -159,7 +154,8 @@ ConvSolution CatForward::GetSolution(const ExecutionContext& context,
                        params.GetXDimSize(1),
                        outer_size,
                        stride,
-                       y_dim_size);
+                       y_dim_size,
+                       data_size);
             };
         };
         break;
@@ -176,6 +172,7 @@ ConvSolution CatForward::GetSolution(const ExecutionContext& context,
                 auto y_dim_size = ydims[dim];
                 auto outer_size = std::accumulate(
                     ydims.begin(), ydims.begin() + dim, 1ULL, std::multiplies<size_t>());
+                auto data_size = get_data_size(params.yDesc.GetType());
 
                 kernel(params.GetX(0),
                        params.GetX(1),
@@ -188,7 +185,8 @@ ConvSolution CatForward::GetSolution(const ExecutionContext& context,
                        params.GetXDimSize(3),
                        outer_size,
                        stride,
-                       y_dim_size);
+                       y_dim_size,
+                       data_size);
             };
         };
         break;
@@ -205,6 +203,7 @@ ConvSolution CatForward::GetSolution(const ExecutionContext& context,
                 auto y_dim_size = ydims[dim];
                 auto outer_size = std::accumulate(
                     ydims.begin(), ydims.begin() + dim, 1ULL, std::multiplies<size_t>());
+                auto data_size = get_data_size(params.yDesc.GetType());
 
                 kernel(params.GetX(0),
                        params.GetX(1),
@@ -225,7 +224,8 @@ ConvSolution CatForward::GetSolution(const ExecutionContext& context,
                        params.GetXDimSize(7),
                        outer_size,
                        stride,
-                       y_dim_size);
+                       y_dim_size,
+                       data_size);
             };
         };
         break;
