@@ -30,6 +30,9 @@
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/batched_transpose_sol.hpp>
 
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#include <ck/utility/data_type.hpp>
+
 namespace miopen {
 
 namespace conv {
@@ -476,7 +479,7 @@ private:
 template <typename CKArgsType, typename... TransposeOps, size_t... indices>
 auto MakeTaggedTransposeInstancesHelper(ConvSolution& result,
                                         const ExecutionContext& ctx,
-                                        const ProblemDescription& problem,
+                                        const miopen::conv::ProblemDescription& problem,
                                         const CKArgsType& ck_args,
                                         const std::tuple<TransposeOps...>& transpose_ops,
                                         std::index_sequence<indices...>)
@@ -499,7 +502,7 @@ auto MakeTaggedTransposeInstancesHelper(ConvSolution& result,
 template <typename CKArgsType, typename... TransposeOps>
 auto MakeTaggedTransposeInstances(ConvSolution& result,
                                   const ExecutionContext& ctx,
-                                  const ProblemDescription& problem,
+                                  const miopen::conv::ProblemDescription& problem,
                                   const CKArgsType& ck_args,
                                   const TransposeOps&... transpose_ops)
 {
@@ -515,7 +518,7 @@ auto MakeTaggedTransposeInstances(ConvSolution& result,
 } // end namespace internal
 
 /// \todo move to a cpp file
-inline size_t GetWorkspaceSizeLayoutTransformConv(const ProblemDescription& problem)
+inline size_t GetWorkspaceSizeLayoutTransformConv(const miopen::conv::ProblemDescription& problem)
 {
     if(problem.IsLayoutNHWC())
     {
@@ -546,7 +549,7 @@ template <typename DeviceOpType,
           typename Input2TposeOp,
           typename OutputTposeOp>
 ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
-                                    const ProblemDescription& problem,
+                                    const miopen::conv::ProblemDescription& problem,
                                     const std::string& kernel_id,
                                     const Input1TposeOp& input1_op,
                                     const Input2TposeOp& input2_op,
@@ -714,7 +717,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
 
 template <int ND, typename DeviceOpType, typename CKArgsType, typename CastType>
 ConvSolution InitInvokerFactoryFwdNCHW(const ExecutionContext& ctx,
-                                       const ProblemDescription& problem,
+                                       const miopen::conv::ProblemDescription& problem,
                                        const std::string& kernel_id)
 {
 
@@ -730,7 +733,7 @@ ConvSolution InitInvokerFactoryFwdNCHW(const ExecutionContext& ctx,
 
 template <int ND, typename DeviceOpType, typename CKArgsType, typename CastType>
 ConvSolution InitInvokerFactoryBwdNCHW(const ExecutionContext& ctx,
-                                       const ProblemDescription& problem,
+                                       const miopen::conv::ProblemDescription& problem,
                                        const std::string& kernel_id)
 {
 
@@ -746,7 +749,7 @@ ConvSolution InitInvokerFactoryBwdNCHW(const ExecutionContext& ctx,
 
 template <int ND, typename DeviceOpType, typename CKArgsType, typename CastType>
 ConvSolution InitInvokerFactoryWrwNCHW(const ExecutionContext& ctx,
-                                       const ProblemDescription& problem,
+                                       const miopen::conv::ProblemDescription& problem,
                                        const std::string& kernel_id)
 {
     static_assert(ND == 2 || ND == 3, "Num Dimensions must be 2 or 3");
@@ -761,7 +764,7 @@ ConvSolution InitInvokerFactoryWrwNCHW(const ExecutionContext& ctx,
 
 template <typename InvokerFactoryMakerNCHW, typename InvokerFactoryMakerNHWC>
 ConvSolution
-MakeSolutionGroupConvImplicitGemmXdlops(const ProblemDescription& problem,
+MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& problem,
                                         InvokerFactoryMakerNCHW&& invoker_factory_maker_ncdhw,
                                         InvokerFactoryMakerNHWC&& invoker_factory_maker_ndhwc)
 {
@@ -813,3 +816,5 @@ MakeSolutionGroupConvImplicitGemmXdlops(const ProblemDescription& problem,
 
 } // namespace solver
 } // namespace miopen
+ 
+#endif // MIOPEN_USE_COMPOSABLEKERNEL

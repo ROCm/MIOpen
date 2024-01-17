@@ -39,4 +39,4 @@ TEST_P(ConvBwdFloatFix, ConvBwdFloat)
 INSTANTIATE_TEST_SUITE_P(ConvBwdTests,
                          ConvBwdFloatFix,
                          testing::Combine(testing::Values(miopenConvolutionAlgoGEMM),
-                                          testing::ValuesIn(ConvTestConfigs())));
+                                          testing::ValuesIn(ConvTestConfigs<ConvTestCaseBase>())));
