@@ -1,4 +1,4 @@
 [submodule "fin"]
     path = fin
     url = https://github.com/ROCmSoftwarePlatform/MIFin.git
-    branch = ea_use_updated_load_program_and_save_load_binary
+    branch = develop
