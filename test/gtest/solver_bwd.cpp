@@ -26,17 +26,17 @@
 #include "solver_bwd.hpp"
 #include "miopen/solver.hpp"
 
-struct ConvBwdFloatFix : ConvBwdSolverTest<float, float>
+struct ConvBwdFloat: ConvBwdSolverTest<float, float>
 {
 };
 
-TEST_P(ConvBwdFloatFix, ConvBwdFloat)
+TEST_P(ConvBwdFloat, ConvBwdFloat)
 {
     miopen::solver::conv::ConvHipImplicitGemmBwdXdlops solv{};
     SolverBwd(solv);
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvBwdTests,
-                         ConvBwdFloatFix,
+                         ConvBwdFloat,
                          testing::Combine(testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(ConvTestConfigs<ConvTestCaseBase>())));
