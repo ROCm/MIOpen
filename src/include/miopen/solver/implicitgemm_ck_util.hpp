@@ -641,9 +641,9 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                     // std::swap(conv_tensors.x, conv_tensors.y);
                     // std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
                     // std::printf("Invoker inputs after swap, x=%p, w=%p, y=%p\n",
-                                // conv_tensors.x,
-                                // conv_tensors.w,
-                                // conv_tensors.y);
+                    // conv_tensors.x,
+                    // conv_tensors.w,
+                    // conv_tensors.y);
                 }
 
                 if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Weights)
@@ -816,5 +816,5 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
 
 } // namespace solver
 } // namespace miopen
- 
+
 #endif // MIOPEN_USE_COMPOSABLEKERNEL

@@ -27,7 +27,6 @@
 
 #include "conv3d_test_case.hpp"
 
-
 template <typename T = float>
 struct ConvWrwSolverTest
     : public ::testing::TestWithParam<

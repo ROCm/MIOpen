@@ -26,7 +26,7 @@
 #include "solver_bwd.hpp"
 #include "miopen/solver.hpp"
 
-struct ConvBwdFloat: ConvBwdSolverTest<float, float>
+struct ConvBwdFloat : ConvBwdSolverTest<float, float>
 {
 };
 
