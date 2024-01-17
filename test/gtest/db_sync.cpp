@@ -46,9 +46,16 @@
 
 #define WORKAROUND_ISSUE_2493 1
 
+#if WORKAROUND_ISSUE_2493 && defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#endif
+
 #define WORKAROUND_ISSUE_1987 0      // Allows testing FDB on gfx1030 (legacy fdb).
 #define SKIP_KDB_PDB_TESTING 0       // Allows testing FDB on gfx1030.
 #define SKIP_CONVOCLDIRECTFWDFUSED 0 // Allows testing FDB on gfx1030 (legacy fdb).
+
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DBSYNC)
 
 struct KDBKey
 {
@@ -72,14 +79,10 @@ struct std::hash<KDBKey>
     }
 };
 
-#if WORKAROUND_ISSUE_2493
-static void SetEnvironmentVariable(const std::string& name, const std::string& value)
+#if WORKAROUND_ISSUE_2493 && !defined(_WIN32)
+static void SetEnvironmentVariable(std::string_view name, std::string_view value)
 {
-#ifdef _WIN32
-    const auto ret = _putenv_s(env_var.c_str(), value.c_str());
-#else
-    const auto ret = setenv(name.c_str(), value.c_str(), 1);
-#endif
+    const auto ret = setenv(name.data(), value.data(), 1);
     ASSERT_TRUE(ret == 0);
 }
 #endif // WORKAROUND_ISSUE_2493
@@ -438,14 +441,17 @@ void SetupPaths(boost::filesystem::path& fdb_file_path,
 
 TEST(DBSync, KDBTargetID)
 {
-    boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_DBSYNC)))
+    {
+        boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
 #if WORKAROUND_ISSUE_2493
-    SetEnvironmentVariable("MIOPEN_DEBUG_WORKAROUND_ISSUE_2493", "0");
+        SetEnvironmentVariable("MIOPEN_DEBUG_WORKAROUND_ISSUE_2493", "0");
 #endif
-    SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, get_handle());
-    std::ignore = fdb_file_path;
-    std::ignore = pdb_file_path;
-    EXPECT_FALSE(!SKIP_KDB_PDB_TESTING && miopen::CheckKDBForTargetID(kdb_file_path));
+        SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, get_handle());
+        std::ignore = fdb_file_path;
+        std::ignore = pdb_file_path;
+        EXPECT_FALSE(!SKIP_KDB_PDB_TESTING && miopen::CheckKDBForTargetID(kdb_file_path));
+    }
 }
 
 bool LogBuildMessage()
@@ -820,10 +826,13 @@ struct DBSync : testing::TestWithParam<std::pair<std::string, size_t>>
 
 TEST_P(DBSync, StaticFDBSync)
 {
-    std::string arch;
-    size_t num_cu;
-    std::tie(arch, num_cu) = GetParam();
-    StaticFDBSync(arch, num_cu);
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_DBSYNC)))
+    {
+        std::string arch;
+        size_t num_cu;
+        std::tie(arch, num_cu) = GetParam();
+        StaticFDBSync(arch, num_cu);
+    }
 }
 
 INSTANTIATE_TEST_SUITE_P(DBSyncSuite,
@@ -831,4 +840,5 @@ INSTANTIATE_TEST_SUITE_P(DBSyncSuite,
                          testing::Values(std::make_pair("gfx90a", 104),
                                          std::make_pair("gfx1030", 36),
                                          std::make_pair("gfx90a", 110),
-                                         std::make_pair("gfx908", 120)));
+                                         std::make_pair("gfx908", 120),
+                                         std::make_pair("gfx942", 304)));
