@@ -85,11 +85,11 @@ struct CKArgs
         Z  = ProblemInterpreter::GetFilterDepthZ(problem);
 
         // On a backward pass, out is in and in is out and this is silly
-        std::swap(K1, C1);
-        std::swap(K, C);
-        std::swap(Di, Do);
-        std::swap(Hi, Ho);
-        std::swap(Wi, Wo);
+        // std::swap(K1, C1);
+        // std::swap(K, C);
+        // std::swap(Di, Do);
+        // std::swap(Hi, Ho);
+        // std::swap(Wi, Wo);
 
         input  = {G, N, C, Di, Hi, Wi};
         output = {G, N, K, Do, Ho, Wo};

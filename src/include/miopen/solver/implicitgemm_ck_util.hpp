@@ -635,12 +635,12 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Input)
                 {
                     // this is backward pass, swap back input and output
-                    std::swap(conv_tensors.x, conv_tensors.y);
-                    std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
-                    std::printf("Invoker inputs after swap, x=%p, w=%p, y=%p\n",
-                                conv_tensors.x,
-                                conv_tensors.w,
-                                conv_tensors.y);
+                    // std::swap(conv_tensors.x, conv_tensors.y);
+                    // std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
+                    // std::printf("Invoker inputs after swap, x=%p, w=%p, y=%p\n",
+                                // conv_tensors.x,
+                                // conv_tensors.w,
+                                // conv_tensors.y);
                 }
 
                 if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Weights)
