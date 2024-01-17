@@ -86,13 +86,6 @@ struct CKArgs
         Do = ProblemInterpreter::GetOutputDepthDo(problem);
         Z  = ProblemInterpreter::GetFilterDepthZ(problem);
 
-        // On a backward pass, out is in and in is out and this is silly
-        // std::swap(K1, C1);
-        // std::swap(K, C);
-        // std::swap(Di, Do);
-        // std::swap(Hi, Ho);
-        // std::swap(Wi, Wo);
-
         input  = {G, N, C, Di, Hi, Wi};
         output = {G, N, K, Do, Ho, Wo};
         weight = {G, K, C, Z, Y, X};
@@ -125,6 +118,10 @@ struct CKArgs
             out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
             wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
         }
+        // On a backward pass, problem.GetIn() means y(or out),
+        // and problem.GetOut means x(or in)
+        /// \todo remove the swapping of in and out tensors/descriptors
+        std::swap(in_strides, out_strides);
 
         strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),

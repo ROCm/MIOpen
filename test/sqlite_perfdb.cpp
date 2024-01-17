@@ -32,6 +32,7 @@
 #include <miopen/db.hpp>
 #include <miopen/db_record.hpp>
 #include <miopen/lock_file.hpp>
+#include <miopen/process.hpp>
 #include <miopen/temp_file.hpp>
 
 #include <boost/filesystem/operations.hpp>
@@ -828,7 +829,7 @@ public:
         std::cout << "Testing db for multiprocess write access..." << std::endl;
 
         ResetDb();
-        std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
+        std::vector<ProcessAsync> children{};
         const auto lock_file_path = LockFilePath(temp_file);
 
         std::cout << "Initializing test data..." << std::endl;
@@ -841,31 +842,31 @@ public:
 
             auto id = 0;
 
-            for(auto& child : children)
+            // clang-format off
+            for(auto i = 0; i < DBMultiThreadedTestWork::threads_count; ++i)
             {
-                auto command = exe_path().string() + " --" + write_arg + " --" + id_arg + " " +
-                               std::to_string(id++) + " --" + path_arg + " " + temp_file.Path();
+                auto args =
+                    std::string{"--"} + write_arg +
+                                " --" + id_arg + " " + std::to_string(id++) +
+                                " --" + path_arg + " " + temp_file.Path();
 
                 if(thread_logs_root())
                 {
-                    command += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " +
-                               *thread_logs_root();
+                    args += std::string{" --"} + DbMultiThreadedTest::logs_path_arg + " " + *thread_logs_root();
                 }
 
                 if(full_set())
-                    command += " --all";
+                    args += " --all";
 
-                child = popen(command.c_str(), "w");
+                children.emplace_back(exe_path(), args);
             }
+            // clang-format on
         }
 
         std::cout << "Waiting for test processes..." << std::endl;
-        for(auto child : children)
+        for(auto&& child : children)
         {
-            auto status          = pclose(child);
-            const auto exit_code = WEXITSTATUS(status);
-
-            EXPECT_EQUAL(exit_code, 0);
+            EXPECT_EQUAL(child.Wait(), 0);
         }
 
         std::remove(lock_file_path.c_str());
@@ -904,7 +905,8 @@ public:
     {
         std::cout << "Testing db for multiprocess read access..." << std::endl;
 
-        std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
+        std::vector<ProcessAsync> children{};
+
         const auto lock_file_path = LockFilePath(temp_file);
 
         std::cout << "Initializing test data..." << std::endl;
@@ -919,33 +921,31 @@ public:
 
             auto id = 0;
 
-            for(auto& child : children)
+            // clang-format off
+            for(auto i = 0; i < DBMultiThreadedTestWork::threads_count; ++i)
             {
-                auto command = exe_path().string() + " --" + DbMultiProcessTest::id_arg + " " +
-                               std::to_string(id++) + " --" + DbMultiProcessTest::path_arg + " " +
-                               p;
+                auto args =
+                    std::string{"--"} + DbMultiProcessTest::id_arg + " " + std::to_string(id++) +
+                                " --" + DbMultiProcessTest::path_arg + " " + p;
 
                 if(thread_logs_root())
                 {
-                    command += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " +
-                               *thread_logs_root();
+                    args += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " + *thread_logs_root();
                 }
 
                 if(full_set())
-                    command += " --all";
+                    args += " --all";
 
-                std::cout << command << std::endl;
-                child = popen(command.c_str(), "w");
+                std::cout << exe_path().string() + " " + args << std::endl;
+                children.emplace_back(exe_path(), args);
             }
+            // clang-format on
         }
 
         std::cout << "Waiting for test processes..." << std::endl;
-        for(auto child : children)
+        for(auto&& child : children)
         {
-            auto status          = pclose(child);
-            const auto exit_code = WEXITSTATUS(status);
-
-            EXPECT_EQUAL(exit_code, 0);
+            EXPECT_EQUAL(child.Wait(), 0);
         }
 
         std::remove(lock_file_path.c_str());

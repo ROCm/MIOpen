@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,37 +23,30 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#pragma once
 
-#include <miopen/config.h>
-#include <miopen/solver/gemm_common.hpp>
+#ifdef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 
-#include <tuple> // std::ignore
+#include "miopen_type_traits.hpp" // std::remove_reference
 
-/// This W/A disables all GEMM convolution solvers for xDLOPs
-/// targets when MIOpenGEMM is used (OCL BE). More info at
-/// https://github.com/ROCm/MIOpen/issues/1315.
-///
-/// W/A affects ROCm releases starting from 4.5 and also
-/// pre-5.0 Mainline HIP builds, e.g. 9148.
-#define WORKAROUND_ISSUE_1315 (MIOPEN_USE_MIOPENGEMM && (HIP_PACKAGE_VERSION_FLAT >= 4004000000ULL))
+namespace std {
 
-namespace miopen {
-namespace solver {
-namespace conv {
-namespace gemm {
-
-bool IsWorkaroundIssue1315(const miopen::ExecutionContext& ctx)
+template <typename T>
+constexpr T&& forward(typename remove_reference<T>::type& t_) noexcept
 {
-#if WORKAROUND_ISSUE_1315
-    const auto device = ctx.GetStream().GetTargetProperties().Name();
-    return (device == "gfx908") || (device == "gfx90a");
-#else
-    std::ignore = ctx;
-    return false;
-#endif
+    return static_cast<T&&>(t_);
 }
 
-} // namespace gemm
-} // namespace conv
-} // namespace solver
-} // namespace miopen
+template <typename T>
+constexpr T&& forward(typename remove_reference<T>::type&& t_) noexcept
+{
+    return static_cast<T&&>(t_);
+}
+
+} // namespace std
+
+#else
+
+#include <utility>
+
+#endif

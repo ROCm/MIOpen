@@ -29,7 +29,6 @@
 #include <miopen/errors.hpp>
 #include <miopen/lock_file.hpp>
 #include <miopen/logger.hpp>
-#include <miopen/md5.hpp>
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem.hpp>

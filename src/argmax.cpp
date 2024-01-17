@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,40 +23,44 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_MIOPENGEMM_HPP_
-#define GUARD_MIOPEN_MIOPENGEMM_HPP_
 
-#include <miopen/config.h>
-
-#if MIOPEN_USE_MIOPENGEMM
-#include <miopengemm/miogemm.hpp>
+#include <miopen/argmax.hpp>
+#include <miopen/datatype.hpp>
+#include <miopen/find_solution.hpp>
+#include <miopen/float_equal.hpp>
+#include <miopen/kernel_cache.hpp>
+#include <miopen/reduce/invoke_params.hpp>
+#include <miopen/reduce/solvers.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
 
-struct Handle;
+miopenStatus_t ArgmaxForward(Handle& handle,
+                             const TensorDescriptor& xDesc,
+                             ConstData_t x,
+                             const TensorDescriptor& yDesc,
+                             Data_t y,
+                             int32_t dim)
+{
+    const auto problem = reduce::ProblemDescription{xDesc, yDesc, dim};
 
-void AddMiopengemmSolution(const Handle& handle,
-                           const std::string& algorithm_name,
-                           const std::string& network_config,
-                           const MIOpenGEMM::Geometry& mgg,
-                           ConstData_t A,
-                           ConstData_t B,
-                           Data_t C,
-                           float time,
-                           bool enforce_determinism);
+    const auto invoke_params = [&]() {
+        auto tmp  = reduce::InvokeParams{};
+        tmp.type  = InvokeType::Run;
+        tmp.xDesc = &xDesc;
+        tmp.yDesc = &yDesc;
+        tmp.x     = x;
+        tmp.y     = y;
+        tmp.dim   = dim;
+        return tmp;
+    }();
 
-void RunMiopengemmSolution(const Handle& handle,
-                           const decltype(handle.GetKernels("_", "_"))& kernels,
-                           float alpha,
-                           ConstData_t A,
-                           int a_offset,
-                           ConstData_t B,
-                           int b_offset,
-                           float beta,
-                           Data_t C,
-                           int c_offset);
+    const auto algo    = AlgorithmName{"ArgmaxForward"};
+    const auto solvers = solver::SolverContainer<solver::reduce::ArgmaxForward>{};
+
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+
+    return miopenStatusSuccess;
+}
 
 } // namespace miopen
-#endif // MIOPEN_USE_MIOPENGEMM
-
-#endif // GUARD_MIOPEN_MIOPENGEMM_HPP_

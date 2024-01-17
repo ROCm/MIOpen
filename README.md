@@ -6,7 +6,7 @@ The latest released documentation can be read online [here](https://rocm.docs.am
 
 MIOpen supports two programming models, or backends:
 
-1. [HIP](https://github.com/ROCm-Developer-Tools/HIP)
+1. [HIP](https://github.com/ROCm/HIP)
 2. OpenCL (deprecated).
 
 ## Documentation
@@ -33,17 +33,13 @@ python3 -m sphinx -T -E -b html -d _build/doctrees -D language=en . _build/html
   * HIP -
     * HIP and HCC libraries and header files.
   * OpenCL - OpenCL libraries and header files.
-* [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) - enable various functionalities including transposed and dilated convolutions.
-  * This is optional on the HIP backend, and required on the OpenCL backend.
-  * Users can enable this library using the cmake configuration flag `-DMIOPEN_USE_MIOPENGEMM=On`, which is enabled by default when OpenCL backend is chosen.
-* [ROCm cmake](https://github.com/RadeonOpenCompute/rocm-cmake) - provide cmake modules for common build tasks needed for the ROCM software stack.
+* [ROCm cmake](https://github.com/ROCm/rocm-cmake) - provide cmake modules for common build tasks needed for the ROCM software stack.
 * [Half](http://half.sourceforge.net/) - IEEE 754-based half-precision floating point library
 * [Boost](http://www.boost.org/)
   * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://rocm.docs.amd.com/projects/MIOpen/en/latest/cache.html)
   * Version 1.79 is recommended, older version may need patches to work on newer systems, e.g. boost1{69,70,72} w/glibc-2.34
 * [SQLite3](https://sqlite.org/index.html) - reading and writing performance database
 * lbzip2 - multi-threaded compress or decompress utility
-* [MIOpenTENSILE](https://github.com/ROCmSoftwarePlatform/MIOpenTensile) - users can enable this library using the cmake configuration flag`-DMIOPEN_USE_MIOPENTENSILE=On`. (deprecated after ROCm 5.1.1)
 * [rocBLAS](https://github.com/ROCm/rocBLAS) - AMD library for Basic Linear Algebra Subprograms (BLAS) on the ROCm platform.
   * Minimum version branch for pre-ROCm 3.5 [master-rocm-2.10](https://github.com/ROCm/rocBLAS/tree/master-rocm-2.10)
   * Minimum version branch for post-ROCm 3.5 [master-rocm-3.5](https://github.com/ROCm/rocBLAS/releases/tag/rocm-3.5.0)
@@ -105,8 +101,6 @@ cmake -P install_deps.cmake --minimum --prefix /root/MIOpen/install_dir
 This prefix can used to specify the dependency path during the configuration phase using the `CMAKE_PREFIX_PATH`.
 
 * MIOpen's HIP backend uses [rocBLAS](https://github.com/ROCm/rocBLAS) by default. Users can install rocBLAS minimum release by using `apt-get install rocblas`. To disable using rocBLAS set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off`. rocBLAS is *not* available for the OpenCL backend.
-
-* MIOpen's OpenCL backend uses [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) by default. Users can install MIOpenGEMM minimum release by using `apt-get install miopengemm`.
 
 ## Building MIOpen from source
 

@@ -71,7 +71,7 @@ std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<Kernel
                     max_threads{GetTuningThreadsMax()},
                     [&](auto i) {
                         const KernelInfo& k = kernels[i];
-                        programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
+                        programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, "");
                     });
     // clang-format on
     ct.Log("PrecompileKernels");
@@ -623,6 +623,12 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        ++id,
                        conv::ConvHipImplicitGemmF16F8F16WrwXdlops{},
                        miopenConvolutionAlgoImplicitGEMM);
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             fusion::ConvCKIgemmFwdBiasResAddActivFused{}.SolverDbId(),
+             miopenConvolutionAlgoImplicitGEMM);
+    Register(registry, ++id, Primitive::Reduce, reduce::ArgmaxForward{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }
