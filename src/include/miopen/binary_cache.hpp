@@ -32,8 +32,6 @@
 #include <boost/filesystem/path.hpp>
 #include <string>
 
-#define FIN_OLD_BINARY_CACHE_COMPAT 1
-
 namespace miopen {
 
 bool IsCacheDisabled();
@@ -48,6 +46,7 @@ boost::filesystem::path LoadBinary(const TargetProperties& target,
                                    std::size_t num_cu,
                                    const std::string& name,
                                    const std::string& args);
+
 void SaveBinary(const boost::filesystem::path& binary_path,
                 const TargetProperties& target,
                 const std::string& name,
@@ -63,28 +62,6 @@ void SaveBinary(const std::string& hsaco,
                 std::size_t num_cu,
                 const std::string& name,
                 const std::string& args);
-
-#if FIN_OLD_BINARY_CACHE_COMPAT
-inline std::string LoadBinary(const TargetProperties& target,
-                              std::size_t num_cu,
-                              const std::string& name,
-                              const std::string& args,
-                              bool)
-{
-    return LoadBinary(target, num_cu, name, args);
-}
-
-inline void SaveBinary(const std::string& hsaco,
-                       const TargetProperties& target,
-                       std::size_t num_cu,
-                       const std::string& name,
-                       const std::string& args,
-                       bool)
-{
-    SaveBinary(hsaco, target, num_cu, name, args);
-}
-#endif
-
 #endif
 
 } // namespace miopen
