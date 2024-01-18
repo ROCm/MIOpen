@@ -56,7 +56,6 @@
 #include <mutex>
 #include <shared_mutex>
 
-/// GFX906 and GFX103X are deprecated since 5.7 RC.
 /// hipMemGetInfo constantly fails on gfx906/900 and Navi21.
 /// Brute-force W/A: return fixed values.
 #define WORKAROUND_FAULTY_HIPMEMGETINFO_VEGA_NAVI2X (HIP_PACKAGE_VERSION_FLAT >= 5007000000ULL)
