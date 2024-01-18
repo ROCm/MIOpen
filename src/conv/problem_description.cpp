@@ -110,8 +110,7 @@ void ProblemDescription::MakeNetworkConfig(std::string& conf_key) const
     ss << GetInChannels();
     ss << 'x' << PrintDHW('x', GetSpatialDims(), GetInDepth(), GetInHeight(), GetInWidth());
     ss << 'x'
-       << PrintDHW(
-              'x', GetSpatialDims(), GetWeightsDepth(), GetWeightsHeight(), GetWeightsWidth());
+       << PrintDHW('x', GetSpatialDims(), GetWeightsDepth(), GetWeightsHeight(), GetWeightsWidth());
     ss << 'x' << GetOutChannels();
     ss << 'x' << PrintDHW('x', GetSpatialDims(), GetOutDepth(), GetOutHeight(), GetOutWidth());
     ss << 'x' << GetInBatchSize();

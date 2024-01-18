@@ -180,7 +180,7 @@ struct ProblemDescription : ProblemDescriptionBase
     std::size_t GetInBatchSize() const { return GetN5(GetSpatialDims(), in.GetLengths()); }
     unsigned GetInBatchSize_() const { return GetInBatchSize(); }
     std::size_t GetBatchSize() const { return GetInBatchSize(); } // alias of GetInBatchSize()
-    unsigned GetBatchSize_() const { return GetBatchSize(); } // alias of GetInBatchSize()
+    unsigned GetBatchSize_() const { return GetBatchSize(); }     // alias of GetInBatchSize()
     std::size_t GetInChannels() const { return GetC5(GetSpatialDims(), in.GetLengths()); }
     unsigned GetInChannels_() const { return GetInChannels(); }
     std::size_t GetInDepth() const { return GetD5(GetSpatialDims(), in.GetLengths()); }
@@ -215,8 +215,8 @@ struct ProblemDescription : ProblemDescriptionBase
 
     std::size_t GetInSize() const
     {
-        return GetInBatchSize() * GetInChannels() * GetInDepth() *
-               GetInHeight() * GetInWidth() * GetInElementSize();
+        return GetInBatchSize() * GetInChannels() * GetInDepth() * GetInHeight() * GetInWidth() *
+               GetInElementSize();
     }
 
     // Out getters
@@ -258,8 +258,8 @@ struct ProblemDescription : ProblemDescriptionBase
 
     std::size_t GetOutSize() const
     {
-        return GetOutBatchSize() * GetOutChannels() * GetOutDepth() *
-               GetOutHeight() * GetOutWidth() * GetOutElementSize();
+        return GetOutBatchSize() * GetOutChannels() * GetOutDepth() * GetOutHeight() *
+               GetOutWidth() * GetOutElementSize();
     }
 
     // Weights getters
@@ -283,9 +283,12 @@ struct ProblemDescription : ProblemDescriptionBase
             return GetW5(GetSpatialDims(), weights.GetLengths());
     }
     unsigned GetWeightsWidth_() const { return GetWeightsWidth(); }
-    // std::size_t GetWeightsStrideD() const { return GetD5(GetSpatialDims(), weights.GetStrides()); }
-    // std::size_t GetWeightsStrideH() const { return GetH5(GetSpatialDims(), weights.GetStrides()); }
-    // std::size_t GetWeightsStrideW() const { return GetW5(GetSpatialDims(), weights.GetStrides()); }
+    // std::size_t GetWeightsStrideD() const { return GetD5(GetSpatialDims(), weights.GetStrides());
+    // }
+    // std::size_t GetWeightsStrideH() const { return GetH5(GetSpatialDims(), weights.GetStrides());
+    // }
+    // std::size_t GetWeightsStrideW() const { return GetW5(GetSpatialDims(), weights.GetStrides());
+    // }
     std::string GetWeightsLayout() const { return weights_layout; }
     std::string ComputeWeightsLayout() const
     {
@@ -302,8 +305,8 @@ struct ProblemDescription : ProblemDescriptionBase
 
     std::size_t GetWeightsSize() const
     {
-        return GetInChannels() * GetOutChannels() * GetWeightsDepth() *
-               GetWeightsHeight() * GetWeightsWidth() * GetWeightsElementSize();
+        return GetInChannels() * GetOutChannels() * GetWeightsDepth() * GetWeightsHeight() *
+               GetWeightsWidth() * GetWeightsElementSize();
     }
 
     const TensorDescriptor& GetIn() const { return in; }
