@@ -46,6 +46,31 @@ using float8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
 namespace test {
 namespace cpu {
 
+template <typename U, typename V>
+struct Fp8Cast
+{
+    uint64_t seed = 1234;
+    bool is_stoch = true;
+    V operator()(U x)
+    {
+        if(is_stoch)
+        {
+            auto tmp =
+                float8(static_cast<float>(x), miopen_f8::hip_f8_rounding_mode::stochastic, seed);
+            return static_cast<V>(tmp);
+        }
+        else
+        {
+            auto tmp = float8(static_cast<float>(x));
+            return static_cast<V>(tmp);
+        }
+    }
+};
+
+using F8_T = Fp8Cast<float, float>;
+
+
+
 template <typename T>
 void print5(const tensor<T>& tensor_val, std::string header_msg = "start")
 {
@@ -149,7 +174,7 @@ void Dot_4D_3D(const tensor<T>& A_mat, const tensor<T>& B_mat, tensor<T>& C_mat)
         double sum(0);
         for(size_t k_id = 0; k_id < k_val; ++k_id)
         {
-            sum += A_mat(b_id, sc_id, sl_id, k_id) * B_mat(h_id, k_id, dk_id);
+            sum += A_mat(b_id, sc_id, sl_id, k_id)* B_mat(h_id, k_id, dk_id);
         }
         C_mat(b_id, sc_id, h_id, sl_id, dk_id) = sum;
     });
@@ -237,6 +262,8 @@ void Zinv(const tensor<T>& A_mat, tensor<T>& zinv_tensor)
         });
 }
 
+
+
 template <typename T>
 void Scale(tensor<T>& mat_val, double scale_factor)
 {
@@ -245,6 +272,17 @@ void Scale(tensor<T>& mat_val, double scale_factor)
         [&](size_t b_id, size_t sc_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
             mat_val(b_id, sc_id, h_id, sl_i_id, sl_j_id) =
                 mat_val(b_id, sc_id, h_id, sl_i_id, sl_j_id) * scale_factor;
+        });
+}
+
+template <typename T>
+void Scalef8(tensor<T>& mat_val, F8_T scale_func, double scale_factor)
+{
+    // assert scale_factor is != 0.0 .. tolerance
+    mat_val.par_for_each(
+        [&](size_t b_id, size_t sc_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
+            mat_val(b_id, sc_id, h_id, sl_i_id, sl_j_id) =
+                scale_func(mat_val(b_id, sc_id, h_id, sl_i_id, sl_j_id)) * scale_factor;
         });
 }
 
@@ -359,24 +397,34 @@ protected:
         Dot_4D_3D(word_position, q_weights, q_val);
         Dot_4D_3D(word_position, k_weights, k_val);
         Dot_4D_3D(word_position, v_weights, v_val);
+        print5(q_val, "q_val");
+        print5(k_val, "k_val");
+        print5(v_val, "v_val");
 
         // Reshape K
         Transpose_5D(k_val, k_transpose);
 
         // Attention
+        // Dot_5D_5D_Transpose(q_val, k_transpose, q_dot_k_transpose);
         Dot_5D_5D(q_val, k_transpose, q_dot_k_transpose);
+        print5(q_dot_k_transpose, "q_dot_k_transpose");
 
         // Attention Scale
         double sqrt_dk = 1.0 / std::sqrt(d_k);
-        Scale(q_dot_k_transpose, sqrt_dk);
-        // print5(q_dot_k_transpose, "q_dot_k_transpose");
+        std::cout << "sqrt_dk = " << sqrt_dk << std::endl;
+        // Scale(q_dot_k_transpose, sqrt_dk);
+        print5(q_dot_k_transpose, "q_dot_k_transpose after scale");
 
         // AddMask5D_2D(q_dot_k_transpose, mask);
 
         // *** seperate softmax operation
-        // double fp8_descale = 1.0 / 2.0;
-        // // //   descale Q
-        // Scale(q_val, fp8_descale);
+        // double fp8_descale = 1.0/100.0;
+        // //   descale Q
+        // F8_T scale_func     = {0, true};
+        // // Scale(q_val, fp8_descale);
+        // // print5(q_val, "before q_val");
+        // Scalef8(q_val, scale_func, fp8_descale);
+        // print5(q_val, "after q_val");
         // // //   descale K
         // Scale(k_val, fp8_descale);
 
@@ -386,7 +434,7 @@ protected:
             RowReductionMax(q_dot_k_transpose, rrm);
 
             // rrm substraction
-            Sub(q_dot_k_transpose, rrm);
+            // Sub(q_dot_k_transpose, rrm);
 
             // pointwise exponentiation
             Exponent(q_dot_k_transpose);
@@ -400,11 +448,12 @@ protected:
         // drop out
         // DropOut(q_dot_k_transpose, cpu_mha_test_case.drop_out_rate);
 
-        // drop out scalse
-        double drop_out_scale = 1.0 / (1.0 - cpu_mha_test_case.drop_out_rate);
-        Scale(q_dot_k_transpose, drop_out_scale);
+        // // drop out scalse
+        // double drop_out_scale = 1.0 / (1.0 - cpu_mha_test_case.drop_out_rate);
+        // Scale(q_dot_k_transpose, drop_out_scale);
 
-        // print5(q_dot_k_transpose, "softrmaxxx");
+        print5(q_dot_k_transpose, "softrmaxxx");
+
 
         // descale Q
         // double scale_s = 1.0;
@@ -412,7 +461,7 @@ protected:
 
         // O = (Q.dot(Kt)).dot(V)
         Dot_5D_5D(q_dot_k_transpose, v_val, atten_heads);
-        // print5(atten_heads, "atten_heads ");
+        print5(atten_heads, "atten_heads X value");
     }
 
     void TearDown() override
@@ -445,7 +494,7 @@ private:
                                 cpu_mha_test_case.num_heads,
                                 cpu_mha_test_case.sequence_length,
                                 d_k};
-        final_atten_heads = atten_heads;
+        // concatinate the atten heads d_k => problem dim
 
         k_transpose = tensor<T>{cpu_mha_test_case.batch_size,
                                 cpu_mha_test_case.sequence_count,
@@ -481,6 +530,10 @@ private:
         k_weights.generate(GenData<T>{});
         v_weights.generate(GenData<T>{});
     }
+    
+    CPUMHATestCase cpu_mha_test_case;
+    
+    tensor<T> word_position;
 
     tensor<T> q_weights;
     tensor<T> k_weights;
@@ -490,23 +543,18 @@ private:
     tensor<T> k_val;
     tensor<T> v_val;
 
+    
     tensor<T> k_transpose;
     tensor<T> q_dot_k_transpose;
 
-    tensor<T> atten_heads;
-    tensor<T> final_atten_heads;
-
-    tensor<T> word_position;
-
-    std::mutex coutMutex;
     tensor<T> mask;
-
-    CPUMHATestCase cpu_mha_test_case;
-    tensor<T> mha;
-    // row reduction max
     tensor<T> rrm;
     tensor<T> zinv_tensors;
     size_t d_k;
+    
+    tensor<T> atten_heads;
+
+    // row reduction max
 };
 
 } // namespace cpu
