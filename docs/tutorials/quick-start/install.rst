@@ -19,9 +19,9 @@ For the HIP backend (ROCm 3.5 and later), run
 Set the C++ compiler to `clang++`.
 
 .. code-block:: bash
+
     export CXX=<location-of-clang++-compiler>
     cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="<hip-installed-path>;<rocm-installed-path>;<miopen-dependency-path>" ..
-
 
 An example cmake step can be:
 
