@@ -23,13 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/layernorm.hpp>
-#include <miopen/kernel_cache.hpp>
+
+#include <miopen/find_solution.hpp>
 #include <miopen/float_equal.hpp>
-#include <miopen/tensor.hpp>
+#include <miopen/kernel_cache.hpp>
+#include <miopen/layernorm.hpp>
 #include <miopen/norm/invoke_params.hpp>
 #include <miopen/norm/solvers.hpp>
-#include <miopen/find_solution.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
 
