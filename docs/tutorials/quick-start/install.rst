@@ -30,7 +30,6 @@ An example cmake step can be:
     export CXX=/opt/rocm/llvm/bin/clang++ && \
     cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/;/opt/rocm/hip;/root/MIOpen/install_dir" ..
 
-
 Note: When specifying the path for the `CMAKE_PREFIX_PATH` variable, **do not** use the `~` shorthand for the user home directory.
 
 
@@ -43,7 +42,6 @@ By default the install location is set to '/opt/rocm', this can be set by using 
 
     cmake -DMIOPEN_BACKEND=OpenCL -DCMAKE_INSTALL_PREFIX=<miopen-installed-path> ..
 
-
 Building MIOpen using docker
 ~~~~~~~~~~
 
@@ -53,12 +51,10 @@ The easiest way is to use docker. You can build the top-level docker file:
 
     docker build -t miopen-image .
 
-
 Then to enter the development environment use `docker run`, for example:
 
 .. code-block:: bash
-    
-    docker run -it -v $HOME:/data --privileged --rm --device=/dev/kfd --device /dev/dri:/dev/dri:rw  --volume /dev/dri:/dev/dri:rw -v /var/lib/docker/:/var/lib/docker --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined miopen-image
 
+    docker run -it -v $HOME:/data --privileged --rm --device=/dev/kfd --device /dev/dri:/dev/dri:rw  --volume /dev/dri:/dev/dri:rw -v /var/lib/docker/:/var/lib/docker --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined miopen-image
 
 Prebuilt docker images can be found on [ROCm's public docker hub here](https://hub.docker.com/r/rocm/miopen/tags).
