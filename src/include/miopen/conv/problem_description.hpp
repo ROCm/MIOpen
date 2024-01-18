@@ -409,6 +409,11 @@ struct ProblemDescription : ProblemDescriptionBase
                  GetWeightsDataType() == GetOutDataType());
     }
 
+    bool HasAtLeastOne64BitTensor() const
+    {
+        return in.Is64Bit() || weights.Is64Bit() || out.Is64Bit();
+    }
+
     void HeuristicUpdateLayouts();
 
     void MakeNetworkConfig(std::string& conf_key) const;
