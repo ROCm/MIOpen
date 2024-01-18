@@ -432,9 +432,13 @@ bool TensorDescriptor::IsPacked() const { return this->packed; }
 
 bool TensorDescriptor::Is64Bit() const
 {
-    if(std::any_of(lens.cbegin(), lens.cend(), [](std::size_t x) { return x > std::numeric_limits<int>::max(); }))
+    if(std::any_of(lens.cbegin(), lens.cend(), [](std::size_t x) {
+           return x > std::numeric_limits<int>::max();
+       }))
         return true;
-    if(std::any_of(strides.cbegin(), strides.cend(), [](std::size_t x) { return x > std::numeric_limits<int>::max(); }))
+    if(std::any_of(strides.cbegin(), strides.cend(), [](std::size_t x) {
+           return x > std::numeric_limits<int>::max();
+       }))
         return true;
     return false;
 }
