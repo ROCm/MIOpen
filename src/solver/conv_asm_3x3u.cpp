@@ -210,10 +210,8 @@ bool ConvAsm3x3U::IsApplicable(const ExecutionContext& ctx, const ProblemDescrip
     constexpr auto TIB                         = GIB * 1024;
     constexpr auto ELEM_SZ                     = static_cast<int64_t>(sizeof(float));
     constexpr int64_t SHADER_FEATURE_INDEX_MAX = static_cast<uint32_t>(-1);
-    const auto IN_FEATURE_COUNT =
-        problem.GetBatchSize() * problem.GetInChannels();
-    const auto OUT_FEATURE_COUNT =
-        problem.GetBatchSize() * problem.GetOutChannels();
+    const auto IN_FEATURE_COUNT                = problem.GetBatchSize() * problem.GetInChannels();
+    const auto OUT_FEATURE_COUNT               = problem.GetBatchSize() * problem.GetOutChannels();
     const auto IN_IMG_SZ  = ELEM_SZ * problem.GetInHeight() * problem.GetInWidth();
     const auto OUT_IMG_SZ = ELEM_SZ * problem.GetOutHeight() * problem.GetOutWidth();
     const auto IN_BUF_SZ  = IN_IMG_SZ * IN_FEATURE_COUNT;

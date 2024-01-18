@@ -173,20 +173,19 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ExecutionContext& ctx,
     {
         return false;
     }
-    if((reverse_inout != 0 ? problem.GetInChannels() : problem.GetOutChannels()) %
-           GetCPerWave() !=
+    if((reverse_inout != 0 ? problem.GetInChannels() : problem.GetOutChannels()) % GetCPerWave() !=
        0)
     {
         return false;
     }
     if(!(chunk_size * k_per_wave <= 64))
         return false;
-    if((reverse_inout != 0 ? problem.GetOutChannels() : problem.GetInChannels()) % k_per_wave !=
-       0)
+    if((reverse_inout != 0 ? problem.GetOutChannels() : problem.GetInChannels()) % k_per_wave != 0)
         return false;
     if(!(n_per_group <= problem.GetBatchSize()))
         return false;
-    if(!(1 <= pipe_lines_depth && pipe_lines_depth <= std::min(problem.GetOutHeight(), static_cast<std::size_t>(16))))
+    if(!(1 <= pipe_lines_depth &&
+         pipe_lines_depth <= std::min(problem.GetOutHeight(), static_cast<std::size_t>(16))))
         return false;
     if((reverse_inout != 0) && !IsReverseInOutAllowed(problem))
         return false;
@@ -296,8 +295,7 @@ void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ExecutionContext& ctx
     {
         k_per_wave = ((chunk_size == 8) ? 2 : 4);
     }
-    while((reverse_inout != 0 ? problem.GetOutChannels() : problem.GetInChannels()) %
-              k_per_wave !=
+    while((reverse_inout != 0 ? problem.GetOutChannels() : problem.GetInChannels()) % k_per_wave !=
           0)
     {
         k_per_wave /= 2; // Fixup for correctness

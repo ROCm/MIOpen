@@ -63,10 +63,10 @@ LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerfor
     LegacyPerformanceConfig result{};
     result.in_tile0 = (problem.GetInWidth() <= 8)    ? 8
                       : (problem.GetInWidth() <= 16) ? 16
-                                                      : 32; // size of input data per ALU plane
+                                                     : 32; // size of input data per ALU plane
     result.in_tile1 = (problem.GetInHeight() <= 8)    ? 8
                       : (problem.GetInHeight() <= 16) ? 16
-                                                       : 32; // size of input data per ALU plane
+                                                      : 32; // size of input data per ALU plane
 
     result.out_pix_tile0 =
         std::max(problem.GetKernelStrideW(),
@@ -376,7 +376,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ExecutionContext& ctx,
             n_out_tiles_rg[0] = 2;
             n_out_tiles_rg[1] = (problem.GetOutChannels() % 64 == 0)   ? 6
                                 : (problem.GetOutChannels() % 32 == 0) ? 5
-                                                                        : 4;
+                                                                       : 4;
 
             n_in_tiles_rg[0] = 2;
             n_in_tiles_rg[1] = (problem.GetInChannels() % 8 == 0) ? 3 : 2;

@@ -269,8 +269,8 @@ struct UnifiedDescriptionConv2d
             S     = problem.GetWeightsWidth();
             U     = problem.IsDirectionForward() ? problem.GetKernelStrideH() : 1;
             V     = problem.IsDirectionForward() ? problem.GetKernelStrideW() : 1;
-            C     = n_inputs_per_group;      // Bwd: C and K is reversed in ProblemDescription.
-            K     = n_outputs_per_group;     // Ditto.
+            C     = n_inputs_per_group;     // Bwd: C and K is reversed in ProblemDescription.
+            K     = n_outputs_per_group;    // Ditto.
             out_h = problem.GetOutHeight(); // Bwd: height/width is reversed in ProblemDescription.
             out_w = problem.GetOutWidth();  // Ditto.
             N     = problem.GetBatchSize();

@@ -92,8 +92,8 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ExecutionContext& ctx,
     int n_batch_blks  = (problem.GetBatchSize() + N_BATCH_LOOPS * result.n_stacks - 1) /
                        (N_BATCH_LOOPS * result.n_stacks);
 
-    int N_FILTER_SPLITS0 = ((problem.GetWeightsWidth() + problem.GetKernelStrideW() - 1) /
-                            problem.GetKernelStrideW());
+    int N_FILTER_SPLITS0 =
+        ((problem.GetWeightsWidth() + problem.GetKernelStrideW() - 1) / problem.GetKernelStrideW());
     int N_FILTER_SPLITS1 = ((problem.GetWeightsHeight() + problem.GetKernelStrideH() - 1) /
                             problem.GetKernelStrideH());
 
@@ -166,7 +166,8 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ExecutionContext& ctx,
     static const uint64_t backwards_min_output =
         (data_multiplier1 > 1 || data_multiplier0 > 1) ? 1 : 4;
     result.n_out_pix_tiles =
-        (is_forward) ? std::min(static_cast<std::size_t>(6), (problem.GetOutChannels() + n_out_stacks - 1) / n_out_stacks)
+        (is_forward) ? std::min(static_cast<std::size_t>(6),
+                                (problem.GetOutChannels() + n_out_stacks - 1) / n_out_stacks)
                      : std::min(problem.GetOutChannels(), backwards_min_output);
 
     // number of maps in a stack or number of input read blocks written into 1 wk-item (lane)
@@ -184,14 +185,15 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ExecutionContext& ctx,
     // second pass if needed
     int n_extents           = ((problem.GetOutHeight() + OUT_EXTENT1 - 1) / OUT_EXTENT1);
     int n_output_map_blocks = ((problem.GetOutChannels() + total_out_maps - 1) / total_out_maps);
-    int last_out_extent1    = problem.GetOutHeight() -
-                           (std::max(static_cast<std::size_t>(1), problem.GetOutHeight() / OUT_EXTENT1) * OUT_EXTENT1);
+    int last_out_extent1 =
+        problem.GetOutHeight() -
+        (std::max(static_cast<std::size_t>(1), problem.GetOutHeight() / OUT_EXTENT1) * OUT_EXTENT1);
     last_out_extent1    = (last_out_extent1 < 0) ? 0 : last_out_extent1;
     int n_batches_pass2 = 1;
     bool second_pass    = false;
     if(is_forward && 0 < last_out_extent1 && last_out_extent1 <= OUT_EXTENT1 / 2)
     {
-        n_extents       = std::max(static_cast<std::size_t>(1), problem.GetOutHeight() / OUT_EXTENT1);
+        n_extents = std::max(static_cast<std::size_t>(1), problem.GetOutHeight() / OUT_EXTENT1);
         n_batches_pass2 = std::max(1, GRP_SZ / (PROCESING_WIDTH * last_out_extent1));
         second_pass     = true;
     }

@@ -76,30 +76,29 @@ bool ConvOclBwdWrW53::IsApplicable(const ExecutionContext& ctx,
     {
         // Workaround for issue 1173. These FP16 configs would cause clang-ocl compiler to crash
         // during kernel compilation, due to compiler bug
-        workaround =
-            workaround || (problem.GetOutDataType() == miopenHalf &&
-                           ((problem.GetWeightsWidth() == 7 && problem.GetWeightsHeight() == 7 &&
-                             problem.GetPadW() == 3) ||
-                            (problem.GetWeightsWidth() == 7 && problem.GetWeightsHeight() == 7 &&
-                             problem.GetPadW() == 2) ||
-                            (problem.GetWeightsWidth() == 11 &&
-                             problem.GetWeightsHeight() == 11 && problem.GetPadW() == 5) ||
-                            (problem.GetWeightsWidth() == 11 &&
-                             problem.GetWeightsHeight() == 11 && problem.GetPadW() == 2) ||
-                            (problem.GetWeightsWidth() == 11 &&
-                             problem.GetWeightsHeight() == 11 && problem.GetPadW() == 1)));
+        workaround = workaround || (problem.GetOutDataType() == miopenHalf &&
+                                    ((problem.GetWeightsWidth() == 7 &&
+                                      problem.GetWeightsHeight() == 7 && problem.GetPadW() == 3) ||
+                                     (problem.GetWeightsWidth() == 7 &&
+                                      problem.GetWeightsHeight() == 7 && problem.GetPadW() == 2) ||
+                                     (problem.GetWeightsWidth() == 11 &&
+                                      problem.GetWeightsHeight() == 11 && problem.GetPadW() == 5) ||
+                                     (problem.GetWeightsWidth() == 11 &&
+                                      problem.GetWeightsHeight() == 11 && problem.GetPadW() == 2) ||
+                                     (problem.GetWeightsWidth() == 11 &&
+                                      problem.GetWeightsHeight() == 11 && problem.GetPadW() == 1)));
 
         // Workaround for issue 1242. These FP32 configs produce wrong result if compiled with
         // OpenCL 1.2.0-2018090737 that comes with rocm 1.9, using -O2 flag or higher.
         // However, when compiled with older OpenCL that comes with rocm 1.8, this config
         // would pass
-        workaround = workaround ||
-                     (problem.GetOutDataType() == miopenFloat &&
-                      ((problem.GetWeightsWidth() == 7 && problem.GetWeightsHeight() == 7 &&
-                        problem.GetPadW() == 3) ||
-                       (problem.GetWeightsWidth() == 7 && problem.GetWeightsHeight() == 7 &&
-                        problem.GetPadW() == 1)) &&
-                      (problem.GetOutHeight() % 112 == 0 || problem.GetOutWidth() % 112 == 0));
+        workaround =
+            workaround || (problem.GetOutDataType() == miopenFloat &&
+                           ((problem.GetWeightsWidth() == 7 && problem.GetWeightsHeight() == 7 &&
+                             problem.GetPadW() == 3) ||
+                            (problem.GetWeightsWidth() == 7 && problem.GetWeightsHeight() == 7 &&
+                             problem.GetPadW() == 1)) &&
+                           (problem.GetOutHeight() % 112 == 0 || problem.GetOutWidth() % 112 == 0));
 
         // Workaround for issue 1479
         // The compiler issue causes the correctness failure of particular config
@@ -141,11 +140,11 @@ bool ConvOclBwdWrW53::IsApplicable(const ExecutionContext& ctx,
            // loop.
            // Remind that input is output, output is input.
            (problem.GetInHeight() == static_cast<int>(problem.GetOutHeight()) +
-                                          2 * problem.GetPadH() -
-                                          static_cast<int>(problem.GetWeightsHeight()) + 1) &&
+                                         2 * problem.GetPadH() -
+                                         static_cast<int>(problem.GetWeightsHeight()) + 1) &&
            (problem.GetInWidth() == static_cast<int>(problem.GetOutWidth()) +
-                                         2 * problem.GetPadW() -
-                                         static_cast<int>(problem.GetWeightsWidth()) + 1) &&
+                                        2 * problem.GetPadW() -
+                                        static_cast<int>(problem.GetWeightsWidth()) + 1) &&
 
            // Avoid LDS over-allocation
            GetSolution(ctx, problem).Succeeded() && !workaround;
@@ -337,8 +336,7 @@ size_t ConvOclBwdWrW53::GetWorkspaceSize(const ExecutionContext&,
         int wei_bstride = (problem.GetOutChannels() / problem.GetGroupCount()) *
                           (problem.GetWeightsWidth() * problem.GetWeightsHeight());
         int data_len = GetTypeSize(problem.GetOutDataType());
-        return static_cast<size_t>(wei_bstride) * problem.GetInChannels() * n_batch_blks *
-               data_len;
+        return static_cast<size_t>(wei_bstride) * problem.GetInChannels() * n_batch_blks * data_len;
     }
     else
         return 0;
@@ -375,11 +373,10 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ExecutionContext& ctx,
     int n_waves =
         ((result.out_pix_tile0 * result.out_pix_tile1) <= 16 && (problem.GetInWidth() > 8)) ? 4
         : (problem.GetInWidth() <= 16)                                                      ? 1
-                                                                                             : 2;
+                                                                                            : 2;
     int GRP_SZ = hw_wave_sz * n_waves;
     result.n_in_data_tiles =
-        (problem.GetInWidth() <= 32 && (result.out_pix_tile0 * result.out_pix_tile1) <= 16) ? 4
-                                                                                             : 1;
+        (problem.GetInWidth() <= 32 && (result.out_pix_tile0 * result.out_pix_tile1) <= 16) ? 4 : 1;
 
     result.n_in_data_tiles =
         std::min(result.n_in_data_tiles,
@@ -388,7 +385,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ExecutionContext& ctx,
     static const int read_unit = (problem.GetOutWidth() % 4 == 0)   ? 4
                                  : (problem.GetOutWidth() % 3 == 0) ? 3
                                  : (problem.GetOutWidth() % 2 == 0) ? 2
-                                                                     : 1;
+                                                                    : 1;
 
     static const std::string READ_TYPE =
         (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));

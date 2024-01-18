@@ -246,8 +246,7 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(
     // Check 1: n_back_loops
     // Ensure that the total amount of system memory used by intermediate object
     // that holds the weights of x number of batches doesn't exceed system memory
-    size_t wei_cstride =
-        problem.GetWeightsHeight() * problem.GetWeightsWidth();
+    size_t wei_cstride = problem.GetWeightsHeight() * problem.GetWeightsWidth();
     size_t wei_bstride = (problem.GetOutChannels() / problem.GetGroupCount()) * wei_cstride;
 
     // number  of batch iterations
@@ -404,9 +403,7 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(
     if(n_batch_blks > 1)
     {
         size_t data_len     = GetTypeSize(problem.GetOutDataType());
-        result.workspace_sz = wei_bstride *
-                              problem.GetInChannels() * n_batch_blks *
-                              data_len;
+        result.workspace_sz = wei_bstride * problem.GetInChannels() * n_batch_blks * data_len;
 
 #if WORKAROUND_ISSUE_1185
         if(result.workspace_sz >
@@ -536,10 +533,8 @@ size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const ExecutionContext&,
         const auto n_input_channels_per_group = problem.GetOutChannels() / problem.GetGroupCount();
         const auto wei_cstride = problem.GetWeightsWidth() * problem.GetWeightsHeight();
         const auto wei_bstride = n_input_channels_per_group * wei_cstride;
-        const auto data_len           = GetTypeSize(problem.GetOutDataType());
-        return wei_bstride *
-               problem.GetInChannels() *
-               n_batch_blks * data_len;
+        const auto data_len    = GetTypeSize(problem.GetOutDataType());
+        return wei_bstride * problem.GetInChannels() * n_batch_blks * data_len;
     }
     else
         return 0;
@@ -557,8 +552,8 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
 
     const int n_input_channels_per_group  = problem.GetOutChannels() / problem.GetGroupCount();
     const int n_output_channels_per_group = problem.GetInChannels() / problem.GetGroupCount();
-    const int wei_cstride  = problem.GetWeightsWidth() * problem.GetWeightsHeight();
-    const auto wei_bstride = n_input_channels_per_group * wei_cstride;
+    const int wei_cstride                 = problem.GetWeightsWidth() * problem.GetWeightsHeight();
+    const auto wei_bstride                = n_input_channels_per_group * wei_cstride;
 
     result.n_in_data_tiles    = 1;
     const size_t n_batch_blks = GetNBatchBlks<N_BATCH_LOOPS>(problem);
@@ -589,14 +584,13 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
         size_t in_width  = problem.GetOutWidth(); // out is in, in is out
         size_t out_width = problem.GetInWidth();
 
-        size_t in_lcl_width_effective =
-            std::max(in_width + 2 * static_cast<size_t>(problem.GetPadW()),
-                     std::max(static_cast<size_t>(problem.GetPadW()) +
-                                  static_cast<size_t>(
-                                      std::ceil(static_cast<float>(in_width) / config.read_size) *
-                                      config.read_size),
-                              problem.GetWeightsWidth() +
-                                  (out_width - 1) * problem.GetKernelStrideW()));
+        size_t in_lcl_width_effective = std::max(
+            in_width + 2 * static_cast<size_t>(problem.GetPadW()),
+            std::max(
+                static_cast<size_t>(problem.GetPadW()) +
+                    static_cast<size_t>(std::ceil(static_cast<float>(in_width) / config.read_size) *
+                                        config.read_size),
+                problem.GetWeightsWidth() + (out_width - 1) * problem.GetKernelStrideW()));
 
         size_t in_lcl_width_right_buffer = std::max(
             static_cast<int>(in_lcl_width_effective - (in_width + 2ULL * problem.GetPadW())), 0);

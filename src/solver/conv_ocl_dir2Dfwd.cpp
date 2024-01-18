@@ -141,8 +141,8 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(const ExecutionContext&,
     auto group_counts = problem.GetGroupCount();
     result.n_in_data_tiles =
         std::min(static_cast<int>(problem.GetInChannels()) / group_counts, config.n_in_data_tiles);
-    result.n_out_pix_tiles = std::min(static_cast<int>(problem.GetOutChannels()) / group_counts,
-                                      config.n_out_pix_tiles);
+    result.n_out_pix_tiles =
+        std::min(static_cast<int>(problem.GetOutChannels()) / group_counts, config.n_out_pix_tiles);
 
     // hacky fix of the incorrect kernel local memory address calculation for data
     result.out_pix_tile1 = (!problem.IsDirectionForward() && problem.GetKernelStrideH() > 1)
@@ -304,8 +304,8 @@ ConvSolution ConvOclDirectFwd::BaseGetSolution(const ExecutionContext& ctx,
 
     result.n_in_data_tiles =
         std::min(static_cast<int>(problem.GetInChannels()) / group_counts, config.n_in_data_tiles);
-    result.n_out_pix_tiles = std::min(static_cast<int>(problem.GetOutChannels()) / group_counts,
-                                      config.n_out_pix_tiles);
+    result.n_out_pix_tiles =
+        std::min(static_cast<int>(problem.GetOutChannels()) / group_counts, config.n_out_pix_tiles);
 
     // hacky fix of the incorrect kernel local memory address calculation for data
     result.out_pix_tile1 = (!problem.IsDirectionForward() && problem.GetKernelStrideH() > 1)

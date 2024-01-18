@@ -207,11 +207,11 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ExecutionContext& ctx,
                 kernel.l_wk.push_back(local_wk1);
                 kernel.l_wk.push_back(1);
 
-                size_t imagesizeAlign = ((problem.GetOutWidth() *
-                                              problem.GetOutHeight() * problem.GetBatchSize() +
-                                          FIXED_WORKGROUP_SIZE - 1) /
-                                         FIXED_WORKGROUP_SIZE) *
-                                        FIXED_WORKGROUP_SIZE;
+                size_t imagesizeAlign =
+                    ((problem.GetOutWidth() * problem.GetOutHeight() * problem.GetBatchSize() +
+                      FIXED_WORKGROUP_SIZE - 1) /
+                     FIXED_WORKGROUP_SIZE) *
+                    FIXED_WORKGROUP_SIZE;
 
                 size_t gbl_wk0 = imagesizeAlign * N_IN_GROUPS * N_OUT_GROUPS;
                 size_t gbl_wk1 = local_wk1;
@@ -233,11 +233,11 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ExecutionContext& ctx,
                 kernel.l_wk.push_back(1);
                 kernel.l_wk.push_back(1);
 
-                size_t imagesizeAlign = ((problem.GetInWidth() *
-                                              problem.GetInHeight() * problem.GetBatchSize() +
-                                          FIXED_WORKGROUP_SIZE - 1) /
-                                         FIXED_WORKGROUP_SIZE) *
-                                        FIXED_WORKGROUP_SIZE;
+                size_t imagesizeAlign =
+                    ((problem.GetInWidth() * problem.GetInHeight() * problem.GetBatchSize() +
+                      FIXED_WORKGROUP_SIZE - 1) /
+                     FIXED_WORKGROUP_SIZE) *
+                    FIXED_WORKGROUP_SIZE;
                 size_t N_OUT_GROUPS = (K / N_LCL_OUT_MAPS);
 
                 size_t gbl_wk0 = imagesizeAlign * N_IN_GROUPS * N_OUT_GROUPS;
@@ -268,8 +268,7 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ExecutionContext& ctx,
                 std::min(static_cast<int>(problem.GetOutHeight()), result.out_pix_tile1);
             if(!problem.IsDirectionForward())
             {
-                while(problem.GetOutWidth() % result.out_pix_tile0 != 0 &&
-                      result.out_pix_tile0 > 1)
+                while(problem.GetOutWidth() % result.out_pix_tile0 != 0 && result.out_pix_tile0 > 1)
                 {
                     result.out_pix_tile0 /= 2;
                 }

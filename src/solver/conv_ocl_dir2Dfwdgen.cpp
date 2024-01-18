@@ -63,13 +63,13 @@ bool ConvOclDirectFwdGen::IsApplicable(const ExecutionContext& ctx,
     if(problem.GetGroupCount() > 1)
         return false;
 
-    return problem.IsDirectionForward()                                                   //
-           && problem.GetKernelStrideW() == problem.GetKernelStrideH()                    //
-           && problem.GetPadW() == problem.GetPadH()                                      //
-           && problem.GetDilationW() == 1                                                 //
-           && problem.GetDilationH() == 1                                                 //
-           && (problem.GetWeightsWidth() > 11                                            //
-               || problem.GetWeightsHeight() > 11                                        //
+    return problem.IsDirectionForward()                                                 //
+           && problem.GetKernelStrideW() == problem.GetKernelStrideH()                  //
+           && problem.GetPadW() == problem.GetPadH()                                    //
+           && problem.GetDilationW() == 1                                               //
+           && problem.GetDilationH() == 1                                               //
+           && (problem.GetWeightsWidth() > 11                                           //
+               || problem.GetWeightsHeight() > 11                                       //
                || (!(problem.GetWeightsWidth() == 1 && problem.GetWeightsHeight() == 1) //
                    && (problem.GetKernelStrideW() > 1 || problem.GetKernelStrideH() > 1)));
 }
@@ -83,7 +83,7 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ExecutionContext& ctx,
         // n of input batches
         n_in_stacks = ((problem.GetBatchSize() / 4) * 4 == problem.GetBatchSize())   ? 4
                       : ((problem.GetBatchSize() / 2) * 2 == problem.GetBatchSize()) ? 2
-                                                                                       : 1;
+                                                                                     : 1;
     }
     else
     {
@@ -96,11 +96,11 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ExecutionContext& ctx,
     int n_out_stacks      = 1; // n of output sets
     int n_proc_supertile0 = ((n_in_stacks > 1) ? 32 : 16) /
                             problem.GetKernelStrideW(); // n  processor in process supertile
-    int n_proc_supertile1 = ((n_in_stacks > 1 && (problem.GetWeightsHeight() >= 11 ||
-                                                  problem.GetWeightsWidth() >= 11))
-                                 ? 32
-                                 : 16) /
-                            n_in_stacks;
+    int n_proc_supertile1 =
+        ((n_in_stacks > 1 && (problem.GetWeightsHeight() >= 11 || problem.GetWeightsWidth() >= 11))
+             ? 32
+             : 16) /
+        n_in_stacks;
     auto lg2n_proc_supertile1 =
         static_cast<int>(std::ceil(std::log(n_proc_supertile1) / std::log(2)));
     int ocl_group_sz0 = n_proc_supertile0;
@@ -240,12 +240,10 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ExecutionContext& ctx,
         std::to_string(
             static_cast<long long>(n_in_pix_vert)) // size of output processing group in 1 dim
         + std::string(" -DMLO_WEI_SZ=") +
-        std::to_string(static_cast<long long>(problem.GetOutChannels()) *
-                       problem.GetInChannels() * problem.GetWeightsWidth() *
-                       problem.GetWeightsHeight()) +
+        std::to_string(static_cast<long long>(problem.GetOutChannels()) * problem.GetInChannels() *
+                       problem.GetWeightsWidth() * problem.GetWeightsHeight()) +
         std::string(" -DMLO_WEIGHTS_STRIDE=") +
-        std::to_string(static_cast<long long>(problem.GetInChannels()) *
-                       problem.GetWeightsWidth() *
+        std::to_string(static_cast<long long>(problem.GetInChannels()) * problem.GetWeightsWidth() *
                        problem.GetWeightsHeight()) //	weights stride
         + std::string(" -DMLO_N_STACKS=") +
         std::to_string(static_cast<long long>(n_stack_blocks)) // n of separate data stacks
