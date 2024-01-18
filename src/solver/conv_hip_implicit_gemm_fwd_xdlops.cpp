@@ -59,7 +59,7 @@ using DeviceOp =
                                                 ck::tensor_operation::element_wise::PassThrough>;
 
 template <typename DataType>
-using DeviceOpFwdPtrs =
+using DeviceOpPtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOp<DataType>>;
 
 namespace {
@@ -67,24 +67,15 @@ struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
     {
-        G = ProblemInterpreter::GetGroupCountG(problem);
-        assert(G == 1);
-        N  = ProblemInterpreter::GetBatchN(problem);
-        K1 = ProblemInterpreter::GetOutputChannelK(problem);
-        C1 = ProblemInterpreter::GetInputChannelC(problem);
-        C  = C1 / G; // Number of input Channel per group
-        K  = K1 / G; // Number of output Channel per group
-        Hi = ProblemInterpreter::GetInputHeightHi(problem);
-        Wi = ProblemInterpreter::GetInputWidthWi(problem);
-        Ho = ProblemInterpreter::GetOutputHeightHo(problem);
-        Wo = ProblemInterpreter::GetOutputWidthWo(problem);
-        Y  = ProblemInterpreter::GetFilterHeightY(problem);
-        X  = ProblemInterpreter::GetFilterWidthX(problem);
-
-        input  = {Hi, Wi};
-        output = {Ho, Wo};
-        filter = {Y, X};
-
+        N        = ProblemInterpreter::GetBatchN(problem);
+        K        = ProblemInterpreter::GetOutputChannelK(problem);
+        C        = ProblemInterpreter::GetInputChannelC(problem);
+        input    = {ProblemInterpreter::GetInputHeightHi(problem),
+                 ProblemInterpreter::GetInputWidthWi(problem)};
+        output   = {ProblemInterpreter::GetOutputHeightHo(problem),
+                  ProblemInterpreter::GetOutputWidthWo(problem)};
+        filter   = {ProblemInterpreter::GetFilterHeightY(problem),
+                  ProblemInterpreter::GetFilterWidthX(problem)};
         strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
         dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
@@ -134,33 +125,23 @@ struct CKArgs
         return conv_ptr->IsSupportedArgument(arg_ptr.get());
     }
 
-    int G;
     int N;
-    int K1;
-    int C1;
     int K;
     int C;
-    int Hi;
-    int Wi;
-    int Ho;
-    int Wo;
-    int Y;
-    int X;
-
-    std::vector<ck::index_t> input;
-    std::vector<ck::index_t> output;
-    std::vector<ck::index_t> filter;
-    std::vector<ck::index_t> strides;
-    std::vector<ck::index_t> dilation;
-    std::vector<ck::index_t> lPadding;
-    std::vector<ck::index_t> rPadding;
+    std::vector<int> input;
+    std::vector<int> output;
+    std::vector<int> filter;
+    std::vector<int> strides;
+    std::vector<int> dilation;
+    std::vector<int> lPadding;
+    std::vector<int> rPadding;
 };
 } // namespace
 
 template <typename DataType>
 void PerformanceConfigHipImplicitGemmFwdXdlops::Init(const ProblemDescription& problem)
 {
-    valid_kernels = FillValidKernelsIDs<DeviceOpFwdPtrs<DataType>, CKArgs>(problem);
+    valid_kernels = FillValidKernelsIDs<DeviceOpPtrs<DataType>, CKArgs>(problem);
     index         = 0;
     kernel_id     = valid_kernels[index];
 }
@@ -169,13 +150,13 @@ template <typename DataType>
 bool PerformanceConfigHipImplicitGemmFwdXdlops::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
-    return IsCKArgsSupported<DeviceOpFwdPtrs<DataType>, CKArgs>(problem, kernel_id);
+    return IsCKArgsSupported<DeviceOpPtrs<DataType>, CKArgs>(problem, kernel_id);
 }
 
 template <typename DataType>
 bool ConvHipImplicitGemmFwdXdlops::CheckCKApplicability(const ProblemDescription& problem) const
 {
-    return IsCKApplicable<DeviceOpFwdPtrs<DataType>, CKArgs>(problem);
+    return IsCKApplicable<DeviceOpPtrs<DataType>, CKArgs>(problem);
 }
 #endif
 
@@ -266,12 +247,6 @@ bool ConvHipImplicitGemmFwdXdlops::IsValidPerformanceConfig(
     return config.IsValid(problem);
 }
 
-size_t ConvHipImplicitGemmFwdXdlops::GetWorkspaceSize(const ExecutionContext&,
-                                                      const ProblemDescription& problem) const
-{
-    return GetWorkspaceSizeLayoutTransformConv(problem);
-}
-
 PerformanceConfigHipImplicitGemmFwdXdlops
 ConvHipImplicitGemmFwdXdlops::Search(const ExecutionContext& ctx,
                                      const ProblemDescription& problem,
@@ -306,10 +281,7 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(
         return false;
     if(!IsIndexRangeLargeEnough(problem))
         return false;
-    if(!(problem.IsLayoutNHWC() || problem.IsLayoutDefault()))
-        return false;
-    // needed because layout transpose kernel does not support non-packed tensors
-    if(problem.IsLayoutDefault() && problem.HasNonPackedTensors())
+    if(!problem.IsLayoutNHWC())
         return false;
     if(problem.IsTensorsCasted())
         return false;
@@ -336,27 +308,30 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmFwdXdlops& config) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    return MakeSolutionGroupConvImplicitGemmXdlops(
-        problem,
-        [&](auto data_type_val) {
-            using T = decltype(data_type_val);
-            return InitInvokerFactoryFwdNCHW<2,
-                                             DeviceOpFwdPtrs<T>,
-                                             CKArgs,
-                                             miopen::conv::DataInvokeParams>(
-                ctx, problem, config.kernel_id);
-        },
-        [&](auto data_type_val) {
-            using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<DeviceOpFwdPtrs<T>,
-                                          CKArgs,
-                                          miopen::conv::DataInvokeParams>(
-                ctx, problem, config.kernel_id);
-        });
-
-#else
-    return {};
+    switch(problem.GetInDataType())
+    {
+    case miopenInt8:
+        return InitInvokerFactoryNHWC<DeviceOpPtrs<int8_t>, CKArgs, miopen::conv::DataInvokeParams>(
+            ctx, problem, config.kernel_id);
+    case miopenHalf:
+        return InitInvokerFactoryNHWC<DeviceOpPtrs<ck::half_t>,
+                                      CKArgs,
+                                      miopen::conv::DataInvokeParams>(
+            ctx, problem, config.kernel_id);
+    case miopenFloat:
+        return InitInvokerFactoryNHWC<DeviceOpPtrs<float>, CKArgs, miopen::conv::DataInvokeParams>(
+            ctx, problem, config.kernel_id);
+    case miopenInt32:
+    case miopenBFloat16:
+    case miopenDouble:
+    case miopenFloat8:
+    case miopenBFloat8:
+    default:
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");
+    }
 #endif
+    return {};
 }
 
 } // namespace conv
