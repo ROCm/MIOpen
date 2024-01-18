@@ -289,17 +289,17 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
     {
         return IsShaderContraintsMet(ctx,
                                      problem,
-                                     problem.GetInHeight_(),
-                                     problem.GetInWidth_(),
+                                     problem.GetInHeight(),
+                                     problem.GetInWidth(),
                                      problem.GetDilationH(),
                                      problem.GetDilationW(),
-                                     problem.GetBatchSize_(),  // N
-                                     problem.GetInChannels_(), // K
-                                     problem.GetOutHeight_(),
-                                     problem.GetOutWidth_(),
-                                     problem.GetWeightsHeight_(),
-                                     problem.GetWeightsWidth_(),
-                                     problem.GetOutChannels_(), // C
+                                     problem.GetBatchSize(),  // N
+                                     problem.GetInChannels(), // K
+                                     problem.GetOutHeight(),
+                                     problem.GetOutWidth(),
+                                     problem.GetWeightsHeight(),
+                                     problem.GetWeightsWidth(),
+                                     problem.GetOutChannels(), // C
                                      fp16,
                                      2);
     }
@@ -307,17 +307,17 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
     {
         return IsShaderContraintsMet(ctx,
                                      problem,
-                                     problem.GetWeightsHeight_(), // RxS
-                                     problem.GetWeightsWidth_(),
+                                     problem.GetWeightsHeight(), // RxS
+                                     problem.GetWeightsWidth(),
                                      problem.GetKernelStrideH(),
                                      problem.GetKernelStrideW(),
-                                     problem.GetInChannels_(),  // C
-                                     problem.GetOutChannels_(), // K
-                                     problem.GetInHeight_(),    // HxW
-                                     problem.GetInWidth_(),
-                                     problem.GetOutHeight_(), // OHxOW
-                                     problem.GetOutWidth_(),
-                                     problem.GetBatchSize_(), // N
+                                     problem.GetInChannels(),  // C
+                                     problem.GetOutChannels(), // K
+                                     problem.GetInHeight(),    // HxW
+                                     problem.GetInWidth(),
+                                     problem.GetOutHeight(), // OHxOW
+                                     problem.GetOutWidth(),
+                                     problem.GetBatchSize(), // N
                                      fp16,
                                      3);
     }

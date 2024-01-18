@@ -76,7 +76,7 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ExecutionContext& ctx,
         return false;
 
     return problem.GetDilationW() == 1 && problem.GetDilationH() == 1 &&
-           problem.GetWeightsWidth_() == 1 && problem.GetWeightsHeight_() == 1 &&
+           problem.GetWeightsWidth() == 1 && problem.GetWeightsHeight() == 1 &&
            problem.GetGroupCount() == 1 &&
            // TODO: update 1x1 fwd kernel to support padding
            problem.GetPadW() == 0 && problem.GetPadH() == 0;
@@ -89,12 +89,12 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ExecutionContext& ctx,
     ConvSolution result;
     config.CopyTo(result);
 
-    //   if(problem.GetOutChannels_() % 4 == 0 && problem.GetInChannels_() % 4 == 0)
+    //   if(problem.GetOutChannels() % 4 == 0 && problem.GetInChannels() % 4 == 0)
     {
         //        int version = result.out_pix_tile1;
 
-        if((problem.IsDirectionForward() && problem.GetInChannels_() % 16 == 0 &&
-            problem.GetOutChannels_() % 16 == 0) &&
+        if((problem.IsDirectionForward() && problem.GetInChannels() % 16 == 0 &&
+            problem.GetOutChannels() % 16 == 0) &&
            (problem.GetInDataType() == miopenFloat))
         {
 
@@ -104,13 +104,13 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ExecutionContext& ctx,
             // 0 or 1
             int CHEAT_SHADER_COMPILER = result.out_pix_tile0;
 
-            int BATCHSIZE = problem.GetBatchSize_();
-            int W         = problem.GetInWidth_();
-            int H         = problem.GetInHeight_();
-            int C         = problem.GetInChannels_();
-            int K         = problem.GetOutChannels_();
-            int W_out     = problem.GetOutWidth_();
-            int H_out     = problem.GetOutHeight_();
+            int BATCHSIZE = problem.GetBatchSize();
+            int W         = problem.GetInWidth();
+            int H         = problem.GetInHeight();
+            int C         = problem.GetInChannels();
+            int K         = problem.GetOutChannels();
+            int W_out     = problem.GetOutWidth();
+            int H_out     = problem.GetOutHeight();
 
             N_LCL_IN_MAPS  = std::min(N_LCL_IN_MAPS, C);
             N_LCL_OUT_MAPS = std::min(N_LCL_OUT_MAPS, K);
@@ -207,8 +207,8 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ExecutionContext& ctx,
                 kernel.l_wk.push_back(local_wk1);
                 kernel.l_wk.push_back(1);
 
-                size_t imagesizeAlign = ((static_cast<size_t>(problem.GetOutWidth_()) *
-                                              problem.GetOutHeight_() * problem.GetBatchSize_() +
+                size_t imagesizeAlign = ((problem.GetOutWidth() *
+                                              problem.GetOutHeight() * problem.GetBatchSize() +
                                           FIXED_WORKGROUP_SIZE - 1) /
                                          FIXED_WORKGROUP_SIZE) *
                                         FIXED_WORKGROUP_SIZE;
@@ -233,8 +233,8 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ExecutionContext& ctx,
                 kernel.l_wk.push_back(1);
                 kernel.l_wk.push_back(1);
 
-                size_t imagesizeAlign = ((static_cast<size_t>(problem.GetInWidth_()) *
-                                              problem.GetInHeight_() * problem.GetBatchSize_() +
+                size_t imagesizeAlign = ((problem.GetInWidth() *
+                                              problem.GetInHeight() * problem.GetBatchSize() +
                                           FIXED_WORKGROUP_SIZE - 1) /
                                          FIXED_WORKGROUP_SIZE) *
                                         FIXED_WORKGROUP_SIZE;
@@ -260,15 +260,15 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ExecutionContext& ctx,
         {
 
             // parameters
-            //	int i_sz = problem.GetInWidth_() * problem.GetInHeight_();
+            //	int i_sz = problem.GetInWidth() * problem.GetInHeight();
             //	_out_pix_tile0 = (i_sz & 1) ? 1 : 2;
             result.out_pix_tile0 =
-                std::min(static_cast<int>(problem.GetOutWidth_()), result.out_pix_tile0);
+                std::min(static_cast<int>(problem.GetOutWidth()), result.out_pix_tile0);
             result.out_pix_tile1 =
-                std::min(static_cast<int>(problem.GetOutHeight_()), result.out_pix_tile1);
+                std::min(static_cast<int>(problem.GetOutHeight()), result.out_pix_tile1);
             if(!problem.IsDirectionForward())
             {
-                while(problem.GetOutWidth_() % result.out_pix_tile0 != 0 &&
+                while(problem.GetOutWidth() % result.out_pix_tile0 != 0 &&
                       result.out_pix_tile0 > 1)
                 {
                     result.out_pix_tile0 /= 2;
@@ -276,33 +276,33 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ExecutionContext& ctx,
             }
 
             int read_unit = result.out_pix_tile0;
-            while(problem.GetInWidth_() % read_unit != 0 && read_unit > 1)
+            while(problem.GetInWidth() % read_unit != 0 && read_unit > 1)
             {
                 read_unit /= 2;
             }
 
-            // problem.GetOutWidth_()
+            // problem.GetOutWidth()
             //	_n_out_pix_tiles = 16;
             //	_n_in_data_tiles = 4;
             //	_grp_tile0 = 64;
 
-            int wei_cstride = problem.GetWeightsWidth_() * problem.GetWeightsHeight_();
+            int wei_cstride = problem.GetWeightsWidth() * problem.GetWeightsHeight();
             // backward: inputs are forward outputs
             const bool is_forward = problem.IsDirectionForward();
             int wei_bstride =
-                (is_forward ? problem.GetInChannels_() : problem.GetOutChannels_()) * wei_cstride;
+                (is_forward ? problem.GetInChannels() : problem.GetOutChannels()) * wei_cstride;
 
-            int OUT_WIDTH4 = problem.GetOutWidth_();
-            int MAP_SZ4    = (OUT_WIDTH4 * problem.GetOutHeight_() + read_unit - 1) / (read_unit);
+            int OUT_WIDTH4 = problem.GetOutWidth();
+            int MAP_SZ4    = (OUT_WIDTH4 * problem.GetOutHeight() + read_unit - 1) / (read_unit);
             // stride > 1 and/or apdding
             if(problem.GetPadW() > 0 || problem.GetKernelStrideW() > 1 || problem.GetPadH() > 0 ||
                problem.GetKernelStrideH() > 1)
             {
                 int step        = is_forward ? read_unit : read_unit * problem.GetKernelStrideW();
-                OUT_WIDTH4      = (problem.GetOutWidth_() + step - 1) / (step);
+                OUT_WIDTH4      = (problem.GetOutWidth() + step - 1) / (step);
                 int OUT_HEIGHT4 = is_forward
-                                      ? problem.GetOutHeight_()
-                                      : (problem.GetOutHeight_() + problem.GetKernelStrideH() - 1) /
+                                      ? problem.GetOutHeight()
+                                      : (problem.GetOutHeight() + problem.GetKernelStrideH() - 1) /
                                             problem.GetKernelStrideH();
                 MAP_SZ4         = (OUT_WIDTH4 * OUT_HEIGHT4);
             }
@@ -312,11 +312,11 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ExecutionContext& ctx,
             if(!is_forward)
             {
                 VERT_ALIGNED =
-                    (problem.GetOutHeight_() / problem.GetKernelStrideH() == problem.GetInHeight_())
+                    (problem.GetOutHeight() / problem.GetKernelStrideH() == problem.GetInHeight())
                         ? 1
                         : 0;
                 HORIZ_ALIGNED =
-                    (problem.GetOutWidth_() / problem.GetKernelStrideW() == problem.GetInWidth_())
+                    (problem.GetOutWidth() / problem.GetKernelStrideW() == problem.GetInWidth())
                         ? 1
                         : 0;
             }
@@ -325,20 +325,20 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ExecutionContext& ctx,
 
             // number of inputs inside wk-items
             result.n_in_data_tiles =
-                std::min(static_cast<int>(problem.GetInChannels_()), result.n_in_data_tiles);
-            while(problem.GetInChannels_() % result.n_in_data_tiles != 0 &&
+                std::min(static_cast<int>(problem.GetInChannels()), result.n_in_data_tiles);
+            while(problem.GetInChannels() % result.n_in_data_tiles != 0 &&
                   result.n_in_data_tiles > 1)
             {
                 result.n_in_data_tiles /= 2;
             }
 
             int CLOOP0 =
-                (problem.GetInChannels_() + result.n_in_data_tiles - 1) / result.n_in_data_tiles;
+                (problem.GetInChannels() + result.n_in_data_tiles - 1) / result.n_in_data_tiles;
 
             // number of outputs inside wk_item
             result.n_out_pix_tiles =
-                std::min(static_cast<int>(problem.GetOutChannels_()), result.n_out_pix_tiles);
-            while(problem.GetOutChannels_() % result.n_out_pix_tiles != 0 &&
+                std::min(static_cast<int>(problem.GetOutChannels()), result.n_out_pix_tiles);
+            while(problem.GetOutChannels() % result.n_out_pix_tiles != 0 &&
                   result.n_out_pix_tiles > 1)
             {
                 result.n_out_pix_tiles /= 2;
@@ -348,28 +348,28 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ExecutionContext& ctx,
 
             kernel.comp_options =
                 std::string(" -DMLO_DIR_FORWARD=") + (is_forward ? "1" : "0") +
-                std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(problem.GetWeightsWidth_()) +
-                std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(problem.GetWeightsHeight_()) +
+                std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(problem.GetWeightsWidth()) +
+                std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(problem.GetWeightsHeight()) +
                 std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(problem.GetKernelStrideW()) +
                 std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(problem.GetKernelStrideH()) +
                 std::string(" -DMLO_FILTER_PAD0=") + std::to_string(problem.GetPadW()) +
                 std::string(" -DMLO_FILTER_PAD1=") + std::to_string(problem.GetPadH()) +
-                std::string(" -DMLO_IN_WIDTH=") + std::to_string(problem.GetInWidth_()) +
-                std::string(" -DMLO_IN_HEIGHT=") + std::to_string(problem.GetInHeight_()) +
-                std::string(" -DMLO_OUT_WIDTH=") + std::to_string(problem.GetOutWidth_()) +
-                std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(problem.GetOutHeight_()) +
-                std::string(" -DMLO_N_OUTPUTS=") + std::to_string(problem.GetOutChannels_()) +
-                std::string(" -DMLO_N_INPUTS=") + std::to_string(problem.GetInChannels_()) +
-                std::string(" -DMLO_BATCH_SZ=") + std::to_string(problem.GetBatchSize_()) +
+                std::string(" -DMLO_IN_WIDTH=") + std::to_string(problem.GetInWidth()) +
+                std::string(" -DMLO_IN_HEIGHT=") + std::to_string(problem.GetInHeight()) +
+                std::string(" -DMLO_OUT_WIDTH=") + std::to_string(problem.GetOutWidth()) +
+                std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(problem.GetOutHeight()) +
+                std::string(" -DMLO_N_OUTPUTS=") + std::to_string(problem.GetOutChannels()) +
+                std::string(" -DMLO_N_INPUTS=") + std::to_string(problem.GetInChannels()) +
+                std::string(" -DMLO_BATCH_SZ=") + std::to_string(problem.GetBatchSize()) +
                 std::string(" -DMLO_OUT_BATCH_STRIDE=") +
-                std::to_string(problem.GetOutBatchStride_()) +
+                std::to_string(problem.GetOutBatchStride()) +
                 std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
-                std::to_string(problem.GetOutChannelStride_()) + std::string(" -DMLO_OUT_STRIDE=") +
-                std::to_string(problem.GetOutStrideH_()) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
-                std::to_string(problem.GetInBatchStride_()) +
+                std::to_string(problem.GetOutChannelStride()) + std::string(" -DMLO_OUT_STRIDE=") +
+                std::to_string(problem.GetOutStrideH()) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
+                std::to_string(problem.GetInBatchStride()) +
                 std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
-                std::to_string(problem.GetInChannelStride_()) + std::string(" -DMLO_IN_STRIDE=") +
-                std::to_string(problem.GetInStrideH_()) + std::string(" -DMLO_WEI_BSTRIDE=") +
+                std::to_string(problem.GetInChannelStride()) + std::string(" -DMLO_IN_STRIDE=") +
+                std::to_string(problem.GetInStrideH()) + std::string(" -DMLO_WEI_BSTRIDE=") +
                 std::to_string(wei_bstride) + std::string(" -DMLO_WEI_CHANNEL_STRIDE=") +
                 std::to_string(wei_cstride) +
                 // algorithm parameters
@@ -401,10 +401,10 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ExecutionContext& ctx,
             kernel.l_wk.push_back(1);
             kernel.l_wk.push_back(1);
 
-            size_t gbl_wk0 = static_cast<size_t>(problem.GetBatchSize_()) * MAP_SZ4;
+            size_t gbl_wk0 = problem.GetBatchSize() * MAP_SZ4;
 
             size_t gbl_wk1 =
-                (problem.GetOutChannels_() + result.n_out_pix_tiles - 1) / result.n_out_pix_tiles;
+                (problem.GetOutChannels() + result.n_out_pix_tiles - 1) / result.n_out_pix_tiles;
             size_t gbl_wk2 = 1;
 
             kernel.g_wk.push_back(gbl_wk0);

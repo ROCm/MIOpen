@@ -133,10 +133,10 @@ static inline int GetImplicitGemmV4R1DynamicGridSize(const ProblemDescription& p
     const auto& N1 = config.GemmNRepeat;
     const auto& N2 = config.GemmNPerThreadSubC;
 
-    const int n  = problem.GetBatchSize_();
-    const int k  = problem.GetOutChannels_();
-    const int ho = problem.GetOutHeight_();
-    const int wo = problem.GetOutWidth_();
+    const int n  = problem.GetBatchSize();
+    const int k  = problem.GetOutChannels();
+    const int ho = problem.GetOutHeight();
+    const int wo = problem.GetOutWidth();
 
     const auto& b = (static_cast<std::size_t>(n) * ho * wo) / (static_cast<std::size_t>(N1) * N2);
     const auto& b_per_block = config.BPerBlock;
@@ -360,7 +360,7 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ExecutionContext&
     if(problem.GetGroupCount() != 1)
         return false;
 
-    if((problem.GetWeightsHeight_() != 1) || (problem.GetWeightsWidth_() != 1))
+    if((problem.GetWeightsHeight() != 1) || (problem.GetWeightsWidth() != 1))
         return false;
 
     if(!problem.IsLayoutDefault())

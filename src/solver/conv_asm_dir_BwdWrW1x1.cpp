@@ -58,12 +58,12 @@ static inline bool UseSubsample(const ProblemDescription& problem)
 /// out_height/out_width and vice versa.
 static inline int AsmImgHeight(const ProblemDescription& problem)
 {
-    return UseSubsample(problem) ? problem.GetInHeight_() : problem.GetOutHeight_();
+    return UseSubsample(problem) ? problem.GetInHeight() : problem.GetOutHeight();
 }
 
 static inline int AsmImgWidth(const ProblemDescription& problem)
 {
-    return UseSubsample(problem) ? problem.GetInWidth_() : problem.GetOutWidth_();
+    return UseSubsample(problem) ? problem.GetInWidth() : problem.GetOutWidth();
 }
 
 inline static bool Inc_1_2_4_8_16(int& v)
@@ -329,7 +329,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ExecutionContext& ctx,
         {
             const int sequential_channels = 2;
             if((c_mult % sequential_channels) != 0 ||
-               (problem.GetOutChannels_() % sequential_channels) != 0)
+               (problem.GetOutChannels() % sequential_channels) != 0)
                 return false;
         }
     }
@@ -376,10 +376,10 @@ void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ExecutionContext& ct
                                                                                                : 0;
     read_size = 4;
     n_per_gpr =
-        (problem.GetBatchSize_() >= 4 && (AsmImgHeight(problem) * AsmImgWidth(problem)) <= 128) ? 4
+        (problem.GetBatchSize() >= 4 && (AsmImgHeight(problem) * AsmImgWidth(problem)) <= 128) ? 4
                                                                                                 : 1;
     data_prefetch      = 1;
-    const auto c_k_256 = problem.GetOutChannels_() * problem.GetInChannels_() / 256; // C*K/256
+    const auto c_k_256 = problem.GetOutChannels() * problem.GetInChannels() / 256; // C*K/256
     if(c_k_256 < 2)
     {
         c_per_gpr  = 1;
@@ -515,8 +515,8 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ExecutionContext& ctx,
         && problem.GetKernelStrideW() <= 2  // -v  stride_w
         && problem.GetKernelStrideH() <= 2  // -u  stride_h
         && problem.GetKernelStrideW() == problem.GetKernelStrideH()
-        && problem.GetWeightsWidth_() == 1   // -x  S wei_w
-        && problem.GetWeightsHeight_() == 1  // -y  R wei_h
+        && problem.GetWeightsWidth() == 1   // -x  S wei_w
+        && problem.GetWeightsHeight() == 1  // -y  R wei_h
         && problem.GetDilationW() == 1
         && problem.GetDilationH() == 1
         && problem.GetBias() == 0
@@ -528,16 +528,16 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ExecutionContext& ctx,
         return false; // Early exit to speed up the check.
     }
     // Check limits:
-    const auto h_w     = static_cast<int64_t>(AsmImgHeight(problem)) * AsmImgWidth(problem);
-    const auto r_s     = static_cast<int64_t>(problem.GetWeightsHeight_()) * problem.GetWeightsWidth_();
-    const auto c_h_w   = static_cast<int64_t>(problem.GetOutChannels_()) * h_w; // C*H*W
-    const auto k_h_w   = static_cast<int64_t>(problem.GetInChannels_()) * h_w;  // K*H*W
-    const auto n_c_h_w = static_cast<int64_t>(problem.GetBatchSize_()) * c_h_w; // N*C*H*W
-    const auto n_k_h_w = static_cast<int64_t>(problem.GetBatchSize_()) * k_h_w; // N*K*H*W
-    const auto c_k_r_s = static_cast<int64_t>(problem.GetOutChannels_()) * problem.GetInChannels_() * r_s; // C*K*R*S
-    ok = problem.GetBatchSize_() < std::pow(2, 16)       // -n   N batch_size
-         && problem.GetOutChannels_() < std::pow(2, 16)  // -c   C input_channels
-         && problem.GetInChannels_() < std::pow(2, 16)   // -k   K output_channels
+    const auto h_w     = static_cast<uint64_t>(AsmImgHeight(problem)) * AsmImgWidth(problem);
+    const auto r_s     = problem.GetWeightsHeight() * problem.GetWeightsWidth();
+    const auto c_h_w   = problem.GetOutChannels() * h_w; // C*H*W
+    const auto k_h_w   = problem.GetInChannels() * h_w;  // K*H*W
+    const auto n_c_h_w = problem.GetBatchSize() * c_h_w; // N*C*H*W
+    const auto n_k_h_w = problem.GetBatchSize() * k_h_w; // N*K*H*W
+    const auto c_k_r_s = problem.GetOutChannels() * problem.GetInChannels() * r_s; // C*K*R*S
+    ok = problem.GetBatchSize() < std::pow(2, 16)       // -n   N batch_size
+         && problem.GetOutChannels() < std::pow(2, 16)  // -c   C input_channels
+         && problem.GetInChannels() < std::pow(2, 16)   // -k   K output_channels
          && c_h_w < std::pow(2, 24)
          && k_h_w < std::pow(2, 24)
          && n_c_h_w < std::pow(2, 29)
@@ -559,10 +559,10 @@ size_t ConvAsmBwdWrW1x1::GetWorkspaceSize(const ExecutionContext&,
 {
     if(UseSubsample(problem))
     {
-        int data_len = GetTypeSize(problem.GetOutDataType());
-        int in_batch_stride =
-            problem.GetInStrideH_() * problem.GetInHeight_() * problem.GetOutChannels_();
-        return static_cast<size_t>(in_batch_stride) * problem.GetBatchSize_() * data_len;
+        auto data_len = GetTypeSize(problem.GetOutDataType());
+        auto in_batch_stride =
+            problem.GetInStrideH() * problem.GetInHeight() * problem.GetOutChannels();
+        return in_batch_stride * problem.GetBatchSize() * data_len;
     }
     else
         return 0;
@@ -582,10 +582,10 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ExecutionContext& ctx,
     {
         // subsampled input, in_height equals to image size after downsampling
         int in_batch_stride =
-            problem.GetInStrideH_() * problem.GetInHeight_() * problem.GetOutChannels_();
-        int write_unit   = (problem.GetInWidth_() % 4 == 0)   ? 4
-                           : (problem.GetInWidth_() % 3 == 0) ? 3
-                           : (problem.GetInWidth_() % 2 == 0) ? 2
+            problem.GetInStrideH() * problem.GetInHeight() * problem.GetOutChannels();
+        int write_unit   = (problem.GetInWidth() % 4 == 0)   ? 4
+                           : (problem.GetInWidth() % 3 == 0) ? 3
+                           : (problem.GetInWidth() % 2 == 0) ? 2
                                                               : 1;
         int n_grp0_size0 = 256;
 
@@ -596,12 +596,12 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ExecutionContext& ctx,
             std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(problem.GetKernelStrideW()) +
             std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(problem.GetKernelStrideH()) +
             std::string(" -DMLO_WRITE_UNIT=") + std::to_string(write_unit) +
-            std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(problem.GetInChannelStride_()) +
-            std::string(" -DMLO_OUT_STRIDE=") + std::to_string(problem.GetInStrideH_()) +
+            std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(problem.GetInChannelStride()) +
+            std::string(" -DMLO_OUT_STRIDE=") + std::to_string(problem.GetInStrideH()) +
             std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(in_batch_stride) +
-            std::string(" -DMLO_IN0_BATCH_STRIDE=") + std::to_string(problem.GetOutBatchStride_()) +
-            std::string(" -DMLO_IN0_CHANNEL_STRIDE=") + std::to_string(problem.GetOutChannelStride_()) +
-            std::string(" -DMLO_IN0_STRIDE=") + std::to_string(problem.GetOutStrideH_()) +
+            std::string(" -DMLO_IN0_BATCH_STRIDE=") + std::to_string(problem.GetOutBatchStride()) +
+            std::string(" -DMLO_IN0_CHANNEL_STRIDE=") + std::to_string(problem.GetOutChannelStride()) +
+            std::string(" -DMLO_IN0_STRIDE=") + std::to_string(problem.GetOutStrideH()) +
             ctx.general_compile_options;
         // clang-format on
 
@@ -612,7 +612,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ExecutionContext& ctx,
         kernel.l_wk.push_back(1);
         // output is number of subsampled input maps
         size_t gbl_wk0 = (in_batch_stride / write_unit);
-        size_t gbl_wk1 = problem.GetBatchSize_();
+        size_t gbl_wk1 = problem.GetBatchSize();
         size_t gbl_wk2 = 1;
 
         kernel.g_wk.push_back(gbl_wk0);
@@ -635,12 +635,12 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ExecutionContext& ctx,
     GenerateClangDefsym(options, "out_h", AsmImgHeight(problem)); // output H
     GenerateClangDefsym(options, "out_w", AsmImgWidth(problem));  // output W
 
-    GenerateClangDefsym(options, "batch_size", problem.GetBatchSize_()); // N
+    GenerateClangDefsym(options, "batch_size", problem.GetBatchSize()); // N
     // Note that problem.n_outputs and problem.n_inputs are swapped for backward convolutions.
-    GenerateClangDefsym(options, "input_channels", problem.GetOutChannels_()); // C
-    GenerateClangDefsym(options, "output_channels", problem.GetInChannels_()); // K
-    GenerateClangDefsym(options, "wei_h", problem.GetWeightsHeight_());        // R
-    GenerateClangDefsym(options, "wei_w", problem.GetWeightsWidth_());         // S
+    GenerateClangDefsym(options, "input_channels", problem.GetOutChannels()); // C
+    GenerateClangDefsym(options, "output_channels", problem.GetInChannels()); // K
+    GenerateClangDefsym(options, "wei_h", problem.GetWeightsHeight());        // R
+    GenerateClangDefsym(options, "wei_w", problem.GetWeightsWidth());         // S
     GenerateClangDefsym(options, "pad_h", problem.GetPadH());
     GenerateClangDefsym(options, "pad_w", problem.GetPadW());
     GenerateClangDefsym(options, "weights_layout", 0);
@@ -707,23 +707,23 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ExecutionContext& ctx,
 
     // cppcheck-suppress unreadVariable
     buff_info ibuf(MemLayout::NCHW,
-                   problem.GetBatchSize_(),
-                   problem.GetOutChannels_(),
+                   problem.GetBatchSize(),
+                   problem.GetOutChannels(),
                    AsmImgHeight(problem),
                    AsmImgWidth(problem),
                    1,
                    data_len);
     // cppcheck-suppress unreadVariable
     buff_info obuf(MemLayout::NCHW,
-                   problem.GetBatchSize_(),
-                   problem.GetInChannels_(),
+                   problem.GetBatchSize(),
+                   problem.GetInChannels(),
                    AsmImgHeight(problem),
                    AsmImgWidth(problem),
                    1,
                    data_len);
     // cppcheck-suppress unreadVariable
     buff_info fbuf(
-        MemLayout::NCHW, problem.GetInChannels_(), problem.GetOutChannels_(), 1, 1, 1, data_len);
+        MemLayout::NCHW, problem.GetInChannels(), problem.GetOutChannels(), 1, 1, 1, data_len);
     GenerateClangDefsym(options, "input_n_stride", ibuf.byte_stride.nk);
     GenerateClangDefsym(options, "input_c_stride", ibuf.byte_stride.c);
     GenerateClangDefsym(options, "input_h_stride", ibuf.byte_stride.h);
@@ -787,9 +787,9 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ExecutionContext& ctx,
     kernel.g_wk.clear(); // gridsize
     kernel.g_wk.push_back(static_cast<size_t>(solver::wave_size) * pcfg->GetNPartCnt());
     kernel.g_wk.push_back(
-        divide_round_plus_inf(problem.GetOutChannels_(), pcfg->GetCPerGpr() * pcfg->GetCMult()));
+        divide_round_plus_inf(problem.GetOutChannels(), pcfg->GetCPerGpr() * pcfg->GetCMult()));
     kernel.g_wk.push_back(
-        divide_round_plus_inf(problem.GetInChannels_(), pcfg->GetKPerGpr() * pcfg->GetKMult()));
+        divide_round_plus_inf(problem.GetInChannels(), pcfg->GetKPerGpr() * pcfg->GetKMult()));
 
     kernel.kernel_file = "conv1x1wrw.s";
     kernel.kernel_name = "miopenGcnAsmConv1x1WrW";

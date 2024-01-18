@@ -178,27 +178,16 @@ struct ProblemDescription : ProblemDescriptionBase
     miopenDataType_t GetInDataType() const { return in.GetType(); }
     std::optional<miopenDataType_t> GetInCastType() const { return in.GetCastType(); }
     std::size_t GetInBatchSize() const { return GetN5(GetSpatialDims(), in.GetLengths()); }
-    unsigned GetInBatchSize_() const { return GetInBatchSize(); }
     std::size_t GetBatchSize() const { return GetInBatchSize(); } // alias of GetInBatchSize()
-    unsigned GetBatchSize_() const { return GetBatchSize(); }     // alias of GetInBatchSize()
     std::size_t GetInChannels() const { return GetC5(GetSpatialDims(), in.GetLengths()); }
-    unsigned GetInChannels_() const { return GetInChannels(); }
     std::size_t GetInDepth() const { return GetD5(GetSpatialDims(), in.GetLengths()); }
-    unsigned GetInDepth_() const { return GetInDepth(); }
     std::size_t GetInHeight() const { return GetH5(GetSpatialDims(), in.GetLengths()); }
-    unsigned GetInHeight_() const { return GetInHeight(); }
     std::size_t GetInWidth() const { return GetW5(GetSpatialDims(), in.GetLengths()); }
-    unsigned GetInWidth_() const { return GetInWidth(); }
     std::size_t GetInBatchStride() const { return GetN5(GetSpatialDims(), in.GetStrides()); }
-    unsigned GetInBatchStride_() const { return GetInBatchStride(); }
     std::size_t GetInChannelStride() const { return GetC5(GetSpatialDims(), in.GetStrides()); }
-    unsigned GetInChannelStride_() const { return GetInChannelStride(); }
     std::size_t GetInStrideD() const { return GetD5(GetSpatialDims(), in.GetStrides()); }
-    unsigned GetInStrideD_() const { return GetInStrideD(); }
     std::size_t GetInStrideH() const { return GetH5(GetSpatialDims(), in.GetStrides()); }
-    unsigned GetInStrideH_() const { return GetInStrideH(); }
     std::size_t GetInStrideW() const { return GetW5(GetSpatialDims(), in.GetStrides()); }
-    unsigned GetInStrideW_() const { return GetInStrideW(); }
     std::string GetInLayout() const { return in_layout; }
     std::string ComputeInLayout() const
     {
@@ -223,25 +212,15 @@ struct ProblemDescription : ProblemDescriptionBase
     miopenDataType_t GetOutDataType() const { return out.GetType(); }
     std::optional<miopenDataType_t> GetOutCastType() const { return out.GetCastType(); }
     std::size_t GetOutBatchSize() const { return GetN5(GetSpatialDims(), out.GetLengths()); }
-    unsigned GetOutBatchSize_() const { return GetOutBatchSize(); }
     std::size_t GetOutChannels() const { return GetC5(GetSpatialDims(), out.GetLengths()); }
-    unsigned GetOutChannels_() const { return GetOutChannels(); }
     std::size_t GetOutDepth() const { return GetD5(GetSpatialDims(), out.GetLengths()); }
-    unsigned GetOutDepth_() const { return GetOutDepth(); }
     std::size_t GetOutHeight() const { return GetH5(GetSpatialDims(), out.GetLengths()); }
-    unsigned GetOutHeight_() const { return GetOutHeight(); }
     std::size_t GetOutWidth() const { return GetW5(GetSpatialDims(), out.GetLengths()); }
-    unsigned GetOutWidth_() const { return GetOutWidth(); }
     std::size_t GetOutBatchStride() const { return GetN5(GetSpatialDims(), out.GetStrides()); }
-    unsigned GetOutBatchStride_() const { return GetOutBatchStride(); }
     std::size_t GetOutChannelStride() const { return GetC5(GetSpatialDims(), out.GetStrides()); }
-    unsigned GetOutChannelStride_() const { return GetOutChannelStride(); }
     std::size_t GetOutStrideD() const { return GetD5(GetSpatialDims(), out.GetStrides()); }
-    unsigned GetOutStrideD_() const { return GetOutStrideD(); }
     std::size_t GetOutStrideH() const { return GetH5(GetSpatialDims(), out.GetStrides()); }
-    unsigned GetOutStrideH_() const { return GetOutStrideH(); }
     std::size_t GetOutStrideW() const { return GetW5(GetSpatialDims(), out.GetStrides()); }
-    unsigned GetOutStrideW_() const { return GetOutStrideW(); }
     std::string GetOutLayout() const { return out_layout; }
     std::string ComputeOutLayout() const
     {
@@ -266,7 +245,6 @@ struct ProblemDescription : ProblemDescriptionBase
     miopenDataType_t GetWeightsDataType() const { return weights.GetType(); }
     std::optional<miopenDataType_t> GetWeightsCastType() const { return weights.GetCastType(); }
     std::size_t GetWeightsDepth() const { return GetD5(GetSpatialDims(), weights.GetLengths()); }
-    unsigned GetWeightsDepth_() const { return GetWeightsDepth(); }
     std::size_t GetWeightsHeight() const
     {
         if(weights.GetLayout_str() == "CHWNc")
@@ -274,7 +252,6 @@ struct ProblemDescription : ProblemDescriptionBase
         else
             return GetH5(GetSpatialDims(), weights.GetLengths());
     }
-    unsigned GetWeightsHeight_() const { return GetWeightsHeight(); }
     std::size_t GetWeightsWidth() const
     {
         if(weights.GetLayout_str() == "CHWNc")
@@ -282,7 +259,6 @@ struct ProblemDescription : ProblemDescriptionBase
         else
             return GetW5(GetSpatialDims(), weights.GetLengths());
     }
-    unsigned GetWeightsWidth_() const { return GetWeightsWidth(); }
     // std::size_t GetWeightsStrideD() const { return GetD5(GetSpatialDims(), weights.GetStrides());
     // }
     // std::size_t GetWeightsStrideH() const { return GetH5(GetSpatialDims(), weights.GetStrides());
@@ -327,8 +303,8 @@ struct ProblemDescription : ProblemDescriptionBase
         return (GetBias() != 0) ? (GetOutChannels() * GetOutElementSize()) : 0;
     }
 
-    int GetBackwardPadW() const { return static_cast<int>(GetWeightsWidth_()) - GetPadW() - 1; }
-    int GetBackwardPadH() const { return static_cast<int>(GetWeightsHeight_()) - GetPadH() - 1; }
+    int64_t GetBackwardPadW() const { return static_cast<int64_t>(GetWeightsWidth()) - GetPadW() - 1; }
+    int64_t GetBackwardPadH() const { return static_cast<int64_t>(GetWeightsHeight()) - GetPadH() - 1; }
 
     bool IsAsymmetricPadH() const
     {

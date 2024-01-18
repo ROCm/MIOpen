@@ -97,10 +97,10 @@ public:
           Hs{Ceil<uint32_t>(out_h, Toh)},
           We{Tow * (Ceil<uint32_t>(out_w, Tow) + Ceil(Tw, Tow) - 1)},
 
-          W{static_cast<uint32_t>(problem.IsDirectionBackwardWrW() ? problem.GetOutWidth_()
-                                                                   : problem.GetInWidth_())},
-          H{static_cast<uint32_t>(problem.IsDirectionBackwardWrW() ? problem.GetOutHeight_()
-                                                                   : problem.GetInHeight_())},
+          W{static_cast<uint32_t>(problem.IsDirectionBackwardWrW() ? problem.GetOutWidth()
+                                                                   : problem.GetInWidth())},
+          H{static_cast<uint32_t>(problem.IsDirectionBackwardWrW() ? problem.GetOutHeight()
+                                                                   : problem.GetInHeight())},
 
           d_H_clip{static_cast<int32_t>(static_cast<int64_t>(Hs * Toh) - pad_h)},
           d_W_clip{static_cast<int32_t>(We - pad_w)},
