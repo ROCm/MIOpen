@@ -4,9 +4,9 @@
 
 First create a build directory:
 
-```shell
+.. code-block:: bash
 mkdir build; cd build;
-```
+
 
 Next configure cmake. The preferred backend for MIOpen can be set using the `-DMIOPEN_BACKEND` cmake variable.
 
@@ -14,58 +14,58 @@ Next configure cmake. The preferred backend for MIOpen can be set using the `-DM
 
 Set the C++ compiler to `clang++`.
 
-```shell
+.. code-block:: bash
 export CXX=<location-of-clang++-compiler>
 cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="<hip-installed-path>;<rocm-installed-path>;<miopen-dependency-path>" ..
-```
+
 
 An example cmake step can be:
 
-```shell
+.. code-block:: bash
 export CXX=/opt/rocm/llvm/bin/clang++ && \
 cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/;/opt/rocm/hip;/root/MIOpen/install_dir" ..
-```
+
 
 Note: When specifying the path for the `CMAKE_PREFIX_PATH` variable, **do not** use the `~` shorthand for the user home directory.
 
 ### For OpenCL, run
 
-```shell
+.. code-block:: bash
 cmake -DMIOPEN_BACKEND=OpenCL ..
-```
+
 
 The above assumes that OpenCL is installed in one of the standard locations. If not, then manually set these cmake variables:
 
-```shell
+.. code-block:: bash
 cmake -DMIOPEN_BACKEND=OpenCL -DMIOPEN_HIP_COMPILER=<hip-compiler-path> -DOPENCL_LIBRARIES=<opencl-library-path> -DOPENCL_INCLUDE_DIRS=<opencl-headers-path> ..
-```
+
 
 And an example setting the dependency path for an envirnment in ROCm 3.5 and later:
 
-```shell
+.. code-block:: bash
 cmake -DMIOPEN_BACKEND=OpenCL -DMIOPEN_HIP_COMPILER=/opt/rocm/llvm/bin/clang++ -DCMAKE_PREFIX_PATH="/opt/rocm/;/opt/rocm/hip;/root/MIOpen/install_dir" ..
-```
+
 
 ### Setting Up Locations
 
 By default the install location is set to '/opt/rocm', this can be set by using `CMAKE_INSTALL_PREFIX`:
 
-```shell
+.. code-block:: bash
 cmake -DMIOPEN_BACKEND=OpenCL -DCMAKE_INSTALL_PREFIX=<miopen-installed-path> ..
-```
+
 
 ## Using docker
 
 The easiest way is to use docker. You can build the top-level docker file:
 
-```shell
+.. code-block:: bash
 docker build -t miopen-image .
-```
+
 
 Then to enter the development environment use `docker run`, for example:
 
-```shell
+.. code-block:: bash
 docker run -it -v $HOME:/data --privileged --rm --device=/dev/kfd --device /dev/dri:/dev/dri:rw  --volume /dev/dri:/dev/dri:rw -v /var/lib/docker/:/var/lib/docker --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined miopen-image
-```
+
 
 Prebuilt docker images can be found on [ROCm's public docker hub here](https://hub.docker.com/r/rocm/miopen/tags).
