@@ -42,7 +42,7 @@ static bool IsTestRunWith(const char* float_arg)
     const auto& s_envVar = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
     return ((!s_envVar.empty() && std::strcmp(s_envVar.c_str(), float_arg) == 0 &&
              miopen::IsEnabled(ENV(MIOPEN_TEST_ALL))) ||
-            (s_envVar.empty() && miopen::IsDisabled(ENV(MIOPEN_TEST_ALL))));
+            (s_envVar.empty() && miopen::IsUnset(ENV(MIOPEN_TEST_ALL))));
 }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
