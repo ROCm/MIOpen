@@ -26,6 +26,7 @@ Set the C++ compiler to `clang++`.
 An example cmake step can be:
 
 .. code-block:: bash
+
     export CXX=/opt/rocm/llvm/bin/clang++ && \
     cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/;/opt/rocm/hip;/root/MIOpen/install_dir" ..
 
@@ -39,6 +40,7 @@ Setting Up Locations
 By default the install location is set to '/opt/rocm', this can be set by using `CMAKE_INSTALL_PREFIX`:
 
 .. code-block:: bash
+
     cmake -DMIOPEN_BACKEND=OpenCL -DCMAKE_INSTALL_PREFIX=<miopen-installed-path> ..
 
 
@@ -48,12 +50,14 @@ Building MIOpen using docker
 The easiest way is to use docker. You can build the top-level docker file:
 
 .. code-block:: bash
+
     docker build -t miopen-image .
 
 
 Then to enter the development environment use `docker run`, for example:
 
 .. code-block:: bash
+    
     docker run -it -v $HOME:/data --privileged --rm --device=/dev/kfd --device /dev/dri:/dev/dri:rw  --volume /dev/dri:/dev/dri:rw -v /var/lib/docker/:/var/lib/docker --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined miopen-image
 
 
