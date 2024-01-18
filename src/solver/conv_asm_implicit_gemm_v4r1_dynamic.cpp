@@ -302,6 +302,9 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ExecutionContext& ctx
     if(problem.HasNonPackedTensors())
         return false;
 
+    if(problem.HasAtLeastOne64BitTensor())
+        return false;
+
     if(!problem.IsFp32())
         return false;
 
@@ -343,6 +346,9 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ExecutionContext&
         return false;
 
     if(!problem.Is2d())
+        return false;
+
+    if(problem.HasAtLeastOne64BitTensor())
         return false;
 
     if(!problem.IsFp32())

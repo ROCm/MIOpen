@@ -56,6 +56,8 @@ bool ConvDirectNaiveConvWrw::IsApplicable(const ExecutionContext& ctx,
 
     if(!problem.IsDirectionBackwardWrW())
         return false;
+    if(problem.HasAtLeastOne64BitTensor())
+        return false;
     if(problem.IsTensorsCasted())
     {
         auto test_cast = [&](const TensorDescriptor& desc) {
