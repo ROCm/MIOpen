@@ -32,6 +32,7 @@
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/utility/data_type.hpp>
+#endif // MIOPEN_USE_COMPOSABLEKERNEL
 
 namespace miopen {
 
@@ -771,6 +772,7 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
                                         InvokerFactoryMakerNHWC&& invoker_factory_maker_ndhwc)
 {
 
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(problem.IsLayoutDefault())
     {
         switch(problem.GetInDataType())
@@ -813,10 +815,10 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
             miopenStatusInternalError,
             "3DGroupConvolutionImplicitGemmXdlops operation not implemented for this data type");
     }
+#else
     return {};
+#endif
 }
 
 } // namespace solver
 } // namespace miopen
-
-#endif // MIOPEN_USE_COMPOSABLEKERNEL
