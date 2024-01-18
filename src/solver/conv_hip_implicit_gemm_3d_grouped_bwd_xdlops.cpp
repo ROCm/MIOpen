@@ -102,6 +102,11 @@ struct CKArgs
             copy_strides(problem.GetOut().GetStrides(), out_strides);
             copy_strides(problem.GetWeights().GetStrides(), wei_strides);
 
+            // On a backward pass, problem.GetIn() means y(or out),
+            // and problem.GetOut means x(or in)
+            /// \todo remove the swapping of in and out tensors/descriptors
+            std::swap(in_strides, out_strides);
+
             // Now compute G's stride
             in_strides[0]  = C;
             out_strides[0] = K;
@@ -118,10 +123,6 @@ struct CKArgs
             out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
             wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
         }
-        // On a backward pass, problem.GetIn() means y(or out),
-        // and problem.GetOut means x(or in)
-        /// \todo remove the swapping of in and out tensors/descriptors
-        std::swap(in_strides, out_strides);
 
         strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
