@@ -227,7 +227,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ExecutionContext& ctx,
 
         int read_unit = 4;
         // subsampled input
-        int in_width  = (n_passes > 1) ? problem.GetInWidth() : problem.GetOutWidth();
+        int in_width          = (n_passes > 1) ? problem.GetInWidth() : problem.GetOutWidth();
         std::size_t in_height = (n_passes > 1) ? problem.GetInHeight() : problem.GetOutHeight();
         std::size_t in_stride = (n_passes > 1) ? problem.GetInStrideH() : problem.GetOutStrideH();
         int in_channel_stride =

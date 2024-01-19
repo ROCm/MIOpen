@@ -302,7 +302,8 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(
 
     // Check 5: n_out_rows_in_lcl  should exceed LDS limit
     size_t in_lcl_height =
-        static_cast<std::size_t>(n_out_rows_in_lcl - 1) * problem.GetKernelStrideH() + problem.GetWeightsHeight();
+        static_cast<std::size_t>(n_out_rows_in_lcl - 1) * problem.GetKernelStrideH() +
+        problem.GetWeightsHeight();
     size_t in_lcl_sz = 0;
     {
         // Chao: Reserve space in LDS for left padding, it also reserve

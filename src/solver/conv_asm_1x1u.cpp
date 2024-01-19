@@ -125,10 +125,7 @@ bool NextLinear(int& v)
 }
 
 // This range is like regular range [0,4,8...32], but 1 is used instead of 0.
-bool Is_1_4_8_12_to_32(const int& v)
-{
-    return v == 1 || (v % 4 == 0 && IsLinear<1, 8>(v / 4));
-}
+bool Is_1_4_8_12_to_32(const int& v) { return v == 1 || (v % 4 == 0 && IsLinear<1, 8>(v / 4)); }
 
 bool Next_1_4_8_12_to_32(int& v)
 {
@@ -353,7 +350,8 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
         if(!(waves_c_in_group <= problem.GetInChannels()))
             return false;
         const int c_per_wave = (problem.GetInChannels() + waves_c_in_group - 1) / waves_c_in_group;
-        const int c_per_last_wave = problem.GetInChannels() - static_cast<std::size_t>(c_per_wave * (waves_c_in_group - 1));
+        const int c_per_last_wave =
+            problem.GetInChannels() - static_cast<std::size_t>(c_per_wave * (waves_c_in_group - 1));
         if(c_per_wave % c_mult != 0 || c_per_last_wave % c_mult != 0)
             return false;
     }
@@ -660,9 +658,9 @@ ConvSolution ConvAsm1x1U::GetSolution(const ExecutionContext& ctx,
             AsmImgWidth(problem) * AsmImgHeight(problem) *
             (UseSubsample(problem) ? problem.GetInChannels() : problem.GetOutChannels());
         unsigned write_unit = (AsmImgWidth(problem) % 4 == 0)   ? 4
-                         : (AsmImgWidth(problem) % 3 == 0) ? 3
-                         : (AsmImgWidth(problem) % 2 == 0) ? 2
-                                                           : 1;
+                              : (AsmImgWidth(problem) % 3 == 0) ? 3
+                              : (AsmImgWidth(problem) % 2 == 0) ? 2
+                                                                : 1;
 
         int n_grp0_size0 = 256;
 

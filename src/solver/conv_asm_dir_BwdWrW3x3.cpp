@@ -152,22 +152,28 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ExecutionContext& ctx,
     if(!IsValidValue())
         return false;
     assert(chunk_size != 0);
+
+    uint64_t c_per_wave_x_group_cnt =
+        static_cast<uint64_t>(GetCPerWave()) * problem.GetGroupCount();
+    uint64_t k_per_wave_x_group_cnt =
+        static_cast<uint64_t>(GetKPerWave()) * problem.GetGroupCount();
     if(reverse_inout == 0)
     {
-        if((problem.GetOutChannels() % static_cast<std::size_t>(GetCPerWave() * problem.GetGroupCount()) != 0) ||
-           (problem.GetInChannels() % static_cast<std::size_t>(GetKPerWave() * problem.GetGroupCount()) != 0))
+        if((problem.GetOutChannels() % c_per_wave_x_group_cnt != 0) ||
+           (problem.GetInChannels() % k_per_wave_x_group_cnt != 0))
         {
             return false;
         }
     }
     else
     {
-        if((problem.GetOutChannels() % static_cast<std::size_t>(GetKPerWave() * problem.GetGroupCount()) != 0) ||
-           (problem.GetInChannels() % static_cast<std::size_t>(GetCPerWave() * problem.GetGroupCount()) != 0))
+        if((problem.GetOutChannels() % k_per_wave_x_group_cnt != 0) ||
+           (problem.GetInChannels() % c_per_wave_x_group_cnt != 0))
         {
             return false;
         }
     }
+
     if((problem.GetOutChannels() % (64 / chunk_size) != 0) &&
        (problem.GetInChannels() % (64 / chunk_size) != 0))
     {
