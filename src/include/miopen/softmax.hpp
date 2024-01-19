@@ -46,7 +46,7 @@ miopenStatus_t SoftmaxForward(Handle& handle,
                               int x_offset = 0,
                               int y_offset = 0);
 
-miopenStatus_t SoftmaxBackward(const Handle& handle,
+miopenStatus_t SoftmaxBackward(Handle& handle,
                                const void* alpha,
                                const TensorDescriptor& yDesc,
                                ConstData_t y,

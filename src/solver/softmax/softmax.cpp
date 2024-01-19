@@ -39,23 +39,29 @@ namespace solver {
 
 namespace softmax {
 
-bool SoftmaxForward::IsApplicable(const ExecutionContext& context,
-                                  const miopen::softmax::ProblemDescription& problem) const
+bool Softmax::IsApplicable(const ExecutionContext& context,
+                           const miopen::softmax::ProblemDescription& problem) const
 {
     return true;
 }
 
-ConvSolution SoftmaxForward::GetSolution(const ExecutionContext& context,
-                                         const miopen::softmax::ProblemDescription& problem) const
+ConvSolution Softmax::GetSolution(const ExecutionContext& context,
+                                  const miopen::softmax::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto xDesc     = problem.GetXDesc();
-    auto yDesc     = problem.GetYDesc();
+    auto xDesc = problem.GetXDesc();
+    auto yDesc = problem.GetYDesc();
+
+    auto dxDesc = problem.GetdXDesc();
+    auto dyDesc = problem.GetdYDesc();
+
     auto alpha     = problem.GetAlpha();
     auto beta      = problem.GetBeta();
     auto mode      = problem.GetMode();
     auto algorithm = problem.GetAlgorithm();
+
+    bool isForward = problem.IsForward();
 
     int n, c, h, w;
     // using workgroup size of 256 by default
@@ -69,12 +75,6 @@ ConvSolution SoftmaxForward::GetSolution(const ExecutionContext& context,
     size_t workgroups;
     int batch_size;
     int u_batch_size;
-
-    int in_nstr, in_cstr, in_hstr;
-    std::tie(in_nstr, in_cstr, in_hstr, std::ignore) = tien<4>(xDesc.GetStrides());
-
-    int out_nstr, out_cstr, out_hstr;
-    std::tie(out_nstr, out_cstr, out_hstr, std::ignore) = tien<4>(yDesc.GetStrides());
 
     miopen::softmax::getParams(yDesc,
                                mode,
@@ -120,10 +120,19 @@ ConvSolution SoftmaxForward::GetSolution(const ExecutionContext& context,
     else
         build_params.Define("USE_SOFTMAX_MODE_CHANNEL", 1);
 
-    build_params.Define("RUN_FORWARD", 1);
+    build_params.Define("RUN_FORWARD", isForward ? 1 : 0);
 
-    build_params.Define("IS_INPUT_PACKED", static_cast<int>(xDesc.IsPacked()));
-    build_params.Define("IS_OUTPUT_PACKED", static_cast<int>(yDesc.IsPacked()));
+    if(isForward)
+    {
+        build_params.Define("IS_INPUT_PACKED", static_cast<int>(xDesc.IsPacked()));
+        build_params.Define("IS_OUTPUT_PACKED", static_cast<int>(yDesc.IsPacked()));
+    }
+    else
+    {
+        build_params.Define("IS_OUTPUT_PACKED", static_cast<int>(yDesc.IsPacked()));
+        build_params.Define("IS_DOUTPUT_PACKED", static_cast<int>(dyDesc.IsPacked()));
+        build_params.Define("IS_DINPUT_PACKED", static_cast<int>(dxDesc.IsPacked()));
+    }
 
     if(!float_equal(alpha_fp, 1.0))
         build_params.Define("USE_ALPHA", 1);
@@ -136,7 +145,8 @@ ConvSolution SoftmaxForward::GetSolution(const ExecutionContext& context,
     kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
 
     kernel.kernel_file = "MIOpenSoftmax.cl";
-    kernel.kernel_name = "SoftmaxForward";
+
+    kernel.kernel_name = isForward ? "SoftmaxForward" : "SoftmaxBackward";
 
     for(unsigned int i = 0; i < 2; ++i)
     {
@@ -144,30 +154,80 @@ ConvSolution SoftmaxForward::GetSolution(const ExecutionContext& context,
         kernel.g_wk.push_back(vgd[i]);
     }
 
-    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::softmax::InvokeParams>();
+    if(isForward)
+    {
+        int in_nstr, in_cstr, in_hstr;
+        std::tie(in_nstr, in_cstr, in_hstr, std::ignore) = tien<4>(xDesc.GetStrides());
 
-            kernel(params.x,
-                   params.y,
-                   vector_size,
-                   grid_size,
-                   spatial_dim,
-                   h,
-                   w,
-                   in_nstr,
-                   in_cstr,
-                   in_hstr,
-                   out_nstr,
-                   out_cstr,
-                   out_hstr,
-                   params.x_offset,
-                   params.y_offset,
-                   alpha_fp,
-                   beta_fp);
+        int out_nstr, out_cstr, out_hstr;
+        std::tie(out_nstr, out_cstr, out_hstr, std::ignore) = tien<4>(yDesc.GetStrides());
+
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+                decltype(auto) kernel = handle_.Run(kernels.front());
+                decltype(auto) params = raw_params.CastTo<miopen::softmax::InvokeParams>();
+
+                kernel(params.x,
+                       params.forward_y,
+                       vector_size,
+                       grid_size,
+                       spatial_dim,
+                       h,
+                       w,
+                       in_nstr,
+                       in_cstr,
+                       in_hstr,
+                       out_nstr,
+                       out_cstr,
+                       out_hstr,
+                       params.xdx_offset,
+                       params.y_offset,
+                       alpha_fp,
+                       beta_fp);
+            };
         };
-    };
+    }
+    else
+    {
+        int din_nstr, din_cstr, din_hstr;
+        std::tie(din_nstr, din_cstr, din_hstr, std::ignore) = tien<4>(dxDesc.GetStrides());
+
+        int dout_nstr, dout_cstr, dout_hstr;
+        std::tie(dout_nstr, dout_cstr, dout_hstr, std::ignore) = tien<4>(dyDesc.GetStrides());
+
+        int out_nstr, out_cstr, out_hstr;
+        std::tie(out_nstr, out_cstr, out_hstr, std::ignore) = tien<4>(yDesc.GetStrides());
+
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+                decltype(auto) kernel = handle_.Run(kernels.front());
+                decltype(auto) params = raw_params.CastTo<miopen::softmax::InvokeParams>();
+
+                kernel(params.backward_y,
+                       params.dy,
+                       params.dx,
+                       vector_size,
+                       grid_size,
+                       spatial_dim,
+                       h,
+                       w,
+                       out_nstr,
+                       out_cstr,
+                       out_hstr,
+                       dout_nstr,
+                       dout_cstr,
+                       dout_hstr,
+                       din_nstr,
+                       din_cstr,
+                       din_hstr,
+                       params.y_offset,
+                       params.dy_offset,
+                       params.xdx_offset,
+                       alpha_fp,
+                       beta_fp);
+            };
+        };
+    }
 
     result.construction_params.push_back(kernel);
 

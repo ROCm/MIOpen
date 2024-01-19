@@ -53,7 +53,7 @@ int nextPow2(int v)
     }
 }
 
-void getParams(const TensorDescriptor& in_yDesc,
+void getParams(const TensorDescriptor& in_desc,
                miopenSoftmaxMode_t in_mode,
                int& out_n,
                int& out_c,
@@ -71,7 +71,7 @@ void getParams(const TensorDescriptor& in_yDesc,
                int& out_batch_size,
                int& out_u_batch_size)
 {
-    std::tie(out_n, out_c, out_h, out_w) = tien<4>(in_yDesc.GetLengths());
+    std::tie(out_n, out_c, out_h, out_w) = tien<4>(in_desc.GetLengths());
 
     // using workgroup size of 256 by default
     out_grid_size   = in_mode == MIOPEN_SOFTMAX_MODE_INSTANCE ? out_n : out_n * out_h * out_w;
@@ -84,7 +84,7 @@ void getParams(const TensorDescriptor& in_yDesc,
 
     out_usefp16 = false;
     out_usefp32 = true;
-    if(in_yDesc.GetType() == miopenHalf)
+    if(in_desc.GetType() == miopenHalf)
     {
         out_usefp16 = true;
         out_usefp32 = false;
@@ -127,7 +127,9 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     int batch_size;
     int u_batch_size;
 
-    getParams(yDesc,
+    const TensorDescriptor& desc = isForward ? yDesc : xdxDesc;
+
+    getParams(desc,
               mode,
               n,
               c,
@@ -148,7 +150,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     auto alpha_fp = *(static_cast<const float*>(alpha));
     auto beta_fp  = *(static_cast<const float*>(beta));
 
-    if(num_batch != 1)
+    if(num_batch > 1)
     {
         if((u_batch_size + 1) * 256 > 65536 && yDesc.GetType() == miopenHalf)
             MIOPEN_THROW(miopenStatusBadParm, "Exceed local memory capacity");
@@ -158,18 +160,28 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
                      std::to_string(static_cast<int>(usefp16)) + "float" +
                      std::to_string(static_cast<int>(usefp32)) + "g" + std::to_string(vgd[0]) +
                      "l" + std::to_string(vld[0]) + "dim" + std::to_string(spatial_dim) + "grid" +
-                     std::to_string(grid_size) + "wg" + std::to_string(workgroups) + "v";
+                     std::to_string(grid_size) + "wg" + std::to_string(workgroups) + "v" +
+                     std::to_string(vector_size);
 
-    if(num_batch != 1)
+    if(num_batch > 1)
     {
         network_config +=
-            std::to_string(vector_size) + "ubatch" + std::to_string(u_batch_size) + "batch";
+            "ubatch" + std::to_string(u_batch_size) + "batch" + std::to_string(batch_size);
     }
 
-    network_config += std::to_string(vector_size) + "xpk" +
-                      std::to_string(static_cast<int>(xDesc.IsPacked())) + "ypk" +
-                      std::to_string(static_cast<int>(yDesc.IsPacked())) + "a" +
-                      std::to_string(alpha_fp) + "b" + std::to_string(beta_fp) + "algo" +
+    if(isForward)
+    {
+        network_config += "xpk" + std::to_string(static_cast<int>(xdxDesc.IsPacked())) + "ypk" +
+                          std::to_string(static_cast<int>(yDesc.IsPacked()));
+    }
+    else
+    {
+        network_config += "ypk" + std::to_string(static_cast<int>(yDesc.IsPacked())) + "dypk" +
+                          std::to_string(static_cast<int>(dyDesc.IsPacked())) + "dxpk" +
+                          std::to_string(static_cast<int>(xdxDesc.IsPacked()));
+    }
+
+    network_config += "a" + std::to_string(alpha_fp) + "b" + std::to_string(beta_fp) + "algo" +
                       std::to_string(static_cast<int>(algorithm)) + "mode" +
                       std::to_string(static_cast<int>(mode));
 

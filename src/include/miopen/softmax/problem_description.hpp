@@ -57,35 +57,113 @@ void getParams(const TensorDescriptor& in_yDesc,
 
 struct ProblemDescription : ProblemDescriptionBase
 {
+    // softmax forward constructor
     ProblemDescription(const void* alpha_,
                        const void* beta_,
                        const TensorDescriptor& xDesc_,
                        const TensorDescriptor& yDesc_,
                        miopenSoftmaxAlgorithm_t algorithm_,
                        miopenSoftmaxMode_t mode_)
-        : alpha(alpha_),
+        : isForward(true),
+          alpha(alpha_),
           beta(beta_),
-          xDesc(xDesc_),
+          xdxDesc(xDesc_),
           yDesc(yDesc_),
+
+          // initalize this reference to some value, but it will not be used for Forward
+          dyDesc(yDesc_),
+
           algorithm(algorithm_),
           mode(mode_)
     {
+        CheckCommonParams();
+
+        if(xdxDesc.GetType() != yDesc.GetType())
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Tensor types do not match.");
+        }
+
+        if(xdxDesc.GetLengths() != yDesc.GetLengths())
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
+        }
     }
 
-    const void* GetAlpha() const { return alpha; }
-    const void* GetBeta() const { return beta; }
-    const TensorDescriptor& GetXDesc() const { return xDesc; }
-    const TensorDescriptor& GetYDesc() const { return yDesc; }
+    ProblemDescription(const void* alpha_,
+                       const void* beta_,
+                       const TensorDescriptor& yDesc_,
+                       const TensorDescriptor& dyDesc_,
+                       const TensorDescriptor& dxDesc_,
+                       miopenSoftmaxAlgorithm_t algorithm_,
+                       miopenSoftmaxMode_t mode_)
+        : isForward(false),
+          alpha(alpha_),
+          beta(beta_),
+          xdxDesc(dxDesc_),
+          yDesc(yDesc_),
+          dyDesc(dyDesc_),
+          algorithm(algorithm_),
+          mode(mode_)
+    {
+        CheckCommonParams();
+
+        if(yDesc != dyDesc)
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+
+        if(xdxDesc.GetType() != dyDesc.GetType())
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Tensor types do not match.");
+        }
+
+        if(xdxDesc.GetLengths() != dyDesc.GetLengths())
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
+        }
+    }
+
+    bool IsForward() const { return isForward; }
     const miopenSoftmaxAlgorithm_t GetAlgorithm() const { return algorithm; }
     const miopenSoftmaxMode_t GetMode() const { return mode; }
+    const void* GetAlpha() const { return alpha; }
+    const void* GetBeta() const { return beta; }
+
+    // for forward
+    const TensorDescriptor& GetXDesc() const { return xdxDesc; }
+    const TensorDescriptor& GetYDesc() const { return yDesc; }
+
+    // for backward
+    const TensorDescriptor& GetdYDesc() const { return dyDesc; }
+    const TensorDescriptor& GetdXDesc() const { return xdxDesc; }
 
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
+    void CheckCommonParams()
+    {
+        if(alpha == nullptr)
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Alpha value is nullptr");
+        }
+
+        if(beta == nullptr)
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Beta value is nullptr");
+        }
+    }
+
+private:
+    const bool isForward;
     const void* alpha;
     const void* beta;
-    const TensorDescriptor& xDesc;
+
+    // for forward xDesc is stored in xdxDesc, for backward dxDesc is stored in xdxDesc
+    const TensorDescriptor& xdxDesc;
     const TensorDescriptor& yDesc;
+
+    const TensorDescriptor& dyDesc;
+
     const miopenSoftmaxAlgorithm_t algorithm;
     const miopenSoftmaxMode_t mode;
 };

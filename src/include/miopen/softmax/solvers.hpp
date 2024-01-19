@@ -39,9 +39,9 @@ namespace softmax {
 
 using SoftmaxSolver = NonTunableSolverBase<ExecutionContext, miopen::softmax::ProblemDescription>;
 
-struct SoftmaxForward final : SoftmaxSolver
+struct Softmax final : SoftmaxSolver
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<SoftmaxForward>(); }
+    const std::string& SolverDbId() const override { return GetSolverDbId<Softmax>(); }
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::softmax::ProblemDescription& problem) const override;

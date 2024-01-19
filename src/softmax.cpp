@@ -72,37 +72,17 @@ miopenStatus_t SoftmaxForward(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
     }
 
-    if(xDesc.GetType() != yDesc.GetType())
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "Tensor types do not match.");
-    }
-
-    if(xDesc.GetLengths() != yDesc.GetLengths())
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
-    }
-
-    if(alpha == nullptr)
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "Alpha value is nullptr");
-    }
-
-    if(beta == nullptr)
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "Beta value is nullptr");
-    }
-
     const auto problem = softmax::ProblemDescription{alpha, beta, xDesc, yDesc, algorithm, mode};
     const auto invoke_params =
         softmax::InvokeParams{alpha, beta, xDesc, x, yDesc, y, algorithm, mode, x_offset, y_offset};
     const auto algo    = AlgorithmName{"Softmax"};
-    const auto solvers = solver::SolverContainer<solver::softmax::SoftmaxForward>{};
+    const auto solvers = solver::SolverContainer<solver::softmax::Softmax>{};
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
     return miopenStatusSuccess;
 }
 
-miopenStatus_t SoftmaxBackward(const Handle& handle,
+miopenStatus_t SoftmaxBackward(Handle& handle,
                                const void* alpha,
                                const TensorDescriptor& yDesc,
                                ConstData_t y,
@@ -122,279 +102,24 @@ miopenStatus_t SoftmaxBackward(const Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
     }
 
-    if(yDesc != dyDesc)
-    {
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
-
-    if(dxDesc.GetType() != dyDesc.GetType())
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "Tensor types do not match.");
-    }
-
-    if(dxDesc.GetLengths() != dyDesc.GetLengths())
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
-    }
-
-    if(miopen::CheckNumericsEnabled())
-    {
-        miopen::checkNumericsInput(handle, yDesc, y);
-    }
-
-    int n, c, h, w;
-    std::tie(n, c, h, w) = tien<4>(dxDesc.GetLengths());
-
-    int din_nstr, din_cstr, din_hstr;
-    std::tie(din_nstr, din_cstr, din_hstr, std::ignore) = tien<4>(dxDesc.GetStrides());
-
-    int dout_nstr, dout_cstr, dout_hstr;
-    std::tie(dout_nstr, dout_cstr, dout_hstr, std::ignore) = tien<4>(dyDesc.GetStrides());
-
-    int out_nstr, out_cstr, out_hstr;
-    std::tie(out_nstr, out_cstr, out_hstr, std::ignore) = tien<4>(yDesc.GetStrides());
-
-    // using workgroup size of 256 by default
-    int grid_size   = mode == MIOPEN_SOFTMAX_MODE_INSTANCE ? n : n * h * w;
-    int spatial_dim = mode == MIOPEN_SOFTMAX_MODE_INSTANCE ? 1 : h * w;
-    int vector_size = mode == MIOPEN_SOFTMAX_MODE_INSTANCE ? c * h * w : c;
-    // num_spatial_dims or pixels each workgroup can compute
-    int num_batch = vector_size < 256 ? nextPow2(256 / vector_size) : 1;
-
-    const std::vector<size_t> vld{256, 1, 1};
-
-    bool usefp16 = false;
-    bool usefp32 = true;
-    if(yDesc.GetType() == miopenHalf)
-    {
-        usefp16 = true;
-        usefp32 = false;
-    }
-
-    auto alpha_fp = *(static_cast<const float*>(alpha));
-    auto beta_fp  = *(static_cast<const float*>(beta));
-
-    // See Kernels/MIOpenSoftmax.cl for description
-    if(num_batch == 1)
-    { // CSR-Vector like approach
-
-        // Control the max. number of workgroups launched so that we do not
-        // start getting workgroup scheduling overheads
-        size_t workgroups = std::min(grid_size, 64 * 40 * 8);
-        const std::vector<size_t> vgd{workgroups * vld[0], 1, 1};
-
-        std::string algo_name = "SoftmaxBackwardOneBatch";
-        std::string network_config =
-            "sfmbwd-n" + std::to_string(num_batch) + "half" +
-            std::to_string(static_cast<int>(usefp16)) + "float" +
-            std::to_string(static_cast<int>(usefp32)) + "g" + std::to_string(vgd[0]) + "l" +
-            std::to_string(vld[0]) + "dim" + std::to_string(spatial_dim) + "grid" +
-            std::to_string(grid_size) + "wg" + std::to_string(workgroups) + "v" +
-            std::to_string(vector_size) + "ypk" +
-            std::to_string(static_cast<int>(yDesc.IsPacked())) + "dypk" +
-            std::to_string(static_cast<int>(dyDesc.IsPacked())) + "dxpk" +
-            std::to_string(static_cast<int>(dxDesc.IsPacked())) + "a" + std::to_string(alpha_fp) +
-            "b" + std::to_string(beta_fp) + "algo" + std::to_string(static_cast<int>(algorithm)) +
-            "mode" + std::to_string(static_cast<int>(mode));
-
-        auto&& kernels = handle.GetKernels(algo_name, network_config);
-
-        if(!kernels.empty())
-        {
-            kernels.front()(y,
-                            dy,
-                            dx,
-                            vector_size,
-                            grid_size,
-                            spatial_dim,
-                            h,
-                            w,
-                            out_nstr,
-                            out_cstr,
-                            out_hstr,
-                            dout_nstr,
-                            dout_cstr,
-                            dout_hstr,
-                            din_nstr,
-                            din_cstr,
-                            din_hstr,
-                            y_offset,
-                            dy_offset,
-                            dx_offset,
-                            alpha_fp,
-                            beta_fp);
-        }
-        else
-        {
-            std::string program_name = "MIOpenSoftmax.cl";
-            std::string kernel_name  = "SoftmaxBackward";
-            std::string parms        = "-DNUM_BATCH=" + std::to_string(num_batch) +
-                                " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(usefp16)) +
-                                " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(usefp32));
-
-            if(algorithm == MIOPEN_SOFTMAX_LOG)
-                parms += " -DUSE_SOFTMAX_LOG=1";
-            else if(algorithm == MIOPEN_SOFTMAX_FAST)
-                parms += " -DUSE_SOFTMAX_FAST=1";
-            else
-                parms += " -DUSE_SOFTMAX_ACCURATE=1";
-
-            if(mode == MIOPEN_SOFTMAX_MODE_INSTANCE)
-                parms += " -DUSE_SOFTMAX_MODE_INSTANCE=1";
-            else
-                parms += " -DUSE_SOFTMAX_MODE_CHANNEL=1";
-
-            parms += " -DRUN_FORWARD=0";
-            parms += " -DIS_OUTPUT_PACKED=" + std::to_string(static_cast<int>(yDesc.IsPacked())) +
-                     " -DIS_DOUTPUT_PACKED=" + std::to_string(static_cast<int>(dyDesc.IsPacked())) +
-                     " -DIS_DINPUT_PACKED=" + std::to_string(static_cast<int>(dxDesc.IsPacked()));
-
-            if(!float_equal(alpha_fp, 1.0))
-                parms += " -DUSE_ALPHA=1";
-
-            if(!float_equal(beta_fp, 0))
-                parms += " -DUSE_BETA=1";
-
-            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                y,
-                dy,
-                dx,
-                vector_size,
-                grid_size,
-                spatial_dim,
-                h,
-                w,
-                out_nstr,
-                out_cstr,
-                out_hstr,
-                dout_nstr,
-                dout_cstr,
-                dout_hstr,
-                din_nstr,
-                din_cstr,
-                din_hstr,
-                y_offset,
-                dy_offset,
-                dx_offset,
-                alpha_fp,
-                beta_fp);
-        }
-    }
-    else
-    { // CSR-Stream like approach
-        int batch_size   = 256 / num_batch;
-        int u_batch_size = (vector_size > batch_size) ? nextPow2(vector_size / batch_size) : 1;
-        size_t workgroups =
-            (grid_size % num_batch == 0) ? (grid_size / num_batch) : (grid_size / num_batch + 1);
-        const std::vector<size_t> vgd{workgroups * vld[0], 1, 1};
-
-        if((2 * u_batch_size + 1) * 256 > 65536 && yDesc.GetType() == miopenHalf)
-            MIOPEN_THROW(miopenStatusBadParm, "Exceed local memory capacity");
-
-        std::string algo_name = "SoftmaxBackwardMultiBatch";
-        std::string network_config =
-            "sfmbwd-n" + std::to_string(num_batch) + "half" +
-            std::to_string(static_cast<int>(usefp16)) + "float" +
-            std::to_string(static_cast<int>(usefp32)) + "g" + std::to_string(vgd[0]) + "l" +
-            std::to_string(vld[0]) + "dim" + std::to_string(spatial_dim) + "grid" +
-            std::to_string(grid_size) + "wg" + std::to_string(workgroups) + "v" +
-            std::to_string(vector_size) + "ubatch" + std::to_string(u_batch_size) + "batch" +
-            std::to_string(batch_size) + "ypk" +
-            std::to_string(static_cast<int>(yDesc.IsPacked())) + "dypk" +
-            std::to_string(static_cast<int>(dyDesc.IsPacked())) + "dxpk" +
-            std::to_string(static_cast<int>(dxDesc.IsPacked())) + "a" + std::to_string(alpha_fp) +
-            "b" + std::to_string(beta_fp) + "algo" + std::to_string(static_cast<int>(algorithm)) +
-            "mode" + std::to_string(static_cast<int>(mode));
-
-        auto&& kernels = handle.GetKernels(algo_name, network_config);
-
-        if(!kernels.empty())
-        {
-            kernels.front()(y,
-                            dy,
-                            dx,
-                            vector_size,
-                            grid_size,
-                            spatial_dim,
-                            h,
-                            w,
-                            out_nstr,
-                            out_cstr,
-                            out_hstr,
-                            dout_nstr,
-                            dout_cstr,
-                            dout_hstr,
-                            din_nstr,
-                            din_cstr,
-                            din_hstr,
-                            y_offset,
-                            dy_offset,
-                            dx_offset,
-                            alpha_fp,
-                            beta_fp);
-        }
-        else
-        {
-            std::string program_name = "MIOpenSoftmax.cl";
-            std::string kernel_name  = "SoftmaxBackward";
-            std::string parms        = "-DNUM_BATCH=" + std::to_string(num_batch) +
-                                " -DBATCH_SIZE=" + std::to_string(batch_size) +
-                                " -DU_BATCH_SIZE=" + std::to_string(u_batch_size) +
-                                " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(usefp16)) +
-                                " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(usefp32));
-
-            if(algorithm == MIOPEN_SOFTMAX_LOG)
-                parms += " -DUSE_SOFTMAX_LOG=1";
-            else if(algorithm == MIOPEN_SOFTMAX_FAST)
-                parms += " -DUSE_SOFTMAX_FAST=1";
-            else
-                parms += " -DUSE_SOFTMAX_ACCURATE=1";
-
-            if(mode == MIOPEN_SOFTMAX_MODE_INSTANCE)
-                parms += " -DUSE_SOFTMAX_MODE_INSTANCE=1";
-            else
-                parms += " -DUSE_SOFTMAX_MODE_CHANNEL=1";
-
-            parms += " -DRUN_FORWARD=0";
-            parms += " -DIS_OUTPUT_PACKED=" + std::to_string(static_cast<int>(yDesc.IsPacked())) +
-                     " -DIS_DOUTPUT_PACKED=" + std::to_string(static_cast<int>(dyDesc.IsPacked())) +
-                     " -DIS_DINPUT_PACKED=" + std::to_string(static_cast<int>(dxDesc.IsPacked()));
-
-            if(!float_equal(alpha_fp, 1.0))
-                parms += " -DUSE_ALPHA=1";
-
-            if(!float_equal(beta_fp, 0))
-                parms += " -DUSE_BETA=1";
-
-            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                y,
-                dy,
-                dx,
-                vector_size,
-                grid_size,
-                spatial_dim,
-                h,
-                w,
-                out_nstr,
-                out_cstr,
-                out_hstr,
-                dout_nstr,
-                dout_cstr,
-                dout_hstr,
-                din_nstr,
-                din_cstr,
-                din_hstr,
-                y_offset,
-                dy_offset,
-                dx_offset,
-                alpha_fp,
-                beta_fp);
-        }
-    }
-    if(miopen::CheckNumericsEnabled())
-    {
-        miopen::checkNumericsOutput(handle, dxDesc, dx);
-    }
+    const auto problem =
+        softmax::ProblemDescription{alpha, beta, yDesc, dyDesc, dxDesc, algorithm, mode};
+    const auto invoke_params = softmax::InvokeParams{alpha,
+                                                     beta,
+                                                     yDesc,
+                                                     y,
+                                                     dyDesc,
+                                                     dy,
+                                                     dxDesc,
+                                                     dx,
+                                                     algorithm,
+                                                     mode,
+                                                     y_offset,
+                                                     dy_offset,
+                                                     dx_offset};
+    const auto algo          = AlgorithmName{"Softmax"};
+    const auto solvers       = solver::SolverContainer<solver::softmax::Softmax>{};
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
     return miopenStatusSuccess;
 }
