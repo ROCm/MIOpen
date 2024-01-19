@@ -1,3 +1,5 @@
+.. _install:
+
 Building MIOpen from source
 ~~~~~~~~~~
 
