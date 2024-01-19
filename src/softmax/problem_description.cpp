@@ -152,16 +152,27 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
     if(num_batch > 1)
     {
-        if((u_batch_size + 1) * 256 > 65536 && yDesc.GetType() == miopenHalf)
-            MIOPEN_THROW(miopenStatusBadParm, "Exceed local memory capacity");
+        if(isForward)
+        {
+            if((u_batch_size + 1) * 256 > 65536 && yDesc.GetType() == miopenHalf)
+                MIOPEN_THROW(miopenStatusBadParm, "Exceed local memory capacity");
+        }
+        else
+        {
+            if((2 * u_batch_size + 1) * 256 > 65536 && yDesc.GetType() == miopenHalf)
+                MIOPEN_THROW(miopenStatusBadParm, "Exceed local memory capacity");            
+        }
     }
 
-    network_config = "sfmfwd-n" + std::to_string(num_batch) + "half" +
-                     std::to_string(static_cast<int>(usefp16)) + "float" +
-                     std::to_string(static_cast<int>(usefp32)) + "g" + std::to_string(vgd[0]) +
-                     "l" + std::to_string(vld[0]) + "dim" + std::to_string(spatial_dim) + "grid" +
-                     std::to_string(grid_size) + "wg" + std::to_string(workgroups) + "v" +
-                     std::to_string(vector_size);
+    network_config = "sfmfwd-n" + std::to_string(num_batch) + 
+                     "half" + std::to_string(static_cast<int>(usefp16)) + 
+                     "float" + std::to_string(static_cast<int>(usefp32)) + 
+                     "g" + std::to_string(vgd[0]) +
+                     "l" + std::to_string(vld[0]) + 
+                     "dim" + std::to_string(spatial_dim) + 
+                     "grid" + std::to_string(grid_size) + 
+                     "wg" + std::to_string(workgroups) + 
+                     "v" + std::to_string(vector_size);
 
     if(num_batch > 1)
     {
@@ -171,19 +182,20 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
     if(isForward)
     {
-        network_config += "xpk" + std::to_string(static_cast<int>(xdxDesc.IsPacked())) + "ypk" +
-                          std::to_string(static_cast<int>(yDesc.IsPacked()));
+        network_config +=   "xpk" + std::to_string(static_cast<int>(xdxDesc.IsPacked())) + 
+                            "ypk" + std::to_string(static_cast<int>(yDesc.IsPacked()));
     }
     else
     {
-        network_config += "ypk" + std::to_string(static_cast<int>(yDesc.IsPacked())) + "dypk" +
-                          std::to_string(static_cast<int>(dyDesc.IsPacked())) + "dxpk" +
-                          std::to_string(static_cast<int>(xdxDesc.IsPacked()));
+        network_config +=   "ypk" + std::to_string(static_cast<int>(yDesc.IsPacked())) + 
+                            "dypk" + std::to_string(static_cast<int>(dyDesc.IsPacked())) + 
+                            "dxpk" + std::to_string(static_cast<int>(xdxDesc.IsPacked()));
     }
 
-    network_config += "a" + std::to_string(alpha_fp) + "b" + std::to_string(beta_fp) + "algo" +
-                      std::to_string(static_cast<int>(algorithm)) + "mode" +
-                      std::to_string(static_cast<int>(mode));
+    network_config +=   "a" + std::to_string(alpha_fp) + 
+                        "b" + std::to_string(beta_fp) + 
+                        "algo" + std::to_string(static_cast<int>(algorithm)) + 
+                        "mode" + std::to_string(static_cast<int>(mode));
 
     return NetworkConfig{network_config};
 }
