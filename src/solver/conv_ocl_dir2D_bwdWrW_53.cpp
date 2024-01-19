@@ -324,19 +324,19 @@ static inline void ComputeNumInputWidthLoops(
 size_t ConvOclBwdWrW53::GetWorkspaceSize(const ExecutionContext&,
                                          const ProblemDescription& problem) const
 {
-    int n_stacks      = std::min(problem.GetBatchSize(), static_cast<std::size_t>(1));
-    int N_BATCH_LOOPS = (problem.GetInChannels() * problem.GetOutChannels() <= 8 * 1024) ? 1
+    std::size_t n_stacks      = std::min(problem.GetBatchSize(), static_cast<std::size_t>(1));
+    std::size_t N_BATCH_LOOPS = (problem.GetInChannels() * problem.GetOutChannels() <= static_cast<std::size_t>(8) * 1024) ? 1
                         : (problem.GetBatchSize() <= 16 || problem.GetInWidth() <= 32)
                             ? (problem.GetBatchSize() / n_stacks)
                             : 4;
-    int n_batch_blks =
+    std::size_t n_batch_blks =
         (problem.GetBatchSize() + N_BATCH_LOOPS * n_stacks - 1) / (N_BATCH_LOOPS * n_stacks);
     if(n_batch_blks > 1)
     {
-        int wei_bstride = (problem.GetOutChannels() / problem.GetGroupCount()) *
+        auto wei_bstride = (problem.GetOutChannels() / problem.GetGroupCount()) *
                           (problem.GetWeightsWidth() * problem.GetWeightsHeight());
-        int data_len = GetTypeSize(problem.GetOutDataType());
-        return static_cast<size_t>(wei_bstride) * problem.GetInChannels() * n_batch_blks * data_len;
+        auto data_len = GetTypeSize(problem.GetOutDataType());
+        return wei_bstride * problem.GetInChannels() * n_batch_blks * data_len;
     }
     else
         return 0;
@@ -359,11 +359,11 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ExecutionContext& ctx,
     result.n_stacks = std::min(problem.GetBatchSize(), static_cast<std::size_t>(1));
     // defines how to proceed : 1 grouop per batch or with a loop over all batches
     // loop over al batches make sense in 2 cases: a lot of small inputs/outputs or few batches
-    int N_BATCH_LOOPS = (problem.GetInChannels() * problem.GetOutChannels() <= 8 * 1024) ? 1
+    std::size_t N_BATCH_LOOPS = (problem.GetInChannels() * problem.GetOutChannels() <= static_cast<std::size_t>(8) * 1024) ? 1
                         : (problem.GetBatchSize() <= 16 || problem.GetInWidth() <= 32)
                             ? (problem.GetBatchSize() / result.n_stacks)
                             : 4;
-    int n_batch_blks  = (problem.GetBatchSize() + N_BATCH_LOOPS * result.n_stacks - 1) /
+    std::size_t n_batch_blks  = (problem.GetBatchSize() + N_BATCH_LOOPS * result.n_stacks - 1) /
                        (N_BATCH_LOOPS * result.n_stacks);
 
     result.out_pix_tile0 = problem.GetWeightsWidth();

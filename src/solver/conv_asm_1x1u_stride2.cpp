@@ -341,7 +341,7 @@ bool PerformanceConfigConvAsm1x1UV2::IsValid(const ProblemDescription& problem) 
         return false;
     if(!(h_per_chunk <= chunk_size))
         return false;
-    if(!(k_mult * waves_k_in_group <= problem.GetOutChannels()))
+    if(!(static_cast<std::size_t>(k_mult) * waves_k_in_group <= problem.GetOutChannels()))
         return false;
 
     // cppcheck-suppress unreadVariable

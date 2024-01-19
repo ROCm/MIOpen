@@ -144,7 +144,7 @@ void PerformanceConfigConvAsm3x3U::HeuristicInit(const ProblemDescription& probl
     filters_per_wave      = 2;
     output_lines_per_wave = 2;
 
-    if(problem.GetOutChannels() % (filters_per_wave * problem.GetGroupCount()) != 0)
+    if(problem.GetOutChannels() % static_cast<std::size_t>(filters_per_wave * problem.GetGroupCount()) != 0)
     {
         filters_per_wave = 1;
     }

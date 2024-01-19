@@ -391,7 +391,7 @@ void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ExecutionContext& ct
         n_part_cnt = 1;
         read_size  = 1;
     }
-    else if(c_k_256 < (2 * 4))
+    else if(c_k_256 < static_cast<std::size_t>(2 * 4))
     {
         c_per_gpr  = 1;
         chunk_size = 16 / c_per_gpr;
@@ -402,7 +402,7 @@ void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ExecutionContext& ct
         n_part_cnt = 1;
         read_size  = 1;
     }
-    else if(c_k_256 < (2 * 4 * 4))
+    else if(c_k_256 < static_cast<std::size_t>(2 * 4 * 4))
     {
         c_per_gpr  = 2;
         chunk_size = 16 / c_per_gpr;
@@ -413,7 +413,7 @@ void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ExecutionContext& ct
         n_part_cnt = 2;
         read_size  = 2;
     }
-    else if(c_k_256 < (2 * 4 * 4 * 4))
+    else if(c_k_256 < static_cast<std::size_t>(2 * 4 * 4 * 4))
     {
         c_per_gpr  = 2;
         chunk_size = 16 / c_per_gpr;

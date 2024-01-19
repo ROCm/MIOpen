@@ -143,8 +143,8 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ExecutionContext& ctx,
     n_outs = std::min(n_outs, static_cast<int>(problem.GetOutChannels()));
     n_ins  = std::min(n_ins, static_cast<int>(problem.GetBatchSize()));
 
-    n_out_stacks   = (n_outs * n_out_stacks <= problem.GetOutChannels()) ? n_out_stacks : 1;
-    n_in_stacks    = (n_ins * n_in_stacks <= problem.GetBatchSize()) ? n_in_stacks : 1;
+    n_out_stacks   = (static_cast<std::size_t>(n_outs) * n_out_stacks <= problem.GetOutChannels()) ? n_out_stacks : 1;
+    n_in_stacks    = (static_cast<std::size_t>(n_ins) * n_in_stacks <= problem.GetBatchSize()) ? n_in_stacks : 1;
     int total_ins  = n_ins * n_in_stacks;
     int total_outs = n_outs * n_out_stacks;
 

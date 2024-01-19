@@ -51,13 +51,15 @@ namespace conv {
 
 using ProblemDescription = miopen::conv::ProblemDescription;
 
-static inline bool UseSubsample(const ProblemDescription& problem)
+namespace {
+
+bool UseSubsample(const ProblemDescription& problem)
 {
     return (problem.GetKernelStrideW() > 1 || problem.GetKernelStrideH() > 1) &&
            problem.IsDirectionForward();
 }
 
-static inline bool UseUpsample(const ProblemDescription& problem)
+bool UseUpsample(const ProblemDescription& problem)
 {
     return (problem.GetKernelStrideW() > 1 || problem.GetKernelStrideH() > 1) &&
            problem.IsDirectionBackwardData();
@@ -67,19 +69,19 @@ static inline bool UseUpsample(const ProblemDescription& problem)
 /// As padding = 0, we can simply re-use output image size (no computations required).
 /// \note For backward convolutions input image size is held in
 /// out_height/out_width and vice versa.
-static inline int AsmImgHeight(const ProblemDescription& problem)
+std::size_t AsmImgHeight(const ProblemDescription& problem)
 {
     return UseSubsample(problem) ? problem.GetOutHeight() : problem.GetInHeight();
 }
 
-static inline int AsmImgWidth(const ProblemDescription& problem)
+std::size_t AsmImgWidth(const ProblemDescription& problem)
 {
     return UseSubsample(problem) ? problem.GetOutWidth() : problem.GetInWidth();
 }
 
 /// \todo move to separate header and use in other solvers.
 template <int L, int H>
-inline static bool IsTwoPower(const int v)
+bool IsTwoPower(const int v)
 {
     static_assert(L <= H, "L <= H");
     if(((v - 1) & v) != 0)
@@ -88,7 +90,7 @@ inline static bool IsTwoPower(const int v)
 }
 
 template <int L, int H>
-inline static bool NextTwoPower(int& v)
+bool NextTwoPower(int& v)
 {
     static_assert((((L - 1) & L) == 0), "L is not power of 2");
     static_assert((((H - 1) & H) == 0), "H is not power of 2");
@@ -103,14 +105,14 @@ inline static bool NextTwoPower(int& v)
 }
 
 template <int L, int H>
-inline static bool IsLinear(const int v)
+bool IsLinear(const int v)
 {
     static_assert(L <= H, "L <= H");
     return L <= v && v <= H;
 }
 
 template <int L, int H>
-inline static bool NextLinear(int& v)
+bool NextLinear(int& v)
 {
     assert((IsLinear<L, H>(v)));
     if(H == v)
@@ -123,12 +125,12 @@ inline static bool NextLinear(int& v)
 }
 
 // This range is like regular range [0,4,8...32], but 1 is used instead of 0.
-inline static bool Is_1_4_8_12_to_32(const int& v)
+bool Is_1_4_8_12_to_32(const int& v)
 {
     return v == 1 || (v % 4 == 0 && IsLinear<1, 8>(v / 4));
 }
 
-inline static bool Next_1_4_8_12_to_32(int& v)
+bool Next_1_4_8_12_to_32(int& v)
 {
     assert(Is_1_4_8_12_to_32(v));
     int tmp        = v / 4;
@@ -138,10 +140,10 @@ inline static bool Next_1_4_8_12_to_32(int& v)
 }
 
 #ifndef NDEBUG
-inline static bool Is_1_4(const int& v) { return v == 1 || v == 4; }
+bool Is_1_4(const int& v) { return v == 1 || v == 4; }
 #endif
 
-inline static bool Next_1_4(int& v)
+bool Next_1_4(int& v)
 {
     assert(Is_1_4(v));
     if(v == 4)
@@ -152,6 +154,8 @@ inline static bool Next_1_4(int& v)
     v = 4;
     return false;
 }
+
+} // namespace
 
 bool PerformanceConfigConvAsm1x1U::SetNextValue(const ProblemDescription&)
 {
@@ -349,13 +353,13 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
         if(!(waves_c_in_group <= problem.GetInChannels()))
             return false;
         const int c_per_wave = (problem.GetInChannels() + waves_c_in_group - 1) / waves_c_in_group;
-        const int c_per_last_wave = problem.GetInChannels() - (c_per_wave * (waves_c_in_group - 1));
+        const int c_per_last_wave = problem.GetInChannels() - static_cast<std::size_t>(c_per_wave * (waves_c_in_group - 1));
         if(c_per_wave % c_mult != 0 || c_per_last_wave % c_mult != 0)
             return false;
     }
     if(sequence_length > 7)
     {
-        if(!(k_mult * waves_k_in_group <= problem.GetOutChannels()))
+        if(!(static_cast<std::size_t>(k_mult) * waves_k_in_group <= problem.GetOutChannels()))
             return false;
         if(!(waves_c_in_group * waves_k_in_group <= 16))
             return false;
@@ -600,7 +604,7 @@ bool ConvAsm1x1U::IsApplicable(const ExecutionContext& ctx, const ProblemDescrip
             return false;
     }
     // Check limits:
-    const auto h_w = static_cast<uint64_t>(AsmImgHeight(problem)) * AsmImgWidth(problem);
+    const auto h_w = AsmImgHeight(problem) * AsmImgWidth(problem);
     const auto r_s     = problem.GetWeightsHeight() * problem.GetWeightsWidth();
     const auto c_h_w   = problem.GetInChannels() * h_w;  // C*H*W
     const auto k_h_w   = problem.GetOutChannels() * h_w; // K*H*W
@@ -623,11 +627,11 @@ size_t ConvAsm1x1U::GetWorkspaceSize(const ExecutionContext&,
 {
     if(UseSubsample(problem) || UseUpsample(problem))
     {
-        int in_batch_stride =
+        auto in_batch_stride =
             AsmImgWidth(problem) * AsmImgHeight(problem) *
             (UseSubsample(problem) ? problem.GetInChannels() : problem.GetOutChannels());
-        int data_len = GetTypeSize(problem.GetOutDataType());
-        return static_cast<size_t>(in_batch_stride) * problem.GetBatchSize() * data_len;
+        auto data_len = GetTypeSize(problem.GetOutDataType());
+        return in_batch_stride * problem.GetBatchSize() * data_len;
     }
     return 0;
 }
@@ -652,10 +656,10 @@ ConvSolution ConvAsm1x1U::GetSolution(const ExecutionContext& ctx,
     if(UseSubsample(problem) || UseUpsample(problem))
     {
         // subsampled input, in_height equals to image size after downsampling
-        int in_batch_stride =
+        auto in_batch_stride =
             AsmImgWidth(problem) * AsmImgHeight(problem) *
             (UseSubsample(problem) ? problem.GetInChannels() : problem.GetOutChannels());
-        int write_unit = (AsmImgWidth(problem) % 4 == 0)   ? 4
+        unsigned write_unit = (AsmImgWidth(problem) % 4 == 0)   ? 4
                          : (AsmImgWidth(problem) % 3 == 0) ? 3
                          : (AsmImgWidth(problem) % 2 == 0) ? 2
                                                            : 1;

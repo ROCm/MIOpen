@@ -154,16 +154,16 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ExecutionContext& ctx,
     assert(chunk_size != 0);
     if(reverse_inout == 0)
     {
-        if((problem.GetOutChannels() % (GetCPerWave() * problem.GetGroupCount()) != 0) ||
-           (problem.GetInChannels() % (GetKPerWave() * problem.GetGroupCount()) != 0))
+        if((problem.GetOutChannels() % static_cast<std::size_t>(GetCPerWave() * problem.GetGroupCount()) != 0) ||
+           (problem.GetInChannels() % static_cast<std::size_t>(GetKPerWave() * problem.GetGroupCount()) != 0))
         {
             return false;
         }
     }
     else
     {
-        if((problem.GetOutChannels() % (GetKPerWave() * problem.GetGroupCount()) != 0) ||
-           (problem.GetInChannels() % (GetCPerWave() * problem.GetGroupCount()) != 0))
+        if((problem.GetOutChannels() % static_cast<std::size_t>(GetKPerWave() * problem.GetGroupCount()) != 0) ||
+           (problem.GetInChannels() % static_cast<std::size_t>(GetCPerWave() * problem.GetGroupCount()) != 0))
         {
             return false;
         }
@@ -340,7 +340,7 @@ void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ExecutionContext& ctx
         k_per_wave       = 1;
         pipe_lines_depth = 2;
         n_per_group      = 1;
-        if(problem.GetOutChannels() % (4 * problem.GetGroupCount()) != 0)
+        if(problem.GetOutChannels() % static_cast<std::size_t>(4 * problem.GetGroupCount()) != 0)
         {
             /// (1) If reverse is Off, then both (C % c_per_wave) and (K % k_per_wave) must be 0.
             /// Toggling reverse swaps C and K in the condition above.
@@ -463,8 +463,9 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ExecutionContext& ctx,
     ok = problem.GetOutWidth() > 0
          && problem.GetOutWidth() <= 512
          && (IsReverseInOutAllowed(problem)
-                ? ((problem.GetOutChannels() % (4 * problem.GetGroupCount()) == 0) || (problem.GetInChannels() % (4 * problem.GetGroupCount()) == 0))
-                : (problem.GetOutChannels() % (4 * problem.GetGroupCount()) == 0))
+                ? ((problem.GetOutChannels() % static_cast<std::size_t>(4 * problem.GetGroupCount()) == 0)
+                    || (problem.GetInChannels() % static_cast<std::size_t>(4 * problem.GetGroupCount()) == 0))
+                : (problem.GetOutChannels() % static_cast<std::size_t>(4 * problem.GetGroupCount()) == 0))
          && problem.GetOutHeight() < std::pow(2, 16)    // -H   H img_h
          && problem.GetBatchSize() < std::pow(2, 16)    // -n   N batch_size
          && problem.GetOutChannels() < std::pow(2, 16)  // -c   C input_channels

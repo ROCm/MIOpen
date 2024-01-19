@@ -402,7 +402,7 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ExecutionConte
         int block_size_reduction = 256;
         int grid_size_redcution  = problem.GetOutChannels() * problem.GetInChannels() *
                                   problem.GetWeightsHeight() * problem.GetWeightsWidth() /
-                                  (reduction_per_thread * block_size_reduction);
+                                  static_cast<std::size_t>(reduction_per_thread * block_size_reduction);
         kernel_reduction.g_wk.push_back(static_cast<std::size_t>(grid_size_redcution) *
                                         block_size_reduction);
         kernel_reduction.g_wk.push_back(1);
