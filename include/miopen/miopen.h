@@ -65,6 +65,7 @@
  * @defgroup TensorReduce
  * @defgroup find2
  * @defgroup sum
+ * @defgroup argmax
  * @defgroup cat
  *
  */
@@ -5657,6 +5658,28 @@ MIOPEN_EXPORT miopenStatus_t miopenSumForward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT SUM DOXYGEN GROUP
+#endif
+
+#ifdef MIOPEN_BETA_API
+
+/*! @ingroup argmax
+ * @brief Find the index of the maximum value of a tensor across dimensions.
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param xDesc                    Tensor descriptor for data input tensor x (input)
+ * @param x                        Data tensor x (input)
+ * @param dim                      Dimensions to reduce argmax. (input)
+ * @param yDesc                    Tensor descriptor for output indice data tensor y (input)
+ * @param y                        Data tensor y (output)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenArgmaxForward(miopenHandle_t handle,
+                                                 const miopenTensorDescriptor_t xDesc,
+                                                 const void* x,
+                                                 const int32_t dim,
+                                                 const miopenTensorDescriptor_t yDesc,
+                                                 void* y);
+
 #endif
 
 #ifdef __cplusplus
