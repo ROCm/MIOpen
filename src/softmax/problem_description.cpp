@@ -33,160 +33,62 @@ namespace miopen {
 
 namespace softmax {
 
-int nextPow2(int v)
-{
-
-    if(v == 1)
-    {
-        return (v << 1);
-    }
-    else
-    {
-        v--;
-        v |= v >> 1;
-        v |= v >> 2;
-        v |= v >> 4;
-        v |= v >> 8;
-        v |= v >> 16;
-        v++;
-        return v;
-    }
-}
-
-void getParams(const TensorDescriptor& in_desc,
-               miopenSoftmaxMode_t in_mode,
-               int& out_n,
-               int& out_c,
-               int& out_h,
-               int& out_w,
-               int& out_grid_size,
-               int& out_spatial_dim,
-               int& out_vector_size,
-               int& out_num_batch,
-               bool& out_usefp16,
-               bool& out_usefp32,
-               std::vector<size_t>& out_vld,
-               std::vector<size_t>& out_vgd,
-               size_t& out_workgroups,
-               int& out_batch_size,
-               int& out_u_batch_size)
-{
-    std::tie(out_n, out_c, out_h, out_w) = tien<4>(in_desc.GetLengths());
-
-    // using workgroup size of 256 by default
-    out_grid_size   = in_mode == MIOPEN_SOFTMAX_MODE_INSTANCE ? out_n : out_n * out_h * out_w;
-    out_spatial_dim = in_mode == MIOPEN_SOFTMAX_MODE_INSTANCE ? 1 : out_h * out_w;
-    out_vector_size = in_mode == MIOPEN_SOFTMAX_MODE_INSTANCE ? out_c * out_h * out_w : out_c;
-    // num_spatial_dims or pixels each workgroup can compute
-    out_num_batch = out_vector_size < 256 ? nextPow2(256 / out_vector_size) : 1;
-
-    out_vld = {256, 1, 1};
-
-    out_usefp16 = false;
-    out_usefp32 = true;
-    if(in_desc.GetType() == miopenHalf)
-    {
-        out_usefp16 = true;
-        out_usefp32 = false;
-    }
-
-    if(out_num_batch == 1)
-    {
-        out_workgroups = std::min(out_grid_size, 64 * 40 * 8);
-        out_vgd        = {out_workgroups * out_vld[0], 1, 1};
-
-        out_batch_size   = 0;
-        out_u_batch_size = 0;
-    }
-    else
-    {
-        out_batch_size = 256 / out_num_batch;
-        // num_channels each threads iterates over to cover all the channels
-        out_u_batch_size =
-            (out_vector_size > out_batch_size) ? nextPow2(out_vector_size / out_batch_size) : 1;
-
-        out_workgroups = (out_grid_size % out_num_batch == 0) ? (out_grid_size / out_num_batch)
-                                                              : (out_grid_size / out_num_batch + 1);
-        out_vgd        = {out_workgroups * out_vld[0], 1, 1};
-    }
-}
-
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    std::string network_config;
-
-    int n, c, h, w;
-    int grid_size, spatial_dim, vector_size, num_batch;
-
-    std::vector<size_t> vld;
-    std::vector<size_t> vgd;
-
-    bool usefp16, usefp32;
-
-    size_t workgroups;
-    int batch_size;
-    int u_batch_size;
-
-    const TensorDescriptor& desc = isForward ? yDesc : xdxDesc;
-
-    getParams(desc,
-              mode,
-              n,
-              c,
-              h,
-              w,
-              grid_size,
-              spatial_dim,
-              vector_size,
-              num_batch,
-              usefp16,
-              usefp32,
-              vld,
-              vgd,
-              workgroups,
-              batch_size,
-              u_batch_size);
+    std::string network_config = "sfmfwd-";
 
     auto alpha_fp = *(static_cast<const float*>(alpha));
     auto beta_fp  = *(static_cast<const float*>(beta));
-
-    if(num_batch > 1)
+  
+    if (isForward)
     {
-        if(isForward)
-        {
-            if((u_batch_size + 1) * 256 > 65536 && yDesc.GetType() == miopenHalf)
-                MIOPEN_THROW(miopenStatusBadParm, "Exceed local memory capacity");
-        }
-        else
-        {
-            if((2 * u_batch_size + 1) * 256 > 65536 && yDesc.GetType() == miopenHalf)
-                MIOPEN_THROW(miopenStatusBadParm, "Exceed local memory capacity");            
-        }
-    }
+        int n_x, c_x, h_x, w_x;
+        int n_y, c_y, h_y, w_y;
 
-    network_config = "sfmfwd-n" + std::to_string(num_batch) + 
-                     "half" + std::to_string(static_cast<int>(usefp16)) + 
-                     "float" + std::to_string(static_cast<int>(usefp32)) + 
-                     "g" + std::to_string(vgd[0]) +
-                     "l" + std::to_string(vld[0]) + 
-                     "dim" + std::to_string(spatial_dim) + 
-                     "grid" + std::to_string(grid_size) + 
-                     "wg" + std::to_string(workgroups) + 
-                     "v" + std::to_string(vector_size);
+        std::tie(n_x, c_x, h_x, w_x) = tien<4>(xdxDesc.GetLengths());
+        std::tie(n_y, c_y, h_y, w_y) = tien<4>(yDesc.GetLengths());
 
-    if(num_batch > 1)
-    {
-        network_config +=
-            "ubatch" + std::to_string(u_batch_size) + "batch" + std::to_string(batch_size);
-    }
+        network_config += 
+                "n_x" + std::to_string(n_x) + 
+                "c_x" + std::to_string(c_x) + 
+                "h_x" + std::to_string(h_x) + 
+                "w_x" + std::to_string(w_x) + 
 
-    if(isForward)
-    {
-        network_config +=   "xpk" + std::to_string(static_cast<int>(xdxDesc.IsPacked())) + 
-                            "ypk" + std::to_string(static_cast<int>(yDesc.IsPacked()));
+                "n_y" + std::to_string(n_y) + 
+                "c_y" + std::to_string(c_y) + 
+                "h_y" + std::to_string(h_y) + 
+                "w_y" + std::to_string(w_y);
+
+        network_config +=   
+                "xpk" + std::to_string(static_cast<int>(xdxDesc.IsPacked())) + 
+                "ypk" + std::to_string(static_cast<int>(yDesc.IsPacked()));
     }
     else
     {
+        int n_y, c_y, h_y, w_y;
+        int n_dy, c_dy, h_dy, w_dy;
+        int n_dx, c_dx, h_dx, w_dx;
+
+        std::tie(n_y, c_y, h_y, w_y) = tien<4>(yDesc.GetLengths());
+        std::tie(n_dy, c_dy, h_dy, w_dy) = tien<4>(dyDesc.GetLengths());
+        std::tie(n_dx, c_dx, h_dx, w_dx) = tien<4>(xdxDesc.GetLengths());        
+
+        network_config += 
+                "n_y" + std::to_string(n_y) + 
+                "c_y" + std::to_string(c_y) + 
+                "h_y" + std::to_string(h_y) + 
+                "w_y" + std::to_string(w_y) +
+
+                "n_dy" + std::to_string(n_dy) + 
+                "c_dy" + std::to_string(c_dy) + 
+                "h_dy" + std::to_string(h_dy) + 
+                "w_dy" + std::to_string(w_dy) + 
+
+                "n_dx" + std::to_string(n_dx) + 
+                "c_dx" + std::to_string(c_dx) + 
+                "h_dx" + std::to_string(h_dx) + 
+                "w_dx" + std::to_string(w_dx) + 
+
         network_config +=   "ypk" + std::to_string(static_cast<int>(yDesc.IsPacked())) + 
                             "dypk" + std::to_string(static_cast<int>(dyDesc.IsPacked())) + 
                             "dxpk" + std::to_string(static_cast<int>(xdxDesc.IsPacked()));
