@@ -100,8 +100,9 @@ ConvSolution CatForward::GetSolution(const ExecutionContext& context,
 
     constexpr size_t local_size = 192;
 
-    auto data_size        = get_data_size(dtype);
-    size_t max_inner_size = (x_dim_size_max * stride * data_size + 7) / 8;
+    auto data_size = get_data_size(dtype);
+    size_t max_inner_size =
+        (x_dim_size_max * stride * data_size + sizeof(short4) - 1) / sizeof(short4);
 
     size_t xlocalsize = std::min(max_inner_size, local_size);
     size_t ylocalsize = std::max(static_cast<int>(local_size / xlocalsize), 1);
@@ -138,14 +139,18 @@ ConvSolution CatForward::GetSolution(const ExecutionContext& context,
     {
     case 2:
         kernel.kernel_name     = "Cat2FwdPacked";
-        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel = handle_.Run(kernels.front());
                 decltype(auto) params = raw_params.CastTo<miopen::cat::CatInvokeParams>();
 
+                auto ydims      = params.yDesc.GetLengths();
+                auto dim        = params.dim;
+                auto stride     = params.yDesc.GetStrides()[dim];
                 auto y_dim_size = ydims[dim];
                 auto outer_size = std::accumulate(
                     ydims.begin(), ydims.begin() + dim, 1ULL, std::multiplies<size_t>());
+                auto data_size = get_data_size(params.yDesc.GetType());
 
                 kernel(params.GetX(0),
                        params.GetX(1),
@@ -160,14 +165,18 @@ ConvSolution CatForward::GetSolution(const ExecutionContext& context,
         break;
     case 4:
         kernel.kernel_name     = "Cat4FwdPacked";
-        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel = handle_.Run(kernels.front());
                 decltype(auto) params = raw_params.CastTo<miopen::cat::CatInvokeParams>();
 
+                auto ydims      = params.yDesc.GetLengths();
+                auto dim        = params.dim;
+                auto stride     = params.yDesc.GetStrides()[dim];
                 auto y_dim_size = ydims[dim];
                 auto outer_size = std::accumulate(
                     ydims.begin(), ydims.begin() + dim, 1ULL, std::multiplies<size_t>());
+                auto data_size = get_data_size(params.yDesc.GetType());
 
                 kernel(params.GetX(0),
                        params.GetX(1),
@@ -186,14 +195,18 @@ ConvSolution CatForward::GetSolution(const ExecutionContext& context,
         break;
     case 8:
         kernel.kernel_name     = "Cat8FwdPacked";
-        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel = handle_.Run(kernels.front());
                 decltype(auto) params = raw_params.CastTo<miopen::cat::CatInvokeParams>();
 
+                auto ydims      = params.yDesc.GetLengths();
+                auto dim        = params.dim;
+                auto stride     = params.yDesc.GetStrides()[dim];
                 auto y_dim_size = ydims[dim];
                 auto outer_size = std::accumulate(
                     ydims.begin(), ydims.begin() + dim, 1ULL, std::multiplies<size_t>());
+                auto data_size = get_data_size(params.yDesc.GetType());
 
                 kernel(params.GetX(0),
                        params.GetX(1),

@@ -39,22 +39,22 @@ __device__ char* cat_copy_buf(const char* __restrict__ input,
     size_t gid1 = blockIdx.y * blockDim.y + threadIdx.y;
     size_t gsz0 = gridDim.x * blockDim.x;
     size_t end  = input_dim_size * stride;
-    size_t step = gsz0 * 8;
+    size_t step = gsz0 * sizeof(ushort4);
 
     input += gid1 * end;
 
-    size_t i = gid0 * 8;
-    for(; (i + 7) < end; i += step)
-        *reinterpret_cast<int64_t*>(output + i) = *reinterpret_cast<const int64_t*>(input + i);
+    size_t i = gid0 * sizeof(ushort4);
+    for(; (i + sizeof(ushort4)) <= end; i += step)
+        *reinterpret_cast<ushort4*>(output + i) = *reinterpret_cast<const ushort4*>(input + i);
 
-    if((i + 3) < end)
+    if((i + sizeof(ushort2)) <= end)
     {
-        *reinterpret_cast<int32_t*>(output + i) = *reinterpret_cast<const int32_t*>(input + i);
-        i += 4;
+        *reinterpret_cast<ushort2*>(output + i) = *reinterpret_cast<const ushort2*>(input + i);
+        i += sizeof(ushort2);
     }
 
     if(i < end)
-        *reinterpret_cast<short*>(output + i) = *reinterpret_cast<const short*>(input + i);
+        *reinterpret_cast<ushort1*>(output + i) = *reinterpret_cast<const ushort1*>(input + i);
 
     return output + end;
 }

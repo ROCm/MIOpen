@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include <miopen/cat/problem_description.hpp>
+#include <miopen/datatype.hpp>
 #include <miopen/names.hpp>
 
 #include <sstream>
@@ -51,14 +52,15 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     auto ylength    = yDesc.GetLengths();
     auto outer_size = std::accumulate(
         ylength.begin(), ylength.begin() + dim, static_cast<size_t>(1), std::multiplies<size_t>());
-    auto dtype = yDesc.GetType();
+    auto stride         = yDesc.GetStrides()[dim];
+    auto dtype          = yDesc.GetType();
+    auto data_size      = get_data_size(dtype);
+    auto max_inner_size = max_x_dim_size * stride * data_size / sizeof(short4);
 
     std::ostringstream ss;
 
     ss << "catfwd" << fusion_size;
-    ss << "dtype" << dtype;
-    ss << "dim" << dim;
-    ss << "max_x_dim_size" << max_x_dim_size;
+    ss << "max_inner_size" << max_inner_size;
     ss << "outer_size" << outer_size;
 
     return NetworkConfig{ss.str()};
