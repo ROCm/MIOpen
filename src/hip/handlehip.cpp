@@ -517,7 +517,7 @@ Program Handle::LoadProgram(const fs::path& program_name,
     if(hsaco.empty())
     {
         CompileTimer ct;
-        auto p = HIPOCProgram{program_name, params, this->GetTargetProperties(), kernel_src};
+        auto p = HIPOCProgram{program_name.string(), params, this->GetTargetProperties(), kernel_src};
         ct.Log("Kernel", program_name.string());
 
 // Save to cache
@@ -542,7 +542,7 @@ Program Handle::LoadProgram(const fs::path& program_name,
     }
     else
     {
-        return HIPOCProgram{program_name, hsaco};
+        return HIPOCProgram{program_name.string(), hsaco};
     }
 }
 
