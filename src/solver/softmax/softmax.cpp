@@ -181,7 +181,7 @@ ConvSolution Softmax::GetSolution(const ExecutionContext& context,
         else
         {
             if((2 * u_batch_size + 1) * 256 > 65536 && yDesc.GetType() == miopenHalf)
-                MIOPEN_THROW(miopenStatusBadParm, "Exceed local memory capacity");            
+                MIOPEN_THROW(miopenStatusBadParm, "Exceed local memory capacity");
         }
     }
 
