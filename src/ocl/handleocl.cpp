@@ -39,7 +39,7 @@
 #include <miopen/ocldeviceinfo.hpp>
 #include <miopen/timer.hpp>
 
-#include <boost/filesystem.hpp>
+#include <miopen/filesystem.hpp>
 
 #include <string>
 

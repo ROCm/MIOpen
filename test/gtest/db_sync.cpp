@@ -55,6 +55,8 @@
 #define SKIP_KDB_PDB_TESTING 0       // Allows testing FDB on gfx1030.
 #define SKIP_CONVOCLDIRECTFWDFUSED 0 // Allows testing FDB on gfx1030 (legacy fdb).
 
+namespace fs = miopen::fs;
+
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DBSYNC)
 
 struct KDBKey
@@ -327,7 +329,7 @@ void ParseFDBbVal(const std::string& val, std::vector<FDBVal>& fdb_vals)
     }
 }
 
-void GetPerfDbVals(const boost::filesystem::path& filename,
+void GetPerfDbVals(const fs::path& filename,
                    const conv::ProblemDescription& problem_config,
                    std::unordered_map<std::string, std::string>& vals,
                    std::string& select_query)
@@ -358,7 +360,7 @@ void GetPerfDbVals(const boost::filesystem::path& filename,
     }
 }
 
-auto LoadKDBObjects(const boost::filesystem::path& filename)
+auto LoadKDBObjects(const fs::path& filename)
 {
     std::unordered_set<KDBKey> kdb_cache;
     auto select_query = "SELECT kernel_name, kernel_args from kern_db";
@@ -388,7 +390,7 @@ auto LoadKDBObjects(const boost::filesystem::path& filename)
     return kdb_cache;
 }
 
-bool CheckKDBObjects(const boost::filesystem::path& filename,
+bool CheckKDBObjects(const fs::path& filename,
                      const std::string& kernel_name,
                      const std::string& kernel_args)
 {
@@ -396,7 +398,7 @@ bool CheckKDBObjects(const boost::filesystem::path& filename,
     return kdb_cache.find(KDBKey{kernel_name, kernel_args}) != kdb_cache.end();
 }
 
-bool CheckKDBForTargetID(const boost::filesystem::path& filename)
+bool CheckKDBForTargetID(const fs::path& filename)
 {
     // clang-format off
         auto select_query = "SELECT count(*) FROM kern_db WHERE ( kernel_args like '-mcpu=%sram-ecc%') OR (kernel_args like '-mcpu=%xnack%')";
@@ -418,24 +420,22 @@ bool CheckKDBForTargetID(const boost::filesystem::path& filename)
 }
 } // namespace miopen
 
-void SetupPaths(boost::filesystem::path& fdb_file_path,
-                boost::filesystem::path& pdb_file_path,
-                boost::filesystem::path& kdb_file_path,
+void SetupPaths(fs::path& fdb_file_path,
+                fs::path& pdb_file_path,
+                fs::path& kdb_file_path,
                 const miopen::Handle& handle)
 {
     const std::string ext = ".fdb.txt";
-    const auto root_path  = boost::filesystem::path(miopen::GetSystemDbPath());
+    const auto root_path  = fs::path(miopen::GetSystemDbPath());
     // The base name has to be the test name for each GPU arch we have
     const std::string base_name = handle.GetDbBasename(); // "gfx90a68";
     const std::string suffix    = "HIP";                  // miopen::GetSystemFindDbSuffix();
     fdb_file_path               = root_path / (base_name + "." + suffix + ext);
     pdb_file_path               = root_path / (base_name + ".db");
     kdb_file_path               = root_path / (handle.GetDeviceName() + ".kdb");
-    ASSERT_TRUE(boost::filesystem::exists(fdb_file_path))
-        << "Db file does not exist" << fdb_file_path;
-    ASSERT_TRUE(boost::filesystem::exists(pdb_file_path))
-        << "Db file does not exist" << pdb_file_path;
-    ASSERT_TRUE(SKIP_KDB_PDB_TESTING || boost::filesystem::exists(kdb_file_path))
+    ASSERT_TRUE(fs::exists(fdb_file_path)) << "Db file does not exist" << fdb_file_path;
+    ASSERT_TRUE(fs::exists(pdb_file_path)) << "Db file does not exist" << pdb_file_path;
+    ASSERT_TRUE(SKIP_KDB_PDB_TESTING || fs::exists(kdb_file_path))
         << "Db file does not exist" << kdb_file_path;
 }
 
@@ -443,7 +443,7 @@ TEST(DBSync, KDBTargetID)
 {
     if(miopen::IsEnabled(ENV(MIOPEN_TEST_DBSYNC)))
     {
-        boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
+        fs::path fdb_file_path, pdb_file_path, kdb_file_path;
 #if WORKAROUND_ISSUE_2493
         SetEnvironmentVariable("MIOPEN_DEBUG_WORKAROUND_ISSUE_2493", "0");
 #endif
@@ -493,7 +493,7 @@ void CheckDynamicFDBEntry(size_t thread_index,
                           const miopen::ExecutionContext& _ctx,
                           std::atomic<size_t>& counter)
 {
-    boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
+    fs::path fdb_file_path, pdb_file_path, kdb_file_path;
     auto& handle = _ctx.GetStream();
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, handle);
     std::unordered_set<KDBKey> checked_kdbs;
@@ -562,7 +562,7 @@ void CheckDynamicFDBEntry(size_t thread_index,
 
 TEST(DBSync, DISABLED_DynamicFDBSync)
 {
-    boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
+    fs::path fdb_file_path, pdb_file_path, kdb_file_path;
     auto& handle = get_handle();
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, handle);
     miopen::CheckKDBObjects(kdb_file_path, "", "");
@@ -607,7 +607,7 @@ void CheckFDBEntry(size_t thread_index,
                    const miopen::ExecutionContext& _ctx,
                    std::atomic<size_t>& counter)
 {
-    boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
+    fs::path fdb_file_path, pdb_file_path, kdb_file_path;
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, _ctx.GetStream());
     std::unordered_set<KDBKey> checked_kdbs;
     const auto data_size = data.size();
@@ -777,7 +777,7 @@ static inline miopen::TestHandle& get_test_handle(size_t num_cu)
 
 void StaticFDBSync(const std::string& arch, const size_t num_cu)
 {
-    boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
+    fs::path fdb_file_path, pdb_file_path, kdb_file_path;
     auto& handle = get_test_handle(num_cu);
     if(handle.GetDeviceName() != arch)
         GTEST_SKIP();

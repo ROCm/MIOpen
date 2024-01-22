@@ -41,7 +41,7 @@
 #include <miopen/write_file.hpp>
 #endif
 
-#include <boost/filesystem.hpp>
+#include <miopen/filesystem.hpp>
 #include <miopen/load_file.hpp>
 
 #ifndef _WIN32

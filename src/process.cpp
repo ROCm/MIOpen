@@ -87,7 +87,7 @@ public:
     }
 
 private:
-    boost::filesystem::path path;
+    fs::path path;
     PROCESS_INFORMATION processInfo{};
 };
 
@@ -116,28 +116,28 @@ struct ProcessImpl
     }
 
 private:
-    boost::filesystem::path path;
+    fs::path path;
     FILE* pipe = nullptr;
 };
 
 #endif
 
-Process::Process(const boost::filesystem::path& cmd)
+Process::Process(const fs::path& cmd)
     : impl{std::make_unique<ProcessImpl>(cmd.string())}
 {
 }
 
 Process::~Process() noexcept = default;
 
-int Process::operator()(std::string_view args, const boost::filesystem::path& cwd)
+int Process::operator()(std::string_view args, const fs::path& cwd)
 {
     impl->Create(args, cwd.string());
     return impl->Wait();
 }
 
-ProcessAsync::ProcessAsync(const boost::filesystem::path& cmd,
+ProcessAsync::ProcessAsync(const fs::path& cmd,
                            std::string_view args,
-                           const boost::filesystem::path& cwd)
+                           const fs::path& cwd)
     : impl{std::make_unique<ProcessImpl>(cmd.string())}
 {
     impl->Create(args, cwd.string());

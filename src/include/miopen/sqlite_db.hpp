@@ -233,7 +233,7 @@ public:
         }
         else if(!is_system)
         {
-            auto file            = boost::filesystem::path(filename_);
+            auto file            = fs::path(filename_);
             const auto directory = file.remove_filename();
             if(directory.string().empty())
             {
@@ -241,18 +241,18 @@ public:
                 return;
             }
 
-            if(!(boost::filesystem::exists(directory)))
+            if(!fs::exists(directory))
             {
-                if(!boost::filesystem::create_directories(directory))
+                if(!fs::create_directories(directory))
                     MIOPEN_LOG_W("Unable to create a directory: " << directory);
                 else
-                    boost::filesystem::permissions(directory, boost::filesystem::all_all);
+                    fs::permissions(directory, fs::perms::all);
             }
         }
         sql = SQLite{filename_, is_system};
         if(!sql.Valid())
         {
-            bool isKDB = boost::filesystem::path(filename).extension() == ".kdb";
+            bool isKDB = fs::path(filename).extension() == ".kdb";
             dbInvalid  = true;
             filename   = "";
             if(!is_system)

@@ -158,7 +158,7 @@ inline std::string GetCodeObjectVersionOption()
 } // namespace
 #endif
 
-static hipModulePtr CreateModule(const boost::filesystem::path& hsaco_file)
+static hipModulePtr CreateModule(const fs::path& hsaco_file)
 {
     hipModule_t raw_m;
     auto status = hipModuleLoad(&raw_m, hsaco_file.string().c_str());
@@ -185,8 +185,7 @@ hipModulePtr CreateModuleInMem(const T& blob)
 #endif
 }
 
-HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
-                                   const boost::filesystem::path& filespec)
+HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name, const fs::path& filespec)
     : program(program_name), hsaco_file(filespec)
 {
     module = CreateModule(hsaco_file);
@@ -356,7 +355,7 @@ HIPOCProgram::HIPOCProgram(const std::string& program_name,
 {
 }
 
-HIPOCProgram::HIPOCProgram(const std::string& program_name, const boost::filesystem::path& hsaco)
+HIPOCProgram::HIPOCProgram(const std::string& program_name, const fs::path& hsaco)
     : impl(std::make_shared<HIPOCProgramImpl>(program_name, hsaco))
 {
 }
@@ -368,7 +367,7 @@ HIPOCProgram::HIPOCProgram(const std::string& program_name, const std::string& h
 
 hipModule_t HIPOCProgram::GetModule() const { return impl->module.get(); }
 
-boost::filesystem::path HIPOCProgram::GetCodeObjectPathname() const
+fs::path HIPOCProgram::GetCodeObjectPathname() const
 {
     if(!impl->hsaco_file.empty())
     {
