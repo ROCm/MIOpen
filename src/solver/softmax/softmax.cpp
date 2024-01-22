@@ -153,23 +153,23 @@ ConvSolution Softmax::GetSolution(const ExecutionContext& context,
     int batch_size;
     int u_batch_size;
 
-    miopen::softmax::getParams(yDesc,
-                               mode,
-                               n,
-                               c,
-                               h,
-                               w,
-                               grid_size,
-                               spatial_dim,
-                               vector_size,
-                               num_batch,
-                               usefp16,
-                               usefp32,
-                               vld,
-                               vgd,
-                               workgroups,
-                               batch_size,
-                               u_batch_size);
+    getParams(yDesc,
+              mode,
+              n,
+              c,
+              h,
+              w,
+              grid_size,
+              spatial_dim,
+              vector_size,
+              num_batch,
+              usefp16,
+              usefp32,
+              vld,
+              vgd,
+              workgroups,
+              batch_size,
+              u_batch_size);
 
     if(num_batch > 1)
     {

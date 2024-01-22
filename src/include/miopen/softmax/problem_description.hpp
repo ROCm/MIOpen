@@ -37,24 +37,6 @@ namespace softmax {
 
 int nextPow2(int v);
 
-void getParams(const TensorDescriptor& in_yDesc,
-               miopenSoftmaxMode_t in_mode,
-               int& out_n,
-               int& out_c,
-               int& out_h,
-               int& out_w,
-               int& out_grid_size,
-               int& out_spatial_dim,
-               int& out_vector_size,
-               int& out_num_batch,
-               bool& out_usefp16,
-               bool& out_usefp32,
-               std::vector<size_t>& out_vld,
-               std::vector<size_t>& out_vgd,
-               size_t& out_workgroups,
-               int& out_batch_size,
-               int& out_u_batch_size);
-
 struct ProblemDescription : ProblemDescriptionBase
 {
     // softmax forward constructor
