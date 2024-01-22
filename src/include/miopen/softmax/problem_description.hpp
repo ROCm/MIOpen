@@ -106,8 +106,8 @@ struct ProblemDescription : ProblemDescriptionBase
     }
 
     bool IsForward() const { return isForward; }
-    const miopenSoftmaxAlgorithm_t GetAlgorithm() const { return algorithm; }
-    const miopenSoftmaxMode_t GetMode() const { return mode; }
+    miopenSoftmaxAlgorithm_t GetAlgorithm() const { return algorithm; }
+    miopenSoftmaxMode_t GetMode() const { return mode; }
     const void* GetAlpha() const { return alpha; }
     const void* GetBeta() const { return beta; }
 
