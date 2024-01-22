@@ -30,8 +30,7 @@
 __device__ char* cat_copy_buf(const char* __restrict__ input,
                               char* __restrict__ output,
                               const size_t input_dim_size,
-                              const size_t stride,
-                              const size_t data_size)
+                              const size_t stride)
 {
     if(!input)
         return output;
@@ -39,7 +38,7 @@ __device__ char* cat_copy_buf(const char* __restrict__ input,
     size_t gid0 = blockIdx.x * blockDim.x + threadIdx.x;
     size_t gid1 = blockIdx.y * blockDim.y + threadIdx.y;
     size_t gsz0 = gridDim.x * blockDim.x;
-    size_t end  = input_dim_size * stride * data_size;
+    size_t end  = input_dim_size * stride;
     size_t step = gsz0 * 8;
 
     input += gid1 * end;
@@ -79,24 +78,23 @@ extern "C" __global__ void Cat8FwdPacked(const char* __restrict__ input1,
                                          const size_t input8_dim_size,
                                          const size_t outer_size,
                                          const size_t stride,
-                                         const size_t output_dim_size,
-                                         const size_t data_size)
+                                         const size_t output_dim_size)
 {
     size_t gid = blockIdx.y * blockDim.y + threadIdx.y;
 
     if(gid >= outer_size)
         return;
 
-    output += gid * output_dim_size * stride * data_size;
+    output += gid * output_dim_size * stride;
 
-    output = cat_copy_buf(input1, output, input1_dim_size, stride, data_size);
-    output = cat_copy_buf(input2, output, input2_dim_size, stride, data_size);
-    output = cat_copy_buf(input3, output, input3_dim_size, stride, data_size);
-    output = cat_copy_buf(input4, output, input4_dim_size, stride, data_size);
-    output = cat_copy_buf(input5, output, input5_dim_size, stride, data_size);
-    output = cat_copy_buf(input6, output, input6_dim_size, stride, data_size);
-    output = cat_copy_buf(input7, output, input7_dim_size, stride, data_size);
-    cat_copy_buf(input8, output, input8_dim_size, stride, data_size);
+    output = cat_copy_buf(input1, output, input1_dim_size, stride);
+    output = cat_copy_buf(input2, output, input2_dim_size, stride);
+    output = cat_copy_buf(input3, output, input3_dim_size, stride);
+    output = cat_copy_buf(input4, output, input4_dim_size, stride);
+    output = cat_copy_buf(input5, output, input5_dim_size, stride);
+    output = cat_copy_buf(input6, output, input6_dim_size, stride);
+    output = cat_copy_buf(input7, output, input7_dim_size, stride);
+    cat_copy_buf(input8, output, input8_dim_size, stride);
 }
 
 extern "C" __global__ void Cat4FwdPacked(const char* __restrict__ input1,
@@ -110,20 +108,19 @@ extern "C" __global__ void Cat4FwdPacked(const char* __restrict__ input1,
                                          const size_t input4_dim_size,
                                          const size_t outer_size,
                                          const size_t stride,
-                                         const size_t output_dim_size,
-                                         const size_t data_size)
+                                         const size_t output_dim_size)
 {
     size_t gid = blockIdx.y * blockDim.y + threadIdx.y;
 
     if(gid >= outer_size)
         return;
 
-    output += gid * output_dim_size * stride * data_size;
+    output += gid * output_dim_size * stride;
 
-    output = cat_copy_buf(input1, output, input1_dim_size, stride, data_size);
-    output = cat_copy_buf(input2, output, input2_dim_size, stride, data_size);
-    output = cat_copy_buf(input3, output, input3_dim_size, stride, data_size);
-    cat_copy_buf(input4, output, input4_dim_size, stride, data_size);
+    output = cat_copy_buf(input1, output, input1_dim_size, stride);
+    output = cat_copy_buf(input2, output, input2_dim_size, stride);
+    output = cat_copy_buf(input3, output, input3_dim_size, stride);
+    cat_copy_buf(input4, output, input4_dim_size, stride);
 }
 
 extern "C" __global__ void Cat2FwdPacked(const char* __restrict__ input1,
@@ -133,16 +130,15 @@ extern "C" __global__ void Cat2FwdPacked(const char* __restrict__ input1,
                                          const size_t input2_dim_size,
                                          const size_t outer_size,
                                          const size_t stride,
-                                         const size_t output_dim_size,
-                                         const size_t data_size)
+                                         const size_t output_dim_size)
 {
     size_t gid = blockIdx.y * blockDim.y + threadIdx.y;
 
     if(gid >= outer_size)
         return;
 
-    output += gid * output_dim_size * stride * data_size;
+    output += gid * output_dim_size * stride;
 
-    output = cat_copy_buf(input1, output, input1_dim_size, stride, data_size);
-    cat_copy_buf(input2, output, input2_dim_size, stride, data_size);
+    output = cat_copy_buf(input1, output, input1_dim_size, stride);
+    cat_copy_buf(input2, output, input2_dim_size, stride);
 }
