@@ -60,16 +60,6 @@ struct ProblemDescription : ProblemDescriptionBase
           num_groups(num_groups_),
           epsilon(epsilon_)
     {
-        if(xDesc.GetType() != yDesc.GetType())
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "groupnorm::ProblemDescription: Tensor types do not match.");
-        }
-        if(meanDesc.GetType() != rstdDesc.GetType())
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "groupnorm::ProblemDescription: Tensor types do not match.");
-        }
         if(xDesc.GetLengths() != yDesc.GetLengths())
         {
             MIOPEN_THROW(miopenStatusBadParm,
@@ -87,12 +77,6 @@ struct ProblemDescription : ProblemDescriptionBase
                          "groupnorm::ProblemDescription: The number of dimensions of the input "
                          "tensor should be at least 3.");
         }
-        if(!(xDesc.IsPacked() && weightDesc.IsPacked() && biasDesc.IsPacked() && yDesc.IsPacked() &&
-             meanDesc.IsPacked() && rstdDesc.IsPacked()))
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "groupnorm::ProblemDescription: Unpacked tensors are not supported.");
-        }
     }
 
     miopenNormMode_t GetMode() const { return mode; }
@@ -104,6 +88,37 @@ struct ProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetRstdDesc() const { return rstdDesc; }
     int32_t GetNumGroups() const { return num_groups; }
     float GetEpsilon() const { return epsilon; }
+
+    bool IsValidType() const
+    {
+        if(xDesc.GetType() != yDesc.GetType())
+        {
+            return false;
+        }
+        if(yDesc.GetType() != weightDesc.GetType())
+        {
+            return false;
+        }
+        if(weightDesc.GetType() != biasDesc.GetType())
+        {
+            return false;
+        }
+        if(meanDesc.GetType() != rstdDesc.GetType())
+        {
+            return false;
+        }
+        return true;
+    }
+
+    bool IsAllPacked() const
+    {
+        if(!(xDesc.IsPacked() && weightDesc.IsPacked() && biasDesc.IsPacked() && yDesc.IsPacked() &&
+             meanDesc.IsPacked() && rstdDesc.IsPacked()))
+        {
+            return false;
+        }
+        return true;
+    }
 
     NetworkConfig MakeNetworkConfig() const override;
 

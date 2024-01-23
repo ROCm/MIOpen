@@ -205,7 +205,7 @@
 #ifdef __HIP_PLATFORM_AMD__
 #define CVT_FLOAT2ACCUM(x) (bfloat16_to_float(x))
 #define CVT_ACCUM2FLOAT(x) (float_to_bfloat16(x))
-#define CVT_INTEGRAL2ACCUM(x) (static_cast<_FLOAT_ACCUM>(x))
+#define CVT_INTEGRAL2ACCUM(x) (static_cast<FLOAT_ACCUM>(x))
 #define CVT_FP32_2FLOAT(x) (CVT_ACCUM2FLOAT(x))
 #define CVT_FP32_2ACCUM(x) (x)
 #else

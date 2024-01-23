@@ -54,6 +54,10 @@ std::size_t sizeof_local_memory(const miopen::groupnorm::ProblemDescription& pro
 bool GroupNormForward::IsApplicable(const ExecutionContext&,
                                     const miopen::groupnorm::ProblemDescription& problem) const
 {
+    if(!problem.IsValidType())
+        return false;
+    if(!problem.IsAllPacked())
+        return false;
     if(!(sizeof_local_memory(problem) <= TargetProperties::GetMaxLocalMemorySize()))
         return false;
     if(problem.GetXDesc().GetLengths()[0] * problem.GetNumGroups() < 32 ||
