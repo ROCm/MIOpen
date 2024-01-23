@@ -50,10 +50,7 @@ struct Softmax final : SoftmaxSolver
                              const miopen::softmax::ProblemDescription& problem) const override;
 
     std::size_t GetWorkspaceSize(const ExecutionContext& context,
-                                 const miopen::softmax::ProblemDescription& problem) const override
-    {
-        return 0;
-    }
+                                 const miopen::softmax::ProblemDescription& problem) const override;
 
     bool MayNeedWorkspace() const override { return false; }
 };

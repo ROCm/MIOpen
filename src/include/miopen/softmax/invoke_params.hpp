@@ -95,7 +95,7 @@ struct InvokeParams : public miopen::InvokeParams
           dyDesc(dyDesc_),
           dy(dy_),
 
-          xdx_offset(0),
+          xdx_offset(dx_offset_),
           y_offset(y_offset_),
           dy_offset(dy_offset_)
     {

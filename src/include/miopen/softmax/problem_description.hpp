@@ -135,7 +135,6 @@ private:
         }
     }
 
-private:
     const bool isForward;
     const void* alpha;
     const void* beta;

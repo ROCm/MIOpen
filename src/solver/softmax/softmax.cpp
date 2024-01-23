@@ -122,6 +122,12 @@ bool Softmax::IsApplicable(const ExecutionContext& context,
     return true;
 }
 
+std::size_t Softmax::GetWorkspaceSize(const ExecutionContext& context,
+                                      const miopen::softmax::ProblemDescription& problem) const
+{
+    return 0;
+}
+
 ConvSolution Softmax::GetSolution(const ExecutionContext& context,
                                   const miopen::softmax::ProblemDescription& problem) const
 {
