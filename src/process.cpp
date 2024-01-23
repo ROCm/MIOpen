@@ -122,10 +122,7 @@ private:
 
 #endif
 
-Process::Process(const fs::path& cmd)
-    : impl{std::make_unique<ProcessImpl>(cmd.string())}
-{
-}
+Process::Process(const fs::path& cmd) : impl{std::make_unique<ProcessImpl>(cmd.string())} {}
 
 Process::~Process() noexcept = default;
 
@@ -135,9 +132,7 @@ int Process::operator()(std::string_view args, const fs::path& cwd)
     return impl->Wait();
 }
 
-ProcessAsync::ProcessAsync(const fs::path& cmd,
-                           std::string_view args,
-                           const fs::path& cwd)
+ProcessAsync::ProcessAsync(const fs::path& cmd, std::string_view args, const fs::path& cwd)
     : impl{std::make_unique<ProcessImpl>(cmd.string())}
 {
     impl->Create(args, cwd.string());
