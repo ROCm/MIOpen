@@ -32,18 +32,15 @@
 #include <gtest/gtest.h>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DEEPBENCH)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_FLOAT)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_HALF)
 
 namespace deepbench_lstm {
 
 static bool Skip(miopenDataType_t prec)
 {
-    bool flag = !miopen::IsEnabled(ENV(MIOPEN_TEST_DEEPBENCH));
     switch(prec)
     {
-    case miopenFloat: return flag || !miopen::IsEnabled(ENV(MIOPEN_TEST_FLOAT));
-    case miopenHalf: return flag || !miopen::IsEnabled(ENV(MIOPEN_TEST_HALF));
+    case miopenFloat: return !miopen::IsEnabled(ENV(MIOPEN_TEST_DEEPBENCH));
+    case miopenHalf:
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt8:
@@ -166,8 +163,4 @@ using namespace deepbench_lstm;
 
 TEST_P(ConfigWithFloat, FloatTest_deepbench_lstm) { Run2dDriver(miopenFloat); };
 
-// TEST_P(ConfigWithHalf, HalfTest_deepbench_lstm) { Run2dDriver(miopenHalf); };
-
 INSTANTIATE_TEST_SUITE_P(DeepbenchLstm, ConfigWithFloat, testing::Values(GetTestCases("--float")));
-
-// INSTANTIATE_TEST_SUITE_P(DeepbenchLstm, ConfigWithHalf, testing::Values(GetTestCases("--half")));

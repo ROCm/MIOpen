@@ -31,29 +31,7 @@
 #include <gtest/gtest.h>
 #include <boost/algorithm/string.hpp>
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_FLOAT)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_HALF)
-
 namespace lstm_extra {
-bool Skip(miopenDataType_t prec)
-{
-    bool flag = miopen::IsDisabled(ENV(MIOPEN_TEST_ALL));
-    switch(prec)
-    {
-    case miopenFloat: return flag || !miopen::IsEnabled(ENV(MIOPEN_TEST_FLOAT));
-    case miopenHalf: return flag || !miopen::IsEnabled(ENV(MIOPEN_TEST_HALF));
-    case miopenFloat8:
-    case miopenBFloat8:
-    case miopenInt8:
-    case miopenBFloat16:
-    case miopenInt32:
-    case miopenDouble:
-    default: MIOPEN_THROW("Unsupported datatype");
-    }
-    return true;
-}
-
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
     std::stringstream ss(param);
@@ -129,15 +107,11 @@ void Run2dDriver(miopenDataType_t prec)
     {
         GTEST_SKIP();
     }
-    if(Skip(prec))
-    {
-        GTEST_SKIP();
-    }
     std::vector<std::string> params;
     switch(prec)
     {
     case miopenFloat: params = ConfigWithFloat::GetParam(); break;
-    case miopenHalf: params = ConfigWithHalf::GetParam(); break;
+    case miopenHalf:
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt8:
@@ -173,8 +147,4 @@ using namespace lstm_extra;
 
 TEST_P(ConfigWithFloat, FloatTest_lstm_extra) { Run2dDriver(miopenFloat); };
 
-// TEST_P(ConfigWithHalf, HalfTest_lstm_extra) { Run2dDriver(miopenHalf); };
-
 INSTANTIATE_TEST_SUITE_P(LstmExtra, ConfigWithFloat, testing::Values(GetTestCases("--float")));
-
-// INSTANTIATE_TEST_SUITE_P(LstmExtra, ConfigWithHalf, testing::Values(GetTestCases("--half")));
