@@ -208,115 +208,120 @@ struct ChooseTransposeSolver<ND, TranposeKind::NCHW_TO_NHWC>
                                     miopen::TransposeSolutionDefault2Ndhwc>;
 };
 
-
 template <int ND, TranposeKind TPOSE_KIND, ConvOperandTag CONV_OP>
-struct TransposeOperand {
+struct TransposeOperand
+{
     static_assert(ND == 2 || ND == 3, "Num Dimensions must be 2 or 3");
-  constexpr static int NDIM = ND;
-  constexpr static ConvOperandTag CONV_OP_TAG = CONV_OP;
-  constexpr static TranposeKind TRANSPOSE_KIND = TPOSE_KIND;
+    constexpr static int NDIM                    = ND;
+    constexpr static ConvOperandTag CONV_OP_TAG  = CONV_OP;
+    constexpr static TranposeKind TRANSPOSE_KIND = TPOSE_KIND;
 
-  using SolverType = std::conditional_t<TPOSE_KIND == TranposeKind::NHWC_TO_NCHW,
-        // NHWC_TO_NCHW
-        std::conditional_t<ND == 2, miopen::TransposeSolutionNhwc2Default, miopen::TransposeSolutionNdhwc2Default>,
-        // NCHW_TO_NHWC
-        std::conditional_t<ND == 2, miopen::TransposeSolutionDefault2Nhwc, miopen::TransposeSolutionDefault2Ndhwc>
-          >;
-                      
+    using SolverType =
+        std::conditional_t<TPOSE_KIND == TranposeKind::NHWC_TO_NCHW,
+                           // NHWC_TO_NCHW
+                           std::conditional_t<ND == 2,
+                                              miopen::TransposeSolutionNhwc2Default,
+                                              miopen::TransposeSolutionNdhwc2Default>,
+                           // NCHW_TO_NHWC
+                           std::conditional_t<ND == 2,
+                                              miopen::TransposeSolutionDefault2Nhwc,
+                                              miopen::TransposeSolutionDefault2Ndhwc>>;
 
-  template <typename CKArgsType>
-  SolverType MakeTransposeSolver(const miopen::ExecutionContext& ctx,
-                                        const miopen::conv::ProblemDescription& problem,
-                                        const CKArgsType& ck_args) const
-  {
+    template <typename CKArgsType>
+    SolverType MakeTransposeSolver(const miopen::ExecutionContext& ctx,
+                                   const miopen::conv::ProblemDescription& problem,
+                                   const CKArgsType& ck_args) const
+    {
 
-    if constexpr (CONV_OP_TAG == ConvOperandTag::Input) {
-        std::printf("IN TPOSE_KIND=%d, (N=%d,C=%d,Hi=%d,Wi=%d)\n",
-                    int(TPOSE_KIND),
-                    ck_args.N,
-                    ck_args.C1,
-                    ck_args.Hi,
-                    ck_args.Wi);
-        if constexpr(ND == 3)
+        if constexpr(CONV_OP_TAG == ConvOperandTag::Input)
         {
+            std::printf("IN TPOSE_KIND=%d, (N=%d,C=%d,Hi=%d,Wi=%d)\n",
+                        int(TPOSE_KIND),
+                        ck_args.N,
+                        ck_args.C1,
+                        ck_args.Hi,
+                        ck_args.Wi);
+            if constexpr(ND == 3)
+            {
 
-            return SolverType{ctx,
-                                   problem.GetInDataType(),
-                                   static_cast<uint32_t>(ck_args.N),
-                                   static_cast<uint32_t>(ck_args.C1),
-                                   static_cast<uint32_t>(ck_args.Di),
-                                   static_cast<uint32_t>(ck_args.Hi),
-                                   static_cast<uint32_t>(ck_args.Wi)};
+                return SolverType{ctx,
+                                  problem.GetInDataType(),
+                                  static_cast<uint32_t>(ck_args.N),
+                                  static_cast<uint32_t>(ck_args.C1),
+                                  static_cast<uint32_t>(ck_args.Di),
+                                  static_cast<uint32_t>(ck_args.Hi),
+                                  static_cast<uint32_t>(ck_args.Wi)};
+            }
+            else
+            {
+                return SolverType{ctx,
+                                  problem.GetInDataType(),
+                                  static_cast<uint32_t>(ck_args.N),
+                                  static_cast<uint32_t>(ck_args.C1),
+                                  static_cast<uint32_t>(ck_args.Hi),
+                                  static_cast<uint32_t>(ck_args.Wi)};
+            }
+        }
+        else if constexpr(CONV_OP_TAG == ConvOperandTag::Weights)
+        {
+            std::printf("WEI TPOSE_KIND=%d, (K=%d,C=%d,Y=%d,X=%d)\n",
+                        int(TPOSE_KIND),
+                        ck_args.K1,
+                        ck_args.C,
+                        ck_args.Y,
+                        ck_args.X);
+            if constexpr(ND == 3)
+            {
+                return SolverType{ctx,
+                                  problem.GetWeightsDataType(),
+                                  static_cast<uint32_t>(ck_args.K1),
+                                  static_cast<uint32_t>(ck_args.C),
+                                  static_cast<uint32_t>(ck_args.Z),
+                                  static_cast<uint32_t>(ck_args.Y),
+                                  static_cast<uint32_t>(ck_args.X)};
+            }
+            else
+            {
+                return SolverType{ctx,
+                                  problem.GetWeightsDataType(),
+                                  static_cast<uint32_t>(ck_args.K1),
+                                  static_cast<uint32_t>(ck_args.C),
+                                  static_cast<uint32_t>(ck_args.Y),
+                                  static_cast<uint32_t>(ck_args.X)};
+            }
         }
         else
         {
-            return SolverType{ctx,
-                                   problem.GetInDataType(),
-                                   static_cast<uint32_t>(ck_args.N),
-                                   static_cast<uint32_t>(ck_args.C1),
-                                   static_cast<uint32_t>(ck_args.Hi),
-                                   static_cast<uint32_t>(ck_args.Wi)};
-        }
-    } else if constexpr (CONV_OP_TAG == ConvOperandTag::Weights) {
-        std::printf("WEI TPOSE_KIND=%d, (K=%d,C=%d,Y=%d,X=%d)\n",
-                    int(TPOSE_KIND),
-                    ck_args.K1,
-                    ck_args.C,
-                    ck_args.Y,
-                    ck_args.X);
-        if constexpr(ND == 3)
-        {
-            return SolverType{ctx,
-                                   problem.GetWeightsDataType(),
-                                   static_cast<uint32_t>(ck_args.K1),
-                                   static_cast<uint32_t>(ck_args.C),
-                                   static_cast<uint32_t>(ck_args.Z),
-                                   static_cast<uint32_t>(ck_args.Y),
-                                   static_cast<uint32_t>(ck_args.X)};
-        }
-        else
-        {
-            return SolverType{ctx,
-                                   problem.GetWeightsDataType(),
-                                   static_cast<uint32_t>(ck_args.K1),
-                                   static_cast<uint32_t>(ck_args.C),
-                                   static_cast<uint32_t>(ck_args.Y),
-                                   static_cast<uint32_t>(ck_args.X)};
-        }
-    } else {
-      static_assert(CONV_OP_TAG == ConvOperandTag::Output);
-        std::printf("OUT TPOSE_KIND=%d, (N=%d,K=%d,Ho=%d,Wo=%d)\n",
-                    int(TPOSE_KIND),
-                    ck_args.N,
-                    ck_args.K1,
-                    ck_args.Ho,
-                    ck_args.Wo);
+            static_assert(CONV_OP_TAG == ConvOperandTag::Output);
+            std::printf("OUT TPOSE_KIND=%d, (N=%d,K=%d,Ho=%d,Wo=%d)\n",
+                        int(TPOSE_KIND),
+                        ck_args.N,
+                        ck_args.K1,
+                        ck_args.Ho,
+                        ck_args.Wo);
 
-        if constexpr(ND == 3)
-        {
-            return SolverType{ctx,
-                                   problem.GetOutDataType(),
-                                   static_cast<uint32_t>(ck_args.N),
-                                   static_cast<uint32_t>(ck_args.K1),
-                                   static_cast<uint32_t>(ck_args.Do),
-                                   static_cast<uint32_t>(ck_args.Ho),
-                                   static_cast<uint32_t>(ck_args.Wo)};
-        }
-        else
-        {
-            return SolverType{ctx,
-                                   problem.GetOutDataType(),
-                                   static_cast<uint32_t>(ck_args.N),
-                                   static_cast<uint32_t>(ck_args.K1),
-                                   static_cast<uint32_t>(ck_args.Ho),
-                                   static_cast<uint32_t>(ck_args.Wo)};
+            if constexpr(ND == 3)
+            {
+                return SolverType{ctx,
+                                  problem.GetOutDataType(),
+                                  static_cast<uint32_t>(ck_args.N),
+                                  static_cast<uint32_t>(ck_args.K1),
+                                  static_cast<uint32_t>(ck_args.Do),
+                                  static_cast<uint32_t>(ck_args.Ho),
+                                  static_cast<uint32_t>(ck_args.Wo)};
+            }
+            else
+            {
+                return SolverType{ctx,
+                                  problem.GetOutDataType(),
+                                  static_cast<uint32_t>(ck_args.N),
+                                  static_cast<uint32_t>(ck_args.K1),
+                                  static_cast<uint32_t>(ck_args.Ho),
+                                  static_cast<uint32_t>(ck_args.Wo)};
+            }
         }
     }
-
-
-  }
 };
-
 
 // Shorthand aliases for CK assuming CK always expects and generates NHWC/NDHWC layouts
 template <int ND, ConvOperandTag CONV_OP>
@@ -329,7 +334,7 @@ class TransposeInstance
 {
     size_t tensor_sz = 0;
     std::vector<OpKernelArg> kern_args{};
-    size_t kern_idx      = std::numeric_limits<size_t>::max();
+    size_t kern_idx   = std::numeric_limits<size_t>::max();
     size_t buf_offset = 0;
     shared<Data_t> buf_handle{};
 
@@ -339,11 +344,10 @@ public:
                       size_t k_idx,
                       const MultiBufferWorkspaceTraits& wt,
                       size_t wspace_index)
-    :
-      tensor_sz(trans_sol.GetOutputTensorSize()),
-      kern_args(trans_sol.GetKernelArg()),
-      kern_idx(k_idx),
-      buf_offset(wt.GetOffset(wspace_index))
+        : tensor_sz(trans_sol.GetOutputTensorSize()),
+          kern_args(trans_sol.GetKernelArg()),
+          kern_idx(k_idx),
+          buf_offset(wt.GetOffset(wspace_index))
     {
     }
 
@@ -498,15 +502,18 @@ auto MakeTaggedTransposeInstances(ConvSolution& result,
 }
 */
 
-template <typename CKArgsType, typename Input1TposeOp, typename Input2TposeOp, typename OutputTposeOp>
+template <typename CKArgsType,
+          typename Input1TposeOp,
+          typename Input2TposeOp,
+          typename OutputTposeOp>
 auto MakeTaggedTransposeInstances(ConvSolution& result,
                                   const ExecutionContext& ctx,
                                   const miopen::conv::ProblemDescription& problem,
                                   const CKArgsType& ck_args,
                                   const Input1TposeOp& input1_op,
                                   const Input2TposeOp& input2_op,
-                                  const OutputTposeOp& output_op) {
-
+                                  const OutputTposeOp& output_op)
+{
 
     auto input1_solver = input1_op.MakeTransposeSolver(ctx, problem, ck_args);
     auto input2_solver = input2_op.MakeTransposeSolver(ctx, problem, ck_args);
@@ -514,40 +521,32 @@ auto MakeTaggedTransposeInstances(ConvSolution& result,
 
     // NOTE: In cases where the convolution updates only a subset of output
     // indices, we need to first initialize the workspace buffer for
-    // output with the real tensor for the output and then apply the convolution. 
+    // output with the real tensor for the output and then apply the convolution.
     // This is achieved by creating an input transpose op for the output workspace
-    // bufffer. 
+    // bufffer.
 
-    using OutputInitOp = CKTransposeInputOp<
-      OutputTposeOp::NDIM, OutputTposeOp::CONV_OP_TAG>;
-    
+    using OutputInitOp = CKTransposeInputOp<OutputTposeOp::NDIM, OutputTposeOp::CONV_OP_TAG>;
+
     auto output_init_solver = OutputInitOp{}.MakeTransposeSolver(ctx, problem, ck_args);
 
     result.construction_params.insert(result.construction_params.end(),
-        { input1_solver.GetKernelInfo(),
-          input2_solver.GetKernelInfo(),
-          output_solver.GetKernelInfo(),
-          output_init_solver.GetKernelInfo()});
+                                      {input1_solver.GetKernelInfo(),
+                                       input2_solver.GetKernelInfo(),
+                                       output_solver.GetKernelInfo(),
+                                       output_init_solver.GetKernelInfo()});
 
     constexpr size_t buf_alignment = 256ull;
-    MultiBufferWorkspaceTraits wt(
-        { input1_solver.GetOutputTensorSize(),
-          input2_solver.GetOutputTensorSize(),
-          output_solver.GetOutputTensorSize()}, 
-          buf_alignment);
-
+    MultiBufferWorkspaceTraits wt({input1_solver.GetOutputTensorSize(),
+                                   input2_solver.GetOutputTensorSize(),
+                                   output_solver.GetOutputTensorSize()},
+                                  buf_alignment);
 
     return std::make_tuple(
         TransposeInstanceTagged{input1_solver, 0, wt, 0, Input1TposeOp::CONV_OP_TAG},
         TransposeInstanceTagged{input2_solver, 1, wt, 1, Input2TposeOp::CONV_OP_TAG},
         TransposeInstanceTagged{output_solver, 2, wt, 2, OutputTposeOp::CONV_OP_TAG},
-        TransposeInstanceTagged{output_init_solver, 3, wt, 2, OutputTposeOp::CONV_OP_TAG}
-        );
-
+        TransposeInstanceTagged{output_init_solver, 3, wt, 2, OutputTposeOp::CONV_OP_TAG});
 }
-
-
-
 
 } // end namespace internal
 
@@ -608,154 +607,152 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
         return {miopenStatusInvalidValue};
     }
 
-    result.invoker_factory =
-        [ck_args        = std::move(ck_args),
-         sh_conv_ptr    = std::shared_ptr{std::move(*ptr_iter)},
-         input1_tr_inst = std::move(_input1_tr_inst),
-         input2_tr_inst = std::move(_input2_tr_inst),
-         output_tr_inst = std::move(_output_tr_inst),
-         output_init_tr_inst = std::move(_output_init_tr_inst)]
-           (const std::vector<Kernel>& kernels) mutable {
-            return [kernels,
-                    ck_args        = std::move(ck_args),
-                    sh_conv_ptr    = std::move(sh_conv_ptr),
-                    input1_tr_inst = std::move(input1_tr_inst),
-                    input2_tr_inst = std::move(input2_tr_inst),
-                    output_tr_inst = std::move(output_tr_inst),
-                    output_init_tr_inst = std::move(output_init_tr_inst)] 
-                      (const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
-                handle.ResetKernelTime();
+    result.invoker_factory = [ck_args             = std::move(ck_args),
+                              sh_conv_ptr         = std::shared_ptr{std::move(*ptr_iter)},
+                              input1_tr_inst      = std::move(_input1_tr_inst),
+                              input2_tr_inst      = std::move(_input2_tr_inst),
+                              output_tr_inst      = std::move(_output_tr_inst),
+                              output_init_tr_inst = std::move(_output_init_tr_inst)](
+                                 const std::vector<Kernel>& kernels) mutable {
+        return [kernels,
+                ck_args             = std::move(ck_args),
+                sh_conv_ptr         = std::move(sh_conv_ptr),
+                input1_tr_inst      = std::move(input1_tr_inst),
+                input2_tr_inst      = std::move(input2_tr_inst),
+                output_tr_inst      = std::move(output_tr_inst),
+                output_init_tr_inst = std::move(output_init_tr_inst)](
+                   const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
+            handle.ResetKernelTime();
 
-                const auto& data_ctx = primitive_parameters.CastTo<CastType>();
+            const auto& data_ctx = primitive_parameters.CastTo<CastType>();
 
-                // TODO(amber): remove
-                void* wb = data_ctx.workSpace;
-                void* we = reinterpret_cast<char*>(data_ctx.workSpace) + data_ctx.workSpaceSize;
-                MIOPEN_LOG_I("Workspace beg ptr = " << wb << " end ptr = " << we);
-                if(!data_ctx.workSpace)
+            // TODO(amber): remove
+            void* wb = data_ctx.workSpace;
+            void* we = reinterpret_cast<char*>(data_ctx.workSpace) + data_ctx.workSpaceSize;
+            MIOPEN_LOG_I("Workspace beg ptr = " << wb << " end ptr = " << we);
+            if(!data_ctx.workSpace)
+            {
+                MIOPEN_THROW(miopenStatusInvalidValue, "workspace pointer is null");
+            }
+
+            input1_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+            input2_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+            output_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+            output_init_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+
+            // conversion operator applied here to convert to ConvTensors
+            auto conv_tensors = ConvTensors(data_ctx.tensors);
+
+            std::printf("Invoker inputs, x=%p, w=%p, y=%p\n",
+                        conv_tensors.x,
+                        conv_tensors.w,
+                        conv_tensors.y);
+
+            auto print_vec = [](const char* name, const auto& vec) {
+                std::cout << name << " = [ ";
+                for(const auto& v : vec)
                 {
-                    MIOPEN_THROW(miopenStatusInvalidValue, "workspace pointer is null");
+                    std::cout << v << ", ";
                 }
+                std::cout << "]\n";
+            };
+#define PRINT_VEC(x) print_vec(#x, x);
 
-                input1_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
-                input2_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
-                output_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
-                output_init_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+            PRINT_VEC(conv_tensors.xDesc.GetLengths());
+            PRINT_VEC(conv_tensors.wDesc.GetLengths());
+            PRINT_VEC(conv_tensors.yDesc.GetLengths());
 
-                // conversion operator applied here to convert to ConvTensors
-                auto conv_tensors = ConvTensors(data_ctx.tensors);
+            // PRINT_VEC(ck_args.input);
+            // PRINT_VEC(ck_args.in_strides);
+            // PRINT_VEC(ck_args.weight);
+            // PRINT_VEC(ck_args.wei_strides);
+            // PRINT_VEC(ck_args.output);
+            // PRINT_VEC(ck_args.out_strides);
 
-                std::printf("Invoker inputs, x=%p, w=%p, y=%p\n",
+            // TODO(amber): remove this when DataInvokeParams stops swapping
+            // "in" and "out" tensors for backward pass
+            if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Input)
+            {
+                // this is backward pass, swap back input and output
+                std::swap(conv_tensors.x, conv_tensors.y);
+                std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
+                std::printf("Invoker inputs after swap, x=%p, w=%p, y=%p\n",
                             conv_tensors.x,
                             conv_tensors.w,
                             conv_tensors.y);
 
-                auto print_vec = [](const char* name, const auto& vec) {
-                    std::cout << name << " = [ ";
-                    for(const auto& v : vec)
-                    {
-                        std::cout << v << ", ";
-                    }
-                    std::cout << "]\n";
-                };
-#define PRINT_VEC(x) print_vec(#x, x);
+                // output_tr_inst.ZeroOutBuffer();
+            }
 
-                PRINT_VEC(conv_tensors.xDesc.GetLengths());
-                PRINT_VEC(conv_tensors.wDesc.GetLengths());
-                PRINT_VEC(conv_tensors.yDesc.GetLengths());
+            float tot_time = 0;
 
-                // PRINT_VEC(ck_args.input);
-                // PRINT_VEC(ck_args.in_strides);
-                // PRINT_VEC(ck_args.weight);
-                // PRINT_VEC(ck_args.wei_strides);
-                // PRINT_VEC(ck_args.output);
-                // PRINT_VEC(ck_args.out_strides);
+            // TODO(amber): remove
+            handle.Finish();
+            MIOPEN_LOG_I("calling ConvertFrom");
+            input1_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
+            tot_time += handle.GetKernelTime();
 
-                // TODO(amber): remove this when DataInvokeParams stops swapping
-                // "in" and "out" tensors for backward pass
-                if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Input)
-                {
-                    // this is backward pass, swap back input and output
-                    std::swap(conv_tensors.x, conv_tensors.y);
-                    std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
-                    std::printf("Invoker inputs after swap, x=%p, w=%p, y=%p\n",
-                                conv_tensors.x,
-                                conv_tensors.w,
-                                conv_tensors.y);
+            // TODO(amber): remove
+            handle.Finish();
+            MIOPEN_LOG_I("calling 2nd ConvertFrom");
+            input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
+            tot_time += handle.GetKernelTime();
 
-                    // output_tr_inst.ZeroOutBuffer();
-                }
+            handle.Finish();
+            MIOPEN_LOG_I("calling 3rd ConvertFrom");
+            output_init_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
+            tot_time += handle.GetKernelTime();
 
-                float tot_time = 0;
-
+            // TODO: Remove
+            if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Weights)
+            {
                 // TODO(amber): remove
                 handle.Finish();
-                MIOPEN_LOG_I("calling ConvertFrom");
-                input1_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
-                tot_time += handle.GetKernelTime();
+                MIOPEN_LOG_I("calling ZeroOutBuffer");
+                output_tr_inst.ZeroOutBuffer();
+            }
 
-                // TODO(amber): remove
-                handle.Finish();
-                MIOPEN_LOG_I("calling 2nd ConvertFrom");
-                input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
-                tot_time += handle.GetKernelTime();
+            std::array<internal::TransposeInstanceTagged*, 3> tr_ptrs = {
+                &input1_tr_inst, &input2_tr_inst, &output_tr_inst};
 
-                handle.Finish();
-                MIOPEN_LOG_I("calling 3rd ConvertFrom");
-                output_init_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
-                tot_time += handle.GetKernelTime();
+            // sort by tag in order: Input, Weights, Output
+            std::sort(tr_ptrs.begin(), tr_ptrs.end(), [](const auto& left, const auto& right) {
+                return left->GetConvOperandTagAsInt() < right->GetConvOperandTagAsInt();
+            });
 
-                // TODO: Remove 
-                if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Weights)
-                {
-                    // TODO(amber): remove
-                    handle.Finish();
-                    MIOPEN_LOG_I("calling ZeroOutBuffer");
-                    output_tr_inst.ZeroOutBuffer();
-                }
+            // TODO(amber): remove
+            MIOPEN_LOG_I("Inputs for CK conv kernel (x,w,y): "
+                         << tr_ptrs[0]->GetBufferPtr() << ", " << tr_ptrs[1]->GetBufferPtr() << ", "
+                         << tr_ptrs[2]->GetBufferPtr() << ", ");
 
+            auto invoker_ptr  = sh_conv_ptr->MakeInvokerPointer();
+            auto argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                   tr_ptrs[0]->GetBufferPtr(),
+                                                   tr_ptrs[1]->GetBufferPtr(),
+                                                   tr_ptrs[2]->GetBufferPtr());
+            // TODO(amber): remove
+            handle.Finish();
+            MIOPEN_LOG_I("calling CK convolution");
+            tot_time += invoker_ptr->Run(argument_ptr.get(),
+                                         {handle.GetStream(), handle.IsProfilingEnabled()});
 
-                std::array<internal::TransposeInstanceTagged*, 3> tr_ptrs = {
-                    &input1_tr_inst, &input2_tr_inst, &output_tr_inst};
+            // TODO(amber): remove
+            handle.Finish();
+            MIOPEN_LOG_I("calling ConvertTo");
+            output_tr_inst.ConvertTo(handle, kernels, conv_tensors);
+            tot_time += handle.GetKernelTime();
 
-                // sort by tag in order: Input, Weights, Output
-                std::sort(tr_ptrs.begin(), tr_ptrs.end(), [](const auto& left, const auto& right) {
-                    return left->GetConvOperandTagAsInt() < right->GetConvOperandTagAsInt();
-                });
+            // TODO(amber): remove
+            handle.Finish();
+            MIOPEN_LOG_I("done calling ConvertTo");
 
-                // TODO(amber): remove
-                MIOPEN_LOG_I("Inputs for CK conv kernel (x,w,y): "
-                             << tr_ptrs[0]->GetBufferPtr() << ", " << tr_ptrs[1]->GetBufferPtr()
-                             << ", " << tr_ptrs[2]->GetBufferPtr() << ", ");
-
-                auto invoker_ptr  = sh_conv_ptr->MakeInvokerPointer();
-                auto argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
-                                                       tr_ptrs[0]->GetBufferPtr(),
-                                                       tr_ptrs[1]->GetBufferPtr(),
-                                                       tr_ptrs[2]->GetBufferPtr());
-                // TODO(amber): remove
-                handle.Finish();
-                MIOPEN_LOG_I("calling CK convolution");
-                tot_time += invoker_ptr->Run(argument_ptr.get(),
-                                             {handle.GetStream(), handle.IsProfilingEnabled()});
-
-                // TODO(amber): remove
-                handle.Finish();
-                MIOPEN_LOG_I("calling ConvertTo");
-                output_tr_inst.ConvertTo(handle, kernels, conv_tensors);
-                tot_time += handle.GetKernelTime();
-
-                // TODO(amber): remove
-                handle.Finish();
-                MIOPEN_LOG_I("done calling ConvertTo");
-
-                if(handle.IsProfilingEnabled())
-                {
-                    handle.ResetKernelTime();
-                    handle.AccumKernelTime(tot_time);
-                }
-            };
+            if(handle.IsProfilingEnabled())
+            {
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(tot_time);
+            }
         };
+    };
 
     result.workspace_sz = GetWorkspaceSizeLayoutTransformConv(problem);
 
