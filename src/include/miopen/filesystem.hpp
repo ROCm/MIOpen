@@ -97,4 +97,3 @@ inline fs::path weakly_canonical(const fs::path& path) { return fs::weakly_canon
 #endif
 
 #endif // GUARD_MIOPEN_FILESYSTEM_HPP_
-
