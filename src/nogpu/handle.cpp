@@ -39,6 +39,7 @@
 
 #if !MIOPEN_ENABLE_SQLITE_KERN_CACHE
 #include <miopen/write_file.hpp>
+#include <boost/filesystem/operations.hpp>
 #endif
 
 #include <miopen/filesystem.hpp>
@@ -198,7 +199,7 @@ Program Handle::LoadProgram(const std::string& program_name,
         if(p.IsCodeObjectInMemory())
             miopen::WriteFile(p.GetCodeObjectBlob(), path);
         else
-            boost::filesystem::copy_file(p.GetCodeObjectPathname(), path);
+            fs::copy_file(p.GetCodeObjectPathname(), path);
         miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params);
 #endif
     }

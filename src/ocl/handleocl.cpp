@@ -40,6 +40,7 @@
 #include <miopen/timer.hpp>
 
 #include <miopen/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 
 #include <string>
 

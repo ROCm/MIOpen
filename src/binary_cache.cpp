@@ -206,7 +206,7 @@ fs::path LoadBinary(const TargetProperties& target,
 
     (void)num_cu;
     auto f = GetCacheFile(target.DbId(), name, args);
-    if(boost::filesystem::exists(f))
+    if(fs::exists(f))
     {
         return f.string();
     }
@@ -223,13 +223,13 @@ void SaveBinary(const fs::path& binary_path,
 {
     if(miopen::IsCacheDisabled())
     {
-        boost::filesystem::remove(binary_path);
+        fs::remove(binary_path);
     }
     else
     {
         auto p = GetCacheFile(target.DbId(), name, args);
-        boost::filesystem::create_directories(p.parent_path());
-        boost::filesystem::rename(binary_path, p);
+        fs::create_directories(p.parent_path());
+        fs::rename(binary_path, p);
     }
 }
 #endif

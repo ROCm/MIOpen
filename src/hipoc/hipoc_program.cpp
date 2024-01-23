@@ -264,7 +264,7 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
         params += " " + filename + " -o " + hsaco_file.string();
         dir->Execute(HIP_OC_COMPILER, params);
     }
-    if(!boost::filesystem::exists(hsaco_file))
+    if(!fs::exists(hsaco_file))
         MIOPEN_THROW("Cant find file: " + hsaco_file.string());
 }
 
