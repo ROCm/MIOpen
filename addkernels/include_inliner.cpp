@@ -39,8 +39,8 @@ std::string IncludeFileExceptionBase::What() const
 
 void IncludeInliner::Process(std::istream& input,
                              std::ostream& output,
-                             const std::filesystem::path& root,
-                             const std::filesystem::path& file_name,
+                             const fs::path& root,
+                             const fs::path& file_name,
                              const std::string& directive,
                              bool allow_angle_brackets,
                              bool recurse)
@@ -50,8 +50,8 @@ void IncludeInliner::Process(std::istream& input,
 
 void IncludeInliner::ProcessCore(std::istream& input,
                                  std::ostream& output,
-                                 const std::filesystem::path& root,
-                                 const std::filesystem::path& file_name,
+                                 const fs::path& root,
+                                 const fs::path& file_name,
                                  int line_number,
                                  const std::string& directive,
                                  bool allow_angle_brackets,
@@ -115,10 +115,9 @@ void IncludeInliner::ProcessCore(std::istream& input,
             const std::string include_file_path =
                 line.substr(first_quote_pos + 1, second_quote_pos - first_quote_pos - 1);
 
-            const auto abs_include_file_path{
-                std::filesystem::weakly_canonical(root / include_file_path)};
+            const auto abs_include_file_path{miopen::weakly_canonical(root / include_file_path)};
 
-            if(!std::filesystem::exists(abs_include_file_path))
+            if(!fs::exists(abs_include_file_path))
             {
                 if(include_optional)
                     continue;

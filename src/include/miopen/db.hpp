@@ -36,12 +36,6 @@
 #include <chrono>
 #include <string>
 
-namespace boost {
-namespace filesystem {
-class path;
-} // namespace filesystem
-} // namespace boost
-
 namespace miopen {
 
 struct RecordPositions

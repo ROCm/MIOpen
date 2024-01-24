@@ -1,7 +1,7 @@
 #ifndef GUARD_MLOPEN_WRITE_FILE_HPP
 #define GUARD_MLOPEN_WRITE_FILE_HPP
 
-#include <boost/filesystem.hpp>
+#include <miopen/filesystem.hpp>
 #include <miopen/manage_ptr.hpp>
 #include <fstream>
 
@@ -9,7 +9,7 @@ namespace miopen {
 
 using FilePtr = MIOPEN_MANAGE_PTR(FILE*, std::fclose);
 
-inline void WriteFile(const std::string& content, const boost::filesystem::path& name)
+inline void WriteFile(const std::string& content, const fs::path& name)
 {
     // std::cerr << "Write file: " << name << std::endl;
     const FilePtr f{std::fopen(name.string().c_str(), "w")};
@@ -17,7 +17,7 @@ inline void WriteFile(const std::string& content, const boost::filesystem::path&
         MIOPEN_THROW("Failed to write to file");
 }
 
-inline void WriteFile(const std::vector<char>& content, const boost::filesystem::path& name)
+inline void WriteFile(const std::vector<char>& content, const fs::path& name)
 {
     // std::cerr << "Write file: " << name << std::endl;
     const FilePtr f{std::fopen(name.string().c_str(), "w")};

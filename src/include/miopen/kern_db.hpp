@@ -42,12 +42,6 @@
 #include <chrono>
 #include <thread>
 
-namespace boost {
-namespace filesystem {
-class path;
-} // namespace filesystem
-} // namespace boost
-
 namespace miopen {
 struct KernelConfig
 {

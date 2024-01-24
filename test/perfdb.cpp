@@ -27,6 +27,7 @@
 #include "test.hpp"
 #include "driver.hpp"
 
+#include <miopen/filesystem.hpp>
 #include <miopen/db.hpp>
 #include <miopen/db_record.hpp>
 #include <miopen/lock_file.hpp>
@@ -35,8 +36,6 @@
 #include <miopen/readonlyramdb.hpp>
 #include <miopen/temp_file.hpp>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
 #include <boost/optional.hpp>
 
 #include <array>
@@ -66,10 +65,10 @@ private:
     bool cached;
 };
 
-static boost::filesystem::path& exe_path()
+static fs::path& exe_path()
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static boost::filesystem::path exe_path;
+    static fs::path exe_path;
     return exe_path;
 }
 
@@ -213,7 +212,7 @@ class DbTest
 public:
     DbTest(TempFile& temp_file_) : temp_file(temp_file_) { ResetDb(); }
 
-    virtual ~DbTest() { std::remove(LockFilePath(temp_file.Path()).c_str()); }
+    virtual ~DbTest() { fs::remove(LockFilePath(temp_file.Path())); }
 
 protected:
     TempFile& temp_file;
@@ -709,8 +708,8 @@ private:
             const auto err_path = *thread_logs_root() + "/thread-" + std::to_string(id) + "_" +
                                   log_postfix + "-err.log";
 
-            std::remove(out_path.c_str());
-            std::remove(err_path.c_str());
+            fs::remove(out_path);
+            fs::remove(err_path);
 
             log.open(out_path);
             log_err.open(err_path);
@@ -1006,7 +1005,7 @@ public:
             EXPECT_EQUAL(child.Wait(), 0);
         }
 
-        std::remove(lock_file_path.c_str());
+        fs::remove(lock_file_path);
 
         const std::string p = temp_file;
         const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(p, false));
@@ -1091,7 +1090,7 @@ public:
             EXPECT_EQUAL(child.Wait(), 0);
         }
 
-        std::remove(lock_file_path.c_str());
+        fs::remove(lock_file_path);
     }
 
     static void WorkItem(unsigned int id, const std::string& db_path)
