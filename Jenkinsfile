@@ -70,7 +70,7 @@ def cmake_build(Map conf=[:]){
         test_flags = " --disable-verification-cache " + test_flags
     }
 
-    if(conf.get("codecov", false)){ //Need
+    if(conf.get("codecov", false)){ //change from debug to relwithdebinfo
         setup_args = " -DCMAKE_BUILD_TYPE=relwithdebinfo -DCMAKE_CXX_FLAGS='-fprofile-instr-generate -fcoverage-mapping' -DCODECOV_TEST=On " + setup_args
     }else if(build_type_debug){
         setup_args = " -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags}'" + setup_args
