@@ -645,6 +645,8 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(problem.HasNonPackedTensors())
         return false;
+    if(problem.HasAtLeastOne64BitTensor())
+        return false;
     if(!problem.IsLayoutDefault())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
