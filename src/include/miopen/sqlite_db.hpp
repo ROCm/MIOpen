@@ -55,12 +55,6 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_DISABLE_SQL_WAL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_PERFDB_OVERRIDE)
 
-namespace boost {
-namespace filesystem {
-class path;
-} // namespace filesystem
-} // namespace boost
-
 namespace miopen {
 
 constexpr bool InMemDb = MIOPEN_EMBED_DB;
