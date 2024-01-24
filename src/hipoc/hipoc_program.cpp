@@ -260,7 +260,7 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
         WriteFile(src, dir->path / filename);
         params += " -target amdgcn-amd-amdhsa -x cl -D__AMD__=1  -O3";
         params += " -cl-kernel-arg-info -cl-denorms-are-zero";
-        params += " -cl-std=CL1.2 -mllvm -amdgpu-early-inline-all";
+        params += " -cl-std=CL2.0 -mllvm -amdgpu-early-inline-all";
         params += " -mllvm -amdgpu-internalize-symbols ";
         params += " " + filename + " -o " + hsaco_file.string();
         dir->Execute(HIP_OC_COMPILER, params);
