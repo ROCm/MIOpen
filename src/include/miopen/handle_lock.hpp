@@ -60,7 +60,7 @@ inline fs::path get_handle_lock_path(const char* name)
     if(!fs::exists(p))
     {
         auto tmp = fs::current_path() / boost::filesystem::unique_path().string();
-        std::ofstream{tmp};
+        std::ofstream{tmp}; // NOLINT(bugprone-unused-raii)
         fs::rename(tmp, p);
     }
     return p;
