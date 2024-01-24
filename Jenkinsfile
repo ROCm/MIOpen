@@ -684,7 +684,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, , codecov: true)
                     }
                 }
                 stage('Fp32 Hip Debug gfx94X') {
@@ -1027,7 +1027,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true", codecov: true)
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true", codecov: false)
                     }
                 }
                 // stage('Bf16 Hip Install All gfx94X') {
@@ -1167,7 +1167,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true", codecov: true)
+                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true", codecov: false)
                     }
                 }
                 // stage('Fp16 Hip All Install gfx94X') {
