@@ -86,6 +86,7 @@ set( MIOpen_Source
     activ/problem_description.cpp
     activ_api.cpp
     api/find2_0_commons.cpp
+    argmax_api.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
@@ -248,6 +249,7 @@ set( MIOpen_Source
     solver/pooling/forwardNd.cpp
     solver/pooling/backward2d.cpp
     solver/pooling/backwardNd.cpp
+    solver/reduce/forward_argmax.cpp
     solver/reduce/forward_sum.cpp
     subbuffers.cpp
     sum_api.cpp
@@ -381,23 +383,27 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_stride1.inc
         kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_stride2.inc
         kernels/Conv_Winograd_v30_3_1_metadata.inc
-        kernels/xform_bidirect_winograd_code.inc
-        kernels/rocm_version.inc
-        kernels/inst_wrappers.inc
+        kernels/bfloat16_dev.hpp
         kernels/conv_common.inc
+        kernels/conv_sizes.inc
+        kernels/float_types.h
+        kernels/gpr_alloc.inc
+        kernels/hip_f8_impl.hpp
+        kernels/hip_float8.hpp
+        kernels/inst_wrappers.inc
+        kernels/miopen_cstdint.hpp
+        kernels/miopen_limits.hpp
+        kernels/miopen_type_traits.hpp
+        kernels/miopen_utility.hpp
+        kernels/neuron.inc
+        kernels/rocm_version.inc
+        kernels/stride_array.hpp
         kernels/utilities.inc
+        kernels/workaround_issue_1431.hpp
+        kernels/xform_bidirect_winograd_code.inc
         kernels/xform_data_filter.inc
         kernels/xform_kd_cov2.inc
         kernels/xform_metadata.inc
-        kernels/neuron.inc
-        kernels/conv_sizes.inc
-        kernels/gpr_alloc.inc
-        kernels/bfloat16_dev.hpp
-        kernels/float_types.h
-        kernels/workaround_issue_1431.hpp
-        kernels/hip_f8_impl.hpp
-        kernels/hip_float8.hpp
-        kernels/stride_array.hpp
         )
 
     set(MIOPEN_KERNELS
@@ -410,7 +416,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${GPU_BATCHED_TRANSPOSE_KERNEL_HIP}
         ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_SOURCE}
         kernels/detect_llvm_amdgcn_buffer_atomic_fadd_f32_float.cpp
-        kernels/MIOpenCheckNumerics.cpp
+        kernels/MIOpenArgmax.cpp
+	kernels/MIOpenCheckNumerics.cpp
         kernels/MIOpenBatchNormActivBwdPerAct.cl
         kernels/MIOpenBatchNormActivBwdSpatial.cl
         kernels/MIOpenBatchNormActivFwdTrainPerAct.cl
@@ -544,7 +551,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
     list(APPEND MIOpen_Source
         activ.cpp
-        kernel_cache.cpp
+        argmax.cpp
+	kernel_cache.cpp
         layer_norm.cpp
         lrn.cpp
         mlo_dir_conv.cpp
@@ -735,20 +743,18 @@ endif()
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
     target_link_libraries(MIOpen PRIVATE frugally-deep::fdeep Eigen3::Eigen)
     if(NOT TARGET nlohmann_json)
-	# frugally-deep has broken linking to nlohmann_json
+        # frugally-deep has broken linking to nlohmann_json
         add_library(nlohmann_json INTERFACE IMPORTED GLOBAL)
-	target_link_libraries(nlohmann_json INTERFACE nlohmann_json::nlohmann_json)
-    endif()	    
-    if(NOT BUILD_DEV)
-        file(GLOB MODEL_FILES kernels/*.model)
-        if( NOT ENABLE_ASAN_PACKAGING )
-            install(FILES ${MODEL_FILES} DESTINATION ${DATA_INSTALL_DIR}/db)
-        endif ()
-        foreach(MODEL_FILE ${MODEL_FILES})
-            get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
-            configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${MODEL_FILE_FILENAME}" COPYONLY)
-        endforeach()
+        target_link_libraries(nlohmann_json INTERFACE nlohmann_json::nlohmann_json)
     endif()
+    file(GLOB MODEL_FILES CONFIGURE_DEPENDS kernels/*.model)
+    if(NOT ENABLE_ASAN_PACKAGING )
+        install(FILES ${MODEL_FILES} DESTINATION ${DATABASE_INSTALL_DIR})
+    endif()
+    foreach(MODEL_FILE ${MODEL_FILES})
+        get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
+	configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${MODEL_FILE_FILENAME}" COPYONLY)
+    endforeach()
 endif()
 
 ############################################################
@@ -913,11 +919,11 @@ endif()
         if( NOT ENABLE_ASAN_PACKAGING )
           install(FILES
               ${FIND_DB_FILES}
-           DESTINATION ${DATA_INSTALL_DIR}/db)
+              DESTINATION ${DATABASE_INSTALL_DIR})
          endif()
          foreach(DB_FILE ${FIND_DB_FILES})
             get_filename_component(DB_FILE_FILENAME "${DB_FILE}" NAME)
-            configure_file("${DB_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${DB_FILE_FILENAME}" COPYONLY)
+	    configure_file("${DB_FILE}" "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${DB_FILE_FILENAME}" COPYONLY)
          endforeach()
 
     endif()

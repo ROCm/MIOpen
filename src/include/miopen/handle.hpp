@@ -63,8 +63,6 @@
 #endif
 #endif
 
-#define FIN_OLD_HANDLE_COMPAT 1
-
 namespace miopen {
 
 struct HandleImpl;
@@ -73,7 +71,7 @@ struct HandleImpl;
 using rocblas_handle_ptr = MIOPEN_MANAGE_PTR(rocblas_handle, rocblas_destroy_handle);
 #endif
 
-struct Handle : miopenHandle
+struct MIOPEN_EXPORT Handle : miopenHandle
 {
     friend struct TargetProperties;
 
@@ -134,16 +132,6 @@ struct Handle : miopenHandle
     Program LoadProgram(const std::string& program_name,
                         std::string params,
                         const std::string& kernel_src) const;
-
-#if FIN_OLD_HANDLE_COMPAT
-    Program LoadProgram(const std::string& program_name,
-                        std::string params,
-                        bool,
-                        const std::string& kernel_src) const
-    {
-        return LoadProgram(program_name, params, kernel_src);
-    }
-#endif
 
     bool HasProgram(const std::string& program_name, const std::string& params) const;
     void ClearProgram(const std::string& program_name, const std::string& params) const;

@@ -1292,8 +1292,7 @@ void BuildHip(const std::string& name,
         auto opts =
             miopen::SplitSpaceSeparated(options, miopen::comgr::compiler::lc::GetOptionsNoSplit());
         compiler::lc::RemoveOptionsUnwanted(opts);
-        opts.push_back("-DWORKAROUND_ISSUE_HIPRTC_TRUE_TYPE"); // Workaround for SWDEV-308073
-#if HIP_PACKAGE_VERSION_FLAT < 6000023494ULL
+#if HIP_PACKAGE_VERSION_MAJOR < 6
         opts.push_back("-D__HIP_PLATFORM_HCC__=1"); // Workaround?
 #endif
         opts.push_back("-D__HIP_PLATFORM_AMD__=1"); // Workaround?
@@ -1302,7 +1301,10 @@ void BuildHip(const std::string& name,
             opts.push_back("-DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1");
 #endif
         opts.push_back("-DHIP_PACKAGE_VERSION_FLAT=" + std::to_string(HIP_PACKAGE_VERSION_FLAT));
-        opts.push_back("-DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1");
+        opts.push_back("-DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS");
+#if HIP_PACKAGE_VERSION_FLAT < 6001024000ULL
+        opts.push_back("-DWORKAROUND_DONT_USE_CUSTOM_LIMITS=1");
+#endif
 #if WORKAROUND_ISSUE_1431
         if((StartsWith(target.Name(), "gfx10") || StartsWith(target.Name(), "gfx11")) &&
            !miopen::comgr::IsWave64Enforced(opts))
