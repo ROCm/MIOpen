@@ -133,6 +133,11 @@ else()
     set(MIOPEN_DEFAULT_BACKEND "OpenCL")
 endif()
 
+if(NOT WIN32)
+    include(CheckCXXLinkerFlag)
+    check_cxx_linker_flag(stdc++fs HAS_LIB_STD_FILESYSTEM)
+endif()
+
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/llvm ${CMAKE_INSTALL_PREFIX}/hip /opt/rocm /opt/rocm/llvm /opt/rocm/hip)
 
 option(ENABLE_HIP_WORKAROUNDS Off)

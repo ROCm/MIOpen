@@ -346,7 +346,6 @@ void DumpTensorToFileFromDevice(const miopen::Handle& handle,
         MIOPEN_LOG_E("Dereferencing nullptr when trying to dump tensor from gpu");
         return;
     }
-    namespace fs = boost::filesystem;
 
     fs::path file_name_with_path(filename);
     fs::path path = file_name_with_path.parent_path();

@@ -29,8 +29,7 @@
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem.hpp>
+#include <miopen/filesystem.hpp>
 
 #include <chrono>
 #include <ctime>
