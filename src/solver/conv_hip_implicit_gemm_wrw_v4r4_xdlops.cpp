@@ -1064,6 +1064,9 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ExecutionContext& ctx,
     if(problem.HasNonPackedTensors())
         return false;
 
+    if(problem.HasAtLeastOne64BitTensor())
+        return false;
+
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
 

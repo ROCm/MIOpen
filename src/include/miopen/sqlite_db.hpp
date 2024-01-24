@@ -75,7 +75,7 @@ struct SQLiteSerializable
                            names.push_back(name);
                        });
         Derived::Visit(static_cast<const Derived&>(*this),
-                       [&](const int value, const std::string name) {
+                       [&](const int64_t value, const std::string name) {
                            std::ignore = value;
                            names.push_back(name);
                        });
@@ -92,7 +92,7 @@ struct SQLiteSerializable
                            values.push_back(value);
                        });
         Derived::Visit(static_cast<const Derived&>(*this),
-                       [&](const int value, const std::string name) {
+                       [&](const int64_t value, const std::string name) {
                            clauses.push_back("(" + name + " = ? )");
                            values.push_back(std::to_string(value));
                        });
@@ -108,7 +108,7 @@ struct SQLiteSerializable
                            values.push_back(value);
                        });
         Derived::Visit(static_cast<const Derived&>(*this),
-                       [&](const int value, const std::string name) {
+                       [&](const int64_t value, const std::string name) {
                            int_names.push_back(name);
                            values.push_back(std::to_string(value));
                        });
@@ -139,7 +139,7 @@ struct SQLiteSerializable
                        });
         std::vector<std::string> int_fields;
         Derived::Visit(static_cast<const Derived&>(*this),
-                       [&](const int value, const std::string name) {
+                       [&](const int64_t value, const std::string name) {
                            std::ignore = value;
                            int_fields.push_back(name);
                        });

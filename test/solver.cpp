@@ -53,7 +53,7 @@ public:
     bool IsApplicable(const ExecutionContext&,
                       const conv::ProblemDescription& problem) const override
     {
-        return problem.GetInWidth_() == 1;
+        return problem.GetInWidth() == 1;
     }
 
     solver::ConvSolution GetSolution(const ExecutionContext&,

@@ -97,6 +97,9 @@ SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_
 bool GemmBwdBase::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
+    if(problem.HasAtLeastOne64BitTensor())
+        return false;
+
     const auto& dyDesc             = problem.GetIn();
     const auto& wDesc              = problem.GetWeights();
     const auto& dxDesc             = problem.GetOut();

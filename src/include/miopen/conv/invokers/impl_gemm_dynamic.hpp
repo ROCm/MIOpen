@@ -49,21 +49,21 @@ ComputeDynamicIGemmForwardKernelArgs<int>(const ProblemDescription& problem, con
 {
     std::vector<OpKernelArg> opArgs;
     // clang-format off
-    int hi          = problem.GetInHeight_();
-    int wi          = problem.GetInWidth_();
-    int n           = problem.GetInBatchSize_();
-    int k           = problem.GetOutChannels_();
-    int c           = problem.GetInChannels_();
-    int ho          = problem.GetOutHeight_();
-    int wo          = problem.GetOutWidth_();
+    int hi          = problem.GetInHeight();
+    int wi          = problem.GetInWidth();
+    int n           = problem.GetInBatchSize();
+    int k           = problem.GetOutChannels();
+    int c           = problem.GetInChannels();
+    int ho          = problem.GetOutHeight();
+    int wo          = problem.GetOutWidth();
     int stride_h    = problem.GetKernelStrideH();
     int stride_w    = problem.GetKernelStrideW();
     int dilation_h  = problem.GetDilationH();
     int dilation_w  = problem.GetDilationW();
     int pad_h       = problem.GetPadH();
     int pad_w       = problem.GetPadW();
-    int y           = problem.GetWeightsHeight_();
-    int x           = problem.GetWeightsWidth_();
+    int y           = problem.GetWeightsHeight();
+    int x           = problem.GetWeightsWidth();
     int pack0       = cfg;
     // clang-format on
 
@@ -97,21 +97,21 @@ ComputeDynamicIGemmForwardKernelArgs<solver::TunableImplicitGemmGTCDynamic_t>(
 {
     std::vector<OpKernelArg> opArgs;
     // clang-format off
-    int hi          = problem.GetInHeight_();
-    int wi          = problem.GetInWidth_();
-    int n           = problem.GetInBatchSize_();
-    int k           = problem.GetOutChannels_();
-    int c           = problem.GetInChannels_();
-    int ho          = problem.GetOutHeight_();
-    int wo          = problem.GetOutWidth_();
+    int hi          = problem.GetInHeight();
+    int wi          = problem.GetInWidth();
+    int n           = problem.GetInBatchSize();
+    int k           = problem.GetOutChannels();
+    int c           = problem.GetInChannels();
+    int ho          = problem.GetOutHeight();
+    int wo          = problem.GetOutWidth();
     int stride_h    = problem.GetKernelStrideH();
     int stride_w    = problem.GetKernelStrideW();
     int dilation_h  = problem.GetDilationH();
     int dilation_w  = problem.GetDilationW();
     int pad_h       = problem.GetPadH();
     int pad_w       = problem.GetPadW();
-    int y           = problem.GetWeightsHeight_();
-    int x           = problem.GetWeightsWidth_();
+    int y           = problem.GetWeightsHeight();
+    int x           = problem.GetWeightsWidth();
     int group       = problem.GetGroupCount();
     int pack0       = 0;
     // clang-format on
