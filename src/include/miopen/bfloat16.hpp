@@ -158,14 +158,20 @@ class numeric_limits<bfloat16>
 {
 public:
     static constexpr bool is_specialized = true;
-    static constexpr bfloat16 min() noexcept { return bfloat16::generate(0x007F); }
+    static constexpr bfloat16 min() noexcept { return bfloat16::generate(0x0080); } // 0x1.00p-126
     static constexpr bfloat16 max() noexcept { return bfloat16::generate(0x7F7F); }
     static constexpr bfloat16 lowest() noexcept { return bfloat16::generate(0xFF7F); }
     static constexpr bfloat16 epsilon() noexcept { return bfloat16::generate(0x3C00); }
     static constexpr bfloat16 infinity() noexcept { return bfloat16::generate(0x7F80); }
-    static constexpr bfloat16 quiet_NaN() noexcept { return bfloat16::generate(0x7FC0); }
-    static constexpr bfloat16 signaling_NaN() noexcept { return bfloat16::generate(0x7FC0); }
-    static constexpr bfloat16 denorm_min() noexcept { return bfloat16::generate(0); }
+    static constexpr bfloat16 quiet_NaN() noexcept { return bfloat16::generate(0x7FC0); } // qnan(0)
+    static constexpr bfloat16 signaling_NaN() noexcept
+    {
+        return bfloat16::generate(0x7F81); // snan(1)
+    }
+    static constexpr bfloat16 denorm_min() noexcept
+    {
+        return bfloat16::generate(0x0001); // 0x0.02p-126
+    }
 };
 } // namespace std
 #endif
