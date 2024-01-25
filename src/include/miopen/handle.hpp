@@ -199,6 +199,15 @@ public:
         return result;
     }
 
+    template <class V>
+    void ReadToVec(const Allocator::ManageDataPtr& ddata, V& output_vec)
+    {
+        using T = typename V::value_type;
+        assert(ddata);
+        assert(output_vec.size() > 0);
+        this->ReadTo(output_vec.data(), ddata, output_vec.size() * sizeof(T));
+    }
+
     static std::string GetDbBasename(const TargetProperties& target, size_t num_cu)
     {
         auto ret = target.DbId() + [&]() {
