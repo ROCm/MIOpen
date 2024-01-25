@@ -41,9 +41,11 @@
 #include "dropout_driver.hpp"
 #include "tensorop_driver.hpp"
 #include "reduce_driver.hpp"
+#include "layernorm_driver.hpp"
+#include "sum_driver.hpp"
+#include "argmax_driver.hpp"
 #include <miopen/config.h>
 #include <miopen/stringutils.hpp>
-#include "layernorm_driver.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -135,11 +137,10 @@ int main(int argc, char* argv[])
     {
         drv = new GemmDriver<float>();
     }
-// TODO half is not supported in gemm
-//    else if(base_arg == "gemmfp16")
-//    {
-//        drv = new GemmDriver<float16>();
-//    }
+    else if(base_arg == "gemmfp16")
+    {
+        drv = new GemmDriver<float16>();
+    }
 #endif
     else if(base_arg == "bnorm")
     {
@@ -208,6 +209,30 @@ int main(int argc, char* argv[])
     else if(base_arg == "layernormbfp16")
     {
         drv = new LayerNormDriver<bfloat16, float>();
+    }
+    else if(base_arg == "sum")
+    {
+        drv = new SumDriver<float, float>();
+    }
+    else if(base_arg == "sumfp16")
+    {
+        drv = new SumDriver<float16, float>();
+    }
+    else if(base_arg == "sumbfp16")
+    {
+        drv = new SumDriver<bfloat16, float>();
+    }
+    else if(base_arg == "argmax")
+    {
+        drv = new ArgmaxDriver<float, float>();
+    }
+    else if(base_arg == "argmaxfp16")
+    {
+        drv = new ArgmaxDriver<float16, float>();
+    }
+    else if(base_arg == "argmaxbfp16")
+    {
+        drv = new ArgmaxDriver<bfloat16, float>();
     }
     else
     {

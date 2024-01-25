@@ -37,17 +37,17 @@
 #include <sstream>
 #include <string>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_VERBOSE)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_DUMP)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_VERBOSE)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_DUMP)
 
 namespace miopen {
 
-static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
-                                            const std::string& filename,
-                                            std::string src,
-                                            std::string params,
-                                            const TargetProperties& target,
-                                            const bool testing_mode)
+static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
+                             const std::string& filename,
+                             std::string src,
+                             std::string params,
+                             const TargetProperties& target,
+                             const bool testing_mode)
 {
 #ifdef __linux__
     // Write out the include files
@@ -56,7 +56,7 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     {
         auto inc_list = GetHipKernelIncList();
         auto inc_path = tmp_dir->path;
-        boost::filesystem::create_directories(inc_path);
+        fs::create_directories(inc_path);
         for(const auto& inc_file : inc_list)
         {
             auto inc_src = GetKernelInc(inc_file);
@@ -75,6 +75,20 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     if(params.find("-std=") == std::string::npos)
         params += " --std=c++17";
 
+#if HIP_PACKAGE_VERSION_FLAT >= 6001024000ULL
+    size_t pos = 0;
+    while((pos = params.find("-mcpu=", pos)) != std::string::npos)
+    {
+        size_t endpos = params.find(' ', pos);
+        if(endpos == std::string::npos)
+        {
+            params.erase(pos, std::string::npos);
+            break;
+        }
+        params.erase(pos, endpos - pos);
+    }
+#endif
+
 #if HIP_PACKAGE_VERSION_FLAT < 4001000000ULL
     params += " --cuda-gpu-arch=" + lots.device;
 #else
@@ -91,11 +105,11 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #endif
 
 #if MIOPEN_BUILD_DEV
-    if(miopen::IsEnabled(MIOPEN_DEBUG_HIP_VERBOSE{}))
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_HIP_VERBOSE)))
     {
         params += " -v";
     }
-    if(miopen::IsEnabled(MIOPEN_DEBUG_HIP_DUMP{}))
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_HIP_DUMP)))
     {
         params += " -gline-tables-only";
         params += " -save-temps";
@@ -110,11 +124,14 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     auto bin_file = tmp_dir->path / (filename + ".o");
 
     // compile
-    const std::string redirector = testing_mode ? " 1>/dev/null 2>&1" : "";
-    tmp_dir->Execute(env + std::string(" ") + MIOPEN_HIP_COMPILER,
-                     params + filename + " -o " + bin_file.string() + redirector);
-    if(!boost::filesystem::exists(bin_file))
-        MIOPEN_THROW(filename + " failed to compile");
+    {
+        const std::string redirector = testing_mode ? " 1>/dev/null 2>&1" : "";
+        const std::string cmd        = env + std::string(" ") + MIOPEN_HIP_COMPILER;
+        const std::string args       = params + filename + " -o " + bin_file.string() + redirector;
+        tmp_dir->Execute(cmd, args);
+        if(!fs::exists(bin_file))
+            MIOPEN_THROW("Failed cmd: '" + cmd + "', args: '" + args + '\'');
+    }
 
 #if defined(MIOPEN_OFFLOADBUNDLER_BIN) && !MIOPEN_BACKEND_HIP
     // Unbundling is not required for HIP runtime && hip-clang
@@ -134,11 +151,11 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
                          + " --inputs=" + bin_file.string() + " --outputs=" + bin_file.string() +
                          ".hsaco --unbundle");
 
-    auto hsaco = std::find_if(boost::filesystem::directory_iterator{tmp_dir->path},
-                              {},
-                              [](auto entry) { return (entry.path().extension() == ".hsaco"); });
+    auto hsaco = std::find_if(fs::directory_iterator{tmp_dir->path}, {}, [](auto entry) {
+        return (entry.path().extension() == ".hsaco");
+    });
 
-    if(hsaco == boost::filesystem::directory_iterator{})
+    if(hsaco == fs::directory_iterator{})
     {
         MIOPEN_LOG_E("failed to find *.hsaco in " << hsaco->path().string());
     }
@@ -190,11 +207,11 @@ static bool DetectIfBufferAtomicFaddReturnsFloat(const TargetProperties& target)
 }
 #endif
 
-boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
-                                 const std::string& filename,
-                                 std::string src,
-                                 std::string params,
-                                 const TargetProperties& target)
+fs::path HipBuild(boost::optional<TmpDir>& tmp_dir,
+                  const std::string& filename,
+                  std::string src,
+                  std::string params,
+                  const TargetProperties& target)
 {
 #ifndef ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
     if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
@@ -207,7 +224,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     return HipBuildImpl(tmp_dir, filename, src, params, target, false);
 }
 
-void bin_file_to_str(const boost::filesystem::path& file, std::string& buf)
+void bin_file_to_str(const fs::path& file, std::string& buf)
 {
     std::ifstream bin_file_ptr(file.string().c_str(), std::ios::binary);
     std::ostringstream bin_file_strm;

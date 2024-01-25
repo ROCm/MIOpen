@@ -30,8 +30,8 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1)
 
 namespace miopen {
 namespace solver {
@@ -133,10 +133,10 @@ static inline int GetImplicitGemmV4R1DynamicGridSize(const ProblemDescription& p
     const auto& N1 = config.GemmNRepeat;
     const auto& N2 = config.GemmNPerThreadSubC;
 
-    const int n  = problem.GetBatchSize_();
-    const int k  = problem.GetOutChannels_();
-    const int ho = problem.GetOutHeight_();
-    const int wo = problem.GetOutWidth_();
+    const int n  = problem.GetBatchSize();
+    const int k  = problem.GetOutChannels();
+    const int ho = problem.GetOutHeight();
+    const int wo = problem.GetOutWidth();
 
     const auto& b = (static_cast<std::size_t>(n) * ho * wo) / (static_cast<std::size_t>(N1) * N2);
     const auto& b_per_block = config.BPerBlock;
@@ -283,7 +283,7 @@ bool TunableImplicitGemmV4R1Dynamic::IsValid(const ExecutionContext& ctx,
 bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ExecutionContext& ctx,
                                                      const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1)))
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
@@ -300,6 +300,9 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ExecutionContext& ctx
         return false;
 
     if(problem.HasNonPackedTensors())
+        return false;
+
+    if(problem.HasAtLeastOne64BitTensor())
         return false;
 
     if(!problem.IsFp32())
@@ -329,7 +332,7 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ExecutionContext& ctx
 bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ExecutionContext& ctx,
                                                          const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1)))
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
@@ -345,6 +348,9 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ExecutionContext&
     if(!problem.Is2d())
         return false;
 
+    if(problem.HasAtLeastOne64BitTensor())
+        return false;
+
     if(!problem.IsFp32())
         return false;
 
@@ -354,7 +360,7 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ExecutionContext&
     if(problem.GetGroupCount() != 1)
         return false;
 
-    if((problem.GetWeightsHeight_() != 1) || (problem.GetWeightsWidth_() != 1))
+    if((problem.GetWeightsHeight() != 1) || (problem.GetWeightsWidth() != 1))
         return false;
 
     if(!problem.IsLayoutDefault())

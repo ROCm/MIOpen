@@ -37,7 +37,7 @@
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/tensor_operation/gpu/device/device_conv_fwd_bias_activation.hpp>
 #endif
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_ACTIV)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_ACTIV)
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 // Forward declare CK's function.
@@ -404,7 +404,7 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     {
         MIOPEN_THROW(miopenStatusInternalError, "desc.op_map.empty()");
     }
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_ACTIV{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_ACTIV)))
         return false;
     // check the sequence of prims
     if(desc.op_map.size() != 3)
@@ -425,6 +425,8 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     if(conv_problem.GetConv().attribute.deterministic)
         return false;
     if(conv_problem.HasNonPackedTensors())
+        return false;
+    if(conv_problem.HasAtLeastOne64BitTensor())
         return false;
     if(conv_problem.HasMixedDataTypes())
         return false;

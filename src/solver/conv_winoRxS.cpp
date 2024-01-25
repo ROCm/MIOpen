@@ -66,14 +66,14 @@
 /// we can disable Winograd without any performance implications.
 #define WORKAROUND_ISSUE_2493 1
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_WORKAROUND_ISSUE_2493)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_WORKAROUND_ISSUE_2493)
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS)
 
 #define MAX_CU_LIMIT 512
 
@@ -195,7 +195,7 @@ auto PerfFieldRules()
 
 // Winograd v21 is preferred on Vega10/Vega20 ASICs due to ~25% performance regression with Winograd
 // v30. The exception is Winograd F(3,2) stride2 as this mode is unsupported in v21. Details:
-// https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1927#issuecomment-1412741130
+// https://github.com/ROCm/MIOpen/pull/1927#issuecomment-1412741130
 template <int Winodata, int Winofilter>
 inline bool IsWinogradV21Preferred(const std::string& asic, const ProblemDescription& problem)
 {
@@ -321,8 +321,8 @@ template <int Winodata, int Winofilter>
 void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ExecutionContext& ctx,
                                                         const ProblemDescription& problem)
 {
-    const auto n_inputs_per_group  = problem.GetInChannels_() / problem.GetGroupCount(),
-               n_outputs_per_group = problem.GetOutChannels_() / problem.GetGroupCount();
+    const auto n_inputs_per_group  = problem.GetInChannels() / problem.GetGroupCount(),
+               n_outputs_per_group = problem.GetOutChannels() / problem.GetGroupCount();
     if(problem.GetGroupCount() == 1)
     {
         n_groups = ctx.GetStream().GetMaxHardwareComputeUnits();
@@ -331,14 +331,14 @@ void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ExecutionContext& 
 
     if(problem.IsDirectionBackwardWrW())
     {
-        n_groups = GetBestNGroupParam(problem.GetInHeight_(),
-                                      problem.GetInWidth_(),
+        n_groups = GetBestNGroupParam(problem.GetInHeight(),
+                                      problem.GetInWidth(),
                                       problem.GetDilationH(),
                                       problem.GetDilationW(),
-                                      problem.GetBatchSize_(), // N
-                                      n_inputs_per_group,      // K
-                                      problem.GetWeightsHeight_(),
-                                      problem.GetWeightsWidth_(),
+                                      problem.GetBatchSize(), // N
+                                      n_inputs_per_group,     // K
+                                      problem.GetWeightsHeight(),
+                                      problem.GetWeightsWidth(),
                                       problem.GetPadW(),
                                       problem.GetPadH(),
                                       n_outputs_per_group, // C
@@ -351,17 +351,17 @@ void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ExecutionContext& 
     }
     else
     {
-        n_groups = GetBestNGroupParam(problem.GetWeightsHeight_(), // RxS
-                                      problem.GetWeightsWidth_(),
+        n_groups = GetBestNGroupParam(problem.GetWeightsHeight(), // RxS
+                                      problem.GetWeightsWidth(),
                                       problem.GetKernelStrideH(),
                                       problem.GetKernelStrideW(),
-                                      n_inputs_per_group,      // C
-                                      n_outputs_per_group,     // K
-                                      problem.GetOutHeight_(), // OHxOW
-                                      problem.GetOutWidth_(),
+                                      n_inputs_per_group,     // C
+                                      n_outputs_per_group,    // K
+                                      problem.GetOutHeight(), // OHxOW
+                                      problem.GetOutWidth(),
                                       problem.GetPadW(),
                                       problem.GetPadH(),
-                                      problem.GetBatchSize_(), // N
+                                      problem.GetBatchSize(), // N
                                       problem.GetDilationH(),
                                       problem.GetDilationW(),
                                       ctx.GetStream().GetMaxHardwareComputeUnits(),
@@ -646,6 +646,8 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
         return false;
     if(problem.HasNonPackedTensors())
         return false;
+    if(problem.HasAtLeastOne64BitTensor())
+        return false;
     if(!(problem.IsFp32() || problem.IsFp16()))
         return false;
     if(problem.IsTensorsCasted())
@@ -682,7 +684,8 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
         // clang-format on
 
 #if WORKAROUND_ISSUE_2493
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_WORKAROUND_ISSUE_2493{}) && !miopen::debug::IsWarmupOngoing)
+    if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_WORKAROUND_ISSUE_2493)) &&
+       !miopen::debug::IsWarmupOngoing)
     {
         constexpr double max_perf_drop_due_to_granularity = 200; // Times.
         const auto gl = ShaderModel(ctx, problem, Winodata, Winofilter).GetGranularityLoss();
@@ -694,37 +697,37 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
     }
 #endif
 
-    const auto n_inputs_per_group  = problem.GetInChannels_() / problem.GetGroupCount(),
-               n_outputs_per_group = problem.GetOutChannels_() / problem.GetGroupCount();
+    const auto n_inputs_per_group  = problem.GetInChannels() / problem.GetGroupCount(),
+               n_outputs_per_group = problem.GetOutChannels() / problem.GetGroupCount();
 
     if(problem.IsDirectionBackwardWrW())
     {
         if(problem.GetKernelStrideW() == 2)
             return false;
         return IsShaderConstraintsMet<Winodata, Winofilter>(problem,
-                                                            problem.GetInHeight_(),
-                                                            problem.GetInWidth_(),
-                                                            problem.GetBatchSize_(), // N
-                                                            n_inputs_per_group,      // K
-                                                            problem.GetOutHeight_(),
-                                                            problem.GetOutWidth_(),
-                                                            problem.GetWeightsHeight_(),
-                                                            problem.GetWeightsWidth_(),
+                                                            problem.GetInHeight(),
+                                                            problem.GetInWidth(),
+                                                            problem.GetBatchSize(), // N
+                                                            n_inputs_per_group,     // K
+                                                            problem.GetOutHeight(),
+                                                            problem.GetOutWidth(),
+                                                            problem.GetWeightsHeight(),
+                                                            problem.GetWeightsWidth(),
                                                             n_outputs_per_group, // C
                                                             name);
     }
     else
     {
         return IsShaderConstraintsMet<Winodata, Winofilter>(problem,
-                                                            problem.GetWeightsHeight_(), // RxS
-                                                            problem.GetWeightsWidth_(),
-                                                            n_inputs_per_group,     // C
-                                                            n_outputs_per_group,    // K
-                                                            problem.GetInHeight_(), // HxW
-                                                            problem.GetInWidth_(),
-                                                            problem.GetOutHeight_(), // OHxOW
-                                                            problem.GetOutWidth_(),
-                                                            problem.GetBatchSize_(), // N
+                                                            problem.GetWeightsHeight(), // RxS
+                                                            problem.GetWeightsWidth(),
+                                                            n_inputs_per_group,    // C
+                                                            n_outputs_per_group,   // K
+                                                            problem.GetInHeight(), // HxW
+                                                            problem.GetInWidth(),
+                                                            problem.GetOutHeight(), // OHxOW
+                                                            problem.GetOutWidth(),
+                                                            problem.GetBatchSize(), // N
                                                             name);
     }
 }
@@ -735,7 +738,7 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext& 
 {
     if(IS2X3)
     {
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3{}))
+        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3)))
             return false;
 #if !WORKAROUND_ISSUE_1681
         if(problem.GetGroupCount() == 1 && !problem.IsDirectionBackwardWrW())
@@ -744,7 +747,7 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext& 
     }
     if(IS3X2)
     {
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2{}))
+        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2)))
             return false;
     }
     return IsApplicableBase<Winodata, Winofilter>(ctx, problem);
@@ -756,24 +759,21 @@ GetPerfConfFromEnv(const ExecutionContext& ctx)
 {
     PerformanceConfigConvBinWinogradRxS fromEnv;
     std::string s;
-    const char* p_asciz = nullptr;
     const char* env_name;
 
     if(IS2X3)
     {
-        p_asciz  = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS{});
-        env_name = MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS::value();
+        s        = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS));
+        env_name = "MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS";
     }
     else if(IS3X2)
     {
-        p_asciz  = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS{});
-        env_name = MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS::value();
+        s        = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS));
+        env_name = "MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS";
     }
 
-    if(p_asciz == nullptr)
+    if(s.empty())
         return {};
-
-    s = std::string(p_asciz);
 
     if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(ctx))
     {
@@ -1116,7 +1116,7 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
 bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ExecutionContext& ctx,
                                             const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)))
         return false;
     return IsApplicableBase<2, 3>(ctx, problem) && problem.GetGroupCount() == 1;
 }

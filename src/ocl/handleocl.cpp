@@ -39,11 +39,8 @@
 #include <miopen/ocldeviceinfo.hpp>
 #include <miopen/timer.hpp>
 
-#if MIOPEN_USE_MIOPENGEMM
-#include <miopen/gemm_geometry.hpp>
-#endif
-
-#include <boost/filesystem.hpp>
+#include <miopen/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 
 #include <string>
 
@@ -195,7 +192,7 @@ static bool PrintOpenCLDeprecateMsg()
     MIOPEN_LOG_W(
         "please port your application to the better supported and functional HIP backend. ");
     MIOPEN_LOG_W("If you have any questions, please reach out to the MIOpen developers at ");
-    MIOPEN_LOG_W("https://github.com/ROCmSoftwarePlatform/MIOpen");
+    MIOPEN_LOG_W("https://github.com/ROCm/MIOpen");
     return true;
 }
 
@@ -324,10 +321,8 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                const std::vector<size_t>& vgd,
                                const std::string& params,
                                std::size_t cache_index,
-                               bool is_kernel_str,
                                const std::string& kernel_src) const
 {
-
     auto obj = this->impl->cache.AddKernel(*this,
                                            algorithm,
                                            network_config,
@@ -337,7 +332,6 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                            vgd,
                                            params,
                                            cache_index,
-                                           is_kernel_str,
                                            kernel_src);
     return this->Run(obj);
 }
@@ -393,14 +387,10 @@ KernelInvoke Handle::Run(Kernel k) const
 
 Program Handle::LoadProgram(const std::string& program_name,
                             std::string params,
-                            bool is_kernel_str,
                             const std::string& kernel_src) const
 {
-    auto hsaco = miopen::LoadBinary(this->GetTargetProperties(),
-                                    this->GetMaxComputeUnits(),
-                                    program_name,
-                                    params,
-                                    is_kernel_str);
+    auto hsaco = miopen::LoadBinary(
+        this->GetTargetProperties(), this->GetMaxComputeUnits(), program_name, params);
     if(hsaco.empty())
     {
         CompileTimer ct;
@@ -409,25 +399,19 @@ Program Handle::LoadProgram(const std::string& program_name,
                                      this->GetTargetProperties(),
                                      program_name,
                                      params,
-                                     is_kernel_str,
                                      kernel_src);
-        ct.Log("Kernel", is_kernel_str ? std::string() : program_name);
+        ct.Log("Kernel", program_name);
 
 // Save to cache
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
         std::string binary;
         miopen::GetProgramBinary(p, binary);
-        miopen::SaveBinary(binary,
-                           this->GetTargetProperties(),
-                           this->GetMaxComputeUnits(),
-                           program_name,
-                           params,
-                           is_kernel_str);
+        miopen::SaveBinary(
+            binary, this->GetTargetProperties(), this->GetMaxComputeUnits(), program_name, params);
 #else
         auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
         miopen::SaveProgramBinary(p, path.string());
-        miopen::SaveBinary(
-            path.string(), this->GetTargetProperties(), program_name, params, is_kernel_str);
+        miopen::SaveBinary(path.string(), this->GetTargetProperties(), program_name, params);
 #endif
         return p;
     }

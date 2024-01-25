@@ -33,7 +33,7 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/mlir_common.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD_XDLOPS)
 
 namespace miopen {
 namespace solver {
@@ -45,7 +45,7 @@ bool ConvMlirIgemmBwdXdlops::IsApplicable(const ExecutionContext& ctx,
                                           const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD_XDLOPS{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD_XDLOPS)))
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;
@@ -54,6 +54,8 @@ bool ConvMlirIgemmBwdXdlops::IsApplicable(const ExecutionContext& ctx,
     if(!problem.IsDirectionBackwardData())
         return false;
     if(problem.HasNonPackedTensors())
+        return false;
+    if(problem.HasAtLeastOne64BitTensor())
         return false;
     if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;

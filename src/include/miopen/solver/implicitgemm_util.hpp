@@ -34,11 +34,11 @@
 #include <miopen/solver/problem_description_interpreter.hpp>
 #include <algorithm>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM)
 
 #define WORKAROUND_SWDEV_229277_227616_229195 1
 // workaround for unnecessary VGPA <--> AGRP data movement when using mfma LLVM intrinsic
@@ -95,61 +95,61 @@ static inline std::size_t KernelFilterDilationW(const miopen::conv::ProblemDescr
 static inline std::size_t KernelOutputChannelK(const miopen::conv::ProblemDescription& problem)
 {
     if(problem.IsDirectionBackwardWrW())
-        return problem.GetInChannels_();
+        return problem.GetInChannels();
     else
-        return problem.GetOutChannels_();
+        return problem.GetOutChannels();
 }
 
 static inline std::size_t KernelInputChannelC(const miopen::conv::ProblemDescription& problem)
 {
     if(problem.IsDirectionBackwardWrW())
-        return problem.GetBatchSize_();
+        return problem.GetBatchSize();
     else
-        return problem.GetInChannels_() / problem.GetGroupCount();
+        return problem.GetInChannels() / problem.GetGroupCount();
 }
 
 static inline std::size_t KernelBatchN(const miopen::conv::ProblemDescription& problem)
 {
     if(problem.IsDirectionBackwardWrW())
-        return problem.GetOutChannels_() / problem.GetGroupCount();
+        return problem.GetOutChannels() / problem.GetGroupCount();
     else
-        return problem.GetBatchSize_();
+        return problem.GetBatchSize();
 }
 
 static inline std::size_t KernelOutputHeightHo(const miopen::conv::ProblemDescription& problem)
 {
     if(problem.IsDirectionForward())
-        return problem.GetOutHeight_();
+        return problem.GetOutHeight();
     else if(problem.IsDirectionBackwardWrW())
-        return problem.GetWeightsHeight_();
+        return problem.GetWeightsHeight();
     else
-        return problem.GetInHeight_();
+        return problem.GetInHeight();
 }
 
 static inline std::size_t KernelOutputWidthWo(const miopen::conv::ProblemDescription& problem)
 {
     if(problem.IsDirectionForward())
-        return problem.GetOutWidth_();
+        return problem.GetOutWidth();
     else if(problem.IsDirectionBackwardWrW())
-        return problem.GetWeightsWidth_();
+        return problem.GetWeightsWidth();
     else
-        return problem.GetInWidth_();
+        return problem.GetInWidth();
 }
 
 static inline std::size_t KernelFilterWidthX(const miopen::conv::ProblemDescription& problem)
 {
     if(problem.IsDirectionBackwardWrW())
-        return problem.GetInWidth_();
+        return problem.GetInWidth();
     else
-        return problem.GetWeightsWidth_();
+        return problem.GetWeightsWidth();
 }
 
 static inline std::size_t KernelFilterHeightY(const miopen::conv::ProblemDescription& problem)
 {
     if(problem.IsDirectionBackwardWrW())
-        return problem.GetInHeight_();
+        return problem.GetInHeight();
     else
-        return problem.GetWeightsHeight_();
+        return problem.GetWeightsHeight();
 }
 
 /// \todo move to separate header and use in other solvers.
@@ -206,7 +206,7 @@ inline static bool NextFlag(bool& v)
 
 static inline bool IsXdlopsSupport(const ExecutionContext& ctx)
 {
-    if(miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}))
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE)))
         return true;
 
     // disable xdlops kernels by default due to possible failures:
@@ -215,7 +215,7 @@ static inline bool IsXdlopsSupport(const ExecutionContext& ctx)
     const bool is_xdlops_supported = StartsWith(ctx.GetStream().GetDeviceName(), "gfx908") ||
                                      StartsWith(ctx.GetStream().GetDeviceName(), "gfx90a") ||
                                      StartsWith(ctx.GetStream().GetDeviceName(), "gfx94");
-    return is_xdlops_supported && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{});
+    return is_xdlops_supported && !miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS));
 }
 
 ///\todo remove
@@ -444,7 +444,7 @@ static inline bool use_amd_inline_asm(const ExecutionContext& ctx,
        problem.IsFp16())
         return false;
 
-    return !miopen::IsDisabled(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM{});
+    return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM));
 }
 
 static inline bool is_use_amd_buffer_load_store(const ExecutionContext& ctx)
@@ -553,7 +553,7 @@ static inline auto get_static_ck_common_compiler_flag(const ExecutionContext& ct
     // LDS sync
     compiler_flag +=
         std::string(" -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM=") +
-        (miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM{})
+        (miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM))
              ? '0'
              : '1');
 

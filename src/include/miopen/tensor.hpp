@@ -123,7 +123,7 @@ std::ptrdiff_t integer_division_ceil(X x, Y y)
     return (tx + ty - 1) / ty;
 }
 
-struct TensorDescriptor : miopenTensorDescriptor
+struct MIOPEN_EXPORT TensorDescriptor : miopenTensorDescriptor
 {
     TensorDescriptor();
 
@@ -205,6 +205,7 @@ struct TensorDescriptor : miopenTensorDescriptor
     }
 
     bool IsPacked() const;
+    bool Is64Bit() const;
 
     bool operator==(const TensorDescriptor& rhs) const;
     bool operator!=(const TensorDescriptor& rhs) const;

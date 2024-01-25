@@ -24,12 +24,11 @@
  *
  *******************************************************************************/
 
-#include <miopen/norm/solvers.hpp>
-
-#include <miopen/norm/invoke_params.hpp>
 #include <miopen/datatype.hpp>
-#include <miopen/layernorm.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/layernorm.hpp>
+#include <miopen/norm/invoke_params.hpp>
+#include <miopen/norm/solvers.hpp>
 #include <miopen/target_properties.hpp>
 
 #define LOCAL_SIZE 256
@@ -56,14 +55,22 @@ std::size_t sizeof_local_memory(const miopen::norm::ProblemDescription& problem)
 bool LayernormForward::IsApplicable(const ExecutionContext&,
                                     const miopen::norm::ProblemDescription& problem) const
 {
-    return (sizeof_local_memory(problem) <= TargetProperties::GetMaxLocalMemorySize());
+    if(!problem.IsSameType())
+        return false;
+    if(!problem.IsSameLength())
+        return false;
+    if(!problem.IsAllPacked())
+        return false;
+    if(!problem.IsRightNormDim())
+        return false;
+    if(!(sizeof_local_memory(problem) <= TargetProperties::GetMaxLocalMemorySize()))
+        return false;
+    return true;
 }
 
-ConvSolution LayernormForward::GetSolution(const ExecutionContext& context,
+ConvSolution LayernormForward::GetSolution(const ExecutionContext&,
                                            const miopen::norm::ProblemDescription& problem) const
 {
-    std::ignore = context;
-
     auto result = ConvSolution{miopenStatusSuccess};
 
     {

@@ -33,8 +33,6 @@
 #include <cstdint>
 #include <string>
 
-#define FIN_OLD_PROBLEM_DESCRIPTION_COMPAT 1
-
 namespace miopen {
 
 // Tensor Helper APIs
@@ -56,27 +54,6 @@ SetDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor, con
 
     return tensor.GetElementSpace();
 }
-
-#if FIN_OLD_PROBLEM_DESCRIPTION_COMPAT
-struct ProblemDescription : conv::ProblemDescription
-{
-    ProblemDescription() = default;
-
-    ProblemDescription(conv::ProblemDescription desc) : conv::ProblemDescription(std::move(desc))
-    {
-        conv_problem.p = this;
-    }
-
-    struct
-    {
-        void SetupFloats(ExecutionContext& ctx) const { p->SetupFloats(ctx); }
-
-    private:
-        const conv::ProblemDescription* p = nullptr;
-        friend struct ProblemDescription;
-    } conv_problem;
-};
-#endif
 
 // For mlo_construct_base
 // TODO remove this
@@ -284,19 +261,19 @@ struct UnifiedDescriptionConv2d
         if(!problem.Is2d())
             MIOPEN_THROW(miopenStatusInternalError, "UnifiedDescriptionConv2d supports only 2D");
 
-        const auto n_inputs_per_group  = problem.GetInChannels_() / problem.GetGroupCount();
-        const auto n_outputs_per_group = problem.GetOutChannels_() / problem.GetGroupCount();
+        const auto n_inputs_per_group  = problem.GetInChannels() / problem.GetGroupCount();
+        const auto n_outputs_per_group = problem.GetOutChannels() / problem.GetGroupCount();
         if(!problem.IsDirectionBackwardWrW())
         {
-            R     = problem.GetWeightsHeight_();
-            S     = problem.GetWeightsWidth_();
+            R     = problem.GetWeightsHeight();
+            S     = problem.GetWeightsWidth();
             U     = problem.IsDirectionForward() ? problem.GetKernelStrideH() : 1;
             V     = problem.IsDirectionForward() ? problem.GetKernelStrideW() : 1;
-            C     = n_inputs_per_group;      // Bwd: C and K is reversed in ProblemDescription.
-            K     = n_outputs_per_group;     // Ditto.
-            out_h = problem.GetOutHeight_(); // Bwd: height/width is reversed in ProblemDescription.
-            out_w = problem.GetOutWidth_();  // Ditto.
-            N     = problem.GetBatchSize_();
+            C     = n_inputs_per_group;     // Bwd: C and K is reversed in ProblemDescription.
+            K     = n_outputs_per_group;    // Ditto.
+            out_h = problem.GetOutHeight(); // Bwd: height/width is reversed in ProblemDescription.
+            out_w = problem.GetOutWidth();  // Ditto.
+            N     = problem.GetBatchSize();
             pad_h = problem.IsDirectionForward() ? problem.GetPadH() : problem.GetBackwardPadH();
             pad_w = problem.IsDirectionForward() ? problem.GetPadW() : problem.GetBackwardPadW();
             input_stride_h  = problem.IsDirectionForward() ? 1 : problem.GetKernelStrideH();
@@ -306,14 +283,14 @@ struct UnifiedDescriptionConv2d
         }
         else
         { // WrW
-            R               = problem.GetInHeight_();
-            S               = problem.GetInWidth_();
+            R               = problem.GetInHeight();
+            S               = problem.GetInWidth();
             U               = problem.GetDilationH();
             V               = problem.GetDilationW();
-            C               = problem.GetBatchSize_();
+            C               = problem.GetBatchSize();
             K               = n_inputs_per_group;
-            out_h           = problem.GetWeightsHeight_();
-            out_w           = problem.GetWeightsWidth_();
+            out_h           = problem.GetWeightsHeight();
+            out_w           = problem.GetWeightsWidth();
             N               = n_outputs_per_group;
             pad_h           = problem.GetPadH();
             pad_w           = problem.GetPadW();

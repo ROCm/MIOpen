@@ -41,7 +41,7 @@
 #include <nlohmann/json.hpp>
 #include <miopen/db_path.hpp>
 #include <miopen/any_solver.hpp>
-#include <boost/filesystem.hpp>
+#include <miopen/filesystem.hpp>
 #include <miopen/anyramdb.hpp>
 
 namespace miopen {
@@ -81,14 +81,15 @@ namespace tuning {
 struct Metadata
 {
     std::size_t num_tuning_params;
-    std::unordered_map<std::string, int> tuning_decodings;
+    std::unordered_map<std::string, std::string> tuning_decodings;
     Metadata(const std::string& arch, const std::string& solver);
 };
 
 bool ModelSetParams(const std::string& arch,
                     const std::string& solver,
                     const std::vector<float>& features,
-                    std::function<bool(int, int)> validator);
+                    bool transform_features,
+                    std::function<bool(std::size_t, std::string)> validator);
 } // namespace tuning
 #endif // MIOPEN_ENABLE_AI_KERNEL_TUNING
 } // namespace ai

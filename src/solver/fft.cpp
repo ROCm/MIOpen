@@ -35,13 +35,13 @@
 
 #include <boost/any.hpp>
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_FFT)
+
 namespace miopen {
 namespace solver {
 namespace conv {
 
 using ProblemDescription = miopen::conv::ProblemDescription;
-
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
 
 static void cgemm_grid(size_t* global_work_size,
                        size_t* local_work_size,
@@ -119,6 +119,9 @@ bool fft::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& pr
         return false;
 
     if(!problem.IsLayoutDefault())
+        return false;
+
+    if(problem.HasAtLeastOne64BitTensor())
         return false;
 
     const auto is_fwd    = problem.IsDirectionForward();
@@ -203,12 +206,12 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
 {
     std::ignore = ctx;
 
-    int in_n  = problem.GetBatchSize_();
-    int in_c  = problem.GetInChannels_();
-    int in_h  = problem.GetInHeight_();
-    int in_w  = problem.GetInWidth_();
-    int out_n = problem.GetBatchSize_();
-    int out_c = problem.GetOutChannels_();
+    int in_n  = problem.GetBatchSize();
+    int in_c  = problem.GetInChannels();
+    int in_h  = problem.GetInHeight();
+    int in_w  = problem.GetInWidth();
+    int out_n = problem.GetBatchSize();
+    int out_c = problem.GetOutChannels();
 
     const int N          = FFTConvParams::TileSize(in_h, in_w);
     const int NumKernels = FFTConvParams::NumKernels;

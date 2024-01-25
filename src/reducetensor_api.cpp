@@ -131,12 +131,7 @@ miopenGetReduceTensorDescriptor(const miopenReduceTensorDescriptor_t reduceTenso
                                 miopenReduceTensorIndices_t* reduceTensorIndices,
                                 miopenIndicesType_t* reduceTensorIndicesType)
 {
-    MIOPEN_LOG_FUNCTION(reduceTensorDesc,
-                        reduceTensorOp,
-                        reduceTensorCompType,
-                        reduceTensorNanOpt,
-                        reduceTensorIndices,
-                        reduceTensorIndicesType);
+    MIOPEN_LOG_FUNCTION(reduceTensorDesc);
     return miopen::try_([&] {
         miopen::deref(reduceTensorOp)       = miopen::deref(reduceTensorDesc).reduceTensorOp_;
         miopen::deref(reduceTensorCompType) = miopen::deref(reduceTensorDesc).reduceTensorCompType_;
@@ -154,7 +149,7 @@ miopenGetReductionIndicesSize(miopenHandle_t handle,
                               const miopenTensorDescriptor_t cDesc,
                               size_t* sizeInBytes)
 {
-    MIOPEN_LOG_FUNCTION(handle, reduceTensorDesc, aDesc, cDesc, sizeInBytes);
+    MIOPEN_LOG_FUNCTION(handle, reduceTensorDesc, aDesc, cDesc);
 
     return miopen::try_([&] {
         miopen::deref(sizeInBytes) =
@@ -171,7 +166,7 @@ miopenGetReductionWorkspaceSize(miopenHandle_t handle,
                                 size_t* sizeInBytes)
 {
 
-    MIOPEN_LOG_FUNCTION(handle, reduceTensorDesc, aDesc, cDesc, sizeInBytes);
+    MIOPEN_LOG_FUNCTION(handle, reduceTensorDesc, aDesc, cDesc);
 
     return miopen::try_([&] {
         miopen::deref(sizeInBytes) = miopen::deref(reduceTensorDesc)

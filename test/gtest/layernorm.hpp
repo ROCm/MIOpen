@@ -23,17 +23,16 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#define MIOPEN_BETA_API 1
-#include <miopen/miopen.h>
-#include <gtest/gtest.h>
-#include <miopen/layernorm.hpp>
 
-#include "tensor_holder.hpp"
+#include "../driver/tensor_driver.hpp"
 #include "cpu_layernorm.hpp"
 #include "get_handle.hpp"
-#include "../driver/tensor_driver.hpp"
+#include "random.hpp"
+#include "tensor_holder.hpp"
 #include "verify.hpp"
-#include <random>
+#include <gtest/gtest.h>
+#include <miopen/layernorm.hpp>
+#include <miopen/miopen.h>
 
 struct LayerNormTestCase
 {
@@ -152,9 +151,9 @@ std::vector<LayerNormTestCase> LayerNormTestConfigs()
     // clang-format on
 }
 
-inline int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
+static int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
 {
-    std::vector<std::size_t> lens = desc.GetLengths();
+    const std::vector<std::size_t>& lens = desc.GetLengths();
     std::vector<int32_t> int32_t_lens(lens.begin(), lens.end());
 
     // set the strides for the tensor
@@ -169,9 +168,7 @@ protected:
     {
         auto&& handle    = get_handle();
         layernorm_config = GetParam();
-        std::mt19937 gen(0);
-        std::uniform_real_distribution<> d{-3, 3};
-        auto gen_value = [&](auto...) { return d(gen); };
+        auto gen_value   = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
         nomalized_dim = layernorm_config.nomalized_dim;
         eps           = layernorm_config.eps;
@@ -279,8 +276,8 @@ protected:
 
         error = miopen::rms_range(ref_mean, mean);
         EXPECT_TRUE(miopen::range_distance(ref_mean) == miopen::range_distance(mean));
-        EXPECT_TRUE(error < threshold * 20)
-            << "Error mean beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        EXPECT_TRUE(error < threshold * 20) << "Error mean beyond tolerance Error:" << error
+                                            << ",  Thresholdx20: " << threshold * 20;
 
         error = miopen::rms_range(ref_rstd, rstd);
         EXPECT_TRUE(miopen::range_distance(ref_rstd) == miopen::range_distance(rstd));

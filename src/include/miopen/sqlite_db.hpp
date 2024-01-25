@@ -52,15 +52,10 @@
 #include <chrono>
 #include <unordered_map>
 
-namespace boost {
-namespace filesystem {
-class path;
-} // namespace filesystem
-} // namespace boost
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_DISABLE_SQL_WAL)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_PERFDB_OVERRIDE)
 
 namespace miopen {
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DISABLE_SQL_WAL)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_PERFDB_OVERRIDE)
 
 constexpr bool InMemDb = MIOPEN_EMBED_DB;
 #if MIOPEN_ENABLE_SQLITE_BACKOFF
@@ -80,7 +75,7 @@ struct SQLiteSerializable
                            names.push_back(name);
                        });
         Derived::Visit(static_cast<const Derived&>(*this),
-                       [&](const int value, const std::string name) {
+                       [&](const int64_t value, const std::string name) {
                            std::ignore = value;
                            names.push_back(name);
                        });
@@ -97,7 +92,7 @@ struct SQLiteSerializable
                            values.push_back(value);
                        });
         Derived::Visit(static_cast<const Derived&>(*this),
-                       [&](const int value, const std::string name) {
+                       [&](const int64_t value, const std::string name) {
                            clauses.push_back("(" + name + " = ? )");
                            values.push_back(std::to_string(value));
                        });
@@ -113,7 +108,7 @@ struct SQLiteSerializable
                            values.push_back(value);
                        });
         Derived::Visit(static_cast<const Derived&>(*this),
-                       [&](const int value, const std::string name) {
+                       [&](const int64_t value, const std::string name) {
                            int_names.push_back(name);
                            values.push_back(std::to_string(value));
                        });
@@ -144,7 +139,7 @@ struct SQLiteSerializable
                        });
         std::vector<std::string> int_fields;
         Derived::Visit(static_cast<const Derived&>(*this),
-                       [&](const int value, const std::string name) {
+                       [&](const int64_t value, const std::string name) {
                            std::ignore = value;
                            int_fields.push_back(name);
                        });
@@ -232,7 +227,7 @@ public:
         }
         else if(!is_system)
         {
-            auto file            = boost::filesystem::path(filename_);
+            auto file            = fs::path(filename_);
             const auto directory = file.remove_filename();
             if(directory.string().empty())
             {
@@ -240,18 +235,18 @@ public:
                 return;
             }
 
-            if(!(boost::filesystem::exists(directory)))
+            if(!fs::exists(directory))
             {
-                if(!boost::filesystem::create_directories(directory))
+                if(!fs::create_directories(directory))
                     MIOPEN_LOG_W("Unable to create a directory: " << directory);
                 else
-                    boost::filesystem::permissions(directory, boost::filesystem::all_all);
+                    fs::permissions(directory, fs::perms::all);
             }
         }
         sql = SQLite{filename_, is_system};
         if(!sql.Valid())
         {
-            bool isKDB = boost::filesystem::path(filename).extension() == ".kdb";
+            bool isKDB = fs::path(filename).extension() == ".kdb";
             dbInvalid  = true;
             filename   = "";
             if(!is_system)
@@ -269,7 +264,7 @@ public:
                             "Missing system database file: "
                             << filename_
                             << " Performance may degrade. Please follow instructions to install: "
-                               "https://github.com/ROCmSoftwarePlatform/"
+                               "https://github.com/ROCm/"
                                "MIOpen#installing-miopen-kernels-package");
                         return true;
                     }();
@@ -286,7 +281,7 @@ public:
         else
         {
             dbInvalid = false;
-            if(!is_system && !miopen::IsEnabled(MIOPEN_DEBUG_DISABLE_SQL_WAL{}))
+            if(!is_system && !miopen::IsEnabled(ENV(MIOPEN_DEBUG_DISABLE_SQL_WAL)))
             {
                 auto res = sql.Exec("PRAGMA journal_mode=WAL;");
                 if(res.empty() || res[0]["journal_mode"] != "wal")
@@ -451,8 +446,8 @@ public:
         if(dbInvalid)
             return boost::none;
 
-        const auto pdb_ovr = miopen::GetStringEnv(MIOPEN_DEBUG_PERFDB_OVERRIDE{});
-        if(pdb_ovr != nullptr)
+        const auto& pdb_ovr = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_PERFDB_OVERRIDE));
+        if(!pdb_ovr.empty())
         {
             MIOPEN_LOG_I2("overriding tuning params with: " << pdb_ovr);
             DbRecord ovr_rec;
