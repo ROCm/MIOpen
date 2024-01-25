@@ -116,19 +116,21 @@ void getParams(const TensorDescriptor& in_desc,
     }
 }
 
-bool Softmax::IsApplicable(const ExecutionContext& context,
-                           const miopen::softmax::ProblemDescription& problem) const
+bool Softmax::IsApplicable(
+    [[maybe_unused]] const ExecutionContext& context,
+    [[maybe_unused]] const miopen::softmax::ProblemDescription& problem) const
 {
     return true;
 }
 
-std::size_t Softmax::GetWorkspaceSize(const ExecutionContext& context,
-                                      const miopen::softmax::ProblemDescription& problem) const
+std::size_t
+Softmax::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
+                          [[maybe_unused]] const miopen::softmax::ProblemDescription& problem) const
 {
     return 0;
 }
 
-ConvSolution Softmax::GetSolution(const ExecutionContext& context,
+ConvSolution Softmax::GetSolution([[maybe_unused]] const ExecutionContext& context,
                                   const miopen::softmax::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
