@@ -44,9 +44,9 @@
 #include <exception>
 #include <unordered_set>
 
-#define WORKAROUND_ISSUE_2493 1
+#define WORKAROUND_ISSUE_2492_granularity_loss 0
 
-#if WORKAROUND_ISSUE_2493 && defined(_WIN32)
+#if WORKAROUND_ISSUE_2492_granularity_loss && defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #endif
@@ -81,13 +81,13 @@ struct std::hash<KDBKey>
     }
 };
 
-#if WORKAROUND_ISSUE_2493 && !defined(_WIN32)
+#if WORKAROUND_ISSUE_2492_granularity_loss && !defined(_WIN32)
 static void SetEnvironmentVariable(std::string_view name, std::string_view value)
 {
     const auto ret = setenv(name.data(), value.data(), 1);
     ASSERT_TRUE(ret == 0);
 }
-#endif // WORKAROUND_ISSUE_2493
+#endif // WORKAROUND_ISSUE_2492_granularity_loss
 
 #if WORKAROUND_ISSUE_1987
 /// \todo Copied from src/db_record.cpp
@@ -444,8 +444,8 @@ TEST(DBSync, KDBTargetID)
     if(miopen::IsEnabled(ENV(MIOPEN_TEST_DBSYNC)))
     {
         fs::path fdb_file_path, pdb_file_path, kdb_file_path;
-#if WORKAROUND_ISSUE_2493
-        SetEnvironmentVariable("MIOPEN_DEBUG_WORKAROUND_ISSUE_2493", "0");
+#if WORKAROUND_ISSUE_2492_granularity_loss
+        SetEnvironmentVariable("MIOPEN_DEBUG_WORKAROUND_ISSUE_2492_granularity_loss", "0");
 #endif
         SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, get_handle());
         std::ignore = fdb_file_path;

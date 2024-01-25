@@ -64,9 +64,10 @@
 /// tests use very small convolutions and Winograd algorithm is
 /// ineffective with such small configs due to huge granularity loss,
 /// we can disable Winograd without any performance implications.
-#define WORKAROUND_ISSUE_2493 1
+#define WORKAROUND_ISSUE_2492_granularity_loss 0
+#define WORKAROUND_ISSUE_2492_tiny_tensor 1
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_WORKAROUND_ISSUE_2493)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492_granularity_loss)
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS)
@@ -683,8 +684,8 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
         return false;
         // clang-format on
 
-#if WORKAROUND_ISSUE_2493
-    if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_WORKAROUND_ISSUE_2493)) &&
+#if WORKAROUND_ISSUE_2492_granularity_loss
+    if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492_granularity_loss)) &&
        !miopen::debug::IsWarmupOngoing)
     {
         constexpr double max_perf_drop_due_to_granularity = 200; // Times.
@@ -695,6 +696,11 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
             return false;
         }
     }
+#endif
+
+#if WORKAROUND_ISSUE_2492_tiny_tensor
+    if(problem.GetInHeight() <= 6 && problem.GetInHeight() <= 6)
+        return false;
 #endif
 
     const auto n_inputs_per_group  = problem.GetInChannels() / problem.GetGroupCount(),
