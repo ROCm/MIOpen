@@ -34,9 +34,8 @@
 #include <miopen/lock_file.hpp>
 #include <miopen/process.hpp>
 #include <miopen/temp_file.hpp>
+#include <miopen/filesystem.hpp>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
 #include <boost/optional.hpp>
 #include <boost/thread.hpp>
 
@@ -52,10 +51,10 @@
 
 namespace miopen {
 namespace tests {
-static boost::filesystem::path& exe_path()
+static fs::path& exe_path()
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static boost::filesystem::path exe_path;
+    static fs::path exe_path;
     return exe_path;
 }
 static boost::optional<std::string>& thread_logs_root()
@@ -595,8 +594,8 @@ private:
             const auto err_path = *thread_logs_root() + "/thread-" + std::to_string(id) + "_" +
                                   log_postfix + "-err.log";
 
-            std::remove(out_path.c_str());
-            std::remove(err_path.c_str());
+            fs::remove(out_path);
+            fs::remove(err_path);
 
             log.open(out_path);
             log_err.open(err_path);
@@ -869,7 +868,7 @@ public:
             EXPECT_EQUAL(child.Wait(), 0);
         }
 
-        std::remove(lock_file_path.c_str());
+        fs::remove(lock_file_path);
 
         const std::string p = temp_file;
         const auto c        = [&p]() { return SQLitePerfDb(p, false); };
@@ -948,7 +947,7 @@ public:
             EXPECT_EQUAL(child.Wait(), 0);
         }
 
-        std::remove(lock_file_path.c_str());
+        fs::remove(lock_file_path);
     }
 
     static void WorkItem(unsigned int id, const std::string& db_path)
