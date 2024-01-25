@@ -336,6 +336,8 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::IsApplicable(
         return false;
     if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)))
         return false;
+    if(problem.HasAtLeastOne64BitTensor())
+        return false;
     if(problem.HasMixedDataTypes())
         return false;
     if(problem.IsTensorsCasted())

@@ -147,10 +147,10 @@ static inline bool skip_config(miopen::Handle& handle,
 
     return ctx.GetStream().GetDeviceName() == "gfx908" && problem.Is2d() && problem.IsFp16() &&
            problem.IsLayoutDefault() && ctx.use_hip_kernels && problem.GetGroupCount() == 1 &&
-           problem.GetBatchSize_() == 1 && problem.GetInChannels_() == 192 &&
-           problem.GetInHeight_() == 28 && problem.GetInWidth_() == 28 &&
-           problem.GetOutChannels_() == 1 && problem.GetWeightsHeight_() == 3 &&
-           problem.GetWeightsWidth_() == 3 && problem.GetPadW() == 1 && problem.GetPadH() == 1 &&
+           problem.GetBatchSize() == 1 && problem.GetInChannels() == 192 &&
+           problem.GetInHeight() == 28 && problem.GetInWidth() == 28 &&
+           problem.GetOutChannels() == 1 && problem.GetWeightsHeight() == 3 &&
+           problem.GetWeightsWidth() == 3 && problem.GetPadW() == 1 && problem.GetPadH() == 1 &&
            problem.GetKernelStrideW() == 1 && problem.GetKernelStrideH() == 1 &&
            problem.GetDilationW() == 1 && problem.GetDilationH() == 1;
 }
