@@ -4777,6 +4777,158 @@ private:
     bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
 };
 
+struct PerformanceConfigHipImplicitGemmGroupBwdXdlops
+    : PerfConfigBase<PerformanceConfigHipImplicitGemmGroupBwdXdlops>
+{
+    int index;
+    std::string kernel_id;
+    std::vector<std::string> valid_kernels;
+    PerformanceConfigHipImplicitGemmGroupBwdXdlops(int idx, std::string kernl_id)
+        : index(idx), kernel_id(kernl_id)
+    {
+    }
+    PerformanceConfigHipImplicitGemmGroupBwdXdlops()
+        : PerformanceConfigHipImplicitGemmGroupBwdXdlops(0, "")
+    {
+    }
+    PerformanceConfigHipImplicitGemmGroupBwdXdlops(bool)
+        : PerformanceConfigHipImplicitGemmGroupBwdXdlops(0, "")
+    {
+    }
+    void HeuristicInit(const miopen::conv::ProblemDescription&);
+    bool SetNextValue(const miopen::conv::ProblemDescription&);
+    bool IsValidValue() const;
+    bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription& problem) const
+    {
+        return IsValid(problem);
+    }
+    bool IsValid(const miopen::conv::ProblemDescription&) const;
+    template <typename Self, typename F>
+    static void Visit(Self&& s, F f)
+    {
+        f(s.kernel_id, "kernel_id");
+    }
+    bool operator==(const PerformanceConfigHipImplicitGemmGroupBwdXdlops& other) const;
+
+private:
+    template <typename DataType>
+    void Init(const miopen::conv::ProblemDescription&);
+    template <typename DataType>
+    bool CheckIsSupportCKArgs(const miopen::conv::ProblemDescription&) const;
+};
+
+struct ConvHipImplicitGemmGroupBwdXdlops final
+    : ConvTunableSolver<PerformanceConfigHipImplicitGemmGroupBwdXdlops>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvHipImplicitGemmGroupBwdXdlops>();
+    }
+
+    PerformanceConfigHipImplicitGemmGroupBwdXdlops
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
+    bool
+    IsValidPerformanceConfig(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&,
+                             const PerformanceConfigHipImplicitGemmGroupBwdXdlops&) const override;
+    PerformanceConfigHipImplicitGemmGroupBwdXdlops
+    Search(const ExecutionContext&,
+           const miopen::conv::ProblemDescription&,
+           const AnyInvokeParams& invoke_ctx) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    bool IsDynamic() const override { return true; }
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&,
+                             const PerformanceConfigHipImplicitGemmGroupBwdXdlops&) const override;
+    /// \ref igemm_get_wti_magic_number
+    float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override
+    {
+        return 0.02f;
+    };
+
+private:
+    template <typename DataType>
+    bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
+};
+
+struct PerformanceConfigHipImplicitGemmGroupWrwXdlops
+    : PerfConfigBase<PerformanceConfigHipImplicitGemmGroupWrwXdlops>
+{
+    int index;
+    std::string kernel_id;
+    std::vector<std::string> valid_kernels;
+    PerformanceConfigHipImplicitGemmGroupWrwXdlops(int idx, std::string kernl_id)
+        : index(idx), kernel_id(kernl_id)
+    {
+    }
+    PerformanceConfigHipImplicitGemmGroupWrwXdlops()
+        : PerformanceConfigHipImplicitGemmGroupWrwXdlops(0, "")
+    {
+    }
+    PerformanceConfigHipImplicitGemmGroupWrwXdlops(bool)
+        : PerformanceConfigHipImplicitGemmGroupWrwXdlops(0, "")
+    {
+    }
+    void HeuristicInit(const miopen::conv::ProblemDescription&);
+    bool SetNextValue(const miopen::conv::ProblemDescription&);
+    bool IsValidValue() const;
+    bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription& problem) const
+    {
+        return IsValid(problem);
+    }
+    bool IsValid(const miopen::conv::ProblemDescription&) const;
+    template <typename Self, typename F>
+    static void Visit(Self&& s, F f)
+    {
+        f(s.kernel_id, "kernel_id");
+    }
+    bool operator==(const PerformanceConfigHipImplicitGemmGroupWrwXdlops& other) const;
+
+private:
+    template <typename DataType>
+    void Init(const miopen::conv::ProblemDescription&);
+    template <typename DataType>
+    bool CheckIsSupportCKArgs(const miopen::conv::ProblemDescription&) const;
+};
+
+struct ConvHipImplicitGemmGroupWrwXdlops final
+    : ConvTunableSolver<PerformanceConfigHipImplicitGemmGroupWrwXdlops>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvHipImplicitGemmGroupWrwXdlops>();
+    }
+
+    PerformanceConfigHipImplicitGemmGroupWrwXdlops
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
+    bool
+    IsValidPerformanceConfig(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&,
+                             const PerformanceConfigHipImplicitGemmGroupWrwXdlops&) const override;
+    PerformanceConfigHipImplicitGemmGroupWrwXdlops
+    Search(const ExecutionContext&,
+           const miopen::conv::ProblemDescription&,
+           const AnyInvokeParams& invoke_ctx) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    bool IsDynamic() const override { return true; }
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&,
+                             const PerformanceConfigHipImplicitGemmGroupWrwXdlops&) const override;
+    /// \ref igemm_get_wti_magic_number
+    float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override
+    {
+        return 0.02f;
+    };
+
+private:
+    template <typename DataType>
+    bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
+};
+
 struct PerformanceConfigHipImplicitGemmF16F8F16FwdXdlops
     : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmF16F8F16FwdXdlops>
 {
