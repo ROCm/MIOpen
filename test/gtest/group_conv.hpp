@@ -38,19 +38,6 @@ namespace group_conv {
 
 using Direction = miopen::conv::Direction;
 
-// Works by detecting if Solver has a method named GetWorkSpaceSize
-template <typename Solver, typename M = void>
-struct NeedsWorkspace
-{
-    constexpr static bool value = false;
-};
-
-template <typename Solver>
-struct NeedsWorkspace<Solver, decltype(&Solver::GetWorkSpaceSize)>
-{
-    constexpr static bool value = true;
-};
-
 template <unsigned NDIM>
 struct GroupConvTestConfig
 {
@@ -338,12 +325,9 @@ private:
             GTEST_SKIP() << solv.SolverDbId() << "Not Applicable for this problem" << conv_config;
         }
 
-        if constexpr(NeedsWorkspace<Solver>::value)
+        if(solv.MayNeedWorkspace())
         {
-            if(solv.MayNeedWorkspace())
-            {
-                wspace.resize(solv.GetWorkSpaceSize(ctx, problem));
-            }
+            wspace.resize(solv.GetWorkspaceSize(ctx, problem));
         }
 
         const auto invoke_params = InvokeParamType{tensors, wspace.ptr(), wspace.size(), false};
