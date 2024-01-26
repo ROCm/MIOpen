@@ -711,7 +711,7 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
     {
         // Group count is not taken into account intentionally.
         if(problem.GetInHeight() <= 6     //
-           && problem.GetInWidth() <= 6  //
+           && problem.GetInWidth() <= 6   //
            && problem.GetBatchSize() <= 4 //
            && problem.GetInChannels() <= 4)
             return false;
