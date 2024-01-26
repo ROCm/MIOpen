@@ -69,6 +69,7 @@ option( MIOPEN_TEST_DEEPBENCH "" OFF)
 option( MIOPEN_TEST_DRIVER_ITER_MODE "" OFF)
 option( MIOPEN_TEST_COMPOSABLEKERNEL "Test with composable_kernel library" ${MIOPEN_USE_COMPOSABLEKERNEL} )
 option( MIOPEN_TEST_DISCRETE "Build Discrete Test Binaries" ON)
+option(CODECOV_TEST "Enable coverage reporting for tests with Codecov" OFF)
 
 set_var_to_condition(MIOPEN_TEST_WITH_MIOPENDRIVER_DEFAULT MIOPEN_BUILD_DRIVER)
 option( MIOPEN_TEST_WITH_MIOPENDRIVER "Use MIOpenDriver in tests" ${MIOPEN_TEST_WITH_MIOPENDRIVER_DEFAULT})
@@ -260,12 +261,18 @@ elseif(MIOPEN_TEST_BFLOAT16)
               test_conv_igemm_dynamic_xdlops_nhwc_bwd_bf16)
 endif()
 
-if(${CODECOV_TEST})
-    list(APPEND SKIP_TESTS
-        test_conv3d test_conv3d_find2 test_immed_conv3d test_immed_conv2d test_pooling2d test_pooling2d_asymmetric
-        test_pooling2d_wide)
+#if(${CODECOV_TEST})
+    #list(APPEND SKIP_TESTS
+        #test_conv3d test_conv3d_find2 test_immed_conv3d test_immed_conv2d test_pooling2d test_pooling2d_asymmetric
+        #test_pooling2d_wide)
     # replaced by smaller tests with suffix _codecov
+#endif()
+
+if (CODECOV_TEST)
+    message("Building with Codecov coverage support")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-instr-generate -fcoverage-mapping")
 endif()
+
 
 if(MIOPEN_NO_GPU)
     set(SKIP_ALL_EXCEPT_TESTS test_include_inliner test_kernel_build_params
@@ -1599,6 +1606,22 @@ add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW_3x2 HALF_ENABLED BF16_E
     ENVIRONMENT MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0 MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinograd3x3MultipassWrW<3-2>'
     COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 3 3 --pads_strides_dilations 1 1 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
+
+# Custom codecov for smoke_solver_ConvWinograd3x3MultipassWrW_3x2
+add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW_3x2 HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON
+    ENVIRONMENT MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0 MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinograd3x3MultipassWrW<3-2>'
+    COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 3 3 --pads_strides_dilations 1 1 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
+if (CODECOV_TEST)
+    add_custom_target(coverage
+        COMMAND ${CMAKE_COMMAND} -E echo "Running coverage for smoke_solver_ConvWinograd3x3MultipassWrW_3x2"
+        COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 3 3 --pads_strides_dilations 1 1 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+        COMMAND llvm-profdata merge -sparse default.profraw -o default.profdata
+        COMMAND llvm-cov show ./test_conv2d -instr-profile=default.profdata
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    )
+endif()
 
 add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW_3x3 HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON
     ENVIRONMENT MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0 MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinograd3x3MultipassWrW<3-3>'
