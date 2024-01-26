@@ -65,8 +65,6 @@
 #define WORKAROUND_MI100_ROM37_HIP_COMPILER_CRASH \
     (HIP_PACKAGE_VERSION_MAJOR == 3 && HIP_PACKAGE_VERSION_MINOR == 7)
 
-#define WORKAROUND_MIOPEN_GITHUB_ISSUE_2500
-
 using ExecutionContext       = miopen::ExecutionContext;
 using ConvProblemDescription = miopen::conv::ProblemDescription;
 using Direction              = miopen::conv::Direction;
@@ -297,9 +295,6 @@ struct conv_base
 protected:
     void RunFind2_0(miopenProblem_t problem, const miopenTensorArgument_t* arguments) const
     {
-#ifdef WORKAROUND_MIOPEN_GITHUB_ISSUE_2500
-        // const_cast<miopen::ConvolutionDescriptor&>(filter).findMode.Set(miopen::FindMode::Values::Normal);
-#endif
         miopenHandle_t handle = &get_handle();
 
         constexpr const auto find_limit = 1;
@@ -820,9 +815,6 @@ struct verify_forward_conv : conv_base<T, Tout>
 
                 if(api == ConvApi::Find_1_0)
                 {
-#ifdef WORKAROUND_MIOPEN_GITHUB_ISSUE_2500
-                    filter.findMode.Set(miopen::FindMode::Values::Normal);
-#endif
                     wspace.resize(filter.GetWorkSpaceSize(ctx, problem));
 
                     int ret_algo_count;
@@ -891,9 +883,6 @@ struct verify_forward_conv : conv_base<T, Tout>
             {
                 if(api == ConvApi::Find_1_0)
                 {
-#ifdef WORKAROUND_MIOPEN_GITHUB_ISSUE_2500
-                    filter.findMode.Set(miopen::FindMode::Values::Normal);
-#endif
                     wspace.resize(filter.GetWorkSpaceSize(ctx, problem));
 
                     int ret_algo_count;
@@ -1254,9 +1243,6 @@ struct verify_backward_conv : conv_base<T>
             break;
         }
         case ConvApi::Find_1_0: {
-#ifdef WORKAROUND_MIOPEN_GITHUB_ISSUE_2500
-            filter.findMode.Set(miopen::FindMode::Values::Normal);
-#endif
             wspace.resize(filter.GetWorkSpaceSize(ctx, problem));
 
             int ret_algo_count;
@@ -1552,9 +1538,6 @@ struct verify_backward_weights_conv : conv_base<T>
         }
         case ConvApi::Find_1_0: {
 
-#ifdef WORKAROUND_MIOPEN_GITHUB_ISSUE_2500
-            filter.findMode.Set(miopen::FindMode::Values::Normal);
-#endif
             wspace.resize(filter.GetWorkSpaceSize(ctx, problem));
 
             int ret_algo_count;

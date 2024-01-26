@@ -102,7 +102,7 @@ struct CKArgs
 
             // On a backward pass, problem.GetIn() means y(or out),
             // and problem.GetOut means x(or in)
-            /// \todo remove this swapping of in and out tensors/descriptors
+            /// \todo remove this when we stop swapping in and out tensors/descriptors
             std::swap(in_strides, out_strides);
 
             // Now compute G's stride
@@ -113,8 +113,8 @@ struct CKArgs
         else
         {
             assert(problem.IsLayoutDefault()); // already checked in IsApplicable
-            // for default layout, we produce packed strides because we transpose to
-            // NCHW layout before calling CK kernel
+            // for default layout, we produce packed strides for NHWC layout
+            // because we transpose to NHWC layout before calling CK kernel
             in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
             out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
             wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
@@ -140,27 +140,6 @@ struct CKArgs
     template <typename ConvPtr>
     auto MakeArgPtr(const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy) const
     {
-        std::cout << "out ptr = " << dy << std::endl;
-        std::cout << "w ptr = " << dw << std::endl;
-        std::cout << "in ptr = " << x << std::endl;
-
-        auto print_vec = [](const char* name, const auto& vec) {
-            std::cout << name << " = [ ";
-            for(const auto& v : vec)
-            {
-                std::cout << v << ", ";
-            }
-            std::cout << "]\n";
-        };
-#define PRINT_VEC(x) print_vec(#x, x);
-
-        PRINT_VEC(output);
-        PRINT_VEC(out_strides);
-        PRINT_VEC(input);
-        PRINT_VEC(in_strides);
-        PRINT_VEC(weight);
-        PRINT_VEC(wei_strides);
-
         return conv_ptr->MakeArgumentPointer(x,
                                              dw,
                                              dy,

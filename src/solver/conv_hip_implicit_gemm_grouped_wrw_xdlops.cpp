@@ -334,23 +334,29 @@ ConvSolution ConvHipImplicitGemmGroupWrwXdlops::GetSolution(
     switch(problem.GetInDataType())
     {
     case miopenInt8:
-        return MakeInvokerFactory<DeviceOpGWrwPtrs<int8_t>, CKArgs, miopen::conv::WrWInvokeParams>(
-            problem, config.kernel_id);
+        return InitInvokerFactoryNHWC<DeviceOpGWrwPtrs<int8_t>,
+                                      CKArgs,
+                                      miopen::conv::WrWInvokeParams>(
+            ctx, problem, config.kernel_id);
     case miopenHalf:
-        return MakeInvokerFactory<DeviceOpGWrwPtrs<ck::half_t>,
-                                  CKArgs,
-                                  miopen::conv::WrWInvokeParams>(problem, config.kernel_id);
+        return InitInvokerFactoryNHWC<DeviceOpGWrwPtrs<ck::half_t>,
+                                      CKArgs,
+                                      miopen::conv::WrWInvokeParams>(
+            ctx, problem, config.kernel_id);
     case miopenFloat:
-        return MakeInvokerFactory<DeviceOpGWrwPtrs<float>, CKArgs, miopen::conv::WrWInvokeParams>(
-            problem, config.kernel_id);
+        return InitInvokerFactoryNHWC<DeviceOpGWrwPtrs<float>,
+                                      CKArgs,
+                                      miopen::conv::WrWInvokeParams>(
+            ctx, problem, config.kernel_id);
     case miopenInt32:
     case miopenBFloat16:
     case miopenFloat8:
     case miopenBFloat8:
     case miopenDouble:
     default:
-        MIOPEN_THROW(miopenStatusInternalError,
-                     "ConvHipImplicitGemmWrwXdlops operation not implemented for this data type");
+        MIOPEN_THROW(
+            miopenStatusInternalError,
+            "ConvHipImplicitGemmGroupWrwXdlops operation not implemented for this data type");
     }
 #endif
     return {};

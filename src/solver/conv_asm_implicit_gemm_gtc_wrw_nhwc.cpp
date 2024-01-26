@@ -39,7 +39,6 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_N
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
 
 #define WRW_MAX_GEMM_K_SPLITS 10
-#define WORKAROUND_ISSUE_2496 1
 
 namespace miopen {
 namespace solver {
@@ -862,13 +861,6 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
 
 #if WORKAROUND_ISSUE_1979
     if(problem.GetGroupCount() > 1)
-        return false;
-#endif
-
-#if WORKAROUND_ISSUE_2496
-    if(problem.GetInChannels_() == 3 && problem.GetOutChannels_() == 1 &&
-       problem.GetInHeight_() == 3 && problem.GetInWidth_() == 3 &&
-       problem.GetWeightsHeight_() == 1 && problem.GetWeightsWidth_() == 1)
         return false;
 #endif
 

@@ -340,23 +340,29 @@ ConvSolution ConvHipImplicitGemmGroupBwdXdlops::GetSolution(
     switch(problem.GetInDataType())
     {
     case miopenInt8:
-        return MakeInvokerFactory<DeviceOpGBwdPtrs<int8_t>, CKArgs, miopen::conv::DataInvokeParams>(
-            problem, config.kernel_id);
+        return InitInvokerFactoryNHWC<DeviceOpGBwdPtrs<int8_t>,
+                                      CKArgs,
+                                      miopen::conv::DataInvokeParams>(
+            ctx, problem, config.kernel_id);
     case miopenHalf:
-        return MakeInvokerFactory<DeviceOpGBwdPtrs<ck::half_t>,
-                                  CKArgs,
-                                  miopen::conv::DataInvokeParams>(problem, config.kernel_id);
+        return InitInvokerFactoryNHWC<DeviceOpGBwdPtrs<ck::half_t>,
+                                      CKArgs,
+                                      miopen::conv::DataInvokeParams>(
+            ctx, problem, config.kernel_id);
     case miopenFloat:
-        return MakeInvokerFactory<DeviceOpGBwdPtrs<float>, CKArgs, miopen::conv::DataInvokeParams>(
-            problem, config.kernel_id);
+        return InitInvokerFactoryNHWC<DeviceOpGBwdPtrs<float>,
+                                      CKArgs,
+                                      miopen::conv::DataInvokeParams>(
+            ctx, problem, config.kernel_id);
     case miopenInt32:
     case miopenBFloat16:
     case miopenDouble:
     case miopenFloat8:
     case miopenBFloat8:
     default:
-        MIOPEN_THROW(miopenStatusInternalError,
-                     "ConvHipImplicitGemmBwdXdlops operation not implemented for this data type");
+        MIOPEN_THROW(
+            miopenStatusInternalError,
+            "ConvHipImplicitGemmGroupBwdXdlops operation not implemented for this data type");
     }
 #endif
     return {};

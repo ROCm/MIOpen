@@ -110,8 +110,8 @@ struct CKArgs
         else
         {
             assert(problem.IsLayoutDefault()); // already checked in IsApplicable
-            // for default layout, we produce packed strides because we transpose to
-            // NCHW layout before calling CK kernel
+            // for default layout, we produce packed strides for NHWC layout
+            // because we transpose to NHWC layout before calling CK kernel
             in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
             out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
             wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
