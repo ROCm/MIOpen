@@ -478,33 +478,23 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlops::GetSolution(
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    switch(problem.GetInDataType())
-    {
-    case miopenInt8:
-        return InitInvokerFactoryNHWC<DeviceOpGFwdPtrs<int8_t>,
-                                      CKArgs,
-                                      miopen::conv::DataInvokeParams>(
-            ctx, problem, config.kernel_id);
-    case miopenHalf:
-        return InitInvokerFactoryNHWC<DeviceOpGFwdPtrs<ck::half_t>,
-                                      CKArgs,
-                                      miopen::conv::DataInvokeParams>(
-            ctx, problem, config.kernel_id);
-    case miopenFloat:
-        return InitInvokerFactoryNHWC<DeviceOpGFwdPtrs<float>,
-                                      CKArgs,
-                                      miopen::conv::DataInvokeParams>(
-            ctx, problem, config.kernel_id);
-    case miopenInt32:
-    case miopenBFloat16:
-    case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
-    default:
-        MIOPEN_THROW(
-            miopenStatusInternalError,
-            "ConvHipImplicitGemmGroupFwdXdlops operation not implemented for this data type");
-    }
+    return MakeSolutionGroupConvImplicitGemmXdlops(
+        problem,
+        [&](auto data_type_val) {
+            using T = decltype(data_type_val);
+            return InitInvokerFactoryFwdNCHW<2,
+                                             DeviceOpGFwdPtrs<T>,
+                                             CKArgs,
+                                             miopen::conv::DataInvokeParams>(
+                ctx, problem, config.kernel_id);
+        },
+        [&](auto data_type_val) {
+            using T = decltype(data_type_val);
+            return InitInvokerFactoryNHWC<DeviceOpGFwdPtrs<T>,
+                                          CKArgs,
+                                          miopen::conv::DataInvokeParams>(
+                ctx, problem, config.kernel_id);
+        });
 #else
     return {};
 #endif

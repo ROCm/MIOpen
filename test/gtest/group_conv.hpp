@@ -503,11 +503,11 @@ std::vector<miopenTensorLayout_t> GetLayoutValues()
     static_assert(NDIM == 2u || NDIM == 3u);
     if constexpr(NDIM == 2u)
     {
-        return {miopenTensorNHWC};
+        return {miopenTensorNHWC, miopenTensorNCHW};
     }
     else
     {
-        return {miopenTensorNDHWC};
+        return {miopenTensorNDHWC, miopenTensorNCDHW};
     }
 }
 
