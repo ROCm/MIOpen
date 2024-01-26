@@ -33,4 +33,3 @@ DEFINE_GROUP_CONV3D_TEST(float, BackwardData);
 DEFINE_GROUP_CONV3D_TEST(half, BackwardData);
 /// \todo int8_t tests don't work. Need debugging
 // DEFINE_GROUP_CONV3D_TEST(int8_t, BackwardData);
-
