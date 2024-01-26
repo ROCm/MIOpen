@@ -27,7 +27,7 @@
 #ifndef MIOPEN_GUARD_MLOPEN_PROCESS_HPP
 #define MIOPEN_GUARD_MLOPEN_PROCESS_HPP
 
-#include <boost/filesystem.hpp>
+#include <miopen/filesystem.hpp>
 #include <memory>
 #include <string_view>
 
@@ -37,10 +37,10 @@ struct ProcessImpl;
 
 struct Process
 {
-    Process(const boost::filesystem::path& cmd);
+    Process(const fs::path& cmd);
     ~Process() noexcept;
 
-    int operator()(std::string_view args = "", const boost::filesystem::path& cwd = "");
+    int operator()(std::string_view args = "", const fs::path& cwd = "");
 
 private:
     std::unique_ptr<ProcessImpl> impl;
@@ -48,9 +48,7 @@ private:
 
 struct ProcessAsync
 {
-    ProcessAsync(const boost::filesystem::path& cmd,
-                 std::string_view args              = "",
-                 const boost::filesystem::path& cwd = "");
+    ProcessAsync(const fs::path& cmd, std::string_view args = "", const fs::path& cwd = "");
     ~ProcessAsync() noexcept;
 
     ProcessAsync(ProcessAsync&&) noexcept;
