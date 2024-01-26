@@ -124,7 +124,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
 private:
     const TensorDescriptor* const* xDescs;
-    const TensorDescriptor& yDesc;
+    const TensorDescriptor yDesc;
     const int32_t xCount;
     const int32_t dim;
 
