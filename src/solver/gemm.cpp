@@ -77,6 +77,9 @@ static inline bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
 bool GemmFwdBase::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
+    if(problem.HasAtLeastOne64BitTensor())
+        return false;
+
     const auto& xDesc = problem.GetIn();
     const auto& wDesc = problem.GetWeights();
     const auto& yDesc = problem.GetOut();

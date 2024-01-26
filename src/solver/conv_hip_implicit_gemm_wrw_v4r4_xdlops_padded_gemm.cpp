@@ -1136,6 +1136,9 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(
     if(problem.HasNonPackedTensors())
         return false;
 
+    if(problem.HasAtLeastOne64BitTensor())
+        return false;
+
     if(problem.IsTensorsCasted())
         return false;
 

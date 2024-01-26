@@ -94,61 +94,61 @@ static inline std::size_t KernelFilterDilationW(const miopen::conv::ProblemDescr
 static inline std::size_t KernelOutputChannelK(const miopen::conv::ProblemDescription& problem)
 {
     if(problem.IsDirectionBackwardWrW())
-        return problem.GetInChannels_();
+        return problem.GetInChannels();
     else
-        return problem.GetOutChannels_();
+        return problem.GetOutChannels();
 }
 
 static inline std::size_t KernelInputChannelC(const miopen::conv::ProblemDescription& problem)
 {
     if(problem.IsDirectionBackwardWrW())
-        return problem.GetBatchSize_();
+        return problem.GetBatchSize();
     else
-        return problem.GetInChannels_() / problem.GetGroupCount();
+        return problem.GetInChannels() / problem.GetGroupCount();
 }
 
 static inline std::size_t KernelBatchN(const miopen::conv::ProblemDescription& problem)
 {
     if(problem.IsDirectionBackwardWrW())
-        return problem.GetOutChannels_() / problem.GetGroupCount();
+        return problem.GetOutChannels() / problem.GetGroupCount();
     else
-        return problem.GetBatchSize_();
+        return problem.GetBatchSize();
 }
 
 static inline std::size_t KernelOutputHeightHo(const miopen::conv::ProblemDescription& problem)
 {
     if(problem.IsDirectionForward())
-        return problem.GetOutHeight_();
+        return problem.GetOutHeight();
     else if(problem.IsDirectionBackwardWrW())
-        return problem.GetWeightsHeight_();
+        return problem.GetWeightsHeight();
     else
-        return problem.GetInHeight_();
+        return problem.GetInHeight();
 }
 
 static inline std::size_t KernelOutputWidthWo(const miopen::conv::ProblemDescription& problem)
 {
     if(problem.IsDirectionForward())
-        return problem.GetOutWidth_();
+        return problem.GetOutWidth();
     else if(problem.IsDirectionBackwardWrW())
-        return problem.GetWeightsWidth_();
+        return problem.GetWeightsWidth();
     else
-        return problem.GetInWidth_();
+        return problem.GetInWidth();
 }
 
 static inline std::size_t KernelFilterWidthX(const miopen::conv::ProblemDescription& problem)
 {
     if(problem.IsDirectionBackwardWrW())
-        return problem.GetInWidth_();
+        return problem.GetInWidth();
     else
-        return problem.GetWeightsWidth_();
+        return problem.GetWeightsWidth();
 }
 
 static inline std::size_t KernelFilterHeightY(const miopen::conv::ProblemDescription& problem)
 {
     if(problem.IsDirectionBackwardWrW())
-        return problem.GetInHeight_();
+        return problem.GetInHeight();
     else
-        return problem.GetWeightsHeight_();
+        return problem.GetWeightsHeight();
 }
 
 /// \todo move to separate header and use in other solvers.

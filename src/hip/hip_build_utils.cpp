@@ -41,12 +41,12 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_DUMP)
 
 namespace miopen {
 
-static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
-                                            const std::string& filename,
-                                            std::string src,
-                                            std::string params,
-                                            const TargetProperties& target,
-                                            const bool testing_mode)
+static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
+                             const std::string& filename,
+                             std::string src,
+                             std::string params,
+                             const TargetProperties& target,
+                             const bool testing_mode)
 {
 #ifdef __linux__
     // Write out the include files
@@ -55,7 +55,7 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     {
         auto inc_list = GetHipKernelIncList();
         auto inc_path = tmp_dir->path;
-        boost::filesystem::create_directories(inc_path);
+        fs::create_directories(inc_path);
         for(const auto& inc_file : inc_list)
         {
             auto inc_src = GetKernelInc(inc_file);
@@ -120,7 +120,7 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
         const std::string cmd        = env + std::string(" ") + MIOPEN_HIP_COMPILER;
         const std::string args       = params + filename + " -o " + bin_file.string() + redirector;
         tmp_dir->Execute(cmd, args);
-        if(!boost::filesystem::exists(bin_file))
+        if(!fs::exists(bin_file))
             MIOPEN_THROW("Failed cmd: '" + cmd + "', args: '" + args + '\'');
     }
 
@@ -133,11 +133,11 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
                          " --inputs=" + bin_file.string() + " --outputs=" + bin_file.string() +
                          ".hsaco --unbundle");
 
-    auto hsaco = std::find_if(boost::filesystem::directory_iterator{tmp_dir->path},
-                              {},
-                              [](auto entry) { return (entry.path().extension() == ".hsaco"); });
+    auto hsaco = std::find_if(fs::directory_iterator{tmp_dir->path}, {}, [](auto entry) {
+        return (entry.path().extension() == ".hsaco");
+    });
 
-    if(hsaco == boost::filesystem::directory_iterator{})
+    if(hsaco == fs::directory_iterator{})
     {
         MIOPEN_LOG_E("failed to find *.hsaco in " << hsaco->path().string());
     }
@@ -151,18 +151,18 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #endif
 }
 
-boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
-                                 const std::string& filename,
-                                 std::string src,
-                                 std::string params,
-                                 const TargetProperties& target)
+fs::path HipBuild(boost::optional<TmpDir>& tmp_dir,
+                  const std::string& filename,
+                  std::string src,
+                  std::string params,
+                  const TargetProperties& target)
 {
     if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
         params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
     return HipBuildImpl(tmp_dir, filename, src, params, target, false);
 }
 
-void bin_file_to_str(const boost::filesystem::path& file, std::string& buf)
+void bin_file_to_str(const fs::path& file, std::string& buf)
 {
     std::ifstream bin_file_ptr(file.string().c_str(), std::ios::binary);
     std::ostringstream bin_file_strm;
