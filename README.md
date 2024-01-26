@@ -42,8 +42,8 @@ python3 -m sphinx -T -E -b html -d _build/doctrees -D language=en . _build/html
 * lbzip2 - multi-threaded compress or decompress utility
 * [rocBLAS](https://github.com/ROCm/rocBLAS) - AMD library for Basic Linear Algebra Subprograms (BLAS) on the ROCm platform.
   * Minimum version branch for pre-ROCm 3.5 [master-rocm-2.10](https://github.com/ROCm/rocBLAS/tree/master-rocm-2.10)
-  * Minimum version branch for post-ROCm 3.5 [master-rocm-3.5](https://github.com/ROCm/rocBLAS/releases/tag/rocm-3.5.0)
-* [MLIR](https://github.com/ROCm/llvm-project-mlir) - (Multi-Level Intermediate Representation) with its MIOpen dialect to support and complement kernel development.
+  * Minimum version branch for post-ROCm 3.5 [master-rocm-3.5](https://github.com/ROCm/rocBLAS/tree/master-rocm-3.5)
+* [MLIR](https://github.com/ROCm/rocMLIR) - (Multi-Level Intermediate Representation) with its MIOpen dialect to support and complement kernel development.
 * [Composable Kernel](https://github.com/ROCm/composable_kernel) - C++ templated device library for GEMM-like and reduction-like operators.
 
 ## Installing MIOpen with pre-built packages
@@ -212,7 +212,7 @@ The driver can be built using the `MIOpenDriver` target:
 
 ` cmake --build . --config Release --target MIOpenDriver ` **OR** ` make MIOpenDriver `
 
-Documentation on how to run the driver is [here](https://rocm.docs.amd.com/projects/MIOpen/en/latest/driver.html).
+Documentation on how to run the driver is [here](https://github.com/ROCm/MIOpen/blob/develop/driver/README.md).
 
 ## Running the tests
 
