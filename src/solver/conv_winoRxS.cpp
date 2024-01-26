@@ -64,9 +64,17 @@
 /// tests use very small convolutions and Winograd algorithm is
 /// ineffective with such small configs due to huge granularity loss,
 /// we can disable Winograd without any performance implications.
-#define WORKAROUND_ISSUE_2493 1
+#define WORKAROUND_ISSUE_2492_GRANULARITY_LOSS 0
+/// \anchor disable_winograd_with_small_tensor
+/// This is alternative W/A for the same problem, which
+/// resolves issues shown at
+/// https://github.com/ROCm/MIOpen/issues/2492#issuecomment-1910928563
+/// The idea is to disable the solver for very small tensors.
+/// PyTorch tests use sizes like 2x2x6x6 (NCHW), but let's add
+/// some spare space for N anc C and disable starting from 4x4x6x6.
+#define WORKAROUND_ISSUE_2492_TINY_TENSOR 1
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_WORKAROUND_ISSUE_2493)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492)
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS)
@@ -683,8 +691,8 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
         return false;
         // clang-format on
 
-#if WORKAROUND_ISSUE_2493
-    if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_WORKAROUND_ISSUE_2493)) &&
+#if WORKAROUND_ISSUE_2492_GRANULARITY_LOSS
+    if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492)) &&
        !miopen::debug::IsWarmupOngoing)
     {
         constexpr double max_perf_drop_due_to_granularity = 200; // Times.
@@ -694,6 +702,19 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
             MIOPEN_LOG_I("granularity_loss =" << gl);
             return false;
         }
+    }
+#endif
+
+#if WORKAROUND_ISSUE_2492_TINY_TENSOR
+    if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492)) &&
+       !miopen::debug::IsWarmupOngoing)
+    {
+        // Group count is not taken into account intentionally.
+        if(problem.GetInHeight() <= 6     //
+           && problem.GetInWidth() <= 6  //
+           && problem.GetBatchSize() <= 4 //
+           && problem.GetInChannels() <= 4)
+            return false;
     }
 #endif
 
