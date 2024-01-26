@@ -83,6 +83,8 @@ void getParams(const TensorDescriptor& in_desc,
     out_spatial_dim = in_mode == MIOPEN_SOFTMAX_MODE_INSTANCE ? 1 : out_h * out_w;
     out_vector_size = in_mode == MIOPEN_SOFTMAX_MODE_INSTANCE ? out_c * out_h * out_w : out_c;
     // num_spatial_dims or pixels each workgroup can compute
+
+    /// \todo Magic numbers
     out_num_batch = out_vector_size < 256 ? nextPow2(256 / out_vector_size) : 1;
 
     out_vld = {256, 1, 1};
@@ -183,18 +185,17 @@ ConvSolution Softmax::GetSolution([[maybe_unused]] const ExecutionContext& conte
     {
         if(isForward)
         {
+            /// \todo Magic numbers
             if((u_batch_size + 1) * 256 > 65536 && yDesc.GetType() == miopenHalf)
                 MIOPEN_THROW(miopenStatusBadParm, "Exceed local memory capacity");
         }
         else
         {
+            /// \todo Magic numbers
             if((2 * u_batch_size + 1) * 256 > 65536 && yDesc.GetType() == miopenHalf)
                 MIOPEN_THROW(miopenStatusBadParm, "Exceed local memory capacity");
         }
     }
-
-    auto alpha_fp = *(static_cast<const float*>(alpha));
-    auto beta_fp  = *(static_cast<const float*>(beta));
 
     KernelBuildParameters build_params = KernelBuildParameters{{"NUM_BATCH", num_batch}};
 
@@ -233,10 +234,10 @@ ConvSolution Softmax::GetSolution([[maybe_unused]] const ExecutionContext& conte
         build_params.Define("IS_DINPUT_PACKED", static_cast<int>(dxDesc.IsPacked()));
     }
 
-    if(!float_equal(alpha_fp, 1.0))
+    if(!float_equal(alpha, 1.0))
         build_params.Define("USE_ALPHA", 1);
 
-    if(!float_equal(beta_fp, 0))
+    if(!float_equal(beta, 0))
         build_params.Define("USE_BETA", 1);
 
     auto kernel = KernelInfo{};
@@ -281,8 +282,8 @@ ConvSolution Softmax::GetSolution([[maybe_unused]] const ExecutionContext& conte
                        out_hstr,
                        params.xdx_offset,
                        params.y_offset,
-                       alpha_fp,
-                       beta_fp);
+                       alpha,
+                       beta);
             };
         };
     }
@@ -322,8 +323,8 @@ ConvSolution Softmax::GetSolution([[maybe_unused]] const ExecutionContext& conte
                        params.y_offset,
                        params.dy_offset,
                        params.xdx_offset,
-                       alpha_fp,
-                       beta_fp);
+                       alpha,
+                       beta);
             };
         };
     }

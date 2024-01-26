@@ -37,9 +37,6 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
     std::string network_config = "sfmfwd-";
 
-    auto alpha_fp = *(static_cast<const float*>(alpha));
-    auto beta_fp  = *(static_cast<const float*>(beta));
-
     if(isForward)
     {
         int n_x, c_x, h_x, w_x;
@@ -82,7 +79,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
             std::to_string(static_cast<int>(xdxDesc.IsPacked()));
     }
 
-    network_config += "a" + std::to_string(alpha_fp) + "b" + std::to_string(beta_fp) + "algo" +
+    network_config += "a" + std::to_string(alpha) + "b" + std::to_string(beta) + "algo" +
                       std::to_string(static_cast<int>(algorithm)) + "mode" +
                       std::to_string(static_cast<int>(mode));
 

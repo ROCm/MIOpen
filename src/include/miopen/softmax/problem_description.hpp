@@ -47,18 +47,13 @@ struct ProblemDescription : ProblemDescriptionBase
                        miopenSoftmaxAlgorithm_t algorithm_,
                        miopenSoftmaxMode_t mode_)
         : isForward(true),
-          alpha(alpha_),
-          beta(beta_),
           xdxDesc(xDesc_),
           yDesc(yDesc_),
-
-          // initalize this reference to some value, but it will not be used for Forward
-          dyDesc(yDesc_),
 
           algorithm(algorithm_),
           mode(mode_)
     {
-        CheckCommonParams();
+        CheckAndAssignAlphaBeta(alpha_, beta_);
 
         if(xdxDesc.GetType() != yDesc.GetType())
         {
@@ -79,15 +74,13 @@ struct ProblemDescription : ProblemDescriptionBase
                        miopenSoftmaxAlgorithm_t algorithm_,
                        miopenSoftmaxMode_t mode_)
         : isForward(false),
-          alpha(alpha_),
-          beta(beta_),
           xdxDesc(dxDesc_),
           yDesc(yDesc_),
           dyDesc(dyDesc_),
           algorithm(algorithm_),
           mode(mode_)
     {
-        CheckCommonParams();
+        CheckAndAssignAlphaBeta(alpha_, beta_);
 
         if(yDesc != dyDesc)
         {
@@ -108,8 +101,8 @@ struct ProblemDescription : ProblemDescriptionBase
     bool IsForward() const { return isForward; }
     miopenSoftmaxAlgorithm_t GetAlgorithm() const { return algorithm; }
     miopenSoftmaxMode_t GetMode() const { return mode; }
-    const void* GetAlpha() const { return alpha; }
-    const void* GetBeta() const { return beta; }
+    float GetAlpha() const { return alpha; }
+    float GetBeta() const { return beta; }
 
     // for forward
     const TensorDescriptor& GetXDesc() const { return xdxDesc; }
@@ -122,28 +115,31 @@ struct ProblemDescription : ProblemDescriptionBase
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
-    void CheckCommonParams()
+    void CheckAndAssignAlphaBeta(const void* alpha_, const void* beta_)
     {
-        if(alpha == nullptr)
+        if(alpha_ == nullptr)
         {
             MIOPEN_THROW(miopenStatusBadParm, "Alpha value is nullptr");
         }
 
-        if(beta == nullptr)
+        if(beta_ == nullptr)
         {
             MIOPEN_THROW(miopenStatusBadParm, "Beta value is nullptr");
         }
+
+        alpha = *(static_cast<const float*>(alpha_));
+        beta  = *(static_cast<const float*>(beta_));
     }
 
     const bool isForward;
-    const void* alpha;
-    const void* beta;
+
+    float alpha;
+    float beta;
 
     // for forward xDesc is stored in xdxDesc, for backward dxDesc is stored in xdxDesc
-    const TensorDescriptor& xdxDesc;
-    const TensorDescriptor& yDesc;
-
-    const TensorDescriptor& dyDesc;
+    TensorDescriptor xdxDesc;
+    TensorDescriptor yDesc;
+    TensorDescriptor dyDesc;
 
     const miopenSoftmaxAlgorithm_t algorithm;
     const miopenSoftmaxMode_t mode;

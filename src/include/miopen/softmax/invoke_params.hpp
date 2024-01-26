@@ -44,9 +44,7 @@ struct InvokeParams : public miopen::InvokeParams
                  miopenSoftmaxMode_t mode_,
                  int x_offset_ = 0,
                  int y_offset_ = 0)
-        : alpha(alpha_),
-          beta(beta_),
-          algorithm(algorithm_),
+        : algorithm(algorithm_),
           mode(mode_),
 
           xdxDesc(xDesc_),
@@ -57,13 +55,13 @@ struct InvokeParams : public miopen::InvokeParams
           forward_y(y_),
           backward_y(nullptr),
 
-          dyDesc(yDesc_),
           dy(nullptr),
 
           xdx_offset(x_offset_),
           y_offset(y_offset_),
           dy_offset(0)
     {
+        InitializeAlphaBeta(alpha_, beta_);
     }
 
     InvokeParams(const void* alpha_,
@@ -79,9 +77,7 @@ struct InvokeParams : public miopen::InvokeParams
                  int y_offset_,
                  int dy_offset_,
                  int dx_offset_)
-        : alpha(alpha_),
-          beta(beta_),
-          algorithm(algorithm_),
+        : algorithm(algorithm_),
           mode(mode_),
 
           xdxDesc(dxDesc_),
@@ -99,34 +95,52 @@ struct InvokeParams : public miopen::InvokeParams
           y_offset(y_offset_),
           dy_offset(dy_offset_)
     {
+        InitializeAlphaBeta(alpha_, beta_);
     }
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
 
 public:
-    const void* alpha;
-    const void* beta;
+    bool alpha;
+    bool beta;
     miopenSoftmaxAlgorithm_t algorithm;
     miopenSoftmaxMode_t mode;
 
-    // xdxDesc is used for both forward and bacward
-    const TensorDescriptor& xdxDesc;
+    // xdxDesc is used for both forward and backward
+    TensorDescriptor xdxDesc;
     ConstData_t x;
     Data_t dx;
 
-    const TensorDescriptor& yDesc;
+    TensorDescriptor yDesc;
     Data_t forward_y;
     ConstData_t backward_y;
 
     // backward specific part
-    const TensorDescriptor& dyDesc;
+    TensorDescriptor dyDesc;
     ConstData_t dy;
 
-    // xdx_offset is used for both forward and bacward
+    // xdx_offset is used for both forward and backward
     int xdx_offset;
     int y_offset;
     int dy_offset;
+
+private:
+    void InitializeAlphaBeta(const void* alpha_, const void* beta_)
+    {
+        alpha = false;
+        beta  = false;
+
+        if(alpha_ != nullptr)
+        {
+            alpha = *(static_cast<const float*>(alpha_));
+        }
+
+        if(beta_ != nullptr)
+        {
+            beta = *(static_cast<const float*>(beta_));
+        }
+    }
 };
 
 } // namespace softmax
