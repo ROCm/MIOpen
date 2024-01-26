@@ -48,6 +48,10 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
                              const TargetProperties& target,
                              const bool testing_mode)
 {
+#ifdef MIOPEN_CMP_FLAGS_NEW
+    /* Initialize MIOPEN Compiler Flags */
+    MIOPEN_CMP_FLAGS_INIT();
+#endif /*MIOPEN_CMP_FLAGS_NEW*/
 #ifdef __linux__
     // Write out the include files
     // Let's assume includes are overkill for feature tests & optimize'em out.

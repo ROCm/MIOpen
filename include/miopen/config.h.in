@@ -81,51 +81,62 @@
 #cmakedefine MIOPEN_DEFAULT_FIND_MODE @MIOPEN_DEFAULT_FIND_MODE@
 
 // clang-format on
-#ifndef MIOPEN_CMP_FLAGS_NEW
-#cmakedefine MIOPEN_AMDGCN_ASSEMBLER "@MIOPEN_AMDGCN_ASSEMBLER@"
-#cmakedefine HIP_OC_COMPILER "@HIP_OC_COMPILER@"
-#cmakedefine MIOPEN_HIP_COMPILER "@MIOPEN_HIP_COMPILER@"
-#cmakedefine MIOPEN_OFFLOADBUNDLER_BIN "@MIOPEN_OFFLOADBUNDLER_BIN@"
-#cmakedefine MIOPEN_CACHE_DIR "@MIOPEN_CACHE_DIR@"
+#ifndef MIOPEN_CMP_FLAGS_NEW /* Flag to switch to new approach for MIOPEN Compiler Flag */
+  #cmakedefine MIOPEN_AMDGCN_ASSEMBLER "@MIOPEN_AMDGCN_ASSEMBLER@"
+  #cmakedefine HIP_OC_COMPILER "@HIP_OC_COMPILER@"
+  #cmakedefine MIOPEN_HIP_COMPILER "@MIOPEN_HIP_COMPILER@"
+  #cmakedefine MIOPEN_OFFLOADBUNDLER_BIN "@MIOPEN_OFFLOADBUNDLER_BIN@"
+  #cmakedefine MIOPEN_CACHE_DIR "@MIOPEN_CACHE_DIR@"
 #else /*MIOPEN_CMP_FLAGS_NEW if defined*/
-/* Include rocm-core header for get ROCm Install Path Method */
-#include <rocm-core/rocm_getpath.h>
+  /* Include rocm-core header for get ROCm Install Path Method */
+  #include <rocm-core/rocm_getpath.h>
 
-/* Flags to help identify/differentiate Definitions for each MIOPEN Compiler Flags */
-typedef enum {
-        MIOPEN_AMDGCN_Flag=0,
-        MIOPEN_OC_COMPILER_Flag=1,
-        MIOPEN_HIP_COMPILER_Flag=2,
-        MIOPEN_OFFLOAD_BUNDLER_Flag=3,
-        MIOPEN_ROCM_INSTALL_PATH_Flag=4,
-        MIOPEN_CMP_MAX_Flag=5 /*Should be last Flag definition*/
-} MIOPEN_CMP_Flags_t;
+  /* Max Buffer Len to hold the Flag Path */
+  #define PATH_MAX_LEN 4096
 
-/* List to hold Relative Directory Path for each Compiler Flags from ROCM Install Path */
-extern const char* MIOPEN_CMP_FLAG_REL_PATHS[MIOPEN_CMP_MAX_Flag];
+  /* Flags to help identify/differentiate Definitions for each MIOPEN Compiler Flags */
+  typedef enum {
+      MIOPEN_AMDGCN_Flag=0,
+      MIOPEN_OC_COMPILER_Flag=1,
+      MIOPEN_HIP_COMPILER_Flag=2,
+      MIOPEN_OFFLOAD_BUNDLER_Flag=3,
+      MIOPEN_ROCM_INSTALL_PATH_Flag=4,
+      MIOPEN_CMP_MAX_Flag=5 /*Should be last Flag definition*/
+  } MIOPEN_CMP_Flags_t;
 
-/* List to hold the Compiler Flag Paths*/
-extern char MIOPEN_CMP_FLAGS[MIOPEN_CMP_MAX_Flag][PATH_MAX];
+  /* Global variable prototype of List to hold Relative Directory Path for each Compiler Flags from ROCM Install Path
+   * The definition of this variable expected to be available in C/C++ code of the Target Library */
+  extern const char* MIOPEN_CMP_FLAG_REL_PATHS[MIOPEN_CMP_MAX_Flag];
 
-/* Macro to initialize the MIOPEN Compiler Flags */
-#define MIOPEN_CMP_FLAGS_INIT() do{char *flagPath=NULL; int len = 0;  MIOPEN_CMP_Flags_t i;\
+  /* Global variable prototype of List to hold the Compiler Flag Pathsi 
+   * The definition of this variable expected to be available in C/C++ code of the Target Library */
+  extern char MIOPEN_CMP_FLAGS[MIOPEN_CMP_MAX_Flag][PATH_MAX_LEN];
+
+  /* Macro to initialize the MIOPEN Compiler Flags using ROCm Base Install Path fetched using getROCmInstallPath()
+   * This approach depends on the getROCmInstallPath() provided by rocm-core
+   * This flag Paths are expected to be deprecated/modified in upcoming MAJOR Releases */
+  #define MIOPEN_CMP_FLAGS_INIT() do{char *flagPath=NULL; int len = 0;  MIOPEN_CMP_Flags_t i;\
         if(0==MIOPEN_CMP_FLAGS[MIOPEN_AMDGCN_Flag][0]){\
           PathErrors_t ret = getROCmInstallPath(&flagPath, &len); \
-          if( PathSuccess == ret ){\
+          if( (PathSuccess == ret) ){\
             for(i=MIOPEN_AMDGCN_Flag;i<MIOPEN_CMP_MAX_Flag;i++){\
-                  sprintf((char *)*(MIOPEN_CMP_FLAGS+i),"%s%s", flagPath, MIOPEN_CMP_FLAG_REL_PATHS[i] );\
+              if( PATH_MAX_LEN > (len+strlen(MIOPEN_CMP_FLAG_REL_PATHS[i])) ){ /*Check Buffer Overflow*/ \
+                sprintf((char *)*(MIOPEN_CMP_FLAGS+i),"%s%s", flagPath, MIOPEN_CMP_FLAG_REL_PATHS[i] );\
+              }\
             }\
             free(flagPath);\
           }\
         }\
        }while(0);
 
-
-#define MIOPEN_AMDGCN_ASSEMBLER MIOPEN_CMP_FLAGS[MIOPEN_AMDGCN_Flag]
-#define HIP_OC_COMPILER MIOPEN_CMP_FLAGS[MIOPEN_OC_COMPILER_Flag]
-#define MIOPEN_HIP_COMPILER MIOPEN_CMP_FLAGS[MIOPEN_HIP_COMPILER_Flag]
-#define MIOPEN_OFFLOADBUNDLER_BIN MIOPEN_CMP_FLAGS[MIOPEN_OFFLOAD_BUNDLER_Flag]
-#define MIOPEN_ROCM_INSTALL_PATH MIOPEN_CMP_FLAGS[MIOPEN_ROCM_INSTALL_PATH_Flag]
+  /* MIOPEN Compiler Flag Paths generated using ROCM Base install Path 
+   * Before using these flags, it is required to invoke MIOPEN_CMP_FLAGS_INIT()
+   * To fetch the ROCM Base Install Path and to generate the MIOPEN Compiler Flag Paths */
+  #define MIOPEN_AMDGCN_ASSEMBLER MIOPEN_CMP_FLAGS[MIOPEN_AMDGCN_Flag]
+  #define HIP_OC_COMPILER MIOPEN_CMP_FLAGS[MIOPEN_OC_COMPILER_Flag]
+  #define MIOPEN_HIP_COMPILER MIOPEN_CMP_FLAGS[MIOPEN_HIP_COMPILER_Flag]
+  #define MIOPEN_OFFLOADBUNDLER_BIN MIOPEN_CMP_FLAGS[MIOPEN_OFFLOAD_BUNDLER_Flag]
+  #define MIOPEN_ROCM_INSTALL_PATH MIOPEN_CMP_FLAGS[MIOPEN_ROCM_INSTALL_PATH_Flag]
 
 #endif /*MIOPEN_CMP_FLAGS_NEW*/
 
