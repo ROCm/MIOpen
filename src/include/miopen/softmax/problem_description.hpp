@@ -35,8 +35,6 @@ struct NetworkConfig;
 
 namespace softmax {
 
-int nextPow2(int v);
-
 struct ProblemDescription : ProblemDescriptionBase
 {
     // softmax forward constructor
