@@ -44,7 +44,11 @@
 #include <exception>
 #include <unordered_set>
 
-#define WORKAROUND_ISSUE_2493 1
+/// \todo HACK
+/// This should be set to 1 if either WORKAROUND_ISSUE_2492_GRANULARITY_LOSS
+/// or WORKAROUND_ISSUE_2492_TINY_TENSOR is defined as non-zero in
+/// src/solver/conv_winoRxS.cpp
+#define WORKAROUND_ISSUE_2492 1
 
 #define WORKAROUND_ISSUE_1987 0      // Allows testing FDB on gfx1030 (legacy fdb).
 #define SKIP_KDB_PDB_TESTING 0       // Allows testing FDB on gfx1030.
@@ -74,7 +78,7 @@ struct std::hash<KDBKey>
     }
 };
 
-#if WORKAROUND_ISSUE_2493
+#if WORKAROUND_ISSUE_2492
 static void SetEnvironmentVariable(const std::string& name, const std::string& value)
 {
 #ifdef _WIN32
@@ -84,7 +88,7 @@ static void SetEnvironmentVariable(const std::string& name, const std::string& v
 #endif
     ASSERT_TRUE(ret == 0);
 }
-#endif // WORKAROUND_ISSUE_2493
+#endif // WORKAROUND_ISSUE_2492
 
 #if WORKAROUND_ISSUE_1987
 /// \todo Copied from src/db_record.cpp
@@ -443,8 +447,8 @@ TEST(DBSync, KDBTargetID)
     if(miopen::IsEnabled(ENV(MIOPEN_TEST_DBSYNC)))
     {
         boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
-#if WORKAROUND_ISSUE_2493
-        SetEnvironmentVariable("MIOPEN_DEBUG_WORKAROUND_ISSUE_2493", "0");
+#if WORKAROUND_ISSUE_2492
+        SetEnvironmentVariable("MIOPEN_DEBUG_WORKAROUND_ISSUE_2492", "0");
 #endif
         SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, get_handle());
         std::ignore = fdb_file_path;
