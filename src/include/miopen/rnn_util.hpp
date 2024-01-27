@@ -32,6 +32,7 @@
 #include <miopen/common.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/seq_tensor.hpp>
+#include <iostream>
 
 namespace miopen {
 
@@ -43,7 +44,6 @@ enum class RnnDirection
 
 struct RnnBatches
 {
-
     int at(int time, RnnDirection direction) const { return batches.at(cur_time(time, direction)); }
 
     int next(int time, RnnDirection direction) const
@@ -211,7 +211,12 @@ public:
                (h_vec_sz * bi_scale + h_vec_sz) * (num_layers - 1) * weight_stride;
     }
 
-    int bias_off(int layer_id) const { return bias_off() + bias_count * layer_id * weight_stride; }
+    int
+    bias_off(int layer_id, int bias_id, RnnDirection direction) const
+    {
+        return bias_off() + bias_count * layer_id * weight_stride + bias_id * bias_stride() +
+               static_cast<size_t>(direction) * h_vec_sz;
+    }
     int weight_stride;
 
 private:
