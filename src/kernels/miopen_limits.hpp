@@ -79,6 +79,16 @@ public:
     }
 };
 
+#if HIP_PACKAGE_VERSION_FLAT >= 6001024024ULL
+template <>
+class numeric_limits<int>
+{
+public:
+    static constexpr __device__ int max() noexcept { return 2147483647; }
+    static constexpr __device__ int min() noexcept { return -2147483648; }
+};
+#endif
+
 } // namespace std
 
 #else
