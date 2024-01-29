@@ -35,23 +35,6 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DEEPBENCH)
 
 namespace deepbench_lstm {
 
-static bool Skip(miopenDataType_t prec)
-{
-    switch(prec)
-    {
-    case miopenFloat: return !miopen::IsEnabled(ENV(MIOPEN_TEST_DEEPBENCH));
-    case miopenHalf:
-    case miopenFloat8:
-    case miopenBFloat8:
-    case miopenInt8:
-    case miopenBFloat16:
-    case miopenInt32:
-    case miopenDouble:
-    default: MIOPEN_THROW("Unsupported datatype");
-    }
-    return true;
-}
-
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
     std::stringstream ss(param);
@@ -101,46 +84,9 @@ class ConfigWithFloat : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
-class ConfigWithHalf : public testing::TestWithParam<std::vector<TestCase>>
+void Run2dDriverFloat(void)
 {
-};
-
-static bool IsTestSupportedForDevice()
-{
-    using namespace miopen::debug;
-    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X, Gpu::gfx908>;
-    using d_mask = disabled<Gpu::Default>;
-    return miopen::debug::IsTestSupportedForDevice<d_mask, e_mask>();
-}
-
-void Run2dDriver(miopenDataType_t prec)
-{
-    if(!IsTestSupportedForDevice())
-    {
-        GTEST_SKIP();
-    }
-    if(Skip(prec))
-    {
-        GTEST_SKIP();
-    }
-    std::vector<std::string> params;
-    switch(prec)
-    {
-    case miopenFloat: params = ConfigWithFloat::GetParam(); break;
-    case miopenHalf: params = ConfigWithHalf::GetParam(); break;
-    case miopenFloat8:
-    case miopenBFloat8:
-    case miopenInt8:
-    case miopenBFloat16:
-    case miopenInt32:
-    case miopenDouble:
-        FAIL() << "miopenInt8, miopenBFloat16, miopenInt32, "
-                  "miopenDouble, miopenFloat8, miopenBFloat8 "
-                  "data types not supported by "
-                  "deepbench_lstm test";
-
-    default: params = ConfigWithFloat::GetParam();
-    }
+    std::vector<std::string> params = ConfigWithFloat::GetParam();
 
     for(const auto& test_value : params)
     {
@@ -161,6 +107,14 @@ void Run2dDriver(miopenDataType_t prec)
 
 using namespace deepbench_lstm;
 
-TEST_P(ConfigWithFloat, FloatTest_deepbench_lstm) { Run2dDriver(miopenFloat); };
+TEST_P(ConfigWithFloat, FloatTest_deepbench_lstm)
+{
+    if(!miopen::IsEnabled(ENV(MIOPEN_TEST_DEEPBENCH)))
+    {
+        GTEST_SKIP();
+    }
+
+    Run2dDriverFloat();
+};
 
 INSTANTIATE_TEST_SUITE_P(DeepbenchLstm, ConfigWithFloat, testing::Values(GetTestCases("--float")));

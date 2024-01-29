@@ -107,24 +107,7 @@ void Run2dDriver(miopenDataType_t prec)
     {
         GTEST_SKIP();
     }
-    std::vector<std::string> params;
-    switch(prec)
-    {
-    case miopenFloat: params = ConfigWithFloat::GetParam(); break;
-    case miopenHalf:
-    case miopenFloat8:
-    case miopenBFloat8:
-    case miopenInt8:
-    case miopenBFloat16:
-    case miopenInt32:
-    case miopenDouble:
-        FAIL() << "miopenInt8, miopenBFloat16, miopenInt32, "
-                  "miopenDouble, miopenFloat8, miopenBFloat8 "
-                  "data types not supported by "
-                  "lstm_extra test";
-
-    default: params = ConfigWithFloat::GetParam();
-    }
+    std::vector<std::string> params = ConfigWithFloat::GetParam();
 
     for(const auto& test_value : params)
     {
