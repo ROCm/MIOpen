@@ -87,35 +87,28 @@ struct CKArgs
         Wo = ProblemInterpreter::GetOutputWidthWo(problem);
         Y  = ProblemInterpreter::GetFilterHeightY(problem);
         X  = ProblemInterpreter::GetFilterWidthX(problem);
-        Di = ProblemInterpreter::GetInputDepthDi(problem);
-        Do = ProblemInterpreter::GetOutputDepthDo(problem);
-        Z  = ProblemInterpreter::GetFilterDepthZ(problem);
+        Di = 1;
+        Do = 1;
+        Z  = 1;
 
         input  = {G, N, C, Di, Hi, Wi};
         output = {G, N, K, Do, Ho, Wo};
         weight = {G, K, C, Z, Y, X};
 
-        // miopen strides to CK strides
-        auto miopen_in_strides  = problem.GetIn().GetStrides();
-        auto miopen_out_strides = problem.GetOut().GetStrides();
-        auto miopen_wei_strides = problem.GetWeights().GetStrides();
-        miopen_in_strides.insert(miopen_in_strides.begin(), C);
-        miopen_out_strides.insert(miopen_out_strides.begin(), K);
-        miopen_wei_strides.insert(miopen_wei_strides.begin(), K * miopen_wei_strides[0]);
-        std::copy(miopen_in_strides.begin(), miopen_in_strides.end(), in_strides.begin());
-        std::copy(miopen_out_strides.begin(), miopen_out_strides.end(), out_strides.begin());
-        std::copy(miopen_wei_strides.begin(), miopen_wei_strides.end(), wei_strides.begin());
+        in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
+        out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
+        wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
 
-        strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
+        strides  = {1,
                    ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
-        dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
+        dilation = {1,
                     ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
                     ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
-        lPadding = {ProblemInterpreter::GetInputLeftPadD(problem),
+        lPadding = {0,
                     ProblemInterpreter::GetInputLeftPadH(problem),
                     ProblemInterpreter::GetInputLeftPadW(problem)};
-        rPadding = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
+        rPadding = {0,
                     ProblemInterpreter::GetAdjustedInputRightPadH(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
     }

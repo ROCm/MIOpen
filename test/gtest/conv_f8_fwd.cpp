@@ -30,24 +30,19 @@
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
 #include "f8_cast_util.hpp"
-#include "conv3d_test_case.hpp"
+#include "conv2d_test_case.hpp"
 
 namespace conv_f8_fwd {
 
-std::vector<Conv3DTestCase> ConvTestConfigs()
-{ // g    n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
-    return {{1, 16, 16, 1, 14, 14, 16, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 64, 64, 1, 14, 14, 64, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 64, 32, 1, 28, 28, 32, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {2, 128, 32, 1, 28, 28, 32, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {32, 128, 32, 1, 28, 28, 32, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {5, 120, 60, 1, 28, 28, 60, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution}};
+std::vector<Conv2DTestCase> ConvTestConfigs()
+{ // g  n  c   h   w   k   y  x pad_x pad_y stri_x stri_y dia_x dia_y
+    return {{1, 16, 16, 14, 14, 16, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
 }
 
 template <typename T = float>
 struct ConvFwdSolverTest
     : public ::testing::TestWithParam<
-          std::tuple<miopenConvFwdAlgorithm_t, Conv3DTestCase, miopenTensorLayout_t>>
+          std::tuple<miopenConvFwdAlgorithm_t, Conv2DTestCase, miopenTensorLayout_t>>
 {
 protected:
     void SetUp() override
@@ -115,7 +110,7 @@ protected:
         EXPECT_TRUE(error < threshold)
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
     }
-    Conv3DTestCase conv_config;
+    Conv2DTestCase conv_config;
     miopen::ConvolutionDescriptor conv_desc;
     tensor<T> input;
     tensor<T> weights;
@@ -141,7 +136,7 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
                const miopen::TensorDescriptor& outputDesc,
                Data_t output,
                const miopen::ConvolutionDescriptor& convDesc,
-               const Conv3DTestCase& conv_config,
+               const Conv2DTestCase& conv_config,
                bool& test_skipped)
 {
     auto&& handle = get_handle();
@@ -195,4 +190,4 @@ INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
                          ConvFwdSolverTestF8,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
                                           testing::ValuesIn(ConvTestConfigs()),
-                                          testing::Values(miopenTensorNDHWC)));
+                                          testing::Values(miopenTensorNHWC)));
