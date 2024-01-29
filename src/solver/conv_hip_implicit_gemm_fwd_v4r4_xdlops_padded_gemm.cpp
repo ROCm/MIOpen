@@ -32,15 +32,6 @@
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 
-/// The solver has correctness issues with ROCm 3.7 and 4.0 on MI100 with several configs. The
-/// issues are not reproducible with ROCm no-npi build 6738-STG2 (proposed 4.2 release candidate).
-/// Let's disable these configs for 3.7...4.0.
-#define WORKAROUND_MI100_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS \
-    (HIP_PACKAGE_VERSION_FLAT <= 4000999999ULL)
-
-/// Fatal compiler errors with ROCm 3.7 on some BF16 configs.
-#define WORKAROUND_MI100_BF16_FATAL_COMPILER_ERRORS (HIP_PACKAGE_VERSION_FLAT <= 3007999999ULL)
-
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS)
 
 /* this fix is for fp16 xdlops vectorizable kernels due to followings, we may revisit this fix after
@@ -1103,26 +1094,6 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
         if(!IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k_total))
             return false;
     }
-#if WORKAROUND_MI100_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS
-    if(ctx.GetStream().GetDeviceName() == "gfx908" && problem.IsFp32())
-    {
-        if((problem.GetInChannels() == 3 && problem.GetOutChannels() == 1 &&
-            problem.GetInWidth() == 227 && problem.GetInHeight() == 227 &&
-            problem.GetWeightsWidth() == 3 && problem.GetWeightsHeight() == 3) //
-           || (problem.GetInChannels() == 64 && problem.GetOutChannels() == 1 &&
-               problem.GetInWidth() == 112 && problem.GetInHeight() == 112 &&
-               problem.GetWeightsWidth() == 3 && problem.GetWeightsHeight() == 3 &&
-               problem.GetKernelStrideW() >= 2 && problem.GetKernelStrideH() >= 2 &&
-               problem.GetDilationW() >= 3 && problem.GetDilationH() >= 3))
-        {
-            return false;
-        }
-    }
-#endif
-#if WORKAROUND_MI100_BF16_FATAL_COMPILER_ERRORS
-    if(ctx.GetStream().GetDeviceName() == "gfx908" && problem.IsBfp16())
-        return false;
-#endif
 
     // this particular HeuristicInit is so comprehensive, that if it cannot predict a valid
     // performance config, the problem is probably not applicable

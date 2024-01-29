@@ -30,7 +30,6 @@
 #include <miopen/env.hpp>
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/mlo_internal.hpp>
-#include <miopen/rocm_features.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
 #include <algorithm>
 
