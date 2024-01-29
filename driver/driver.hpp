@@ -26,7 +26,7 @@
 #ifndef GUARD_MIOPEN_DRIVER_HPP
 #define GUARD_MIOPEN_DRIVER_HPP
 
-#if !defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL)
+#if !defined(_WIN32)
 #include <half/half.hpp>
 #else
 #include <half.hpp>
