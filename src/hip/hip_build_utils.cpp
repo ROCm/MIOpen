@@ -39,6 +39,18 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_VERBOSE)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_DUMP)
 
+#ifdef MIOPEN_CMP_FLAGS_NEW
+ /* Directory Path from ROCM PATH to MIOPEN Flag Path */
+const char* MIOPEN_CMP_FLAG_REL_PATHS[MIOPEN_CMP_MAX_Flag] = { "llvm/bin/clang",
+                                                               "bin/clang-ocl",
+                                                               "llvm/bin/clang++",
+                                                               "llvm/bin/clang-offload-bundler",
+                                                               "\0" };
+/* List of MIOPEN Compiler Flags */
+char MIOPEN_CMP_FLAGS[MIOPEN_CMP_MAX_Flag][PATH_MAX_LEN]={0};
+#endif /*MIOPEN_CMP_FLAGS_NEW*/
+
+
 namespace miopen {
 
 static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,

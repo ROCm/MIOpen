@@ -71,18 +71,6 @@ static bool GcnAssemblerHasBug34765();
 static bool GcnAssemblerSupportsNoCOv3();
 static std::string CleanupPath(const char* p);
 
-#ifdef MIOPEN_CMP_FLAGS_NEW
- /* Directory Path from ROCM PATH to MIOPEN Flag Path */
-const char* MIOPEN_CMP_FLAG_REL_PATHS[MIOPEN_CMP_MAX_Flag] = { "llvm/bin/clang",
-                                                               "bin/clang-ocl",
-                                                               "llvm/bin/clang++",
-                                                               "llvm/bin/clang-offload-bundler",
-                                                               "\0" };
-/* List of MIOPEN Compiler Flags */
-char MIOPEN_CMP_FLAGS[MIOPEN_CMP_MAX_Flag][PATH_MAX_LEN]={0};
-#endif /*MIOPEN_CMP_FLAGS_NEW*/
-
-
 std::string GetGcnAssemblerPathImpl()
 {
     const auto& asm_path_env_p = miopen::GetStringEnv(ENV(MIOPEN_EXPERIMENTAL_GCN_ASM_PATH));
