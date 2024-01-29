@@ -30,17 +30,9 @@
 #include "get_handle.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DEEPBENCH)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace deepbench_gru {
-static bool SkipTest(void)
-{
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
-    {
-        return false;
-    }
-    return !miopen::IsEnabled(ENV(MIOPEN_TEST_DEEPBENCH));
-}
+static bool SkipTest(void) { return !miopen::IsEnabled(ENV(MIOPEN_TEST_DEEPBENCH)); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -55,26 +47,9 @@ class DeepBenchGRUConfigWithFloat : public testing::TestWithParam<std::vector<st
 {
 };
 
-void Run2dDriver(miopenDataType_t prec)
+void Run2dDriverFloat(void)
 {
-
-    std::vector<std::string> params;
-    switch(prec)
-    {
-    case miopenFloat: params = DeepBenchGRUConfigWithFloat::GetParam(); break;
-    case miopenHalf:
-    case miopenFloat8:
-    case miopenBFloat8:
-    case miopenInt8:
-    case miopenBFloat16:
-    case miopenInt32:
-    case miopenDouble:
-        FAIL() << "miopenHalf, miopenInt8, miopenBFloat16, miopenInt32, miopenDouble "
-                  "data type not supported by "
-                  "rnn_vanilla test";
-
-    default: params = DeepBenchGRUConfigWithFloat::GetParam();
-    }
+    std::vector<std::string> params = DeepBenchGRUConfigWithFloat::GetParam();
 
     for(const auto& test_value : params)
     {
@@ -92,17 +67,6 @@ void Run2dDriver(miopenDataType_t prec)
         std::cout << capture;
     }
 };
-
-bool IsTestSupportedForDevice(const miopen::Handle& handle)
-{
-    std::string devName = handle.GetDeviceName();
-    if(devName == "gfx900" || devName == "gfx906" || devName == "gfx908" || devName == "gfx90a" ||
-       miopen::StartsWith(devName, "gfx94") || miopen::StartsWith(devName, "gfx103") ||
-       miopen::StartsWith(devName, "gfx110"))
-        return true;
-    else
-        return false;
-}
 
 std::vector<std::string> GetTestCases(void)
 {
@@ -143,14 +107,13 @@ using namespace deepbench_gru;
 
 TEST_P(DeepBenchGRUConfigWithFloat, FloatTest_deepbench_gru)
 {
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    if(SkipTest())
     {
-        Run2dDriver(miopenFloat);
+        GTEST_SKIP();
     }
     else
     {
-        GTEST_SKIP();
+        Run2dDriverFloat();
     }
 };
 

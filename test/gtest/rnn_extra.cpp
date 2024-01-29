@@ -29,6 +29,7 @@
 #include "../rnn_vanilla.hpp"
 #include "get_handle.hpp"
 
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace rnn_extra {
@@ -47,26 +48,10 @@ class RNNExtraConfigWithFloat : public testing::TestWithParam<std::vector<std::s
 {
 };
 
-void Run2dDriver(miopenDataType_t prec)
+void Run2dDriverFloat(void)
 {
 
-    std::vector<std::string> params;
-    switch(prec)
-    {
-    case miopenFloat: params = RNNExtraConfigWithFloat::GetParam(); break;
-    case miopenHalf:
-    case miopenFloat8:
-    case miopenBFloat8:
-    case miopenInt8:
-    case miopenBFloat16:
-    case miopenInt32:
-    case miopenDouble:
-        FAIL() << "miopenHalf, miopenInt8, miopenBFloat16, miopenInt32, miopenDouble "
-                  "data type not supported by "
-                  "rnn_vanilla test";
-
-    default: params = RNNExtraConfigWithFloat::GetParam();
-    }
+    std::vector<std::string> params = RNNExtraConfigWithFloat::GetParam();
 
     for(const auto& test_value : params)
     {
@@ -84,17 +69,6 @@ void Run2dDriver(miopenDataType_t prec)
         std::cout << capture;
     }
 };
-
-bool IsTestSupportedForDevice(const miopen::Handle& handle)
-{
-    std::string devName = handle.GetDeviceName();
-    if(devName == "gfx900" || devName == "gfx906" || devName == "gfx908" || devName == "gfx90a" ||
-       miopen::StartsWith(devName, "gfx94") || miopen::StartsWith(devName, "gfx103") ||
-       miopen::StartsWith(devName, "gfx110"))
-        return true;
-    else
-        return false;
-}
 
 std::vector<std::string> GetTestCases(void)
 {
@@ -150,15 +124,12 @@ using namespace rnn_extra;
 
 TEST_P(RNNExtraConfigWithFloat, FloatTest_rnn_extra)
 {
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
-    {
-        Run2dDriver(miopenFloat);
-    }
+    if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
+         miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float")))
+        Run2dDriverFloat();
     else
-    {
         GTEST_SKIP();
-    }
 };
 
 INSTANTIATE_TEST_SUITE_P(ConvTrans, RNNExtraConfigWithFloat, testing::Values(GetTestCases()));
