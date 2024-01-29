@@ -31,7 +31,6 @@
 #include "get_handle.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_COMPOSABLEKERNEL)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace conv3d_test {
@@ -39,10 +38,10 @@ namespace conv3d_test {
 static bool IsTestRunWith(const char* float_arg)
 {
     assert(float_arg != nullptr);
-    const auto& s_envVar = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    return ((!s_envVar.empty() && std::strcmp(s_envVar.c_str(), float_arg) == 0 &&
-             miopen::IsEnabled(ENV(MIOPEN_TEST_ALL))) ||
-            (s_envVar.empty() && miopen::IsUnset(ENV(MIOPEN_TEST_ALL))));
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
+        return true; // standalone run
+    return miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
+           miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == float_arg;
 }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
