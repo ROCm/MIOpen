@@ -119,9 +119,9 @@
         if(0==MIOPEN_CMP_FLAGS[MIOPEN_AMDGCN_Flag][0]){\
           PathErrors_t ret = getROCmInstallPath(&flagPath, &len); \
           if( (PathSuccess == ret) ){\
-            for(i=MIOPEN_AMDGCN_Flag;i<MIOPEN_CMP_MAX_Flag;i++){\
+            for(i=0;i<MIOPEN_CMP_MAX_Flag;i++){\
               if( PATH_MAX_LEN > (len+strlen(MIOPEN_CMP_FLAG_REL_PATHS[i])) ){ /*Check Buffer Overflow*/ \
-                sprintf((char *)*(MIOPEN_CMP_FLAGS+i),"%s%s", flagPath, MIOPEN_CMP_FLAG_REL_PATHS[i] );\
+                sprintf((char *)&(MIOPEN_CMP_FLAGS[i]),"%s%s", flagPath, MIOPEN_CMP_FLAG_REL_PATHS[i] );\
               }\
             }\
             free(flagPath);\
