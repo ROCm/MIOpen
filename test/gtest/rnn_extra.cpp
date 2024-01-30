@@ -33,7 +33,6 @@ MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace rnn_extra {
-static bool SkipTest(void) { return miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
