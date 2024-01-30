@@ -102,8 +102,8 @@ struct InvokeParams : public miopen::InvokeParams
     Data_t GetWorkspace() const { return nullptr; }
 
 public:
-    bool alpha;
-    bool beta;
+    float alpha;
+    float beta;
     miopenSoftmaxAlgorithm_t algorithm;
     miopenSoftmaxMode_t mode;
 
@@ -128,8 +128,8 @@ public:
 private:
     void InitializeAlphaBeta(const void* alpha_, const void* beta_)
     {
-        alpha = false;
-        beta  = false;
+        alpha = 0.0f;
+        beta  = 0.0f;
 
         if(alpha_ != nullptr)
         {

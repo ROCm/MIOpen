@@ -71,12 +71,11 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
                           std::to_string(h_dy) + "w_dy" + std::to_string(w_dy) +
 
                           "n_dx" + std::to_string(n_dx) + "c_dx" + std::to_string(c_dx) + "h_dx" +
-                          std::to_string(h_dx) + "w_dx" + std::to_string(w_dx) +
+                          std::to_string(h_dx) + "w_dx" + std::to_string(w_dx);
 
-                          network_config +=
-            "ypk" + std::to_string(static_cast<int>(yDesc.IsPacked())) + "dypk" +
-            std::to_string(static_cast<int>(dyDesc.IsPacked())) + "dxpk" +
-            std::to_string(static_cast<int>(xdxDesc.IsPacked()));
+        network_config += "ypk" + std::to_string(static_cast<int>(yDesc.IsPacked())) + "dypk" +
+                          std::to_string(static_cast<int>(dyDesc.IsPacked())) + "dxpk" +
+                          std::to_string(static_cast<int>(xdxDesc.IsPacked()));
     }
 
     network_config += "a" + std::to_string(alpha) + "b" + std::to_string(beta) + "algo" +
