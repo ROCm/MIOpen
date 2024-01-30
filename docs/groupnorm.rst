@@ -1,8 +1,10 @@
 
-Layernorm Layer(experimental)
+GroupNorm Layer(experimental)
 =============================
 
-The layernorm  types and functions.
+The groupnorm types and functions.
+It splits input channels into num_group groups and do normalize for each group.
+
 To enable this, define MIOPEN_BETA_API before including miopen.h.
 
 
@@ -11,8 +13,8 @@ miopenNormMode_t
 
 .. doxygenenum::  miopenNormMode_t
 
-miopenLayerNormForward
+miopenGroupNormForward
 ----------------------------------
 
-.. doxygenfunction::  miopenLayerNormForward
+.. doxygenfunction::  miopenGroupNormForward
 

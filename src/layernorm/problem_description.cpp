@@ -24,14 +24,14 @@
  *
  *******************************************************************************/
 
-#include <miopen/norm/problem_description.hpp>
+#include <miopen/layernorm/problem_description.hpp>
 #include <miopen/names.hpp>
 
 #include <sstream>
 
 namespace miopen {
 
-namespace norm {
+namespace layernorm {
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
@@ -59,6 +59,6 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     return NetworkConfig{ss.str()};
 }
 
-} // namespace norm
+} // namespace layernorm
 
 } // namespace miopen
