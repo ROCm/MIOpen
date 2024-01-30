@@ -24,11 +24,12 @@
  *
  *******************************************************************************/
 
+#include <miopen/layernorm/solvers.hpp>
+
+#include <miopen/layernorm/invoke_params.hpp>
 #include <miopen/datatype.hpp>
-#include <miopen/kernel_build_params.hpp>
 #include <miopen/layernorm.hpp>
-#include <miopen/norm/invoke_params.hpp>
-#include <miopen/norm/solvers.hpp>
+#include <miopen/kernel_build_params.hpp>
 #include <miopen/target_properties.hpp>
 
 #define LOCAL_SIZE 256
@@ -37,15 +38,15 @@ namespace miopen {
 
 namespace solver {
 
-namespace norm {
+namespace layernorm {
 
-std::size_t sizeof_kernel_FLOAT(const miopen::norm::ProblemDescription& problem)
+std::size_t sizeof_kernel_FLOAT(const miopen::layernorm::ProblemDescription& problem)
 {
     const auto datatype = problem.GetXDesc().GetType();
     return get_data_size(datatype);
 }
 
-std::size_t sizeof_local_memory(const miopen::norm::ProblemDescription& problem)
+std::size_t sizeof_local_memory(const miopen::layernorm::ProblemDescription& problem)
 {
     std::size_t rv = 0;
     rv += LOCAL_SIZE * sizeof_kernel_FLOAT(problem) * 2;
@@ -53,7 +54,7 @@ std::size_t sizeof_local_memory(const miopen::norm::ProblemDescription& problem)
 }
 
 bool LayernormForward::IsApplicable(const ExecutionContext&,
-                                    const miopen::norm::ProblemDescription& problem) const
+                                    const miopen::layernorm::ProblemDescription& problem) const
 {
     if(!problem.IsSameType())
         return false;
@@ -68,9 +69,12 @@ bool LayernormForward::IsApplicable(const ExecutionContext&,
     return true;
 }
 
-ConvSolution LayernormForward::GetSolution(const ExecutionContext&,
-                                           const miopen::norm::ProblemDescription& problem) const
+ConvSolution
+LayernormForward::GetSolution(const ExecutionContext& context,
+                              const miopen::layernorm::ProblemDescription& problem) const
 {
+    std::ignore = context;
+
     auto result = ConvSolution{miopenStatusSuccess};
 
     {
@@ -119,7 +123,7 @@ ConvSolution LayernormForward::GetSolution(const ExecutionContext&,
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::norm::InvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::layernorm::InvokeParams>();
 
             auto dims         = params.xDesc->GetLengths();
             size_t inner_size = 1;
@@ -144,7 +148,7 @@ ConvSolution LayernormForward::GetSolution(const ExecutionContext&,
     return result;
 }
 
-} // namespace norm
+} // namespace layernorm
 
 } // namespace solver
 

@@ -23,32 +23,35 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_LAYERNORM_HPP_
-#define MIOPEN_LAYERNORM_HPP_
 
-#include <miopen/common.hpp>
+#pragma once
+
+#include <miopen/solver.hpp>
+#include <miopen/groupnorm/problem_description.hpp>
+
+#include <utility>
 
 namespace miopen {
 
-struct Handle;
-struct TensorDescriptor;
+namespace solver {
 
-miopenStatus_t LayerNormForward(Handle& handle,
-                                const TensorDescriptor& xDesc,
-                                ConstData_t x,
-                                const TensorDescriptor& weightDesc,
-                                ConstData_t weight,
-                                const TensorDescriptor& biasDesc,
-                                ConstData_t bias,
-                                const TensorDescriptor& yDesc,
-                                Data_t y,
-                                const TensorDescriptor& meanDesc,
-                                Data_t mean,
-                                const TensorDescriptor& rstdDesc,
-                                Data_t rstd,
-                                miopenNormMode_t mode,
-                                float epsilon,
-                                int32_t normalized_dim);
+namespace groupnorm {
+
+using NormalizationSolver =
+    NonTunableSolverBase<ExecutionContext, miopen::groupnorm::ProblemDescription>;
+
+struct GroupNormForward final : NormalizationSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<GroupNormForward>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::groupnorm::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::groupnorm::ProblemDescription& problem) const override;
+};
+
+} // namespace groupnorm
+
+} // namespace solver
 
 } // namespace miopen
-#endif // _MIOPEN_LAYERNORM_HPP_
