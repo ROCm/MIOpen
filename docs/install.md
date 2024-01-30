@@ -14,8 +14,8 @@
 * [SQLite3](https://sqlite.org/index.html) - reading and writing performance database, enabling persistent [kernel cache](https://rocm.docs.amd.com/projects/MIOpen/en/latest/cache.html)
 * [rocBLAS](https://github.com/ROCm/rocBLAS) - AMD library for Basic Linear Algebra Subprograms (BLAS) on the ROCm platform.
   * Minimum version branch for pre-ROCm 3.5 [master-rocm-2.10](https://github.com/ROCm/rocBLAS/tree/master-rocm-2.10)
-  * Minimum version branch for post-ROCm 3.5 [master-rocm-3.5](https://github.com/ROCm/rocBLAS/releases/tag/rocm-3.5.0)
-* [MLIR](https://github.com/ROCm/llvm-project-mlir) - (Multi-Level Intermediate Representation) with its MIOpen dialect to support and complement kernel development.
+  * Minimum version branch for post-ROCm 3.5 [master-rocm-3.5](https://github.com/ROCm/rocBLAS/tree/master-rocm-3.5)
+* [MLIR](https://github.com/ROCm/rocMLIR) - (Multi-Level Intermediate Representation) with its MIOpen dialect to support and complement kernel development.
 * [Composable Kernel](https://github.com/ROCm/composable_kernel) - C++ templated device library for GEMM-like and reduction-like operators.
 
 ## Installing MIOpen with pre-built packages
