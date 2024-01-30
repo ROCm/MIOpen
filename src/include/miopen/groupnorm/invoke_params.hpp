@@ -23,32 +23,35 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_LAYERNORM_HPP_
-#define MIOPEN_LAYERNORM_HPP_
 
-#include <miopen/common.hpp>
+#pragma once
+
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
+namespace groupnorm {
 
-struct Handle;
-struct TensorDescriptor;
+struct InvokeParams : public miopen::InvokeParams
+{
+    InvokeParams() = default;
 
-miopenStatus_t LayerNormForward(Handle& handle,
-                                const TensorDescriptor& xDesc,
-                                ConstData_t x,
-                                const TensorDescriptor& weightDesc,
-                                ConstData_t weight,
-                                const TensorDescriptor& biasDesc,
-                                ConstData_t bias,
-                                const TensorDescriptor& yDesc,
-                                Data_t y,
-                                const TensorDescriptor& meanDesc,
-                                Data_t mean,
-                                const TensorDescriptor& rstdDesc,
-                                Data_t rstd,
-                                miopenNormMode_t mode,
-                                float epsilon,
-                                int32_t normalized_dim);
+    const TensorDescriptor* xDesc = nullptr;
+
+    ConstData_t x         = nullptr;
+    ConstData_t weight    = nullptr;
+    ConstData_t bias      = nullptr;
+    Data_t y              = nullptr;
+    Data_t mean           = nullptr;
+    Data_t rstd           = nullptr;
+    uint64_t num_groups   = 0;
+    float epsilon         = 0;
+    miopenNormMode_t mode = MIOPEN_ELEMENTWISE_AFFINE;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
+
+} // namespace groupnorm
 
 } // namespace miopen
-#endif // _MIOPEN_LAYERNORM_HPP_

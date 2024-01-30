@@ -23,35 +23,30 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CPU_LAYERNORM_HPP
-#define GUARD_CPU_LAYERNORM_HPP
+#ifndef GUARD_CPU_GROUPNORM_HPP
+#define GUARD_CPU_GROUPNORM_HPP
 
 #include "tensor_holder.hpp"
 
 template <class T>
-void cpu_layernorm_forward(tensor<T> input,
+void cpu_groupnorm_forward(tensor<T> input,
                            tensor<T> weight,
                            tensor<T> bias,
                            tensor<T>& ref_output,
                            tensor<T>& ref_mean,
                            tensor<T>& ref_rstd,
+                           uint64_t num_groups,
                            float eps,
-                           int32_t dim,
                            miopenNormMode_t mode)
 {
-    auto dims         = input.desc.GetLengths();
-    size_t outer_size = 1;
-    size_t inner_size = 1;
-    size_t i          = 0;
-    for(; i < dim; i++)
-    {
-        outer_size *= dims[i];
-    }
+    auto dims = input.desc.GetLengths();
 
-    for(; i < dims.size(); i++)
-    {
-        inner_size *= dims[i];
-    }
+    size_t numel             = input.desc.GetElementSize();
+    size_t numel_per_channel = numel / dims[0] / dims[1];
+    size_t num_channels      = dims[1];
+
+    size_t outer_size = dims[0] * num_groups;
+    size_t inner_size = numel / outer_size;
 
     par_ford(outer_size)([&](int32_t o) {
         T mean_v = 0.0f;
@@ -71,10 +66,12 @@ void cpu_layernorm_forward(tensor<T> input,
         ref_rstd[o] = rstd_v;
 
         ford(inner_size)([&](int32_t i) {
-            T weight_v = mode ? weight[i] : 1;
-            T bias_v   = mode ? bias[i] : 0;
-            ref_output[o * inner_size + i] =
-                (input[o * inner_size + i] - mean_v) * rstd_v * weight_v + bias_v;
+            size_t idx = o * inner_size + i;
+            size_t c   = (idx / numel_per_channel) % num_channels;
+            T weight_v = mode ? weight[c] : 1;
+            T bias_v   = mode ? bias[c] : 0;
+
+            ref_output[idx] = (input[idx] - mean_v) * rstd_v * weight_v + bias_v;
         });
     });
 }

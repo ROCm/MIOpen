@@ -23,8 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_LAYERNORM_HPP_
-#define MIOPEN_LAYERNORM_HPP_
+#include <miopen/miopen.h>
+#ifndef MIOPEN_GROUPNORM_HPP_
+#define MIOPEN_GROUPNORM_HPP_
 
 #include <miopen/common.hpp>
 
@@ -33,7 +34,7 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-miopenStatus_t LayerNormForward(Handle& handle,
+miopenStatus_t GroupNormForward(Handle& handle,
                                 const TensorDescriptor& xDesc,
                                 ConstData_t x,
                                 const TensorDescriptor& weightDesc,
@@ -47,8 +48,8 @@ miopenStatus_t LayerNormForward(Handle& handle,
                                 const TensorDescriptor& rstdDesc,
                                 Data_t rstd,
                                 miopenNormMode_t mode,
-                                float epsilon,
-                                int32_t normalized_dim);
+                                uint64_t num_groups,
+                                float epsilon);
 
 } // namespace miopen
-#endif // _MIOPEN_LAYERNORM_HPP_
+#endif // _MIOPEN_GROUPNORM_HPP_

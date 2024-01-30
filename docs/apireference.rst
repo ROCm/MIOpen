@@ -24,4 +24,5 @@ API Reference
     layernorm
     sum
     argmax
+    groupnorm
 

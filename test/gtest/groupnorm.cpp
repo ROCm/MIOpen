@@ -23,35 +23,44 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/env.hpp>
+#include "groupnorm.hpp"
 
-#pragma once
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-#include <miopen/invoke_params.hpp>
-#include <miopen/tensor.hpp>
-
-namespace miopen {
-namespace norm {
-
-struct InvokeParams : public miopen::InvokeParams
+std::string GetFloatArg()
 {
-    InvokeParams() = default;
+    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    if(tmp.empty())
+    {
+        return "";
+    }
+    return tmp;
+}
 
-    const TensorDescriptor* xDesc = nullptr;
-
-    ConstData_t x              = nullptr;
-    ConstData_t weight         = nullptr;
-    ConstData_t bias           = nullptr;
-    Data_t y                   = nullptr;
-    Data_t mean                = nullptr;
-    Data_t rstd                = nullptr;
-    float epsilon              = 0;
-    int32_t normalized_dim     = 0;
-    miopenLayerNormMode_t mode = MIOPEN_ELEMENTWISE_AFFINE;
-
-    std::size_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
+struct GroupNormTestFloat : GroupNormTest<float>
+{
 };
 
-} // namespace norm
+TEST_P(GroupNormTestFloat, GroupNormTestFw)
+{
+    const auto& handle = get_handle();
 
-} // namespace miopen
+    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
+       miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(GroupNormTestSet,
+                         GroupNormTestFloat,
+                         testing::ValuesIn(GroupNormTestConfigs()));

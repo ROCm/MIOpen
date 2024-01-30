@@ -23,32 +23,36 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_LAYERNORM_HPP_
-#define MIOPEN_LAYERNORM_HPP_
 
-#include <miopen/common.hpp>
+#include <miopen/groupnorm/problem_description.hpp>
+#include <miopen/names.hpp>
+
+#include <sstream>
 
 namespace miopen {
 
-struct Handle;
-struct TensorDescriptor;
+namespace groupnorm {
 
-miopenStatus_t LayerNormForward(Handle& handle,
-                                const TensorDescriptor& xDesc,
-                                ConstData_t x,
-                                const TensorDescriptor& weightDesc,
-                                ConstData_t weight,
-                                const TensorDescriptor& biasDesc,
-                                ConstData_t bias,
-                                const TensorDescriptor& yDesc,
-                                Data_t y,
-                                const TensorDescriptor& meanDesc,
-                                Data_t mean,
-                                const TensorDescriptor& rstdDesc,
-                                Data_t rstd,
-                                miopenNormMode_t mode,
-                                float epsilon,
-                                int32_t normalized_dim);
+NetworkConfig ProblemDescription::MakeNetworkConfig() const
+{
+    auto dims           = xDesc.GetLengths();
+    size_t numel        = xDesc.GetElementSize();
+    size_t num_batches  = dims[0];
+    size_t num_channels = dims[1];
+
+    auto dtype = xDesc.GetType();
+
+    std::ostringstream ss;
+
+    ss << "dtype" << dtype;
+    ss << "numel" << numel;
+    ss << "num_batches" << num_batches;
+    ss << "num_channels" << num_channels;
+    ss << "num_groups" << num_groups;
+
+    return NetworkConfig{ss.str()};
+}
+
+} // namespace groupnorm
 
 } // namespace miopen
-#endif // _MIOPEN_LAYERNORM_HPP_
