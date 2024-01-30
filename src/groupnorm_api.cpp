@@ -23,15 +23,16 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#include <miopen/layernorm.hpp>
+#include <miopen/groupnorm.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
-static void
-LogCmdLayerNorm(const miopenTensorDescriptor_t xDesc, const miopenNormMode_t mode, bool is_fwd)
+static void LogCmdGroupNorm(const miopenTensorDescriptor_t xDesc,
+                            const miopenNormMode_t mode,
+                            uint64_t num_groups,
+                            bool is_fwd)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -39,15 +40,19 @@ LogCmdLayerNorm(const miopenTensorDescriptor_t xDesc, const miopenNormMode_t mod
         auto dtype = miopen::deref(xDesc).GetType();
         if(dtype == miopenHalf)
         {
-            ss << "layernormfp16";
+            ss << "groupnormfp16";
         }
         else if(dtype == miopenFloat)
         {
-            ss << "layernormfp32";
+            ss << "groupnormfp32";
         }
         else if(dtype == miopenBFloat16)
         {
-            ss << "layernormbfp16";
+            ss << "groupnormbfp16";
+        }
+        else if(dtype == miopenDouble)
+        {
+            ss << "groupnormfp64";
         }
 
         int32_t size = {0};
@@ -70,13 +75,15 @@ LogCmdLayerNorm(const miopenTensorDescriptor_t xDesc, const miopenNormMode_t mod
             ss << " -W " << miopen::deref(xDesc).GetLengths()[2];
         }
 
-        ss << " -F " << ((is_fwd) ? "1" : "2") << " -m " << mode;
+        ss << " -g " << num_groups;
+        ss << " -m " << mode;
+        ss << " -F " << ((is_fwd) ? "1" : "2");
 
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 }
 
-extern "C" miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
+extern "C" miopenStatus_t miopenGroupNormForward(miopenHandle_t handle,
                                                  miopenNormMode_t mode,
                                                  const miopenTensorDescriptor_t xDesc,
                                                  const void* x,
@@ -84,8 +91,8 @@ extern "C" miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
                                                  const void* weight,
                                                  const miopenTensorDescriptor_t biasDesc,
                                                  const void* bias,
+                                                 const uint64_t num_groups,
                                                  const float epsilon,
-                                                 const int32_t normalized_dim,
                                                  const miopenTensorDescriptor_t yDesc,
                                                  void* y,
                                                  const miopenTensorDescriptor_t meanDesc,
@@ -101,8 +108,8 @@ extern "C" miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
                         weight,
                         biasDesc,
                         bias,
+                        num_groups,
                         epsilon,
-                        normalized_dim,
                         yDesc,
                         y,
                         meanDesc,
@@ -110,9 +117,9 @@ extern "C" miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
                         rstdDesc,
                         rstd);
 
-    LogCmdLayerNorm(xDesc, mode, true);
+    LogCmdGroupNorm(xDesc, mode, num_groups, true);
     return miopen::try_([&] {
-        miopen::LayerNormForward(miopen::deref(handle),
+        miopen::GroupNormForward(miopen::deref(handle),
                                  miopen::deref(xDesc),
                                  DataCast(x),
                                  miopen::deref(weightDesc),
@@ -126,7 +133,7 @@ extern "C" miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
                                  miopen::deref(rstdDesc),
                                  DataCast(rstd),
                                  mode,
-                                 epsilon,
-                                 normalized_dim);
+                                 num_groups,
+                                 epsilon);
     });
 }

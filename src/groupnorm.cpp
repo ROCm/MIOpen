@@ -23,17 +23,17 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_LAYERNORM_HPP_
-#define MIOPEN_LAYERNORM_HPP_
-
-#include <miopen/common.hpp>
+#include <miopen/groupnorm.hpp>
+#include <miopen/kernel_cache.hpp>
+#include <miopen/float_equal.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/groupnorm/invoke_params.hpp>
+#include <miopen/groupnorm/solvers.hpp>
+#include <miopen/find_solution.hpp>
 
 namespace miopen {
 
-struct Handle;
-struct TensorDescriptor;
-
-miopenStatus_t LayerNormForward(Handle& handle,
+miopenStatus_t GroupNormForward(Handle& handle,
                                 const TensorDescriptor& xDesc,
                                 ConstData_t x,
                                 const TensorDescriptor& weightDesc,
@@ -47,8 +47,34 @@ miopenStatus_t LayerNormForward(Handle& handle,
                                 const TensorDescriptor& rstdDesc,
                                 Data_t rstd,
                                 miopenNormMode_t mode,
-                                float epsilon,
-                                int32_t normalized_dim);
+                                uint64_t num_groups,
+                                float epsilon)
+{
+    const auto problem = groupnorm::ProblemDescription{
+        mode, xDesc, weightDesc, biasDesc, yDesc, meanDesc, rstdDesc, num_groups, epsilon};
+
+    const auto invoke_params = [&]() {
+        auto tmp       = groupnorm::InvokeParams{};
+        tmp.type       = InvokeType::Run;
+        tmp.xDesc      = &xDesc;
+        tmp.x          = x;
+        tmp.weight     = weight;
+        tmp.bias       = bias;
+        tmp.y          = y;
+        tmp.mean       = mean;
+        tmp.rstd       = rstd;
+        tmp.num_groups = num_groups;
+        tmp.epsilon    = epsilon;
+        tmp.mode       = mode;
+        return tmp;
+    }();
+
+    const auto algo    = AlgorithmName{"GroupNormForward"};
+    const auto solvers = solver::SolverContainer<solver::groupnorm::GroupNormForward>{};
+
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+
+    return miopenStatusSuccess;
+}
 
 } // namespace miopen
-#endif // _MIOPEN_LAYERNORM_HPP_

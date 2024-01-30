@@ -25,8 +25,8 @@
  *******************************************************************************/
 
 #include <miopen/layernorm.hpp>
-#include <miopen/norm/solvers.hpp>
-#include <miopen/norm/invoke_params.hpp>
+#include <miopen/layernorm/solvers.hpp>
+#include <miopen/layernorm/invoke_params.hpp>
 #if MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/library/tensor_operation_instance/gpu/normalization_fwd.hpp>
 #include <miopen/solver/ck_utility_common.hpp>
@@ -35,7 +35,7 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_LAYERNORM4DCKFORWARD_CONV_CK_LN)
 
 namespace miopen {
 namespace solver {
-namespace norm {
+namespace layernorm {
 #if MIOPEN_USE_COMPOSABLEKERNEL
 
 using F16  = ck::half_t;
@@ -68,7 +68,7 @@ using DeviceOpLnFwdPtrs = ck::tensor_operation::device::instance::DeviceOperatio
 namespace {
 struct CKArgs
 {
-    CKArgs(const miopen::norm::ProblemDescription& problem)
+    CKArgs(const miopen::layernorm::ProblemDescription& problem)
     {
         auto length = problem.GetXDesc().GetLengths();
 
@@ -148,7 +148,7 @@ struct CKArgs
 } // namespace
 
 template <typename DeviceOpType>
-bool CheckCKApplicability(const miopen::norm::ProblemDescription& problem)
+bool CheckCKApplicability(const miopen::layernorm::ProblemDescription& problem)
 {
     const auto ln_args = CKArgs{problem};
     const auto ln_ptrs = DeviceOpType::GetInstances();
@@ -160,7 +160,7 @@ bool CheckCKApplicability(const miopen::norm::ProblemDescription& problem)
 
 template <typename LnPtrsType>
 typename LnPtrsType::iterator FindLnPtr(LnPtrsType& ln_ptrs,
-                                        const miopen::norm::ProblemDescription& problem)
+                                        const miopen::layernorm::ProblemDescription& problem)
 {
     const auto ln_args = CKArgs{problem};
     return std::find_if(ln_ptrs.begin(), ln_ptrs.end(), [&ln_args](auto& ln_ptrs) {
@@ -170,7 +170,7 @@ typename LnPtrsType::iterator FindLnPtr(LnPtrsType& ln_ptrs,
 
 template <typename DeviceOpType, typename CKArgsType, typename CastType>
 ConvSolution MakeInvokerFactory([[maybe_unused]] const ExecutionContext& context,
-                                const miopen::norm::ProblemDescription& problem)
+                                const miopen::layernorm::ProblemDescription& problem)
 {
     auto ln_ptr      = DeviceOpType::GetInstances();
     auto ln_ptr_iter = FindLnPtr(ln_ptr, problem);
@@ -211,14 +211,14 @@ ConvSolution MakeInvokerFactory([[maybe_unused]] const ExecutionContext& context
 }
 #endif
 
-bool IsRank4Dim1(const miopen::norm::ProblemDescription& problem)
+bool IsRank4Dim1(const miopen::layernorm::ProblemDescription& problem)
 {
     return (problem.GetXDesc().GetLengths().size() == 4) && (problem.GetNormalizedDim() == 1);
 }
 
 bool Layernorm4DCKForward::IsApplicable(
     [[maybe_unused]] const ExecutionContext& context,
-    [[maybe_unused]] const miopen::norm::ProblemDescription& problem) const
+    [[maybe_unused]] const miopen::layernorm::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
     if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_LAYERNORM4DCKFORWARD_CONV_CK_LN)))
@@ -255,7 +255,7 @@ bool Layernorm4DCKForward::IsApplicable(
 
 ConvSolution Layernorm4DCKForward::GetSolution(
     [[maybe_unused]] const ExecutionContext& context,
-    [[maybe_unused]] const miopen::norm::ProblemDescription& problem) const
+    [[maybe_unused]] const miopen::layernorm::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
     switch(problem.GetXDesc().GetType())
@@ -263,11 +263,11 @@ ConvSolution Layernorm4DCKForward::GetSolution(
     case miopenHalf:
         return MakeInvokerFactory<DeviceOpLnFwdPtrs<F16, F16, F16, F16, F32>,
                                   CKArgs,
-                                  miopen::norm::InvokeParams>(context, problem);
+                                  miopen::layernorm::InvokeParams>(context, problem);
     case miopenFloat:
         return MakeInvokerFactory<DeviceOpLnFwdPtrs<F32, F32, F32, F32, F32>,
                                   CKArgs,
-                                  miopen::norm::InvokeParams>(context, problem);
+                                  miopen::layernorm::InvokeParams>(context, problem);
     case miopenDouble:
     case miopenBFloat16:
     case miopenInt8:
@@ -282,6 +282,6 @@ ConvSolution Layernorm4DCKForward::GetSolution(
     return {};
 }
 
-} // namespace norm
+} // namespace layernorm
 } // namespace solver
 } // namespace miopen

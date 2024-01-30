@@ -119,16 +119,18 @@ set( MIOpen_Source
     fusion.cpp
     fusion/problem_description.cpp
     generic_search.cpp
+    groupnorm_api.cpp
+    groupnorm/problem_description.cpp
     handle_api.cpp
     invoker_cache.cpp
     kernel_build_params.cpp
     kernel_warnings.cpp
     layernorm_api.cpp
+    layernorm/problem_description.cpp
     load_file.cpp
     lock_file.cpp
     logger.cpp
     lrn_api.cpp
-    norm/problem_description.cpp
     op_args.cpp
     operator.cpp
     performance_config.cpp
@@ -243,9 +245,10 @@ set( MIOpen_Source
     solver/gemm.cpp
     solver/gemm_bwd.cpp
     solver/gemm_wrw.cpp
-    solver/norm/forward_layernorm.cpp
-    solver/norm/forward_layernorm2d_ck.cpp
-    solver/norm/forward_layernorm4d_ck.cpp
+    solver/groupnorm/forward_groupnorm.cpp
+    solver/layernorm/forward_layernorm.cpp
+    solver/layernorm/forward_layernorm2d_ck.cpp
+    solver/layernorm/forward_layernorm4d_ck.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
@@ -432,6 +435,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirUni.cl
         kernels/MIOpenConvDirBatchNormActiv.cl
         kernels/MIOpenConvDirGenFwd.cl
+        kernels/MIOpenGroupNorm.cpp
         kernels/MIOpenLayerNorm.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
@@ -553,6 +557,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     list(APPEND MIOpen_Source
         activ.cpp
         argmax.cpp
+        groupnorm.cpp
         kernel_cache.cpp
         layer_norm.cpp
         lrn.cpp
