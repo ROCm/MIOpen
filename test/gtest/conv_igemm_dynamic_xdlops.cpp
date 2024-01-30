@@ -33,12 +33,15 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 namespace conv_igemm_dynamic_xdlops {
 
 static bool SkipTest(void)
 {
-    return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)) ||
+    return !(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) &&
+             miopen::IsUnset(ENV(MIOPEN_TEST_FLOAT_ARG))) ||
+           miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)) ||
            miopen::IsDisabled(ENV(MIOPEN_TEST_ALL));
 }
 
@@ -189,7 +192,8 @@ using namespace conv_igemm_dynamic_xdlops;
 TEST_P(Conv2dFloat, FloatTest_Conv_Igemm_Dynamic_dlops)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    if(IsTestSupportedForDevice(handle) && !SkipTest() &&
+       miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float")
     {
         Run2dDriver(miopenFloat);
     }
@@ -202,7 +206,8 @@ TEST_P(Conv2dFloat, FloatTest_Conv_Igemm_Dynamic_dlops)
 TEST_P(Conv2dHalf, HalfTest_conv_igemm_dynamic_xdlops)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    if(IsTestSupportedForDevice(handle) && !SkipTest() &&
+       miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--half")
     {
         Run2dDriver(miopenHalf);
     }
