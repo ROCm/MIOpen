@@ -488,12 +488,15 @@ set(KERNELS_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/kernels)
 find_program(UNZIPPER lbzcat bzcat REQUIRED)
 file(MAKE_DIRECTORY ${KERNELS_BINARY_DIR})
 
+add_custom_target(generate_kernels ALL)
+
 function(unpack_db db_bzip2_file)
     get_filename_component(__fname ${db_bzip2_file} NAME_WLE)
     add_custom_command(OUTPUT ${KERNELS_BINARY_DIR}/${__fname}
                        COMMAND ${UNZIPPER} -k ${db_bzip2_file} > ${KERNELS_BINARY_DIR}/${__fname})
     string(REPLACE "." "_" __tname ${__fname})
     add_custom_target(generate_${__tname} ALL DEPENDS ${KERNELS_BINARY_DIR}/${__fname})
+    add_dependencies(generate_kernels generate_${__tname})
 endfunction()
 
 file(GLOB PERF_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/*.db.bz2")
