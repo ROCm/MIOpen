@@ -28,7 +28,6 @@
 
 #include "source_file_desc.hpp"
 #include <exception>
-#include <filesystem>
 #include <memory>
 #include <ostream>
 #include <stack>
@@ -120,8 +119,8 @@ public:
 
     void Process(std::istream& input,
                  std::ostream& output,
-                 const std::filesystem::path& root,
-                 const std::filesystem::path& file_name,
+                 const fs::path& root,
+                 const fs::path& file_name,
                  const std::string& directive,
                  bool allow_angle_brackets,
                  bool recurse);
@@ -133,8 +132,8 @@ private:
 
     void ProcessCore(std::istream& input,
                      std::ostream& output,
-                     const std::filesystem::path& root,
-                     const std::filesystem::path& file_name,
+                     const fs::path& root,
+                     const fs::path& file_name,
                      int line_number,
                      const std::string& directive,
                      bool allow_angle_brackets,

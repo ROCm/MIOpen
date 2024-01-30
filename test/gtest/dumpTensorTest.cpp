@@ -9,6 +9,8 @@
 #include <miopen/convolution.hpp>
 #include <gtest/gtest.h>
 
+namespace fs = miopen::fs;
+
 const std::string test_file_name_prefix = "dumptensortest_";
 const size_t tensor_size                = 20;
 const size_t nan_index                  = 5;
@@ -101,7 +103,7 @@ void testDump(const std::string& test_file_name)
     compare(host_tensor, tensor_from_file);
 
     // clean up
-    boost::filesystem::remove(test_file_name);
+    fs::remove(test_file_name);
 }
 
 template <class T>
@@ -137,7 +139,7 @@ void testDumpWithNan(const std::string& test_file_name)
             << "] = " << host_tensor.data[nan_index];
     }
     // clean up
-    boost::filesystem::remove(test_file_name);
+    fs::remove(test_file_name);
 }
 
 TEST(DUMP_TENSOR_TEST, testDump_float) { testDump<float>(test_file_name_prefix + "float.bin"); }

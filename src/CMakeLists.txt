@@ -210,6 +210,8 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_fwd_v4r5_xdlops.cpp
     solver/conv_hip_implicit_gemm_fwd_xdlops.cpp
     solver/conv_hip_implicit_gemm_grouped_fwd_xdlops.cpp
+    solver/conv_hip_implicit_gemm_grouped_bwd_xdlops.cpp
+    solver/conv_hip_implicit_gemm_grouped_wrw_xdlops.cpp
     solver/conv_hip_implicit_gemm_3d_grouped_fwd_xdlops.cpp
     solver/conv_hip_implicit_gemm_3d_grouped_wrw_xdlops.cpp
     solver/conv_hip_implicit_gemm_3d_grouped_bwd_xdlops.cpp
@@ -418,7 +420,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${GPU_REFERENCE_KERNEL_ASM}
         ${GPU_BATCHED_TRANSPOSE_KERNEL_HIP}
         ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_SOURCE}
-        kernels/detect_llvm_amdgcn_buffer_atomic_fadd_f32_float.cpp
         kernels/MIOpenArgmax.cpp
         kernels/MIOpenCat.cpp
         kernels/MIOpenCheckNumerics.cpp
