@@ -34,16 +34,16 @@
 #include <miopen/invoker.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/logger.hpp>
-#include <miopen/rocm_features.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/target_properties.hpp>
 #include <miopen/timer.hpp>
 
 #if !MIOPEN_ENABLE_SQLITE_KERN_CACHE
 #include <miopen/write_file.hpp>
+#include <boost/filesystem/operations.hpp>
 #endif
 
-#include <boost/filesystem.hpp>
+#include <miopen/filesystem.hpp>
 #include <miopen/load_file.hpp>
 
 #ifndef _WIN32
@@ -57,23 +57,15 @@
 #include <mutex>
 #include <shared_mutex>
 
-#define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30 \
-    (MIOPEN_USE_COMGR && BUILD_SHARED_LIBS && (HIP_PACKAGE_VERSION_FLAT < 4003000000ULL))
-
 /// hipMemGetInfo constantly fails on gfx906/900 and Navi21.
 /// Brute-force W/A: return fixed values.
-#define WORKAROUND_FAULTY_HIPMEMGETINFO_VEGA_NAVI2X (ROCM_FEATURE_DEPRECATED_VEGA_NAVI2X)
+#define WORKAROUND_FAULTY_HIPMEMGETINFO_VEGA_NAVI2X (HIP_PACKAGE_VERSION_FLAT >= 5007000000ULL)
 
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEVICE_CU)
 
 namespace miopen {
 
 namespace {
-
-#if MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30
-void toCallHipInit() __attribute__((constructor(1000)));
-void toCallHipInit() { hipInit(0); }
-#endif
 
 hipError_t hip_mem_get_info_wrapper(std::size_t* const free, std::size_t* const total)
 {
@@ -226,11 +218,7 @@ struct HandleImpl
     {
         hipDeviceProp_t props{};
         hipGetDeviceProperties(&props, device);
-#if ROCM_FEATURE_HIP_GCNARCHNAME_RETURNS_CODENAME
-        const std::string name("gfx" + std::to_string(props.gcnArch));
-#else
         const std::string name(props.gcnArchName);
-#endif
         MIOPEN_LOG_NQI("Raw device name: " << name);
         return name; // NOLINT (performance-no-automatic-move)
     }
@@ -546,7 +534,7 @@ Program Handle::LoadProgram(const std::string& program_name,
         if(p.IsCodeObjectInMemory())
             miopen::WriteFile(p.GetCodeObjectBlob(), path);
         else
-            boost::filesystem::copy_file(p.GetCodeObjectPathname(), path);
+            fs::copy_file(p.GetCodeObjectPathname(), path);
         miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params);
 #endif
         p.FreeCodeObjectFileStorage();

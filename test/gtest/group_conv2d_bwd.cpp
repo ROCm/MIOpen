@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,25 +23,13 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <gtest/gtest.h>
 
-typedef int32_t int32x4_t __attribute__((ext_vector_type(4)));
+#include "group_conv.hpp"
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored \
-    "-Wunknown-warning-option" // clang in ROCm 4.3 does not support "reserved-identifier".
-#pragma clang diagnostic ignored "-Wreserved-identifier"
+using namespace group_conv;
 
-__device__ float
-__llvm_amdgcn_buffer_atomic_add_f32(float vdata,
-                                    int32x4_t rsrc,
-                                    int32_t vindex,
-                                    int32_t offset,
-                                    bool slc) __asm("llvm.amdgcn.buffer.atomic.fadd.f32");
-
-extern "C" __global__ void test_llvm_amdgcn_buffer_atomic_fadd_f32_float(float* p_global)
-{
-    int32x4_t buffer_resource{0};
-    (void)__llvm_amdgcn_buffer_atomic_add_f32(*p_global, buffer_resource, 0, 0, false);
-}
-
-#pragma clang diagnostic pop // "-Wreserved-identifier"
+DEFINE_GROUP_CONV2D_TEST(float, BackwardData);
+DEFINE_GROUP_CONV2D_TEST(half, BackwardData);
+/// \todo int8_t tests don't work. Need debugging
+// DEFINE_GROUP_CONV2D_TEST(int8_t, BackwardData);

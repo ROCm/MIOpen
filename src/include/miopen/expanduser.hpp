@@ -26,13 +26,13 @@
 #ifndef MIOPEN_GUARD_MLOPEN_EXPANDUSER_HPP
 #define MIOPEN_GUARD_MLOPEN_EXPANDUSER_HPP
 
-#include <boost/filesystem.hpp>
+#include <miopen/filesystem.hpp>
 #include <string>
 
 namespace miopen {
 
-boost::filesystem::path ExpandUser(const std::string& path);
-bool IsNetworkedFilesystem(const boost::filesystem::path&);
+fs::path ExpandUser(const std::string& path);
+bool IsNetworkedFilesystem(const fs::path&);
 
 } // namespace miopen
 
