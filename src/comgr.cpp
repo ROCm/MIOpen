@@ -189,7 +189,7 @@ namespace ocl {
 
 #define OCL_EARLY_INLINE 1
 
-#define OCL_STANDARD 120 // For experiments.
+#define OCL_STANDARD 200
 
 #if !(OCL_STANDARD == 200 || OCL_STANDARD == 120)
 #error "Wrong OCL_STANDARD"
@@ -197,6 +197,9 @@ namespace ocl {
 
 static void AddCompilerOptions(OptionList& list)
 {
+#if OCL_STANDARD == 200
+    list.push_back("-cl-std=CL2.0");
+#endif
     list.push_back("-cl-kernel-arg-info");
 #if 0 // For experimients.
     list.push_back("-cl-denorms-are-zero");

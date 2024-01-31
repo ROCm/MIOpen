@@ -31,6 +31,7 @@
 #include "conv_driver.hpp"
 #include "CBAInferFusion_driver.hpp"
 #include "driver.hpp"
+#include "groupnorm_driver.hpp"
 #include "gemm_driver.hpp"
 #include "lrn_driver.hpp"
 #include "pool_driver.hpp"
@@ -178,6 +179,18 @@ int main(int argc, char* argv[])
     else if(base_arg == "dropoutfp16")
     {
         drv = new DropoutDriver<float16, float>();
+    }
+    else if(base_arg == "groupnorm")
+    {
+        drv = new GroupNormDriver<float, double>();
+    }
+    else if(base_arg == "groupnormfp16")
+    {
+        drv = new GroupNormDriver<float16, double>();
+    }
+    else if(base_arg == "groupnormbfp16")
+    {
+        drv = new GroupNormDriver<bfloat16, double>();
     }
     else if(base_arg == "tensorop")
     {

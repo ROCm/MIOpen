@@ -121,16 +121,18 @@ set( MIOpen_Source
     fusion.cpp
     fusion/problem_description.cpp
     generic_search.cpp
+    groupnorm_api.cpp
+    groupnorm/problem_description.cpp
     handle_api.cpp
     invoker_cache.cpp
     kernel_build_params.cpp
     kernel_warnings.cpp
     layernorm_api.cpp
+    layernorm/problem_description.cpp
     load_file.cpp
     lock_file.cpp
     logger.cpp
     lrn_api.cpp
-    norm/problem_description.cpp
     op_args.cpp
     operator.cpp
     performance_config.cpp
@@ -246,9 +248,10 @@ set( MIOpen_Source
     solver/gemm.cpp
     solver/gemm_bwd.cpp
     solver/gemm_wrw.cpp
-    solver/norm/forward_layernorm.cpp
-    solver/norm/forward_layernorm2d_ck.cpp
-    solver/norm/forward_layernorm4d_ck.cpp
+    solver/groupnorm/forward_groupnorm.cpp
+    solver/layernorm/forward_layernorm.cpp
+    solver/layernorm/forward_layernorm2d_ck.cpp
+    solver/layernorm/forward_layernorm4d_ck.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
@@ -436,6 +439,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirUni.cl
         kernels/MIOpenConvDirBatchNormActiv.cl
         kernels/MIOpenConvDirGenFwd.cl
+        kernels/MIOpenGroupNorm.cpp
         kernels/MIOpenLayerNorm.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
@@ -558,6 +562,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         activ.cpp
         argmax.cpp
         cat.cpp
+        groupnorm.cpp
         kernel_cache.cpp
         layer_norm.cpp
         lrn.cpp
@@ -897,9 +902,9 @@ if(NOT MIOPEN_EMBED_DB STREQUAL "")
 # embed find db
     foreach(EMBED_ARCH ${MIOPEN_EMBED_DB})
         message(STATUS "Adding find db for arch: ${EMBED_ARCH}")
-        list(APPEND CODE_OBJECTS "kernels/${EMBED_ARCH}.${MIOPEN_BACKEND}.fdb.txt")
+        list(APPEND CODE_OBJECTS "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${EMBED_ARCH}.${MIOPEN_BACKEND}.fdb.txt")
         message(STATUS "Adding perf db for arch: ${EMBED_ARCH}")
-        list(APPEND CODE_OBJECTS "kernels/${EMBED_ARCH}.db")
+        list(APPEND CODE_OBJECTS "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${EMBED_ARCH}.db")
     endforeach()
 # Embed Bin Cache
     if(NOT MIOPEN_BINCACHE_PATH STREQUAL "")
@@ -912,9 +917,9 @@ if(NOT MIOPEN_EMBED_DB STREQUAL "")
     add_embed_library(miopen_data ${CODE_OBJECTS})
     target_link_libraries(MIOpen PRIVATE $<BUILD_INTERFACE:miopen_data> )
 else()
-    file(GLOB FIND_DB_FILES kernels/*.fdb.txt)
-    file(GLOB PERF_DB_FILES kernels/*.db)
-    file(GLOB KERN_DB_FILES kernels/*.kdb)
+    file(GLOB FIND_DB_FILES ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/*.fdb.txt)
+    file(GLOB PERF_DB_FILES ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/*.db)
+    file(GLOB KERN_DB_FILES ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/*.kdb)
     list(APPEND FIND_DB_FILES ${PERF_DB_FILES})
 # Install the kdb files for the kdb sync test only, a better approach would be to 
 # install the kdb package instead
@@ -926,12 +931,11 @@ endif()
           install(FILES
               ${FIND_DB_FILES}
               DESTINATION ${DATABASE_INSTALL_DIR})
-         endif()
-         foreach(DB_FILE ${FIND_DB_FILES})
+        endif()
+        foreach(DB_FILE ${FIND_DB_FILES})
             get_filename_component(DB_FILE_FILENAME "${DB_FILE}" NAME)
-	    configure_file("${DB_FILE}" "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${DB_FILE_FILENAME}" COPYONLY)
-         endforeach()
-
+	        configure_file("${DB_FILE}" "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${DB_FILE_FILENAME}" COPYONLY)
+        endforeach()
     endif()
 endif()
 
