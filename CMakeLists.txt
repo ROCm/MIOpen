@@ -526,6 +526,7 @@ function(install_kdb FILE_NAME COMPONENT_NAME)
         set(CPACK_COMPONENTS_ALL
             "${CPACK_COMPONENTS_ALL};${__component}" PARENT_SCOPE)
     endif()
+    set(LFS_MISSING_FILES ${LFS_MISSING_FILES} PARENT_SCOPE)
 endfunction()
 
 # Both the lists below should be in sync always
