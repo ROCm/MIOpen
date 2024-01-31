@@ -106,7 +106,7 @@
 
   /* Global variable prototype of List to hold Relative Directory Path for each Compiler Flags from ROCM Install Path
    * The definition of this variable expected to be available in C/C++ code of the Target Library */
-  extern const char* MIOPEN_CMP_FLAG_REL_PATHS[MIOPEN_CMP_MAX_Flag];
+  extern char* MIOPEN_CMP_FLAG_REL_PATHS[MIOPEN_CMP_MAX_Flag];
 
   /* Global variable prototype of List to hold the Compiler Flag Pathsi 
    * The definition of this variable expected to be available in C/C++ code of the Target Library */
