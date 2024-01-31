@@ -97,10 +97,10 @@ public:
           Hs{Ceil<uint32_t>(out_h, Toh)},
           We{Tow * (Ceil<uint32_t>(out_w, Tow) + Ceil(Tw, Tow) - 1)},
 
-          W{static_cast<uint32_t>(problem.IsDirectionBackwardWrW() ? problem.GetOutWidth_()
-                                                                   : problem.GetInWidth_())},
-          H{static_cast<uint32_t>(problem.IsDirectionBackwardWrW() ? problem.GetOutHeight_()
-                                                                   : problem.GetInHeight_())},
+          W{static_cast<uint32_t>(problem.IsDirectionBackwardWrW() ? problem.GetOutWidth()
+                                                                   : problem.GetInWidth())},
+          H{static_cast<uint32_t>(problem.IsDirectionBackwardWrW() ? problem.GetOutHeight()
+                                                                   : problem.GetInHeight())},
 
           d_H_clip{static_cast<int32_t>(static_cast<int64_t>(Hs * Toh) - pad_h)},
           d_W_clip{static_cast<int32_t>(We - pad_w)},
@@ -175,6 +175,9 @@ bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext&
         return false;
 
     if(problem.HasNonPackedTensors())
+        return false;
+
+    if(problem.HasAtLeastOne64BitTensor())
         return false;
 
     if(is2x3() && miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F2X3)))

@@ -55,6 +55,8 @@ bool ConvMlirIgemmBwdXdlops::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(problem.HasNonPackedTensors())
         return false;
+    if(problem.HasAtLeastOne64BitTensor())
+        return false;
     if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))

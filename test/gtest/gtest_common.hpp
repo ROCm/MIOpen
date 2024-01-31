@@ -38,16 +38,20 @@
 
 #include "../driver.hpp"
 
-namespace miopen {
-namespace debug {
-void default_check(const std::string& err) { std::cout << err; }
+inline void default_check(const std::string& err) { std::cout << err; }
 
-void tuning_check(const std::string& err)
+inline void tuning_check(const std::string& err)
 {
     // TEST_TUNING - the test should fail if output contains "Error" or "failed".
     EXPECT_FALSE(err.find("Error") != std::string::npos || err.find("failed") != std::string::npos);
     default_check(err);
 }
+
+inline void db_check(const std::string& err)
+{
+    EXPECT_FALSE(err.find("Perf Db: record not found") != std::string::npos);
+    default_check(err);
+};
 
 enum class Gpu : int
 {
@@ -76,7 +80,7 @@ struct disabled
 };
 
 template <typename disabled_mask, typename enabled_mask>
-bool IsTestSupportedForDevice()
+bool IsTestSupportedForDevMask()
 {
     static_assert((~disabled_mask::val & enabled_mask::val) == 0,
                   "Enabled and Disabled GPUs are overlapped");
@@ -110,6 +114,30 @@ bool IsTestSupportedForDevice()
     return res;
 }
 
+template <typename Parameters>
+struct FloatTestCase : public testing::TestWithParam<Parameters>
+{
+    static constexpr std::string_view fp_args{"--float"};
+};
+
+template <typename Parameters>
+struct HalfTestCase : public testing::TestWithParam<Parameters>
+{
+    static constexpr std::string_view fp_args{"--half"};
+};
+
+template <typename Parameters>
+struct Bf16TestCase : public testing::TestWithParam<Parameters>
+{
+    static constexpr std::string_view fp_args{"--bfloat16"};
+};
+
+template <typename Parameters>
+struct Int8TestCase : public testing::TestWithParam<Parameters>
+{
+    static constexpr std::string_view fp_args{"--int8"};
+};
+
 template <typename Case>
 std::vector<std::string> get_args(const Case& param)
 {
@@ -125,14 +153,15 @@ std::vector<std::string> get_args(const Case& param)
     return {begin, end};
 }
 
-template <template <class...> class Driver, typename TestCases, typename Check>
-void invoke_with_params(const TestCases& params, Check&& check)
+template <template <class...> class Driver, typename TestCase, typename Check>
+void invoke_with_params(Check&& check)
 {
-    for(const auto& test_value : params)
+    for(const auto& test_value : TestCase::GetParam())
     {
         std::vector<std::string> tokens = get_args(test_value);
         std::vector<const char*> ptrs;
-        ptrs.reserve(tokens.size());
+        ptrs.reserve(tokens.size() + 1);
+        ptrs.emplace_back(TestCase::fp_args.data());
 
         std::transform(tokens.begin(), tokens.end(), std::back_inserter(ptrs), [](const auto& str) {
             return str.data();
