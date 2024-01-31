@@ -42,8 +42,7 @@
 namespace test {
 namespace cpu {
 
-using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
-using float16 = half_float::half;
+using float8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
 
 struct CPUMHATestCase
 {
@@ -63,68 +62,12 @@ struct CPUMHATestCase
     }
 };
 
-struct FP8Scaling
+double GetF8Scaling(double max_val)
 {
-    FP8Scaling(size_t history) : max_size_history(history)
-    {
-        max_absolute_values.reserve(max_size_history);
-    }
+    const double fp8_E4M3_max = 240.0f;
 
-    void UpdateAMax(double val)
-    {
-        if(max_absolute_values.size() >= max_size_history)
-        {
-            max_absolute_values.erase(max_absolute_values.begin());
-        }
-        max_absolute_values.push_back(val);
-    }
-
-    double AvgRecipe() const
-    {
-        double fp8Max = 240.0f;
-
-        if(max_absolute_values.empty())
-        {
-            // revisit fp8Max / inital_scaling_factor?
-            return 1.0;
-        }
-
-        auto const hsize = static_cast<double>(max_absolute_values.size());
-        double avg_amax =
-            std::reduce(max_absolute_values.begin(), max_absolute_values.end()) / hsize;
-        double scalingFactor = (avg_amax > fp8Max) ? (fp8Max / avg_amax) : 1.0f;
-
-        return scalingFactor;
-    }
-
-    double MaxRecipe()
-    {
-        double fp8Max = 240.0f;
-
-        if(max_absolute_values.empty())
-        {
-            // revisit fp8Max / inital_scaling_factor?
-            return 1.0;
-        }
-        double max_of_Amax =
-            *std::max_element(max_absolute_values.begin(), max_absolute_values.end());
-        double scalingFactor;
-        if(max_of_Amax > fp8Max)
-        {
-            scalingFactor = (fp8Max / max_of_Amax);
-        }
-        else
-        {
-            scalingFactor = 1.0f;
-        }
-
-        return scalingFactor;
-    }
-
-private:
-    std::vector<double> max_absolute_values;
-    size_t max_size_history;
-};
+    return fp8_E4M3_max / max_val;
+}
 
 template <typename T>
 void print4(const tensor<T>& tensor_val, std::string header_msg = "start")
@@ -143,7 +86,7 @@ void print4(const tensor<T>& tensor_val, std::string header_msg = "start")
             {
                 for(size_t l = 0; l < l_size; ++l)
                 {
-                    std::cout << std::fixed << std::setprecision(2) << tensor_val(i, j, k, l)
+                    std::cout << std::fixed << std::setprecision(10) << tensor_val(i, j, k, l)
                               << " , ";
                 }
                 std::cout << "\n";
@@ -178,22 +121,7 @@ void print3(const tensor<T>& tensor_val, std::string header_msg = "start")
     std::cout << "\n=================end=====================\n";
 }
 
-template <typename T>
-T FindMax3D(const tensor<T>& max_of_tensor)
-{
-    std::mutex mtx;
-    T maxVal = max_of_tensor(0, 0, 0); // Start with the first element as the maximum
-    max_of_tensor.par_for_each([&](size_t n_id, size_t s_id, size_t dk_id) {
-        std::lock_guard<std::mutex> lock(mtx);
-        T tmp_val = max_of_tensor(n_id, s_id, dk_id);
-        if(tmp_val > maxVal)
-        {
-            maxVal = tmp_val;
-        }
-    });
-    return maxVal;
-}
-
+// Todo : make this abs
 template <typename T>
 T FindMax4D(const tensor<T>& max_of_tensor)
 {
@@ -242,19 +170,31 @@ void Dot_4D_4D_T(const tensor<T>& A_mat, const tensor<T>& B_mat, tensor<T>& C_ma
         double sum(0);
         for(size_t k_id = 0; k_id < k_val; ++k_id)
         {
-            sum += A_mat(b_id, h_id, sl_id, k_id) * B_mat(b_id, h_id, dk_id, k_id);
+            sum += double(A_mat(b_id, h_id, sl_id, k_id)) * double(B_mat(b_id, h_id, dk_id, k_id));
         }
 
         C_mat(b_id, h_id, sl_id, dk_id) = T(sum);
     });
 }
 
-// C_mat = A_mat.dot(B_mat)
-// A_mat : 4D
-// B_mat : 4D
-// C_mat : 4D
 template <typename T>
-void Dot_4D_4D(const tensor<T>& A_mat, const tensor<T>& B_mat, tensor<T>& C_mat)
+void Dot_4D_4D_T_scaled(const tensor<float8>& A_mat, const tensor<float8>& B_mat, tensor<T>& C_mat)
+{
+
+    size_t k_val = A_mat.desc.GetLengths()[3];
+    assert(k_val == B_mat.desc.GetLengths()[3]); // since transpose
+    C_mat.par_for_each([&](size_t b_id, size_t h_id, size_t sl_id, size_t dk_id) {
+        double sum(0);
+        for(size_t k_id = 0; k_id < k_val; ++k_id)
+        {
+            sum += T(A_mat(b_id, h_id, sl_id, k_id)) * T(B_mat(b_id, h_id, dk_id, k_id));
+        }
+        C_mat(b_id, h_id, sl_id, dk_id) = T(sum);
+    });
+}
+
+template <typename T1, typename T2>
+void Dot_4D_4D(const tensor<T1>& A_mat, const tensor<T1>& B_mat, tensor<T2>& C_mat)
 {
     size_t k_val = A_mat.desc.GetLengths()[3];
     assert(k_val == B_mat.desc.GetLengths()[2]);
@@ -262,10 +202,10 @@ void Dot_4D_4D(const tensor<T>& A_mat, const tensor<T>& B_mat, tensor<T>& C_mat)
         double sum(0);
         for(size_t k_id = 0; k_id < k_val; ++k_id)
         {
-            sum += A_mat(b_id, h_id, sl_id, k_id) * B_mat(b_id, h_id, k_id, dk_id);
+            sum += double(A_mat(b_id, h_id, sl_id, k_id)) * double(B_mat(b_id, h_id, k_id, dk_id));
         }
 
-        C_mat(b_id, h_id, sl_id, dk_id) = T(sum);
+        C_mat(b_id, h_id, sl_id, dk_id) = T2(sum);
     });
 }
 
@@ -314,50 +254,29 @@ void Zinv(const tensor<T>& A_mat, tensor<T>& zinv_tensor)
 }
 
 template <typename T>
-void Scale3DToFP8(const tensor<T>& mat_val, tensor<float8>& mat_val_fp8, double scale_factor)
+void Scale4DFp32ToFP8(const tensor<T>& mat_val, tensor<float8>& mat_val_fp8, double scale_factor)
 {
-    std::mutex coutMutex;
-    mat_val_fp8.par_for_each([&](size_t b_id, size_t sl_i_id, size_t sl_j_id) {
-        std::lock_guard<std::mutex> guard(coutMutex);
-        mat_val_fp8(b_id, sl_i_id, sl_j_id) =
-            float8(mat_val(b_id, sl_i_id, sl_j_id) / scale_factor);
-        // std::cout << "og           = " << mat_val(b_id, sl_i_id, sl_j_id) << std::endl;
-        // std::cout << "scale_factor = " << scale_factor << std::endl;
-        // std::cout << "fp32         = " << mat_val(b_id, sl_i_id, sl_j_id) / scale_factor <<
-        // std::endl; std::cout << "fp8          = " << float8(mat_val(b_id, sl_i_id, sl_j_id) /
-        // scale_factor) << std::endl;
-    });
-}
-
-template <typename T>
-void Scale3DF8ToFP32(const tensor<float8>& mat_val_fp8, tensor<T>& mat_val, double scale_factor)
-{
-    std::mutex coutMutex;
-    mat_val_fp8.par_for_each([&](size_t b_id, size_t sl_i_id, size_t sl_j_id) {
-        std::lock_guard<std::mutex> guard(coutMutex);
-        mat_val(b_id, sl_i_id, sl_j_id) =
-            float8(mat_val_fp8(b_id, sl_i_id, sl_j_id) * scale_factor);
-        // std::cout << "og           = " << mat_val(b_id, sl_i_id, sl_j_id) << std::endl;
-        // std::cout << "scale_factor = " << scale_factor << std::endl;
-        // std::cout << "fp32         = " << mat_val(b_id, sl_i_id, sl_j_id) / scale_factor <<
-        // std::endl; std::cout << "fp8          = " << float8(mat_val(b_id, sl_i_id, sl_j_id) /
-        // scale_factor) << std::endl;
-    });
-}
-
-template <typename T>
-void Scale4DF8ToFP32(const tensor<float8>& mat_val_fp8, tensor<T>& mat_val, double scale_factor)
-{
-    std::mutex coutMutex;
     mat_val_fp8.par_for_each([&](size_t b_id, size_t sl_i_id, size_t sl_j_id, size_t sl_k_id) {
-        std::lock_guard<std::mutex> guard(coutMutex);
+        mat_val_fp8(b_id, sl_i_id, sl_j_id, sl_k_id) =
+            float8(mat_val(b_id, sl_i_id, sl_j_id, sl_k_id) * scale_factor);
+    });
+}
+
+template <typename T>
+void Scale4DFp8ToFP32(const tensor<T>& mat_val, tensor<float8>& mat_val_fp8, double scale_factor)
+{
+    mat_val_fp8.par_for_each([&](size_t b_id, size_t sl_i_id, size_t sl_j_id, size_t sl_k_id) {
+        mat_val_fp8(b_id, sl_i_id, sl_j_id, sl_k_id) =
+            float8(mat_val(b_id, sl_i_id, sl_j_id, sl_k_id) / scale_factor);
+    });
+}
+
+template <typename T>
+void ScaleToFP32(tensor<T>& mat_val, double scale_factor)
+{
+    mat_val.par_for_each([&](size_t b_id, size_t sl_i_id, size_t sl_j_id, size_t sl_k_id) {
         mat_val(b_id, sl_i_id, sl_j_id, sl_k_id) =
-            float8(mat_val_fp8(b_id, sl_i_id, sl_j_id, sl_k_id) * scale_factor);
-        // std::cout << "og           = " << mat_val(b_id, sl_i_id, sl_j_id) << std::endl;
-        // std::cout << "scale_factor = " << scale_factor << std::endl;
-        // std::cout << "fp32         = " << mat_val(b_id, sl_i_id, sl_j_id) / scale_factor <<
-        // std::endl; std::cout << "fp8          = " << float8(mat_val(b_id, sl_i_id, sl_j_id) /
-        // scale_factor) << std::endl;
+            T(T(mat_val(b_id, sl_i_id, sl_j_id, sl_k_id)) / scale_factor);
     });
 }
 
@@ -432,77 +351,67 @@ void DropOut(tensor<T>& q_dot_k_transpose, const double& drop_out_rate)
 }
 
 template <typename T>
-void MultiHeadAttentionfp8(FP8Scaling& scaling_factor,
-                           const tensor<T>& word_position,
-                           const tensor<T>& q_weights,
-                           const tensor<T>& k_weights,
-                           const tensor<T>& v_weights,
-                           tensor<T>& q_val,
+void MultiHeadAttentionfp8(tensor<T>& q_val,
                            tensor<T>& k_val,
                            tensor<T>& v_val,
                            tensor<T>& q_dot_k_transpose,
                            tensor<T>& rrm,
                            tensor<T>& zinv_tensors,
-                           tensor<T>& atten_heads)
+                           tensor<float8>& atten_heads_fp8)
 {
-    // create Q, K and V
-    Dot_3D_3D(word_position, q_weights, q_val);
-    Dot_3D_3D(word_position, k_weights, k_val);
-    Dot_3D_3D(word_position, v_weights, v_val);
-
-    Dot_4D_4D_T(q_val, k_val, q_dot_k_transpose);
-    print4(q_dot_k_transpose, "q_dot_k_transpose");
-    scaling_factor.UpdateAMax(FindMax4D(q_dot_k_transpose));
-
-    // // // Attention Scale
-    // double sqrt_dk = 1.0 / std::sqrt(d_k);
-    // Scale4D(q_dot_k_transpose, sqrt_dk);
-    // print4(q_dot_k_transpose, "q_dot_k_transpose after scale");
+    tensor<float8> q_val_fp8(q_val.desc.GetLengths());
+    tensor<float8> k_val_fp8(k_val.desc.GetLengths());
     tensor<T> q_dot_k_transpose_fp32(q_dot_k_transpose.desc.GetLengths());
 
-    Scale4DF8ToFP32(q_dot_k_transpose, q_dot_k_transpose_fp32, scaling_factor.MaxRecipe());
+    double q_scale = GetF8Scaling(FindMax4D(q_val));
+    double k_scale = GetF8Scaling(FindMax4D(k_val));
+    Scale4DFp32ToFP8(q_val, q_val_fp8, q_scale);
+    Scale4DFp32ToFP8(k_val, k_val_fp8, k_scale);
 
-    // AddMask5D_2D(q_dot_k_transpose, mask);
-    // print4(q_dot_k_transpose, "q_dot_k_transpose after mask");
+    Dot_4D_4D_T_scaled<double>(q_val_fp8, k_val_fp8, q_dot_k_transpose_fp32);
+
+    ScaleToFP32(q_dot_k_transpose_fp32, q_scale);
+    ScaleToFP32(q_dot_k_transpose_fp32, k_scale);
+
     // soft-max
     {
         // Row Reduction Max => M
         RowReductionMax(q_dot_k_transpose_fp32, rrm);
-
         // rrm substraction
-        // Sub(q_dot_k_transpose, rrm);
+        Sub(q_dot_k_transpose, rrm);
 
         // pointwise exponentiation
         Exponent(q_dot_k_transpose_fp32);
-
         Zinv(q_dot_k_transpose_fp32, zinv_tensors);
-
         // Zinv reciprocal
         ZinvMultiply(q_dot_k_transpose_fp32, zinv_tensors);
     }
 
-    // // drop out
-    // // DropOut(q_dot_k_transpose, cpu_mha_test_case.drop_out_rate);
+    // drop out
+    // DropOut(q_dot_k_transpose, cpu_mha_test_case.drop_out_rate);
 
-    // // // drop out scalse
-    // // double drop_out_scale = 1.0 / (1.0 - cpu_mha_test_case.drop_out_rate);
-    // // Scale(q_dot_k_transpose, drop_out_scale);
-    scaling_factor.UpdateAMax(FindMax4D(q_dot_k_transpose));
+    tensor<float8> q_dot_k_transpose_fp8(q_dot_k_transpose.desc.GetLengths());
+    tensor<float8> v_val_fp8(v_val.desc.GetLengths());
+    double AMax_S  = FindMax4D(q_dot_k_transpose_fp32);
+    double s_scale = GetF8Scaling(AMax_S);
+    double v_scale = GetF8Scaling(FindMax4D(v_val));
 
-    print4(q_dot_k_transpose, "softrmax");
-    Scale4DF8ToFP32(q_dot_k_transpose_fp32, q_dot_k_transpose, scaling_factor.MaxRecipe());
+    Scale4DFp32ToFP8(q_dot_k_transpose_fp32, q_dot_k_transpose_fp8, s_scale);
+    Scale4DFp32ToFP8(v_val, v_val_fp8, v_scale);
 
-    // // O = (Q.dot(Kt)).dot(V)
-    Dot_4D_4D(q_dot_k_transpose, v_val, atten_heads);
-    print4(atten_heads, "atten_heads X value");
+    tensor<T> atten_heads_fp32(atten_heads_fp8.desc.GetLengths());
+
+    Dot_4D_4D(q_dot_k_transpose_fp8, v_val_fp8, atten_heads_fp32);
+
+    ScaleToFP32(atten_heads_fp32, s_scale);
+    ScaleToFP32(atten_heads_fp32, v_scale);
+    double scale_O = GetF8Scaling(FindMax4D(atten_heads_fp32));
+
+    Scale4DFp32ToFP8(atten_heads_fp32, atten_heads_fp8, scale_O);
 }
 
 template <typename T>
-void MultiHeadAttentionf32(const tensor<T>& word_position,
-                           const tensor<T>& q_weights,
-                           const tensor<T>& k_weights,
-                           const tensor<T>& v_weights,
-                           tensor<T>& q_val,
+void MultiHeadAttentionf32(tensor<T>& q_val,
                            tensor<T>& k_val,
                            tensor<T>& v_val,
                            tensor<T>& q_dot_k_transpose,
@@ -510,16 +419,8 @@ void MultiHeadAttentionf32(const tensor<T>& word_position,
                            tensor<T>& zinv_tensors,
                            tensor<T>& atten_heads)
 {
-    // create Q, K and V
-    Dot_3D_3D(word_position, q_weights, q_val);
-    Dot_3D_3D(word_position, k_weights, k_val);
-    Dot_3D_3D(word_position, v_weights, v_val);
-    print4(q_val, "q_val");
-    print4(k_val, "k_val");
-    print4(v_val, "v_val");
 
     Dot_4D_4D_T(q_val, k_val, q_dot_k_transpose);
-    print4(q_dot_k_transpose, "q_dot_k_transpose");
 
     // soft-max
     {
@@ -545,11 +446,8 @@ void MultiHeadAttentionf32(const tensor<T>& word_position,
     // // double drop_out_scale = 1.0 / (1.0 - cpu_mha_test_case.drop_out_rate);
     // // Scale(q_dot_k_transpose, drop_out_scale);
 
-    print4(q_dot_k_transpose, "softrmaxxx");
-
     // // O = (Q.dot(Kt)).dot(V)
     Dot_4D_4D(q_dot_k_transpose, v_val, atten_heads);
-    print4(atten_heads, "atten_heads X value");
 }
 
 } // namespace cpu

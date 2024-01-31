@@ -40,7 +40,7 @@ std::vector<CPUMHATestCase> CPUMHAConfigs()
              0.0}};
 }
 
-template <typename T = float>
+template <typename T = double>
 struct CPUMHATest : public ::testing::TestWithParam<CPUMHATestCase>
 {
 protected:
@@ -51,62 +51,23 @@ protected:
 
         // Initialize the tensors
         init();
-        // fp32
-        MultiHeadAttentionf32(word_position,
-                              q_weights,
-                              k_weights,
-                              v_weights,
-                              q_val,
-                              k_val,
-                              v_val,
-                              q_dot_k_transpose,
-                              rrm,
-                              zinv_tensors,
-                              atten_heads);
-        // fp8
-        FP8Scaling scale_wp(10);
-        FP8Scaling scale_qw(10);
-        FP8Scaling scale_kw(10);
-        FP8Scaling scale_vw(10);
-        scale_wp.UpdateAMax(FindMax3D(word_position));
-        scale_qw.UpdateAMax(FindMax3D(q_weights));
-        scale_kw.UpdateAMax(FindMax3D(k_weights));
-        scale_vw.UpdateAMax(FindMax3D(v_weights));
-        tensor<float8> word_position_fp8(word_position.desc.GetLengths());
-        tensor<float8> q_weights_fp8(q_weights.desc.GetLengths());
-        tensor<float8> k_weights_fp8(k_weights.desc.GetLengths());
-        tensor<float8> v_weights_fp8(v_weights.desc.GetLengths());
-        Scale3DToFP8(word_position, word_position_fp8, scale_wp.MaxRecipe());
-        Scale3DToFP8(q_weights, q_weights_fp8, scale_qw.MaxRecipe());
-        Scale3DToFP8(k_weights, k_weights_fp8, scale_kw.MaxRecipe());
-        Scale3DToFP8(v_weights, v_weights_fp8, scale_vw.MaxRecipe());
+        // fp32 Q, K, V
+        Dot_3D_3D(word_position, q_weights, q_val);
+        Dot_3D_3D(word_position, k_weights, k_val);
+        Dot_3D_3D(word_position, v_weights, v_val);
 
-        tensor<float8> q_val_fp8(q_val.desc.GetLengths());
-        tensor<float8> k_val_fp8(k_val.desc.GetLengths());
-        tensor<float8> v_val_fp8(v_val.desc.GetLengths());
-        tensor<float8> q_dot_k_transpose_fp8(q_dot_k_transpose.desc.GetLengths());
-        tensor<float8> rrm_fp8(rrm.desc.GetLengths());
-        tensor<float8> zinv_tensors_fp8(zinv_tensors.desc.GetLengths());
-        tensor<float8> atten_heads_fp8(atten_heads.desc.GetLengths());
+        MultiHeadAttentionf32(
+            q_val, k_val, v_val, q_dot_k_transpose, rrm, zinv_tensors, atten_heads);
 
-        FP8Scaling scaling_factor(10);
-        MultiHeadAttentionfp8(scaling_factor,
-                           word_position_fp8,
-                           q_weights_fp8,
-                           k_weights_fp8,
-                           v_weights_fp8,
-                           q_val_fp8,
-                           k_val_fp8,
-                           v_val_fp8,
-                           q_dot_k_transpose_fp8,
-                           rrm_fp8,
-                           zinv_tensors_fp8,
-                           atten_heads_fp8);
+        MultiHeadAttentionfp8<double>(
+            q_val, k_val, v_val, q_dot_k_transpose, rrm, zinv_tensors, atten_heads_from_fp8);
     }
 
     void TearDown() override
     {
         // verify
+        print4(atten_heads, "*** final 32 ****");
+        print4(atten_heads_from_fp8, "*** final fp8 ****");
     }
 
 private:
@@ -135,10 +96,14 @@ private:
         k_val = q_val;
         v_val = q_val;
 
-        atten_heads = tensor<T>{cpu_mha_test_case.batch_size,
+        atten_heads          = tensor<T>{cpu_mha_test_case.batch_size,
                                 cpu_mha_test_case.num_heads,
                                 cpu_mha_test_case.sequence_length,
                                 d_k};
+        atten_heads_from_fp8 = tensor<float8>{cpu_mha_test_case.batch_size,
+                                              cpu_mha_test_case.num_heads,
+                                              cpu_mha_test_case.sequence_length,
+                                              d_k};
         // concatinate the atten heads d_k => problem dim
 
         q_dot_k_transpose = tensor<T>{cpu_mha_test_case.batch_size,
@@ -182,6 +147,7 @@ private:
     size_t d_k;
 
     tensor<T> atten_heads;
+    tensor<float8> atten_heads_from_fp8;
 
     // row reduction max
 };
