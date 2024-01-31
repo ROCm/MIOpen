@@ -31,8 +31,6 @@
 
 #if defined(MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS) && !WORKAROUND_DONT_USE_CUSTOM_LIMITS
 
-#include <hip/hip_bfloat16.h>
-
 #define MIOPEN_ENABLE_F8_DEVICE_CODE 1
 #include "hip_float8.hpp"
 
