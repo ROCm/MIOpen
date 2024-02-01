@@ -86,7 +86,7 @@ void print4(const tensor<T>& tensor_val, std::string header_msg = "start")
             {
                 for(size_t l = 0; l < l_size; ++l)
                 {
-                    std::cout << std::fixed << std::setprecision(10) << tensor_val(i, j, k, l)
+                    std::cout << std::fixed << std::setprecision(2) << tensor_val(i, j, k, l)
                               << " , ";
                 }
                 std::cout << "\n";
@@ -120,6 +120,25 @@ void print3(const tensor<T>& tensor_val, std::string header_msg = "start")
     }
     std::cout << "\n=================end=====================\n";
 }
+
+template <typename T>
+void print2(const tensor<T>& tensor_val, std::string header_msg = "start")
+{
+    std::cout << "\n================= " << header_msg << " =====================\n";
+    size_t i_size = tensor_val.desc.GetLengths()[0];
+    size_t j_size = tensor_val.desc.GetLengths()[1];
+    std::cout << i_size << "," << j_size << std::endl;
+    for(size_t i = 0; i < i_size; ++i)
+    {
+        for(size_t j = 0; j < j_size; ++j)
+        {
+            std::cout << std::fixed << std::setprecision(2) << tensor_val(i, j) << " , ";
+        }
+        std::cout << "\n";
+    }
+    std::cout << "\n=================end=====================\n";
+}
+
 
 // Todo : make this abs
 template <typename T>
@@ -157,6 +176,20 @@ void Dot_3D_3D(const tensor<T>& A_mat, const tensor<T>& B_mat, tensor<T>& C_mat)
     });
 }
 
+template <typename T>
+void Dot_3D_3D_T(const tensor<T>& A_mat, const tensor<T>& B_mat, tensor<T>& C_mat)
+{
+    size_t k_val = A_mat.desc.GetLengths()[2];
+    assert(k_val == B_mat.desc.GetLengths()[1]);
+    C_mat.par_for_each([&](size_t b_id, size_t h_id, size_t sl_id, size_t dk_id) {
+        double sum(0);
+        for(size_t k_id = 0; k_id < k_val; ++k_id)
+        {
+            sum += A_mat(b_id, sl_id, k_id) * B_mat(h_id, dk_id, k_id);
+        }
+        C_mat(b_id, h_id, sl_id, dk_id) = T(sum);
+    });
+}
 // C_mat = A_mat.dot(transpose(B_mat))
 // A_mat : 4D
 // B_mat : 4D
@@ -167,7 +200,7 @@ void Dot_4D_4D_T(const tensor<T1>& A_mat, const tensor<T1>& B_mat, tensor<T2>& C
     size_t k_val = A_mat.desc.GetLengths()[3];
     assert(k_val == B_mat.desc.GetLengths()[3]); // since transpose
     C_mat.par_for_each([&](size_t b_id, size_t h_id, size_t sl_id, size_t dk_id) {
-        T2 sum(0);
+        double sum(0);
         for(size_t k_id = 0; k_id < k_val; ++k_id)
         {
             sum += T2(A_mat(b_id, h_id, sl_id, k_id)) * T2(B_mat(b_id, h_id, dk_id, k_id));
@@ -190,6 +223,22 @@ void Dot_4D_4D(const tensor<T1>& A_mat, const tensor<T1>& B_mat, tensor<T2>& C_m
         }
 
         C_mat(b_id, h_id, sl_id, dk_id) = T2(sum);
+    });
+}
+
+template <typename T1, typename T2>
+void Dot_3D_2D_T(const tensor<T1>& A_mat, const tensor<T1>& B_mat, tensor<T2>& C_mat)
+{
+    size_t k_val = A_mat.desc.GetLengths()[2];
+    assert(k_val == B_mat.desc.GetLengths()[0]);
+    C_mat.par_for_each([&](size_t b_id, size_t s_id, size_t pd_id) {
+        double sum(0);
+        for(size_t k_id = 0; k_id < k_val; ++k_id)
+        {
+            sum += double(A_mat(b_id, s_id, k_id)) * double(B_mat(pd_id, k_id));
+        }
+
+        C_mat(b_id, s_id, pd_id) = T2(sum);
     });
 }
 
@@ -308,6 +357,18 @@ void DropOut(tensor<T>& q_dot_k_transpose, const double& drop_out_rate)
         });
 }
 
+template<class T>
+void Concat(const tensor<T>& A_mat, tensor<T>& B_mat)
+{
+    const auto& dims              = A_mat.desc.GetLengths();
+    size_t d_k = dims[3];
+
+    A_mat.par_for_each(
+        [&](size_t b_id, size_t h_id, size_t s_id, size_t dk_id) {
+            B_mat(b_id, s_id, h_id * d_k + dk_id) = A_mat(b_id, h_id, s_id, dk_id);
+        });
+}
+
 template <typename T>
 void MultiHeadAttentionfp8(tensor<T>& q_val,
                            tensor<T>& k_val,
@@ -380,13 +441,16 @@ void MultiHeadAttentionf32(tensor<T>& q_val,
 
     Dot_4D_4D_T(q_val, k_val, q_dot_k_transpose);
 
+    print4(q_val, "q_val");
+    print4(k_val, "k_val");
+    print4(q_dot_k_transpose, "q_dot_k_transpose");
     // soft-max
     {
         // Row Reduction Max => M
         RowReductionMax(q_dot_k_transpose, rrm);
 
         // rrm substraction
-        // Sub(q_dot_k_transpose, rrm);
+        Sub(q_dot_k_transpose, rrm);
 
         // pointwise exponentiation
         Exponent(q_dot_k_transpose);
@@ -396,6 +460,8 @@ void MultiHeadAttentionf32(tensor<T>& q_val,
         // Zinv reciprocal
         ZinvMultiply(q_dot_k_transpose, zinv_tensors);
     }
+    print4(q_dot_k_transpose, "softmax");
+
 
     // // drop out
     // // DropOut(q_dot_k_transpose, cpu_mha_test_case.drop_out_rate);
@@ -406,6 +472,8 @@ void MultiHeadAttentionf32(tensor<T>& q_val,
 
     // // O = (Q.dot(Kt)).dot(V)
     Dot_4D_4D(q_dot_k_transpose, v_val, atten_heads);
+
+    
 }
 
 } // namespace cpu

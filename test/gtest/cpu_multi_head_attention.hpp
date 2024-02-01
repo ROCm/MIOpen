@@ -40,7 +40,7 @@ std::vector<CPUMHATestCase> CPUMHAConfigs()
              0.0}};
 }
 
-template <typename T = double>
+template <typename T = float>
 struct CPUMHATest : public ::testing::TestWithParam<CPUMHATestCase>
 {
 protected:
@@ -51,22 +51,38 @@ protected:
         // Initialize the tensors
         init();
         // fp32 Q, K, V
-        Dot_3D_3D(word_position, q_weights, q_val);
-        Dot_3D_3D(word_position, k_weights, k_val);
-        Dot_3D_3D(word_position, v_weights, v_val);
+        Dot_3D_3D_T(word_position, q_weights, q_val);
+        Dot_3D_3D_T(word_position, k_weights, k_val);
+        Dot_3D_3D_T(word_position, v_weights, v_val);
+
+        print3(q_weights, "q_weights");
+        print3(k_weights, "k_weights");
+        print3(v_weights, "v_weights");
+        print2(final_linear_transform_weights, "final_linear_transform_weights");
+        print3(word_position, "word_position");
+        print4(q_val, "q_val");
+        print4(k_val, "k_val");
+        print4(v_val, "v_val");
+
+        double sqr_dk = std::sqrt(q_val.desc.GetLengths()[3]);
+        ScaleToFP32(q_val, sqr_dk);
 
         MultiHeadAttentionf32(
             q_val, k_val, v_val, q_dot_k_transpose, rrm, zinv_tensors, atten_heads);
+        
+        Concat(atten_heads, concatinated_O_val);
+        Dot_3D_2D_T(concatinated_O_val, final_linear_transform_weights, final_atten_heads);
 
-        MultiHeadAttentionfp8(
-            q_val, k_val, v_val, q_dot_k_transpose, rrm, zinv_tensors, atten_heads_from_fp8);
+        // MultiHeadAttentionfp8(
+        //     q_val, k_val, v_val, q_dot_k_transpose, rrm, zinv_tensors, atten_heads_from_fp8);
     }
 
     void TearDown() override
     {
         // verify
         print4(atten_heads, "*** final 32 ****");
-        print4(atten_heads_from_fp8, "*** final fp8 ****");
+        print3(final_atten_heads, "***final_atten_heads final 32 ****");
+        // print4(atten_heads_from_fp8, "*** final fp8 ****");
     }
 
 private:
@@ -82,9 +98,15 @@ private:
         word_position = tensor<T>{std::vector<int>{cpu_mha_test_case.batch_size,
                                                    cpu_mha_test_case.sequence_length,
                                                    cpu_mha_test_case.problem_dimension}};
+        
+        // since Pytorch's Y = X*W_tranpose  
+        
+        // cpu_mha_test_case.num_heads, cpu_mha_test_case.problem_dimension, d_k
+        //          need to change the dimension to
+        // cpu_mha_test_case.num_heads, d_k, cpu_mha_test_case.problem_dimension
 
         q_weights = tensor<T>(std::vector<int>{
-            cpu_mha_test_case.num_heads, cpu_mha_test_case.problem_dimension, d_k});
+            cpu_mha_test_case.num_heads, d_k, cpu_mha_test_case.problem_dimension});
         k_weights = q_weights;
         v_weights = q_weights;
 
@@ -99,6 +121,15 @@ private:
                                 cpu_mha_test_case.num_heads,
                                 cpu_mha_test_case.sequence_length,
                                 d_k};
+        final_linear_transform_weights = tensor<T>(std::vector<int>{
+                                            cpu_mha_test_case.problem_dimension,
+                                            cpu_mha_test_case.problem_dimension});
+        
+        concatinated_O_val = tensor<T>{std::vector<int>{cpu_mha_test_case.batch_size,
+                          cpu_mha_test_case.sequence_length,
+                          cpu_mha_test_case.problem_dimension}}; // cpu_mha_test_case.num_heads*d_k
+        final_atten_heads = concatinated_O_val;
+
         atten_heads_from_fp8 = tensor<float8>{cpu_mha_test_case.batch_size,
                                               cpu_mha_test_case.num_heads,
                                               cpu_mha_test_case.sequence_length,
@@ -123,6 +154,8 @@ private:
         q_weights.generate(GenData<T>{});
         k_weights.generate(GenData<T>{});
         v_weights.generate(GenData<T>{});
+
+        final_linear_transform_weights.generate(GenData<T>{});
     }
 
     CPUMHATestCase cpu_mha_test_case;
@@ -132,12 +165,15 @@ private:
     tensor<T> q_weights;
     tensor<T> k_weights;
     tensor<T> v_weights;
+    tensor<T> final_linear_transform_weights;
 
     tensor<T> q_val;
     tensor<T> k_val;
     tensor<T> v_val;
 
     tensor<T> q_dot_k_transpose;
+    tensor<T> concatinated_O_val;
+
 
     // tensor<T> mask;
     tensor<T> rrm;
@@ -145,6 +181,9 @@ private:
     size_t d_k;
 
     tensor<T> atten_heads;
+    tensor<T> final_atten_heads;
+
+
     tensor<float8> atten_heads_from_fp8;
 
     // row reduction max
