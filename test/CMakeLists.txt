@@ -1614,7 +1614,7 @@ add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW_3x2 HALF_ENABLED BF16_E
 )
 
 if (CODECOV_TEST)
-    add_custom_target(coverage
+    add_custom_target(coverage_conv2d
         COMMAND ${CMAKE_COMMAND} -E echo "Running coverage for smoke_solver_ConvWinograd3x3MultipassWrW_3x2"
         COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 3 3 --pads_strides_dilations 1 1 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
         COMMAND llvm-profdata merge -sparse default.profraw -o default.profdata
