@@ -40,7 +40,7 @@ std::vector<CPUMHATestCase> CPUMHAConfigs()
              0.0}};
 }
 
-template <typename T = double>
+template <typename T = float>
 struct CPUMHATest : public ::testing::TestWithParam<CPUMHATestCase>
 {
 protected:
