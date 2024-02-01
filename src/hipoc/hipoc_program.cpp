@@ -234,10 +234,6 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
 #endif
     else
     {
-#ifdef MIOPEN_COMPILER_FLAGS_V2
-        /* Initialize MIOPEN Compiler Flags */
-        MIOPEN_CMP_FLAGS_INIT();
-#endif /*MIOPEN_COMPILER_FLAGS_V2*/
         params += " " + GetCodeObjectVersionOption();
         if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)))
             params += " -mwavefrontsize64 -mcumode";
