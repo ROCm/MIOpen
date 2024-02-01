@@ -1608,14 +1608,14 @@ add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW_3x2 HALF_ENABLED BF16_E
 )
 
 # Custom codecov for smoke_solver_ConvWinograd3x3MultipassWrW_3x2
-add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW_3x2 HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON
+add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW_3x2_codcov HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON
     ENVIRONMENT MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0 MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinograd3x3MultipassWrW<3-2>'
     COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 3 3 --pads_strides_dilations 1 1 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 if (CODECOV_TEST)
     add_custom_target(coverage_conv2d
-        COMMAND ${CMAKE_COMMAND} -E echo "Running coverage for smoke_solver_ConvWinograd3x3MultipassWrW_3x2"
+        COMMAND ${CMAKE_COMMAND} -E echo "Running coverage for smoke_solver_ConvWinograd3x3MultipassWrW_3x2_codecov"
         COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 3 3 --pads_strides_dilations 1 1 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
         COMMAND llvm-profdata merge -sparse default.profraw -o default.profdata
         COMMAND llvm-cov show ./test_conv2d -instr-profile=default.profdata
