@@ -133,6 +133,11 @@ else()
     set(MIOPEN_DEFAULT_BACKEND "OpenCL")
 endif()
 
+if(NOT WIN32)
+    include(CheckCXXLinkerFlag)
+    check_cxx_linker_flag(stdc++fs HAS_LIB_STD_FILESYSTEM)
+endif()
+
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/llvm ${CMAKE_INSTALL_PREFIX}/hip /opt/rocm /opt/rocm/llvm /opt/rocm/hip)
 
 option(ENABLE_HIP_WORKAROUNDS Off)
@@ -483,12 +488,15 @@ set(KERNELS_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/kernels)
 find_program(UNZIPPER lbzcat bzcat REQUIRED)
 file(MAKE_DIRECTORY ${KERNELS_BINARY_DIR})
 
+add_custom_target(generate_kernels ALL)
+
 function(unpack_db db_bzip2_file)
     get_filename_component(__fname ${db_bzip2_file} NAME_WLE)
     add_custom_command(OUTPUT ${KERNELS_BINARY_DIR}/${__fname}
                        COMMAND ${UNZIPPER} -k ${db_bzip2_file} > ${KERNELS_BINARY_DIR}/${__fname})
     string(REPLACE "." "_" __tname ${__fname})
     add_custom_target(generate_${__tname} ALL DEPENDS ${KERNELS_BINARY_DIR}/${__fname})
+    add_dependencies(generate_kernels generate_${__tname})
 endfunction()
 
 file(GLOB PERF_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/*.db.bz2")
@@ -518,6 +526,7 @@ function(install_kdb FILE_NAME COMPONENT_NAME)
         set(CPACK_COMPONENTS_ALL
             "${CPACK_COMPONENTS_ALL};${__component}" PARENT_SCOPE)
     endif()
+    set(LFS_MISSING_FILES ${LFS_MISSING_FILES} PARENT_SCOPE)
 endfunction()
 
 # Both the lists below should be in sync always

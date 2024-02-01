@@ -25,7 +25,6 @@
  *******************************************************************************/
 #include "include_inliner.hpp"
 #include <algorithm>
-#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -125,7 +124,7 @@ void PrintHelp()
     WrongUsage(ss.str());
 }
 
-void Process(const std::filesystem::path& sourcePath,
+void Process(const fs::path& sourcePath,
              std::ostream& target,
              size_t bufferSize,
              size_t lineSize,
@@ -133,14 +132,14 @@ void Process(const std::filesystem::path& sourcePath,
              bool as_extern,
              bool mark_includes)
 {
-    if(!std::filesystem::exists(sourcePath))
+    if(!fs::exists(sourcePath))
     {
         std::cerr << "File not found: " << sourcePath << std::endl;
         // NOLINTNEXTLINE (concurrency-mt-unsafe)
         std::exit(1);
     }
 
-    std::filesystem::path root{sourcePath.has_parent_path() ? sourcePath.parent_path() : ""};
+    fs::path root{sourcePath.has_parent_path() ? sourcePath.parent_path() : ""};
     std::ifstream sourceFile{sourcePath, std::ios::in | std::ios::binary};
     std::istream* source = &sourceFile;
 

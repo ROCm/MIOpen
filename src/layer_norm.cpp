@@ -28,8 +28,8 @@
 #include <miopen/float_equal.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/layernorm.hpp>
-#include <miopen/norm/invoke_params.hpp>
-#include <miopen/norm/solvers.hpp>
+#include <miopen/layernorm/invoke_params.hpp>
+#include <miopen/layernorm/solvers.hpp>
 #include <miopen/tensor.hpp>
 
 namespace miopen {
@@ -47,15 +47,15 @@ miopenStatus_t LayerNormForward(Handle& handle,
                                 Data_t mean,
                                 const TensorDescriptor& rstdDesc,
                                 Data_t rstd,
-                                miopenLayerNormMode_t mode,
+                                miopenNormMode_t mode,
                                 float epsilon,
                                 int32_t normalized_dim)
 {
-    const auto problem = norm::ProblemDescription{
+    const auto problem = layernorm::ProblemDescription{
         mode, xDesc, weightDesc, biasDesc, yDesc, meanDesc, rstdDesc, epsilon, normalized_dim};
 
     const auto invoke_params = [&]() {
-        auto tmp           = norm::InvokeParams{};
+        auto tmp           = layernorm::InvokeParams{};
         tmp.type           = InvokeType::Run;
         tmp.xDesc          = &xDesc;
         tmp.x              = x;
@@ -71,9 +71,9 @@ miopenStatus_t LayerNormForward(Handle& handle,
     }();
 
     const auto algo    = AlgorithmName{"LayerNormForward"};
-    const auto solvers = solver::SolverContainer<solver::norm::Layernorm2DCKForward,
-                                                 solver::norm::Layernorm4DCKForward,
-                                                 solver::norm::LayernormForward>{};
+    const auto solvers = solver::SolverContainer<solver::layernorm::Layernorm2DCKForward,
+                                                 solver::layernorm::Layernorm4DCKForward,
+                                                 solver::layernorm::LayernormForward>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 

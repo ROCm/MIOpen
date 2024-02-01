@@ -23,42 +23,13 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <gtest/gtest.h>
 
-#include <miopen/norm/problem_description.hpp>
-#include <miopen/names.hpp>
+#include "group_conv.hpp"
 
-#include <sstream>
+using namespace group_conv;
 
-namespace miopen {
-
-namespace norm {
-
-NetworkConfig ProblemDescription::MakeNetworkConfig() const
-{
-    auto dims         = xDesc.GetLengths();
-    size_t outer_size = 1;
-    size_t inner_size = 1;
-
-    for(size_t i = 0ULL; i < dims.size(); ++i)
-    {
-        if(i < normalized_dim)
-            outer_size *= dims[i];
-        else
-            inner_size *= dims[i];
-    }
-
-    auto dtype = xDesc.GetType();
-
-    std::ostringstream ss;
-
-    ss << "dtype" << dtype;
-    ss << "normalized_dim" << normalized_dim;
-    ss << "outer_size" << outer_size;
-    ss << "inner_size" << inner_size;
-
-    return NetworkConfig{ss.str()};
-}
-
-} // namespace norm
-
-} // namespace miopen
+DEFINE_GROUP_CONV2D_TEST(float, BackwardData);
+DEFINE_GROUP_CONV2D_TEST(half, BackwardData);
+/// \todo int8_t tests don't work. Need debugging
+// DEFINE_GROUP_CONV2D_TEST(int8_t, BackwardData);

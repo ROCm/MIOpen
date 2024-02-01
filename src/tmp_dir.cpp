@@ -26,10 +26,11 @@
 
 #include <miopen/tmp_dir.hpp>
 #include <miopen/env.hpp>
-#include <boost/filesystem.hpp>
+#include <miopen/filesystem.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/process.hpp>
+#include <boost/filesystem/operations.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_SAVE_TEMP_DIR)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_EXIT_STATUS_TEMP_DIR)
@@ -37,10 +38,10 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_EXIT_STATUS_TEMP_DIR)
 namespace miopen {
 
 TmpDir::TmpDir(std::string prefix)
-    : path(boost::filesystem::temp_directory_path() /
-           boost::filesystem::unique_path("miopen-" + prefix + "-%%%%-%%%%-%%%%-%%%%"))
+    : path(fs::temp_directory_path() /
+           boost::filesystem::unique_path("miopen-" + prefix + "-%%%%-%%%%-%%%%-%%%%").string())
 {
-    boost::filesystem::create_directories(this->path);
+    fs::create_directories(this->path);
 }
 
 TmpDir& TmpDir::operator=(TmpDir&& other) noexcept
@@ -68,7 +69,7 @@ TmpDir::~TmpDir()
     if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_SAVE_TEMP_DIR)))
     {
         if(!this->path.empty())
-            boost::filesystem::remove_all(this->path);
+            fs::remove_all(this->path);
     }
 }
 

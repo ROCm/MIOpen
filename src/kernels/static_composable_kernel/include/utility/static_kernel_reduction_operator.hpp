@@ -26,6 +26,9 @@
 #ifndef CK_REDUCTION_OPERATOR_HPP
 #define CK_REDUCTION_OPERATOR_HPP
 
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
+#include <hip/hip_bfloat16.h>
+#endif
 #include "miopen_limits.hpp"
 #include "static_kernel_reduction_common.hpp"
 
@@ -194,22 +197,6 @@ struct unary_abs<T, 1>
 {
     __device__ inline constexpr void operator()(T& a) const { a = abs(a); };
 };
-
-// We know for sure that 4.0 has __habs(), but 3.0 does not have it.
-// Let's assume that __habs() exists since 3.5.
-#if HIP_PACKAGE_VERSION_FLAT < 3005000000
-inline __device__ __half __habs(__half x)
-{
-    union
-    {
-        __half half;
-        unsigned short u16;
-    } val;
-    val.half = x;
-    val.u16  = val.u16 & 0x7fff;
-    return val.half;
-}
-#endif
 
 template <int divider>
 struct unary_abs<half_t, divider>

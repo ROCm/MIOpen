@@ -27,7 +27,6 @@
 #include <miopen/miopen.h>
 #include <miopen/errors.hpp>
 #include <miopen/hip_build_utils.hpp>
-#include <miopen/rocm_features.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/mlir_common.hpp>
 
@@ -65,13 +64,8 @@ static const char* DTypeName(miopenDataType_t ty)
 
 static std::string GetIsaName(const miopen::TargetProperties& target)
 {
-#if ROCM_FEATURE_TARGETID_OFF
-    const char* const ecc_suffix = (target.Sramecc() && *target.Sramecc()) ? ":sramecc+" : "";
-    return {"amdgcn-amd-amdhsa:" + target.Name() + ecc_suffix};
-#else
     const LcOptionTargetStrings lots(target);
     return "amdgcn-amd-amdhsa:" + lots.targetId;
-#endif
 }
 
 std::string GetKernelName(const conv::ProblemDescription& problem, bool is_xdlops, int kernel_id)

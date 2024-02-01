@@ -23,11 +23,13 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #pragma once
 
-#include <miopen/activ.hpp>
 #include <miopen/problem_description_base.hpp>
+#include <miopen/activ.hpp>
 #include <miopen/tensor.hpp>
+
 #include <cassert>
 #include <string>
 
@@ -35,19 +37,19 @@ namespace miopen {
 
 struct NetworkConfig;
 
-namespace norm {
+namespace groupnorm {
 
 struct ProblemDescription : ProblemDescriptionBase
 {
-    ProblemDescription(miopenLayerNormMode_t mode_,
+    ProblemDescription(miopenNormMode_t mode_,
                        const TensorDescriptor& xDesc_,
                        const TensorDescriptor& weightDesc_,
                        const TensorDescriptor& biasDesc_,
                        const TensorDescriptor& yDesc_,
                        const TensorDescriptor& meanDesc_,
                        const TensorDescriptor& rstdDesc_,
-                       float epsilon_,
-                       int32_t normalized_dim_)
+                       uint64_t num_groups_,
+                       float epsilon_)
         : mode(mode_),
           xDesc(xDesc_),
           weightDesc(weightDesc_),
@@ -55,60 +57,55 @@ struct ProblemDescription : ProblemDescriptionBase
           yDesc(yDesc_),
           meanDesc(meanDesc_),
           rstdDesc(rstdDesc_),
-          epsilon(epsilon_),
-          normalized_dim(normalized_dim_)
+          num_groups(num_groups_),
+          epsilon(epsilon_)
     {
+        if(xDesc.GetLengths() != yDesc.GetLengths())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "groupnorm::ProblemDescription: Tensor dimension lengths do not match.");
+        }
+        if((num_groups < 1) || (xDesc.GetLengths()[1] % num_groups != 0))
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "groupnorm::ProblemDescription: The channel size of input tensor should "
+                         "be divisible by num_groups.");
+        }
+        if(xDesc.GetLengths().size() < 3)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "groupnorm::ProblemDescription: The number of dimensions of the input "
+                         "tensor should be at least 3.");
+        }
     }
 
-    miopenLayerNormMode_t GetMode() const { return mode; }
+    miopenNormMode_t GetMode() const { return mode; }
     const TensorDescriptor& GetXDesc() const { return xDesc; }
     const TensorDescriptor& GetWeightDesc() const { return weightDesc; }
     const TensorDescriptor& GetBiasDesc() const { return biasDesc; }
     const TensorDescriptor& GetYDesc() const { return yDesc; }
     const TensorDescriptor& GetMeanDesc() const { return meanDesc; }
     const TensorDescriptor& GetRstdDesc() const { return rstdDesc; }
+    int32_t GetNumGroups() const { return num_groups; }
     float GetEpsilon() const { return epsilon; }
-    int32_t GetNormalizedDim() const { return normalized_dim; }
 
-    bool IsSameType() const
+    bool IsValidType() const
     {
         if(xDesc.GetType() != yDesc.GetType())
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm, "LayerNormForward: Tensor types do not match.");
-#else
             return false;
-#endif
         }
-        return true;
-    }
-
-    bool IsSameLength() const
-    {
-        if(xDesc.GetLengths() != yDesc.GetLengths())
+        if(yDesc.GetType() != weightDesc.GetType())
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "LayerNormForward: Tensor dimension lengths do not match.");
-#else
             return false;
-#endif
         }
-        return true;
-    }
-
-    bool IsRightNormDim() const
-    {
-        if((normalized_dim < 0) || (normalized_dim > xDesc.GetLengths().size()))
+        if(weightDesc.GetType() != biasDesc.GetType())
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(
-                miopenStatusBadParm,
-                "LayerNormForward: normalized dim is greater than 0 and less than or equal "
-                "Tensor dimension length.");
-#else
             return false;
-#endif
+        }
+        if(meanDesc.GetType() != rstdDesc.GetType())
+        {
+            return false;
         }
         return true;
     }
@@ -118,32 +115,15 @@ struct ProblemDescription : ProblemDescriptionBase
         if(!(xDesc.IsPacked() && weightDesc.IsPacked() && biasDesc.IsPacked() && yDesc.IsPacked() &&
              meanDesc.IsPacked() && rstdDesc.IsPacked()))
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm, "LayerNormForward: Unpacked tensors not supported.");
-#else
             return false;
-#endif
         }
         return true;
-    }
-
-    bool IsLargeSize() const
-    {
-        auto dims = xDesc.GetLengths();
-
-        size_t outer_size = 1;
-        for(size_t i = 0; i < normalized_dim; i++)
-        {
-            outer_size *= dims[i];
-        }
-
-        return (outer_size > 32);
     }
 
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
-    miopenLayerNormMode_t mode;
+    miopenNormMode_t mode;
     TensorDescriptor xDesc;
     TensorDescriptor weightDesc;
     TensorDescriptor biasDesc;
@@ -151,12 +131,12 @@ private:
     TensorDescriptor meanDesc;
     TensorDescriptor rstdDesc;
 
+    uint64_t num_groups;
     float epsilon;
-    int32_t normalized_dim;
 
     NetworkConfig MakeForwardNetworkConfig() const;
 };
 
-} // namespace norm
+} // namespace groupnorm
 
 } // namespace miopen

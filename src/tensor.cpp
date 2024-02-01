@@ -74,12 +74,17 @@ bool IsLayoutSupported(miopenTensorLayout_t layout)
 }
 
 template <class T>
-bool CheckLengths(const std::vector<T>& lens)
+bool CheckLengths(const std::vector<T>& lens, T maxval = 0)
 {
     if(lens.empty())
         return false;
     if(!std::all_of(lens.cbegin(), lens.cend(), [](T x) { return x > 0; }))
         return false;
+    if(maxval)
+    {
+        if(!std::all_of(lens.cbegin(), lens.cend(), [maxval](T x) { return x <= maxval; }))
+            return false;
+    }
     return true;
 }
 
@@ -204,8 +209,8 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
     if(lens_in.empty())
         MIOPEN_THROW(miopenStatusBadParm, "Number of dimensions must be > 1");
 
-    if(!CheckLengths(lens_in))
-        MIOPEN_THROW(miopenStatusBadParm, "Lengths must be > 0");
+    if(!CheckLengths(lens_in, static_cast<std::size_t>(std::numeric_limits<int64_t>::max())))
+        MIOPEN_THROW(miopenStatusBadParm, "Lengths must be > 0 and <= INT64_MAX");
 
     this->CalculateVectorLength();
 
@@ -214,8 +219,8 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
         if(lens_in.size() != strides_in.size())
             MIOPEN_THROW(miopenStatusBadParm, "Lengths and strides dimensions must be equal");
 
-        if(!CheckLengths(strides_in))
-            MIOPEN_THROW(miopenStatusBadParm, "Strides must be > 0");
+        if(!CheckLengths(strides_in, static_cast<std::size_t>(std::numeric_limits<int64_t>::max())))
+            MIOPEN_THROW(miopenStatusBadParm, "Strides must be > 0 and <= INT64_MAX");
 
         strides = strides_in;
         packed  = (this->GetElementSize() == this->GetElementSpace());
@@ -424,6 +429,19 @@ std::size_t TensorDescriptor::GetNumBytes() const
 }
 
 bool TensorDescriptor::IsPacked() const { return this->packed; }
+
+bool TensorDescriptor::Is64Bit() const
+{
+    if(std::any_of(lens.cbegin(), lens.cend(), [](std::size_t x) {
+           return x > std::numeric_limits<int>::max();
+       }))
+        return true;
+    if(std::any_of(strides.cbegin(), strides.cend(), [](std::size_t x) {
+           return x > std::numeric_limits<int>::max();
+       }))
+        return true;
+    return false;
+}
 
 bool TensorDescriptor::operator==(const TensorDescriptor& rhs) const
 {
