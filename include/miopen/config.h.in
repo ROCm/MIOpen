@@ -81,13 +81,13 @@
 #cmakedefine MIOPEN_DEFAULT_FIND_MODE @MIOPEN_DEFAULT_FIND_MODE@
 
 // clang-format on
-#ifndef MIOPEN_CMP_FLAGS_NEW /* Flag to switch to new approach for MIOPEN Compiler Flag */
+#ifndef MIOPEN_COMPILER_FLAGS_V2 /* Flag to switch to new approach for MIOPEN Compiler Flag */
   #cmakedefine MIOPEN_AMDGCN_ASSEMBLER "@MIOPEN_AMDGCN_ASSEMBLER@"
   #cmakedefine HIP_OC_COMPILER "@HIP_OC_COMPILER@"
   #cmakedefine MIOPEN_HIP_COMPILER "@MIOPEN_HIP_COMPILER@"
   #cmakedefine MIOPEN_OFFLOADBUNDLER_BIN "@MIOPEN_OFFLOADBUNDLER_BIN@"
   #cmakedefine MIOPEN_CACHE_DIR "@MIOPEN_CACHE_DIR@"
-#else /*MIOPEN_CMP_FLAGS_NEW if defined*/
+#else /*MIOPEN_COMPILER_FLAGS_V2 if defined*/
   /* Include rocm-core header for get ROCm Install Path Method */
   #include <rocm-core/rocm_getpath.h>
 
@@ -138,7 +138,7 @@
   #define MIOPEN_OFFLOADBUNDLER_BIN MIOPEN_CMP_FLAGS[MIOPEN_OFFLOAD_BUNDLER_Flag]
   #define MIOPEN_ROCM_INSTALL_PATH MIOPEN_CMP_FLAGS[MIOPEN_ROCM_INSTALL_PATH_Flag]
 
-#endif /*MIOPEN_CMP_FLAGS_NEW*/
+#endif /*MIOPEN_COMPILER_FLAGS_V2*/
 
 #define MIOPEN_USE_GEMM (MIOPEN_USE_ROCBLAS)
 

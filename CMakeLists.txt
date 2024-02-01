@@ -143,6 +143,16 @@ list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/ll
 option(ENABLE_HIP_WORKAROUNDS Off)
 set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
 
+# Build flags for backward compatibility of MIOPEN Compiler flags
+set( MIOPEN_COMPILER_FLAG_VERSION V1 CACHE STRING
+        "Which version of Compiler Flags to use" )
+set_property( CACHE MIOPEN_COMPILER_FLAG_VER PROPERTY STRINGS V1 V2)
+
+if(MIOPEN_COMPILER_FLAG_VERSION STREQUAL "V2" )
+  set(MIOPEN_COMPILER_FLAGS_V2 1)
+  message( STATUS "MIOPEN COMPILER FLAGS VERSION 2 using getROCmInstallPath()" )
+endif()
+
 
 # Embedded Build Configuration
 set(MIOPEN_EMBED_DB "" CACHE STRING "Semi-colon separated list of architecture to embed on-disk DBs in the binary. Example gfx906_60;gfx900_56")

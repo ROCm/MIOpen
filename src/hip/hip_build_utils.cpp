@@ -39,7 +39,7 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_VERBOSE)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_DUMP)
 
-#ifdef MIOPEN_CMP_FLAGS_NEW
+#ifdef MIOPEN_COMPILER_FLAGS_V2
  /* Directory Path from ROCM PATH to MIOPEN Flag Path */
 char* MIOPEN_CMP_FLAG_REL_PATHS[MIOPEN_CMP_MAX_Flag] = { "llvm/bin/clang",
                                                          "bin/clang-ocl",
@@ -48,7 +48,7 @@ char* MIOPEN_CMP_FLAG_REL_PATHS[MIOPEN_CMP_MAX_Flag] = { "llvm/bin/clang",
                                                          "\0" };
 /* List of MIOPEN Compiler Flags */
 char MIOPEN_CMP_FLAGS[MIOPEN_CMP_MAX_Flag][PATH_MAX_LEN]={0};
-#endif /*MIOPEN_CMP_FLAGS_NEW*/
+#endif /*MIOPEN_COMPILER_FLAGS_V2*/
 
 
 namespace miopen {
@@ -60,10 +60,10 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
                              const TargetProperties& target,
                              const bool testing_mode)
 {
-#ifdef MIOPEN_CMP_FLAGS_NEW
+#ifdef MIOPEN_COMPILER_FLAGS_V2
     /* Initialize MIOPEN Compiler Flags */
     MIOPEN_CMP_FLAGS_INIT();
-#endif /*MIOPEN_CMP_FLAGS_NEW*/
+#endif /*MIOPEN_COMPILER_FLAGS_V2*/
 #ifdef __linux__
     // Write out the include files
     // Let's assume includes are overkill for feature tests & optimize'em out.
