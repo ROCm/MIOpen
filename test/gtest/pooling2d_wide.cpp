@@ -40,7 +40,7 @@ class Pooling2dFloat : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
-class Pooling2dHalf : public testing::TestWithParam<std::vector<std::string>>
+class WidePooling2dHalf : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -62,7 +62,7 @@ void Run2dDriver(miopenDataType_t prec)
     switch(prec)
     {
     case miopenFloat: params = Pooling2dFloat::GetParam(); break;
-    case miopenHalf: params = Pooling2dHalf::GetParam(); break;
+    case miopenHalf: params = WidePooling2dHalf::GetParam(); break;
     case miopenBFloat16:
     case miopenInt8:
     case miopenFloat8:
@@ -127,7 +127,7 @@ TEST_P(Pooling2dFloat, FloatTest_pooling2d_wide)
 };
 */
 
-TEST_P(Pooling2dHalf, HalfTest_pooling2d_wide)
+TEST_P(WidePooling2dHalf, HalfTest_pooling2d_wide)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--half"))
@@ -142,4 +142,4 @@ TEST_P(Pooling2dHalf, HalfTest_pooling2d_wide)
 
 // INSTANTIATE_TEST_SUITE_P(Pooling2D, Pooling2dFloat, testing::Values(GetTestCases("--float")));
 
-INSTANTIATE_TEST_SUITE_P(Pooling2D, Pooling2dHalf, testing::Values(GetTestCases("--half")));
+INSTANTIATE_TEST_SUITE_P(Pooling2D, WidePooling2dHalf, testing::Values(GetTestCases("--half")));
