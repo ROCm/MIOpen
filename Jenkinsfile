@@ -47,7 +47,7 @@ def cmake_build(Map conf=[:]){
     def package_build = (conf.get("package_build","") == "true")
 
     if (package_build == true) {
-        make_targets = "package"
+        make_targets = "miopen_gtest package"
         setup_args = " -DMIOPEN_TEST_DISCRETE=OFF " + setup_args
     }
 
