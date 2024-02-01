@@ -146,7 +146,6 @@ set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header inter
 # Build flags for backward compatibility of MIOPEN Compiler flags
 set( MIOPEN_COMPILER_FLAG_VERSION V1 CACHE STRING
         "Which version of Compiler Flags to use" )
-set_property( CACHE MIOPEN_COMPILER_FLAG_VER PROPERTY STRINGS V1 V2)
 
 if(MIOPEN_COMPILER_FLAG_VERSION STREQUAL "V2" )
   set(MIOPEN_COMPILER_FLAGS_V2 1)
