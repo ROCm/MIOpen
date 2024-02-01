@@ -161,35 +161,19 @@ void Dot_3D_3D(const tensor<T>& A_mat, const tensor<T>& B_mat, tensor<T>& C_mat)
 // A_mat : 4D
 // B_mat : 4D
 // C_mat : 4D
-template <typename T>
-void Dot_4D_4D_T(const tensor<T>& A_mat, const tensor<T>& B_mat, tensor<T>& C_mat)
+template <typename T1, typename T2>
+void Dot_4D_4D_T(const tensor<T1>& A_mat, const tensor<T1>& B_mat, tensor<T2>& C_mat)
 {
     size_t k_val = A_mat.desc.GetLengths()[3];
     assert(k_val == B_mat.desc.GetLengths()[3]); // since transpose
     C_mat.par_for_each([&](size_t b_id, size_t h_id, size_t sl_id, size_t dk_id) {
-        double sum(0);
+        T2 sum(0);
         for(size_t k_id = 0; k_id < k_val; ++k_id)
         {
-            sum += double(A_mat(b_id, h_id, sl_id, k_id)) * double(B_mat(b_id, h_id, dk_id, k_id));
+            sum += T2(A_mat(b_id, h_id, sl_id, k_id)) * T2(B_mat(b_id, h_id, dk_id, k_id));
         }
 
-        C_mat(b_id, h_id, sl_id, dk_id) = T(sum);
-    });
-}
-
-template <typename T>
-void Dot_4D_4D_T_scaled(const tensor<float8>& A_mat, const tensor<float8>& B_mat, tensor<T>& C_mat)
-{
-
-    size_t k_val = A_mat.desc.GetLengths()[3];
-    assert(k_val == B_mat.desc.GetLengths()[3]); // since transpose
-    C_mat.par_for_each([&](size_t b_id, size_t h_id, size_t sl_id, size_t dk_id) {
-        double sum(0);
-        for(size_t k_id = 0; k_id < k_val; ++k_id)
-        {
-            sum += T(A_mat(b_id, h_id, sl_id, k_id)) * T(B_mat(b_id, h_id, dk_id, k_id));
-        }
-        C_mat(b_id, h_id, sl_id, dk_id) = T(sum);
+        C_mat(b_id, h_id, sl_id, dk_id) = T2(sum);
     });
 }
 
@@ -210,7 +194,7 @@ void Dot_4D_4D(const tensor<T1>& A_mat, const tensor<T1>& B_mat, tensor<T2>& C_m
 }
 
 template <typename T>
-void AddMask5D_2D(tensor<T>& mat_A_val, const tensor<T>& mat_mask)
+void AddMask4D_2D(tensor<T>& mat_A_val, const tensor<T>& mat_mask)
 {
     mat_A_val.par_for_each([&](size_t b_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
         mat_A_val(b_id, h_id, sl_i_id, sl_j_id) =
@@ -263,29 +247,11 @@ void Scale4DFp32ToFP8(const tensor<T>& mat_val, tensor<float8>& mat_val_fp8, dou
 }
 
 template <typename T>
-void Scale4DFp8ToFP32(const tensor<T>& mat_val, tensor<float8>& mat_val_fp8, double scale_factor)
-{
-    mat_val_fp8.par_for_each([&](size_t b_id, size_t sl_i_id, size_t sl_j_id, size_t sl_k_id) {
-        mat_val_fp8(b_id, sl_i_id, sl_j_id, sl_k_id) =
-            float8(mat_val(b_id, sl_i_id, sl_j_id, sl_k_id) / scale_factor);
-    });
-}
-
-template <typename T>
 void ScaleToFP32(tensor<T>& mat_val, double scale_factor)
 {
     mat_val.par_for_each([&](size_t b_id, size_t sl_i_id, size_t sl_j_id, size_t sl_k_id) {
         mat_val(b_id, sl_i_id, sl_j_id, sl_k_id) =
             T(T(mat_val(b_id, sl_i_id, sl_j_id, sl_k_id)) / scale_factor);
-    });
-}
-
-template <typename T>
-void Scale4D(tensor<T>& mat_val, double scale_factor)
-{
-    mat_val.par_for_each([&](size_t b_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
-        mat_val(b_id, h_id, sl_i_id, sl_j_id) =
-            mat_val(b_id, h_id, sl_i_id, sl_j_id) * scale_factor;
     });
 }
 
@@ -328,14 +294,6 @@ void ZinvMultiply(tensor<T>& q_dot_k_transpose, const tensor<T>& zinv_tensors)
 //     });
 // }
 
-template <typename T>
-void Transpose_5D(const tensor<T>& mat_val, tensor<T>& trans_mat)
-{
-    trans_mat.par_for_each([&](size_t b_id, size_t sc_id, size_t h_id, size_t sl_id, size_t dk_id) {
-        trans_mat(b_id, sc_id, h_id, sl_id, dk_id) = mat_val(b_id, sc_id, h_id, dk_id, sl_id);
-    });
-}
-
 template <class T>
 void DropOut(tensor<T>& q_dot_k_transpose, const double& drop_out_rate)
 {
@@ -368,7 +326,7 @@ void MultiHeadAttentionfp8(tensor<T>& q_val,
     Scale4DFp32ToFP8(q_val, q_val_fp8, q_scale);
     Scale4DFp32ToFP8(k_val, k_val_fp8, k_scale);
 
-    Dot_4D_4D_T_scaled<double>(q_val_fp8, k_val_fp8, q_dot_k_transpose_fp32);
+    Dot_4D_4D_T(q_val_fp8, k_val_fp8, q_dot_k_transpose_fp32);
 
     ScaleToFP32(q_dot_k_transpose_fp32, q_scale);
     ScaleToFP32(q_dot_k_transpose_fp32, k_scale);
