@@ -59,7 +59,7 @@ protected:
         MultiHeadAttentionf32(
             q_val, k_val, v_val, q_dot_k_transpose, rrm, zinv_tensors, atten_heads);
 
-        MultiHeadAttentionfp8<double>(
+        MultiHeadAttentionfp8(
             q_val, k_val, v_val, q_dot_k_transpose, rrm, zinv_tensors, atten_heads_from_fp8);
     }
 
