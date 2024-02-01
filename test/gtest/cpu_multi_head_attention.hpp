@@ -47,7 +47,6 @@ protected:
     void SetUp() override
     {
         cpu_mha_test_case = GetParam();
-        // FP8Scaling AMax(10);
 
         // Initialize the tensors
         init();
@@ -104,7 +103,6 @@ private:
                                               cpu_mha_test_case.num_heads,
                                               cpu_mha_test_case.sequence_length,
                                               d_k};
-        // concatinate the atten heads d_k => problem dim
 
         q_dot_k_transpose = tensor<T>{cpu_mha_test_case.batch_size,
                                       cpu_mha_test_case.num_heads,

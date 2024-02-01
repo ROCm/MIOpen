@@ -203,8 +203,8 @@ void AddMask4D_2D(tensor<T>& mat_A_val, const tensor<T>& mat_mask)
 }
 
 // Computes the sum of the row in A_mat
-// A_mat : 5D
-// rrm_tensor : 5D
+// A_mat : 4D
+// rrm_tensor : 4D
 template <class T>
 void RowReductionMax(const tensor<T>& A_mat, tensor<T>& rrm_tensor)
 {
