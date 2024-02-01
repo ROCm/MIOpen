@@ -34,22 +34,22 @@ namespace cat {
 
 struct CatInvokeParams : public miopen::InvokeParams
 {
-    CatInvokeParams(const int32_t xCount_,
+    CatInvokeParams(int32_t xCount_,
                     const TensorDescriptor* const* xDescs_,
-                    const void* const* xs_,
+                    ConstData_t* xs_,
                     const TensorDescriptor& yDesc_,
-                    void* y_,
-                    const int32_t dim_)
+                    Data_t y_,
+                    int32_t dim_)
         : xCount(xCount_), xDescs(xDescs_), xs(xs_), yDesc(yDesc_), y(y_), dim(dim_)
     {
     }
 
-    const int32_t xCount;
-    const TensorDescriptor* const* xDescs;
-    const void* const* xs;
-    const TensorDescriptor& yDesc;
-    void* y;
-    const int32_t dim;
+    int32_t xCount                        = 0;
+    const TensorDescriptor* const* xDescs = nullptr;
+    ConstData_t* xs                       = nullptr;
+    TensorDescriptor yDesc{};
+    Data_t y    = nullptr;
+    int32_t dim = 0;
 
     size_t GetXDimSize(int xIndex) const
     {

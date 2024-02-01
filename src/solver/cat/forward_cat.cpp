@@ -59,7 +59,7 @@ bool IsImprovementOverROCm(const miopen::cat::ProblemDescription& problem)
     return true;
 }
 
-bool CatForward::IsApplicable(const ExecutionContext& /*context*/,
+bool CatForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                               const miopen::cat::ProblemDescription& problem) const
 {
     if(!IsUnderXCountLimit(problem))

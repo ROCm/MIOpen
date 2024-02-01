@@ -41,7 +41,7 @@ namespace cat {
 
 struct ProblemDescription : ProblemDescriptionBase
 {
-    ProblemDescription(const int32_t xCount_,
+    ProblemDescription(int32_t xCount_,
                        const TensorDescriptor* const* xDescs_,
                        const TensorDescriptor& yDesc_,
                        int32_t dim_)
@@ -123,10 +123,10 @@ struct ProblemDescription : ProblemDescriptionBase
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
-    const TensorDescriptor* const* xDescs;
-    const TensorDescriptor yDesc;
-    const int32_t xCount;
-    const int32_t dim;
+    const TensorDescriptor* const* xDescs = nullptr;
+    TensorDescriptor yDesc{};
+    int32_t xCount = 0;
+    int32_t dim    = 0;
 
     NetworkConfig MakeForwardNetworkConfig() const;
 };
