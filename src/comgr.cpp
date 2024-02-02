@@ -1005,7 +1005,13 @@ void BuildAsm(const std::string& name,
 #define WORKAROUND_ISSUE_1674 (HIP_PACKAGE_VERSION_FLAT >= 5003022305ULL)
 /// No assumption that HIP kernels are launched with uniform block size for backward compatibility
 /// SWDEV-413293 and https://reviews.llvm.org/D155213 effective HIP_FLAT_VERSION 500723302
+#ifndef _WIN32
 #define WORKAROUND_SWDEV_413293 (HIP_PACKAGE_VERSION_FLAT >= 5007023302ULL)
+#else
+/// Do not use on Windows. Compiler error message:
+///     '-fno-offload-uniform-block' - unknown command line option
+#define WORKAROUND_SWDEV_413293 0
+#endif
 
 namespace hiprtc {
 
