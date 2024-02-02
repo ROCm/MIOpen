@@ -3,6 +3,68 @@
 
 Full documentation for MIOpen is available at [https://rocmsoftwareplatform.github.io/MIOpen/doc/html/](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/)
 
+## (Unreleased) MIOpen-3.1.0 for ROCm 6.1.0
+### Added
+- CK-based 2d/3d convolution solvers to support nchw/ncdhw layout
+- Fused solver for Fwd Convolution with Residual, Bias and activation
+- AI Based Parameter Prediction Model for conv_hip_igemm_group_fwd_xdlops Solver
+- Forward, backward data and backward weight convolution solver with fp8/bfp8
+- check for packed tensors for convolution solvers
+- Integrate CK's layer norm
+- Combine gtests into single binary
+### Fixed
+- fix for backward passes bwd/wrw for CK group conv 3d
+- Fixed out-of-bounds memory access : ConvOclDirectFwdGen
+- fixed build failure due to hipRTC
+### Changed
+- Standardize workspace abstraction
+- Use split CK libraries
+### Removed
+- clamping to MAX from CastTensor used in Bwd and WrW convolution
+
+## MIOpen-3.0.0 for ROCm 6.0.0
+- This release adds 3D convolution, enablement of fp8 convolution, NHWC batch norm, RNN padding support. It also removes
+INI8x4 support and fix minor issues and bugs.
+### Notes
+### Added
+- 3D forward convolution solver with non-packed input tensors
+- 3D group backward weight convolution solver
+- 3D group backward data convolution solver
+- 3D group forward convolution solver
+- winograd fury convolution support
+- NHWC Batchnorm support
+- RNN padding and SeqTensorDescriptor
+- FP8 and BFP8 convolution enablement
+### Fixed
+- transposed convolutions
+- issue with parameter truncation for CK solvers
+### Changed
+- Ck kernels invocation refactoring
+- Replace miopen::ProblemDescription with conv::ProblemDescription
+### Removed
+- Remove INT8x4 support
+- Remove target ids from kdb args
+
+## MIOpen-2.20.0 for ROCm 5.7.0
+### Added
+- AI Heuristic for Immediate Mode Fallback
+- CK group forward convolution integration
+- additional tunings into performance database
+### Fixed
+- [HOTFIX] Workaround for HIP iGEMM in buffer_load_max_length
+### Changed
+- Update fdb data to use solver keys [MI100][MI200]
+
+## MIOpen-2.20.0 for ROCm 5.6.0
+### Added
+- AI Based Heuristic for Kernel Parameter Prediction
+- LSTM multi-stream solver
+### Fixed
+- Tuning fails for ResNet50
+- FP16 precision issues in pooling
+- Winograd kernel failure
+- Perf DB updates for gfx908 and gfx90a
+
 ## (Unreleased) MIOpen-2.19.0 for ROCm 5.5.0
 ### Added
 - ROCm 5.5 support for gfx1101 (Navi32)
