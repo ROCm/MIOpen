@@ -65,7 +65,7 @@ INI8x4 support and fix minor issues and bugs.
 - Winograd kernel failure
 - Perf DB updates for gfx908 and gfx90a
 
-## (Unreleased) MIOpen-2.19.0 for ROCm 5.5.0
+## MIOpen-2.19.0 for ROCm 5.5.0
 ### Added
 - ROCm 5.5 support for gfx1101 (Navi32)
 ### Changed
