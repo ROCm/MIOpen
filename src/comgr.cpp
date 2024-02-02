@@ -804,7 +804,7 @@ void BuildHip(const std::string& name,
 #if PCH_IS_SUPPORTED
             if(compiler::lc::hip::IsPchEnabled())
             {
-                raw += " -nogpuinc -DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1";
+                raw += " -nogpuinc -DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS";
             }
 #endif
             auto optCompile = miopen::SplitSpaceSeparated(raw, compiler::lc::GetOptionsNoSplit());
@@ -1260,7 +1260,7 @@ void BuildHip(const std::string& name,
             opts.push_back("-DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1");
         opts.push_back("-DHIP_PACKAGE_VERSION_FLAT=" + std::to_string(HIP_PACKAGE_VERSION_FLAT));
         opts.push_back("-DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS");
-#if HIP_PACKAGE_VERSION_FLAT < 6001024000ULL
+#if HIP_PACKAGE_VERSION_FLAT < 6001024000ULL && !defined(_WIN32)
         opts.push_back("-DWORKAROUND_DONT_USE_CUSTOM_LIMITS=1");
 #endif
 #if WORKAROUND_ISSUE_1431
