@@ -204,8 +204,8 @@ static int find_callback(void* _res, int argc, char** argv, char** azColName)
 }
 
 SQLite::SQLite() : pImpl(nullptr) {}
-SQLite::~SQLite()                 = default;
-SQLite::SQLite(SQLite&&) noexcept = default;
+SQLite::~SQLite()                            = default;
+SQLite::SQLite(SQLite&&) noexcept            = default;
 SQLite& SQLite::operator=(SQLite&&) noexcept = default;
 SQLite::result_type SQLite::Exec(const std::string& query) const
 {
@@ -336,7 +336,7 @@ SQLite::Statement::Statement(const SQLite& sql,
 }
 SQLite::Statement::~Statement() = default;
 SQLite::Statement::Statement() : pImpl{nullptr} {}
-SQLite::Statement::Statement(Statement&&) noexcept = default;
+SQLite::Statement::Statement(Statement&&) noexcept                    = default;
 SQLite::Statement& SQLite::Statement::operator=(Statement&&) noexcept = default;
 int SQLite::Statement::Step(const SQLite& sql)
 {
@@ -379,8 +379,8 @@ int SQLite::Statement::BindInt64(int idx, const int64_t num)
     return 0;
 }
 
-SQLitePerfDb::SQLitePerfDb(const std::string& filename_, bool is_system_)
-    : SQLiteBase(filename_, is_system_)
+SQLitePerfDb::SQLitePerfDb(DbKinds db_kind, const std::string& filename_, bool is_system_)
+    : SQLiteBase(db_kind, filename_, is_system_)
 {
     if(DisableUserDbFileIO && !is_system)
         return;

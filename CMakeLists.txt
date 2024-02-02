@@ -411,7 +411,7 @@ else()
     set( MIOPEN_INSTALL_DIR miopen)
     set( DATA_INSTALL_DIR ${CMAKE_INSTALL_DATADIR}/${MIOPEN_INSTALL_DIR} )
     set( DATABASE_INSTALL_DIR ${DATA_INSTALL_DIR}/db )
-endif()    
+endif()
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
     find_package(frugally-deep CONFIG REQUIRED)
@@ -487,16 +487,36 @@ set(KERNELS_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/kernels)
 
 find_program(UNZIPPER lbzcat bzcat REQUIRED)
 file(MAKE_DIRECTORY ${KERNELS_BINARY_DIR})
+add_subdirectory(tools/sqlite2txt)
 
 add_custom_target(generate_kernels ALL)
+
+set(MIOPEN_USE_SQLITE_PERFDB Off CACHE BOOL "Use sqlite perfdb instead of text-based.")
+if(MIOPEN_USE_SQLITE_PERFDB)
+    set(PERFDB_SUFFIX "")
+else()
+    set(PERFDB_SUFFIX ".txt")
+endif()
 
 function(unpack_db db_bzip2_file)
     get_filename_component(__fname ${db_bzip2_file} NAME_WLE)
     add_custom_command(OUTPUT ${KERNELS_BINARY_DIR}/${__fname}
-                       COMMAND ${UNZIPPER} -k ${db_bzip2_file} > ${KERNELS_BINARY_DIR}/${__fname})
+                       COMMAND ${UNZIPPER} -ck ${db_bzip2_file} > ${KERNELS_BINARY_DIR}/${__fname})
     string(REPLACE "." "_" __tname ${__fname})
     add_custom_target(generate_${__tname} ALL DEPENDS ${KERNELS_BINARY_DIR}/${__fname})
-    add_dependencies(generate_kernels generate_${__tname})
+
+    get_filename_component(__extension ${__fname} LAST_EXT)
+
+    if(NOT MIOPEN_USE_SQLITE_PERFDB AND __extension STREQUAL ".db")
+        add_custom_command(OUTPUT ${KERNELS_BINARY_DIR}/${__fname}.txt
+                           DEPENDS addkernels ${KERNELS_BINARY_DIR}/${__fname}
+                           COMMAND $<TARGET_FILE:sqlite2txt> ${KERNELS_BINARY_DIR}/${__fname} ${KERNELS_BINARY_DIR}/${__fname}.txt
+        )
+        add_custom_target(generate_${__tname}_txt ALL DEPENDS ${KERNELS_BINARY_DIR}/${__fname}.txt)
+        add_dependencies(generate_kernels generate_${__tname}_txt)
+    else()
+        add_dependencies(generate_kernels generate_${__tname})
+    endif()
 endfunction()
 
 file(GLOB PERF_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/*.db.bz2")
@@ -663,10 +683,11 @@ enable_cppcheck(
         constVariablePointer
         useStlAlgorithm
         uselessOverride
-        unusedScopedObject   
+        unusedScopedObject
     FORCE
     SOURCES
         addkernels/
+        tools/sqlite2txt/
         # driver/
         include/
         src/
