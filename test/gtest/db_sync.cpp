@@ -38,6 +38,7 @@
 #include <miopen/solver_id.hpp>
 #include <miopen/any_solver.hpp>
 #include <miopen/mt_queue.hpp>
+#include <miopen/filesystem.hpp>
 
 #include <cstdlib>
 #include <regex>
@@ -443,6 +444,10 @@ bool CheckKDBJournalMode(const fs::path& filename)
 }
 
 } // namespace miopen
+
+namespace {
+std::string operator+(const fs::path& path, std::string_view s) { return path.string() + s.data(); }
+}
 
 void SetupPaths(fs::path& fdb_file_path,
                 fs::path& pdb_file_path,

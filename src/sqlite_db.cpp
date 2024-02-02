@@ -367,6 +367,11 @@ int SQLite::Statement::BindText(int idx, const std::string& txt)
     return 0;
 }
 
+int SQLite::Statement::BindPath(int idx, const fs::path& path)
+{
+    return BindText(idx, path.string());
+}
+
 int SQLite::Statement::BindBlob(int idx, const std::vector<char>& blob)
 {
     sqlite3_bind_blob(

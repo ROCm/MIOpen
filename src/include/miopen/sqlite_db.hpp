@@ -185,6 +185,7 @@ public:
         std::vector<char> ColumnBlob(int idx);
         int64_t ColumnInt64(int idx);
         int BindText(int idx, const std::string& txt);
+        int BindPath(int idx, const fs::path& path);
         int BindBlob(int idx, const std::vector<char>& blob);
         int BindInt64(int idx, int64_t);
     };

@@ -162,7 +162,7 @@ public:
         bool success           = false;
         auto compressed_blob   = compress_fn(problem_config.kernel_blob, &success);
         auto stmt              = SQLite::Statement{sql, insert_query};
-        stmt.BindText(1, problem_config.kernel_name);
+        stmt.BindPath(1, problem_config.kernel_name);
         stmt.BindText(2, problem_config.kernel_args);
         if(!success)
         {
