@@ -425,9 +425,9 @@ bool CheckKDBForTargetID(const fs::path& filename)
 
 bool CheckKDBJournalMode(const fs::path& filename)
 {
-    auto query = "PRAGMA journal_mode";
+    auto journal_query = "PRAGMA journal_mode";
     auto sql  = SQLite{filename.string(), true};
-    auto stmt = SQLite::Statement{sql, select_query};
+    auto stmt = SQLite::Statement{sql, journal_query};
     std::string journal_mode;
     while(true)
     {
@@ -440,6 +440,7 @@ bool CheckKDBJournalMode(const fs::path& filename)
             throw std::runtime_error(sql.ErrorMessage());
     }
     return journal_mode.compare("delete") == 0;
+}
 
 } // namespace miopen
 
