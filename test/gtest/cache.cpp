@@ -104,7 +104,7 @@ TEST(TestCache, check_kern_db)
 
     {
         miopen::TmpDir tmp;
-        auto temp_file = (tmp / "kern.db").string();
+        auto temp_file = tmp / "kern.db";
         miopen::KernDb clean_db(miopen::DbKinds::KernelDb, temp_file, false);
 
         EXPECT_TRUE(clean_db.StoreRecordUnsafe(cfg0));
@@ -117,7 +117,7 @@ TEST(TestCache, check_kern_db)
 
     {
         miopen::TmpDir tmp;
-        auto temp_file = (tmp / "kern.db").string();
+        auto temp_file = tmp / "kern.db";
         miopen::KernDb err_db(
             miopen::DbKinds::KernelDb,
             temp_file,
@@ -141,5 +141,5 @@ TEST(TestCache, check_kern_db)
 TEST(TestCache, check_cache_file)
 {
     auto p = miopen::GetCacheFile("gfx", "base", "args");
-    EXPECT_TRUE(p.filename().string() == "base.o");
+    EXPECT_TRUE(p.filename() == "base.o");
 }

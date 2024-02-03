@@ -145,11 +145,7 @@ KDb GetDb(const TargetProperties& target, size_t num_cu)
 
 fs::path GetCacheFile(const std::string& device, const fs::path& name, const std::string& args)
 {
-#ifdef _WIN32
-    const auto filename = name + ".obj";
-#else
     const auto filename = name + ".o";
-#endif
     return GetCachePath(false) / miopen::md5(device + ":" + args) / filename;
 }
 
