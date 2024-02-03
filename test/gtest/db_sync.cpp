@@ -439,7 +439,8 @@ bool CheckKDBJournalMode(const fs::path& filename)
         else if(rc == SQLITE_ERROR || rc == SQLITE_MISUSE)
             throw std::runtime_error(sql.ErrorMessage());
     }
-    return journal_mode.compare("delete") == 0;
+    return journal_mode.compare("off") == 0 ||
+	    journal_mode.compare("delete") == 0;
 }
 
 } // namespace miopen
