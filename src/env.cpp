@@ -27,6 +27,14 @@
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 
+#ifndef _WIN32
+#include <cstdlib>
+#endif
+
+#include <optional>
+#include <string>
+#include <string_view>
+
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -69,8 +77,9 @@ std::optional<std::string> getEnvironmentVariable(std::string_view name)
     GetEnvironmentVariable(name.data(), value.data(), required_size);
     return {value};
 #else
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
     auto value = std::getenv(name.data());
-    return value == nullptr ? std::nullopt : {value};
+    return value == nullptr ? std::nullopt : std::make_optional<std::string>(value);
 #endif
 }
 

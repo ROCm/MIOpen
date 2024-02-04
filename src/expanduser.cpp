@@ -190,7 +190,7 @@ std::string GetHomeDir()
 }
 } // namespace
 
-fs::path ExpandUser(const std::string& path)
+fs::path ExpandUser(const fs::path& path)
 {
     static const auto home_dir = GetHomeDir();
     return {ReplaceString(path.string(), "~", home_dir)};
