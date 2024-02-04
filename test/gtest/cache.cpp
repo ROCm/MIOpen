@@ -104,8 +104,7 @@ TEST(TestCache, check_kern_db)
 
     {
         miopen::TmpDir tmp;
-        auto temp_file = tmp / "kern.db";
-        miopen::KernDb clean_db(miopen::DbKinds::KernelDb, temp_file, false);
+        miopen::KernDb clean_db(miopen::DbKinds::KernelDb, tmp / "kern.db", false);
 
         EXPECT_TRUE(clean_db.StoreRecordUnsafe(cfg0));
         auto readout = clean_db.FindRecordUnsafe(cfg0);
@@ -117,10 +116,9 @@ TEST(TestCache, check_kern_db)
 
     {
         miopen::TmpDir tmp;
-        auto temp_file = tmp / "kern.db";
         miopen::KernDb err_db(
             miopen::DbKinds::KernelDb,
-            temp_file,
+            tmp / "kern.db",
             false,
             [](const std::vector<char>&, bool* success) {
                 *success = false;

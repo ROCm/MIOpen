@@ -56,26 +56,22 @@ struct KernelConfig
     }
     static std::string CreateQuery()
     {
-        std::ostringstream ss;
-        ss << "CREATE TABLE IF NOT EXISTS `" << KernelConfig::table_name() << "` ("
-           << "`id` INTEGER PRIMARY KEY ASC"
-           << ",`kernel_name` TEXT NOT NULL"
-           << ",`kernel_args` TEXT NOT NULL"
-           << ",`kernel_blob` BLOB NOT NULL"
-           << ",`kernel_hash` TEXT NOT NULL"
-           << ",`uncompressed_size` INT NOT NULL"
-           << ");"
-           << "CREATE UNIQUE INDEX IF NOT EXISTS "
-           << "`idx_" << KernelConfig::table_name() << "` "
-           << "ON " << KernelConfig::table_name() << "(kernel_name, kernel_args);";
-        return ss.str();
+        return "CREATE TABLE IF NOT EXISTS `" + KernelConfig::table_name() + "` ("
+               "`id` INTEGER PRIMARY KEY ASC"
+               ",`kernel_name` TEXT NOT NULL"
+               ",`kernel_args` TEXT NOT NULL"
+               ",`kernel_blob` BLOB NOT NULL"
+               ",`kernel_hash` TEXT NOT NULL"
+               ",`uncompressed_size` INT NOT NULL"
+               ");"
+               "CREATE UNIQUE INDEX IF NOT EXISTS "
+               "`idx_" + KernelConfig::table_name() + "` "
+               "ON " + KernelConfig::table_name() + "(kernel_name, kernel_args);";
     }
     std::string Where() const
     {
-        std::ostringstream ss;
-        ss << "(kernel_name = '" << kernel_name << "')"
-           << " AND (kernel_args = '" << kernel_args << "')";
-        return ss.str();
+        return "(kernel_name = '" + kernel_name.string() + "')"
+               " AND (kernel_args = '" + kernel_args + "')";
     }
 };
 
