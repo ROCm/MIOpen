@@ -38,8 +38,8 @@ namespace {
 auto GetTestCases()
 {
     const auto igemm_fwd = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvMlirIgemmFwd")}};
+        std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
+        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), "ConvMlirIgemmFwd"}};
 
     const std::string vf     = " --verbose --disable-backward-data --disable-backward-weights";
     const std::string layout = " --in_layout NHWC --fil_layout NHWC --out_layout NHWC";

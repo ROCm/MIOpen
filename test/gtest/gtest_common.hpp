@@ -169,7 +169,7 @@ void invoke_with_params(Check&& check)
 
         testing::internal::CaptureStderr();
         test_drive<Driver>(ptrs.size(), ptrs.data());
-        check(testing::internal::GetCapturedStderr());
+        std::forward<Check>(check)(testing::internal::GetCapturedStderr());
     }
 }
 

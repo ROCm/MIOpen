@@ -39,12 +39,12 @@ auto GetTestCases()
 {
     // Regression test for SWDEV-305815 (issue 1206)
     const auto env =
-        std::tuple{std::pair{ENV(MIOPEN_DEBUG_CONV_WINOGRAD), std::string_view("0")},
-                   std::pair{ENV(MIOPEN_DEBUG_CONV_FFT), std::string_view("0")},
-                   std::pair{ENV(MIOPEN_DEBUG_CONV_DIRECT), std::string_view("0")},
-                   std::pair{ENV(MIOPEN_DEBUG_CONV_GEMM), std::string_view("0")},
-                   std::pair{ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM), std::string_view("0")},
-                   std::pair{ENV(MIOPEN_LOG_LEVEL), std::string_view("1")}};
+        std::tuple{std::pair{ENV(MIOPEN_DEBUG_CONV_WINOGRAD), false},
+                   std::pair{ENV(MIOPEN_DEBUG_CONV_FFT), false},
+                   std::pair{ENV(MIOPEN_DEBUG_CONV_DIRECT), false},
+                   std::pair{ENV(MIOPEN_DEBUG_CONV_GEMM), false},
+                   std::pair{ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM), false},
+                   std::pair{ENV(MIOPEN_LOG_LEVEL), 1}};
 
     const std::string v          = " --verbose";
     const std::string dis_fwd    = " --disable-forward";

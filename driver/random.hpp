@@ -5,7 +5,7 @@
 #include <iostream>
 #include <random>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DRIVER_PRNG_SEED, uint64_t, 12345678)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_DRIVER_PRNG_SEED, 12345678)
 namespace prng {
 namespace details {
 using glibc_gen = std::linear_congruential_engine<std::uint32_t, 1103515245, 12345, 2147483648>;

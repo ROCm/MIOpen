@@ -25,10 +25,8 @@
  *******************************************************************************/
 
 #include <miopen/env.hpp>
-#include <miopen/logger.hpp>
-#include <miopen/stringutils.hpp>
-
 #include <miopen/filesystem.hpp>
+#include <miopen/logger.hpp>
 
 #include <string>
 #ifdef _WIN32
@@ -37,6 +35,7 @@
 #endif
 
 #ifdef __linux__
+#include <miopen/stringutils.hpp>
 #include <errno.h>
 #include <string.h>
 #include <sys/vfs.h>
@@ -200,20 +199,6 @@ fs::path ExpandUser(const std::string& path)
 #else
 
 namespace {
-std::optional<std::string> GetEnvironmentVariable(const std::string_view name)
-{
-    std::size_t required_size;
-    getenv_s(&required_size, nullptr, 0, name.data());
-    if(required_size == 0)
-    {
-        return std::nullopt;
-    }
-    // getenv_s returns the required size of a string including '\0' character.
-    std::string result(required_size - 1, 'A');
-    getenv_s(&required_size, result.data(), required_size, name.data());
-    return {result};
-}
-
 std::optional<std::pair<std::string::size_type, std::string>>
 ReplaceVariable(std::string_view path, std::string_view name, std::size_t offset = 0)
 {
@@ -225,7 +210,7 @@ ReplaceVariable(std::string_view path, std::string_view name, std::size_t offset
         if(pos != std::string::npos)
         {
             std::string result{path};
-            auto value{GetEnvironmentVariable(name)};
+            auto value{getEnvironmentVariable(name)};
             if(!value)
             {
                 // TODO: log warning message that the name used

@@ -37,10 +37,9 @@ namespace {
 auto GetTestCases()
 {
     const auto env2x3 = std::tuple{
-        std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), std::string_view("0")},
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                  std::string_view("ConvBinWinogradRxSf2x3g1")}};
+        std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), 0},
+        std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
+        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), "ConvBinWinogradRxSf2x3g1"}};
 
     return std::vector{
         // clang-format off

@@ -38,9 +38,9 @@ auto GetTestCases()
 {
     // Regression test for SWDEV-291202
     const auto env =
-        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
+        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
                    std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                             std::string_view("ConvHipImplicitGemmBwdDataV4R1Xdlops")}};
+                             "ConvHipImplicitGemmBwdDataV4R1Xdlops"}};
 
     const std::string v          = " --verbose";
     const std::string dis_fwd    = " --disable-forward";

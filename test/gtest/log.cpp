@@ -28,9 +28,9 @@
 #include "get_handle.hpp"
 
 #include <miopen/config.h>
+#include <miopen/env.hpp>
 #include <miopen/fusion_plan.hpp>
 #include "../random.hpp"
-#include "../env_utils.hpp"
 
 #if MIOPEN_BACKEND_OPENCL
 #define BKEND "OpenCL"
@@ -263,9 +263,9 @@ void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
     CerrRedirect capture_cerr;
     Conv test_conv_log;
     if(set_env)
-        setEnvironmentVariable(env_var, "1");
+        miopen::setEnvironmentVariable(env_var, "1");
     else
-        unsetEnvironmentVariable(env_var);
+        miopen::unsetEnvironmentVariable(env_var);
 
     func(test_conv_log.input.desc,
          test_conv_log.weights.desc,
@@ -289,9 +289,9 @@ void TestLogCmdCBAFusion(std::function<void(const miopenFusionPlanDescriptor_t)>
     CerrRedirect capture_cerr;
 
     if(set_env)
-        setEnvironmentVariable(env_var, "1");
+        miopen::setEnvironmentVariable(env_var, "1");
     else
-        unsetEnvironmentVariable(env_var);
+        miopen::unsetEnvironmentVariable(env_var);
 
     CreateCBAFusionPlan fp_cba_create;
     fp_cba_create.CBAPlan();
@@ -314,9 +314,9 @@ void TestLogCmdBNormFusion(std::function<void(const miopenFusionPlanDescriptor_t
     CerrRedirect capture_cerr;
 
     if(set_env)
-        setEnvironmentVariable(env_var, "1");
+        miopen::setEnvironmentVariable(env_var, "1");
     else
-        unsetEnvironmentVariable(env_var);
+        miopen::unsetEnvironmentVariable(env_var);
 
     CreateBNormFusionPlan<float> fp_bnorm_create;
     fp_bnorm_create.BNormActivation();
