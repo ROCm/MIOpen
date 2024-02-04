@@ -1,7 +1,7 @@
 
 # Change Log for MIOpen
 
-Full documentation for MIOpen is available [here] (https://rocm.docs.amd.com/projects/MIOpen/en/latest/)
+Full documentation for MIOpen is available [here](https://rocm.docs.amd.com/projects/MIOpen/en/latest/)
 
 ## (Unreleased) MIOpen-3.1.0 for ROCm 6.1.0
 ### Added
