@@ -1,7 +1,7 @@
 
 # Change Log for MIOpen
 
-Full documentation for MIOpen is available at [https://rocmsoftwareplatform.github.io/MIOpen/doc/html/](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/)
+Full documentation for MIOpen is available [here] (https://rocm.docs.amd.com/projects/MIOpen/en/latest/)
 
 ## (Unreleased) MIOpen-3.1.0 for ROCm 6.1.0
 ### Added
@@ -45,7 +45,7 @@ INI8x4 support and fix minor issues and bugs.
 - Remove INT8x4 support
 - Remove target ids from kdb args
 
-## MIOpen-2.20.0 for ROCm 5.7.0
+## MIOpen-2.21.0 for ROCm 5.7.0
 ### Added
 - AI Heuristic for Immediate Mode Fallback
 - CK group forward convolution integration
