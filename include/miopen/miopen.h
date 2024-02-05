@@ -67,6 +67,7 @@
  * @defgroup sum
  * @defgroup argmax
  * @defgroup groupnorm
+ * @defgroup cat
  *
  */
 
@@ -2557,6 +2558,35 @@ MIOPEN_EXPORT miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT LAYERNORM DOXYGEN GROUP
+#endif
+
+#ifdef MIOPEN_BETA_API
+// Cat APIs
+/** @addtogroup cat
+ *
+ *  @{
+ */
+/*! @brief Execute a cat forward layer
+ *
+ * @param handle         MIOpen handle (input)
+ * @param xCount         Number of input tensor x (input)
+ * @param xDescs         Tensor descriptor of input tensor x (input)
+ * @param xs             Source data tensor x (input)
+ * @param yDesc          Tensor descriptor of output tensor y (input)
+ * @param y              Data tensor y (output)
+ * @param dim            Concatenation dimension (input)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenCatForward(miopenHandle_t handle,
+                                              const int32_t xCount,
+                                              const miopenTensorDescriptor_t* xDescs,
+                                              const void* const* xs,
+                                              const miopenTensorDescriptor_t yDesc,
+                                              void* y,
+                                              const int32_t dim);
+
+/** @} */
+// CLOSEOUT CAT DOXYGEN GROUP
 #endif
 
 // Batch-Normalization APIs
