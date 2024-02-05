@@ -28,20 +28,22 @@
 
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
-#include <miopen/miopen.h>
 #include <miopen/env.hpp>
-#include "conv_2d.hpp"
+#include "../conv2d.hpp"
 #include "get_handle.hpp"
 
 using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_TEST_FLOAT_ARG)
+
+namespace test_conv_for_implicit_gemm {
 
 static bool IsTestRunWith(const char* float_arg)
 {
     assert(float_arg != nullptr);
     const char* const p_envVar = miopen::GetStringEnv(MIOPEN_TEST_FLOAT_ARG{});
-    return (p_envVar != nullptr && std::strcmp(p_envVar, float_arg) == 0);
+    return (p_envVar != nullptr && std::strcmp(p_envVar, float_arg) == 0 && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL));
 }
 
 void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
@@ -75,14 +77,17 @@ void Run2dDriver(miopenDataType_t prec)
 
     switch(prec)
     {
-    case miopenHalf:
-        /* code */
-        params = ConfigWithHalf::GetParam();
-        break;
-
+    case miopenHalf: params = ConfigWithHalf::GetParam(); break;
     case miopenBFloat16: params = ConfigWithBF16::GetParam(); break;
-
-    default: params = ConfigWithHalf::GetParam();
+    case miopenFloat:
+    case miopenInt8:
+    case miopenInt32:
+    case miopenDouble:
+    case miopenFloat8:
+    case miopenBFloat8:
+    default:
+        FAIL() << "miopenFloat, miopenInt8, miopenInt32, miopenDouble, miopenFloat8, miopenBFloat8 "
+                  "data type not supported by test_conv_for_implicit_gemm test";
     }
 
     for(const auto& test_value : params)
@@ -105,39 +110,12 @@ void Run2dDriver(miopenDataType_t prec)
 bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
     std::string devName = handle.GetDeviceName();
-    if(devName == "gfx94x" || devName == "gfx103x")
+    if(devName == "gfx900" || devName == "gfx906" || devName == "gfx908" || devName == "gfx90a" ||
+       miopen::StartsWith(devName, "gfx94") || miopen::StartsWith(devName, "gfx103"))
         return true;
     else
         return false;
 }
-
-TEST_P(ConfigWithBF16, BF16Test)
-{
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") &&
-       miopen::IsEnvvarValueEnabled("IMPLICITGEMM_TESTING_ENV") && IsTestRunWith("--bf16"))
-    {
-        Run2dDriver(miopenBFloat16);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-TEST_P(ConfigWithHalf, HalfTest)
-{
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") &&
-       miopen::IsEnvvarValueEnabled("IMPLICITGEMM_TESTING_ENV") && IsTestRunWith("--half"))
-    {
-        Run2dDriver(miopenHalf);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
 
 std::vector<TestCase> GetTestCases(const std::string& precision)
 {
@@ -151,7 +129,7 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
         "MIOPEN_DEBUG_CONV_FFT=0",
     };
 
-    std::string flags = " --verbose";
+    std::string flags = "test_conv2d --verbose";
 
     std::string psd0 = " --pads_strides_dilations 0 0 2 2 1 1";
     std::string psd1 = " --pads_strides_dilations 0 0 1 1 1 1";
@@ -262,6 +240,38 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
 
     return test_cases ;
 }
+
+} //namespace test_conv_for_implicit_gemm
+
+using namespace test_conv_for_implicit_gemm;
+
+TEST_P(ConfigWithBF16, Test_conv_for_implicit_gemm_bf16)
+{
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") &&
+       miopen::IsEnvvarValueEnabled("IMPLICITGEMM_TESTING_ENV") && IsTestRunWith("--bf16"))
+    {
+        Run2dDriver(miopenBFloat16);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(ConfigWithHalf, Test_conv_for_implicit_gemm_half)
+{
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") &&
+       miopen::IsEnvvarValueEnabled("IMPLICITGEMM_TESTING_ENV") && IsTestRunWith("--half"))
+    {
+        Run2dDriver(miopenHalf);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
 INSTANTIATE_TEST_SUITE_P(ConvIgemm,
                              ConfigWithBF16, 
