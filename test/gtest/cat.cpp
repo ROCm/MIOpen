@@ -23,19 +23,37 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
+#include <miopen/env.hpp>
+#include "cat.hpp"
 
-#ifdef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
-typedef signed char int8_t;
-typedef unsigned char uint8_t;
-typedef signed short int16_t;
-typedef unsigned short uint16_t;
-#if HIP_PACKAGE_VERSION_FLAT >= 6000025000ULL
-typedef signed int int32_t;
-typedef unsigned int uint32_t;
-typedef __hip_internal::uint64_t uint64_t;
-#endif
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-#else
-#include <cstdint> // int8_t, int16_t
-#endif
+std::string GetFloatArg()
+{
+    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    if(tmp.empty())
+    {
+        return "";
+    }
+    return tmp;
+}
+
+struct CatTestFloat : CatTest<float>
+{
+};
+
+TEST_P(CatTestFloat, CatTestFw)
+{
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(CatTestSet, CatTestFloat, testing::ValuesIn(CatTestConfigs()));
