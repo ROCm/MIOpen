@@ -23,19 +23,49 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
 
-#ifdef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
-typedef signed char int8_t;
-typedef unsigned char uint8_t;
-typedef signed short int16_t;
-typedef unsigned short uint16_t;
-#if HIP_PACKAGE_VERSION_FLAT >= 6000025000ULL
-typedef signed int int32_t;
-typedef unsigned int uint32_t;
-typedef __hip_internal::uint64_t uint64_t;
-#endif
+#include <miopen/cat/problem_description.hpp>
+#include <miopen/datatype.hpp>
+#include <miopen/names.hpp>
 
-#else
-#include <cstdint> // int8_t, int16_t
-#endif
+#include <sstream>
+
+namespace miopen {
+
+namespace cat {
+
+NetworkConfig ProblemDescription::MakeNetworkConfig() const
+{
+    int32_t fusion_size = 2;
+    while(fusion_size < xCount)
+    {
+        fusion_size *= 2;
+    }
+
+    size_t max_x_dim_size = 0;
+    for(int i = 0; i < xCount; i++)
+    {
+        auto xlength   = xDescs[i]->GetLengths();
+        max_x_dim_size = std::max(max_x_dim_size, xlength[dim]);
+    }
+
+    auto ylength    = yDesc.GetLengths();
+    auto outer_size = std::accumulate(
+        ylength.begin(), ylength.begin() + dim, static_cast<size_t>(1), std::multiplies<size_t>());
+    auto stride         = yDesc.GetStrides()[dim];
+    auto dtype          = yDesc.GetType();
+    auto data_size      = get_data_size(dtype);
+    auto max_inner_size = max_x_dim_size * stride * data_size / sizeof(short4);
+
+    std::ostringstream ss;
+
+    ss << "catfwd" << fusion_size;
+    ss << "max_inner_size" << max_inner_size;
+    ss << "outer_size" << outer_size;
+
+    return NetworkConfig{ss.str()};
+}
+
+} // namespace cat
+
+} // namespace miopen
