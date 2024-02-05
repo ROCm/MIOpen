@@ -91,6 +91,8 @@ set( MIOpen_Source
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
     buffer_info.cpp
+    cat_api.cpp
+    cat/problem_description.cpp
     check_numerics.cpp
     conv/invokers/gcn_asm_1x1u.cpp
     conv/invokers/gcn_asm_1x1u_ss.cpp
@@ -147,7 +149,9 @@ set( MIOpen_Source
     rnn_api.cpp
     rnn/rnn_util.cpp
     rnn/Solutions/rnn_transformer.cpp
+    softmax.cpp
     softmax_api.cpp
+    softmax/problem_description.cpp
     solution.cpp
     solver.cpp
     solver/activ/bwd_0.cpp
@@ -167,6 +171,7 @@ set( MIOpen_Source
     solver/batchnorm/forward_spatial_multiple.cpp
     solver/batchnorm/forward_spatial_single.cpp
     solver/batchnorm/forward_training_ck.cpp
+    solver/cat/forward_cat.cpp
     solver/conv_asm_1x1u.cpp
     solver/conv_asm_1x1u_bias_activ_fused.cpp
     solver/conv_asm_1x1u_stride2.cpp
@@ -256,6 +261,7 @@ set( MIOpen_Source
     solver/pooling/backwardNd.cpp
     solver/reduce/forward_argmax.cpp
     solver/reduce/forward_sum.cpp
+    solver/softmax/softmax.cpp
     subbuffers.cpp
     sum_api.cpp
     target_properties.cpp
@@ -421,6 +427,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${GPU_BATCHED_TRANSPOSE_KERNEL_HIP}
         ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_SOURCE}
         kernels/MIOpenArgmax.cpp
+        kernels/MIOpenCat.cpp
         kernels/MIOpenCheckNumerics.cpp
         kernels/MIOpenBatchNormActivBwdPerAct.cl
         kernels/MIOpenBatchNormActivBwdSpatial.cl
@@ -557,6 +564,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     list(APPEND MIOpen_Source
         activ.cpp
         argmax.cpp
+        cat.cpp
         groupnorm.cpp
         kernel_cache.cpp
         layer_norm.cpp
@@ -570,7 +578,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/mloNorm.cpp
         ocl/pooling_ocl.cpp
         ocl/tensorocl.cpp
-        ocl/softmaxocl.cpp
         ocl/rnnocl.cpp
         ocl/utilocl.cpp
         ocl/ctcocl.cpp

@@ -23,19 +23,41 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #pragma once
 
-#ifdef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
-typedef signed char int8_t;
-typedef unsigned char uint8_t;
-typedef signed short int16_t;
-typedef unsigned short uint16_t;
-#if HIP_PACKAGE_VERSION_FLAT >= 6000025000ULL
-typedef signed int int32_t;
-typedef unsigned int uint32_t;
-typedef __hip_internal::uint64_t uint64_t;
-#endif
+#include <miopen/solver.hpp>
+#include <miopen/cat/problem_description.hpp>
 
-#else
-#include <cstdint> // int8_t, int16_t
-#endif
+#include <utility>
+
+namespace miopen {
+
+namespace solver {
+
+namespace cat {
+
+using CatSolver = NonTunableSolverBase<ExecutionContext, miopen::cat::ProblemDescription>;
+
+struct CatForward final : CatSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<CatForward>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::cat::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::cat::ProblemDescription& problem) const override;
+    std::size_t
+    GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
+                     [[maybe_unused]] const miopen::cat::ProblemDescription& problem) const override
+    {
+        return 0;
+    }
+    bool MayNeedWorkspace() const override { return false; }
+};
+
+} // namespace cat
+
+} // namespace solver
+
+} // namespace miopen

@@ -23,19 +23,40 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #pragma once
 
-#ifdef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
-typedef signed char int8_t;
-typedef unsigned char uint8_t;
-typedef signed short int16_t;
-typedef unsigned short uint16_t;
-#if HIP_PACKAGE_VERSION_FLAT >= 6000025000ULL
-typedef signed int int32_t;
-typedef unsigned int uint32_t;
-typedef __hip_internal::uint64_t uint64_t;
-#endif
+#include <miopen/solver.hpp>
+#include <miopen/softmax/problem_description.hpp>
 
-#else
-#include <cstdint> // int8_t, int16_t
-#endif
+#include <utility>
+
+namespace miopen {
+
+namespace solver {
+
+namespace softmax {
+
+using SoftmaxSolver = NonTunableSolverBase<ExecutionContext, miopen::softmax::ProblemDescription>;
+
+struct Softmax final : SoftmaxSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<Softmax>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::softmax::ProblemDescription& problem) const override;
+
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::softmax::ProblemDescription& problem) const override;
+
+    std::size_t GetWorkspaceSize(const ExecutionContext& context,
+                                 const miopen::softmax::ProblemDescription& problem) const override;
+
+    bool MayNeedWorkspace() const override { return false; }
+};
+
+} // namespace softmax
+
+} // namespace solver
+
+} // namespace miopen
