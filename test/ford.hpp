@@ -43,15 +43,9 @@
 
 // An improved async, that doesn't block
 template <class Function>
-#if HIP_PACKAGE_VERSION_FLAT >= 5004000000ULL
 std::future<typename std::invoke_result<Function>::type> detach_async(Function&& f)
 {
     using result_type = typename std::invoke_result<Function>::type;
-#else
-std::future<typename std::result_of<Function()>::type> detach_async(Function&& f)
-{
-    using result_type = typename std::result_of<Function()>::type;
-#endif
     std::packaged_task<result_type()> task(std::forward<Function>(f));
     auto fut = task.get_future();
     std::thread(std::move(task)).detach();

@@ -24,41 +24,48 @@
  *
  *******************************************************************************/
 
-#include <miopen/norm/problem_description.hpp>
+#include <miopen/cat/problem_description.hpp>
+#include <miopen/datatype.hpp>
 #include <miopen/names.hpp>
 
 #include <sstream>
 
 namespace miopen {
 
-namespace norm {
+namespace cat {
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    auto dims         = xDesc.GetLengths();
-    size_t outer_size = 1;
-    size_t inner_size = 1;
-
-    for(size_t i = 0ULL; i < dims.size(); ++i)
+    int32_t fusion_size = 2;
+    while(fusion_size < xCount)
     {
-        if(i < normalized_dim)
-            outer_size *= dims[i];
-        else
-            inner_size *= dims[i];
+        fusion_size *= 2;
     }
 
-    auto dtype = xDesc.GetType();
+    size_t max_x_dim_size = 0;
+    for(int i = 0; i < xCount; i++)
+    {
+        auto xlength   = xDescs[i]->GetLengths();
+        max_x_dim_size = std::max(max_x_dim_size, xlength[dim]);
+    }
+
+    auto ylength    = yDesc.GetLengths();
+    auto outer_size = std::accumulate(
+        ylength.begin(), ylength.begin() + dim, static_cast<size_t>(1), std::multiplies<size_t>());
+    auto stride         = yDesc.GetStrides()[dim];
+    auto dtype          = yDesc.GetType();
+    auto data_size      = get_data_size(dtype);
+    auto max_inner_size = max_x_dim_size * stride * data_size / sizeof(short4);
 
     std::ostringstream ss;
 
-    ss << "dtype" << dtype;
-    ss << "normalized_dim" << normalized_dim;
+    ss << "catfwd" << fusion_size;
+    ss << "max_inner_size" << max_inner_size;
     ss << "outer_size" << outer_size;
-    ss << "inner_size" << inner_size;
 
     return NetworkConfig{ss.str()};
 }
 
-} // namespace norm
+} // namespace cat
 
 } // namespace miopen
