@@ -45,6 +45,7 @@
 #include "layernorm_driver.hpp"
 #include "sum_driver.hpp"
 #include "argmax_driver.hpp"
+#include "cat_driver.hpp"
 #include <miopen/config.h>
 #include <miopen/stringutils.hpp>
 
@@ -246,6 +247,18 @@ int main(int argc, char* argv[])
     else if(base_arg == "argmaxbfp16")
     {
         drv = new ArgmaxDriver<bfloat16, float>();
+    }
+    else if(base_arg == "cat")
+    {
+        drv = new CatDriver<float>();
+    }
+    else if(base_arg == "catfp16")
+    {
+        drv = new CatDriver<float16>();
+    }
+    else if(base_arg == "catbfp16")
+    {
+        drv = new CatDriver<bfloat16>();
     }
     else
     {

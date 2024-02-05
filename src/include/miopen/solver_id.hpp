@@ -53,7 +53,8 @@ enum class Primitive
     Fusion,
     Pooling,
     Normalization,
-    Reduce
+    Reduce,
+    Cat
 };
 
 struct MIOPEN_EXPORT Id
