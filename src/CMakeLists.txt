@@ -147,7 +147,9 @@ set( MIOpen_Source
     rnn_api.cpp
     rnn/rnn_util.cpp
     rnn/Solutions/rnn_transformer.cpp
+    softmax.cpp
     softmax_api.cpp
+    softmax/problem_description.cpp
     solution.cpp
     solver.cpp
     solver/activ/bwd_0.cpp
@@ -256,6 +258,7 @@ set( MIOpen_Source
     solver/pooling/backwardNd.cpp
     solver/reduce/forward_argmax.cpp
     solver/reduce/forward_sum.cpp
+    solver/softmax/softmax.cpp
     subbuffers.cpp
     sum_api.cpp
     target_properties.cpp
@@ -570,7 +573,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/mloNorm.cpp
         ocl/pooling_ocl.cpp
         ocl/tensorocl.cpp
-        ocl/softmaxocl.cpp
         ocl/rnnocl.cpp
         ocl/utilocl.cpp
         ocl/ctcocl.cpp

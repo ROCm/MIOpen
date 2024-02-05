@@ -23,16 +23,17 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_SOFTMAX_HPP_
-#define MIOPEN_SOFTMAX_HPP_
+#include <miopen/kernel_cache.hpp>
+#include <miopen/softmax.hpp>
+#include <miopen/float_equal.hpp>
+#include <miopen/check_numerics.hpp>
+#include <miopen/tensor.hpp>
 
-#include <miopen/common.hpp>
-#include <miopen/miopen.h>
+#include <miopen/softmax/invoke_params.hpp>
+#include <miopen/softmax/solvers.hpp>
+#include <miopen/find_solution.hpp>
 
 namespace miopen {
-
-struct Handle;
-struct TensorDescriptor;
 
 miopenStatus_t SoftmaxForward(Handle& handle,
                               const void* alpha,
@@ -43,8 +44,23 @@ miopenStatus_t SoftmaxForward(Handle& handle,
                               Data_t y,
                               miopenSoftmaxAlgorithm_t algorithm,
                               miopenSoftmaxMode_t mode,
-                              int x_offset = 0,
-                              int y_offset = 0);
+                              int x_offset,
+                              int y_offset)
+{
+    if(x == nullptr || y == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
+    }
+
+    const auto problem = softmax::ProblemDescription{alpha, beta, xDesc, yDesc, algorithm, mode};
+    const auto invoke_params =
+        softmax::InvokeParams{alpha, beta, xDesc, x, yDesc, y, algorithm, mode, x_offset, y_offset};
+    const auto algo    = AlgorithmName{"Softmax"};
+    const auto solvers = solver::SolverContainer<solver::softmax::Softmax>{};
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+
+    return miopenStatusSuccess;
+}
 
 miopenStatus_t SoftmaxBackward(Handle& handle,
                                const void* alpha,
@@ -57,9 +73,35 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
                                Data_t dx,
                                miopenSoftmaxAlgorithm_t algorithm,
                                miopenSoftmaxMode_t mode,
-                               int y_offset  = 0,
-                               int dy_offset = 0,
-                               int dx_offset = 0);
+                               int y_offset,
+                               int dy_offset,
+                               int dx_offset)
+{
+    if(dx == nullptr || y == nullptr || dy == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
+    }
+
+    const auto problem =
+        softmax::ProblemDescription{alpha, beta, yDesc, dyDesc, dxDesc, algorithm, mode};
+    const auto invoke_params = softmax::InvokeParams{alpha,
+                                                     beta,
+                                                     yDesc,
+                                                     y,
+                                                     dyDesc,
+                                                     dy,
+                                                     dxDesc,
+                                                     dx,
+                                                     algorithm,
+                                                     mode,
+                                                     y_offset,
+                                                     dy_offset,
+                                                     dx_offset};
+    const auto algo          = AlgorithmName{"Softmax"};
+    const auto solvers       = solver::SolverContainer<solver::softmax::Softmax>{};
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+
+    return miopenStatusSuccess;
+}
 
 } // namespace miopen
-#endif // _MIOPEN_SOFTMAX_HPP_
