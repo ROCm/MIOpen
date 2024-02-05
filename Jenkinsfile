@@ -478,6 +478,10 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
+            name: "TARGET_GFX942",
+            defaultValue: true,
+            description: "")
+        booleanParam(
             name: "TARGET_NAVI21",
             defaultValue: false,
             description: "")
@@ -970,6 +974,25 @@ pipeline {
                         retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
+                    environment{
+                        setup_flags="-DMIOPEN_TEST_DBSYNC=1"
+                        make_targets='test_db_sync'
+                        execute_cmd='MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync'
+                    }
+                    steps{
+                        buildHipClangJobAndReboot(lfs_pull: true, setup_flags: setup_flags, make_targets: make_targets, execute_cmd: execute_cmd,
+                                                        needs_gpu:false, needs_reboot:false, build_install: "true")
+                    }
+                }
+                stage('dbsync gfx942') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX942 }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx942") }
                     environment{
                         setup_flags="-DMIOPEN_TEST_DBSYNC=1"
                         make_targets='test_db_sync'
