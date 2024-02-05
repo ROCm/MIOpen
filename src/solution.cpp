@@ -70,6 +70,9 @@ void Solution::Run(Handle& handle,
                         [&](const ConvolutionDescriptor& op_desc) {
                             RunImpl(handle, inputs, workspace, workspace_size, op_desc);
                         },
+                        [&](const SoftmaxDescriptor& op_desc) {
+                            RunImpl(handle, inputs, workspace, workspace_size, op_desc);
+                        },
                         [&](const ActivationDescriptor& /*op_desc*/) {
                             MIOPEN_THROW(miopenStatusNotImplemented);
                         },
@@ -230,6 +233,15 @@ void Solution::RunImpl(Handle& handle,
     handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
     invoker(handle, invoke_ctx);
     checkNumericsOutput_();
+}
+
+void Solution::RunImpl(Handle& handle,
+                       const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
+                       Data_t workspace,
+                       std::size_t workspace_size,
+                       const SoftmaxDescriptor& conv_desc)
+{
+
 }
 
 void Solution::RunImpl(Handle& handle,

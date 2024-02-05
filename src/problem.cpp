@@ -175,6 +175,9 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
             [&](const ConvolutionDescriptor& op_desc) {
                 return FindSolutionsImpl(handle, options, max_solutions, buffers, op_desc);
             },
+            [&](const SoftmaxDescriptor& op_desc) {
+                return FindSolutionsImpl(handle, options, max_solutions, buffers, op_desc);
+            },
             [&](const ActivationDescriptor& /*op_desc*/) -> std::vector<Solution> {
                 MIOPEN_THROW(miopenStatusNotImplemented);
             },
@@ -429,6 +432,15 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     }
 
     return ret;
+}
+
+std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
+                                                 const FindOptions& options,
+                                                 std::size_t max_solutions,
+                                                 const Buffers& buffers,
+                                                 const SoftmaxDescriptor& conv_desc) const
+{
+
 }
 
 void Problem::ValidateGroupCount(const TensorDescriptor& xDesc,

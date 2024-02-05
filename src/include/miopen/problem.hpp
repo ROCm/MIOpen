@@ -63,9 +63,13 @@ struct BiasDescriptor
 {
 };
 
+struct SoftmaxDescriptor
+{
+};
+
 // The order of types is important for deserialization and should be preserved between releases.
 using OperatorDescriptor =
-    boost::variant<ConvolutionDescriptor, ActivationDescriptor, BiasDescriptor>;
+    boost::variant<ConvolutionDescriptor, ActivationDescriptor, BiasDescriptor, SoftmaxDescriptor>;
 
 struct Problem
 {

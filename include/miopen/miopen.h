@@ -325,6 +325,7 @@ MIOPEN_DECLARE_OBJECT(miopenLRNDescriptor);
  */
 MIOPEN_DECLARE_OBJECT(miopenActivationDescriptor);
 
+
 /*! @ingroup RNN
  * @brief Creates the miopenRNNDescriptor_t type
  */
@@ -5305,6 +5306,17 @@ typedef enum
 MIOPEN_EXPORT miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
                                                      miopenConvolutionDescriptor_t operatorDesc,
                                                      miopenProblemDirection_t direction);
+
+/*! @brief Initializes a problem object describing a softmax operation.
+ *
+ * @param problem      Pointer to the problem to initialize
+ * @param direction    Direction of the operation
+ * @return             miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenCreateSoftmaxProblem(miopenProblem_t* problem,
+                                                     miopenProblemDirection_t direction);
+
 
 /*! @brief Destroys a problem object.
  *
