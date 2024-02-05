@@ -23,19 +23,44 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
+#ifndef GUARD_CPU_CAT_HPP
+#define GUARD_CPU_CAT_HPP
 
-#ifdef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
-typedef signed char int8_t;
-typedef unsigned char uint8_t;
-typedef signed short int16_t;
-typedef unsigned short uint16_t;
-#if HIP_PACKAGE_VERSION_FLAT >= 6000025000ULL
-typedef signed int int32_t;
-typedef unsigned int uint32_t;
-typedef __hip_internal::uint64_t uint64_t;
-#endif
+#include "tensor_holder.hpp"
 
-#else
-#include <cstdint> // int8_t, int16_t
+template <class T>
+void cpu_cat_forward(std::vector<tensor<T>> inputs, tensor<T>& ref_output, int32_t dim)
+{
+    auto dims              = ref_output.desc.GetLengths();
+    size_t output_dim_size = dims[dim];
+    size_t outer_size      = 1;
+    size_t inner_size      = 1;
+    size_t i               = 0;
+    for(; i < dim; i++)
+    {
+        outer_size *= dims[i];
+    }
+
+    for(; i < dims.size(); i++)
+    {
+        inner_size *= dims[i];
+    }
+
+    size_t output_start_offset = 0;
+
+    par_ford(inputs.size())([&](int32_t i) {
+        auto input        = inputs[i];
+        size_t dim_size   = inputs[i].desc.GetLengths()[dim];
+        size_t copy_size  = inner_size / output_dim_size * dim_size;
+        size_t input_size = outer_size * copy_size;
+        ford(input_size)([&](int32_t o) {
+            size_t outer_idx = o / copy_size;
+            size_t copy_idx  = o % copy_size;
+            ref_output[output_start_offset + (outer_idx * inner_size) + copy_idx] =
+                input[copy_size * outer_idx + copy_idx];
+        });
+
+        output_start_offset += copy_size;
+    });
+}
 #endif

@@ -23,19 +23,23 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
+#ifndef MIOPEN_CAT_HPP_
+#define MIOPEN_CAT_HPP_
 
-#ifdef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
-typedef signed char int8_t;
-typedef unsigned char uint8_t;
-typedef signed short int16_t;
-typedef unsigned short uint16_t;
-#if HIP_PACKAGE_VERSION_FLAT >= 6000025000ULL
-typedef signed int int32_t;
-typedef unsigned int uint32_t;
-typedef __hip_internal::uint64_t uint64_t;
-#endif
+#include <miopen/common.hpp>
 
-#else
-#include <cstdint> // int8_t, int16_t
-#endif
+namespace miopen {
+
+struct Handle;
+struct TensorDescriptor;
+
+miopenStatus_t CatForward(Handle& handle,
+                          int32_t xCount,
+                          const TensorDescriptor* const* xDescs,
+                          ConstData_t* xs,
+                          const TensorDescriptor& yDesc,
+                          Data_t y,
+                          int32_t dim);
+
+} // namespace miopen
+#endif // _MIOPEN_CAT_HPP_
