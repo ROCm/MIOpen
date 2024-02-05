@@ -172,8 +172,6 @@ void invoke_with_params(Check&& check)
         check(testing::internal::GetCapturedStderr());
     }
 }
-} // namespace debug
-} // namespace miopen
 
 /// The types for env variables must be redefined, but
 /// do not mess up with the types - those variables are decalred in the library
