@@ -136,7 +136,6 @@ struct ExecutionContext
                 MIOPEN_LOG_I2("inexact embedded perf database search");
                 const auto db_id        = GetStream().GetTargetProperties().DbId();
                 const int real_cu_count = GetStream().GetMaxComputeUnits();
-                namespace fs            = boost::filesystem;
                 int closest_cu          = std::numeric_limits<int>::max();
                 fs::path best_path;
                 for(auto const& entry : miopen_data())

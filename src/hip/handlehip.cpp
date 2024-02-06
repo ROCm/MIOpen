@@ -530,7 +530,7 @@ Program Handle::LoadProgram(const std::string& program_name,
                            program_name,
                            params);
 #else
-        auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
+        auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path().string();
         if(p.IsCodeObjectInMemory())
             miopen::WriteFile(p.GetCodeObjectBlob(), path);
         else
