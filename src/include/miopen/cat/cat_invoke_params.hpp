@@ -23,19 +23,43 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #pragma once
 
-#ifdef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
-typedef signed char int8_t;
-typedef unsigned char uint8_t;
-typedef signed short int16_t;
-typedef unsigned short uint16_t;
-#if HIP_PACKAGE_VERSION_FLAT >= 6000025000ULL
-typedef signed int int32_t;
-typedef unsigned int uint32_t;
-typedef __hip_internal::uint64_t uint64_t;
-#endif
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor.hpp>
 
-#else
-#include <cstdint> // int8_t, int16_t
-#endif
+namespace miopen {
+namespace cat {
+
+struct CatInvokeParams : public miopen::InvokeParams
+{
+    CatInvokeParams(int32_t xCount_,
+                    const TensorDescriptor* const* xDescs_,
+                    ConstData_t* xs_,
+                    const TensorDescriptor& yDesc_,
+                    Data_t y_,
+                    int32_t dim_)
+        : xCount(xCount_), xDescs(xDescs_), xs(xs_), yDesc(yDesc_), y(y_), dim(dim_)
+    {
+    }
+
+    int32_t xCount                        = 0;
+    const TensorDescriptor* const* xDescs = nullptr;
+    ConstData_t* xs                       = nullptr;
+    TensorDescriptor yDesc{};
+    Data_t y    = nullptr;
+    int32_t dim = 0;
+
+    size_t GetXDimSize(int xIndex) const
+    {
+        return xIndex < xCount ? xDescs[xIndex]->GetLengths()[dim] : 0;
+    }
+    const void* GetX(int xIndex) const { return xIndex < xCount ? xs[xIndex] : nullptr; }
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
+
+} // namespace cat
+} // namespace miopen

@@ -23,19 +23,33 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
+#include <miopen/cat.hpp>
+#include <miopen/kernel_cache.hpp>
+#include <miopen/float_equal.hpp>
+#include <miopen/check_numerics.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/datatype.hpp>
+#include <miopen/cat/cat_invoke_params.hpp>
+#include <miopen/cat/solvers.hpp>
+#include <miopen/find_solution.hpp>
 
-#ifdef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
-typedef signed char int8_t;
-typedef unsigned char uint8_t;
-typedef signed short int16_t;
-typedef unsigned short uint16_t;
-#if HIP_PACKAGE_VERSION_FLAT >= 6000025000ULL
-typedef signed int int32_t;
-typedef unsigned int uint32_t;
-typedef __hip_internal::uint64_t uint64_t;
-#endif
+namespace miopen {
 
-#else
-#include <cstdint> // int8_t, int16_t
-#endif
+miopenStatus_t CatForward(Handle& handle,
+                          int32_t xCount,
+                          const TensorDescriptor* const* xDescs,
+                          ConstData_t* xs,
+                          const TensorDescriptor& yDesc,
+                          Data_t y,
+                          int32_t dim)
+{
+    const auto problem       = cat::ProblemDescription{xCount, xDescs, yDesc, dim};
+    const auto invoke_params = cat::CatInvokeParams{xCount, xDescs, xs, yDesc, y, dim};
+    const auto algo          = AlgorithmName{"CatForward"};
+    const auto solvers       = solver::SolverContainer<solver::cat::CatForward>{};
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+
+    return miopenStatusSuccess;
+}
+
+} // namespace miopen
