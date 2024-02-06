@@ -500,13 +500,15 @@ function(unpack_db db_bzip2_file)
 endfunction()
 
 file(GLOB PERF_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/*.db.bz2")
-foreach(DB_BZIP_FILE ${PERF_DB_BZIP_FILES})
-    unpack_db(${DB_BZIP_FILE})
-endforeach()
-
 file(GLOB FIND_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/*.fdb.txt.bz2")
-foreach(DB_BZIP_FILE ${FIND_DB_BZIP_FILES})
+
+foreach(DB_BZIP_FILE ${PERF_DB_BZIP_FILES} ${FIND_DB_BZIP_FILES})
     unpack_db(${DB_BZIP_FILE})
+    get_filename_component(__fname ${DB_BZIP_FILE} NAME_WLE)
+    if(MIOPEN_EMBED_DB STREQUAL "" AND NOT MIOPEN_DISABLE_SYSDB AND NOT ENABLE_ASAN_PACKAGING)
+        install(FILES ${KERNELS_BINARY_DIR}/${__fname}
+                DESTINATION ${DATABASE_INSTALL_DIR})
+    endif()
 endforeach()
 
 # Begin KDB package creation
@@ -519,12 +521,13 @@ function(install_kdb FILE_NAME COMPONENT_NAME)
     else()
         unpack_db(${FILE_NAME})
         if( NOT ENABLE_ASAN_PACKAGING )
+            if( NOT MIOPEN_TEST_DBSYNC )
+                set(__component_name COMPONENT ${COMPONENT_NAME})
+            endif()
             rocm_install(FILES ${KERNELS_BINARY_DIR}/${__fname}
                          DESTINATION ${DATABASE_INSTALL_DIR}
-                         COMPONENT ${COMPONENT_NAME})
+                         ${__component_name})
         endif()
-        set(CPACK_COMPONENTS_ALL
-            "${CPACK_COMPONENTS_ALL};${__component}" PARENT_SCOPE)
     endif()
     set(LFS_MISSING_FILES ${LFS_MISSING_FILES} PARENT_SCOPE)
 endfunction()
@@ -552,6 +555,8 @@ if(LFS_MISSING_FILES)
     string(REPLACE ";" ", " __lfs_missing_files "${LFS_MISSING_FILES}")
     message(WARNING "GIT LFS files not pulled down, skipped: ${__lfs_missing_files}")
     set(MIOPEN_NO_LFS_PULLED TRUE CACHE INTERNAL "")
+else()
+    set(CPACK_COMPONENTS_ALL ${COMPONENT_LST})
 endif()
 
 # End KDB package creation
