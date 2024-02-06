@@ -933,39 +933,32 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     }
 
 #if MIOPEN_BACKEND_HIP
-    HipEventPtr start = nullptr;
-    HipEventPtr stop  = nullptr;
-    bool is_profiling = handle.IsProfilingEnabled();
+    RnnHipAutoProfiler kernel_profiler{handle};
 
-    if(is_profiling)
-    {
-        handle.EnableProfiling(false);
-        RNNProfilingBegin(handle, start, stop);
-    }
     try
     {
 #endif
 
         if(paddingMode == miopenRNNIONotPadded)
         {
-            RNNForwardInferencePacked(handle,
-                                      seqLen,
-                                      xDesc,
-                                      x,
-                                      hxDesc,
-                                      hx,
-                                      cxDesc,
-                                      cx,
-                                      wDesc,
-                                      w,
-                                      yDesc,
-                                      y,
-                                      hyDesc,
-                                      hy,
-                                      cyDesc,
-                                      cy,
-                                      workSpace,
-                                      workSpaceSize);
+            return RNNForwardInferencePacked(handle,
+                                             seqLen,
+                                             xDesc,
+                                             x,
+                                             hxDesc,
+                                             hx,
+                                             cxDesc,
+                                             cx,
+                                             wDesc,
+                                             w,
+                                             yDesc,
+                                             y,
+                                             hyDesc,
+                                             hy,
+                                             cyDesc,
+                                             cy,
+                                             workSpace,
+                                             workSpaceSize);
         }
         else
         {
@@ -1034,17 +1027,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     }
     catch(...)
     {
-        if(is_profiling)
-            handle.EnableProfiling(true);
+        kernel_profiler.abortProfiling();
         throw;
-    }
-
-    if(is_profiling)
-    {
-        float eventTime_mS = RNNProfilingEnd(handle, start, stop);
-        handle.EnableProfiling(true);
-        handle.ResetKernelTime();
-        handle.AccumKernelTime(eventTime_mS);
     }
 #endif
 }
@@ -1072,18 +1056,6 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
     (void)cxDesc;
 
 #if MIOPEN_USE_GEMM
-
-#if MIOPEN_BACKEND_HIP
-    HipEventPtr start = nullptr;
-    HipEventPtr stop  = nullptr;
-    bool is_profiling = handle.IsProfilingEnabled();
-
-    if(is_profiling)
-    {
-        handle.EnableProfiling(false);
-        RNNProfilingBegin(handle, start, stop);
-    }
-#endif
 
     float ctime = 0.;
     // reset kernel timer
@@ -1153,33 +1125,22 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
 
     if(RNNForwardMSIsSupported(*this, false) && xDesc[0].GetType() == miopenFloat && seqLen >= 32)
     {
-        RNNForwardMS(handle,
-                     in_n,
-                     xDesc[0],
-                     x,
-                     hxDesc,
-                     hx,
-                     cx,
-                     wDesc,
-                     w,
-                     yDesc[0],
-                     y,
-                     hy,
-                     cy,
-                     workSpace,
-                     workSpaceSize,
-                     miopenRNNFWDMode_t::miopenRNNInference);
-
-#if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
-        if(is_profiling)
-        {
-            float eventTime_mS = RNNProfilingEnd(handle, start, stop);
-            handle.EnableProfiling(true);
-            handle.ResetKernelTime();
-            handle.AccumKernelTime(eventTime_mS);
-        }
-#endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
-        return;
+        return RNNForwardMS(handle,
+                            in_n,
+                            xDesc[0],
+                            x,
+                            hxDesc,
+                            hx,
+                            cx,
+                            wDesc,
+                            w,
+                            yDesc[0],
+                            y,
+                            hy,
+                            cy,
+                            workSpace,
+                            workSpaceSize,
+                            miopenRNNFWDMode_t::miopenRNNInference);
     }
 
     int in_stride  = xDesc[0].GetLengths()[1];
@@ -2305,16 +2266,6 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
     // Update time
     profileRNNkernels(handle, 2, ctime);
 
-#if MIOPEN_BACKEND_HIP
-    if(is_profiling)
-    {
-        float eventTime_mS = RNNProfilingEnd(handle, start, stop);
-        handle.EnableProfiling(true);
-        handle.ResetKernelTime();
-        handle.AccumKernelTime(eventTime_mS);
-    }
-#endif
-
 #else
     (void)hx;
     (void)cx;
@@ -2377,39 +2328,31 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     }
 
 #if MIOPEN_BACKEND_HIP
-    HipEventPtr start = nullptr;
-    HipEventPtr stop  = nullptr;
-    bool is_profiling = handle.IsProfilingEnabled();
-
-    if(is_profiling)
-    {
-        handle.EnableProfiling(false);
-        RNNProfilingBegin(handle, start, stop);
-    }
+    RnnHipAutoProfiler kernel_profiler{handle};
     try
     {
 #endif
 
         if(paddingMode == miopenRNNIONotPadded)
         {
-            RNNForwardTrainingPackedTensors(handle,
-                                            seqLen,
-                                            xDesc,
-                                            x,
-                                            hxDesc,
-                                            hx,
-                                            cxDesc,
-                                            cx,
-                                            wDesc,
-                                            w,
-                                            yDesc,
-                                            y,
-                                            hyDesc,
-                                            hy,
-                                            cyDesc,
-                                            cy,
-                                            reserveSpace,
-                                            reserveSpaceSize);
+            return RNNForwardTrainingPackedTensors(handle,
+                                                   seqLen,
+                                                   xDesc,
+                                                   x,
+                                                   hxDesc,
+                                                   hx,
+                                                   cxDesc,
+                                                   cx,
+                                                   wDesc,
+                                                   w,
+                                                   yDesc,
+                                                   y,
+                                                   hyDesc,
+                                                   hy,
+                                                   cyDesc,
+                                                   cy,
+                                                   reserveSpace,
+                                                   reserveSpaceSize);
         }
         else
         {
@@ -2475,18 +2418,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     }
     catch(...)
     {
-        if(is_profiling)
-            handle.EnableProfiling(true);
+        kernel_profiler.abortProfiling();
         throw;
     }
 
-    if(is_profiling)
-    {
-        float eventTime_mS = RNNProfilingEnd(handle, start, stop);
-        handle.EnableProfiling(true);
-        handle.ResetKernelTime();
-        handle.AccumKernelTime(eventTime_mS);
-    }
 #endif
 };
 
@@ -2513,19 +2448,6 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
     (void)cxDesc;
     (void)cyDesc;
 #if MIOPEN_USE_GEMM
-
-// TODO: remove conditional preprocessing block
-#if MIOPEN_BACKEND_HIP
-    HipEventPtr start = nullptr;
-    HipEventPtr stop  = nullptr;
-    bool is_profiling = handle.IsProfilingEnabled();
-
-    if(is_profiling)
-    {
-        handle.EnableProfiling(false);
-        RNNProfilingBegin(handle, start, stop);
-    }
-#endif
 
     // OCL legacy
     float ctime = 0.;
@@ -2598,33 +2520,22 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
     if(RNNForwardMSIsSupported(*this, use_dropout) && xDesc[0].GetType() == miopenFloat &&
        seqLen >= 32)
     {
-        RNNForwardMS(handle,
-                     in_n,
-                     xDesc[0],
-                     x,
-                     hxDesc,
-                     hx,
-                     cx,
-                     wDesc,
-                     w,
-                     yDesc[0],
-                     y,
-                     hy,
-                     cy,
-                     reserveSpace,
-                     reserveSpaceSize,
-                     miopenRNNFWDMode_t::miopenRNNTraining);
-// TODO: remove conditional preprocessing block
-#if MIOPEN_BACKEND_HIP
-        if(is_profiling)
-        {
-            float eventTime_mS = RNNProfilingEnd(handle, start, stop);
-            handle.EnableProfiling(true);
-            handle.ResetKernelTime();
-            handle.AccumKernelTime(eventTime_mS);
-        }
-#endif
-        return;
+        return RNNForwardMS(handle,
+                            in_n,
+                            xDesc[0],
+                            x,
+                            hxDesc,
+                            hx,
+                            cx,
+                            wDesc,
+                            w,
+                            yDesc[0],
+                            y,
+                            hy,
+                            cy,
+                            reserveSpace,
+                            reserveSpaceSize,
+                            miopenRNNFWDMode_t::miopenRNNTraining);
     }
 
     int in_stride  = xDesc[0].GetLengths()[1];
@@ -3828,16 +3739,6 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
     // Update time
     profileRNNkernels(handle, 2, ctime);
 
-#if MIOPEN_BACKEND_HIP
-    if(is_profiling)
-    {
-        float eventTime_mS = RNNProfilingEnd(handle, start, stop);
-        handle.EnableProfiling(true);
-        handle.ResetKernelTime();
-        handle.AccumKernelTime(eventTime_mS);
-    }
-#endif
-
 #else
     (void)handle;
     (void)seqLen;
@@ -3903,40 +3804,33 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     }
 
 #if MIOPEN_BACKEND_HIP
-    HipEventPtr start = nullptr;
-    HipEventPtr stop  = nullptr;
-    bool is_profiling = handle.IsProfilingEnabled();
+    RnnHipAutoProfiler kernel_profiler{handle};
 
-    if(is_profiling)
-    {
-        handle.EnableProfiling(false);
-        RNNProfilingBegin(handle, start, stop);
-    }
     try
     {
 #endif
 
         if(paddingMode == miopenRNNIONotPadded)
         {
-            RNNBackwardDataPackedTensors(handle,
-                                         seqLen,
-                                         dyDesc,
-                                         dy,
-                                         dhy,
-                                         dcy,
-                                         w,
-                                         hx,
-                                         cx,
-                                         dxDesc,
-                                         dx,
-                                         dhxDesc,
-                                         dhx,
-                                         dcxDesc,
-                                         dcx,
-                                         workSpace,
-                                         workSpaceSize,
-                                         reserveSpace,
-                                         reserveSpaceSize);
+            return RNNBackwardDataPackedTensors(handle,
+                                                seqLen,
+                                                dyDesc,
+                                                dy,
+                                                dhy,
+                                                dcy,
+                                                w,
+                                                hx,
+                                                cx,
+                                                dxDesc,
+                                                dx,
+                                                dhxDesc,
+                                                dhx,
+                                                dcxDesc,
+                                                dcx,
+                                                workSpace,
+                                                workSpaceSize,
+                                                reserveSpace,
+                                                reserveSpaceSize);
         }
         else
         {
@@ -4002,17 +3896,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     }
     catch(...)
     {
-        if(is_profiling)
-            handle.EnableProfiling(true);
+        kernel_profiler.abortProfiling();
         throw;
-    }
-
-    if(is_profiling)
-    {
-        float eventTime_mS = RNNProfilingEnd(handle, start, stop);
-        handle.EnableProfiling(true);
-        handle.ResetKernelTime();
-        handle.AccumKernelTime(eventTime_mS);
     }
 #endif
 }
@@ -5583,34 +5468,27 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     (void)dy;
 
 #if MIOPEN_BACKEND_HIP
-    HipEventPtr start = nullptr;
-    HipEventPtr stop  = nullptr;
-    bool is_profiling = handle.IsProfilingEnabled();
+    RnnHipAutoProfiler kernel_profiler{handle};
 
-    if(is_profiling)
-    {
-        handle.EnableProfiling(false);
-        RNNProfilingBegin(handle, start, stop);
-    }
     try
     {
 #endif
 
         if(paddingMode == miopenRNNIONotPadded)
         {
-            RNNBackwardWeightsPackedTensors(handle,
-                                            seqLen,
-                                            xDesc,
-                                            x,
-                                            hxDesc,
-                                            hx,
-                                            dyDesc,
-                                            dwDesc,
-                                            dw,
-                                            workSpace,
-                                            workSpaceSize,
-                                            reserveSpace,
-                                            reserveSpaceSize);
+            return RNNBackwardWeightsPackedTensors(handle,
+                                                   seqLen,
+                                                   xDesc,
+                                                   x,
+                                                   hxDesc,
+                                                   hx,
+                                                   dyDesc,
+                                                   dwDesc,
+                                                   dw,
+                                                   workSpace,
+                                                   workSpaceSize,
+                                                   reserveSpace,
+                                                   reserveSpaceSize);
         }
         else
         {
@@ -5665,17 +5543,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     }
     catch(...)
     {
-        if(is_profiling)
-            handle.EnableProfiling(true);
+        kernel_profiler.abortProfiling();
         throw;
-    }
-
-    if(is_profiling)
-    {
-        float eventTime_mS = RNNProfilingEnd(handle, start, stop);
-        handle.EnableProfiling(true);
-        handle.ResetKernelTime();
-        handle.AccumKernelTime(eventTime_mS);
     }
 #endif
 }
