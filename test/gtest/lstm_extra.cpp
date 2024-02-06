@@ -31,6 +31,9 @@
 #include <gtest/gtest.h>
 #include <boost/algorithm/string.hpp>
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+
 namespace lstm_extra {
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -77,8 +80,8 @@ auto GetTestCases(std::string precision)
         {flags + commonFlags + " -dir-mode 1 --no-hy --no-cy"},
         {flags + commonFlags + " -dir-mode 1 --no-dcx"},
         {flags + commonFlags + " -dir-mode 1 --no-cy --no-dcx"},
-	{flags + commonFlags + " -dir-mode 0 --no-hx --no-dhy --no-cx --no-dcy --no-hy --no-dhx --no-cy --no-dcx"},
-	{flags + commonFlags + " -dir-mode 1 --no-hx --no-dhy --no-cx --no-dcy --no-hy --no-dhx --no-cy --no-dcx"}
+	    {flags + commonFlags + " -dir-mode 0 --no-hx --no-dhy --no-cx --no-dcy --no-hy --no-dhx --no-cy --no-dcx"},
+	    {flags + commonFlags + " -dir-mode 1 --no-hx --no-dhy --no-cx --no-dcy --no-hy --no-dhx --no-cy --no-dcx"}
     };
     // clang-format on
 }
@@ -86,10 +89,6 @@ auto GetTestCases(std::string precision)
 using TestCase = decltype(GetTestCases({}))::value_type;
 
 class ConfigWithFloat : public testing::TestWithParam<std::vector<TestCase>>
-{
-};
-
-class ConfigWithHalf : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -103,7 +102,10 @@ bool IsTestSupportedForDevice()
 
 void Run2dDriver(miopenDataType_t prec)
 {
-    if(!IsTestSupportedForDevice())
+    if(!(IsTestSupportedForDevice()                      //
+         && (miopen::IsUnset(ENV(MIOPEN_TEST_ALL))       // standalone run
+             || (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) // or --float full tests enabled
+                 && miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float"))))
     {
         GTEST_SKIP();
     }
