@@ -1,1 +1,5 @@
 * @JehandadKhan @junliume
+# Documentation files
+docs/* @ROCm/rocm-documentation
+*.md @ROCm/rocm-documentation
+*.rst @ROCm/rocm-documentation
