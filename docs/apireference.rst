@@ -25,4 +25,5 @@ API Reference
     sum
     argmax
     groupnorm
+    cat
 
