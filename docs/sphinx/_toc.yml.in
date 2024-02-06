@@ -5,7 +5,6 @@ root: index
 subtrees:
 - entries:
   - file: releasenotes
-  - file: citation
   - file: install
   - file: embed
   - file: driver
