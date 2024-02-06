@@ -1255,22 +1255,6 @@ void OpTensor(const Handle& handle,
               const size_t Coffset,
               bool nonStandardSquash)
 {
-
-    std::cout << "OpTensor " << "\n";
-    std::cout << " tensorOp " << tensorOp << "\n";
-    std::cout << " alpha0 " << *(float*)alpha0 << "\n";
-    std::cout << " aTensorDesc " << aTensorDesc << "\n";
-    //std::cout << " ATensor " << ATensor << "\n";
-    std::cout << " alpha1 " << *(float*)alpha1 << "\n";
-    std::cout << " bTensorDesc " << bTensorDesc << "\n";
-    //std::cout << " BTensor " << BTensor << "\n";
-    std::cout << " beta " << *(float*)beta << "\n";
-    std::cout << " cTensorDesc " << cTensorDesc << "\n";
-    //std::cout << " CTensor " << CTensor << "\n";
-    std::cout << " Aoffset " << Aoffset << "\n";
-    std::cout << " Boffset " << Boffset << "\n";
-    std::cout << " Coffset " << Coffset << "\n";
-
     if(ATensor == nullptr || BTensor == nullptr || CTensor == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -1759,14 +1743,6 @@ void CopyTensor(const Handle& handle,
                 int dstOffset,
                 bool forseAsync)
 {
-    std::cout << "CopyTensor " << "\n";
-    std::cout << " srcDesc " << srcDesc << "\n";
-    //std::cout << " src " << src << "\n";
-    std::cout << " dstDesc " << dstDesc << "\n";
-    //std::cout << " dst " << dst << "\n";
-    std::cout << " srcOffset " << srcOffset << "\n";
-    std::cout << " dstOffset " << dstOffset << "\n";
-
     if(src == nullptr || dst == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
