@@ -36,6 +36,9 @@ function(add_gtest TEST_NAME TEST_CPP)
     # Refer to https://en.cppreference.com/w/cpp/language/types for details.
     target_compile_options(${TEST_NAME} PRIVATE $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:Clang>:-U__LP64__>>)
   endif()
+  if(HAS_LIB_STD_FILESYSTEM)
+    target_link_libraries(${TEST_NAME} stdc++fs)
+  endif()
 endfunction()
 
 file(GLOB TESTS *.cpp)

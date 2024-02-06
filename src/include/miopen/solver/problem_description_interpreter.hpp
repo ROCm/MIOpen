@@ -46,7 +46,7 @@ struct ProblemInterpreter
 
     static int GetBatchN(const miopen::conv::ProblemDescription& problem)
     {
-        return problem.GetBatchSize_();
+        return problem.GetBatchSize();
     }
 
     static auto GetOutputLayout(const miopen::conv::ProblemDescription& problem)
@@ -60,9 +60,9 @@ struct ProblemInterpreter
     static int GetOutputChannelK(const miopen::conv::ProblemDescription& problem)
     {
         if(problem.IsDirectionForward())
-            return problem.GetOutChannels_();
+            return problem.GetOutChannels();
         else
-            return problem.GetInChannels_();
+            return problem.GetInChannels();
     }
 
     static auto GetInputLayout(const miopen::conv::ProblemDescription& problem)
@@ -76,33 +76,33 @@ struct ProblemInterpreter
     static int GetInputChannelC(const miopen::conv::ProblemDescription& problem)
     {
         if(problem.IsDirectionForward())
-            return problem.GetInChannels_();
+            return problem.GetInChannels();
         else
-            return problem.GetOutChannels_();
+            return problem.GetOutChannels();
     }
 
     static int GetInputDepthDi(const miopen::conv::ProblemDescription& problem)
     {
         if(problem.IsDirectionForward())
-            return problem.GetInDepth_();
+            return problem.GetInDepth();
         else
-            return problem.GetOutDepth_();
+            return problem.GetOutDepth();
     }
 
     static int GetInputHeightHi(const miopen::conv::ProblemDescription& problem)
     {
         if(problem.IsDirectionForward())
-            return problem.GetInHeight_();
+            return problem.GetInHeight();
         else
-            return problem.GetOutHeight_();
+            return problem.GetOutHeight();
     }
 
     static int GetInputWidthWi(const miopen::conv::ProblemDescription& problem)
     {
         if(problem.IsDirectionForward())
-            return problem.GetInWidth_();
+            return problem.GetInWidth();
         else
-            return problem.GetOutWidth_();
+            return problem.GetOutWidth();
     }
 
     static auto GetInputCastType(const miopen::conv::ProblemDescription& problem)
@@ -116,25 +116,25 @@ struct ProblemInterpreter
     static int GetOutputDepthDo(const miopen::conv::ProblemDescription& problem)
     {
         if(problem.IsDirectionForward())
-            return problem.GetOutDepth_();
+            return problem.GetOutDepth();
         else
-            return problem.GetInDepth_();
+            return problem.GetInDepth();
     }
 
     static int GetOutputHeightHo(const miopen::conv::ProblemDescription& problem)
     {
         if(problem.IsDirectionForward())
-            return problem.GetOutHeight_();
+            return problem.GetOutHeight();
         else
-            return problem.GetInHeight_();
+            return problem.GetInHeight();
     }
 
     static int GetOutputWidthWo(const miopen::conv::ProblemDescription& problem)
     {
         if(problem.IsDirectionForward())
-            return problem.GetOutWidth_();
+            return problem.GetOutWidth();
         else
-            return problem.GetInWidth_();
+            return problem.GetInWidth();
     }
 
     static auto GetOutputCastType(const miopen::conv::ProblemDescription& problem)
@@ -157,7 +157,7 @@ struct ProblemInterpreter
 
     static int GetFilterDepthZ(const miopen::conv::ProblemDescription& problem)
     {
-        return problem.GetWeightsDepth_();
+        return problem.GetWeightsDepth();
     }
 
     static auto GetFilterLayout(const miopen::conv::ProblemDescription& problem)
@@ -167,12 +167,12 @@ struct ProblemInterpreter
 
     static int GetFilterHeightY(const miopen::conv::ProblemDescription& problem)
     {
-        return problem.GetWeightsHeight_();
+        return problem.GetWeightsHeight();
     }
 
     static int GetFilterWidthX(const miopen::conv::ProblemDescription& problem)
     {
-        return problem.GetWeightsWidth_();
+        return problem.GetWeightsWidth();
     }
 
     // adjust conv_stride_d to 1 if Do is 1
