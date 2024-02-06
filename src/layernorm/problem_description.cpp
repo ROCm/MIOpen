@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,24 +24,41 @@
  *
  *******************************************************************************/
 
-typedef int32_t int32x4_t __attribute__((ext_vector_type(4)));
+#include <miopen/layernorm/problem_description.hpp>
+#include <miopen/names.hpp>
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored \
-    "-Wunknown-warning-option" // clang in ROCm 4.3 does not support "reserved-identifier".
-#pragma clang diagnostic ignored "-Wreserved-identifier"
+#include <sstream>
 
-__device__ float
-__llvm_amdgcn_buffer_atomic_add_f32(float vdata,
-                                    int32x4_t rsrc,
-                                    int32_t vindex,
-                                    int32_t offset,
-                                    bool slc) __asm("llvm.amdgcn.buffer.atomic.fadd.f32");
+namespace miopen {
 
-extern "C" __global__ void test_llvm_amdgcn_buffer_atomic_fadd_f32_float(float* p_global)
+namespace layernorm {
+
+NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    int32x4_t buffer_resource{0};
-    (void)__llvm_amdgcn_buffer_atomic_add_f32(*p_global, buffer_resource, 0, 0, false);
+    auto dims         = xDesc.GetLengths();
+    size_t outer_size = 1;
+    size_t inner_size = 1;
+
+    for(size_t i = 0ULL; i < dims.size(); ++i)
+    {
+        if(i < normalized_dim)
+            outer_size *= dims[i];
+        else
+            inner_size *= dims[i];
+    }
+
+    auto dtype = xDesc.GetType();
+
+    std::ostringstream ss;
+
+    ss << "dtype" << dtype;
+    ss << "normalized_dim" << normalized_dim;
+    ss << "outer_size" << outer_size;
+    ss << "inner_size" << inner_size;
+
+    return NetworkConfig{ss.str()};
 }
 
-#pragma clang diagnostic pop // "-Wreserved-identifier"
+} // namespace layernorm
+
+} // namespace miopen

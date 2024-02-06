@@ -327,6 +327,8 @@ bool ConvHipImplicitGemmGroupWrwXdlops::IsApplicable(
         return false;
     if(problem.HasMixedDataTypes())
         return false;
+    if(problem.HasAtLeastOne64BitTensor())
+        return false;
     if(!problem.IsDirectionBackwardWrW())
         return false;
     if(!problem.Is2d())

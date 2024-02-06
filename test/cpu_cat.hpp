@@ -23,35 +23,44 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifndef GUARD_CPU_CAT_HPP
+#define GUARD_CPU_CAT_HPP
 
-#pragma once
+#include "tensor_holder.hpp"
 
-#include <miopen/invoke_params.hpp>
-#include <miopen/tensor.hpp>
-
-namespace miopen {
-namespace norm {
-
-struct InvokeParams : public miopen::InvokeParams
+template <class T>
+void cpu_cat_forward(std::vector<tensor<T>> inputs, tensor<T>& ref_output, int32_t dim)
 {
-    InvokeParams() = default;
+    auto dims              = ref_output.desc.GetLengths();
+    size_t output_dim_size = dims[dim];
+    size_t outer_size      = 1;
+    size_t inner_size      = 1;
+    size_t i               = 0;
+    for(; i < dim; i++)
+    {
+        outer_size *= dims[i];
+    }
 
-    const TensorDescriptor* xDesc = nullptr;
+    for(; i < dims.size(); i++)
+    {
+        inner_size *= dims[i];
+    }
 
-    ConstData_t x              = nullptr;
-    ConstData_t weight         = nullptr;
-    ConstData_t bias           = nullptr;
-    Data_t y                   = nullptr;
-    Data_t mean                = nullptr;
-    Data_t rstd                = nullptr;
-    float epsilon              = 0;
-    int32_t normalized_dim     = 0;
-    miopenLayerNormMode_t mode = MIOPEN_ELEMENTWISE_AFFINE;
+    size_t output_start_offset = 0;
 
-    std::size_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
-};
+    par_ford(inputs.size())([&](int32_t i) {
+        auto input        = inputs[i];
+        size_t dim_size   = inputs[i].desc.GetLengths()[dim];
+        size_t copy_size  = inner_size / output_dim_size * dim_size;
+        size_t input_size = outer_size * copy_size;
+        ford(input_size)([&](int32_t o) {
+            size_t outer_idx = o / copy_size;
+            size_t copy_idx  = o % copy_size;
+            ref_output[output_start_offset + (outer_idx * inner_size) + copy_idx] =
+                input[copy_size * outer_idx + copy_idx];
+        });
 
-} // namespace norm
-
-} // namespace miopen
+        output_start_offset += copy_size;
+    });
+}
+#endif
