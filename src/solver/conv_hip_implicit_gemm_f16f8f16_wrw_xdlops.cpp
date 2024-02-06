@@ -300,7 +300,7 @@ bool ConvHipImplicitGemmF16F8F16WrwXdlops::IsApplicable(
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;
-    if(problem.HasAtLeastOne64BitTensor())
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
     if(problem.HasMixedDataTypes())
         return false;
