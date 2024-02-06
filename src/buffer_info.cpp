@@ -148,10 +148,10 @@ BuffInfo::BuffInfo(MemLayout_t layout, int nk, int c, int h, int w, int g, int _
     }
 }
 
-MultiBufferWorkspaceTraits::MultiBufferWorkspaceTraits(std::initializer_list<size_t> v_size_,
-                                                       size_t alignment_)
-    : v_size(v_size_), alignment(alignment_)
+MultiBufferWorkspaceTraits::MultiBufferWorkspaceTraits(std::initializer_list<size_t> v_size_)
+    : v_size(v_size_)
 {
+    assert(!v_size.empty());
     size_t each_offset = 0;
     v_offset.push_back(each_offset);
     for(auto each_size : v_size)
@@ -164,6 +164,7 @@ MultiBufferWorkspaceTraits::MultiBufferWorkspaceTraits(std::initializer_list<siz
 
 size_t MultiBufferWorkspaceTraits::GetSize() const
 {
+    assert(v_offset.size() > 1);
     return (&v_offset.back())[-1] + v_size.back();
 }
 

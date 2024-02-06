@@ -30,7 +30,7 @@
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/batched_transpose_sol.hpp>
 
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/utility/data_type.hpp>
 #endif // MIOPEN_USE_COMPOSABLEKERNEL
 
@@ -416,47 +416,6 @@ private:
     }
 };
 
-/*
-template <typename CKArgsType, typename... TransposeOps, size_t... indices>
-auto MakeTaggedTransposeInstancesHelper(ConvSolution& result,
-                                        const ExecutionContext& ctx,
-                                        const miopen::conv::ProblemDescription& problem,
-                                        const CKArgsType& ck_args,
-                                        const std::tuple<TransposeOps...>& transpose_ops,
-                                        std::index_sequence<indices...>)
-{
-
-    auto solvers = std::make_tuple(
-        std::get<indices>(transpose_ops).MakeTransposeSolver(ctx, problem, ck_args)...);
-
-    result.construction_params.insert(result.construction_params.end(),
-                                      {std::get<indices>(solvers).GetKernelInfo()...});
-
-    constexpr size_t buf_alignment = 256ull;
-    MultiBufferWorkspaceTraits wt({std::get<indices>(solvers).GetOutputTensorSize()...},
-                                  buf_alignment);
-
-    return std::make_tuple(TransposeInstanceTagged{
-        std::get<indices>(solvers), indices, wt, TransposeOps::CONV_OP_TAG}...);
-}
-
-template <typename CKArgsType, typename... TransposeOps>
-auto MakeTaggedTransposeInstances(ConvSolution& result,
-                                  const ExecutionContext& ctx,
-                                  const miopen::conv::ProblemDescription& problem,
-                                  const CKArgsType& ck_args,
-                                  const TransposeOps&... transpose_ops)
-{
-    return MakeTaggedTransposeInstancesHelper<CKArgsType>(
-        result,
-        ctx,
-        problem,
-        ck_args,
-        std::make_tuple(transpose_ops...),
-        std::index_sequence_for<TransposeOps...>{});
-}
-*/
-
 template <typename CKArgsType,
           typename Input1TposeOp,
           typename Input2TposeOp,
@@ -490,11 +449,9 @@ auto MakeTaggedTransposeInstances(ConvSolution& result,
                                        output_solver.GetKernelInfo(),
                                        output_init_solver.GetKernelInfo()});
 
-    constexpr size_t buf_alignment = 256ull;
     MultiBufferWorkspaceTraits wt({input1_solver.GetOutputTensorSize(),
                                    input2_solver.GetOutputTensorSize(),
-                                   output_solver.GetOutputTensorSize()},
-                                  buf_alignment);
+                                   output_solver.GetOutputTensorSize()});
 
     return std::make_tuple(
         TransposeInstanceTagged{input1_solver, 0, wt, 0, Input1TposeOp::CONV_OP_TAG},
@@ -502,6 +459,8 @@ auto MakeTaggedTransposeInstances(ConvSolution& result,
         TransposeInstanceTagged{output_solver, 2, wt, 2, OutputTposeOp::CONV_OP_TAG},
         TransposeInstanceTagged{output_init_solver, 3, wt, 2, OutputTposeOp::CONV_OP_TAG});
 }
+
+#ifndef NDEBUG // disable for release builds, enable for debug builds
 
 template <typename V>
 void DebugPrintVec(const char* name, const V& vec)
@@ -549,6 +508,7 @@ inline void DebugPrintConvTensors(const ConvTensors& conv_tensors)
 
 #undef DEBUG_PRINT_VEC
 
+#endif // NDEBUG
 } // end namespace internal
 
 /// \todo move to a cpp file
@@ -562,18 +522,14 @@ inline size_t GetWorkspaceSizeLayoutTransformConv(const miopen::conv::ProblemDes
     assert(problem.IsLayoutDefault());
     // packed size in bytes
     auto GetPackedSize = [](const TensorDescriptor& td) {
-        auto sz                         = td.GetElementSize() * GetTypeSize(td.GetType());
-        constexpr size_t alignment      = 256u;
-        constexpr size_t alignment_mask = alignment - 1;
-        static_assert(alignment_mask > 0);
-        static_assert((alignment & alignment_mask) == 0);
-        return (sz + alignment_mask) & ~(alignment_mask);
+        return td.GetElementSize() * GetTypeSize(td.GetType());
     };
 
-    auto w_sz = GetPackedSize(problem.GetIn()) + GetPackedSize(problem.GetWeights()) +
-                GetPackedSize(problem.GetOut());
+    MultiBufferWorkspaceTraits wt({GetPackedSize(problem.GetIn()),
+                                   GetPackedSize(problem.GetWeights()),
+                                   GetPackedSize(problem.GetOut())});
 
-    return w_sz;
+    return wt.GetSize();
 }
 
 template <typename DeviceOpType,
@@ -649,16 +605,11 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
             }
 
-            float tot_time = 0;
-
             input1_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
-            tot_time += handle.GetKernelTime();
 
             input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
-            tot_time += handle.GetKernelTime();
 
             output_init_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
-            tot_time += handle.GetKernelTime();
 
             /// \todo: Fix NHWC Wrw invokers to also issue a zero-out kernel. Will
             /// need SetTensor() to properly zero out non-packed tensors
@@ -680,17 +631,16 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                                                    tr_ptrs[0]->GetBufferPtr(),
                                                    tr_ptrs[1]->GetBufferPtr(),
                                                    tr_ptrs[2]->GetBufferPtr());
-            tot_time += invoker_ptr->Run(argument_ptr.get(),
-                                         {handle.GetStream(), handle.IsProfilingEnabled()});
-
-            output_tr_inst.ConvertTo(handle, kernels, conv_tensors);
-            tot_time += handle.GetKernelTime();
+            float conv_time   = 0;
+            conv_time += invoker_ptr->Run(argument_ptr.get(),
+                                          {handle.GetStream(), handle.IsProfilingEnabled()});
 
             if(handle.IsProfilingEnabled())
             {
-                handle.ResetKernelTime();
-                handle.AccumKernelTime(tot_time);
+                handle.AccumKernelTime(conv_time);
             }
+
+            output_tr_inst.ConvertTo(handle, kernels, conv_tensors);
         };
     };
 
@@ -753,7 +703,7 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
                                         InvokerFactoryMakerNHWC&& invoker_factory_maker_ndhwc)
 {
 
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_USE_COMPOSABLEKERNEL
     if(problem.IsLayoutDefault())
     {
         switch(problem.GetInDataType())

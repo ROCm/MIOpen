@@ -1017,8 +1017,6 @@ size_t ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetWorkspaceSize(
     size_t size_trans_output = 0;
     size_t size_tensor_cast  = 0;
 
-    constexpr size_t buf_alignment = 256;
-
     size_t workspace_size = 0;
     if(is_nchw)
     {
@@ -1047,7 +1045,7 @@ size_t ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetWorkspaceSize(
     }
 
     MultiBufferWorkspaceTraits wt(
-        {size_trans_input, size_trans_weight, size_trans_output, size_tensor_cast}, buf_alignment);
+        {size_trans_input, size_trans_weight, size_trans_output, size_tensor_cast});
     workspace_size = wt.GetSize();
 
     return workspace_size;

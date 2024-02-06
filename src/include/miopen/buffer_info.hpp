@@ -310,13 +310,13 @@ struct WinogradBufferInfo
 
 struct MultiBufferWorkspaceTraits
 {
-    MultiBufferWorkspaceTraits(std::initializer_list<size_t> v_size_, size_t alignment_);
+    MultiBufferWorkspaceTraits(std::initializer_list<size_t> v_size_);
     size_t GetSize() const;
     size_t GetOffset(size_t index) const;
 
     std::vector<size_t> v_size;
     std::vector<size_t> v_offset;
-    size_t alignment;
+    constexpr static size_t alignment = 256ull;
 };
 
 } // namespace miopen
