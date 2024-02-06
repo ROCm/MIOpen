@@ -306,6 +306,8 @@ bool ConvHipImplicitGemmGroupBwdXdlops::IsApplicable(
         return false;
     if(problem.HasNonPackedTensors())
         return false;
+    if(problem.HasAtLeastOne64BitTensor())
+        return false;
     if(problem.IsTensorsCasted())
         return false;
     if(!problem.IsDirectionBackwardData())
