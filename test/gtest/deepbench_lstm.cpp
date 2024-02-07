@@ -80,13 +80,13 @@ auto GetTestCases(std::string precision)
 
 using TestCase = decltype(GetTestCases({}))::value_type;
 
-class ConfigWithFloat : public testing::TestWithParam<std::vector<TestCase>>
+class ConfigWithFloat_deepbench_lstm : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
 void Run2dDriverFloat(void)
 {
-    std::vector<std::string> params = ConfigWithFloat::GetParam();
+    std::vector<std::string> params = ConfigWithFloat_deepbench_lstm::GetParam();
 
     for(const auto& test_value : params)
     {
@@ -107,7 +107,7 @@ void Run2dDriverFloat(void)
 
 using namespace deepbench_lstm;
 
-TEST_P(ConfigWithFloat, FloatTest_deepbench_lstm)
+TEST_P(ConfigWithFloat_deepbench_lstm, FloatTest_deepbench_lstm)
 {
     if(!miopen::IsEnabled(ENV(MIOPEN_TEST_DEEPBENCH)))
     {
@@ -117,4 +117,6 @@ TEST_P(ConfigWithFloat, FloatTest_deepbench_lstm)
     Run2dDriverFloat();
 };
 
-INSTANTIATE_TEST_SUITE_P(DeepbenchLstm, ConfigWithFloat, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(DeepbenchLstm,
+                         ConfigWithFloat_deepbench_lstm,
+                         testing::Values(GetTestCases("--float")));
