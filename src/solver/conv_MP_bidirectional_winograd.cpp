@@ -327,7 +327,7 @@ bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsA
     if(problem.HasNonPackedTensors())
         return false;
 
-    if(problem.HasAtLeastOne64BitTensor())
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
 
     if(!problem.IsLayoutDefault())

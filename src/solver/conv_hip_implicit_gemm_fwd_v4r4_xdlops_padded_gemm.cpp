@@ -1064,7 +1064,7 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
     if(problem.HasNonPackedTensors())
         return false;
 
-    if(problem.HasAtLeastOne64BitTensor())
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
 
     if(ctx.GetStream().GetDeviceName() == "gfx90a" && problem.IsGfx90aFp16altRequired())

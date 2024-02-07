@@ -654,7 +654,7 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
         return false;
     if(problem.HasNonPackedTensors())
         return false;
-    if(problem.HasAtLeastOne64BitTensor())
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
     if(!(problem.IsFp32() || problem.IsFp16()))
         return false;

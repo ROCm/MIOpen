@@ -391,9 +391,9 @@ struct ProblemDescription : ProblemDescriptionBase
                  GetWeightsDataType() == GetOutDataType());
     }
 
-    bool HasAtLeastOne64BitTensor() const
+    bool AllTensorsDimsFitIntoInt() const
     {
-        return in.Is64Bit() || weights.Is64Bit() || out.Is64Bit();
+        return in.AllDimsFitIntoInt() && weights.AllDimsFitIntoInt() && out.AllDimsFitIntoInt();
     }
 
     void HeuristicUpdateLayouts();

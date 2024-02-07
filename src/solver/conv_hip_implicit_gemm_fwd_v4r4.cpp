@@ -590,7 +590,7 @@ bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(problem.HasNonPackedTensors())
         return false;
-    if(problem.HasAtLeastOne64BitTensor())
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;

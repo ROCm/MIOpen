@@ -956,7 +956,7 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(
     if(problem.HasNonPackedTensors())
         return false;
 
-    if(problem.HasAtLeastOne64BitTensor())
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
 
     if(!problem.IsFp32() && !problem.IsFp16() &&

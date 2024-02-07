@@ -487,7 +487,7 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(problem.HasNonPackedTensors())
         return false;
-    if(problem.HasAtLeastOne64BitTensor())
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
