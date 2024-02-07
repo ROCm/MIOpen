@@ -508,6 +508,13 @@ elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
 endif()
 
+if(MIOPEN_COMPILER_FLAGS_V2)
+    message(STATUS "Package Dependency rocm-core for getROCmInstallPath() API")
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}, rocm-core")
+    set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}, rocm-core")
+endif()
+
+
 set(KERNELS_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/kernels)
 
 find_program(UNZIPPER lbzcat bzcat REQUIRED)
