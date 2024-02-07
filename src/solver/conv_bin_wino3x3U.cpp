@@ -70,7 +70,7 @@ bool ConvBinWinograd3x3U::IsApplicable(const ExecutionContext& ctx,
 
     if(problem.HasNonPackedTensors())
         return false;
-    if(problem.HasAtLeastOne64BitTensor())
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
 
     if(!problem.IsLayoutDefault())
