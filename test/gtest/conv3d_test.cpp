@@ -53,7 +53,7 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class ConfigWithFloat : public testing::TestWithParam<std::vector<std::string>>
+class ConfigWithFloat_conv3d_test : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -62,7 +62,7 @@ void Run3dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenFloat: params = ConfigWithFloat::GetParam(); break;
+    case miopenFloat: params = ConfigWithFloat_conv3d_test::GetParam(); break;
     case miopenInt8:
     case miopenHalf:
     case miopenBFloat16:
@@ -73,7 +73,7 @@ void Run3dDriver(miopenDataType_t prec)
                   "type not supported by "
                   "test_conv3d_extra test";
 
-    default: params = ConfigWithFloat::GetParam();
+    default: params = ConfigWithFloat_conv3d_test::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -127,7 +127,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
 using namespace conv3d_test;
 
-TEST_P(ConfigWithFloat, FloatTest_conv3d_test)
+TEST_P(ConfigWithFloat_conv3d_test, FloatTest_conv3d_test)
 {
     if(IsTestRunWith("--float"))
     {
@@ -140,5 +140,5 @@ TEST_P(ConfigWithFloat, FloatTest_conv3d_test)
 };
 
 INSTANTIATE_TEST_SUITE_P(Conv3dTestExtra,
-                         ConfigWithFloat,
+                         ConfigWithFloat_conv3d_test,
                          testing::Values(GetTestCases("--float")));
