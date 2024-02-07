@@ -114,7 +114,11 @@ void Run2dDriver(miopenDataType_t prec)
 
 bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
+    const auto target   = handle.GetTargetProperties();
     std::string devName = handle.GetDeviceName();
+    if(target.Xnack() && *target.Xnack())
+        return false;
+
     if(devName == "gfx908")
         return true;
     else
