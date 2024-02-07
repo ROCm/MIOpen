@@ -86,7 +86,7 @@ inline bool WinoCommonIsApplicable(const FusionContext& context, const FusionDes
         return false;
     if(conv_problem.HasNonPackedTensors())
         return false;
-    if(conv_problem.HasAtLeastOne64BitTensor())
+    if(!conv_problem.AllTensorsDimsFitIntoInt())
         return false;
     if(!conv_problem.IsLayoutDefault())
         return false;

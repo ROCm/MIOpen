@@ -49,7 +49,7 @@ bool ConvDirectNaiveConvBwd::IsApplicable(const ExecutionContext& ctx,
 
     if(!problem.IsDirectionBackwardData())
         return false;
-    if(problem.HasAtLeastOne64BitTensor())
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
     if(!problem.IsLayoutDefault() && !problem.IsLayoutNHWC())
         return false;
