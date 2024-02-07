@@ -314,9 +314,11 @@ struct MultiBufferWorkspaceTraits
     size_t GetSize() const;
     size_t GetOffset(size_t index) const;
 
-    std::vector<size_t> v_size;
     std::vector<size_t> v_offset;
-    constexpr static size_t alignment = 256ull;
+    // aligning and padding to 256 byte boundary
+    constexpr static size_t max_padding = 255ull;
+    static_assert((max_padding & (max_padding + 1)) == 0,
+                  "max_padding should be 1 less than a power of 2");
 };
 
 } // namespace miopen
