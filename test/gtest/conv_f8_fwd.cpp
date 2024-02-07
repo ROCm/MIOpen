@@ -36,7 +36,8 @@ namespace conv_f8_fwd {
 
 std::vector<Conv2DTestCase> ConvTestConfigs()
 { // g  n  c   h   w   k   y  x pad_x pad_y stri_x stri_y dia_x dia_y
-    return {{1, 16, 16, 14, 14, 16, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
+    return {{1, 16, 16, 14, 14, 16, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {1, 128, 64, 28, 28, 64, 7, 7, 1, 1, 1, 1, 1, 1, miopenConvolution}};
 }
 
 template <typename T = float>
@@ -44,6 +45,48 @@ struct ConvFwdSolverTest
     : public ::testing::TestWithParam<
           std::tuple<miopenConvFwdAlgorithm_t, Conv2DTestCase, miopenTensorLayout_t>>
 {
+
+public:
+    template <typename Solver>
+    void SolverFwd()
+    {
+        auto&& handle = get_handle();
+
+        Solver solv{};
+
+        const auto tensors =
+            miopen::ConvFwdTensors{input.desc, in_dev.get(), weights.desc, wei_dev.get(), output.desc, out_dev.get()};
+
+        const auto problem = miopen::conv::ProblemDescription{
+            input.desc, weights.desc, output.desc, conv_desc, miopen::conv::Direction::Forward};
+        auto ctx = miopen::ExecutionContext{};
+
+        ctx.SetStream(&handle);
+
+        if(!solv.IsApplicable(ctx, problem))
+        {
+            test_skipped = true;
+            GTEST_SKIP() << solv.SolverDbId()
+                        << "ConvHipImplicitGemmF16F8F16FwdXdlops Not Applicable for this problem"
+                        << conv_config;
+        }
+
+        if(solv.MayNeedWorkspace())
+        {
+            wspace.resize(solv.GetWorkspaceSize(ctx, problem));
+        }
+
+        const auto invoke_params = miopen::conv::DataInvokeParams{tensors, wspace.ptr(), wspace.size(), false};
+
+        ASSERT_TRUE(solv.IsApplicable(ctx, problem));
+        auto sol = solv.GetSolution(ctx, problem, solv.GetDefaultPerformanceConfig(ctx, problem));
+        ASSERT_TRUE(sol.Succeeded());
+        ASSERT_TRUE(sol.invoker_factory);
+        const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
+        (invoker)(handle, invoke_params);
+        handle.Finish();
+    }
+
 protected:
     void SetUp() override
     {
@@ -122,72 +165,23 @@ protected:
     miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoImplicitGEMM;
     bool test_skipped             = false;
     miopenTensorLayout_t tensor_layout;
+    Workspace wspace{};
 };
 
 struct ConvFwdSolverTestF8 : ConvFwdSolverTest<half_float::half>
 {
 };
 
-template <typename Solver>
-void SolverFwd(const miopen::TensorDescriptor& inputDesc,
-               ConstData_t input,
-               const miopen::TensorDescriptor& wDesc,
-               ConstData_t weight,
-               const miopen::TensorDescriptor& outputDesc,
-               Data_t output,
-               const miopen::ConvolutionDescriptor& convDesc,
-               const Conv2DTestCase& conv_config,
-               bool& test_skipped)
-{
-    auto&& handle = get_handle();
-
-    Solver solv{};
-
-    const auto tensors =
-        miopen::ConvFwdTensors{inputDesc, input, wDesc, weight, outputDesc, output};
-
-    const auto problem = miopen::conv::ProblemDescription{
-        inputDesc, wDesc, outputDesc, convDesc, miopen::conv::Direction::Forward};
-    auto ctx = miopen::ExecutionContext{};
-
-    ctx.SetStream(&handle);
-
-    if(!solv.IsApplicable(ctx, problem))
-    {
-        test_skipped = true;
-        GTEST_SKIP() << solv.SolverDbId()
-                     << "ConvHipImplicitGemmF16F8F16FwdXdlops Not Applicable for this problem"
-                     << conv_config;
-    }
-    const auto invoke_params = miopen::conv::DataInvokeParams{tensors, nullptr, 0, false};
-
-    ASSERT_TRUE(solv.IsApplicable(ctx, problem));
-    auto sol = solv.GetSolution(ctx, problem, solv.GetDefaultPerformanceConfig(ctx, problem));
-    ASSERT_TRUE(sol.Succeeded());
-    ASSERT_TRUE(sol.invoker_factory);
-    const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
-    (invoker)(handle, invoke_params);
-    handle.Finish();
-}
-
 } // namespace conv_f8_fwd
 using namespace conv_f8_fwd;
 
 TEST_P(ConvFwdSolverTestF8, CKConvF8Fwd)
 {
-    SolverFwd<miopen::solver::conv::ConvHipImplicitGemmF16F8F16FwdXdlops>(input.desc,
-                                                                          in_dev.get(),
-                                                                          weights.desc,
-                                                                          wei_dev.get(),
-                                                                          output.desc,
-                                                                          out_dev.get(),
-                                                                          conv_desc,
-                                                                          conv_config,
-                                                                          test_skipped);
+    SolverFwd<miopen::solver::conv::ConvHipImplicitGemmF16F8F16FwdXdlops>();
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
                          ConvFwdSolverTestF8,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
                                           testing::ValuesIn(ConvTestConfigs()),
-                                          testing::Values(miopenTensorNHWC)));
+                                          testing::Values(miopenTensorNCHW)));

@@ -95,9 +95,22 @@ struct CKArgs
         output = {G, N, K, Do, Ho, Wo};
         weight = {G, K, C, Z, Y, X};
 
-        in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
-        out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
-        wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
+        // CK strides are in GNCDHW order
+        if(problem.IsLayoutNHWC())
+        {
+            in_strides  = {N * Di * Hi * Wi * C, Di * Hi * Wi * C, 1, Hi * Wi * C, Wi * C, C};
+            out_strides = {N * Do * Ho * Wo * K, Do * Ho * Wo * K, 1, Ho * Wo * K, Wo * K, K};
+            wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
+        }
+        else
+        {
+            assert(problem.IsLayoutDefault()); // already checked in IsApplicable
+            // for default layout, we produce packed strides for NHWC layout
+            // because we transpose to NHWC layout before calling CK kernel
+            in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
+            out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
+            wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
+        }
 
         strides  = {1,
                    ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
@@ -276,6 +289,13 @@ bool ConvHipImplicitGemmF16F8F16FwdXdlops::IsValidPerformanceConfig(
     return config.IsValid(problem);
 }
 
+size_t
+ConvHipImplicitGemmF16F8F16FwdXdlops::GetWorkspaceSize(const ExecutionContext&,
+                                                      const ProblemDescription& problem) const
+{
+    return GetWorkspaceSizeLayoutTransformConv(problem);
+}
+
 PerformanceConfigHipImplicitGemmF16F8F16FwdXdlops
 ConvHipImplicitGemmF16F8F16FwdXdlops::Search(const ExecutionContext& ctx,
                                              const ProblemDescription& problem,
@@ -301,8 +321,8 @@ bool ConvHipImplicitGemmF16F8F16FwdXdlops::IsApplicable(
         return false;
     if(!problem.IsDirectionForward())
         return false;
-    if(!problem.IsLayoutNHWC())
-        return false;
+    //if(!problem.IsLayoutNHWC())
+    //    return false;
     if(!problem.IsFp16())
         return false;
     if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
@@ -320,9 +340,18 @@ ConvSolution ConvHipImplicitGemmF16F8F16FwdXdlops::GetSolution(
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmF16F8F16FwdXdlops& config) const
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
+
+if(problem.IsLayoutNHWC()){
     return InitInvokerFactoryNHWC<DeviceOpF8FwdPtrs<ck::half_t, c_type>,
                                   CKArgs,
                                   miopen::conv::DataInvokeParams>(ctx, problem, config.kernel_id);
+} else {
+    return InitInvokerFactoryFwdNCHW<3,
+                                  DeviceOpF8FwdPtrs<ck::half_t, c_type>,
+                                  CKArgs,
+                                  miopen::conv::DataInvokeParams>(ctx, problem, config.kernel_id);
+}
+
 #else
     return {};
 #endif
