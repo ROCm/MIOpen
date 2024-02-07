@@ -353,10 +353,11 @@ private:
         kern_args[0] = out_ptr;
         kern_args[1] = in_ptr;
 
+        auto save = handle.IsProfilingEnabled() ? 0.0f : handle.GetKernelTime();
         handle.Run(kernels[kern_idx])(kern_args);
         if(handle.IsProfilingEnabled())
         {
-            handle.AccumKernelTime(handle.GetKernelTime());
+            handle.AccumKernelTime(save);
         }
     }
 };
