@@ -121,7 +121,7 @@ bool fft::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& pr
     if(!problem.IsLayoutDefault())
         return false;
 
-    if(problem.HasAtLeastOne64BitTensor())
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
 
     const auto is_fwd    = problem.IsDirectionForward();
