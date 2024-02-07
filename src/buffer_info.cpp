@@ -165,7 +165,10 @@ MultiBufferWorkspaceTraits::MultiBufferWorkspaceTraits(std::initializer_list<siz
 size_t MultiBufferWorkspaceTraits::GetSize() const
 {
     assert(v_offset.size() > 1);
-    return (&v_offset.back())[-1] + v_size.back();
+    auto sz = (&v_offset.back())[-1] + v_size.back();
+    sz += (sz % alignment); // total size aligned to alignment
+    assert(sz % alignment == 0);
+    return sz;
 }
 
 size_t MultiBufferWorkspaceTraits::GetOffset(size_t index) const
