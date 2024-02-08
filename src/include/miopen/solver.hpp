@@ -4545,6 +4545,10 @@ struct ConvHipImplicitGemmGroupFwdXdlops final
         return 0.02f;
     };
 
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
+
 private:
     template <typename DataType>
     bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
@@ -4616,6 +4620,10 @@ struct ConvHipImplicitGemm3DGroupFwdXdlops final
     {
         return 0.02f;
     };
+
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
 
 private:
     template <typename DataType>
@@ -4694,6 +4702,10 @@ struct ConvHipImplicitGemm3DGroupWrwXdlops final
         return 0.02f;
     };
 
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
+
 private:
     template <typename DataType>
     bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
@@ -4771,6 +4783,10 @@ struct ConvHipImplicitGemm3DGroupBwdXdlops final
         return 0.02f;
     };
 
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
+
 private:
     template <typename DataType>
     bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
@@ -4847,6 +4863,10 @@ struct ConvHipImplicitGemmGroupBwdXdlops final
         return 0.02f;
     };
 
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
+
 private:
     template <typename DataType>
     bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
@@ -4922,6 +4942,10 @@ struct ConvHipImplicitGemmGroupWrwXdlops final
     {
         return 0.02f;
     };
+
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
 
 private:
     template <typename DataType>
