@@ -114,6 +114,8 @@ struct ConvDataTensors
           out(tensors.dx)
     {
     }
+
+    operator ConvTensors() const { return {inDesc, in, wDesc, w, outDesc, out}; }
 };
 
 struct ConvWrwTensors
