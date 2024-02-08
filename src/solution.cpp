@@ -237,8 +237,8 @@ void Solution::RunImpl(Handle& handle,
 
 void Solution::RunImpl(Handle& handle,
                        const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
-                       Data_t workspace,
-                       std::size_t workspace_size,
+                       Data_t /*workspace*/,
+                       std::size_t /*workspace_size*/,
                        const SoftmaxDescriptor& conv_desc)
 {
 

@@ -34,6 +34,29 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
+struct SoftmaxDescriptor : public miopenSoftmaxDescriptor
+{
+    SoftmaxDescriptor();
+
+    float GetAlpha() const {return alpha;}
+    float GetBeta() const {return beta;}
+    miopenSoftmaxAlgorithm_t GetAlgorithm() const { return algorithm; }
+    miopenSoftmaxMode_t GetMode() const { return  mode; }
+
+private:
+    float alpha;
+    float beta;
+    miopenSoftmaxAlgorithm_t algorithm;
+    miopenSoftmaxMode_t mode;
+
+    //int xdx_offset;
+    //int y_offset;
+    //int dy_offset;
+};
+
+namespace softmax
+{
+
 miopenStatus_t SoftmaxForward(Handle& handle,
                               const void* alpha,
                               const void* beta,

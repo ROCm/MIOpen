@@ -347,6 +347,12 @@ MIOPEN_DECLARE_OBJECT(miopenDropoutDescriptor);
  */
 MIOPEN_DECLARE_OBJECT(miopenReduceTensorDescriptor);
 
+/*! @ingroup Softmax
+ * @brief Creates the miopenSoftmaxDescriptor_t type
+ */
+MIOPEN_DECLARE_OBJECT(miopenSoftmaxDescriptor);
+
+
 /*! @ingroup tensor
  * @enum miopenDataType_t
  * MIOpen floating point datatypes. Both 32-bit and 16-bit floats are supported in MIOpen.

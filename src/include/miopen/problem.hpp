@@ -31,6 +31,7 @@
 #include <miopen/activ.hpp>
 #include <miopen/allocator.hpp>
 #include <miopen/convolution.hpp>
+#include <miopen/softmax.hpp>
 #include <miopen/object.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/tensor.hpp>
@@ -60,10 +61,6 @@ struct ProblemDescription;
 } // namespace conv
 
 struct BiasDescriptor
-{
-};
-
-struct SoftmaxDescriptor
 {
 };
 

@@ -31,6 +31,7 @@
 #include <miopen/conv/problem_description.hpp>
 #include <miopen/convolution.hpp>
 #include <miopen/conv_algo_name.hpp>
+#include <miopen/softmax/problem_description.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/fusion_plan.hpp>
@@ -438,9 +439,15 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                  const FindOptions& options,
                                                  std::size_t max_solutions,
                                                  const Buffers& buffers,
-                                                 const SoftmaxDescriptor& conv_desc) const
+                                                 const SoftmaxDescriptor& softmax_desc) const
 {
+    auto ctx        = ExecutionContext{&handle};
 
+    //softmax_desc.
+    //softmax::ProblemDescription problem_description = softmax_desc.();
+
+    const auto solvers       = solver::SolverContainer<solver::softmax::Softmax>{};
+    return solvers.SearchForSolutions(ctx, problem_description, max_solutions);
 }
 
 void Problem::ValidateGroupCount(const TensorDescriptor& xDesc,

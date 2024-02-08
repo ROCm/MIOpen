@@ -35,6 +35,28 @@
 
 namespace miopen {
 
+extern "C" miopenStatus_t miopenCreateSoftmaxDescriptor(miopenSoftmaxDescriptor_t* activDesc)
+{
+
+    MIOPEN_LOG_FUNCTION(activDesc);
+    return miopen::try_([&] { miopen::deref(activDesc) = new miopen::ActivationDescriptor(); });
+}
+
+extern "C" miopenStatus_t miopenSetSoftmaxDescriptor(miopenSoftmaxDescriptor_t activDesc,
+                                                        miopenActivationMode_t mode,
+                                                        double activAlpha,
+                                                        double activBeta,
+                                                        double activGamma)
+{
+
+    MIOPEN_LOG_FUNCTION(activDesc, mode, activAlpha, activBeta, activGamma);
+    return miopen::try_([&] {
+        std::initializer_list<double> parms = {activAlpha, activBeta, activGamma};
+        miopen::deref(activDesc)            = miopen::ActivationDescriptor(mode, parms.begin());
+    });
+}
+
+
 miopenStatus_t SoftmaxForward(Handle& handle,
                               const void* alpha,
                               const void* beta,
