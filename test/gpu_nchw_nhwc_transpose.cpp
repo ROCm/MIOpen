@@ -26,7 +26,6 @@
 
 #include <miopen/handle.hpp>
 #include <miopen/miopen.h>
-#include <miopen/util_sol.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_layout.hpp>
 #include <miopen/batched_transpose_sol.hpp>
