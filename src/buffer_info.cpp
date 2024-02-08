@@ -148,29 +148,31 @@ BuffInfo::BuffInfo(MemLayout_t layout, int nk, int c, int h, int w, int g, int _
     }
 }
 
-MultiBufferWorkspaceTraits::MultiBufferWorkspaceTraits(std::initializer_list<size_t> v_size_,
-                                                       size_t alignment_)
-    : v_size(v_size_), alignment(alignment_)
+MultiBufferWorkspaceTraits::MultiBufferWorkspaceTraits(std::initializer_list<size_t> v_size_)
 {
+
+    assert(v_size_.size() > 0);
     size_t each_offset = 0;
     v_offset.push_back(each_offset);
-    for(auto each_size : v_size)
+    for(auto each_size : v_size_)
     {
-        size_t padding = (alignment - (each_size % alignment)) % alignment;
-        each_offset += each_size + padding;
+        auto padded_size = (each_size + max_padding) & (~max_padding);
+        each_offset += padded_size;
         v_offset.push_back(each_offset);
     }
 }
 
 size_t MultiBufferWorkspaceTraits::GetSize() const
 {
-    return (&v_offset.back())[-1] + v_size.back();
+    assert(v_offset.size() > 1);
+    // last location contains the sum of all padded sizes
+    return v_offset.back();
 }
 
 size_t MultiBufferWorkspaceTraits::GetOffset(size_t index) const
 {
-    if(index >= v_offset.size())
-        MIOPEN_THROW("index given overflows");
+    // last location contains the sum of all padded sizes
+    MIOPEN_THROW_IF(index >= (v_offset.size() - 1), "index given overflows");
     return v_offset[index];
 }
 

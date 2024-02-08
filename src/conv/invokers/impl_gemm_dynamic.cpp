@@ -4,7 +4,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
-#include <miopen/util_sol.hpp>
+#include <miopen/batched_transpose_sol.hpp>
 #include <boost/any.hpp>
 
 namespace miopen {
@@ -561,8 +561,6 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     int trans_weight_idx = -1;
     int trans_output_idx = -1;
 
-    constexpr size_t buf_alignment = 256;
-
     if(is_nchw)
     {
         TransposeSolutionDefault2Nhwc trans_input(ctx, problem.GetInDataType(), n, c, hi, wi);
@@ -601,7 +599,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     const size_t cast_size = need_cast ? miopen::GetTypeSize(miopenFloat) * n * k * ho * wo : 0;
 
     MultiBufferWorkspaceTraits wt(
-        {trans_input_size, trans_weight_size, trans_output_size, cast_size}, buf_alignment);
+        {trans_input_size, trans_weight_size, trans_output_size, cast_size});
 
     trans_input_offset  = wt.GetOffset(0);
     trans_weight_offset = wt.GetOffset(1);
@@ -879,8 +877,6 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     int trans_weight_idx = -1;
     int trans_output_idx = -1;
 
-    constexpr size_t buf_alignment = 256;
-
     if(is_nchw)
     {
         TransposeSolutionNhwc2Default trans_input(ctx, problem.GetOutDataType(), n, c, hi, wi);
@@ -919,7 +915,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     const size_t cast_size = need_cast ? miopen::GetTypeSize(miopenFloat) * n * c * hi * wi : 0;
 
     MultiBufferWorkspaceTraits wt(
-        {trans_input_size, trans_weight_size, trans_output_size, cast_size}, buf_alignment);
+        {trans_input_size, trans_weight_size, trans_output_size, cast_size});
 
     trans_input_offset  = wt.GetOffset(0);
     trans_weight_offset = wt.GetOffset(1);

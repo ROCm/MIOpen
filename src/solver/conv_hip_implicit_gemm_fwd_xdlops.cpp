@@ -313,14 +313,16 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     switch(problem.GetInDataType())
     {
     case miopenInt8:
-        return MakeInvokerFactory<DeviceOpPtrs<int8_t>, CKArgs, miopen::conv::DataInvokeParams>(
-            problem, config.kernel_id);
+        return InitInvokerFactoryNHWC<DeviceOpPtrs<int8_t>, CKArgs, miopen::conv::DataInvokeParams>(
+            ctx, problem, config.kernel_id);
     case miopenHalf:
-        return MakeInvokerFactory<DeviceOpPtrs<ck::half_t>, CKArgs, miopen::conv::DataInvokeParams>(
-            problem, config.kernel_id);
+        return InitInvokerFactoryNHWC<DeviceOpPtrs<ck::half_t>,
+                                      CKArgs,
+                                      miopen::conv::DataInvokeParams>(
+            ctx, problem, config.kernel_id);
     case miopenFloat:
-        return MakeInvokerFactory<DeviceOpPtrs<float>, CKArgs, miopen::conv::DataInvokeParams>(
-            problem, config.kernel_id);
+        return InitInvokerFactoryNHWC<DeviceOpPtrs<float>, CKArgs, miopen::conv::DataInvokeParams>(
+            ctx, problem, config.kernel_id);
     case miopenInt32:
     case miopenBFloat16:
     case miopenDouble:

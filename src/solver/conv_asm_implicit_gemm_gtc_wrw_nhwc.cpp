@@ -33,7 +33,7 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
-#include <miopen/util_sol.hpp>
+#include <miopen/batched_transpose_sol.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
@@ -993,8 +993,6 @@ size_t ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(
     size_t size_trans_output = 0;
     size_t size_tensor_cast  = 0;
 
-    constexpr size_t buf_alignment = 256;
-
     size_t workspace_size = 0;
     if(is_nchw)
     {
@@ -1023,7 +1021,7 @@ size_t ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(
     }
 
     MultiBufferWorkspaceTraits wt(
-        {size_trans_input, size_trans_weight, size_trans_output, size_tensor_cast}, buf_alignment);
+        {size_trans_input, size_trans_weight, size_trans_output, size_tensor_cast});
     workspace_size = wt.GetSize();
 
     return workspace_size;
@@ -1164,8 +1162,6 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     int trans_weight_idx = -1;
     int trans_output_idx = -1;
 
-    constexpr size_t buf_alignment = 256;
-
     if(is_nchw)
     {
         TransposeSolutionDefault2Nhwc trans_input(ctx, problem.GetOutDataType(), n, c, hi, wi);
@@ -1222,7 +1218,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
         need_cast ? miopen::GetTypeSize(miopenFloat) * k * (c / group) * y * x : 0;
 
     MultiBufferWorkspaceTraits wt(
-        {trans_input_size, trans_weight_size, trans_output_size, cast_size}, buf_alignment);
+        {trans_input_size, trans_weight_size, trans_output_size, cast_size});
 
     trans_input_offset  = wt.GetOffset(0);
     trans_weight_offset = wt.GetOffset(1);
