@@ -143,7 +143,7 @@ list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/ll
 option(ENABLE_HIP_WORKAROUNDS Off)
 set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
 
-# Build flags for backward compatibility of MIOPEN Compiler flags
+# Build flags for backward compatibility of MIOPEN Compiler Path
 set( MIOPEN_COMPILER_FLAG_VERSION V1 CACHE STRING
         "Which version of Compiler Flags to use" )
 

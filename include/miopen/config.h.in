@@ -83,48 +83,48 @@
 // clang-format on
 #cmakedefine01 MIOPEN_USE_COMPILER_FLAGS_V2
 #if MIOPEN_COMPILER_FLAGS_V2
-/* Include rocm-core header for get ROCm Install Path Method */
+// Include rocm-core header for get ROCm Install Path Method
 #include <rocm-core/rocm_getpath.h>
 
-/* Include header for PATH_MAX */
+// Include header for PATH_MAX
 #if defined(__linux__)
 #include <linux/limits.h>
-#endif /* __linux__ */
+#endif
 #if defined(_WIN32)
 #include <windows.h>
 #ifndef PATH_MAX
 #define PATH_MAX MAX_PATH
 #endif
-#endif /* _WIN32*/
+#endif
 
-/* Max Buffer Len to hold the Flag Path */
+// Max Buffer Len to hold the Path
 #define PATH_MAX_LEN (PATH_MAX + 1)
 
-/* Flags to help identify/differentiate Definitions for each MIOPEN Compiler Flags */
+// Flags to help identify/differentiate Definitions for each MIOPEN Compiler Paths
 typedef enum
 {
     MIOPEN_AMDGCN_Flag          = 0,
     MIOPEN_OC_COMPILER_Flag     = 1,
     MIOPEN_HIP_COMPILER_Flag    = 2,
     MIOPEN_OFFLOAD_BUNDLER_Flag = 3,
-    MIOPEN_CMP_MAX_Flag         = 4 /*Should be last Flag definition*/
+    MIOPEN_CMP_MAX_Flag         = 4 // Should be last Flag definition
 } MIOPEN_CMP_Flags_t;
 
-/* Global variable prototype of List to hold the Compiler Flag Paths
- * The definition of this variable expected to be available in C/C++
- * code of the Target Library */
+// Global variable prototype of List to hold the Compiler Flag Paths
+// The definition of this variable expected to be available in C/C++
+// code of the Target Library
 extern char MIOPEN_CMP_FLAGS[MIOPEN_CMP_MAX_Flag][PATH_MAX_LEN];
 
-/* Function to generate the MIOPEN Compiler Flag Value using
- * ROCm Base Install Path fetched using getROCmInstallPath()
- * This approach depends on the getROCmInstallPath() provided by rocm-core
- * This flag Paths are expected to be deprecated/modified in upcoming MAJOR Releases */
+// Function to generate the MIOPEN Compiler Path Value using
+// ROCm Base Install Path fetched using getROCmInstallPath()
+// This approach depends on the getROCmInstallPath() provided by rocm-core
+// This flag Paths are expected to be deprecated/modified in upcoming MAJOR Releases
 char* generateFlagValue(MIOPEN_CMP_Flags_t x);
 
-/* MIOPEN Compiler Flags generated using ROCM Base install Path
- * This will read the ROCM Base Install Path if it is already generated
- * or (if required), will generate the MIOPEN Compiler Flag Path Values
- * and return the value.*/
+// MIOPEN Compiler Paths generated using ROCM Base install Path
+// This will read the ROCM Base Install Path if it is already generated
+// or (if required), will generate the MIOPEN Compiler Flag Path Values
+// and return the value.
 #cmakedefine GET_MIOPEN_CMP_FLAGS(X)((MIOPEN_CMP_FLAGS[X][0] != 0) ? MIOPEN_CMP_FLAGS[X] \
                                                                    : generateFlagValue(X))
 #cmakedefine MIOPEN_AMDGCN_ASSEMBLER GET_MIOPEN_CMP_FLAGS(MIOPEN_AMDGCN_Flag)
@@ -136,7 +136,7 @@ char* generateFlagValue(MIOPEN_CMP_Flags_t x);
 #cmakedefine HIP_OC_COMPILER "@HIP_OC_COMPILER@"
 #cmakedefine MIOPEN_HIP_COMPILER "@MIOPEN_HIP_COMPILER@"
 #cmakedefine MIOPEN_OFFLOADBUNDLER_BIN "@MIOPEN_OFFLOADBUNDLER_BIN@"
-#endif /*MIOPEN_COMPILER_FLAGS_V2*/
+#endif // MIOPEN_COMPILER_FLAGS_V2
 
 #cmakedefine MIOPEN_CACHE_DIR "@MIOPEN_CACHE_DIR@"
 
