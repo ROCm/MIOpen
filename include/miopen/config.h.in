@@ -81,7 +81,8 @@
 #cmakedefine MIOPEN_DEFAULT_FIND_MODE @MIOPEN_DEFAULT_FIND_MODE@
 
 // clang-format on
-#ifdef MIOPEN_COMPILER_FLAGS_V2 /* Flag to switch to MIOPEN Compiler Flag Approach V2*/
+#cmakedefine01 MIOPEN_USE_COMPILER_FLAGS_V2
+#if MIOPEN_COMPILER_FLAGS_V2
 /* Include rocm-core header for get ROCm Install Path Method */
 #include <rocm-core/rocm_getpath.h>
 
