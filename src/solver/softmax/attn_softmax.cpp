@@ -49,14 +49,16 @@ bool AttnSoftmax::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                                const miopen::softmax::ProblemDescription& problem) const
 {
     return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_SOFTMAX)) && //
-           problem.GetAlgorithm() == MIOPEN_SOFTMAX_ACCURATE &&   //
-           problem.IsForward() &&                                 //
-           problem.GetXDesc().IsPacked() &&                       //
-           problem.GetYDesc().IsPacked() &&                       //
-           problem.GetXDesc().GetType() == miopenFloat &&         //
-           problem.GetYDesc().GetType() == miopenFloat &&         //
-           problem.GetMode() == MIOPEN_SOFTMAX_MODE_INSTANCE &&   //
-           float_equal(problem.GetAlpha(), 1.0f) &&               //
+           problem.GetXDesc().GetStrides().front() <=
+               std::numeric_limits<uint32_t>::max() &&          // c * h * w
+           problem.GetAlgorithm() == MIOPEN_SOFTMAX_ACCURATE && //
+           problem.IsForward() &&                               //
+           problem.GetXDesc().IsPacked() &&                     //
+           problem.GetYDesc().IsPacked() &&                     //
+           problem.GetXDesc().GetType() == miopenFloat &&       //
+           problem.GetYDesc().GetType() == miopenFloat &&       //
+           problem.GetMode() == MIOPEN_SOFTMAX_MODE_INSTANCE && //
+           float_equal(problem.GetAlpha(), 1.0f) &&             //
            float_equal(problem.GetBeta(), 0.f);
 
     ;
@@ -74,11 +76,9 @@ ConvSolution AttnSoftmax::GetSolution(const ExecutionContext& context,
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    const auto [n, c, h, w] = tien<4>(problem.GetXDesc().GetLengths());
-
     // instance mode
-    int seq_len = c * h * w;
-    size_t nhs  = n;
+    uint32_t seq_len = problem.GetXDesc().GetStrides().front(); // c * h * w
+    uint64_t nhs     = problem.GetXDesc().GetLengths().front(); // n
 
     size_t local_threads  = 128; // add better heuristic
     size_t global_threads = std::min<size_t>(8192, nhs) * local_threads;
