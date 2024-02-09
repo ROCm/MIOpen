@@ -81,8 +81,8 @@
 #cmakedefine MIOPEN_DEFAULT_FIND_MODE @MIOPEN_DEFAULT_FIND_MODE@
 
 // clang-format on
-#cmakedefine01 MIOPEN_USE_COMPILER_PATHS_V2
-#if MIOPEN_USE_COMPILER_PATHS_V2
+#cmakedefine01 MIOPEN_OFFLINE_COMPILER_PATHS_V2
+#if MIOPEN_OFFLINE_COMPILER_PATHS_V2
 // Include rocm-core header for get ROCm Install Path Method
 #include <rocm-core/rocm_getpath.h>
 
