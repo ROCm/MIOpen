@@ -64,28 +64,28 @@ template <>
 class numeric_limits<hip_bfloat16>
 {
 public:
-    static
-#if HIP_PACKAGE_VERSION_FLAT >= 6000000000ULL
-        constexpr
-#endif
-        __device__ hip_bfloat16
-        max() noexcept
+    static __device__ hip_bfloat16 max() noexcept
     {
         // data = 0x7F7F
         return static_cast<hip_bfloat16>(0x1.FEp+127f);
     }
 
-    static
-#if HIP_PACKAGE_VERSION_FLAT >= 6000000000ULL
-        constexpr
-#endif
-        __device__ hip_bfloat16
-        min() noexcept
+    static __device__ hip_bfloat16 min() noexcept
     {
         // data = 0x0080
         return static_cast<hip_bfloat16>(0x1p-14f);
     }
 };
+
+#if HIP_PACKAGE_VERSION_FLAT >= 6001024024ULL
+template <>
+class numeric_limits<int>
+{
+public:
+    static constexpr __device__ int max() noexcept { return 2147483647; }
+    static constexpr __device__ int min() noexcept { return -2147483648; }
+};
+#endif
 
 } // namespace std
 
