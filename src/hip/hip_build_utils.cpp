@@ -40,24 +40,26 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_VERBOSE)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_DUMP)
 
 #if MIOPEN_USE_COMPILER_PATHS_V2
-/* List to hold Relative Directory Path
- * for each Compiler Flags from ROCM Install Path
- * The definition of this variable expected to be available in C/C++
- * code of the Target Library */
-char* MIOPEN_CMP_FLAG_REL_PATHS[MIOPEN_CMP_MAX_Flag] = {
+
+// List to hold Relative Directory Path
+// for each Compiler Flags from ROCM Install Path
+// The definition of this variable expected to be available in C/C++
+// code of the Target Library.
+static const char* MIOPEN_CMP_FLAG_REL_PATHS[MIOPEN_CMP_MAX_Flag] = {
     "llvm/bin/clang", "bin/clang-ocl", "llvm/bin/clang++", "llvm/bin/clang-offload-bundler"};
-/* Global variable List to hold the Compiler Flag Paths */
+
+// Global variable List to hold the Compiler Flag Paths.
 char MIOPEN_CMP_FLAGS[MIOPEN_CMP_MAX_Flag][PATH_MAX_LEN] = {0};
 
-/* Function to generate the MIOPEN Compiler Flag Value using
- * ROCm Base Install Path fetched using getROCmInstallPath()
- * This approach depends on the getROCmInstallPath() provided by rocm-core
- * This flag Paths are expected to be deprecated/modified in upcoming MAJOR Releases */
+// Function to generate the MIOPEN Compiler Flag Value using
+// ROCm Base Install Path fetched using getROCmInstallPath()
+// This approach depends on the getROCmInstallPath() provided by rocm-core
+// This flag Paths are expected to be deprecated/modified in upcoming MAJOR Releases.
 char* generateFlagValue(MIOPEN_CMP_Flags_t x)
 {
     char* flagPath = (char*)0;
-    int len        = 0;
-    if((0 > x) || (MIOPEN_CMP_MAX_Flag <= x))
+    unsigned int len = 0;
+    if(MIOPEN_CMP_MAX_Flag <= x)
     {
         return (char*)0;
     }
@@ -77,7 +79,7 @@ char* generateFlagValue(MIOPEN_CMP_Flags_t x)
     return (char*)&(MIOPEN_CMP_FLAGS[x]);
 }
 
-#endif /*MIOPEN_USE_COMPILER_PATHS_V2*/
+#endif // MIOPEN_USE_COMPILER_PATHS_V2
 
 namespace miopen {
 
