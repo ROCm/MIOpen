@@ -143,13 +143,9 @@ list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/ll
 option(ENABLE_HIP_WORKAROUNDS Off)
 set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
 
-# Build flags for backward compatibility of MIOPEN Compiler Path
-set_var_to_condition(ENABLE_COMPILER_PATHS_V2 FALSE)
-option(BUILD_COMPILER_PATHS_V2 "Enable/Disable Build using Compiler Paths Version2" ${ENABLE_COMPILER_PATHS_V2})
-if(BUILD_COMPILER_PATHS_V2)
-    set(MIOPEN_USE_COMPILER_PATHS_V2 1)
-    message( STATUS "Enabled MIOPEN COMPILER PATHS VERSION 2 using getROCmInstallPath()" )
-endif()
+set_var_to_condition(MIOPEN_OFFLINE_COMPILER_PATHS_V2_DEFAULT FALSE)
+option(MIOPEN_OFFLINE_COMPILER_PATHS_V2 "Use rocm-core to find offline GPU compiler" ${MIOPEN_OFFLINE_COMPILER_PATHS_V2_DEFAULT})
+message( STATUS "MIOPEN_OFFLINE_COMPILER_PATHS_V2: ${MIOPEN_OFFLINE_COMPILER_PATHS_V2}" )
 
 # Embedded Build Configuration
 set(MIOPEN_EMBED_DB "" CACHE STRING "Semi-colon separated list of architecture to embed on-disk DBs in the binary. Example gfx906_60;gfx900_56")
