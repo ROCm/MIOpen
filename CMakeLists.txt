@@ -144,14 +144,12 @@ option(ENABLE_HIP_WORKAROUNDS Off)
 set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
 
 # Build flags for backward compatibility of MIOPEN Compiler Path
-set( MIOPEN_COMPILER_FLAG_VERSION V1 CACHE STRING
-        "Which version of Compiler Flags to use" )
-
-if(MIOPEN_COMPILER_FLAG_VERSION STREQUAL "V2" )
-  set(MIOPEN_COMPILER_FLAGS_V2 1)
-  message( STATUS "MIOPEN COMPILER FLAGS VERSION 2 using getROCmInstallPath()" )
+set_var_to_condition(ENABLE_COMPILER_PATHS_V2 FALSE)
+option(BUILD_COMPILER_PATHS_V2 "Enable/Disable Build using Compiler Paths Version2" ${ENABLE_COMPILER_PATHS_V2})
+if(BUILD_COMPILER_PATHS_V2)
+    set(MIOPEN_USE_COMPILER_PATHS_V2 1)
+    message( STATUS "Enabled MIOPEN COMPILER PATHS VERSION 2 using getROCmInstallPath()" )
 endif()
-
 
 # Embedded Build Configuration
 set(MIOPEN_EMBED_DB "" CACHE STRING "Semi-colon separated list of architecture to embed on-disk DBs in the binary. Example gfx906_60;gfx900_56")
@@ -491,6 +489,11 @@ if(MIOPEN_USE_ROCBLAS)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocblas")
 endif()
 
+if(BUILD_COMPILER_PATHS_V2)
+    message(STATUS "Package Dependency with rocm-core for getROCmInstallPath() API")
+    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocm-core")
+endif()
+
 if(MIOPEN_BACKEND STREQUAL "HIP")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}")
     set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}")
@@ -507,13 +510,6 @@ elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
     set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-hip)
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
 endif()
-
-if(MIOPEN_COMPILER_FLAGS_V2)
-    message(STATUS "Package Dependency rocm-core for getROCmInstallPath() API")
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}, rocm-core")
-    set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}, rocm-core")
-endif()
-
 
 set(KERNELS_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/kernels)
 

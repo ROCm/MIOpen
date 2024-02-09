@@ -81,8 +81,8 @@
 #cmakedefine MIOPEN_DEFAULT_FIND_MODE @MIOPEN_DEFAULT_FIND_MODE@
 
 // clang-format on
-#cmakedefine01 MIOPEN_USE_COMPILER_FLAGS_V2
-#if MIOPEN_COMPILER_FLAGS_V2
+#cmakedefine01 MIOPEN_USE_COMPILER_PATHS_V2
+#if MIOPEN_USE_COMPILER_PATHS_V2
 // Include rocm-core header for get ROCm Install Path Method
 #include <rocm-core/rocm_getpath.h>
 
@@ -125,7 +125,7 @@ char* generateFlagValue(MIOPEN_CMP_Flags_t x);
 // This will read the ROCM Base Install Path if it is already generated
 // or (if required), will generate the MIOPEN Compiler Flag Path Values
 // and return the value.
-#cmakedefine GET_MIOPEN_CMP_FLAGS(X)((MIOPEN_CMP_FLAGS[X][0] != 0) ? MIOPEN_CMP_FLAGS[X] \
+#define GET_MIOPEN_CMP_FLAGS(X)((MIOPEN_CMP_FLAGS[X][0] != 0) ? MIOPEN_CMP_FLAGS[X] \
                                                                    : generateFlagValue(X))
 #cmakedefine MIOPEN_AMDGCN_ASSEMBLER GET_MIOPEN_CMP_FLAGS(MIOPEN_AMDGCN_Flag)
 #cmakedefine HIP_OC_COMPILER GET_MIOPEN_CMP_FLAGS(MIOPEN_OC_COMPILER_Flag)

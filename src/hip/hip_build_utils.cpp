@@ -39,7 +39,7 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_VERBOSE)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_DUMP)
 
-#ifdef MIOPEN_COMPILER_FLAGS_V2
+#if MIOPEN_USE_COMPILER_PATHS_V2
 /* List to hold Relative Directory Path
  * for each Compiler Flags from ROCM Install Path
  * The definition of this variable expected to be available in C/C++
@@ -77,7 +77,7 @@ char* generateFlagValue(MIOPEN_CMP_Flags_t x)
     return (char*)&(MIOPEN_CMP_FLAGS[x]);
 }
 
-#endif /*MIOPEN_COMPILER_FLAGS_V2*/
+#endif /*MIOPEN_USE_COMPILER_PATHS_V2*/
 
 namespace miopen {
 

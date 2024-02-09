@@ -803,7 +803,7 @@ if(MIOPEN_USE_COMGR)
     target_internal_library(MIOpen amd_comgr)
 endif()
 
-if(MIOPEN_COMPILER_FLAGS_V2)
+if(BUILD_COMPILER_PATHS_V2)
     list(APPEND PACKAGE_DEPENDS PACKAGE rocm-core)
     target_internal_library(MIOpen rocm-core)
 endif()
