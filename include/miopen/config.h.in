@@ -125,8 +125,8 @@ char* generateFlagValue(MIOPEN_CMP_Flags_t x);
 // This will read the ROCM Base Install Path if it is already generated
 // or (if required), will generate the MIOPEN Compiler Flag Path Values
 // and return the value.
-#define GET_MIOPEN_CMP_FLAGS(X)((MIOPEN_CMP_FLAGS[X][0] != 0) ? MIOPEN_CMP_FLAGS[X] \
-                                                                   : generateFlagValue(X))
+#define GET_MIOPEN_CMP_FLAGS(X) \
+    ((MIOPEN_CMP_FLAGS[X][0] != 0) ? MIOPEN_CMP_FLAGS[X] : generateFlagValue(X))
 #cmakedefine MIOPEN_AMDGCN_ASSEMBLER GET_MIOPEN_CMP_FLAGS(MIOPEN_AMDGCN_Flag)
 #cmakedefine HIP_OC_COMPILER GET_MIOPEN_CMP_FLAGS(MIOPEN_OC_COMPILER_Flag)
 #cmakedefine MIOPEN_HIP_COMPILER GET_MIOPEN_CMP_FLAGS(MIOPEN_HIP_COMPILER_Flag)
