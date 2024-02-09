@@ -259,7 +259,13 @@ set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT (MIOPEN_USE_COMGR AND (MIOPEN_hip
 option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MIOPEN_USE_HIPRTC_DEFAULT})
 
 # WORKAROUND_SWDEV_413293
+# Assume that any HIP kernel can be launched with non-uniform block size; otherwise
+# the "Failed to launch kernel: invalid argument" error may happen at run time.
+# References: SWDEV-413293 and https://reviews.llvm.org/D155213 effective HIP_FLAT_VERSION 500723302 on Linux.
+# This may lead to perf drops in the future therefore https://github.com/ROCm/MIOpen/issues/2708 is opened.
 if(HAS_HIP)
+    # HIP version is unreliable on Windows and on Fedora, so we use compiler flag detection,
+    # if this is possible. See issue 2734 and PR 2719.
     check_cxx_compiler_flag("-x hip -fno-offload-uniform-block" MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK)
 else()
     # CXX compiler is not HIP compiler, let's analyze HIP version.

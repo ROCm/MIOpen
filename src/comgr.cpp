@@ -1003,15 +1003,9 @@ void BuildAsm(const std::string& name,
 
 #define WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H 1 // See SWDEV-307838, issue #1648.
 #define WORKAROUND_ISSUE_1674 (HIP_PACKAGE_VERSION_FLAT >= 5003022305ULL)
-/// No assumption that HIP kernels are launched with uniform block size for backward compatibility
-/// SWDEV-413293 and https://reviews.llvm.org/D155213 effective HIP_FLAT_VERSION 500723302
-#ifndef _WIN32
-#define WORKAROUND_SWDEV_413293 (HIP_PACKAGE_VERSION_FLAT >= 5007023302ULL)
-#else
-/// Do not use on Windows. Compiler error message:
-///     '-fno-offload-uniform-block' - unknown command line option
-#define WORKAROUND_SWDEV_413293 0
-#endif
+
+// See WORKAROUND_SWDEV_413293 in ./CmakeLists.txt
+#define WORKAROUND_SWDEV_413293 MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK
 
 namespace hiprtc {
 
@@ -1286,7 +1280,7 @@ void BuildHip(const std::string& name,
         opts.push_back("-Wno-cuda-compat");
         opts.push_back("-fno-gpu-rdc");
         opts.push_back("-O3");
-#if WORKAROUND_SWDEV_413293 && MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK
+#if WORKAROUND_SWDEV_413293
         opts.push_back("-fno-offload-uniform-block");
 #endif
         if(std::none_of(opts.begin(), opts.end(), [](const std::string& s) {
