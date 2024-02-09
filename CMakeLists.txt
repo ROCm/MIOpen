@@ -485,8 +485,7 @@ if(MIOPEN_USE_ROCBLAS)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocblas")
 endif()
 
-if(BUILD_COMPILER_PATHS_V2)
-    message(STATUS "Package Dependency with rocm-core for getROCmInstallPath() API")
+if(MIOPEN_OFFLINE_COMPILER_PATHS_V2)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocm-core")
 endif()
 
