@@ -1318,7 +1318,7 @@ void BuildHip(const std::string& name,
         opts.push_back("-Wno-cuda-compat");
         opts.push_back("-fno-gpu-rdc");
         opts.push_back("-O3");
-#if WORKAROUND_SWDEV_413293
+#if WORKAROUND_SWDEV_413293 && MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK
         opts.push_back("-fno-offload-uniform-block");
 #endif
         if(std::none_of(opts.begin(), opts.end(), [](const std::string& s) {
