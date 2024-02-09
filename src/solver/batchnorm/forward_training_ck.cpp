@@ -156,7 +156,7 @@ bool BnCKFwdTraining::IsApplicable(const ExecutionContext& context,
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = context;
-    std::ignore = fdesc_problem;
+    std::ignore = bn_problem;
     return false;
 #else
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_BN_FWD_TRAINING{}))
@@ -183,6 +183,7 @@ bool BnCKFwdTraining::IsApplicable(const ExecutionContext& context,
 #endif
 }
 
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 template <typename XDataType,
           typename YDataType,
           typename AccDataType,
@@ -209,6 +210,7 @@ ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& 
                                  CKArgsBNormFwdTraining,
                                  miopen::batchnorm::InvokeParams>(bn_problem, kernel_id);
 }
+#endif
 
 ConvSolution BnCKFwdTraining::GetSolution(
     [[maybe_unused]] const ExecutionContext& context,
