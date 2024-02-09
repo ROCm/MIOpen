@@ -43,25 +43,45 @@ constexpr inline S Ceil(const T val, const T div)
 {
     return (val - 1 + div) / div;
 }
+
+constexpr uint32_t nextPow2(uint32_t v)
+{
+    if(v == 1)
+    {
+        return (v << 1);
+    }
+    else
+    {
+        v--;
+        v |= v >> 1;
+        v |= v >> 2;
+        v |= v >> 4;
+        v |= v >> 8;
+        v |= v >> 16;
+        v++;
+        return v;
+    }
+}
 } // namespace
 
 bool AttnSoftmax::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                                const miopen::softmax::ProblemDescription& problem) const
 {
-    return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_SOFTMAX)) && //
-           problem.GetXDesc().GetStrides().front() <=
-               std::numeric_limits<uint32_t>::max() &&          // c * h * w
-           problem.GetAlgorithm() == MIOPEN_SOFTMAX_ACCURATE && //
-           problem.IsForward() &&                               //
-           problem.GetXDesc().IsPacked() &&                     //
-           problem.GetYDesc().IsPacked() &&                     //
-           problem.GetXDesc().GetType() == miopenFloat &&       //
-           problem.GetYDesc().GetType() == miopenFloat &&       //
-           problem.GetMode() == MIOPEN_SOFTMAX_MODE_INSTANCE && //
-           float_equal(problem.GetAlpha(), 1.0f) &&             //
-           float_equal(problem.GetBeta(), 0.f);
+    const size_t seq_len = problem.GetXDesc().GetStrides().front(); // c * h * w
+    const size_t nhs     = problem.GetXDesc().GetLengths().front(); // n
 
-    ;
+    return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_SOFTMAX)) && //
+           seq_len <= std::numeric_limits<uint32_t>::max() &&     //
+           problem.GetAlgorithm() == MIOPEN_SOFTMAX_ACCURATE &&   //
+           problem.IsForward() &&                                 //
+           problem.GetXDesc().IsPacked() &&                       //
+           problem.GetYDesc().IsPacked() &&                       //
+           problem.GetXDesc().GetType() == miopenFloat &&         //
+           problem.GetYDesc().GetType() == miopenFloat &&         //
+           problem.GetMode() == MIOPEN_SOFTMAX_MODE_INSTANCE &&   //
+           float_equal(problem.GetAlpha(), 1.0f) &&               //
+           float_equal(problem.GetBeta(), 0.f) &&                 //
+           (seq_len > 16 || nhs <= 1024);                         // heuristic
 }
 
 std::size_t AttnSoftmax::GetWorkspaceSize(
@@ -80,8 +100,10 @@ ConvSolution AttnSoftmax::GetSolution(const ExecutionContext& context,
     uint32_t seq_len = problem.GetXDesc().GetStrides().front(); // c * h * w
     uint64_t nhs     = problem.GetXDesc().GetLengths().front(); // n
 
-    size_t local_threads  = 128; // add better heuristic
-    size_t global_threads = std::min<size_t>(8192, nhs) * local_threads;
+    auto warpSize = context.GetStream().GetWavefrontWidth();
+
+    size_t local_threads  = std::clamp<size_t>(nextPow2(seq_len), warpSize, 256);
+    size_t global_threads = nhs * local_threads;
 
     KernelBuildParameters build_params = KernelBuildParameters{{"THREADS", local_threads}};
 
@@ -90,8 +112,6 @@ ConvSolution AttnSoftmax::GetSolution(const ExecutionContext& context,
     kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
     kernel.kernel_file = "MIOpenSoftmaxAttn.cpp";
-
-    auto warpSize = context.GetStream().GetWavefrontWidth();
 
     kernel.kernel_name = seq_len > local_threads ? "SoftMaxCommon"
                          : seq_len > warpSize    ? "SoftMaxBlock"
