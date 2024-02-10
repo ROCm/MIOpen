@@ -1,16 +1,45 @@
-.. miopen documentation master file, created by
-   sphinx-quickstart on Thu Jun 15 12:09:40 2017.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. meta::
+  :description: MIOpen documentation and API reference library
+  :keywords: MIOpen, ROCm, API, documentation
 
-Welcome to MIOpen
-=================
-**Advanced Micro Devices's open source deep learning library.**
+.. _MIOpen-docs-home:
 
-Sources and binaries can be found at `MIOpen's GitHub site <https://github.com/ROCm/MIOpen>`_.
+********************************************************************
+MIOpen documentation
+********************************************************************
 
-Indices and tables
-==================
+Welcome to the MIOpen docs home page! To learn more, see :ref:`what-is-MIOpen`
 
-* :ref:`genindex`
-* :ref:`search`
+Our documentation is structured as follows:
+
+.. grid:: 1 2 2 3
+  :gutter: 3
+
+  .. grid-item-card::  :ref:`API reference <reference>`
+
+    * :ref:`datatypes`
+    * :ref:`handle`
+    * :ref:`device-stream-manage`
+    * :ref:`tensor`
+    * :ref:`activation`
+
+    * :ref:`convolution`
+    * :ref:`rnn`
+    * :ref:`batchnorm`
+    * :ref:`lrn`
+    * :ref:`pooling
+
+    * :ref:`softmax`
+    * :ref:`fusion`
+    * :ref:`loss`
+    * :ref:`dropout`
+    * :ref:`reduction``
+ 
+    * :ref:layernorm`
+    * :ref:`sum`
+   
+    * :doc:`API library <../doxygen/html/index>`
+
+  ..  grid-item-card:: :ref:`tutorials-index`
+
+    * :ref:`install`
