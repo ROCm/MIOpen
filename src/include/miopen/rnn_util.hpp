@@ -188,19 +188,19 @@ struct GruWeightOffsets
     {
     }
 
-    int input_offset(int layer)
+    int input_offset(int layer) const
     {
         return layer == 0 ? 0
-                          : first_layer_offset() +
-                                (h_vec_sz + h_vec_sz * bi_scale) * bi_stride * (layer - 1);
+                          : static_cast<size_t>(in_vec_sz + h_vec_sz +
+                                                (h_vec_sz + h_vec_sz * bi_scale) * (layer - 1)) *
+                                bi_stride;
     }
 
-    int hidden_offset(int layer, RnnDirection direction)
+    int hidden_offset(int layer, RnnDirection direction) const
     {
-        return layer == 0 ? input_offset(layer) + in_vec_sz * bi_stride +
-                                static_cast<size_t>(direction) * weight_stride * h_vec_sz
-                          : input_offset(layer) + h_vec_sz * bi_stride * bi_scale +
-                                static_cast<size_t>(direction) * weight_stride * h_vec_sz;
+        return static_cast<size_t>((in_vec_sz + (h_vec_sz + h_vec_sz * bi_scale) * (layer)) *
+                                   bi_stride) +
+               static_cast<size_t>(direction) * weight_stride * h_vec_sz;
     }
 
     size_t bias_stride() const { return (size_t)matrixes::Count * h_vec_sz * bi_scale; }
@@ -232,7 +232,6 @@ private:
         C     = 2,
         Count = 3
     };
-    int first_layer_offset() const { return (in_vec_sz + h_vec_sz) * weight_stride * bi_scale; }
 };
 
 struct GRUOffsets
@@ -262,7 +261,8 @@ public:
 
     size_t ht_offset(int layer, int batch_num, RnnDirection direction) const
     {
-        return gemm_write_offset(layer, batch_num, direction) + ht_offset();
+        return gemm_write_offset(layer, batch_num, RnnDirection::Forward) + ht_offset() +
+               static_cast<size_t>(direction) * hidden_size;
     }
     size_t ht_act_offset(int layer, int batch_num, RnnDirection direction) const
     {
@@ -278,7 +278,7 @@ public:
 
     int r_offset(int layer, int batch_num, RnnDirection direction) const
     {
-        return gemm_write_offset(layer, batch_num, direction) + static_cast<size_t>(save_point::R) * hidden_size;
+        return gemm_write_offset(layer, batch_num, direction) + r_offset();
     }
 
     int r_act_offset(int layer, int batch_num, RnnDirection direction) const
@@ -293,7 +293,7 @@ public:
 
     int z_offset(int layer, int batch_num, RnnDirection direction) const
     {
-        return gemm_write_offset(layer, batch_num, direction) + static_cast<size_t>(save_point::Z) * hidden_size;
+        return gemm_write_offset(layer, batch_num, direction) + z_offset();
     }
 
     size_t c_offset(int layer, int batch_num, RnnDirection direction) const
@@ -309,7 +309,7 @@ public:
 private:
     int activated_offset() const { return layer_stride() * num_layers; }
     size_t network_stride() const { return layer_stride() * num_layers; }
-    int c_offset() const { return save_point::С * hidden_size; }
+    int c_offset() const { return save_point::C * hidden_size; }
     int z_offset() const { return save_point::Z * hidden_size; }
     int r_offset() const { return save_point::R * hidden_size; }
     size_t ht_offset() const { return (size_t)save_point::Ht * gemm_write_size(); }
@@ -320,7 +320,7 @@ private:
     {
         Z     = 0,
         R     = 1,
-        С     = 2,
+        C     = 2,
         Ht    = 3,
         Count = 4
     };
