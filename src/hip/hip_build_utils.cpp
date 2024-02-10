@@ -57,7 +57,7 @@ char MIOPEN_CMP_FLAGS[MIOPEN_CMP_MAX_Flag][PATH_MAX_LEN] = {0};
 // This flag Paths are expected to be deprecated/modified in upcoming MAJOR Releases.
 char* generateFlagValue(MIOPEN_CMP_Flags_t x)
 {
-    char* flagPath = (char*)0;
+    char* flagPath   = (char*)0;
     unsigned int len = 0;
     if(MIOPEN_CMP_MAX_Flag <= x)
     {
@@ -79,7 +79,7 @@ char* generateFlagValue(MIOPEN_CMP_Flags_t x)
     return (char*)&(MIOPEN_CMP_FLAGS[x]);
 }
 
-#endif // MIOPEN_USE_COMPILER_PATHS_V2
+#endif // MIOPEN_OFFLINE_COMPILER_PATHS_V2
 
 namespace miopen {
 
