@@ -110,11 +110,6 @@ typedef enum
     MIOPEN_CMP_MAX_Flag         = 4 // Should be last Flag definition
 } MIOPEN_CMP_Flags_t;
 
-// Global variable prototype of List to hold the Compiler Flag Paths
-// The definition of this variable expected to be available in C/C++
-// code of the Target Library
-extern char MIOPEN_CMP_FLAGS[MIOPEN_CMP_MAX_Flag][PATH_MAX_LEN];
-
 // APIs to get MIOPEN Compiler Paths generated using ROCM Base install Path
 // This will read the ROCM Base Install Path if it is already generated
 // or (if required), will generate the MIOPEN Compiler Flag Path Values
