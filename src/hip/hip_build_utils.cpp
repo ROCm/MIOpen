@@ -85,7 +85,7 @@ static char* generateCompilerPathValue(MIOPEN_CMP_Flags_t x)
 // API to get MIOPEN AMD GCN Assembler Path Values.
 const char* getAMDGCNAssemblerPath()
 {
-    MIOPEN_CMP_Flags_t x=MIOPEN_AMDGCN_Flag;
+    MIOPEN_CMP_Flags_t x          = MIOPEN_AMDGCN_Flag;
     static const std::string path = generateCompilerPathValue(x);
     return path.c_str();
 }
@@ -93,7 +93,7 @@ const char* getAMDGCNAssemblerPath()
 // API to get MIOPEN OpenCL Compiler Path Values.
 const char* getOpenCLCompilerPath()
 {
-    MIOPEN_CMP_Flags_t x=MIOPEN_OC_COMPILER_Flag;
+    MIOPEN_CMP_Flags_t x          = MIOPEN_OC_COMPILER_Flag;
     static const std::string path = generateCompilerPathValue(x);
     return path.c_str();
 }
@@ -101,7 +101,7 @@ const char* getOpenCLCompilerPath()
 // API to get MIOPEN HIP Compiler Path Values.
 const char* getHIPCompilerPath()
 {
-    MIOPEN_CMP_Flags_t x=MIOPEN_HIP_COMPILER_Flag;
+    MIOPEN_CMP_Flags_t x          = MIOPEN_HIP_COMPILER_Flag;
     static const std::string path = generateCompilerPathValue(x);
     return path.c_str();
 }
@@ -109,7 +109,7 @@ const char* getHIPCompilerPath()
 // API to get MIOPEN Compiler Offload Bundler bin Path Values.
 const char* getOffloadBundlerBinPath()
 {
-    MIOPEN_CMP_Flags_t x=MIOPEN_OFFLOAD_BUNDLER_Flag;
+    MIOPEN_CMP_Flags_t x          = MIOPEN_OFFLOAD_BUNDLER_Flag;
     static const std::string path = generateCompilerPathValue(x);
     return path.c_str();
 }

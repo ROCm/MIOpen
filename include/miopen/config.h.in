@@ -119,9 +119,9 @@ const char* getOpenCLCompilerPath();
 const char* getHIPCompilerPath();
 const char* getOffloadBundlerBinPath();
 
-#cmakedefine MIOPEN_AMDGCN_ASSEMBLER   getAMDGCNAssemblerPath()
-#cmakedefine HIP_OC_COMPILER           getOpenCLCompilerPath()
-#cmakedefine MIOPEN_HIP_COMPILER       getHIPCompilerPath()
+#cmakedefine MIOPEN_AMDGCN_ASSEMBLER getAMDGCNAssemblerPath()
+#cmakedefine HIP_OC_COMPILER getOpenCLCompilerPath()
+#cmakedefine MIOPEN_HIP_COMPILER getHIPCompilerPath()
 #cmakedefine MIOPEN_OFFLOADBUNDLER_BIN getOffloadBundlerBinPath()
 #else
 #cmakedefine MIOPEN_AMDGCN_ASSEMBLER "@MIOPEN_AMDGCN_ASSEMBLER@"
