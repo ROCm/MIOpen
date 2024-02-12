@@ -88,7 +88,7 @@ auto GetTestCases(std::string precision)
 
 using TestCase = decltype(GetTestCases({}))::value_type;
 
-class ConfigWithFloat : public testing::TestWithParam<std::vector<TestCase>>
+class ConfigWithFloat_lstm_extra : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -109,7 +109,7 @@ void Run2dDriver(miopenDataType_t prec)
     {
         GTEST_SKIP();
     }
-    std::vector<std::string> params = ConfigWithFloat::GetParam();
+    std::vector<std::string> params = ConfigWithFloat_lstm_extra::GetParam();
 
     for(const auto& test_value : params)
     {
@@ -130,6 +130,8 @@ void Run2dDriver(miopenDataType_t prec)
 } // namespace lstm_extra
 using namespace lstm_extra;
 
-TEST_P(ConfigWithFloat, FloatTest_lstm_extra) { Run2dDriver(miopenFloat); };
+TEST_P(ConfigWithFloat_lstm_extra, FloatTest_lstm_extra) { Run2dDriver(miopenFloat); };
 
-INSTANTIATE_TEST_SUITE_P(LstmExtra, ConfigWithFloat, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(LstmExtra,
+                         ConfigWithFloat_lstm_extra,
+                         testing::Values(GetTestCases("--float")));
