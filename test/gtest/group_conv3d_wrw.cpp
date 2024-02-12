@@ -24,76 +24,14 @@
  *
  *******************************************************************************/
 #include <gtest/gtest.h>
-#include <miopen/miopen.h>
-#include <miopen/solver_id.hpp>
-#include <serialize.hpp>
 
-#include "tensor_util.hpp"
-#include "get_handle.hpp"
-#include "group_conv3d_wrw.hpp"
+#include "group_conv.hpp"
 
-struct ConvWrwSolverTest3D : ConvWrwSolverTest<float>
-{
-};
+using namespace group_conv;
 
-template <typename Solver>
-void SolverWrw(const miopen::TensorDescriptor& inputDesc,
-               ConstData_t input, // x
-               const miopen::TensorDescriptor& wDesc,
-               Data_t weight, // w
-               const miopen::TensorDescriptor& outputDesc,
-               ConstData_t output, // dy
-               const miopen::ConvolutionDescriptor& convDesc,
-               const Conv3DTestCase& conv_config,
-               bool& test_skipped)
-{
-
-    auto&& handle = get_handle();
-
-    Solver solv{};
-
-    const auto tensors =
-        miopen::ConvWrwTensors{outputDesc, output, inputDesc, input, wDesc, weight};
-
-    const auto problem = miopen::conv::ProblemDescription{
-        inputDesc, wDesc, outputDesc, convDesc, miopen::conv::Direction::BackwardWeights};
-    auto ctx = miopen::ExecutionContext{};
-
-    ctx.SetStream(&handle);
-
-    if(!solv.IsApplicable(ctx, problem))
-    {
-        test_skipped = true;
-        GTEST_SKIP() << solv.SolverDbId()
-                     << "ConvHipImplicitGemm3DGroupWrwXdlops Not Applicable for this problem"
-                     << conv_config;
-    }
-    const auto invoke_params = miopen::conv::WrWInvokeParams{tensors, nullptr, 0, false};
-    ASSERT_TRUE(solv.IsApplicable(ctx, problem));
-    auto sol = solv.GetSolution(ctx, problem, solv.GetDefaultPerformanceConfig(ctx, problem));
-    ASSERT_TRUE(sol.Succeeded());
-    ASSERT_TRUE(sol.invoker_factory);
-    const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
-    (invoker)(handle, invoke_params);
-    handle.Finish();
-}
-
-TEST_P(ConvWrwSolverTest3D, CKGroupConvWrw3D)
-{
-    SolverWrw<miopen::solver::conv::ConvHipImplicitGemm3DGroupWrwXdlops>(input.desc,
-                                                                         in_dev.get(),
-                                                                         weights.desc,
-                                                                         wei_dev.get(),
-                                                                         output.desc,
-                                                                         out_dev.get(),
-                                                                         conv_desc,
-                                                                         conv_config,
-                                                                         test_skipped);
-}
-
-INSTANTIATE_TEST_SUITE_P(
-    ConvWrwTest,
-    ConvWrwSolverTest3D,
-    testing::Combine(testing::Values(miopenConvolutionBwdWeightsAlgoImplicitGEMM),
-                     testing::ValuesIn(ConvTestConfigs()),
-                     testing::Values(miopenTensorNDHWC)));
+DEFINE_GROUP_CONV3D_TEST(float, BackwardWeights);
+/// \todo Debug issues: some tests skipped due to IsApplicable returning false.
+/// One test has ref output with NaNs
+// DEFINE_GROUP_CONV3D_TEST(half, BackwardWeights);
+/// \todo int8_t tests don't work. Need debugging
+// DEFINE_GROUP_CONV3D_TEST(int8_t, BackwardWeights);

@@ -1530,6 +1530,26 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
             const std::vector<size_t> hcy_dst_stride{
                 static_cast<size_t>(hidden_size * max_batch), static_cast<size_t>(hidden_size), 1};
 
+            if(in_n.at(0) < max_batch)
+            {
+                float beta = 0.;
+                const std::vector<size_t> zero_set_size{1,
+                                                        static_cast<size_t>(max_batch - in_n.at(0)),
+                                                        static_cast<size_t>(hidden_size)};
+                auto set_batch_offset = in_n.at(0) * hidden_size;
+
+                auto set_desc =
+                    miopen::TensorDescriptor(wDesc.GetType(), zero_set_size, hcy_dst_stride);
+                if(hy != nullptr)
+                {
+                    SetTensor(handle, set_desc, hy, &beta, hcy_layer_offset + set_batch_offset);
+                }
+                if(cy != nullptr)
+                {
+                    SetTensor(handle, set_desc, cy, &beta, hcy_layer_offset + set_batch_offset);
+                }
+            }
+
             for(int time_i = seq_len - 1; time_i >= 0; time_i--)
             {
                 auto copy_batch = (time_i == seq_len - 1) ? in_n.at(time_i)
@@ -6354,18 +6374,17 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
     // dinput
     if(inputMode == miopenRNNskip)
     {
-        sp_size[1] = batch_n;
-        sp_size[2] = hy_h;
-        x_size[1]  = batch_n;
-        x_size[2]  = hy_h;
-        x_desc     = miopen::TensorDescriptor(rnn_data_type, x_size, x_stride);
-        sp_desc    = miopen::TensorDescriptor(rnn_data_type, sp_size, sp_stride);
+        const std::vector<int> dx_size{1, batch_n, hy_h};
+        x_desc  = miopen::TensorDescriptor(rnn_data_type, dx_size, x_stride);
+        sp_desc = miopen::TensorDescriptor(rnn_data_type, dx_size, sp_stride);
 
         alpha0 = 1;
         alpha1 = 1;
         beta_t = 0;
 
-        for(int gi = 0; gi < nHiddenTensorsPerLayer * bi; gi++)
+        CopyTensor(handle, sp_desc, workSpace, x_desc, dx, 0, 0, true);
+        profileRNNkernels(handle, 1, ctime);
+        for(int gi = 1; gi < nHiddenTensorsPerLayer * bi; gi++)
         {
             OpTensor(handle,
                      miopenTensorOpAdd,

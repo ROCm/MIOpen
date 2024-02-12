@@ -23,25 +23,78 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/miopen.h>
 #ifndef GUARD_MIOPEN_LAYERNORM_DRIVER_HPP
 #define GUARD_MIOPEN_LAYERNORM_DRIVER_HPP
 
+#include <../test/tensor_holder.hpp>
+#include <../test/verify.hpp>
 #include "InputFlags.hpp"
 #include "driver.hpp"
-#include "mloLayerNormHost.hpp"
+#include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
-#include <../test/verify.hpp>
 #include <algorithm>
-#include <cstdlib>
 #include <cfloat>
+#include <cstdlib>
 #include <memory>
 #include <miopen/tensor.hpp>
 #include <numeric>
 #include <vector>
-#include <../test/tensor_holder.hpp>
-#include "random.hpp"
+
+template <typename Tgpu, typename Tcheck>
+int32_t mloLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
+                                   Tgpu* input,
+                                   Tgpu* weight,
+                                   Tgpu* bias,
+                                   Tcheck* outputhost,
+                                   Tcheck* meanhost,
+                                   Tcheck* rstdhost,
+                                   float eps,
+                                   int32_t normalized_dim,
+                                   miopenNormMode_t mode)
+{
+    auto dims         = miopen::deref(inputDesc).GetLengths();
+    size_t outer_size = 1;
+    size_t inner_size = 1;
+
+    for(size_t i = 0ULL; i < dims.size(); ++i)
+    {
+        if(i < normalized_dim)
+            outer_size *= dims[i];
+        else
+            inner_size *= dims[i];
+    }
+
+    int32_t ret = 0;
+
+    for(int32_t o = 0; o < outer_size; o++)
+    {
+        Tcheck pmean = 0.0f;
+        Tcheck pvar  = 0.0f;
+        for(int32_t i = 0; i < inner_size; i++)
+        {
+            Tcheck tmp = static_cast<Tcheck>(input[o * inner_size + i]);
+            pmean += tmp;
+            pvar += tmp * tmp;
+        }
+
+        pmean        = pmean / inner_size;
+        pvar         = pvar / inner_size - pmean * pmean;
+        Tcheck prstd = 1.0f / sqrt(pvar + eps);
+
+        meanhost[o] = pmean;
+        rstdhost[o] = prstd;
+
+        for(int32_t i = 0; i < inner_size; i++)
+        {
+            Tcheck pweight = mode ? static_cast<Tcheck>(weight[i]) : 1;
+            Tcheck pbias   = mode ? static_cast<Tcheck>(bias[i]) : 0;
+            outputhost[o * inner_size + i] =
+                (static_cast<Tcheck>(input[o * inner_size + i]) - pmean) * prstd * pweight + pbias;
+        }
+    }
+    return ret;
+}
 
 template <typename Tgpu, typename Tref>
 class LayerNormDriver : public Driver
@@ -119,7 +172,7 @@ private:
 
     float eps;
     int dim;
-    miopenLayerNormMode_t mode;
+    miopenNormMode_t mode;
 };
 
 template <typename Tgpu, typename Tref>
@@ -161,7 +214,7 @@ int LayerNormDriver<Tgpu, Tref>::GetandSetData()
     SetTensorNd(rstdDesc, outer_len, data_type);
 
     eps  = static_cast<double>(inflags.GetValueDouble("eps"));
-    mode = miopenLayerNormMode_t(inflags.GetValueInt("mode"));
+    mode = miopenNormMode_t(inflags.GetValueInt("mode"));
 
     return 0;
 }
@@ -177,7 +230,7 @@ int LayerNormDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
 
     inflags.AddInputFlag("eps", 'e', "0.00001", "Alpha (Default=0.00001)", "double");
-    inflags.AddInputFlag("nomalized_dim", 'o', "3", "Nomalized Dim (Default=3)", "int");
+    inflags.AddInputFlag("normalized_dim", 'o', "3", "Nomalized Dim (Default=3)", "int");
     inflags.AddInputFlag(
         "mode", 'm', "0", "elemwise affine mode (0), weight and bias mode (1) (Default=0)", "int");
 
@@ -219,6 +272,10 @@ std::vector<int> LayerNormDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
         dim_size = 2;
         return std::vector<int>({in_n, in_w});
     }
+    else if(in_n != 0)
+    {
+        return std::vector<int>({in_n});
+    }
     else
     {
         std::cout << "Error Input Tensor Lengths\n" << std::endl;
@@ -255,13 +312,13 @@ int LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     meanhost = std::vector<Tref>(mean_sz, static_cast<Tref>(0));
     rstdhost = std::vector<Tref>(rstd_sz, static_cast<Tref>(0));
 
-    int status;
-
     for(int i = 0; i < in_sz; i++)
     {
         in[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
     }
-    status = in_dev->ToGPU(q, in.data());
+
+    if(in_dev->ToGPU(GetStream(), in.data()) != 0)
+        std::cerr << "Error copying (in) to GPU, size: " << in_dev->GetSize() << std::endl;
 
     for(int i = 0; i < weight_sz; i++)
     {
@@ -270,7 +327,9 @@ int LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         else
             weight[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
     }
-    status |= weight_dev->ToGPU(q, weight.data());
+
+    if(weight_dev->ToGPU(GetStream(), weight.data()) != 0)
+        std::cerr << "Error copying (weight) to GPU, size: " << weight_dev->GetSize() << std::endl;
 
     for(int i = 0; i < bias_sz; i++)
     {
@@ -279,14 +338,17 @@ int LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         else
             bias[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
     }
-    status |= bias_dev->ToGPU(q, bias.data());
+    if(bias_dev->ToGPU(GetStream(), bias.data()) != 0)
+        std::cerr << "Error copying (bias) to GPU, size: " << bias_dev->GetSize() << std::endl;
 
-    status |= out_dev->ToGPU(q, out.data());
-    status |= mean_dev->ToGPU(q, mean.data());
-    status |= rstd_dev->ToGPU(q, rstd.data());
+    if(out_dev->ToGPU(GetStream(), out.data()) != 0)
+        std::cerr << "Error copying (out) to GPU, size: " << out_dev->GetSize() << std::endl;
 
-    if(status != 0)
-        std::cout << "Error copying data to GPU\n" << std::endl;
+    if(mean_dev->ToGPU(GetStream(), mean.data()) != 0)
+        std::cerr << "Error copying (mean) to GPU, size: " << mean_dev->GetSize() << std::endl;
+
+    if(rstd_dev->ToGPU(GetStream(), rstd.data()) != 0)
+        std::cerr << "Error copying (rstd) to GPU, size: " << rstd_dev->GetSize() << std::endl;
 
     return miopenStatusSuccess;
 }
@@ -331,16 +393,25 @@ int LayerNormDriver<Tgpu, Tref>::RunForwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            printf("Wall-clock Time Forward LayerNorm Elapsed: %f ms\n", t.gettime_ms() / iter);
+            std::cout << "Wall-clock Time Forward LayerNorm Elapsed: " << t.gettime_ms() / iter
+                      << " ms\n";
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        printf("GPU Kernel Time Forward LayerNorm Elapsed: %f ms\n", kernel_average_time);
+        std::cout << "GPU Kernel Time Forward LayerNorm Elapsed: " << kernel_average_time
+                  << " ms\n";
     }
 
-    out_dev->FromGPU(GetStream(), out.data());
-    mean_dev->FromGPU(GetStream(), mean.data());
-    rstd_dev->FromGPU(GetStream(), rstd.data());
+    if(out_dev->FromGPU(GetStream(), out.data()) != 0)
+        std::cerr << "Error copying (out_dev) from GPU, size: " << out_dev->GetSize() << std::endl;
+
+    if(mean_dev->FromGPU(GetStream(), mean.data()) != 0)
+        std::cerr << "Error copying (mean_dev) from GPU, size: " << mean_dev->GetSize()
+                  << std::endl;
+
+    if(rstd_dev->FromGPU(GetStream(), rstd.data()) != 0)
+        std::cerr << "Error copying (rstd_dev) from GPU, size: " << rstd_dev->GetSize()
+                  << std::endl;
 
     return miopenStatusSuccess;
 }
@@ -371,19 +442,14 @@ int LayerNormDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 Tref LayerNormDriver<Tgpu, Tref>::GetTolerance()
 {
-    if(data_type == miopenHalf)
-    {
-        return 1e-3;
-    }
-    else if(data_type == miopenFloat)
-    {
-        return 5e-5;
-    }
-    else if(data_type == miopenBFloat16)
-    {
-        return 5e-3;
-    }
-    return 0;
+    // Computation error of fp16 is ~2^13 (=8192) bigger than
+    // the one of fp32 because mantissa is shorter by 13 bits.
+    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
+
+    // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+    if(std::is_same<Tgpu, bfloat16>::value)
+        tolerance *= 8.0;
+    return tolerance;
 }
 
 template <typename Tgpu, typename Tref>
@@ -395,34 +461,39 @@ int LayerNormDriver<Tgpu, Tref>::VerifyForward()
 
     if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Forward LayerNorm FAILED: " << error << std::endl;
+        std::cout << "Forward LayerNorm FAILED: " << error << " > " << tolerance << std::endl;
         return EC_VerifyFwd;
     }
     else
     {
-        printf("Forward LayerNorm Verifies on CPU and GPU (err=%f)\n", error);
+        std::cout << "Forward LayerNorm Verifies OK on CPU reference (" << error << " < "
+                  << tolerance << ')' << std::endl;
     }
 
     auto meanerror = miopen::rms_range(meanhost, mean);
     if(!std::isfinite(meanerror) || meanerror > tolerance)
     {
-        std::cout << "Forward LayerNorm mean FAILED: " << meanerror << std::endl;
+        std::cout << "Forward Layernorm mean FAILED: " << meanerror << " > " << tolerance
+                  << std::endl;
         return EC_VerifyFwd;
     }
     else
     {
-        printf("Forward LayerNorm mean Verifies on CPU and GPU (err=%f)\n", meanerror);
+        std::cout << "Forward LayerNorm mean Verifies OK on CPU reference (" << error << " < "
+                  << tolerance << ')' << std::endl;
     }
 
     auto rstderror = miopen::rms_range(rstdhost, rstd);
     if(!std::isfinite(rstderror) || rstderror > tolerance)
     {
-        std::cout << "Forward LayerNorm rstd FAILED: " << rstderror << std::endl;
+        std::cout << "Forward LayerNorm rstd FAILED: " << rstderror << " > " << tolerance
+                  << std::endl;
         return EC_VerifyFwd;
     }
     else
     {
-        printf("Forward LayerNorm rstd Verifies on CPU and GPU (err=%f)\n", rstderror);
+        std::cout << "Forward LayerNorm rstd Verifies OK on CPU reference (" << rstderror << " < "
+                  << tolerance << ')' << std::endl;
     }
 
     return miopenStatusSuccess;

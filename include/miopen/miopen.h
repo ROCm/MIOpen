@@ -65,6 +65,9 @@
  * @defgroup TensorReduce
  * @defgroup find2
  * @defgroup sum
+ * @defgroup argmax
+ * @defgroup groupnorm
+ * @defgroup cat
  *
  */
 
@@ -465,7 +468,7 @@ typedef enum
 } miopenLRNMode_t;
 #ifdef MIOPEN_BETA_API
 /*! @ingroup layernorm
- * @enum miopenLayerNormMode_t
+ * @enum miopenNormMode_t
  * LayerNorm mode
  */
 typedef enum
@@ -473,7 +476,7 @@ typedef enum
     MIOPEN_ELEMENTWISE_AFFINE = 0, /*!< initialized to ones for weights and zeros for biases */
     MIOPEN_WEIGHT_BIAS =
         1, /*!< learnable weights and biases of the module of shape normalized_shape */
-} miopenLayerNormMode_t;
+} miopenNormMode_t;
 #endif
 /*! @ingroup batchnorm
  * @enum miopenBatchNormMode_t
@@ -649,7 +652,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptor(
 
 /*! @brief Set shape of ND tensor with specific layout
  *
- * Interface for setting N-D tensor shape. This interface support NHWC, NCHW, NCHWc*, CHWNc*
+ * Interface for setting N-D packed tensor shape. This interface support NHWC, NCHW, NCHWc*, CHWNc*
  * @param tensorDesc   Tensor descriptor (input/output)
  * @param dataType     MIOpen datatype (input)
  * @param tensorLayout Tensor layout (input)
@@ -665,7 +668,10 @@ miopenSetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
                                       int num_lens);
 /*! @brief Set shape and stride of 4D tensor
  *
- * Interface for setting 4-D tensor shape and stride.
+ * Interface for setting 4-D tensor shape and stride. It allows to create the non-packed tensor.
+ * A non-packed tensor refers to the tensor where the elements are not compressed or packed in any
+ * specific way. Each element in the tensor is stored individually, and there is no special
+ * compression applied to the storage.
  *
  * @param tensorDesc Tensor descriptor (input/output)
  * @param dataType   MIOpen datatype (input)
@@ -719,8 +725,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_
 
 /*! @brief Set shape of N-dimensional tensor
  *
- * Interface for setting tensor shape. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of
- * layout.
+ * Interface for setting non-packed tensor shape.
  * @param tensorDesc   Tensor descriptor (input/output)
  * @param dataType     MIOpen datatype (input)
  * @param nbDims       Number of dimensions in the dimsA array (input)
@@ -1731,6 +1736,14 @@ miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
  * The scaling parameter alpha (float) and shift parameter beta (float) are only supported for
  * alpha = 1 and beta = 0.
  *
+ * The forward convolution is designed to accommodate both packed and non-packed tensor strides for
+ * multiple data types and dimensions across various platforms. This flexibility ensures optimal
+ * performance in handling diverse computational scenarios. To configure tensor parameters,
+ * including strides, users can utilize the APIs miopenSetTensorDescriptor() and
+ * miopenGetTensorDescriptor(). These APIs empower developers to seamlessly set and retrieve tensor
+ * information, facilitating a more intuitive and efficient workflow. The tensor strides are
+ * non-packed by default.
+ *
  * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
  * this.
  *
@@ -1875,6 +1888,14 @@ miopenFindConvolutionBackwardDataAlgorithm(miopenHandle_t handle,
  * determine the required memory needed for the workspace and the best convolutional
  * algorithm.
  *
+ * The backward data convolution is designed to accommodate both packed and non-packed tensor
+ * strides for multiple data types and dimensions across various platforms. This flexibility ensures
+ * optimal performance in handling diverse computational scenarios. To configure tensor parameters,
+ * including strides, users can utilize the APIs miopenSetTensorDescriptor() and
+ * miopenGetTensorDescriptor(). These APIs empower developers to seamlessly set and retrieve tensor
+ * information, facilitating a more intuitive and efficient workflow. The tensor strides are
+ * non-packed by default.
+ *
  * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
  * this.
  *
@@ -1998,6 +2019,14 @@ miopenFindConvolutionBackwardWeightsAlgorithm(miopenHandle_t handle,
  * miopenFindConvolutionBackwardWeightsAlgorithm() must have
  * been executed previously to determine the required memory needed for the workspace and the
  * best convolutional algorithm.
+ *
+ * The backward weights convolution is designed to accommodate both packed and non-packed tensor
+ * strides for multiple data types and dimensions across various platforms. This flexibility ensures
+ * optimal performance in handling diverse computational scenarios. To configure tensor parameters,
+ * including strides, users can utilize the APIs miopenSetTensorDescriptor() and
+ * miopenGetTensorDescriptor(). These APIs empower developers to seamlessly set and retrieve tensor
+ * information, facilitating a more intuitive and efficient workflow. The tensor strides are
+ * non-packed by default.
  *
  * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
  * this.
@@ -2511,7 +2540,7 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lr
  * @return               miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
-                                                    miopenLayerNormMode_t mode,
+                                                    miopenNormMode_t mode,
                                                     const miopenTensorDescriptor_t xDesc,
                                                     const void* x,
                                                     const miopenTensorDescriptor_t weightDesc,
@@ -2529,6 +2558,35 @@ MIOPEN_EXPORT miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT LAYERNORM DOXYGEN GROUP
+#endif
+
+#ifdef MIOPEN_BETA_API
+// Cat APIs
+/** @addtogroup cat
+ *
+ *  @{
+ */
+/*! @brief Execute a cat forward layer
+ *
+ * @param handle         MIOpen handle (input)
+ * @param xCount         Number of input tensor x (input)
+ * @param xDescs         Tensor descriptor of input tensor x (input)
+ * @param xs             Source data tensor x (input)
+ * @param yDesc          Tensor descriptor of output tensor y (input)
+ * @param y              Data tensor y (output)
+ * @param dim            Concatenation dimension (input)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenCatForward(miopenHandle_t handle,
+                                              const int32_t xCount,
+                                              const miopenTensorDescriptor_t* xDescs,
+                                              const void* const* xs,
+                                              const miopenTensorDescriptor_t yDesc,
+                                              void* y,
+                                              const int32_t dim);
+
+/** @} */
+// CLOSEOUT CAT DOXYGEN GROUP
 #endif
 
 // Batch-Normalization APIs
@@ -5601,6 +5659,75 @@ MIOPEN_EXPORT miopenStatus_t miopenSumForward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT SUM DOXYGEN GROUP
+#endif
+
+#ifdef MIOPEN_BETA_API
+
+/*! @ingroup argmax
+ * @brief Find the index of the maximum value of a tensor across dimensions.
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param xDesc                    Tensor descriptor for data input tensor x (input)
+ * @param x                        Data tensor x (input)
+ * @param dim                      Dimensions to reduce argmax. (input)
+ * @param yDesc                    Tensor descriptor for output indice data tensor y (input)
+ * @param y                        Data tensor y (output)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenArgmaxForward(miopenHandle_t handle,
+                                                 const miopenTensorDescriptor_t xDesc,
+                                                 const void* x,
+                                                 const int32_t dim,
+                                                 const miopenTensorDescriptor_t yDesc,
+                                                 void* y);
+
+#endif
+
+#ifdef MIOPEN_BETA_API
+// GroupNorm APIs
+/** @addtogroup groupnorm
+ *
+ *  @{
+ */
+/*! @brief Execute a groupnorm forward layer
+ *
+ * @param handle         MIOpen handle (input)
+ * @param mode           GroupNorm mode (input)
+ * @param xDesc          Tensor descriptor for data input tensor x (input)
+ * @param x              Data tensor x (input)
+ * @param weightDesc     Tensor descriptor for data input tensor weight (input)
+ * @param weight         Data tensor weight (input)
+ * @param biasDesc       Tensor descriptor for data input tensor bias (input)
+ * @param bias           Data tensor bias (input)
+ * @param num_groups     nNmber of groups to separate the channels into (input)
+ * @param epsilon        Value to stablize inverse variance calculation (input)
+ * @param yDesc          Tensor descriptor for output data tensor y (input)
+ * @param y              Data tensor y (output)
+ * @param meanDesc       Tensor descriptor for output data tensor mean (input)
+ * @param mean           Data tensor mean (output)
+ * @param rstdDesc       Tensor descriptor for output data tensor rstd (input)
+ * @param rstd           Data tensor rstd (output)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGroupNormForward(miopenHandle_t handle,
+                                                    miopenNormMode_t mode,
+                                                    const miopenTensorDescriptor_t xDesc,
+                                                    const void* x,
+                                                    const miopenTensorDescriptor_t weightDesc,
+                                                    const void* weight,
+                                                    const miopenTensorDescriptor_t biasDesc,
+                                                    const void* bias,
+                                                    const uint64_t num_groups,
+                                                    const float epsilon,
+                                                    const miopenTensorDescriptor_t yDesc,
+                                                    void* y,
+                                                    const miopenTensorDescriptor_t meanDesc,
+                                                    void* mean,
+                                                    const miopenTensorDescriptor_t rstdDesc,
+                                                    void* rstd);
+
+/** @} */
+// CLOSEOUT groupnorm DOXYGEN GROUP
 #endif
 
 #ifdef __cplusplus

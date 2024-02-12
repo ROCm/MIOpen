@@ -143,7 +143,8 @@ private:
 
     T alpha, beta;
 
-    miopen::GemmDescriptor gemm_desc;
+    miopen::GemmDescriptor gemm_desc = {
+        false, false, false, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.0f, 0.0f, miopenFloat, false};
 };
 
 template <typename T>
@@ -182,17 +183,29 @@ int GemmDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename T>
 int GemmDriver<T>::GetandSetData()
 {
-    gemm_desc.dataType    = data_type;
+    if constexpr(std::is_same_v<T, float>)
+    {
+        gemm_desc.dataType = miopenFloat;
+    }
+    else if constexpr(std::is_same_v<T, float16>)
+    {
+        gemm_desc.dataType = miopenHalf;
+    }
+    else
+    {
+        static_assert(!"unsupported type");
+    }
+
     gemm_desc.a_cast_type = data_type;
     gemm_desc.b_cast_type = data_type;
 
-    gemm_desc.isColMajor = inflags.GetValueInt("isColMajor");
+    gemm_desc.isColMajor = inflags.GetValueInt("isColMajor") != 0;
     gemm_desc.m          = inflags.GetValueInt("a_h");
     gemm_desc.k          = inflags.GetValueInt("a_w");
     gemm_desc.n          = inflags.GetValueInt("b_w");
 
-    gemm_desc.transA = inflags.GetValueInt("transA");
-    gemm_desc.transB = inflags.GetValueInt("transB");
+    gemm_desc.transA = inflags.GetValueInt("transA") != 0;
+    gemm_desc.transB = inflags.GetValueInt("transB") != 0;
 
     gemm_desc.alpha = inflags.GetValueDouble("alpha");
     gemm_desc.beta  = inflags.GetValueDouble("beta");
@@ -213,6 +226,7 @@ int GemmDriver<T>::GetandSetData()
     gemm_desc.strideB = gemm_desc.k * gemm_desc.n;
     gemm_desc.strideC = gemm_desc.m * gemm_desc.n;
 
+    gemm_desc.deterministic = false;
     return (0);
 }
 

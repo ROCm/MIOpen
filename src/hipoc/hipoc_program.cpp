@@ -45,7 +45,9 @@
 #include <mutex>
 #include <sstream>
 
+#if defined(__linux__)
 #include <unistd.h>
+#endif
 
 /// 0 or undef or wrong - auto-detect
 /// 1 - <blank> / "-Xclang -target-feature -Xclang +code-object-v3"
@@ -59,8 +61,6 @@ MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEVICE_ARCH)
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_USE_HIPRTC)
-
-#define MIOPEN_WORKAROUND_ISSUE_1359 1
 
 #if MIOPEN_USE_COMGR
 #define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_27 1
@@ -82,11 +82,7 @@ int DetectCodeObjectOptionSyntax()
 
     if(syntax == 0)
     {
-#if HIP_PACKAGE_VERSION_FLAT >= 4001000000ULL
         return 4;
-#else
-        return 1;
-#endif
     }
     MIOPEN_LOG_I("MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION=" << syntax);
     return syntax;
@@ -104,11 +100,7 @@ int DetectCodeObjectVersion()
 
     if(co_version == 0)
     {
-#if HIP_PACKAGE_VERSION_FLAT >= 4001000000ULL
         return 4;
-#else
-        return 3;
-#endif
     }
     MIOPEN_LOG_I("MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION=" << co_version);
     return co_version;
@@ -153,7 +145,7 @@ inline std::string GetCodeObjectVersionOption()
 } // namespace
 #endif
 
-static hipModulePtr CreateModule(const boost::filesystem::path& hsaco_file)
+static hipModulePtr CreateModule(const fs::path& hsaco_file)
 {
     hipModule_t raw_m;
     auto status = hipModuleLoad(&raw_m, hsaco_file.string().c_str());
@@ -166,22 +158,15 @@ static hipModulePtr CreateModule(const boost::filesystem::path& hsaco_file)
 template <typename T> /// intended for std::string and std::vector<char>
 hipModulePtr CreateModuleInMem(const T& blob)
 {
-#if !MIOPEN_WORKAROUND_ISSUE_1359
     hipModule_t raw_m;
     auto status = hipModuleLoadData(&raw_m, reinterpret_cast<const void*>(blob.data()));
     hipModulePtr m{raw_m};
     if(status != hipSuccess)
         MIOPEN_THROW_HIP_STATUS(status, "Failed loading module");
     return m;
-#else
-    TempFile f("interim-hsaco");
-    WriteFile(blob, f.Path());
-    return CreateModule(f.Path());
-#endif
 }
 
-HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
-                                   const boost::filesystem::path& filespec)
+HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name, const fs::path& filespec)
     : program(program_name), hsaco_file(filespec)
 {
     module = CreateModule(hsaco_file);
@@ -198,12 +183,11 @@ HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name, const std::s
 
 HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
                                    std::string params,
-                                   bool is_kernel_str,
                                    const TargetProperties& target_,
                                    const std::string& kernel_src)
     : program(program_name), target(target_)
 {
-    BuildCodeObject(params, is_kernel_str, kernel_src);
+    BuildCodeObject(params, kernel_src);
     if(!binary.empty())
     {
         module = CreateModuleInMem(binary);
@@ -256,12 +240,12 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
         WriteFile(src, dir->path / filename);
         params += " -target amdgcn-amd-amdhsa -x cl -D__AMD__=1  -O3";
         params += " -cl-kernel-arg-info -cl-denorms-are-zero";
-        params += " -cl-std=CL1.2 -mllvm -amdgpu-early-inline-all";
+        params += " -cl-std=CL2.0 -mllvm -amdgpu-early-inline-all";
         params += " -mllvm -amdgpu-internalize-symbols ";
         params += " " + filename + " -o " + hsaco_file.string();
         dir->Execute(HIP_OC_COMPILER, params);
     }
-    if(!boost::filesystem::exists(hsaco_file))
+    if(!fs::exists(hsaco_file))
         MIOPEN_THROW("Cant find file: " + hsaco_file.string());
 }
 
@@ -311,19 +295,14 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
 }
 #endif // MIOPEN_USE_COMGR
 
-void HIPOCProgramImpl::BuildCodeObject(std::string params,
-                                       bool is_kernel_str,
-                                       const std::string& kernel_src)
+void HIPOCProgramImpl::BuildCodeObject(std::string params, const std::string& kernel_src)
 {
-    std::string filename = is_kernel_str ? "tinygemm.cl" // Fixed name for miopengemm.
-                                         : program;
+    std::string filename = program;
     const auto src       = [&]() -> std::string {
         if(miopen::EndsWith(filename, ".mlir"))
             return {}; // MLIR solutions do not use source code.
         if(!kernel_src.empty())
             return kernel_src;
-        if(is_kernel_str)
-            return program;
         return GetKernelSrc(program);
     }();
 
@@ -334,8 +313,7 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params,
     }
     else if(miopen::EndsWith(filename, ".cl"))
     {
-        params +=
-            " -Werror" + (is_kernel_str ? MiopengemmWarningsString() : OclKernelWarningsString());
+        params += " -Werror" + OclKernelWarningsString();
     }
 #else
     if(miopen::EndsWith(filename, ".cpp") || miopen::EndsWith(filename, ".cl"))
@@ -352,15 +330,13 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params,
 HIPOCProgram::HIPOCProgram() {}
 HIPOCProgram::HIPOCProgram(const std::string& program_name,
                            std::string params,
-                           bool is_kernel_str,
                            const TargetProperties& target,
                            const std::string& kernel_src)
-    : impl(std::make_shared<HIPOCProgramImpl>(
-          program_name, params, is_kernel_str, target, kernel_src))
+    : impl(std::make_shared<HIPOCProgramImpl>(program_name, params, target, kernel_src))
 {
 }
 
-HIPOCProgram::HIPOCProgram(const std::string& program_name, const boost::filesystem::path& hsaco)
+HIPOCProgram::HIPOCProgram(const std::string& program_name, const fs::path& hsaco)
     : impl(std::make_shared<HIPOCProgramImpl>(program_name, hsaco))
 {
 }
@@ -372,7 +348,7 @@ HIPOCProgram::HIPOCProgram(const std::string& program_name, const std::string& h
 
 hipModule_t HIPOCProgram::GetModule() const { return impl->module.get(); }
 
-boost::filesystem::path HIPOCProgram::GetCodeObjectPathname() const
+fs::path HIPOCProgram::GetCodeObjectPathname() const
 {
     if(!impl->hsaco_file.empty())
     {

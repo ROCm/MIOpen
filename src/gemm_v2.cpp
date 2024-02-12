@@ -40,7 +40,7 @@
 #pragma clang diagnostic ignored "-Wunused-macros"
 #define ROCBLAS_BETA_FEATURES_API 1
 #pragma clang diagnostic pop
-#if !defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL)
+#if !defined(_WIN32)
 #include <half/half.hpp>
 #else
 #include <half.hpp>
@@ -50,7 +50,11 @@
 #else
 #include <rocblas/rocblas.h>
 /// rocblas_gemm_ex3 supports F8 datatypes.
+#ifdef _WIN32
+#define USE_ROCBLAS_GEMM_EX3 ((MIOPEN_ROCBLAS_VERSION_FLAT >= 3000000) && ROCBLAS_BETA_FEATURES_API)
+#else
 #define USE_ROCBLAS_GEMM_EX3 ((MIOPEN_ROCBLAS_VERSION_FLAT >= 2047000) && ROCBLAS_BETA_FEATURES_API)
+#endif
 #endif
 #include <miopen/perf_field.hpp>
 #endif
@@ -115,8 +119,6 @@ static inline rocblas_computetype rocBlasComputeType_ex3(const miopen::GemmDescr
 
 static inline rocblas_datatype rocBlasComputeType(const miopen::GemmDescriptor& desc)
 {
-    // Complex compute types are only supported in newer version of the API
-    assert(desc.dataType == desc.a_cast_type && desc.dataType == desc.b_cast_type);
     if(desc.dataType == miopenInt8)
         return rocblas_datatype::rocblas_datatype_i32_r;
     else
@@ -142,11 +144,11 @@ template <typename T>
 rocblas_status miopen_rocblas_gemm_ex3(const miopen::Handle& handle,
                                        const miopen::GemmDescriptor& gemm_desc,
                                        ConstData_t A,
-                                       int a_offset,
+                                       std::size_t a_offset,
                                        ConstData_t B,
-                                       int b_offset,
+                                       std::size_t b_offset,
                                        Data_t C,
-                                       int c_offset)
+                                       std::size_t c_offset)
 {
     rocblas_status rb_status =
         rocblas_status::rocblas_status_internal_error; // cppcheck-suppress redundantInitialization
@@ -231,11 +233,11 @@ template <typename T>
 rocblas_status miopen_rocblas_gemm_strided_batched_ex3(const miopen::Handle& handle,
                                                        const miopen::GemmDescriptor& gemm_desc,
                                                        ConstData_t A,
-                                                       int a_offset,
+                                                       std::size_t a_offset,
                                                        ConstData_t B,
-                                                       int b_offset,
+                                                       std::size_t b_offset,
                                                        Data_t C,
-                                                       int c_offset)
+                                                       std::size_t c_offset)
 {
     rocblas_status rb_status = rocblas_status::rocblas_status_internal_error;
     // Until there is a batched counter part to the ex3 rocBlas call we need to iterate over the
@@ -366,11 +368,11 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
 miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
                                    GemmDescriptor gemm_desc,
                                    ConstData_t A,
-                                   int a_offset,
+                                   std::size_t a_offset,
                                    ConstData_t B,
-                                   int b_offset,
+                                   std::size_t b_offset,
                                    Data_t C,
-                                   int c_offset,
+                                   std::size_t c_offset,
                                    bool time_precision,
                                    CallGemmType_t call_gemm_type,
                                    GemmBackend_t gemm_backend)
@@ -415,11 +417,11 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
 miopenStatus_t CallGemm(const Handle& handle,
                         GemmDescriptor gemm_desc,
                         ConstData_t A,
-                        int a_offset,
+                        std::size_t a_offset,
                         ConstData_t B,
-                        int b_offset,
+                        std::size_t b_offset,
                         Data_t C,
-                        int c_offset,
+                        std::size_t c_offset,
                         GemmBackend_t gemm_backend)
 {
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
@@ -643,8 +645,7 @@ miopenStatus_t CallGemm(const Handle& handle,
         break;
 
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "miopenDouble data type not supported by MIOpenGEMM.");
+            MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported by rocBLAS.");
         };
         break;
         }
@@ -670,11 +671,11 @@ miopenStatus_t CallGemm(const Handle& handle,
 miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                       GemmDescriptor gemm_desc,
                                       ConstData_t A,
-                                      int a_offset,
+                                      std::size_t a_offset,
                                       ConstData_t B,
-                                      int b_offset,
+                                      std::size_t b_offset,
                                       Data_t C,
-                                      int c_offset,
+                                      std::size_t c_offset,
                                       GemmBackend_t gemm_backend)
 {
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
@@ -918,8 +919,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         }
 
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "miopenDouble data type not supported by MIOpenGEMM.");
+            MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported by rocBLAS.");
         }
         break;
         }
@@ -946,11 +946,11 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                                                 GemmDescriptor gemm_desc,
                                                 ConstData_t A,
-                                                int a_offset,
+                                                std::size_t a_offset,
                                                 ConstData_t B,
-                                                int b_offset,
+                                                std::size_t b_offset,
                                                 Data_t C,
-                                                int c_offset,
+                                                std::size_t c_offset,
                                                 GemmBackend_t gemm_backend)
 {
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
@@ -1191,8 +1191,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         }
 
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "miopenDouble data type not supported by MIOpenGEMM.");
+            MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported by rocBLAS.");
         }
         break;
         }

@@ -86,10 +86,13 @@ set( MIOpen_Source
     activ/problem_description.cpp
     activ_api.cpp
     api/find2_0_commons.cpp
+    argmax_api.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
     buffer_info.cpp
+    cat_api.cpp
+    cat/problem_description.cpp
     check_numerics.cpp
     conv/invokers/gcn_asm_1x1u.cpp
     conv/invokers/gcn_asm_1x1u_ss.cpp
@@ -99,7 +102,7 @@ set( MIOpen_Source
     conv/invokers/impl_gemm_dynamic.cpp
     conv/invokers/ocl_wrw_rdc.cpp
     conv/problem_description.cpp
-        conv/solver_finders.cpp
+    conv/solver_finders.cpp
     conv_algo_name.cpp
     convolution.cpp
     convolution_api.cpp
@@ -118,22 +121,25 @@ set( MIOpen_Source
     fusion.cpp
     fusion/problem_description.cpp
     generic_search.cpp
+    groupnorm_api.cpp
+    groupnorm/problem_description.cpp
     handle_api.cpp
     invoker_cache.cpp
     kernel_build_params.cpp
     kernel_warnings.cpp
     layernorm_api.cpp
+    layernorm/problem_description.cpp
     load_file.cpp
     lock_file.cpp
     logger.cpp
     lrn_api.cpp
-    norm/problem_description.cpp
     op_args.cpp
     operator.cpp
     performance_config.cpp
     pooling/problem_description.cpp
     pooling_api.cpp
     problem.cpp
+    process.cpp
     ramdb.cpp
     readonlyramdb.cpp
     reducetensor.cpp
@@ -143,7 +149,9 @@ set( MIOpen_Source
     rnn_api.cpp
     rnn/rnn_util.cpp
     rnn/Solutions/rnn_transformer.cpp
+    softmax.cpp
     softmax_api.cpp
+    softmax/problem_description.cpp
     solution.cpp
     solver.cpp
     solver/activ/bwd_0.cpp
@@ -163,6 +171,7 @@ set( MIOpen_Source
     solver/batchnorm/forward_spatial_multiple.cpp
     solver/batchnorm/forward_spatial_single.cpp
     solver/batchnorm/forward_training_ck.cpp
+    solver/cat/forward_cat.cpp
     solver/conv_asm_1x1u.cpp
     solver/conv_asm_1x1u_bias_activ_fused.cpp
     solver/conv_asm_1x1u_stride2.cpp
@@ -188,6 +197,7 @@ set( MIOpen_Source
     solver/conv_bin_winoRxS_fused.cpp
     solver/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
     solver/conv_ck_igemm_fwd_bias_activ_fused.cpp
+    solver/conv_ck_igemm_fwd_bias_res_add_activ_fused.cpp
     solver/conv_direct_naive_conv.cpp
     solver/conv_direct_naive_conv_bwd.cpp
     solver/conv_direct_naive_conv_fwd.cpp
@@ -204,6 +214,8 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_fwd_v4r5_xdlops.cpp
     solver/conv_hip_implicit_gemm_fwd_xdlops.cpp
     solver/conv_hip_implicit_gemm_grouped_fwd_xdlops.cpp
+    solver/conv_hip_implicit_gemm_grouped_bwd_xdlops.cpp
+    solver/conv_hip_implicit_gemm_grouped_wrw_xdlops.cpp
     solver/conv_hip_implicit_gemm_3d_grouped_fwd_xdlops.cpp
     solver/conv_hip_implicit_gemm_3d_grouped_wrw_xdlops.cpp
     solver/conv_hip_implicit_gemm_3d_grouped_bwd_xdlops.cpp
@@ -237,17 +249,19 @@ set( MIOpen_Source
     solver/fft.cpp
     solver/gemm.cpp
     solver/gemm_bwd.cpp
-    solver/gemm_common.cpp
     solver/gemm_wrw.cpp
-    solver/norm/forward_layernorm.cpp
-    solver/norm/forward_layernorm2d_ck.cpp
-    solver/norm/forward_layernorm4d_ck.cpp
+    solver/groupnorm/forward_groupnorm.cpp
+    solver/layernorm/forward_layernorm.cpp
+    solver/layernorm/forward_layernorm2d_ck.cpp
+    solver/layernorm/forward_layernorm4d_ck.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
     solver/pooling/backward2d.cpp
     solver/pooling/backwardNd.cpp
+    solver/reduce/forward_argmax.cpp
     solver/reduce/forward_sum.cpp
+    solver/softmax/softmax.cpp
     subbuffers.cpp
     sum_api.cpp
     target_properties.cpp
@@ -380,23 +394,27 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_stride1.inc
         kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_stride2.inc
         kernels/Conv_Winograd_v30_3_1_metadata.inc
-        kernels/xform_bidirect_winograd_code.inc
-        kernels/rocm_version.inc
-        kernels/inst_wrappers.inc
+        kernels/bfloat16_dev.hpp
         kernels/conv_common.inc
+        kernels/conv_sizes.inc
+        kernels/float_types.h
+        kernels/gpr_alloc.inc
+        kernels/hip_f8_impl.hpp
+        kernels/hip_float8.hpp
+        kernels/inst_wrappers.inc
+        kernels/miopen_cstdint.hpp
+        kernels/miopen_limits.hpp
+        kernels/miopen_type_traits.hpp
+        kernels/miopen_utility.hpp
+        kernels/neuron.inc
+        kernels/rocm_version.inc
+        kernels/stride_array.hpp
         kernels/utilities.inc
+        kernels/workaround_issue_1431.hpp
+        kernels/xform_bidirect_winograd_code.inc
         kernels/xform_data_filter.inc
         kernels/xform_kd_cov2.inc
         kernels/xform_metadata.inc
-        kernels/neuron.inc
-        kernels/conv_sizes.inc
-        kernels/gpr_alloc.inc
-        kernels/bfloat16_dev.hpp
-        kernels/float_types.h
-        kernels/workaround_issue_1431.hpp
-        kernels/hip_f8_impl.hpp
-        kernels/hip_float8.hpp
-        kernels/stride_array.hpp
         )
 
     set(MIOPEN_KERNELS
@@ -408,7 +426,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${GPU_REFERENCE_KERNEL_ASM}
         ${GPU_BATCHED_TRANSPOSE_KERNEL_HIP}
         ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_SOURCE}
-        kernels/detect_llvm_amdgcn_buffer_atomic_fadd_f32_float.cpp
+        kernels/MIOpenArgmax.cpp
+        kernels/MIOpenCat.cpp
         kernels/MIOpenCheckNumerics.cpp
         kernels/MIOpenBatchNormActivBwdPerAct.cl
         kernels/MIOpenBatchNormActivBwdSpatial.cl
@@ -423,6 +442,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirUni.cl
         kernels/MIOpenConvDirBatchNormActiv.cl
         kernels/MIOpenConvDirGenFwd.cl
+        kernels/MIOpenGroupNorm.cpp
         kernels/MIOpenLayerNorm.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
@@ -543,6 +563,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
     list(APPEND MIOpen_Source
         activ.cpp
+        argmax.cpp
+        cat.cpp
+        groupnorm.cpp
         kernel_cache.cpp
         layer_norm.cpp
         lrn.cpp
@@ -555,7 +578,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/mloNorm.cpp
         ocl/pooling_ocl.cpp
         ocl/tensorocl.cpp
-        ocl/softmaxocl.cpp
         ocl/rnnocl.cpp
         ocl/utilocl.cpp
         ocl/ctcocl.cpp
@@ -711,50 +733,43 @@ if(MIOPEN_USE_COMPOSABLEKERNEL)
 set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_other_operations composable_kernel::device_gemm_operations composable_kernel::device_conv_operations composable_kernel::device_contraction_operations composable_kernel::device_reduction_operations hip::host)
 endif()
 
-target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
-target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
-# Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS} 
-#               We can remove ${CMAKE_DL_LIBS} once root cause is identified.
-target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} Threads::Threads ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
-miopen_generate_export_header(MIOpen)
-
-if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
-        find_path(FDEEP_INCLUDE_DIR "fdeep/fdeep.hpp")
-        if(${FDEEP_INCLUDE_DIR} STREQUAL "FDEEP_INCLUDE_DIR-NOTFOUND")
-            if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
-                message(FATAL_ERROR "MIOPEN_ENABLE_AI_KERNEL_TUNING requirement frugally-deep not found")
-            endif()
-            if(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
-                message(FATAL_ERROR "MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK requirement frugally-deep not found")
-            endif()
-        endif()
-
-        find_path(EIGEN_INCLUDE_DIR "eigen3/Eigen/Core")
-        if(${EIGEN_INCLUDE_DIR} STREQUAL "EIGEN_INCLUDE_DIR-NOTFOUND")
-            if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
-                message(FATAL_ERROR "MIOPEN_ENABLE_AI_KERNEL_TUNING requirement Eigen not found")
-            endif()
-            if(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
-                message(FATAL_ERROR "MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK requirement frugally-deep not found")
-            endif()
-        endif()
-
-        target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${FDEEP_INCLUDE_DIR}>)
-        target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${EIGEN_INCLUDE_DIR}/eigen3>)
-        if(NOT BUILD_DEV)
-            file(GLOB MODEL_FILES kernels/*.model)
-            if( NOT ENABLE_ASAN_PACKAGING )
-              install(FILES ${MODEL_FILES} DESTINATION ${DATA_INSTALL_DIR}/db)
-            endif ()
-            foreach(MODEL_FILE ${MODEL_FILES})
-                get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
-                configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${MODEL_FILE_FILENAME}" COPYONLY)
-            endforeach()
-        endif()
+if(WIN32)
+    # Refer to https://en.cppreference.com/w/cpp/language/types for details.
+    target_compile_options(MIOpen PRIVATE $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:Clang>:-U__LP64__>>)
 endif()
 
-set(PACKAGE_DEPENDS)
-set(PACKAGE_STATIC_DEPENDS)
+target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
+# Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS}
+#               We can remove ${CMAKE_DL_LIBS} once root cause is identified.
+target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} Threads::Threads BZip2::BZip2 ${MIOPEN_CK_LINK_FLAGS})
+miopen_generate_export_header(MIOpen)
+
+if(BUILD_TESTING)
+    # On Windows, export all symbols only when tests are built, too.
+    # The officially released binaries must not have internals exposed
+    # because it violates threat model requirements.
+    # The property applies only to MS-compatible tools on Windows, and
+    # is ignored for the rest.
+    set_target_properties(MIOpen PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
+
+if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
+    target_link_libraries(MIOpen PRIVATE frugally-deep::fdeep Eigen3::Eigen)
+    if(NOT TARGET nlohmann_json)
+        # frugally-deep has broken linking to nlohmann_json
+        add_library(nlohmann_json INTERFACE IMPORTED GLOBAL)
+        target_link_libraries(nlohmann_json INTERFACE nlohmann_json::nlohmann_json)
+    endif()
+    file(GLOB MODEL_FILES CONFIGURE_DEPENDS kernels/*.model)
+    if(NOT ENABLE_ASAN_PACKAGING )
+        install(FILES ${MODEL_FILES} DESTINATION ${DATABASE_INSTALL_DIR})
+    endif()
+    foreach(MODEL_FILE ${MODEL_FILES})
+        get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
+	configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${MODEL_FILE_FILENAME}" COPYONLY)
+    endforeach()
+endif()
+
 ############################################################
 # MIOpen depends on OpenCL
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
@@ -765,9 +780,16 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
 elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     target_link_libraries( MIOpen PRIVATE hip::device )
     target_link_libraries( MIOpen INTERFACE hip::host )
+    if(MIOPEN_USE_HIPRTC)
+        if(WIN32) 
+            target_link_libraries( MIOpen PRIVATE hiprtc::hiprtc )
+        else()
+            target_link_libraries( MIOpen PRIVATE hiprtc)
+        endif()
+    endif()
     if(ENABLE_HIP_WORKAROUNDS)
         # Workaround hip not setting its usage requirements correctly
-        target_compile_definitions( MIOpen PRIVATE -D__HIP_PLATFORM_HCC__=1 )
+        target_compile_definitions( MIOpen PRIVATE -D__HIP_PLATFORM_AMD__=1 )
     endif()
     # This is helpful for the tests
     target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:hip::device> )
@@ -826,12 +848,7 @@ endif()
 #######################################
 if(MIOPEN_ENABLE_SQLITE)
     # MIOpen depends on SQLite
-    target_include_directories(MIOpen SYSTEM PRIVATE ${SQLITE3_STATIC_INCLUDE_DIRS})
-    target_include_directories(MIOpen SYSTEM INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_INCLUDE_DIRS}>)
-    target_compile_options(MIOpen PRIVATE ${SQLITE3_STATIC_CFLAGS})
-    target_compile_options(MIOpen INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_CFLAGS}>)
-    target_link_libraries(MIOpen PRIVATE ${SQLITE3_STATIC_LDFLAGS})
-    target_link_libraries(MIOpen INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_LDFLAGS}>)
+    target_link_libraries(MIOpen PRIVATE SQLite::SQLite3)
 endif()
 ############################################################
 # MIOpen depends on librt for Boost.Interprocess
@@ -843,7 +860,7 @@ if(NOT WIN32 AND NOT APPLE)
     endif()
 endif()
 
-if(NOT WIN32)
+if(MIOPEN_USE_ROCTRACER)
     target_link_libraries(MIOpen PRIVATE roctx64)
 endif()
 
@@ -877,19 +894,18 @@ if(NOT MIOPEN_EMBED_DB STREQUAL "")
         if(MIOPEN_NO_LFS_PULLED)
             message(WARNING "Binary cache files have not been pulled down from git-lfs, will not embed.")
         else()
-            set(MIOPEN_BINCACHE_PATH "${CMAKE_SOURCE_DIR}/src/kernels")
+            set(MIOPEN_BINCACHE_PATH ${KERNELS_BINARY_DIR})
             message("MIOPEN_BINCACHE_PATH: ${MIOPEN_BINCACHE_PATH}")
         endif()
     else()
         message(WARNING "MIOPEN_EMBED_BINCACHE is set and MIOPEN_BINCACHE_PATH was used to override default binary cache files. Proceed at your own risk!")
     endif()
-    set(CODE_OBJECTS)
 # embed find db
     foreach(EMBED_ARCH ${MIOPEN_EMBED_DB})
         message(STATUS "Adding find db for arch: ${EMBED_ARCH}")
-        list(APPEND CODE_OBJECTS "kernels/${EMBED_ARCH}.${MIOPEN_BACKEND}.fdb.txt")
+        list(APPEND CODE_OBJECTS "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${EMBED_ARCH}.${MIOPEN_BACKEND}.fdb.txt")
         message(STATUS "Adding perf db for arch: ${EMBED_ARCH}")
-        list(APPEND CODE_OBJECTS "kernels/${EMBED_ARCH}.db")
+        list(APPEND CODE_OBJECTS "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${EMBED_ARCH}.db")
     endforeach()
 # Embed Bin Cache
     if(NOT MIOPEN_BINCACHE_PATH STREQUAL "")
@@ -901,28 +917,6 @@ if(NOT MIOPEN_EMBED_DB STREQUAL "")
     endif()
     add_embed_library(miopen_data ${CODE_OBJECTS})
     target_link_libraries(MIOpen PRIVATE $<BUILD_INTERFACE:miopen_data> )
-else()
-    file(GLOB FIND_DB_FILES kernels/*.fdb.txt)
-    file(GLOB PERF_DB_FILES kernels/*.db)
-    file(GLOB KERN_DB_FILES kernels/*.kdb)
-    list(APPEND FIND_DB_FILES ${PERF_DB_FILES})
-# Install the kdb files for the kdb sync test only, a better approach would be to 
-# install the kdb package instead
-if(MIOPEN_TEST_DBSYNC)
-    list(APPEND FIND_DB_FILES ${KERN_DB_FILES})
-endif()
-    if(NOT MIOPEN_DISABLE_SYSDB)
-        if( NOT ENABLE_ASAN_PACKAGING )
-          install(FILES
-              ${FIND_DB_FILES}
-           DESTINATION ${DATA_INSTALL_DIR}/db)
-         endif()
-         foreach(DB_FILE ${FIND_DB_FILES})
-            get_filename_component(DB_FILE_FILENAME "${DB_FILE}" NAME)
-            configure_file("${DB_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${DB_FILE_FILENAME}" COPYONLY)
-         endforeach()
-
-    endif()
 endif()
 
 if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)

@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #include <miopen/sum.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
@@ -47,7 +48,7 @@ static void LogCmdSum(const miopenTensorDescriptor_t xDesc,
         }
         else if(dtype == miopenBFloat16)
         {
-            ss << "sumbf16";
+            ss << "sumbfp16";
         }
 
         int32_t size = {0};
@@ -89,7 +90,7 @@ extern "C" miopenStatus_t miopenGetSumWorkspaceSize(miopenHandle_t handle,
                                                     size_t* sizeInBytes)
 {
 
-    MIOPEN_LOG_FUNCTION(handle, xDesc, dim, yDesc, sizeInBytes);
+    MIOPEN_LOG_FUNCTION(handle, xDesc, dim, yDesc);
 
     return miopen::try_([&] {
         miopen::deref(sizeInBytes) = miopen::GetSumWorkspaceSize(

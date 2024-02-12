@@ -32,7 +32,7 @@
 #if MIOPEN_EMBED_DB
 #include <miopen_data.hpp>
 #endif
-#include <boost/filesystem.hpp>
+#include <miopen/filesystem.hpp>
 #include <string>
 #include <vector>
 
@@ -40,7 +40,8 @@ namespace miopen {
 
 namespace debug {
 
-bool testing_find_db_enabled = true; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+MIOPEN_EXPORT bool testing_find_db_enabled = true;
 
 /// \todo Remove when #1723 is resolved.
 boost::optional<std::string>& testing_find_db_path_override()
@@ -58,7 +59,6 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathEmbed(Handle& handle,
                                                        const std::string& path_suffix)
 {
     static const auto embed_path = [&] {
-        namespace fs          = boost::filesystem;
         const std::string ext = ".fdb.txt";
         const auto root_path  = fs::path(GetSystemDbPath());
         const auto base_name  = handle.GetDbBasename();
@@ -126,14 +126,13 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle,
                                                       const std::string& path_suffix)
 {
     static const auto installed_path = [&] {
-        namespace fs          = boost::filesystem;
         const std::string ext = ".fdb.txt";
         const auto root_path  = fs::path(GetSystemDbPath());
         const auto base_name  = handle.GetDbBasename();
         const auto suffix =
             GetSystemFindDbSuffix() + (path_suffix.empty() ? "" : ('.' + path_suffix));
         const auto file_path = root_path / (base_name + "." + suffix + ext);
-        if(boost::filesystem::exists(file_path))
+        if(fs::exists(file_path))
         {
             MIOPEN_LOG_I2("Found exact find database file: " + file_path.string());
             return file_path.string();

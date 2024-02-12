@@ -31,8 +31,6 @@
 #include <miopen/gemm_v2.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/kernel.hpp>
-#include <miopen/rocm_features.hpp>
-#include <miopen/solver/gemm_common.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/util.hpp>
@@ -42,11 +40,6 @@
 #include <boost/range/adaptors.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
-
-/// MIOpenGEMM issues with ROCm 3.7, most likely related to the
-/// issues in the OpenCL compiler. Not reproducible in ROCm 4.0.
-#define WORKAROUND_MIOPENGEMM_ROCM37 \
-    (MIOPEN_USE_MIOPENGEMM && HIP_PACKAGE_VERSION_MAJOR == 3 && HIP_PACKAGE_VERSION_MINOR == 7)
 
 namespace miopen {
 namespace solver {
@@ -84,8 +77,9 @@ static inline bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
 bool GemmFwdBase::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
-    if(conv::gemm::IsWorkaroundIssue1315(ctx))
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
+
     const auto& xDesc = problem.GetIn();
     const auto& wDesc = problem.GetWeights();
     const auto& yDesc = problem.GetOut();
@@ -1024,43 +1018,6 @@ bool GemmFwdRest::IsApplicable(const ExecutionContext& context,
 #if MIOPEN_USE_GEMM
     if(!GemmFwdBase::IsApplicable(context, problem))
         return false;
-
-#if WORKAROUND_MIOPENGEMM_ROCM37
-    {
-        decltype(auto) conv  = problem.GetConv();
-        decltype(auto) xDesc = problem.GetIn();
-        decltype(auto) wDesc = problem.GetWeights();
-
-        const auto spatial_dim  = conv.GetSpatialDimension();
-        const auto& in_spatial  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
-        const auto& wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
-
-        const auto in_c = xDesc.GetLengths()[1];
-
-        if(conv.GetSpatialDimension() == 2 && conv.group_count == 4 && in_c == 4 &&
-           in_spatial[0] == 161 && in_spatial[1] == 700 && wDesc.GetLengths()[0] == 32 &&
-           wDesc.GetLengths()[1] == 1 && wei_spatial[0] == 5 && wei_spatial[1] == 20 &&
-           miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
-           miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }) &&
-           miopen::all_of(conv.GetConvDilations(), [](auto v) { return v == 1; }))
-            return false;
-    }
-#endif
-#if WORKAROUND_MIOPENGEMM_SINCE_ROCM41
-    {
-        decltype(auto) conv  = problem.GetConv();
-        decltype(auto) xDesc = problem.GetIn();
-        decltype(auto) wDesc = problem.GetWeights();
-
-        const std::size_t spatial_dim = conv.GetSpatialDimension();
-        const auto in_spatial  = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
-        const auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
-
-        if(miopen::any_of(in_spatial, [](auto v) { return v >= 161; }) &&
-           miopen::any_of(wei_spatial, [](auto v) { return v >= 7; }))
-            return false;
-    }
-#endif
 
     // Todo: This is a rest-of kind of logic. Should be revised later.
     if(GemmFwd1x1_0_1{}.IsApplicable(context, problem))

@@ -24,12 +24,16 @@
  *
  *******************************************************************************/
 #pragma once
+
+#include "miopen_cstdint.hpp"
+
 #ifndef MIOPEN_ENABLE_F8_DEVICE_CODE
 #define MIOPEN_ENABLE_F8_DEVICE_CODE 0
 #endif
 
 // FP8 header version 0.4, 2021/05/11
-#if defined __HIP_PLATFORM_HCC__ && MIOPEN_ENABLE_F8_DEVICE_CODE
+// Updated by atamazov 2023/12/22
+#if defined __HIP_PLATFORM_AMD__ && MIOPEN_ENABLE_F8_DEVICE_CODE
 // MIOpen by default does not have device code in the regular compilation paths,
 // therefore, when this file is used from the host side, compilation takes much
 // longer. By guarding the __device__ directive we can control that such compilation
@@ -474,11 +478,18 @@ inline MIOPEN_HIP_HOST_DEVICE bool operator>(const miopen_f8::hip_f8<T>& lhs,
 template <miopen_f8::hip_f8_type T>
 inline MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<T> fabs(miopen_f8::hip_f8<T> v)
 {
+#if !MIOPEN_FP8_IEEE_EXPONENT_BIAS
+    // Preserve "universal" nan.
+    // Otherwise it will be converted to valid 0.
+    if(v.data == 0x80)
+        return v;
+#endif
     v.data = v.data & 0x7f;
     return v;
 }
+
 template <class T>
-MIOPEN_HIP_HOST_DEVICE T F8_Max()
+MIOPEN_HIP_HOST_DEVICE T Generate(uint8_t bits)
 {
     union
     {
@@ -486,7 +497,7 @@ MIOPEN_HIP_HOST_DEVICE T F8_Max()
         T value;
     } x;
 
-    x.bits = 0x7F;
+    x.bits = bits;
     return x.value;
 }
 
@@ -496,25 +507,39 @@ class numeric_limits<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>
 public:
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> epsilon()
     {
-        return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(float(0.0625));
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(
+            MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x20 : 0x28); // 0.125
     }
 
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> quiet_NaN()
     {
-        return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(
-            static_cast<uint8_t>(miopen_f8::get_hip_f8_bias_mode() ? 0X80 : 0x79));
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(
+            MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x7c : 0x80);
+    }
+
+    static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> signaling_NaN()
+    {
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(
+            MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x79 : 0x80);
     }
 
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> max()
     {
-        return miopen_f8::F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>();
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(
+            MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x77 : 0x7f); // 240
     }
 
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> min()
     {
-        return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(-1.0f) *
-               miopen_f8::F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>();
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(0x08);
     }
+
+    static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> denorm_min()
+    {
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(0x01);
+    }
+
+    static constexpr int digits = 4;
 };
 
 template <>
@@ -523,39 +548,57 @@ class numeric_limits<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>
 public:
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> epsilon()
     {
-        return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(float(0.125));
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(
+            MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x34 : 0x38); // 0.25
     }
 
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> quiet_NaN()
     {
-        return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(
-            static_cast<uint8_t>(miopen_f8::get_hip_f8_bias_mode() ? 0X80 : 0x7d));
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(
+            MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x7e : 0x80);
+    }
+
+    static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> signaling_NaN()
+    {
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(
+            MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x7d : 0x80);
     }
 
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> max()
     {
-        return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(
-            miopen_f8::F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>());
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(
+            MIOPEN_FP8_IEEE_EXPONENT_BIAS ? 0x7b : 0x7f); // 57344
     }
+
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> min()
     {
-        return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(-1.0f) *
-               miopen_f8::F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>();
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(0x04);
     }
+
+    static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> denorm_min()
+    {
+        return miopen_f8::Generate<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(0x01);
+    }
+
+    static constexpr int digits = 3;
 };
 
 } // namespace miopen_f8
 
-#ifndef __HIPCC_RTC__
+#ifdef __HIPCC_RTC__
+// Assume that if hipRTC is used, then we get <cmath> for F8
+// from the precompiled header.
+#else
+// NOLINTBEGIN(cert-dcl58-cpp)
 namespace std {
 inline bool isfinite(miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> x) // NOLINT
 {
-    return x.is_inf();
+    return !(x.is_inf() || x.is_nan());
 }
 
 inline bool isfinite(miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> x) // NOLINT
 {
-    return x.is_inf();
+    return !(x.is_inf() || x.is_nan());
 }
 
 inline bool isnan(miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> x) // NOLINT
@@ -567,6 +610,16 @@ inline bool isnan(miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> x) // NOLINT
 {
     return x.is_nan();
 }
+
+} // namespace std
+  // NOLINTEND(cert-dcl58-cpp)
+#endif
+
+// NOLINTBEGIN(cert-dcl58-cpp)
+namespace std {
+
+template <typename T>
+class numeric_limits;
 
 template <>
 class numeric_limits<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>
@@ -581,7 +634,7 @@ class numeric_limits<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>
 };
 
 } // namespace std
-#endif
+// NOLINTEND(cert-dcl58-cpp)
 
 template <miopen_f8::hip_f8_type T>
 struct hip_f8x4

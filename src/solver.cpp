@@ -28,9 +28,10 @@
 
 #include <miopen/activ/solvers.hpp>
 #include <miopen/batchnorm/solvers.hpp>
-#include <miopen/pooling/solvers.hpp>
 #include <miopen/fusion/solvers.hpp>
-#include <miopen/norm/solvers.hpp>
+#include <miopen/groupnorm/solvers.hpp>
+#include <miopen/layernorm/solvers.hpp>
+#include <miopen/pooling/solvers.hpp>
 #include <miopen/reduce/solvers.hpp>
 
 #include <miopen/conv_algo_name.hpp>
@@ -71,7 +72,7 @@ std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<Kernel
                     max_threads{GetTuningThreadsMax()},
                     [&](auto i) {
                         const KernelInfo& k = kernels[i];
-                        programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
+                        programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, "");
                     });
     // clang-format on
     ct.Log("PrecompileKernels");
@@ -607,9 +608,11 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdInference{}.SolverDbId());
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKBwdBackward{}.SolverDbId());
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdTraining{}.SolverDbId());
-    Register(registry, ++id, Primitive::Normalization, norm::Layernorm2DCKForward{}.SolverDbId());
-    Register(registry, ++id, Primitive::Normalization, norm::Layernorm4DCKForward{}.SolverDbId());
-    Register(registry, ++id, Primitive::Normalization, norm::LayernormForward{}.SolverDbId());
+    Register(
+        registry, ++id, Primitive::Normalization, layernorm::Layernorm2DCKForward{}.SolverDbId());
+    Register(
+        registry, ++id, Primitive::Normalization, layernorm::Layernorm4DCKForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Normalization, layernorm::LayernormForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Reduce, reduce::SumForward{}.SolverDbId());
     RegisterWithSolver(registry,
                        ++id,
@@ -623,7 +626,22 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        ++id,
                        conv::ConvHipImplicitGemmF16F8F16WrwXdlops{},
                        miopenConvolutionAlgoImplicitGEMM);
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             fusion::ConvCKIgemmFwdBiasResAddActivFused{}.SolverDbId(),
+             miopenConvolutionAlgoImplicitGEMM);
+    Register(registry, ++id, Primitive::Reduce, reduce::ArgmaxForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Normalization, groupnorm::GroupNormForward{}.SolverDbId());
 
+    RegisterWithSolver(registry,
+                       ++id,
+                       conv::ConvHipImplicitGemmGroupBwdXdlops{},
+                       miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry,
+                       ++id,
+                       conv::ConvHipImplicitGemmGroupWrwXdlops{},
+                       miopenConvolutionAlgoImplicitGEMM);
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

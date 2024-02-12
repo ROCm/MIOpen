@@ -37,13 +37,13 @@
 
 #include <functional>
 #include <deque>
-#if !defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL)
+#if !defined(_WIN32)
 #include <half/half.hpp>
 #else
 #include <half.hpp>
 #endif
 #include <type_traits>
-#include <boost/filesystem.hpp>
+#include <miopen/filesystem.hpp>
 #include <miopen/functional.hpp>
 #include <miopen/expanduser.hpp>
 #include <miopen/md5.hpp>
@@ -688,7 +688,8 @@ struct test_driver
                               << out_gpu[gpu_nan_idx] << std::endl;
                 }
             }
-            else if(miopen::range_zero(out_cpu) and miopen::range_zero(out_gpu))
+            else if(miopen::range_zero(out_cpu) and miopen::range_zero(out_gpu) and
+                    (miopen::range_distance(out_cpu) != 0))
             {
                 show_command();
                 std::cout << "Warning: Both CPU and GPU data is all zero" << std::endl;
@@ -738,7 +739,7 @@ struct test_driver
         if(disabled_cache)
             return true;
         auto p = miopen::ExpandUser(cache_path) / ".disabled";
-        return boost::filesystem::exists(p);
+        return miopen::fs::exists(p);
     }
 
     template <class V, class... Ts>
@@ -749,10 +750,10 @@ struct test_driver
             return cpu_async(v, xs...);
         auto key = miopen::get_type_name<V>() + "-" + miopen::md5(get_command_args());
         auto p   = miopen::ExpandUser(cache_path) / std::to_string(cache_version);
-        if(!boost::filesystem::exists(p))
-            boost::filesystem::create_directories(p);
+        if(!miopen::fs::exists(p))
+            miopen::fs::create_directories(p);
         auto f = p / key;
-        if(boost::filesystem::exists(f) and not retry)
+        if(miopen::fs::exists(f) and not retry)
         {
             miss = false;
             return detach_async([=] {
@@ -1241,6 +1242,11 @@ void test_drive_impl_1(std::string program_name, std::vector<std::string> as)
     Driver d{};
     d.program_name = program_name;
 
+    std::cout << program_name << " ";
+    for(const auto& str : as)
+        std::cout << str << " ";
+    std::cout << std::endl;
+
     std::set<std::string> keywords{
         "--help", "-h", "--half", "--float", "--double", "--int8", "--bfloat16"};
     d.parse(keyword_set{keywords});
@@ -1380,7 +1386,7 @@ template <template <class...> class Driver>
 void test_drive(int argc, const char* argv[])
 {
     std::vector<std::string> as(argv + 1, argv + argc);
-    as.emplace_back("--float");
+    // as.emplace_back("--float");
     for(auto&& arg : as)
     {
         if(arg == "--half")

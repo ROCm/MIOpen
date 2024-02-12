@@ -44,11 +44,12 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
-using d_type             = ck::half_t;
-using c_type             = ck::f8_t;
 using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_USE_COMPOSABLEKERNEL
+using d_type = ck::half_t;
+using c_type = ck::f8_t;
+
 template <typename DataType, typename ComputeType>
 using DeviceOpF8Fwd = ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<
     3,
@@ -299,6 +300,8 @@ bool ConvHipImplicitGemmF16F8F16FwdXdlops::IsApplicable(
         return false;
     if(problem.HasNonPackedTensors())
         return false;
+    if(!problem.AllTensorsDimsFitIntoInt())
+        return false;
     if(!problem.IsTensorsCasted())
         return false;
     if(problem.GetConv().attribute.deterministic)
@@ -324,9 +327,9 @@ ConvSolution ConvHipImplicitGemmF16F8F16FwdXdlops::GetSolution(
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmF16F8F16FwdXdlops& config) const
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
-    return MakeInvokerFactory<DeviceOpF8FwdPtrs<ck::half_t, c_type>,
-                              CKArgs,
-                              miopen::conv::DataInvokeParams>(problem, config.kernel_id);
+    return InitInvokerFactoryNHWC<DeviceOpF8FwdPtrs<ck::half_t, c_type>,
+                                  CKArgs,
+                                  miopen::conv::DataInvokeParams>(ctx, problem, config.kernel_id);
 #else
     return {};
 #endif

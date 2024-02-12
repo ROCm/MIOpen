@@ -32,6 +32,8 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
+namespace conv_trans {
+
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
     std::stringstream ss(param);
@@ -41,7 +43,7 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class ConfigWithFloat : public testing::TestWithParam<std::vector<std::string>>
+class ConfigWithFloat_conv_trans : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -51,7 +53,7 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenFloat: params = ConfigWithFloat::GetParam(); break;
+    case miopenFloat: params = ConfigWithFloat_conv_trans::GetParam(); break;
     case miopenHalf:
     case miopenFloat8:
     case miopenBFloat8:
@@ -63,7 +65,7 @@ void Run2dDriver(miopenDataType_t prec)
                   "data type not supported by "
                   "conv_trans test";
 
-    default: params = ConfigWithFloat::GetParam();
+    default: params = ConfigWithFloat_conv_trans::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -93,19 +95,6 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
     else
         return false;
 }
-
-TEST_P(ConfigWithFloat, FloatTest)
-{
-    const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
-    {
-        Run2dDriver(miopenFloat);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
 
 std::vector<std::string> GetTestCases(void)
 {
@@ -150,4 +139,20 @@ std::vector<std::string> GetTestCases(void)
     return test_cases;
 }
 
-INSTANTIATE_TEST_SUITE_P(ConvTrans, ConfigWithFloat, testing::Values(GetTestCases()));
+} // namespace conv_trans
+using namespace conv_trans;
+
+TEST_P(ConfigWithFloat_conv_trans, FloatTest_conv_trans)
+{
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
+    {
+        Run2dDriver(miopenFloat);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(ConvTrans, ConfigWithFloat_conv_trans, testing::Values(GetTestCases()));

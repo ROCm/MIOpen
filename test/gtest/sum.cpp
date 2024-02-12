@@ -23,11 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/env.hpp>
+
 #include "sum.hpp"
+#include <miopen/env.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
+
+namespace sum {
 
 std::string GetFloatArg()
 {
@@ -42,6 +45,9 @@ std::string GetFloatArg()
 struct SumTestFloat : SumTest<float>
 {
 };
+
+} // namespace sum
+using namespace sum;
 
 TEST_P(SumTestFloat, SumTestFw)
 {

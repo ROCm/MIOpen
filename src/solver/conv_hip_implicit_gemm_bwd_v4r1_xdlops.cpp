@@ -31,7 +31,7 @@
 #include <cstddef>
 
 /// Disable ConvHipImplicitGemmBwdDataV4R1Xdlops for FP32 by default.
-/// \ref https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1206.
+/// \ref https://github.com/ROCm/MIOpen/issues/1206.
 #define WORKAROUND_ISSUE_1206 1
 
 #define WORKAROUND_SWDEV_329642 1
@@ -842,6 +842,8 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ExecutionContext& 
     if(!problem.Is2d())
         return false;
     if(problem.HasNonPackedTensors())
+        return false;
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
