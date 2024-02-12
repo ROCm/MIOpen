@@ -87,6 +87,8 @@ set( MIOpen_Source
     activ_api.cpp
     api/find2_0_commons.cpp
     argmax_api.cpp
+    graphapi.cpp
+    graphapi_tensor.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
