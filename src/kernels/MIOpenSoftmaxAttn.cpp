@@ -97,7 +97,7 @@ __device__ float reductionFullWarp(float reduced_val, uint32_t laneId, Op op)
             // __hip_ds_swizzlef_N reference. Menawhile swizzle_op generation
             // must be a part of hip intrinsics, because it depends on ISA
             // like __hip_ds_swizzlef_N<xor_mask, or_mask, and_mask>
-            // NOLINTNEXTLINE(badBitmaskCheck)
+            // NOLINTNEXTLINE
             (xor_msk << xor_off) | (or_msk << or_off) | (and_msk << and_off);
 
         tmp = __hip_ds_swizzlef_N<swizzle_op>(reduced_val);
