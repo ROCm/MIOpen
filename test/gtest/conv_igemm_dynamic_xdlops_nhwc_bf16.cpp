@@ -30,16 +30,20 @@
 #include "get_handle.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 namespace conv_igemm_dynamic_xdlops_nhwc_bf16 {
 
-static bool SkipTest(void)
+static bool SkipTest(const std::string& float_arg)
 {
-    return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)) ||
-           miopen::IsDisabled(ENV(MIOPEN_TEST_ALL));
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
+        return false;
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
+        if(miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == float_arg)
+            return false;
+    return true;
 }
 
 void SetupEnvVar(void)
@@ -108,7 +112,11 @@ void Run2dDriver(miopenDataType_t prec)
 
 bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
+    const auto target   = handle.GetTargetProperties();
     std::string devName = handle.GetDeviceName();
+    if(target.Xnack() && *target.Xnack())
+        return false;
+
     if(devName == "gfx90a" || miopen::StartsWith(devName, "gfx94"))
         return true;
     else
@@ -200,7 +208,7 @@ using namespace conv_igemm_dynamic_xdlops_nhwc_bf16;
 TEST_P(Conv2dBf16, Bf16Test_conv_igemm_dynamic_xdlops_nhwc_bf16)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    if(IsTestSupportedForDevice(handle) && !SkipTest("--bfloat16"))
     {
         Run2dDriver(miopenBFloat16);
     }
