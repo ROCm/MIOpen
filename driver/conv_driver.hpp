@@ -90,9 +90,15 @@ MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DRIVER_SUBNORM_PERCENTAGE)
 #if MIOPEN_BACKEND_OPENCL
 #define STATUS_SUCCESS CL_SUCCESS
 typedef cl_int status_t;
+typedef cl_context context_t;
+#define DEFINE_CONTEXT(name) context_t name
+typedef cl_command_queue stream;
 #else // MIOPEN_BACKEND_HIP
 #define STATUS_SUCCESS 0
 typedef int status_t;
+typedef uint32_t context_t;
+#define DEFINE_CONTEXT(name) context_t name = 0
+typedef hipStream_t stream;
 #endif
 
 struct AutoMiopenWarmupMode
@@ -186,6 +192,11 @@ static inline miopenDataType_t DataTypeFromShortString(const std::string& type)
 template <typename T>
 bool readBufferFromFile(T* data, size_t dataNumItems, const char* fileName)
 {
+    if(data == nullptr)
+    {
+        printf("Ignored input file %s - no host buffer to copy data to (nullptr)\n", fileName);
+        return false;
+    }
     std::ifstream infile(fileName, std::ios::binary);
     if(infile)
     {
@@ -201,16 +212,50 @@ bool readBufferFromFile(T* data, size_t dataNumItems, const char* fileName)
     }
 }
 
+template <typename Tgpu, typename Tref>
+class ATensor
+{
+    std::unique_ptr<GPUMem> dev;
+    tensor<Tgpu> host;
+
+public:
+    inline tensor<Tgpu>& GetHostTensor() { return host; }
+
+    inline void AllocOnHost(miopenTensorDescriptor_t t) { host = tensor<Tgpu>(miopen::deref(t)); }
+
+    inline Tgpu* GetHostDataPtr() { return host.data.data(); }
+
+    inline void
+    InitHostData(const size_t sz,     //
+                 const bool do_write, // If set to false, then only generate random data. This is
+                                      // necessary to reproduce values in input buffers even if some
+                                      // directions are skipped. For example, inputs for Backward
+                                      // will be the same for both "-F 0" and "-F 2".
+                 std::function<Tgpu()> generator)
+    {
+        for(int i = 0; i < sz; ++i)
+        {
+            /// \ref move_rand
+            auto val = generator();
+            if(do_write)
+                host.data[i] = val;
+        }
+    }
+
+    inline status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz)
+    {
+        dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(Tgpu)));
+        return dev->ToGPU(q, host.data.data());
+    }
+
+    inline auto GetDevicePtr() -> decltype(dev->GetMem()) { return dev->GetMem(); }
+};
+
 // Tgpu and Tref are the data-type in GPU memory and CPU memory respectively.
 // They are not necessarily the same as the computation type on GPU or CPU
 template <typename Tgpu, typename Tref>
 class ConvDriver : public Driver
 {
-#if MIOPEN_BACKEND_OPENCL
-    typedef cl_context context_t;
-#elif MIOPEN_BACKEND_HIP
-    typedef uint32_t context_t;
-#endif
 public:
     ConvDriver() : Driver()
     {
@@ -317,6 +362,8 @@ private:
 
     boost::optional<uint64_t> immediate_solution;
 
+    ATensor<Tgpu, Tref> in;
+
     miopenTensorDescriptor_t inputTensor;
     miopenTensorDescriptor_t weightTensor;
     miopenTensorDescriptor_t outputTensor;
@@ -327,7 +374,6 @@ private:
     miopenTensorDescriptor_t warmupWeightTensor;
     miopenTensorDescriptor_t warmupOutputTensor;
 
-    std::unique_ptr<GPUMem> in_dev;
     std::unique_ptr<GPUMem> in_vect4_dev;
     std::unique_ptr<GPUMem> din_dev;
     std::unique_ptr<GPUMem> wei_dev;
@@ -347,7 +393,6 @@ private:
     std::size_t ws_sizeof_find_wrw;
     std::size_t warmup_ws_sizeof_find;
 
-    tensor<Tgpu> in;
     tensor<Tgpu> wei;
     tensor<Tgpu> out;
     tensor<Tgpu> dout;
@@ -1255,12 +1300,9 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         PadBufferSize(out_sz, sizeof(Tgpu));
     }
 
+    DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
-
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
 #endif
     ws_sizeof_find_fwd = 0;
     ws_sizeof_find_wrw = 0;
@@ -1393,7 +1435,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
 
     if(is_fwd || is_wrw)
-        in = tensor<Tgpu>(miopen::deref(inputTensor));
+        in.AllocOnHost(inputTensor);
     if(is_fwd || is_bwd)
         wei = tensor<Tgpu>(miopen::deref(weightTensor));
     if(is_fwd)
@@ -1433,7 +1475,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     bool dataRead = false;
     if(is_fwd || is_wrw)
         if(!inFileName.empty())
-            dataRead = readBufferFromFile<Tgpu>(in.data.data(), in_sz, inFileName.c_str());
+            dataRead = readBufferFromFile<Tgpu>(in.GetHostDataPtr(), in_sz, inFileName.c_str());
 
     bool weiRead = false;
     if(is_fwd || is_bwd)
@@ -1520,13 +1562,10 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     if(!dataRead)
     {
-        for(int i = 0; i < in_sz; i++)
-        {
-            /// \ref move_rand
-            auto val = is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) : prng::gen_0_to_B(Data_scale);
-            if(is_fwd || is_wrw)
-                in.data[i] = val;
-        }
+        auto gen = [&]() -> Tgpu {
+            return is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) : prng::gen_0_to_B(Data_scale);
+        };
+        in.InitHostData(in_sz, is_fwd || is_wrw, gen);
     }
 
     if(!weiRead)
@@ -1546,7 +1585,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     if(inflags.GetValueInt("dump_output"))
     {
         if(is_fwd || is_wrw)
-            dumpBufferToFile<Tgpu>("dump_in.bin", in.data.data(), in_sz);
+            dumpBufferToFile<Tgpu>("dump_in.bin", in.GetHostDataPtr(), in_sz);
         if(is_fwd || is_bwd)
             dumpBufferToFile<Tgpu>("dump_wei.bin", wei.data.data(), wei_sz);
         if(inflags.GetValueInt("bias") != 0)
@@ -1560,8 +1599,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     if(is_fwd || is_wrw)
     {
-        in_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-        status |= in_dev->ToGPU(q, in.data.data());
+        status |= in.AllocOnDeviceAndInit(q, ctx, in_sz);
     }
     if(is_bwd)
     {
@@ -1634,7 +1672,7 @@ int ConvDriver<Tgpu, Tref>::FindForward(int& ret_algo_count,
     const auto rc = miopenFindConvolutionForwardAlgorithm(
         GetHandle(),
         (is_transform ? inputTensor_vect4 : inputTensor),
-        (is_transform ? in_vect4_dev->GetMem() : in_dev->GetMem()),
+        (is_transform ? in_vect4_dev->GetMem() : in.GetDevicePtr()),
         (is_transform ? weightTensor_vect4 : weightTensor),
         (is_transform ? wei_vect4_dev->GetMem() : wei_dev->GetMem()),
         convDesc,
@@ -1877,7 +1915,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPU()
         miopenTransformTensor(GetHandle(),
                               &aph,
                               inputTensor,
-                              in_dev->GetMem(),
+                              in.GetDevicePtr(),
                               &bta,
                               inputTensor_vect4,
                               in_vect4_dev->GetMem());
@@ -2002,12 +2040,9 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
     // requested, -- so perf-db and find-db are fully updated.
     std::vector<miopenConvAlgoPerf_t> perf_results(request_algo_count);
 
+    DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
-
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
 #endif
 
     auto rc = FindForward(ret_algo_count, request_algo_count, perf_results, ctx);
@@ -2030,7 +2065,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
     wall.start(wall_enabled);
 
     auto in_tens  = (is_transform ? inputTensor_vect4 : inputTensor);
-    auto in_buff  = (is_transform ? in_vect4_dev->GetMem() : in_dev->GetMem());
+    auto in_buff  = (is_transform ? in_vect4_dev->GetMem() : in.GetDevicePtr());
     auto wei_tens = (is_transform ? weightTensor_vect4 : weightTensor);
     auto wei_buff = (is_transform ? wei_vect4_dev->GetMem() : wei_dev->GetMem());
 
@@ -2162,12 +2197,9 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
     if(rc != miopenStatusSuccess)
         return rc;
 
+    DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
-
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
 #endif
 
     auto ws = std::unique_ptr<GPUMem>{ws_size > 0 ? new GPUMem{ctx, ws_size, 1} : nullptr};
@@ -2195,7 +2227,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
             (is_transform ? weightTensor_vect4 : weightTensor),
             (is_transform ? wei_vect4_dev->GetMem() : wei_dev->GetMem()),
             (is_transform ? inputTensor_vect4 : inputTensor),
-            (is_transform ? in_vect4_dev->GetMem() : in_dev->GetMem()),
+            (is_transform ? in_vect4_dev->GetMem() : in.GetDevicePtr()),
             convDesc,
             outputTensor,
             out_dev->GetMem(),
@@ -2248,7 +2280,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardCPU()
         cpu_convolution_backward_data(miopen::deref(convDesc).GetSpatialDimension(),
                                       outhost,
                                       wei,
-                                      in,
+                                      in.GetHostTensor(),
                                       miopen::deref(convDesc).GetConvPads(),
                                       miopen::deref(convDesc).GetConvStrides(),
                                       miopen::deref(convDesc).GetConvDilations(),
@@ -2262,7 +2294,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardCPU()
     else
     {
         cpu_convolution_forward(miopen::deref(convDesc).GetSpatialDimension(),
-                                in,
+                                in.GetHostTensor(),
                                 wei,
                                 outhost,
                                 miopen::deref(convDesc).GetConvPads(),
@@ -2306,7 +2338,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
                                                 weightTensor,
                                                 wei_dev->GetMem(),
                                                 inputTensor,
-                                                in_dev->GetMem(),
+                                                in.GetDevicePtr(),
                                                 convDesc,
                                                 outputTensor,
                                                 out_dev->GetMem(),
@@ -2383,7 +2415,7 @@ int ConvDriver<Tgpu, Tref>::FindBackwardWeights(int& ret_algo_count,
         outputTensor,
         dout_dev->GetMem(),
         inputTensor,
-        in_dev->GetMem(),
+        in.GetDevicePtr(),
         convDesc,
         weightTensor,
         dwei_dev->GetMem(),
@@ -2468,12 +2500,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
     int request_algo_count = 2;
     std::vector<miopenConvAlgoPerf_t> perf_results_data(request_algo_count);
 
+    DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
-
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
 #endif
 
     auto rc = FindBackwardData(ret_algo_count, request_algo_count, perf_results_data, ctx);
@@ -2675,12 +2704,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
     std::vector<miopenConvAlgoPerf_t> perf_results_weights(request_algo_count);
 
+    DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
-
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
 #endif
 
     auto rc = FindBackwardWeights(ret_algo_count, request_algo_count, perf_results_weights, ctx);
@@ -2708,7 +2734,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
                                               outputTensor,
                                               dout_dev->GetMem(),
                                               inputTensor,
-                                              in_dev->GetMem(),
+                                              in.GetDevicePtr(),
                                               convDesc,
                                               algo,
                                               &beta,
@@ -2923,12 +2949,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
     if(rc != miopenStatusSuccess)
         return rc;
 
+    DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
-
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
 #endif
 
     auto ws = std::unique_ptr<GPUMem>{ws_size > 0 ? new GPUMem{ctx, ws_size, 1} : nullptr};
@@ -3056,12 +3079,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
     if(rc != miopenStatusSuccess)
         return rc;
 
+    DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
-
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
 #endif
 
     auto ws = std::unique_ptr<GPUMem>{ws_size > 0 ? new GPUMem{ctx, ws_size, 1} : nullptr};
@@ -3082,7 +3102,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
                                                        outputTensor,
                                                        dout_dev->GetMem(),
                                                        inputTensor,
-                                                       in_dev->GetMem(),
+                                                       in.GetDevicePtr(),
                                                        convDesc,
                                                        weightTensor,
                                                        dwei_dev->GetMem(),
@@ -3138,7 +3158,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
         cpu_convolution_backward_weight(miopen::deref(convDesc).GetSpatialDimension(),
                                         dout,
                                         dwei_host,
-                                        in,
+                                        in.GetHostTensor(),
                                         miopen::deref(convDesc).GetConvPads(),
                                         miopen::deref(convDesc).GetConvStrides(),
                                         miopen::deref(convDesc).GetConvDilations(),
@@ -3147,7 +3167,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
     else
     {
         cpu_convolution_backward_weight(miopen::deref(convDesc).GetSpatialDimension(),
-                                        in,
+                                        in.GetHostTensor(),
                                         dwei_host,
                                         dout,
                                         miopen::deref(convDesc).GetConvPads(),
@@ -3225,7 +3245,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsGPUReference()
                                                         outputTensor,
                                                         dout_dev->GetMem(),
                                                         inputTensor,
-                                                        in_dev->GetMem(),
+                                                        in.GetDevicePtr(),
                                                         convDesc,
                                                         weightTensor,
                                                         dwei_dev->GetMem(),
