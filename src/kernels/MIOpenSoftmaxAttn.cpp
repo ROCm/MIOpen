@@ -82,13 +82,13 @@ __device__ float reductionFullWarp(float reduced_val, uint32_t laneId, Op op)
         // butterfly reduction based on __shfl_xor
         // swizzle <xor_mask[14:10], or_mask[9:5], and_mask[4:0]>()
         constexpr uint32_t xor_off = 10;
-        constexpr uint32_t or_off  = 5;
+        // constexpr uint32_t or_off  = 5;
         constexpr uint32_t and_off = 0;
 
         constexpr uint32_t field_msk = 0x1f;
 
         constexpr uint32_t and_msk = warp_msk & field_msk;
-        constexpr uint32_t or_msk  = 0;
+        // constexpr uint32_t or_msk  = 0;
         constexpr uint32_t xor_msk = (SWIZZLE_SIZE >> 1) & field_msk;
 
         // clang tidy does not like that (or_msk << or_off) is zero
@@ -96,9 +96,10 @@ __device__ float reductionFullWarp(float reduced_val, uint32_t laneId, Op op)
         // __hip_ds_swizzlef_N reference. Menawhile swizzle_op generation
         // must be a part of hip intrinsics, because it depends on ISA
         // like __hip_ds_swizzlef_N<xor_mask, or_mask, and_mask>
+        // For some reason NILINT doesn't work.
         // NOLINTBEGIN
         constexpr uint32_t swizzle_op =
-            (xor_msk << xor_off) | (or_msk << or_off) | (and_msk << and_off);
+            (xor_msk << xor_off) /* | (or_msk << or_off) */ | (and_msk << and_off);
         // NOLINTEND
 
         tmp = __hip_ds_swizzlef_N<swizzle_op>(reduced_val);
