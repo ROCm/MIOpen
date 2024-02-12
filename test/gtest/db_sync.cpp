@@ -405,7 +405,7 @@ bool CheckKDBObjects(const fs::path& filename,
 bool CheckKDBForTargetID(const fs::path& filename)
 {
     // clang-format off
-        auto select_query = "SELECT count(*) FROM kern_db WHERE ( kernel_args like '-mcpu=%sram-ecc%') OR (kernel_args like '-mcpu=%xnack%')";
+    auto select_query = "SELECT count(*) FROM kern_db WHERE ( kernel_args like '-mcpu=%sram-ecc%') OR (kernel_args like '-mcpu=%xnack%')";
     // clang-format on
     auto sql  = SQLite{filename.string(), true};
     auto stmt = SQLite::Statement{sql, select_query};
@@ -422,6 +422,26 @@ bool CheckKDBForTargetID(const fs::path& filename)
     }
     return count != 0;
 }
+
+bool CheckKDBJournalMode(const fs::path& filename)
+{
+    auto journal_query = "PRAGMA journal_mode";
+    auto sql           = SQLite{filename.string(), true};
+    auto stmt          = SQLite::Statement{sql, journal_query};
+    std::string journal_mode;
+    while(true)
+    {
+        auto rc = stmt.Step(sql);
+        if(rc == SQLITE_ROW)
+            journal_mode = stmt.ColumnText(0);
+        else if(rc == SQLITE_DONE)
+            break;
+        else if(rc == SQLITE_ERROR || rc == SQLITE_MISUSE)
+            throw std::runtime_error(sql.ErrorMessage());
+    }
+    return journal_mode.compare("off") == 0 || journal_mode.compare("delete") == 0;
+}
+
 } // namespace miopen
 
 void SetupPaths(fs::path& fdb_file_path,
@@ -454,6 +474,7 @@ TEST(DBSync, KDBTargetID)
         SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, get_handle());
         std::ignore = fdb_file_path;
         std::ignore = pdb_file_path;
+        EXPECT_TRUE(miopen::CheckKDBJournalMode(kdb_file_path));
         EXPECT_FALSE(!SKIP_KDB_PDB_TESTING && miopen::CheckKDBForTargetID(kdb_file_path));
     }
 }
