@@ -115,22 +115,19 @@ typedef enum
 // code of the Target Library
 extern char MIOPEN_CMP_FLAGS[MIOPEN_CMP_MAX_Flag][PATH_MAX_LEN];
 
-// Function to generate the MIOPEN Compiler Path Value using
-// ROCm Base Install Path fetched using getROCmInstallPath()
-// This approach depends on the getROCmInstallPath() provided by rocm-core
-// This flag Paths are expected to be deprecated/modified in upcoming MAJOR Releases
-char* generateFlagValue(MIOPEN_CMP_Flags_t x);
-
-// MIOPEN Compiler Paths generated using ROCM Base install Path
+// APIs to get MIOPEN Compiler Paths generated using ROCM Base install Path
 // This will read the ROCM Base Install Path if it is already generated
 // or (if required), will generate the MIOPEN Compiler Flag Path Values
 // and return the value.
-#define GET_MIOPEN_CMP_FLAGS(X) \
-    ((MIOPEN_CMP_FLAGS[X][0] != 0) ? MIOPEN_CMP_FLAGS[X] : generateFlagValue(X))
-#cmakedefine MIOPEN_AMDGCN_ASSEMBLER GET_MIOPEN_CMP_FLAGS(MIOPEN_AMDGCN_Flag)
-#cmakedefine HIP_OC_COMPILER GET_MIOPEN_CMP_FLAGS(MIOPEN_OC_COMPILER_Flag)
-#cmakedefine MIOPEN_HIP_COMPILER GET_MIOPEN_CMP_FLAGS(MIOPEN_HIP_COMPILER_Flag)
-#cmakedefine MIOPEN_OFFLOADBUNDLER_BIN GET_MIOPEN_CMP_FLAGS(MIOPEN_OFFLOAD_BUNDLER_Flag)
+const char* getAMDGCNAssemblerPath();
+const char* getOpenCLCompilerPath();
+const char* getHIPCompilerPath();
+const char* getOffloadBundlerBinPath();
+
+#cmakedefine MIOPEN_AMDGCN_ASSEMBLER   getAMDGCNAssemblerPath()
+#cmakedefine HIP_OC_COMPILER           getOpenCLCompilerPath()
+#cmakedefine MIOPEN_HIP_COMPILER       getHIPCompilerPath()
+#cmakedefine MIOPEN_OFFLOADBUNDLER_BIN getOffloadBundlerBinPath()
 #else
 #cmakedefine MIOPEN_AMDGCN_ASSEMBLER "@MIOPEN_AMDGCN_ASSEMBLER@"
 #cmakedefine HIP_OC_COMPILER "@HIP_OC_COMPILER@"
