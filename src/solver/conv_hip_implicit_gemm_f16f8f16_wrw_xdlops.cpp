@@ -84,35 +84,41 @@ struct CKArgs
         Wo = ProblemInterpreter::GetOutputWidthWo(problem);
         Y  = ProblemInterpreter::GetFilterHeightY(problem);
         X  = ProblemInterpreter::GetFilterWidthX(problem);
-        Di = ProblemInterpreter::GetInputDepthDi(problem);
-        Do = ProblemInterpreter::GetOutputDepthDo(problem);
-        Z  = ProblemInterpreter::GetFilterDepthZ(problem);
+        Di = 1;
+        Do = 1;
+        Z  = 1;
 
         input  = {G, N, C, Di, Hi, Wi};
         output = {G, N, K, Do, Ho, Wo};
         weight = {G, K, C, Z, Y, X};
 
-        // miopen strides to CK strides
-        auto miopen_in_strides  = problem.GetIn().GetStrides();
-        auto miopen_out_strides = problem.GetOut().GetStrides();
-        auto miopen_wei_strides = problem.GetWeights().GetStrides();
-        miopen_in_strides.insert(miopen_in_strides.begin(), C);
-        miopen_out_strides.insert(miopen_out_strides.begin(), K);
-        miopen_wei_strides.insert(miopen_wei_strides.begin(), K * miopen_wei_strides[0]);
-        std::copy(miopen_in_strides.begin(), miopen_in_strides.end(), in_strides.begin());
-        std::copy(miopen_out_strides.begin(), miopen_out_strides.end(), out_strides.begin());
-        std::copy(miopen_wei_strides.begin(), miopen_wei_strides.end(), wei_strides.begin());
+        // CK strides are in GNCDHW order
+        if(problem.IsLayoutNHWC())
+        {
+            in_strides  = {N * Di * Hi * Wi * C, Di * Hi * Wi * C, 1, Hi * Wi * C, Wi * C, C};
+            out_strides = {N * Do * Ho * Wo * K, Do * Ho * Wo * K, 1, Ho * Wo * K, Wo * K, K};
+            wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
+        }
+        else
+        {
+            assert(problem.IsLayoutDefault()); // already checked in IsApplicable
+            // for default layout, we produce packed strides for NHWC layout
+            // because we transpose to NHWC layout before calling CK kernel
+            in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
+            out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
+            wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
+        }
 
-        strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
+        strides  = {1,
                    ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
-        dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
+        dilation = {1,
                     ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
                     ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
-        lPadding = {ProblemInterpreter::GetInputLeftPadD(problem),
+        lPadding = {0,
                     ProblemInterpreter::GetInputLeftPadH(problem),
                     ProblemInterpreter::GetInputLeftPadW(problem)};
-        rPadding = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
+        rPadding = {0,
                     ProblemInterpreter::GetAdjustedInputRightPadH(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
     }
@@ -219,8 +225,8 @@ void PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops::HeuristicInit(
     kernel_id = "";
 
 #if MIOPEN_USE_COMPOSABLEKERNEL
-    if(problem.GetIn().GetCastType() == miopenFloat8 &&
-       problem.GetOut().GetCastType() == miopenBFloat8)
+    if(problem.GetOut().GetCastType() == miopenFloat8 &&
+       problem.GetIn().GetCastType() == miopenBFloat8)
         Init<ck::half_t, ck::bf8_t, ck::f8_t>(problem);
 #endif
 }
@@ -253,8 +259,8 @@ bool PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops::IsValid(
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
-    if(problem.GetIn().GetCastType() == miopenFloat8 &&
-       problem.GetOut().GetCastType() == miopenBFloat8)
+    if(problem.GetOut().GetCastType() == miopenFloat8 &&
+       problem.GetIn().GetCastType() == miopenBFloat8)
         return CheckIsSupportCKArgs<ck::half_t, ck::bf8_t, ck::f8_t>(problem);
 #endif
     return false;
@@ -283,6 +289,13 @@ bool ConvHipImplicitGemmF16F8F16WrwXdlops::IsValidPerformanceConfig(
     return config.IsValid(problem);
 }
 
+size_t
+ConvHipImplicitGemmF16F8F16WrwXdlops::GetWorkspaceSize(const ExecutionContext&,
+                                                      const ProblemDescription& problem) const
+{
+    return GetWorkspaceSizeLayoutTransformConv(problem);
+}
+
 PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops
 ConvHipImplicitGemmF16F8F16WrwXdlops::Search(const ExecutionContext& ctx,
                                              const ProblemDescription& problem,
@@ -308,14 +321,14 @@ bool ConvHipImplicitGemmF16F8F16WrwXdlops::IsApplicable(
         return false;
     if(!problem.IsTensorsCasted())
         return false;
-    if(!problem.IsLayoutNHWC())
+    if(!(problem.IsLayoutNHWC() || problem.IsLayoutDefault()))
         return false;
     if(!problem.IsFp16())
         return false;
     if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
-    if(problem.GetIn().GetCastType() == miopenFloat8 &&
-       problem.GetOut().GetCastType() == miopenBFloat8)
+    if(problem.GetOut().GetCastType() == miopenFloat8 &&
+       problem.GetIn().GetCastType() == miopenBFloat8)
         return CheckCKApplicability<ck::half_t, ck::bf8_t, ck::f8_t>(problem);
 #endif
     return false;
@@ -327,9 +340,16 @@ ConvSolution ConvHipImplicitGemmF16F8F16WrwXdlops::GetSolution(
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops& config) const
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
-    return InitInvokerFactoryNHWC<DeviceOpF8WrwPtrs<ck::half_t, ck::bf8_t, ck::f8_t>,
+    if(problem.IsLayoutNHWC()){
+        return InitInvokerFactoryNHWC<DeviceOpF8WrwPtrs<ck::half_t, ck::bf8_t, ck::f8_t>,
                                   CKArgs,
                                   miopen::conv::WrWInvokeParams>(ctx, problem, config.kernel_id);
+    } else {
+        return InitInvokerFactoryWrwNCHW<3,
+                                    DeviceOpF8WrwPtrs<ck::half_t, ck::bf8_t, ck::f8_t>,
+                                  CKArgs,
+                                  miopen::conv::WrWInvokeParams>(ctx, problem, config.kernel_id);
+    }
 #else
     return {};
 #endif

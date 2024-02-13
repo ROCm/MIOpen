@@ -5182,6 +5182,10 @@ struct ConvHipImplicitGemmF16F8F16WrwXdlops final
         return 0.02f;
     };
 
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
+
 private:
     template <typename DataType, typename OutComputeType, typename InComputeType>
     bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
