@@ -85,8 +85,7 @@ static char* generateCompilerPathValue(MIOPEN_CMP_Flags_t x)
 // API to get MIOPEN AMD GCN Assembler Path Values.
 const char* getAMDGCNAssemblerPath()
 {
-    MIOPEN_CMP_Flags_t x          = MIOPEN_AMDGCN_Flag;
-    static const std::string path = generateCompilerPathValue(x);
+    static const std::string path = generateCompilerPathValue(MIOPEN_AMDGCN_Flag);
     return path.c_str();
 }
 
