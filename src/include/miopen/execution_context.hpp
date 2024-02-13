@@ -278,7 +278,7 @@ struct ExecutionContext
 #else
             "." + GetUserDbSuffix() + ".cd.updb.txt";
 #endif
-        return udb / filename.str();
+        return udb / filename;
     }
 
 private:

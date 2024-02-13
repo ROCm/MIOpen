@@ -123,7 +123,7 @@ using namespace rnn_extra;
 
 TEST_P(RNNExtraConfigWithFloat, FloatTest_rnn_extra)
 {
-    if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+    if((!miopen::IsSet(ENV(MIOPEN_TEST_ALL)) ||
         (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
          miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float")))
         Run2dDriverFloat();

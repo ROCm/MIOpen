@@ -109,7 +109,7 @@ using TestCase = decltype(GetTestCases())::value_type;
 
 static bool SkipTest(const std::string& float_arg)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
+    if(!miopen::IsSet(ENV(MIOPEN_TEST_ALL)))
         return false;
     if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
         if(miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == float_arg)

@@ -38,7 +38,7 @@ namespace conv3d_test {
 static bool IsTestRunWith(const char* float_arg)
 {
     assert(float_arg != nullptr);
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
+    if(!miopen::IsSet(ENV(MIOPEN_TEST_ALL)))
         return true; // standalone run
     return miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
            miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == float_arg;
