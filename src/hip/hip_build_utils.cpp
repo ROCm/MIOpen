@@ -51,9 +51,6 @@ static const char* MIOPEN_CMP_FLAG_REL_PATHS[MIOPEN_CMP_MAX_Flag] = {
 // Global variable List to hold the Compiler Flag Paths.
 char MIOPEN_CMP_FLAGS[MIOPEN_CMP_MAX_Flag][PATH_MAX_LEN] = {0};
 
-// Function to generate the MIOPEN Compiler Path Value
-static char* generateCompilerPathValue(MIOPEN_CMP_Flags_t x);
-
 // Function to generate the MIOPEN Compiler Path Value using
 // ROCm Base Install Path fetched using getROCmInstallPath()
 // This approach depends on the getROCmInstallPath() provided by rocm-core
