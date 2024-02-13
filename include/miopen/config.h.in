@@ -100,16 +100,6 @@
 // Max Buffer Len to hold the Path
 #define PATH_MAX_LEN (PATH_MAX + 1)
 
-// Flags to help identify/differentiate Definitions for each MIOPEN Compiler Paths
-typedef enum
-{
-    MIOPEN_AMDGCN_Flag          = 0,
-    MIOPEN_OC_COMPILER_Flag     = 1,
-    MIOPEN_HIP_COMPILER_Flag    = 2,
-    MIOPEN_OFFLOAD_BUNDLER_Flag = 3,
-    MIOPEN_CMP_MAX_Flag         = 4 // Should be last Flag definition
-} MIOPEN_CMP_Flags_t;
-
 // APIs to get MIOPEN Compiler Paths generated using ROCM Base install Path
 // This will read the ROCM Base Install Path if it is already generated
 // or (if required), will generate the MIOPEN Compiler Flag Path Values

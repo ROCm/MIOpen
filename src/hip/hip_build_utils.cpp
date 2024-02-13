@@ -41,72 +41,64 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_DUMP)
 
 #if MIOPEN_OFFLINE_COMPILER_PATHS_V2
 
-// List to hold Relative Directory Path
+// Flags to hold Relative Directory Path
 // for each Compiler Flags from ROCM Install Path
-// The definition of this variable expected to be available in C/C++
-// code of the Target Library.
-static const char* MIOPEN_CMP_FLAG_REL_PATHS[MIOPEN_CMP_MAX_Flag] = {
-    "llvm/bin/clang", "bin/clang-ocl", "llvm/bin/clang++", "llvm/bin/clang-offload-bundler"};
-
-// Global variable List to hold the Compiler Flag Paths.
-char MIOPEN_CMP_FLAGS[MIOPEN_CMP_MAX_Flag][PATH_MAX_LEN] = {0};
+// This flag Paths are expected to be deprecated/modified
+// in upcoming MAJOR Releases.
+#define MIOPEN_CLANG_REL_PATH "llvm/bin/clang"
+#define MIOPEN_OCL_REL_PATH "bin/clang-ocl"
+#define MIOPEN_CPPCLANG_REL_PATH "llvm/bin/clang++"
+#define MIOPEN_OFFLOADBUNDLER_REL_PATH "llvm/bin/clang-offload-bundler"
 
 // Function to generate the MIOPEN Compiler Path Value using
 // ROCm Base Install Path fetched using getROCmInstallPath()
 // This approach depends on the getROCmInstallPath() provided by rocm-core
 // This flag Paths are expected to be deprecated/modified in upcoming MAJOR Releases.
-static char* generateCompilerPathValue(MIOPEN_CMP_Flags_t x)
+static std::string generateCompilerPathValue(const char* relativePath)
 {
-    char* flagPath   = (char*)0;
+    char* rocmPath   = (char*)0;
     unsigned int len = 0;
-    if(MIOPEN_CMP_MAX_Flag <= x)
+    std::string compilerPathValue;
+    if( 0 != relativePath )
     {
-        return (char*)0;
-    }
-    if(0 == MIOPEN_CMP_FLAGS[x][0])
-    {
-        PathErrors_t ret = getROCmInstallPath(&flagPath, &len);
+        PathErrors_t ret = getROCmInstallPath(&rocmPath, &len);
         if(PathSuccess == ret)
         {
-            if(PATH_MAX_LEN > (len + strlen(MIOPEN_CMP_FLAG_REL_PATHS[x])))
+            if(PATH_MAX_LEN > (len + strlen(relativePath)))
             {
-                sprintf(
-                    (char*)&(MIOPEN_CMP_FLAGS[x]), "%s%s", flagPath, MIOPEN_CMP_FLAG_REL_PATHS[x]);
+                compilerPathValue = std::string(rocmPath)+std::string(relativePath);
             }
-            free(flagPath);
+            free(rocmPath);
         }
     }
-    return (char*)&(MIOPEN_CMP_FLAGS[x]);
+    return compilerPathValue;
 }
 
 // API to get MIOPEN AMD GCN Assembler Path Values.
 const char* getAMDGCNAssemblerPath()
 {
-    static const std::string path = generateCompilerPathValue(MIOPEN_AMDGCN_Flag);
+    static const std::string path = generateCompilerPathValue(MIOPEN_CLANG_REL_PATH);
     return path.c_str();
 }
 
 // API to get MIOPEN OpenCL Compiler Path Values.
 const char* getOpenCLCompilerPath()
 {
-    MIOPEN_CMP_Flags_t x          = MIOPEN_OC_COMPILER_Flag;
-    static const std::string path = generateCompilerPathValue(x);
+    static const std::string path = generateCompilerPathValue(MIOPEN_OCL_REL_PATH);
     return path.c_str();
 }
 
 // API to get MIOPEN HIP Compiler Path Values.
 const char* getHIPCompilerPath()
 {
-    MIOPEN_CMP_Flags_t x          = MIOPEN_HIP_COMPILER_Flag;
-    static const std::string path = generateCompilerPathValue(x);
+    static const std::string path = generateCompilerPathValue(MIOPEN_CPPCLANG_REL_PATH);
     return path.c_str();
 }
 
 // API to get MIOPEN Compiler Offload Bundler bin Path Values.
 const char* getOffloadBundlerBinPath()
 {
-    MIOPEN_CMP_Flags_t x          = MIOPEN_OFFLOAD_BUNDLER_Flag;
-    static const std::string path = generateCompilerPathValue(x);
+    static const std::string path = generateCompilerPathValue(MIOPEN_OFFLOADBUNDLER_REL_PATH);
     return path.c_str();
 }
 
