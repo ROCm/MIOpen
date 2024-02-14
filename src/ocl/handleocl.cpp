@@ -39,7 +39,8 @@
 #include <miopen/ocldeviceinfo.hpp>
 #include <miopen/timer.hpp>
 
-#include <boost/filesystem.hpp>
+#include <miopen/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 
 #include <string>
 
@@ -87,9 +88,6 @@ struct HandleImpl
     {
         std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(device);
         MIOPEN_LOG_NQI("Raw device name: " << name);
-#if WORKAROUND_MLOPEN_ISSUE_1711
-        WorkaroundIssue1711(name);
-#endif
         return name;
     }
 
@@ -408,7 +406,7 @@ Program Handle::LoadProgram(const std::string& program_name,
         miopen::SaveBinary(
             binary, this->GetTargetProperties(), this->GetMaxComputeUnits(), program_name, params);
 #else
-        auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
+        auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path().string();
         miopen::SaveProgramBinary(p, path.string());
         miopen::SaveBinary(path.string(), this->GetTargetProperties(), program_name, params);
 #endif

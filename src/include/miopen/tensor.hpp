@@ -205,6 +205,7 @@ struct MIOPEN_EXPORT TensorDescriptor : miopenTensorDescriptor
     }
 
     bool IsPacked() const;
+    bool AllDimsFitIntoInt() const;
 
     bool operator==(const TensorDescriptor& rhs) const;
     bool operator!=(const TensorDescriptor& rhs) const;

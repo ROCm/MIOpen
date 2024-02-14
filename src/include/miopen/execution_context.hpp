@@ -34,7 +34,7 @@
 #if MIOPEN_EMBED_DB
 #include <miopen_data.hpp>
 #endif
-#include <boost/filesystem.hpp>
+#include <miopen/filesystem.hpp>
 
 #include <string>
 
@@ -115,7 +115,7 @@ struct ExecutionContext
     std::string GetPerfDbPathEmbed() const
     {
         static const auto result = [&] {
-            boost::filesystem::path pdb_path(GetSystemDbPath());
+            fs::path pdb_path(GetSystemDbPath());
             std::ostringstream filename;
             // clang-format off
             filename << GetStream().GetDbBasename();
@@ -136,7 +136,6 @@ struct ExecutionContext
                 MIOPEN_LOG_I2("inexact embedded perf database search");
                 const auto db_id        = GetStream().GetTargetProperties().DbId();
                 const int real_cu_count = GetStream().GetMaxComputeUnits();
-                namespace fs            = boost::filesystem;
                 int closest_cu          = std::numeric_limits<int>::max();
                 fs::path best_path;
                 for(auto const& entry : miopen_data())
@@ -183,7 +182,7 @@ struct ExecutionContext
     std::string GetPerfDbPathFile() const
     {
         static const auto result = [&] {
-            const boost::filesystem::path pdb_path(GetSystemDbPath());
+            const fs::path pdb_path(GetSystemDbPath());
             std::ostringstream filename;
             // clang-format off
         filename << GetStream().GetDbBasename();
@@ -194,7 +193,7 @@ struct ExecutionContext
 #endif
         filename << ext;
             // clang-format on
-            if(boost::filesystem::exists(pdb_path / filename.str()))
+            if(fs::exists(pdb_path / filename.str()))
             {
                 MIOPEN_LOG_I("Found exact perf database file");
                 return (pdb_path / filename.str()).string();
@@ -204,7 +203,6 @@ struct ExecutionContext
                 MIOPEN_LOG_I2("inexact perf database search");
                 const auto db_id        = GetStream().GetTargetProperties().DbId();
                 const int real_cu_count = GetStream().GetMaxComputeUnits();
-                namespace fs            = boost::filesystem;
                 if(fs::exists(pdb_path) && fs::is_directory(pdb_path))
                 {
                     MIOPEN_LOG_I2("Iterating over perf db directory " << pdb_path.string());

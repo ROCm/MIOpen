@@ -30,23 +30,11 @@
 #include "tensor_holder.hpp"
 #include "get_handle.hpp"
 #include "conv_test_base.hpp"
+#include "../env_utils.hpp"
 
 #if MIOPEN_BACKEND_HIP
 
 namespace bad_fusion_plan {
-
-void setEnvironmentVariable(const std::string& name, const std::string& value)
-{
-    int ret = 0;
-
-#ifdef _WIN32
-    std::string env_var(name + "=" + value);
-    ret = _putenv(env_var.c_str());
-#else
-    ret = setenv(name.c_str(), value.c_str(), 1);
-#endif
-    EXPECT_EQ(ret, 0);
-}
 
 struct ConvTestCaseFusion
 {

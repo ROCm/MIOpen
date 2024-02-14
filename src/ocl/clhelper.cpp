@@ -33,7 +33,6 @@
 #include <miopen/mlir_build.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/ocldeviceinfo.hpp>
-#include <miopen/rocm_features.hpp>
 #include <miopen/tmp_dir.hpp>
 #include <miopen/target_properties.hpp>
 #include <miopen/write_file.hpp>
@@ -48,15 +47,6 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
 
 namespace miopen {
-
-#if WORKAROUND_MLOPEN_ISSUE_1711
-void WorkaroundIssue1711(std::string& name)
-{
-    auto loc_p = name.find('+');
-    if(loc_p != std::string::npos)
-        name = name.substr(0, loc_p);
-}
-#endif
 
 static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t size)
 {
@@ -78,9 +68,6 @@ static std::string ClAssemble(cl_device_id device,
                               const TargetProperties& target)
 {
     std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(device);
-#if WORKAROUND_MLOPEN_ISSUE_1711
-    WorkaroundIssue1711(name);
-#endif
     return AmdgcnAssemble(source, std::string("-mcpu=") + name + " " + params, target);
 }
 
@@ -210,7 +197,7 @@ ClProgramPtr LoadProgram(cl_context ctx,
         params += OclKernelWarningsString();
 #endif
 #endif
-        params += " -cl-std=CL1.2";
+        params += " -cl-std=CL2.0";
         MIOPEN_LOG_I2("Building OpenCL program: '" << program_name << "', options: '" << params);
         BuildProgram(result.get(), device, params);
         return result;

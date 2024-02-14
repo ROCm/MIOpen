@@ -39,9 +39,10 @@
 
 #if !MIOPEN_ENABLE_SQLITE_KERN_CACHE
 #include <miopen/write_file.hpp>
+#include <boost/filesystem/operations.hpp>
 #endif
 
-#include <boost/filesystem.hpp>
+#include <miopen/filesystem.hpp>
 #include <miopen/load_file.hpp>
 
 #ifndef _WIN32
@@ -194,11 +195,11 @@ Program Handle::LoadProgram(const std::string& program_name,
                            program_name,
                            params);
 #else
-        auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
+        auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path().string();
         if(p.IsCodeObjectInMemory())
             miopen::WriteFile(p.GetCodeObjectBlob(), path);
         else
-            boost::filesystem::copy_file(p.GetCodeObjectPathname(), path);
+            fs::copy_file(p.GetCodeObjectPathname(), path);
         miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params);
 #endif
     }

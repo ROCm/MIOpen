@@ -50,6 +50,7 @@
 #cmakedefine01 MIOPEN_USE_COMPOSABLEKERNEL
 #cmakedefine01 MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
 #cmakedefine01 MIOPEN_ENABLE_AI_KERNEL_TUNING
+#cmakedefine01 MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK
 
 // "_PACKAGE_" to avoid name contentions: the macros like
 // HIP_VERSION_MAJOR are defined in hip_version.h.
@@ -154,6 +155,6 @@
 #include <hip/hip_version.h>
 #endif
 
-#define MIOPEN_GOLDEN_DB_VERSION 19
+#define MIOPEN_GOLDEN_DB_VERSION 20
 
 #endif // GUARD_CONFIG_H_IN

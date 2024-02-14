@@ -62,6 +62,8 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(problem.HasNonPackedTensors())
         return false;
+    if(!problem.AllTensorsDimsFitIntoInt())
+        return false;
     if(!problem.IsFp32() && !problem.IsFp16() && !problem.IsBfp16())
         return false;
     if(!IsIndexRangeLargeEnough(problem))
@@ -74,13 +76,13 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ExecutionContext& ctx,
     if(problem.IsTensorsCasted())
         return false;
 
-    std::size_t n         = problem.GetBatchSize_();
-    std::size_t k         = problem.GetOutChannels_() / problem.GetGroupCount();
-    std::size_t c         = problem.GetInChannels_() / problem.GetGroupCount();
-    std::size_t y         = problem.GetWeightsHeight_();
-    std::size_t x         = problem.GetWeightsWidth_();
-    std::size_t ho        = problem.GetOutHeight_();
-    std::size_t wo        = problem.GetOutWidth_();
+    std::size_t n         = problem.GetBatchSize();
+    std::size_t k         = problem.GetOutChannels() / problem.GetGroupCount();
+    std::size_t c         = problem.GetInChannels() / problem.GetGroupCount();
+    std::size_t y         = problem.GetWeightsHeight();
+    std::size_t x         = problem.GetWeightsWidth();
+    std::size_t ho        = problem.GetOutHeight();
+    std::size_t wo        = problem.GetOutWidth();
     std::size_t eMultiple = (problem.IsFp16() || problem.IsBfp16()) ? 16 : 8;
 
     // batch is divided by epack to pack 2/4 fp16/bfp16
@@ -102,6 +104,8 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.IsDirectionBackwardWrW())
         return false;
+    if(!problem.AllTensorsDimsFitIntoInt())
+        return false;
     if(!ctx.use_hip_kernels)
         return false;
     if(!problem.Is2d())
@@ -120,13 +124,13 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ExecutionContext& ctx,
     // retrieve dimension from ProblemDescription
     // remember: ProblemDescription has swapped some dimensions for you!
     // undo the swap to avoid confusion
-    const int n  = problem.GetBatchSize_();
-    const int k  = problem.GetInChannels_() / problem.GetGroupCount();  // unswap
-    const int c  = problem.GetOutChannels_() / problem.GetGroupCount(); // unswap
-    const int y  = problem.GetWeightsHeight_();
-    const int x  = problem.GetWeightsWidth_();
-    const int ho = problem.GetInHeight_(); // unswap
-    const int wo = problem.GetInWidth_();  // unswap
+    const int n  = problem.GetBatchSize();
+    const int k  = problem.GetInChannels() / problem.GetGroupCount();  // unswap
+    const int c  = problem.GetOutChannels() / problem.GetGroupCount(); // unswap
+    const int y  = problem.GetWeightsHeight();
+    const int x  = problem.GetWeightsWidth();
+    const int ho = problem.GetInHeight(); // unswap
+    const int wo = problem.GetInWidth();  // unswap
 
     // equivalent dimension for bwd-wrw
     std::size_t n_eqv     = c;
@@ -206,15 +210,15 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ExecutionContext& ctx,
     const auto& N2 = config.GemmNPerThreadSubC;
 
     // retrieve dimension from ProblemDescription
-    const int n                = problem.GetBatchSize_();
-    const int k                = problem.GetOutChannels_();
-    const int c                = problem.GetInChannels_();
-    const int hi               = problem.GetInHeight_();
-    const int wi               = problem.GetInWidth_();
-    const int ho               = problem.GetOutHeight_();
-    const int wo               = problem.GetOutWidth_();
-    const int y                = problem.GetWeightsHeight_();
-    const int x                = problem.GetWeightsWidth_();
+    const int n                = problem.GetBatchSize();
+    const int k                = problem.GetOutChannels();
+    const int c                = problem.GetInChannels();
+    const int hi               = problem.GetInHeight();
+    const int wi               = problem.GetInWidth();
+    const int ho               = problem.GetOutHeight();
+    const int wo               = problem.GetOutWidth();
+    const int y                = problem.GetWeightsHeight();
+    const int x                = problem.GetWeightsWidth();
     const auto conv_stride_h   = problem.GetKernelStrideH();
     const auto conv_stride_w   = problem.GetKernelStrideW();
     const auto conv_dilation_h = problem.GetDilationH();
@@ -314,7 +318,7 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ExecutionContext& ctx,
 
     // Borrowed from non-padded version of v4
     InBlockCopySrcDataPerRead_B =
-        problem.GetWeightsWidth_() > 1
+        problem.GetWeightsWidth() > 1
             ? std::min(InBlockCopySrcDataPerRead_B, GetReadWriteVectorSize(problem.GetDilationW()))
             : InBlockCopySrcDataPerRead_B;
     InBlockCopySrcDataPerRead_B = problem.GetKernelStrideW() > 1 ? 1 : InBlockCopySrcDataPerRead_B;
@@ -415,15 +419,15 @@ ConvHipImplicitGemmV4R1WrW::GetSolution(const ExecutionContext& ctx,
     // retrieve dimension from ProblemDescription
     // remember: ProblemDescription has swapped some dimensions for you!
     // undo the swap to avoid confusion
-    const int n                = problem.GetBatchSize_();
-    const int k                = problem.GetInChannels_();  // unswap
-    const int c                = problem.GetOutChannels_(); // unswap
-    const int hi               = problem.GetOutHeight_();   // unswap
-    const int wi               = problem.GetOutWidth_();    // unswap
-    const int ho               = problem.GetInHeight_();    // unswap
-    const int wo               = problem.GetInWidth_();     // unswap
-    const int y                = problem.GetWeightsHeight_();
-    const int x                = problem.GetWeightsWidth_();
+    const int n                = problem.GetBatchSize();
+    const int k                = problem.GetInChannels();  // unswap
+    const int c                = problem.GetOutChannels(); // unswap
+    const int hi               = problem.GetOutHeight();   // unswap
+    const int wi               = problem.GetOutWidth();    // unswap
+    const int ho               = problem.GetInHeight();    // unswap
+    const int wo               = problem.GetInWidth();     // unswap
+    const int y                = problem.GetWeightsHeight();
+    const int x                = problem.GetWeightsWidth();
     const auto conv_stride_h   = problem.GetKernelStrideH();
     const auto conv_stride_w   = problem.GetKernelStrideW();
     const auto conv_dilation_h = problem.GetDilationH();
@@ -529,7 +533,7 @@ ConvHipImplicitGemmV4R1WrW::GetSolution(const ExecutionContext& ctx,
     // clang-format off
     // Borrowed from non-padded version of v4
     InBlockCopySrcDataPerRead_B =
-        problem.GetWeightsWidth_() > 1
+        problem.GetWeightsWidth() > 1
             ? std::min(InBlockCopySrcDataPerRead_B, GetReadWriteVectorSize(problem.GetDilationW()))
             : InBlockCopySrcDataPerRead_B;
     InBlockCopySrcDataPerRead_B = problem.GetKernelStrideW() > 1 ? 1 : InBlockCopySrcDataPerRead_B;

@@ -26,13 +26,13 @@
 #ifndef GUARD_MIOPEN_LOCK_FILE_HPP_
 #define GUARD_MIOPEN_LOCK_FILE_HPP_
 
+#include <miopen/filesystem.hpp>
 #include <miopen/logger.hpp>
 
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/date_time/time.hpp>
-#include <boost/filesystem/operations.hpp>
 #include <boost/interprocess/sync/file_lock.hpp>
 
 #include <chrono>
@@ -45,7 +45,7 @@
 
 namespace miopen {
 
-std::string LockFilePath(const boost::filesystem::path& filename_);
+std::string LockFilePath(const fs::path& filename_);
 // LockFile class is a wrapper around boost::interprocess::file_lock providing MT-safety.
 // One process should never have more than one instance of this class with same path at the same
 // time. It may lead to undefined behaviour on Windows.

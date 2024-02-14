@@ -6,7 +6,7 @@ The latest released documentation can be read online [here](https://rocm.docs.am
 
 MIOpen supports two programming models, or backends:
 
-1. [HIP](https://github.com/ROCm-Developer-Tools/HIP)
+1. [HIP](https://github.com/ROCm/HIP)
 2. OpenCL (deprecated).
 
 ## Documentation
@@ -33,7 +33,7 @@ python3 -m sphinx -T -E -b html -d _build/doctrees -D language=en . _build/html
   * HIP -
     * HIP and HCC libraries and header files.
   * OpenCL - OpenCL libraries and header files.
-* [ROCm cmake](https://github.com/RadeonOpenCompute/rocm-cmake) - provide cmake modules for common build tasks needed for the ROCM software stack.
+* [ROCm cmake](https://github.com/ROCm/rocm-cmake) - provide cmake modules for common build tasks needed for the ROCM software stack.
 * [Half](http://half.sourceforge.net/) - IEEE 754-based half-precision floating point library
 * [Boost](http://www.boost.org/)
   * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://rocm.docs.amd.com/projects/MIOpen/en/latest/cache.html)
@@ -42,8 +42,8 @@ python3 -m sphinx -T -E -b html -d _build/doctrees -D language=en . _build/html
 * lbzip2 - multi-threaded compress or decompress utility
 * [rocBLAS](https://github.com/ROCm/rocBLAS) - AMD library for Basic Linear Algebra Subprograms (BLAS) on the ROCm platform.
   * Minimum version branch for pre-ROCm 3.5 [master-rocm-2.10](https://github.com/ROCm/rocBLAS/tree/master-rocm-2.10)
-  * Minimum version branch for post-ROCm 3.5 [master-rocm-3.5](https://github.com/ROCm/rocBLAS/releases/tag/rocm-3.5.0)
-* [MLIR](https://github.com/ROCm/llvm-project-mlir) - (Multi-Level Intermediate Representation) with its MIOpen dialect to support and complement kernel development.
+  * Minimum version branch for post-ROCm 3.5 [master-rocm-3.5](https://github.com/ROCm/rocBLAS/tree/master-rocm-3.5)
+* [MLIR](https://github.com/ROCm/rocMLIR) - (Multi-Level Intermediate Representation) with its MIOpen dialect to support and complement kernel development.
 * [Composable Kernel](https://github.com/ROCm/composable_kernel) - C++ templated device library for GEMM-like and reduction-like operators.
 
 ## Installing MIOpen with pre-built packages
@@ -212,7 +212,7 @@ The driver can be built using the `MIOpenDriver` target:
 
 ` cmake --build . --config Release --target MIOpenDriver ` **OR** ` make MIOpenDriver `
 
-Documentation on how to run the driver is [here](https://rocm.docs.amd.com/projects/MIOpen/en/latest/driver.html).
+Documentation on how to run the driver is [here](https://github.com/ROCm/MIOpen/blob/develop/driver/README.md).
 
 ## Running the tests
 
@@ -310,24 +310,6 @@ docker run -it -v $HOME:/data --privileged --rm --device=/dev/kfd --device /dev/
 ```
 
 Prebuilt docker images can be found on [ROCm's public docker hub here](https://hub.docker.com/r/rocm/miopen/tags).
-
-## Citing MIOpen
-
-MIOpen's paper is freely available and can be accessed on arXiv:  
-[MIOpen: An Open Source Library For Deep Learning Primitives](https://arxiv.org/abs/1910.00078)
-
-### Citation BibTeX
-
-```bibtex
-@misc{jeh2019miopen,
-    title={MIOpen: An Open Source Library For Deep Learning Primitives},
-    author={Jehandad Khan and Paul Fultz and Artem Tamazov and Daniel Lowell and Chao Liu and Michael Melesse and Murali Nandhimandalam and Kamil Nasyrov and Ilya Perminov and Tejash Shah and Vasilii Filippov and Jing Zhang and Jing Zhou and Bragadeesh Natarajan and Mayank Daga},
-    year={2019},
-    eprint={1910.00078},
-    archivePrefix={arXiv},
-    primaryClass={cs.LG}
-}
-```
 
 ## Porting from cuDNN to MIOpen
 

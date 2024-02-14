@@ -23,16 +23,16 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/miopen.h>
-#include <gtest/gtest.h>
-#include <miopen/layernorm.hpp>
 
-#include "tensor_holder.hpp"
+#include "../driver/tensor_driver.hpp"
 #include "cpu_layernorm.hpp"
 #include "get_handle.hpp"
-#include "../driver/tensor_driver.hpp"
+#include "random.hpp"
+#include "tensor_holder.hpp"
 #include "verify.hpp"
-#include <random>
+#include <gtest/gtest.h>
+#include <miopen/layernorm.hpp>
+#include <miopen/miopen.h>
 
 struct LayerNormTestCase
 {
@@ -43,7 +43,7 @@ struct LayerNormTestCase
     size_t W;
     size_t nomalized_dim;
     float eps;
-    miopenLayerNormMode_t ln_mode;
+    miopenNormMode_t ln_mode;
     friend std::ostream& operator<<(std::ostream& os, const LayerNormTestCase& tc)
     {
         return os << " N:" << tc.N << " C:" << tc.C << " D:" << tc.D << " H:" << tc.H
@@ -153,7 +153,7 @@ std::vector<LayerNormTestCase> LayerNormTestConfigs()
 
 static int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
 {
-    std::vector<std::size_t> lens = desc.GetLengths();
+    const std::vector<std::size_t>& lens = desc.GetLengths();
     std::vector<int32_t> int32_t_lens(lens.begin(), lens.end());
 
     // set the strides for the tensor
@@ -168,10 +168,7 @@ protected:
     {
         auto&& handle    = get_handle();
         layernorm_config = GetParam();
-
-        std::mt19937 gen(0);
-        std::uniform_real_distribution<> d{-3, 3};
-        auto gen_value = [&](auto...) { return d(gen); };
+        auto gen_value   = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
         nomalized_dim = layernorm_config.nomalized_dim;
         eps           = layernorm_config.eps;
@@ -309,5 +306,5 @@ protected:
 
     size_t nomalized_dim;
     float eps;
-    miopenLayerNormMode_t ln_mode;
+    miopenNormMode_t ln_mode;
 };

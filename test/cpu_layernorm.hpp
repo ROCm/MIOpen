@@ -37,7 +37,7 @@ void cpu_layernorm_forward(tensor<T> input,
                            tensor<T>& ref_rstd,
                            float eps,
                            int32_t dim,
-                           miopenLayerNormMode_t mode)
+                           miopenNormMode_t mode)
 {
     auto dims         = input.desc.GetLengths();
     size_t outer_size = 1;

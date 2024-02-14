@@ -144,10 +144,10 @@ struct CKArgs
 
     int G;
     int N;
+    int K1;
+    int C1;
     int K;
     int C;
-    int C1;
-    int K1;
     int Hi;
     int Wi;
     int Ho;
@@ -243,21 +243,21 @@ static std::vector<float> GetFeatures(const ProblemDescription& problem, std::si
     std::size_t n = 18;
     std::vector<float> features(n, 0.0f);
     features[0]  = problem.GetInDataType() == miopenFloat ? 2 : 1;
-    features[1]  = problem.GetInChannels_();
-    features[2]  = problem.GetInHeight_();
-    features[3]  = problem.GetInWidth_();
-    features[4]  = problem.GetOutChannels_();
-    features[5]  = problem.GetOutHeight_();
-    features[6]  = problem.GetOutWidth_();
-    features[7]  = problem.GetWeightsHeight_();
-    features[8]  = problem.GetWeightsWidth_();
+    features[1]  = problem.GetInChannels();
+    features[2]  = problem.GetInHeight();
+    features[3]  = problem.GetInWidth();
+    features[4]  = problem.GetOutChannels();
+    features[5]  = problem.GetOutHeight();
+    features[6]  = problem.GetOutWidth();
+    features[7]  = problem.GetWeightsHeight();
+    features[8]  = problem.GetWeightsWidth();
     features[9]  = problem.GetPadH();
     features[10] = problem.GetPadW();
     features[11] = problem.GetKernelStrideH();
     features[12] = problem.GetKernelStrideW();
     features[13] = problem.GetDilationH();
     features[14] = problem.GetDilationW();
-    features[15] = problem.GetBatchSize_();
+    features[15] = problem.GetBatchSize();
     features[16] = problem.GetGroupCount();
     features[17] = num_cu;
     return features;
@@ -414,6 +414,12 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsValidPerformanceConfig(
     return config.IsValid(problem);
 }
 
+size_t ConvHipImplicitGemmGroupFwdXdlops::GetWorkspaceSize(const ExecutionContext&,
+                                                           const ProblemDescription& problem) const
+{
+    return GetWorkspaceSizeLayoutTransformConv(problem);
+}
+
 PerformanceConfigHipImplicitGemmGroupFwdXdlops
 ConvHipImplicitGemmGroupFwdXdlops::Search(const ExecutionContext& ctx,
                                           const ProblemDescription& problem,
@@ -431,6 +437,8 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
         return false;
     if(problem.HasNonPackedTensors())
         return false;
+    if(!problem.AllTensorsDimsFitIntoInt())
+        return false;
     if(problem.IsTensorsCasted())
         return false;
     if(problem.GetConv().attribute.deterministic)
@@ -441,7 +449,10 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
         return false;
     if(!problem.Is2d())
         return false;
-    if(!problem.IsLayoutNHWC())
+    if(!(problem.IsLayoutNHWC() || problem.IsLayoutDefault()))
+        return false;
+    // needed because layout transpose kernel does not support non-packed tensors
+    if(problem.IsLayoutDefault() && problem.HasNonPackedTensors())
         return false;
     const std::string& arch = ctx.GetStream().GetDeviceName();
     if(!(arch == "gfx908" || arch == "gfx90a"))
@@ -467,29 +478,26 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlops::GetSolution(
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    switch(problem.GetInDataType())
-    {
-    case miopenHalf:
-        return MakeInvokerFactory<DeviceOpGFwdPtrs<ck::half_t>,
-                                  CKArgs,
-                                  miopen::conv::DataInvokeParams>(problem, config.kernel_id);
-    case miopenFloat:
-        return MakeInvokerFactory<DeviceOpGFwdPtrs<float>, CKArgs, miopen::conv::DataInvokeParams>(
-            problem, config.kernel_id);
-    case miopenInt8:
-        return MakeInvokerFactory<DeviceOpGFwdPtrs<int8_t>, CKArgs, miopen::conv::DataInvokeParams>(
-            problem, config.kernel_id);
-    case miopenInt32:
-    case miopenBFloat16:
-    case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
-    default:
-        MIOPEN_THROW(miopenStatusInternalError,
-                     "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");
-    }
-#endif
+    return MakeSolutionGroupConvImplicitGemmXdlops(
+        problem,
+        [&](auto data_type_val) {
+            using T = decltype(data_type_val);
+            return InitInvokerFactoryFwdNCHW<2,
+                                             DeviceOpGFwdPtrs<T>,
+                                             CKArgs,
+                                             miopen::conv::DataInvokeParams>(
+                ctx, problem, config.kernel_id);
+        },
+        [&](auto data_type_val) {
+            using T = decltype(data_type_val);
+            return InitInvokerFactoryNHWC<DeviceOpGFwdPtrs<T>,
+                                          CKArgs,
+                                          miopen::conv::DataInvokeParams>(
+                ctx, problem, config.kernel_id);
+        });
+#else
     return {};
+#endif
 }
 
 } // namespace conv

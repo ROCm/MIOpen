@@ -27,13 +27,11 @@
 #include <miopen/readonlyramdb.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/filesystem.hpp>
 
 #if MIOPEN_EMBED_DB
 #include <miopen_data.hpp>
 #endif
-
-#include <boost/filesystem.hpp>
-#include <boost/filesystem/path.hpp>
 
 #include <fstream>
 #include <mutex>
@@ -136,7 +134,7 @@ void ReadonlyRamDb::Prefetch(bool warn_if_unreadable)
         if(!debug::rordb_embed_fs_override() && isEmbedded)
         {
 #if MIOPEN_EMBED_DB
-            boost::filesystem::path filepath(db_path);
+            fs::path filepath(db_path);
             const auto& it_p = miopen_data().find(filepath.filename().string() + ".o");
             if(it_p == miopen_data().end())
                 MIOPEN_THROW(miopenStatusInternalError,

@@ -70,16 +70,16 @@ using ProblemDescription = miopen::conv::ProblemDescription;
                    ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
                        GetSolverWinoXformHWSize(problem, 1);
 
-#define DEFINE_SHADER_ALIASES(problem)               \
-    const int C     = (problem).GetBatchSize_();     \
-    const int N     = (problem).GetOutChannels_();   \
-    const int K     = (problem).GetInChannels_();    \
-    const int out_H = (problem).GetWeightsHeight_(); \
-    const int out_W = (problem).GetWeightsWidth_();  \
-    const int R     = (problem).GetInHeight_();      \
-    const int S     = (problem).GetInWidth_();       \
-    const int H     = (problem).GetOutHeight_();     \
-    const int W     = (problem).GetOutWidth_();      \
+#define DEFINE_SHADER_ALIASES(problem)              \
+    const int C     = (problem).GetBatchSize();     \
+    const int N     = (problem).GetOutChannels();   \
+    const int K     = (problem).GetInChannels();    \
+    const int out_H = (problem).GetWeightsHeight(); \
+    const int out_W = (problem).GetWeightsWidth();  \
+    const int R     = (problem).GetInHeight();      \
+    const int S     = (problem).GetInWidth();       \
+    const int H     = (problem).GetOutHeight();     \
+    const int W     = (problem).GetOutWidth();      \
     DEFINE_GETXFORMHWSIZE(problem)
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
@@ -469,6 +469,8 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
         return false;
     if(problem.HasNonPackedTensors())
         return false;
+    if(!problem.AllTensorsDimsFitIntoInt())
+        return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
     if(problem.IsTensorsCasted())
@@ -527,26 +529,26 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 
     // clang-format off
     {
-        const int64_t input_line_size = static_cast<int64_t>(4) * problem.GetInWidth_();
-        const int64_t input_feature_map_size = input_line_size * problem.GetInHeight_();
-        const int64_t input_stack_size = input_feature_map_size * problem.GetInChannels_();
+        const uint64_t input_line_size = 4 * problem.GetInWidth();
+        const uint64_t input_feature_map_size = input_line_size * problem.GetInHeight();
+        const uint64_t input_stack_size = input_feature_map_size * problem.GetInChannels();
         if (! (input_stack_size < (1U << 24)))
             return false;
     }
     bool ok = (
-           (problem.GetWeightsWidth_() == WinoDataW && problem.GetWeightsHeight_() == WinoDataH)
+           (problem.GetWeightsWidth() == WinoDataW && problem.GetWeightsHeight() == WinoDataH)
         && (problem.GetKernelStrideW() == 1
             ||
-            (problem.GetKernelStrideW() == 2 && problem.GetWeightsHeight_() == 3 && problem.GetWeightsWidth_() == 3)
+            (problem.GetKernelStrideW() == 2 && problem.GetWeightsHeight() == 3 && problem.GetWeightsWidth() == 3)
             )
         && problem.GetKernelStrideH() == problem.GetKernelStrideW()
         && problem.GetDilationW() == 1
         && problem.GetDilationH() == 1
-        && problem.GetBatchSize_() < std::pow(2, 24)
-        && problem.GetInChannels_() < std::pow(2, 24)
-        && problem.GetOutChannels_() < std::pow(2, 24)
-        && problem.GetInHeight_() < std::pow(2, 24)
-        && problem.GetInWidth_() < std::pow(2, 24)
+        && problem.GetBatchSize() < std::pow(2, 24)
+        && problem.GetInChannels() < std::pow(2, 24)
+        && problem.GetOutChannels() < std::pow(2, 24)
+        && problem.GetInHeight() < std::pow(2, 24)
+        && problem.GetInWidth() < std::pow(2, 24)
         && problem.GetBias() == 0
         && problem.GetInLayout() == "NCHW"
         && problem.GetGroupCount() == 1);
