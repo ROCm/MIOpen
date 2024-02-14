@@ -212,8 +212,8 @@ bool readBufferFromFile(T* data, size_t dataNumItems, const char* fileName)
     }
 }
 
-template <typename Tgpu, typename Tref>
-class ATensor
+template <typename Tgpu>
+class GpumemTensor
 {
     std::unique_ptr<GPUMem> dev;
     tensor<Tgpu> host;
@@ -369,8 +369,8 @@ private:
 
     boost::optional<uint64_t> immediate_solution;
 
-    ATensor<Tgpu, Tref> in;
-    ATensor<Tgpu, Tref> b;
+    GpumemTensor<Tgpu> in;
+    GpumemTensor<Tgpu> b;
 
     miopenTensorDescriptor_t inputTensor;
     miopenTensorDescriptor_t weightTensor;
