@@ -90,11 +90,8 @@
 #if defined(__linux__)
 #include <linux/limits.h>
 #endif
-#if defined(_WIN32)
-#include <windows.h>
 #ifndef PATH_MAX
-#define PATH_MAX MAX_PATH
-#endif
+#define PATH_MAX 4096
 #endif
 
 // Max Buffer Len to hold the Path

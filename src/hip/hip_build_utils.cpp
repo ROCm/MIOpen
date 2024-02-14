@@ -56,17 +56,17 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_DUMP)
 // This flag Paths are expected to be deprecated/modified in upcoming MAJOR Releases.
 static std::string generateCompilerPathValue(const char* relativePath)
 {
-    char* rocmPath   = (char*)0;
+    char* rocmPath   = nullptr;
     unsigned int len = 0;
     std::string compilerPathValue;
-    if( 0 != relativePath )
+    if(nullptr != relativePath)
     {
         PathErrors_t ret = getROCmInstallPath(&rocmPath, &len);
         if(PathSuccess == ret)
         {
             if(PATH_MAX_LEN > (len + strlen(relativePath)))
             {
-                compilerPathValue = std::string(rocmPath)+std::string(relativePath);
+                compilerPathValue = std::string(rocmPath) + std::string(relativePath);
             }
             free(rocmPath);
         }
@@ -101,7 +101,6 @@ const char* getOffloadBundlerBinPath()
     static const std::string path = generateCompilerPathValue(MIOPEN_OFFLOADBUNDLER_REL_PATH);
     return path.c_str();
 }
-
 
 #endif // MIOPEN_OFFLINE_COMPILER_PATHS_V2
 
