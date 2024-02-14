@@ -242,6 +242,48 @@ void Solution::RunImpl(Handle& handle,
                        const SoftmaxDescriptor& conv_desc)
 {
 
+    const auto& problem_casted = boost::get<const Problem&>(problem.item);
+
+    const auto get_input_checked = [&](auto name, const std::string& name_str) {
+        const auto& found = inputs.find(name);
+        if(found == inputs.end())
+        {
+            MIOPEN_THROW(miopenStatusInvalidValue,
+                         "Problem is missing " + name_str + " tensor descriptor.");
+        }
+        auto ret = found->second;
+        if(!ret.descriptor.has_value())
+            ret.descriptor = problem_casted.GetTensorDescriptorChecked(name, name_str);
+        return ret;
+    };
+
+    const softmax::ProblemDescription problem_description = AsSoftmax();
+
+  /* const auto invoke_ctx = [&]() -> AnyInvokeParams {
+        switch(problem_.GetDirection())
+        {
+        case miopenProblemDirectionForward:
+            return conv::DataInvokeParams(
+                {*x.descriptor, x.buffer, *w.descriptor, w.buffer, *y.descriptor, y.buffer},
+                workspace,
+                workspace_size,
+                conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd());
+        case miopenProblemDirectionBackward:
+            return conv::DataInvokeParams(
+                {*y.descriptor, y.buffer, *w.descriptor, w.buffer, *x.descriptor, x.buffer},
+                workspace,
+                workspace_size,
+                conv_problem.GetConv().attribute.gfx90aFp16alt.GetBwd());
+        case miopenProblemDirectionBackwardWeights:
+            return conv::WrWInvokeParams{
+                {*y.descriptor, y.buffer, *x.descriptor, x.buffer, *w.descriptor, w.buffer},
+                workspace,
+                workspace_size,
+                conv_problem.GetConv().attribute.gfx90aFp16alt.GetWrW()};
+        default: MIOPEN_THROW(miopenStatusNotImplemented);
+        }
+    }();*/
+
 }
 
 void Solution::RunImpl(Handle& handle,

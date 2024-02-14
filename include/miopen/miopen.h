@@ -5321,6 +5321,11 @@ typedef enum
     miopenTensorBiasY        = 9,
     miopenTensorBias         = 10,
 #endif
+    miopenTensorSoftmaxX  = 11,
+    miopenTensorSoftmaxY  = 12,
+    miopenTensorSoftmaxDX = 13,
+    miopenTensorSoftmaxDY = 14,
+    
 } miopenTensorArgumentId_t;
 
 /*! @enum miopenTensorArgumentId_t
@@ -5351,7 +5356,8 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
  */
 
 MIOPEN_EXPORT miopenStatus_t miopenCreateSoftmaxProblem(miopenProblem_t* problem,
-                                                     miopenProblemDirection_t direction);
+                                                        miopenSoftmaxDescriptor_t operatorDesc,
+                                                        miopenProblemDirection_t direction);
 
 
 /*! @brief Destroys a problem object.

@@ -90,10 +90,11 @@ miopenStatus_t miopenCreateBiasProblem(miopenProblem_t* problem, miopenProblemDi
 }
 
 miopenStatus_t miopenCreateSoftmaxProblem(miopenProblem_t* problem,
-                                       miopenProblemDirection_t direction)
+                                    miopenSoftmaxDescriptor_t operatorDesc,
+                                    miopenProblemDirection_t direction)
 {
     MIOPEN_LOG_FUNCTION(problem, direction);
-    return MakeProblem(problem, miopen::SoftmaxDescriptor{}, direction);
+    return MakeProblem(problem, operatorDesc, direction);
 }
 
 miopenStatus_t miopenFuseProblems(miopenProblem_t problem1, miopenProblem_t problem2)

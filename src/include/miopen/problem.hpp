@@ -60,6 +60,11 @@ namespace conv {
 struct ProblemDescription;
 } // namespace conv
 
+namespace softmax {
+struct ProblemDescription;
+} // namespace conv
+
+
 struct BiasDescriptor
 {
 };
@@ -100,6 +105,7 @@ struct Problem
 
     conv::ProblemDescription AsConvolution() const;
     activ::ProblemDescription AsActivation() const;
+    softmax::ProblemDescription AsSoftmax() const;
 
     [[nodiscard]] miopenTensorArgumentId_t GetInputId() const;
     [[nodiscard]] miopenTensorArgumentId_t GetOutputId() const;
@@ -155,6 +161,13 @@ private:
                                             std::size_t max_solutions,
                                             const Buffers& buffers,
                                             const ConvolutionDescriptor& conv_desc) const;
+
+    std::vector<Solution> FindSolutionsImpl(Handle& handle,
+                                            const FindOptions& options,
+                                            std::size_t max_solutions,
+                                            const Buffers& buffers,
+                                            const SoftmaxDescriptor& softmax_desc) const;
+
 
     void LogDriverCommand(const ConvolutionDescriptor& conv_desc) const;
     void LogDriverCommand(const ActivationDescriptor& descriptor) const;
