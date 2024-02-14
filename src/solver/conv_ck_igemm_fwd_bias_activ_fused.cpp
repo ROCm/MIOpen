@@ -426,7 +426,7 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
         return false;
     if(conv_problem.HasNonPackedTensors())
         return false;
-    if(conv_problem.HasAtLeastOne64BitTensor())
+    if(!conv_problem.AllTensorsDimsFitIntoInt())
         return false;
     if(conv_problem.HasMixedDataTypes())
         return false;

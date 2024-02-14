@@ -29,6 +29,8 @@
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
+namespace cat {
+
 std::string GetFloatArg()
 {
     const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
@@ -42,6 +44,9 @@ std::string GetFloatArg()
 struct CatTestFloat : CatTest<float>
 {
 };
+
+} // namespace cat
+using namespace cat;
 
 TEST_P(CatTestFloat, CatTestFw)
 {

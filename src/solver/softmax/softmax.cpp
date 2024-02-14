@@ -33,13 +33,12 @@
 #include <miopen/target_properties.hpp>
 #include <miopen/float_equal.hpp>
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_OCL_SOFTMAX)
+
 namespace miopen {
 
-namespace solver {
-
-namespace softmax {
-
-int nextPow2(int v)
+namespace {
+constexpr int nextPow2(int v)
 {
     if(v == 1)
     {
@@ -117,12 +116,17 @@ void getParams(const TensorDescriptor& in_desc,
         out_vgd        = {out_workgroups * out_vld[0], 1, 1};
     }
 }
+} // namespace
+
+namespace solver {
+
+namespace softmax {
 
 bool Softmax::IsApplicable(
     [[maybe_unused]] const ExecutionContext& context,
     [[maybe_unused]] const miopen::softmax::ProblemDescription& problem) const
 {
-    return true;
+    return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_OCL_SOFTMAX));
 }
 
 std::size_t
