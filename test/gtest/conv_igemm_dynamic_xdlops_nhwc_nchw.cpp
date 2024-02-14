@@ -65,11 +65,13 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class Conv2dFloat : public testing::TestWithParam<std::vector<std::string>>
+class Conv2dFloat_conv_igemm_dynamic_xdlops_nhwc_nchw
+    : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
-class Conv2dHalf : public testing::TestWithParam<std::vector<std::string>>
+class Conv2dHalf_conv_igemm_dynamic_xdlops_nhwc_nchw
+    : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -79,19 +81,18 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenFloat: params = Conv2dFloat::GetParam(); break;
-    case miopenHalf: params = Conv2dHalf::GetParam(); break;
+    case miopenFloat: params = Conv2dFloat_conv_igemm_dynamic_xdlops_nhwc_nchw::GetParam(); break;
+    case miopenHalf: params = Conv2dHalf_conv_igemm_dynamic_xdlops_nhwc_nchw::GetParam(); break;
     case miopenInt8:
     case miopenBFloat16:
     case miopenInt32:
     case miopenDouble:
     case miopenFloat8:
     case miopenBFloat8:
+    default:
         FAIL() << "miopenInt8, miopenBFloat16, miopenInt32, "
                   "miopenDouble, miopenFloat8, miopenBFloat8 "
                   "data type not supported by conv_igemm_dynamic_xdlops_nhwc_nchw test";
-
-    default: params = Conv2dFloat::GetParam();
     }
 
     SetupEnvVar();
@@ -284,7 +285,8 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
 using namespace conv_igemm_dynamic_xdlops_nhwc_nchw;
 
-TEST_P(Conv2dFloat, FloatTest_conv_igemm_dynamic_xdlops_nhwc_nchw)
+TEST_P(Conv2dFloat_conv_igemm_dynamic_xdlops_nhwc_nchw,
+       FloatTest_conv_igemm_dynamic_xdlops_nhwc_nchw)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest("--float"))
@@ -297,7 +299,7 @@ TEST_P(Conv2dFloat, FloatTest_conv_igemm_dynamic_xdlops_nhwc_nchw)
     }
 };
 
-TEST_P(Conv2dHalf, HalfTest_conv_igemm_dynamic_xdlops_nhwc_nchw)
+TEST_P(Conv2dHalf_conv_igemm_dynamic_xdlops_nhwc_nchw, HalfTest_conv_igemm_dynamic_xdlops_nhwc_nchw)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest("--half"))
@@ -311,9 +313,9 @@ TEST_P(Conv2dHalf, HalfTest_conv_igemm_dynamic_xdlops_nhwc_nchw)
 };
 
 INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamicXdlopsNhwcNchw,
-                         Conv2dFloat,
+                         Conv2dFloat_conv_igemm_dynamic_xdlops_nhwc_nchw,
                          testing::Values(GetTestCases("--float")));
 
 INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamicXdlopsNhwcNchw,
-                         Conv2dHalf,
+                         Conv2dHalf_conv_igemm_dynamic_xdlops_nhwc_nchw,
                          testing::Values(GetTestCases("--half")));
