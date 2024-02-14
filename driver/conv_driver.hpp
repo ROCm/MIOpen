@@ -248,6 +248,13 @@ public:
         return dev->ToGPU(q, host.data.data());
     }
 
+    inline status_t
+    AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz, std::vector<float>& init)
+    {
+        dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(float)));
+        return dev->ToGPU(q, init.data());
+    }
+
     inline auto GetDevicePtr() -> decltype(dev->GetMem()) { return dev->GetMem(); }
 };
 
@@ -363,6 +370,7 @@ private:
     boost::optional<uint64_t> immediate_solution;
 
     ATensor<Tgpu, Tref> in;
+    ATensor<Tgpu, Tref> b;
 
     miopenTensorDescriptor_t inputTensor;
     miopenTensorDescriptor_t weightTensor;
@@ -381,7 +389,6 @@ private:
     std::unique_ptr<GPUMem> dwei_dev;
     std::unique_ptr<GPUMem> out_dev;
     std::unique_ptr<GPUMem> dout_dev;
-    std::unique_ptr<GPUMem> b_dev;
     std::unique_ptr<GPUMem> db_dev;
     std::unique_ptr<GPUMem> warmup_in_dev;
     std::unique_ptr<GPUMem> warmup_wei_dev;
@@ -396,7 +403,6 @@ private:
     tensor<Tgpu> wei;
     tensor<Tgpu> out;
     tensor<Tgpu> dout;
-    tensor<Tgpu> b;
     tensor<Tref> outhost;
     tensor<Tref> dwei_host;
     tensor<Tref> din_host;
@@ -1491,19 +1497,16 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         if(inflags.GetValueInt("bias") != 0)
         {
             size_t b_sz = GetTensorSize(biasTensor);
-            b_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, b_sz, sizeof(float)));
             b_int8      = std::vector<float>(b_sz, 0.f);
-            for(int i = 0; i < b_sz; i++)
-            {
-                b_int8[i] = static_cast<float>(i % 8) + prng::gen_canonical<float>();
-            }
 
+            bool read = false;
             if(!biasFileName.empty())
-            {
-                readBufferFromFile<float>(b_int8.data(), b_sz, biasFileName.c_str());
-            }
+                read = readBufferFromFile<float>(b_int8.data(), b_sz, biasFileName.c_str());
+            if(!read)
+                for(int i = 0; i < b_sz; i++)
+                    b_int8[i] = static_cast<float>(i % 8) + prng::gen_canonical<float>();
 
-            b_dev->ToGPU(q, b_int8.data());
+            std::ignore = b.AllocOnDeviceAndInit(q, ctx, b_sz, b_int8);
         }
     }
     else
@@ -1536,26 +1539,32 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         if(inflags.GetValueInt("bias") != 0)
         {
             size_t b_sz = GetTensorSize(biasTensor);
-            b_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, b_sz, sizeof(Tgpu)));
-            db_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, b_sz, sizeof(Tgpu)));
-            b           = tensor<Tgpu>(miopen::deref(biasTensor));
-            db          = std::vector<Tgpu>(b_sz, static_cast<Tgpu>(0));
-            db_host     = tensor<Tref>(miopen::deref(biasTensor));
+
+            b.AllocOnHost(biasTensor);
+
+            db      = std::vector<Tgpu>(b_sz, static_cast<Tgpu>(0));
+            db_host = tensor<Tref>(miopen::deref(biasTensor));
+
+            // Init tensor on host
+            bool b_read = false;
+            if(!biasFileName.empty())
+                b_read = readBufferFromFile<Tgpu>(b.GetHostDataPtr(), b_sz, biasFileName.c_str());
+
             for(int i = 0; i < b_sz; i++)
             {
-                b.data[i] =
-                    static_cast<Tgpu>(i % 8) +
-                    (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) : prng::gen_canonical<Tgpu>());
-                db[i] = static_cast<Tgpu>(i % 8) + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max)
-                                                           : prng::gen_canonical<Tgpu>());
+                if(!b_read)
+                {
+                    b.GetHostTensor().data[i] = static_cast<Tgpu>(i % 8)                         //
+                                                + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) //
+                                                          : prng::gen_canonical<Tgpu>());
+                }
+                db[i] = static_cast<Tgpu>(i % 8)                         //
+                        + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) //
+                                  : prng::gen_canonical<Tgpu>());
             }
 
-            if(!biasFileName.empty())
-            {
-                readBufferFromFile<Tgpu>(b.data.data(), b_sz, biasFileName.c_str());
-            }
-
-            b_dev->ToGPU(q, b.data.data());
+            b.AllocOnDeviceAndInit(q, ctx, b_sz);
+            db_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, b_sz, sizeof(Tgpu)));
             db_dev->ToGPU(q, db.data());
         }
     }
@@ -1589,8 +1598,8 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         if(is_fwd || is_bwd)
             dumpBufferToFile<Tgpu>("dump_wei.bin", wei.data.data(), wei_sz);
         if(inflags.GetValueInt("bias") != 0)
-            dumpBufferToFile<Tgpu>("dump_bias.bin", b.data.data(), b.data.size());
-
+            dumpBufferToFile<Tgpu>(
+                "dump_bias.bin", b.GetHostTensor().data.data(), b.GetHostTensor().data.size());
         if(is_bwd || is_wrw)
             dumpBufferToFile<Tgpu>("dump_dout.bin", dout.data.data(), out_sz);
     }
@@ -1946,7 +1955,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPU()
         miopenConvolutionForwardBias(GetHandle(),
                                      &alpha,
                                      biasTensor,
-                                     b_dev->GetMem(),
+                                     b.GetDevicePtr(),
                                      &beta,
                                      outputTensor,
                                      out_dev->GetMem());
@@ -2288,7 +2297,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardCPU()
 
         if(inflags.GetValueInt("bias") != 0)
         {
-            cpu_bias_forward(outhost, b);
+            cpu_bias_forward(outhost, b.GetHostTensor());
         }
     }
     else
@@ -2307,7 +2316,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardCPU()
             outhost.par_for_each([&](auto out_n_id, auto out_k_id, auto... out_spatial_id_pack) {
                 outhost(out_n_id, out_k_id, out_spatial_id_pack...) =
                     double(outhost(out_n_id, out_k_id, out_spatial_id_pack...)) +
-                    double(b.data[out_k_id]);
+                    double(b.GetHostTensor().data[out_k_id]);
             });
         }
     }
