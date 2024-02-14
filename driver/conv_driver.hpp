@@ -219,10 +219,10 @@ class GpumemTensor
     tensor<Tgpu> host;
 
 public:
-    inline tensor<Tgpu>& GetHostTensor() { return host; }
-
+    inline tensor<Tgpu>& GetTensor() { return host; }
     inline void AllocOnHost(miopenTensorDescriptor_t t) { host = tensor<Tgpu>(miopen::deref(t)); }
 
+    inline std::vector<Tgpu>& GetHostData() { return host.data; }
     inline Tgpu* GetHostDataPtr() { return host.data.data(); }
 
     inline void
@@ -1554,9 +1554,9 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             {
                 if(!b_read)
                 {
-                    b.GetHostTensor().data[i] = static_cast<Tgpu>(i % 8)                         //
-                                                + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) //
-                                                          : prng::gen_canonical<Tgpu>());
+                    b.GetHostData()[i] = static_cast<Tgpu>(i % 8)                         //
+                                         + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) //
+                                                   : prng::gen_canonical<Tgpu>());
                 }
                 db[i] = static_cast<Tgpu>(i % 8)                         //
                         + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) //
@@ -1598,8 +1598,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         if(is_fwd || is_bwd)
             dumpBufferToFile<Tgpu>("dump_wei.bin", wei.data.data(), wei_sz);
         if(inflags.GetValueInt("bias") != 0)
-            dumpBufferToFile<Tgpu>(
-                "dump_bias.bin", b.GetHostTensor().data.data(), b.GetHostTensor().data.size());
+            dumpBufferToFile<Tgpu>("dump_bias.bin", b.GetHostDataPtr(), b.GetHostData().size());
         if(is_bwd || is_wrw)
             dumpBufferToFile<Tgpu>("dump_dout.bin", dout.data.data(), out_sz);
     }
@@ -2289,7 +2288,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardCPU()
         cpu_convolution_backward_data(miopen::deref(convDesc).GetSpatialDimension(),
                                       outhost,
                                       wei,
-                                      in.GetHostTensor(),
+                                      in.GetTensor(),
                                       miopen::deref(convDesc).GetConvPads(),
                                       miopen::deref(convDesc).GetConvStrides(),
                                       miopen::deref(convDesc).GetConvDilations(),
@@ -2297,13 +2296,13 @@ int ConvDriver<Tgpu, Tref>::RunForwardCPU()
 
         if(inflags.GetValueInt("bias") != 0)
         {
-            cpu_bias_forward(outhost, b.GetHostTensor());
+            cpu_bias_forward(outhost, b.GetTensor());
         }
     }
     else
     {
         cpu_convolution_forward(miopen::deref(convDesc).GetSpatialDimension(),
-                                in.GetHostTensor(),
+                                in.GetTensor(),
                                 wei,
                                 outhost,
                                 miopen::deref(convDesc).GetConvPads(),
@@ -2316,7 +2315,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardCPU()
             outhost.par_for_each([&](auto out_n_id, auto out_k_id, auto... out_spatial_id_pack) {
                 outhost(out_n_id, out_k_id, out_spatial_id_pack...) =
                     double(outhost(out_n_id, out_k_id, out_spatial_id_pack...)) +
-                    double(b.GetHostTensor().data[out_k_id]);
+                    double(b.GetHostData()[out_k_id]);
             });
         }
     }
@@ -3167,7 +3166,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
         cpu_convolution_backward_weight(miopen::deref(convDesc).GetSpatialDimension(),
                                         dout,
                                         dwei_host,
-                                        in.GetHostTensor(),
+                                        in.GetTensor(),
                                         miopen::deref(convDesc).GetConvPads(),
                                         miopen::deref(convDesc).GetConvStrides(),
                                         miopen::deref(convDesc).GetConvDilations(),
@@ -3176,7 +3175,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
     else
     {
         cpu_convolution_backward_weight(miopen::deref(convDesc).GetSpatialDimension(),
-                                        in.GetHostTensor(),
+                                        in.GetTensor(),
                                         dwei_host,
                                         dout,
                                         miopen::deref(convDesc).GetConvPads(),
