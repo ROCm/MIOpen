@@ -83,19 +83,6 @@
 // clang-format on
 #cmakedefine01 MIOPEN_OFFLINE_COMPILER_PATHS_V2
 #if MIOPEN_OFFLINE_COMPILER_PATHS_V2
-// Include rocm-core header for get ROCm Install Path Method
-#include <rocm-core/rocm_getpath.h>
-
-// Include header for PATH_MAX
-#if defined(__linux__)
-#include <linux/limits.h>
-#endif
-#ifndef PATH_MAX
-#define PATH_MAX 4096
-#endif
-
-// Max Buffer Len to hold the Path
-#define PATH_MAX_LEN (PATH_MAX + 1)
 
 // APIs to get MIOPEN Compiler Paths generated using ROCM Base install Path
 // This will read the ROCM Base Install Path if it is already generated

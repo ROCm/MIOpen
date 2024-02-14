@@ -41,6 +41,9 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_DUMP)
 
 #if MIOPEN_OFFLINE_COMPILER_PATHS_V2
 
+// Include rocm-core header for get ROCm Install Path Method
+#include <rocm-core/rocm_getpath.h>
+
 // Flags to hold Relative Directory Path
 // for each Compiler Flags from ROCM Install Path
 // This flag Paths are expected to be deprecated/modified
@@ -64,10 +67,8 @@ static std::string generateCompilerPathValue(const char* relativePath)
         PathErrors_t ret = getROCmInstallPath(&rocmPath, &len);
         if(PathSuccess == ret)
         {
-            if(PATH_MAX_LEN > (len + strlen(relativePath)))
-            {
-                compilerPathValue = std::string(rocmPath) + std::string(relativePath);
-            }
+            compilerPathValue = std::string(rocmPath) + std::string(relativePath);
+            // Free rocmPath memory returned (allocated by getROCmInstallPath())
             free(rocmPath);
         }
     }
