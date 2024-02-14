@@ -161,7 +161,7 @@ bool BnCKBwdBackward::IsApplicable(const ExecutionContext& context,
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = context;
-    std::ignore = fdesc_problem;
+    std::ignore = bn_problem;
     return false;
 #else
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_BN_BACK{}))
@@ -191,6 +191,7 @@ bool BnCKBwdBackward::IsApplicable(const ExecutionContext& context,
 #endif
 }
 
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 template <typename XDataType,
           typename DxDataType,
           typename DyDataType,
@@ -220,6 +221,7 @@ ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& 
                                  CKArgsBNormBwd,
                                  miopen::batchnorm::BwdInvokeParams>(bn_problem, kernel_id);
 }
+#endif
 
 ConvSolution BnCKBwdBackward::GetSolution(
     [[maybe_unused]] const ExecutionContext& context,
