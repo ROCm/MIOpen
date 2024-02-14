@@ -220,10 +220,11 @@ class GpumemTensor
 
 public:
     inline tensor<Tgpu>& GetTensor() { return host; }
-    inline void AllocOnHost(miopenTensorDescriptor_t t) { host = tensor<Tgpu>(miopen::deref(t)); }
 
+    inline void AllocOnHost(miopenTensorDescriptor_t t) { host = tensor<Tgpu>(miopen::deref(t)); }
     inline std::vector<Tgpu>& GetHostData() { return host.data; }
     inline Tgpu* GetHostDataPtr() { return host.data.data(); }
+    inline std::size_t GetHostDataSize() const { return host.data.size(); }
 
     inline void
     InitHostData(const size_t sz,     //
@@ -238,14 +239,14 @@ public:
             /// \ref move_rand
             auto val = generator();
             if(do_write)
-                host.data[i] = val;
+                GetHostData()[i] = val;
         }
     }
 
     inline status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz)
     {
         dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(Tgpu)));
-        return dev->ToGPU(q, host.data.data());
+        return dev->ToGPU(q, GetHostDataPtr());
     }
 
     inline status_t
@@ -255,7 +256,30 @@ public:
         return dev->ToGPU(q, init.data());
     }
 
-    inline auto GetDevicePtr() -> decltype(dev->GetMem()) { return dev->GetMem(); }
+    inline auto GetDevicePtr() -> auto { return dev->GetMem(); }
+};
+
+template <typename Tgpu>
+class GpumemVector
+{
+    std::unique_ptr<GPUMem> dev;
+    std::vector<Tgpu> host;
+
+public:
+    inline void AllocOnHost(std::size_t sz) { host.resize(sz, static_cast<Tgpu>(0)); }
+    inline std::vector<Tgpu>& GetHostData() { return host; }
+    inline Tgpu* GetHostDataPtr() { return host.data(); }
+    inline std::size_t GetHostDataSize() const { return host.size(); }
+
+    inline status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz)
+    {
+        dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(Tgpu)));
+        return dev->ToGPU(q, GetHostDataPtr());
+    }
+
+    inline status_t CopyFromDeviceToHost(stream q) { return dev->FromGPU(q, GetHostDataPtr()); }
+
+    inline auto GetDevicePtr() -> auto { return dev->GetMem(); }
 };
 
 // Tgpu and Tref are the data-type in GPU memory and CPU memory respectively.
@@ -371,6 +395,7 @@ private:
 
     GpumemTensor<Tgpu> in;
     GpumemTensor<Tgpu> b;
+    GpumemVector<Tgpu> db;
 
     miopenTensorDescriptor_t inputTensor;
     miopenTensorDescriptor_t weightTensor;
@@ -389,7 +414,6 @@ private:
     std::unique_ptr<GPUMem> dwei_dev;
     std::unique_ptr<GPUMem> out_dev;
     std::unique_ptr<GPUMem> dout_dev;
-    std::unique_ptr<GPUMem> db_dev;
     std::unique_ptr<GPUMem> warmup_in_dev;
     std::unique_ptr<GPUMem> warmup_wei_dev;
     std::unique_ptr<GPUMem> warmup_out_dev;
@@ -414,7 +438,6 @@ private:
     std::vector<Tgpu> din;
     std::vector<Tgpu> dwei;
     std::vector<int32_t> out_int8;
-    std::vector<Tgpu> db;
     std::vector<float> b_int8;
 
     miopenConvolutionDescriptor_t convDesc;
@@ -1541,8 +1564,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             size_t b_sz = GetTensorSize(biasTensor);
 
             b.AllocOnHost(biasTensor);
-
-            db      = std::vector<Tgpu>(b_sz, static_cast<Tgpu>(0));
+            db.AllocOnHost(b_sz);
             db_host = tensor<Tref>(miopen::deref(biasTensor));
 
             // Init tensor on host
@@ -1558,14 +1580,13 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                                          + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) //
                                                    : prng::gen_canonical<Tgpu>());
                 }
-                db[i] = static_cast<Tgpu>(i % 8)                         //
-                        + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) //
-                                  : prng::gen_canonical<Tgpu>());
+                db.GetHostData()[i] = static_cast<Tgpu>(i % 8)                         //
+                                      + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) //
+                                                : prng::gen_canonical<Tgpu>());
             }
 
             b.AllocOnDeviceAndInit(q, ctx, b_sz);
-            db_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, b_sz, sizeof(Tgpu)));
-            db_dev->ToGPU(q, db.data());
+            db.AllocOnDeviceAndInit(q, ctx, b_sz);
         }
     }
 
@@ -1598,7 +1619,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         if(is_fwd || is_bwd)
             dumpBufferToFile<Tgpu>("dump_wei.bin", wei.data.data(), wei_sz);
         if(inflags.GetValueInt("bias") != 0)
-            dumpBufferToFile<Tgpu>("dump_bias.bin", b.GetHostDataPtr(), b.GetHostData().size());
+            dumpBufferToFile<Tgpu>("dump_bias.bin", b.GetHostDataPtr(), b.GetHostDataSize());
         if(is_bwd || is_wrw)
             dumpBufferToFile<Tgpu>("dump_dout.bin", dout.data.data(), out_sz);
     }
@@ -2483,7 +2504,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardGPU()
                                              dout_dev->GetMem(),
                                              &beta,
                                              biasTensor,
-                                             db_dev->GetMem());
+                                             db.GetDevicePtr());
 
         if(time_enabled)
         {
@@ -2492,10 +2513,11 @@ int ConvDriver<Tgpu, Tref>::RunBackwardGPU()
             printf("GPU Kernel Time Backward Bias Conv. Elapsed: %f ms\n", time);
         }
 
-        db_dev->FromGPU(GetStream(), db.data());
+        db.CopyFromDeviceToHost(GetStream());
         if(inflags.GetValueInt("dump_output"))
         {
-            dumpBufferToFile<Tgpu>("dump_bwd_db_gpu.bin", db.data(), db.size());
+            dumpBufferToFile<Tgpu>(
+                "dump_bwd_db_gpu.bin", db.GetHostDataPtr(), db.GetHostDataSize());
         }
     }
     return ret;
@@ -3605,7 +3627,7 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
             RunBackwardBiasCPU();
         }
 
-        auto error_bias      = miopen::rms_range(db_host.data, db);
+        auto error_bias      = miopen::rms_range(db_host.data, db.GetHostData());
         const auto tolerance = GetDefaultTolerance();
         if(!std::isfinite(error_bias) || error_bias > tolerance)
         {
