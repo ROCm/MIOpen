@@ -35,9 +35,19 @@
 using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_TEST_FLOAT_ARG)
+MIOPEN_DECLARE_ENV_VAR_BOOL(IMPLICITGEMM_TESTING_ENV)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 namespace test_conv_for_implicit_gemm {
+
+static bool SkipTest()
+{
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
+        return false;
+    if(miopen::IsEnabled(ENV(IMPLICITGEMM_TESTING_ENV)))
+        return false;
+    return true;
+}
 
 static bool IsTestRunWith(const char* float_arg)
 {
@@ -248,8 +258,7 @@ using namespace test_conv_for_implicit_gemm;
 TEST_P(ConfigWithBF16, Test_conv_for_implicit_gemm_bf16)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") &&
-       miopen::IsEnvvarValueEnabled("IMPLICITGEMM_TESTING_ENV") && IsTestRunWith("--bf16"))
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--bf16"))
     {
         Run2dDriver(miopenBFloat16);
     }
@@ -262,8 +271,7 @@ TEST_P(ConfigWithBF16, Test_conv_for_implicit_gemm_bf16)
 TEST_P(ConfigWithHalf, Test_conv_for_implicit_gemm_half)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") &&
-       miopen::IsEnvvarValueEnabled("IMPLICITGEMM_TESTING_ENV") && IsTestRunWith("--half"))
+    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--half"))
     {
         Run2dDriver(miopenHalf);
     }
