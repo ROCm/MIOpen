@@ -222,9 +222,9 @@ public:
     inline tensor<Tgpu>& GetTensor() { return host; }
 
     inline void AllocOnHost(miopenTensorDescriptor_t t) { host = tensor<Tgpu>(miopen::deref(t)); }
-    inline std::vector<Tgpu>& GetHostData() { return host.data; }
-    inline Tgpu* GetHostDataPtr() { return host.data.data(); }
-    inline std::size_t GetHostDataSize() const { return host.data.size(); }
+    inline std::vector<Tgpu>& GetVector() { return host.data; }
+    inline Tgpu* GetVectorData() { return host.data.data(); }
+    inline std::size_t GetVectorSize() const { return host.data.size(); }
 
     inline void
     InitHostData(const size_t sz,     //
@@ -239,14 +239,14 @@ public:
             /// \ref move_rand
             auto val = generator();
             if(do_write)
-                GetHostData()[i] = val;
+                GetVector()[i] = val;
         }
     }
 
     inline status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz)
     {
         dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(Tgpu)));
-        return dev->ToGPU(q, GetHostDataPtr());
+        return dev->ToGPU(q, GetVectorData());
     }
 
     inline status_t
@@ -267,17 +267,17 @@ class GpumemVector
 
 public:
     inline void AllocOnHost(std::size_t sz) { host = std::vector<Tgpu>(sz, static_cast<Tgpu>(0)); }
-    inline std::vector<Tgpu>& GetHostData() { return host; }
-    inline Tgpu* GetHostDataPtr() { return host.data(); }
-    inline std::size_t GetHostDataSize() const { return host.size(); }
+    inline std::vector<Tgpu>& GetVector() { return host; }
+    inline Tgpu* GetVectorData() { return host.data(); }
+    inline std::size_t GetVectorSize() const { return host.size(); }
 
     inline status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz)
     {
         dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(Tgpu)));
-        return dev->ToGPU(q, GetHostDataPtr());
+        return dev->ToGPU(q, GetVectorData());
     }
 
-    inline status_t CopyFromDeviceToHost(stream q) { return dev->FromGPU(q, GetHostDataPtr()); }
+    inline status_t CopyFromDeviceToHost(stream q) { return dev->FromGPU(q, GetVectorData()); }
     template <typename T>
     inline status_t CopyFromDeviceToHost(stream q, tensor<T>& tensor)
     {
@@ -1506,12 +1506,12 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     bool dataRead = false;
     if(is_fwd || is_wrw)
         if(!inFileName.empty())
-            dataRead = readBufferFromFile<Tgpu>(in.GetHostDataPtr(), in_sz, inFileName.c_str());
+            dataRead = readBufferFromFile<Tgpu>(in.GetVectorData(), in_sz, inFileName.c_str());
 
     bool weiRead = false;
     if(is_fwd || is_bwd)
         if(!weiFileName.empty())
-            weiRead = readBufferFromFile<Tgpu>(wei.GetHostDataPtr(), wei_sz, weiFileName.c_str());
+            weiRead = readBufferFromFile<Tgpu>(wei.GetVectorData(), wei_sz, weiFileName.c_str());
 
     const Tgpu Data_scale = is_int8 ? static_cast<Tgpu>(127)
                                     : (is_fp8 ? static_cast<Tgpu>(1.0) : static_cast<Tgpu>(0.01));
@@ -1572,19 +1572,19 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             // Init tensor on host
             bool b_read = false;
             if(!biasFileName.empty())
-                b_read = readBufferFromFile<Tgpu>(b.GetHostDataPtr(), b_sz, biasFileName.c_str());
+                b_read = readBufferFromFile<Tgpu>(b.GetVectorData(), b_sz, biasFileName.c_str());
 
             for(int i = 0; i < b_sz; i++)
             {
                 if(!b_read)
                 {
-                    b.GetHostData()[i] = static_cast<Tgpu>(i % 8)                         //
-                                         + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) //
-                                                   : prng::gen_canonical<Tgpu>());
+                    b.GetVector()[i] = static_cast<Tgpu>(i % 8)                         //
+                                       + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) //
+                                                 : prng::gen_canonical<Tgpu>());
                 }
-                db.GetHostData()[i] = static_cast<Tgpu>(i % 8)                         //
-                                      + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) //
-                                                : prng::gen_canonical<Tgpu>());
+                db.GetVector()[i] = static_cast<Tgpu>(i % 8)                         //
+                                    + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) //
+                                              : prng::gen_canonical<Tgpu>());
             }
 
             b.AllocOnDeviceAndInit(q, ctx, b_sz);
@@ -1607,16 +1607,16 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
 
     if(is_fwd || is_bwd)
-        detail::RanGenSubnormBuffer<Tgpu>(wei.GetHostDataPtr(), wei_sz, subnorm_percentage);
+        detail::RanGenSubnormBuffer<Tgpu>(wei.GetVectorData(), wei_sz, subnorm_percentage);
 
     if(inflags.GetValueInt("dump_output"))
     {
         if(is_fwd || is_wrw)
-            dumpBufferToFile<Tgpu>("dump_in.bin", in.GetHostDataPtr(), in_sz);
+            dumpBufferToFile<Tgpu>("dump_in.bin", in.GetVectorData(), in_sz);
         if(is_fwd || is_bwd)
-            dumpBufferToFile<Tgpu>("dump_wei.bin", wei.GetHostDataPtr(), wei_sz);
+            dumpBufferToFile<Tgpu>("dump_wei.bin", wei.GetVectorData(), wei_sz);
         if(inflags.GetValueInt("bias") != 0)
-            dumpBufferToFile<Tgpu>("dump_bias.bin", b.GetHostDataPtr(), b.GetHostDataSize());
+            dumpBufferToFile<Tgpu>("dump_bias.bin", b.GetVectorData(), b.GetVectorSize());
         if(is_bwd || is_wrw)
             dumpBufferToFile<Tgpu>("dump_dout.bin", dout.data.data(), out_sz);
     }
@@ -2330,7 +2330,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardCPU()
             outhost.par_for_each([&](auto out_n_id, auto out_k_id, auto... out_spatial_id_pack) {
                 outhost(out_n_id, out_k_id, out_spatial_id_pack...) =
                     double(outhost(out_n_id, out_k_id, out_spatial_id_pack...)) +
-                    double(b.GetHostData()[out_k_id]);
+                    double(b.GetVector()[out_k_id]);
             });
         }
     }
@@ -2484,10 +2484,10 @@ int ConvDriver<Tgpu, Tref>::RunBackwardGPU()
     {
         if(is_bwd)
             dumpBufferToFile<Tgpu>(
-                "dump_bwd_din_gpu.bin", din.GetHostDataPtr(), din.GetHostDataSize());
+                "dump_bwd_din_gpu.bin", din.GetVectorData(), din.GetVectorSize());
         if(is_wrw)
             dumpBufferToFile<Tgpu>(
-                "dump_bwd_dwei_gpu.bin", dwei.GetHostDataPtr(), dwei.GetHostDataSize());
+                "dump_bwd_dwei_gpu.bin", dwei.GetVectorData(), dwei.GetVectorSize());
     }
 
     if(inflags.GetValueInt("bias") != 0)
@@ -2512,8 +2512,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardGPU()
         db.CopyFromDeviceToHost(GetStream());
         if(inflags.GetValueInt("dump_output"))
         {
-            dumpBufferToFile<Tgpu>(
-                "dump_bwd_db_gpu.bin", db.GetHostDataPtr(), db.GetHostDataSize());
+            dumpBufferToFile<Tgpu>("dump_bwd_db_gpu.bin", db.GetVectorData(), db.GetVectorSize());
         }
     }
     return ret;
@@ -3538,7 +3537,7 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
             }
 
         auto error_data = is_bwd_run_failed ? std::numeric_limits<double>::max()
-                                            : miopen::rms_range(din_host.data, din.GetHostData());
+                                            : miopen::rms_range(din_host.data, din.GetVector());
 
         auto tolerance = GetDefaultTolerance();
         // iGemm's deviation is higher than other algorithms.
@@ -3601,7 +3600,7 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
 
         auto error_weights = is_wrw_run_failed
                                  ? std::numeric_limits<double>::max()
-                                 : miopen::rms_range(dwei_host.data, dwei.GetHostData());
+                                 : miopen::rms_range(dwei_host.data, dwei.GetVector());
 
         if(!std::isfinite(error_weights) || error_weights > tolerance)
         {
@@ -3624,7 +3623,7 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
             RunBackwardBiasCPU();
         }
 
-        auto error_bias      = miopen::rms_range(db_host.data, db.GetHostData());
+        auto error_bias      = miopen::rms_range(db_host.data, db.GetVector());
         const auto tolerance = GetDefaultTolerance();
         if(!std::isfinite(error_bias) || error_bias > tolerance)
         {
