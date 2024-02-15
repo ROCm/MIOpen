@@ -278,6 +278,11 @@ public:
     }
 
     inline status_t CopyFromDeviceToHost(stream q) { return dev->FromGPU(q, GetHostDataPtr()); }
+    template <typename T>
+    inline status_t CopyFromDeviceToHost(stream q, tensor<T>& tensor)
+    {
+        return dev->FromGPU(q, tensor.data.data());
+    }
 
     inline auto GetDevicePtr() -> auto { return dev->GetMem(); }
 };
@@ -394,6 +399,7 @@ private:
     boost::optional<uint64_t> immediate_solution;
 
     GpumemTensor<Tgpu> in;
+    GpumemVector<Tgpu> din;
     GpumemTensor<Tgpu> b;
     GpumemVector<Tgpu> db;
 
@@ -408,7 +414,6 @@ private:
     miopenTensorDescriptor_t warmupOutputTensor;
 
     std::unique_ptr<GPUMem> in_vect4_dev;
-    std::unique_ptr<GPUMem> din_dev;
     std::unique_ptr<GPUMem> wei_dev;
     std::unique_ptr<GPUMem> wei_vect4_dev;
     std::unique_ptr<GPUMem> dwei_dev;
@@ -435,7 +440,6 @@ private:
     tensor<warmup_Tgpu> warmup_wei;
     tensor<warmup_Tgpu> warmup_out;
 
-    std::vector<Tgpu> din;
     std::vector<Tgpu> dwei;
     std::vector<int32_t> out_int8;
     std::vector<float> b_int8;
@@ -1473,7 +1477,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         dout = tensor<Tgpu>(miopen::deref(outputTensor));
 
     if(is_bwd)
-        din = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+        din.AllocOnHost(in_sz);
     if(is_wrw)
         dwei = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
     if(is_int8)
@@ -1632,8 +1636,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
     if(is_bwd)
     {
-        din_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-        status |= din_dev->ToGPU(q, din.data());
+        din.AllocOnDeviceAndInit(q, ctx, in_sz);
     }
     if(is_fwd || is_bwd)
     {
@@ -2420,7 +2423,7 @@ int ConvDriver<Tgpu, Tref>::FindBackwardData(int& ret_algo_count,
         wei_dev->GetMem(),
         convDesc,
         inputTensor,
-        din_dev->GetMem(),
+        din.GetDevicePtr(),
         request_algo_count,
         &ret_algo_count,
         perf_results.data(),
@@ -2489,7 +2492,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardGPU()
     if(inflags.GetValueInt("dump_output"))
     {
         if(is_bwd)
-            dumpBufferToFile<Tgpu>("dump_bwd_din_gpu.bin", din.data(), din.size());
+            dumpBufferToFile<Tgpu>(
+                "dump_bwd_din_gpu.bin", din.GetHostDataPtr(), din.GetHostDataSize());
         if(is_wrw)
             dumpBufferToFile<Tgpu>("dump_bwd_dwei_gpu.bin", dwei.data(), dwei.size());
     }
@@ -2565,7 +2569,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
                                            algo,
                                            &beta,
                                            inputTensor,
-                                           din_dev->GetMem(),
+                                           din.GetDevicePtr(),
                                            workspace_dev != nullptr ? workspace_dev->GetMem()
                                                                     : nullptr,
                                            ws_size);
@@ -2606,7 +2610,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
         PrintBackwardDataTime(kernel_total_time, kernel_first_time);
     }
 
-    din_dev->FromGPU(GetStream(), din.data());
+    din.CopyFromDeviceToHost(GetStream());
     return rc;
 }
 
@@ -3005,7 +3009,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
                                                     wei_dev->GetMem(),
                                                     convDesc,
                                                     inputTensor,
-                                                    din_dev->GetMem(),
+                                                    din.GetDevicePtr(),
                                                     ws ? ws->GetMem() : nullptr,
                                                     ws_size,
                                                     selected->solution_id);
@@ -3045,7 +3049,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
     }
 
     is_bwd_igemm = (selected->algorithm == miopenConvolutionAlgoImplicitGEMM);
-    din_dev->FromGPU(GetStream(), din.data());
+    din.CopyFromDeviceToHost(GetStream());
     return rc;
 }
 
@@ -3326,7 +3330,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
                                                      wei_dev->GetMem(),
                                                      convDesc,
                                                      inputTensor,
-                                                     din_dev->GetMem(),
+                                                     din.GetDevicePtr(),
                                                      nullptr,
                                                      0,
                                                      ref_solution_id);
@@ -3338,11 +3342,11 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
     }
 
     if(miopen_type<Tgpu>{} == miopen_type<Tref>{})
-        din_dev->FromGPU(GetStream(), din_host.data.data());
+        din.CopyFromDeviceToHost(GetStream(), din_host);
     else
     {
         auto din_tmp = tensor<Tgpu>(miopen::deref(inputTensor));
-        din_dev->FromGPU(GetStream(), din_tmp.data.data());
+        din.CopyFromDeviceToHost(GetStream(), din_tmp);
         for(int i = 0; i < din_tmp.data.size(); i++)
         {
             din_host.data[i] = static_cast<Tref>(din_tmp.data[i]);
@@ -3542,7 +3546,7 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
             }
 
         auto error_data = is_bwd_run_failed ? std::numeric_limits<double>::max()
-                                            : miopen::rms_range(din_host.data, din);
+                                            : miopen::rms_range(din_host.data, din.GetHostData());
 
         auto tolerance = GetDefaultTolerance();
         // iGemm's deviation is higher than other algorithms.
