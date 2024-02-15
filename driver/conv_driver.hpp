@@ -266,7 +266,7 @@ class GpumemVector
     std::vector<Tgpu> host;
 
 public:
-    inline void AllocOnHost(std::size_t sz) { host.resize(sz, static_cast<Tgpu>(0)); }
+    inline void AllocOnHost(std::size_t sz) { host = std::vector<Tgpu>(sz, static_cast<Tgpu>(0)); }
     inline std::vector<Tgpu>& GetHostData() { return host; }
     inline Tgpu* GetHostDataPtr() { return host.data(); }
     inline std::size_t GetHostDataSize() const { return host.size(); }
@@ -401,6 +401,7 @@ private:
     GpumemTensor<Tgpu> in;
     GpumemVector<Tgpu> din;
     GpumemTensor<Tgpu> wei;
+    GpumemVector<Tgpu> dwei;
     GpumemTensor<Tgpu> b;
     GpumemVector<Tgpu> db;
 
@@ -416,7 +417,6 @@ private:
 
     std::unique_ptr<GPUMem> in_vect4_dev;
     std::unique_ptr<GPUMem> wei_vect4_dev;
-    std::unique_ptr<GPUMem> dwei_dev;
     std::unique_ptr<GPUMem> out_dev;
     std::unique_ptr<GPUMem> dout_dev;
     std::unique_ptr<GPUMem> warmup_in_dev;
@@ -439,7 +439,6 @@ private:
     tensor<warmup_Tgpu> warmup_wei;
     tensor<warmup_Tgpu> warmup_out;
 
-    std::vector<Tgpu> dwei;
     std::vector<int32_t> out_int8;
     std::vector<float> b_int8;
 
@@ -1478,7 +1477,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     if(is_bwd)
         din.AllocOnHost(in_sz);
     if(is_wrw)
-        dwei = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
+        dwei.AllocOnHost(wei_sz);
     if(is_int8)
         out_int8 = std::vector<int32_t>(out_sz, 0);
     if(is_transform)
@@ -1638,8 +1637,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
     if(is_wrw)
     {
-        dwei_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(Tgpu)));
-        status |= dwei_dev->ToGPU(q, dwei.data());
+        dwei.AllocOnDeviceAndInit(q, ctx, wei_sz);
     }
     if(is_bwd || is_wrw)
     {
@@ -2443,7 +2441,7 @@ int ConvDriver<Tgpu, Tref>::FindBackwardWeights(int& ret_algo_count,
         in.GetDevicePtr(),
         convDesc,
         weightTensor,
-        dwei_dev->GetMem(),
+        dwei.GetDevicePtr(),
         request_algo_count,
         &ret_algo_count,
         perf_results.data(),
@@ -2488,7 +2486,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardGPU()
             dumpBufferToFile<Tgpu>(
                 "dump_bwd_din_gpu.bin", din.GetHostDataPtr(), din.GetHostDataSize());
         if(is_wrw)
-            dumpBufferToFile<Tgpu>("dump_bwd_dwei_gpu.bin", dwei.data(), dwei.size());
+            dumpBufferToFile<Tgpu>(
+                "dump_bwd_dwei_gpu.bin", dwei.GetHostDataPtr(), dwei.GetHostDataSize());
     }
 
     if(inflags.GetValueInt("bias") != 0)
@@ -2766,7 +2765,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
                                               algo,
                                               &beta,
                                               weightTensor,
-                                              dwei_dev->GetMem(),
+                                              dwei.GetDevicePtr(),
                                               workspace_dev != nullptr ? workspace_dev->GetMem()
                                                                        : nullptr,
                                               ws_size);
@@ -2807,7 +2806,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
         PrintBackwardWrwTime(kernel_total_time, kernel_first_time);
     }
 
-    dwei_dev->FromGPU(GetStream(), dwei.data());
+    dwei.CopyFromDeviceToHost(GetStream());
     return rc;
 }
 
@@ -3132,7 +3131,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
                                                        in.GetDevicePtr(),
                                                        convDesc,
                                                        weightTensor,
-                                                       dwei_dev->GetMem(),
+                                                       dwei.GetDevicePtr(),
                                                        ws ? ws->GetMem() : nullptr,
                                                        ws_size,
                                                        selected->solution_id);
@@ -3173,7 +3172,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
 
     is_wrw_winograd = (selected->algorithm == miopenConvolutionAlgoWinograd);
     is_wrw_igemm    = (selected->algorithm == miopenConvolutionAlgoImplicitGEMM);
-    dwei_dev->FromGPU(GetStream(), dwei.data());
+    dwei.CopyFromDeviceToHost(GetStream());
     return rc;
 }
 
@@ -3275,7 +3274,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsGPUReference()
                                                         in.GetDevicePtr(),
                                                         convDesc,
                                                         weightTensor,
-                                                        dwei_dev->GetMem(),
+                                                        dwei.GetDevicePtr(),
                                                         nullptr,
                                                         0,
                                                         ref_solution_id);
@@ -3287,11 +3286,11 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsGPUReference()
     }
 
     if(miopen_type<Tgpu>{} == miopen_type<Tref>{})
-        dwei_dev->FromGPU(GetStream(), dwei_host.data.data());
+        dwei.CopyFromDeviceToHost(GetStream(), dwei_host);
     else
     {
         auto dwei_tmp = tensor<Tgpu>(miopen::deref(weightTensor));
-        dwei_dev->FromGPU(GetStream(), dwei_tmp.data.data());
+        dwei.CopyFromDeviceToHost(GetStream(), dwei_tmp);
         for(int i = 0; i < dwei_tmp.data.size(); i++)
         {
             dwei_host.data[i] = static_cast<Tref>(dwei_tmp.data[i]);
@@ -3600,8 +3599,9 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
         if(std::is_same<Tgpu, bfloat8>::value)
             tolerance = tolerance * 2;
 
-        auto error_weights = is_wrw_run_failed ? std::numeric_limits<double>::max()
-                                               : miopen::rms_range(dwei_host.data, dwei);
+        auto error_weights = is_wrw_run_failed
+                                 ? std::numeric_limits<double>::max()
+                                 : miopen::rms_range(dwei_host.data, dwei.GetHostData());
 
         if(!std::isfinite(error_weights) || error_weights > tolerance)
         {
