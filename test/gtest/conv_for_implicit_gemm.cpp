@@ -52,8 +52,10 @@ static bool SkipTest()
 static bool IsTestRunWith(const char* float_arg)
 {
     assert(float_arg != nullptr);
-    const char* const p_envVar = miopen::GetStringEnv(MIOPEN_TEST_FLOAT_ARG{});
-    return (p_envVar != nullptr && std::strcmp(p_envVar, float_arg) == 0 && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL));
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
+        return true; // standalone run
+    return miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
+           miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == float_arg;
 }
 
 void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
