@@ -261,6 +261,7 @@ set( MIOpen_Source
     solver/pooling/backwardNd.cpp
     solver/reduce/forward_argmax.cpp
     solver/reduce/forward_sum.cpp
+    solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
     subbuffers.cpp
     sum_api.cpp
@@ -456,6 +457,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
         kernels/MIOpenSoftmax.cl
+        kernels/MIOpenSoftmaxAttn.cpp
         kernels/MIOpenSum.cpp
         kernels/MIOpenUtilKernels3.cl
         kernels/MIOpenUtilKernels4.cl
@@ -894,13 +896,12 @@ if(NOT MIOPEN_EMBED_DB STREQUAL "")
         if(MIOPEN_NO_LFS_PULLED)
             message(WARNING "Binary cache files have not been pulled down from git-lfs, will not embed.")
         else()
-            set(MIOPEN_BINCACHE_PATH "${CMAKE_SOURCE_DIR}/src/kernels")
+            set(MIOPEN_BINCACHE_PATH ${KERNELS_BINARY_DIR})
             message("MIOPEN_BINCACHE_PATH: ${MIOPEN_BINCACHE_PATH}")
         endif()
     else()
         message(WARNING "MIOPEN_EMBED_BINCACHE is set and MIOPEN_BINCACHE_PATH was used to override default binary cache files. Proceed at your own risk!")
     endif()
-    set(CODE_OBJECTS)
 # embed find db
     foreach(EMBED_ARCH ${MIOPEN_EMBED_DB})
         message(STATUS "Adding find db for arch: ${EMBED_ARCH}")
@@ -918,27 +919,6 @@ if(NOT MIOPEN_EMBED_DB STREQUAL "")
     endif()
     add_embed_library(miopen_data ${CODE_OBJECTS})
     target_link_libraries(MIOpen PRIVATE $<BUILD_INTERFACE:miopen_data> )
-else()
-    file(GLOB FIND_DB_FILES ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/*.fdb.txt)
-    file(GLOB PERF_DB_FILES ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/*.db)
-    file(GLOB KERN_DB_FILES ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/*.kdb)
-    list(APPEND FIND_DB_FILES ${PERF_DB_FILES})
-# Install the kdb files for the kdb sync test only, a better approach would be to 
-# install the kdb package instead
-if(MIOPEN_TEST_DBSYNC)
-    list(APPEND FIND_DB_FILES ${KERN_DB_FILES})
-endif()
-    if(NOT MIOPEN_DISABLE_SYSDB)
-        if( NOT ENABLE_ASAN_PACKAGING )
-          install(FILES
-              ${FIND_DB_FILES}
-              DESTINATION ${DATABASE_INSTALL_DIR})
-        endif()
-        foreach(DB_FILE ${FIND_DB_FILES})
-            get_filename_component(DB_FILE_FILENAME "${DB_FILE}" NAME)
-	        configure_file("${DB_FILE}" "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${DB_FILE_FILENAME}" COPYONLY)
-        endforeach()
-    endif()
 endif()
 
 if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)

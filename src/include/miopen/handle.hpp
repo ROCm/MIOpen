@@ -185,6 +185,7 @@ public:
     template <class Container>
     Allocator::ManageDataPtr Write(const Container& c)
     {
+        assert(!c.empty());
         using type = typename Container::value_type;
         auto buf   = this->Create<type>(c.size());
         return std::move(

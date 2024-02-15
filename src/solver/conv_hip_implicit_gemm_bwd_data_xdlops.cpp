@@ -265,7 +265,7 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
         return false;
     if(problem.HasNonPackedTensors())
         return false;
-    if(problem.HasAtLeastOne64BitTensor())
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
     if(problem.HasMixedDataTypes())
         return false;
@@ -312,12 +312,15 @@ ConvSolution ConvHipImplicitGemmBwdXdlops::GetSolution(
     switch(problem.GetInDataType())
     {
     case miopenHalf:
-        return MakeInvokerFactory<DeviceOpBwdPtrs<ck::half_t>,
-                                  CKArgs,
-                                  miopen::conv::DataInvokeParams>(problem, config.kernel_id);
+        return InitInvokerFactoryNHWC<DeviceOpBwdPtrs<ck::half_t>,
+                                      CKArgs,
+                                      miopen::conv::DataInvokeParams>(
+            ctx, problem, config.kernel_id);
     case miopenFloat:
-        return MakeInvokerFactory<DeviceOpBwdPtrs<float>, CKArgs, miopen::conv::DataInvokeParams>(
-            problem, config.kernel_id);
+        return InitInvokerFactoryNHWC<DeviceOpBwdPtrs<float>,
+                                      CKArgs,
+                                      miopen::conv::DataInvokeParams>(
+            ctx, problem, config.kernel_id);
     case miopenInt8:
     case miopenInt32:
     case miopenBFloat16:
