@@ -46,6 +46,10 @@ public:
     static constexpr __device__ float max() noexcept { return 0x1.FFFFFEp+127f; }
 
     static constexpr __device__ float min() noexcept { return 0x1p-126f; }
+
+#if HIP_PACKAGE_VERSION_FLAT >= 6001024024ULL
+    static constexpr __device__ float lowest() noexcept { return -0x1.fffffep+127; }
+#endif
 };
 
 template <>
