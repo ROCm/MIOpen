@@ -219,14 +219,14 @@ class GpumemTensor
     tensor<Tgpu> host;
 
 public:
-    inline tensor<Tgpu>& GetTensor() { return host; }
+    tensor<Tgpu>& GetTensor() { return host; }
 
-    inline void AllocOnHost(miopenTensorDescriptor_t t) { host = tensor<Tgpu>(miopen::deref(t)); }
-    inline std::vector<Tgpu>& GetVector() { return host.data; }
-    inline Tgpu* GetVectorData() { return host.data.data(); }
-    inline std::size_t GetVectorSize() const { return host.data.size(); }
+    void AllocOnHost(miopenTensorDescriptor_t t) { host = tensor<Tgpu>(miopen::deref(t)); }
+    std::vector<Tgpu>& GetVector() { return host.data; }
+    Tgpu* GetVectorData() { return host.data.data(); }
+    std::size_t GetVectorSize() const { return host.data.size(); }
 
-    inline void
+    void
     InitHostData(const size_t sz,     //
                  const bool do_write, // If set to false, then only generate random data. This is
                                       // necessary to reproduce values in input buffers even if some
@@ -247,20 +247,37 @@ public:
         }
     }
 
-    inline status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz)
+    status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz)
     {
         dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(Tgpu)));
         return dev->ToGPU(q, GetVectorData());
     }
 
-    inline status_t
-    AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz, std::vector<float>& init)
+    template <typename T>
+    status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz, std::vector<T>& init)
     {
-        dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(float)));
+        static_assert(std::is_same<T, float>::value           //
+                          || std::is_same<T, int32_t>::value, //
+                      "Before enabling more types, check thoroughly.");
+        dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(T)));
         return dev->ToGPU(q, init.data());
     }
 
-    inline auto GetDevicePtr() -> auto { return dev->GetMem(); }
+    status_t CopyFromDeviceToHost(stream q) { return dev->FromGPU(q, GetVectorData()); }
+
+    template <typename T>
+    status_t CopyFromDeviceToHost(stream q, tensor<T>& t)
+    {
+        return dev->FromGPU(q, t.data.data());
+    }
+
+    template <typename T>
+    status_t CopyFromDeviceToHost(stream q, std::vector<T>& v)
+    {
+        return dev->FromGPU(q, v.data());
+    }
+
+    auto GetDevicePtr() -> auto { return dev->GetMem(); }
 };
 
 template <typename Tgpu>
@@ -270,25 +287,26 @@ class GpumemVector
     std::vector<Tgpu> host;
 
 public:
-    inline void AllocOnHost(std::size_t sz) { host = std::vector<Tgpu>(sz, static_cast<Tgpu>(0)); }
-    inline std::vector<Tgpu>& GetVector() { return host; }
-    inline Tgpu* GetVectorData() { return host.data(); }
-    inline std::size_t GetVectorSize() const { return host.size(); }
+    void AllocOnHost(std::size_t sz) { host = std::vector<Tgpu>(sz, static_cast<Tgpu>(0)); }
+    std::vector<Tgpu>& GetVector() { return host; }
+    Tgpu* GetVectorData() { return host.data(); }
+    std::size_t GetVectorSize() const { return host.size(); }
 
-    inline status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz)
+    status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz)
     {
         dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(Tgpu)));
         return dev->ToGPU(q, GetVectorData());
     }
 
-    inline status_t CopyFromDeviceToHost(stream q) { return dev->FromGPU(q, GetVectorData()); }
+    status_t CopyFromDeviceToHost(stream q) { return dev->FromGPU(q, GetVectorData()); }
+
     template <typename T>
-    inline status_t CopyFromDeviceToHost(stream q, tensor<T>& tensor)
+    status_t CopyFromDeviceToHost(stream q, tensor<T>& tensor)
     {
         return dev->FromGPU(q, tensor.data.data());
     }
 
-    inline auto GetDevicePtr() -> auto { return dev->GetMem(); }
+    auto GetDevicePtr() -> auto { return dev->GetMem(); }
 };
 
 // Tgpu and Tref are the data-type in GPU memory and CPU memory respectively.
@@ -406,6 +424,7 @@ private:
     GpumemVector<Tgpu> din;
     GpumemTensor<Tgpu> wei;
     GpumemVector<Tgpu> dwei;
+    GpumemTensor<Tgpu> out;
     GpumemTensor<Tgpu> dout;
     GpumemTensor<Tgpu> b;
     GpumemVector<Tgpu> db;
@@ -422,7 +441,6 @@ private:
 
     std::unique_ptr<GPUMem> in_vect4_dev;
     std::unique_ptr<GPUMem> wei_vect4_dev;
-    std::unique_ptr<GPUMem> out_dev;
     std::unique_ptr<GPUMem> warmup_in_dev;
     std::unique_ptr<GPUMem> warmup_wei_dev;
     std::unique_ptr<GPUMem> warmup_out_dev;
@@ -433,7 +451,6 @@ private:
     std::size_t ws_sizeof_find_wrw;
     std::size_t warmup_ws_sizeof_find;
 
-    tensor<Tgpu> out;
     tensor<Tref> outhost;
     tensor<Tref> dwei_host;
     tensor<Tref> din_host;
@@ -1473,7 +1490,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     if(is_fwd || is_bwd)
         wei.AllocOnHost(weightTensor);
     if(is_fwd)
-        out = tensor<Tgpu>(miopen::deref(outputTensor));
+        out.AllocOnHost(outputTensor);
     if(is_bwd || is_wrw)
         dout.AllocOnHost(outputTensor);
 
@@ -1642,15 +1659,16 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
     if(is_fwd)
     {
-        // TODO: For the temporary conversion to half, this is required, however, that would also
-        // need change elsewhere which has not yet been implemented out_dev =
-        // std::unique_ptr<GPUMem>(new GPUMem(
-        //     ctx, out_sz, is_int8 ? sizeof(float) : (is_fp8 ? sizeof(half) : sizeof(Tgpu))));
+        /// \todo: For the temporary conversion to half, this is required, however, that would also
+        /// need change elsewhere which has not yet been implemented:
+        ///
+        /// out_dev = ... (is_fp8 ? sizeof(half) : sizeof(Tgpu))
+        ///
+        /// \note The above todo is necessary only when tensor casting is used. --atamazov Feb 2024
         std::ignore = is_fp8;
-        out_dev     = std::unique_ptr<GPUMem>(
-            new GPUMem(ctx, out_sz, is_int8 ? sizeof(float) : sizeof(Tgpu)));
-        status |=
-            (is_int8 ? out_dev->ToGPU(q, out_int8.data()) : out_dev->ToGPU(q, out.data.data()));
+
+        status |= is_int8 ? out.AllocOnDeviceAndInit(q, ctx, out_sz, out_int8) //
+                          : out.AllocOnDeviceAndInit(q, ctx, out_sz);
     }
 
     if(status != STATUS_SUCCESS)
@@ -1696,7 +1714,7 @@ int ConvDriver<Tgpu, Tref>::FindForward(int& ret_algo_count,
         (is_transform ? wei_vect4_dev->GetMem() : wei.GetDevicePtr()),
         convDesc,
         outputTensor,
-        out_dev->GetMem(),
+        out.GetDevicePtr(),
         request_algo_count,
         &ret_algo_count,
         perf_results.data(),
@@ -1968,7 +1986,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPU()
                                      b.GetDevicePtr(),
                                      &beta,
                                      outputTensor,
-                                     out_dev->GetMem());
+                                     out.GetDevicePtr());
 
         if(time_enabled)
         {
@@ -1981,16 +1999,17 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPU()
 
     bool is_int8 = data_type == miopenInt8 || data_type == miopenInt8x4;
     if(is_int8)
-        out_dev->FromGPU(GetStream(), out_int8.data());
+        out.CopyFromDeviceToHost(GetStream(), out_int8);
     else
-        out_dev->FromGPU(GetStream(), out.data.data());
+        out.CopyFromDeviceToHost(GetStream());
 
     if(inflags.GetValueInt("dump_output"))
     {
         if(is_int8)
             dumpBufferToFile<int32_t>("dump_fwd_out_gpu.bin", out_int8.data(), out_int8.size());
         else
-            dumpBufferToFile<Tgpu>("dump_fwd_out_gpu.bin", out.data.data(), out.data.size());
+            dumpBufferToFile<Tgpu>(
+                "dump_fwd_out_gpu.bin", out.GetVectorData(), out.GetVectorSize());
     }
 
     return rc;
@@ -2100,7 +2119,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
                                       algo,
                                       &beta,
                                       outputTensor,
-                                      out_dev->GetMem(),
+                                      out.GetDevicePtr(),
                                       workspace_dev != nullptr ? workspace_dev->GetMem() : nullptr,
                                       ws_size);
         if(rc != miopenStatusSuccess)
@@ -2249,7 +2268,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
             (is_transform ? in_vect4_dev->GetMem() : in.GetDevicePtr()),
             convDesc,
             outputTensor,
-            out_dev->GetMem(),
+            out.GetDevicePtr(),
             ws ? ws->GetMem() : nullptr,
             ws_size,
             selected->solution_id);
@@ -2360,7 +2379,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
                                                 in.GetDevicePtr(),
                                                 convDesc,
                                                 outputTensor,
-                                                out_dev->GetMem(),
+                                                out.GetDevicePtr(),
                                                 nullptr,
                                                 0,
                                                 ref_solution_id);
@@ -2373,11 +2392,11 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
 
     if(miopen_type<Tgpu>{} == miopen_type<Tref>{} || miopen_type<Tgpu>{} == miopenInt8 ||
        miopen_type<Tgpu>{} == miopenInt8x4)
-        out_dev->FromGPU(GetStream(), outhost.data.data());
+        out.CopyFromDeviceToHost(GetStream(), outhost);
     else
     {
         auto out_tmp = tensor<Tgpu>(miopen::deref(outputTensor));
-        out_dev->FromGPU(GetStream(), out_tmp.data.data());
+        out.CopyFromDeviceToHost(GetStream(), out_tmp);
         for(int i = 0; i < out_tmp.data.size(); i++)
         {
             outhost.data[i] = static_cast<Tref>(out_tmp.data[i]);
@@ -3488,7 +3507,7 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
     const auto isInt8 = (data_type == miopenInt8 || data_type == miopenInt8x4);
     auto error        = is_fwd_run_failed ? std::numeric_limits<double>::max()
                                           : (isInt8 ? miopen::rms_range(outhost.data, out_int8)
-                                                    : miopen::rms_range(outhost.data, out.data));
+                                                    : miopen::rms_range(outhost.data, out.GetVector()));
 
     auto tolerance = GetDefaultTolerance();
     // iGemm's deviation is higher than other algorithms.
