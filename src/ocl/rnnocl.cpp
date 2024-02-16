@@ -51,7 +51,8 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
                                           const TensorDescriptor& yDesc,
                                           Data_t y,
                                           Data_t hy,
-                                          Data_t reserveSpace) const
+                                          Data_t reserveSpace,
+                                          size_t reserveSpaceSize) const
 {
 #if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
     int seq_len = seq_array.size();
@@ -87,6 +88,15 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
     }
 
     auto rnn_data_type = wDesc.GetType();
+
+    const auto rspace_typed_size = reserveSpaceSize / GetTypeSize(rnn_data_type);
+    auto rspace_desc             = miopen::TensorDescriptor(
+        rnn_data_type, {1, 1, rspace_typed_size}, {rspace_typed_size, rspace_typed_size, 1});
+
+    float beta = 0;
+    // Clear reserveSpace buffer
+    //
+    SetTensor(handle, rspace_desc, reserveSpace, &beta);
 
     RnnBatches batches(seq_array);
     RnnBatches bacc_per_time;
@@ -773,7 +783,7 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
             auto hx_tensor_desc = miopen::TensorDescriptor(
                 wDesc.GetType(),
                 {1, batches.at(time_id, direction), hidden_size},
-                {static_cast<size_t>(max_batch) * hidden_size, hidden_size, 1});
+                {batches.at(0, RnnDirection::Forward) * hidden_size, hidden_size, 1});
             // Ht(l,t) += Hx(l,t) + Zact(l,t) t = 1:seq_len - 1
             //
             OpTensor(handle,
@@ -883,7 +893,9 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
                                                 static_cast<size_t>(RBuff.gemm_write_stride()),
                                                 1};
         const std::vector<size_t> hy_dst_stride{
-            static_cast<size_t>(hidden_size * max_batch), static_cast<size_t>(hidden_size), 1};
+            static_cast<size_t>(hidden_size * batches.at(0, RnnDirection::Forward)),
+            static_cast<size_t>(hidden_size),
+            1};
 
         for(int time = seq_len - 1; time >= 0; time--)
         {
@@ -3514,8 +3526,19 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
 
     if((rnnMode == miopenGRU) && !use_dropout && !(miopen::IsDisabled(ENV(MIOPEN_RNNFWD_exp))))
     {
-        RNNForwardTrainingGRU(
-            handle, in_n, xDesc[0], x, hxDesc, hx, wDesc, w, yDesc[0], y, hy, reserveSpace);
+        RNNForwardTrainingGRU(handle,
+                              in_n,
+                              xDesc[0],
+                              x,
+                              hxDesc,
+                              hx,
+                              wDesc,
+                              w,
+                              yDesc[0],
+                              y,
+                              hy,
+                              reserveSpace,
+                              reserveSpaceSize);
         if(is_profiling)
         {
             float eventTime_mS = RNNProfilingEnd(handle, start, stop);
