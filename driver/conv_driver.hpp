@@ -471,6 +471,7 @@ private:
     bool time_enabled    = false;
     bool wall_enabled    = false;
     bool warmup_enabled  = false;
+    bool is_hipmalloc    = false;
     int num_iterations   = 1;
 
     // Used to avoid wasting time for verification after failure of Run*GPU().
@@ -638,17 +639,19 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
                          inflags.GetValueStr("out_layout") + "c" + std::to_string(vector_length));
     }
 
-    if((inflags.GetValueStr("mode")) == "conv")
+    if(inflags.GetValueStr("mode") == "conv")
     {
         mode = miopenConvolution;
     }
-    else if((inflags.GetValueStr("mode")) == "trans")
+    else if(inflags.GetValueStr("mode") == "trans")
     {
         mode = miopenTranspose;
     }
     else
     {
-        MIOPEN_THROW("Incorrect Convolution Mode\n");
+        std::cout << "Incorrect Convolution Mode: '" << inflags.GetValueStr("mode") << '\''
+                  << std::endl;
+        return 1;
     }
 
     num_iterations = inflags.GetValueInt("iter");
@@ -726,6 +729,12 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
             return 1;
         }
     }
+
+    is_hipmalloc = (inflags.GetValueInt("hipmalloc") == 1);
+    if(is_hipmalloc && inflags.GetValueInt("verify") == 1)
+        std::cout << "Warning: Varification won't succeed when hipmalloc option is enabled."
+                  << std::endl;
+
     return 0;
 }
 
@@ -970,7 +979,7 @@ int ConvDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "Wall-clock Time Each Layer"
                          "\n0 Off (Default)"
                          "\n1 On, requires '--time 1')"
-                         "\n2 On, warm-up the library (prefetch db caches), requires '--time 1')",
+                         "\n2 On, warm-up the library (prefetch db caches), requires '--time 1'",
                          "int");
     inflags.AddInputFlag("search", 's', "0", "Search Kernel Config (Default=0)", "int");
     inflags.AddInputFlag("printconv", 'P', "1", "Print Convolution Dimensions (Default=1)", "int");
@@ -1012,6 +1021,15 @@ int ConvDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "\n<valid name>   Immediate mode, build and run specified solution"
                          "\n<invalid name> Use Find() API",
                          "string");
+    inflags.AddInputFlag("hipmalloc",
+                         'M',
+                         "0",
+                         "Controls if it is required to copy buffers from CPU to GPU and back."
+                         "\n0 Init input buffers on CPU and copy them to GPU. After convolution"
+                         "\n  executed, copy output buffer to CPU (Default)."
+                         "\n1 No copying. Use hipMalloc to allocate and rocrand to init buffers"
+                         "\n  directly on GPU. Verification (-V 1) won't succeed in this mode.",
+                         "int");
     inflags.AddInputFlag(
         "in_cast_type", 'U', "-1", "Cast type for input tensor, default to not set", "string");
     inflags.AddInputFlag(
