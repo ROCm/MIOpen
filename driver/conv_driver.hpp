@@ -428,6 +428,9 @@ private:
     GpumemTensor<Tgpu> dout;
     GpumemTensor<Tgpu> b;
     GpumemVector<Tgpu> db;
+    GpumemTensor<warmup_Tgpu> warmup_in;
+    GpumemTensor<warmup_Tgpu> warmup_wei;
+    GpumemTensor<warmup_Tgpu> warmup_out;
 
     miopenTensorDescriptor_t inputTensor;
     miopenTensorDescriptor_t weightTensor;
@@ -441,9 +444,6 @@ private:
 
     std::unique_ptr<GPUMem> in_vect4_dev;
     std::unique_ptr<GPUMem> wei_vect4_dev;
-    std::unique_ptr<GPUMem> warmup_in_dev;
-    std::unique_ptr<GPUMem> warmup_wei_dev;
-    std::unique_ptr<GPUMem> warmup_out_dev;
 
     std::unique_ptr<GPUMem> workspace_dev;
     std::size_t ws_sizeof_find_fwd;
@@ -455,9 +455,6 @@ private:
     tensor<Tref> dwei_host;
     tensor<Tref> din_host;
     tensor<Tref> db_host;
-    tensor<warmup_Tgpu> warmup_in;
-    tensor<warmup_Tgpu> warmup_wei;
-    tensor<warmup_Tgpu> warmup_out;
 
     std::vector<int32_t> out_int8;
     std::vector<float> b_int8;
@@ -1397,24 +1394,14 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                 break;
             }
 
-            warmup_in  = tensor<warmup_Tgpu>(miopen::deref(warmupInputTensor).GetLengths(),
-                                            miopen::deref(warmupInputTensor).GetStrides());
-            warmup_wei = tensor<warmup_Tgpu>(miopen::deref(warmupWeightTensor).GetLengths(),
-                                             miopen::deref(warmupWeightTensor).GetStrides());
-            warmup_out = tensor<warmup_Tgpu>(miopen::deref(warmupOutputTensor).GetLengths(),
-                                             miopen::deref(warmupOutputTensor).GetStrides());
-
-            warmup_in_dev =
-                std::unique_ptr<GPUMem>(new GPUMem(ctx, warmup_in_sz, sizeof(warmup_Tgpu)));
-            warmup_wei_dev =
-                std::unique_ptr<GPUMem>(new GPUMem(ctx, warmup_wei_sz, sizeof(warmup_Tgpu)));
-            warmup_out_dev =
-                std::unique_ptr<GPUMem>(new GPUMem(ctx, warmup_out_sz, sizeof(warmup_Tgpu)));
+            warmup_in.AllocOnHost(warmupInputTensor);
+            warmup_wei.AllocOnHost(warmupWeightTensor);
+            warmup_out.AllocOnHost(warmupOutputTensor);
 
             status_t status = STATUS_SUCCESS;
-            status |= warmup_in_dev->ToGPU(q, warmup_in.data.data());
-            status |= warmup_wei_dev->ToGPU(q, warmup_wei.data.data());
-            status |= warmup_out_dev->ToGPU(q, warmup_out.data.data());
+            status |= warmup_in.AllocOnDeviceAndInit(q, ctx, warmup_in_sz);
+            status |= warmup_wei.AllocOnDeviceAndInit(q, ctx, warmup_wei_sz);
+            status |= warmup_out.AllocOnDeviceAndInit(q, ctx, warmup_out_sz);
 
             if(status != STATUS_SUCCESS)
             {
@@ -1853,12 +1840,12 @@ int ConvDriver<Tgpu, Tref>::RunWarmupFindForwardGPU()
     warmup_wall_total.resume(wall_enabled);
     auto rc = miopenFindConvolutionForwardAlgorithm(GetHandle(),
                                                     warmupInputTensor,
-                                                    warmup_in_dev->GetMem(),
+                                                    warmup_in.GetDevicePtr(),
                                                     warmupWeightTensor,
-                                                    warmup_wei_dev->GetMem(),
+                                                    warmup_wei.GetDevicePtr(),
                                                     warmupConvDesc,
                                                     warmupOutputTensor,
-                                                    warmup_out_dev->GetMem(),
+                                                    warmup_out.GetDevicePtr(),
                                                     1,
                                                     &find_count,
                                                     &find_result,
@@ -1908,12 +1895,12 @@ int ConvDriver<Tgpu, Tref>::RunWarmupFindForwardGPU()
         warmup_wall_total.resume(wall_enabled);
         rc = miopenConvolutionForwardImmediate(handle,
                                                warmupWeightTensor,
-                                               warmup_wei_dev->GetMem(),
+                                               warmup_wei.GetDevicePtr(),
                                                warmupInputTensor,
-                                               warmup_in_dev->GetMem(),
+                                               warmup_in.GetDevicePtr(),
                                                warmupConvDesc,
                                                warmupOutputTensor,
-                                               warmup_out_dev->GetMem(),
+                                               warmup_out.GetDevicePtr(),
                                                nullptr,
                                                0,
                                                solution.solution_id);
