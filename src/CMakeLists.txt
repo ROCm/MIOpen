@@ -87,6 +87,7 @@ set( MIOpen_Source
     activ_api.cpp
     api/find2_0_commons.cpp
     argmax_api.cpp
+    argmin_api.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
@@ -260,6 +261,7 @@ set( MIOpen_Source
     solver/pooling/backward2d.cpp
     solver/pooling/backwardNd.cpp
     solver/reduce/forward_argmax.cpp
+    solver/reduce/forward_argmin.cpp
     solver/reduce/forward_sum.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
@@ -428,6 +430,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${GPU_BATCHED_TRANSPOSE_KERNEL_HIP}
         ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_SOURCE}
         kernels/MIOpenArgmax.cpp
+        kernels/MIOpenArgmin.cpp
         kernels/MIOpenCat.cpp
         kernels/MIOpenCheckNumerics.cpp
         kernels/MIOpenBatchNormActivBwdPerAct.cl
@@ -566,6 +569,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     list(APPEND MIOpen_Source
         activ.cpp
         argmax.cpp
+        argmin.cpp
         cat.cpp
         groupnorm.cpp
         kernel_cache.cpp

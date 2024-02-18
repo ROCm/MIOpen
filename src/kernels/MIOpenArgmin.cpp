@@ -39,7 +39,7 @@
 #endif
 
 template <typename TI, typename TO>
-__device__ void argmaxfwdcontiguous(const TI* __restrict__ x,
+__device__ void argminfwdcontiguous(const TI* __restrict__ x,
                                     TO* __restrict__ y,
                                     uint64_t output_numel,
                                     int32_t reduce_size,
@@ -51,29 +51,29 @@ __device__ void argmaxfwdcontiguous(const TI* __restrict__ x,
 
     uint64_t input_idx = (gid / inner_size) * inner_size * reduce_size + gid % inner_size;
 
-    int32_t max_idx = 0;
-    FLOAT_ACCUM max = CVT_FLOAT2ACCUM(x[input_idx]);
+    int32_t min_idx = 0;
+    FLOAT_ACCUM min = CVT_FLOAT2ACCUM(x[input_idx]);
 
     for(int32_t k = 1; k < reduce_size; ++k)
     {
         input_idx += inner_size;
         FLOAT_ACCUM val = CVT_FLOAT2ACCUM(x[input_idx]);
-        if(max < val)
+        if(min > val)
         {
-            max     = val;
-            max_idx = k;
+            min     = val;
+            min_idx = k;
         }
     }
 
-    y[gid] = max_idx;
+    y[gid] = min_idx;
 }
 
-extern "C" __global__ void ArgmaxFwdContiguous(const INPUT_TYPE* __restrict__ x,
+extern "C" __global__ void ArgminFwdContiguous(const INPUT_TYPE* __restrict__ x,
                                                OUTPUT_TYPE* __restrict__ y,
                                                uint64_t output_numel,
                                                int32_t reduce_size,
                                                uint64_t inner_size)
 {
     // instantiate the kernel
-    argmaxfwdcontiguous<INPUT_TYPE, OUTPUT_TYPE>(x, y, output_numel, reduce_size, inner_size);
+    argminfwdcontiguous<INPUT_TYPE, OUTPUT_TYPE>(x, y, output_numel, reduce_size, inner_size);
 }

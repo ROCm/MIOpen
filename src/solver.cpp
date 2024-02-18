@@ -642,6 +642,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        ++id,
                        conv::ConvHipImplicitGemmGroupWrwXdlops{},
                        miopenConvolutionAlgoImplicitGEMM);
+    Register(registry, ++id, Primitive::Reduce, reduce::ArgminForward{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

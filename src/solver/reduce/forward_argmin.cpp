@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include <miopen/argmax.hpp>
+#include <miopen/argmin.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/reduce/invoke_params.hpp>
@@ -39,7 +39,7 @@ namespace solver {
 
 namespace reduce {
 
-size_t ArgmaxForward::XGridSize(std::vector<size_t> ydims) const
+size_t ArgminForward::XGridSize(std::vector<size_t> ydims) const
 {
     auto output_numel =
         std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
@@ -47,7 +47,7 @@ size_t ArgmaxForward::XGridSize(std::vector<size_t> ydims) const
 }
 
 /// \todo https://github.com/ROCm/MIOpen/pull/2583#discussion_r1437054128
-bool ArgmaxForward::OverMaxGridSize(const ExecutionContext& context,
+bool ArgminForward::OverMaxGridSize(const ExecutionContext& context,
                                     const miopen::reduce::ProblemDescription& problem) const
 {
     auto ydims = problem.GetYDesc().GetLengths();
@@ -56,7 +56,7 @@ bool ArgmaxForward::OverMaxGridSize(const ExecutionContext& context,
     return true;
 }
 
-bool ArgmaxForward::IsApplicable(const ExecutionContext& context,
+bool ArgminForward::IsApplicable(const ExecutionContext& context,
                                  const miopen::reduce::ProblemDescription& problem) const
 {
     if(!problem.IsRightDim())
@@ -72,7 +72,7 @@ bool ArgmaxForward::IsApplicable(const ExecutionContext& context,
     return true;
 }
 
-ConvSolution ArgmaxForward::GetSolution(const ExecutionContext&,
+ConvSolution ArgminForward::GetSolution(const ExecutionContext&,
                                         const miopen::reduce::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
@@ -92,8 +92,8 @@ ConvSolution ArgmaxForward::GetSolution(const ExecutionContext&,
 
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenArgmax.cpp";
-        kernel.kernel_name = "ArgmaxFwdContiguous";
+        kernel.kernel_file = "MIOpenArgmin.cpp";
+        kernel.kernel_name = "ArgminFwdContiguous";
         xlocalsize         = LOCAL_SIZE;
         xgridsize          = XGridSize(ydims);
 
