@@ -156,6 +156,11 @@ private:
 template <typename T>
 void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems)
 {
+    if(data == nullptr)
+    {
+        printf("Ignored ouput file %s - no host buffer to dump data from (nullptr)\n", fileName);
+        return;
+    }
     std::ofstream outFile(fileName, std::ios::binary);
     if(outFile)
     {
@@ -194,7 +199,7 @@ bool readBufferFromFile(T* data, size_t dataNumItems, const char* fileName)
 {
     if(data == nullptr)
     {
-        printf("Ignored input file %s - no host buffer to copy data to (nullptr)\n", fileName);
+        printf("Ignored input file %s - no host buffer to copy data into (nullptr)\n", fileName);
         return false;
     }
     std::ifstream infile(fileName, std::ios::binary);
@@ -217,14 +222,32 @@ class GpumemTensor
 {
     std::unique_ptr<GPUMem> dev;
     tensor<Tgpu> host;
+    bool is_hipmalloc = false;
 
 public:
+    void SetHipmallocMode(bool v) { is_hipmalloc = v; }
     tensor<Tgpu>& GetTensor() { return host; }
 
-    void AllocOnHost(miopenTensorDescriptor_t t) { host = tensor<Tgpu>(miopen::deref(t)); }
-    std::vector<Tgpu>& GetVector() { return host.data; }
-    Tgpu* GetVectorData() { return host.data.data(); }
-    std::size_t GetVectorSize() const { return host.data.size(); }
+    void AllocOnHost(miopenTensorDescriptor_t t)
+    {
+        host = tensor<Tgpu>(miopen::deref(t));
+        if(is_hipmalloc) // We need only tensor descriptor.
+        {
+            host.data.clear();
+            host.data.shrink_to_fit(); // To free host memory.
+        }
+    }
+
+    std::vector<Tgpu>& GetVector()
+    {
+        if(is_hipmalloc)
+            MIOPEN_THROW(
+                "[MIOpenDriver] GpumemTensor::GetVector should not be called in hipmalloc mode");
+        return host.data;
+    }
+
+    Tgpu* GetVectorData() { return is_hipmalloc ? nullptr : host.data.data(); }
+    std::size_t GetVectorSize() const { return is_hipmalloc ? 0 : host.data.size(); }
 
     void
     InitHostData(const size_t sz,     //
@@ -234,6 +257,8 @@ public:
                                       // will be the same for both "-F 0" and "-F 2".
                  std::function<Tgpu()> generator)
     {
+        if(is_hipmalloc)
+            return;
         for(int i = 0; i < sz; ++i)
         {
             /// \anchor move_rand
@@ -250,7 +275,7 @@ public:
     status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz)
     {
         dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(Tgpu)));
-        return dev->ToGPU(q, GetVectorData());
+        return is_hipmalloc ? STATUS_SUCCESS : dev->ToGPU(q, GetVectorData());
     }
 
     template <typename T>
@@ -260,7 +285,7 @@ public:
                           || std::is_same<T, int32_t>::value, //
                       "Before enabling more types, check thoroughly.");
         dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(T)));
-        return dev->ToGPU(q, init.data());
+        return is_hipmalloc ? STATUS_SUCCESS : dev->ToGPU(q, init.data());
     }
 
     status_t CopyFromDeviceToHost(stream q) { return dev->FromGPU(q, GetVectorData()); }
@@ -268,12 +293,18 @@ public:
     template <typename T>
     status_t CopyFromDeviceToHost(stream q, tensor<T>& t)
     {
+        if(is_hipmalloc)
+            MIOPEN_THROW("[MIOpenDriver] GpumemTensor::CopyFromDeviceToHost should not be called "
+                         "in hipmalloc mode");
         return dev->FromGPU(q, t.data.data());
     }
 
     template <typename T>
     status_t CopyFromDeviceToHost(stream q, std::vector<T>& v)
     {
+        if(is_hipmalloc)
+            MIOPEN_THROW("[MIOpenDriver] GpumemTensor::CopyFromDeviceToHost should not be called "
+                         "in hipmalloc mode");
         return dev->FromGPU(q, v.data());
     }
 
@@ -734,6 +765,18 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     if(is_hipmalloc && inflags.GetValueInt("verify") == 1)
         std::cout << "Warning: Varification won't succeed when hipmalloc option is enabled."
                   << std::endl;
+
+    in.SetHipmallocMode(is_hipmalloc);
+    // din.SetHipmallocMode(is_hipmalloc);
+    // wei.SetHipmallocMode(is_hipmalloc);
+    // dwei.SetHipmallocMode(is_hipmalloc);
+    // out.SetHipmallocMode(is_hipmalloc);
+    // dout.SetHipmallocMode(is_hipmalloc);
+    // b.SetHipmallocMode(is_hipmalloc);
+    // db.SetHipmallocMode(is_hipmalloc);
+    // warmup_in.SetHipmallocMode(is_hipmalloc);
+    // warmup_wei.SetHipmallocMode(is_hipmalloc);
+    // warmup_out.SetHipmallocMode(is_hipmalloc);
 
     return 0;
 }
