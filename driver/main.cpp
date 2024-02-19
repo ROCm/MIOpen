@@ -31,6 +31,7 @@
 #include "conv_driver.hpp"
 #include "CBAInferFusion_driver.hpp"
 #include "driver.hpp"
+#include "groupnorm_driver.hpp"
 #include "gemm_driver.hpp"
 #include "lrn_driver.hpp"
 #include "pool_driver.hpp"
@@ -41,11 +42,12 @@
 #include "dropout_driver.hpp"
 #include "tensorop_driver.hpp"
 #include "reduce_driver.hpp"
+#include "layernorm_driver.hpp"
+#include "sum_driver.hpp"
+#include "argmax_driver.hpp"
+#include "cat_driver.hpp"
 #include <miopen/config.h>
 #include <miopen/stringutils.hpp>
-#ifdef MIOPEN_BETA_API
-#include "layernorm_driver.hpp"
-#endif
 
 int main(int argc, char* argv[])
 {
@@ -137,11 +139,10 @@ int main(int argc, char* argv[])
     {
         drv = new GemmDriver<float>();
     }
-// TODO half is not supported in gemm
-//    else if(base_arg == "gemmfp16")
-//    {
-//        drv = new GemmDriver<float16>();
-//    }
+    else if(base_arg == "gemmfp16")
+    {
+        drv = new GemmDriver<float16>();
+    }
 #endif
     else if(base_arg == "bnorm")
     {
@@ -179,6 +180,18 @@ int main(int argc, char* argv[])
     {
         drv = new DropoutDriver<float16, float>();
     }
+    else if(base_arg == "groupnorm")
+    {
+        drv = new GroupNormDriver<float, double>();
+    }
+    else if(base_arg == "groupnormfp16")
+    {
+        drv = new GroupNormDriver<float16, double>();
+    }
+    else if(base_arg == "groupnormbfp16")
+    {
+        drv = new GroupNormDriver<bfloat16, double>();
+    }
     else if(base_arg == "tensorop")
     {
         drv = new TensorOpDriver<float, float>();
@@ -199,7 +212,6 @@ int main(int argc, char* argv[])
     {
         drv = new ReduceDriver<double, double>();
     }
-#ifdef MIOPEN_BETA_API
     else if(base_arg == "layernorm")
     {
         drv = new LayerNormDriver<float, float>();
@@ -212,7 +224,42 @@ int main(int argc, char* argv[])
     {
         drv = new LayerNormDriver<bfloat16, float>();
     }
-#endif
+    else if(base_arg == "sum")
+    {
+        drv = new SumDriver<float, float>();
+    }
+    else if(base_arg == "sumfp16")
+    {
+        drv = new SumDriver<float16, float>();
+    }
+    else if(base_arg == "sumbfp16")
+    {
+        drv = new SumDriver<bfloat16, float>();
+    }
+    else if(base_arg == "argmax")
+    {
+        drv = new ArgmaxDriver<float, float>();
+    }
+    else if(base_arg == "argmaxfp16")
+    {
+        drv = new ArgmaxDriver<float16, float>();
+    }
+    else if(base_arg == "argmaxbfp16")
+    {
+        drv = new ArgmaxDriver<bfloat16, float>();
+    }
+    else if(base_arg == "cat")
+    {
+        drv = new CatDriver<float>();
+    }
+    else if(base_arg == "catfp16")
+    {
+        drv = new CatDriver<float16>();
+    }
+    else if(base_arg == "catbfp16")
+    {
+        drv = new CatDriver<bfloat16>();
+    }
     else
     {
         printf("Incorrect BaseArg\n");

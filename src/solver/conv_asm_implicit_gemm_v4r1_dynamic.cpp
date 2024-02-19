@@ -30,11 +30,14 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 struct TunableImplicitGemmV4R1Dynamic
 {
@@ -130,10 +133,10 @@ static inline int GetImplicitGemmV4R1DynamicGridSize(const ProblemDescription& p
     const auto& N1 = config.GemmNRepeat;
     const auto& N2 = config.GemmNPerThreadSubC;
 
-    const int n  = problem.GetBatchSize_();
-    const int k  = problem.GetOutChannels_();
-    const int ho = problem.GetOutHeight_();
-    const int wo = problem.GetOutWidth_();
+    const int n  = problem.GetBatchSize();
+    const int k  = problem.GetOutChannels();
+    const int ho = problem.GetOutHeight();
+    const int wo = problem.GetOutWidth();
 
     const auto& b = (static_cast<std::size_t>(n) * ho * wo) / (static_cast<std::size_t>(N1) * N2);
     const auto& b_per_block = config.BPerBlock;
@@ -207,7 +210,9 @@ bool TunableImplicitGemmV4R1Dynamic::IsValid(const ExecutionContext& ctx,
          BPerBlock % InBlockCopyClusterLengths_B == 0 &&
          KPerBlock % WeiBlockCopyClusterLengths_K == 0 && N1 % InBlockCopyClusterLengths_N1 == 0 &&
          N2 % InBlockCopyClusterLengths_N2 == 0))
+    {
         return false;
+    }
 
     // divide block work by [K, B]
     if(!(K % KPerBlock == 0 && B % BPerBlock == 0 && E % EPerBlock == 0))
@@ -242,7 +247,9 @@ bool TunableImplicitGemmV4R1Dynamic::IsValid(const ExecutionContext& ctx,
 
     if(block_size != InBlockCopyClusterLengths_E * InBlockCopyClusterLengths_N1 *
                          InBlockCopyClusterLengths_B * InBlockCopyClusterLengths_N2)
+    {
         return false;
+    }
 
     if(block_size != WeiBlockCopyClusterLengths_K * WeiBlockCopyClusterLengths_E)
         return false;
@@ -276,7 +283,7 @@ bool TunableImplicitGemmV4R1Dynamic::IsValid(const ExecutionContext& ctx,
 bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ExecutionContext& ctx,
                                                      const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1)))
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
@@ -286,10 +293,16 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ExecutionContext& ctx
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
 
     if(!problem.Is2d())
+        return false;
+
+    if(problem.HasNonPackedTensors())
+        return false;
+
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
 
     if(!problem.IsFp32())
@@ -305,9 +318,7 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ExecutionContext& ctx
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
@@ -321,7 +332,7 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ExecutionContext& ctx
 bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ExecutionContext& ctx,
                                                          const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1)))
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
@@ -331,10 +342,13 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ExecutionContext&
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
 
     if(!problem.Is2d())
+        return false;
+
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
 
     if(!problem.IsFp32())
@@ -346,13 +360,11 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ExecutionContext&
     if(problem.GetGroupCount() != 1)
         return false;
 
-    if((problem.GetWeightsHeight_() != 1) || (problem.GetWeightsWidth_() != 1))
+    if((problem.GetWeightsHeight() != 1) || (problem.GetWeightsWidth() != 1))
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
@@ -401,12 +413,14 @@ static inline ConvSolution GetSolutionBase(const ExecutionContext& ctx,
     MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
     if(kernel_is_1x1)
-        result.invoker_factory = conv::MakeImplGemmDynamicForward1x1InvokerFactory(problem);
+    {
+        result.invoker_factory = miopen::conv::MakeImplGemmDynamicForward1x1InvokerFactory(problem);
+    }
     else
     {
         int packed_value = 0;
         result.invoker_factory =
-            conv::MakeImplGemmDynamicForwardInvokerFactory<int>(problem, packed_value);
+            miopen::conv::MakeImplGemmDynamicForwardInvokerFactory<int>(problem, packed_value);
     }
     result.construction_params.push_back(kernel);
     return result;
@@ -421,9 +435,11 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicFwd::GetSolution(const ExecutionConte
     });
 
     if(it == tunables.end())
+    {
         MIOPEN_THROW(
             miopenStatusInternalError,
             "no solution found in igemm v4r1 dynamic fwd, should call IsApplicable() first.");
+    }
 
     return GetSolutionBase(ctx, problem, *it, AsmImplicitGemmV4R1);
 }
@@ -438,12 +454,15 @@ ConvAsmImplicitGemmV4R1DynamicFwd_1x1::GetSolution(const ExecutionContext& ctx,
     });
 
     if(it == tunables.end())
+    {
         MIOPEN_THROW(
             miopenStatusInternalError,
             "no solution found in igemm v4r1 dynamic fwd 1x1, should call IsApplicable() first.");
+    }
 
     return GetSolutionBase(ctx, problem, *it, AsmImplicitGemmV4R1_1x1);
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

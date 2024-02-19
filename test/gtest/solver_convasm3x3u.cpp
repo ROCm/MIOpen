@@ -31,12 +31,12 @@ struct ConvFwdSolverTestFloat : ConvFwdSolverTest<float>
 
 TEST_P(ConvFwdSolverTestFloat, ConvASM3x3UFwd)
 {
-    miopen::solver::ConvAsm3x3U solv{};
-    SolverFwd<miopen::solver::ConvAsm3x3U>(solv);
+    miopen::solver::conv::ConvAsm3x3U solv{};
+    SolverFwd(solv);
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
                          ConvFwdSolverTestFloat,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoDirect),
-                                          testing::ValuesIn(ConvTestConfigs()),
+                                          testing::ValuesIn(ConvTestConfigs<ConvTestCaseBase>()),
                                           testing::Values(miopenTensorNCHW)));

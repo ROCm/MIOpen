@@ -33,10 +33,13 @@
 
 #define WORKAROUND_SWDEV_306318 1
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 static const inline std::vector<TunableImplicitGemmGTCDynamic_t>&
 GetImplicitGemmGtcDynamicFwdXdlopsTunablesList()
@@ -1322,9 +1325,8 @@ GetImplicitGemmGtcDynamicFwdXdlopsTunablesList()
 }
 
 // This is a helper function for selecting better performing config
-bool mayHaveBiggerN1bClusterSize(int gemm_m,
-                                 int gemm_n,
-                                 const TunableImplicitGemmGTCDynamic_t& tunable)
+static bool
+mayHaveBiggerN1bClusterSize(int gemm_m, int gemm_n, const TunableImplicitGemmGTCDynamic_t& tunable)
 {
     float n_times_m = static_cast<float>(gemm_n) / static_cast<float>(gemm_m);
 
@@ -1351,19 +1353,19 @@ static std::tuple<bool, // is suitable kernel found
 FindImplicitGemmGtcDynamicFwdKernel(const ProblemDescription& problem)
 {
     auto tunables         = GetImplicitGemmGtcDynamicFwdXdlopsTunablesList();
-    const int n           = problem.GetBatchSize_();
-    const int c           = problem.GetInChannels_();
-    const int k           = problem.GetOutChannels_();
-    const int ho          = problem.GetOutHeight_();
-    const int wo          = problem.GetOutWidth_();
-    const auto stride_h   = problem.GetInHeight_() > 1 ? problem.GetKernelStrideH() : 1;
-    const auto stride_w   = problem.GetInWidth_() > 1 ? problem.GetKernelStrideW() : 1;
-    const auto dilation_h = problem.GetWeightsHeight_() > 1 ? problem.GetDilationH() : 1;
-    const auto dilation_w = problem.GetWeightsWidth_() > 1 ? problem.GetDilationW() : 1;
+    const int n           = problem.GetBatchSize();
+    const int c           = problem.GetInChannels();
+    const int k           = problem.GetOutChannels();
+    const int ho          = problem.GetOutHeight();
+    const int wo          = problem.GetOutWidth();
+    const auto stride_h   = problem.GetInHeight() > 1 ? problem.GetKernelStrideH() : 1;
+    const auto stride_w   = problem.GetInWidth() > 1 ? problem.GetKernelStrideW() : 1;
+    const auto dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
+    const auto dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
     const auto pad_h      = problem.GetPadH();
     const auto pad_w      = problem.GetPadW();
-    const int y           = problem.GetWeightsHeight_();
-    const int x           = problem.GetWeightsWidth_();
+    const int y           = problem.GetWeightsHeight();
+    const int x           = problem.GetWeightsWidth();
 
     const auto& gemm_m = k;
     const auto gemm_n  = n * ho * wo;
@@ -1502,7 +1504,7 @@ FindImplicitGemmGtcDynamicFwdKernel(const ProblemDescription& problem)
 bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ExecutionContext& ctx,
                                                           const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS)))
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
@@ -1512,10 +1514,16 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ExecutionContext
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
 
     if(!problem.Is2d())
+        return false;
+
+    if(problem.HasNonPackedTensors())
+        return false;
+
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
 
     if(!problem.IsFp32() && !problem.IsFp16())
@@ -1531,15 +1539,15 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ExecutionContext
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
 #if WORKAROUND_SWDEV_306318
-    if((problem.GetWeightsHeight_() == 1) && (problem.GetWeightsWidth_() == 1) &&
-       (problem.GetInChannels_() % 8 != 0))
-        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS{}))
+    if((problem.GetWeightsHeight() == 1) && (problem.GetWeightsWidth() == 1) &&
+       (problem.GetInChannels() % 8 != 0))
+    {
+        if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS)))
             return false;
+    }
 #endif
 
     const auto target = ctx.GetStream().GetTargetProperties();
@@ -1589,11 +1597,12 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlops::GetSolution(const ExecutionContext& ctx,
     MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
     result.invoker_factory =
-        conv::MakeImplGemmDynamicForwardInvokerFactory<TunableImplicitGemmGTCDynamic_t>(problem,
-                                                                                        cfg);
+        miopen::conv::MakeImplGemmDynamicForwardInvokerFactory<TunableImplicitGemmGTCDynamic_t>(
+            problem, cfg);
     result.construction_params.push_back(kernel);
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

@@ -27,22 +27,27 @@
 #include "miopen/env.hpp"
 #include <miopen/solver/conv_direct_naive_conv.hpp>
 #include <miopen/solver.hpp>
-#include <miopen/problem_description.hpp>
+#include <miopen/conv/problem_description.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/datatype.hpp>
 #include <ostream>
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS);
+
 namespace miopen {
 
 namespace debug {
 // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-bool AlwaysEnableConvDirectNaive = false;
+MIOPEN_EXPORT bool AlwaysEnableConvDirectNaive = false;
 
 } // namespace debug
 
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 bool ConvDirectNaiveConvIsAssemblyKernel(const ExecutionContext& ctx,
                                          const ProblemDescription& problem)
@@ -61,12 +66,14 @@ bool IsInputFp32(const ProblemDescription& problem)
             problem.GetWeightsDataType() == miopenFloat) ||
            (problem.GetInDataType() == miopenFloat && problem.GetOutDataType() == miopenFloat);
 }
+
 bool IsInputFp16(const ProblemDescription& problem)
 {
     return (problem.GetInDataType() == miopenHalf && problem.GetWeightsDataType() == miopenHalf) ||
            (problem.GetOutDataType() == miopenHalf && problem.GetWeightsDataType() == miopenHalf) ||
            (problem.GetInDataType() == miopenHalf && problem.GetOutDataType() == miopenHalf);
 }
+
 bool IsInputBfp16(const ProblemDescription& problem)
 {
     return (problem.GetInDataType() == miopenBFloat16 &&
@@ -76,37 +83,43 @@ bool IsInputBfp16(const ProblemDescription& problem)
            (problem.GetInDataType() == miopenBFloat16 &&
             problem.GetOutDataType() == miopenBFloat16);
 }
+
 bool IsInputInt8(const ProblemDescription& problem)
 {
     return (problem.GetInDataType() == miopenInt8 && problem.GetWeightsDataType() == miopenInt8) ||
            (problem.GetOutDataType() == miopenInt8 && problem.GetWeightsDataType() == miopenInt8) ||
            (problem.GetInDataType() == miopenInt8 && problem.GetOutDataType() == miopenInt8);
 }
+
 bool IsAccFp64(const ProblemDescription& problem)
 {
     return IsInputFp32(problem) || IsInputFp16(problem) || IsInputBfp16(problem);
 }
+
 bool IsAccInt32(const ProblemDescription& problem) { return IsInputInt8(problem); }
+
 bool IsOutputFp32(const ProblemDescription& problem)
 {
     return problem.IsFp32() ||
            (problem.GetInDataType() == miopenInt8 && problem.GetWeightsDataType() == miopenInt8 &&
             problem.GetOutDataType() == miopenFloat);
 }
+
 bool IsOutputFp16(const ProblemDescription& problem) { return problem.IsFp16(); }
+
 bool IsOutputBfp16(const ProblemDescription& problem) { return problem.IsBfp16(); }
+
 bool IsOutputInt8(const ProblemDescription& problem)
 {
     return problem.GetInDataType() == miopenInt8 && problem.GetWeightsDataType() == miopenInt8 &&
            problem.GetOutDataType() == miopenInt8;
 }
+
 bool IsOutputInt32(const ProblemDescription& problem)
 {
     return problem.GetInDataType() == miopenInt8 && problem.GetWeightsDataType() == miopenInt8 &&
            problem.GetOutDataType() == miopenInt32;
 }
-
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS);
 
 std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
 {
@@ -114,7 +127,7 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
 
     /// \todo remove packed reference convolution kernels --amberhassaan
 #ifndef NDEBUG // enable in debug mode only
-    if(miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS()))
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS)))
     {
         kernel_name << "naive_conv_packed_";
     }
@@ -124,14 +137,16 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
         kernel_name << "naive_conv_nonpacked_";
     }
 
-    if(problem.direction.IsForward())
+    // NOLINTBEGIN(*-braces-around-statements)
+    if(problem.IsDirectionForward())
         kernel_name << "fwd_";
-    else if(problem.direction.IsBackwardData())
+    else if(problem.IsDirectionBackwardData())
         kernel_name << "bwd_";
-    else if(problem.direction.IsBackwardWrW())
+    else if(problem.IsDirectionBackwardWrW())
         kernel_name << "wrw_";
     else
         MIOPEN_THROW("unsupported convolution direction");
+    // NOLINTEND(*-braces-around-statements)
 
     if(problem.IsLayoutDefault())
     {
@@ -148,7 +163,9 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
             kernel_name << "ndhwc_";
     }
     else
+    {
         MIOPEN_THROW("unsupported tensor layout");
+    }
 
     if(problem.IsFp8() || problem.IsTensorsCasted() || problem.IsBfp8())
     {
@@ -158,15 +175,25 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
         return kernel_name.str();
     }
     else if(IsInputFp32(problem))
+    {
         kernel_name << "float_";
+    }
     else if(IsInputFp16(problem))
+    {
         kernel_name << "half_";
+    }
     else if(IsInputBfp16(problem))
+    {
         kernel_name << "ushort_";
+    }
     else if(IsInputInt8(problem))
+    {
         kernel_name << "int8_t_";
+    }
     else
+    {
         MIOPEN_THROW("unsupported data type:");
+    }
 
     if(IsAccInt32(problem))
         kernel_name << "int32_t_";
@@ -175,6 +202,7 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
     else
         MIOPEN_THROW("unsupported data type:");
 
+    // NOLINTBEGIN(*-braces-around-statements)
     if(IsOutputFp32(problem))
         kernel_name << "float";
     else if(IsOutputFp16(problem))
@@ -187,6 +215,7 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
         kernel_name << "int32_t";
     else
         MIOPEN_THROW("unsupported data type:");
+    // NOLINTEND(*-braces-around-statements)
 
     return kernel_name.str();
 }
@@ -303,5 +332,6 @@ void conv_internal::DebugPrintTensorStrides(const TensorDescriptor& inDesc,
     printOneStrideVec("outDesc = ", outDesc.GetStrides());
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

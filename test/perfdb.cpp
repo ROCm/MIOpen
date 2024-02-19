@@ -27,15 +27,15 @@
 #include "test.hpp"
 #include "driver.hpp"
 
+#include <miopen/filesystem.hpp>
 #include <miopen/db.hpp>
 #include <miopen/db_record.hpp>
 #include <miopen/lock_file.hpp>
+#include <miopen/process.hpp>
 #include <miopen/ramdb.hpp>
 #include <miopen/readonlyramdb.hpp>
 #include <miopen/temp_file.hpp>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
 #include <boost/optional.hpp>
 
 #include <array>
@@ -65,10 +65,10 @@ private:
     bool cached;
 };
 
-static boost::filesystem::path& exe_path()
+static fs::path& exe_path()
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static boost::filesystem::path exe_path;
+    static fs::path exe_path;
     return exe_path;
 }
 
@@ -212,7 +212,7 @@ class DbTest
 public:
     DbTest(TempFile& temp_file_) : temp_file(temp_file_) { ResetDb(); }
 
-    virtual ~DbTest() { std::remove(LockFilePath(temp_file.Path()).c_str()); }
+    virtual ~DbTest() { fs::remove(LockFilePath(temp_file.Path())); }
 
 protected:
     TempFile& temp_file;
@@ -708,8 +708,8 @@ private:
             const auto err_path = *thread_logs_root() + "/thread-" + std::to_string(id) + "_" +
                                   log_postfix + "-err.log";
 
-            std::remove(out_path.c_str());
-            std::remove(err_path.c_str());
+            fs::remove(out_path);
+            fs::remove(err_path);
 
             log.open(out_path);
             log_err.open(err_path);
@@ -937,10 +937,12 @@ public:
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
                 });
+            }
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test threads...");
@@ -962,7 +964,7 @@ public:
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for multiprocess write access...");
 
-        std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
+        std::vector<ProcessAsync> children{};
         const auto lock_file_path = LockFilePath(temp_file);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
@@ -975,34 +977,35 @@ public:
 
             auto id = 0;
 
-            for(auto& child : children)
+            // clang-format off
+            for(auto i = 0; i < DBMultiThreadedTestWork::threads_count; ++i)
             {
-                auto command = exe_path().string() + " --" + ArgsHelper::write_arg + " --" +
-                               ArgsHelper::id_arg + " " + std::to_string(id++) + " --" +
-                               ArgsHelper::path_arg + " " + temp_file.Path() + " --" +
-                               ArgsHelper::db_class_arg + " " + ArgsHelper::db_class::Get<TDb>();
+                auto args =
+                    std::string{"--"} + ArgsHelper::write_arg +
+                                " --" + ArgsHelper::id_arg + " " + std::to_string(id++) +
+                                " --" + ArgsHelper::path_arg + " " + temp_file.Path() +
+                                " --" + ArgsHelper::db_class_arg + " " + ArgsHelper::db_class::Get<TDb>();
 
                 if(thread_logs_root())
-                    command +=
-                        std::string(" --") + ArgsHelper::logs_path_arg + " " + *thread_logs_root();
+                {
+                    args += std::string{" --"} + ArgsHelper::logs_path_arg + " " + *thread_logs_root();
+                }
 
                 if(full_set())
-                    command += " --all";
+                    args += " --all";
 
-                child = popen(command.c_str(), "w");
+                children.emplace_back(exe_path(), args);
             }
+            // clang-format on
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test processes...");
-        for(auto child : children)
+        for(auto&& child : children)
         {
-            auto status          = pclose(child);
-            const auto exit_code = WEXITSTATUS(status);
-
-            EXPECT_EQUAL(exit_code, 0);
+            EXPECT_EQUAL(child.Wait(), 0);
         }
 
-        std::remove(lock_file_path.c_str());
+        fs::remove(lock_file_path);
 
         const std::string p = temp_file;
         const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(p, false));
@@ -1044,7 +1047,7 @@ public:
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for multiprocess read access...");
 
-        std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
+        std::vector<ProcessAsync> children{};
         const auto lock_file_path = LockFilePath(temp_file);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
@@ -1059,35 +1062,35 @@ public:
 
             auto id = 0;
 
-            for(auto& child : children)
+            // clang-format off
+            for(auto i = 0; i < DBMultiThreadedTestWork::threads_count; ++i)
             {
-                auto command = exe_path().string() + " --" + ArgsHelper::id_arg + " " +
-                               std::to_string(id++) + " --" + ArgsHelper::path_arg + " " + p +
-                               " --" + ArgsHelper::db_class_arg + " " +
-                               ArgsHelper::db_class::Get<TDb>();
+                auto args =
+                    std::string{"--"} + ArgsHelper::id_arg + " " + std::to_string(id++) +
+                               " --" + ArgsHelper::path_arg + " " + p +
+                               " --" + ArgsHelper::db_class_arg + " " + ArgsHelper::db_class::Get<TDb>();
 
                 if(thread_logs_root())
-                    command +=
-                        std::string(" --") + ArgsHelper::logs_path_arg + " " + *thread_logs_root();
+                {
+                    args += std::string{" --"} + ArgsHelper::logs_path_arg + " " + *thread_logs_root();
+                }
 
                 if(full_set())
-                    command += " --all";
+                    args += " --all";
 
-                MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", command);
-                child = popen(command.c_str(), "w");
+                MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", exe_path().string() + " " + args);
+                children.emplace_back(exe_path(), args);
             }
+            // clang-format on
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test processes...");
-        for(auto child : children)
+        for(auto&& child : children)
         {
-            auto status          = pclose(child);
-            const auto exit_code = WEXITSTATUS(status);
-
-            EXPECT_EQUAL(exit_code, 0);
+            EXPECT_EQUAL(child.Wait(), 0);
         }
 
-        std::remove(lock_file_path.c_str());
+        fs::remove(lock_file_path);
     }
 
     static void WorkItem(unsigned int id, const std::string& db_path)
@@ -1348,10 +1351,12 @@ public:
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
                 });
+            }
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test threads...");
@@ -1389,10 +1394,12 @@ public:
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::WorkItem(i, c, "mt");
                 });
+            }
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test threads...");
@@ -1438,10 +1445,14 @@ struct PerfDbDriver : test_driver
         if(mt_child_id >= 0)
         {
             if(mt_child_db_class == ArgsHelper::db_class::db)
+            {
                 DbMultiProcessTest<PlainTextDb>::WorkItem(
                     mt_child_id, mt_child_db_path, test_write);
+            }
             else if(mt_child_db_class == ArgsHelper::db_class::ramdb)
+            {
                 DbMultiProcessTest<RamDb>::WorkItem(mt_child_id, mt_child_db_path, test_write);
+            }
             return;
         }
 

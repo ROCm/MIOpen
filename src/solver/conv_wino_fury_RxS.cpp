@@ -30,11 +30,14 @@
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/kernel_build_params.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F2X3)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F3X2)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F2X3)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F3X2)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 namespace {
 constexpr size_t max_cu_limit = 512;
@@ -94,10 +97,10 @@ public:
           Hs{Ceil<uint32_t>(out_h, Toh)},
           We{Tow * (Ceil<uint32_t>(out_w, Tow) + Ceil(Tw, Tow) - 1)},
 
-          W{static_cast<uint32_t>(problem.direction.IsBackwardWrW() ? problem.GetOutWidth_()
-                                                                    : problem.GetInWidth_())},
-          H{static_cast<uint32_t>(problem.direction.IsBackwardWrW() ? problem.GetOutHeight_()
-                                                                    : problem.GetInHeight_())},
+          W{static_cast<uint32_t>(problem.IsDirectionBackwardWrW() ? problem.GetOutWidth()
+                                                                   : problem.GetInWidth())},
+          H{static_cast<uint32_t>(problem.IsDirectionBackwardWrW() ? problem.GetOutHeight()
+                                                                   : problem.GetInHeight())},
 
           d_H_clip{static_cast<int32_t>(static_cast<int64_t>(Hs * Toh) - pad_h)},
           d_W_clip{static_cast<int32_t>(We - pad_w)},
@@ -123,7 +126,7 @@ public:
           n_groups{static_cast<uint32_t>(groups)}
     {
         is_applicable = problem.IsFp16() && problem.Is2d() && problem.GetGroupCount() == 1 &&
-                        problem.GetInLayout() == "NCHW" && !problem.direction.IsBackwardWrW();
+                        problem.GetInLayout() == "NCHW" && !problem.IsDirectionBackwardWrW();
     }
 
     float GetWTI() const { return -2.f; } // unknown
@@ -171,10 +174,16 @@ bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext&
     if(!problem.Is2d())
         return false;
 
-    if(is2x3() && miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F2X3{}))
+    if(problem.HasNonPackedTensors())
         return false;
 
-    if(is3x2() && miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F3X2{}))
+    if(!problem.AllTensorsDimsFitIntoInt())
+        return false;
+
+    if(is2x3() && miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F2X3)))
+        return false;
+
+    if(is3x2() && miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F3X2)))
         return false;
 
     if(!ctx.use_asm_kernels)
@@ -212,10 +221,12 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
     if(!IsWarned)
     {
         if(ctx.GetStream().GetMaxHardwareComputeUnits() > max_cu_limit)
+        {
             MIOPEN_LOG_WE(SolverDbId()
                           << ": GPU has " << ctx.GetStream().GetMaxHardwareComputeUnits()
                           << "CUs, but this solver supports max " << max_cu_limit
                           << "and thus may show sub-optimal performance.");
+        }
         IsWarned = true;
     }
 
@@ -273,7 +284,7 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
         kernel_name << "_stride1";
         kernel_file << "_stride1";
     }
-    else if(problem.GetKernelStrideW() == 2 && !problem.direction.IsBackwardData())
+    else if(problem.GetKernelStrideW() == 2 && !problem.IsDirectionBackwardData())
     {
         kernel_name << "_stride2";
         kernel_file << "_stride2";
@@ -301,8 +312,8 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
     // constexpr uint32_t F_TENSOR_OFFSETS = 1 << 13;
     uint32_t flags = 0;
 
-    const bool is_forward = problem.direction.IsForward();
-    const bool is_backWrW = problem.direction.IsBackwardWrW();
+    const bool is_forward = problem.IsDirectionForward();
+    const bool is_backWrW = problem.IsDirectionBackwardWrW();
     const int group_cnt   = problem.GetGroupCount();
 
     MemLayout_t d_layout, o_layout, f_layout;
@@ -358,14 +369,14 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto k = handle.Run(kernels[0]);
             const auto data_tensors =
-                !is_backWrW ? primitive_params.CastTo<conv::DataInvokeParams>().tensors.in
-                            : primitive_params.CastTo<conv::WrWInvokeParams>().tensors.x;
+                !is_backWrW ? primitive_params.CastTo<miopen::conv::DataInvokeParams>().tensors.in
+                            : primitive_params.CastTo<miopen::conv::WrWInvokeParams>().tensors.x;
             const auto filter_tensors =
-                !is_backWrW ? primitive_params.CastTo<conv::DataInvokeParams>().tensors.w
-                            : primitive_params.CastTo<conv::WrWInvokeParams>().tensors.dy;
+                !is_backWrW ? primitive_params.CastTo<miopen::conv::DataInvokeParams>().tensors.w
+                            : primitive_params.CastTo<miopen::conv::WrWInvokeParams>().tensors.dy;
             const auto out_tensors =
-                !is_backWrW ? primitive_params.CastTo<conv::DataInvokeParams>().tensors.out
-                            : primitive_params.CastTo<conv::WrWInvokeParams>().tensors.dw;
+                !is_backWrW ? primitive_params.CastTo<miopen::conv::DataInvokeParams>().tensors.out
+                            : primitive_params.CastTo<miopen::conv::WrWInvokeParams>().tensors.dw;
 
             float alpha_beta_reserved = 0.0f;
             uint64_t offset_reserved  = 0;
@@ -456,5 +467,6 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
 template struct ConvWinoFuryRxS<2, 3>;
 // template struct ConvWinoFuryRxS<3, 2>;
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

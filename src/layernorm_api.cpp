@@ -23,15 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #include <miopen/layernorm.hpp>
-#ifdef MIOPEN_BETA_API
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
 static void
-LogCmdLayerNorm(const miopenTensorDescriptor_t xDesc, const miopenLayerNormMode_t mode, bool is_fwd)
+LogCmdLayerNorm(const miopenTensorDescriptor_t xDesc, const miopenNormMode_t mode, bool is_fwd)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -47,11 +47,7 @@ LogCmdLayerNorm(const miopenTensorDescriptor_t xDesc, const miopenLayerNormMode_
         }
         else if(dtype == miopenBFloat16)
         {
-            ss << "layernormbf16";
-        }
-        else if(dtype == miopenDouble)
-        {
-            ss << "layernormfp64";
+            ss << "layernormbfp16";
         }
 
         int32_t size = {0};
@@ -81,7 +77,7 @@ LogCmdLayerNorm(const miopenTensorDescriptor_t xDesc, const miopenLayerNormMode_
 }
 
 extern "C" miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
-                                                 miopenLayerNormMode_t mode,
+                                                 miopenNormMode_t mode,
                                                  const miopenTensorDescriptor_t xDesc,
                                                  const void* x,
                                                  const miopenTensorDescriptor_t weightDesc,
@@ -134,4 +130,3 @@ extern "C" miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
                                  normalized_dim);
     });
 }
-#endif

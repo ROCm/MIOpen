@@ -32,17 +32,18 @@
 #include <fusionHost.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 
-#include <miopen/hip_float8.hpp>
+#include <hip_float8.hpp>
 #include <miopen/type_name.hpp>
 #include <miopen/rank.hpp>
 
 #include "conv_test_base.hpp"
 #include "get_solver.hpp"
+#include "../workspace.hpp"
 
 template <typename T = float, typename Tref = float, bool use_cpu_ref = false>
 struct ConvFwdSolverTest
     : public ::testing::TestWithParam<
-          std::tuple<miopenConvFwdAlgorithm_t, ConvTestCase, miopenTensorLayout_t>>,
+          std::tuple<miopenConvFwdAlgorithm_t, ConvTestCaseBase, miopenTensorLayout_t>>,
       ConvFwdSolverTestBase<T, Tref, use_cpu_ref>
 {
     template <typename Solver>
@@ -50,21 +51,20 @@ struct ConvFwdSolverTest
     {
         auto&& handle = get_handle();
 
-        const auto tensors = miopen::ConvFwdTensors{this->input.desc,
+        const auto tensors                 = miopen::ConvFwdTensors{this->input.desc,
                                                     this->in_dev.get(),
                                                     this->weights.desc,
                                                     this->wei_dev.get(),
                                                     this->output.desc,
                                                     this->out_dev.get()};
-        const auto problem = miopen::ProblemDescription(
-            miopen::conv::ProblemDescription{this->input.desc,
-                                             this->weights.desc,
-                                             this->output.desc,
-                                             this->conv_desc,
-                                             miopen::conv::Direction::Forward});
+        const auto problem                 = miopen::conv::ProblemDescription(this->input.desc,
+                                                              this->weights.desc,
+                                                              this->output.desc,
+                                                              this->conv_desc,
+                                                              miopen::conv::Direction::Forward);
         const miopen::ExecutionContext ctx = [&] {
             auto tmp = miopen::ExecutionContext{&handle};
-            problem.conv_problem.SetupFloats(tmp);
+            problem.SetupFloats(tmp);
             return tmp;
         }();
 
@@ -78,15 +78,11 @@ struct ConvFwdSolverTest
         if(solv.MayNeedWorkspace())
         {
             const auto cur_sol_ws = solv.GetWorkspaceSize(ctx, problem);
-            workspace_dev         = handle.Create<T>(cur_sol_ws);
-            workspace_size        = cur_sol_ws;
+            wspace.resize(cur_sol_ws);
         }
 
-        const auto invoke_params =
-            miopen::conv::DataInvokeParams{tensors,
-                                           workspace_dev.get(),
-                                           workspace_size,
-                                           this->conv_desc.attribute.gfx90aFp16alt.GetFwd()};
+        const auto invoke_params = miopen::conv::DataInvokeParams{
+            tensors, wspace.ptr(), wspace.size(), this->conv_desc.attribute.gfx90aFp16alt.GetFwd()};
 
         // auto sol = solv.GetSolution(ctx, problem);
         // This is complicated due to the split between tunable and non-tunable solvers
@@ -116,9 +112,8 @@ protected:
         this->ThresholdChecks();
     }
 
-    ConvTestCase conv_config;
-    miopen::Allocator::ManageDataPtr workspace_dev;
-    size_t workspace_size;
+    ConvTestCaseBase conv_config;
+    Workspace wspace{};
     miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoDirect;
     bool test_skipped             = false;
     miopenTensorLayout_t tensor_layout;
