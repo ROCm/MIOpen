@@ -28,9 +28,12 @@
 
 #include <miopen/common.hpp>
 #include <miopen/miopen.h>
+#include <miopen/object.hpp>
+
 #include <nlohmann/json_fwd.hpp>
 
-namespace miopen {
+namespace miopen 
+{
 
 struct Handle;
 struct TensorDescriptor;
@@ -62,10 +65,6 @@ private:
     float beta;
     miopenSoftmaxAlgorithm_t algorithm;
     miopenSoftmaxMode_t mode;
-
-    //int xdx_offset;
-    //int y_offset;
-    //int dy_offset;
 };
 
 miopenStatus_t SoftmaxForward(Handle& handle,

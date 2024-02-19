@@ -476,38 +476,37 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
 
     const auto algo = AlgorithmName{"Softmax"};
 
-    solver::softmax::Softmax softmaxSolver;
-    // _TODO add once attsoftmax is merged
-    //solver::softmax::AttnSoftmax attnSolver
+    solver::softmax::AttnSoftmax attnSoftmaxSolver;
+    solver::softmax::Softmax regularSoftmaxSolver;
 
-    std::vector<solver::softmax::Softmax*> solvers;
+    std::vector<solver::softmax::SoftmaxSolver*> solvers;
 
-    solvers.push_back(&softmaxSolver);
-    //solvers.push_back(&attnSolver);
+    solvers.push_back(&attnSoftmaxSolver);
+    solvers.push_back(&regularSoftmaxSolver);   
 
-    decltype(auto) db = GetDb(ctx);
+    //decltype(auto) db = GetDb(ctx);
 
     for (auto it = solvers.begin(); it != solvers.end(); ++it)
     {
-        solver::softmax::Softmax* solver = *it;
+        solver::softmax::SoftmaxSolver* solver = *it;
         if (!solver->IsApplicable(ctx, problem_description))
         {
             continue;
         }
         
-        auto solution = Solution{};
-        solution.SetTime(0);
+        auto solution = Solution();
+
+        /// \todo time measurement will be done later. For now we set less time for attention softmax and slightly bigger for regular
+        solution.SetTime(solver == &attnSoftmaxSolver ? 0.0f : 1.0f);
         solution.SetWorkspaceSize(solver->GetWorkspaceSize(ctx, problem_description));
-        //solution.SetSolver(handle.GetFound1_0SolverId(netcfg, AlgorithmName{algo}).value());
         solution.SetSolver(solver->SolverDbId());
-//        solution.SetPerfConfig( solution.GetSolver().GetSolver().GetPerfCfgParams(ctx, problem_description, db));
         solution.SetProblem({*this});
 
         MIOPEN_LOG_I("Found solution: " << solution.GetSolver().ToString() << " , "
                                         << solution.GetWorkspaceSize() << ", "
                                         << solution.GetTime());
 
-        ret.emplace_back(std::move(solution));    
+        ret.emplace_back(std::move(solution));
     }
 
     return ret;

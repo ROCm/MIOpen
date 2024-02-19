@@ -271,6 +271,11 @@ inline std::ostream& operator<<(std::ostream& stream, const miopenTensorArgument
     case miopenTensorBias: stream << "Bias"; break;
     case miopenTensorBiasX: stream << "BiasX"; break;
     case miopenTensorBiasY: stream << "BiasY"; break;
+    case miopenTensorSoftmaxX: stream << "SoftmaxX"; break;
+    case miopenTensorSoftmaxY: stream << "SoftmaxY"; break;
+    case miopenTensorSoftmaxDX: stream << "SoftmaxDX"; break;
+    case miopenTensorSoftmaxDY: stream << "SoftmaxDY"; break;
+
     case miopenTensorArgumentIdInvalid: stream << "Invalid"; break;
     }
 

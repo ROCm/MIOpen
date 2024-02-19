@@ -33,6 +33,8 @@
 #include <miopen/softmax/solvers.hpp>
 #include <miopen/find_solution.hpp>
 
+#include <nlohmann/json.hpp>
+
 namespace miopen {
 
 extern "C" miopenStatus_t miopenCreateSoftmaxDescriptor(miopenSoftmaxDescriptor_t* activDesc)
@@ -62,6 +64,8 @@ std::ostream& operator<<(std::ostream& stream, const SoftmaxDescriptor& x)
     ",beta" << x.GetBeta() << 
     ",algorithm" << x.GetAlgorithm() << 
     ",mode" << x.GetMode() << ",";
+
+    return stream;
 }
 
 void to_json(nlohmann::json& json, const SoftmaxDescriptor& descriptor)
