@@ -139,6 +139,13 @@ struct ProblemDescription : ProblemDescriptionBase
         return true;
     }
 
+    bool IsLargeReduceSize() const
+    {
+        if(xDesc.GetLengths()[dim] > 64)
+            return false;
+        return true;
+    }
+
     NetworkConfig MakeNetworkConfig() const override;
 
 private:

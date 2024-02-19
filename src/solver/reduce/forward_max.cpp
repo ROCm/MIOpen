@@ -65,6 +65,10 @@ bool MaxForward::IsApplicable(const ExecutionContext& context,
         return false;
     if(!problem.IsAllPacked())
         return false;
+    if(!problem.IsNotLastDim())
+        return false;
+    if(!problem.IsLargeReduceSize())
+        return false;
     if(!OverMaxGridSize(context, problem))
         return false;
     return true;
