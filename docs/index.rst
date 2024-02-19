@@ -19,7 +19,7 @@ Our documentation is structured as follows:
 
     * :ref:`install'
   
-  .. grid-item-card:: Concepts
+  .. grid-item-card:: Conceptual
 
     * :ref:``
     * :ref:``
