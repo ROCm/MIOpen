@@ -30,7 +30,7 @@
 
 #include "float_types.h"
 
-#if INPUT_TYPE == ushort
+#if MIOPEN_USE_BFP16 == 1
 #define CVT_FLOAT2ACCUM(x) (bfloat16_to_float(x))
 #define CVT_ACCUM2FLOAT(x) (float_to_bfloat16(x))
 #define CVT_INTEGRAL2ACCUM(x) ((_FLOAT_ACCUM)(x))
