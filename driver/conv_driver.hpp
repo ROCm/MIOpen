@@ -26,14 +26,6 @@
 #ifndef GUARD_MIOPEN_CONV_DRIVER_HPP
 #define GUARD_MIOPEN_CONV_DRIVER_HPP
 
-/*#ifdef MIOPEN_NEURON_SOFTRELU /// \todo This needs to be explained or rewritten in clear manner.
-#undef MIOPEN_NEURON_SOFTRELU
-#endif
-
-#ifdef MIOPEN_NEURON_POWER /// \todo This needs to be explained or rewritten in clear manner.
-#undef MIOPEN_NEURON_POWER
-#endif
-*/
 #include "InputFlags.hpp"
 #include "conv_verify.hpp"
 #include "driver.hpp"
@@ -231,7 +223,7 @@ public:
     void AllocOnHost(miopenTensorDescriptor_t t)
     {
         host = tensor<Tgpu>(miopen::deref(t));
-        if(is_gpualloc) // We need only tensor descriptor.
+        if(is_gpualloc) // We do not need host data.
         {
             host.data.clear();
             host.data.shrink_to_fit(); // To free host memory.
@@ -288,24 +280,21 @@ public:
         return is_gpualloc ? STATUS_SUCCESS : dev->ToGPU(q, init.data());
     }
 
-    status_t CopyFromDeviceToHost(stream q) { return dev->FromGPU(q, GetVectorData()); }
+    status_t CopyFromDeviceToHost(stream q)
+    {
+        return is_gpualloc ? STATUS_SUCCESS : dev->FromGPU(q, GetVectorData());
+    }
 
     template <typename T>
     status_t CopyFromDeviceToHost(stream q, tensor<T>& t)
     {
-        if(is_gpualloc)
-            MIOPEN_THROW("[MIOpenDriver] GpumemTensor::CopyFromDeviceToHost should not be called "
-                         "in '--gpualloc 1' mode");
-        return dev->FromGPU(q, t.data.data());
+        return is_gpualloc ? STATUS_SUCCESS : dev->FromGPU(q, t.data.data());
     }
 
     template <typename T>
     status_t CopyFromDeviceToHost(stream q, std::vector<T>& v)
     {
-        if(is_gpualloc)
-            MIOPEN_THROW("[MIOpenDriver] GpumemTensor::CopyFromDeviceToHost should not be called "
-                         "in '--gpualloc 1' mode");
-        return dev->FromGPU(q, v.data());
+        return is_gpualloc ? STATUS_SUCCESS : dev->FromGPU(q, v.data());
     }
 
     auto GetDevicePtr() -> auto { return dev->GetMem(); }
@@ -316,25 +305,42 @@ class GpumemVector
 {
     std::unique_ptr<GPUMem> dev;
     std::vector<Tgpu> host;
+    bool is_gpualloc = false;
 
 public:
-    void AllocOnHost(std::size_t sz) { host = std::vector<Tgpu>(sz, static_cast<Tgpu>(0)); }
-    std::vector<Tgpu>& GetVector() { return host; }
-    Tgpu* GetVectorData() { return host.data(); }
-    std::size_t GetVectorSize() const { return host.size(); }
+    void SetGpuallocMode(bool v) { is_gpualloc = v; }
+    void AllocOnHost(std::size_t sz)
+    {
+        if(is_gpualloc) // We do not need host data.
+            return;
+        host = std::vector<Tgpu>(sz, static_cast<Tgpu>(0));
+    }
+    std::vector<Tgpu>& GetVector()
+    {
+        if(is_gpualloc)
+            MIOPEN_THROW("[MIOpenDriver] GpumemVector::GetVector should not be called in "
+                         "'--gpualloc 1' mode");
+        return host;
+    }
+
+    Tgpu* GetVectorData() { return is_gpualloc ? nullptr : host.data(); }
+    std::size_t GetVectorSize() const { return is_gpualloc ? 0 : host.size(); }
 
     status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz)
     {
         dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(Tgpu)));
-        return dev->ToGPU(q, GetVectorData());
+        return is_gpualloc ? STATUS_SUCCESS : dev->ToGPU(q, GetVectorData());
     }
 
-    status_t CopyFromDeviceToHost(stream q) { return dev->FromGPU(q, GetVectorData()); }
+    status_t CopyFromDeviceToHost(stream q)
+    {
+        return is_gpualloc ? STATUS_SUCCESS : dev->FromGPU(q, GetVectorData());
+    }
 
     template <typename T>
-    status_t CopyFromDeviceToHost(stream q, tensor<T>& tensor)
+    status_t CopyFromDeviceToHost(stream q, tensor<T>& t)
     {
-        return dev->FromGPU(q, tensor.data.data());
+        return is_gpualloc ? STATUS_SUCCESS : dev->FromGPU(q, t.data.data());
     }
 
     auto GetDevicePtr() -> auto { return dev->GetMem(); }
@@ -762,21 +768,26 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     }
 
     is_gpualloc = (inflags.GetValueInt("gpualloc") == 1);
+
     if(is_gpualloc && inflags.GetValueInt("verify") == 1)
-        std::cout << "Warning: Varification won't succeed when '--gpualloc 1' option is used."
+    {
+        std::cerr << "Error: '--gpualloc 1' should not be used with enabled verification. Add "
+                     "'--verify 0' to options."
                   << std::endl;
+        exit(EXIT_FAILURE);
+    }
 
     in.SetGpuallocMode(is_gpualloc);
-    // din.SetGpuallocMode(is_gpualloc);
-    // wei.SetGpuallocMode(is_gpualloc);
-    // dwei.SetGpuallocMode(is_gpualloc);
-    // out.SetGpuallocMode(is_gpualloc);
-    // dout.SetGpuallocMode(is_gpualloc);
-    // b.SetGpuallocMode(is_gpualloc);
-    // db.SetGpuallocMode(is_gpualloc);
-    // warmup_in.SetGpuallocMode(is_gpualloc);
-    // warmup_wei.SetGpuallocMode(is_gpualloc);
-    // warmup_out.SetGpuallocMode(is_gpualloc);
+    din.SetGpuallocMode(is_gpualloc);
+    wei.SetGpuallocMode(is_gpualloc);
+    dwei.SetGpuallocMode(is_gpualloc);
+    out.SetGpuallocMode(is_gpualloc);
+    dout.SetGpuallocMode(is_gpualloc);
+    b.SetGpuallocMode(is_gpualloc);
+    db.SetGpuallocMode(is_gpualloc);
+    warmup_in.SetGpuallocMode(is_gpualloc);
+    warmup_wei.SetGpuallocMode(is_gpualloc);
+    warmup_out.SetGpuallocMode(is_gpualloc);
 
     return 0;
 }
@@ -1592,13 +1603,15 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             size_t b_sz = GetTensorSize(biasTensor);
             b_int8      = std::vector<float>(b_sz, 0.f);
 
-            bool read = false;
-            if(!biasFileName.empty())
-                read = readBufferFromFile<float>(b_int8.data(), b_sz, biasFileName.c_str());
-            if(!read)
-                for(int i = 0; i < b_sz; i++)
-                    b_int8[i] = static_cast<float>(i % 8) + prng::gen_canonical<float>();
-
+            if(!is_gpualloc)
+            {
+                bool read = false;
+                if(!biasFileName.empty())
+                    read = readBufferFromFile<float>(b_int8.data(), b_sz, biasFileName.c_str());
+                if(!read)
+                    for(int i = 0; i < b_sz; i++)
+                        b_int8[i] = static_cast<float>(i % 8) + prng::gen_canonical<float>();
+            }
             std::ignore = b.AllocOnDeviceAndInit(q, ctx, b_sz, b_int8);
         }
     }
@@ -1621,7 +1634,8 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         }
 
         if(is_wrw)
-            detail::RanGenSubnormBuffer<Tgpu>(dout.GetVectorData(), out_sz, subnorm_percentage);
+            if(!is_gpualloc)
+                detail::RanGenSubnormBuffer<Tgpu>(dout.GetVectorData(), out_sz, subnorm_percentage);
 
         if(inflags.GetValueInt("bias") != 0)
         {
@@ -1636,17 +1650,20 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             if(!biasFileName.empty())
                 b_read = readBufferFromFile<Tgpu>(b.GetVectorData(), b_sz, biasFileName.c_str());
 
-            for(int i = 0; i < b_sz; i++)
+            if(!is_gpualloc)
             {
-                if(!b_read)
+                for(int i = 0; i < b_sz; i++)
                 {
-                    b.GetVector()[i] = static_cast<Tgpu>(i % 8)                         //
-                                       + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) //
-                                                 : prng::gen_canonical<Tgpu>());
+                    if(!b_read)
+                    {
+                        b.GetVector()[i] = static_cast<Tgpu>(i % 8)                         //
+                                           + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) //
+                                                     : prng::gen_canonical<Tgpu>());
+                    }
+                    db.GetVector()[i] = static_cast<Tgpu>(i % 8)                         //
+                                        + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) //
+                                                  : prng::gen_canonical<Tgpu>());
                 }
-                db.GetVector()[i] = static_cast<Tgpu>(i % 8)                         //
-                                    + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) //
-                                              : prng::gen_canonical<Tgpu>());
             }
 
             b.AllocOnDeviceAndInit(q, ctx, b_sz);
@@ -1669,7 +1686,8 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
 
     if(is_fwd || is_bwd)
-        detail::RanGenSubnormBuffer<Tgpu>(wei.GetVectorData(), wei_sz, subnorm_percentage);
+        if(!is_gpualloc)
+            detail::RanGenSubnormBuffer<Tgpu>(wei.GetVectorData(), wei_sz, subnorm_percentage);
 
     if(inflags.GetValueInt("dump_output"))
     {
@@ -2443,11 +2461,14 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
         out.CopyFromDeviceToHost(GetStream(), outhost);
     else
     {
-        auto out_tmp = tensor<Tgpu>(miopen::deref(outputTensor));
-        out.CopyFromDeviceToHost(GetStream(), out_tmp);
-        for(int i = 0; i < out_tmp.data.size(); i++)
+        if(!is_gpualloc)
         {
-            outhost.data[i] = static_cast<Tref>(out_tmp.data[i]);
+            auto out_tmp = tensor<Tgpu>(miopen::deref(outputTensor));
+            out.CopyFromDeviceToHost(GetStream(), out_tmp);
+            for(int i = 0; i < out_tmp.data.size(); i++)
+            {
+                outhost.data[i] = static_cast<Tref>(out_tmp.data[i]);
+            }
         }
     }
 
@@ -3351,11 +3372,14 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsGPUReference()
         dwei.CopyFromDeviceToHost(GetStream(), dwei_host);
     else
     {
-        auto dwei_tmp = tensor<Tgpu>(miopen::deref(weightTensor));
-        dwei.CopyFromDeviceToHost(GetStream(), dwei_tmp);
-        for(int i = 0; i < dwei_tmp.data.size(); i++)
+        if(!is_gpualloc)
         {
-            dwei_host.data[i] = static_cast<Tref>(dwei_tmp.data[i]);
+            auto dwei_tmp = tensor<Tgpu>(miopen::deref(weightTensor));
+            dwei.CopyFromDeviceToHost(GetStream(), dwei_tmp);
+            for(int i = 0; i < dwei_tmp.data.size(); i++)
+            {
+                dwei_host.data[i] = static_cast<Tref>(dwei_tmp.data[i]);
+            }
         }
     }
 
@@ -3399,11 +3423,14 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
         din.CopyFromDeviceToHost(GetStream(), din_host);
     else
     {
-        auto din_tmp = tensor<Tgpu>(miopen::deref(inputTensor));
-        din.CopyFromDeviceToHost(GetStream(), din_tmp);
-        for(int i = 0; i < din_tmp.data.size(); i++)
+        if(!is_gpualloc)
         {
-            din_host.data[i] = static_cast<Tref>(din_tmp.data[i]);
+            auto din_tmp = tensor<Tgpu>(miopen::deref(inputTensor));
+            din.CopyFromDeviceToHost(GetStream(), din_tmp);
+            for(int i = 0; i < din_tmp.data.size(); i++)
+            {
+                din_host.data[i] = static_cast<Tref>(din_tmp.data[i]);
+            }
         }
     }
 
@@ -3543,6 +3570,8 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
     if(!is_fwd)
         return 0;
 
+    MIOPEN_THROW_IF(is_gpualloc, "'-G 1' and '-V 1' are incompatible");
+
     if(!is_fwd_run_failed)
         if(!TryReadVerificationCache(Direction::Fwd, outputTensor, outhost.data.data()))
         {
@@ -3586,6 +3615,8 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
 
     if(!(is_bwd || is_wrw))
         return 0;
+
+    MIOPEN_THROW_IF(is_gpualloc, "'-G 1' and '-V 1' are incompatible");
 
     int cumulative_rc = 0;
     if(is_bwd)
