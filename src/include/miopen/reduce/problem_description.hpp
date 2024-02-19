@@ -52,9 +52,18 @@ struct ProblemDescription : ProblemDescriptionBase
     {
     }
 
+    ProblemDescription(const TensorDescriptor& xDesc_,
+                       const TensorDescriptor& yDesc_,
+                       const TensorDescriptor& indiceDesc_,
+                       int32_t dim_)
+        : xDesc(xDesc_), yDesc(yDesc_), indiceDesc(indiceDesc_), dim(dim_)
+    {
+    }
+
     miopenSumNanPropagation_t GetNanPropagation_() const { return nanPropagation; }
     const TensorDescriptor& GetXDesc() const { return xDesc; }
     const TensorDescriptor& GetYDesc() const { return yDesc; }
+    const TensorDescriptor& GetIndiceDesc() const { return indiceDesc; }
     int32_t GetDim() const { return dim; }
 
     bool IsSameType() const
@@ -136,6 +145,7 @@ private:
     miopenSumNanPropagation_t nanPropagation;
     TensorDescriptor xDesc;
     TensorDescriptor yDesc;
+    TensorDescriptor indiceDesc;
 
     int32_t dim;
 

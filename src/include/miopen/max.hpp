@@ -23,35 +23,24 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifndef MIOPEN_MAX_HPP_
+#define MIOPEN_MAX_HPP_
 
-#pragma once
-
-#include <miopen/invoke_params.hpp>
-#include <miopen/tensor.hpp>
+#include <miopen/common.hpp>
 
 namespace miopen {
-namespace reduce {
 
-struct InvokeParams : public miopen::InvokeParams
-{
-    InvokeParams() = default;
+struct Handle;
+struct TensorDescriptor;
 
-    const TensorDescriptor* xDesc      = nullptr;
-    const TensorDescriptor* yDesc      = nullptr;
-    const TensorDescriptor* indiceDesc = nullptr;
-
-    ConstData_t x                            = nullptr;
-    Data_t y                                 = nullptr;
-    Data_t indice                            = nullptr;
-    Data_t workspace                         = nullptr;
-    std::size_t workspace_size               = 0;
-    int32_t dim                              = 0;
-    miopenSumNanPropagation_t nanPropagation = MIOPEN_SUM_NOT_PROPAGATE_NAN;
-
-    std::size_t GetWorkspaceSize() const { return workspace_size; }
-    Data_t GetWorkspace() const { return workspace; }
-};
-
-} // namespace reduce
+miopenStatus_t MaxForward(Handle& handle,
+                          const TensorDescriptor& xDesc,
+                          ConstData_t x,
+                          const TensorDescriptor& yDesc,
+                          Data_t y,
+                          const TensorDescriptor& indiceDesc,
+                          Data_t indice,
+                          int32_t dim);
 
 } // namespace miopen
+#endif // _MIOPEN_MAX_HPP_

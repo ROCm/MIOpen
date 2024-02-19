@@ -24,34 +24,47 @@
  *
  *******************************************************************************/
 
-#pragma once
-
-#include <miopen/invoke_params.hpp>
+#include <miopen/max.hpp>
+#include <miopen/datatype.hpp>
+#include <miopen/find_solution.hpp>
+#include <miopen/float_equal.hpp>
+#include <miopen/kernel_cache.hpp>
+#include <miopen/reduce/invoke_params.hpp>
+#include <miopen/reduce/solvers.hpp>
 #include <miopen/tensor.hpp>
 
 namespace miopen {
-namespace reduce {
 
-struct InvokeParams : public miopen::InvokeParams
+miopenStatus_t MaxForward(Handle& handle,
+                          const TensorDescriptor& xDesc,
+                          ConstData_t x,
+                          const TensorDescriptor& yDesc,
+                          Data_t y,
+                          const TensorDescriptor& indiceDesc,
+                          Data_t indice,
+                          int32_t dim)
 {
-    InvokeParams() = default;
+    const auto problem = reduce::ProblemDescription{xDesc, yDesc, indiceDesc, dim};
 
-    const TensorDescriptor* xDesc      = nullptr;
-    const TensorDescriptor* yDesc      = nullptr;
-    const TensorDescriptor* indiceDesc = nullptr;
+    const auto invoke_params = [&]() {
+        auto tmp       = reduce::InvokeParams{};
+        tmp.type       = InvokeType::Run;
+        tmp.xDesc      = &xDesc;
+        tmp.yDesc      = &yDesc;
+        tmp.indiceDesc = &indiceDesc;
+        tmp.x          = x;
+        tmp.y          = y;
+        tmp.indice     = indice;
+        tmp.dim        = dim;
+        return tmp;
+    }();
 
-    ConstData_t x                            = nullptr;
-    Data_t y                                 = nullptr;
-    Data_t indice                            = nullptr;
-    Data_t workspace                         = nullptr;
-    std::size_t workspace_size               = 0;
-    int32_t dim                              = 0;
-    miopenSumNanPropagation_t nanPropagation = MIOPEN_SUM_NOT_PROPAGATE_NAN;
+    const auto algo    = AlgorithmName{"MaxForward"};
+    const auto solvers = solver::SolverContainer<solver::reduce::MaxForward>{};
 
-    std::size_t GetWorkspaceSize() const { return workspace_size; }
-    Data_t GetWorkspace() const { return workspace; }
-};
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
-} // namespace reduce
+    return miopenStatusSuccess;
+}
 
 } // namespace miopen

@@ -27,4 +27,5 @@ API Reference
     groupnorm
     cat
     argmin
+    max
 

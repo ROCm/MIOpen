@@ -23,35 +23,45 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifndef GUARD_CPU_MAX_HPP
+#define GUARD_CPU_MAX_HPP
 
-#pragma once
+#include "tensor_holder.hpp"
 
-#include <miopen/invoke_params.hpp>
-#include <miopen/tensor.hpp>
-
-namespace miopen {
-namespace reduce {
-
-struct InvokeParams : public miopen::InvokeParams
+template <class T>
+void cpu_max_forward(tensor<T> input, tensor<T>& ref_output, tensor<int>& ref_indice, int32_t dim)
 {
-    InvokeParams() = default;
+    auto input_dims  = input.desc.GetLengths();
+    auto output_dims = ref_output.desc.GetLengths();
 
-    const TensorDescriptor* xDesc      = nullptr;
-    const TensorDescriptor* yDesc      = nullptr;
-    const TensorDescriptor* indiceDesc = nullptr;
+    auto reduce_size = input_dims[dim];
+    auto output_numel =
+        std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
 
-    ConstData_t x                            = nullptr;
-    Data_t y                                 = nullptr;
-    Data_t indice                            = nullptr;
-    Data_t workspace                         = nullptr;
-    std::size_t workspace_size               = 0;
-    int32_t dim                              = 0;
-    miopenSumNanPropagation_t nanPropagation = MIOPEN_SUM_NOT_PROPAGATE_NAN;
+    auto inner_size = 1ULL;
+    for(int32_t i = dim + 1; i < input_dims.size(); i++)
+    {
+        inner_size *= input_dims[i];
+    }
 
-    std::size_t GetWorkspaceSize() const { return workspace_size; }
-    Data_t GetWorkspace() const { return workspace; }
-};
+    par_ford(output_numel)([&](size_t o) {
+        size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
 
-} // namespace reduce
+        int32_t max_idx = 0;
+        T max           = input[input_idx];
 
-} // namespace miopen
+        ford(reduce_size)([&](size_t i) {
+            T val = input[input_idx];
+            if(max < val)
+            {
+                max     = val;
+                max_idx = i;
+            }
+            input_idx += inner_size;
+        });
+
+        ref_output[o] = max;
+        ref_indice[o] = max_idx;
+    });
+}
+#endif
