@@ -143,6 +143,9 @@ list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/ll
 option(ENABLE_HIP_WORKAROUNDS Off)
 set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
 
+set_var_to_condition(MIOPEN_OFFLINE_COMPILER_PATHS_V2_DEFAULT FALSE)
+option(MIOPEN_OFFLINE_COMPILER_PATHS_V2 "Use rocm-core to find offline GPU compiler" ${MIOPEN_OFFLINE_COMPILER_PATHS_V2_DEFAULT})
+message( STATUS "MIOPEN_OFFLINE_COMPILER_PATHS_V2: ${MIOPEN_OFFLINE_COMPILER_PATHS_V2}" )
 
 # Embedded Build Configuration
 set(MIOPEN_EMBED_DB "" CACHE STRING "Semi-colon separated list of architecture to embed on-disk DBs in the binary. Example gfx906_60;gfx900_56")
@@ -258,8 +261,24 @@ set(MIOPEN_hip_VERSION ${MIOPEN_hip_VERSION_MAJOR}.${MIOPEN_hip_VERSION_MINOR}.$
 set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT (MIOPEN_USE_COMGR AND (MIOPEN_hip_VERSION VERSION_GREATER_EQUAL 5)))
 option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MIOPEN_USE_HIPRTC_DEFAULT})
 
-# WORKAROUND_SWDEV_413293 - do not use on Windows. Compiler error message: unknown command line option
-if(NOT WIN32 AND MIOPEN_hip_VERSION VERSION_GREATER_EQUAL 5.7.23302)
+# WORKAROUND_SWDEV_413293
+# Assume that any HIP kernel can be launched with non-uniform block size; otherwise
+# the "Failed to launch kernel: invalid argument" error may happen at run time.
+# References: SWDEV-413293 and https://reviews.llvm.org/D155213 effective HIP_FLAT_VERSION 500723302 on Linux.
+# This may lead to perf drops in the future therefore https://github.com/ROCm/MIOpen/issues/2708 is opened.
+if(HAS_HIP)
+    # HIP version is unreliable on Windows and on Fedora, so we use compiler flag detection,
+    # if this is possible. See issue 2734 and PR 2719.
+    check_cxx_compiler_flag("-x hip -fno-offload-uniform-block" MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK)
+else()
+    # CXX compiler is not HIP compiler, let's analyze HIP version.
+    set(MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK Off)
+    if(${MIOPEN_hip_VERSION_FLAT} GREATER_EQUAL 500723302)
+        set(MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK On)
+    endif()
+    message(STATUS "MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK: ${MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK}")
+endif()
+if(MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK)
     string(APPEND HIP_COMPILER_FLAGS " -fno-offload-uniform-block ")
 endif()
 
@@ -466,6 +485,10 @@ if(MIOPEN_USE_ROCBLAS)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocblas")
 endif()
 
+if(MIOPEN_OFFLINE_COMPILER_PATHS_V2)
+    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocm-core")
+endif()
+
 if(MIOPEN_BACKEND STREQUAL "HIP")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}")
     set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}")
@@ -500,13 +523,15 @@ function(unpack_db db_bzip2_file)
 endfunction()
 
 file(GLOB PERF_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/*.db.bz2")
-foreach(DB_BZIP_FILE ${PERF_DB_BZIP_FILES})
-    unpack_db(${DB_BZIP_FILE})
-endforeach()
-
 file(GLOB FIND_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/*.fdb.txt.bz2")
-foreach(DB_BZIP_FILE ${FIND_DB_BZIP_FILES})
+
+foreach(DB_BZIP_FILE ${PERF_DB_BZIP_FILES} ${FIND_DB_BZIP_FILES})
     unpack_db(${DB_BZIP_FILE})
+    get_filename_component(__fname ${DB_BZIP_FILE} NAME_WLE)
+    if(MIOPEN_EMBED_DB STREQUAL "" AND NOT MIOPEN_DISABLE_SYSDB AND NOT ENABLE_ASAN_PACKAGING)
+        install(FILES ${KERNELS_BINARY_DIR}/${__fname}
+                DESTINATION ${DATABASE_INSTALL_DIR})
+    endif()
 endforeach()
 
 # Begin KDB package creation
@@ -519,12 +544,13 @@ function(install_kdb FILE_NAME COMPONENT_NAME)
     else()
         unpack_db(${FILE_NAME})
         if( NOT ENABLE_ASAN_PACKAGING )
+            if( NOT MIOPEN_TEST_DBSYNC )
+                set(__component_name COMPONENT ${COMPONENT_NAME})
+            endif()
             rocm_install(FILES ${KERNELS_BINARY_DIR}/${__fname}
                          DESTINATION ${DATABASE_INSTALL_DIR}
-                         COMPONENT ${COMPONENT_NAME})
+                         ${__component_name})
         endif()
-        set(CPACK_COMPONENTS_ALL
-            "${CPACK_COMPONENTS_ALL};${__component}" PARENT_SCOPE)
     endif()
     set(LFS_MISSING_FILES ${LFS_MISSING_FILES} PARENT_SCOPE)
 endfunction()
@@ -552,6 +578,8 @@ if(LFS_MISSING_FILES)
     string(REPLACE ";" ", " __lfs_missing_files "${LFS_MISSING_FILES}")
     message(WARNING "GIT LFS files not pulled down, skipped: ${__lfs_missing_files}")
     set(MIOPEN_NO_LFS_PULLED TRUE CACHE INTERNAL "")
+else()
+    set(CPACK_COMPONENTS_ALL ${COMPONENT_LST})
 endif()
 
 # End KDB package creation
