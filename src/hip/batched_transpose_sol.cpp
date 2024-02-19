@@ -252,9 +252,12 @@ static inline BatchedTransposeParam HeuristicGet(const ExecutionContext& ctx,
 
     for(auto it = kernel_list.rbegin(); it != kernel_list.rend(); it++)
     {
-        if(it->tile_x == 4 || it->tile_y == 4) // We don't want such kernel to be selected here,
-                                               // they should be used in above cases
+        if(it->tile_x == 4 || it->tile_y == 4)
+        {
+            // We don't want such kernel to be selected here,
+            // they should be used in above cases
             continue;
+        }
         if(!IsApplicable(batch, height, width, &(*it)))
             continue;
         std::size_t current_padding_size = GetExtraPaddingSize(batch, height, width, &(*it));

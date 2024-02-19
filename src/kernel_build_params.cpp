@@ -76,4 +76,9 @@ std::string kbp::GcnAsm::Generate(const std::vector<KernelBuildParameter>& optio
     return GenerateDefines(options, "Wa,-defsym,");
 }
 
+std::string kbp::HIP::Generate(const std::vector<KernelBuildParameter>& options)
+{
+    return GenerateDefines(options, "D");
+}
+
 } // namespace miopen

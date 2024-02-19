@@ -3,13 +3,12 @@
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/gemm_v2.hpp>
-#include <miopen/solver/gemm_common.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/util.hpp>
 
 #include <boost/range/adaptors.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 
 // copy from convolution.cpp
 // Workaround for issue 1430.
@@ -19,6 +18,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_USE_GEMM
 #ifdef CPPCHECK
@@ -61,12 +63,12 @@ SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_
 }
 #endif
 
-bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx,
-                               const conv::ProblemDescription& problem) const
+bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
-    if(conv::solver::gemm::IsWorkaroundIssue1315(ctx))
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
+
     const auto& dyDesc             = problem.GetIn();
     const auto& dwDesc             = problem.GetWeights();
     const auto& xDesc              = problem.GetOut();
@@ -106,8 +108,7 @@ bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx,
         MIOPEN_LOG_I2("GEMM not applicable for F8 on this GPU architecture");
         return false;
     }
-    return problem.GetDirection() == conv::Direction::BackwardWeights &&
-           problem.IsLayoutDefault() &&
+    return problem.IsDirectionBackwardWrW() && problem.IsLayoutDefault() &&
            !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsBF16PathValid) &&
            !(IsAnyBufferFp16(xDesc, dyDesc, dwDesc) && !IsFp16Supported);
 #else
@@ -117,7 +118,7 @@ bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx,
 #endif
 }
 
-float GemmWrwBase::GetWti(const ExecutionContext&, const conv::ProblemDescription& problem) const
+float GemmWrwBase::GetWti(const ExecutionContext&, const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     const auto& dwDesc = problem.GetWeights();
@@ -165,7 +166,7 @@ float GemmWrwBase::GetWti(const ExecutionContext&, const conv::ProblemDescriptio
 }
 
 bool GemmWrw1x1_stride1::IsApplicable(const ExecutionContext& context,
-                                      const conv::ProblemDescription& problem) const
+                                      const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     if(!GemmWrwBase::IsApplicable(context, problem))
@@ -188,7 +189,7 @@ bool GemmWrw1x1_stride1::IsApplicable(const ExecutionContext& context,
 }
 
 ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
-                                             const conv::ProblemDescription& problem) const
+                                             const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     const auto& dyDesc     = problem.GetIn();
@@ -243,10 +244,10 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
     auto solution = ConvSolution{miopenStatusSuccess};
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
-        const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
+        const bool time_precision = (!IsDisabled(ENV(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)));
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& conv_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+            const auto& conv_params = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
             const auto& dy          = conv_params.tensors.dy;
             const auto& dw          = conv_params.tensors.dw;
             const auto& dwDesc_     = conv_params.tensors.dwDesc;
@@ -351,7 +352,7 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
 }
 
 size_t GemmWrwUniversal::GetWorkspaceSize(const ExecutionContext& context,
-                                          const conv::ProblemDescription& problem) const
+                                          const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     auto& handle       = context.GetStream();
@@ -387,7 +388,7 @@ size_t GemmWrwUniversal::GetWorkspaceSize(const ExecutionContext& context,
 }
 
 bool GemmWrwUniversal::IsApplicable(const ExecutionContext& context,
-                                    const conv::ProblemDescription& problem) const
+                                    const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     if(!GemmWrwBase::IsApplicable(context, problem))
@@ -403,7 +404,7 @@ bool GemmWrwUniversal::IsApplicable(const ExecutionContext& context,
 }
 
 ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
-                                           const conv::ProblemDescription& problem) const
+                                           const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     const auto& dyDesc     = problem.GetIn();
@@ -460,10 +461,10 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
     solution.workspace_sz = workspace_req;
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
-        const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
+        const bool time_precision = (!IsDisabled(ENV(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)));
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& conv_params    = primitive_params.CastTo<conv::WrWInvokeParams>();
+            const auto& conv_params    = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
             const auto& dy             = conv_params.tensors.dy;
             const auto& dyDesc_        = conv_params.tensors.dyDesc;
             const auto& dwDesc_        = conv_params.tensors.dwDesc;
@@ -611,5 +612,6 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
 #endif
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

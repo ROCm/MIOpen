@@ -87,7 +87,7 @@ miopenFusionPlanGetWorkSpaceSize(miopenHandle_t handle,
                                  size_t* workSpaceSize,
                                  miopenConvFwdAlgorithm_t algo)
 {
-    MIOPEN_LOG_FUNCTION(handle, fusePlanDesc, workSpaceSize);
+    MIOPEN_LOG_FUNCTION(handle, fusePlanDesc, algo);
     miopenStatus_t res = miopenStatusUnknownError;
     miopen::try_([&] {
         size_t sz;
@@ -103,7 +103,7 @@ miopenFusionPlanConvolutionGetAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
                                    int* returnedAlgoCount,
                                    miopenConvFwdAlgorithm_t* returnedAlgos)
 {
-    MIOPEN_LOG_FUNCTION(fusePlanDesc, requestAlgoCount, returnedAlgoCount, returnedAlgos);
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, requestAlgoCount);
     miopenStatus_t res = miopenStatusUnknownError;
     miopen::try_([&] {
         int cnt = 0;

@@ -811,5 +811,5 @@ tensor<T> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
                             const tensor<T>& input,
                             const tensor<T>& weights)
 {
-    return tensor<T>{filter.GetForwardOutputTensor(input.desc, weights.desc)};
+    return tensor<T>{filter.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{})};
 }

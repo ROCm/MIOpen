@@ -35,34 +35,35 @@ struct ConvBwdFp8Naive : ConvBwdSolverTest<float8, float, true>
 
 TEST_P(ConvBwdFp8, DISABLED_GemmBwd1x1_stride2)
 {
-    miopen::solver::GemmBwd1x1_stride2 solv{};
+    miopen::solver::conv::GemmBwd1x1_stride2 solv{};
     SolverBwd(solv);
 }
 
 TEST_P(ConvBwdFp8, DISABLED_GemmBwd1x1_stride1)
 {
-    miopen::solver::GemmBwd1x1_stride1 solv{};
+    miopen::solver::conv::GemmBwd1x1_stride1 solv{};
     SolverBwd(solv);
 }
 
 TEST_P(ConvBwdFp8, DISABLED_GemmBwdRest)
 {
-    miopen::solver::GemmBwdRest solv{};
+    miopen::solver::conv::GemmBwdRest solv{};
     SolverBwd(solv);
 }
 
 TEST_P(ConvBwdFp8Naive, DISABLED_Bwd)
 {
-    miopen::solver::ConvDirectNaiveConvBwd solv{};
+    miopen::solver::conv::ConvDirectNaiveConvBwd solv{};
     SolverBwd(solv);
 }
+
 INSTANTIATE_TEST_SUITE_P(ConvBwdTest,
                          ConvBwdFp8,
                          testing::Combine(testing::Values(miopenConvolutionAlgoGEMM),
-                                          testing::ValuesIn(GetNetwork1())));
+                                          testing::ValuesIn(GetNetwork1<ConvTestCaseBase>())));
 // Since NaiveConv is verified against the CPU, we are conservative in the number and type
 // of test cases we instantiate
 INSTANTIATE_TEST_SUITE_P(ConvBwdTest,
                          ConvBwdFp8Naive,
                          testing::Combine(testing::Values(miopenConvolutionAlgoGEMM),
-                                          testing::ValuesIn(ConvTestConfigs())));
+                                          testing::ValuesIn(ConvTestConfigs<ConvTestCaseBase>())));

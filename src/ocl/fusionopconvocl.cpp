@@ -2,7 +2,7 @@
 
 namespace miopen {
 
-ProblemDescription ConvForwardOpDescriptor::GetConvProblem()
+conv::ProblemDescription ConvForwardOpDescriptor::GetConvProblem()
 {
     TensorDescriptor o_desc;
     GetOutputDesc(o_desc);
@@ -13,15 +13,12 @@ ProblemDescription ConvForwardOpDescriptor::GetConvProblem()
     return conv_problem;
 }
 
-miopenStatus_t ConvForwardOpDescriptor::GetNetworkConfig(std::stringstream& network_config,
-                                                         Handle& handle)
+miopenStatus_t ConvForwardOpDescriptor::GetNetworkConfig(std::ostringstream& network_config)
 {
-    std::ignore = handle;
-
-    ProblemDescription conv_problem = GetConvProblem();
+    const conv::ProblemDescription conv_problem = GetConvProblem();
 
     std::string conv_config;
-    conv_problem.BuildConfKey(conv_config);
+    conv_problem.MakeNetworkConfig(conv_config);
     network_config << conv_config;
     return miopenStatusSuccess;
 }

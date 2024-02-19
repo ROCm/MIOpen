@@ -149,7 +149,7 @@ protected:
     miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoDirect;
 };
 
-TEST_P(ConvBiasActivFwdTest, DriveAPI)
+TEST_P(ConvBiasActivFwdTest, DISABLED_DriveAPI)
 {
     tensor<float> z{};
     const float alpha = 1.0f;

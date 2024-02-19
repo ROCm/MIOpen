@@ -30,7 +30,6 @@
 #include <miopen/binary_cache.hpp>
 #include <miopen/target_properties.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/gemm_geometry.hpp>
 #include <miopen/handle_lock.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/kernel_cache.hpp>
@@ -40,12 +39,11 @@
 
 #if !MIOPEN_ENABLE_SQLITE_KERN_CACHE
 #include <miopen/write_file.hpp>
+#include <boost/filesystem/operations.hpp>
 #endif
 
-#include <boost/filesystem.hpp>
-#include <miopen/handle_lock.hpp>
+#include <miopen/filesystem.hpp>
 #include <miopen/load_file.hpp>
-#include <miopen/gemm_geometry.hpp>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -56,6 +54,7 @@
 #include <chrono>
 #include <thread>
 #include <miopen/nogpu/handle_impl.hpp>
+
 namespace miopen {
 
 Handle::Handle(miopenAcceleratorQueue_t /* stream */) : Handle::Handle() {}
@@ -111,7 +110,6 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                const std::vector<size_t>& vgd,
                                const std::string& params,
                                std::size_t cache_index,
-                               bool is_kernel_str,
                                const std::string& kernel_src) const
 {
     auto obj = this->impl->cache.AddKernel(*this,
@@ -123,7 +121,6 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                            vgd,
                                            params,
                                            cache_index,
-                                           is_kernel_str,
                                            kernel_src);
     return this->Run(obj);
 }
@@ -168,7 +165,6 @@ KernelInvoke Handle::Run(Kernel /* k */) const { return {}; }
 
 Program Handle::LoadProgram(const std::string& program_name,
                             std::string params,
-                            bool is_kernel_str,
                             const std::string& kernel_src) const
 {
     if(!miopen::EndsWith(program_name, ".mlir"))
@@ -176,11 +172,8 @@ Program Handle::LoadProgram(const std::string& program_name,
         params += " -mcpu=" + this->GetTargetProperties().Name();
     }
 
-    auto hsaco       = miopen::LoadBinary(this->GetTargetProperties(),
-                                    this->GetMaxComputeUnits(),
-                                    program_name,
-                                    params,
-                                    is_kernel_str);
+    auto hsaco = miopen::LoadBinary(
+        this->GetTargetProperties(), this->GetMaxComputeUnits(), program_name, params);
     auto pgmImpl     = std::make_shared<HIPOCProgramImpl>();
     pgmImpl->program = program_name;
     pgmImpl->target  = this->GetTargetProperties();
@@ -189,9 +182,8 @@ Program Handle::LoadProgram(const std::string& program_name,
     if(hsaco.empty())
     {
         // avoid the constructor since it implicitly calls the HIP API
-        pgmImpl->BuildCodeObject(params, is_kernel_str, kernel_src);
-// auto p = HIPOCProgram{
-//     program_name, params, is_kernel_str, this->GetTargetProperties(), kernel_src};
+        pgmImpl->BuildCodeObject(params, kernel_src);
+// auto p = HIPOCProgram{program_name, params, this->GetTargetProperties(), kernel_src};
 
 // Save to cache
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
@@ -201,15 +193,14 @@ Program Handle::LoadProgram(const std::string& program_name,
                            this->GetTargetProperties(),
                            this->GetMaxComputeUnits(),
                            program_name,
-                           params,
-                           is_kernel_str);
+                           params);
 #else
-        auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
+        auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path().string();
         if(p.IsCodeObjectInMemory())
             miopen::WriteFile(p.GetCodeObjectBlob(), path);
         else
-            boost::filesystem::copy_file(p.GetCodeObjectPathname(), path);
-        miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params, is_kernel_str);
+            fs::copy_file(p.GetCodeObjectPathname(), path);
+        miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params);
 #endif
     }
     else

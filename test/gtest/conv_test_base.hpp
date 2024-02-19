@@ -28,37 +28,11 @@
 #include <miopen/miopen.h>
 #include <iostream>
 
+#include "tensor_holder.hpp"
 #include "conv_common.hpp"
 #include "conv_tensor_gen.hpp"
 
-template <typename T>
-miopenDataType_t GetDataType();
-
-template <>
-miopenDataType_t GetDataType<float>()
-{
-    return miopenFloat;
-}
-
-template <>
-miopenDataType_t GetDataType<half_float::half>()
-{
-    return miopenHalf;
-}
-
-template <>
-miopenDataType_t GetDataType<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>()
-{
-    return miopenFloat8;
-}
-
-template <>
-miopenDataType_t GetDataType<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>()
-{
-    return miopenBFloat8;
-}
-
-struct ConvTestCase
+struct ConvTestCaseBase
 {
     size_t N;
     size_t C;
@@ -74,7 +48,8 @@ struct ConvTestCase
     size_t dilation_x;
     size_t dilation_y;
     miopenConvolutionMode_t conv_mode;
-    friend std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
+
+    friend std::ostream& operator<<(std::ostream& os, const ConvTestCaseBase& tc)
     {
         return os << "(N: " << tc.N << " C:" << tc.C << " H:" << tc.H << " W:" << tc.W
                   << " k: " << tc.k << " y:" << tc.y << " x:" << tc.x << " pad_y:" << tc.pad_y
@@ -93,13 +68,21 @@ struct ConvTestCase
     }
 };
 
-std::vector<ConvTestCase> GetNetworkForFusionCompileStepTest()
+template <typename T>
+std::vector<T> GetNetworkForFusionCompileStepTest();
+
+template <>
+inline std::vector<ConvTestCaseBase> GetNetworkForFusionCompileStepTest()
 {
     return {{1, 64, 56, 56, 64, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
             {1, 64, 56, 56, 64, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
 }
 
-std::vector<ConvTestCase> GetNetwork1()
+template <typename T>
+std::vector<T> GetNetwork1();
+
+template <>
+inline std::vector<ConvTestCaseBase> GetNetwork1()
 {
     // pyt_mlperf_resnet50v1.5
     return {{64, 1024, 14, 14, 2048, 1, 1, 0, 0, 2, 2, 1, 1, miopenConvolution},
@@ -127,7 +110,11 @@ std::vector<ConvTestCase> GetNetwork1()
             {64, 64, 56, 56, 64, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
 }
 
-std::vector<ConvTestCase> ConvTestConfigs()
+template <typename T>
+std::vector<T> ConvTestConfigs();
+
+template <>
+inline std::vector<ConvTestCaseBase> ConvTestConfigs()
 { // n  c   h   w   k   y  x pad_x pad_y stri_x stri_y dia_x dia_y
     return {{16, 128, 16, 16, 128, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
             {64, 128, 28, 28, 128, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
@@ -140,19 +127,19 @@ template <typename T, typename Tref = float, bool use_cpu_ref = false>
 struct ConvFwdSolverTestBase
 {
 protected:
-    void SetUpImpl(ConvTestCase conv_config, miopenTensorLayout_t tensor_layout)
+    void SetUpImpl(ConvTestCaseBase conv_config, miopenTensorLayout_t tensor_layout)
     {
-        input   = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
-        weights = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
+        input   = tensor<T>{tensor_layout, conv_config.GetInput()};
+        weights = tensor<T>{tensor_layout, conv_config.GetWeights()};
         input.generate(GenData<T>{});
         weights.generate(GenWeights<T>{});
 
         conv_desc = conv_config.GetConv();
 
         miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
 
-        output = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
+        output = tensor<T>{tensor_layout, output_desc.GetLengths()};
         std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
 
         auto&& handle = get_handle();
@@ -164,8 +151,8 @@ protected:
     void TearDownConv()
     {
         miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
-        ref_out = tensor<T>{miopen_type<T>{}, output.desc.GetLayout_t(), output_desc.GetLengths()};
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
+        ref_out = tensor<T>{output.desc.GetLayout_t(), output_desc.GetLengths()};
         if(use_cpu_ref)
         {
             cpu_convolution_forward(conv_desc.GetSpatialDimension(),

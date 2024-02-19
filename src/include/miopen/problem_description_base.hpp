@@ -27,6 +27,9 @@
 #pragma once
 
 #include <miopen/miopen.h>
+#include <miopen/names.hpp>
+
+#include <string>
 
 namespace miopen {
 
@@ -37,7 +40,6 @@ inline std::string GetDataTypeName(miopenDataType_t data_type)
     case miopenFloat: return "FP32";
     case miopenHalf: return "FP16";
     case miopenInt8: return "INT8";
-    case miopenInt8x4: return "INT8x4";
     case miopenInt32: return "INT32";
     case miopenBFloat16: return "BF16";
     case miopenDouble: return "FP64";
@@ -50,6 +52,13 @@ inline std::string GetDataTypeName(miopenDataType_t data_type)
 
 struct ProblemDescriptionBase
 {
+    ProblemDescriptionBase()                              = default;
+    ProblemDescriptionBase(const ProblemDescriptionBase&) = default;
+    virtual ~ProblemDescriptionBase()                     = default;
+
+    ProblemDescriptionBase& operator=(const ProblemDescriptionBase&) = default;
+
+    [[nodiscard]] virtual NetworkConfig MakeNetworkConfig() const = 0;
 };
 
 } // namespace miopen

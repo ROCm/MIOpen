@@ -29,6 +29,8 @@
 
 #include <random>
 
+#include <hip_float8.hpp>
+
 // Copied from conv_driver.hpp
 
 template <typename T>
@@ -45,19 +47,19 @@ inline T RAN_GEN(T A, T B)
     return r;
 }
 template <typename T>
-T RanGenData()
+inline T RanGenData()
 {
     return RAN_GEN<T>(static_cast<T>(0.0f), static_cast<T>(1.0f));
 }
 
 template <>
-float8 RanGenData()
+inline float8 RanGenData()
 {
     return RAN_GEN<float8>(static_cast<float8>(-1.0f), static_cast<float8>(1.0f));
 }
 
 template <>
-bfloat8 RanGenData()
+inline bfloat8 RanGenData()
 {
     const auto tmp = RAN_GEN<float>(static_cast<float>(-1.0f), static_cast<float>(1.0f));
     return static_cast<bfloat8>(tmp);
@@ -82,14 +84,14 @@ T RanGenWeights()
 // Shift FP16 distribution towards positive numbers,
 // otherwise Winograd FP16 validation fails.
 template <>
-half_float::half RanGenWeights()
+inline half_float::half RanGenWeights()
 {
     return RAN_GEN<half_float::half>(static_cast<half_float::half>(-1.0 / 3.0),
                                      static_cast<half_float::half>(0.5));
 }
 
 template <>
-float8 RanGenWeights()
+inline float8 RanGenWeights()
 {
     const auto tmp =
         RAN_GEN<float>(0.0, 1.0) > 0.5 ? static_cast<float>(0.0) : static_cast<float>(1.0);
@@ -102,7 +104,7 @@ float8 RanGenWeights()
 }
 
 template <>
-bfloat8 RanGenWeights()
+inline bfloat8 RanGenWeights()
 {
     const auto tmp =
         RAN_GEN<float>(0.0, 1.0) > 0.5 ? static_cast<float>(0.0) : static_cast<float>(1.0);

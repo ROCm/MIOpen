@@ -27,6 +27,8 @@
 #include "test.hpp"
 #include "driver.hpp"
 #include "get_handle.hpp"
+#include "workspace.hpp"
+#include "env_utils.hpp"
 
 #include <miopen/convolution.hpp>
 #include <miopen/conv/problem_description.hpp>
@@ -37,7 +39,6 @@
 #include <miopen/hip_build_utils.hpp>
 
 #include <chrono>
-#include <cstdlib>
 #include <functional>
 
 namespace miopen {
@@ -106,10 +107,7 @@ private:
         const auto ctx = ExecutionContext{&handle};
         const auto problem =
             conv::ProblemDescription{y.desc, w.desc, x.desc, filter, conv::Direction::BackwardData};
-        const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
-
-        auto workspace     = std::vector<char>(workspace_size);
-        auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
+        Workspace wspace{filter.GetWorkSpaceSize(ctx, problem)};
 
         auto filterCall = [&]() {
             int ret_algo_count;
@@ -125,8 +123,8 @@ private:
                                             1,
                                             &ret_algo_count,
                                             perf,
-                                            workspace_dev.get(),
-                                            workspace_size,
+                                            wspace.ptr(),
+                                            wspace.size(),
                                             false);
         };
 
@@ -140,10 +138,7 @@ private:
         const auto ctx = ExecutionContext{&handle};
         const auto problem =
             conv::ProblemDescription{x.desc, w.desc, y.desc, filter, conv::Direction::Forward};
-        const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
-
-        auto workspace     = std::vector<char>(workspace_size);
-        auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
+        Workspace wspace{filter.GetWorkSpaceSize(ctx, problem)};
 
         auto filterCall = [&]() {
             int ret_algo_count;
@@ -159,8 +154,8 @@ private:
                                         1,
                                         &ret_algo_count,
                                         perf,
-                                        workspace_dev.get(),
-                                        workspace_size,
+                                        wspace.ptr(),
+                                        wspace.size(),
                                         false);
         };
 
@@ -174,10 +169,7 @@ private:
         const auto ctx     = ExecutionContext{&handle};
         const auto problem = conv::ProblemDescription{
             y.desc, w.desc, x.desc, filter, conv::Direction::BackwardWeights};
-        const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
-
-        auto workspace     = std::vector<char>(workspace_size);
-        auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
+        Workspace wspace{filter.GetWorkSpaceSize(ctx, problem)};
 
         auto filterCall = [&]() {
             int ret_algo_count;
@@ -193,8 +185,8 @@ private:
                                                1,
                                                &ret_algo_count,
                                                perf,
-                                               workspace_dev.get(),
-                                               workspace_size,
+                                               wspace.ptr(),
+                                               wspace.size(),
                                                false);
         };
 
@@ -232,8 +224,8 @@ private:
 
 int main(int argc, const char* argv[])
 {
-    setenv("MIOPEN_LOG_LEVEL", "6", 1);                   // NOLINT (concurrency-mt-unsafe)
-    setenv("MIOPEN_COMPILE_PARALLEL_LEVEL", "1", 1);      // NOLINT (concurrency-mt-unsafe)
-    setenv("MIOPEN_ENABLE_LOGGING_ELAPSED_TIME", "1", 1); // NOLINT (concurrency-mt-unsafe)
+    setEnvironmentVariable("MIOPEN_LOG_LEVEL", "6");
+    setEnvironmentVariable("MIOPEN_COMPILE_PARALLEL_LEVEL", "1");
+    setEnvironmentVariable("MIOPEN_ENABLE_LOGGING_ELAPSED_TIME", "1");
     test_drive<miopen::FindDbTest>(argc, argv);
 }

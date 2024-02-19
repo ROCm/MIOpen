@@ -30,24 +30,89 @@
 #include <miopen/exec_utils.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
-#include <miopen/rocm_features.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/target_properties.hpp>
 #include <boost/optional.hpp>
 #include <sstream>
 #include <string>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_VERBOSE)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_DUMP)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_VERBOSE)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_DUMP)
+
+#if MIOPEN_OFFLINE_COMPILER_PATHS_V2
+
+// Include rocm-core header for get ROCm Install Path Method
+#include <rocm-core/rocm_getpath.h>
+
+// Flags to hold Relative Directory Path
+// for each Compiler Flags from ROCM Install Path
+// This flag Paths are expected to be deprecated/modified
+// in upcoming MAJOR Releases.
+#define MIOPEN_CLANG_REL_PATH "llvm/bin/clang"
+#define MIOPEN_OCL_REL_PATH "bin/clang-ocl"
+#define MIOPEN_CPPCLANG_REL_PATH "llvm/bin/clang++"
+#define MIOPEN_OFFLOADBUNDLER_REL_PATH "llvm/bin/clang-offload-bundler"
+
+// Function to generate the MIOPEN Compiler Path Value using
+// ROCm Base Install Path fetched using getROCmInstallPath()
+// This approach depends on the getROCmInstallPath() provided by rocm-core
+// This flag Paths are expected to be deprecated/modified in upcoming MAJOR Releases.
+static std::string generateCompilerPathValue(const char* relativePath)
+{
+    char* rocmPath   = nullptr;
+    unsigned int len = 0;
+    std::string compilerPathValue;
+    if(nullptr != relativePath)
+    {
+        PathErrors_t ret = getROCmInstallPath(&rocmPath, &len);
+        if(PathSuccess == ret)
+        {
+            compilerPathValue = std::string(rocmPath) + std::string(relativePath);
+            // Free rocmPath memory returned (allocated by getROCmInstallPath())
+            free(rocmPath);
+        }
+    }
+    return compilerPathValue;
+}
+
+// API to get MIOPEN AMD GCN Assembler Path Values.
+const char* getAMDGCNAssemblerPath()
+{
+    static const std::string path = generateCompilerPathValue(MIOPEN_CLANG_REL_PATH);
+    return path.c_str();
+}
+
+// API to get MIOPEN OpenCL Compiler Path Values.
+const char* getOpenCLCompilerPath()
+{
+    static const std::string path = generateCompilerPathValue(MIOPEN_OCL_REL_PATH);
+    return path.c_str();
+}
+
+// API to get MIOPEN HIP Compiler Path Values.
+const char* getHIPCompilerPath()
+{
+    static const std::string path = generateCompilerPathValue(MIOPEN_CPPCLANG_REL_PATH);
+    return path.c_str();
+}
+
+// API to get MIOPEN Compiler Offload Bundler bin Path Values.
+const char* getOffloadBundlerBinPath()
+{
+    static const std::string path = generateCompilerPathValue(MIOPEN_OFFLOADBUNDLER_REL_PATH);
+    return path.c_str();
+}
+
+#endif // MIOPEN_OFFLINE_COMPILER_PATHS_V2
 
 namespace miopen {
 
-static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
-                                            const std::string& filename,
-                                            std::string src,
-                                            std::string params,
-                                            const TargetProperties& target,
-                                            const bool testing_mode)
+static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
+                             const std::string& filename,
+                             std::string src,
+                             std::string params,
+                             const TargetProperties& target,
+                             const bool testing_mode)
 {
 #ifdef __linux__
     // Write out the include files
@@ -56,7 +121,7 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     {
         auto inc_list = GetHipKernelIncList();
         auto inc_path = tmp_dir->path;
-        boost::filesystem::create_directories(inc_path);
+        fs::create_directories(inc_path);
         for(const auto& inc_file : inc_list)
         {
             auto inc_src = GetKernelInc(inc_file);
@@ -75,27 +140,33 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     if(params.find("-std=") == std::string::npos)
         params += " --std=c++17";
 
-#if HIP_PACKAGE_VERSION_FLAT < 4001000000ULL
-    params += " --cuda-gpu-arch=" + lots.device;
-#else
-    params += " --cuda-gpu-arch=" + lots.device + lots.xnack;
+#if HIP_PACKAGE_VERSION_FLAT >= 6001024000ULL
+    size_t pos = 0;
+    while((pos = params.find("-mcpu=", pos)) != std::string::npos)
+    {
+        size_t endpos = params.find(' ', pos);
+        if(endpos == std::string::npos)
+        {
+            params.erase(pos, std::string::npos);
+            break;
+        }
+        params.erase(pos, endpos - pos);
+    }
 #endif
+
+    params += " --cuda-gpu-arch=" + lots.device + lots.xnack;
     params += " --cuda-device-only";
     params += " -c";
     params += " -O3 ";
     params += " -Wno-unused-command-line-argument -I. ";
     params += MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
 
-#if HIP_PACKAGE_VERSION_FLAT < 4004000000ULL
-    params += " -mllvm --amdgpu-spill-vgpr-to-agpr=0";
-#endif
-
 #if MIOPEN_BUILD_DEV
-    if(miopen::IsEnabled(MIOPEN_DEBUG_HIP_VERBOSE{}))
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_HIP_VERBOSE)))
     {
         params += " -v";
     }
-    if(miopen::IsEnabled(MIOPEN_DEBUG_HIP_DUMP{}))
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_HIP_DUMP)))
     {
         params += " -gline-tables-only";
         params += " -save-temps";
@@ -110,35 +181,29 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     auto bin_file = tmp_dir->path / (filename + ".o");
 
     // compile
-    const std::string redirector = testing_mode ? " 1>/dev/null 2>&1" : "";
-    tmp_dir->Execute(env + std::string(" ") + MIOPEN_HIP_COMPILER,
-                     params + filename + " -o " + bin_file.string() + redirector);
-    if(!boost::filesystem::exists(bin_file))
-        MIOPEN_THROW(filename + " failed to compile");
+    {
+        const std::string redirector = testing_mode ? " 1>/dev/null 2>&1" : "";
+        const std::string cmd        = env + std::string(" ") + MIOPEN_HIP_COMPILER;
+        const std::string args       = params + filename + " -o " + bin_file.string() + redirector;
+        tmp_dir->Execute(cmd, args);
+        if(!fs::exists(bin_file))
+            MIOPEN_THROW("Failed cmd: '" + cmd + "', args: '" + args + '\'');
+    }
 
 #if defined(MIOPEN_OFFLOADBUNDLER_BIN) && !MIOPEN_BACKEND_HIP
     // Unbundling is not required for HIP runtime && hip-clang
     tmp_dir->Execute(MIOPEN_OFFLOADBUNDLER_BIN,
                      "--type=o "
-#if(HIP_PACKAGE_VERSION_FLAT >= 4001021072ULL && HIP_PACKAGE_VERSION_FLAT < 4002000000ULL) || \
-    HIP_PACKAGE_VERSION_FLAT >= 4002021072ULL
-                     "--targets=hipv4-amdgcn-amd-amdhsa-"
-#else
-                     "--targets=hip-amdgcn-amd-amdhsa-"
-#endif
-#if HIP_PACKAGE_VERSION_FLAT < 4001000000ULL
-                         + lots.device
-#else
-                         + (std::string{'-'} + lots.device + lots.xnack)
-#endif
-                         + " --inputs=" + bin_file.string() + " --outputs=" + bin_file.string() +
+                     "--targets=hipv4-amdgcn-amd-amdhsa-" +
+                         (std::string{'-'} + lots.device + lots.xnack) +
+                         " --inputs=" + bin_file.string() + " --outputs=" + bin_file.string() +
                          ".hsaco --unbundle");
 
-    auto hsaco = std::find_if(boost::filesystem::directory_iterator{tmp_dir->path},
-                              {},
-                              [](auto entry) { return (entry.path().extension() == ".hsaco"); });
+    auto hsaco = std::find_if(fs::directory_iterator{tmp_dir->path}, {}, [](auto entry) {
+        return (entry.path().extension() == ".hsaco");
+    });
 
-    if(hsaco == boost::filesystem::directory_iterator{})
+    if(hsaco == fs::directory_iterator{})
     {
         MIOPEN_LOG_E("failed to find *.hsaco in " << hsaco->path().string());
     }
@@ -152,62 +217,18 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #endif
 }
 
-#ifndef ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
-static bool
-HipBuildTest(const std::string& program_name, std::string params, const TargetProperties& target)
+fs::path HipBuild(boost::optional<TmpDir>& tmp_dir,
+                  const std::string& filename,
+                  std::string src,
+                  std::string params,
+                  const TargetProperties& target)
 {
-    boost::optional<miopen::TmpDir> dir(program_name);
-    std::string source = miopen::GetKernelSrc(program_name);
-    try
-    {
-        std::ignore = HipBuildImpl(dir, program_name, source, params, target, true);
-    }
-    catch(...)
-    {
-        return false;
-    }
-    return true;
-}
-
-static bool DetectIfBufferAtomicFaddReturnsFloatImpl(const TargetProperties& target)
-{
-    const std::string program_name("detect_llvm_amdgcn_buffer_atomic_fadd_f32_float.cpp");
-    std::string params;
-
-    if(HipBuildTest(program_name, params, target))
-    {
-        MIOPEN_LOG_NQI("Yes");
-        return true;
-    }
-    MIOPEN_LOG_NQI("No");
-    return false;
-}
-
-static bool DetectIfBufferAtomicFaddReturnsFloat(const TargetProperties& target)
-{
-    static const bool once = DetectIfBufferAtomicFaddReturnsFloatImpl(target);
-    return once;
-}
-#endif
-
-boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
-                                 const std::string& filename,
-                                 std::string src,
-                                 std::string params,
-                                 const TargetProperties& target)
-{
-#ifndef ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
-    if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
-        if(DetectIfBufferAtomicFaddReturnsFloat(target))
-            params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
-#elif ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
     if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
         params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
-#endif
     return HipBuildImpl(tmp_dir, filename, src, params, target, false);
 }
 
-void bin_file_to_str(const boost::filesystem::path& file, std::string& buf)
+void bin_file_to_str(const fs::path& file, std::string& buf)
 {
     std::ifstream bin_file_ptr(file.string().c_str(), std::ios::binary);
     std::ostringstream bin_file_strm;

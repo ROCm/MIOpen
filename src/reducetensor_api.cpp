@@ -39,16 +39,19 @@ static void LogCmdRedux(const miopen::ReduceTensorDescriptor reduceTensorDesc,
     if(miopen::IsLoggingCmd())
     {
         std::stringstream ss;
-        if(aDesc.GetType() == miopenHalf)
-            ss << "reducefp16";
-        else if(aDesc.GetType() == miopenBFloat16)
-            ss << "reducebfp16";
-        else if(aDesc.GetType() == miopenInt8)
-            ss << "reduceint8";
-        else if(aDesc.GetType() == miopenDouble)
-            ss << "reducefp64";
-        else
-            ss << "reduce";
+
+        switch(aDesc.GetType())
+        {
+        case miopenHalf: ss << "reducefp16"; break;
+        case miopenFloat: ss << "reducefp"; break;
+        case miopenInt32: ss << "reduceint"; break;
+        case miopenInt8: ss << "reduceint8"; break;
+        case miopenBFloat16: ss << "reducebfp16"; break;
+        case miopenDouble: ss << "reducefp64"; break;
+        case miopenFloat8: ss << "reducefp8"; break;
+        case miopenBFloat8: ss << "reducebfp8"; break;
+        default: ss << "reduce";
+        }
 
         ss << " -A " << *reinterpret_cast<const float*>(alpha);
         ss << " -B " << *reinterpret_cast<const float*>(beta);
@@ -128,12 +131,7 @@ miopenGetReduceTensorDescriptor(const miopenReduceTensorDescriptor_t reduceTenso
                                 miopenReduceTensorIndices_t* reduceTensorIndices,
                                 miopenIndicesType_t* reduceTensorIndicesType)
 {
-    MIOPEN_LOG_FUNCTION(reduceTensorDesc,
-                        reduceTensorOp,
-                        reduceTensorCompType,
-                        reduceTensorNanOpt,
-                        reduceTensorIndices,
-                        reduceTensorIndicesType);
+    MIOPEN_LOG_FUNCTION(reduceTensorDesc);
     return miopen::try_([&] {
         miopen::deref(reduceTensorOp)       = miopen::deref(reduceTensorDesc).reduceTensorOp_;
         miopen::deref(reduceTensorCompType) = miopen::deref(reduceTensorDesc).reduceTensorCompType_;
@@ -151,7 +149,7 @@ miopenGetReductionIndicesSize(miopenHandle_t handle,
                               const miopenTensorDescriptor_t cDesc,
                               size_t* sizeInBytes)
 {
-    MIOPEN_LOG_FUNCTION(handle, reduceTensorDesc, aDesc, cDesc, sizeInBytes);
+    MIOPEN_LOG_FUNCTION(handle, reduceTensorDesc, aDesc, cDesc);
 
     return miopen::try_([&] {
         miopen::deref(sizeInBytes) =
@@ -168,7 +166,7 @@ miopenGetReductionWorkspaceSize(miopenHandle_t handle,
                                 size_t* sizeInBytes)
 {
 
-    MIOPEN_LOG_FUNCTION(handle, reduceTensorDesc, aDesc, cDesc, sizeInBytes);
+    MIOPEN_LOG_FUNCTION(handle, reduceTensorDesc, aDesc, cDesc);
 
     return miopen::try_([&] {
         miopen::deref(sizeInBytes) = miopen::deref(reduceTensorDesc)

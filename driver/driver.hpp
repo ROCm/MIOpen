@@ -26,7 +26,7 @@
 #ifndef GUARD_MIOPEN_DRIVER_HPP
 #define GUARD_MIOPEN_DRIVER_HPP
 
-#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#if !defined(_WIN32)
 #include <half/half.hpp>
 #else
 #include <half.hpp>
@@ -44,7 +44,7 @@
 #include <miopen/bfloat16.hpp>
 using half         = half_float::half;
 using hip_bfloat16 = bfloat16;
-#include <miopen/hip_float8.hpp>
+#include <hip_float8.hpp>
 using float16 = half_float::half;
 using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
 using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
@@ -144,17 +144,14 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
     }
 }
 
-[[gnu::noreturn]] inline void Usage()
+[[noreturn]] inline void Usage()
 {
     printf("Usage: ./driver *base_arg* *other_args*\n");
     printf("Supported Base Arguments: conv[fp16|int8|bfp16|fp8|bfp8], CBAInfer[fp16], "
            "pool[fp16], lrn[fp16], "
-           "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm, ctc, dropout[fp16], "
-           "tensorop[fp16], reduce[fp16,fp64]"
-#ifdef MIOPEN_BETA_API
-           ", layernorm[bf16, fp16, fp32]"
-#endif
-           "\n");
+           "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm[fp16], ctc, dropout[fp16], "
+           "tensorop[fp16], reduce[fp16|fp64], layernorm[bfp16|fp16], sum[bfp16|fp16], "
+           "argmax[bfp16|fp16], groupnorm[bfp16|fp16], cat[bfp16|fp16]\n");
     exit(0); // NOLINT (concurrency-mt-unsafe)
 }
 
@@ -173,13 +170,13 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "pool" && arg != "poolfp16" && arg != "lrn" && arg != "lrnfp16" && arg != "activ" &&
        arg != "activfp16" && arg != "softmax" && arg != "softmaxfp16" && arg != "bnorm" &&
        arg != "bnormfp16" && arg != "rnn" && arg != "rnnfp16" && arg != "rnn_seq" &&
-       arg != "rnn_seqfp16" && arg != "gemm" /*&& arg != "gemmfp16"*/ && arg != "ctc" &&
+       arg != "rnn_seqfp16" && arg != "gemm" && arg != "gemmfp16" && arg != "ctc" &&
        arg != "dropout" && arg != "dropoutfp16" && arg != "tensorop" && arg != "tensoropfp16" &&
-       arg != "reduce" && arg != "reducefp16" && arg != "reducefp64" &&
-#ifdef MIOPEN_BETA_API
-       arg != "layernorm" && arg != "layernormfp16" && arg != "layernormbfp16" &&
-#endif
-       arg != "--version")
+       arg != "reduce" && arg != "reducefp16" && arg != "reducefp64" && arg != "layernorm" &&
+       arg != "layernormfp16" && arg != "layernormbfp16" && arg != "sum" && arg != "sumfp16" &&
+       arg != "sumbfp16" && arg != "argmax" && arg != "argmaxfp16" && arg != "argmaxbfp16" &&
+       arg != "groupnorm" && arg != "groupnormfp16" && arg != "groupnormbfp16" && arg != "cat" &&
+       arg != "catfp16" && arg != "catbfp16" && arg != "--version")
     {
         printf("FAILED: Invalid Base Input Argument\n");
         Usage();

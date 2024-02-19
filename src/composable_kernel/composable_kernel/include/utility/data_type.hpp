@@ -3,21 +3,13 @@
 
 #include "statically_indexed_array.hpp"
 
-#ifdef __HIPCC_RTC__
-#ifdef WORKAROUND_ISSUE_HIPRTC_TRUE_TYPE
-/// Definitions from <cstdint>, <cmath> conflict with
-/// /opt/rocm/include/hip/amd_detail/amd_hip_vector_types.h.
+#include "miopen_cstdint.hpp"
 
-typedef signed char int8_t;
-typedef signed short int16_t;
-typedef float float_t;
-#include <limits> // std::numeric_limits
-
-#else
-#include <cstdint> // int8_t, int16_t
-#include <cmath>   // float_t
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
+#include <hip/hip_bfloat16.h>
 #endif
-#endif // __HIPCC_RTC__
+
+#include "miopen_limits.hpp"
 
 namespace ck {
 
@@ -978,7 +970,7 @@ struct inner_product_with_conversion
         return acc;
     }
 
-    __device__ T operator()(float_t a, float_t b) const { return convert(a) * convert(b); }
+    __device__ T operator()(float a, float b) const { return convert(a) * convert(b); }
 
     __device__ T operator()(int8x4_t a, int8x4_t b) const
     {

@@ -29,8 +29,6 @@
 #include <miopen/logger.hpp>
 #include <miopen/md5.hpp>
 
-namespace fs = boost::filesystem;
-
 namespace miopen {
 
 inline void LogFsError(const fs::filesystem_error& ex, const std::string& from)
@@ -51,7 +49,7 @@ std::string LockFilePath(const fs::path& filename_)
         if(!fs::exists(directory))
         {
             fs::create_directories(directory);
-            fs::permissions(directory, fs::all_all);
+            fs::permissions(directory, fs::perms::all);
         }
         const auto hash = md5(filename_.parent_path().string());
         const auto file = directory / (hash + "_" + filename_.filename().string() + ".lock");
@@ -73,7 +71,7 @@ LockFile::LockFile(const char* path_, PassKey) : path(path_)
         {
             if(!std::ofstream{path})
                 MIOPEN_THROW(std::string("Error creating file <") + path + "> for locking.");
-            fs::permissions(path, fs::all_all);
+            fs::permissions(path, fs::perms::all);
         }
         flock = path;
     }

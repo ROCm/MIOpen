@@ -30,7 +30,6 @@
 #include <miopen/env.hpp>
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/mlo_internal.hpp>
-#include <miopen/rocm_features.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
 #include <algorithm>
 #include <sstream>
@@ -39,13 +38,15 @@
 #include "../composable_kernel/host/solver/include/convolution_problem_descriptor.hpp"
 #include "../composable_kernel/host/solver/include/solver_common.hpp"
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CK_USE_AMD_BUFFER_ADDRESSING)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CK_USE_AMD_BUFFER_ADDRESSING)
 
 namespace miopen {
 namespace solver {
 namespace ck_utility {
 
+// Disclaimer: Currently CK is only supported in MI100, MI200 and MI300.
+//             Please use is_ck_whitelist instead of this function.
 static inline bool is_ck_supported_hardware(const Handle& handle)
 {
     return (StartsWith(handle.GetDeviceName(), "gfx803") && handle.GetMaxComputeUnits() == 64) ||
@@ -63,14 +64,19 @@ static inline bool is_ck_supported_hardware(const Handle& handle)
            StartsWith(handle.GetDeviceName(), "gfx1102");
 }
 
-static inline bool is_conv_ck_supported_hardware(const std::string& device_name, bool is_wrw)
+// MI100 : gfx908
+// MI200 : gfx90a
+// MI300 : gfx940, gfx941, gfx942
+static inline bool is_ck_whitelist(const std::string& device_name)
 {
-    auto res_wrw = StartsWith(device_name, "gfx908") || StartsWith(device_name, "gfx90a") ||
-                   StartsWith(device_name, "gfx940") || StartsWith(device_name, "gfx941") ||
-                   StartsWith(device_name, "gfx942");
-    return is_wrw ? res_wrw
-                  : (res_wrw || StartsWith(device_name, "gfx900") ||
-                     StartsWith(device_name, "gfx906"));
+    return (StartsWith(device_name, "gfx908") || StartsWith(device_name, "gfx90a") ||
+            StartsWith(device_name, "gfx940") || StartsWith(device_name, "gfx941") ||
+            StartsWith(device_name, "gfx942"));
+}
+
+static inline bool is_ck_whitelist(const Handle& handle)
+{
+    return is_ck_whitelist(handle.GetDeviceName());
 }
 
 static inline bool is_support_amd_buffer_atomic_fadd(const std::string& device_name)
@@ -88,6 +94,7 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
     // GPU target
     static const std::string device_name = handle.GetDeviceName();
 
+    // NOLINTBEGIN(*-braces-around-statements)
     if(StartsWith(device_name, "gfx803"))
         compiler_flag << " -DCK_AMD_GPU_GFX803";
     else if(StartsWith(device_name, "gfx900"))
@@ -114,6 +121,7 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
         compiler_flag << " -DCK_AMD_GPU_GFX1101";
     else if(StartsWith(device_name, "gfx1102"))
         compiler_flag << " -DCK_AMD_GPU_GFX1102";
+    // NOLINTEND(*-braces-around-statements)
 
     // buffer atomic-fadd
     compiler_flag << " -DCK_USE_AMD_BUFFER_ATOMIC_FADD="
@@ -121,20 +129,24 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
 
     // sync LDS
     compiler_flag << " -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM="
-                  << (miopen::IsDisabled(MIOPEN_DEBUG_CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM{}) ? '0'
-                                                                                             : '1');
+                  << (miopen::IsDisabled(ENV(MIOPEN_DEBUG_CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM))
+                          ? '0'
+                          : '1');
 
     // buffer addressing
     compiler_flag << " -DCK_USE_AMD_BUFFER_ADDRESSING="
-                  << (miopen::IsDisabled(MIOPEN_DEBUG_CK_USE_AMD_BUFFER_ADDRESSING{}) ? '0' : '1');
+                  << (miopen::IsDisabled(ENV(MIOPEN_DEBUG_CK_USE_AMD_BUFFER_ADDRESSING)) ? '0'
+                                                                                         : '1');
 
     return compiler_flag.str();
 }
 
-static inline auto get_ck_convolution_problem_descriptor(const ProblemDescription& problem)
+static inline auto
+get_ck_convolution_problem_descriptor(const miopen::conv::ProblemDescription& problem)
 {
     ck::DataTypeEnum_t ck_datatype;
 
+    // NOLINTBEGIN(*-braces-around-statements)
     if(problem.IsFp32())
         ck_datatype = ck::DataTypeEnum_t::Float;
     else if(problem.IsFp16())
@@ -143,6 +155,7 @@ static inline auto get_ck_convolution_problem_descriptor(const ProblemDescriptio
         ck_datatype = ck::DataTypeEnum_t::BFloat16;
     else
         ck_datatype = ck::DataTypeEnum_t::Unknown;
+    // NOLINTEND(*-braces-around-statements)
 
     return ck::driver::ConvolutionProblemDescriptor{
         ProblemInterpreter::GetBatchN(problem),

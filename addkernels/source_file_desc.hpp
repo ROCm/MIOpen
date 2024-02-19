@@ -24,19 +24,22 @@
  *
  *******************************************************************************/
 #ifndef SOURCE_FILE_DESC_HPP
-
 #define SOURCE_FILE_DESC_HPP
-#include <string>
+
+#include <miopen/filesystem.hpp>
 #include <memory>
+#include <string>
+
+namespace fs = miopen::fs;
 
 class SourceFileDesc
 {
 public:
-    std::string path;
+    fs::path path;
     int included_line;
     std::shared_ptr<SourceFileDesc> included_from;
 
-    SourceFileDesc(const std::string& path_, std::shared_ptr<SourceFileDesc> from, int line)
+    SourceFileDesc(const fs::path& path_, std::shared_ptr<SourceFileDesc> from, int line)
         : path(path_), included_line(line), included_from(from)
     {
     }

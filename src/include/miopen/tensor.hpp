@@ -101,7 +101,6 @@ inline std::size_t GetTypeSize(miopenDataType_t d)
     case miopenFloat: return 4;
     case miopenHalf:
     case miopenBFloat16: return 2;
-    case miopenInt8x4: break;
     case miopenInt8:
     case miopenFloat8:
     case miopenBFloat8: return 1;
@@ -124,7 +123,7 @@ std::ptrdiff_t integer_division_ceil(X x, Y y)
     return (tx + ty - 1) / ty;
 }
 
-struct TensorDescriptor : miopenTensorDescriptor
+struct MIOPEN_EXPORT TensorDescriptor : miopenTensorDescriptor
 {
     TensorDescriptor();
 
@@ -206,6 +205,7 @@ struct TensorDescriptor : miopenTensorDescriptor
     }
 
     bool IsPacked() const;
+    bool AllDimsFitIntoInt() const;
 
     bool operator==(const TensorDescriptor& rhs) const;
     bool operator!=(const TensorDescriptor& rhs) const;
@@ -264,15 +264,15 @@ struct TensorDescriptor : miopenTensorDescriptor
     friend void to_json(nlohmann::json& j, const TensorDescriptor& descriptor);
     friend void from_json(const nlohmann::json& j, TensorDescriptor& descriptor);
 
-    void SetStrideNd(const std::string& layout);
-    void LensReorder(const std::string& layout);
-
 private:
     TensorDescriptor(miopenDataType_t t,
                      miopenTensorLayout_t layout_in,
                      const std::vector<std::size_t>& lens_in,
                      const std::vector<std::size_t>& strides_in,
                      bool use_strides);
+
+    void SetStrideNd(const std::string& layout);
+    void LensReorder(const std::string& layout);
 
     void CalculateStrides();
     void CalculateVectorLength();

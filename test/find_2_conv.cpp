@@ -27,6 +27,7 @@
 #include "test.hpp"
 #include "driver.hpp"
 #include "get_handle.hpp"
+#include "workspace.hpp"
 
 #include <miopen/miopen.h>
 
@@ -210,13 +211,11 @@ private:
                 }
 
                 const auto workspace_size = std::min(workspace_limit, workspace_max);
-                workspace_dev             = workspace_size != 0
-                                                ? miopen::deref(handle).Write(std::vector<char>(workspace_size))
-                                                : nullptr;
+                Workspace wspace{workspace_size};
 
-                EXPECT_EQUAL(miopenSetFindOptionPreallocatedWorkspace(
-                                 options, workspace_dev.get(), workspace_size),
-                             miopenStatusSuccess);
+                EXPECT_EQUAL(
+                    miopenSetFindOptionPreallocatedWorkspace(options, wspace.ptr(), wspace.size()),
+                    miopenStatusSuccess);
 
                 EXPECT_EQUAL(miopenSetFindOptionPreallocatedTensor(
                                  options, miopenTensorConvolutionX, x_dev.get()),
@@ -312,14 +311,11 @@ private:
     {
         std::cerr << "Running a solution..." << std::endl;
 
-        auto& handle_deref = get_handle();
-
         std::size_t workspace_size;
         EXPECT_EQUAL(miopenGetSolutionWorkspaceSize(solution, &workspace_size),
                      miopenStatusSuccess);
 
-        auto workspace_dev =
-            workspace_size != 0 ? handle_deref.Write(std::vector<char>(workspace_size)) : nullptr;
+        Workspace wspace{workspace_size};
 
         const auto checked_run_solution = [&](miopenTensorDescriptor_t* descriptors_) {
             auto arguments = std::make_unique<miopenTensorArgument_t[]>(num_arguments);
@@ -331,10 +327,9 @@ private:
                 arguments[i].buffer     = buffers[i];
             }
 
-            EXPECT_EQUAL(
-                miopenRunSolution(
-                    handle, solution, 3, arguments.get(), workspace_dev.get(), workspace_size),
-                miopenStatusSuccess);
+            EXPECT_EQUAL(miopenRunSolution(
+                             handle, solution, 3, arguments.get(), wspace.ptr(), wspace.size()),
+                         miopenStatusSuccess);
         };
 
         // Without descriptors

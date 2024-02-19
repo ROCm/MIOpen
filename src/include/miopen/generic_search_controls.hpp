@@ -26,14 +26,22 @@
 
 #pragma once
 #include <miopen/env.hpp>
+#include <miopen/config.h>
+#include <chrono>
+#include <limits>
 
-namespace miopen {
-namespace solver {
-
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_TUNING_TIME_MS_MAX)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_COMPILE_PARALLEL_LEVEL)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
-
-} // namespace solver
-} // namespace miopen
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX,
+                       uint64_t,
+                       std::numeric_limits<std::size_t>::max())
+MIOPEN_DECLARE_ENV_VAR(
+    MIOPEN_TUNING_TIME_MS_MAX,
+    uint64_t,
+    (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::hours{2})).count())
+#if MIOPEN_USE_COMGR
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_COMPILE_PARALLEL_LEVEL, uint64_t, 1) // COMGR is not parallelizable
+#else
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_COMPILE_PARALLEL_LEVEL,
+                       uint64_t,
+                       std::thread::hardware_concurrency() / 2)
+#endif
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMPILE_ONLY)

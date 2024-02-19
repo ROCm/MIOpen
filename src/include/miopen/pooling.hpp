@@ -91,7 +91,7 @@ inline std::string get_pooling_index_type_max_name(miopenIndexType_t index_type)
 struct Handle;
 struct TensorDescriptor;
 
-struct PoolingDescriptor : miopenPoolingDescriptor
+struct MIOPEN_EXPORT PoolingDescriptor : miopenPoolingDescriptor
 {
     PoolingDescriptor();
 
