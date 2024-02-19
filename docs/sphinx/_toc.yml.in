@@ -2,77 +2,48 @@
 # These comments will also be removed.
 defaults:
   numbered: False
-  maxdepth: 7
-root: index
-subtrees: 
-- entries
+root: index.rst
+subtrees:
+- entries:
   - file: what-is-MIOpen.rst
     title: What is MIOpen?
+  - file: install/index.md
+    title: MIOpen Installation
     subtrees:
-    - entries:    
-      - file: find_and_immediate.md
-        title: Find and Immediate
-      - file: finddb.md
-        title: Find database
-      - file: cache.md
-        title: Cache
-      - file: perfdatabase.md
-        title: Performance database
-      - file: Getting_Started_FusionAPI.md
-        title: Getting started with Fusion API
-      - file: DebugAndLogging.md
-        title: Debugging and logging
-      - file: MI200AlternateImplementation.md
-        title: Alternate implementation for MI200
-      - file: MIOpen_Porting_Guide.md
-        title: MIOpen Porting Guide  
-  - file: install/install.rst        
-    title: Quick-start   
-  - file: reference/index.rst
-    title: API reference
+     - entries:
+  	  - file: install/install.rst
+  	  - file: install/driver.md
+  	  - file: install/embed.md   
+  - file: conceptual/index.md
+    title: MIOpen Concepts
     subtrees:
-    - entries:
-      - file: datatypes.rst
-        title: Data Types
-      - file: handle.rst
-        title: Handle
-      - file: tensor.rst
-        title: Tensor
-      - file: activation.rst
-        title: Activation
-      - file: convolution.rst
-        title: Convolution
-      - file: rnn.rst
-        title: RNN
-      - file: batchnorm.rst
-        title: BatchNorm
-      - file: lrn.rst
-        title: LRN
-      - file: pooling.rst
-        title: Pooling
-      - file: softmax.rst
-        title: Softmax
-      - file: fusion.rst
-        title: Fusion
-      - file: loss.rst
-        title: Loss
-      - file: dropout.rst
-        title: Dropout
-      - file: reduction.rst
-        title: Reduction
-      - file: layernorm.rst
-        title: Layernorm
-      - file: sum.rst
-        title: Sum
-  - file: tutorials/index.rst
-    title: Tutorials
-    subtrees:
-    - entries:
-      - file: install/install.rst
-        title: MIOpen installation
-      - file: install/embed.md
-        title: Embedding MIOpen
-      - file: install/driver.md
-        title: Installing and building MIOpen
-  - file: license.md
-    title: License
+     - entries:
+      	- file: conceptual/find_and_immediate.md
+     	  - file: conceptual/finddb.md
+      	- file: conceptual/cache.md
+      	- file: conceptual/perfdatabase.md
+      	- file: conceptual/Getting_Started_FusionAPI.md
+      	- file: conceptual/MI200AlternateImplementation.md
+      	- file: conceptual/MIOpen_Porting_Guide.md
+   - file: reference/index.rst
+     title: MIOpen API Reference
+     subtrees:
+      - entries:   	   
+      	- file: reference/activation.rst
+      	- file: reference/batchnorm.rst
+      	- file: reference/convolution.rst
+      	- file: reference/datatypes.md
+      	- file: reference/dropout.rst
+      	- file: reference/fusion.rst
+      	- file: reference/handle.rst
+      	- file: reference/layernorm.rst
+      	- file: reference/loss.rst
+      	- file: reference/lrn.rst
+      	- file: reference/pooling.rst
+      	- file: reference/reduction.rst
+      	- file: reference/rnn.rst
+      	- file: reference/softmax.rst
+      	- file: reference/sum.rst
+      	- file: reference/tensor.rst
+   - file: license.md
+     title: License
