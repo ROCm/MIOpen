@@ -204,8 +204,8 @@ static int find_callback(void* _res, int argc, char** argv, char** azColName)
 }
 
 SQLite::SQLite() : pImpl(nullptr) {}
-SQLite::~SQLite()                            = default;
-SQLite::SQLite(SQLite&&) noexcept            = default;
+SQLite::~SQLite()                 = default;
+SQLite::SQLite(SQLite&&) noexcept = default;
 SQLite& SQLite::operator=(SQLite&&) noexcept = default;
 SQLite::result_type SQLite::Exec(const std::string& query) const
 {
@@ -336,7 +336,7 @@ SQLite::Statement::Statement(const SQLite& sql,
 }
 SQLite::Statement::~Statement() = default;
 SQLite::Statement::Statement() : pImpl{nullptr} {}
-SQLite::Statement::Statement(Statement&&) noexcept                    = default;
+SQLite::Statement::Statement(Statement&&) noexcept = default;
 SQLite::Statement& SQLite::Statement::operator=(Statement&&) noexcept = default;
 int SQLite::Statement::Step(const SQLite& sql)
 {

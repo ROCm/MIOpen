@@ -84,7 +84,7 @@ private:
     using is_immediate_t = std::enable_if_t<std::is_same<TTestDb, FindDb>::value, int>;
 
 public:
-    FindDbRecord_t(const FindDbRecord_t&)            = delete;
+    FindDbRecord_t(const FindDbRecord_t&) = delete;
     FindDbRecord_t& operator=(const FindDbRecord_t&) = delete;
 
     template <class TProblemDescription, class TTestDb = TDb>

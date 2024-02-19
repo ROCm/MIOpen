@@ -101,10 +101,10 @@ private:
     std::string db_path;
     std::unordered_map<std::string, CacheItem> cache;
 
-    ReadonlyRamDb(const ReadonlyRamDb&)            = default;
-    ReadonlyRamDb(ReadonlyRamDb&&)                 = default;
+    ReadonlyRamDb(const ReadonlyRamDb&) = default;
+    ReadonlyRamDb(ReadonlyRamDb&&)      = default;
     ReadonlyRamDb& operator=(const ReadonlyRamDb&) = default;
-    ReadonlyRamDb& operator=(ReadonlyRamDb&&)      = default;
+    ReadonlyRamDb& operator=(ReadonlyRamDb&&) = default;
 
     void Prefetch(bool warn_if_unreadable);
     void ParseAndLoadDb(std::istream& input_stream, bool warn_if_unreadable);
