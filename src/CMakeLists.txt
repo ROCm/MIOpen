@@ -135,6 +135,7 @@ set( MIOpen_Source
     logger.cpp
     lrn_api.cpp
     max_api.cpp
+    min_api.cpp
     op_args.cpp
     operator.cpp
     performance_config.cpp
@@ -264,6 +265,7 @@ set( MIOpen_Source
     solver/reduce/forward_argmax.cpp
     solver/reduce/forward_argmin.cpp
     solver/reduce/forward_max.cpp
+    solver/reduce/forward_min.cpp
     solver/reduce/forward_sum.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
@@ -453,6 +455,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
         kernels/MIOpenMax.cpp
+        kernels/MIOpenMin.cpp
         kernels/MIOpenNeuron.cl
         kernels/MIOpenPooling.cl
         kernels/MIOpenPoolingBwd.cl
@@ -579,6 +582,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         layer_norm.cpp
         lrn.cpp
         max.cpp
+        min.cpp
         mlo_dir_conv.cpp
         exec_utils.cpp
         ocl/activ_ocl.cpp

@@ -28,4 +28,5 @@ API Reference
     cat
     argmin
     max
+    min
 

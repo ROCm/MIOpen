@@ -48,6 +48,7 @@
 #include "argmin_driver.hpp"
 #include "cat_driver.hpp"
 #include "max_driver.hpp"
+#include "min_driver.hpp"
 #include <miopen/config.h>
 #include <miopen/stringutils.hpp>
 
@@ -285,6 +286,18 @@ int main(int argc, char* argv[])
     else if(base_arg == "maxbfp16")
     {
         drv = new MaxDriver<bfloat16, float>();
+    }
+    else if(base_arg == "min")
+    {
+        drv = new MinDriver<float, float>();
+    }
+    else if(base_arg == "minfp16")
+    {
+        drv = new MinDriver<float16, float>();
+    }
+    else if(base_arg == "minbfp16")
+    {
+        drv = new MinDriver<bfloat16, float>();
     }
     else
     {

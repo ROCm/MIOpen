@@ -644,6 +644,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        miopenConvolutionAlgoImplicitGEMM);
     Register(registry, ++id, Primitive::Reduce, reduce::ArgminForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Reduce, reduce::MaxForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Reduce, reduce::MinForward{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

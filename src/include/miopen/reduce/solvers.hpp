@@ -89,6 +89,19 @@ struct MaxForward final : ReduceSolver
                              const miopen::reduce::ProblemDescription& problem) const override;
 };
 
+struct MinForward final : ReduceSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<MinForward>(); }
+    size_t XGridSize(std::vector<size_t> ydims) const;
+    bool OverMaxGridSize(const ExecutionContext& context,
+                         const miopen::reduce::ProblemDescription& problem) const;
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::reduce::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::reduce::ProblemDescription& problem) const override;
+};
+
 } // namespace reduce
 
 } // namespace solver
