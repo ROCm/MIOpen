@@ -143,6 +143,9 @@ list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/ll
 option(ENABLE_HIP_WORKAROUNDS Off)
 set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
 
+set_var_to_condition(MIOPEN_OFFLINE_COMPILER_PATHS_V2_DEFAULT FALSE)
+option(MIOPEN_OFFLINE_COMPILER_PATHS_V2 "Use rocm-core to find offline GPU compiler" ${MIOPEN_OFFLINE_COMPILER_PATHS_V2_DEFAULT})
+message( STATUS "MIOPEN_OFFLINE_COMPILER_PATHS_V2: ${MIOPEN_OFFLINE_COMPILER_PATHS_V2}" )
 
 # Embedded Build Configuration
 set(MIOPEN_EMBED_DB "" CACHE STRING "Semi-colon separated list of architecture to embed on-disk DBs in the binary. Example gfx906_60;gfx900_56")
@@ -480,6 +483,10 @@ endif()
 
 if(MIOPEN_USE_ROCBLAS)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocblas")
+endif()
+
+if(MIOPEN_OFFLINE_COMPILER_PATHS_V2)
+    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocm-core")
 endif()
 
 if(MIOPEN_BACKEND STREQUAL "HIP")
