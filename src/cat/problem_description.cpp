@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c_) 202 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,43 +23,49 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_UTIL_SOL_HPP_
-#define MIOPEN_UTIL_SOL_HPP_
 
-#include <miopen/batched_transpose_sol.hpp>
-#include <miopen/miopen.h>
-#include <miopen/kernel_info.hpp>
-#include <miopen/op_kernel_args.hpp>
-#include <miopen/execution_context.hpp>
-#include <vector>
+#include <miopen/cat/problem_description.hpp>
+#include <miopen/datatype.hpp>
+#include <miopen/names.hpp>
+
+#include <sstream>
 
 namespace miopen {
 
-struct TransposeSolutionDefault2Nhwc : public BatchedTransposeSolution
-{
-    TransposeSolutionDefault2Nhwc(const ExecutionContext& ctx_,
-                                  miopenDataType_t data_type_,
-                                  uint32_t n_,
-                                  uint32_t c_,
-                                  uint32_t h_,
-                                  uint32_t w_)
-        : BatchedTransposeSolution(ctx_, data_type_, n_, c_, h_ * w_)
-    {
-    }
-};
+namespace cat {
 
-struct TransposeSolutionNhwc2Default : public BatchedTransposeSolution
+NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    TransposeSolutionNhwc2Default(const ExecutionContext& ctx_,
-                                  miopenDataType_t data_type_,
-                                  uint32_t n_,
-                                  uint32_t c_,
-                                  uint32_t h_,
-                                  uint32_t w_)
-        : BatchedTransposeSolution(ctx_, data_type_, n_, h_ * w_, c_)
+    int32_t fusion_size = 2;
+    while(fusion_size < xCount)
     {
+        fusion_size *= 2;
     }
-};
+
+    size_t max_x_dim_size = 0;
+    for(int i = 0; i < xCount; i++)
+    {
+        auto xlength   = xDescs[i]->GetLengths();
+        max_x_dim_size = std::max(max_x_dim_size, xlength[dim]);
+    }
+
+    auto ylength    = yDesc.GetLengths();
+    auto outer_size = std::accumulate(
+        ylength.begin(), ylength.begin() + dim, static_cast<size_t>(1), std::multiplies<size_t>());
+    auto stride         = yDesc.GetStrides()[dim];
+    auto dtype          = yDesc.GetType();
+    auto data_size      = get_data_size(dtype);
+    auto max_inner_size = max_x_dim_size * stride * data_size / sizeof(short4);
+
+    std::ostringstream ss;
+
+    ss << "catfwd" << fusion_size;
+    ss << "max_inner_size" << max_inner_size;
+    ss << "outer_size" << outer_size;
+
+    return NetworkConfig{ss.str()};
+}
+
+} // namespace cat
+
 } // namespace miopen
-
-#endif // MIOPEN_UTIL_SOL_HPP_

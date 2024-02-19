@@ -804,7 +804,7 @@ void BuildHip(const std::string& name,
 #if PCH_IS_SUPPORTED
             if(compiler::lc::hip::IsPchEnabled())
             {
-                raw += " -nogpuinc -DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1";
+                raw += " -nogpuinc -DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS";
             }
 #endif
             auto optCompile = miopen::SplitSpaceSeparated(raw, compiler::lc::GetOptionsNoSplit());
@@ -1003,9 +1003,9 @@ void BuildAsm(const std::string& name,
 
 #define WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H 1 // See SWDEV-307838, issue #1648.
 #define WORKAROUND_ISSUE_1674 (HIP_PACKAGE_VERSION_FLAT >= 5003022305ULL)
-/// No assumption that HIP kernels are launched with uniform block size for backward compatibility
-/// SWDEV-413293 and https://reviews.llvm.org/D155213 effective HIP_FLAT_VERSION 500723302
-#define WORKAROUND_SWDEV_413293 (HIP_PACKAGE_VERSION_FLAT >= 5007023302ULL)
+
+// See WORKAROUND_SWDEV_413293 in ./CmakeLists.txt
+#define WORKAROUND_SWDEV_413293 MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK
 
 namespace hiprtc {
 
@@ -1260,7 +1260,7 @@ void BuildHip(const std::string& name,
             opts.push_back("-DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1");
         opts.push_back("-DHIP_PACKAGE_VERSION_FLAT=" + std::to_string(HIP_PACKAGE_VERSION_FLAT));
         opts.push_back("-DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS");
-#if HIP_PACKAGE_VERSION_FLAT < 6001024000ULL
+#if HIP_PACKAGE_VERSION_FLAT < 6001024000ULL && !defined(_WIN32)
         opts.push_back("-DWORKAROUND_DONT_USE_CUSTOM_LIMITS=1");
 #endif
 #if WORKAROUND_ISSUE_1431

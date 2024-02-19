@@ -430,17 +430,21 @@ std::size_t TensorDescriptor::GetNumBytes() const
 
 bool TensorDescriptor::IsPacked() const { return this->packed; }
 
-bool TensorDescriptor::Is64Bit() const
+bool TensorDescriptor::AllDimsFitIntoInt() const
 {
     if(std::any_of(lens.cbegin(), lens.cend(), [](std::size_t x) {
            return x > std::numeric_limits<int>::max();
        }))
-        return true;
+    {
+        return false;
+    }
     if(std::any_of(strides.cbegin(), strides.cend(), [](std::size_t x) {
            return x > std::numeric_limits<int>::max();
        }))
-        return true;
-    return false;
+    {
+        return false;
+    }
+    return true;
 }
 
 bool TensorDescriptor::operator==(const TensorDescriptor& rhs) const

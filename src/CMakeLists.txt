@@ -91,6 +91,8 @@ set( MIOpen_Source
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
     buffer_info.cpp
+    cat_api.cpp
+    cat/problem_description.cpp
     check_numerics.cpp
     conv/invokers/gcn_asm_1x1u.cpp
     conv/invokers/gcn_asm_1x1u_ss.cpp
@@ -147,7 +149,9 @@ set( MIOpen_Source
     rnn_api.cpp
     rnn/rnn_util.cpp
     rnn/Solutions/rnn_transformer.cpp
+    softmax.cpp
     softmax_api.cpp
+    softmax/problem_description.cpp
     solution.cpp
     solver.cpp
     solver/activ/bwd_0.cpp
@@ -167,6 +171,7 @@ set( MIOpen_Source
     solver/batchnorm/forward_spatial_multiple.cpp
     solver/batchnorm/forward_spatial_single.cpp
     solver/batchnorm/forward_training_ck.cpp
+    solver/cat/forward_cat.cpp
     solver/conv_asm_1x1u.cpp
     solver/conv_asm_1x1u_bias_activ_fused.cpp
     solver/conv_asm_1x1u_stride2.cpp
@@ -256,6 +261,8 @@ set( MIOpen_Source
     solver/pooling/backwardNd.cpp
     solver/reduce/forward_argmax.cpp
     solver/reduce/forward_sum.cpp
+    solver/softmax/attn_softmax.cpp
+    solver/softmax/softmax.cpp
     subbuffers.cpp
     sum_api.cpp
     target_properties.cpp
@@ -421,6 +428,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${GPU_BATCHED_TRANSPOSE_KERNEL_HIP}
         ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_SOURCE}
         kernels/MIOpenArgmax.cpp
+        kernels/MIOpenCat.cpp
         kernels/MIOpenCheckNumerics.cpp
         kernels/MIOpenBatchNormActivBwdPerAct.cl
         kernels/MIOpenBatchNormActivBwdSpatial.cl
@@ -449,6 +457,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
         kernels/MIOpenSoftmax.cl
+        kernels/MIOpenSoftmaxAttn.cpp
         kernels/MIOpenSum.cpp
         kernels/MIOpenUtilKernels3.cl
         kernels/MIOpenUtilKernels4.cl
@@ -557,6 +566,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     list(APPEND MIOpen_Source
         activ.cpp
         argmax.cpp
+        cat.cpp
         groupnorm.cpp
         kernel_cache.cpp
         layer_norm.cpp
@@ -570,7 +580,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/mloNorm.cpp
         ocl/pooling_ocl.cpp
         ocl/tensorocl.cpp
-        ocl/softmaxocl.cpp
         ocl/rnnocl.cpp
         ocl/utilocl.cpp
         ocl/ctcocl.cpp
@@ -887,20 +896,18 @@ if(NOT MIOPEN_EMBED_DB STREQUAL "")
         if(MIOPEN_NO_LFS_PULLED)
             message(WARNING "Binary cache files have not been pulled down from git-lfs, will not embed.")
         else()
-            set(MIOPEN_BINCACHE_PATH "${CMAKE_SOURCE_DIR}/src/kernels")
+            set(MIOPEN_BINCACHE_PATH ${KERNELS_BINARY_DIR})
             message("MIOPEN_BINCACHE_PATH: ${MIOPEN_BINCACHE_PATH}")
         endif()
     else()
         message(WARNING "MIOPEN_EMBED_BINCACHE is set and MIOPEN_BINCACHE_PATH was used to override default binary cache files. Proceed at your own risk!")
     endif()
-    set(CODE_OBJECTS)
 # embed find db
     foreach(EMBED_ARCH ${MIOPEN_EMBED_DB})
         message(STATUS "Adding find db for arch: ${EMBED_ARCH}")
         list(APPEND CODE_OBJECTS "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${EMBED_ARCH}.${MIOPEN_BACKEND}.fdb.txt")
         message(STATUS "Adding perf db for arch: ${EMBED_ARCH}")
-        list(APPEND CODE_OBJECTS "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${EMBED_ARCH}.db")
-        list(APPEND CODE_OBJECTS "kernels/${EMBED_ARCH}.db${PERFDB_SUFFIX}")
+        list(APPEND CODE_OBJECTS "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${EMBED_ARCH}.db${PERFDB_SUFFIX}")
     endforeach()
 # Embed Bin Cache
     if(NOT MIOPEN_BINCACHE_PATH STREQUAL "")
@@ -912,27 +919,6 @@ if(NOT MIOPEN_EMBED_DB STREQUAL "")
     endif()
     add_embed_library(miopen_data ${CODE_OBJECTS})
     target_link_libraries(MIOpen PRIVATE $<BUILD_INTERFACE:miopen_data> )
-else()
-    file(GLOB FIND_DB_FILES ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/*.fdb.txt)
-    file(GLOB PERF_DB_FILES ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/*.db${PERFDB_SUFFIX})
-    file(GLOB KERN_DB_FILES ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/*.kdb)
-    list(APPEND FIND_DB_FILES ${PERF_DB_FILES})
-    # Install the kdb files for the kdb sync test only, a better approach would be to
-    # install the kdb package instead
-    if(MIOPEN_TEST_DBSYNC)
-        list(APPEND FIND_DB_FILES ${KERN_DB_FILES})
-    endif()
-    if(NOT MIOPEN_DISABLE_SYSDB)
-        if( NOT ENABLE_ASAN_PACKAGING )
-          install(FILES
-              ${FIND_DB_FILES}
-              DESTINATION ${DATABASE_INSTALL_DIR})
-        endif()
-        foreach(DB_FILE ${FIND_DB_FILES})
-            get_filename_component(DB_FILE_FILENAME "${DB_FILE}" NAME)
-            configure_file("${DB_FILE}" "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${DB_FILE_FILENAME}" COPYONLY)
-        endforeach()
-    endif()
 endif()
 
 if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
