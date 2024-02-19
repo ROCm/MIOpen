@@ -222,16 +222,16 @@ class GpumemTensor
 {
     std::unique_ptr<GPUMem> dev;
     tensor<Tgpu> host;
-    bool is_hipmalloc = false;
+    bool is_gpualloc = false;
 
 public:
-    void SetHipmallocMode(bool v) { is_hipmalloc = v; }
+    void SetGpuallocMode(bool v) { is_gpualloc = v; }
     tensor<Tgpu>& GetTensor() { return host; }
 
     void AllocOnHost(miopenTensorDescriptor_t t)
     {
         host = tensor<Tgpu>(miopen::deref(t));
-        if(is_hipmalloc) // We need only tensor descriptor.
+        if(is_gpualloc) // We need only tensor descriptor.
         {
             host.data.clear();
             host.data.shrink_to_fit(); // To free host memory.
@@ -240,14 +240,14 @@ public:
 
     std::vector<Tgpu>& GetVector()
     {
-        if(is_hipmalloc)
-            MIOPEN_THROW(
-                "[MIOpenDriver] GpumemTensor::GetVector should not be called in hipmalloc mode");
+        if(is_gpualloc)
+            MIOPEN_THROW("[MIOpenDriver] GpumemTensor::GetVector should not be called in "
+                         "'--gpualloc 1' mode");
         return host.data;
     }
 
-    Tgpu* GetVectorData() { return is_hipmalloc ? nullptr : host.data.data(); }
-    std::size_t GetVectorSize() const { return is_hipmalloc ? 0 : host.data.size(); }
+    Tgpu* GetVectorData() { return is_gpualloc ? nullptr : host.data.data(); }
+    std::size_t GetVectorSize() const { return is_gpualloc ? 0 : host.data.size(); }
 
     void
     InitHostData(const size_t sz,     //
@@ -257,7 +257,7 @@ public:
                                       // will be the same for both "-F 0" and "-F 2".
                  std::function<Tgpu()> generator)
     {
-        if(is_hipmalloc)
+        if(is_gpualloc)
             return;
         for(int i = 0; i < sz; ++i)
         {
@@ -275,7 +275,7 @@ public:
     status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz)
     {
         dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(Tgpu)));
-        return is_hipmalloc ? STATUS_SUCCESS : dev->ToGPU(q, GetVectorData());
+        return is_gpualloc ? STATUS_SUCCESS : dev->ToGPU(q, GetVectorData());
     }
 
     template <typename T>
@@ -285,7 +285,7 @@ public:
                           || std::is_same<T, int32_t>::value, //
                       "Before enabling more types, check thoroughly.");
         dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(T)));
-        return is_hipmalloc ? STATUS_SUCCESS : dev->ToGPU(q, init.data());
+        return is_gpualloc ? STATUS_SUCCESS : dev->ToGPU(q, init.data());
     }
 
     status_t CopyFromDeviceToHost(stream q) { return dev->FromGPU(q, GetVectorData()); }
@@ -293,18 +293,18 @@ public:
     template <typename T>
     status_t CopyFromDeviceToHost(stream q, tensor<T>& t)
     {
-        if(is_hipmalloc)
+        if(is_gpualloc)
             MIOPEN_THROW("[MIOpenDriver] GpumemTensor::CopyFromDeviceToHost should not be called "
-                         "in hipmalloc mode");
+                         "in '--gpualloc 1' mode");
         return dev->FromGPU(q, t.data.data());
     }
 
     template <typename T>
     status_t CopyFromDeviceToHost(stream q, std::vector<T>& v)
     {
-        if(is_hipmalloc)
+        if(is_gpualloc)
             MIOPEN_THROW("[MIOpenDriver] GpumemTensor::CopyFromDeviceToHost should not be called "
-                         "in hipmalloc mode");
+                         "in '--gpualloc 1' mode");
         return dev->FromGPU(q, v.data());
     }
 
@@ -502,7 +502,7 @@ private:
     bool time_enabled    = false;
     bool wall_enabled    = false;
     bool warmup_enabled  = false;
-    bool is_hipmalloc    = false;
+    bool is_gpualloc     = false;
     int num_iterations   = 1;
 
     // Used to avoid wasting time for verification after failure of Run*GPU().
@@ -761,22 +761,22 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
         }
     }
 
-    is_hipmalloc = (inflags.GetValueInt("hipmalloc") == 1);
-    if(is_hipmalloc && inflags.GetValueInt("verify") == 1)
-        std::cout << "Warning: Varification won't succeed when hipmalloc option is enabled."
+    is_gpualloc = (inflags.GetValueInt("gpualloc") == 1);
+    if(is_gpualloc && inflags.GetValueInt("verify") == 1)
+        std::cout << "Warning: Varification won't succeed when '--gpualloc 1' option is used."
                   << std::endl;
 
-    in.SetHipmallocMode(is_hipmalloc);
-    // din.SetHipmallocMode(is_hipmalloc);
-    // wei.SetHipmallocMode(is_hipmalloc);
-    // dwei.SetHipmallocMode(is_hipmalloc);
-    // out.SetHipmallocMode(is_hipmalloc);
-    // dout.SetHipmallocMode(is_hipmalloc);
-    // b.SetHipmallocMode(is_hipmalloc);
-    // db.SetHipmallocMode(is_hipmalloc);
-    // warmup_in.SetHipmallocMode(is_hipmalloc);
-    // warmup_wei.SetHipmallocMode(is_hipmalloc);
-    // warmup_out.SetHipmallocMode(is_hipmalloc);
+    in.SetGpuallocMode(is_gpualloc);
+    // din.SetGpuallocMode(is_gpualloc);
+    // wei.SetGpuallocMode(is_gpualloc);
+    // dwei.SetGpuallocMode(is_gpualloc);
+    // out.SetGpuallocMode(is_gpualloc);
+    // dout.SetGpuallocMode(is_gpualloc);
+    // b.SetGpuallocMode(is_gpualloc);
+    // db.SetGpuallocMode(is_gpualloc);
+    // warmup_in.SetGpuallocMode(is_gpualloc);
+    // warmup_wei.SetGpuallocMode(is_gpualloc);
+    // warmup_out.SetGpuallocMode(is_gpualloc);
 
     return 0;
 }
@@ -1064,12 +1064,12 @@ int ConvDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "\n<valid name>   Immediate mode, build and run specified solution"
                          "\n<invalid name> Use Find() API",
                          "string");
-    inflags.AddInputFlag("hipmalloc",
-                         'M',
+    inflags.AddInputFlag("gpualloc",
+                         'G',
                          "0",
-                         "Controls if it is required to copy buffers from CPU to GPU and back."
+                         "Controls allocation and initialization buffers on GPU and CPU."
                          "\n0 Init input buffers on CPU and copy them to GPU. After convolution"
-                         "\n  executed, copy output buffer to CPU (Default)."
+                         "\n  is executed, copy output buffer to CPU (Default)."
                          "\n1 No copying. Use hipMalloc to allocate and rocrand to init buffers"
                          "\n  directly on GPU. Verification (-V 1) won't succeed in this mode.",
                          "int");
