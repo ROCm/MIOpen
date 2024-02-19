@@ -77,6 +77,7 @@ ConvSolution ArgmaxForward::GetSolution(const ExecutionContext&,
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
+    auto dtype        = problem.GetXDesc().GetType();
     auto input_dtype  = miopen::GetDataType(problem.GetXDesc().GetType());
     auto output_dtype = miopen::GetDataType(problem.GetYDesc().GetType());
     auto xdims        = problem.GetXDesc().GetLengths();
@@ -98,6 +99,9 @@ ConvSolution ArgmaxForward::GetSolution(const ExecutionContext&,
         xgridsize          = XGridSize(ydims);
 
         const auto build_params = KernelBuildParameters{
+            {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
+            {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
+            {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
         };
