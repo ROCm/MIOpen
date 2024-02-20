@@ -35,7 +35,7 @@ struct NetworkConfig
     NetworkConfig() = default;
     explicit NetworkConfig(const std::string& value_) : value(value_) {}
     operator std::string() const { return value; }
-    std::string ToString() const { return value; }
+    const std::string& ToString() const { return value; }
 
 private:
     std::string value;
@@ -46,7 +46,7 @@ struct AlgorithmName
     AlgorithmName() = default;
     explicit AlgorithmName(const std::string& value_) : value(value_) {}
     operator std::string() const { return value; }
-    std::string ToString() const { return value; }
+    const std::string& ToString() const { return value; }
 
     bool operator<(const AlgorithmName& r) const { return (value < r.value); }
 

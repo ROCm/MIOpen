@@ -34,22 +34,29 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/mlir_common.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 bool ConvMlirIgemmWrWXdlops::IsApplicable(const ExecutionContext& ctx,
                                           const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW_XDLOPS{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW_XDLOPS)))
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;
     if(!IsXdlopsSupport(ctx))
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
+        return false;
+    if(problem.HasNonPackedTensors())
+        return false;
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
     if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
@@ -119,7 +126,7 @@ ConvSolution ConvMlirIgemmWrWXdlops::GetSolution(const ExecutionContext& ctx,
     }
 
     size_t workspace_req   = GetWorkspaceSize(ctx, problem);
-    result.invoker_factory = conv::MakeMlirWrWInvokerFactory(problem, workspace_req);
+    result.invoker_factory = miopen::conv::MakeMlirWrWInvokerFactory(problem, workspace_req);
     result.workspace_sz    = workspace_req;
     return result;
 #else
@@ -143,5 +150,6 @@ std::size_t ConvMlirIgemmWrWXdlops::GetWorkspaceSize(const ExecutionContext& ctx
 #endif
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

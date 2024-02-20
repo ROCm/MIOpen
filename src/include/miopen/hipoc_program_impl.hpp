@@ -29,7 +29,7 @@
 #include <miopen/target_properties.hpp>
 #include <miopen/manage_ptr.hpp>
 #include <miopen/tmp_dir.hpp>
-#include <boost/filesystem/path.hpp>
+#include <miopen/filesystem.hpp>
 #include <boost/optional.hpp>
 #include <hip/hip_runtime_api.h>
 
@@ -39,19 +39,18 @@ using hipModulePtr = MIOPEN_MANAGE_PTR(hipModule_t, hipModuleUnload);
 struct HIPOCProgramImpl
 {
     HIPOCProgramImpl(){};
-    HIPOCProgramImpl(const std::string& program_name, const boost::filesystem::path& filespec);
+    HIPOCProgramImpl(const std::string& program_name, const fs::path& filespec);
 
     HIPOCProgramImpl(const std::string& program_name, const std::string& blob);
 
     HIPOCProgramImpl(const std::string& program_name,
                      std::string params,
-                     bool is_kernel_str,
                      const TargetProperties& target_,
                      const std::string& kernel_src);
 
     std::string program;
     TargetProperties target;
-    boost::filesystem::path hsaco_file;
+    fs::path hsaco_file;
     hipModulePtr module;
     boost::optional<TmpDir> dir;
     std::vector<char> binary;
@@ -65,7 +64,7 @@ struct HIPOCProgramImpl
                                  const std::string& filename);
 #endif
 
-    void BuildCodeObject(std::string params, bool is_kernel_str, const std::string& kernel_src);
+    void BuildCodeObject(std::string params, const std::string& kernel_src);
 };
 } // namespace miopen
 #endif // GUARD_MIOPEN_HIPOC_PROGRAM_IMPL_HPP

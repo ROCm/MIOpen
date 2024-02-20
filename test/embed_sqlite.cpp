@@ -37,7 +37,7 @@
 #include <miopen/sqlite_db.hpp>
 #include <miopen/find_db.hpp>
 
-#include <boost/filesystem/path.hpp>
+#include <miopen/filesystem.hpp>
 
 namespace miopen {
 
@@ -64,16 +64,15 @@ struct EmbedSQLite : test_driver
     void run()
     {
         // create a context/problem decriptor
-        const auto conv_problem = miopen::conv::ProblemDescription{
+        const auto problem = miopen::conv::ProblemDescription{
             x.desc, w.desc, y.desc, filter, miopen::conv::Direction::Forward};
-        const auto problem = miopen::ProblemDescription{conv_problem};
         miopen::ExecutionContext ctx{};
         ctx.SetStream(&handle);
         // Check PerfDb
         {
             // Get filename for the sys db
             // Check it in miopen_data()
-            boost::filesystem::path pdb_path(ctx.GetPerfDbPath());
+            fs::path pdb_path(ctx.GetPerfDbPath());
             const auto& it_p = miopen_data().find(pdb_path.filename().string() + ".o");
             EXPECT(it_p != miopen_data().end());
             // find all the entries in perf db

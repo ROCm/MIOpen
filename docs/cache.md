@@ -15,7 +15,7 @@ The are several ways to disable the cache. This is generally useful for developm
 
 Updating MIOpen and removing the cache
 --------------------------------------
-For MIOpen version 2.3 and earlier, if the compiler changes, or the user modifies the kernels then the cache must be deleted for the MIOpen version in use; e.g., `rm -rf $HOME/.cache/miopen/<miopen-version-number>`. More information about the cache can be found [here](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html).
+For MIOpen version 2.3 and earlier, if the compiler changes, or the user modifies the kernels then the cache must be deleted for the MIOpen version in use; e.g., `rm -rf $HOME/.cache/miopen/<miopen-version-number>`. More information about the cache can be found [here](https://rocm.docs.amd.com/projects/MIOpen/en/latest/cache.html).
 
 For MIOpen version 2.4 and later, MIOpen's kernel cache directory is versioned so that users' cached kernels will not collide when upgrading from earlier version.
 
@@ -30,4 +30,4 @@ If MIOpen kernels package is not installed, or if we do not deliver the kernels 
 
 The performance degradation mentioned in the warning only affects the network start-up time (aka "initial iteration time") and thus can be safely ignored.
 
-Please refer to the MIOpen installation instructions: [installing MIOpen kernels package](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/install.html#installing-miopen-kernels-package) for guidance on installing the MIOpen kernels package.
+Please refer to the MIOpen installation instructions: [installing MIOpen kernels package](https://rocm.docs.amd.com/projects/MIOpen/en/latest/install.html#installing-miopen-kernels-package) for guidance on installing the MIOpen kernels package.

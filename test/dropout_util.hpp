@@ -197,7 +197,7 @@ inline void xorwow_lite_init_emu(prngStates* cur_state,
 
     cur_state->d = 6615241;
 
-    // Adopt constants choice of rocRAND (https://github.com/ROCmSoftwarePlatform/rocRAND)
+    // Adopt constants choice of rocRAND (https://github.com/ROCm/rocRAND)
     const unsigned int s0 = static_cast<unsigned int>(seed) ^ 0x2c7f967fU;
     const unsigned int s1 = static_cast<unsigned int>(seed >> 32) ^ 0xa03697cbU;
     const unsigned int t0 = 1228688033 * s0;
@@ -309,9 +309,13 @@ void DropoutForwardVerify(miopen::Handle& handle,
         256;
 
     for(size_t i0 = 0; i0 < in_len[0]; i0++)
+    {
         for(size_t i1 = 0; i1 < in_len[1]; i1++)
+        {
             for(size_t i2 = 0; i2 < in_len[2]; i2++)
+            {
                 for(size_t i3 = 0; i3 < in_len[3]; i3++)
+                {
                     for(size_t i4 = 0; i4 < in_len[4]; i4++)
                     {
                         size_t oi = out_offset + i0 * out_str[0] + i1 * out_str[1] +
@@ -324,15 +328,21 @@ void DropoutForwardVerify(miopen::Handle& handle,
                         size_t ri = rsvsp_offset + si;
 
                         if(!use_mask)
+                        {
                             reservespace[ri] =
                                 uniform_distribution_emu(xorwow_next(&states[si % glb_sz])) >
                                 dropout_rate;
+                        }
 
                         output[oi] =
                             bool(reservespace[ri]) && !miopen::float_equal(dropout_rate, 1.0)
                                 ? static_cast<T>(input[ii] / (1 - dropout_rate))
                                 : T(0);
                     }
+                }
+            }
+        }
+    }
 }
 
 template <typename T>

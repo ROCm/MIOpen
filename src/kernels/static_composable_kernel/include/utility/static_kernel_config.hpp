@@ -5,6 +5,7 @@
 #include "hip/hip_runtime.h"
 #include "hip/hip_fp16.h"
 #endif
+#include "miopen_cstdint.hpp"
 #include "bfloat16_dev.hpp"
 
 // index type: unsigned or signed

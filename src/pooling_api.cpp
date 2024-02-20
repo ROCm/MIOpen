@@ -50,7 +50,6 @@ inline void Pooling_logging_cmd(const miopenPoolingDescriptor_t poolDesc,
         case miopenFloat: ss << "pool"; break;
         case miopenInt32:
         case miopenInt8:
-        case miopenInt8x4: // Support discontinued.
         case miopenBFloat16:
         case miopenDouble:
         case miopenFloat8:
@@ -138,7 +137,7 @@ extern "C" miopenStatus_t miopenSetPoolingIndexType(miopenPoolingDescriptor_t po
 extern "C" miopenStatus_t miopenGetPoolingIndexType(miopenPoolingDescriptor_t poolDesc,
                                                     miopenIndexType_t* index_type)
 {
-    MIOPEN_LOG_FUNCTION(poolDesc, index_type);
+    MIOPEN_LOG_FUNCTION(poolDesc);
     return miopen::try_([&] { *index_type = miopen::deref(poolDesc).GetIndexType(); });
 }
 
@@ -154,7 +153,7 @@ extern "C" miopenStatus_t
 miopenGetPoolingWorkSpaceIndexMode(miopenPoolingDescriptor_t poolDesc,
                                    miopenPoolingWorkspaceIndexMode_t* workspace_index)
 {
-    MIOPEN_LOG_FUNCTION(poolDesc, workspace_index);
+    MIOPEN_LOG_FUNCTION(poolDesc);
     return miopen::try_(
         [&] { *workspace_index = miopen::deref(poolDesc).GetWorkspaceIndexMode(); });
 }
@@ -190,8 +189,7 @@ extern "C" miopenStatus_t miopenGet2dPoolingDescriptor(const miopenPoolingDescri
                                                        int* stride_w)
 {
 
-    MIOPEN_LOG_FUNCTION(
-        poolDesc, mode, windowHeight, windowWidth, pad_h, pad_w, stride_h, stride_w);
+    MIOPEN_LOG_FUNCTION(poolDesc);
     return miopen::try_([&] {
         miopen::deref(mode) = miopen::deref(poolDesc).mode;
         std::tie(miopen::deref(windowHeight), miopen::deref(windowWidth)) =
@@ -225,7 +223,7 @@ extern "C" miopenStatus_t miopenGetNdPoolingDescriptor(miopenPoolingDescriptor_t
                                                        int* padA,
                                                        int* stridesA)
 {
-
+    MIOPEN_LOG_FUNCTION(poolDesc, nbDimsRequested);
     return miopen::try_([&] {
         if(mode != nullptr)
         {
@@ -263,7 +261,7 @@ miopenGetPoolingNdForwardOutputDim(const miopenPoolingDescriptor_t poolDesc,
                                    int* tensorDimArr)
 {
 
-    MIOPEN_LOG_FUNCTION(poolDesc, tensorDesc, dims, tensorDimArr);
+    MIOPEN_LOG_FUNCTION(poolDesc, tensorDesc, dims);
     return miopen::try_([&] {
         miopen::deref(poolDesc).GetForwardOutputDimNd(
             miopen::deref(tensorDesc), dims, tensorDimArr);
@@ -279,7 +277,7 @@ miopenGetPoolingForwardOutputDim(const miopenPoolingDescriptor_t poolDesc,
                                  int* w)
 {
 
-    MIOPEN_LOG_FUNCTION(poolDesc, tensorDesc, n, c, h, w);
+    MIOPEN_LOG_FUNCTION(poolDesc, tensorDesc);
     return miopen::try_([&] {
         miopen::tie_deref(n, c, h, w) =
             miopen::deref(poolDesc).GetForwardOutputDim(miopen::deref(tensorDesc));
@@ -290,8 +288,7 @@ miopenGetPoolingForwardOutputDim(const miopenPoolingDescriptor_t poolDesc,
 extern "C" miopenStatus_t miopenPoolingGetWorkSpaceSize(const miopenTensorDescriptor_t yDesc,
                                                         size_t* workSpaceSize)
 {
-
-    MIOPEN_LOG_FUNCTION(yDesc, workSpaceSize);
+    MIOPEN_LOG_FUNCTION(yDesc);
     return miopen::try_([&] {
         auto len  = miopen::deref(yDesc).GetLengths();
         size_t sz = std::accumulate(len.begin(), len.end(), size_t{1}, std::multiplies<size_t>());
@@ -303,8 +300,7 @@ extern "C" miopenStatus_t miopenPoolingGetWorkSpaceSizeV2(const miopenPoolingDes
                                                           const miopenTensorDescriptor_t yDesc,
                                                           size_t* workSpaceSize)
 {
-
-    MIOPEN_LOG_FUNCTION(poolDesc, yDesc, workSpaceSize);
+    MIOPEN_LOG_FUNCTION(poolDesc, yDesc);
     return miopen::try_(
         [&] { *workSpaceSize = miopen::deref(poolDesc).GetWorkSpaceSize(miopen::deref(yDesc)); });
 }

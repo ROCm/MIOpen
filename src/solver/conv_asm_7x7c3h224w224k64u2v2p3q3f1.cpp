@@ -32,15 +32,18 @@
 
 #define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_7X7C3H224W224)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_7X7C3H224W224)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ExecutionContext& ctx,
                                                      const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_7X7C3H224W224{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_7X7C3H224W224)))
         return false;
     if(!ctx.use_asm_kernels)
         return false;
@@ -49,6 +52,11 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ExecutionContext& ctx
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
     if(!ctx.rmv.IsV2orV3())
+        return false;
+
+    if(problem.HasNonPackedTensors())
+        return false;
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
 
     if(problem.IsTensorsCasted())
@@ -65,31 +73,25 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ExecutionContext& ctx
 #endif
     if(!(name == "gfx800" || name == "gfx802" || name == "gfx803" || name == "gfx804" ||
          name == "gfx900" || name == "gfx904" || name == "gfx906" || name == "gfx908"))
-    {
         return false;
-    }
-    if(!problem.direction.IsForward())
-    {
+    if(!problem.IsDirectionForward())
         return false;
-    }
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     // clang-format off
     return problem.GetPadW() == 3            // -q
         && problem.GetPadH() == 3            // -p
         && problem.GetKernelStrideW() == 2   // -v
         && problem.GetKernelStrideH() == 2   // -u
-        && problem.GetWeightsWidth_() == 7   // -x
-        && problem.GetWeightsHeight_() == 7  // -y
+        && problem.GetWeightsWidth() == 7   // -x
+        && problem.GetWeightsHeight() == 7  // -y
         && problem.GetDilationW() == 1
         && problem.GetDilationH() == 1
-        && problem.GetInChannels_() == 3     // -c
-        && problem.GetOutChannels_() == 64   // -k
-        && problem.GetInWidth_() == 224      // -W
-        && problem.GetInHeight_() == 224     // -H
+        && problem.GetInChannels() == 3     // -c
+        && problem.GetOutChannels() == 64   // -k
+        && problem.GetInWidth() == 224      // -W
+        && problem.GetInHeight() == 224     // -H
         && problem.IsFp32()
         && problem.GetGroupCount() == 1
         && problem.GetInLayout() == "NCHW";
@@ -101,11 +103,11 @@ ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ExecutionConte
                                                             const ProblemDescription& problem) const
 {
     ConvSolution result;
-    const int out_w = (static_cast<int>(problem.GetInWidth_()) + problem.GetPadW() * 2 +
-                       problem.GetKernelStrideW() - static_cast<int>(problem.GetWeightsWidth_())) /
+    const int out_w = (static_cast<int>(problem.GetInWidth()) + problem.GetPadW() * 2 +
+                       problem.GetKernelStrideW() - static_cast<int>(problem.GetWeightsWidth())) /
                       problem.GetKernelStrideW(); // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
-    const int out_h = (static_cast<int>(problem.GetInHeight_()) + problem.GetPadH() * 2 +
-                       problem.GetKernelStrideH() - static_cast<int>(problem.GetWeightsHeight_())) /
+    const int out_h = (static_cast<int>(problem.GetInHeight()) + problem.GetPadH() * 2 +
+                       problem.GetKernelStrideH() - static_cast<int>(problem.GetWeightsHeight())) /
                       problem.GetKernelStrideH(); // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
 
     std::ostringstream options;
@@ -120,15 +122,17 @@ ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ExecutionConte
     // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k/2,8), batch_n]
     constr_params.g_wk.push_back(AlignUp(out_w, 64));
     constr_params.g_wk.push_back(
-        static_cast<size_t>(AlignUp(out_h, 4) / 4 * AlignUp(problem.GetOutChannels_() / 2, 8)));
-    constr_params.g_wk.push_back(problem.GetBatchSize_());
+        static_cast<size_t>(AlignUp(out_h, 4) / 4 * AlignUp(problem.GetOutChannels() / 2, 8)));
+    constr_params.g_wk.push_back(problem.GetBatchSize());
 
     constr_params.kernel_file = "conv7x7c3h224w224k64u2v2p3q3f1.s";
     constr_params.kernel_name = "miopenGcnAsmConv7x7c3h224w224k64u2v2p3q3f1";
 
     result.construction_params.push_back(constr_params);
-    result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
+    result.invoker_factory = &miopen::conv::MakeGenericXWYPadInvoker;
     return result;
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen

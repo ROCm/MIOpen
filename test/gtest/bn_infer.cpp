@@ -54,20 +54,20 @@ TEST_P(BNInferTestBFloat16, DISABLED_BnInferCKBFloat16) {}
 
 INSTANTIATE_TEST_SUITE_P(BNInferTestHalfNHWCSuite,
                          BNInferTestHalf,
-                         testing::Combine(testing::ValuesIn(Network1()),
+                         testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNHWC)));
 
 INSTANTIATE_TEST_SUITE_P(BNInferTestFloatNHWCSuite,
                          BNInferTestFloat,
-                         testing::Combine(testing::ValuesIn(Network1()),
+                         testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNHWC)));
 
 INSTANTIATE_TEST_SUITE_P(BNInferTestFloatNHWCSuite,
                          BNInferTestDouble,
-                         testing::Combine(testing::ValuesIn(Network1()),
+                         testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNHWC)));
 
 INSTANTIATE_TEST_SUITE_P(BNInferTestFloatNHWCSuite,
                          BNInferTestBFloat16,
-                         testing::Combine(testing::ValuesIn(Network1()),
+                         testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNHWC)));

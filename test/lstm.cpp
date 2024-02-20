@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,52 +24,7 @@
  *
  *******************************************************************************/
 
-#include "lstm_common.hpp"
-
-template <class T>
-struct lstm_driver : lstm_basic_driver<T>
-{
-    lstm_driver() : lstm_basic_driver<T>()
-    {
-        std::vector<int> modes(2, 0);
-        modes[1] = 1;
-        std::vector<int> defaultBS(1);
-
-        this->add(this->batchSize, "batch-size", this->generate_data(get_lstm_batchSize(), {17}));
-        this->add(this->seqLength, "seq-len", this->generate_data(get_lstm_seq_len(), {2}));
-        this->add(this->inVecLen, "vector-len", this->generate_data(get_lstm_vector_len()));
-        this->add(this->hiddenSize, "hidden-size", this->generate_data(get_lstm_hidden_size()));
-        this->add(this->numLayers, "num-layers", this->generate_data(get_lstm_num_layers()));
-        this->add(this->nohx, "no-hx", this->flag());
-        this->add(this->nodhy, "no-dhy", this->flag());
-        this->add(this->nocx, "no-cx", this->flag());
-        this->add(this->nodcy, "no-dcy", this->flag());
-        this->add(this->nohy, "no-hy", this->flag());
-        this->add(this->nodhx, "no-dhx", this->flag());
-        this->add(this->nocy, "no-cy", this->flag());
-        this->add(this->nodcx, "no-dcx", this->flag());
-        this->add(this->flatBatchFill, "flat-batch-fill", this->flag());
-        this->add(this->useDropout, "use-dropout", this->generate_data({0}));
-        this->add(this->usePadding, "use-padding", this->generate_data({false, true}));
-
-#if(MIO_LSTM_TEST_DEBUG == 3)
-        this->biasMode  = 0;
-        this->dirMode   = 0;
-        this->inputMode = 0;
-        this->algoMode  = 0;
-#else
-        this->add(this->inputMode, "in-mode", this->generate_data(modes));
-        this->add(this->biasMode, "bias-mode", this->generate_data(modes));
-        this->add(this->dirMode, "dir-mode", this->generate_data(modes));
-        this->add(this->algoMode, "algo-mode", this->generate_data(modes));
-#endif
-        this->add(
-            this->batchSeq,
-            "batch-seq",
-            this->lazy_generate_data(
-                [=] { return generate_batchSeq(this->batchSize, this->seqLength); }, defaultBS));
-    }
-};
+#include "lstm.hpp"
 
 int main(int argc, const char* argv[])
 {

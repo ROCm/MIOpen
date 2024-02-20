@@ -21,4 +21,9 @@ API Reference
     loss
     dropout
     reduction
+    layernorm
+    sum
+    argmax
+    groupnorm
+    cat
 

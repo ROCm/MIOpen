@@ -28,16 +28,19 @@
 #include <miopen/solver.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_FWD)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_FWD)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 bool ConvDirectNaiveConvFwd::IsApplicable(const ExecutionContext& ctx,
                                           const ProblemDescription& problem) const
 {
     if(!miopen::debug::AlwaysEnableConvDirectNaive &&
-       miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_FWD{}))
+       miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_FWD)))
         return false;
 
     if(!ConvDirectNaiveConvIsApplicableByKernelType(ctx, problem))
@@ -50,7 +53,10 @@ bool ConvDirectNaiveConvFwd::IsApplicable(const ExecutionContext& ctx,
          problem.IsFp8() || problem.IsBfp8()))
         return false;
 
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
+        return false;
+
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
 
     if(problem.IsTensorsCasted())
@@ -78,15 +84,15 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ExecutionContext& ctx,
 {
     ConvSolution result;
 
-    int di          = problem.GetInDepth_();
-    int hi          = problem.GetInHeight_();
-    int wi          = problem.GetInWidth_();
-    int n           = problem.GetBatchSize_();
-    int k           = problem.GetOutChannels_();
-    int c           = problem.GetInChannels_();
-    int do_         = problem.GetOutDepth_();
-    int ho          = problem.GetOutHeight_();
-    int wo          = problem.GetOutWidth_();
+    int di          = problem.GetInDepth();
+    int hi          = problem.GetInHeight();
+    int wi          = problem.GetInWidth();
+    int n           = problem.GetBatchSize();
+    int k           = problem.GetOutChannels();
+    int c           = problem.GetInChannels();
+    int do_         = problem.GetOutDepth();
+    int ho          = problem.GetOutHeight();
+    int wo          = problem.GetOutWidth();
     int sz          = problem.GetKernelStrideD();
     int sy          = problem.GetKernelStrideH();
     int sx          = problem.GetKernelStrideW();
@@ -96,9 +102,9 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ExecutionContext& ctx,
     int pz          = problem.GetPadD();
     int py          = problem.GetPadH();
     int px          = problem.GetPadW();
-    int fz          = problem.GetWeightsDepth_();
-    int fy          = problem.GetWeightsHeight_();
-    int fx          = problem.GetWeightsWidth_();
+    int fz          = problem.GetWeightsDepth();
+    int fy          = problem.GetWeightsHeight();
+    int fx          = problem.GetWeightsWidth();
     int group       = problem.GetGroupCount();
     int c_per_group = c / group;
     int k_per_group = k / group;
@@ -144,9 +150,10 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ExecutionContext& ctx,
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
-                const auto& tensors     = data_ctx.tensors;
-                float elapsed           = 0;
+                decltype(auto) data_ctx =
+                    primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
+                const auto& tensors = data_ctx.tensors;
+                float elapsed       = 0;
 
                 auto in_strides = conv_internal::MakeStrideArray<5>(conv_internal::SplitStrideCtoGC(
                     group, tensors.inDesc.GetStrides(), G_stride_idx));
@@ -226,9 +233,10 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ExecutionContext& ctx,
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
-                const auto& tensors     = data_ctx.tensors;
-                float elapsed           = 0;
+                decltype(auto) data_ctx =
+                    primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
+                const auto& tensors = data_ctx.tensors;
+                float elapsed       = 0;
 
                 auto in_strides = conv_internal::MakeStrideArray<6>(conv_internal::SplitStrideCtoGC(
                     group, tensors.inDesc.GetStrides(), G_stride_idx));
@@ -281,5 +289,6 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ExecutionContext& ctx,
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

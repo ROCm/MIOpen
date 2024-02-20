@@ -124,7 +124,7 @@ struct FusionTunableSolver : FusionTunableSolverBase
     }
 };
 
-struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
+struct PerformanceConfigConvBiasActivAsm1x1U : conv::PerformanceConfigConvAsm1x1U
 {
     PerformanceConfigConvBiasActivAsm1x1U(const bool spare) : PerformanceConfigConvAsm1x1U(spare) {}
     PerformanceConfigConvBiasActivAsm1x1U()
@@ -217,9 +217,9 @@ struct PerformanceConfigConvCKIgemmFwdBiasActivFused
 
 private:
     template <typename DataType>
-    void Init(const ProblemDescription&);
+    void Init(const miopen::conv::ProblemDescription&);
     template <typename DataType>
-    bool CheckIsSupportCKArgs(const ProblemDescription&) const;
+    bool CheckIsSupportCKArgs(const miopen::conv::ProblemDescription&) const;
 };
 
 struct ConvCKIgemmFwdBiasActivFused final
@@ -250,9 +250,76 @@ struct ConvCKIgemmFwdBiasActivFused final
 
 private:
     template <typename DataType>
-    bool CheckCKApplicability(const ProblemDescription&) const;
+    bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
 };
 
+struct PerfConfigConvCKIgemmFwdBiasResAddActivFused
+    : PerfConfigBase<PerfConfigConvCKIgemmFwdBiasResAddActivFused>
+{
+    int index;
+    std::string kernel_id;
+    std::vector<std::string> valid_kernels;
+    PerfConfigConvCKIgemmFwdBiasResAddActivFused(int idx, std::string kernl_id)
+        : index(idx), kernel_id(kernl_id)
+    {
+    }
+    PerfConfigConvCKIgemmFwdBiasResAddActivFused()
+        : PerfConfigConvCKIgemmFwdBiasResAddActivFused(0, "")
+    {
+    }
+    PerfConfigConvCKIgemmFwdBiasResAddActivFused(bool)
+        : PerfConfigConvCKIgemmFwdBiasResAddActivFused(0, "")
+    {
+    }
+    void HeuristicInit(const FusionDescription& fdesc_problem);
+    bool SetNextValue(const FusionDescription& fdesc_problem);
+    bool IsValidValue() const;
+    bool IsValid(const FusionContext&, const FusionDescription& fdesc_problem) const;
+
+    template <typename Self, typename F>
+    static void Visit(Self&& s, F f)
+    {
+        f(s.kernel_id, "kernel_id");
+    }
+    bool operator==(const PerfConfigConvCKIgemmFwdBiasResAddActivFused& other) const;
+
+private:
+    template <typename DataType, typename AccumDataType = DataType>
+    void Init(const miopen::conv::ProblemDescription&);
+    template <typename DataType, typename AccumDataType = DataType>
+    bool CheckIsSupportCKArgs(const miopen::conv::ProblemDescription&) const;
+};
+
+struct ConvCKIgemmFwdBiasResAddActivFused final
+    : FusionTunableSolver<PerfConfigConvCKIgemmFwdBiasResAddActivFused>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvCKIgemmFwdBiasResAddActivFused>();
+    }
+
+    PerfConfigConvCKIgemmFwdBiasResAddActivFused
+    GetDefaultPerformanceConfig(const FusionContext& ctx,
+                                const FusionDescription& fdesc_problem) const override;
+    bool IsValidPerformanceConfig(
+        const FusionContext& ctx,
+        const FusionDescription& fdesc_problem,
+        const PerfConfigConvCKIgemmFwdBiasResAddActivFused& config) const override;
+    PerfConfigConvCKIgemmFwdBiasResAddActivFused
+    Search(const FusionContext& ctx,
+           const FusionDescription& fdesc_problem,
+           const AnyInvokeParams& invoke_ctx) const override;
+    bool IsApplicable(const FusionContext& ctx,
+                      const FusionDescription& fdesc_problem) const override;
+    ConvSolution
+    GetSolution(const FusionContext& ctx,
+                const FusionDescription& fdesc_problem,
+                const PerfConfigConvCKIgemmFwdBiasResAddActivFused& config) const override;
+
+private:
+    template <typename DataType, typename AccumDataType = DataType>
+    bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
+};
 struct ConvBinWinogradRxSFused final : FusionSolverBase
 {
     const std::string& SolverDbId() const override

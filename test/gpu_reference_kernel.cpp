@@ -29,7 +29,6 @@
 #include <miopen/handle.hpp>
 #include <miopen/miopen.h>
 #include <miopen/convolution.hpp>
-#include <miopen/problem_description.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_layout.hpp>
 #include <miopen/bfloat16.hpp>
@@ -37,7 +36,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <type_traits>
-#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#if !defined(_WIN32)
 #include <half/half.hpp>
 #else
 #include <half.hpp>
@@ -58,18 +57,14 @@ enum tensor_layout_t
 
 std::string tensor_layout_to_string(tensor_layout_t layout)
 {
-    std::string layout_string("N/A");
-    if(layout == miopen_tensor_layout_nchw)
-        layout_string = "NCHW";
-    else if(layout == miopen_tensor_layout_ncdhw)
-        layout_string = "NCDHW";
-    else if(layout == miopen_tensor_layout_nhwc)
-        layout_string = "NHWC";
-    else if(layout == miopen_tensor_layout_ndhwc)
-        layout_string = "NDHWC";
-    else
-        MIOPEN_THROW("Unsupported tensor layout");
-    return layout_string;
+    switch(layout)
+    {
+    case miopen_tensor_layout_nchw: return "NCHW";
+    case miopen_tensor_layout_ncdhw: return "NCDHW";
+    case miopen_tensor_layout_nhwc: return "NHWC";
+    case miopen_tensor_layout_ndhwc: return "NDHWC";
+    default: MIOPEN_THROW("Unsupported tensor layout");
+    }
 }
 
 struct gpu_reference_kernel_base

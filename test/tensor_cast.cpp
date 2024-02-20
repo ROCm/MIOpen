@@ -29,7 +29,6 @@
 #include <iterator>
 #include <limits>
 #include <memory>
-#include <sys/time.h>
 #include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
@@ -118,6 +117,7 @@ struct verify_tensor_cast
 
         miopen::CastTensor(handle,
                            &alpha,
+                           true,
                            srcDesc,
                            srcSuper_dev.get(),
                            dstDesc,

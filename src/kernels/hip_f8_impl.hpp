@@ -25,9 +25,13 @@
  *******************************************************************************/
 // #include <miopen/bfloat16.hpp>
 // #include <half.hpp>
+
+#include "miopen_cstdint.hpp"
+#include "miopen_type_traits.hpp"
+
 namespace miopen_hip_f8_impl {
 
-#ifndef __HIP_PLATFORM_HCC__
+#ifndef __HIP_PLATFORM_AMD__
 using hip_bfloat16 = bfloat16;
 using half         = half_float::half;
 #endif
@@ -87,8 +91,8 @@ MIOPEN_HIP_HOST_DEVICE uint8_t cast_to_f8_no_range_reduce(T _x,
 template <int wm, int we, typename T, bool negative_zero_nan, bool clip>
 MIOPEN_HIP_HOST_DEVICE uint8_t cast_to_f8(T _x, bool stoch, uint32_t rng)
 {
-    constexpr bool is_half  = std::is_same<T, half>::value;
-    constexpr bool is_float = std::is_same<T, float>::value;
+    constexpr bool is_half  = __is_same_as(T, half);
+    constexpr bool is_float = __is_same_as(T, float);
     static_assert(wm + we == 7, "wm+we==7");
     static_assert(is_half || is_float, "Only half and float can be cast to f8");
 
@@ -202,12 +206,13 @@ MIOPEN_HIP_HOST_DEVICE uint8_t cast_to_f8(T _x, bool stoch, uint32_t rng)
         }
         mantissa += (1 << mfmt); // Add the implicit 1 into mantissa
     }
-    const long tmp = (mfmt - wm + exponent_diff);
-    if(tmp == 33)
-        printf("Gotcha");
 
-    bool midpoint = (mantissa & ((static_cast<uint32_t>(1) << (mfmt - wm + exponent_diff)) - 1)) ==
-                    (static_cast<uint32_t>(1) << (mfmt - wm + exponent_diff - 1));
+    bool midpoint;
+    if(exponent_diff <= wm)
+        midpoint = (mantissa & ((1 << (mfmt - wm + exponent_diff)) - 1)) ==
+                   (1 << (mfmt - wm + exponent_diff - 1));
+    else
+        midpoint = false;
     /* This part is a bit tricky. The judgment of whether it is a tie needs to be done before we
        shift right as shift right could rip off some residual part and make something not midpoint
        look like midpoint. For example, the fp16 number 0x1002 (0 00100 0000000010), it is larger
@@ -272,8 +277,8 @@ MIOPEN_HIP_HOST_DEVICE uint8_t cast_to_f8(T _x, bool stoch, uint32_t rng)
 template <int wm, int we, typename T, bool negative_zero_nan>
 MIOPEN_HIP_HOST_DEVICE T cast_from_f8(uint8_t x)
 {
-    constexpr bool is_half  = std::is_same<T, half>::value;
-    constexpr bool is_float = std::is_same<T, float>::value;
+    constexpr bool is_half  = __is_same_as(T, half);
+    constexpr bool is_float = __is_same_as(T, float);
     static_assert(is_half || is_float, "only half and float are supported");
 
     constexpr int weo = is_half ? 5 : 8;

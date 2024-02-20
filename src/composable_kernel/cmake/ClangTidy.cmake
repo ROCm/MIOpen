@@ -50,7 +50,7 @@ find_program(CLANG_TIDY_EXE
 
 function(find_clang_tidy_version VAR)
     execute_process(COMMAND ${CLANG_TIDY_EXE} -version OUTPUT_VARIABLE VERSION_OUTPUT)
-    separate_arguments(VERSION_OUTPUT_LIST UNIX_COMMAND "${VERSION_OUTPUT}")
+    separate_arguments(VERSION_OUTPUT_LIST NATIVE_COMMAND "${VERSION_OUTPUT}")
     list(FIND VERSION_OUTPUT_LIST "version" VERSION_INDEX)
     if(VERSION_INDEX GREATER 0)
         math(EXPR VERSION_INDEX "${VERSION_INDEX} + 1")
@@ -149,7 +149,7 @@ function(clang_tidy_check TARGET)
             add_custom_target(${tidy_target}
                 # for some targets clang-tidy not able to get information from .clang-tidy
                 DEPENDS ${SOURCE}
-                COMMAND ${CLANG_TIDY_COMMAND} "-config=\{CheckOptions: \[\{key: bugprone-reserved-identifier.AllowedIdentifiers,value: __HIP_PLATFORM_HCC__\; __HIP_ROCclr__\}\]\}" ${SOURCE} "-export-fixes=${CLANG_TIDY_FIXIT_DIR}/${TARGET}-${tidy_file}.yaml"
+                COMMAND ${CLANG_TIDY_COMMAND} "-config=\{CheckOptions: \[\{key: bugprone-reserved-identifier.AllowedIdentifiers,value: __HIP_PLATFORM_AMD__\; __HIP_ROCclr__\}\]\}" ${SOURCE} "-export-fixes=${CLANG_TIDY_FIXIT_DIR}/${TARGET}-${tidy_file}.yaml"
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                 COMMENT "clang-tidy: Running clang-tidy on target ${SOURCE}..."
             )

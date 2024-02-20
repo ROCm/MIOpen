@@ -6,6 +6,7 @@
 #include "hip/hip_fp16.h"
 #endif
 #include "bfloat16_dev.hpp"
+#include "miopen_cstdint.hpp"
 
 // "Constant" address space for kernel parameter
 #define CONSTANT __attribute__((address_space(4)))

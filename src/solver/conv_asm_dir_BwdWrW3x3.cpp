@@ -41,12 +41,15 @@
 #define MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED 0
 #define WORKAROUND_SWDEV_330460 1 // ConvAsmBwdWrw3x3 has precision issues on MI200
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_SEARCH_OPTIMIZED)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 inline static bool Inc_1_2_4_8(int& v)
 {
@@ -68,7 +71,7 @@ bool PerformanceConfigAsmDirect3x3WrW::SetNextValue(const ProblemDescription&)
     do
     {
 #if MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED == 0
-        if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_SEARCH_OPTIMIZED{}))
+        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_SEARCH_OPTIMIZED)))
         {
             // (0 <= limit_wave_cnt && limit_wave_cnt <= 9)
             if(++limit_wave_cnt <= 9)
@@ -141,7 +144,7 @@ static bool IsReverseInOutAllowed(const ProblemDescription& problem)
     return problem.GetKernelStrideW() == 1 && problem.GetKernelStrideH() == 1;
 }
 
-inline int elements_in_dword(const ProblemDescription& problem) { return problem.IsFp16() ? 2 : 1; }
+static int elements_in_dword(const ProblemDescription& problem) { return problem.IsFp16() ? 2 : 1; }
 
 bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ExecutionContext& ctx,
                                                const ProblemDescription& problem) const
@@ -149,43 +152,56 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ExecutionContext& ctx,
     if(!IsValidValue())
         return false;
     assert(chunk_size != 0);
+
+    uint64_t c_per_wave_x_group_cnt =
+        static_cast<uint64_t>(GetCPerWave()) * problem.GetGroupCount();
+    uint64_t k_per_wave_x_group_cnt =
+        static_cast<uint64_t>(GetKPerWave()) * problem.GetGroupCount();
     if(reverse_inout == 0)
     {
-        if((problem.GetOutChannels_() % (GetCPerWave() * problem.GetGroupCount()) != 0) ||
-           (problem.GetInChannels_() % (GetKPerWave() * problem.GetGroupCount()) != 0))
+        if((problem.GetOutChannels() % c_per_wave_x_group_cnt != 0) ||
+           (problem.GetInChannels() % k_per_wave_x_group_cnt != 0))
+        {
             return false;
+        }
     }
     else
     {
-        if((problem.GetOutChannels_() % (GetKPerWave() * problem.GetGroupCount()) != 0) ||
-           (problem.GetInChannels_() % (GetCPerWave() * problem.GetGroupCount()) != 0))
+        if((problem.GetOutChannels() % k_per_wave_x_group_cnt != 0) ||
+           (problem.GetInChannels() % c_per_wave_x_group_cnt != 0))
+        {
             return false;
+        }
     }
-    if((problem.GetOutChannels_() % (64 / chunk_size) != 0) &&
-       (problem.GetInChannels_() % (64 / chunk_size) != 0))
+
+    if((problem.GetOutChannels() % (64 / chunk_size) != 0) &&
+       (problem.GetInChannels() % (64 / chunk_size) != 0))
+    {
         return false;
-    if((reverse_inout != 0 ? problem.GetInChannels_() : problem.GetOutChannels_()) %
-           GetCPerWave() !=
+    }
+    if((reverse_inout != 0 ? problem.GetInChannels() : problem.GetOutChannels()) % GetCPerWave() !=
        0)
+    {
         return false;
+    }
     if(!(chunk_size * k_per_wave <= 64))
         return false;
-    if((reverse_inout != 0 ? problem.GetOutChannels_() : problem.GetInChannels_()) % k_per_wave !=
-       0)
+    if((reverse_inout != 0 ? problem.GetOutChannels() : problem.GetInChannels()) % k_per_wave != 0)
         return false;
-    if(!(n_per_group <= problem.GetBatchSize_()))
+    if(!(n_per_group <= problem.GetBatchSize()))
         return false;
-    if(!(1 <= pipe_lines_depth && pipe_lines_depth <= std::min(problem.GetOutHeight_(), 16U)))
+    if(!(1 <= pipe_lines_depth &&
+         pipe_lines_depth <= std::min(problem.GetOutHeight(), static_cast<std::size_t>(16))))
         return false;
     if((reverse_inout != 0) && !IsReverseInOutAllowed(problem))
         return false;
     {
-        const int accums_cnt = (problem.GetWeightsWidth_() * problem.GetWeightsHeight_() *
+        const int accums_cnt = (problem.GetWeightsWidth() * problem.GetWeightsHeight() *
                                 GetCPerWave() * k_per_wave * chunk_size) /
                                64;
         assert(chunk_size);
         const int out_w_vec =
-            (problem.GetOutWidth_() + elements_in_dword(problem) - 1) / elements_in_dword(problem);
+            (problem.GetOutWidth() + elements_in_dword(problem) - 1) / elements_in_dword(problem);
         int gprs_per_line_in = (out_w_vec + chunk_size - 1) / chunk_size;
         if(chunk_size != 16)
         {
@@ -198,7 +214,7 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ExecutionContext& ctx,
         const int gprs_per_line_out =
             (gprs_per_line_in > 1) ? gprs_per_line_in / problem.GetKernelStrideW() : 1;
 
-        const int lines_in           = pipe_lines_depth + problem.GetWeightsHeight_() - 1;
+        const int lines_in           = pipe_lines_depth + problem.GetWeightsHeight() - 1;
         const int vgprs_for_lines_in = lines_in * elements_in_dword(problem) * gprs_per_line_in;
         assert(problem.GetKernelStrideH());
         const int lines_out =
@@ -207,7 +223,7 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ExecutionContext& ctx,
         const int vgprs_for_division =
             (vgprs_for_lines_in >= 4 ? 0 : 4) + (vgprs_for_lines_out >= 3 ? 0 : 3);
 
-        const int k_group_size = problem.GetInChannels_() /
+        const int k_group_size = problem.GetInChannels() /
                                  (reverse_inout != 0 ? GetCPerWave() : GetKPerWave()) /
                                  problem.GetGroupCount();
         const bool k_group_size_is_power_of_two = ((k_group_size & (k_group_size - 1)) == 0);
@@ -217,8 +233,10 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ExecutionContext& ctx,
         if(!(vgprs <= 256))
             return false;
         if(n_per_group > 4)
+        {
             if(!(vgprs <= 128))
                 return false;
+        }
         if(limit_wave_cnt != 0 && limit_wave_cnt * 4 < n_per_group)
             return false;
         const auto lds_size = static_cast<std::size_t>(n_per_group - 1) * solver::wave_size *
@@ -228,7 +246,7 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ExecutionContext& ctx,
 
         const int unroll_factor = pipe_lines_depth * (pipe_lines_depth + 2);
         const int steps =
-            std::max(0, static_cast<int>(problem.GetOutHeight_()) - 1 - pipe_lines_depth);
+            std::max(0, static_cast<int>(problem.GetOutHeight()) - 1 - pipe_lines_depth);
         assert(unroll_factor);
         const int loops        = pipe_lines_depth + unroll_factor + steps % unroll_factor + 1;
         const int m_instr      = 3 + (gprs_per_line_in + 3) / 4;
@@ -238,8 +256,8 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ExecutionContext& ctx,
         const bool dot2_inst_avail = (name == "gfx906" || name == "gfx908");
         const bool dot2_emulate    = (!dot2_inst_avail) && (elements_in_dword(problem) == 2);
         const int v_instr =
-            (k_per_wave * static_cast<int>(problem.GetWeightsHeight_()) * gprs_per_line_out *
-             static_cast<int>(problem.GetWeightsWidth_()) * 4 * (dot2_emulate ? 2 : 1)) /
+            (k_per_wave * static_cast<int>(problem.GetWeightsHeight()) * gprs_per_line_out *
+             static_cast<int>(problem.GetWeightsWidth()) * 4 * (dot2_emulate ? 2 : 1)) /
             3 * elements_in_dword(problem);
         const int exch_instr = elements_in_dword(problem) == 2 ? 3 * m_instr : 0;
         const int total =
@@ -255,47 +273,68 @@ void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ExecutionContext& ctx
 {
     limit_wave_cnt = 0;
 
-    chunk_size = (problem.GetOutWidth_() < 48) ? 8 : 16;
-    if((problem.GetOutChannels_() % (64 / chunk_size) != 0) &&
-       (problem.GetInChannels_() % (64 / chunk_size) != 0))
+    chunk_size = (problem.GetOutWidth() < 48) ? 8 : 16;
+    if((problem.GetOutChannels() % (64 / chunk_size) != 0) &&
+       (problem.GetInChannels() % (64 / chunk_size) != 0))
+    {
         chunk_size = 16; // Fixup for correctness
+    }
 
     reverse_inout = 0;
     if(IsReverseInOutAllowed(problem) &&
-       ((problem.GetOutChannels_() % 4 != 0) || (problem.GetOutWidth_() < 8)))
+       ((problem.GetOutChannels() % 4 != 0) || (problem.GetOutWidth() < 8)))
+    {
         reverse_inout = 1;
+    }
 
     const auto c_k =
-        problem.GetOutChannels_() * problem.GetInChannels_() / problem.GetGroupCount(); // C*K
+        problem.GetOutChannels() * problem.GetInChannels() / problem.GetGroupCount(); // C*K
     if(c_k < 256)
+    {
         k_per_wave = 1;
+    }
     else if(c_k < 16384)
+    {
         k_per_wave = 2;
+    }
     else // C*K >= 16k
+    {
         k_per_wave = ((chunk_size == 8) ? 2 : 4);
-    while((reverse_inout != 0 ? problem.GetOutChannels_() : problem.GetInChannels_()) %
-              k_per_wave !=
+    }
+    while((reverse_inout != 0 ? problem.GetOutChannels() : problem.GetInChannels()) % k_per_wave !=
           0)
+    {
         k_per_wave /= 2; // Fixup for correctness
+    }
 
     if(c_k <= 512)
-        n_per_group = 8;
-    else if(c_k <= 4096)
-        n_per_group = 4;
-    else if(c_k <= 8192)
-        n_per_group = 2;
-    else
-        n_per_group = 1;
-    if(n_per_group > problem.GetBatchSize_())
-        n_per_group = problem.GetBatchSize_(); // n_per_group should never be > batch size.
-    if(problem.GetOutWidth_() >= 256 &&
-       n_per_group > 4) // when width >= 256, n_per_group should not be > 4.
-        n_per_group = 4;
-
-    pipe_lines_depth = (problem.GetOutHeight_() <= 1) ? 1 : 2;
-    if((problem.GetOutHeight_() < 8) && (problem.GetOutWidth_() < 64))
     {
-        pipe_lines_depth = problem.GetOutHeight_(); // Special case.
+        n_per_group = 8;
+    }
+    else if(c_k <= 4096)
+    {
+        n_per_group = 4;
+    }
+    else if(c_k <= 8192)
+    {
+        n_per_group = 2;
+    }
+    else
+    {
+        n_per_group = 1;
+    }
+    if(n_per_group > problem.GetBatchSize())
+        n_per_group = problem.GetBatchSize(); // n_per_group should never be > batch size.
+    if(problem.GetOutWidth() >= 256 &&
+       n_per_group > 4) // when width >= 256, n_per_group should not be > 4.
+    {
+        n_per_group = 4;
+    }
+
+    pipe_lines_depth = (problem.GetOutHeight() <= 1) ? 1 : 2;
+    if((problem.GetOutHeight() < 8) && (problem.GetOutWidth() < 64))
+    {
+        pipe_lines_depth = problem.GetOutHeight(); // Special case.
     }
 
     if(!IsValid(ctx, problem))
@@ -307,7 +346,7 @@ void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ExecutionContext& ctx
         k_per_wave       = 1;
         pipe_lines_depth = 2;
         n_per_group      = 1;
-        if(problem.GetOutChannels_() % (4 * problem.GetGroupCount()) != 0)
+        if(problem.GetOutChannels() % static_cast<std::size_t>(4 * problem.GetGroupCount()) != 0)
         {
             /// (1) If reverse is Off, then both (C % c_per_wave) and (K % k_per_wave) must be 0.
             /// Toggling reverse swaps C and K in the condition above.
@@ -352,7 +391,7 @@ bool ConvAsmBwdWrW3x3::IsValidPerformanceConfig(
 bool ConvAsmBwdWrW3x3::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3)))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
@@ -360,7 +399,11 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.Is2d())
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
+        return false;
+    if(problem.HasNonPackedTensors())
+        return false;
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
@@ -375,10 +418,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ExecutionContext& ctx,
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
-
     if(problem.IsTensorsCasted())
         return false;
 #if WORKAROUND_ISSUE_532
@@ -391,7 +431,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ExecutionContext& ctx,
         return false;
 
 #if WORKAROUND_SWDEV_330460
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3{}) && name == "gfx90a" &&
+    if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3)) && name == "gfx90a" &&
        problem.IsFp32())
         return false;
 #endif
@@ -401,8 +441,8 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ExecutionContext& ctx,
         && problem.GetPadH() == 1           // -p  pad_h
         && problem.GetKernelStrideW() <= 2  // -v  stride_w
         && problem.GetKernelStrideH() <= 2  // -u  stride_h
-        && problem.GetWeightsWidth_() == 3   // -x  S wei_w
-        && problem.GetWeightsHeight_() == 3  // -y  R wei_h
+        && problem.GetWeightsWidth() == 3   // -x  S wei_w
+        && problem.GetWeightsHeight() == 3  // -y  R wei_h
         && problem.GetDilationW() == 1
         && problem.GetDilationH() == 1
         && problem.GetBias() == 0
@@ -413,28 +453,29 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ExecutionContext& ctx,
 
     if(problem.IsFp16()
           && (StartsWith(name, "gfx8") // Not supported.
-             || problem.GetBatchSize_() % 2 != 0)) /// \todo Initial version.
+             || problem.GetBatchSize() % 2 != 0)) /// \todo Initial version.
        return false;
 
     // Check limits:
-    const auto h_w     = static_cast<int64_t>(problem.GetOutHeight_()) * problem.GetOutWidth_();
-    const auto r_s     = static_cast<int64_t>(problem.GetWeightsHeight_()) * problem.GetWeightsWidth_();
-    const auto c_h_w   = static_cast<int64_t>(problem.GetOutChannels_()) * h_w;     // C*H*W
-    const auto k_h_w   = static_cast<int64_t>(problem.GetInChannels_()) * h_w;      // K*H*W
-    const auto c_r_s   = static_cast<int64_t>(problem.GetOutChannels_()) * r_s;     // C*R*S
-    const auto k_r_s   = static_cast<int64_t>(problem.GetInChannels_()) * r_s;      // K*R*S
-    const auto n_c_h_w = static_cast<int64_t>(problem.GetBatchSize_()) * c_h_w;     // N*C*H*W
-    const auto n_k_h_w = static_cast<int64_t>(problem.GetBatchSize_()) * k_h_w;     // N*K*H*W
-    const auto c_k_r_s = static_cast<int64_t>(problem.GetOutChannels_()) * k_r_s;   // C*K*R*S
-    ok = problem.GetOutWidth_() > 0
-         && problem.GetOutWidth_() <= 512
+    const auto h_w     = problem.GetOutHeight() * problem.GetOutWidth();
+    const auto r_s     = problem.GetWeightsHeight() * problem.GetWeightsWidth();
+    const auto c_h_w   = problem.GetOutChannels() * h_w;     // C*H*W
+    const auto k_h_w   = problem.GetInChannels() * h_w;      // K*H*W
+    const auto c_r_s   = problem.GetOutChannels() * r_s;     // C*R*S
+    const auto k_r_s   = problem.GetInChannels() * r_s;      // K*R*S
+    const auto n_c_h_w = problem.GetBatchSize() * c_h_w;     // N*C*H*W
+    const auto n_k_h_w = problem.GetBatchSize() * k_h_w;     // N*K*H*W
+    const auto c_k_r_s = problem.GetOutChannels() * k_r_s;   // C*K*R*S
+    ok = problem.GetOutWidth() > 0
+         && problem.GetOutWidth() <= 512
          && (IsReverseInOutAllowed(problem)
-                ? ((problem.GetOutChannels_() % (4 * problem.GetGroupCount()) == 0) || (problem.GetInChannels_() % (4 * problem.GetGroupCount()) == 0))
-                : (problem.GetOutChannels_() % (4 * problem.GetGroupCount()) == 0))
-         && problem.GetOutHeight_() < std::pow(2, 16)    // -H   H img_h
-         && problem.GetBatchSize_() < std::pow(2, 16)    // -n   N batch_size
-         && problem.GetOutChannels_() < std::pow(2, 16)  // -c   C input_channels
-         && problem.GetInChannels_() < std::pow(2, 16)   // -k   K output_channels
+                ? ((problem.GetOutChannels() % static_cast<std::size_t>(4 * problem.GetGroupCount()) == 0)
+                    || (problem.GetInChannels() % static_cast<std::size_t>(4 * problem.GetGroupCount()) == 0))
+                : (problem.GetOutChannels() % static_cast<std::size_t>(4 * problem.GetGroupCount()) == 0))
+         && problem.GetOutHeight() < std::pow(2, 16)    // -H   H img_h
+         && problem.GetBatchSize() < std::pow(2, 16)    // -n   N batch_size
+         && problem.GetOutChannels() < std::pow(2, 16)  // -c   C input_channels
+         && problem.GetInChannels() < std::pow(2, 16)   // -k   K output_channels
          && c_h_w < std::pow(2, 22)
          && k_h_w < std::pow(2, 22)
          && c_r_s < std::pow(2, 22)
@@ -452,14 +493,14 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ExecutionContext& ctx,
     ConvSolution result;
     std::ostringstream options;
     GenerateClangDefsym(options, "elements_in_dword", (problem.IsFp16()) ? 2 : 1);
-    GenerateClangDefsym(options, "batch_size", problem.GetBatchSize_()); // N
-    GenerateClangDefsym(options, "img_h", problem.GetOutHeight_());      // H
-    GenerateClangDefsym(options, "img_w", problem.GetOutWidth_());       // W
+    GenerateClangDefsym(options, "batch_size", problem.GetBatchSize()); // N
+    GenerateClangDefsym(options, "img_h", problem.GetOutHeight());      // H
+    GenerateClangDefsym(options, "img_w", problem.GetOutWidth());       // W
     // Note that problem.n_outputs and problem.n_inputs are swapped for backward convolutions.
-    GenerateClangDefsym(options, "input_channels", problem.GetOutChannels_()); // C
-    GenerateClangDefsym(options, "output_channels", problem.GetInChannels_()); // K
-    GenerateClangDefsym(options, "wei_h", problem.GetWeightsHeight_());        // R
-    GenerateClangDefsym(options, "wei_w", problem.GetWeightsWidth_());         // S
+    GenerateClangDefsym(options, "input_channels", problem.GetOutChannels()); // C
+    GenerateClangDefsym(options, "output_channels", problem.GetInChannels()); // K
+    GenerateClangDefsym(options, "wei_h", problem.GetWeightsHeight());        // R
+    GenerateClangDefsym(options, "wei_w", problem.GetWeightsWidth());         // S
     GenerateClangDefsym(options, "pad_h", problem.GetPadH());
     GenerateClangDefsym(options, "pad_w", problem.GetPadW());
     GenerateClangDefsym(options, "stride_h", problem.GetKernelStrideH());
@@ -472,24 +513,19 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ExecutionContext& ctx,
 
     PerformanceConfigAsmDirect3x3WrW fromEnv;
     {
-        std::string s;
-        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS{});
-        if(p_asciz != nullptr)
+        const auto& s = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS));
+        if(!s.empty()) // else nothing to parse.
         {
-            s = std::string(p_asciz);
-            if(!s.empty()) // else nothing to parse.
+            if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(ctx, problem))
             {
-                if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(ctx, problem))
-                {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS: "
-                                 "Bad format or invalid for the problem config: "
-                                 << s);
-                }
-                else
-                {
-                    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
-                    pcfg = &fromEnv;
-                }
+                MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS: "
+                             "Bad format or invalid for the problem config: "
+                             << s);
+            }
+            else
+            {
+                MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
+                pcfg = &fromEnv;
             }
         }
     }
@@ -506,7 +542,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ExecutionContext& ctx,
     GenerateClangDefsym(options, "group_counts", problem.GetGroupCount());
 
     const int k_group_size =
-        problem.GetInChannels_() /
+        problem.GetInChannels() /
         (pcfg->reverse_inout != 0 ? pcfg->GetCPerWave() : pcfg->GetKPerWave()) /
         problem.GetGroupCount();
     const bool k_group_size_is_power_of_two = ((k_group_size & (k_group_size - 1)) == 0);
@@ -526,15 +562,15 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ExecutionContext& ctx,
 
     if(pcfg->GetReverseInout() == 0)
     {
-        kernel.g_wk.push_back(problem.GetOutChannels_() / pcfg->GetCPerWave() /
+        kernel.g_wk.push_back(problem.GetOutChannels() / pcfg->GetCPerWave() /
                               problem.GetGroupCount());
-        kernel.g_wk.push_back(problem.GetInChannels_() / pcfg->GetKPerWave());
+        kernel.g_wk.push_back(problem.GetInChannels() / pcfg->GetKPerWave());
     }
     else
     {
-        kernel.g_wk.push_back(problem.GetOutChannels_() / pcfg->GetKPerWave() /
+        kernel.g_wk.push_back(problem.GetOutChannels() / pcfg->GetKPerWave() /
                               problem.GetGroupCount());
-        kernel.g_wk.push_back(problem.GetInChannels_() / pcfg->GetCPerWave());
+        kernel.g_wk.push_back(problem.GetInChannels() / pcfg->GetCPerWave());
     }
 
     kernel.kernel_file = "conv3x3wrw.s";
@@ -549,7 +585,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ExecutionContext& ctx,
     result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto k              = handle.Run(kernels[0]);
-            const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+            const auto& invoke_params = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
             int unused                = 0;
             int* return_addr          = nullptr;
             const auto& x             = invoke_params.tensors.x;
@@ -569,5 +605,6 @@ PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::Search(const ExecutionContext
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

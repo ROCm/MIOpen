@@ -30,6 +30,7 @@
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 PerformanceConfigAsmImplicitGemmGTC::PerformanceConfigAsmImplicitGemmGTC(
     std::string dir,
@@ -208,6 +209,7 @@ bool PerformanceConfigAsmImplicitGemmGTC::operator==(
         && std::equal(std::begin(tensor_b_cluster_lengths), std::end(tensor_b_cluster_lengths), std::begin(other.tensor_b_cluster_lengths));
     // clang-format on
 }
+
 void PerformanceConfigAsmImplicitGemmGTC::CopyParameters(
     const PerformanceConfigAsmImplicitGemmGTC& other)
 {
@@ -289,6 +291,7 @@ std::string PerformanceConfigAsmImplicitGemmGTC::ToKernelName(const ExecutionCon
 
     return kernel_name.str();
 }
+
 int PerformanceConfigAsmImplicitGemmGTC::BlockSize() const
 {
     return std::accumulate(std::begin(tensor_a_cluster_lengths),
@@ -445,6 +448,7 @@ bool PerformanceConfigAsmImplicitGemmGTCvector::operator==(
         && std::equal(std::begin(tensor_b_cluster_lengths), std::end(tensor_b_cluster_lengths), std::begin(other.tensor_b_cluster_lengths));
     // clang-format on
 }
+
 void PerformanceConfigAsmImplicitGemmGTCvector::CopyParameters(
     const PerformanceConfigAsmImplicitGemmGTCvector& other)
 {
@@ -509,6 +513,7 @@ PerformanceConfigAsmImplicitGemmGTCvector::ToKernelName(const ExecutionContext& 
 
     return kernel_name.str();
 }
+
 int PerformanceConfigAsmImplicitGemmGTCvector::BlockSize() const
 {
     return std::accumulate(std::begin(tensor_a_cluster_lengths),
@@ -517,5 +522,6 @@ int PerformanceConfigAsmImplicitGemmGTCvector::BlockSize() const
                            std::multiplies<int>());
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

@@ -24,34 +24,23 @@
  *
  *******************************************************************************/
 #ifndef GENERAL_TENSOR_REORDER_UTIL_HPP
-#ifdef __HIPCC_RTC__
-#ifdef WORKAROUND_ISSUE_HIPRTC_TRUE_TYPE
-/// Definitions from <cstdint>, <cmath> conflict with
-/// /opt/rocm/include/hip/amd_detail/amd_hip_vector_types.h.
-
-typedef signed char int8_t;
-typedef signed short int16_t;
-typedef unsigned int uint32_t;
-
-#else
-#include <cstdint> // int8_t, int16_t
-#endif
-#endif // __HIPCC_RTC__
+#define GENERAL_TENSOR_REORDER_UTIL_HPP
 
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_runtime.h>
 #include <hip/hip_fp16.h>
 #endif
 
+#include "miopen_cstdint.hpp"
+
 #ifndef TENSOR_REORDER_OCCUPANCY
 #define TENSOR_REORDER_OCCUPANCY 4
 #endif
-#define GENERAL_TENSOR_REORDER_UTIL_HPP
 
 template <int... Is>
 struct order
 {
-    static constexpr std::size_t m_size = sizeof...(Is);
+    static constexpr size_t m_size = sizeof...(Is);
     // the last dummy element is to prevent compiler complain about empty array, when mSize = 0
     static constexpr int m_data[m_size + 1] = {Is..., 0};
 

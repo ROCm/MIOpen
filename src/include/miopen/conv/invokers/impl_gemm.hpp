@@ -28,14 +28,14 @@
 
 #include <miopen/invoker.hpp>
 #include <miopen/kernel.hpp>
-#include <miopen/problem_description.hpp>
+#include <miopen/conv/problem_description.hpp>
 
 #include <vector>
 
 namespace miopen {
 namespace conv {
 
-InvokerFactory MakeImplGemmDataInvokerFactory(const miopen::ProblemDescription& problem);
+InvokerFactory MakeImplGemmDataInvokerFactory(const ProblemDescription& problem);
 
 } // namespace conv
 } // namespace miopen

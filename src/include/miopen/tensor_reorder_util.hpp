@@ -215,15 +215,25 @@ MakeTensorReorderAttributes(const ExecutionContext& ctx_,
     if(data_type_ != miopenDouble)
     {
         if((order_0_ == 0) && (order_1_ == 1) && (order_2_ == 3) && (order_3_ == 2))
+        {
             which = 1;
+        }
         else if((order_0_ == 0) && (order_1_ == 2) && (order_2_ == 3) && (order_3_ == 1))
+        {
             which = 2;
+        }
         else if((order_0_ == 0) && (order_1_ == 3) && (order_2_ == 1) && (order_3_ == 2))
+        {
             which = 3;
+        }
         else if((order_0_ == 2) && (order_1_ == 3) && (order_2_ == 0) && (order_3_ == 1))
+        {
             which = 4;
+        }
         else if((order_0_ == 3) && (order_1_ == 0) && (order_2_ == 1) && (order_3_ == 2))
+        {
             which = 5;
+        }
     }
     // Order [0, 1, 3, 2], [0, 2, 3, 1], [0, 3, 1, 2], [2, 3, 0, 1], [3, 0, 1, 2] are using batched
     // transpose kernel to achieve higher performance. Details as following:

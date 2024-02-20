@@ -61,10 +61,14 @@ void operate_over_subtensor_impl(const data_operator_t<T>& r_data_operator,
     for(int i = 0; i < rSubDesc.GetLengths()[current_dim]; ++i)
     {
         if(current_dim == max_dim)
+        {
             r_data_operator(rSuperTensor[index]);
+        }
         else
+        {
             operate_over_subtensor_impl<T, data_operator_t>(
                 r_data_operator, rSuperTensor, rSubDesc, current_dim + 1, index);
+        }
 
         index += current_stride;
     }

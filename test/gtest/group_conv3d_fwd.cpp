@@ -24,75 +24,12 @@
  *
  *******************************************************************************/
 #include <gtest/gtest.h>
-#include <miopen/miopen.h>
-#include <miopen/solver_id.hpp>
-#include <serialize.hpp>
 
-#include "tensor_util.hpp"
-#include "get_handle.hpp"
-#include "group_conv3d_fwd.hpp"
+#include "group_conv.hpp"
 
-struct ConvFwdSolverTest3D : ConvFwdSolverTest<half_float::half>
-{
-};
+using namespace group_conv;
 
-template <typename Solver>
-void SolverFwd(const miopen::TensorDescriptor& inputDesc,
-               ConstData_t input,
-               const miopen::TensorDescriptor& wDesc,
-               ConstData_t weight,
-               const miopen::TensorDescriptor& outputDesc,
-               Data_t output,
-               const miopen::ConvolutionDescriptor& convDesc,
-               const Conv3DTestCase& conv_config,
-               bool& test_skipped)
-{
-    auto&& handle = get_handle();
-
-    Solver solv{};
-
-    const auto tensors =
-        miopen::ConvFwdTensors{inputDesc, input, wDesc, weight, outputDesc, output};
-
-    const auto problem = miopen::conv::ProblemDescription{
-        inputDesc, wDesc, outputDesc, convDesc, miopen::conv::Direction::Forward};
-    auto ctx = miopen::ExecutionContext{};
-
-    ctx.SetStream(&handle);
-
-    if(!solv.IsApplicable(ctx, problem))
-    {
-        test_skipped = true;
-        GTEST_SKIP() << solv.SolverDbId()
-                     << "ConvHipImplicitGemm3DGroupFwdXdlops Not Applicable for this problem"
-                     << conv_config;
-    }
-    const auto invoke_params = miopen::conv::DataInvokeParams{tensors, nullptr, 0, false};
-
-    ASSERT_TRUE(solv.IsApplicable(ctx, problem));
-    auto sol = solv.GetSolution(ctx, problem, solv.GetDefaultPerformanceConfig(ctx, problem));
-    ASSERT_TRUE(sol.Succeeded());
-    ASSERT_TRUE(sol.invoker_factory);
-    const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
-    (invoker)(handle, invoke_params);
-    handle.Finish();
-}
-
-TEST_P(ConvFwdSolverTest3D, CKGroupConvFwd3D)
-{
-    SolverFwd<miopen::solver::ConvHipImplicitGemm3DGroupFwdXdlops>(input.desc,
-                                                                   in_dev.get(),
-                                                                   weights.desc,
-                                                                   wei_dev.get(),
-                                                                   output.desc,
-                                                                   out_dev.get(),
-                                                                   conv_desc,
-                                                                   conv_config,
-                                                                   test_skipped);
-}
-
-INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
-                         ConvFwdSolverTest3D,
-                         testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
-                                          testing::ValuesIn(ConvTestConfigs()),
-                                          testing::Values(miopenTensorNDHWC)));
+DEFINE_GROUP_CONV3D_TEST(float, Forward);
+DEFINE_GROUP_CONV3D_TEST(half, Forward);
+/// \todo int8_t tests don't work. Need debugging
+// DEFINE_GROUP_CONV3D_TEST(int8_t, Forward);
