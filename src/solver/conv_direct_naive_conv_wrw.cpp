@@ -60,6 +60,7 @@ bool ConvDirectNaiveConvWrw::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(problem.IsTensorsCasted())
     {
+        /*
         auto test_cast = [&](const TensorDescriptor& desc) {
             if(desc.GetCastType())
             {
@@ -74,6 +75,8 @@ bool ConvDirectNaiveConvWrw::IsApplicable(const ExecutionContext& ctx,
             return false;
         if(test_cast(problem.GetOut()))
             return false;
+        */
+       return false;
     }
 
     return true;
@@ -128,12 +131,15 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ExecutionContext& ctx,
 
     const auto is_f8 = (kernel.kernel_file == "fp8_naive_conv.cpp");
 
+    //std::cout<<"~~~~~~~~ is_f8: "<<is_f8<<std::endl;
+
     kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx, problem);
 
     int G_stride_idx = conv_internal::GetGroupStrideIndex(problem);
 
     if(problem.Is2d())
     {
+        //std::cout<<"~~~~~~~~ 2d problem~~~~~"<<std::endl;
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
@@ -153,6 +159,7 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ExecutionContext& ctx,
 
                 if(is_f8)
                 {
+                    //std::cout<<"~~~~~ call f8 kernel~~~~"<<std::endl;
                     handle.Run(kern)(tensors.x,
                                      tensors.dw,
                                      tensors.dy,
@@ -206,7 +213,6 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ExecutionContext& ctx,
                 }
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
-
                 if(handle.IsProfilingEnabled())
                 {
                     handle.ResetKernelTime();

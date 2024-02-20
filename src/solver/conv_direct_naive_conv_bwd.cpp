@@ -59,6 +59,7 @@ bool ConvDirectNaiveConvBwd::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(problem.IsTensorsCasted())
     {
+        /*
         auto test_cast = [&](const TensorDescriptor& desc) {
             if(desc.GetCastType())
             {
@@ -73,6 +74,8 @@ bool ConvDirectNaiveConvBwd::IsApplicable(const ExecutionContext& ctx,
             return false;
         if(test_cast(problem.GetWeights()))
             return false;
+        */
+       return false;
     }
 
     return true;

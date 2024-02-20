@@ -504,6 +504,7 @@ extern "C" __global__ void WRW_KERNEL_NAME(const INPUT_TYPE* __restrict__ p_in,
                                            bool stochastic,
                                            uint32_t seed)
 {
+    //printf("~~~~~~~~ calling inside f8 wrw kernel!!!!!\n");
     naive_conv_wrw_nchw<INPUT_TYPE,
                         WEIGHTS_TYPE,
                         OUTPUT_TYPE,

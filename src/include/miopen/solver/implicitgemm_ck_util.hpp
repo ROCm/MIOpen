@@ -660,8 +660,8 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
             output_init_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
             tot_time += handle.GetKernelTime();
 
-            float trans_time = tot_time;
-            std::cout<<" transform inputs total time: "<< trans_time<<std::endl;
+            //float trans_time = tot_time;
+            //std::cout<<" transform inputs total time: "<< trans_time<<std::endl;
 
             /// \todo: Fix NHWC Wrw invokers to also issue a zero-out kernel. Will
             /// need SetTensor() to properly zero out non-packed tensors
@@ -685,11 +685,11 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                                                    tr_ptrs[2]->GetBufferPtr());
             tot_time += invoker_ptr->Run(argument_ptr.get(),
                                          {handle.GetStream(), handle.IsProfilingEnabled()});
-            float f8_kernel_time = tot_time - trans_time;
-            std::cout<<"~~~~~~~~~~~~~f8 kernel time: "<<f8_kernel_time<<std::endl;
+            //float f8_kernel_time = tot_time - trans_time;
+            //std::cout<<"~~~~~~~~~~~~~f8 kernel time: "<<f8_kernel_time<<std::endl;
             output_tr_inst.ConvertTo(handle, kernels, conv_tensors);
             tot_time += handle.GetKernelTime();
-            std::cout<<"~~~~~~~~~~~~~transform output time: "<<(tot_time-f8_kernel_time)<<std::endl;
+            //std::cout<<"~~~~~~~~~~~~~transform output time: "<<(tot_time-f8_kernel_time)<<std::endl;
             if(handle.IsProfilingEnabled())
             {
                 handle.ResetKernelTime();
