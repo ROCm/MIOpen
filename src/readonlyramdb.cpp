@@ -71,6 +71,7 @@ ReadonlyRamDb::GetCached(DbKinds db_kind_, const std::string& path, bool warn_if
     // footprint in heap is very small. That is why we can omit deletion of
     // these objects thus avoiding bothering with MP/MT syncronization.
     // These will be destroyed altogether with heap.
+    // NOLINTNEXTLINE (cppcoreguidelines-owning-memory)
     auto instance = new ReadonlyRamDb{db_kind_, path};
     instances.emplace(path, instance);
     instance->Prefetch(warn_if_unreadable);
