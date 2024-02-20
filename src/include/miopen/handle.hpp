@@ -133,6 +133,10 @@ struct MIOPEN_EXPORT Handle : miopenHandle
                         std::string params,
                         const std::string& kernel_src) const;
 
+    bool HasPreCompiledProgram(const std::string& program_name,
+                               std::string params,
+                               bool is_kernel_str = false) const;
+
     bool HasProgram(const std::string& program_name, const std::string& params) const;
     void ClearProgram(const std::string& program_name, const std::string& params) const;
     void AddProgram(Program prog, const std::string& program_name, const std::string& params) const;

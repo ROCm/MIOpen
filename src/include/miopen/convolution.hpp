@@ -365,6 +365,39 @@ struct MIOPEN_EXPORT ConvolutionDescriptor : miopenConvolutionDescriptor
     friend void to_json(nlohmann::json& json, const ConvolutionDescriptor& conv);
     friend void from_json(const nlohmann::json& json, ConvolutionDescriptor& conv);
 
+    void CheckConvFwdUsePreCompiledKernel(Handle& handle,
+                                          const TensorDescriptor& xDesc,
+                                          ConstData_t x,
+                                          const TensorDescriptor& wDesc,
+                                          ConstData_t w,
+                                          const TensorDescriptor& yDesc,
+                                          Data_t y,
+                                          bool exhaustiveSearch,
+                                          bool ignoreAsmBuild,
+                                          bool* returnedUsePreCompiledKernel) const;
+
+    void CheckConvBwdDataUsePreCompiledKernel(Handle& handle,
+                                              const TensorDescriptor& dyDesc,
+                                              ConstData_t dy,
+                                              const TensorDescriptor& wDesc,
+                                              ConstData_t w,
+                                              const TensorDescriptor& dxDesc,
+                                              Data_t dx,
+                                              bool exhaustiveSearch,
+                                              bool ignoreAsmBuild,
+                                              bool* returnedUsePreCompiledKernel) const;
+
+    void CheckConvBwdWeightsUsePreCompiledKernel(Handle& handle,
+                                                 const TensorDescriptor& dyDesc,
+                                                 ConstData_t dy,
+                                                 const TensorDescriptor& xDesc,
+                                                 ConstData_t x,
+                                                 const TensorDescriptor& dwDesc,
+                                                 Data_t dw,
+                                                 bool exhaustiveSearch,
+                                                 bool ignoreAsmBuild,
+                                                 bool* returnedUsePreCompiledKernel) const;
+
 private:
     void ValidateTensors(const ConvTensors& conv_tensors) const;
 };

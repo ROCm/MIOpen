@@ -1379,3 +1379,135 @@ extern "C" miopenStatus_t miopenGetConvolutionAttribute(miopenConvolutionDescrip
     return miopen::try_(
         [&] { miopen::deref(value) = miopen::deref(convDesc).attribute.Get(attr); });
 }
+
+extern "C" miopenStatus_t
+miopenCheckConvolutionForwardUsePreCompiledKernel(miopenHandle_t handle,
+                                                  const miopenTensorDescriptor_t xDesc,
+                                                  const void* x,
+                                                  const miopenTensorDescriptor_t wDesc,
+                                                  const void* w,
+                                                  const miopenConvolutionDescriptor_t convDesc,
+                                                  const miopenTensorDescriptor_t yDesc,
+                                                  void* y,
+                                                  bool exhaustiveSearch,
+                                                  bool ignoreAsmBuild,
+                                                  bool* kernelBuildHappen)
+{
+    MIOPEN_LOG_FUNCTION(
+        handle, xDesc, x, wDesc, w, convDesc, yDesc, y, ignoreAsmBuild, kernelBuildHappen);
+
+    if(miopen::deref(convDesc).mode == miopenTranspose)
+        return miopen::try_([&] {
+            miopen::deref(convDesc).CheckConvBwdDataUsePreCompiledKernel(miopen::deref(handle),
+                                                                         miopen::deref(xDesc),
+                                                                         DataCast(x),
+                                                                         miopen::deref(wDesc),
+                                                                         DataCast(w),
+                                                                         miopen::deref(yDesc),
+                                                                         DataCast(y),
+                                                                         exhaustiveSearch,
+                                                                         ignoreAsmBuild,
+                                                                         kernelBuildHappen);
+        });
+
+    return miopen::try_([&] {
+        miopen::deref(convDesc).CheckConvFwdUsePreCompiledKernel(miopen::deref(handle),
+                                                                 miopen::deref(xDesc),
+                                                                 DataCast(x),
+                                                                 miopen::deref(wDesc),
+                                                                 DataCast(w),
+                                                                 miopen::deref(yDesc),
+                                                                 DataCast(y),
+                                                                 exhaustiveSearch,
+                                                                 ignoreAsmBuild,
+                                                                 kernelBuildHappen);
+    });
+}
+
+extern "C" miopenStatus_t
+miopenCheckConvolutionBackwardDataUsePreCompiledKernel(miopenHandle_t handle,
+                                                       const miopenTensorDescriptor_t dyDesc,
+                                                       const void* dy,
+                                                       const miopenTensorDescriptor_t wDesc,
+                                                       const void* w,
+                                                       const miopenConvolutionDescriptor_t convDesc,
+                                                       const miopenTensorDescriptor_t dxDesc,
+                                                       void* dx,
+                                                       bool exhaustiveSearch,
+                                                       bool ignoreAsmBuild,
+                                                       bool* kernelBuildHappen)
+{
+    MIOPEN_LOG_FUNCTION(
+        handle, dyDesc, dy, wDesc, w, convDesc, dxDesc, dx, ignoreAsmBuild, kernelBuildHappen);
+
+    if(miopen::deref(convDesc).mode == miopenTranspose)
+        return miopen::try_([&] {
+            miopen::deref(convDesc).CheckConvFwdUsePreCompiledKernel(miopen::deref(handle),
+                                                                     miopen::deref(dyDesc),
+                                                                     DataCast(dy),
+                                                                     miopen::deref(wDesc),
+                                                                     DataCast(w),
+                                                                     miopen::deref(dxDesc),
+                                                                     DataCast(dx),
+                                                                     exhaustiveSearch,
+                                                                     ignoreAsmBuild,
+                                                                     kernelBuildHappen);
+        });
+
+    return miopen::try_([&] {
+        miopen::deref(convDesc).CheckConvBwdDataUsePreCompiledKernel(miopen::deref(handle),
+                                                                     miopen::deref(dyDesc),
+                                                                     DataCast(dy),
+                                                                     miopen::deref(wDesc),
+                                                                     DataCast(w),
+                                                                     miopen::deref(dxDesc),
+                                                                     DataCast(dx),
+                                                                     exhaustiveSearch,
+                                                                     ignoreAsmBuild,
+                                                                     kernelBuildHappen);
+    });
+}
+
+extern "C" miopenStatus_t miopenCheckConvolutionBackwardWeightsUsePreCompiledKernel(
+    miopenHandle_t handle,
+    const miopenTensorDescriptor_t dyDesc,
+    const void* dy,
+    const miopenTensorDescriptor_t xDesc,
+    const void* x,
+    const miopenConvolutionDescriptor_t convDesc,
+    const miopenTensorDescriptor_t dwDesc,
+    void* dw,
+    bool exhaustiveSearch,
+    bool ignoreAsmBuild,
+    bool* kernelBuildHappen)
+{
+    MIOPEN_LOG_FUNCTION(
+        handle, dyDesc, dy, xDesc, x, convDesc, dwDesc, dw, ignoreAsmBuild, kernelBuildHappen);
+
+    if(miopen::deref(convDesc).mode == miopenTranspose)
+        return miopen::try_([&] {
+            miopen::deref(convDesc).CheckConvBwdWeightsUsePreCompiledKernel(miopen::deref(handle),
+                                                                            miopen::deref(xDesc),
+                                                                            DataCast(x),
+                                                                            miopen::deref(dyDesc),
+                                                                            DataCast(dy),
+                                                                            miopen::deref(dwDesc),
+                                                                            DataCast(dw),
+                                                                            exhaustiveSearch,
+                                                                            ignoreAsmBuild,
+                                                                            kernelBuildHappen);
+        });
+
+    return miopen::try_([&] {
+        miopen::deref(convDesc).CheckConvBwdWeightsUsePreCompiledKernel(miopen::deref(handle),
+                                                                        miopen::deref(dyDesc),
+                                                                        DataCast(dy),
+                                                                        miopen::deref(xDesc),
+                                                                        DataCast(x),
+                                                                        miopen::deref(dwDesc),
+                                                                        DataCast(dw),
+                                                                        exhaustiveSearch,
+                                                                        ignoreAsmBuild,
+                                                                        kernelBuildHappen);
+    });
+}

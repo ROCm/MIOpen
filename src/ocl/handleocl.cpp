@@ -424,6 +424,17 @@ Program Handle::LoadProgram(const std::string& program_name,
     }
 }
 
+bool Handle::HasPreCompiledProgram(const std::string& program_name,
+                                   std::string params,
+                                   bool is_kernel_str) const
+{
+    return miopen::HasPreCompiledBinary(this->GetTargetProperties(),
+                                        this->GetMaxComputeUnits(),
+                                        program_name,
+                                        params,
+                                        is_kernel_str);
+}
+
 void Handle::ClearProgram(const std::string& program_name, const std::string& params) const
 {
     this->impl->cache.ClearProgram(program_name, params);

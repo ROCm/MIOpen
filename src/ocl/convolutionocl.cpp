@@ -55,6 +55,7 @@
 #include <functional>
 #include <type_traits>
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/range/adaptors.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
@@ -1257,6 +1258,207 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
             tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetWrW()};
         invoker(handle, invoke_ctx);
     });
+}
+
+static bool CheckSolutionUsePreCompiledKernel(ExecutionContext& ctx,
+                                              const conv::ProblemDescription& problem,
+                                              const solver::Id solver_id,
+                                              bool ignoreAsmBuild)
+{
+    const auto& handle = ctx.GetStream();
+    const auto config  = problem.MakeNetworkConfig();
+    auto invoker       = handle.GetInvoker(config, solver_id);
+
+    if(invoker)
+    {
+        return true;
+    }
+
+    ctx.do_search              = false;
+    ctx.disable_search_enforce = true;
+
+    const auto solver = solver_id.GetSolver();
+    auto db           = GetDb(ctx);
+    auto solution     = solver.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
+
+    for(auto& k : solution.construction_params)
+    {
+        if(ignoreAsmBuild && boost::algorithm::ends_with(k.kernel_file, ".s"))
+        {
+            continue;
+        }
+
+        if(!handle.HasPreCompiledProgram(k.kernel_file, k.comp_options))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void ConvolutionDescriptor::CheckConvFwdUsePreCompiledKernel(
+    Handle& handle,
+    const TensorDescriptor& xDesc,
+    ConstData_t x,
+    const TensorDescriptor& wDesc,
+    ConstData_t w,
+    const TensorDescriptor& yDesc,
+    Data_t y,
+    bool exhaustiveSearch,
+    bool ignoreAsmBuild,
+    bool* returnedUsePreCompiledKernel) const
+{
+    if(x == nullptr || w == nullptr || y == nullptr)
+        MIOPEN_THROW(miopenStatusBadParm, "Buffers cannot be NULL");
+    if(returnedUsePreCompiledKernel == nullptr)
+        MIOPEN_THROW(miopenStatusBadParm, "returnedUsePreCompiledKernel cannot be nullptr");
+
+    const conv::ProblemDescription problem(xDesc, wDesc, yDesc, *this, conv::Direction::Forward);
+    auto ctx = [&] {
+        auto tmp = ExecutionContext{&handle};
+        problem.SetupFloats(tmp);
+        tmp.do_search = exhaustiveSearch;
+        return tmp;
+    }();
+
+    auto sol = boost::optional<miopenConvSolution_t>{};
+
+    if(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
+    {
+        auto fallback = bool{};
+        auto sols     = GetSolutions(ctx, problem, 1, &fallback);
+
+        // override the normal find with immed mode with env var
+        if(!sols.empty() && (!(findMode.IsHybrid(ctx) && fallback) ||
+                             miopen::IsEnabled(ENV(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK))))
+            sol = sols.front();
+    }
+
+    if(sol.has_value())
+    {
+        const auto id = solver::Id{sol->solution_id};
+
+        *returnedUsePreCompiledKernel =
+            CheckSolutionUsePreCompiledKernel(ctx, problem, id, ignoreAsmBuild);
+    }
+    else
+    {
+        // In this case, MIOpen tries to test all possible solutions
+        // so all the kernels used by the solutions become targets of builds.
+        // It's better to find the optimal solution and write it down to Find-Db.
+        *returnedUsePreCompiledKernel = false;
+    }
+}
+
+void ConvolutionDescriptor::CheckConvBwdDataUsePreCompiledKernel(
+    Handle& handle,
+    const TensorDescriptor& dyDesc,
+    ConstData_t dy,
+    const TensorDescriptor& wDesc,
+    ConstData_t w,
+    const TensorDescriptor& dxDesc,
+    Data_t dx,
+    bool exhaustiveSearch,
+    bool ignoreAsmBuild,
+    bool* returnedUsePreCompiledKernel) const
+{
+    if(dy == nullptr || w == nullptr || dx == nullptr)
+        MIOPEN_THROW(miopenStatusBadParm, "Buffers cannot be NULL");
+    if(returnedUsePreCompiledKernel == nullptr)
+        MIOPEN_THROW(miopenStatusBadParm, "returnedUsePreCompiledKernel cannot be nullptr");
+
+    const conv::ProblemDescription problem(
+        dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData);
+    auto ctx = [&] {
+        auto tmp = ExecutionContext{&handle};
+        problem.SetupFloats(tmp);
+        tmp.do_search = exhaustiveSearch;
+        return tmp;
+    }();
+
+    auto sol = boost::optional<miopenConvSolution_t>{};
+
+    if(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
+    {
+        auto fallback = bool{};
+        auto sols     = GetSolutions(ctx, problem, 1, &fallback);
+
+        // override the normal find with immed mode with env var
+        if(!sols.empty() && (!(findMode.IsHybrid(ctx) && fallback) ||
+                             miopen::IsEnabled(ENV(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK))))
+            sol = sols.front();
+    }
+
+    if(sol.has_value())
+    {
+        const auto id = solver::Id{sol->solution_id};
+
+        *returnedUsePreCompiledKernel =
+            CheckSolutionUsePreCompiledKernel(ctx, problem, id, ignoreAsmBuild);
+    }
+    else
+    {
+        // In this case, MIOpen tries to test all possible solutions
+        // so all the kernels used by the solutions become targets of builds.
+        // It's better to find the optimal solution and write it down to Find-Db.
+        *returnedUsePreCompiledKernel = false;
+    }
+}
+
+void ConvolutionDescriptor::CheckConvBwdWeightsUsePreCompiledKernel(
+    Handle& handle,
+    const TensorDescriptor& dyDesc,
+    ConstData_t dy,
+    const TensorDescriptor& xDesc,
+    ConstData_t x,
+    const TensorDescriptor& dwDesc,
+    Data_t dw,
+    bool exhaustiveSearch,
+    bool ignoreAsmBuild,
+    bool* returnedUsePreCompiledKernel) const
+{
+    if(x == nullptr || dw == nullptr || dy == nullptr)
+        MIOPEN_THROW(miopenStatusBadParm, "Buffers cannot be NULL");
+    if(returnedUsePreCompiledKernel == nullptr)
+        MIOPEN_THROW(miopenStatusBadParm, "returnedUsePreCompiledKernel cannot be nullptr");
+
+    const conv::ProblemDescription problem(
+        xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights);
+    auto ctx = [&] {
+        auto tmp = ExecutionContext{&handle};
+        problem.SetupFloats(tmp);
+        tmp.do_search = exhaustiveSearch;
+        return tmp;
+    }();
+
+    auto sol = boost::optional<miopenConvSolution_t>{};
+
+    if(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
+    {
+        auto fallback = bool{};
+        auto sols     = GetSolutions(ctx, problem, 1, &fallback);
+
+        // override the normal find with immed mode with env var
+        if(!sols.empty() && (!(findMode.IsHybrid(ctx) && fallback) ||
+                             miopen::IsEnabled(ENV(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK))))
+            sol = sols.front();
+    }
+
+    if(sol.has_value())
+    {
+        const auto id = solver::Id{sol->solution_id};
+
+        *returnedUsePreCompiledKernel =
+            CheckSolutionUsePreCompiledKernel(ctx, problem, id, ignoreAsmBuild);
+    }
+    else
+    {
+        // In this case, MIOpen tries to test all possible solutions
+        // so all the kernels used by the solutions become targets of builds.
+        // It's better to find the optimal solution and write it down to Find-Db.
+        *returnedUsePreCompiledKernel = false;
+    }
 }
 
 void ConvolutionBackwardBias(const Handle& handle,

@@ -5551,6 +5551,56 @@ MIOPEN_EXPORT miopenStatus_t miopenGetSolverIdConvAlgorithm(uint64_t solverId,
                                                             miopenConvAlgorithm_t* result);
 
 #ifdef MIOPEN_BETA_API
+/*!
+  @brief Check if the convolution forward will use pre-compiled kernel.
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenCheckConvolutionForwardUsePreCompiledKernel(miopenHandle_t handle,
+                                                  const miopenTensorDescriptor_t xDesc,
+                                                  const void* x,
+                                                  const miopenTensorDescriptor_t wDesc,
+                                                  const void* w,
+                                                  const miopenConvolutionDescriptor_t convDesc,
+                                                  const miopenTensorDescriptor_t yDesc,
+                                                  void* y,
+                                                  bool exhaustiveSearch,
+                                                  bool ignoreAsmBuild,
+                                                  bool* kernelBuildHappen);
+
+/*!
+  @brief Check if the convolution backward data will use pre-compiled kernel.
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenCheckConvolutionBackwardDataUsePreCompiledKernel(miopenHandle_t handle,
+                                                       const miopenTensorDescriptor_t dyDesc,
+                                                       const void* dy,
+                                                       const miopenTensorDescriptor_t wDesc,
+                                                       const void* w,
+                                                       const miopenConvolutionDescriptor_t convDesc,
+                                                       const miopenTensorDescriptor_t dxDesc,
+                                                       void* dx,
+                                                       bool exhaustiveSearch,
+                                                       bool ignoreAsmBuild,
+                                                       bool* kernelBuildHappen);
+
+/*!
+  @brief Check if the convolution backward weights will use pre-compiled kernel.
+*/
+MIOPEN_EXPORT miopenStatus_t miopenCheckConvolutionBackwardWeightsUsePreCompiledKernel(
+    miopenHandle_t handle,
+    const miopenTensorDescriptor_t dyDesc,
+    const void* dy,
+    const miopenTensorDescriptor_t xDesc,
+    const void* x,
+    const miopenConvolutionDescriptor_t convDesc,
+    const miopenTensorDescriptor_t dwDesc,
+    void* dw,
+    bool exhaustiveSearch,
+    bool ignoreAsmBuild,
+    bool* kernelBuildHappen);
+#endif
+
+#ifdef MIOPEN_BETA_API
 
 /*! @brief Initializes a problem object describing an activation operation.
  * @note As of now there is no way to actually get any solution for this kind of problems.
