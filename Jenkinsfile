@@ -689,19 +689,6 @@ pipeline {
                         buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets)
                     }
                 }
-                stage('Fp32 Hip SqlitePerfdb gfx90a') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX90A }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("gfx90a") }
-                    steps{
-                        buildHipClangJobAndReboot(make_targets: Smoke_targets, setup_flags: "-DMIOPEN_USE_SQLITE_PERF_DB=On")
-                    }
-                }
             }
         }
         stage("Smoke Aux 1") {
@@ -830,6 +817,19 @@ pipeline {
                     agent{ label rocmnode("vega || gfx908 || gfx90a") }
                     steps{
                         buildHipClangJobAndReboot()
+                    }
+                }
+                stage('Fp32 Hip SqlitePerfdb gfx90a') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX90A }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        buildHipClangJobAndReboot(make_targets: Smoke_targets, setup_flags: "-DMIOPEN_USE_SQLITE_PERF_DB=On")
                     }
                 }
             }
