@@ -215,6 +215,7 @@ endif()
 # HIP is always required
 find_package(hip REQUIRED PATHS /opt/rocm)
 message(STATUS "Build with HIP ${hip_VERSION}")
+option(APPEND_INTERFACE_INCLUDE_DIRECTORIES "Append include directories to compiler flags" ON)
 target_flags(HIP_COMPILER_FLAGS hip::device)
 # Remove cuda arch flags
 string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
