@@ -60,7 +60,7 @@ public:
     template <class T>
     inline boost::optional<DbRecord> FindRecord(const T& problem_config)
     {
-        const auto key = DbRecord::Serialize(problem_config);
+        const auto key = DbRecord::SerializeKey(db_kind, problem_config);
         return FindRecord(key);
     }
 
@@ -90,7 +90,7 @@ public:
     template <class T>
     inline bool Remove(const T& problem_config, const std::string& id)
     {
-        const auto key = DbRecord::Serialize(problem_config);
+        const auto key = DbRecord::SerializeKey(db_kind, problem_config);
         return Remove(key, id);
     }
 
@@ -99,7 +99,7 @@ public:
     template <class T>
     inline bool RemoveRecord(const T& problem_config)
     {
-        const auto key = DbRecord::Serialize(problem_config);
+        const auto key = DbRecord::SerializeKey(db_kind, problem_config);
         return RemoveRecord(key);
     }
 
@@ -112,7 +112,7 @@ public:
     inline boost::optional<DbRecord>
     Update(const T& problem_config, const std::string& id, const V& values)
     {
-        DbRecord record(problem_config);
+        DbRecord record(db_kind, problem_config);
         record.SetValues(id, values);
         const auto ok = UpdateRecord(record);
         if(ok)
@@ -163,22 +163,23 @@ private:
     }
 };
 
-template <class TDb, class TRet = decltype(TDb::GetCached("", true))>
-TRet GetDbInstance(rank<1>, const std::string& path, bool is_system)
+template <class TDb>
+auto GetDbInstance(rank<1>, DbKinds db_kind, const std::string& path, bool is_system)
+    -> decltype(TDb::GetCached({}, {}, {}))
 {
-    return TDb::GetCached(path, is_system);
+    return TDb::GetCached(db_kind, path, is_system);
 };
 
 template <class TDb>
-TDb GetDbInstance(rank<0>, const std::string& path, bool is_system)
+auto GetDbInstance(rank<0>, DbKinds db_kind, const std::string& path, bool is_system)
 {
-    return {path, is_system};
+    return TDb{db_kind, path, is_system};
 };
 
-template <class TDb, class TRet = decltype(GetDbInstance<TDb>(rank<1>{}, {}, {}))>
-TRet GetDbInstance(const std::string& path, bool is_system = true)
+template <class TDb>
+decltype(auto) GetDbInstance(DbKinds db_kind, const std::string& path, bool is_system = true)
 {
-    return GetDbInstance<TDb>(rank<1>{}, path, is_system);
+    return GetDbInstance<TDb>(rank<1>{}, db_kind, path, is_system);
 }
 
 template <class TInstalled, class TUser, bool merge_records>

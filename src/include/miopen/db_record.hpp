@@ -222,6 +222,9 @@ public:
     {
     }
 
+    // used in tests
+    DbRecord(DbKinds, const std::string& problem_config_) : DbRecord(problem_config_) {}
+
     auto GetSize() const { return map.size(); }
 
     const std::string& GetKey() const { return key; }
