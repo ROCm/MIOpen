@@ -21,7 +21,7 @@ Our documentation is structured as follows:
     * `Build the driver <https://github.com/ROCm/rocDecode/blob/master/docs/install/driver.html>`_
     * `Embedd the driver <https://github.com/ROCm/rocDecode/blob/master/docs/install/embed.html>`_
   
-  .. grid-item-card:: Conceptual
+  .. grid-item-card:: Concepts
 
     * `Getting started with Fusion API <https://github.com/ROCm/rocDecode/blob/master/docs/conceptual/Getting_Started_FusionAPI.html>`_
     * `MI200 alternate implementation <https://github.com/ROCm/rocDecode/blob/master/docs/conceptual/MI200AlternateImplementation.html>`_
@@ -31,17 +31,19 @@ Our documentation is structured as follows:
     * `Performance database <https://github.com/ROCm/rocDecode/blob/master/docs/conceptual/perfdatabase.html>`_
     * `MIOpen Porting Guide <https://github.com/ROCm/rocDecode/blob/master/docs/conceptual/MIOpen_Porting_Guide.html>`_
   
-  ..  grid-item-card:: Reference 
+  ..  grid-item-card:: API Reference 
 
-    * :ref:``
-    * :ref:``
-    * :ref:``
-    * :ref:``
-    * :ref:``
-    * :ref:``
-    * :ref:``
-    * :ref:``
-    * :ref:``
-    * :ref:``
-    * :ref:``
-    * :ref:
+    * `Datatypes <https://rocm.docs.amd.com/projects/MIOpen/en/latest/datatypes.html>`_
+    * `Handle <https://rocm.docs.amd.com/projects/MIOpen/en/latest/handle.html>`_
+    * `Tensors <https://rocm.docs.amd.com/projects/MIOpen/en/latest/tensors.html>`_
+    * `Activation <https://rocm.docs.amd.com/projects/MIOpen/en/latest/activation.html>`_
+    * `Convolution <https://rocm.docs.amd.com/projects/MIOpen/en/latest/convolution.html>`_
+    * `Recurrent neural networks <https://rocm.docs.amd.com/projects/MIOpen/en/latest/rnn.html>`_
+    * `Batch normalization layer <https://rocm.docs.amd.com/projects/MIOpen/en/latest/batchnorm.html>`_
+    * `Local response normalization layer <https://rocm.docs.amd.com/projects/MIOpen/en/latest/lrn.html>`_
+    * `Pooling layer <https://rocm.docs.amd.com/projects/MIOpen/en/latest/pooling.html>`_
+    * `Softmax layer <https://rocm.docs.amd.com/projects/MIOpen/en/latest/softmax.html>`_
+    * `Layer fusion <https://rocm.docs.amd.com/projects/MIOpen/en/latest/fusion.html>`_
+    * `Loss function layer <https://rocm.docs.amd.com/projects/MIOpen/en/latest/loss.html>`_
+    * `Dropour layer <https://rocm.docs.amd.com/projects/MIOpen/en/latest/dropout.html>`_
+    * `Reduction layer <https://rocm.docs.amd.com/projects/MIOpen/en/latest/reduction.html>`_
