@@ -511,11 +511,6 @@ set(KERNELS_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/kernels)
 find_program(UNZIPPER lbzcat bzcat REQUIRED)
 file(MAKE_DIRECTORY ${KERNELS_BINARY_DIR})
 
-
-if(NOT MIOPEN_USE_SQLITE_PERFDB)
-    add_subdirectory(tools/sqlite2txt)
-endif()
-
 add_custom_target(generate_kernels ALL)
 
 set(MIOPEN_USE_SQLITE_PERFDB Off CACHE BOOL "Use sqlite perfdb instead of text-based.")
@@ -738,6 +733,9 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
+if(NOT MIOPEN_USE_SQLITE_PERFDB)
+    add_subdirectory(tools/sqlite2txt)
+endif()
 add_subdirectory(addkernels)
 add_subdirectory(src)
 if(MIOPEN_BUILD_DRIVER)
