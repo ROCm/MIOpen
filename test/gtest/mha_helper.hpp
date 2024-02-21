@@ -26,6 +26,7 @@
 #include "tensor_holder.hpp"
 #include "conv_tensor_gen.hpp"
 #include <type_traits>
+#include <nlohmann/json.hpp>
 
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
@@ -138,7 +139,6 @@ void print2(const tensor<T>& tensor_val, std::string header_msg = "start")
     }
     std::cout << "\n=================end=====================\n";
 }
-
 
 // Todo : make this abs
 template <typename T>
@@ -357,33 +357,28 @@ void DropOut(tensor<T>& q_dot_k_transpose, const double& drop_out_rate)
         });
 }
 
-template<class T>
+template <class T>
 void Concat(const tensor<T>& A_mat, tensor<T>& B_mat)
 {
-    const auto& dims              = A_mat.desc.GetLengths();
-    size_t d_k = dims[3];
+    const auto& dims = A_mat.desc.GetLengths();
+    size_t d_k       = dims[3];
 
-    A_mat.par_for_each(
-        [&](size_t b_id, size_t h_id, size_t s_id, size_t dk_id) {
-            B_mat(b_id, s_id, h_id * d_k + dk_id) = A_mat(b_id, h_id, s_id, dk_id);
-        });
+    A_mat.par_for_each([&](size_t b_id, size_t h_id, size_t s_id, size_t dk_id) {
+        B_mat(b_id, s_id, h_id * d_k + dk_id) = A_mat(b_id, h_id, s_id, dk_id);
+    });
 }
 
-
-template<typename T>
-void SoftMax(tensor<T>& q_dot_k_transpose,
-                           tensor<T>& rrm,
-                           tensor<T>& zinv_tensors)
+template <typename T>
+void SoftMax(tensor<T>& q_dot_k_transpose, tensor<T>& rrm, tensor<T>& zinv_tensors)
 {
     RowReductionMax(q_dot_k_transpose, rrm);
-        // rrm substraction
+    // rrm substraction
     Sub(q_dot_k_transpose, rrm);
     // pointwise exponentiation
     Exponent(q_dot_k_transpose);
     Zinv(q_dot_k_transpose, zinv_tensors);
     // Zinv reciprocal
     ZinvMultiply(q_dot_k_transpose, zinv_tensors);
-
 }
 
 template <typename T>
@@ -441,7 +436,6 @@ void MultiHeadAttentionfp8(tensor<T>& q_val,
     Scale4DFp32ToFP8(atten_heads_fp32, atten_heads_fp8, scale_O);
 }
 
-
 template <typename T>
 void MultiHeadAttentionf32(tensor<T>& q_val,
                            tensor<T>& k_val,
@@ -465,7 +459,51 @@ void MultiHeadAttentionf32(tensor<T>& q_val,
 
     // // O = (Q.dot(Kt)).dot(V)
     Dot_4D_4D(q_dot_k_transpose, v_val, atten_heads);
-    
+}
+
+template <typename T>
+void ExtractGoldenDataFromJson(const std::string& test_file_name, tensor<T>& attention_golden)
+{
+
+    std::ifstream test_file(test_file_name);
+    if(!test_file.is_open())
+    {
+        std::cerr << "Cannot find " << test_file_name << std::endl;
+        exit(1);
+    }
+    nlohmann::json jsonTensor;
+    test_file >> jsonTensor;
+    test_file.close();
+    std::vector<std::vector<float>> tensorData =
+        jsonTensor["tensor"].get<std::vector<std::vector<float>>>();
+    // Check if the "tensor" key exists and is an array
+    if(!jsonTensor.contains("tensor") || !jsonTensor["tensor"].is_array())
+    {
+        std::cerr << "'tensor' key not found or is not an array" << std::endl;
+        exit(1);
+    }
+    // Extract the 2D array and flatten it
+    std::vector<float> flatTensor;
+    for(const auto& row : jsonTensor["tensor"])
+    {
+        if(!row.is_array())
+        {
+            std::cerr << "Expected a row to be an array, but found a different type" << std::endl;
+            exit(1);
+        }
+        for(const auto& val : row)
+        {
+            // Ensure each value is a number before adding it to the flatTensor
+            if(!val.is_number())
+            {
+                std::cerr << "Expected a value to be a number, but found a different type"
+                          << std::endl;
+                exit(1);
+            }
+            flatTensor.push_back(val.get<float>());
+        }
+    }
+    attention_golden.data = flatTensor;
 }
 
 } // namespace cpu

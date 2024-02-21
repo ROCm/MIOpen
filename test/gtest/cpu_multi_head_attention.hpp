@@ -60,7 +60,7 @@ protected:
 
         MultiHeadAttentionf32(
             q_val, k_val, v_val, q_dot_k_transpose, rrm, zinv_tensors, atten_heads);
-        
+
         Concat(atten_heads, concatinated_O_val);
         Dot_3D_2D_T(concatinated_O_val, final_linear_transform_weights, final_atten_heads);
 
@@ -71,11 +71,13 @@ protected:
 
     void TearDown() override
     {
-        // verify
-        print4(atten_heads, "*** final 32 ****");
-        print3(final_atten_heads, "***final_atten_heads final 32 ****");
-        print4(atten_heads_fp8, "*** final fp8 ****");
-        print3(concatinated_O_val_fp8, "*** final fp8 ****");
+        tensor<T> attention_golden(final_atten_heads.desc.GetLengths());
+        ExtractGoldenDataFromJson("../test/gtest/attention_golden.json", attention_golden);
+
+        double error     = miopen::rms_range(attention_golden, final_atten_heads);
+        double threshold = 0.155;
+        EXPECT_TRUE(error < threshold)
+            << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
     }
 
 private:
@@ -91,9 +93,8 @@ private:
         word_position = tensor<T>{std::vector<int>{cpu_mha_test_case.batch_size,
                                                    cpu_mha_test_case.sequence_length,
                                                    cpu_mha_test_case.problem_dimension}};
-        
-        // since Pytorch's Y = X*W_tranpose  
-        
+
+        // since Pytorch's Y = X*W_tranpose
         // cpu_mha_test_case.num_heads, cpu_mha_test_case.problem_dimension, d_k
         //          need to change the dimension to
         // cpu_mha_test_case.num_heads, d_k, cpu_mha_test_case.problem_dimension
@@ -110,26 +111,27 @@ private:
         k_val = q_val;
         v_val = q_val;
 
-        atten_heads          = tensor<T>{cpu_mha_test_case.batch_size,
+        atten_heads                    = tensor<T>{cpu_mha_test_case.batch_size,
                                 cpu_mha_test_case.num_heads,
                                 cpu_mha_test_case.sequence_length,
                                 d_k};
         final_linear_transform_weights = tensor<T>(std::vector<int>{
-                                            cpu_mha_test_case.problem_dimension,
-                                            cpu_mha_test_case.problem_dimension});
-        
-        concatinated_O_val = tensor<T>{std::vector<int>{cpu_mha_test_case.batch_size,
-                          cpu_mha_test_case.sequence_length,
-                          cpu_mha_test_case.problem_dimension}}; // cpu_mha_test_case.num_heads*d_k
-        final_atten_heads = concatinated_O_val;
+            cpu_mha_test_case.problem_dimension, cpu_mha_test_case.problem_dimension});
 
-        concatinated_O_val_fp8 = tensor<float8>{std::vector<int>{cpu_mha_test_case.batch_size,
-                          cpu_mha_test_case.sequence_length,
-                          cpu_mha_test_case.problem_dimension}};
+        concatinated_O_val = tensor<T>{std::vector<int>{
+            cpu_mha_test_case.batch_size,
+            cpu_mha_test_case.sequence_length,
+            cpu_mha_test_case.problem_dimension}}; // cpu_mha_test_case.num_heads*d_k
+        final_atten_heads  = concatinated_O_val;
+
+        concatinated_O_val_fp8 =
+            tensor<float8>{std::vector<int>{cpu_mha_test_case.batch_size,
+                                            cpu_mha_test_case.sequence_length,
+                                            cpu_mha_test_case.problem_dimension}};
         atten_heads_fp8 = tensor<float8>{cpu_mha_test_case.batch_size,
-                                              cpu_mha_test_case.num_heads,
-                                              cpu_mha_test_case.sequence_length,
-                                              d_k};
+                                         cpu_mha_test_case.num_heads,
+                                         cpu_mha_test_case.sequence_length,
+                                         d_k};
 
         q_dot_k_transpose = tensor<T>{cpu_mha_test_case.batch_size,
                                       cpu_mha_test_case.num_heads,
@@ -169,7 +171,6 @@ private:
 
     tensor<T> q_dot_k_transpose;
     tensor<T> concatinated_O_val;
-
 
     // tensor<T> mask;
     tensor<T> rrm;
