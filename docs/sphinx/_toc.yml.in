@@ -5,7 +5,7 @@ subtrees:
 - entries:
   - file: what-is-MIOpen.rst
     title: What is MIOpen?
-  - file: install/index.md
+  - file: install/install.rst
     title: MIOpen Installation
  subtrees:
   - entries:
