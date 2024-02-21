@@ -154,8 +154,8 @@ struct TestData
     template <class TSelf, class Visitor>
     static void VisitAll(TSelf&& self, Visitor visitor)
     {
-        visitor("x", self.x);
-        visitor("y", self.y);
+        visitor(self.x, "x");
+        visitor(self.y, "y");
     }
 
     void Serialize(std::ostream& s) const
@@ -289,7 +289,7 @@ protected:
                          const std::array<std::pair<const std::string, TValue>, count> values)
     {
         std::ostringstream ss_vals;
-        ss_vals << key.x << ',' << key.y << '=';
+        ss_vals << key.x << 'x' << key.y << '=';
 
         auto first = true;
 
@@ -299,7 +299,7 @@ protected:
                 ss_vals << ";";
 
             first = false;
-            ss_vals << id_value.first << ':' << id_value.second.x << ',' << id_value.second.y;
+            ss_vals << id_value.first << ':' << id_value.second.x << 'x' << id_value.second.y;
         }
 
         std::ofstream(db_path, std::ios::out | std::ios::ate) << ss_vals.str() << std::endl;
