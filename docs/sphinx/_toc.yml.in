@@ -9,24 +9,24 @@ subtrees:
         title: MIOpen Installation
  subtrees:
     - entries:
-  	    - file: install/install.rst
-  	    - file: install/driver.md
-  	    - file: install/embed.md   
+  	 - file: install/install.rst
+  	 - file: install/driver.md
+  	 - file: install/embed.md   
   - file: conceptual/index.md
     title: MIOpen Concepts
     subtrees:
-       - entries:
-      	    - file: conceptual/find_and_immediate.md
-      	    - file: conceptual/finddb.md
-      	    - file: conceptual/cache.md
-      	    - file: conceptual/perfdatabase.md
-      	    - file: conceptual/Getting_Started_FusionAPI.md
-      	    - file: conceptual/MI200AlternateImplementation.md
-      	    - file: conceptual/MIOpen_Porting_Guide.md
+      - entries:
+      	   - file: conceptual/find_and_immediate.md
+      	   - file: conceptual/finddb.md
+      	   - file: conceptual/cache.md
+      	   - file: conceptual/perfdatabase.md
+      	   - file: conceptual/Getting_Started_FusionAPI.md
+      	   - file: conceptual/MI200AlternateImplementation.md
+      	   - file: conceptual/MIOpen_Porting_Guide.md
    - file: reference/index.rst
      title: MIOpen API Reference
      subtrees:
-        - entries:   	   
+       - entries:   	   
       	    - file: reference/activation.rst
       	    - file: reference/batchnorm.rst
       	    - file: reference/convolution.rst
