@@ -9,7 +9,7 @@ subtrees:
     title: What is MIOpen?
   - file: install/index.md
     title: MIOpen Installation
-    subtrees:
+subtrees:
      - entries:
   	  - file: install/install.rst
   	  - file: install/driver.md
@@ -19,7 +19,7 @@ subtrees:
     subtrees:
      - entries:
       	- file: conceptual/find_and_immediate.md
-     	- file: conceptual/finddb.md
+      	- file: conceptual/finddb.md
       	- file: conceptual/cache.md
       	- file: conceptual/perfdatabase.md
       	- file: conceptual/Getting_Started_FusionAPI.md
