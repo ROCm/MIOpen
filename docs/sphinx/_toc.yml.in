@@ -9,9 +9,9 @@ subtrees:
     title: MIOpen Installation
  subtrees:
   - entries:
-  	  - file: install/install.rst
-  	  - file: install/driver.md
-  	  - file: install/embed.md   
+  	- file: install/install.rst
+  	- file: install/driver.md
+  	- file: install/embed.md   
   - file: conceptual/index.md
     title: MIOpen Concepts
     subtrees:
