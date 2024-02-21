@@ -8,7 +8,7 @@ subtrees:
   - file: install/index.md
     title: MIOpen Installation
  subtrees:
-     - entries:
+  - entries:
   	  - file: install/install.rst
   	  - file: install/driver.md
   	  - file: install/embed.md   
