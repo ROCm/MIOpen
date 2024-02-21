@@ -55,15 +55,6 @@ protected:
         Dot_3D_3D_T(word_position, k_weights, k_val);
         Dot_3D_3D_T(word_position, v_weights, v_val);
 
-        print3(q_weights, "q_weights");
-        print3(k_weights, "k_weights");
-        print3(v_weights, "v_weights");
-        print2(final_linear_transform_weights, "final_linear_transform_weights");
-        print3(word_position, "word_position");
-        print4(q_val, "q_val");
-        print4(k_val, "k_val");
-        print4(v_val, "v_val");
-
         double sqr_dk = std::sqrt(q_val.desc.GetLengths()[3]);
         ScaleToFP32(q_val, sqr_dk);
 
@@ -73,8 +64,9 @@ protected:
         Concat(atten_heads, concatinated_O_val);
         Dot_3D_2D_T(concatinated_O_val, final_linear_transform_weights, final_atten_heads);
 
-        // MultiHeadAttentionfp8(
-        //     q_val, k_val, v_val, q_dot_k_transpose, rrm, zinv_tensors, atten_heads_from_fp8);
+        MultiHeadAttentionfp8(
+            q_val, k_val, v_val, q_dot_k_transpose, rrm, zinv_tensors, atten_heads_fp8);
+        Concat(atten_heads_fp8, concatinated_O_val_fp8);
     }
 
     void TearDown() override
@@ -82,7 +74,8 @@ protected:
         // verify
         print4(atten_heads, "*** final 32 ****");
         print3(final_atten_heads, "***final_atten_heads final 32 ****");
-        // print4(atten_heads_from_fp8, "*** final fp8 ****");
+        print4(atten_heads_fp8, "*** final fp8 ****");
+        print3(concatinated_O_val_fp8, "*** final fp8 ****");
     }
 
 private:
@@ -130,7 +123,10 @@ private:
                           cpu_mha_test_case.problem_dimension}}; // cpu_mha_test_case.num_heads*d_k
         final_atten_heads = concatinated_O_val;
 
-        atten_heads_from_fp8 = tensor<float8>{cpu_mha_test_case.batch_size,
+        concatinated_O_val_fp8 = tensor<float8>{std::vector<int>{cpu_mha_test_case.batch_size,
+                          cpu_mha_test_case.sequence_length,
+                          cpu_mha_test_case.problem_dimension}};
+        atten_heads_fp8 = tensor<float8>{cpu_mha_test_case.batch_size,
                                               cpu_mha_test_case.num_heads,
                                               cpu_mha_test_case.sequence_length,
                                               d_k};
@@ -183,8 +179,8 @@ private:
     tensor<T> atten_heads;
     tensor<T> final_atten_heads;
 
-
-    tensor<float8> atten_heads_from_fp8;
+    tensor<float8> concatinated_O_val_fp8;
+    tensor<float8> atten_heads_fp8;
 
     // row reduction max
 };

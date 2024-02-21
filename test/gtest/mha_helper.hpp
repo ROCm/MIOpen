@@ -369,6 +369,23 @@ void Concat(const tensor<T>& A_mat, tensor<T>& B_mat)
         });
 }
 
+
+template<typename T>
+void SoftMax(tensor<T>& q_dot_k_transpose,
+                           tensor<T>& rrm,
+                           tensor<T>& zinv_tensors)
+{
+    RowReductionMax(q_dot_k_transpose, rrm);
+        // rrm substraction
+    Sub(q_dot_k_transpose, rrm);
+    // pointwise exponentiation
+    Exponent(q_dot_k_transpose);
+    Zinv(q_dot_k_transpose, zinv_tensors);
+    // Zinv reciprocal
+    ZinvMultiply(q_dot_k_transpose, zinv_tensors);
+
+}
+
 template <typename T>
 void MultiHeadAttentionfp8(tensor<T>& q_val,
                            tensor<T>& k_val,
@@ -384,37 +401,32 @@ void MultiHeadAttentionfp8(tensor<T>& q_val,
 
     double q_scale = GetF8Scaling(FindMax4D(q_val));
     double k_scale = GetF8Scaling(FindMax4D(k_val));
+    // get fp8 version of Q and V
     Scale4DFp32ToFP8(q_val, q_val_fp8, q_scale);
     Scale4DFp32ToFP8(k_val, k_val_fp8, k_scale);
 
+    // do fp8 BMM and store the fp8 result in fp32 tensor
     Dot_4D_4D_T(q_val_fp8, k_val_fp8, q_dot_k_transpose_fp32);
 
+    // Scale to bring the fp8 values to fp32
     ScaleToFP32(q_dot_k_transpose_fp32, q_scale);
     ScaleToFP32(q_dot_k_transpose_fp32, k_scale);
 
-    // soft-max
-    {
-        // Row Reduction Max => M
-        RowReductionMax(q_dot_k_transpose_fp32, rrm);
-        // rrm substraction
-        Sub(q_dot_k_transpose, rrm);
-
-        // pointwise exponentiation
-        Exponent(q_dot_k_transpose_fp32);
-        Zinv(q_dot_k_transpose_fp32, zinv_tensors);
-        // Zinv reciprocal
-        ZinvMultiply(q_dot_k_transpose_fp32, zinv_tensors);
-    }
+    SoftMax(q_dot_k_transpose_fp32, rrm, zinv_tensors);
 
     // drop out
     // DropOut(q_dot_k_transpose, cpu_mha_test_case.drop_out_rate);
 
     tensor<float8> q_dot_k_transpose_fp8(q_dot_k_transpose.desc.GetLengths());
     tensor<float8> v_val_fp8(v_val.desc.GetLengths());
+
+    // Get scaling of q_dot_k_transpose_fp32(S aka Softmax(Q.dot(K_transpose)))
     double AMax_S  = FindMax4D(q_dot_k_transpose_fp32);
     double s_scale = GetF8Scaling(AMax_S);
+    // Get scaling of V
     double v_scale = GetF8Scaling(FindMax4D(v_val));
 
+    // get fp8 version of S (Softmax(Q.dot(K_transpose))) and V
     Scale4DFp32ToFP8(q_dot_k_transpose_fp32, q_dot_k_transpose_fp8, s_scale);
     Scale4DFp32ToFP8(v_val, v_val_fp8, v_scale);
 
@@ -429,6 +441,7 @@ void MultiHeadAttentionfp8(tensor<T>& q_val,
     Scale4DFp32ToFP8(atten_heads_fp32, atten_heads_fp8, scale_O);
 }
 
+
 template <typename T>
 void MultiHeadAttentionf32(tensor<T>& q_val,
                            tensor<T>& k_val,
@@ -441,27 +454,7 @@ void MultiHeadAttentionf32(tensor<T>& q_val,
 
     Dot_4D_4D_T(q_val, k_val, q_dot_k_transpose);
 
-    print4(q_val, "q_val");
-    print4(k_val, "k_val");
-    print4(q_dot_k_transpose, "q_dot_k_transpose");
-    // soft-max
-    {
-        // Row Reduction Max => M
-        RowReductionMax(q_dot_k_transpose, rrm);
-
-        // rrm substraction
-        Sub(q_dot_k_transpose, rrm);
-
-        // pointwise exponentiation
-        Exponent(q_dot_k_transpose);
-
-        Zinv(q_dot_k_transpose, zinv_tensors);
-
-        // Zinv reciprocal
-        ZinvMultiply(q_dot_k_transpose, zinv_tensors);
-    }
-    print4(q_dot_k_transpose, "softmax");
-
+    SoftMax(q_dot_k_transpose, rrm, zinv_tensors);
 
     // // drop out
     // // DropOut(q_dot_k_transpose, cpu_mha_test_case.drop_out_rate);
@@ -472,7 +465,6 @@ void MultiHeadAttentionf32(tensor<T>& q_val,
 
     // // O = (Q.dot(Kt)).dot(V)
     Dot_4D_4D(q_dot_k_transpose, v_val, atten_heads);
-
     
 }
 
