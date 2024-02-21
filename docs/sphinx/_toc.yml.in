@@ -1,6 +1,6 @@
 defaults:
   numbered: False
-root: index
+root: index.rst
 subtrees:
     - entries:
       - file: what-is-MIOpen.rst
