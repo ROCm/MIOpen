@@ -1,9 +1,6 @@
-# Anywhere {branch} is used, the branch name will be substituted.
-# These comments will also be removed.
-
 defaults:
   numbered: False
-root: index.rst
+root: index
 subtrees:
 - entries:
   - file: what-is-MIOpen.rst
