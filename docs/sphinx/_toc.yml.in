@@ -9,7 +9,7 @@ subtrees:
     title: What is MIOpen?
   - file: install/index.md
     title: MIOpen Installation
-subtrees:
+ subtrees:
      - entries:
   	  - file: install/install.rst
   	  - file: install/driver.md
