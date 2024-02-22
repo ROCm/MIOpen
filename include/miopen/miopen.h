@@ -5643,7 +5643,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetSumWorkspaceSize(miopenHandle_t handle,
  * @param xDesc                    Tensor descriptor for data input tensor x (input)
  * @param x                        Data tensor x (input)
  * @param dim                      Dimensions to sum. (input)
- * @param redueDesc                Tensor descriptor for output data tensor y (input)
+ * @param reduceDesc               Tensor descriptor for output data tensor y (input)
  * @param y                        Data tensor y (output)
  * @return                         miopenStatus_t
  */
@@ -5679,17 +5679,20 @@ typedef enum
         4, /*!< the operation is getting the maximum value and index of the reduced elements */
 } miopenReduceExtremeOp_t;
 
-#endif
 
-#ifdef MIOPEN_BETA_API
+// ReduceExtreme APIs
+/** @addtogroup ReduceExtreme
+ *
+ *  @{
+ */
 
-/*! @ingroup ReduceExtreme
- * @brief Find the the extreme(minimum, maximum) value and index of a tensor across dimensions.
+/*! @brief Find the the extreme(minimum, maximum) value and index of a tensor across dimensions.
  *
  * @param handle                   MIOpen handle (input)
  * @param xDesc                    Tensor descriptor for data input tensor x (input)
  * @param x                        Data tensor x (input)
  * @param dim                      Dimensions to reduce argmax. (input)
+ * @param reduceExtremeOp          Enumerant specifying the operation used by ReduceExtreme (input)
  * @param reduceDesc               Tensor descriptor for reduce data tensor y or indice (input)
  * @param y                        Data tensor y (output)
  * @param indice                   Data tensor indice (output)
@@ -5705,6 +5708,8 @@ miopenReduceExtremeForward(miopenHandle_t handle,
                            void* y,
                            void* indice);
 
+/** @} */
+// CLOSEOUT REDUCEEXTREME DOXYGEN GROUP
 #endif
 
 #ifdef MIOPEN_BETA_API
