@@ -38,9 +38,9 @@
 #define CVT_FP32_2ACCUM(x) (x)
 #endif
 
-template <typename TI, typename TO>
+template <typename TI>
 __device__ void argmaxfwdcontiguous(const TI* __restrict__ x,
-                                    TO* __restrict__ indice,
+                                    int32_t* __restrict__ indice,
                                     uint64_t indice_numel,
                                     int32_t reduce_size,
                                     uint64_t inner_size)
@@ -69,11 +69,11 @@ __device__ void argmaxfwdcontiguous(const TI* __restrict__ x,
 }
 
 extern "C" __global__ void ArgmaxFwdContiguous(const INPUT_TYPE* __restrict__ x,
-                                               INDICE_TYPE* __restrict__ indice,
+                                               int32_t* __restrict__ indice,
                                                uint64_t indice_numel,
                                                int32_t reduce_size,
                                                uint64_t inner_size)
 {
     // instantiate the kernel
-    argmaxfwdcontiguous<INPUT_TYPE, INDICE_TYPE>(x, indice, indice_numel, reduce_size, inner_size);
+    argmaxfwdcontiguous<INPUT_TYPE>(x, indice, indice_numel, reduce_size, inner_size);
 }

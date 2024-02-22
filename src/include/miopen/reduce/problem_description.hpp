@@ -41,42 +41,28 @@ struct ProblemDescription : ProblemDescriptionBase
 {
     ProblemDescription(miopenSumNanPropagation_t nanPropagation_,
                        const TensorDescriptor& xDesc_,
-                       const TensorDescriptor& yDesc_,
+                       const TensorDescriptor& reduceDesc_,
                        int32_t dim_)
-        : nanPropagation(nanPropagation_), xDesc(xDesc_), yDesc(yDesc_), dim(dim_)
+        : nanPropagation(nanPropagation_), xDesc(xDesc_), reduceDesc(reduceDesc_), dim(dim_)
     {
     }
 
     ProblemDescription(const TensorDescriptor& xDesc_,
-                       const TensorDescriptor& indiceDesc_,
+                       const TensorDescriptor& reduceDesc_,
                        int32_t dim_,
                        miopenReduceExtremeOp_t reduceExtremeOp_)
-        : xDesc(xDesc_), indiceDesc(indiceDesc_), dim(dim_), reduceExtremeOp(reduceExtremeOp_)
-    {
-    }
-
-    ProblemDescription(const TensorDescriptor& xDesc_,
-                       const TensorDescriptor& yDesc_,
-                       const TensorDescriptor& indiceDesc_,
-                       int32_t dim_,
-                       miopenReduceExtremeOp_t reduceExtremeOp_)
-        : xDesc(xDesc_),
-          yDesc(yDesc_),
-          indiceDesc(indiceDesc_),
-          dim(dim_),
-          reduceExtremeOp(reduceExtremeOp_)
+        : xDesc(xDesc_), reduceDesc(reduceDesc_), dim(dim_), reduceExtremeOp(reduceExtremeOp_)
     {
     }
 
     miopenSumNanPropagation_t GetNanPropagation_() const { return nanPropagation; }
     const TensorDescriptor& GetXDesc() const { return xDesc; }
-    const TensorDescriptor& GetYDesc() const { return yDesc; }
-    const TensorDescriptor& GetIndiceDesc() const { return indiceDesc; }
+    const TensorDescriptor& GetReduceDesc() const { return reduceDesc; }
     int32_t GetDim() const { return dim; }
 
     bool IsSameType() const
     {
-        if(xDesc.GetType() != yDesc.GetType())
+        if(xDesc.GetType() != reduceDesc.GetType())
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "Reduce: Tensor types do not match.");
@@ -98,30 +84,13 @@ struct ProblemDescription : ProblemDescriptionBase
             if(i == dim)
                 continue;
 
-            if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN) ||
-               (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX))
+            if(xDesc.GetLengths()[i] != reduceDesc.GetLengths()[posy])
             {
-                if(xDesc.GetLengths()[i] != yDesc.GetLengths()[posy])
-                {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-                    MIOPEN_THROW(miopenStatusBadParm,
-                                 "Reduce: Tensor dimension lengths do not match.");
+                MIOPEN_THROW(miopenStatusBadParm, "Reduce: Tensor dimension lengths do not match.");
 #else
-                    return false;
+                return false;
 #endif
-                }
-            }
-            else
-            {
-                if(xDesc.GetLengths()[i] != indiceDesc.GetLengths()[posy])
-                {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-                    MIOPEN_THROW(miopenStatusBadParm,
-                                 "Reduce: Tensor dimension lengths do not match.");
-#else
-                    return false;
-#endif
-                }
             }
 
             posy++;
@@ -146,29 +115,13 @@ struct ProblemDescription : ProblemDescriptionBase
 
     bool IsAllPacked() const
     {
-
-        if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN) ||
-           (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX))
+        if(!(xDesc.IsPacked() && reduceDesc.IsPacked()))
         {
-            if(!(xDesc.IsPacked() && yDesc.IsPacked()))
-            {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-                MIOPEN_THROW(miopenStatusBadParm, "Reduce: Unpacked tensors not supported.");
+            MIOPEN_THROW(miopenStatusBadParm, "Reduce: Unpacked tensors not supported.");
 #else
-                return false;
+            return false;
 #endif
-            }
-        }
-        else
-        {
-            if(!(xDesc.IsPacked() && indiceDesc.IsPacked()))
-            {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-                MIOPEN_THROW(miopenStatusBadParm, "Reduce: Unpacked tensors not supported.");
-#else
-                return false;
-#endif
-            }
         }
 
         return true;
@@ -193,8 +146,7 @@ struct ProblemDescription : ProblemDescriptionBase
 private:
     miopenSumNanPropagation_t nanPropagation;
     TensorDescriptor xDesc;
-    TensorDescriptor yDesc;
-    TensorDescriptor indiceDesc;
+    TensorDescriptor reduceDesc;
 
     int32_t dim;
     miopenReduceExtremeOp_t reduceExtremeOp;

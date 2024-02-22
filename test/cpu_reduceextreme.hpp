@@ -38,11 +38,8 @@ void cpu_argmax_forward(tensor<T> input, tensor<int32_t>& ref_indice, int32_t di
     auto indice_numel =
         std::accumulate(indice_dims.begin(), indice_dims.end(), 1L, std::multiplies<int64_t>());
 
-    auto inner_size = 1ULL;
-    for(int32_t i = dim + 1; i < input_dims.size(); i++)
-    {
-        inner_size *= input_dims[i];
-    }
+    auto inner_size = std::accumulate(
+        input_dims.begin() + dim + 1, input_dims.end(), 1ULL, std::multiplies<uint64_t>());
 
     par_ford(indice_numel)([&](size_t o) {
         size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
@@ -74,11 +71,8 @@ void cpu_argmin_forward(tensor<T> input, tensor<int32_t>& ref_indice, int32_t di
     auto indice_numel =
         std::accumulate(indice_dims.begin(), indice_dims.end(), 1L, std::multiplies<int64_t>());
 
-    auto inner_size = 1ULL;
-    for(int32_t i = dim + 1; i < input_dims.size(); i++)
-    {
-        inner_size *= input_dims[i];
-    }
+    auto inner_size = std::accumulate(
+        input_dims.begin() + dim + 1, input_dims.end(), 1ULL, std::multiplies<uint64_t>());
 
     par_ford(indice_numel)([&](size_t o) {
         size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
@@ -113,11 +107,8 @@ void cpu_max_forward(tensor<T> input,
     auto output_numel =
         std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
 
-    auto inner_size = 1ULL;
-    for(int32_t i = dim + 1; i < input_dims.size(); i++)
-    {
-        inner_size *= input_dims[i];
-    }
+    auto inner_size = std::accumulate(
+        input_dims.begin() + dim + 1, input_dims.end(), 1ULL, std::multiplies<uint64_t>());
 
     par_ford(output_numel)([&](size_t o) {
         size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
@@ -153,11 +144,8 @@ void cpu_min_forward(tensor<T> input,
     auto output_numel =
         std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
 
-    auto inner_size = 1ULL;
-    for(int32_t i = dim + 1; i < input_dims.size(); i++)
-    {
-        inner_size *= input_dims[i];
-    }
+    auto inner_size = std::accumulate(
+        input_dims.begin() + dim + 1, input_dims.end(), 1ULL, std::multiplies<uint64_t>());
 
     par_ford(output_numel)([&](size_t o) {
         size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;

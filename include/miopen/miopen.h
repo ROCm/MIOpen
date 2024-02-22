@@ -5624,14 +5624,14 @@ typedef enum
  * @param handle                   MIOpen Handle (input)
  * @param xDesc                    Tensor descriptor for data input tensor x (input)
  * @param dim                      Dimensions to sum. (input)
- * @param yDesc                    Tensor descriptor for output data tensor y (input)
+ * @param reduceDesc               Tensor descriptor for output data tensor y (input)
  * @param sizeInBytes              Pointer to data to return the minimum workspace size
  * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGetSumWorkspaceSize(miopenHandle_t handle,
                                                        const miopenTensorDescriptor_t xDesc,
                                                        const int32_t dim,
-                                                       const miopenTensorDescriptor_t yDesc,
+                                                       const miopenTensorDescriptor_t reduceDesc,
                                                        size_t* sizeInBytes);
 
 /*! @brief Execute a sum forward layer
@@ -5643,7 +5643,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetSumWorkspaceSize(miopenHandle_t handle,
  * @param xDesc                    Tensor descriptor for data input tensor x (input)
  * @param x                        Data tensor x (input)
  * @param dim                      Dimensions to sum. (input)
- * @param yDesc                    Tensor descriptor for output data tensor y (input)
+ * @param redueDesc                Tensor descriptor for output data tensor y (input)
  * @param y                        Data tensor y (output)
  * @return                         miopenStatus_t
  */
@@ -5654,7 +5654,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSumForward(miopenHandle_t handle,
                                               const miopenTensorDescriptor_t xDesc,
                                               const void* x,
                                               const int32_t dim,
-                                              const miopenTensorDescriptor_t yDesc,
+                                              const miopenTensorDescriptor_t reduceDesc,
                                               void* y);
 
 /** @} */
@@ -5690,8 +5690,9 @@ typedef enum
  * @param xDesc                    Tensor descriptor for data input tensor x (input)
  * @param x                        Data tensor x (input)
  * @param dim                      Dimensions to reduce argmax. (input)
- * @param yDesc                    Tensor descriptor for output indice data tensor y (input)
+ * @param reduceDesc               Tensor descriptor for reduce data tensor y or indice (input)
  * @param y                        Data tensor y (output)
+ * @param indice                   Data tensor indice (output)
  * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -5700,9 +5701,8 @@ miopenReduceExtremeForward(miopenHandle_t handle,
                            const void* x,
                            const int32_t dim,
                            const miopenReduceExtremeOp_t reduceExtremeOp,
-                           const miopenTensorDescriptor_t yDesc,
+                           const miopenTensorDescriptor_t reduceDesc,
                            void* y,
-                           const miopenTensorDescriptor_t indiceDesc,
                            void* indice);
 
 #endif

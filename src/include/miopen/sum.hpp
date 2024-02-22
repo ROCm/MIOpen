@@ -35,7 +35,7 @@ struct TensorDescriptor;
 
 std::size_t GetSumWorkspaceSize(Handle& handle,
                                 const TensorDescriptor& xDesc,
-                                const TensorDescriptor& yDesc,
+                                const TensorDescriptor& reduceDesc,
                                 int32_t dim);
 
 miopenStatus_t SumForward(Handle& handle,
@@ -43,7 +43,7 @@ miopenStatus_t SumForward(Handle& handle,
                           size_t workspaceSizeInBytes,
                           const TensorDescriptor& xDesc,
                           ConstData_t x,
-                          const TensorDescriptor& yDesc,
+                          const TensorDescriptor& reduceDesc,
                           Data_t y,
                           miopenSumNanPropagation_t nanPropagation,
                           int32_t dim);

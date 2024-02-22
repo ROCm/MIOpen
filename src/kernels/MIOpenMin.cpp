@@ -38,10 +38,10 @@
 #define CVT_FP32_2ACCUM(x) (x)
 #endif
 
-template <typename TI, typename TO, typename TIDX>
+template <typename TI, typename TO>
 __device__ void minfwdcontiguous(const TI* __restrict__ x,
                                  TO* __restrict__ y,
-                                 TIDX* __restrict__ indice,
+                                 int32_t* __restrict__ indice,
                                  uint64_t output_numel,
                                  int32_t reduce_size,
                                  uint64_t inner_size)
@@ -72,12 +72,11 @@ __device__ void minfwdcontiguous(const TI* __restrict__ x,
 
 extern "C" __global__ void MinFwdContiguous(const INPUT_TYPE* __restrict__ x,
                                             OUTPUT_TYPE* __restrict__ y,
-                                            INDICE_TYPE* __restrict__ indice,
+                                            int32_t* __restrict__ indice,
                                             uint64_t output_numel,
                                             int32_t reduce_size,
                                             uint64_t inner_size)
 {
     // instantiate the kernel
-    minfwdcontiguous<INPUT_TYPE, OUTPUT_TYPE, INDICE_TYPE>(
-        x, y, indice, output_numel, reduce_size, inner_size);
+    minfwdcontiguous<INPUT_TYPE, OUTPUT_TYPE>(x, y, indice, output_numel, reduce_size, inner_size);
 }

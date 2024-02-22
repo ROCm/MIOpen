@@ -86,15 +86,15 @@ static void LogCmdSum(const miopenTensorDescriptor_t xDesc,
 extern "C" miopenStatus_t miopenGetSumWorkspaceSize(miopenHandle_t handle,
                                                     const miopenTensorDescriptor_t xDesc,
                                                     int32_t dim,
-                                                    const miopenTensorDescriptor_t yDesc,
+                                                    const miopenTensorDescriptor_t reduceDesc,
                                                     size_t* sizeInBytes)
 {
 
-    MIOPEN_LOG_FUNCTION(handle, xDesc, dim, yDesc);
+    MIOPEN_LOG_FUNCTION(handle, xDesc, dim, reduceDesc);
 
     return miopen::try_([&] {
         miopen::deref(sizeInBytes) = miopen::GetSumWorkspaceSize(
-            miopen::deref(handle), miopen::deref(xDesc), miopen::deref(yDesc), dim);
+            miopen::deref(handle), miopen::deref(xDesc), miopen::deref(reduceDesc), dim);
     });
 };
 
@@ -105,11 +105,11 @@ extern "C" miopenStatus_t miopenSumForward(miopenHandle_t handle,
                                            const miopenTensorDescriptor_t xDesc,
                                            const void* x,
                                            const int32_t dim,
-                                           const miopenTensorDescriptor_t yDesc,
+                                           const miopenTensorDescriptor_t reduceDesc,
                                            void* y)
 {
     MIOPEN_LOG_FUNCTION(
-        handle, nanPropagation, workspace, workspaceSizeInBytes, xDesc, x, dim, yDesc, y);
+        handle, nanPropagation, workspace, workspaceSizeInBytes, xDesc, x, dim, reduceDesc, y);
 
     LogCmdSum(xDesc, nanPropagation, true);
     return miopen::try_([&] {
@@ -118,7 +118,7 @@ extern "C" miopenStatus_t miopenSumForward(miopenHandle_t handle,
                            workspaceSizeInBytes,
                            miopen::deref(xDesc),
                            DataCast(x),
-                           miopen::deref(yDesc),
+                           miopen::deref(reduceDesc),
                            DataCast(y),
                            nanPropagation,
                            dim);

@@ -170,6 +170,7 @@ protected:
 
         input_dev  = handle.Write(input.data);
         indice_dev = handle.Write(indice.data);
+        reduce     = tensor<T>{out_dims};
 
         if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN) ||
            (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX))
@@ -211,9 +212,8 @@ protected:
             status = miopen::ReduceExtremeForward(handle,
                                                   input.desc,
                                                   input_dev.get(),
-                                                  output.desc,
+                                                  reduce.desc,
                                                   output_dev.get(),
-                                                  indice.desc,
                                                   indice_dev.get(),
                                                   dim,
                                                   reduceExtremeOp);
@@ -223,9 +223,8 @@ protected:
             status = miopen::ReduceExtremeForward(handle,
                                                   input.desc,
                                                   input_dev.get(),
-                                                  output.desc,
+                                                  reduce.desc,
                                                   nullptr,
-                                                  indice.desc,
                                                   indice_dev.get(),
                                                   dim,
                                                   reduceExtremeOp);
@@ -263,6 +262,7 @@ protected:
 
     tensor<T> input;
     tensor<T> output;
+    tensor<T> reduce;
     tensor<int32_t> indice;
 
     tensor<T> ref_output;

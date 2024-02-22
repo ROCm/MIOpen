@@ -53,7 +53,7 @@ struct SumForward final : ReduceSolver
 struct ArgmaxForward final : ReduceSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ArgmaxForward>(); }
-    size_t XGridSize(std::vector<size_t> ydims) const;
+    size_t XGridSize(std::vector<size_t> indicedims) const;
     bool OverMaxGridSize(const ExecutionContext& context,
                          const miopen::reduce::ProblemDescription& problem) const;
 
@@ -66,7 +66,7 @@ struct ArgmaxForward final : ReduceSolver
 struct ArgminForward final : ReduceSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ArgminForward>(); }
-    size_t XGridSize(std::vector<size_t> ydims) const;
+    size_t XGridSize(std::vector<size_t> indicedims) const;
     bool OverMaxGridSize(const ExecutionContext& context,
                          const miopen::reduce::ProblemDescription& problem) const;
 
