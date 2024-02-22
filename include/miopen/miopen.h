@@ -5679,9 +5679,6 @@ typedef enum
         4, /*!< the operation is getting the maximum value and index of the reduced elements */
 } miopenReduceExtremeOp_t;
 
-
-
-
 // ReduceExtreme APIs
 /** @addtogroup ReduceExtreme
  *
