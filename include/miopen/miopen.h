@@ -65,11 +65,9 @@
  * @defgroup TensorReduce
  * @defgroup find2
  * @defgroup sum
- * @defgroup argmax
+ * @defgroup ReduceExtreme
  * @defgroup groupnorm
  * @defgroup cat
- * @defgroup argmin
- * @defgroup max
  *
  */
 
@@ -5665,8 +5663,28 @@ MIOPEN_EXPORT miopenStatus_t miopenSumForward(miopenHandle_t handle,
 
 #ifdef MIOPEN_BETA_API
 
-/*! @ingroup argmax
- * @brief Find the index of the maximum value of a tensor across dimensions.
+/*! @ingroup ReduceExtreme
+ * @enum miopenReduceExtremeOp_t
+ * Reduction Extreme operation types
+ */
+typedef enum
+{
+    MIOPEN_REDUCE_EXTREME_ARGMIN =
+        1, /*!< the operation is getting the minimum index of the reduced elements */
+    MIOPEN_REDUCE_EXTREME_ARGMAX =
+        2, /*!< the operation is getting the maximum index of the reduced elements */
+    MIOPEN_REDUCE_EXTREME_MIN =
+        3, /*!< the operation is getting the minimum value and index of the reduced elements */
+    MIOPEN_REDUCE_EXTREME_MAX =
+        4, /*!< the operation is getting the maximum value and index of the reduced elements */
+} miopenReduceExtremeOp_t;
+
+#endif
+
+#ifdef MIOPEN_BETA_API
+
+/*! @ingroup ReduceExtreme
+ * @brief Find the the extreme(minimum, maximum) value and index of a tensor across dimensions.
  *
  * @param handle                   MIOpen handle (input)
  * @param xDesc                    Tensor descriptor for data input tensor x (input)
@@ -5676,12 +5694,16 @@ MIOPEN_EXPORT miopenStatus_t miopenSumForward(miopenHandle_t handle,
  * @param y                        Data tensor y (output)
  * @return                         miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t miopenArgmaxForward(miopenHandle_t handle,
-                                                 const miopenTensorDescriptor_t xDesc,
-                                                 const void* x,
-                                                 const int32_t dim,
-                                                 const miopenTensorDescriptor_t yDesc,
-                                                 void* y);
+MIOPEN_EXPORT miopenStatus_t
+miopenReduceExtremeForward(miopenHandle_t handle,
+                           const miopenTensorDescriptor_t xDesc,
+                           const void* x,
+                           const int32_t dim,
+                           const miopenReduceExtremeOp_t reduceExtremeOp,
+                           const miopenTensorDescriptor_t yDesc,
+                           void* y,
+                           const miopenTensorDescriptor_t indiceDesc,
+                           void* indice);
 
 #endif
 
@@ -5730,80 +5752,6 @@ MIOPEN_EXPORT miopenStatus_t miopenGroupNormForward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT groupnorm DOXYGEN GROUP
-#endif
-
-#ifdef MIOPEN_BETA_API
-
-/*! @ingroup argmin
- * @brief Find the index of the maximum value of a tensor across dimensions.
- *
- * @param handle                   MIOpen handle (input)
- * @param xDesc                    Tensor descriptor for data input tensor x (input)
- * @param x                        Data tensor x (input)
- * @param dim                      Dimensions to reduce argmin. (input)
- * @param yDesc                    Tensor descriptor for output indice data tensor y (input)
- * @param y                        Data tensor y (output)
- * @return                         miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t miopenArgminForward(miopenHandle_t handle,
-                                                 const miopenTensorDescriptor_t xDesc,
-                                                 const void* x,
-                                                 const int32_t dim,
-                                                 const miopenTensorDescriptor_t yDesc,
-                                                 void* y);
-
-#endif
-
-#ifdef MIOPEN_BETA_API
-
-/*! @ingroup max
- * @brief Find the index of the maximum value of a tensor across dimensions.
- *
- * @param handle                   MIOpen handle (input)
- * @param xDesc                    Tensor descriptor for data input tensor x (input)
- * @param x                        Data tensor x (input)
- * @param dim                      Dimensions to reduce max. (input)
- * @param yDesc                    Tensor descriptor for output data tensor y (input)
- * @param y                        Data tensor y (output)
- * @param indiceDesc               Tensor descriptor for output indice data tensor indice (input)
- * @param indice                   Data tensor indice (output)
- * @return                         miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t miopenMaxForward(miopenHandle_t handle,
-                                              const miopenTensorDescriptor_t xDesc,
-                                              const void* x,
-                                              const int32_t dim,
-                                              const miopenTensorDescriptor_t yDesc,
-                                              void* y,
-                                              const miopenTensorDescriptor_t indiceDesc,
-                                              void* indice);
-
-#endif
-
-#ifdef MIOPEN_BETA_API
-
-/*! @ingroup min
- * @brief Find the index of the minimum value of a tensor across dimensions.
- *
- * @param handle                   MIOpen handle (input)
- * @param xDesc                    Tensor descriptor for data input tensor x (input)
- * @param x                        Data tensor x (input)
- * @param dim                      Dimensions to reduce min. (input)
- * @param yDesc                    Tensor descriptor for output data tensor y (input)
- * @param y                        Data tensor y (output)
- * @param indiceDesc               Tensor descriptor for output indice data tensor indice (input)
- * @param indice                   Data tensor indice (output)
- * @return                         miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t miopenMinForward(miopenHandle_t handle,
-                                              const miopenTensorDescriptor_t xDesc,
-                                              const void* x,
-                                              const int32_t dim,
-                                              const miopenTensorDescriptor_t yDesc,
-                                              void* y,
-                                              const miopenTensorDescriptor_t indiceDesc,
-                                              void* indice);
-
 #endif
 
 #ifdef __cplusplus

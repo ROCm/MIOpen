@@ -23,10 +23,8 @@ API Reference
     reduction
     layernorm
     sum
-    argmax
+    reduceextreme
     groupnorm
     cat
-    argmin
-    max
-    min
+
 

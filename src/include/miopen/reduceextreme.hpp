@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,43 +23,25 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifndef MIOPEN_REDUCEEXTREME_HPP_
+#define MIOPEN_REDUCEEXTREME_HPP_
 
-#include "argmax.hpp"
-#include <miopen/env.hpp>
+#include <miopen/common.hpp>
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
+namespace miopen {
 
-namespace argmax {
+struct Handle;
+struct TensorDescriptor;
 
-std::string GetFloatArg()
-{
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
+miopenStatus_t ReduceExtremeForward(Handle& handle,
+                                    const TensorDescriptor& xDesc,
+                                    ConstData_t x,
+                                    const TensorDescriptor& yDesc,
+                                    Data_t y,
+                                    const TensorDescriptor& indiceDesc,
+                                    Data_t indice,
+                                    int32_t dim,
+                                    miopenReduceExtremeOp_t reduceExtremeOp);
 
-struct ArgmaxTestFloat : ArgmaxTest<float>
-{
-};
-
-} // namespace argmax
-using namespace argmax;
-
-TEST_P(ArgmaxTestFloat, ArgmaxTestFw)
-{
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-INSTANTIATE_TEST_SUITE_P(ArgmaxTestSet, ArgmaxTestFloat, testing::ValuesIn(ArgmaxTestConfigs()));
+} // namespace miopen
+#endif // _MIOPEN_REDUCEEXTREME_HPP_

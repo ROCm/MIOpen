@@ -40,13 +40,13 @@
 
 template <typename TI, typename TO>
 __device__ void argmaxfwdcontiguous(const TI* __restrict__ x,
-                                    TO* __restrict__ y,
-                                    uint64_t output_numel,
+                                    TO* __restrict__ indice,
+                                    uint64_t indice_numel,
                                     int32_t reduce_size,
                                     uint64_t inner_size)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
-    if(gid >= output_numel)
+    if(gid >= indice_numel)
         return;
 
     uint64_t input_idx = (gid / inner_size) * inner_size * reduce_size + gid % inner_size;
@@ -65,15 +65,15 @@ __device__ void argmaxfwdcontiguous(const TI* __restrict__ x,
         }
     }
 
-    y[gid] = max_idx;
+    indice[gid] = max_idx;
 }
 
 extern "C" __global__ void ArgmaxFwdContiguous(const INPUT_TYPE* __restrict__ x,
-                                               OUTPUT_TYPE* __restrict__ y,
-                                               uint64_t output_numel,
+                                               INDICE_TYPE* __restrict__ indice,
+                                               uint64_t indice_numel,
                                                int32_t reduce_size,
                                                uint64_t inner_size)
 {
     // instantiate the kernel
-    argmaxfwdcontiguous<INPUT_TYPE, OUTPUT_TYPE>(x, y, output_numel, reduce_size, inner_size);
+    argmaxfwdcontiguous<INPUT_TYPE, INDICE_TYPE>(x, indice, indice_numel, reduce_size, inner_size);
 }

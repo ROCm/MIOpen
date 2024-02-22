@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,6 @@
 
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
-#include <miopen/max.hpp>
 #include <miopen/reduce/invoke_params.hpp>
 #include <miopen/reduce/solvers.hpp>
 #include <miopen/target_properties.hpp>

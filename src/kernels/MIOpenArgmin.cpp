@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -40,13 +40,13 @@
 
 template <typename TI, typename TO>
 __device__ void argminfwdcontiguous(const TI* __restrict__ x,
-                                    TO* __restrict__ y,
-                                    uint64_t output_numel,
+                                    TO* __restrict__ indice,
+                                    uint64_t indice_numel,
                                     int32_t reduce_size,
                                     uint64_t inner_size)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
-    if(gid >= output_numel)
+    if(gid >= indice_numel)
         return;
 
     uint64_t input_idx = (gid / inner_size) * inner_size * reduce_size + gid % inner_size;
@@ -65,15 +65,15 @@ __device__ void argminfwdcontiguous(const TI* __restrict__ x,
         }
     }
 
-    y[gid] = min_idx;
+    indice[gid] = min_idx;
 }
 
 extern "C" __global__ void ArgminFwdContiguous(const INPUT_TYPE* __restrict__ x,
-                                               OUTPUT_TYPE* __restrict__ y,
-                                               uint64_t output_numel,
+                                               INDICE_TYPE* __restrict__ indice,
+                                               uint64_t indice_numel,
                                                int32_t reduce_size,
                                                uint64_t inner_size)
 {
     // instantiate the kernel
-    argminfwdcontiguous<INPUT_TYPE, OUTPUT_TYPE>(x, y, output_numel, reduce_size, inner_size);
+    argminfwdcontiguous<INPUT_TYPE, INDICE_TYPE>(x, indice, indice_numel, reduce_size, inner_size);
 }

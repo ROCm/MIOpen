@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,13 +24,16 @@
  *
  *******************************************************************************/
 
-#include <miopen/min.hpp>
+#include <miopen/reduceextreme.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
-static void LogCmdMin(const miopenTensorDescriptor_t xDesc, bool is_fwd)
+static void LogCmdReduceExtreme(const miopenTensorDescriptor_t xDesc,
+                                const int32_t dim,
+                                const miopenReduceExtremeOp_t reduceExtremeOp,
+                                bool is_fwd)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -38,15 +41,15 @@ static void LogCmdMin(const miopenTensorDescriptor_t xDesc, bool is_fwd)
         auto dtype = miopen::deref(xDesc).GetType();
         if(dtype == miopenHalf)
         {
-            ss << "minfp16";
+            ss << "reduceextremefp16";
         }
         else if(dtype == miopenFloat)
         {
-            ss << "minfp32";
+            ss << "reduceextremefp32";
         }
         else if(dtype == miopenBFloat16)
         {
-            ss << "minbfp16";
+            ss << "reduceextremebfp16";
         }
 
         int32_t size = {0};
@@ -77,30 +80,36 @@ static void LogCmdMin(const miopenTensorDescriptor_t xDesc, bool is_fwd)
 
         ss << " -F " << ((is_fwd) ? "1" : "2");
 
+        ss << " -R " << dim;
+
+        ss << " -O " << reduceExtremeOp;
+
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 }
 
-extern "C" miopenStatus_t miopenMinForward(miopenHandle_t handle,
-                                           const miopenTensorDescriptor_t xDesc,
-                                           const void* x,
-                                           const int32_t dim,
-                                           const miopenTensorDescriptor_t yDesc,
-                                           void* y,
-                                           const miopenTensorDescriptor_t indiceDesc,
-                                           void* indice)
+extern "C" miopenStatus_t miopenReduceExtremeForward(miopenHandle_t handle,
+                                                     const miopenTensorDescriptor_t xDesc,
+                                                     const void* x,
+                                                     const int32_t dim,
+                                                     const miopenReduceExtremeOp_t reduceExtremeOp,
+                                                     const miopenTensorDescriptor_t yDesc,
+                                                     void* y,
+                                                     const miopenTensorDescriptor_t indiceDesc,
+                                                     void* indice)
 {
-    MIOPEN_LOG_FUNCTION(handle, xDesc, x, dim, yDesc, y, indiceDesc, indice);
+    MIOPEN_LOG_FUNCTION(handle, xDesc, x, dim, reduceExtremeOp, yDesc, y, indiceDesc, indice);
 
-    LogCmdMin(xDesc, true);
+    LogCmdReduceExtreme(xDesc, dim, reduceExtremeOp, true);
     return miopen::try_([&] {
-        miopen::MinForward(miopen::deref(handle),
-                           miopen::deref(xDesc),
-                           DataCast(x),
-                           miopen::deref(yDesc),
-                           DataCast(y),
-                           miopen::deref(indiceDesc),
-                           DataCast(indice),
-                           dim);
+        miopen::ReduceExtremeForward(miopen::deref(handle),
+                                     miopen::deref(xDesc),
+                                     DataCast(x),
+                                     miopen::deref(yDesc),
+                                     DataCast(y),
+                                     miopen::deref(indiceDesc),
+                                     DataCast(indice),
+                                     dim,
+                                     reduceExtremeOp);
     });
 }

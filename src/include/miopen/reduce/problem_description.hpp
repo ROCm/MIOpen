@@ -47,16 +47,24 @@ struct ProblemDescription : ProblemDescriptionBase
     {
     }
 
-    ProblemDescription(const TensorDescriptor& xDesc_, const TensorDescriptor& yDesc_, int32_t dim_)
-        : xDesc(xDesc_), yDesc(yDesc_), dim(dim_)
+    ProblemDescription(const TensorDescriptor& xDesc_,
+                       const TensorDescriptor& indiceDesc_,
+                       int32_t dim_,
+                       miopenReduceExtremeOp_t reduceExtremeOp_)
+        : xDesc(xDesc_), indiceDesc(indiceDesc_), dim(dim_), reduceExtremeOp(reduceExtremeOp_)
     {
     }
 
     ProblemDescription(const TensorDescriptor& xDesc_,
                        const TensorDescriptor& yDesc_,
                        const TensorDescriptor& indiceDesc_,
-                       int32_t dim_)
-        : xDesc(xDesc_), yDesc(yDesc_), indiceDesc(indiceDesc_), dim(dim_)
+                       int32_t dim_,
+                       miopenReduceExtremeOp_t reduceExtremeOp_)
+        : xDesc(xDesc_),
+          yDesc(yDesc_),
+          indiceDesc(indiceDesc_),
+          dim(dim_),
+          reduceExtremeOp(reduceExtremeOp_)
     {
     }
 
@@ -90,13 +98,30 @@ struct ProblemDescription : ProblemDescriptionBase
             if(i == dim)
                 continue;
 
-            if(xDesc.GetLengths()[i] != yDesc.GetLengths()[posy])
+            if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN) ||
+               (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX))
             {
+                if(xDesc.GetLengths()[i] != yDesc.GetLengths()[posy])
+                {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-                MIOPEN_THROW(miopenStatusBadParm, "Reduce: Tensor dimension lengths do not match.");
+                    MIOPEN_THROW(miopenStatusBadParm,
+                                 "Reduce: Tensor dimension lengths do not match.");
 #else
-                return false;
+                    return false;
 #endif
+                }
+            }
+            else
+            {
+                if(xDesc.GetLengths()[i] != indiceDesc.GetLengths()[posy])
+                {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+                    MIOPEN_THROW(miopenStatusBadParm,
+                                 "Reduce: Tensor dimension lengths do not match.");
+#else
+                    return false;
+#endif
+                }
             }
 
             posy++;
@@ -121,14 +146,31 @@ struct ProblemDescription : ProblemDescriptionBase
 
     bool IsAllPacked() const
     {
-        if(!(xDesc.IsPacked() && yDesc.IsPacked()))
+
+        if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN) ||
+           (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX))
         {
+            if(!(xDesc.IsPacked() && yDesc.IsPacked()))
+            {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm, "Reduce: Unpacked tensors not supported.");
+                MIOPEN_THROW(miopenStatusBadParm, "Reduce: Unpacked tensors not supported.");
 #else
-            return false;
+                return false;
 #endif
+            }
         }
+        else
+        {
+            if(!(xDesc.IsPacked() && indiceDesc.IsPacked()))
+            {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+                MIOPEN_THROW(miopenStatusBadParm, "Reduce: Unpacked tensors not supported.");
+#else
+                return false;
+#endif
+            }
+        }
+
         return true;
     }
 
@@ -155,6 +197,7 @@ private:
     TensorDescriptor indiceDesc;
 
     int32_t dim;
+    miopenReduceExtremeOp_t reduceExtremeOp;
 
     NetworkConfig MakeForwardNetworkConfig() const;
 };

@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-#include <miopen/argmax.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/reduce/invoke_params.hpp>
@@ -39,19 +38,19 @@ namespace solver {
 
 namespace reduce {
 
-size_t ArgmaxForward::XGridSize(std::vector<size_t> ydims) const
+size_t ArgmaxForward::XGridSize(std::vector<size_t> indicedims) const
 {
-    auto output_numel =
-        std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
-    return AlignUp(output_numel, LOCAL_SIZE);
+    auto indice_numel =
+        std::accumulate(indicedims.begin(), indicedims.end(), 1ULL, std::multiplies<size_t>());
+    return AlignUp(indice_numel, LOCAL_SIZE);
 }
 
 /// \todo https://github.com/ROCm/MIOpen/pull/2583#discussion_r1437054128
 bool ArgmaxForward::OverMaxGridSize(const ExecutionContext& context,
                                     const miopen::reduce::ProblemDescription& problem) const
 {
-    auto ydims = problem.GetYDesc().GetLengths();
-    if(XGridSize(ydims) > context.GetStream().GetImage3dMaxWidth())
+    auto indicedims = problem.GetIndiceDesc().GetLengths();
+    if(XGridSize(indicedims) > context.GetStream().GetImage3dMaxWidth())
         return false;
     return true;
 }
@@ -79,9 +78,9 @@ ConvSolution ArgmaxForward::GetSolution(const ExecutionContext&,
 
     auto dtype        = problem.GetXDesc().GetType();
     auto input_dtype  = miopen::GetDataType(problem.GetXDesc().GetType());
-    auto output_dtype = miopen::GetDataType(problem.GetYDesc().GetType());
+    auto indice_dtype = miopen::GetDataType(problem.GetIndiceDesc().GetType());
     auto xdims        = problem.GetXDesc().GetLengths();
-    auto ydims        = problem.GetYDesc().GetLengths();
+    auto indicedims   = problem.GetIndiceDesc().GetLengths();
 
     {
         size_t xlocalsize;
@@ -96,14 +95,14 @@ ConvSolution ArgmaxForward::GetSolution(const ExecutionContext&,
         kernel.kernel_file = "MIOpenArgmax.cpp";
         kernel.kernel_name = "ArgmaxFwdContiguous";
         xlocalsize         = LOCAL_SIZE;
-        xgridsize          = XGridSize(ydims);
+        xgridsize          = XGridSize(indicedims);
 
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
             {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-            {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
+            {"INDICE_TYPE", indice_dtype == "bfloat16" ? "ushort" : indice_dtype},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -124,18 +123,18 @@ ConvSolution ArgmaxForward::GetSolution(const ExecutionContext&,
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::reduce::InvokeParams>();
 
-            auto xdims = params.xDesc->GetLengths();
-            auto ydims = params.yDesc->GetLengths();
-            auto dim   = params.dim;
+            auto xdims      = params.xDesc->GetLengths();
+            auto indicedims = params.indiceDesc->GetLengths();
+            auto dim        = params.dim;
 
             int32_t reduce_size = static_cast<int32_t>(xdims[dim]);
-            auto output_numel =
-                std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
+            auto indice_numel   = std::accumulate(
+                indicedims.begin(), indicedims.end(), 1ULL, std::multiplies<size_t>());
 
             auto inner_size = std::accumulate(
                 xdims.begin() + dim + 1, xdims.end(), 1ULL, std::multiplies<size_t>());
 
-            kernel(params.x, params.y, output_numel, reduce_size, inner_size);
+            kernel(params.x, params.indice, indice_numel, reduce_size, inner_size);
         };
     };
 

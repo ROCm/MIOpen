@@ -86,8 +86,6 @@ set( MIOpen_Source
     activ/problem_description.cpp
     activ_api.cpp
     api/find2_0_commons.cpp
-    argmax_api.cpp
-    argmin_api.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
@@ -134,8 +132,6 @@ set( MIOpen_Source
     lock_file.cpp
     logger.cpp
     lrn_api.cpp
-    max_api.cpp
-    min_api.cpp
     op_args.cpp
     operator.cpp
     performance_config.cpp
@@ -145,6 +141,7 @@ set( MIOpen_Source
     process.cpp
     ramdb.cpp
     readonlyramdb.cpp
+    reduceextreme_api.cpp
     reducetensor.cpp
     reducetensor_api.cpp
     reduce/problem_description.cpp
@@ -574,15 +571,11 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
     list(APPEND MIOpen_Source
         activ.cpp
-        argmax.cpp
-        argmin.cpp
         cat.cpp
         groupnorm.cpp
         kernel_cache.cpp
         layer_norm.cpp
         lrn.cpp
-        max.cpp
-        min.cpp
         mlo_dir_conv.cpp
         exec_utils.cpp
         ocl/activ_ocl.cpp
@@ -604,6 +597,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         pooling.cpp
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
+        reduceextreme.cpp
         sum.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )
