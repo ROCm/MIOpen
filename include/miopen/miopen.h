@@ -5680,6 +5680,8 @@ typedef enum
 } miopenReduceExtremeOp_t;
 
 
+
+
 // ReduceExtreme APIs
 /** @addtogroup ReduceExtreme
  *
