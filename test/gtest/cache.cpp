@@ -94,14 +94,14 @@ TEST(TestCache, check_kern_db)
     cfg0.kernel_args = random_string(512);
     cfg0.kernel_blob = random_string(8192);
 
-    miopen::KernDb empty_db("", false);
+    miopen::KernDb empty_db(miopen::DbKinds::KernelDb, "", false);
     EXPECT_TRUE(empty_db.RemoveRecordUnsafe(cfg0)); // for empty file, remove should succeed
     EXPECT_FALSE(empty_db.FindRecordUnsafe(cfg0));  // no record in empty database
     EXPECT_FALSE(empty_db.StoreRecordUnsafe(cfg0)); // storing in an empty database should fail
 
     {
         miopen::TempFile temp_file("tmp-kerndb");
-        miopen::KernDb clean_db(std::string(temp_file), false);
+        miopen::KernDb clean_db(miopen::DbKinds::KernelDb, std::string(temp_file), false);
 
         EXPECT_TRUE(clean_db.StoreRecordUnsafe(cfg0));
         auto readout = clean_db.FindRecordUnsafe(cfg0);
@@ -114,6 +114,7 @@ TEST(TestCache, check_kern_db)
     {
         miopen::TempFile temp_file("tmp-kerndb");
         miopen::KernDb err_db(
+            miopen::DbKinds::KernelDb,
             std::string(temp_file),
             false,
             [](std::string str, bool* success) {
