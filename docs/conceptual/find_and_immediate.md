@@ -1,9 +1,12 @@
-Find and Immediate Mode
-=======================
+
+# What is MIOpen
+
+MIOpen, AMD's open-source deep learning primitives library for GPUs, provides highly optimized implementations of such operators, shielding researchers from internal implementation details and hence, accelerating the time to discovery.
 
 
+## Find and Immediate Mode
 
-## Find API
+### Find API
 
 MIOpen contains several convolution algorithms for each stage of training or inference. Pre-MIOpen version 2.0 users needed to call Find methods in order generate a set of applicable algorithms.
 
