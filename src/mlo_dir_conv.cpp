@@ -60,7 +60,7 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)
 
 miopen::PerformanceDb miopen::GetDb(const miopen::ExecutionContext& ctx)
 {
-    return {ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath()};
+    return {DbKinds::PerfDb, ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath()};
 }
 
 static auto GetGemmSolvers()
