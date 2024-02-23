@@ -105,11 +105,11 @@ struct ExecutionContext
     ExecutionContext() { DetectRocm(); }
     ExecutionContext(Handle* stream_) : stream(stream_) { DetectRocm(); }
 
-    virtual ~ExecutionContext()               = default;
-    ExecutionContext(const ExecutionContext&) = default;
-    ExecutionContext(ExecutionContext&&)      = default;
+    virtual ~ExecutionContext()                          = default;
+    ExecutionContext(const ExecutionContext&)            = default;
+    ExecutionContext(ExecutionContext&&)                 = default;
     ExecutionContext& operator=(const ExecutionContext&) = default;
-    ExecutionContext& operator=(ExecutionContext&&) = default;
+    ExecutionContext& operator=(ExecutionContext&&)      = default;
 
 #if MIOPEN_EMBED_DB
     std::string GetPerfDbPathEmbed() const
@@ -279,10 +279,10 @@ struct ExecutionContext
             return "";
         std::ostringstream filename;
         filename << GetStream().GetDbBasename();
-#if MIOPEN_ENABLE_SQLITE
+#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
         filename << "_" << SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER << ".udb";
 #else
-        filename << "." << GetUserDbSuffix() << ".cd.updb.txt";
+        filename << "." << GetUserDbSuffix() << ".udb.txt";
 #endif
         return (udb / filename.str()).string();
     }
