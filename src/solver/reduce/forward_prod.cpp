@@ -40,8 +40,8 @@ namespace solver {
 
 namespace reduce {
 
-bool SumForward::IsApplicable(const ExecutionContext& context,
-                              const miopen::reduce::ProblemDescription& problem) const
+bool ProdForward::IsApplicable(const ExecutionContext& context,
+                               const miopen::reduce::ProblemDescription& problem) const
 {
     if(!problem.IsSameType())
         return false;
@@ -58,8 +58,8 @@ bool SumForward::IsApplicable(const ExecutionContext& context,
     return true;
 }
 
-ConvSolution SumForward::GetSolution(const ExecutionContext& context,
-                                     const miopen::reduce::ProblemDescription& problem) const
+ConvSolution ProdForward::GetSolution(const ExecutionContext& context,
+                                      const miopen::reduce::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -89,8 +89,8 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
 
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenSum.cpp";
-        kernel.kernel_name = "SumParallelFwdContiguous";
+        kernel.kernel_file = "MIOpenProd.cpp";
+        kernel.kernel_name = "ProdParallelFwdContiguous";
 
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
@@ -123,8 +123,8 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
 
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenSum.cpp";
-        kernel.kernel_name = "SumFwdContiguous";
+        kernel.kernel_file = "MIOpenProd.cpp";
+        kernel.kernel_name = "ProdFwdContiguous";
 
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
@@ -232,8 +232,8 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
     return result;
 }
 
-std::size_t SumForward::GetWorkspaceSize(const ExecutionContext& context,
-                                         const miopen::reduce::ProblemDescription& problem) const
+std::size_t ProdForward::GetWorkspaceSize(const ExecutionContext& context,
+                                          const miopen::reduce::ProblemDescription& problem) const
 {
     auto xdims = problem.GetXDesc().GetLengths();
     auto ydims = problem.GetReduceDesc().GetLengths();

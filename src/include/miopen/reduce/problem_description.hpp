@@ -39,7 +39,7 @@ namespace reduce {
 
 struct ProblemDescription : ProblemDescriptionBase
 {
-    ProblemDescription(miopenSumNanPropagation_t nanPropagation_,
+    ProblemDescription(miopenReduceCalculationNanPropagation_t nanPropagation_,
                        const TensorDescriptor& xDesc_,
                        const TensorDescriptor& reduceDesc_,
                        int32_t dim_)
@@ -55,7 +55,7 @@ struct ProblemDescription : ProblemDescriptionBase
     {
     }
 
-    miopenSumNanPropagation_t GetNanPropagation_() const { return nanPropagation; }
+    miopenReduceCalculationNanPropagation_t GetNanPropagation_() const { return nanPropagation; }
     const TensorDescriptor& GetXDesc() const { return xDesc; }
     const TensorDescriptor& GetReduceDesc() const { return reduceDesc; }
     int32_t GetDim() const { return dim; }
@@ -144,7 +144,7 @@ struct ProblemDescription : ProblemDescriptionBase
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
-    miopenSumNanPropagation_t nanPropagation;
+    miopenReduceCalculationNanPropagation_t nanPropagation;
     TensorDescriptor xDesc;
     TensorDescriptor reduceDesc;
 

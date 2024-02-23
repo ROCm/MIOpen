@@ -43,7 +43,7 @@
 #include "tensorop_driver.hpp"
 #include "reduce_driver.hpp"
 #include "layernorm_driver.hpp"
-#include "sum_driver.hpp"
+#include "reducecalculation_driver.hpp"
 #include "reduceextreme_driver.hpp"
 #include "cat_driver.hpp"
 #include <miopen/config.h>
@@ -224,17 +224,17 @@ int main(int argc, char* argv[])
     {
         drv = new LayerNormDriver<bfloat16, float>();
     }
-    else if(base_arg == "sum")
+    else if(base_arg == "reducecalculation")
     {
-        drv = new SumDriver<float, float>();
+        drv = new ReduceCalculationDriver<float, float>();
     }
-    else if(base_arg == "sumfp16")
+    else if(base_arg == "reducecalculationfp16")
     {
-        drv = new SumDriver<float16, float>();
+        drv = new ReduceCalculationDriver<float16, float>();
     }
-    else if(base_arg == "sumbfp16")
+    else if(base_arg == "reducecalculationbfp16")
     {
-        drv = new SumDriver<bfloat16, float>();
+        drv = new ReduceCalculationDriver<bfloat16, float>();
     }
     else if(base_arg == "reduceextreme")
     {

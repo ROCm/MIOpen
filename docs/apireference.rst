@@ -22,7 +22,7 @@ API Reference
     dropout
     reduction
     layernorm
-    sum
+    reducecalculation
     reduceextreme
     groupnorm
     cat

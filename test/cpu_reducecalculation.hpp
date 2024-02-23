@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CPU_SUM_HPP
-#define GUARD_CPU_SUM_HPP
+#ifndef GUARD_CPU_REDUCE_CALCULATION_HPP
+#define GUARD_CPU_REDUCE_CALCULATION_HPP
 
 #include "tensor_holder.hpp"
 
@@ -32,7 +32,7 @@ template <class T>
 void cpu_sum_forward(tensor<T> input,
                      tensor<T>& ref_output,
                      int32_t dim,
-                     miopenSumNanPropagation_t nanPropagation)
+                     miopenReduceCalculationNanPropagation_t nanPropagation)
 {
     auto input_dims  = input.desc.GetLengths();
     auto output_dims = ref_output.desc.GetLengths();
@@ -49,19 +49,56 @@ void cpu_sum_forward(tensor<T> input,
 
     par_ford(output_numel)([&](size_t o) {
         size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
-        T sum            = 0.0f;
+        T sum            = static_cast<T>(0.0);
 
         ford(reduce_size)([&](size_t) {
             T val = input[input_idx];
             if(nanPropagation && std::isnan(val))
             {
-                val = 0.0f;
+                val = static_cast<T>(0.0);
             }
             sum += val;
             input_idx += inner_size;
         });
 
         ref_output[o] = sum;
+    });
+}
+
+template <class T>
+void cpu_prod_forward(tensor<T> input,
+                      tensor<T>& ref_output,
+                      int32_t dim,
+                      miopenReduceCalculationNanPropagation_t nanPropagation)
+{
+    auto input_dims  = input.desc.GetLengths();
+    auto output_dims = ref_output.desc.GetLengths();
+
+    auto reduce_size = input_dims[dim];
+    auto output_numel =
+        std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
+
+    auto inner_size = 1ULL;
+    for(int32_t i = dim + 1; i < input_dims.size(); i++)
+    {
+        inner_size *= input_dims[i];
+    }
+
+    par_ford(output_numel)([&](size_t o) {
+        size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
+        T prod           = static_cast<T>(1.0);
+
+        ford(reduce_size)([&](size_t) {
+            T val = input[input_idx];
+            if(nanPropagation && std::isnan(val))
+            {
+                val = static_cast<T>(1.0);
+            }
+            prod *= val;
+            input_idx += inner_size;
+        });
+
+        ref_output[o] = prod;
     });
 }
 #endif

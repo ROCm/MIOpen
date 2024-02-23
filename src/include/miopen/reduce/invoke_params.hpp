@@ -39,13 +39,14 @@ struct InvokeParams : public miopen::InvokeParams
     const TensorDescriptor* xDesc      = nullptr;
     const TensorDescriptor* reduceDesc = nullptr;
 
-    ConstData_t x                            = nullptr;
-    Data_t y                                 = nullptr;
-    Data_t indice                            = nullptr;
-    Data_t workspace                         = nullptr;
-    std::size_t workspace_size               = 0;
-    int32_t dim                              = 0;
-    miopenSumNanPropagation_t nanPropagation = MIOPEN_SUM_NOT_PROPAGATE_NAN;
+    ConstData_t x              = nullptr;
+    Data_t y                   = nullptr;
+    Data_t indice              = nullptr;
+    Data_t workspace           = nullptr;
+    std::size_t workspace_size = 0;
+    int32_t dim                = 0;
+    miopenReduceCalculationNanPropagation_t nanPropagation =
+        MIOPEN_REDUCE_CALCULATION_NOT_PROPAGATE_NAN;
 
     std::size_t GetWorkspaceSize() const { return workspace_size; }
     Data_t GetWorkspace() const { return workspace; }

@@ -316,12 +316,13 @@ int ReduceExtremeDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("in_w", 'W', "375", "Input Width (Default=32)", "int");
     inflags.AddInputFlag(
         "DimToReduce", 'R', "0", "The indice of the dimensions to be reduced(Default=1)", "int");
-    inflags.AddInputFlag("ReduceExtremeOp",
-                         'O',
-                         "0",
-                         "Reduce Extreme Operation Type (check the enum miopenReduceExtremeOp_t in "
-                         "miopen.h) (Default=0 to Find the the minimum index)",
-                         "int");
+    inflags.AddInputFlag(
+        "ReduceExtremeOp",
+        'O',
+        "0",
+        "Reduce Extreme Operation Type (check the enum miopenReduceExtremeOp_t in "
+        "miopen.h) (Default=0 to Find the the minimum index of the reduced elements)",
+        "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");

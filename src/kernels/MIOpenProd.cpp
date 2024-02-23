@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -39,13 +39,13 @@
 #endif
 
 template <typename TI, typename TO>
-__device__ void sumparallelfwdcontiguous(const TI* __restrict__ x,
-                                         TO* __restrict__ y,
-                                         uint64_t output_numel,
-                                         uint64_t reduce_size,
-                                         uint64_t parallelism_size,
-                                         uint64_t inner_size,
-                                         bool nanPropagation)
+__device__ void prodparallelfwdcontiguous(const TI* __restrict__ x,
+                                          TO* __restrict__ y,
+                                          uint64_t output_numel,
+                                          uint64_t reduce_size,
+                                          uint64_t parallelism_size,
+                                          uint64_t inner_size,
+                                          bool nanPropagation)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
     if(gid >= parallelism_size * output_numel)
@@ -60,41 +60,41 @@ __device__ void sumparallelfwdcontiguous(const TI* __restrict__ x,
 
     uint64_t parallel_id = slice_local_id / inner_size;
 
-    FLOAT_ACCUM sum = static_cast<FLOAT_ACCUM>(0);
+    FLOAT_ACCUM prod = static_cast<FLOAT_ACCUM>(1);
     for(uint64_t k = parallel_id; k < reduce_size; k += parallelism_size)
     {
         FLOAT_ACCUM val = CVT_FLOAT2ACCUM(x[input_idx]);
         if(nanPropagation && isnan(val))
         {
-            val = static_cast<FLOAT_ACCUM>(0);
+            val = static_cast<FLOAT_ACCUM>(1);
         }
-        sum += val;
+        prod *= val;
         input_idx += inner_size * parallelism_size;
     }
 
-    y[gid] = CVT_ACCUM2FLOAT(sum);
+    y[gid] = CVT_ACCUM2FLOAT(prod);
 }
 
-extern "C" __global__ void SumParallelFwdContiguous(const INPUT_TYPE* __restrict__ x,
-                                                    OUTPUT_TYPE* __restrict__ y,
-                                                    uint64_t output_numel,
-                                                    uint64_t reduce_size,
-                                                    uint64_t parallelism_size,
-                                                    uint64_t inner_size,
-                                                    bool nanPropagation)
+extern "C" __global__ void ProdParallelFwdContiguous(const INPUT_TYPE* __restrict__ x,
+                                                     OUTPUT_TYPE* __restrict__ y,
+                                                     uint64_t output_numel,
+                                                     uint64_t reduce_size,
+                                                     uint64_t parallelism_size,
+                                                     uint64_t inner_size,
+                                                     bool nanPropagation)
 {
     // instantiate the kernel
-    sumparallelfwdcontiguous<INPUT_TYPE, OUTPUT_TYPE>(
+    prodparallelfwdcontiguous<INPUT_TYPE, OUTPUT_TYPE>(
         x, y, output_numel, reduce_size, parallelism_size, inner_size, nanPropagation);
 }
 
 template <typename TI, typename TO>
-__device__ void sumfwdcontiguous(const TI* __restrict__ x,
-                                 TO* __restrict__ y,
-                                 uint64_t output_numel,
-                                 uint64_t reduce_size,
-                                 uint64_t inner_size,
-                                 bool nanPropagation)
+__device__ void prodfwdcontiguous(const TI* __restrict__ x,
+                                  TO* __restrict__ y,
+                                  uint64_t output_numel,
+                                  uint64_t reduce_size,
+                                  uint64_t inner_size,
+                                  bool nanPropagation)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
     if(gid >= output_numel)
@@ -102,29 +102,29 @@ __device__ void sumfwdcontiguous(const TI* __restrict__ x,
 
     uint64_t input_idx = (gid / inner_size) * inner_size * reduce_size + gid % inner_size;
 
-    FLOAT_ACCUM sum = static_cast<FLOAT_ACCUM>(0);
+    FLOAT_ACCUM prod = static_cast<FLOAT_ACCUM>(1);
     for(uint64_t k = 0; k < reduce_size; ++k)
     {
         FLOAT_ACCUM val = CVT_FLOAT2ACCUM(x[input_idx]);
         if(nanPropagation && isnan(val))
         {
-            val = static_cast<FLOAT_ACCUM>(0);
+            val = static_cast<FLOAT_ACCUM>(1);
         }
-        sum += val;
+        prod *= val;
         input_idx += inner_size;
     }
 
-    y[gid] = CVT_ACCUM2FLOAT(sum);
+    y[gid] = CVT_ACCUM2FLOAT(prod);
 }
 
-extern "C" __global__ void SumFwdContiguous(const INPUT_TYPE* __restrict__ x,
-                                            OUTPUT_TYPE* __restrict__ y,
-                                            uint64_t output_numel,
-                                            uint64_t reduce_size,
-                                            uint64_t inner_size,
-                                            bool nanPropagation)
+extern "C" __global__ void ProdFwdContiguous(const INPUT_TYPE* __restrict__ x,
+                                             OUTPUT_TYPE* __restrict__ y,
+                                             uint64_t output_numel,
+                                             uint64_t reduce_size,
+                                             uint64_t inner_size,
+                                             bool nanPropagation)
 {
     // instantiate the kernel
-    sumfwdcontiguous<INPUT_TYPE, OUTPUT_TYPE>(
+    prodfwdcontiguous<INPUT_TYPE, OUTPUT_TYPE>(
         x, y, output_numel, reduce_size, inner_size, nanPropagation);
 }

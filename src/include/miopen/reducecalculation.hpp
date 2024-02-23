@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_SUM_HPP_
-#define MIOPEN_SUM_HPP_
+#ifndef MIOPEN_REDUCE_CALCULATION_HPP_
+#define MIOPEN_REDUCE_CALCULATION_HPP_
 
 #include <miopen/common.hpp>
 
@@ -33,20 +33,22 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-std::size_t GetSumWorkspaceSize(Handle& handle,
-                                const TensorDescriptor& xDesc,
-                                const TensorDescriptor& reduceDesc,
-                                int32_t dim);
+std::size_t GetReduceCalculationWorkspaceSize(Handle& handle,
+                                              const TensorDescriptor& xDesc,
+                                              const TensorDescriptor& reduceDesc,
+                                              int32_t dim,
+                                              miopenReduceCalculationOp_t reduceCalculationOp);
 
-miopenStatus_t SumForward(Handle& handle,
-                          Data_t workspace,
-                          size_t workspaceSizeInBytes,
-                          const TensorDescriptor& xDesc,
-                          ConstData_t x,
-                          const TensorDescriptor& reduceDesc,
-                          Data_t y,
-                          miopenSumNanPropagation_t nanPropagation,
-                          int32_t dim);
+miopenStatus_t ReduceCalculationForward(Handle& handle,
+                                        Data_t workspace,
+                                        size_t workspaceSizeInBytes,
+                                        const TensorDescriptor& xDesc,
+                                        ConstData_t x,
+                                        const TensorDescriptor& reduceDesc,
+                                        Data_t y,
+                                        miopenReduceCalculationNanPropagation_t nanPropagation,
+                                        int32_t dim,
+                                        miopenReduceCalculationOp_t reduceCalculationOp);
 
 } // namespace miopen
-#endif // _MIOPEN_SUM_HPP_
+#endif // _MIOPEN_REDUCE_CALCULATION_HPP_

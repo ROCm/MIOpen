@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,15 +24,17 @@
  *
  *******************************************************************************/
 
-#include <miopen/sum.hpp>
+#include <miopen/reducecalculation.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
-static void LogCmdSum(const miopenTensorDescriptor_t xDesc,
-                      const miopenSumNanPropagation_t nanPropagation,
-                      bool is_fwd)
+static void LogCmdReduceCalculation(const miopenTensorDescriptor_t xDesc,
+                                    const miopenReduceCalculationNanPropagation_t nanPropagation,
+                                    const int32_t dim,
+                                    const miopenReduceCalculationOp_t reduceCalculationOp,
+                                    bool is_fwd)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -40,15 +42,15 @@ static void LogCmdSum(const miopenTensorDescriptor_t xDesc,
         auto dtype = miopen::deref(xDesc).GetType();
         if(dtype == miopenHalf)
         {
-            ss << "sumfp16";
+            ss << "reducecalculationfp16";
         }
         else if(dtype == miopenFloat)
         {
-            ss << "sumfp32";
+            ss << "reducecalculationfp32";
         }
         else if(dtype == miopenBFloat16)
         {
-            ss << "sumbfp16";
+            ss << "reducecalculationbfp16";
         }
 
         int32_t size = {0};
@@ -79,48 +81,61 @@ static void LogCmdSum(const miopenTensorDescriptor_t xDesc,
 
         ss << " -F " << ((is_fwd) ? "1" : "2") << " -n " << nanPropagation;
 
+        ss << " -R " << dim;
+
+        ss << " -O " << reduceCalculationOp;
+
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 }
 
-extern "C" miopenStatus_t miopenGetSumWorkspaceSize(miopenHandle_t handle,
-                                                    const miopenTensorDescriptor_t xDesc,
-                                                    int32_t dim,
-                                                    const miopenTensorDescriptor_t reduceDesc,
-                                                    size_t* sizeInBytes)
+extern "C" miopenStatus_t
+miopenGetReduceCalculationWorkspaceSize(miopenHandle_t handle,
+                                        const miopenTensorDescriptor_t xDesc,
+                                        const int32_t dim,
+                                        const miopenReduceCalculationOp_t reduceCalculationOp,
+                                        const miopenTensorDescriptor_t reduceDesc,
+                                        size_t* sizeInBytes)
 {
 
     MIOPEN_LOG_FUNCTION(handle, xDesc, dim, reduceDesc);
 
     return miopen::try_([&] {
-        miopen::deref(sizeInBytes) = miopen::GetSumWorkspaceSize(
-            miopen::deref(handle), miopen::deref(xDesc), miopen::deref(reduceDesc), dim);
+        miopen::deref(sizeInBytes) =
+            miopen::GetReduceCalculationWorkspaceSize(miopen::deref(handle),
+                                                      miopen::deref(xDesc),
+                                                      miopen::deref(reduceDesc),
+                                                      dim,
+                                                      reduceCalculationOp);
     });
 };
 
-extern "C" miopenStatus_t miopenSumForward(miopenHandle_t handle,
-                                           miopenSumNanPropagation_t nanPropagation,
-                                           void* workspace,
-                                           size_t workspaceSizeInBytes,
-                                           const miopenTensorDescriptor_t xDesc,
-                                           const void* x,
-                                           const int32_t dim,
-                                           const miopenTensorDescriptor_t reduceDesc,
-                                           void* y)
+extern "C" miopenStatus_t
+miopenReduceCalculationForward(miopenHandle_t handle,
+                               miopenReduceCalculationNanPropagation_t nanPropagation,
+                               void* workspace,
+                               size_t workspaceSizeInBytes,
+                               const miopenTensorDescriptor_t xDesc,
+                               const void* x,
+                               const int32_t dim,
+                               const miopenReduceCalculationOp_t reduceCalculationOp,
+                               const miopenTensorDescriptor_t reduceDesc,
+                               void* y)
 {
     MIOPEN_LOG_FUNCTION(
         handle, nanPropagation, workspace, workspaceSizeInBytes, xDesc, x, dim, reduceDesc, y);
 
-    LogCmdSum(xDesc, nanPropagation, true);
+    LogCmdReduceCalculation(xDesc, nanPropagation, dim, reduceCalculationOp, true);
     return miopen::try_([&] {
-        miopen::SumForward(miopen::deref(handle),
-                           DataCast(workspace),
-                           workspaceSizeInBytes,
-                           miopen::deref(xDesc),
-                           DataCast(x),
-                           miopen::deref(reduceDesc),
-                           DataCast(y),
-                           nanPropagation,
-                           dim);
+        miopen::ReduceCalculationForward(miopen::deref(handle),
+                                         DataCast(workspace),
+                                         workspaceSizeInBytes,
+                                         miopen::deref(xDesc),
+                                         DataCast(x),
+                                         miopen::deref(reduceDesc),
+                                         DataCast(y),
+                                         nanPropagation,
+                                         dim,
+                                         reduceCalculationOp);
     });
 }

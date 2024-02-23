@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_SUM_DRIVER_HPP
-#define GUARD_MIOPEN_SUM_DRIVER_HPP
+#ifndef GUARD_MIOPEN_REDUCE_CALCULATION_DRIVER_HPP
+#define GUARD_MIOPEN_REDUCE_CALCULATION_DRIVER_HPP
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
@@ -42,8 +42,8 @@
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
 
-#ifndef MLO_SUMMHOST_H_
-#define MLO_SUMMHOST_H_
+#ifndef MLO_REDUCE_CALCULATIONMHOST_H_
+#define MLO_REDUCE_CALCULATIONMHOST_H_
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloSumForwardRunHost(miopenTensorDescriptor_t inputDesc,
@@ -51,7 +51,7 @@ int32_t mloSumForwardRunHost(miopenTensorDescriptor_t inputDesc,
                              Tgpu* input,
                              Tcheck* outputhost,
                              int32_t dim,
-                             miopenSumNanPropagation_t nanPropagation)
+                             miopenReduceCalculationNanPropagation_t nanPropagation)
 {
     auto input_dims  = miopen::deref(inputDesc).GetLengths();
     auto output_dims = miopen::deref(reduceDesc).GetLengths();
@@ -87,13 +87,56 @@ int32_t mloSumForwardRunHost(miopenTensorDescriptor_t inputDesc,
     }
     return ret;
 }
+
+template <typename Tgpu, typename Tcheck>
+int32_t mloProdForwardRunHost(miopenTensorDescriptor_t inputDesc,
+                              miopenTensorDescriptor_t reduceDesc,
+                              Tgpu* input,
+                              Tcheck* outputhost,
+                              int32_t dim,
+                              miopenReduceCalculationNanPropagation_t nanPropagation)
+{
+    auto input_dims  = miopen::deref(inputDesc).GetLengths();
+    auto output_dims = miopen::deref(reduceDesc).GetLengths();
+
+    auto reduce_size = input_dims[dim];
+    auto output_numel =
+        std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
+
+    auto inner_size = 1ULL;
+    for(int32_t i = dim + 1; i < input_dims.size(); i++)
+    {
+        inner_size *= input_dims[i];
+    }
+
+    int32_t ret = 0;
+
+    for(size_t o = 0; o < output_numel; o++)
+    {
+        size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
+
+        Tcheck prod = 1.0f;
+        for(size_t i = 0; i < reduce_size; i++)
+        {
+            Tcheck val = static_cast<Tcheck>(input[input_idx]);
+            if(nanPropagation && isnan(val))
+            {
+                val = 1.0f;
+            }
+            prod *= val;
+            input_idx += inner_size;
+        }
+        outputhost[o] = prod;
+    }
+    return ret;
+}
 #endif
 
 template <typename Tgpu, typename Tref>
-class SumDriver : public Driver
+class ReduceCalculationDriver : public Driver
 {
 public:
-    SumDriver() : Driver()
+    ReduceCalculationDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputDesc);
         miopenCreateTensorDescriptor(&reduceDesc);
@@ -118,7 +161,7 @@ public:
     Tref GetTolerance();
     int VerifyBackward() override;
     int VerifyForward() override;
-    ~SumDriver() override
+    ~ReduceCalculationDriver() override
     {
         miopenDestroyTensorDescriptor(inputDesc);
         miopenDestroyTensorDescriptor(reduceDesc);
@@ -143,11 +186,12 @@ private:
     size_t ws_sizeInBytes;
 
     int dim;
-    miopenSumNanPropagation_t nanPropagation;
+    miopenReduceCalculationNanPropagation_t nanPropagation;
+    miopenReduceCalculationOp_t reduceCalculationOp;
 };
 
 template <typename Tgpu, typename Tref>
-int SumDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
+int ReduceCalculationDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
@@ -159,7 +203,7 @@ int SumDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 }
 
 template <typename Tgpu, typename Tref>
-int SumDriver<Tgpu, Tref>::GetandSetData()
+int ReduceCalculationDriver<Tgpu, Tref>::GetandSetData()
 {
     std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
     dim                     = inflags.GetValueInt("DimToReduce");
@@ -181,15 +225,19 @@ int SumDriver<Tgpu, Tref>::GetandSetData()
 
     SetTensorNd(reduceDesc, out_len, data_type);
 
-    nanPropagation = static_cast<miopenSumNanPropagation_t>(inflags.GetValueInt("NanPropagation"));
+    nanPropagation =
+        static_cast<miopenReduceCalculationNanPropagation_t>(inflags.GetValueInt("NanPropagation"));
+    reduceCalculationOp =
+        static_cast<miopenReduceCalculationOp_t>(inflags.GetValueInt("ReduceCalculationOp"));
 
     return 0;
 }
 
 template <typename Tgpu, typename Tref>
-int SumDriver<Tgpu, Tref>::AddCmdLineArgs()
+int ReduceCalculationDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Sum (Default=1)", "int");
+    inflags.AddInputFlag(
+        "forw", 'F', "1", "Run only Forward Reduce Calculation (Default=1)", "int");
     inflags.AddInputFlag("batchsize", 'n', "256", "Mini-batch size (Default=100)", "int");
     inflags.AddInputFlag("in_channels", 'c', "4", "Number of Input Channels (Default=3)", "int");
     inflags.AddInputFlag("in_d", 'D', "0", "Input Depth (Default=0)", "int");
@@ -198,12 +246,20 @@ int SumDriver<Tgpu, Tref>::AddCmdLineArgs()
 
     inflags.AddInputFlag(
         "DimToReduce", 'R', "1", "The indice of the dimensions to be reduced(Default=1)", "int");
-    inflags.AddInputFlag("NanPropagation",
-                         'N',
-                         "0",
-                         "Nan number propagation mode (check the miopenSumNanPropagation_t in "
-                         "miopen.h) (Default=0 to indicate no Nan propagation)",
-                         "int");
+    inflags.AddInputFlag(
+        "NanPropagation",
+        'N',
+        "0",
+        "Nan number propagation mode (check the miopenReduceCalculationNanPropagation_t in "
+        "miopen.h) (Default=0 to indicate no Nan propagation)",
+        "int");
+    inflags.AddInputFlag(
+        "ReduceCalculationOp",
+        'O',
+        "0",
+        "Reduce Calculation Operation Type (check the miopenReduceCalculationOp_t in "
+        "miopen.h) (Default=0 to add the values of the reduced elements)",
+        "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -214,7 +270,7 @@ int SumDriver<Tgpu, Tref>::AddCmdLineArgs()
 }
 
 template <typename Tgpu, typename Tref>
-std::vector<int> SumDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
+std::vector<int> ReduceCalculationDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
     int in_n = inflags.GetValueInt("batchsize");
     int in_c = inflags.GetValueInt("in_channels");
@@ -250,12 +306,13 @@ std::vector<int> SumDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 }
 
 template <typename Tgpu, typename Tref>
-int SumDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
+int ReduceCalculationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
     size_t in_sz  = GetTensorSize(inputDesc);
     size_t out_sz = GetTensorSize(reduceDesc);
 
-    miopenGetSumWorkspaceSize(GetHandle(), inputDesc, dim, reduceDesc, &ws_sizeInBytes);
+    miopenGetReduceCalculationWorkspaceSize(
+        GetHandle(), inputDesc, dim, reduceCalculationOp, reduceDesc, &ws_sizeInBytes);
     if(ws_sizeInBytes == static_cast<size_t>(-1))
         return miopenStatusAllocFailed;
 
@@ -284,7 +341,7 @@ int SumDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 }
 
 template <typename Tgpu, typename Tref>
-int SumDriver<Tgpu, Tref>::RunForwardGPU()
+int ReduceCalculationDriver<Tgpu, Tref>::RunForwardGPU()
 {
     float kernel_total_time = 0;
     float kernel_first_time = 0;
@@ -294,15 +351,16 @@ int SumDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenSumForward(GetHandle(),
-                         nanPropagation,
-                         workspace_dev->GetMem(),
-                         ws_sizeInBytes,
-                         inputDesc,
-                         in_dev->GetMem(),
-                         dim,
-                         reduceDesc,
-                         out_dev->GetMem());
+        miopenReduceCalculationForward(GetHandle(),
+                                       nanPropagation,
+                                       workspace_dev->GetMem(),
+                                       ws_sizeInBytes,
+                                       inputDesc,
+                                       in_dev->GetMem(),
+                                       dim,
+                                       reduceCalculationOp,
+                                       reduceDesc,
+                                       out_dev->GetMem());
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -316,12 +374,13 @@ int SumDriver<Tgpu, Tref>::RunForwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            std::cout << "Wall-clock Time Forward Sum Elapsed: " << t.gettime_ms() / iter
-                      << " ms\n";
+            std::cout << "Wall-clock Time Forward Reduce Calculation Elapsed: "
+                      << t.gettime_ms() / iter << " ms\n";
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        std::cout << "GPU Kernel Time Forward Sum Elapsed: " << kernel_average_time << " ms\n";
+        std::cout << "GPU Kernel Time Forward Reduce Calculation Elapsed: " << kernel_average_time
+                  << " ms\n";
     }
 
     if(out_dev->FromGPU(GetStream(), out.data()) != 0)
@@ -331,22 +390,30 @@ int SumDriver<Tgpu, Tref>::RunForwardGPU()
 }
 
 template <typename Tgpu, typename Tref>
-int SumDriver<Tgpu, Tref>::RunForwardCPU()
+int ReduceCalculationDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloSumForwardRunHost<Tgpu, Tref>(
-        inputDesc, reduceDesc, in.data(), outhost.data(), dim, nanPropagation);
+    if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_SUM)
+    {
+        mloSumForwardRunHost<Tgpu, Tref>(
+            inputDesc, reduceDesc, in.data(), outhost.data(), dim, nanPropagation);
+    }
+    else if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_PROD)
+    {
+        mloProdForwardRunHost<Tgpu, Tref>(
+            inputDesc, reduceDesc, in.data(), outhost.data(), dim, nanPropagation);
+    }
 
     return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
-int SumDriver<Tgpu, Tref>::RunBackwardGPU()
+int ReduceCalculationDriver<Tgpu, Tref>::RunBackwardGPU()
 {
     return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
-Tref SumDriver<Tgpu, Tref>::GetTolerance()
+Tref ReduceCalculationDriver<Tgpu, Tref>::GetTolerance()
 {
     // Computation error of fp16 is ~2^13 (=8192) bigger than
     // the one of fp32 because mantissa is shorter by 13 bits.
@@ -359,7 +426,7 @@ Tref SumDriver<Tgpu, Tref>::GetTolerance()
 }
 
 template <typename Tgpu, typename Tref>
-int SumDriver<Tgpu, Tref>::VerifyForward()
+int ReduceCalculationDriver<Tgpu, Tref>::VerifyForward()
 {
     RunForwardCPU();
     const Tref tolerance = GetTolerance();
@@ -367,22 +434,23 @@ int SumDriver<Tgpu, Tref>::VerifyForward()
 
     if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Forward Sum FAILED: " << error << " > " << tolerance << std::endl;
+        std::cout << "Forward Reduce Calculation FAILED: " << error << " > " << tolerance
+                  << std::endl;
         return EC_VerifyFwd;
     }
     else
     {
-        std::cout << "Forward Sum Verifies OK on CPU reference (" << error << " < " << tolerance
-                  << ')' << std::endl;
+        std::cout << "Forward Reduce Calculation Verifies OK on CPU reference (" << error << " < "
+                  << tolerance << ')' << std::endl;
     }
 
     return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
-int SumDriver<Tgpu, Tref>::VerifyBackward()
+int ReduceCalculationDriver<Tgpu, Tref>::VerifyBackward()
 {
     return miopenStatusSuccess;
 }
 
-#endif // GUARD_MIOPEN_SUM_DRIVER_HPP
+#endif // GUARD_MIOPEN_REDUCE_CALCULATION_DRIVER_HPP

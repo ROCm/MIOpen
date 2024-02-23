@@ -37,19 +37,6 @@ namespace reduce {
 
 using ReduceSolver = NonTunableSolverBase<ExecutionContext, miopen::reduce::ProblemDescription>;
 
-struct SumForward final : ReduceSolver
-{
-    const std::string& SolverDbId() const override { return GetSolverDbId<SumForward>(); }
-
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::reduce::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::reduce::ProblemDescription& problem) const override;
-    std::size_t GetWorkspaceSize(const ExecutionContext& context,
-                                 const miopen::reduce::ProblemDescription& problem) const override;
-    bool MayNeedWorkspace() const override { return true; }
-};
-
 struct ArgmaxForward final : ReduceSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ArgmaxForward>(); }
@@ -100,6 +87,32 @@ struct MinForward final : ReduceSolver
                       const miopen::reduce::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::reduce::ProblemDescription& problem) const override;
+};
+
+struct ProdForward final : ReduceSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<ProdForward>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::reduce::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::reduce::ProblemDescription& problem) const override;
+    std::size_t GetWorkspaceSize(const ExecutionContext& context,
+                                 const miopen::reduce::ProblemDescription& problem) const override;
+    bool MayNeedWorkspace() const override { return true; }
+};
+
+struct SumForward final : ReduceSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<SumForward>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::reduce::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::reduce::ProblemDescription& problem) const override;
+    std::size_t GetWorkspaceSize(const ExecutionContext& context,
+                                 const miopen::reduce::ProblemDescription& problem) const override;
+    bool MayNeedWorkspace() const override { return true; }
 };
 
 } // namespace reduce
