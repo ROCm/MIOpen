@@ -51,6 +51,7 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
                                           const TensorDescriptor& yDesc,
                                           Data_t y,
                                           Data_t hy,
+                                          const TensorDescriptor& hyDesc,
                                           Data_t reserveSpace,
                                           size_t reserveSpaceSize) const
 {
@@ -70,8 +71,10 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
     int in_vec_size  = xDesc.GetLengths()[1];
     int input_stride = xDesc.GetLengths()[1];
     int out_vec_size = yDesc.GetLengths()[1];
+    int biNumLayers  = hyDesc.GetLengths()[0];
 
-    if(in_vec_size <= 0 || hidden_size <= 0 || max_batch <= 0 || out_vec_size <= 0 || seq_len <= 0)
+    if(in_vec_size <= 0 || hidden_size <= 0 || max_batch <= 0 || out_vec_size <= 0 ||
+       seq_len <= 0 || biNumLayers <= 0)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -97,6 +100,16 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
     // Clear reserveSpace buffer
     //
     SetTensor(handle, rspace_desc, reserveSpace, &beta);
+
+    if(hy != nullptr)
+    {
+        const auto hy_tensor_size = biNumLayers * max_batch * hidden_size;
+        auto hy_desc              = miopen::TensorDescriptor(
+            rnn_data_type, {1, 1, hy_tensor_size}, {hy_tensor_size, hy_tensor_size, 1});
+        // Clear hy buffer
+        //
+        SetTensor(handle, hy_desc, hy, &beta);
+    }
 
     RnnBatches batches(seq_array);
     RnnBatches bacc_per_time;
@@ -527,6 +540,8 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
             }
         }
 
+        if(m <= 0)
+            return;
         const miopen::GemmDescriptor gemm_desc_hx = GemmDescriptor{false,
                                                                    false,
                                                                    true,
@@ -712,6 +727,8 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
                                     &batches,
                                     &bacc_per_time](
                                        int layer_id, int time_id, RnnDirection direction) {
+        if(batches.at(time_id, direction) <= 0)
+            return;
         int use_time = direction == RnnDirection::Forward ? time_id : seq_len - time_id;
 
         const std::vector<size_t> tensor_size{1,
@@ -3537,6 +3554,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                               yDesc[0],
                               y,
                               hy,
+                              hyDesc,
                               reserveSpace,
                               reserveSpaceSize);
         if(is_profiling)
