@@ -48,7 +48,7 @@ struct ProblemConfig
     std::string layout, data_type, direction;
 
     template <class Self>
-    static void Visit(Self&& self, std::function<void(int64_t, std::string)> f)
+    static void Visit(Self&& self, std::function<void(int64_t&, std::string)> f)
     {
         // The column names match the driver command line argument names
         f(self.spatial_dim, "spatial_dim");
@@ -75,7 +75,7 @@ struct ProblemConfig
     }
 
     template <class Self>
-    static void Visit(Self&& self, std::function<void(std::string, std::string)> f)
+    static void Visit(Self&& self, std::function<void(std::string&, std::string)> f)
     {
         f(self.layout, "layout");
         f(self.data_type, "data_type");
@@ -85,9 +85,9 @@ struct ProblemConfig
     template <class Self, class Visitor>
     static void VisitAll(Self&& self, const Visitor& f)
     {
-        Visit(std::forward<Self>(self), [&](int64_t value, std::string name) { f(value, name); });
+        Visit(std::forward<Self>(self), [&](int64_t& value, std::string name) { f(value, name); });
         Visit(std::forward<Self>(self),
-              [&](std::string value, std::string name) { f(value, name); });
+              [&](std::string& value, std::string name) { f(value, name); });
     }
 
     [[nodiscard]] static const std::string& GetFieldNames()
@@ -104,10 +104,10 @@ struct ProblemConfig
         return value;
     }
 
-    [[nodiscard]] std::string Serialize() const
+    [[nodiscard]] std::string Serialize()
     {
         std::ostringstream ss;
-        ProblemConfig::VisitAll(ProblemConfig{}, [&](auto&& value, auto&&) {
+        ProblemConfig::VisitAll(*this, [&](auto&& value, auto&&) {
             if(ss.tellp() != 0)
                 ss << "x";
             ss << value;
