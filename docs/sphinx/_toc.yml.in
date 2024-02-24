@@ -11,7 +11,10 @@ subtrees:
 - entries:
   - file: install/driver.md
   - file: install/embed.md   
+<<<<<<< HEAD
   
+=======
+>>>>>>> 85baebbfd19972f167091310b7bbe6bfbbe74962
 subtrees:
 - entries:
   - file: conceptual/index.md
@@ -23,7 +26,10 @@ subtrees:
       - file: conceptual/Getting_Started_FusionAPI.md
       - file: conceptual/MI200AlternateImplementation.md
       - file: conceptual/MIOpen_Porting_Guide.md
+<<<<<<< HEAD
    
+=======
+>>>>>>> 85baebbfd19972f167091310b7bbe6bfbbe74962
 subtrees:
 - entries: 
   - file: reference/index.rst
@@ -44,4 +50,7 @@ subtrees:
       - file: reference/softmax.rst
       - file: reference/sum.rst
       - file: reference/tensor.rst
+<<<<<<< HEAD
   
+=======
+>>>>>>> 85baebbfd19972f167091310b7bbe6bfbbe74962
