@@ -35,6 +35,60 @@
 
 namespace miopen {
 
+enum rnn_direction
+{
+    Forward  = 0,
+    Backward = 1
+};
+
+enum class RnnDirection
+{
+    Forward  = 0,
+    Backward = 1
+};
+
+struct RnnBatches
+{
+    int at(int time, RnnDirection direction) const { return batches.at(cur_time(time, direction)); }
+
+    int next(int time, RnnDirection direction) const
+    {
+        return batches.at(next_time(time, direction));
+    }
+
+    int prev(int time, RnnDirection direction) const
+    {
+        return batches.at(prev_time(time, direction));
+    }
+
+    void push_back(int batch) { batches.push_back(batch); }
+
+    RnnBatches(std::vector<int>& input) : batches(input){};
+    RnnBatches(){};
+
+    int back() const { return batches.back(); }
+
+private:
+    int cur_time(int time, RnnDirection direction) const
+    {
+        return direction == RnnDirection::Forward ? time : batches.size() - time - 1;
+    }
+
+    int next_time(int time, RnnDirection direction) const
+    {
+        return direction == RnnDirection::Forward ? cur_time(time, direction) + 1
+                                                  : cur_time(time, direction) - 1;
+    }
+
+    int prev_time(int time, RnnDirection direction) const
+    {
+        return direction == RnnDirection::Forward ? cur_time(time, direction) - 1
+                                                  : cur_time(time, direction) + 1;
+    }
+
+    std::vector<int> batches;
+};
+
 #if MIOPEN_BACKEND_HIP
 inline void RNNProfilingBegin(const miopen::Handle& handle,
                               miopen::HipEventPtr& start,
@@ -120,6 +174,157 @@ void LSTMBackwardHiddenStateUpdate(const Handle& handle,
                                    std::size_t dcell_offset_pre,
                                    std::size_t dhidden_offset,
                                    std::size_t f_offset_pre);
+
+struct GruWeightOffsets
+{
+    GruWeightOffsets(int input_vector_sz, int hidden_vec_sz, int layers_cnt, int bias_cnt, int bi)
+        : weight_stride(matrixes::Count * hidden_vec_sz),
+          bi_stride(matrixes::Count * hidden_vec_sz * bi),
+          in_vec_sz(input_vector_sz),
+          h_vec_sz(hidden_vec_sz),
+          num_layers(layers_cnt),
+          bi_scale(bi),
+          bias_count(bias_cnt)
+    {
+    }
+
+    int input_offset(int layer) const
+    {
+        return layer == 0 ? 0
+                          : static_cast<size_t>(in_vec_sz + h_vec_sz +
+                                                (h_vec_sz + h_vec_sz * bi_scale) * (layer - 1)) *
+                                bi_stride;
+    }
+
+    int hidden_offset(int layer, RnnDirection direction) const
+    {
+        return static_cast<size_t>((in_vec_sz + (h_vec_sz + h_vec_sz * bi_scale) * (layer)) *
+                                   bi_stride) +
+               static_cast<size_t>(direction) * weight_stride * h_vec_sz;
+    }
+
+    size_t bias_stride() const { return (size_t)matrixes::Count * h_vec_sz * bi_scale; }
+
+    int bias_off() const
+    {
+        return (in_vec_sz + h_vec_sz + (bi_scale * h_vec_sz + h_vec_sz) * (num_layers - 1)) *
+               bi_stride;
+    }
+
+    int
+    bias_off(int layer_id, int bias_id = 0, RnnDirection direction = RnnDirection::Forward) const
+    {
+        return bias_off() + layer_id * bias_count * bi_stride + bias_id * bias_stride() +
+               static_cast<size_t>(direction) * h_vec_sz;
+    }
+    int weight_stride;
+    int bi_stride;
+
+private:
+    const int in_vec_sz, h_vec_sz;
+    const int num_layers;
+    [[maybe_unused]] const int bi_scale = 1;
+    const int bias_count                = 0;
+    enum matrixes
+    {
+        Z     = 0,
+        R     = 1,
+        C     = 2,
+        Count = 3
+    };
+};
+
+struct GRUOffsets
+{
+public:
+    GRUOffsets(int h_vec_size, int layers_cnt, int total_batch_size, int bidirec_scale)
+        : hidden_size(h_vec_size),
+          save_point_size(h_vec_size * bidirec_scale),
+          batches_per_layer(total_batch_size),
+          num_layers(layers_cnt)
+    {
+    }
+
+    size_t layer_offset(int layer_id) const { return layer_id * layer_stride(); }
+
+    size_t layer_stride() const { return gemm_write_stride() * batches_per_layer; }
+
+    int gemm_write_size() const { return save_point_size; }
+
+    size_t gemm_write_stride() const { return (size_t)save_point::Count * gemm_write_size(); }
+
+    size_t gemm_write_offset(int layer_id, int batch_num, RnnDirection direction) const
+    {
+        return layer_offset(layer_id) + batch_num * gemm_write_stride() +
+               static_cast<size_t>(direction) * (size_t)save_point::Ht * hidden_size;
+    }
+
+    size_t ht_offset(int layer, int batch_num, RnnDirection direction) const
+    {
+        return gemm_write_offset(layer, batch_num, RnnDirection::Forward) + ht_offset() +
+               static_cast<size_t>(direction) * hidden_size;
+    }
+    size_t ht_act_offset(int layer, int batch_num, RnnDirection direction) const
+    {
+        return ht_offset(layer, batch_num, direction) + activated_offset();
+    }
+
+private:
+    const int hidden_size;
+    const int save_point_size;
+
+public:
+    const int batches_per_layer;
+
+    int r_offset(int layer, int batch_num, RnnDirection direction) const
+    {
+        return gemm_write_offset(layer, batch_num, direction) + r_offset();
+    }
+
+    int r_act_offset(int layer, int batch_num, RnnDirection direction) const
+    {
+        return r_offset(layer, batch_num, direction) + activated_offset();
+    }
+
+    int z_act_offset(int layer, int batch_num, RnnDirection direction) const
+    {
+        return z_offset(layer, batch_num, direction) + activated_offset();
+    }
+
+    int z_offset(int layer, int batch_num, RnnDirection direction) const
+    {
+        return gemm_write_offset(layer, batch_num, direction) + z_offset();
+    }
+
+    size_t c_offset(int layer, int batch_num, RnnDirection direction) const
+    {
+        return gemm_write_offset(layer, batch_num, direction) + c_offset();
+    }
+
+    size_t c_act_offset(int layer, int batch_num, RnnDirection direction) const
+    {
+        return c_offset(layer, batch_num, direction) + activated_offset();
+    }
+
+private:
+    int activated_offset() const { return layer_stride() * num_layers; }
+    size_t network_stride() const { return layer_stride() * num_layers; }
+    int c_offset() const { return save_point::C * hidden_size; }
+    int z_offset() const { return save_point::Z * hidden_size; }
+    int r_offset() const { return save_point::R * hidden_size; }
+    size_t ht_offset() const { return (size_t)save_point::Ht * gemm_write_size(); }
+
+    int num_layers;
+
+    enum save_point
+    {
+        Z     = 0,
+        R     = 1,
+        C     = 2,
+        Ht    = 3,
+        Count = 4
+    };
+};
 
 struct RNNTensorPaddingConverter
 {
