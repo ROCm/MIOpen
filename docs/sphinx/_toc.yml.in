@@ -11,16 +11,16 @@ subtrees:
   - file: install/driver.md
   - file: install/embed.md   
 subtrees:
-- entries:
-  - file: conceptual/index.md
-    title: MIOpen concepts
-      - file: conceptual/find_and_immediate.md
-      - file: conceptual/finddb.md
-      - file: conceptual/cache.md
-      - file: conceptual/perfdatabase.md
-      - file: conceptual/Getting_Started_FusionAPI.md
-      - file: conceptual/MI200AlternateImplementation.md
-      - file: conceptual/MIOpen_Porting_Guide.md
+  - entries:
+    - file: conceptual/index.md
+      title: MIOpen concepts
+        - file: conceptual/find_and_immediate.md
+        - file: conceptual/finddb.md
+        - file: conceptual/cache.md
+        - file: conceptual/perfdatabase.md
+        - file: conceptual/Getting_Started_FusionAPI.md
+        - file: conceptual/MI200AlternateImplementation.md
+        - file: conceptual/MIOpen_Porting_Guide.md
 subtrees:
 - entries: 
   - file: reference/index.rst
