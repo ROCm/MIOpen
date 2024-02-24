@@ -1,5 +1,6 @@
 defaults:
   numbered: False
+   maxdepth: 7
 root: index
 subtrees:
 - entries:
