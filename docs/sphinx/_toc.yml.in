@@ -16,6 +16,7 @@ subtrees:
 =======
 >>>>>>> 85baebbfd19972f167091310b7bbe6bfbbe74962
 subtrees:
+<<<<<<< HEAD
 - entries:
   - file: conceptual/index.md
     title: MIOpen concepts
@@ -30,6 +31,18 @@ subtrees:
    
 =======
 >>>>>>> 85baebbfd19972f167091310b7bbe6bfbbe74962
+=======
+  - entries:
+    - file: conceptual/index.md
+      title: MIOpen concepts
+        - file: conceptual/find_and_immediate.md
+        - file: conceptual/finddb.md
+        - file: conceptual/cache.md
+        - file: conceptual/perfdatabase.md
+        - file: conceptual/Getting_Started_FusionAPI.md
+        - file: conceptual/MI200AlternateImplementation.md
+        - file: conceptual/MIOpen_Porting_Guide.md
+>>>>>>> 66fc039e0409b95bc572c9442ed53de215f3fa2c
 subtrees:
 - entries: 
   - file: reference/index.rst
