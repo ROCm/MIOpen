@@ -18,8 +18,8 @@ Our documentation is structured as follows:
   .. grid-item-card:: Installation
 
     * :doc:`Installation <install/install>`
-    * `Build the driver <https://github.com/ROCm/rocDecode/blob/master/docs/install/driver.html>`_
-    * `Embedd the driver <https://github.com/ROCm/rocDecode/blob/master/docs/install/embed.html>`_
+    * :doc:`Build the driver <install/driver>`
+    * :doc:`For embedded systems <install/embed>`
   
   .. grid-item-card:: Concepts
 

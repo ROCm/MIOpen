@@ -8,7 +8,7 @@
 Installation
 ********************************************************************
 
-This section provides a guide to install MIOpen in different systems. 
+This section provides a guide to install MIOpen on different systems. 
 
 * :ref:`install`
 
