@@ -6,47 +6,47 @@ root: index
     - entries: 
       - file: install/install.rst
         title: MIOpen installation
-    subtrees:
-    - entries:
-        - file: install/driver.md
-          title: Build the driver 
-        - file: install/embed.md
-          title: Embed the driver
-        - file: conceptual/index.md
-          title: MIOpen concepts  
         subtrees:
-        - entries:    
-          - file: conceptual/find_and_immediate.md
-            title: Find and immediate
-          - file: conceptual/finddb.md
-            title: Find database
-          - file: conceptual/cache.md
-            title: Cache
-          - file: conceptual/perfdatabase.md
-            title: Performance database
-          - file: conceptual/Getting_Started_FusionAPI.md
-            title: Getting Started with Fusion API
-          - file: conceptual/MI200AlternateImplementation.md
-            title: MI200 Alternate Implementation
-          - file: conceptual/MIOpen_Porting_Guide.md
-            title: MIOpen Porting Guide
-subtrees:
-- entries: 
-  - file: reference/index.rst
-    title: MIOpen API reference  	   
-      - file: reference/activation.rst
-      - file: reference/batchnorm.rst
-      - file: reference/convolution.rst
-      - file: reference/datatypes.md
-      - file: reference/dropout.rst
-      - file: reference/fusion.rst
-      - file: reference/handle.rst
-      - file: reference/layernorm.rst
-      - file: reference/loss.rst
-      - file: reference/lrn.rst
-      - file: reference/pooling.rst
-      - file: reference/reduction.rst
-      - file: reference/rnn.rst
-      - file: reference/softmax.rst
-      - file: reference/sum.rst
-      - file: reference/tensor.rst
+        - entries:
+            - file: install/driver.md
+              title: Build the driver 
+            - file: install/embed.md
+              title: Embed the driver
+            - file: conceptual/index.md
+              title: MIOpen concepts  
+          subtrees:
+          - entries:    
+              - file: conceptual/find_and_immediate.md
+                title: Find and immediate
+              - file: conceptual/finddb.md
+                title: Find database
+              - file: conceptual/cache.md
+                title: Cache
+              - file: conceptual/perfdatabase.md
+                title: Performance database
+              - file: conceptual/Getting_Started_FusionAPI.md
+                title: Getting Started with Fusion API
+              - file: conceptual/MI200AlternateImplementation.md
+                title: MI200 Alternate Implementation
+              - file: conceptual/MIOpen_Porting_Guide.md
+                title: MIOpen Porting Guide
+                subtrees:
+                - entries: 
+                    - file: reference/index.rst
+                      title: MIOpen API reference  	   
+                          - file: reference/activation.rst
+                          - file: reference/batchnorm.rst
+                          - file: reference/convolution.rst
+                          - file: reference/datatypes.md
+                          - file: reference/dropout.rst
+                          - file: reference/fusion.rst
+                          - file: reference/handle.rst
+                          - file: reference/layernorm.rst
+                          - file: reference/loss.rst
+                          - file: reference/lrn.rst
+                          - file: reference/pooling.rst
+                          - file: reference/reduction.rst
+                          - file: reference/rnn.rst
+                          - file: reference/softmax.rst
+                          - file: reference/sum.rst
+                          - file: reference/tensor.rst
