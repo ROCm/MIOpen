@@ -2,6 +2,11 @@ defaults:
   numbered: False
   maxdepth: 7
 root: index
+   subtrees:
+   - entries:
+     - file: what is MIOpen.rst
+       title: What is MIOpen   
+
     subtrees:
     - entries: 
       - file: install/install.rst
