@@ -6,66 +6,74 @@ subtrees:
 - entries:
     - file: install/index.rst
       title: Installation
-    - file: install/install.rst
-    - file: install/driver.md
-      title: Build the driver 
-    - file: install/embed.md
-      title: Embed the driver
+    - file: conceptual/index.md
+      title: Concepts
+    - file: reference/index.rst
+      title: API reference
+      subtrees:
+      - entries:
+          - file: install/install.rst 
+            title: Install MIOpen
+          - file: install/driver.md
+            title: Build the driver 
+          - file: install/embed.md
+            title: For embedding systems
+            
     - file: conceptual/index.md
       title: Concepts  
       subtrees:
       - entries: 
-        - file: conceptual/find_and_immediate.md
-          title: Find and immediate
-        - file: conceptual/finddb.md
-          title: Find database
-        - file: conceptual/cache.md
-          title: Cache
-        - file: conceptual/perfdatabase.md
-          title: Performance database
-        - file: conceptual/Getting_Started_FusionAPI.md
-          title: Getting Started with Fusion API
-        - file: conceptual/MI200AlternateImplementation.md
-          title: MI200 Alternate Implementation
-        - file: conceptual/MIOpen_Porting_Guide.md
-          title: MIOpen Porting Guide
-
-      - file: reference/index.rst
-        title: API Reference
-        subtrees:
-        - entries:
-          - file: reference/activation.rst
-            title: Activation
-          - file: reference/batchnorm.rst
-            title: Batchnorm
-          - file: reference/convolution.rst
-            title: Convolution
-          - file: reference/datatypes.md
-            title: Datatypes
-          - file: reference/dropout.rst
-            title: Dropout
-          - file: reference/fusion.rst
-            title: Fusion
-          - file: reference/handle.rst
-            title: Handle
-          - file: reference/layernorm.rst
-            title: Layernorm
-          - file: reference/loss.rst
-            title: Loss
-          - file: reference/lrn.rst
-            title: Local response normalization layer
-          - file: reference/pooling.rst
-            title: Pooling
-          - file: reference/reduction.rst
-            title: Reduction
-          - file: reference/rnn.rst
-            title: Recurrent neural networks
-          - file: reference/softmax.rst
-            title: Softmax
-          - file: reference/sum.rst
-            title: Sum
-          - file: reference/tensor.rst
-            title: Tensor
+         - file: conceptual/find_and_immediate.md
+           title: What is MIOpen?
+         - file: conceptual/finddb.md
+           title: Find database
+         - file: conceptual/cache.md
+           title: Cache
+         - file: conceptual/perfdatabase.md
+           title: Performance database
+         - file: conceptual/Getting_Started_FusionAPI.md
+           title: Getting Started with Fusion API
+         - file: conceptual/MI200AlternateImplementation.md
+           title: MI200 Alternate Implementation
+         - file: conceptual/MIOpen_Porting_Guide.md
+           title: MIOpen Porting Guide
+            
+         - file: reference/index.rst
+           title: API Reference
+           subtrees:
+           - entries:
+                  - file: reference/activation.rst
+                    title: Activation
+                  - file: reference/batchnorm.rst
+                    title: Batchnorm
+                  - file: reference/convolution.rst
+                    title: Convolution
+                  - file: reference/datatypes.md
+                    title: Datatypes
+                  - file: reference/dropout.rst
+                    title: Dropout
+                  - file: reference/fusion.rst
+                    title: Fusion
+                  - file: reference/handle.rst
+                    title: Handle
+                  - file: reference/layernorm.rst
+                    title: Layernorm
+                  - file: reference/loss.rst
+                    title: Loss
+                  - file: reference/lrn.rst
+                    title: Local response normalization layer
+                  - file: reference/pooling.rst
+                    title: Pooling
+                  - file: reference/reduction.rst
+                    title: Reduction
+                  - file: reference/rnn.rst
+                    title: Recurrent neural networks
+                  - file: reference/softmax.rst
+                    title: Softmax
+                  - file: reference/sum.rst
+                    title: Sum
+                  - file: reference/tensor.rst
+                    title: Tensor
         
-      - file: license.md
-        title: License
+         - file: license.md
+           title: License
