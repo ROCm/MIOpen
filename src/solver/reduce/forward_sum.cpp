@@ -183,7 +183,6 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
                 if(handle_.IsProfilingEnabled())
                 {
                     elapsed += handle_.GetKernelTime();
-                    elapsed += handle_.GetKernelTime();
                 }
                 kernel(params.workspace,
                        params.y,
@@ -194,7 +193,6 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
 
                 if(handle_.IsProfilingEnabled())
                 {
-                    elapsed += handle_.GetKernelTime();
                     elapsed += handle_.GetKernelTime();
                     handle_.ResetKernelTime();
                     handle_.AccumKernelTime(elapsed);
