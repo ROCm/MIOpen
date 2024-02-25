@@ -5,20 +5,20 @@ root: index
 subtrees:
 - entries:
     - file: install/index.rst
+      title: Installation
       subtrees:
       - entries:
-          - file: install/install.rst
-            title: Installation
-          - file: install/driver.md
-            title: Build the driver 
-          - file: install/embed.md
-            title: Embed the driver
+         - file: install/install.rst  
+         - file: install/driver.md
+           title: Build the driver 
+         - file: install/embed.md
+           title: Embed the driver
     - file: conceptual/index.md
       title: Concepts  
       subtrees:
       - entries: 
         - file: conceptual/find_and_immediate.md
-          title: Find and immediate
+          title: What is MIOpen?
         - file: conceptual/finddb.md
           title: Find database
         - file: conceptual/cache.md
