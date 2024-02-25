@@ -25,13 +25,13 @@ Our documentation is structured as follows:
   
   .. grid-item-card:: Concepts
 
-    * :doc:`Getting started with Fusion API <conceptual/Getting_Started_FusionAPI>`   
-    * :doc:`MI200 alternate implementation <conceptual/MI200 alternate implementation>`
-    * :doc:`cache <conceptual/cache>`
-    * :doc:`Find and immediate <conceptual/Find and Immediate>`
-    * :doc:`Find database <conceptual/Find database>`
-    * :doc:`Performance database <conceptual/Performance database>`
-    * :doc:`MIOpen Porting Guide <conceptual/MIOpen Porting Guide>`
+    * :doc:`Getting started with Fusion API <conceptual/Getting_Started_FusionAPI>`
+    * :doc:`MI200 alternate implementation <conceptual/MI200AlternateImplementation>`
+    * :doc:`Cache <conceptual/cache>`
+    * :doc:`Find and immediate <conceptual/find_and_immediate>`
+    * :doc:`Find database <conceptual/finddb>`
+    * :doc:`Performance database <conceptual/perfdatabase>`
+    * :doc:`MIOpen Porting Guide <conceptual/MIOpen_Porting_Guide>`
     
   
   ..  grid-item-card:: API Reference 
