@@ -4,6 +4,7 @@ defaults:
 root: index
 subtrees:
 - entries:
+<<<<<<< HEAD
    - file: What is MIOpen.rst
      title: What is MIOpen?   
 subtrees:
@@ -21,6 +22,15 @@ subtrees:
       title: Concepts  
       subtrees:
       - entries: 
+=======
+   - file: what is MIOpen.rst
+     title: What is MIOpen   
+
+   - file: conceptual/index.md
+     title: Concepts  
+     subtrees:
+     - entries: 
+>>>>>>> 082e91c14f5b45f72a3373eb126557f1e7da0f19
         - file: conceptual/find_and_immediate.md
           title: Find and immediate
         - file: conceptual/finddb.md
@@ -35,6 +45,7 @@ subtrees:
           title: MI200 Alternate Implementation
         - file: conceptual/MIOpen_Porting_Guide.md
           title: MIOpen Porting Guide
+<<<<<<< HEAD
 
     - file: reference/index.rst
       title: API Reference
@@ -75,3 +86,53 @@ subtrees:
         
     - file: license.md
       title: License
+=======
+          subtrees:
+          - entries:
+             - file: install/index.rst
+               title: Installation
+             - file: install/driver.md
+               title: Build the driver 
+             - file: install/embed.md
+               title: For embedded systems
+
+        - file: reference/index.rst
+          title: API Reference
+          subtrees:
+          - entries:
+            - file: reference/activation.rst
+              title: Activation
+            - file: reference/batchnorm.rst
+              title: Batchnorm
+            - file: reference/convolution.rst
+              title: Convolution
+            - file: reference/datatypes.md
+              title: Datatypes
+            - file: reference/dropout.rst
+              title: Dropout
+            - file: reference/fusion.rst
+              title: Fusion
+            - file: reference/handle.rst
+              title: Handle
+            - file: reference/layernorm.rst
+              title: Layernorm
+            - file: reference/loss.rst
+              title: Loss
+            - file: reference/lrn.rst
+              title: Local response normalization layer
+            - file: reference/pooling.rst
+              title: Pooling
+            - file: reference/reduction.rst
+              title: Reduction
+            - file: reference/rnn.rst
+              title: Recurrent neural networks
+            - file: reference/softmax.rst
+              title: Softmax
+            - file: reference/sum.rst
+              title: Sum
+            - file: reference/tensor.rst
+              title: Tensor
+        
+        - file: license.md
+          title: License
+>>>>>>> 082e91c14f5b45f72a3373eb126557f1e7da0f19
