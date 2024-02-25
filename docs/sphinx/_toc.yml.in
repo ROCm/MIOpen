@@ -38,7 +38,7 @@ subtrees:
 =======
 >>>>>>> 2feeb0350a38eda024235aba06e2bb9dc21c0b37
         - file: conceptual/find_and_immediate.md
-          title: Find and immediate
+          title: What is MIOpen?
         - file: conceptual/finddb.md
           title: Find database
         - file: conceptual/cache.md
