@@ -11,7 +11,7 @@ root: index
             - file: install/driver.md
               title: Build the driver 
             - file: install/embed.md
-              title: Embed the driver
+              title: For embedded systems
             - file: conceptual/index.md
               title: MIOpen concepts  
           subtrees:
