@@ -6,10 +6,6 @@ subtrees:
 - entries:
     - file: install/index.rst
       title: Installation
-    - file: conceptual/index.md
-      title: Concepts
-    - file: reference/index.rst
-      title: API reference
       subtrees:
       - entries:
           - file: install/install.rst 
