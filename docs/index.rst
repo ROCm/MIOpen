@@ -25,13 +25,14 @@ Our documentation is structured as follows:
   
   .. grid-item-card:: Concepts
 
-    * :doc:`Getting started with Fusion API <conceptual/Getting_Started_FusionAPI>`
-    * `MI200 alternate implementation <https://github.com/ROCm/rocDecode/blob/master/docs/conceptual/MI200AlternateImplementation.html>`_
-    * `Cache <https://github.com/ROCm/rocDecode/blob/master/docs/conceptual/cache.html>`_
-    * `Find and immediate <https://github.com/ROCm/rocDecode/blob/master/docs/conceptual/find_and_immediate.html>`_
-    * `Find database <https://github.com/ROCm/rocDecode/blob/master/docs/conceptual/finddb.html>`_
-    * `Performance database <https://github.com/ROCm/rocDecode/blob/master/docs/conceptual/perfdatabase.html>`_
-    * `MIOpen Porting Guide <https://github.com/ROCm/rocDecode/blob/master/docs/conceptual/MIOpen_Porting_Guide.html>`_
+    * :doc:`Getting started with Fusion API <conceptual/Getting_Started_FusionAPI>`   
+    * :doc:`MI200 alternate implementation <conceptual/MI200 alternate implementation>`
+    * :doc:`cache <conceptual/cache>`
+    * :doc:`Find and immediate <conceptual/Find and Immediate>`
+    * :doc:`Find database <conceptual/Find database>`
+    * :doc:`Performance database <conceptual/Performance database>`
+    * :doc:`MIOpen Porting Guide <conceptual/MIOpen Porting Guide>`
+    
   
   ..  grid-item-card:: API Reference 
 
