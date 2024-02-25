@@ -25,7 +25,7 @@ Our documentation is structured as follows:
   
   .. grid-item-card:: Concepts
 
-    * `Getting started with Fusion API <https://github.com/ROCm/rocDecode/blob/master/docs/conceptual/Getting_Started_FusionAPI.html>`_
+    * :doc:`Getting started with Fusion API <conceptual/Getting_Started_FusionAPI>`
     * `MI200 alternate implementation <https://github.com/ROCm/rocDecode/blob/master/docs/conceptual/MI200AlternateImplementation.html>`_
     * `Cache <https://github.com/ROCm/rocDecode/blob/master/docs/conceptual/cache.html>`_
     * `Find and immediate <https://github.com/ROCm/rocDecode/blob/master/docs/conceptual/find_and_immediate.html>`_
