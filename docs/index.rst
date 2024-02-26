@@ -23,7 +23,7 @@ Our documentation is structured as follows:
     * :doc:`Build the driver <install/driver>`
     * :doc:`For embedded systems <install/embed>`
   
-  .. grid-item-card:: Concepts
+  .. grid-item-card:: Conceptual
 
     * :doc:`Getting started with Fusion API <conceptual/Getting_Started_FusionAPI>`
     * :doc:`MI200 alternate implementation <conceptual/MI200AlternateImplementation>`
