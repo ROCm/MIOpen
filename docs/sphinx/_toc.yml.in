@@ -16,7 +16,7 @@ subtrees:
             title: For embedding systems
             
     - file: conceptual/index.md
-      title: Concepts  
+      title: Conceptual  
       subtrees:
       - entries: 
          - file: conceptual/find_and_immediate.md
@@ -30,7 +30,7 @@ subtrees:
          - file: conceptual/Getting_Started_FusionAPI.md
            title: Getting Started with Fusion API
          - file: conceptual/MI200AlternateImplementation.md
-           title: MI200 Alternate Implementation
+           title: MI200 alternate implementation
          - file: conceptual/MIOpen_Porting_Guide.md
            title: MIOpen Porting Guide
             
