@@ -266,6 +266,7 @@ public:
 
     bool UseGPUReference();
 
+    void CheckForwardUsePreCompiledKernel();
     int FindForward(int& ret_algo_count,
                     int request_algo_count,
                     std::vector<miopenConvAlgoPerf_t>& perf_results,
@@ -275,6 +276,8 @@ public:
     int RunForwardGPUReference();
     int RunWarmupFindForwardGPU();
 
+    void CheckBackwardDataUsePreCompiledKernel();
+    void CheckBackwardWeightsUsePreCompiledKernel();
     int FindBackwardData(int& ret_algo_count,
                          int request_algo_count,
                          std::vector<miopenConvAlgoPerf_t>& perf_results,
@@ -925,6 +928,8 @@ int ConvDriver<Tgpu, Tref>::AddCmdLineArgs()
         "out_cast_type", 'T', "-1", "Cast type for output tensor, default to not set", "string");
     inflags.AddInputFlag(
         "wei_cast_type", 'R', "-1", "Cast type for weight tensor, default to not set", "string");
+    inflags.AddInputFlag(
+        "check_kernel_build", 'K', "0", "Check if kernel build happens (Default=0)", "int");
 
     return 0;
 }
@@ -1623,6 +1628,29 @@ bool ConvDriver<Tgpu, Tref>::UseGPUReference()
 }
 
 template <typename Tgpu, typename Tref>
+void ConvDriver<Tgpu, Tref>::CheckForwardUsePreCompiledKernel()
+{
+    const bool is_transform     = IsInputTensorTransform();
+    const bool exhaustiveSearch = inflags.GetValueInt("search") == 1;
+    const bool ignoreAsmBuild   = true;
+    bool usePreCompiledKernel   = false;
+    miopenCheckConvolutionForwardUsePreCompiledKernel(
+        GetHandle(),
+        (is_transform ? inputTensor_vect4 : inputTensor),
+        (is_transform ? in_vect4_dev->GetMem() : in_dev->GetMem()),
+        (is_transform ? weightTensor_vect4 : weightTensor),
+        (is_transform ? wei_vect4_dev->GetMem() : wei_dev->GetMem()),
+        convDesc,
+        outputTensor,
+        out_dev->GetMem(),
+        exhaustiveSearch,
+        ignoreAsmBuild,
+        &usePreCompiledKernel);
+
+    printf("[FWD] usePreCompiledKernel = %d\n", (int)usePreCompiledKernel);
+}
+
+template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::FindForward(int& ret_algo_count,
                                         int request_algo_count,
                                         std::vector<miopenConvAlgoPerf_t>& perf_results,
@@ -1890,6 +1918,9 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPU()
                               weightTensor_vect4,
                               wei_vect4_dev->GetMem());
     }
+
+    if(inflags.GetValueInt("check_kernel_build") == 1)
+        CheckForwardUsePreCompiledKernel();
 
     if(immediate_solution)
         rc = RunForwardGpuImmed(is_transform);
@@ -2344,6 +2375,48 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
 }
 
 template <typename Tgpu, typename Tref>
+void ConvDriver<Tgpu, Tref>::CheckBackwardDataUsePreCompiledKernel()
+{
+    const bool exhaustiveSearch = inflags.GetValueInt("search") == 1;
+    const bool ignoreAsmBuild   = true;
+    bool usePreCompiledKernel   = false;
+    miopenCheckConvolutionBackwardDataUsePreCompiledKernel(GetHandle(),
+                                                           outputTensor,
+                                                           dout_dev->GetMem(),
+                                                           weightTensor,
+                                                           wei_dev->GetMem(),
+                                                           convDesc,
+                                                           inputTensor,
+                                                           din_dev->GetMem(),
+                                                           exhaustiveSearch,
+                                                           ignoreAsmBuild,
+                                                           &usePreCompiledKernel);
+
+    printf("[BWD Data] usePreCompiledKernel = %d\n", (int)usePreCompiledKernel);
+}
+
+template <typename Tgpu, typename Tref>
+void ConvDriver<Tgpu, Tref>::CheckBackwardWeightsUsePreCompiledKernel()
+{
+    const bool exhaustiveSearch = inflags.GetValueInt("search") == 1;
+    const bool ignoreAsmBuild   = true;
+    bool usePreCompiledKernel   = false;
+    miopenCheckConvolutionBackwardWeightsUsePreCompiledKernel(GetHandle(),
+                                                              outputTensor,
+                                                              dout_dev->GetMem(),
+                                                              inputTensor,
+                                                              in_dev->GetMem(),
+                                                              convDesc,
+                                                              weightTensor,
+                                                              dwei_dev->GetMem(),
+                                                              exhaustiveSearch,
+                                                              ignoreAsmBuild,
+                                                              &usePreCompiledKernel);
+
+    printf("[BWD Weights] usePreCompiledKernel = %d\n", (int)usePreCompiledKernel);
+}
+
+template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::FindBackwardData(int& ret_algo_count,
                                              int request_algo_count,
                                              std::vector<miopenConvAlgoPerf_t>& perf_results,
@@ -2413,6 +2486,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardGPU()
 
     if(is_bwd)
     {
+        if(inflags.GetValueInt("check_kernel_build") == 1)
+            CheckBackwardDataUsePreCompiledKernel();
+
         auto rc = immediate_solution ? RunBackwardDataGpuImmed() : RunBackwardDataGpuFind();
         is_bwd_run_failed = (rc != 0);
         ret |= rc;
@@ -2420,6 +2496,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardGPU()
 
     if(is_wrw)
     {
+        if(inflags.GetValueInt("check_kernel_build") == 1)
+            CheckBackwardWeightsUsePreCompiledKernel();
+
         auto rc           = immediate_solution ? RunBackwardWrwGpuImmed() : RunBackwardWrwGpuFind();
         is_wrw_run_failed = (rc != 0);
         ret |= (rc << 16); // Differentiate WrW and Bwd error codes.

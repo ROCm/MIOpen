@@ -233,4 +233,34 @@ void SaveBinary(const fs::path& binary_path,
     }
 }
 #endif
+
+bool HasPreCompiledBinary(const TargetProperties& target,
+                          const size_t num_cu,
+                          const std::string& name,
+                          const std::string& args,
+                          bool is_kernel_str)
+{
+    if(miopen::IsCacheDisabled())
+    {
+        return false;
+    }
+
+    auto db = GetDb(target, num_cu);
+
+    const std::string filename = name + ".o";
+    const KernelConfig cfg{filename, args, ""};
+
+    MIOPEN_LOG_I2("Loading binary for: " << filename << "; args: " << args);
+    auto record = db.FindRecord(cfg);
+    if(record)
+    {
+        MIOPEN_LOG_I2("Pre-compiled binary found: " << filename << "; args: " << args);
+        return true;
+    }
+    else
+    {
+        MIOPEN_LOG_I2("Pre-compiled binary not found: " << filename << "; args: " << args);
+        return false;
+    }
+}
 } // namespace miopen

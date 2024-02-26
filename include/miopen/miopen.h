@@ -5565,7 +5565,7 @@ miopenCheckConvolutionForwardUsePreCompiledKernel(miopenHandle_t handle,
                                                   void* y,
                                                   bool exhaustiveSearch,
                                                   bool ignoreAsmBuild,
-                                                  bool* kernelBuildHappen);
+                                                  bool* usePreCompiledKernel);
 
 /*!
   @brief Check if the convolution backward data will use pre-compiled kernel.
@@ -5581,7 +5581,7 @@ miopenCheckConvolutionBackwardDataUsePreCompiledKernel(miopenHandle_t handle,
                                                        void* dx,
                                                        bool exhaustiveSearch,
                                                        bool ignoreAsmBuild,
-                                                       bool* kernelBuildHappen);
+                                                       bool* usePreCompiledKernel);
 
 /*!
   @brief Check if the convolution backward weights will use pre-compiled kernel.
@@ -5597,7 +5597,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCheckConvolutionBackwardWeightsUsePreCompiled
     void* dw,
     bool exhaustiveSearch,
     bool ignoreAsmBuild,
-    bool* kernelBuildHappen);
+    bool* usePreCompiledKernel);
 #endif
 
 #ifdef MIOPEN_BETA_API

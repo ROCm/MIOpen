@@ -1285,10 +1285,16 @@ static bool CheckSolutionUsePreCompiledKernel(ExecutionContext& ctx,
     {
         if(ignoreAsmBuild && boost::algorithm::ends_with(k.kernel_file, ".s"))
         {
+            MIOPEN_LOG_I2("Passing asm kernel. kernel_file = "
+                          << k.kernel_file << ", comp_options = " << k.comp_options);
             continue;
         }
 
-        if(!handle.HasPreCompiledProgram(k.kernel_file, k.comp_options))
+        bool hasPreCompiledProgram = handle.HasPreCompiledProgram(k.kernel_file, k.comp_options);
+        MIOPEN_LOG_I2("hasPreCompiledProgram = " << hasPreCompiledProgram
+                                                 << ", kernel_file = " << k.kernel_file
+                                                 << ", comp_options = " << k.comp_options);
+        if(!hasPreCompiledProgram)
         {
             return false;
         }
@@ -1363,13 +1369,16 @@ void ConvolutionDescriptor::CheckConvBwdDataUsePreCompiledKernel(
     bool ignoreAsmBuild,
     bool* returnedUsePreCompiledKernel) const
 {
-    if(dy == nullptr || w == nullptr || dx == nullptr)
+    if(dx == nullptr || w == nullptr || dy == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "Buffers cannot be NULL");
     if(returnedUsePreCompiledKernel == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "returnedUsePreCompiledKernel cannot be nullptr");
 
+    ValidateGroupCount(dxDesc, wDesc, *this);
+
     const conv::ProblemDescription problem(
-        dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData);
+        dyDesc, wDesc, dxDesc, *this, conv::Direction::BackwardData);
+
     auto ctx = [&] {
         auto tmp = ExecutionContext{&handle};
         problem.SetupFloats(tmp);
@@ -1420,11 +1429,13 @@ void ConvolutionDescriptor::CheckConvBwdWeightsUsePreCompiledKernel(
 {
     if(x == nullptr || dw == nullptr || dy == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "Buffers cannot be NULL");
+    if(xDesc.GetType() == miopenInt8)
+        MIOPEN_THROW(miopenStatusBadParm);
     if(returnedUsePreCompiledKernel == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "returnedUsePreCompiledKernel cannot be nullptr");
 
     const conv::ProblemDescription problem(
-        xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights);
+        dyDesc, dwDesc, xDesc, *this, conv::Direction::BackwardWeights);
     auto ctx = [&] {
         auto tmp = ExecutionContext{&handle};
         problem.SetupFloats(tmp);

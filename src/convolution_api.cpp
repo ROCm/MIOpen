@@ -1391,10 +1391,19 @@ miopenCheckConvolutionForwardUsePreCompiledKernel(miopenHandle_t handle,
                                                   void* y,
                                                   bool exhaustiveSearch,
                                                   bool ignoreAsmBuild,
-                                                  bool* kernelBuildHappen)
+                                                  bool* usePreCompiledKernel)
 {
-    MIOPEN_LOG_FUNCTION(
-        handle, xDesc, x, wDesc, w, convDesc, yDesc, y, ignoreAsmBuild, kernelBuildHappen);
+    MIOPEN_LOG_FUNCTION(handle,
+                        xDesc,
+                        x,
+                        wDesc,
+                        w,
+                        convDesc,
+                        yDesc,
+                        y,
+                        exhaustiveSearch,
+                        ignoreAsmBuild,
+                        usePreCompiledKernel);
 
     if(miopen::deref(convDesc).mode == miopenTranspose)
         return miopen::try_([&] {
@@ -1407,7 +1416,7 @@ miopenCheckConvolutionForwardUsePreCompiledKernel(miopenHandle_t handle,
                                                                          DataCast(y),
                                                                          exhaustiveSearch,
                                                                          ignoreAsmBuild,
-                                                                         kernelBuildHappen);
+                                                                         usePreCompiledKernel);
         });
 
     return miopen::try_([&] {
@@ -1420,7 +1429,7 @@ miopenCheckConvolutionForwardUsePreCompiledKernel(miopenHandle_t handle,
                                                                  DataCast(y),
                                                                  exhaustiveSearch,
                                                                  ignoreAsmBuild,
-                                                                 kernelBuildHappen);
+                                                                 usePreCompiledKernel);
     });
 }
 
@@ -1435,10 +1444,19 @@ miopenCheckConvolutionBackwardDataUsePreCompiledKernel(miopenHandle_t handle,
                                                        void* dx,
                                                        bool exhaustiveSearch,
                                                        bool ignoreAsmBuild,
-                                                       bool* kernelBuildHappen)
+                                                       bool* usePreCompiledKernel)
 {
-    MIOPEN_LOG_FUNCTION(
-        handle, dyDesc, dy, wDesc, w, convDesc, dxDesc, dx, ignoreAsmBuild, kernelBuildHappen);
+    MIOPEN_LOG_FUNCTION(handle,
+                        dyDesc,
+                        dy,
+                        wDesc,
+                        w,
+                        convDesc,
+                        dxDesc,
+                        dx,
+                        exhaustiveSearch,
+                        ignoreAsmBuild,
+                        usePreCompiledKernel);
 
     if(miopen::deref(convDesc).mode == miopenTranspose)
         return miopen::try_([&] {
@@ -1451,7 +1469,7 @@ miopenCheckConvolutionBackwardDataUsePreCompiledKernel(miopenHandle_t handle,
                                                                      DataCast(dx),
                                                                      exhaustiveSearch,
                                                                      ignoreAsmBuild,
-                                                                     kernelBuildHappen);
+                                                                     usePreCompiledKernel);
         });
 
     return miopen::try_([&] {
@@ -1464,7 +1482,7 @@ miopenCheckConvolutionBackwardDataUsePreCompiledKernel(miopenHandle_t handle,
                                                                      DataCast(dx),
                                                                      exhaustiveSearch,
                                                                      ignoreAsmBuild,
-                                                                     kernelBuildHappen);
+                                                                     usePreCompiledKernel);
     });
 }
 
@@ -1479,10 +1497,19 @@ extern "C" miopenStatus_t miopenCheckConvolutionBackwardWeightsUsePreCompiledKer
     void* dw,
     bool exhaustiveSearch,
     bool ignoreAsmBuild,
-    bool* kernelBuildHappen)
+    bool* usePreCompiledKernel)
 {
-    MIOPEN_LOG_FUNCTION(
-        handle, dyDesc, dy, xDesc, x, convDesc, dwDesc, dw, ignoreAsmBuild, kernelBuildHappen);
+    MIOPEN_LOG_FUNCTION(handle,
+                        dyDesc,
+                        dy,
+                        xDesc,
+                        x,
+                        convDesc,
+                        dwDesc,
+                        dw,
+                        exhaustiveSearch,
+                        ignoreAsmBuild,
+                        usePreCompiledKernel);
 
     if(miopen::deref(convDesc).mode == miopenTranspose)
         return miopen::try_([&] {
@@ -1495,7 +1522,7 @@ extern "C" miopenStatus_t miopenCheckConvolutionBackwardWeightsUsePreCompiledKer
                                                                             DataCast(dw),
                                                                             exhaustiveSearch,
                                                                             ignoreAsmBuild,
-                                                                            kernelBuildHappen);
+                                                                            usePreCompiledKernel);
         });
 
     return miopen::try_([&] {
@@ -1508,6 +1535,6 @@ extern "C" miopenStatus_t miopenCheckConvolutionBackwardWeightsUsePreCompiledKer
                                                                         DataCast(dw),
                                                                         exhaustiveSearch,
                                                                         ignoreAsmBuild,
-                                                                        kernelBuildHappen);
+                                                                        usePreCompiledKernel);
     });
 }
