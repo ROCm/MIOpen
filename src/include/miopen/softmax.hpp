@@ -40,7 +40,7 @@ struct TensorDescriptor;
 
 struct SoftmaxDescriptor : miopenSoftmaxDescriptor
 {
-    SoftmaxDescriptor();
+    SoftmaxDescriptor(){}
 
     float GetAlpha() const {return alpha;}
     float GetBeta() const {return beta;}
