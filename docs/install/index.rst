@@ -10,7 +10,7 @@ Installation
 
 This section provides a guide to install MIOpen on different systems. 
 
-* :doc:`install.rst`
-* :doc:`driver.md`
-* :doc:`embed.md`
+* :doc:`install`
+* :doc:`driver`
+* :doc:`embed`
 
