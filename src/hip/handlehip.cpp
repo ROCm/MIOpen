@@ -546,9 +546,7 @@ Program Handle::LoadProgram(const std::string& program_name,
     }
 }
 
-bool Handle::HasPreCompiledProgram(const std::string& program_name,
-                                   std::string params,
-                                   bool is_kernel_str) const
+bool Handle::HasPreCompiledProgram(const std::string& program_name, std::string params) const
 {
     this->impl->set_ctx();
 
@@ -557,11 +555,8 @@ bool Handle::HasPreCompiledProgram(const std::string& program_name,
         params += " -mcpu=" + this->GetTargetProperties().Name();
     }
 
-    return miopen::HasPreCompiledBinary(this->GetTargetProperties(),
-                                        this->GetMaxComputeUnits(),
-                                        program_name,
-                                        params,
-                                        is_kernel_str);
+    return miopen::HasPreCompiledBinary(
+        this->GetTargetProperties(), this->GetMaxComputeUnits(), program_name, params);
 }
 
 bool Handle::HasProgram(const std::string& program_name, const std::string& params) const

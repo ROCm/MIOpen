@@ -211,20 +211,15 @@ Program Handle::LoadProgram(const std::string& program_name,
     return p;
 }
 
-bool Handle::HasPreCompiledProgram(const std::string& program_name,
-                                   std::string params,
-                                   bool is_kernel_str) const
+bool Handle::HasPreCompiledProgram(const std::string& program_name, std::string params) const
 {
     if(!miopen::EndsWith(program_name, ".mlir"))
     {
         params += " -mcpu=" + this->GetTargetProperties().Name();
     }
 
-    return miopen::HasPreCompiledBinary(this->GetTargetProperties(),
-                                        this->GetMaxComputeUnits(),
-                                        program_name,
-                                        params,
-                                        is_kernel_str);
+    return miopen::HasPreCompiledBinary(
+        this->GetTargetProperties(), this->GetMaxComputeUnits(), program_name, params);
 }
 
 bool Handle::HasProgram(const std::string& program_name, const std::string& params) const

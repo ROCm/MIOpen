@@ -237,8 +237,7 @@ void SaveBinary(const fs::path& binary_path,
 bool HasPreCompiledBinary(const TargetProperties& target,
                           const size_t num_cu,
                           const std::string& name,
-                          const std::string& args,
-                          bool is_kernel_str)
+                          const std::string& args)
 {
     if(miopen::IsCacheDisabled())
     {

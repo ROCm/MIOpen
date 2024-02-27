@@ -424,15 +424,10 @@ Program Handle::LoadProgram(const std::string& program_name,
     }
 }
 
-bool Handle::HasPreCompiledProgram(const std::string& program_name,
-                                   std::string params,
-                                   bool is_kernel_str) const
+bool Handle::HasPreCompiledProgram(const std::string& program_name, std::string params) const
 {
-    return miopen::HasPreCompiledBinary(this->GetTargetProperties(),
-                                        this->GetMaxComputeUnits(),
-                                        program_name,
-                                        params,
-                                        is_kernel_str);
+    return miopen::HasPreCompiledBinary(
+        this->GetTargetProperties(), this->GetMaxComputeUnits(), program_name, params);
 }
 
 void Handle::ClearProgram(const std::string& program_name, const std::string& params) const

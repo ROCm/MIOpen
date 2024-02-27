@@ -66,8 +66,7 @@ void SaveBinary(const std::string& hsaco,
 bool HasPreCompiledBinary(const TargetProperties& target,
                           const size_t num_cu,
                           const std::string& name,
-                          const std::string& args,
-                          bool is_kernel_str = false);
+                          const std::string& args);
 } // namespace miopen
 
 #endif
