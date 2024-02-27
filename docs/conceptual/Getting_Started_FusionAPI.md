@@ -77,7 +77,7 @@ miopenCreateOpBiasForward(fusePlanDesc, &biasOp, bias.desc);
 miopenCreateOpActivationForward(fusePlanDesc, &activOp, miopenActivationRELU);
 ```
 
-It may be noted that `conv_desc` is the regular MIOpen Convolution descriptor and is created in the standard way before it is referenced here. For more details on creating and setting the convolution descriptor, refer to the example code as well as [Convolution](docs/reference/convolution.rst). In the above snippet `weights.desc` refers to the `miopenTensorDescriptor_t` for the convolution operations and `bias.desc` refers to the object of the same type for the bias operation. The order of insertion of operators indicates the order in which the operations would be performed on the data. Therefore, the above code implies that the convolution operation would be the first operation to execute on the incoming data, followed by the bias and activation operations. 
+It may be noted that `conv_desc` is the regular MIOpen Convolution descriptor and is created in the standard way before it is referenced here. For more details on creating and setting the convolution descriptor, refer to the example code as well as [Convolution](../reference/convolution.rst). In the above snippet `weights.desc` refers to the `miopenTensorDescriptor_t` for the convolution operations and `bias.desc` refers to the object of the same type for the bias operation. The order of insertion of operators indicates the order in which the operations would be performed on the data. Therefore, the above code implies that the convolution operation would be the first operation to execute on the incoming data, followed by the bias and activation operations. 
 
 During this process, it is important that the returned codes be checked to make sure that the operations as well as their order is supported. The operator insertion might fail for a number of reasons such as unsupported sequence of operations, unsupported dimensions of the input or in case of convolution unsupported dimensions for the filters. In the above example, these aspects are ignored for the sake of simplicity.
 
@@ -190,11 +190,9 @@ Once the fusion plan object is destroyed, all the operations created are destroy
 The tables below outlines the supported fusions for fp32 and fp16 as well as any applicable constraints. **(C = convolution, B = bias, N = batch normalization, A = activation)**
 Fusion Plans with grouped convolutions are not supported.
 
+<img title="Convolution based fp32 fusion" src="docs/fp32fusions.png">
 
-![Convolution based fp32 fusion](data/fp32fusions.png)
-
-
-![Convolution based fp16 fusion](data/fp16fusions.png)
+<img title="Convolution based fp16 fusion" fusion" src="docs/fp16fusions.png">
 
 
 ## Performance Comparison to Non-Fused Kernels
@@ -202,7 +200,7 @@ Fusion Plans with grouped convolutions are not supported.
 
 The following graph depicts the speedup gained for a fused Convolution+Bias+Activation over a non-fused version, all configurations have a batch size of 64:
 
-![CBA Graph](data/cba.png)
+<img title="CBA Graph" fusion" src="docs/cba.png">
 
 Speedup obtained by fusing Batchnorm (spatial mode) with Activation are presented in the graph below:
 
