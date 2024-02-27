@@ -48,7 +48,7 @@ The fusion API introduces the notion of **operators** which represent different 
 
 Notice that _Bias_ is a separate operator, although it is typically only used with convolution. This list is expected to grow as support for more operators is added to the API, moreover, operators for backward passes are in the works as well.
 
-The fusion API provides calls for the creation of the supported operators, here we would describe the process for the convolution operator, details for other operators may be found in the [miopen header file](https://rocm.docs.amd.com/projects/MIOpen/en/latest/fusion.html) 
+The fusion API provides calls for the creation of the supported operators, here we would describe the process for the convolution operator, details for other operators may be found in [Layer Fusion](#fusion)
 
 Once the fusion plan descriptor is created, two or more operators can be added to it by using the individual operator creation API calls. Creation of an operator might fail if the API does not support the fusion of the operations being added and report back immediately to the user. For our example we need to add the Convolution, Bias and Activation operations to our freshly minted fusion plan. This is done using the following calls for the Convolution, Bias and Activation operations respectively:
 
