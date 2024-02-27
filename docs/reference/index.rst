@@ -9,7 +9,7 @@ This section provides technical descriptions and important information about the
 * `activation <https://rocm.docs.amd.com/projects/MIOpen/en/latest/activation.html>`_
 * `convolution <https://rocm.docs.amd.com/projects/MIOpen/en/latest/convolution.html>`_
 * `rnn <https://rocm.docs.amd.com/projects/MIOpen/en/latest/rnn.html>`_
-* `batchnorm <https://rocm.docs.amd.com/projects/MIOpen/en/latest/batchnorm.html>_
+* `batchnorm <https://rocm.docs.amd.com/projects/MIOpen/en/latest/batchnorm.html>`_
 * `lrn <https://rocm.docs.amd.com/projects/MIOpen/en/latest/lrn.html>`_
 * `pooling <https://rocm.docs.amd.com/projects/MIOpen/en/latest/pooling.html>`_
 * `softmax <https://rocm.docs.amd.com/projects/MIOpen/en/latest/softmax.html>`_
