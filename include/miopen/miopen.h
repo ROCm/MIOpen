@@ -2084,6 +2084,153 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionBackwardBias(miopenHandle_t handle
                                                            const miopenTensorDescriptor_t dbDesc,
                                                            void* db);
 
+#ifdef MIOPEN_BETA_API
+/*! @brief Check if the convolution forward uses pre-compiled kernels.
+ *
+ * The purpose of this function is to see if MIOpen uses precompiled kernels for the problem, so you
+ * can avoid building those kernels. This was created to avoid building certain kernels that take an
+ * unusually long time.
+ * This function behaves in a similar way to miopenFindConvolutionForwardAlgorithm, except for not
+ * trying to build the kernels.
+ *
+ * * If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If
+ * a configuration match is not found, a default configuration will be returned.
+ *
+ * * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration.
+ * If a match is not found, an exhaustive search is performed by running individual algorithms.
+ *
+ * * If ignoreAsmBuild == 0, building assembly kernels is also considered as kernel builds.
+ *
+ * * If ignoreAsmBuild == 1, building assembly kernels are considered as using pre-compiled kernels.
+ * This option exists because the time it takes to build assembly kernels is negligibly small.
+ *
+ * @param handle               MIOpen handle (input)
+ * @param xDesc                Tensor descriptor for data input tensor x (input)
+ * @param x                    Data tensor x (input)
+ * @param wDesc                Tensor descriptor for weight tensor w (input)
+ * @param w                    Weights tensor w (input)
+ * @param convDesc             Convolution layer descriptor (input)
+ * @param yDesc                Tensor descriptor for output data tensor y (input)
+ * @param y                    Data tensor y (output)
+ * @param exhaustiveSearch     A boolean to toggle a full search of all algorithms and
+ * configurations (input)
+ * @param ignoreAsmBuild       A boolean to toggle a feature to ignore assembly kernel builds
+ * (input)
+ * @param usePreCompiledKernel A boolean which indicates whether MIOpen uses pre-compiled kernels
+ * (output)
+ * @return                     miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenCheckConvolutionForwardUsePreCompiledKernel(miopenHandle_t handle,
+                                                  const miopenTensorDescriptor_t xDesc,
+                                                  const void* x,
+                                                  const miopenTensorDescriptor_t wDesc,
+                                                  const void* w,
+                                                  const miopenConvolutionDescriptor_t convDesc,
+                                                  const miopenTensorDescriptor_t yDesc,
+                                                  void* y,
+                                                  bool exhaustiveSearch,
+                                                  bool ignoreAsmBuild,
+                                                  bool* usePreCompiledKernel);
+
+/*! @brief Check if the convolution backward data uses pre-compiled kernels.
+ *
+ * The purpose of this function is to see if MIOpen uses precompiled kernels for the problem, so you
+ * can avoid building those kernels. This was created to avoid building certain kernels that take an
+ * unusually long time.
+ * This function behaves in a similar way to miopenFindConvolutionBackwardDataAlgorithm, except for
+ * not trying to build the kernels.
+ *
+ * * If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If
+ * a configuration match is not found, a default configuration will be returned.
+ *
+ * * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration.
+ * If a match is not found, an exhaustive search is performed by running individual algorithms.
+ *
+ * * If ignoreAsmBuild == 0, building assembly kernels is also considered as kernel builds.
+ *
+ * * If ignoreAsmBuild == 1, building assembly kernels are considered as using pre-compiled kernels.
+ * This option exists because the time it takes to build assembly kernels is negligibly small.
+ *
+ * @param handle               MIOpen handle (input)
+ * @param dyDesc               Tensor descriptor for data input tensor dy (input)
+ * @param dy                   Data delta tensor dy (input)
+ * @param wDesc                Tensor descriptor for weight tensor w (input)
+ * @param w                    Weights tensor w (input)
+ * @param convDesc             Convolution layer descriptor (input)
+ * @param dxDesc               Tensor descriptor for output data tensor dx (input)
+ * @param dx                   Data delta tensor dx (input)
+ * @param exhaustiveSearch     A boolean to toggle a full search of all algorithms and
+ * configurations (input)
+ * @param ignoreAsmBuild       A boolean to toggle a feature to ignore assembly kernel builds
+ * (input)
+ * @param usePreCompiledKernel A boolean which indicates whether MIOpen uses pre-compiled kernels
+ * (output)
+ * @return                     miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenCheckConvolutionBackwardDataUsePreCompiledKernel(miopenHandle_t handle,
+                                                       const miopenTensorDescriptor_t dyDesc,
+                                                       const void* dy,
+                                                       const miopenTensorDescriptor_t wDesc,
+                                                       const void* w,
+                                                       const miopenConvolutionDescriptor_t convDesc,
+                                                       const miopenTensorDescriptor_t dxDesc,
+                                                       void* dx,
+                                                       bool exhaustiveSearch,
+                                                       bool ignoreAsmBuild,
+                                                       bool* usePreCompiledKernel);
+
+/*! @brief Check if the convolution backward weights uses pre-compiled kernels.
+ *
+ * The purpose of this function is to see if MIOpen uses precompiled kernels for the problem, so you
+ * can avoid building those kernels. This was created to avoid building certain kernels that take an
+ * unusually long time.
+ * This function behaves in a similar way to miopenFindConvolutionBackwardWeightsAlgorithm, except
+ * for not trying to build the kernels.
+ *
+ * * If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If
+ * a configuration match is not found, a default configuration will be returned.
+ *
+ * * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration.
+ * If a match is not found, an exhaustive search is performed by running individual algorithms.
+ *
+ * * If ignoreAsmBuild == 0, building assembly kernels is also considered as kernel builds.
+ *
+ * * If ignoreAsmBuild == 1, building assembly kernels are considered as using pre-compiled kernels.
+ * This option exists because the time it takes to build assembly kernels is negligibly small.
+ *
+ * @param handle               MIOpen handle (input)
+ * @param dyDesc               Tensor descriptor for data input tensor dy (input)
+ * @param dy                   Data delta tensor dy (input)
+ * @param xDesc                Tensor descriptor for output data tensor x (input)
+ * @param x                    Data delta tensor dx (input)
+ * @param convDesc             Convolution layer descriptor (input)
+ * @param dwDesc               Tensor descriptor for weight tensor dw (input)
+ * @param dw                   Weights delta tensor dw (input)
+ * @param exhaustiveSearch     A boolean to toggle a full search of all algorithms and
+ * configurations (input)
+ * @param ignoreAsmBuild       A boolean to toggle a feature to ignore assembly kernel builds
+ * (input)
+ * @param usePreCompiledKernel A boolean which indicates whether MIOpen uses pre-compiled kernels
+ * (output)
+ * @return                     miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenCheckConvolutionBackwardWeightsUsePreCompiledKernel(
+    miopenHandle_t handle,
+    const miopenTensorDescriptor_t dyDesc,
+    const void* dy,
+    const miopenTensorDescriptor_t xDesc,
+    const void* x,
+    const miopenConvolutionDescriptor_t convDesc,
+    const miopenTensorDescriptor_t dwDesc,
+    void* dw,
+    bool exhaustiveSearch,
+    bool ignoreAsmBuild,
+    bool* usePreCompiledKernel);
+#endif
+#ifdef MIOPEN_BETA_API
+
 /** @} */
 // CLOSEOUT CONVOLUTIONS DOXYGEN GROUP
 
@@ -5549,58 +5696,6 @@ MIOPEN_EXPORT miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution
  */
 MIOPEN_EXPORT miopenStatus_t miopenGetSolverIdConvAlgorithm(uint64_t solverId,
                                                             miopenConvAlgorithm_t* result);
-
-#ifdef MIOPEN_BETA_API
-/*!
-  @brief Check if the convolution forward will use pre-compiled kernel.
-*/
-MIOPEN_EXPORT miopenStatus_t
-miopenCheckConvolutionForwardUsePreCompiledKernel(miopenHandle_t handle,
-                                                  const miopenTensorDescriptor_t xDesc,
-                                                  const void* x,
-                                                  const miopenTensorDescriptor_t wDesc,
-                                                  const void* w,
-                                                  const miopenConvolutionDescriptor_t convDesc,
-                                                  const miopenTensorDescriptor_t yDesc,
-                                                  void* y,
-                                                  bool exhaustiveSearch,
-                                                  bool ignoreAsmBuild,
-                                                  bool* usePreCompiledKernel);
-
-/*!
-  @brief Check if the convolution backward data will use pre-compiled kernel.
-*/
-MIOPEN_EXPORT miopenStatus_t
-miopenCheckConvolutionBackwardDataUsePreCompiledKernel(miopenHandle_t handle,
-                                                       const miopenTensorDescriptor_t dyDesc,
-                                                       const void* dy,
-                                                       const miopenTensorDescriptor_t wDesc,
-                                                       const void* w,
-                                                       const miopenConvolutionDescriptor_t convDesc,
-                                                       const miopenTensorDescriptor_t dxDesc,
-                                                       void* dx,
-                                                       bool exhaustiveSearch,
-                                                       bool ignoreAsmBuild,
-                                                       bool* usePreCompiledKernel);
-
-/*!
-  @brief Check if the convolution backward weights will use pre-compiled kernel.
-*/
-MIOPEN_EXPORT miopenStatus_t miopenCheckConvolutionBackwardWeightsUsePreCompiledKernel(
-    miopenHandle_t handle,
-    const miopenTensorDescriptor_t dyDesc,
-    const void* dy,
-    const miopenTensorDescriptor_t xDesc,
-    const void* x,
-    const miopenConvolutionDescriptor_t convDesc,
-    const miopenTensorDescriptor_t dwDesc,
-    void* dw,
-    bool exhaustiveSearch,
-    bool ignoreAsmBuild,
-    bool* usePreCompiledKernel);
-#endif
-
-#ifdef MIOPEN_BETA_API
 
 /*! @brief Initializes a problem object describing an activation operation.
  * @note As of now there is no way to actually get any solution for this kind of problems.

@@ -152,5 +152,20 @@ miopenDestroyConvolutionDescriptor
 
 .. doxygenfunction::  miopenDestroyConvolutionDescriptor
 
+miopenCheckConvolutionForwardUsePreCompiledKernel
+----------------------------------
+
+.. doxygenfunction::  miopenCheckConvolutionForwardUsePreCompiledKernel
+
+miopenCheckConvolutionBackwardDataUsePreCompiledKernel
+----------------------------------
+
+.. doxygenfunction::  miopenCheckConvolutionBackwardDataUsePreCompiledKernel
+
+miopenCheckConvolutionBackwardWeightsUsePreCompiledKernel
+----------------------------------
+
+.. doxygenfunction::  miopenCheckConvolutionBackwardWeightsUsePreCompiledKernel
+
 
 
