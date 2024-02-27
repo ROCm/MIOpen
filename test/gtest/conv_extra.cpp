@@ -44,12 +44,12 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-auto GetTestCases(void)
+std::vector<std::string> GetTestCases(void)
 {
-    const auto& cmd       = "test_conv2d ";
-    const auto& v         = " --verbose ";
-    const auto& float_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    const auto& flag_arg  = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLAGS_ARGS));
+    std::string cmd       = "test_conv2d ";
+    std::string v         = " --verbose ";
+    std::string float_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    std::string flag_arg  = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLAGS_ARGS));
 
     // clang-format off
     return std::vector<std::string>{
@@ -118,7 +118,7 @@ void Run2dDriver(void)
             return str.data();
         });
         testing::internal::CaptureStderr();
-        test_drive<lstm_driver>(ptrs.size(), ptrs.data());
+        test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
         auto capture = testing::internal::GetCapturedStderr();
         std::cout << capture;
     }
