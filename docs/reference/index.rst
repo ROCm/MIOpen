@@ -17,5 +17,5 @@ This section provides technical descriptions and important information about the
 * `loss <https://rocm.docs.amd.com/projects/MIOpen/en/latest/loss.html>`_
 * `dropout <https://rocm.docs.amd.com/projects/MIOpen/en/latest/dropout.html>`_
 * `reduction <https://rocm.docs.amd.com/projects/MIOpen/en/latest/reduction.html>`_
-* :ref:`layernorm`
-* :ref:`sum`
+* `layernorm`
+* `sum`
