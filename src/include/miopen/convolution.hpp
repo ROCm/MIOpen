@@ -400,6 +400,12 @@ struct MIOPEN_EXPORT ConvolutionDescriptor : miopenConvolutionDescriptor
 
 private:
     void ValidateTensors(const ConvTensors& conv_tensors) const;
+
+    void CheckConvUsePreCompiledKernelInternal(Handle& handle,
+                                               const conv::ProblemDescription& problem,
+                                               bool exhaustiveSearch,
+                                               bool ignoreAsmBuild,
+                                               bool* returnedUsePreCompiledKernel) const;
 };
 
 void ConvolutionBackwardBias(const Handle& handle,
