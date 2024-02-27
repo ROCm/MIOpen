@@ -3,12 +3,12 @@ Conceptual
 
 This section provides conceptual descriptions about MIOpen APIs.
 
-* :ref:`Getting_Started_FusionAPI`
-* :ref:`MI200AlternateImplementation`
-* :ref:`MIOpen_Porting_Guide`
-* :ref:`cache`
-* :ref:`find_and_immediate`
-* :ref:`finddb`
-* :ref:`perfdatabase`
+* :doc:`Getting_Started_FusionAPI`
+* :doc:`MI200AlternateImplementation`
+* :doc:`MIOpen_Porting_Guide`
+* :doc:`cache`
+* :doc:`find_and_immediate`
+* :doc:`finddb`
+* :doc:`perfdatabase`
 
 
