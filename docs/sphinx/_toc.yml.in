@@ -13,7 +13,7 @@ subtrees:
           - file: install/driver.md
             title: Build the driver 
           - file: install/embed.md
-            title: For embedding systems
+            title: Build MIOpen for embedded systems
             
     - file: conceptual/index.md
       title: Conceptual  
@@ -35,7 +35,7 @@ subtrees:
            title: MIOpen Porting Guide
             
     - file: reference/index.rst
-      title: API Reference
+      title: API reference
       subtrees:
       - entries:
          - file: reference/activation.rst

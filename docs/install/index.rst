@@ -10,5 +10,7 @@ Installation
 
 This section provides a guide to install MIOpen on different systems. 
 
-* :ref:`install`
+* :doc:`install`
+* :doc:`driver`
+* :doc:`embed`
 

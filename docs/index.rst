@@ -21,7 +21,7 @@ Our documentation is structured as follows:
 
     * :doc:`Installation <install/install>`
     * :doc:`Build the driver <install/driver>`
-    * :doc:`For embedded systems <install/embed>`
+    * :doc:`Build MIOpen for embedded systems <install/embed>`
   
   .. grid-item-card:: Conceptual
 
@@ -34,7 +34,7 @@ Our documentation is structured as follows:
     * :doc:`MIOpen Porting Guide <conceptual/MIOpen_Porting_Guide>`
     
   
-  ..  grid-item-card:: API Reference 
+  ..  grid-item-card:: API reference 
 
     * `Datatypes <https://rocm.docs.amd.com/projects/MIOpen/en/latest/datatypes.html>`_
     * `Handle <https://rocm.docs.amd.com/projects/MIOpen/en/latest/handle.html>`_
