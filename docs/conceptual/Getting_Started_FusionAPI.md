@@ -206,4 +206,6 @@ The following graph depicts the speedup gained for a fused Convolution+Bias+Acti
 
 Speedup obtained by fusing Batchnorm (spatial mode) with Activation are presented in the graph below:
 
-![Batchnorm activation fusion](data/na.png)
+<img title="Batchnorm activation fusion" src="/docs/na.png">
+
+
