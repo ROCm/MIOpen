@@ -45,7 +45,7 @@ subtrees:
         - file: how-to/compile-a-fusion-plan.rst
           title: Query Compile a Fusion plan
         - file: how-to/set-the-runtime-arguments.rst
-          title: Set the runtime arguments   
+          title: Set runtime arguments   
         - file: how-to/execute-a-fusion-plan.rst
           title: Execute a Fusion plan
         - file: how-to/destroy-a-fusion-plan.rst
