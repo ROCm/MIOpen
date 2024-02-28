@@ -43,7 +43,7 @@ subtrees:
         - file: how-to/create-and-add-operators.rst
           title: Create and add operators
         - file: how-to/compile-a-fusion-plan.rst
-          title: Query Compile a Fusion plan
+          title: Compile a Fusion plan
         - file: how-to/set-the-runtime-arguments.rst
           title: Set runtime arguments   
         - file: how-to/execute-a-fusion-plan.rst
