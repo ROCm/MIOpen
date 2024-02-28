@@ -51,8 +51,8 @@ public:
 
         if (isForward)
         {
-            xTensor = tensor<float>{16, 32, 8, 8}.generate(tensor_elem_gen_integer{17});
-            yTensor = tensor<float>{16, 32, 8, 8};
+            xTensor = tensor<float>{test_n, test_c, test_h, test_w}.generate(tensor_elem_gen_integer{17});
+            yTensor = tensor<float>{test_n, test_c, test_h, test_w};
 
             softmax_descriptor.SetParams(1.0f, 0.0f, MIOPEN_SOFTMAX_ACCURATE, MIOPEN_SOFTMAX_MODE_CHANNEL);
 
@@ -77,7 +77,7 @@ public:
         std::cerr << "Created softmax tensor descriptos." << std::endl;
     }
 
-    std::vector<miopenSolution_t> TestFindSolutions(miopenHandle_t handle)
+    std::vector<miopenSolution_t> TestFindSolutions(Handle& handle)
     {
         std::cerr << "Testing miopenFindSolutions..." << std::endl;
 
@@ -87,7 +87,7 @@ public:
         // We expect to get only 2 solutions for softmax for now. Hardcode value 16 as just big enough value
         solutions.resize(16);
 
-        EXPECT_EQUAL(miopenFindSolutions(handle, problem, nullptr, solutions.data(), &found, solutions.size()), miopenStatusSuccess);
+        EXPECT_EQUAL(miopenFindSolutions(&handle, problem, nullptr, solutions.data(), &found, solutions.size()), miopenStatusSuccess);
         EXPECT_OP(found, >=, 0);
 
         solutions.resize(found);
@@ -115,7 +115,7 @@ public:
         std::cerr << "Finished testing miopenGetSolution<Attribute>." << std::endl;
     }
 
-    void TestRunSolutions(miopenHandle_t handle, const std::vector<miopenSolution_t>& solutions)
+    void TestRunSolutions(Handle& handle, const std::vector<miopenSolution_t>& solutions)
     {
         std::cerr << "Testing solution functions..." << std::endl;
 
@@ -127,8 +127,11 @@ public:
         {
             auto arguments = std::make_unique<miopenTensorArgument_t[]>(numTensors);
 
-            miopenTensorArgumentId_t names[numTensors] = {miopenTensorConvolutionX, miopenTensorConvolutionY};
-            void* buffers[numTensors]                        = {xTensor.data.data(), yTensor.data.data()};
+            auto in_gpu  = handle.Write(xTensor.data);
+            auto out_gpu = handle.Write(yTensor.data);
+
+            miopenTensorArgumentId_t names[numTensors] = {miopenTensorSoftmaxX, miopenTensorSoftmaxY};
+            void* buffers[numTensors]                        = {in_gpu.get(), out_gpu.get()};
             miopenTensorDescriptor_t descriptors[numTensors] = {x_desc, y_desc};
 
             for (auto i = 0; i < numTensors; ++i)
@@ -139,22 +142,27 @@ public:
             }
 
             std::cerr << "Run a solution." << std::endl;
-            EXPECT_EQUAL(miopenRunSolution(handle, solution, numTensors, arguments.get(), nullptr, 0), miopenStatusSuccess);
+            EXPECT_EQUAL(miopenRunSolution(&handle, solution, numTensors, arguments.get(), nullptr, 0), miopenStatusSuccess);
 
             float alpha = softmax_descriptor.GetAlpha();
             float beta = softmax_descriptor.GetBeta();
 
             //tensor<float> yTensorDup = yTensor;
-            tensor<float> yTensorDup = tensor<float>{16, 32, 8, 8};
+            tensor<float> yTensorRef = tensor<float>{test_n, test_c, test_h, test_w};
 
+            auto out_gpu_ref = handle.Write(yTensorRef.data);
 
             // Run softmax in a usual way (which is tested) and compare results
-            EXPECT_EQUAL(miopenSoftmaxForward_V2(handle, &alpha, x_desc, xTensor.data.data(), &beta, &yTensorDup.desc, yTensorDup.data.data(),
+            EXPECT_EQUAL(miopenSoftmaxForward_V2(&handle, &alpha, x_desc, in_gpu.get(), &beta, &yTensorRef.desc, out_gpu_ref.get(),
                             softmax_descriptor.GetAlgorithm(), softmax_descriptor.GetMode()), miopenStatusSuccess);            
 
-            auto error = miopen::rms_range(yTensorDup.data, yTensor.data);
-            EXPECT_TRUE(miopen::range_distance(yTensorDup.data) == miopen::range_distance(yTensor.data));
-            EXPECT_TRUE(error == 0) << "Outputs do not match each other. Error:" << error;
+            yTensor.data = handle.Read<float>(out_gpu, yTensor.data.size());
+            yTensorRef.data = handle.Read<float>(out_gpu_ref, yTensorRef.data.size());
+
+            double error = miopen::rms_range(yTensorRef.data, yTensor.data);
+            const double tolerance = 1e-3;
+
+            EXPECT_TRUE(std::isfinite(error) && error <= tolerance) << "Outputs do not match each other. Error:" << error;
         }
 
         std::cerr << "Finished testing solution functions." << std::endl;
@@ -176,11 +184,16 @@ private:
     miopenProblem_t problem;
 
     bool isForward;
+
+    const unsigned int test_n = 100;
+    const unsigned int test_c = 3;
+    const unsigned int test_h = 32;
+    const unsigned int test_w = 32;
 };
 
-TEST (TestSoftmaxFind20, softmaxForwardFind20)
+TEST (TestSoftmaxFind20, softmaxForward)
 {
-    miopenHandle_t handle = &get_handle();
+    Handle& handle = get_handle();
     
     SoftmaxFind20Test test;
 
