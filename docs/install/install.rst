@@ -51,7 +51,7 @@ Configure with CMake
 
 MIOpen backend
 *****************
-The preferred backend for MIOpen can be set using the `-DMIOPEN_BACKEND` CMake variable. For more details, refer to https://github.com/ROCm/MIOpen?tab=readme-ov-file#building-miopen-from-source.
+The preferred backend for MIOpen can be set using the `-DMIOPEN_BACKEND` CMake variable. For more details, refer to `Build MIOpen from source <https://github.com/ROCm/MIOpen?tab=readme-ov-file#building-miopen-from-source>`_
 
 HIP backend (ROCm 3.5 and later)
 ********************************
