@@ -26,7 +26,7 @@
 #ifndef GUARD_MIOPEN_DRIVER_HPP
 #define GUARD_MIOPEN_DRIVER_HPP
 
-#if !defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL)
+#if !defined(_WIN32)
 #include <half/half.hpp>
 #else
 #include <half.hpp>
@@ -144,13 +144,14 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
     }
 }
 
-[[gnu::noreturn]] inline void Usage()
+[[noreturn]] inline void Usage()
 {
     printf("Usage: ./driver *base_arg* *other_args*\n");
     printf("Supported Base Arguments: conv[fp16|int8|bfp16|fp8|bfp8], CBAInfer[fp16], "
            "pool[fp16], lrn[fp16], "
            "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm[fp16], ctc, dropout[fp16], "
-           "tensorop[fp16], reduce[fp16|fp64], layernorm[bfp16|fp16], sum[bfp16|fp16]\n");
+           "tensorop[fp16], reduce[fp16|fp64], layernorm[bfp16|fp16], sum[bfp16|fp16], "
+           "argmax[bfp16|fp16], groupnorm[bfp16|fp16], cat[bfp16|fp16]\n");
     exit(0); // NOLINT (concurrency-mt-unsafe)
 }
 
@@ -173,7 +174,9 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "dropout" && arg != "dropoutfp16" && arg != "tensorop" && arg != "tensoropfp16" &&
        arg != "reduce" && arg != "reducefp16" && arg != "reducefp64" && arg != "layernorm" &&
        arg != "layernormfp16" && arg != "layernormbfp16" && arg != "sum" && arg != "sumfp16" &&
-       arg != "sumbfp16" && arg != "--version")
+       arg != "sumbfp16" && arg != "argmax" && arg != "argmaxfp16" && arg != "argmaxbfp16" &&
+       arg != "groupnorm" && arg != "groupnormfp16" && arg != "groupnormbfp16" && arg != "cat" &&
+       arg != "catfp16" && arg != "catbfp16" && arg != "--version")
     {
         printf("FAILED: Invalid Base Input Argument\n");
         Usage();

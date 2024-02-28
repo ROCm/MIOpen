@@ -36,12 +36,6 @@
 #include <chrono>
 #include <string>
 
-namespace boost {
-namespace filesystem {
-class path;
-} // namespace filesystem
-} // namespace boost
-
 namespace miopen {
 
 struct RecordPositions
@@ -58,7 +52,7 @@ constexpr bool DisableUserDbFileIO = MIOPEN_DISABLE_USERDB;
 class PlainTextDb
 {
 public:
-    PlainTextDb(const std::string& filename_, bool is_system = false);
+    PlainTextDb(DbKinds db_kind_, const std::string& filename_, bool is_system = false);
 
     /// Searches db for provided key and returns found record or none if key not found in database
     boost::optional<DbRecord> FindRecord(const std::string& key);
@@ -66,7 +60,7 @@ public:
     template <class T>
     inline boost::optional<DbRecord> FindRecord(const T& problem_config)
     {
-        const auto key = DbRecord::Serialize(problem_config);
+        const auto key = DbRecord::SerializeKey(db_kind, problem_config);
         return FindRecord(key);
     }
 
@@ -96,7 +90,7 @@ public:
     template <class T>
     inline bool Remove(const T& problem_config, const std::string& id)
     {
-        const auto key = DbRecord::Serialize(problem_config);
+        const auto key = DbRecord::SerializeKey(db_kind, problem_config);
         return Remove(key, id);
     }
 
@@ -105,7 +99,7 @@ public:
     template <class T>
     inline bool RemoveRecord(const T& problem_config)
     {
-        const auto key = DbRecord::Serialize(problem_config);
+        const auto key = DbRecord::SerializeKey(db_kind, problem_config);
         return RemoveRecord(key);
     }
 
@@ -118,7 +112,7 @@ public:
     inline boost::optional<DbRecord>
     Update(const T& problem_config, const std::string& id, const V& values)
     {
-        DbRecord record(problem_config);
+        DbRecord record(db_kind, problem_config);
         record.SetValues(id, values);
         const auto ok = UpdateRecord(record);
         if(ok)
@@ -144,6 +138,8 @@ public:
     }
 
 protected:
+    const DbKinds db_kind;
+
     LockFile& GetLockFile() { return lock_file; }
     const std::string& GetFileName() const { return filename; }
     bool IsWarningIfUnreadable() const { return warning_if_unreadable; }
@@ -167,33 +163,34 @@ private:
     }
 };
 
-template <class TDb, class TRet = decltype(TDb::GetCached("", true))>
-TRet GetDbInstance(rank<1>, const std::string& path, bool is_system)
+template <class TDb>
+auto GetDbInstance(rank<1>, DbKinds db_kind, const std::string& path, bool is_system)
+    -> decltype(TDb::GetCached({}, {}, {}))
 {
-    return TDb::GetCached(path, is_system);
+    return TDb::GetCached(db_kind, path, is_system);
 };
 
 template <class TDb>
-TDb GetDbInstance(rank<0>, const std::string& path, bool is_system)
+auto GetDbInstance(rank<0>, DbKinds db_kind, const std::string& path, bool is_system)
 {
-    return {path, is_system};
+    return TDb{db_kind, path, is_system};
 };
 
-template <class TDb, class TRet = decltype(GetDbInstance<TDb>(rank<1>{}, {}, {}))>
-TRet GetDbInstance(const std::string& path, bool is_system = true)
+template <class TDb>
+decltype(auto) GetDbInstance(DbKinds db_kind, const std::string& path, bool is_system = true)
 {
-    return GetDbInstance<TDb>(rank<1>{}, path, is_system);
+    return GetDbInstance<TDb>(rank<1>{}, db_kind, path, is_system);
 }
 
 template <class TInstalled, class TUser, bool merge_records>
 class MultiFileDb
 {
 public:
-    MultiFileDb(const std::string& installed_path, const std::string& user_path)
-        : _installed(GetDbInstance<TInstalled>(installed_path, true))
+    MultiFileDb(DbKinds db_kind, const std::string& installed_path, const std::string& user_path)
+        : _installed(GetDbInstance<TInstalled>(db_kind, installed_path, true))
 #if !MIOPEN_DISABLE_USERDB
           ,
-          _user(GetDbInstance<TUser>(user_path, false))
+          _user(GetDbInstance<TUser>(db_kind, user_path, false))
 #endif
     {
     }
@@ -262,27 +259,29 @@ public:
     }
 
 private:
-    template <class TDb, class TRet = decltype(TDb::GetCached("", true))>
-    static TRet GetDbInstance(rank<1>, const std::string& path, bool warn_if_unreadable)
+    template <class TDb, class TRet = decltype(TDb::GetCached(DbKinds::FindDb, "", true))>
+    static TRet
+    GetDbInstance(rank<1>, DbKinds db_kind, const std::string& path, bool warn_if_unreadable)
     {
-        return TDb::GetCached(path, warn_if_unreadable);
+        return TDb::GetCached(db_kind, path, warn_if_unreadable);
     };
 
     template <class TDb>
-    static TDb GetDbInstance(rank<0>, const std::string& path, bool warn_if_unreadable)
+    static TDb
+    GetDbInstance(rank<0>, DbKinds db_kind, const std::string& path, bool warn_if_unreadable)
     {
-        return {path, warn_if_unreadable};
+        return {db_kind, path, warn_if_unreadable};
     };
 
-    template <class TDb, class TRet = decltype(GetDbInstance<TDb>(rank<1>{}, {}, {}))>
-    static TRet GetDbInstance(const std::string& path, bool warn_if_unreadable)
+    template <class TDb, class TRet = decltype(GetDbInstance<TDb>(rank<1>{}, {}, {}, {}))>
+    static TRet GetDbInstance(DbKinds db_kind, const std::string& path, bool warn_if_unreadable)
     {
-        return GetDbInstance<TDb>(rank<1>{}, path, warn_if_unreadable);
+        return GetDbInstance<TDb>(rank<1>{}, db_kind, path, warn_if_unreadable);
     }
 
-    decltype(MultiFileDb::GetDbInstance<TInstalled>("", true)) _installed;
+    decltype(MultiFileDb::GetDbInstance<TInstalled>(DbKinds::FindDb, "", true)) _installed;
 #if !MIOPEN_DISABLE_USERDB
-    decltype(MultiFileDb::GetDbInstance<TUser>("", false)) _user;
+    decltype(MultiFileDb::GetDbInstance<TUser>(DbKinds::FindDb, "", false)) _user;
 #endif
 };
 

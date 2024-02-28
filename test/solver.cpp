@@ -53,7 +53,7 @@ public:
     bool IsApplicable(const ExecutionContext&,
                       const conv::ProblemDescription& problem) const override
     {
-        return problem.GetInWidth_() == 1;
+        return problem.GetInWidth() == 1;
     }
 
     solver::ConvSolution GetSolution(const ExecutionContext&,
@@ -146,7 +146,7 @@ static solver::ConvSolution FindSolution(const ExecutionContext& ctx,
                                          const conv::ProblemDescription& problem,
                                          const std::string& db_path)
 {
-    PlainTextDb db(db_path);
+    PlainTextDb db(DbKinds::PerfDb, db_path);
 
     const auto solvers = solver::SolverContainer<TrivialTestSolver, SearchableTestSolver>{};
 

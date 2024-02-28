@@ -149,7 +149,8 @@ static Invoker PrepareInvoker(ExecutionContext ctx,
                               solver::Id solver_id)
 {
     problem.SetupFloats(ctx);
-    ctx.do_search = false;
+    ctx.do_search              = false;
+    ctx.disable_search_enforce = true;
 
     const auto solver = solver_id.GetSolver();
     auto db           = GetDb(ctx);
@@ -345,7 +346,6 @@ void DumpTensorToFileFromDevice(const miopen::Handle& handle,
         MIOPEN_LOG_E("Dereferencing nullptr when trying to dump tensor from gpu");
         return;
     }
-    namespace fs = boost::filesystem;
 
     fs::path file_name_with_path(filename);
     fs::path path = file_name_with_path.parent_path();

@@ -24,11 +24,12 @@
  *
  *******************************************************************************/
 #ifndef SOURCE_INLINER_HPP
-
 #define SOURCE_INLINER_HPP
+
 #include "source_file_desc.hpp"
-#include <ostream>
+#include <exception>
 #include <memory>
+#include <ostream>
 #include <stack>
 
 class InlineException : public std::exception
@@ -118,8 +119,8 @@ public:
 
     void Process(std::istream& input,
                  std::ostream& output,
-                 const std::string& root,
-                 const std::string& file_name,
+                 const fs::path& root,
+                 const fs::path& file_name,
                  const std::string& directive,
                  bool allow_angle_brackets,
                  bool recurse);
@@ -131,8 +132,8 @@ private:
 
     void ProcessCore(std::istream& input,
                      std::ostream& output,
-                     const std::string& root,
-                     const std::string& file_name,
+                     const fs::path& root,
+                     const fs::path& file_name,
                      int line_number,
                      const std::string& directive,
                      bool allow_angle_brackets,

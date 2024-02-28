@@ -62,9 +62,6 @@
 
 #define TEST_DIRECT_SUPPORTED_CONFIG_ONLY (!MIOPEN_USE_ROCBLAS)
 
-#define WORKAROUND_MI100_ROM37_HIP_COMPILER_CRASH \
-    (HIP_PACKAGE_VERSION_MAJOR == 3 && HIP_PACKAGE_VERSION_MINOR == 7)
-
 using ExecutionContext       = miopen::ExecutionContext;
 using ConvProblemDescription = miopen::conv::ProblemDescription;
 using Direction              = miopen::conv::Direction;
@@ -121,38 +118,6 @@ static inline bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
     problem.SetupFloats(ctx);
 
     return !FindAllBwdWrW2DSolutions(ctx, problem, {}).empty();
-}
-#endif
-
-#if WORKAROUND_MI100_ROM37_HIP_COMPILER_CRASH
-static inline bool skip_config(miopen::Handle& handle,
-                               const miopen::ConvolutionDescriptor convDesc,
-                               const miopen::TensorDescriptor& xDesc,
-                               const miopen::TensorDescriptor& wDesc,
-                               const miopen::TensorDescriptor& yDesc)
-{
-    if(convDesc.mode != miopenConvolution)
-        return false;
-
-    const auto problem = miopen::conv::ProblemDescription{
-        xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::Forward};
-    auto ctx = miopen::ExecutionContext{};
-
-    ctx.do_search               = false;
-    ctx.save_srch_req           = false;
-    ctx.general_compile_options = "";
-    ctx.disable_perfdb_access   = true;
-    ctx.SetStream(&handle);
-    problem.SetupFloats(ctx);
-
-    return ctx.GetStream().GetDeviceName() == "gfx908" && problem.Is2d() && problem.IsFp16() &&
-           problem.IsLayoutDefault() && ctx.use_hip_kernels && problem.GetGroupCount() == 1 &&
-           problem.GetBatchSize_() == 1 && problem.GetInChannels_() == 192 &&
-           problem.GetInHeight_() == 28 && problem.GetInWidth_() == 28 &&
-           problem.GetOutChannels_() == 1 && problem.GetWeightsHeight_() == 3 &&
-           problem.GetWeightsWidth_() == 3 && problem.GetPadW() == 1 && problem.GetPadH() == 1 &&
-           problem.GetKernelStrideW() == 1 && problem.GetKernelStrideH() == 1 &&
-           problem.GetDilationW() == 1 && problem.GetDilationH() == 1;
 }
 #endif
 
@@ -2321,15 +2286,6 @@ struct conv_driver : test_driver
 
                     skip_backward_weights = !is_direct_bwd_wrw_supported(
                         get_handle(), filter, input.desc, weights.desc, output.desc);
-                }
-#endif
-
-#if WORKAROUND_MI100_ROM37_HIP_COMPILER_CRASH
-                if(skip_config(get_handle(), filter, input.desc, weights.desc, output.desc))
-                {
-                    skip_forward          = true;
-                    skip_backward_data    = true;
-                    skip_backward_weights = true;
                 }
 #endif
 
