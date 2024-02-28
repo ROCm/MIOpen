@@ -174,7 +174,6 @@ void AddMask4D_2D(tensor<T>& mat_A_val, const tensor<T>& mat_mask)
     });
 }
 
-
 template <class T>
 void RowReductionMax(const tensor<T>& A_mat, tensor<T>& rrm_tensor)
 {
