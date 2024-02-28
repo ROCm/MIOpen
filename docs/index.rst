@@ -36,17 +36,19 @@ Our documentation is structured as follows:
   
   ..  grid-item-card:: API reference 
 
-    * `Datatypes <https://rocm.docs.amd.com/projects/MIOpen/en/latest/datatypes.html>`_
-    * `Handle <https://rocm.docs.amd.com/projects/MIOpen/en/latest/handle.html>`_
-    * `Tensors <https://rocm.docs.amd.com/projects/MIOpen/en/latest/tensors.html>`_
-    * `Activation <https://rocm.docs.amd.com/projects/MIOpen/en/latest/activation.html>`_
-    * `Convolution <https://rocm.docs.amd.com/projects/MIOpen/en/latest/convolution.html>`_
-    * `Recurrent neural networks <https://rocm.docs.amd.com/projects/MIOpen/en/latest/rnn.html>`_
-    * `Batch normalization layer <https://rocm.docs.amd.com/projects/MIOpen/en/latest/batchnorm.html>`_
-    * `Local response normalization layer <https://rocm.docs.amd.com/projects/MIOpen/en/latest/lrn.html>`_
-    * `Pooling layer <https://rocm.docs.amd.com/projects/MIOpen/en/latest/pooling.html>`_
-    * `Softmax layer <https://rocm.docs.amd.com/projects/MIOpen/en/latest/softmax.html>`_
-    * `Layer fusion <https://rocm.docs.amd.com/projects/MIOpen/en/latest/fusion.html>`_
-    * `Loss function layer <https://rocm.docs.amd.com/projects/MIOpen/en/latest/loss.html>`_
-    * `Dropour layer <https://rocm.docs.amd.com/projects/MIOpen/en/latest/dropout.html>`_
-    * `Reduction layer <https://rocm.docs.amd.com/projects/MIOpen/en/latest/reduction.html>`_
+    * `activation <https://rocm.docs.amd.com/projects/MIOpen/en/latest/activation.html>`_
+    * `batchnorm <https://rocm.docs.amd.com/projects/MIOpen/en/latest/batchnorm.html>`_
+    * `convolution <https://rocm.docs.amd.com/projects/MIOpen/en/latest/convolution.html>`_
+    * `datatypes <https://rocm.docs.amd.com/projects/MIOpen/en/latest/datatypes.html>`_
+    * `dropout <https://rocm.docs.amd.com/projects/MIOpen/en/latest/dropout.html>`_
+    * `fusion <https://rocm.docs.amd.com/projects/MIOpen/en/latest/fusion.html>`_
+    * `handle <https://rocm.docs.amd.com/projects/MIOpen/en/latest/handle.html>`_
+    * `layernorm <https://rocm.docs.amd.com/projects/MIOpen/en/latest/layernorm.html>`_
+    * `loss <https://rocm.docs.amd.com/projects/MIOpen/en/latest/loss.html>`_
+    * `lrn <https://rocm.docs.amd.com/projects/MIOpen/en/latest/lrn.html>`_
+    * `pooling <https://rocm.docs.amd.com/projects/MIOpen/en/latest/pooling.html>`_
+    * `reduction <https://rocm.docs.amd.com/projects/MIOpen/en/latest/reduction.html>`_
+    * `rnn <https://rocm.docs.amd.com/projects/MIOpen/en/latest/rnn.html>`_
+    * `softmax <https://rocm.docs.amd.com/projects/MIOpen/en/latest/softmax.html>`_
+    * `sum <https://rocm.docs.amd.com/projects/MIOpen/en/latest/sum.html>`_
+    * `tensor <https://rocm.docs.amd.com/projects/MIOpen/en/latest/tensor.html>`_
