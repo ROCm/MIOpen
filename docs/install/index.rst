@@ -10,7 +10,7 @@ Installation
 
 This section provides a guide to install MIOpen on different systems. 
 
-* :doc:`Installation <install/install>`
+* :doc:`Build MIOpen using Docker <install/install>`
 * :doc:`Build the driver <install/driver>`
 * :doc:`Build MIOpen for embedded systems <install/embed>`
 
