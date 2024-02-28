@@ -140,7 +140,7 @@ KDb GetDb(const TargetProperties& target, size_t num_cu)
     if(!fs::exists(sys_path))
         sys_path = fs::path{};
 #endif
-    return {sys_path.string(), user_path.string()};
+    return {DbKinds::KernelDb, sys_path.string(), user_path.string()};
 }
 #endif
 
