@@ -1,4 +1,5 @@
-# How to
+How to
+-------
 
 This section guides you on how to use the Fusion API library. Ensure you follow the sequence of actions in the order as listed below,
 
