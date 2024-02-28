@@ -35,26 +35,71 @@
 
 namespace miopen {
 
+struct RnnHipAutoProfiler
+{
+    RnnHipAutoProfiler(Handle& handle) : is_profiling_active(handle.IsProfilingEnabled())
+    {
+        if(is_profiling_active)
+        {
 #if MIOPEN_BACKEND_HIP
-inline void RNNProfilingBegin(const miopen::Handle& handle,
-                              miopen::HipEventPtr& start,
-                              miopen::HipEventPtr& stop)
-{
-    start = miopen::make_hip_event();
-    stop  = miopen::make_hip_event();
-    hipEventRecord(start.get(), handle.GetStream());
-}
+            attached_handle = &handle;
+#endif
+            RNNProfilingBegin();
+        }
+    }
+    ~RnnHipAutoProfiler()
+    {
+        if(is_profiling_active)
+        {
+            RNNProfilingEnd();
+        }
+    }
 
-inline float
-RNNProfilingEnd(const miopen::Handle& handle, miopen::HipEventPtr& start, miopen::HipEventPtr& stop)
-{
-    hipEventRecord(stop.get(), handle.GetStream());
-    hipEventSynchronize(stop.get());
-    float mS = 0;
-    hipEventElapsedTime(&mS, start.get(), stop.get());
-    return mS;
-}
+    void abortProfiling()
+    {
+        if(is_profiling_active)
+        {
+#if MIOPEN_BACKEND_HIP
+            attached_handle->EnableProfiling(true);
+#endif
+            is_profiling_active = false;
+        }
+    }
 
+private:
+    void RNNProfilingBegin()
+    {
+#if MIOPEN_BACKEND_HIP
+        attached_handle->EnableProfiling(false);
+        start = miopen::make_hip_event();
+        stop  = miopen::make_hip_event();
+        hipEventRecord(start.get(), attached_handle->GetStream());
+#endif
+    }
+
+    void RNNProfilingEnd()
+    {
+#if MIOPEN_BACKEND_HIP
+        hipEventRecord(stop.get(), attached_handle->GetStream());
+        hipEventSynchronize(stop.get());
+        float eventTime_mS = 0;
+        hipEventElapsedTime(&eventTime_mS, start.get(), stop.get());
+
+        attached_handle->EnableProfiling(true);
+        attached_handle->ResetKernelTime();
+        attached_handle->AccumKernelTime(eventTime_mS);
+#endif
+    }
+
+#if MIOPEN_BACKEND_HIP
+    Handle* attached_handle = nullptr;
+    HipEventPtr start       = nullptr;
+    HipEventPtr stop        = nullptr;
+#endif
+    bool is_profiling_active = false;
+};
+
+#if MIOPEN_BACKEND_HIP
 inline miopen::HipEventPtr make_hip_fast_event()
 {
     hipEvent_t result = nullptr;
