@@ -26,9 +26,7 @@ subtrees:
          - file: conceptual/cache.md
            title: Cache
          - file: conceptual/perfdatabase.md
-           title: Performance database
-         - file: conceptual/Getting_Started_FusionAPI.md
-           title: Getting Started with Fusion API
+           title: Performance database         
          - file: conceptual/MI200AlternateImplementation.md
            title: MI200 alternate implementation
          - file: conceptual/MIOpen_Porting_Guide.md

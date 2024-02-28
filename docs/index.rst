@@ -25,7 +25,6 @@ Our documentation is structured as follows:
   
   .. grid-item-card:: Conceptual
 
-    * :doc:`Getting started with Fusion API <conceptual/Getting_Started_FusionAPI>`
     * :doc:`MI200 alternate implementation <conceptual/MI200AlternateImplementation>`
     * :doc:`Cache <conceptual/cache>`
     * :doc:`Find and immediate <conceptual/find_and_immediate>`
