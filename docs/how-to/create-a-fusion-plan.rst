@@ -17,7 +17,7 @@ The *input tensor descriptor* specifies the geometry of the incoming data. Since
 
   .. code-block:: 
   
-            cpp
-        miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, input.desc);
+       cpp
+ miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, input.desc);
 
 Where `fusePlanDesc` is an object of type `miopenFusionPlanDescriptor_t` and `input.desc` is the `miopenTensorDescriptor_t` object.
