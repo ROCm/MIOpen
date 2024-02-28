@@ -33,6 +33,7 @@
 #include <miopen/layernorm.hpp>
 
 #include "tensor_holder.hpp"
+#include "tensor_util.hpp"
 #include "cpu_layernorm.hpp"
 #include "get_handle.hpp"
 #include "../driver/tensor_driver.hpp"
@@ -68,76 +69,6 @@ double GetF8Scaling(double max_val)
     const double fp8_E4M3_max = 240.0f;
 
     return fp8_E4M3_max / max_val;
-}
-
-template <typename T>
-void print4(const tensor<T>& tensor_val, std::string header_msg = "start")
-{
-    std::cout << "\n================= " << header_msg << " =====================\n";
-    size_t i_size = tensor_val.desc.GetLengths()[0];
-    size_t j_size = tensor_val.desc.GetLengths()[1];
-    size_t k_size = tensor_val.desc.GetLengths()[2];
-    size_t l_size = tensor_val.desc.GetLengths()[3];
-    std::cout << i_size << "," << j_size << ", " << k_size << "," << l_size << std::endl;
-    for(size_t i = 0; i < i_size; ++i)
-    {
-        for(size_t j = 0; j < j_size; ++j)
-        {
-            for(size_t k = 0; k < k_size; ++k)
-            {
-                for(size_t l = 0; l < l_size; ++l)
-                {
-                    std::cout << std::fixed << std::setprecision(2) << tensor_val(i, j, k, l)
-                              << " , ";
-                }
-                std::cout << "\n";
-            }
-            std::cout << "\n";
-        }
-        std::cout << "\n";
-    }
-    std::cout << "\n=================end=====================\n";
-}
-
-template <typename T>
-void print3(const tensor<T>& tensor_val, std::string header_msg = "start")
-{
-    std::cout << "\n================= " << header_msg << " =====================\n";
-    size_t i_size = tensor_val.desc.GetLengths()[0];
-    size_t j_size = tensor_val.desc.GetLengths()[1];
-    size_t k_size = tensor_val.desc.GetLengths()[2];
-    std::cout << i_size << "," << j_size << ", " << k_size << std::endl;
-    for(size_t i = 0; i < i_size; ++i)
-    {
-        for(size_t j = 0; j < j_size; ++j)
-        {
-            for(size_t k = 0; k < k_size; ++k)
-            {
-                std::cout << std::fixed << std::setprecision(2) << tensor_val(i, j, k) << " , ";
-            }
-            std::cout << "\n";
-        }
-        std::cout << "\n";
-    }
-    std::cout << "\n=================end=====================\n";
-}
-
-template <typename T>
-void print2(const tensor<T>& tensor_val, std::string header_msg = "start")
-{
-    std::cout << "\n================= " << header_msg << " =====================\n";
-    size_t i_size = tensor_val.desc.GetLengths()[0];
-    size_t j_size = tensor_val.desc.GetLengths()[1];
-    std::cout << i_size << "," << j_size << std::endl;
-    for(size_t i = 0; i < i_size; ++i)
-    {
-        for(size_t j = 0; j < j_size; ++j)
-        {
-            std::cout << std::fixed << std::setprecision(2) << tensor_val(i, j) << " , ";
-        }
-        std::cout << "\n";
-    }
-    std::cout << "\n=================end=====================\n";
 }
 
 // Todo : make this abs

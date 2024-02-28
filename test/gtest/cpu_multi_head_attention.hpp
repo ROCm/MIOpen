@@ -73,6 +73,7 @@ protected:
     {
         tensor<T> attention_golden(final_atten_heads.desc.GetLengths());
         ExtractGoldenDataFromJson("../test/gtest/attention_golden.json", attention_golden);
+        output_tensor_to_screen(q_val, "q_val", 4);
 
         double error     = miopen::rms_range(attention_golden, final_atten_heads);
         double threshold = 0.155;
@@ -80,7 +81,6 @@ protected:
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
     }
 
-private:
     void init()
     {
         d_k = cpu_mha_test_case.problem_dimension / cpu_mha_test_case.num_heads;
