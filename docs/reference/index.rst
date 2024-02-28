@@ -14,7 +14,7 @@ This section provides technical descriptions and important information about the
 * `loss <https://rocm.docs.amd.com/projects/MIOpen/en/latest/loss.html>`_
 * `lrn <https://rocm.docs.amd.com/projects/MIOpen/en/latest/lrn.html>`_
 * `pooling <https://rocm.docs.amd.com/projects/MIOpen/en/latest/pooling.html>`_
-* `Reduction <https://rocm.docs.amd.com/projects/MIOpen/en/latest/reduction.html>`_
+* `reduction <https://rocm.docs.amd.com/projects/MIOpen/en/latest/reduction.html>`_
 * `rnn <https://rocm.docs.amd.com/projects/MIOpen/en/latest/rnn.html>`_
 * `softmax <https://rocm.docs.amd.com/projects/MIOpen/en/latest/softmax.html>`_
 * `sum <https://rocm.docs.amd.com/projects/MIOpen/en/latest/sum.html>`_
