@@ -32,12 +32,10 @@ namespace cpu {
 
 std::vector<CPUMHATestCase> CPUMHAConfigs()
 {
+    // clang-format off
     return {{// batch_size, sequence_length, num_heads, problem_dimension, drop_out_rate
-             2,
-             5,
-             2,
-             4,
-             0.0}};
+                  2,             5,             2,           4,                0.0}};
+    // clang-format on
 }
 
 template <typename T = float>
