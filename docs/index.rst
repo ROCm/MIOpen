@@ -19,7 +19,7 @@ Our documentation is structured as follows:
 
   .. grid-item-card:: Installation
 
-    * :doc:`Installation <install/install>`
+    * :doc:`Build MIOpen using Docker <install/install>`
     * :doc:`Build the driver <install/driver>`
     * :doc:`Build MIOpen for embedded systems <install/embed>`
   
