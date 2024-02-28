@@ -1,6 +1,7 @@
 
-Cleanup
------------
+Destroy a Fusion plan
+----------------------
+
 Once the application is done with the fusion plan, the fusion plan and the fusion args objects may be destroyed using the API calls:
 
 .. code-block:: 
