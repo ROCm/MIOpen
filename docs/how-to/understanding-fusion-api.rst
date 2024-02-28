@@ -20,4 +20,4 @@ The following sections further elaborate the above steps as well as give code ex
 
 Intended Audience
 ==================
-The primary consumers of the fusion API are high level frameworks such as TensorFlow/XLA or PyTorch etc.
+The primary consumers of the fusion API are high level frameworks such as TensorFlow/XLA or PyTorch.
