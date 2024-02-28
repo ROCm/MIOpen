@@ -71,7 +71,6 @@ double GetF8Scaling(double max_val)
     return fp8_E4M3_max / max_val;
 }
 
-// Todo : make this abs
 template <typename T>
 T FindMax4D(const tensor<T>& max_of_tensor)
 {
@@ -88,10 +87,6 @@ T FindMax4D(const tensor<T>& max_of_tensor)
     return maxVal;
 }
 
-// C_mat = A_mat.dot(B_mat)
-// A_mat : 3D
-// B_mat : 3D
-// C_mat : 4D
 template <typename T>
 void Dot_3D_3D(const tensor<T>& A_mat, const tensor<T>& B_mat, tensor<T>& C_mat)
 {
@@ -111,7 +106,7 @@ template <typename T>
 void Dot_3D_3D_T(const tensor<T>& A_mat, const tensor<T>& B_mat, tensor<T>& C_mat)
 {
     size_t k_val = A_mat.desc.GetLengths()[2];
-    assert(k_val == B_mat.desc.GetLengths()[1]);
+    assert(k_val == B_mat.desc.GetLengths()[2]);
     C_mat.par_for_each([&](size_t b_id, size_t h_id, size_t sl_id, size_t dk_id) {
         double sum(0);
         for(size_t k_id = 0; k_id < k_val; ++k_id)
@@ -121,10 +116,7 @@ void Dot_3D_3D_T(const tensor<T>& A_mat, const tensor<T>& B_mat, tensor<T>& C_ma
         C_mat(b_id, h_id, sl_id, dk_id) = T(sum);
     });
 }
-// C_mat = A_mat.dot(transpose(B_mat))
-// A_mat : 4D
-// B_mat : 4D
-// C_mat : 4D
+
 template <typename T1, typename T2>
 void Dot_4D_4D_T(const tensor<T1>& A_mat, const tensor<T1>& B_mat, tensor<T2>& C_mat)
 {
@@ -161,7 +153,7 @@ template <typename T1, typename T2>
 void Dot_3D_2D_T(const tensor<T1>& A_mat, const tensor<T1>& B_mat, tensor<T2>& C_mat)
 {
     size_t k_val = A_mat.desc.GetLengths()[2];
-    assert(k_val == B_mat.desc.GetLengths()[0]);
+    assert(k_val == B_mat.desc.GetLengths()[1]);
     C_mat.par_for_each([&](size_t b_id, size_t s_id, size_t pd_id) {
         double sum(0);
         for(size_t k_id = 0; k_id < k_val; ++k_id)
@@ -182,9 +174,7 @@ void AddMask4D_2D(tensor<T>& mat_A_val, const tensor<T>& mat_mask)
     });
 }
 
-// Computes the sum of the row in A_mat
-// A_mat : 4D
-// rrm_tensor : 4D
+
 template <class T>
 void RowReductionMax(const tensor<T>& A_mat, tensor<T>& rrm_tensor)
 {
