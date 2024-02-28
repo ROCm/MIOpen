@@ -1304,15 +1304,8 @@ void RNNDescriptor::RNNForward(Handle& handle,
     }
 
 #if MIOPEN_BACKEND_HIP
-    HipEventPtr start = nullptr;
-    HipEventPtr stop  = nullptr;
-    bool is_profiling = handle.IsProfilingEnabled();
+    RnnHipAutoProfiler kernel_profiler{handle};
 
-    if(is_profiling)
-    {
-        handle.EnableProfiling(false);
-        RNNProfilingBegin(handle, start, stop);
-    }
     try
     {
 #endif
@@ -1363,18 +1356,10 @@ void RNNDescriptor::RNNForward(Handle& handle,
     }
     catch(...)
     {
-        if(is_profiling)
-            handle.EnableProfiling(true);
+        kernel_profiler.abortProfiling();
         throw;
     }
 
-    if(is_profiling)
-    {
-        float eventTime_mS = RNNProfilingEnd(handle, start, stop);
-        handle.EnableProfiling(true);
-        handle.ResetKernelTime();
-        handle.AccumKernelTime(eventTime_mS);
-    }
 #endif
 }
 
@@ -1425,15 +1410,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     }
 
 #if MIOPEN_BACKEND_HIP
-    HipEventPtr start = nullptr;
-    HipEventPtr stop  = nullptr;
-    bool is_profiling = handle.IsProfilingEnabled();
+    RnnHipAutoProfiler kernel_profiler{handle};
 
-    if(is_profiling)
-    {
-        handle.EnableProfiling(false);
-        RNNProfilingBegin(handle, start, stop);
-    }
     try
     {
 #endif
@@ -1486,17 +1464,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     }
     catch(...)
     {
-        if(is_profiling)
-            handle.EnableProfiling(true);
-        throw;
-    }
+        kernel_profiler.abortProfiling();
 
-    if(is_profiling)
-    {
-        float eventTime_mS = RNNProfilingEnd(handle, start, stop);
-        handle.EnableProfiling(true);
-        handle.ResetKernelTime();
-        handle.AccumKernelTime(eventTime_mS);
+        throw;
     }
 #endif
 }
@@ -1537,15 +1507,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     }
 
 #if MIOPEN_BACKEND_HIP
-    HipEventPtr start = nullptr;
-    HipEventPtr stop  = nullptr;
-    bool is_profiling = handle.IsProfilingEnabled();
+    RnnHipAutoProfiler kernel_profiler{handle};
 
-    if(is_profiling)
-    {
-        handle.EnableProfiling(false);
-        RNNProfilingBegin(handle, start, stop);
-    }
     try
     {
 #endif
@@ -1584,17 +1547,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     }
     catch(...)
     {
-        if(is_profiling)
-            handle.EnableProfiling(true);
+        kernel_profiler.abortProfiling();
         throw;
-    }
-
-    if(is_profiling)
-    {
-        float eventTime_mS = RNNProfilingEnd(handle, start, stop);
-        handle.EnableProfiling(true);
-        handle.ResetKernelTime();
-        handle.AccumKernelTime(eventTime_mS);
     }
 #endif
 }
