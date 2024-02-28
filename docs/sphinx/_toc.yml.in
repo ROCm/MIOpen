@@ -33,6 +33,27 @@ subtrees:
            title: MI200 alternate implementation
          - file: conceptual/MIOpen_Porting_Guide.md
            title: MIOpen Porting Guide
+
+    - file: how-to/index.md
+      title: How to
+      subtrees:
+      - entries:
+        - file: how-to/use-fusion-api.rst
+          title: Use Fusion API
+        - file: how-to/create-a-fusion-plan.rst
+          title: Create a Fusion plan
+        - file: how-to/create-and-add-operators.rst
+          title: Create and add operators
+        - file: how-to/compile-a-fusion-plan.rst
+          title: Query Compile a Fusion plan
+        - file: how-to/set-the-runtime-arguments.rst
+          title: Set the runtime arguments   
+        - file: how-to/execute-a-fusion-plan.rst
+          title: Execute a Fusion plan
+        - file: how-to/destroy-a-fusion-plan.rst
+          title: Destroy a Fusion plan
+        - file: how-to/supported-fusions.rst
+          title: Supported Fusions
             
     - file: reference/index.rst
       title: API reference

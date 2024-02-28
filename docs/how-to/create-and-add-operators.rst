@@ -1,4 +1,4 @@
-Create and add Operators
+Create and add operators
 --------------------------
 
 The Fusion API introduces the notion of operators which represent different operations that are intended to be fused together by the API consumer. Currently, the API supports the following operators:

@@ -1,4 +1,4 @@
-Compile the Fusion Plan
+Compile a Fusion Plan
 -------------------------
 
 Following the operator addition, the user would compile the fusion plan, to populate the MIOpen kernel cache with the fused kernel and make it ready for execution. 
