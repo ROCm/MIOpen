@@ -97,7 +97,6 @@ bool IsCKApplicable(const ProblemDescriptionType& problem)
         ptrs.begin(), ptrs.end(), [&args](auto& ptr) { return args.IsSupportedBy(ptr); });
 }
 
-#if MIOPEN_BACKEND_HIP
 inline void ProfilingRecordStart(const Handle& handle, HipEventPtr& start, HipEventPtr& stop)
 {
     start = make_hip_event();
@@ -114,7 +113,6 @@ inline void ProfilingRecordStop(const Handle& handle, HipEventPtr& start, HipEve
     handle.ResetKernelTime();
     handle.AccumKernelTime(mS);
 }
-#endif
 
 template <typename DeviceOpType,
           typename CKArgsType,
@@ -147,20 +145,17 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
             {
                 auto zero           = 0.0f;
                 const auto& tensors = data_ctx.tensors;
-#if MIOPEN_BACKEND_HIP
+                SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
+
                 HipEventPtr start = nullptr;
                 HipEventPtr stop  = nullptr;
                 if(handle.IsProfilingEnabled())
                 {
                     ProfilingRecordStart(handle, start, stop);
                 }
-#endif
-                SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
                 invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
-#if MIOPEN_BACKEND_HIP
                 if(handle.IsProfilingEnabled())
                     ProfilingRecordStop(handle, start, stop);
-#endif
             }
             else
             {
@@ -625,11 +620,6 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
             handle.ResetKernelTime();
 
             const auto& data_ctx = primitive_parameters.CastTo<CastType>();
-            if constexpr(std::is_same<CastType, miopen::conv::WrWInvokeParams>::value)
-            {
-                auto zero = 0.0f;
-                SetTensor(handle, data_ctx.tensors.dwDesc, data_ctx.tensors.dw, &zero);
-            }
 
             if(!data_ctx.workSpace)
             {
@@ -653,6 +643,12 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
             }
 
+            HipEventPtr start = nullptr;
+            HipEventPtr stop  = nullptr;
+            if(handle.IsProfilingEnabled())
+            {
+                ProfilingRecordStart(handle, start, stop);
+            }
             input1_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
 
             input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
@@ -679,34 +675,10 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                                                    tr_ptrs[0]->GetBufferPtr(),
                                                    tr_ptrs[1]->GetBufferPtr(),
                                                    tr_ptrs[2]->GetBufferPtr());
-            if constexpr(std::is_same<CastType, miopen::conv::WrWInvokeParams>::value)
-            {
-#if MIOPEN_BACKEND_HIP
-                HipEventPtr start = nullptr;
-                HipEventPtr stop  = nullptr;
-                if(handle.IsProfilingEnabled())
-                {
-                    ProfilingRecordStart(handle, start, stop);
-                }
-#endif
-                invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
-#if MIOPEN_BACKEND_HIP
-                if(handle.IsProfilingEnabled())
-                    ProfilingRecordStop(handle, start, stop);
-#endif
-            }
-            else
-            {
-                float conv_time = 0;
-                conv_time += invoker_ptr->Run(argument_ptr.get(),
-                                              {handle.GetStream(), handle.IsProfilingEnabled()});
-
-                if(handle.IsProfilingEnabled())
-                {
-                    handle.AccumKernelTime(conv_time);
-                }
-            }
+            invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
             output_tr_inst.ConvertTo(handle, kernels, conv_tensors);
+            if(handle.IsProfilingEnabled())
+                ProfilingRecordStop(handle, start, stop);
         };
     };
 
