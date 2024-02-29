@@ -120,9 +120,10 @@ void Solution::LogDriverCommand(const ActivationDescriptor& desc) const
 void Solution::LogDriverCommand(const Problem& problem_) const
 {
     boost::apply_visitor(
-        boost::hof::match([&](const BiasDescriptor&) { /* \todo: think on how to log bias */ },
-                          [&](const SoftmaxDescriptor&) { /* \todo: think on how to log softmax */ },                           
-                          [&](const auto& op_desc) { LogDriverCommand(op_desc); }),
+        boost::hof::match(
+            [&](const BiasDescriptor&) { /* \todo: think on how to log bias */ },
+            [&](const SoftmaxDescriptor&) { /* \todo: think on how to log softmax */ },
+            [&](const auto& op_desc) { LogDriverCommand(op_desc); }),
         problem_.GetOperatorDescriptor());
 }
 
@@ -264,35 +265,38 @@ void Solution::RunImpl(Handle& handle,
 
     const softmax::ProblemDescription problem_description = problem_casted.AsSoftmax();
 
-    float alpha = softmax_desc.GetAlpha();
-    float beta = softmax_desc.GetBeta();
+    float alpha                        = softmax_desc.GetAlpha();
+    float beta                         = softmax_desc.GetBeta();
     miopenSoftmaxAlgorithm_t algorithm = softmax_desc.GetAlgorithm();
-    miopenSoftmaxMode_t mode = softmax_desc.GetMode();
+    miopenSoftmaxMode_t mode           = softmax_desc.GetMode();
 
     const auto invoke_ctx = [&]() -> AnyInvokeParams {
         switch(problem_casted.GetDirection())
         {
-        case miopenProblemDirectionForward:
-        {
+        case miopenProblemDirectionForward: {
             auto x = get_input_checked(miopenTensorSoftmaxX, "miopenTensorSoftmaxX");
             auto y = get_input_checked(miopenTensorSoftmaxY, "miopenTensorSoftmaxY");
 
             return softmax::InvokeParams(
-                &alpha, 
-                &beta,
-                *x.descriptor, 
-                x.buffer, 
-                *y.descriptor, 
-                y.buffer,
-                algorithm,
-                mode);
-        }       
-        /*case miopenProblemDirectionBackward:
-            return conv::InvokeParams(
-                {*y.descriptor, y.buffer, *w.descriptor, w.buffer, *x.descriptor, x.buffer},
-                workspace,
-                workspace_size,
-                conv_problem.GetConv().attribute.gfx90aFp16alt.GetBwd());*/
+                &alpha, &beta, *x.descriptor, x.buffer, *y.descriptor, y.buffer, algorithm, mode);
+        }
+        case miopenProblemDirectionBackward: {
+            auto y  = get_input_checked(miopenTensorSoftmaxY, "miopenTensorSoftmaxY");
+            auto dy = get_input_checked(miopenTensorSoftmaxDY, "miopenTensorSoftmaxDY");
+            auto dx = get_input_checked(miopenTensorSoftmaxDX, "miopenTensorSoftmaxDX");
+
+            return softmax::InvokeParams(&alpha,
+                                         &beta,
+                                         *y.descriptor,
+                                         y.buffer,
+                                         *dy.descriptor,
+                                         dy.buffer,
+                                         *dx.descriptor,
+                                         dx.buffer,
+                                         algorithm,
+                                         mode);
+        }
+
         default: MIOPEN_THROW(miopenStatusNotImplemented);
         }
     }();
@@ -311,17 +315,17 @@ void Solution::RunImpl(Handle& handle,
         solver::softmax::Softmax regularSoftmax;
         solver::softmax::AttnSoftmax attnSoftmax;
 
-        const auto softmax_solution = GetSolver().ToString() == regularSoftmax.SolverDbId() ? 
-                                        regularSoftmax.GetSolution(ctx, problem_description) : 
-                                        attnSoftmax.GetSolution(ctx, problem_description);
+        const auto softmax_solution = GetSolver().ToString() == regularSoftmax.SolverDbId()
+                                          ? regularSoftmax.GetSolution(ctx, problem_description)
+                                          : attnSoftmax.GetSolution(ctx, problem_description);
 
-        decltype(auto) invoker =
-            handle.PrepareInvoker(*softmax_solution.invoker_factory, softmax_solution.construction_params);
+        decltype(auto) invoker = handle.PrepareInvoker(*softmax_solution.invoker_factory,
+                                                       softmax_solution.construction_params);
         handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
         invoker(handle, invoke_ctx);
     }
 
-    //checkNumericsOutput_();    
+    // checkNumericsOutput_();
 }
 
 void Solution::RunImpl(Handle& handle,

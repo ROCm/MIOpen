@@ -45,25 +45,21 @@ extern "C" miopenStatus_t miopenCreateSoftmaxDescriptor(miopenSoftmaxDescriptor_
 }
 
 extern "C" miopenStatus_t miopenSetSoftmaxDescriptor(miopenSoftmaxDescriptor_t activDesc,
-                                                        float alpha, 
-                                                        float beta, 
-                                                        miopenSoftmaxAlgorithm_t algorithm, 
-                                                        miopenSoftmaxMode_t mode)
+                                                     float alpha,
+                                                     float beta,
+                                                     miopenSoftmaxAlgorithm_t algorithm,
+                                                     miopenSoftmaxMode_t mode)
 {
 
     MIOPEN_LOG_FUNCTION(activDesc, alpha, beta, algorithm, mode);
-    return miopen::try_([&] {
-        miopen::deref(activDesc).SetParams(alpha, beta, algorithm, mode);
-    });
+    return miopen::try_([&] { miopen::deref(activDesc).SetParams(alpha, beta, algorithm, mode); });
 }
 
 std::ostream& operator<<(std::ostream& stream, const SoftmaxDescriptor& x)
 {
-    stream << "softmax," << 
-    "alpha" << x.GetAlpha() << 
-    ",beta" << x.GetBeta() << 
-    ",algorithm" << x.GetAlgorithm() << 
-    ",mode" << x.GetMode() << ",";
+    stream << "softmax,"
+           << "alpha" << x.GetAlpha() << ",beta" << x.GetBeta() << ",algorithm" << x.GetAlgorithm()
+           << ",mode" << x.GetMode() << ",";
 
     return stream;
 }
@@ -83,7 +79,7 @@ void from_json(const nlohmann::json& json, SoftmaxDescriptor& descriptor)
     json.at("alpha").get_to(descriptor.alpha);
     json.at("beta").get_to(descriptor.beta);
     json.at("algorithm").get_to(descriptor.algorithm);
-    json.at("mode").get_to(descriptor.mode);    
+    json.at("mode").get_to(descriptor.mode);
 }
 
 miopenStatus_t SoftmaxForward(Handle& handle,

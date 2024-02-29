@@ -326,7 +326,6 @@ MIOPEN_DECLARE_OBJECT(miopenLRNDescriptor);
  */
 MIOPEN_DECLARE_OBJECT(miopenActivationDescriptor);
 
-
 /*! @ingroup RNN
  * @brief Creates the miopenRNNDescriptor_t type
  */
@@ -351,7 +350,6 @@ MIOPEN_DECLARE_OBJECT(miopenReduceTensorDescriptor);
  * @brief Creates the miopenSoftmaxDescriptor_t type
  */
 MIOPEN_DECLARE_OBJECT(miopenSoftmaxDescriptor);
-
 
 /*! @ingroup tensor
  * @enum miopenDataType_t
@@ -5325,7 +5323,7 @@ typedef enum
     miopenTensorSoftmaxY  = 12,
     miopenTensorSoftmaxDX = 13,
     miopenTensorSoftmaxDY = 14,
-    
+
 } miopenTensorArgumentId_t;
 
 /*! @enum miopenTensorArgumentId_t
@@ -5358,7 +5356,6 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
 MIOPEN_EXPORT miopenStatus_t miopenCreateSoftmaxProblem(miopenProblem_t* problem,
                                                         miopenSoftmaxDescriptor_t operatorDesc,
                                                         miopenProblemDirection_t direction);
-
 
 /*! @brief Destroys a problem object.
  *

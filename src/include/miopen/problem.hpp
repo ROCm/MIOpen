@@ -62,8 +62,7 @@ struct ProblemDescription;
 
 namespace softmax {
 struct ProblemDescription;
-} // namespace conv
-
+} // namespace softmax
 
 struct BiasDescriptor
 {
@@ -167,7 +166,6 @@ private:
                                             std::size_t max_solutions,
                                             const Buffers& buffers,
                                             const SoftmaxDescriptor& softmax_desc) const;
-
 
     void LogDriverCommand(const ConvolutionDescriptor& conv_desc) const;
     void LogDriverCommand(const ActivationDescriptor& descriptor) const;

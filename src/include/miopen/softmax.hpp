@@ -32,33 +32,35 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-namespace miopen 
-{
+namespace miopen {
 
 struct Handle;
 struct TensorDescriptor;
 
 struct SoftmaxDescriptor : miopenSoftmaxDescriptor
 {
-    SoftmaxDescriptor(){}
+    SoftmaxDescriptor() {}
 
-    float GetAlpha() const {return alpha;}
-    float GetBeta() const {return beta;}
+    float GetAlpha() const { return alpha; }
+    float GetBeta() const { return beta; }
     miopenSoftmaxAlgorithm_t GetAlgorithm() const { return algorithm; }
-    miopenSoftmaxMode_t GetMode() const { return  mode; }
+    miopenSoftmaxMode_t GetMode() const { return mode; }
 
-    void SetParams(float alpha_, float beta_, miopenSoftmaxAlgorithm_t algorithm_, miopenSoftmaxMode_t mode_)
+    void SetParams(float alpha_,
+                   float beta_,
+                   miopenSoftmaxAlgorithm_t algorithm_,
+                   miopenSoftmaxMode_t mode_)
     {
-        alpha = alpha_;
-        beta = beta_;
+        alpha     = alpha_;
+        beta      = beta_;
         algorithm = algorithm_;
-        mode = mode_;
+        mode      = mode_;
     }
 
     friend std::ostream& operator<<(std::ostream& stream, const SoftmaxDescriptor& x);
 
     friend void to_json(nlohmann::json& json, const SoftmaxDescriptor& descriptor);
-    friend void from_json(const nlohmann::json& json, SoftmaxDescriptor& descriptor);    
+    friend void from_json(const nlohmann::json& json, SoftmaxDescriptor& descriptor);
 
 private:
     float alpha;

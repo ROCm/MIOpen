@@ -644,14 +644,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        conv::ConvHipImplicitGemmGroupWrwXdlops{},
                        miopenConvolutionAlgoImplicitGEMM);
 
-    Register(registry,
-                ++id,
-                Primitive::Softmax,
-                softmax::Softmax{}.SolverDbId());
-    Register(registry,
-                ++id,
-                Primitive::Softmax,
-                softmax::AttnSoftmax{}.SolverDbId());
+    Register(registry, ++id, Primitive::Softmax, softmax::Softmax{}.SolverDbId());
+    Register(registry, ++id, Primitive::Softmax, softmax::AttnSoftmax{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }
