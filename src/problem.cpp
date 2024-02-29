@@ -465,11 +465,12 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     return ret;
 }
 
-std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
-                                                 [[maybe_unused]] const FindOptions& options,
-                                                 std::size_t max_solutions,
-                                                 [[maybe_unused]] const Buffers& buffers,
-                                                 [[maybe_unused]] const SoftmaxDescriptor& softmax_desc) const
+std::vector<Solution>
+Problem::FindSolutionsImpl(Handle& handle,
+                           [[maybe_unused]] const FindOptions& options,
+                           std::size_t max_solutions,
+                           [[maybe_unused]] const Buffers& buffers,
+                           [[maybe_unused]] const SoftmaxDescriptor& softmax_desc) const
 {
     auto ret = std::vector<Solution>();
 
@@ -511,7 +512,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
 
         ret.emplace_back(std::move(solution));
 
-        if (ret.size() >= max_solutions)
+        if(ret.size() >= max_solutions)
         {
             break;
         }
@@ -677,16 +678,7 @@ miopenTensorArgumentId_t Problem::GetInputId() const
         boost::hof::match([](const ConvolutionDescriptor&) { return miopenTensorConvolutionX; },
                           [](const ActivationDescriptor&) { return miopenTensorActivationX; },
                           [](const BiasDescriptor&) { return miopenTensorBiasX; },
-                          [this](const SoftmaxDescriptor&) {
-                              if(GetDirection() == miopenProblemDirectionBackward)
-                              {
-                                  return miopenTensorSoftmaxY;
-                              }
-                              else
-                              {
-                                  return miopenTensorSoftmaxX;
-                              }
-                          }),
+                          [](const SoftmaxDescriptor&) { return miopenTensorSoftmaxX; }),
         operator_descriptor);
 }
 
@@ -696,16 +688,7 @@ miopenTensorArgumentId_t Problem::GetOutputId() const
         boost::hof::match([](const ConvolutionDescriptor&) { return miopenTensorConvolutionY; },
                           [](const ActivationDescriptor&) { return miopenTensorActivationY; },
                           [](const BiasDescriptor&) { return miopenTensorBiasY; },
-                          [this](const SoftmaxDescriptor&) {
-                              if(GetDirection() == miopenProblemDirectionBackward)
-                              {
-                                  return miopenTensorSoftmaxDX;
-                              }
-                              else
-                              {
-                                  return miopenTensorSoftmaxY;
-                              }
-                          }),
+                          [](const SoftmaxDescriptor&) { return miopenTensorSoftmaxY; }),
         operator_descriptor);
 }
 
