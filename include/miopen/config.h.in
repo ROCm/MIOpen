@@ -79,12 +79,34 @@
 
 // clang-format off
 #cmakedefine MIOPEN_DEFAULT_FIND_MODE @MIOPEN_DEFAULT_FIND_MODE@
+
 // clang-format on
+#cmakedefine01 MIOPEN_OFFLINE_COMPILER_PATHS_V2
+#if MIOPEN_OFFLINE_COMPILER_PATHS_V2
+
+// APIs to get MIOPEN Compiler Paths generated using ROCM Base install Path
+// This will read the ROCM Base Install Path if it is already generated
+// or (if required), will generate the MIOPEN Compiler Flag Path Values
+// and return the value.
+const char* getAMDGCNAssemblerPath();
+const char* getOpenCLCompilerPath();
+const char* getHIPCompilerPath();
+const char* getOffloadBundlerBinPath();
+
+#cmakedefine MIOPEN_AMDGCN_ASSEMBLER getAMDGCNAssemblerPath()
+#cmakedefine HIP_OC_COMPILER getOpenCLCompilerPath()
+#cmakedefine MIOPEN_HIP_COMPILER getHIPCompilerPath()
+#cmakedefine MIOPEN_OFFLOADBUNDLER_BIN getOffloadBundlerBinPath()
+#else
 #cmakedefine MIOPEN_AMDGCN_ASSEMBLER "@MIOPEN_AMDGCN_ASSEMBLER@"
 #cmakedefine HIP_OC_COMPILER "@HIP_OC_COMPILER@"
 #cmakedefine MIOPEN_HIP_COMPILER "@MIOPEN_HIP_COMPILER@"
 #cmakedefine MIOPEN_OFFLOADBUNDLER_BIN "@MIOPEN_OFFLOADBUNDLER_BIN@"
+#endif // MIOPEN_OFFLINE_COMPILER_PATHS_V2
+
 #cmakedefine MIOPEN_CACHE_DIR "@MIOPEN_CACHE_DIR@"
+
+#cmakedefine01 MIOPEN_USE_SQLITE_PERFDB
 
 #define MIOPEN_USE_GEMM (MIOPEN_USE_ROCBLAS)
 

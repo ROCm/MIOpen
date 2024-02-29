@@ -119,10 +119,10 @@ struct ExecutionContext
             std::ostringstream filename;
             // clang-format off
             filename << GetStream().GetDbBasename();
-#if MIOPEN_ENABLE_SQLITE
+#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
             const std::string ext = ".db";
 #else
-            const std::string ext = ".cd.pdb.txt";
+            const std::string ext = ".db.txt";
 #endif
             filename << ext;
             // clang-format on
@@ -186,10 +186,10 @@ struct ExecutionContext
             std::ostringstream filename;
             // clang-format off
         filename << GetStream().GetDbBasename();
-#if MIOPEN_ENABLE_SQLITE
+#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
         const std::string ext = ".db";
 #else
-        const std::string ext = ".cd.pdb.txt";
+        const std::string ext = ".db.txt";
 #endif
         filename << ext;
             // clang-format on
@@ -279,10 +279,10 @@ struct ExecutionContext
             return "";
         std::ostringstream filename;
         filename << GetStream().GetDbBasename();
-#if MIOPEN_ENABLE_SQLITE
+#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
         filename << "_" << SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER << ".udb";
 #else
-        filename << "." << GetUserDbSuffix() << ".cd.updb.txt";
+        filename << "." << GetUserDbSuffix() << ".udb.txt";
 #endif
         return (udb / filename.str()).string();
     }
