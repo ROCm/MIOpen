@@ -324,8 +324,6 @@ void Solution::RunImpl(Handle& handle,
         handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
         invoker(handle, invoke_ctx);
     }
-
-    // checkNumericsOutput_();
 }
 
 void Solution::RunImpl(Handle& handle,
