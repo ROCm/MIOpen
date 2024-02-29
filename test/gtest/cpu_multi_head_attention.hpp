@@ -26,6 +26,7 @@
 #pragma once
 
 #include "mha_helper.hpp"
+#include "attention_golden.hpp"
 
 namespace test {
 namespace cpu {
@@ -70,7 +71,7 @@ protected:
     void TearDown() override
     {
         tensor<T> attention_golden(final_atten_heads.desc.GetLengths());
-        ExtractGoldenDataFromJson("attention_golden.json", attention_golden);
+        ExtractGoldenDataFromJson(json_attention_golden_data, attention_golden);
         // output_tensor_to_screen(q_val, "q_val", 4);
 
         double error     = miopen::rms_range(attention_golden, final_atten_heads);

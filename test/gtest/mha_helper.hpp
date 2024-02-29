@@ -382,18 +382,11 @@ void MultiHeadAttentionf32(tensor<T>& q_val,
 }
 
 template <typename T>
-void ExtractGoldenDataFromJson(const std::string& test_file_name, tensor<T>& attention_golden)
+void ExtractGoldenDataFromJson(const std::string& json_attention_golden_data,
+                               tensor<T>& attention_golden)
 {
 
-    std::ifstream test_file(test_file_name);
-    if(!test_file.is_open())
-    {
-        std::cerr << "Cannot find " << test_file_name << std::endl;
-        exit(1);
-    }
-    nlohmann::json jsonTensor;
-    test_file >> jsonTensor;
-    test_file.close();
+    auto jsonTensor = nlohmann::json::parse(json_attention_golden_data);
     std::vector<std::vector<float>> tensorData =
         jsonTensor["tensor"].get<std::vector<std::vector<float>>>();
     // Check if the "tensor" key exists and is an array

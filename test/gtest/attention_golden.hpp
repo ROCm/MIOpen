@@ -1,4 +1,5 @@
-{
+#include <string>
+const std::string json_attention_golden_data = R"json({
     "tensor": [
         [
             3.0371999740600586,
@@ -61,4 +62,4 @@
             3.8712000846862793
         ]
     ]
-}
+})json";
