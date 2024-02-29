@@ -466,12 +466,12 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
 }
 
 std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
-                                                 const FindOptions& options,
+                                                 [[maybe_unused]] const FindOptions& options,
                                                  std::size_t max_solutions,
-                                                 const Buffers& buffers,
-                                                 const SoftmaxDescriptor& softmax_desc) const
+                                                 [[maybe_unused]] const Buffers& buffers,
+                                                 [[maybe_unused]] const SoftmaxDescriptor& softmax_desc) const
 {
-    auto ret = std::vector<Solution>{};
+    auto ret = std::vector<Solution>();
 
     auto ctx = ExecutionContext{&handle};
 
@@ -489,9 +489,8 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
 
     // decltype(auto) db = GetDb(ctx);
 
-    for(auto it = solvers.begin(); it != solvers.end(); ++it)
+    for(auto solver : solvers)
     {
-        solver::softmax::SoftmaxSolver* solver = *it;
         if(!solver->IsApplicable(ctx, problem_description))
         {
             continue;
@@ -511,6 +510,11 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                         << solution.GetTime());
 
         ret.emplace_back(std::move(solution));
+
+        if (ret.size() >= max_solutions)
+        {
+            break;
+        }
     }
 
     return ret;
