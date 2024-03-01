@@ -106,10 +106,12 @@ struct HipEventProfiler
     HipEventPtr start;
     HipEventPtr stop;
 
-    HipEventProfiler(const Handle& handle_) : handle(std::move(handle_)), event_time(0.0f)
+    HipEventProfiler(const Handle& handle_)
+        : handle(std::move(handle_)),
+          event_time(0.0f),
+          start(make_hip_event()),
+          stop(make_hip_event())
     {
-        start = make_hip_event();
-        stop  = make_hip_event();
         hipEventRecord(start.get(), handle.GetStream());
     }
     ~HipEventProfiler()
