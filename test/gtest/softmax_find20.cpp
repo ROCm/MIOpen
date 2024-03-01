@@ -116,7 +116,7 @@ public:
         EXPECT_EQUAL(miopenFindSolutions(
                          &handle, problem, nullptr, solutions.data(), &found, solutions.size()),
                      miopenStatusSuccess);
-        EXPECT_OP(found, >=, 0);
+        EXPECT_TRUE(found >= 0);
 
         solutions.resize(found);
 
