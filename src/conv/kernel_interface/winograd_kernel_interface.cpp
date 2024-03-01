@@ -40,7 +40,7 @@ bool AssignAndCheck(Tdst& dst_v, Tsrc src_v) noexcept
 
     if(dst_v != src_v)
         return false;
-    
+
     if constexpr(std::numeric_limits<Tsrc>::is_signed)
     {
         if constexpr(std::numeric_limits<Tdst>::is_signed)
@@ -64,8 +64,11 @@ bool WinoShaderArgsV40::SetConvParams(const ProblemDescription& problem)
         return false;
     if(problem.GetBias() != 0)
         return false;
-    if(!(problem.GetInStrideW() == 1 && problem.GetWeightsStrideW() == 1 && problem.GetOutStrideW() == 1))
+    if(!(problem.GetInStrideW() == 1 && problem.GetWeightsStrideW() == 1 &&
+         problem.GetOutStrideW() == 1))
+    {
         return false;
+    }
 
     if(!AssignAndCheck(G, problem.GetGroupCount()))
         return false;
@@ -131,17 +134,17 @@ bool WinoShaderArgsV40::SetConvParams(const ProblemDescription& problem)
             return false;
     }
 
-    if(problem.GetInBatchStride() > std::numeric_limits<uint32_t>::max()
-        || problem.GetInChannelStride() > std::numeric_limits<uint32_t>::max()
-        || problem.GetInStrideH() > std::numeric_limits<uint32_t>::max())
+    if(problem.GetInBatchStride() > std::numeric_limits<uint32_t>::max() ||
+       problem.GetInChannelStride() > std::numeric_limits<uint32_t>::max() ||
+       problem.GetInStrideH() > std::numeric_limits<uint32_t>::max())
         return false;
-    if(problem.GetWeightsStrideK() > std::numeric_limits<uint32_t>::max()
-        || problem.GetWeightsStrideC() > std::numeric_limits<uint32_t>::max()
-        || problem.GetWeightsStrideH() > std::numeric_limits<uint32_t>::max())
+    if(problem.GetWeightsStrideK() > std::numeric_limits<uint32_t>::max() ||
+       problem.GetWeightsStrideC() > std::numeric_limits<uint32_t>::max() ||
+       problem.GetWeightsStrideH() > std::numeric_limits<uint32_t>::max())
         return false;
-    if(problem.GetOutBatchStride() > std::numeric_limits<uint32_t>::max()
-        || problem.GetOutChannelStride() > std::numeric_limits<uint32_t>::max()
-        || problem.GetOutStrideH() > std::numeric_limits<uint32_t>::max())
+    if(problem.GetOutBatchStride() > std::numeric_limits<uint32_t>::max() ||
+       problem.GetOutChannelStride() > std::numeric_limits<uint32_t>::max() ||
+       problem.GetOutStrideH() > std::numeric_limits<uint32_t>::max())
         return false;
 
     return true;
@@ -155,12 +158,17 @@ void WinoShaderArgsV40::SetStrides(const ProblemDescription& problem)
     {
         d_layout = GetGroupConvLayout(GetMemLayout_t(problem.GetInLayout()), true);
         o_layout = GetGroupConvLayout(GetMemLayout_t(problem.GetOutLayout()), true);
-        f_layout = GetGroupConvLayout(problem.IsDirectionForward() ? MemLayout_t::NCHW : GetSwappedNCLayout(MemLayout_t::NCHW), false);
+        // clang-format off
+        f_layout = GetGroupConvLayout(problem.IsDirectionForward() ? MemLayout_t::NCHW
+                                                                   : GetSwappedNCLayout(MemLayout_t::NCHW), false);
+        // clang-format on
     }
     else
     {
-        d_layout = GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(problem.GetInLayout())), true);
-        o_layout = GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(problem.GetOutLayout())), false);
+        d_layout =
+            GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(problem.GetInLayout())), true);
+        o_layout =
+            GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(problem.GetOutLayout())), false);
         f_layout = GetGroupConvLayout(GetSwappedNCLayout(MemLayout_t::NCHW), true);
     }
 
@@ -189,12 +197,14 @@ void WinoShaderArgsV40::SetStrides(const ProblemDescription& problem)
     o_G_stride = o_strides.g;
 }
 
-void WinoShaderArgsV40::SetActivParams(WinoShaderActivationModeV40_t mode, float alpha_, float beta_) noexcept
+void WinoShaderArgsV40::SetActivParams(WinoShaderActivationModeV40_t mode,
+                                       float alpha_,
+                                       float beta_) noexcept
 {
     // Fused activation parameters
     activation_mode = mode;
-    alpha = alpha_;
-    beta = beta_;
+    alpha           = alpha_;
+    beta            = beta_;
 }
 
 void WinoShaderArgsV40::SetShaderParams(uint32_t n_groups_,
@@ -202,9 +212,9 @@ void WinoShaderArgsV40::SetShaderParams(uint32_t n_groups_,
                                         uint8_t sync_limit_,
                                         uint8_t sync_period_) noexcept
 {
-    n_groups = n_groups_;
-    flags = flags_;
-    sync_limit = sync_limit_;
+    n_groups    = n_groups_;
+    flags       = flags_;
+    sync_limit  = sync_limit_;
     sync_period = sync_period_;
 }
 

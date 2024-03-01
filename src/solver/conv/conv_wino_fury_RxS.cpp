@@ -46,28 +46,19 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
-using ProblemDescription = miopen::conv::ProblemDescription;
-using WinoShaderArgsV40 = miopen::conv::WinoShaderArgsV40;
+using ProblemDescription            = miopen::conv::ProblemDescription;
+using WinoShaderArgsV40             = miopen::conv::WinoShaderArgsV40;
 using WinoShaderActivationModeV40_t = miopen::conv::WinoShaderActivationModeV40_t;
-using WinoShaderFlagsV40 = miopen::conv::WinoShaderFlagsV40;
+using WinoShaderFlagsV40            = miopen::conv::WinoShaderFlagsV40;
 
 namespace {
 
-constexpr uint32_t PowOf2(uint32_t exp)
-{
-    return 1 << exp;
-}
+constexpr uint32_t PowOf2(uint32_t exp) { return 1 << exp; }
 
 // Divide two non-negative integers and return ceil of the quotient
-constexpr uint64_t DivCeil(uint64_t numer, uint64_t denom)
-{
-    return (numer + denom - 1) / denom;
-}
+constexpr uint64_t DivCeil(uint64_t numer, uint64_t denom) { return (numer + denom - 1) / denom; }
 
-constexpr uint64_t RoundUpToMultiple(uint64_t val, uint64_t mul)
-{
-    return DivCeil(val, mul) * mul;
-}
+constexpr uint64_t RoundUpToMultiple(uint64_t val, uint64_t mul) { return DivCeil(val, mul) * mul; }
 
 // Number of thread groups
 uint32_t GetNGroups(uint64_t cu_count)
@@ -79,7 +70,7 @@ uint32_t GetNGroups(uint64_t cu_count)
     constexpr auto max_n_groups = PowOf2(8) - 1;
     if(n_groups > max_n_groups)
         n_groups = max_n_groups;
-    
+
     return n_groups;
 }
 
@@ -126,8 +117,16 @@ public:
                 const WinoShaderArgsV40& args,
                 uint32_t cu_cnt,
                 uint32_t n_grp)
-        : N(args.N), C(args.C), K(args.K), R(args.R), S(args.S), oH(args.out_h), oW(args.out_w), G(args.G),
-          n_groups(n_grp), cu_count(cu_cnt)
+        : N(args.N),
+          C(args.C),
+          K(args.K),
+          R(args.R),
+          S(args.S),
+          oH(args.out_h),
+          oW(args.out_w),
+          G(args.G),
+          n_groups(n_grp),
+          cu_count(cu_cnt)
     {
     }
 
@@ -149,25 +148,26 @@ private:
 
         constexpr uint64_t nhw_factor   = 62;
         constexpr uint64_t k_factor     = 16;
-        const     uint64_t c_factor     = c32_mode ? 32 : 16;
+        const uint64_t c_factor         = c32_mode ? 32 : 16;
         constexpr uint64_t nhw_factor_g = RoundUpToMultiple(nhw_factor, 32);
 
-        const uint64_t Rg  = RoundUpToMultiple(R,  t_R);
-        const uint64_t Sg  = RoundUpToMultiple(S,  t_S);
-        const uint64_t Cg  = RoundUpToMultiple(C,  c_factor);
-        const uint64_t Kg  = RoundUpToMultiple(K,  k_factor);
+        const uint64_t Rg  = RoundUpToMultiple(R, t_R);
+        const uint64_t Sg  = RoundUpToMultiple(S, t_S);
+        const uint64_t Cg  = RoundUpToMultiple(C, c_factor);
+        const uint64_t Kg  = RoundUpToMultiple(K, k_factor);
         const uint64_t oHg = RoundUpToMultiple(oH, t_oH);
         const uint64_t oWg = RoundUpToMultiple(oW, t_oW) + t_oW;
 
         const uint64_t c_loops = Cg / c_factor;
         const uint64_t k_ways  = Kg / k_factor;
 
-        const uint64_t nkhw_per_work  = k_factor * nhw_factor_g * t_oH * t_oW;
+        const uint64_t nkhw_per_work = k_factor * nhw_factor_g * t_oH * t_oW;
 
-        const uint64_t nhw_tiles      = N * DivCeil(oHg, t_oH) * DivCeil(oWg, t_oW);
-        const uint64_t n_groups_e     = k_ways * (n_groups / k_ways);
-        const uint64_t n_works        = k_ways * DivCeil(nhw_tiles, nhw_factor);
-        const uint64_t n_works_per_cu = DivCeil(n_works, n_groups_e) * DivCeil(n_groups_e, cu_count);
+        const uint64_t nhw_tiles  = N * DivCeil(oHg, t_oH) * DivCeil(oWg, t_oW);
+        const uint64_t n_groups_e = k_ways * (n_groups / k_ways);
+        const uint64_t n_works    = k_ways * DivCeil(nhw_tiles, nhw_factor);
+        const uint64_t n_works_per_cu =
+            DivCeil(n_works, n_groups_e) * DivCeil(n_groups_e, cu_count);
 
         const uint64_t macsg = n_works_per_cu * cu_count * nkhw_per_work * Cg * Rg * Sg;
         const uint64_t macs  = N * G * K * C * oH * R * oW * S;
@@ -183,17 +183,15 @@ private:
         const uint64_t ph_activ  = n_works_per_cu;
         const uint64_t ph_filter = f_relaods * c_loops;
 
-        // Constant parameters of the model valid for RX 7900 XTX. Values for other ASICs may be different.
+        // Constant parameters of the model valid for RX 7900 XTX. Values for other ASICs may be
+        // different.
         const uint64_t clk_start  = c32_mode ? 2700 : 1650;
         const uint64_t clk_accum  = c32_mode ? 2983 : 1681;
         const uint64_t clk_activ  = c32_mode ? 3033 : 1733;
         const uint64_t clk_filter = c32_mode ? 2700 : 1650;
 
-        out.predicted_clk =
-            ph_start * clk_start +
-            ph_accum * clk_accum +
-            ph_activ * clk_activ +
-            ph_filter * clk_filter;
+        out.predicted_clk = ph_start * clk_start + ph_accum * clk_accum + ph_activ * clk_activ +
+                            ph_filter * clk_filter;
 
         return out;
     }
@@ -228,10 +226,11 @@ bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext&
     const auto dev_name = ctx.GetStream().GetDeviceName();
     // 1. The shader has been tested on Navi31 (RX7900XTX).
     // 2. GFX11 ASICs with reduced VGPR RAM size are unsupported (e.g. Navi33).
-    // 3. It is supposed to run on other ASICs with the same type of CUs as in Navi31, such as Navi32.
+    // 3. It is supposed to run on other ASICs with the same type of CUs as in Navi31, such as
+    // Navi32.
     if(!(dev_name == "gfx1100" || dev_name == "gfx1101" || dev_name == "gfx1151"))
         return false;
-    
+
     if(problem.GetInLayout() != "NCHW")
         return false;
     if(!(problem.GetKernelStrideH() == 1 && problem.GetKernelStrideW() == 1))
@@ -245,7 +244,7 @@ bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext&
 
     const auto cu_count = ctx.GetStream().GetMaxHardwareComputeUnits();
     const auto n_groups = GetNGroups(cu_count);
-    
+
     return IsShaderConstraintsMet(args, n_groups);
 }
 
@@ -253,21 +252,20 @@ template <uint32_t Winodata, uint32_t Winofilter>
 float ConvWinoFuryRxS<Winodata, Winofilter>::GetWti(const ExecutionContext& ctx,
                                                     const ProblemDescription& problem) const
 {
-    return -2.0;// Unknown WTI
+    return -2.0; // Unknown WTI
 }
 
 template <uint32_t Winodata, uint32_t Winofilter>
-size_t ConvWinoFuryRxS<Winodata, Winofilter>::GetWorkspaceSize(
-    const ExecutionContext&,
-    const ProblemDescription&) const
+size_t ConvWinoFuryRxS<Winodata, Winofilter>::GetWorkspaceSize(const ExecutionContext&,
+                                                               const ProblemDescription&) const
 {
     return sync_buffer_size; // 2KB buffer for global sync
 }
 
 template <uint32_t Winodata, uint32_t Winofilter>
-ConvSolution ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(
-    const ExecutionContext& ctx,
-    const ProblemDescription& problem) const
+ConvSolution
+ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
+                                                   const ProblemDescription& problem) const
 {
     const auto dev_name = ctx.GetStream().GetDeviceName();
     const auto cu_count = ctx.GetStream().GetMaxHardwareComputeUnits();
@@ -289,9 +287,8 @@ ConvSolution ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(
         if(cu_count != n_groups)
         {
             MIOPEN_LOG_WE(SolverDbId()
-                          << ": GPU has " << cu_count
-                          << "CUs, but this solver supports max " << n_groups
-                          << "and thus may show sub-optimal performance.");
+                          << ": GPU has " << cu_count << "CUs, but this solver supports max "
+                          << n_groups << "and thus may show sub-optimal performance.");
         }
         IsWarned = true;
     }
@@ -322,7 +319,8 @@ ConvSolution ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(
     }
 
     kernel_postfix += IS2X3 ? "_f2x3" : "_f3x2";
-    kernel_postfix += ShaderModel(ctx, args, cu_count, n_groups).IsC32ModePreferable() ? "_c32" : "_c16";
+    kernel_postfix +=
+        ShaderModel(ctx, args, cu_count, n_groups).IsC32ModePreferable() ? "_c32" : "_c16";
     kernel_postfix += "_stride1";
 
     kernel_name += kernel_postfix;
@@ -357,7 +355,9 @@ ConvSolution ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(
     args.SetActivParams(WinoShaderActivationModeV40_t::IDENTITY, 0.0f, 0.0f);
 
     // Other shader parameters
-    auto flags = WinoShaderFlagsV40::F_NKCHR_STRIDES | WinoShaderFlagsV40::F_TENSOR_OFFSETS | WinoShaderFlagsV40::F_USE_ACTIVATION_MODE | WinoShaderFlagsV40::F_USE_EXTENDED_FLAGS_64;
+    auto flags = WinoShaderFlagsV40::F_NKCHR_STRIDES | WinoShaderFlagsV40::F_TENSOR_OFFSETS |
+                 WinoShaderFlagsV40::F_USE_ACTIVATION_MODE |
+                 WinoShaderFlagsV40::F_USE_EXTENDED_FLAGS_64;
     if(problem.IsDirectionBackwardData())
         flags |= WinoShaderFlagsV40::F_REVERSE_R | WinoShaderFlagsV40::F_REVERSE_S;
 
@@ -366,7 +366,8 @@ ConvSolution ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(
     // Solution
     ConvSolution result;
     result.construction_params.push_back(kernel);
-    result.invoker_factory = miopen::conv::MakeGcnAsmWinoV40InvokerFactory(args, problem.GetDirection(), sync_buffer_size);
+    result.invoker_factory = miopen::conv::MakeGcnAsmWinoV40InvokerFactory(
+        args, problem.GetDirection(), sync_buffer_size);
 
     return result;
 }

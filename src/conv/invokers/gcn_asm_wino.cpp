@@ -33,7 +33,9 @@
 namespace miopen {
 namespace conv {
 
-InvokerFactory MakeGcnAsmWinoV40InvokerFactory(const WinoShaderArgsV40& args, conv::Direction direction, std::size_t sync_buffer_size)
+InvokerFactory MakeGcnAsmWinoV40InvokerFactory(const WinoShaderArgsV40& args,
+                                               conv::Direction direction,
+                                               std::size_t sync_buffer_size)
 {
     const bool is_backWrW = (direction == conv::Direction::BackwardWeights);
 
@@ -41,21 +43,21 @@ InvokerFactory MakeGcnAsmWinoV40InvokerFactory(const WinoShaderArgsV40& args, co
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto k = handle.Run(kernels[0]);
 
-            const auto data_addr =
-                !is_backWrW ? primitive_params.CastTo<DataInvokeParams>().tensors.in
-                            : primitive_params.CastTo<WrWInvokeParams>().tensors.x;
-            const auto filter_addr =
-                !is_backWrW ? primitive_params.CastTo<DataInvokeParams>().tensors.w
-                            : primitive_params.CastTo<WrWInvokeParams>().tensors.dy;
-            const auto output_addr =
-                !is_backWrW ? primitive_params.CastTo<DataInvokeParams>().tensors.out
-                            : primitive_params.CastTo<WrWInvokeParams>().tensors.dw;
-            const auto sync_addr =
-                !is_backWrW ? primitive_params.CastTo<DataInvokeParams>().workSpace
-                            : primitive_params.CastTo<WrWInvokeParams>().workSpace;
-            
+            const auto data_addr   = !is_backWrW
+                                         ? primitive_params.CastTo<DataInvokeParams>().tensors.in
+                                         : primitive_params.CastTo<WrWInvokeParams>().tensors.x;
+            const auto filter_addr = !is_backWrW
+                                         ? primitive_params.CastTo<DataInvokeParams>().tensors.w
+                                         : primitive_params.CastTo<WrWInvokeParams>().tensors.dy;
+            const auto output_addr = !is_backWrW
+                                         ? primitive_params.CastTo<DataInvokeParams>().tensors.out
+                                         : primitive_params.CastTo<WrWInvokeParams>().tensors.dw;
+            const auto sync_addr   = !is_backWrW
+                                         ? primitive_params.CastTo<DataInvokeParams>().workSpace
+                                         : primitive_params.CastTo<WrWInvokeParams>().workSpace;
+
             uint64_t bias_addr = 0;
-            
+
             uint64_t d_offset = 0;
             uint64_t f_offset = 0;
             uint64_t o_offset = 0;

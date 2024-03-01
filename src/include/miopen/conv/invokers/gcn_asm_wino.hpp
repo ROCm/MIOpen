@@ -32,7 +32,9 @@
 namespace miopen {
 namespace conv {
 
-InvokerFactory MakeGcnAsmWinoV40InvokerFactory(const WinoShaderArgsV40& args, conv::Direction direction, std::size_t sync_buffer_size);
+InvokerFactory MakeGcnAsmWinoV40InvokerFactory(const WinoShaderArgsV40& args,
+                                               conv::Direction direction,
+                                               std::size_t sync_buffer_size);
 
 } // namespace conv
 } // namespace miopen

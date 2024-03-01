@@ -31,7 +31,8 @@
 namespace miopen {
 namespace conv {
 
-enum class WinoShaderFlagsV40 : uint64_t {
+enum class WinoShaderFlagsV40 : uint64_t
+{
     F_REVERSE_R                  = 1ULL << 0,
     F_REVERSE_S                  = 1ULL << 1,
     F_FLIP_K_C                   = 1ULL << 2, // Deprecated
@@ -68,7 +69,8 @@ inline std::ostream& operator<<(std::ostream& s, const WinoShaderFlagsV40& flags
     return s;
 }
 
-enum class WinoShaderActivationModeV40_t : uint8_t {
+enum class WinoShaderActivationModeV40_t : uint8_t
+{
     IDENTITY    = 0, // no activation, alpha and beta are ignored
     LEAKY_RELU  = 1, // ReLU, beta field is ignored
     SIGMOID     = 2, // sigmoid, alpha and beta fields are ignored
@@ -85,18 +87,18 @@ inline std::ostream& operator<<(std::ostream& s, const WinoShaderActivationModeV
 struct WinoShaderArgsV40
 {
     // Main convolution parameters
-    uint32_t N;           // batch size
-    uint32_t C;           // number of input channels in each filter group
-    uint32_t H;           // input height
-    uint32_t W;           // input width
-    uint32_t K;           // number of output channels in each filter group
-    uint32_t R;           // filter height
-    uint32_t S;           // filter width
-    int32_t pad_h;        // padding in h dimension
-    int32_t pad_w;        // padding in w dimension
-    uint32_t out_h;       // output height
-    uint32_t out_w;       // output width
-    uint32_t G;           // number of filter groups
+    uint32_t N;     // batch size
+    uint32_t C;     // number of input channels in each filter group
+    uint32_t H;     // input height
+    uint32_t W;     // input width
+    uint32_t K;     // number of output channels in each filter group
+    uint32_t R;     // filter height
+    uint32_t S;     // filter width
+    int32_t pad_h;  // padding in h dimension
+    int32_t pad_w;  // padding in w dimension
+    uint32_t out_h; // output height
+    uint32_t out_w; // output width
+    uint32_t G;     // number of filter groups
 
     // Data layout related parameters
     uint32_t d_N_stride; // stride in number of elements of the N dimension of the input data buffer
@@ -115,20 +117,23 @@ struct WinoShaderArgsV40
     uint32_t o_G_stride; // stride in number of elements of the G dimension of the output buffer
 
     // Fused activation parameters
-    float alpha;          // activation parameter alpha
-    float beta;           // activation parameter beta
-    WinoShaderActivationModeV40_t activation_mode;  // activation mode
+    float alpha;                                   // activation parameter alpha
+    float beta;                                    // activation parameter beta
+    WinoShaderActivationModeV40_t activation_mode; // activation mode
 
     // Other shader parameters
-    uint32_t n_groups;    // number of shader groups
-    WinoShaderFlagsV40 flags;   // shader flags
-    uint8_t sync_limit;  // maximum number of sync attempts
-    uint8_t sync_period; // synchronization period
+    uint32_t n_groups;        // number of shader groups
+    WinoShaderFlagsV40 flags; // shader flags
+    uint8_t sync_limit;       // maximum number of sync attempts
+    uint8_t sync_period;      // synchronization period
 
     bool SetConvParams(const ProblemDescription& problem);
     void SetStrides(const ProblemDescription& problem);
     void SetActivParams(WinoShaderActivationModeV40_t mode, float alpha, float beta) noexcept;
-    void SetShaderParams(uint32_t n_groups, WinoShaderFlagsV40 flags, uint8_t sync_limit, uint8_t sync_period) noexcept;  
+    void SetShaderParams(uint32_t n_groups,
+                         WinoShaderFlagsV40 flags,
+                         uint8_t sync_limit,
+                         uint8_t sync_period) noexcept;
 };
 
 } // namespace conv
