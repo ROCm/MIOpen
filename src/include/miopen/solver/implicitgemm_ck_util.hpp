@@ -644,8 +644,6 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
 
             output_init_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
 
-            /// \todo: Fix NHWC Wrw invokers to also issue a zero-out kernel. Will
-            /// need SetTensor() to properly zero out non-packed tensors
             if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Weights)
             {
                 output_tr_inst.ZeroOutBuffer();
