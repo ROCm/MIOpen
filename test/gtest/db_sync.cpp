@@ -592,7 +592,8 @@ TEST(DBSync, DISABLED_DynamicFDBSync)
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, handle);
     miopen::CheckKDBObjects(kdb_file_path, "", "");
 
-    const auto& find_db = miopen::ReadonlyRamDb::GetCached(fdb_file_path.string(), true);
+    const auto& find_db =
+        miopen::ReadonlyRamDb::GetCached(miopen::DbKinds::FindDb, fdb_file_path.string(), true);
     // assert that find_db.cache is not empty, since that indicates the file was not readable
     ASSERT_TRUE(!find_db.GetCacheMap().empty()) << "Find DB does not have any entries";
 
@@ -814,7 +815,8 @@ void StaticFDBSync(const std::string& arch, const size_t num_cu)
     // Warmup the kdb cache
     miopen::CheckKDBObjects(kdb_file_path, "", "");
 #endif
-    const auto& find_db = miopen::ReadonlyRamDb::GetCached(fdb_file_path.string(), true);
+    const auto& find_db =
+        miopen::ReadonlyRamDb::GetCached(miopen::DbKinds::FindDb, fdb_file_path.string(), true);
     // assert that find_db.cache is not empty, since that indicates the file was not readable
     ASSERT_TRUE(!find_db.GetCacheMap().empty()) << "Find DB does not have any entries";
     auto _ctx = miopen::ExecutionContext{};
