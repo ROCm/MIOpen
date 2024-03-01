@@ -70,19 +70,24 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dFloat : public FloatTestCase<std::vector<TestCase>>
+class Conv2dFloat_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops
+    : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dHalf : public HalfTestCase<std::vector<TestCase>>
+class Conv2dHalf_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops
+    : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops)
+TEST_P(Conv2dFloat_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops,
+       FloatTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dFloat>(default_check);
+        invoke_with_params<conv2d_driver,
+                           Conv2dFloat_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops>(
+            default_check);
     }
     else
     {
@@ -90,11 +95,14 @@ TEST_P(Conv2dFloat, FloatTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops)
     }
 };
 
-TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops)
+TEST_P(Conv2dHalf_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops,
+       HalfTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dHalf>(default_check);
+        invoke_with_params<conv2d_driver,
+                           Conv2dHalf_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops>(
+            default_check);
     }
     else
     {
@@ -103,9 +111,9 @@ TEST_P(Conv2dHalf, HalfTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops)
 };
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmImplicitGemmV4R1Dynamic,
-                         Conv2dFloat,
+                         Conv2dFloat_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops,
                          testing::Values(GetTestCases()));
 
 INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmImplicitGemmV4R1Dynamic,
-                         Conv2dHalf,
+                         Conv2dHalf_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops,
                          testing::Values(GetTestCases()));

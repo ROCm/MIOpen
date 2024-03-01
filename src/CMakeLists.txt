@@ -261,6 +261,7 @@ set( MIOpen_Source
     solver/pooling/backwardNd.cpp
     solver/reduce/forward_argmax.cpp
     solver/reduce/forward_sum.cpp
+    solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
     subbuffers.cpp
     sum_api.cpp
@@ -456,6 +457,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
         kernels/MIOpenSoftmax.cl
+        kernels/MIOpenSoftmaxAttn.cpp
         kernels/MIOpenSum.cpp
         kernels/MIOpenUtilKernels3.cl
         kernels/MIOpenUtilKernels4.cl
@@ -766,7 +768,7 @@ if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
     endif()
     foreach(MODEL_FILE ${MODEL_FILES})
         get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
-	configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${MODEL_FILE_FILENAME}" COPYONLY)
+    configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${MODEL_FILE_FILENAME}" COPYONLY)
     endforeach()
 endif()
 
@@ -905,7 +907,7 @@ if(NOT MIOPEN_EMBED_DB STREQUAL "")
         message(STATUS "Adding find db for arch: ${EMBED_ARCH}")
         list(APPEND CODE_OBJECTS "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${EMBED_ARCH}.${MIOPEN_BACKEND}.fdb.txt")
         message(STATUS "Adding perf db for arch: ${EMBED_ARCH}")
-        list(APPEND CODE_OBJECTS "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${EMBED_ARCH}.db")
+        list(APPEND CODE_OBJECTS "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${EMBED_ARCH}.db${PERFDB_SUFFIX}")
     endforeach()
 # Embed Bin Cache
     if(NOT MIOPEN_BINCACHE_PATH STREQUAL "")
