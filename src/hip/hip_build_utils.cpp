@@ -39,6 +39,72 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_VERBOSE)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_DUMP)
 
+#if MIOPEN_OFFLINE_COMPILER_PATHS_V2
+
+// Include rocm-core header for get ROCm Install Path Method
+#include <rocm-core/rocm_getpath.h>
+
+// Flags to hold Relative Directory Path
+// for each Compiler Flags from ROCM Install Path
+// This flag Paths are expected to be deprecated/modified
+// in upcoming MAJOR Releases.
+#define MIOPEN_CLANG_REL_PATH "llvm/bin/clang"
+#define MIOPEN_OCL_REL_PATH "bin/clang-ocl"
+#define MIOPEN_CPPCLANG_REL_PATH "llvm/bin/clang++"
+#define MIOPEN_OFFLOADBUNDLER_REL_PATH "llvm/bin/clang-offload-bundler"
+
+// Function to generate the MIOPEN Compiler Path Value using
+// ROCm Base Install Path fetched using getROCmInstallPath()
+// This approach depends on the getROCmInstallPath() provided by rocm-core
+// This flag Paths are expected to be deprecated/modified in upcoming MAJOR Releases.
+static std::string generateCompilerPathValue(const char* relativePath)
+{
+    char* rocmPath   = nullptr;
+    unsigned int len = 0;
+    std::string compilerPathValue;
+    if(nullptr != relativePath)
+    {
+        PathErrors_t ret = getROCmInstallPath(&rocmPath, &len);
+        if(PathSuccess == ret)
+        {
+            compilerPathValue = std::string(rocmPath) + std::string(relativePath);
+            // Free rocmPath memory returned (allocated by getROCmInstallPath())
+            free(rocmPath);
+        }
+    }
+    return compilerPathValue;
+}
+
+// API to get MIOPEN AMD GCN Assembler Path Values.
+const char* getAMDGCNAssemblerPath()
+{
+    static const std::string path = generateCompilerPathValue(MIOPEN_CLANG_REL_PATH);
+    return path.c_str();
+}
+
+// API to get MIOPEN OpenCL Compiler Path Values.
+const char* getOpenCLCompilerPath()
+{
+    static const std::string path = generateCompilerPathValue(MIOPEN_OCL_REL_PATH);
+    return path.c_str();
+}
+
+// API to get MIOPEN HIP Compiler Path Values.
+const char* getHIPCompilerPath()
+{
+    static const std::string path = generateCompilerPathValue(MIOPEN_CPPCLANG_REL_PATH);
+    return path.c_str();
+}
+
+// API to get MIOPEN Compiler Offload Bundler bin Path Values.
+const char* getOffloadBundlerBinPath()
+{
+    static const std::string path = generateCompilerPathValue(MIOPEN_OFFLOADBUNDLER_REL_PATH);
+    return path.c_str();
+}
+
+#endif // MIOPEN_OFFLINE_COMPILER_PATHS_V2
+
 namespace miopen {
 
 static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,

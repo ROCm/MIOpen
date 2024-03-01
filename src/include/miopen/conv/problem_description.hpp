@@ -419,6 +419,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
 #if MIOPEN_ENABLE_SQLITE
     static std::string table_name() { return "config"; }
+#endif
 
     template <class Self>
     static void Visit(Self&& self, std::function<void(int64_t, std::string)> f)
@@ -456,7 +457,14 @@ struct ProblemDescription : ProblemDescriptionBase
         f(data_type, "data_type");
         f(self.GetDirectionStr(), "direction");
     }
-#endif
+
+    template <class Self, class Visitor>
+    static void VisitAll(Self&& self, const Visitor& f)
+    {
+        Visit(std::forward<Self>(self), [&](int64_t value, std::string name) { f(value, name); });
+        Visit(std::forward<Self>(self),
+              [&](std::string value, std::string name) { f(value, name); });
+    }
 
     void SetupFloats(ExecutionContext& ctx) const;
 
