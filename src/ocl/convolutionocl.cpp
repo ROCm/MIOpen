@@ -227,9 +227,10 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
         /// It is possible to measure actual execution time and return it to the caller.
         /// \todo Consider if we need (and want to spend time) for this.
         const auto id = solver::Id{sol->solution_id};
+        const auto& s = id.GetSolver();
         CompileSolution(id, ctx, problem);
         results.push_back(
-            {id.GetAlgo(problem.GetDirection()), id.ToString(), sol->time, sol->workspace_size});
+            {id.GetAlgo(problem.GetDirection()), id.ToString(), sol->time, s.GetWorkspaceSize(ctx, problem)});
     }
     else
     {
