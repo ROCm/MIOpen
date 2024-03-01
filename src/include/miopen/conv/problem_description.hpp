@@ -259,12 +259,11 @@ struct ProblemDescription : ProblemDescriptionBase
         else
             return GetW5(GetSpatialDims(), weights.GetLengths());
     }
-    // std::size_t GetWeightsStrideD() const { return GetD5(GetSpatialDims(), weights.GetStrides());
-    // }
-    // std::size_t GetWeightsStrideH() const { return GetH5(GetSpatialDims(), weights.GetStrides());
-    // }
-    // std::size_t GetWeightsStrideW() const { return GetW5(GetSpatialDims(), weights.GetStrides());
-    // }
+    std::size_t GetWeightsStrideK() const { return GetN5(GetSpatialDims(), weights.GetStrides()); }
+    std::size_t GetWeightsStrideC() const { return GetC5(GetSpatialDims(), weights.GetStrides()); }
+    std::size_t GetWeightsStrideD() const { return GetD5(GetSpatialDims(), weights.GetStrides()); }
+    std::size_t GetWeightsStrideH() const { return GetH5(GetSpatialDims(), weights.GetStrides()); }
+    std::size_t GetWeightsStrideW() const { return GetW5(GetSpatialDims(), weights.GetStrides()); }
     std::string GetWeightsLayout() const { return weights_layout; }
     std::string ComputeWeightsLayout() const
     {

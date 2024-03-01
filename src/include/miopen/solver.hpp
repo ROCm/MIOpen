@@ -2352,12 +2352,12 @@ struct ConvWinoFuryRxS final : ConvSolver
                       const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
 
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&) const override;
-
-    static constexpr bool is2x3() { return Winodata == 2 && Winofilter == 3; }
-    static constexpr bool is3x2() { return Winodata == 3 && Winofilter == 2; }
 };
 
 // Suppress misleading clang warnings

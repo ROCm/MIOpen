@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,15 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.include "Conv_Winograd_Fury_v1_1_1_metadata.inc"
+.include "Conv_Winograd_Fury_v2_0_0_metadata.inc"
+
+KERNEL_PROLOG fp16_fp16acc_f2x3_c32_stride1
 
 .if (.amdgcn.gfx_generation_number == 11)
-    KERNEL_PROLOG fp16_fp16acc_f2x3_stride1
-
-    .include "Conv_Winograd_Fury_v1_1_1_gfx11_fp16_fp16acc_f2x3_stride1.inc"
-
-    KERNEL_EPILOG fp16_fp16acc_f2x3_stride1
+    .include "Conv_Winograd_Fury_v2_0_0_gfx11_fp16_fp16acc_f2x3_c32_stride1.inc"
 .else
     .error "Unsupported gfx generation"
-    .end
 .endif
+
+KERNEL_EPILOG fp16_fp16acc_f2x3_c32_stride1
