@@ -48,12 +48,16 @@ class LockFile;
 class RamDb : protected PlainTextDb
 {
 public:
-    RamDb(std::string path, bool is_system, const std::string& /*arch*/, std::size_t /*num_cu*/)
-        : RamDb(path, is_system)
+    RamDb(DbKinds db_kind_,
+          std::string path,
+          bool is_system,
+          const std::string& /*arch*/,
+          std::size_t /*num_cu*/)
+        : RamDb(db_kind_, path, is_system)
     {
     }
 
-    RamDb(std::string path, bool is_system = false);
+    RamDb(DbKinds db_kind_, std::string path, bool is_system = false);
 
     RamDb(const RamDb&) = delete;
     RamDb(RamDb&&)      = delete;
@@ -61,14 +65,15 @@ public:
     RamDb& operator=(RamDb&&) = delete;
 
     static std::string GetTimeFilePath(const std::string& path);
-    static RamDb& GetCached(const std::string& path, bool is_system);
+    static RamDb& GetCached(DbKinds db_kind_, const std::string& path, bool is_system);
 
-    static RamDb& GetCached(const std::string& path,
+    static RamDb& GetCached(DbKinds db_kind_,
+                            const std::string& path,
                             bool is_system,
                             const std::string& /*arch*/,
                             std::size_t /*num_cu*/)
     {
-        return GetCached(path, is_system);
+        return GetCached(db_kind_, path, is_system);
     }
 
     boost::optional<DbRecord> FindRecord(const std::string& problem);
@@ -76,7 +81,7 @@ public:
     template <class TProblem>
     boost::optional<DbRecord> FindRecord(const TProblem& problem)
     {
-        const auto key = DbRecord::Serialize(problem);
+        const auto key = DbRecord::SerializeKey(db_kind, problem);
         return FindRecord(key);
     }
 
@@ -97,7 +102,7 @@ public:
     template <class T>
     inline bool Remove(const T& problem_config, const std::string& id)
     {
-        const auto key = DbRecord::Serialize(problem_config);
+        const auto key = DbRecord::SerializeKey(db_kind, problem_config);
         return Remove(key, id);
     }
 
@@ -112,7 +117,7 @@ public:
     inline boost::optional<DbRecord>
     Update(const T& problem_config, const std::string& id, const V& values)
     {
-        DbRecord record(problem_config);
+        DbRecord record(db_kind, problem_config);
         record.SetValues(id, values);
         const auto ok = UpdateRecord(record);
         if(ok)
