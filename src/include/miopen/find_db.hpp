@@ -97,9 +97,9 @@ public:
           installed_path(debug::testing_find_db_path_override()
                              ? *debug::testing_find_db_path_override()
                              : GetInstalledPath(handle, path_suffix)),
-          db(boost::make_optional<DbTimer<TDb>>(debug::testing_find_db_enabled &&
-                                                    !IsEnabled(ENV(MIOPEN_DEBUG_DISABLE_FIND_DB)),
-                                                DbTimer<TDb>{installed_path, path}))
+          db(boost::make_optional<DbTimer<TDb>>(
+              debug::testing_find_db_enabled && !IsEnabled(ENV(MIOPEN_DEBUG_DISABLE_FIND_DB)),
+              DbTimer<TDb>{DbKinds::FindDb, installed_path, path}))
     {
         if(!db.is_initialized())
             return;
@@ -116,11 +116,11 @@ public:
         : path(debug::testing_find_db_path_override() ? *debug::testing_find_db_path_override()
                                                       : GetUserPath(handle, path_suffix)),
 #if MIOPEN_DISABLE_USERDB
-          db(boost::optional<DbTimer<TDb>>{})
+          db(boost::optional<DbTimer<TDb>>{DbKinds::FindDb})
 #else
           db(boost::make_optional<DbTimer<TDb>>(debug::testing_find_db_enabled &&
                                                     !IsEnabled(ENV(MIOPEN_DEBUG_DISABLE_FIND_DB)),
-                                                DbTimer<TDb>{path, false}))
+                                                DbTimer<TDb>{DbKinds::FindDb, path, false}))
 #endif
     {
         if(!db.is_initialized())
@@ -164,7 +164,7 @@ public:
         MIOPEN_LOG_I("Find-db regenerating.");
         ret.clear();
         record.in_sync = false;
-        record.content.emplace(problem);
+        record.content.emplace(DbKinds::FindDb, problem);
         regenerator(*record.content);
         record.CopyTo(ret);
 
