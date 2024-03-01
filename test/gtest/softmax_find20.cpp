@@ -109,14 +109,14 @@ public:
         auto solutions = std::vector<miopenSolution_t>{};
         std::size_t found;
 
-        // We expect to get only 2 solutions for softmax for now. Hardcode value 16 as just big
+        // We expect to get only 1 or 2 solutions for softmax for now. Hardcode value 16 as just big
         // enough value
         solutions.resize(16);
 
         EXPECT_EQUAL(miopenFindSolutions(
                          &handle, problem, nullptr, solutions.data(), &found, solutions.size()),
                      miopenStatusSuccess);
-        EXPECT_TRUE(found >= 0);
+        EXPECT_TRUE(found > 0);
 
         solutions.resize(found);
 
