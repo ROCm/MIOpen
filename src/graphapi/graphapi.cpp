@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include <miopen/errors.hpp>
 #include <miopen/graphapi/graphapi.hpp>
+#include <miopen/graphapi/graphapi_convolution.hpp>
 #include <miopen/graphapi/graphapi_tensor.hpp>
 #include <miopen/logger.hpp>
 
@@ -40,10 +41,23 @@ miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
 
         switch(descriptorType)
         {
+        case MIOPEN_BACKEND_CONVOLUTION_DESCRIPTOR:
+            outputDesciptor = new miopen::graphapi::BackendConvolutionDescriptor();
+            break;
+        case MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR:
+            outputDesciptor = new miopen::graphapi::BackendOperationConvolutionForwardDescriptor();
+            break;
+        case MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR:
+            outputDesciptor =
+                new miopen::graphapi::BackendOperationConvolutionBackwardFilterDescriptor();
+            break;
+        case MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR:
+            outputDesciptor =
+                new miopen::graphapi::BackendOperationConvolutionBackwardDataDescriptor();
+            break;
         case MIOPEN_BACKEND_TENSOR_DESCRIPTOR:
             outputDesciptor = new miopen::graphapi::BackendTensorDescriptor();
             break;
-
         default: MIOPEN_THROW(miopenStatus_t::miopenStatusUnsupportedOp);
         }
     });
@@ -56,6 +70,12 @@ extern "C" miopenStatus_t miopenBackendSetAttribute(miopenBackendDescriptor_t de
                                                     void* arrayOfElements)
 {
     MIOPEN_LOG_FUNCTION(attributeName, attributeType, elementCount);
+
+    if(arrayOfElements == nullptr)
+    {
+        return miopenStatusBadParm;
+    }
+
     return miopen::try_(
         [&] {
             auto& theDescriptor = miopen::deref(descriptor);
@@ -81,6 +101,11 @@ extern "C" miopenStatus_t miopenBackendGetAttribute(miopenBackendDescriptor_t de
                                                     int64_t* elementCount,
                                                     void* arrayOfElements)
 {
+    if(elementCount == nullptr || arrayOfElements == nullptr)
+    {
+        return miopenStatusBadParm;
+    }
+
     return miopen::try_(
         [&] {
             auto& theDescriptor = miopen::deref(descriptor);
@@ -123,6 +148,66 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
 
         switch(descriptorType)
         {
+        case MIOPEN_BACKEND_CONVOLUTION_DESCRIPTOR:
+            if(std::align(alignof(miopen::graphapi::BackendConvolutionDescriptor),
+                          sizeof(miopen::graphapi::BackendConvolutionDescriptor),
+                          address,
+                          sizeInBytes) == nullptr &&
+               address == descriptor)
+            {
+                new(descriptor) miopen::graphapi::BackendConvolutionDescriptor();
+            }
+            else
+            {
+                MIOPEN_THROW(miopenStatus_t::miopenStatusUnsupportedOp);
+            }
+            break;
+        case MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR:
+            if(std::align(alignof(miopen::graphapi::BackendOperationConvolutionForwardDescriptor),
+                          sizeof(miopen::graphapi::BackendOperationConvolutionForwardDescriptor),
+                          address,
+                          sizeInBytes) == nullptr &&
+               address == descriptor)
+            {
+                new(descriptor) miopen::graphapi::BackendOperationConvolutionForwardDescriptor();
+            }
+            else
+            {
+                MIOPEN_THROW(miopenStatus_t::miopenStatusUnsupportedOp);
+            }
+            break;
+        case MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR:
+            if(std::align(
+                   alignof(miopen::graphapi::BackendOperationConvolutionBackwardFilterDescriptor),
+                   sizeof(miopen::graphapi::BackendOperationConvolutionBackwardFilterDescriptor),
+                   address,
+                   sizeInBytes) == nullptr &&
+               address == descriptor)
+            {
+                new(descriptor)
+                    miopen::graphapi::BackendOperationConvolutionBackwardFilterDescriptor();
+            }
+            else
+            {
+                MIOPEN_THROW(miopenStatus_t::miopenStatusUnsupportedOp);
+            }
+            break;
+        case MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR:
+            if(std::align(
+                   alignof(miopen::graphapi::BackendOperationConvolutionBackwardDataDescriptor),
+                   sizeof(miopen::graphapi::BackendOperationConvolutionBackwardDataDescriptor),
+                   address,
+                   sizeInBytes) == nullptr &&
+               address == descriptor)
+            {
+                new(descriptor)
+                    miopen::graphapi::BackendOperationConvolutionBackwardDataDescriptor();
+            }
+            else
+            {
+                MIOPEN_THROW(miopenStatus_t::miopenStatusUnsupportedOp);
+            }
+            break;
         case MIOPEN_BACKEND_TENSOR_DESCRIPTOR:
             if(std::align(alignof(miopen::graphapi::BackendTensorDescriptor),
                           sizeof(miopen::graphapi::BackendTensorDescriptor),
@@ -131,10 +216,12 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
                address == descriptor)
             {
                 new(descriptor) miopen::graphapi::BackendTensorDescriptor();
-                break;
             }
-            MIOPEN_THROW(miopenStatusBadParm);
-
+            else
+            {
+                MIOPEN_THROW(miopenStatus_t::miopenStatusUnsupportedOp);
+            }
+            break;
         default: MIOPEN_THROW(miopenStatus_t::miopenStatusUnsupportedOp);
         }
     });
