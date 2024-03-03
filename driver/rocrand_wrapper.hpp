@@ -33,4 +33,28 @@
 // half from half.hpp, while rocrand uses definition of half type from HIP headers, i.e. the
 // definitions are different.
 
+#if !defined(_WIN32)
+#include <half/half.hpp>
+#else
+#include <half.hpp>
+#endif
+
+namespace gpumemrand {
+
+void gen_0_1(double* buf, size_t sz);
+void gen_0_1(float* buf, size_t sz);
+void gen_0_1(half_float::half* buf, size_t sz);
+
+namespace detail {
+void unsupported();
+}
+
+template <typename T>
+void gen_0_1(T*, size_t)
+{
+    detail::unsupported();
+}
+
+} // namespace gpumemrand
+
 #endif // GUARD_ROCRAND_WRAPPER_HPP

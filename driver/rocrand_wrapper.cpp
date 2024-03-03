@@ -27,3 +27,17 @@
 #include "rocrand_wrapper.hpp"
 
 #include <rocrand/rocrand.hpp>
+
+namespace gpumemrand {
+
+void gen_0_1(double* buf, size_t sz) {}
+void gen_0_1(float* buf, size_t sz) {}
+void gen_0_1(half_float::half* buf, size_t sz) {}
+
+namespace detail {
+
+void unsupported() {}
+
+} // namespace detail
+
+} // namespace gpumemrand

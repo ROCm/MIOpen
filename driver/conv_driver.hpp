@@ -29,6 +29,7 @@
 #include "InputFlags.hpp"
 #include "conv_verify.hpp"
 #include "driver.hpp"
+#include "rocrand_wrapper.hpp"
 #include "mloConvHost.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
@@ -250,7 +251,22 @@ public:
                  std::function<Tgpu()> generator)
     {
         if(is_gpualloc)
-            return;
+        {
+            /// In gpumem mode, we do not want to leave input buffers uninitialized, because
+            /// there could be NaNs and Infs, which may affect the performance (which we are
+            /// interested to evaluate in this mode). Initialization with all 0's is not the
+            /// best choice as well, because GPU HW may optimize out computations with 0's and
+            /// that could affect performance of kernels too. That is why we are using
+            /// rocrand to initialize input buffers.
+            ///
+            /// However we do not care about both reproducibility or results
+            /// and precision, because validation is not used. Therefore,
+            /// range (1,0] is fine, and we do not have to always generate random value
+            /// (\ref move_rand)
+            if(!do_write)
+                return;
+            gpumemrand::gen_0_1(GetVectorData(), sz);
+        }
         for(int i = 0; i < sz; ++i)
         {
             /// \anchor move_rand
