@@ -30,16 +30,30 @@
 
 namespace gpumemrand {
 
-int gen_0_1(double* buf, size_t sz)
+namespace {
+template <typename T>
+int gen_0_1_impl(T* buf, size_t sz)
 {
+    rocrand_cpp::xorwow_engine<> g;
+    rocrand_cpp::uniform_real_distribution<T> d;
+    d(g, buf, sz);
+    return 0;
+}
+} // namespace
+
+int gen_0_1(double* buf, size_t sz) //
+{
+    return gen_0_1_impl(buf, sz);
 }
 
-int gen_0_1(float* buf, size_t sz)
+int gen_0_1(float* buf, size_t sz) //
 {
+    return gen_0_1_impl(buf, sz);
 }
 
-int gen_0_1(half_float::half* buf, size_t sz)
+int gen_0_1(half_float::half* buf, size_t sz) //
 {
+    return gen_0_1_impl(reinterpret_cast<half*>(buf), sz);
 }
 
 } // namespace gpumemrand

@@ -45,9 +45,9 @@
 
 namespace gpumemrand {
 
-// int gen_0_1(double* buf, size_t sz);
-// int gen_0_1(float* buf, size_t sz);
-// int gen_0_1(half_float::half* buf, size_t sz);
+int gen_0_1(double* buf, size_t sz);
+int gen_0_1(float* buf, size_t sz);
+int gen_0_1(half_float::half* buf, size_t sz);
 
 template <typename T>
 int gen_0_1(T* buf, size_t sz)
