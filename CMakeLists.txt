@@ -412,6 +412,10 @@ endif()
 
 option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)
 set(BOOST_COMPONENTS filesystem)
+if(MIOPEN_BUILD_DRIVER)
+    # boost core is a header only component that can't be found by find_package
+    # list(APPEND BOOST_COMPONENTS core)
+endif()
 add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 

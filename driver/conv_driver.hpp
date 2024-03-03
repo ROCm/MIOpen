@@ -252,21 +252,12 @@ public:
     {
         if(is_gpualloc)
         {
-            /// In gpumem mode, we do not want to leave input buffers uninitialized, because
-            /// there could be NaNs and Infs, which may affect the performance (which we are
-            /// interested to evaluate in this mode). Initialization with all 0's is not the
-            /// best choice as well, because GPU HW may optimize out computations with 0's and
-            /// that could affect performance of kernels too. That is why we are using
-            /// rocrand to initialize input buffers.
-            ///
-            /// However we do not care about both reproducibility or results
-            /// and precision, because validation is not used. Therefore,
-            /// range (1,0] is fine, and we do not have to always generate random value
+            /// In gpumem mode, we do not care about reproducibility of results, because validation
+            /// is not used. Therefore, we do not have to always generate random value
             /// (\ref move_rand)
-            if(!do_write)
-                return;
-            gpumemrand::gen_0_1(GetVectorData(), sz);
+            return;
         }
+
         for(int i = 0; i < sz; ++i)
         {
             /// \anchor move_rand
@@ -283,7 +274,21 @@ public:
     status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz)
     {
         dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(Tgpu)));
-        return is_gpualloc ? STATUS_SUCCESS : dev->ToGPU(q, GetVectorData());
+        if(is_gpualloc)
+        {
+            /// \anchor gpumem_random_init
+            /// In gpumem mode, we do not want to leave input buffers uninitialized, because
+            /// there could be NaNs and Infs, which may affect the performance (which we are
+            /// interested to evaluate in this mode). Initialization with all 0's is not the
+            /// best choice as well, because GPU HW may optimize out computations with 0's and
+            /// that could affect performance of kernels too. That is why we are using
+            /// rocrand to initialize input buffers.
+            ///
+            /// However we do not care about precision in gpumem mode, because validation
+            /// is not used. Therefore, range (0,1] is fine.
+            return gpumemrand::gen_0_1(static_cast<Tgpu*>(GetDevicePtr()), sz);
+        }
+        return dev->ToGPU(q, GetVectorData());
     }
 
     template <typename T>
@@ -293,7 +298,13 @@ public:
                           || std::is_same<T, int32_t>::value, //
                       "Before enabling more types, check thoroughly.");
         dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(T)));
-        return is_gpualloc ? STATUS_SUCCESS : dev->ToGPU(q, init.data());
+        if(is_gpualloc)
+        {
+            /// \ref gpumem_random_init
+            return gpumemrand::gen_0_1(static_cast<Tgpu*>(GetDevicePtr()), sz);
+        }
+        else
+            return dev->ToGPU(q, init.data());
     }
 
     status_t CopyFromDeviceToHost(stream q)

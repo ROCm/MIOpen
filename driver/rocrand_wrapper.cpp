@@ -30,14 +30,16 @@
 
 namespace gpumemrand {
 
-void gen_0_1(double* buf, size_t sz) {}
-void gen_0_1(float* buf, size_t sz) {}
-void gen_0_1(half_float::half* buf, size_t sz) {}
+int gen_0_1(double* buf, size_t sz)
+{
+}
 
-namespace detail {
+int gen_0_1(float* buf, size_t sz)
+{
+}
 
-void unsupported() {}
-
-} // namespace detail
+int gen_0_1(half_float::half* buf, size_t sz)
+{
+}
 
 } // namespace gpumemrand
