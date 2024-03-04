@@ -252,8 +252,8 @@ public:
     {
         if(is_gpualloc)
         {
-            /// In gpumem mode, we do not care about reproducibility of results, because validation
-            /// is not used. Therefore, we do not have to always generate random value
+            /// In gpualloc mode, we do not care about reproducibility of results, because
+            /// validation is not used. Therefore, we do not have to always generate random value
             /// (\ref move_rand)
             return;
         }
@@ -271,20 +271,26 @@ public:
         }
     }
 
-    status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz)
+    status_t AllocOnDevice(stream, context_t ctx, const size_t sz)
     {
         dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(Tgpu)));
+        return STATUS_SUCCESS;
+    }
+
+    status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz)
+    {
+        AllocOnDevice(q, ctx, sz);
         if(is_gpualloc)
         {
-            /// \anchor gpumem_random_init
-            /// In gpumem mode, we do not want to leave input buffers uninitialized, because
+            /// \anchor gpualloc_random_init
+            /// In gpualloc mode, we do not want to leave input buffers uninitialized, because
             /// there could be NaNs and Infs, which may affect the performance (which we are
             /// interested to evaluate in this mode). Initialization with all 0's is not the
             /// best choice as well, because GPU HW may optimize out computations with 0's and
             /// that could affect performance of kernels too. That is why we are using
             /// rocrand to initialize input buffers.
             ///
-            /// However we do not care about precision in gpumem mode, because validation
+            /// However we do not care about precision in gpualloc mode, because validation
             /// is not used. Therefore, range (0,1] is fine.
             return gpumemrand::gen_0_1(static_cast<Tgpu*>(GetDevicePtr()), sz);
         }
@@ -292,19 +298,25 @@ public:
     }
 
     template <typename T>
-    status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz, std::vector<T>& init)
+    status_t AllocOnDevice(stream, context_t ctx, const size_t sz, std::vector<T>& init)
     {
         static_assert(std::is_same<T, float>::value           //
                           || std::is_same<T, int32_t>::value, //
                       "Before enabling more types, check thoroughly.");
         dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(T)));
+        return STATUS_SUCCESS;
+    }
+
+    template <typename T>
+    status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz, std::vector<T>& init)
+    {
+        AllocOnDevice(q, ctx, sz, init);
         if(is_gpualloc)
         {
-            /// \ref gpumem_random_init
+            /// \ref gpualloc_random_init
             return gpumemrand::gen_0_1(static_cast<Tgpu*>(GetDevicePtr()), sz);
         }
-        else
-            return dev->ToGPU(q, init.data());
+        return dev->ToGPU(q, init.data());
     }
 
     status_t CopyFromDeviceToHost(stream q)
@@ -353,10 +365,21 @@ public:
     Tgpu* GetVectorData() { return is_gpualloc ? nullptr : host.data(); }
     std::size_t GetVectorSize() const { return is_gpualloc ? 0 : host.size(); }
 
-    status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz)
+    status_t AllocOnDevice(stream, context_t ctx, const size_t sz)
     {
         dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(Tgpu)));
-        return is_gpualloc ? STATUS_SUCCESS : dev->ToGPU(q, GetVectorData());
+        return STATUS_SUCCESS;
+    }
+
+    status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz)
+    {
+        AllocOnDevice(q, ctx, sz);
+        if(is_gpualloc)
+        {
+            /// \ref gpumem_random_init
+            return gpumemrand::gen_0_1(static_cast<Tgpu*>(GetDevicePtr()), sz);
+        }
+        return dev->ToGPU(q, GetVectorData());
     }
 
     status_t CopyFromDeviceToHost(stream q)
@@ -1736,7 +1759,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
     if(is_bwd)
     {
-        status |= din.AllocOnDeviceAndInit(q, ctx, in_sz);
+        status |= din.AllocOnDevice(q, ctx, in_sz);
     }
     if(is_fwd || is_bwd)
     {
@@ -1744,7 +1767,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
     if(is_wrw)
     {
-        status |= dwei.AllocOnDeviceAndInit(q, ctx, wei_sz);
+        status |= dwei.AllocOnDevice(q, ctx, wei_sz);
     }
     if(is_bwd || is_wrw)
     {
@@ -1760,8 +1783,8 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         /// \note The above todo is necessary only when tensor casting is used. --atamazov Feb 2024
         std::ignore = is_fp8;
 
-        status |= is_int8 ? out.AllocOnDeviceAndInit(q, ctx, out_sz, out_int8) //
-                          : out.AllocOnDeviceAndInit(q, ctx, out_sz);
+        status |= is_int8 ? out.AllocOnDevice(q, ctx, out_sz, out_int8) //
+                          : out.AllocOnDevice(q, ctx, out_sz);
     }
 
     if(status != STATUS_SUCCESS)
