@@ -1,9 +1,7 @@
-Find and Immediate Mode
-=======================
 
+## Find and immediate mode
 
-
-## Find API
+### Find API
 
 MIOpen contains several convolution algorithms for each stage of training or inference. Pre-MIOpen version 2.0 users needed to call Find methods in order generate a set of applicable algorithms.
 

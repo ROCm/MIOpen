@@ -1,5 +1,5 @@
 
-Building MIOpen for Embedded Systems
+Build MIOpen for embedded systems
 ====================================
 
 

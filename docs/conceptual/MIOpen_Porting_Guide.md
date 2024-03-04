@@ -16,8 +16,6 @@
 * MIOpen does not support Softmax modes. MIOpen implements the __SOFTMAX_MODE_CHANNEL__ flavor.
 * MIOpen does not support __Transform-Tensor__, __Dropout__, __RNNs__, and __Divisive Normalization__.
 
-<br/><br/><br/><br/>
-
 ## Helpful MIOpen Environment Variables
 `MIOPEN_ENABLE_LOGGING=1` – log all the MIOpen APIs called including the parameters passed to
 those APIs. \
@@ -30,7 +28,6 @@ algorithm. Fall-back to kernels written in high-level language. \
 
 <br/><br/><br/><br/>
 <!-- Tables--> 
-
 ## API differences
 
 <div style="overflow:auto; display:flex; flex-direction:column-reverse;">
