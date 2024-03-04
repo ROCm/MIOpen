@@ -1,0 +1,661 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="group___l_r_n" kind="group">
+    <compoundname>LRN</compoundname>
+    <title>LRN</title>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="group___l_r_n_1gaaa30a58b289fbef587968001697c915a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>MIOPEN_DECLARE_OBJECT</definition>
+        <argsstring>(miopenLRNDescriptor)</argsstring>
+        <name>MIOPEN_DECLARE_OBJECT</name>
+        <param>
+          <type>miopenLRNDescriptor</type>
+        </param>
+        <briefdescription>
+<para>Creates the miopenLRNDescriptor_t type. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>LRN descriptor is an object that allows the user to specify the LRN mode, the number of elements in the normalization window, and the LRN k-parameter. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="319" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="319" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group___l_r_n_1ga41f093f397f886f31fe905e50167cac1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenCreateLRNDescriptor</definition>
+        <argsstring>(miopenLRNDescriptor_t *lrnDesc)</argsstring>
+        <name>miopenCreateLRNDescriptor</name>
+        <param>
+          <type>miopenLRNDescriptor_t *</type>
+          <declname>lrnDesc</declname>
+        </param>
+        <briefdescription>
+<para>Creates a local response normalization (LRN) layer descriptor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>lrnDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a local response normalization layer descriptor type </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2393" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2393" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group___l_r_n_1ga322f5ee2751280378ca6756219052334" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenSetLRNDescriptor</definition>
+        <argsstring>(const miopenLRNDescriptor_t lrnDesc, miopenLRNMode_t mode, unsigned int lrnN, double lrnAlpha, double lrnBeta, double lrnK)</argsstring>
+        <name>miopenSetLRNDescriptor</name>
+        <param>
+          <type>const miopenLRNDescriptor_t</type>
+          <declname>lrnDesc</declname>
+        </param>
+        <param>
+          <type><ref refid="group___l_r_n_1gae8c4f5513e59a0c2870013504f9b5c4d" kindref="member">miopenLRNMode_t</ref></type>
+          <declname>mode</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>lrnN</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>lrnAlpha</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>lrnBeta</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>lrnK</declname>
+        </param>
+        <briefdescription>
+<para>Sets a LRN layer descriptor details. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Sets all of the descriptor details for the LRN layer. The number of window elements lrnN is a diameter and always odd.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>lrnDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a LRN layer descriptor (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>LRN mode enum (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>lrnN</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of normalization window elements (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>lrnAlpha</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Scaling factor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>lrnBeta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Shift factor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>lrnK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>K factor (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2408" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2408" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group___l_r_n_1ga48c74e2a652a14083de6687b812153e2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenGetLRNDescriptor</definition>
+        <argsstring>(const miopenLRNDescriptor_t lrnDesc, miopenLRNMode_t *mode, unsigned int *lrnN, double *lrnAlpha, double *lrnBeta, double *lrnK)</argsstring>
+        <name>miopenGetLRNDescriptor</name>
+        <param>
+          <type>const miopenLRNDescriptor_t</type>
+          <declname>lrnDesc</declname>
+        </param>
+        <param>
+          <type><ref refid="group___l_r_n_1gae8c4f5513e59a0c2870013504f9b5c4d" kindref="member">miopenLRNMode_t</ref> *</type>
+          <declname>mode</declname>
+        </param>
+        <param>
+          <type>unsigned int *</type>
+          <declname>lrnN</declname>
+        </param>
+        <param>
+          <type>double *</type>
+          <declname>lrnAlpha</declname>
+        </param>
+        <param>
+          <type>double *</type>
+          <declname>lrnBeta</declname>
+        </param>
+        <param>
+          <type>double *</type>
+          <declname>lrnK</declname>
+        </param>
+        <briefdescription>
+<para>Gets a LRN layer descriptor details. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Retrieve the LRN descriptor details.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>lrnDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a LRN layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>LRN mode enum (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>lrnN</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of normalization window elements (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>lrnAlpha</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Scaling factor (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>lrnBeta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Shift factor (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>lrnK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>K factor (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2427" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2427" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group___l_r_n_1ga9be3e08ec25eaf2b99cf0b8f88711f39" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenLRNGetWorkSpaceSize</definition>
+        <argsstring>(const miopenTensorDescriptor_t yDesc, size_t *workSpaceSize)</argsstring>
+        <name>miopenLRNGetWorkSpaceSize</name>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>yDesc</declname>
+        </param>
+        <param>
+          <type>size_t *</type>
+          <declname>workSpaceSize</declname>
+        </param>
+        <briefdescription>
+<para>Determine the workspace requirements. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This function determines the GPU memory allocation required to execute the LRN layer based on the LRN descriptor.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>yDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a LRN layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpaceSize</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Output variable for workspace size (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2443" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2443" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group___l_r_n_1gaf5ec38b9a11b7fa584bf8a635d03c68e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenLRNForward</definition>
+        <argsstring>(miopenHandle_t handle, const miopenLRNDescriptor_t lrnDesc, const void *alpha, const miopenTensorDescriptor_t xDesc, const void *x, const void *beta, const miopenTensorDescriptor_t yDesc, void *y, bool do_backward, void *workSpace)</argsstring>
+        <name>miopenLRNForward</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenLRNDescriptor_t</type>
+          <declname>lrnDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>alpha</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>beta</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>yDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>do_backward</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>workSpace</declname>
+        </param>
+        <briefdescription>
+<para>Execute a LRN forward layer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Runs the forward layer normalization in the forward direction. If do_backward == 0, then set workSpace = nullptr and workSpaceSize = 0. However, if the user wishes to execute backwards, then they must set do_backwards = 1 in <ref refid="group___l_r_n_1gaf5ec38b9a11b7fa584bf8a635d03c68e" kindref="member">miopenLRNForward()</ref>.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>lrnDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Descriptor for LRN layer (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>alpha</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point scaling factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>x</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>beta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point shift factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>yDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor y (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>do_backward</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Boolean to toggle save data in workspace for backwards pass (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpace</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer user allocated memory (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2464" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2464" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group___l_r_n_1ga637b624c1a29d5f0b9c5a4bfcee353a5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenLRNBackward</definition>
+        <argsstring>(miopenHandle_t handle, const miopenLRNDescriptor_t lrnDesc, const void *alpha, const miopenTensorDescriptor_t yDesc, const void *y, const miopenTensorDescriptor_t dyDesc, const void *dy, const miopenTensorDescriptor_t xDesc, const void *x, const void *beta, const miopenTensorDescriptor_t dxDesc, void *dx, const void *workSpace)</argsstring>
+        <name>miopenLRNBackward</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenLRNDescriptor_t</type>
+          <declname>lrnDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>alpha</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>yDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dyDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>dy</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>beta</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dxDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>dx</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>workSpace</declname>
+        </param>
+        <briefdescription>
+<para>Execute a LRN backward layer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>lrnDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Descriptor for LRN layer (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>alpha</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point scaling factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>yDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dyDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data delta tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for input data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>x</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>beta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point shift factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dxDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor dx(input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data delta tensor x (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpace</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer user allocated memory (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2492" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2492" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group___l_r_n_1gaf73f4948c1e487621773ea5286cc8843" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenDestroyLRNDescriptor</definition>
+        <argsstring>(miopenLRNDescriptor_t lrnDesc)</argsstring>
+        <name>miopenDestroyLRNDescriptor</name>
+        <param>
+          <type>miopenLRNDescriptor_t</type>
+          <declname>lrnDesc</declname>
+        </param>
+        <briefdescription>
+<para>Destroys the LRN descriptor object. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>lrnDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>LRN tensor descriptor type (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2511" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2511" declcolumn="17"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="group___l_r_n_1gae8c4f5513e59a0c2870013504f9b5c4d" prot="public" static="no" strong="no">
+        <type></type>
+        <name>miopenLRNMode_t</name>
+        <enumvalue id="group___l_r_n_1gae8c4f5513e59a0c2870013504f9b5c4da0062534dacca2acfb07e261fd5c0b77c" prot="public">
+          <name>miopenLRNWithinChannel</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Channel independent </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group___l_r_n_1gae8c4f5513e59a0c2870013504f9b5c4da5c1611ee75b7929a3a59e414974a18a7" prot="public">
+          <name>miopenLRNCrossChannel</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Cross Channel </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Local Response Normalization layer mode </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="464" column="1" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="465" bodyend="468"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

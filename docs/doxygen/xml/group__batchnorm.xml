@@ -1,0 +1,764 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="group__batchnorm" kind="group">
+    <compoundname>batchnorm</compoundname>
+    <title>Batchnorm</title>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="group__batchnorm_1gaf2aef2cbd792e82b32b305039d6e4662" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenDeriveBNTensorDescriptor</definition>
+        <argsstring>(miopenTensorDescriptor_t derivedBnDesc, const miopenTensorDescriptor_t xDesc, miopenBatchNormMode_t bn_mode)</argsstring>
+        <name>miopenDeriveBNTensorDescriptor</name>
+        <param>
+          <type>miopenTensorDescriptor_t</type>
+          <declname>derivedBnDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type><ref refid="group__batchnorm_1gab21179fc753f8e0d1a6f23ac9b340a26" kindref="member">miopenBatchNormMode_t</ref></type>
+          <declname>bn_mode</declname>
+        </param>
+        <briefdescription>
+<para>Derive tensor for gamma and beta from input tensor descriptor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This function takes the input tensor descriptor and outputs a derived tensor for the normalization scale (gamma) and shift (beta) tensors.</para>
+<para>For an input tensor NCHW and spatial mode, the output derived tensor is 1C11, while for per-activation the derived tensor is 1CHW.</para>
+<para>For an input tensor NCDHW and spatial mode, the output derived tensor is 1C111, while for per-activation the derived tensor is 1CDHW.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>derivedBnDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Output derived tensor descriptor (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Input tensor descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>bn_mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Batch Normalization mode (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2614" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2614" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__batchnorm_1ga343969e08d276e480a2fa3b14151f287" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenBatchNormalizationForwardTraining</definition>
+        <argsstring>(miopenHandle_t handle, miopenBatchNormMode_t bn_mode, void *alpha, void *beta, const miopenTensorDescriptor_t xDesc, const void *x, const miopenTensorDescriptor_t yDesc, void *y, const miopenTensorDescriptor_t bnScaleBiasMeanVarDesc, void *bnScale, void *bnBias, double expAvgFactor, void *resultRunningMean, void *resultRunningVariance, double epsilon, void *resultSaveMean, void *resultSaveInvVariance)</argsstring>
+        <name>miopenBatchNormalizationForwardTraining</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type><ref refid="group__batchnorm_1gab21179fc753f8e0d1a6f23ac9b340a26" kindref="member">miopenBatchNormMode_t</ref></type>
+          <declname>bn_mode</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>alpha</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>beta</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>yDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>bnScaleBiasMeanVarDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>bnScale</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>bnBias</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>expAvgFactor</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>resultRunningMean</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>resultRunningVariance</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>epsilon</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>resultSaveMean</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>resultSaveInvVariance</declname>
+        </param>
+        <briefdescription>
+<para>Execute forward training layer for batch normalization. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Batch normalization pass for forward training pass. Takes in batch normalization mode bn_mode and input tensor x, output tensor y, bnBias and bnScale with their descriptor.</para>
+<para>If either resultSaveMean, or resultSaveInvVariance are null pointers then the values for the mean and inverse variance will not be used.</para>
+<para>Likewise, if either resultRunningMean, or resultRunningVariance are null pointers then the values for the running mean and variance will not be saved. Running averages and variances are scaled using an exponential averaging factor: <formula id="2">\[ \mu_{old} = \mu_{new}*factor + \mu_{old}*(1-factor) \]</formula> where <formula id="3">\[ factor=1/(1+iteration) \]</formula></para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>bn_mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Batch normalization mode (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>alpha</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point scaling factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>beta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point shift factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>x</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>yDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor y (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>bnScaleBiasMeanVarDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for BN scaling, shifting, saved variance and mean (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>bnScale</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Batch norm scaling, gamma, tensor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>bnBias</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Batch norm bias, beta, tensor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>expAvgFactor</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Exponential averaging factor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>resultRunningMean</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Running average saved for inference (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>resultRunningVariance</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Running variance saved for inference (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>epsilon</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Value to stablize inverse variance calculation (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>resultSaveMean</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Saved mini-batch mean for backwards pass (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>resultSaveInvVariance</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Saved mini-batch inverse variance for backwards pass (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2657" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2657" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__batchnorm_1ga076386cb1c1bf692f1883c3d1a013a45" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenBatchNormalizationForwardInference</definition>
+        <argsstring>(miopenHandle_t handle, miopenBatchNormMode_t bn_mode, void *alpha, void *beta, const miopenTensorDescriptor_t xDesc, const void *x, const miopenTensorDescriptor_t yDesc, void *y, const miopenTensorDescriptor_t bnScaleBiasMeanVarDesc, void *bnScale, void *bnBias, void *estimatedMean, void *estimatedVariance, double epsilon)</argsstring>
+        <name>miopenBatchNormalizationForwardInference</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type><ref refid="group__batchnorm_1gab21179fc753f8e0d1a6f23ac9b340a26" kindref="member">miopenBatchNormMode_t</ref></type>
+          <declname>bn_mode</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>alpha</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>beta</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>yDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>bnScaleBiasMeanVarDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>bnScale</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>bnBias</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>estimatedMean</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>estimatedVariance</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>epsilon</declname>
+        </param>
+        <briefdescription>
+<para>Execute forward inference layer for batch normalization. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Batch normalization pass for forward inference pass. Takes in batch normalization mode bn_mode and input tensor x, output tensor y, bnBias and bnScale with their descriptor.</para>
+<para>If either estimatedMean, or estimatedVariance are null pointers then the values for the mean and variance will be calculated from input data and this calculated mean and variance will be used to update input values. If variance is zero and epsilon is also zero, this function outputs NAN values. Input espilon value should always be non zero positive value.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>bn_mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Batch normalization mode (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>alpha</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point scaling factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>beta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point shift factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>x</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>yDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor y (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>bnScaleBiasMeanVarDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for BN scaling, shifting, saved variance and mean (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>bnScale</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Batch norm scaling, gamma, tensor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>bnBias</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Batch norm bias, beta, tensor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>estimatedMean</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Running average saved during forward training (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>estimatedVariance</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Running variance saved during forward training (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>epsilon</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Value to stabilize inverse variance calculation (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2705" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2705" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__batchnorm_1gaae2f39675310df613802dcf8cfd446a5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenBatchNormalizationBackward</definition>
+        <argsstring>(miopenHandle_t handle, miopenBatchNormMode_t bn_mode, const void *alphaDataDiff, const void *betaDataDiff, const void *alphaParamDiff, const void *betaParamDiff, const miopenTensorDescriptor_t xDesc, const void *x, const miopenTensorDescriptor_t dyDesc, const void *dy, const miopenTensorDescriptor_t dxDesc, void *dx, const miopenTensorDescriptor_t bnScaleBiasDiffDesc, const void *bnScale, void *resultBnScaleDiff, void *resultBnBiasDiff, double epsilon, const void *savedMean, const void *savedInvVariance)</argsstring>
+        <name>miopenBatchNormalizationBackward</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type><ref refid="group__batchnorm_1gab21179fc753f8e0d1a6f23ac9b340a26" kindref="member">miopenBatchNormMode_t</ref></type>
+          <declname>bn_mode</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>alphaDataDiff</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>betaDataDiff</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>alphaParamDiff</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>betaParamDiff</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dyDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>dy</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dxDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>dx</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>bnScaleBiasDiffDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>bnScale</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>resultBnScaleDiff</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>resultBnBiasDiff</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>epsilon</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>savedMean</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>savedInvVariance</declname>
+        </param>
+        <briefdescription>
+<para>Execute backwards propagation layer for batch normalization. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Batch normalization pass for backwards propagation training pass. The method for backwards propagation batch normalization.</para>
+<para>Takes in batch normalization mode bn_mode and input tensor data x, input activation tensor dy, output tensor dx, the learned tensors resultBNBiasDiff and resultBNScaleDiff with their descriptor.</para>
+<para>If BOTH savedMean, and savedVariance are not null pointers then the method will use the saved mean and variance calculated by the forward training phase.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>bn_mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Batch normalization mode (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>alphaDataDiff</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point scaling factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>betaDataDiff</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point shift factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>alphaParamDiff</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point scaling factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>betaParamDiff</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point shift factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>x</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dyDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dxDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor dx (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data delta tensor dx (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>bnScaleBiasDiffDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for BN scaling, shifting, saved variance and mean (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>bnScale</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Batch norm scaling, gamma, tensor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>resultBnScaleDiff</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor for dscale (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>resultBnBiasDiff</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor for dbias (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>epsilon</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Value to stabilize inverse variance calculation (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>savedMean</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Saved mini-batch mean for backwards pass (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>savedInvVariance</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Saved mini-bathc inverse variance for backwards pass (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2755" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2755" declcolumn="1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="group__batchnorm_1gab21179fc753f8e0d1a6f23ac9b340a26" prot="public" static="no" strong="no">
+        <type></type>
+        <name>miopenBatchNormMode_t</name>
+        <enumvalue id="group__batchnorm_1gab21179fc753f8e0d1a6f23ac9b340a26a44ab9eadea90a770a3744a61b71d536f" prot="public">
+          <name>miopenBNPerActivation</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Element-wise normalization for fully connected layer </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__batchnorm_1gab21179fc753f8e0d1a6f23ac9b340a26a42ebad7a4f774e7dc3df2de80b31a3e0" prot="public">
+          <name>miopenBNSpatial</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Mini-batch spatial normalization for convolutional layers </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Batch Normalization layer mode </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="485" column="1" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="486" bodyend="489"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

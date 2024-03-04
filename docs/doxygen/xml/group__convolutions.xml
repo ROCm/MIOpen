@@ -1,0 +1,4603 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="group__convolutions" kind="group">
+    <compoundname>convolutions</compoundname>
+    <title>Convolutions</title>
+    <innerclass refid="structmiopen_conv_algo_perf__t" prot="public">miopenConvAlgoPerf_t</innerclass>
+    <innerclass refid="structmiopen_conv_solution__t" prot="public">miopenConvSolution_t</innerclass>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="group__convolutions_1ga5dd59dc3df4bcf9da4797c6169ad99c3" prot="public" static="no" strong="no">
+        <type></type>
+        <name>miopenConvFwdAlgorithm_t</name>
+        <enumvalue id="group__convolutions_1gga5dd59dc3df4bcf9da4797c6169ad99c3a61b89a58eb19fea2207a17531e8205f7" prot="public">
+          <name>miopenConvolutionFwdAlgoGEMM</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>GEMM variant </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__convolutions_1gga5dd59dc3df4bcf9da4797c6169ad99c3ade2d29687c9fb8bf450d3c8b946e25b5" prot="public">
+          <name>miopenConvolutionFwdAlgoDirect</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Direct convolutions </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__convolutions_1gga5dd59dc3df4bcf9da4797c6169ad99c3a154a04348f01564eff432c6432242f34" prot="public">
+          <name>miopenConvolutionFwdAlgoFFT</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Fast Fourier Transform indirect convolutions </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__convolutions_1gga5dd59dc3df4bcf9da4797c6169ad99c3a9e831d6f4b3ab127f370c3a3e55b2abf" prot="public">
+          <name>miopenConvolutionFwdAlgoWinograd</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Winograd indirect convolutions </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__convolutions_1gga5dd59dc3df4bcf9da4797c6169ad99c3a5595e274c4012d54d83a9582e35ab2a1" prot="public">
+          <name>miopenConvolutionFwdAlgoImplicitGEMM</name>
+          <initializer>= 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Implicit GEMM convolutions </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Convolutional algorithm mode for forward propagation. MIOpen use cross-correlation for its convolution implementation. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1143" column="1" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="1144" bodyend="1150"/>
+      </memberdef>
+      <memberdef kind="enum" id="group__convolutions_1gaba316771c206839e54419b135027cbee" prot="public" static="no" strong="no">
+        <type></type>
+        <name>miopenConvBwdWeightsAlgorithm_t</name>
+        <enumvalue id="group__convolutions_1ggaba316771c206839e54419b135027cbeea4302eada3444370b4f5a516c9352c19e" prot="public">
+          <name>miopenConvolutionBwdWeightsAlgoGEMM</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>GEMM variant </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__convolutions_1ggaba316771c206839e54419b135027cbeeacd485d0cbd7838b89bcbaa86add7fd44" prot="public">
+          <name>miopenConvolutionBwdWeightsAlgoDirect</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Direct convolution algorithm </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__convolutions_1ggaba316771c206839e54419b135027cbeea7eda3bac3601384c44f6390d66ded524" prot="public">
+          <name>miopenConvolutionBwdWeightsAlgoWinograd</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Winograd convolutions </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__convolutions_1ggaba316771c206839e54419b135027cbeeaef65e6751c5dcd90eba6d7d198627698" prot="public">
+          <name>miopenConvolutionBwdWeightsAlgoImplicitGEMM</name>
+          <initializer>= 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Implicit GEMM convolutions </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Convolutional algorithm mode for back propagation on weights. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1155" column="1" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="1156" bodyend="1161"/>
+      </memberdef>
+      <memberdef kind="enum" id="group__convolutions_1ga774e44db42d175d73c0d87272f6cdc05" prot="public" static="no" strong="no">
+        <type></type>
+        <name>miopenConvBwdDataAlgorithm_t</name>
+        <enumvalue id="group__convolutions_1gga774e44db42d175d73c0d87272f6cdc05a1ea94b2548956ecbb6d6aaead535a38a" prot="public">
+          <name>miopenConvolutionBwdDataAlgoGEMM</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>GEMM variant </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__convolutions_1gga774e44db42d175d73c0d87272f6cdc05a123132561c7ebe6a6d022016bc395658" prot="public">
+          <name>miopenConvolutionBwdDataAlgoDirect</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Direct convolutions </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__convolutions_1gga774e44db42d175d73c0d87272f6cdc05a3c26d3cccb4763cc3370b72f71f11f72" prot="public">
+          <name>miopenConvolutionBwdDataAlgoFFT</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Fast Fourier Transform indirect convolutions </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__convolutions_1gga774e44db42d175d73c0d87272f6cdc05ae4f98a414a6b1be0e14a9912b0459f54" prot="public">
+          <name>miopenConvolutionBwdDataAlgoWinograd</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Winograd indirect convolutions </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__convolutions_1gga774e44db42d175d73c0d87272f6cdc05a0259649d7b2d71a88231257add330ea1" prot="public">
+          <name>miopenTransposeBwdDataAlgoGEMM</name>
+          <initializer>=
+        4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Deprecated Transpose GEMM variant legacy, ToBe Removed </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__convolutions_1gga774e44db42d175d73c0d87272f6cdc05af68c8086106d6dd9c70be60e519e4a0e" prot="public">
+          <name>miopenConvolutionBwdDataAlgoImplicitGEMM</name>
+          <initializer>= 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Implicit GEMM convolutions </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Convolutional algorithm mode for back propagation on data. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1166" column="1" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="1167" bodyend="1175"/>
+      </memberdef>
+      <memberdef kind="enum" id="group__convolutions_1ga3ba938002b32a963925c7cfce51ce15a" prot="public" static="no" strong="no">
+        <type></type>
+        <name>miopenConvAlgorithm_t</name>
+        <enumvalue id="group__convolutions_1gga3ba938002b32a963925c7cfce51ce15aafbc6bee0271b18b1c38a47b6bfc71490" prot="public">
+          <name>miopenConvolutionAlgoGEMM</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>GEMM variant </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__convolutions_1gga3ba938002b32a963925c7cfce51ce15aa4ed1617fee46c3c345707f4111b42155" prot="public">
+          <name>miopenConvolutionAlgoDirect</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Direct convolutions </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__convolutions_1gga3ba938002b32a963925c7cfce51ce15aa9e67d70ca65f50b5b2f10c9b60399f68" prot="public">
+          <name>miopenConvolutionAlgoFFT</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Fast Fourier Transform indirect convolutions </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__convolutions_1gga3ba938002b32a963925c7cfce51ce15aa9b50ef38f49608a9f07658920923308c" prot="public">
+          <name>miopenConvolutionAlgoWinograd</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Winograd indirect convolutions </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__convolutions_1gga3ba938002b32a963925c7cfce51ce15aaf3f2d5dd07e440e069264469c04c2168" prot="public">
+          <name>miopenConvolutionAlgoImplicitGEMM</name>
+          <initializer>= 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Implicit GEMM convolutions </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Top-level convolutional algorithm mode </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1180" column="1" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="1181" bodyend="1187"/>
+      </memberdef>
+      <memberdef kind="enum" id="group__convolutions_1ga91bcbdad0e53c07078287a74799c88cd" prot="public" static="no" strong="no">
+        <type></type>
+        <name>miopenConvolutionMode_t</name>
+        <enumvalue id="group__convolutions_1ga91bcbdad0e53c07078287a74799c88cdaf5c5ca99ec760a1d1016a671408766bc" prot="public">
+          <name>miopenConvolution</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Cross-Correlation convolution </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__convolutions_1ga91bcbdad0e53c07078287a74799c88cdaaa6f0f5913493a335cbb4389c66f4736" prot="public">
+          <name>miopenTranspose</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Transpose convolutions <ndash/> deconvolution </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__convolutions_1ga91bcbdad0e53c07078287a74799c88cdaa839e7fb549d7ee872485b571b8e692a" prot="public">
+          <name>miopenGroupConv</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Deprecated Group convolution legacy, ToBe Removed </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__convolutions_1ga91bcbdad0e53c07078287a74799c88cda43f0c77533ba896fcd8dc6e9913e9ec5" prot="public">
+          <name>miopenDepthwise</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Deprecated Depthwise convolution legacy, ToBe Removed </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Convolution mode selection for convolution layer preference. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="418" column="1" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="419" bodyend="424"/>
+      </memberdef>
+      <memberdef kind="enum" id="group__convolutions_1ga784559bf30977ad39cbc491727eae485" prot="public" static="no" strong="no">
+        <type></type>
+        <name>miopenConvolutionAttrib_t</name>
+        <enumvalue id="group__convolutions_1ga784559bf30977ad39cbc491727eae485ae736f64b13f2adec7f2a6f1202abb5b2" prot="public">
+          <name>MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL</name>
+          <initializer>=
+        0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Use alternative fp16 implementation. Only supported for gfx90a; has no effect for other targets. 0 - disabled, 1 - enabled, -1 or unset - default (F0B1W1) &gt; </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__convolutions_1ga784559bf30977ad39cbc491727eae485a1fe1be172f9231f2a251d048b4cbbe40" prot="public">
+          <name>MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC</name>
+          <initializer>=
+        1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Restrict MIOpen convolutions to kernels which produce numerically deterministic results. 0 - disabled (default), 1 - enabled &gt; </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__convolutions_1ga784559bf30977ad39cbc491727eae485a33f92e9eb6d42b8da1c774fcbad24625" prot="public">
+          <name>MIOPEN_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE</name>
+          <initializer>=
+        2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Specifies the rounding mode for the 8-bit floating data types. Currently, two rounding modes are supported miopenF8RoundingModeStandard and miopenF8RoundingModeStochastic. These are listed as part of the miopenF8RoundingMode_t enum.&gt; </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Attribute for convolution descriptor, used for alternating the convolution behavior </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="605" column="1" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="606" bodyend="623"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="group__convolutions_1ga10b4762521ca884d7c93cfe8634b38cb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>MIOPEN_DECLARE_OBJECT</definition>
+        <argsstring>(miopenConvolutionDescriptor)</argsstring>
+        <name>MIOPEN_DECLARE_OBJECT</name>
+        <param>
+          <type>miopenConvolutionDescriptor</type>
+        </param>
+        <briefdescription>
+<para>Creates the miopenConvolutionDescriptor_t type. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Convolution descriptor is an object that allows the user to specify a layer&apos;s padding, stride, and dilation of the convolutional filter. Parameters must all be non-negative. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="301" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="301" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga6a31011f7c0719726a73d8f5bea388dc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenCreateConvolutionDescriptor</definition>
+        <argsstring>(miopenConvolutionDescriptor_t *convDesc)</argsstring>
+        <name>miopenCreateConvolutionDescriptor</name>
+        <param>
+          <type>miopenConvolutionDescriptor_t *</type>
+          <declname>convDesc</declname>
+        </param>
+        <briefdescription>
+<para>Creates a convolution layer descriptor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="913" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="913" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga37d3fbee7a7cd36ecb22d9ab23c80ce3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenInitConvolutionDescriptor</definition>
+        <argsstring>(miopenConvolutionDescriptor_t convDesc, miopenConvolutionMode_t c_mode, int pad_h, int pad_w, int stride_h, int stride_w, int dilation_h, int dilation_w)</argsstring>
+        <name>miopenInitConvolutionDescriptor</name>
+        <param>
+          <type>miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type><ref refid="group__convolutions_1ga91bcbdad0e53c07078287a74799c88cd" kindref="member">miopenConvolutionMode_t</ref></type>
+          <declname>c_mode</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>pad_h</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>pad_w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>stride_h</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>stride_w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>dilation_h</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>dilation_w</declname>
+        </param>
+        <briefdescription>
+<para>Creates a 2-D convolution layer descriptor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>For group/depthwise convolution dilation height and width, only a dilation value of 1 is supported.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>c_mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolutional mode (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>pad_h</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Height input data padding (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>pad_w</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Width input data padding (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>stride_h</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Stride for the height of input data (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>stride_w</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Stride for the width of input data (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dilation_h</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Dilation height (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dilation_w</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Dilation width (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="930" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="930" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga06f1ca4633a112373f4d353ed819bf10" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenInitConvolutionNdDescriptor</definition>
+        <argsstring>(miopenConvolutionDescriptor_t convDesc, int spatialDim, const int *padA, const int *strideA, const int *dilationA, miopenConvolutionMode_t c_mode)</argsstring>
+        <name>miopenInitConvolutionNdDescriptor</name>
+        <param>
+          <type>miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>spatialDim</declname>
+        </param>
+        <param>
+          <type>const int *</type>
+          <declname>padA</declname>
+        </param>
+        <param>
+          <type>const int *</type>
+          <declname>strideA</declname>
+        </param>
+        <param>
+          <type>const int *</type>
+          <declname>dilationA</declname>
+        </param>
+        <param>
+          <type><ref refid="group__convolutions_1ga91bcbdad0e53c07078287a74799c88cd" kindref="member">miopenConvolutionMode_t</ref></type>
+          <declname>c_mode</declname>
+        </param>
+        <briefdescription>
+<para>Creates a N-dimensional convolution layer descriptor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>spatialDim</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolutional spatial dimension (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>padA</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Array of input data padding (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>strideA</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Array of convolution stride (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dilationA</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Array of convolution dilation (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>c_mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolutional mode (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="950" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="950" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1gab9c592d2e21e2841fb4e120ebd46a2d1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenGetConvolutionSpatialDim</definition>
+        <argsstring>(miopenConvolutionDescriptor_t convDesc, int *spatialDim)</argsstring>
+        <name>miopenGetConvolutionSpatialDim</name>
+        <param>
+          <type>miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>spatialDim</declname>
+        </param>
+        <briefdescription>
+<para>Retrieves the spatial dimension of a convolution layer descriptor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>spatialDim</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Spatial dimension of convolution descriptor (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="963" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="963" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1gaf59a6be12730a207c15d068a0b1fe52f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenGetConvolutionDescriptor</definition>
+        <argsstring>(miopenConvolutionDescriptor_t convDesc, miopenConvolutionMode_t *c_mode, int *pad_h, int *pad_w, int *stride_h, int *stride_w, int *dilation_h, int *dilation_w)</argsstring>
+        <name>miopenGetConvolutionDescriptor</name>
+        <param>
+          <type>miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type><ref refid="group__convolutions_1ga91bcbdad0e53c07078287a74799c88cd" kindref="member">miopenConvolutionMode_t</ref> *</type>
+          <declname>c_mode</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>pad_h</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>pad_w</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>stride_h</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>stride_w</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>dilation_h</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>dilation_w</declname>
+        </param>
+        <briefdescription>
+<para>Retrieves a 2-D convolution layer descriptor&apos;s details. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>For group/depthwise convolution dilation height and width, only a dilation value of 1 is supported.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>c_mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolutional mode (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>pad_h</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Height input data padding (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>pad_w</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Width input data padding (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>stride_h</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Stride for the height of input data (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>stride_w</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Stride for the width of input data (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dilation_h</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Dilation height (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dilation_w</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Dilation width (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="981" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="981" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga7288233f65445ca372a3d86c75449294" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenGetConvolutionNdDescriptor</definition>
+        <argsstring>(miopenConvolutionDescriptor_t convDesc, int requestedSpatialDim, int *spatialDim, int *padA, int *strideA, int *dilationA, miopenConvolutionMode_t *c_mode)</argsstring>
+        <name>miopenGetConvolutionNdDescriptor</name>
+        <param>
+          <type>miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>requestedSpatialDim</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>spatialDim</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>padA</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>strideA</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>dilationA</declname>
+        </param>
+        <param>
+          <type><ref refid="group__convolutions_1ga91bcbdad0e53c07078287a74799c88cd" kindref="member">miopenConvolutionMode_t</ref> *</type>
+          <declname>c_mode</declname>
+        </param>
+        <briefdescription>
+<para>Retrieves a N-dimensional convolution layer descriptor&apos;s details. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>requestedSpatialDim</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Expected convolution spatial dimension (intput) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>spatialDim</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolutional spatial dimension (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>padA</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Array of input data padding (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>strideA</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Array of convolution stride (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dilationA</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Array of convolution dilation (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>c_mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolutional mode (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1002" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1002" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga245126fedf3a5c7abdd9cf6dcb959692" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenGetConvolutionGroupCount</definition>
+        <argsstring>(miopenConvolutionDescriptor_t convDesc, int *groupCount)</argsstring>
+        <name>miopenGetConvolutionGroupCount</name>
+        <param>
+          <type>miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>groupCount</declname>
+        </param>
+        <briefdescription>
+<para>Get the number of groups to be used in Group/Depthwise convolution. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>groupCount</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to number of groups in group/depthwise convolution (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1016" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1016" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1gad1bdda28a9f5a4a8ea9b718681ac72c2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenSetConvolutionGroupCount</definition>
+        <argsstring>(miopenConvolutionDescriptor_t convDesc, int groupCount)</argsstring>
+        <name>miopenSetConvolutionGroupCount</name>
+        <param>
+          <type>miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>groupCount</declname>
+        </param>
+        <briefdescription>
+<para>Set the number of groups to be used in Group/Depthwise convolution. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Must be called before all computational APIs of group/depthwise convolution, it is preferable to call <ref refid="group__convolutions_1ga37d3fbee7a7cd36ecb22d9ab23c80ce3" kindref="member">miopenInitConvolutionDescriptor()</ref> first, then <ref refid="group__convolutions_1gad1bdda28a9f5a4a8ea9b718681ac72c2" kindref="member">miopenSetConvolutionGroupCount()</ref> to fully initialize group convolutions. Both Convolution Mode and Transpose Convolution Mode support group/depthwise convolution. To run depthwise convolution, set groupCount value equal to number of channels.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>groupCount</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>number of groups, in depthwise conv using filter_number/channel_multiplier (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1032" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1032" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1gab17d87360f1931c8dc01baea31cfe412" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenSetTransposeConvOutputPadding</definition>
+        <argsstring>(miopenConvolutionDescriptor_t convDesc, int adj_h, int adj_w)</argsstring>
+        <name>miopenSetTransposeConvOutputPadding</name>
+        <param>
+          <type>miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>adj_h</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>adj_w</declname>
+        </param>
+        <briefdescription>
+<para>Set the output padding to be used in 2-D Transpose convolution. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This function is optional for initialization of Transpose convolution. If applicable, it must be called before all computational APIs of Transpose convolution. It is preferable to call <ref refid="group__convolutions_1ga37d3fbee7a7cd36ecb22d9ab23c80ce3" kindref="member">miopenInitConvolutionDescriptor()</ref> first, then <ref refid="group__convolutions_1gab17d87360f1931c8dc01baea31cfe412" kindref="member">miopenSetTransposeConvOutputPadding()</ref> to fully initialize transpose convolutions.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>adj_h</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>output padding for the height of output data (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>adj_w</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>output padding for the width of output data (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1048" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1048" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1gaad7d8adb6d907646ba23de7e506c5e5b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenSetTransposeConvNdOutputPadding</definition>
+        <argsstring>(miopenConvolutionDescriptor_t convDesc, int spatialDim, const int *adjA)</argsstring>
+        <name>miopenSetTransposeConvNdOutputPadding</name>
+        <param>
+          <type>miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>spatialDim</declname>
+        </param>
+        <param>
+          <type>const int *</type>
+          <declname>adjA</declname>
+        </param>
+        <briefdescription>
+<para>Set the output padding to be used in N-dimensional Transpose convolution. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This function is optional for initialization of Transpose convolution. If applicable, it must be called before all computational APIs of Transpose convolution. It is preferable to call <ref refid="group__convolutions_1ga06f1ca4633a112373f4d353ed819bf10" kindref="member">miopenInitConvolutionNdDescriptor()</ref> first, then <ref refid="group__convolutions_1gaad7d8adb6d907646ba23de7e506c5e5b" kindref="member">miopenSetTransposeConvNdOutputPadding()</ref> to fully initialize transpose convolutions. Currently, 2-D and 3-D convolutions are supported.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>spatialDim</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolutional spatial dimension (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>adjA</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>array of output padding for output data (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1062" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1062" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga5aae8bdb57c4b48263cdeba2f9f76ef0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenGetConvolutionForwardOutputDim</definition>
+        <argsstring>(miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t inputTensorDesc, const miopenTensorDescriptor_t filterDesc, int *n, int *c, int *h, int *w)</argsstring>
+        <name>miopenGetConvolutionForwardOutputDim</name>
+        <param>
+          <type>miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>inputTensorDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>filterDesc</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>c</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>w</declname>
+        </param>
+        <briefdescription>
+<para>Get the shape of a resulting 4-D tensor from a 2-D convolution. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This function returns the dimensions of the resulting 4D tensor of a 2D convolution, given the convolution descriptor, the input tensor descriptor and the filter descriptor. This function can help to setup the output tensor and allocate the proper amount of memory prior to launch the actual convolution.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>inputTensorDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Input data tensor descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>filterDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Weight descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>n</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Mini-batch size (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>c</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of channels (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>h</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data height dimension size (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>w</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data width dimension size (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1083" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1083" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga4b71519741fb242c14b8e92f104301ee" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenGetConvolutionNdForwardOutputDim</definition>
+        <argsstring>(miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t inputTensorDesc, const miopenTensorDescriptor_t filterDesc, int *nDim, int *outputTensorDimA)</argsstring>
+        <name>miopenGetConvolutionNdForwardOutputDim</name>
+        <param>
+          <type>miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>inputTensorDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>filterDesc</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>nDim</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>outputTensorDimA</declname>
+        </param>
+        <briefdescription>
+<para>Get the shape of a resulting N-dimensional tensor from a (N-2)-dimensional convolution. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This function returns the dimensions of the resulting N-dimensional tensor of a (N-2)-dimensional convolution, given the convolution descriptor, the input tensor descriptor and the filter descriptor. It is used to setup the output tensor descriptor prior to executing the convolution layer.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>inputTensorDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Input data tensor descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>filterDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Weight descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>nDim</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to Output data tensor dimension (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>outputTensorDimA</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Array of Output data tensor length (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1105" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1105" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1gacd21e57581808b98458dfa93c41a4ce3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenDestroyConvolutionDescriptor</definition>
+        <argsstring>(miopenConvolutionDescriptor_t convDesc)</argsstring>
+        <name>miopenDestroyConvolutionDescriptor</name>
+        <param>
+          <type>miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <briefdescription>
+<para>Destroys the tensor descriptor object. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution tensor descriptor type (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1117" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1117" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga92f38ddd274388a05d77001dac71e7c0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenSetConvolutionAttribute</definition>
+        <argsstring>(miopenConvolutionDescriptor_t convDesc, const miopenConvolutionAttrib_t attr, int value)</argsstring>
+        <name>miopenSetConvolutionAttribute</name>
+        <param>
+          <type>miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const <ref refid="group__convolutions_1ga784559bf30977ad39cbc491727eae485" kindref="member">miopenConvolutionAttrib_t</ref></type>
+          <declname>attr</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+<para>Set the attribute of the convolution descriptor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>attr</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Attribute of this convolution to set (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>value</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Value of this attribute (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1125" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1125" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga41c95d7e368391df4e63539c88c53047" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenGetConvolutionAttribute</definition>
+        <argsstring>(miopenConvolutionDescriptor_t convDesc, const miopenConvolutionAttrib_t attr, int *value)</argsstring>
+        <name>miopenGetConvolutionAttribute</name>
+        <param>
+          <type>miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const <ref refid="group__convolutions_1ga784559bf30977ad39cbc491727eae485" kindref="member">miopenConvolutionAttrib_t</ref></type>
+          <declname>attr</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+<para>Get the attribute of the convolution descriptor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>attr</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Attribute of this convolution to get (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>value</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Value of this attribute (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1135" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1135" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1gaf9dbf5fdad1bc5faf1a9184ab2099439" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionForwardGetSolutionCount</definition>
+        <argsstring>(miopenHandle_t handle, const miopenTensorDescriptor_t wDesc, const miopenTensorDescriptor_t xDesc, const miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t yDesc, size_t *solutionCount)</argsstring>
+        <name>miopenConvolutionForwardGetSolutionCount</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>wDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>yDesc</declname>
+        </param>
+        <param>
+          <type>size_t *</type>
+          <declname>solutionCount</declname>
+        </param>
+        <briefdescription>
+<para>Query the maximum number of solutions applicable for the given input/output and weights tensor descriptor for Convolution in the Forward direction. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This call returns the maximum number of applicable solutions for a forward convolution problem. The <computeroutput>solutionCount</computeroutput> returned may be used to allocate the memory required for the <computeroutput><ref refid="structmiopen_conv_algo_perf__t" kindref="compound">miopenConvAlgoPerf_t</ref></computeroutput> which is required by miopenConvolutionGetSolution API calls.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>wDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor w (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for input data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>yDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>solutionCount</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to memory to return number of applicable solutions (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1247" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1247" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1gaf0c92cab22c81d632d596d30757dcba5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionForwardGetSolution</definition>
+        <argsstring>(miopenHandle_t handle, const miopenTensorDescriptor_t wDesc, const miopenTensorDescriptor_t xDesc, const miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t yDesc, const size_t maxSolutionCount, size_t *solutionCount, miopenConvSolution_t *solutions)</argsstring>
+        <name>miopenConvolutionForwardGetSolution</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>wDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>yDesc</declname>
+        </param>
+        <param>
+          <type>const size_t</type>
+          <declname>maxSolutionCount</declname>
+        </param>
+        <param>
+          <type>size_t *</type>
+          <declname>solutionCount</declname>
+        </param>
+        <param>
+          <type><ref refid="structmiopen_conv_solution__t" kindref="compound">miopenConvSolution_t</ref> *</type>
+          <declname>solutions</declname>
+        </param>
+        <briefdescription>
+<para>Query the applicable solutions for a convolution configuration described by input, output and convolution descriptors. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The returned solutions array is sorted in the order of decreasing performance. The returned solutions might be based on heuristics and for more consistent performance results the user the advised to run the Find step. The maximum length of the solutions array may be queried using miopenConvolutionForwardGetSolutionCount</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>wDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor w (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for input data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>yDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>maxSolutionCount</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the solutions array passed in below (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>solutionCount</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the solutions array returned (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>solutions</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A pointer to an array of type <ref refid="structmiopen_conv_solution__t" kindref="compound">miopenConvSolution_t</ref> allocated by the user, filled in by MIOpen with applicable solutions. (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1278" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1278" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga1960157add7bdd508dc345ea98801912" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionForwardGetSolutionWorkspaceSize</definition>
+        <argsstring>(miopenHandle_t handle, const miopenTensorDescriptor_t wDesc, const miopenTensorDescriptor_t xDesc, const miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t yDesc, const uint64_t solution_id, size_t *workSpaceSize)</argsstring>
+        <name>miopenConvolutionForwardGetSolutionWorkspaceSize</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>wDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>yDesc</declname>
+        </param>
+        <param>
+          <type>const uint64_t</type>
+          <declname>solution_id</declname>
+        </param>
+        <param>
+          <type>size_t *</type>
+          <declname>workSpaceSize</declname>
+        </param>
+        <briefdescription>
+<para>Returns the workspace size required for a particular solution id. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This is an optional call for users who may have serialized the solution id and just need the workspace size for it. The same information is returned by the miopenConvolutionForwardGetSolution as part of the <ref refid="structmiopen_conv_solution__t" kindref="compound">miopenConvSolution_t</ref> struct.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>wDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor w (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for input data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>yDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>solution_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the solution for which workspace size is required (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpaceSize</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the workspace (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1305" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1305" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1gabacb81f250e154b92c628defe53a1a6b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionForwardCompileSolution</definition>
+        <argsstring>(miopenHandle_t handle, const miopenTensorDescriptor_t wDesc, const miopenTensorDescriptor_t xDesc, const miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t yDesc, const uint64_t solution_id)</argsstring>
+        <name>miopenConvolutionForwardCompileSolution</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>wDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>yDesc</declname>
+        </param>
+        <param>
+          <type>const uint64_t</type>
+          <declname>solution_id</declname>
+        </param>
+        <briefdescription>
+<para>Compiles the solution provided by the user, this solution may be acquired by the miopenConvolutionForwardGetSolution API call above. Compiling the solution ensures that the first API call to miopenConvolutionForwardImmediate does not cause a compile. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This is an optional step and may be skipped if a slow first miopenConvolutionForwardImmediate invocation is acceptable.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>wDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor w (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for input data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>yDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>solution_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the solution to be compiled, as chosen by the user </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1331" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1331" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga14fe027d4bb473a448eb26fe79e61002" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionForwardImmediate</definition>
+        <argsstring>(miopenHandle_t handle, const miopenTensorDescriptor_t wDesc, const void *w, const miopenTensorDescriptor_t xDesc, const void *x, const miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t yDesc, void *y, void *workSpace, size_t workSpaceSize, const uint64_t solution_id)</argsstring>
+        <name>miopenConvolutionForwardImmediate</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>wDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>yDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>workSpace</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>workSpaceSize</declname>
+        </param>
+        <param>
+          <type>const uint64_t</type>
+          <declname>solution_id</declname>
+        </param>
+        <briefdescription>
+<para>Executes the Forward convolution operation based on the provided solution ID. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Supported datatypes are fp32, fp16, bfp16, and int8</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>wDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor w (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>w</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Weights tensor w (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for input data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>x</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>yDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor y (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpace</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Workspace tensor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpaceSize</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Size of the memory in bytes pointed to by workSpace above </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>solution_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the solution to be compiled, as chosen by the user </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1356" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1356" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1gac245152e4fe078d089f2ac9247aed048" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionBackwardDataGetSolutionCount</definition>
+        <argsstring>(miopenHandle_t handle, const miopenTensorDescriptor_t dyDesc, const miopenTensorDescriptor_t wDesc, const miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t dxDesc, size_t *solutionCount)</argsstring>
+        <name>miopenConvolutionBackwardDataGetSolutionCount</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dyDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>wDesc</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dxDesc</declname>
+        </param>
+        <param>
+          <type>size_t *</type>
+          <declname>solutionCount</declname>
+        </param>
+        <briefdescription>
+<para>Query the maximum number of solutions applicable for the given input/output and weights tensor descriptor for backward Convolution w-r-t Data. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This call returns the maximum number of applicable solutions for a the convolution problem, the number returned may be used to allocate the memory required for the miopenConvAlgoPert2_t which is required by miopenConvolutionBackwardDataGetSolution API calls.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dyDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>wDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor w (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dxDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor dx (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>solutionCount</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to memory to return number of applicable solutions (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1386" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1386" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga8c7f4bfae33e8d489c75c5e3717321f8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionBackwardDataGetSolution</definition>
+        <argsstring>(miopenHandle_t handle, const miopenTensorDescriptor_t dyDesc, const miopenTensorDescriptor_t wDesc, const miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t dxDesc, const size_t maxSolutionCount, size_t *solutionCount, miopenConvSolution_t *solutions)</argsstring>
+        <name>miopenConvolutionBackwardDataGetSolution</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dyDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>wDesc</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dxDesc</declname>
+        </param>
+        <param>
+          <type>const size_t</type>
+          <declname>maxSolutionCount</declname>
+        </param>
+        <param>
+          <type>size_t *</type>
+          <declname>solutionCount</declname>
+        </param>
+        <param>
+          <type><ref refid="structmiopen_conv_solution__t" kindref="compound">miopenConvSolution_t</ref> *</type>
+          <declname>solutions</declname>
+        </param>
+        <briefdescription>
+<para>Query the applicable solutions for a backward convolution w-r-t data as described by input, output and convolution descriptors. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The returned solutions array is sorted in the order of decreasing performance. The returned solutions ns might be based on heuristics and for more consistent performance results the user the advised to run the Find step. The maximum length of the solutions array may be queried using miopenConvolutionBackwardDataGetSolutionCount</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dyDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>wDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor w (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dxDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor dx (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>maxSolutionCount</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the solutions array passed in below (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>solutionCount</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the solutions array returned (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>solutions</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A pointer to an array of type <ref refid="structmiopen_conv_solution__t" kindref="compound">miopenConvSolution_t</ref> allocated by the user, filled in by MIOpen with applicable solutions. (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1418" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1418" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1gafdf6485c7f4ca08822feb918f5078f09" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionBackwardDataGetSolutionWorkspaceSize</definition>
+        <argsstring>(miopenHandle_t handle, const miopenTensorDescriptor_t dyDesc, const miopenTensorDescriptor_t wDesc, const miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t dxDesc, const uint64_t solution_id, size_t *workSpaceSize)</argsstring>
+        <name>miopenConvolutionBackwardDataGetSolutionWorkspaceSize</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dyDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>wDesc</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dxDesc</declname>
+        </param>
+        <param>
+          <type>const uint64_t</type>
+          <declname>solution_id</declname>
+        </param>
+        <param>
+          <type>size_t *</type>
+          <declname>workSpaceSize</declname>
+        </param>
+        <briefdescription>
+<para>Returns the workspace size required for a particular solution id. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This is an optional call for users who may have serialized the solution id and just need the workspace size for it. The same information is returned by the miopenConvolutionBackwardDataGetSolution as part of the <ref refid="structmiopen_conv_solution__t" kindref="compound">miopenConvSolution_t</ref> struct.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dyDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>wDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor w (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dxDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor dx (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>solution_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the solution for which workspace size is required (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpaceSize</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the workspace (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1445" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1445" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga16cd48938728e81468a1e80ccd07822f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionBackwardDataCompileSolution</definition>
+        <argsstring>(miopenHandle_t handle, const miopenTensorDescriptor_t dyDesc, const miopenTensorDescriptor_t wDesc, const miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t dxDesc, const uint64_t solution_id)</argsstring>
+        <name>miopenConvolutionBackwardDataCompileSolution</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dyDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>wDesc</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dxDesc</declname>
+        </param>
+        <param>
+          <type>const uint64_t</type>
+          <declname>solution_id</declname>
+        </param>
+        <briefdescription>
+<para>Compiles the solution provided by the user, this solution may be acquired by the miopenConvolutionBackwardDataGetSolution API call above. Compiling the solution ensures that the first API call to miopenConvolutionBackwardDataImmediate does not cause a compile. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This is an optional step and may be skipped if a slow first miopenConvolutionBackwardDataImmediate invocation is acceptable.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dyDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>wDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor w (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dxDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor dx (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>solution_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the solution to be compiled, as chosen by the user </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1472" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1472" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1gaacefbf47cf57a6ade413ae23bbf5cabc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionBackwardDataImmediate</definition>
+        <argsstring>(miopenHandle_t handle, const miopenTensorDescriptor_t dyDesc, const void *dy, const miopenTensorDescriptor_t wDesc, const void *w, const miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t dxDesc, void *dx, void *workSpace, size_t workSpaceSize, const uint64_t solution_id)</argsstring>
+        <name>miopenConvolutionBackwardDataImmediate</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dyDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>dy</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>wDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dxDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>dx</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>workSpace</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>workSpaceSize</declname>
+        </param>
+        <param>
+          <type>const uint64_t</type>
+          <declname>solution_id</declname>
+        </param>
+        <briefdescription>
+<para>Executes the Backward convolution w-r-t data operation based on the provided solution ID. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dyDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data delta tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>wDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor w (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>w</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Weights tensor w (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dxDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor dx (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data delta tensor dx (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpace</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Workspace tensor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpaceSize</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Size in bytes of the workspace memory pointed to by workSpace </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>solution_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the solution to be compiled, as chosen by the user </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1497" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1497" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1gacf0d3225d92394cf8aad48da3902b64c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionBackwardWeightsGetSolutionCount</definition>
+        <argsstring>(miopenHandle_t handle, const miopenTensorDescriptor_t dyDesc, const miopenTensorDescriptor_t xDesc, const miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t dwDesc, size_t *solutionCount)</argsstring>
+        <name>miopenConvolutionBackwardWeightsGetSolutionCount</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dyDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dwDesc</declname>
+        </param>
+        <param>
+          <type>size_t *</type>
+          <declname>solutionCount</declname>
+        </param>
+        <briefdescription>
+<para>Query the maximum number of solutions applicable for the given input/output and weights tensor descriptor for backward Convolution w-r-t Weights. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This call returns the maximum number of applicable solutions for a the convolution problem, the number returned may be used to allocate the memory required for the miopenConvAlgoPert2_t which is required by miopenConvolutionBackwardWeightsGetSolution API calls.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dyDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dwDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor dw (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>solutionCount</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to memory to return number of applicable solutions (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1527" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1527" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga720035aea137cd8b2fb5ea22afd08ea4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionBackwardWeightsGetSolution</definition>
+        <argsstring>(miopenHandle_t handle, const miopenTensorDescriptor_t dyDesc, const miopenTensorDescriptor_t xDesc, const miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t dwDesc, const size_t maxSolutionCount, size_t *solutionCount, miopenConvSolution_t *solutions)</argsstring>
+        <name>miopenConvolutionBackwardWeightsGetSolution</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dyDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dwDesc</declname>
+        </param>
+        <param>
+          <type>const size_t</type>
+          <declname>maxSolutionCount</declname>
+        </param>
+        <param>
+          <type>size_t *</type>
+          <declname>solutionCount</declname>
+        </param>
+        <param>
+          <type><ref refid="structmiopen_conv_solution__t" kindref="compound">miopenConvSolution_t</ref> *</type>
+          <declname>solutions</declname>
+        </param>
+        <briefdescription>
+<para>Query the applicable solutions for a backward convolution w-r-t weights as described by input, output and convolution descriptors. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The returned solutions array is sorted in the order of decreasing performance. The returned solutions might be based on heuristics and for more consistent performance results the user the advised to run the Find step. The maximum length of the solutions array may be queried using miopenConvolutionBackwardWeightsGetSolutionCount</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dyDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dwDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor dw (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>maxSolutionCount</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the solutions array passed in below (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>solutionCount</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the solutions array returned (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>solutions</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A pointer to an array of type <ref refid="structmiopen_conv_solution__t" kindref="compound">miopenConvSolution_t</ref> allocated by the user, filled in by MIOpen with applicable solutions. (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1558" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1558" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1gaecbba471182df8fa973a95d5dedd7259" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionBackwardWeightsGetSolutionWorkspaceSize</definition>
+        <argsstring>(miopenHandle_t handle, const miopenTensorDescriptor_t dyDesc, const miopenTensorDescriptor_t xDesc, const miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t dwDesc, const uint64_t solution_id, size_t *workSpaceSize)</argsstring>
+        <name>miopenConvolutionBackwardWeightsGetSolutionWorkspaceSize</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dyDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dwDesc</declname>
+        </param>
+        <param>
+          <type>const uint64_t</type>
+          <declname>solution_id</declname>
+        </param>
+        <param>
+          <type>size_t *</type>
+          <declname>workSpaceSize</declname>
+        </param>
+        <briefdescription>
+<para>Returns the workspace size required for a particular solution id. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This is an optional call for users who may have serialized the solution id and just need the workspace size for it. The same information is returned by the miopenConvolutionBackwardWeightsGetSolution as part of the <ref refid="structmiopen_conv_solution__t" kindref="compound">miopenConvSolution_t</ref> struct.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dyDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dwDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor dw (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>solution_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the solution for which workspace size is required (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpaceSize</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the workspace (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1584" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1584" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga4df568848733b9d49a416813df1249d7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionBackwardWeightsCompileSolution</definition>
+        <argsstring>(miopenHandle_t handle, const miopenTensorDescriptor_t dyDesc, const miopenTensorDescriptor_t xDesc, const miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t dwDesc, const uint64_t solution_id)</argsstring>
+        <name>miopenConvolutionBackwardWeightsCompileSolution</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dyDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dwDesc</declname>
+        </param>
+        <param>
+          <type>const uint64_t</type>
+          <declname>solution_id</declname>
+        </param>
+        <briefdescription>
+<para>Compiles the solution provided by the user, this solution may be acquired by the miopenConvolutionBackwardWeightsGetSolution API call above. Compiling the solution ensures that the first API call to miopenConvolutionBackwardWeightsImmediate does not cause a compile. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This is an optional step and may be skipped if a slow first miopenConvolutionBackwardWeightsImmediate invocation is acceptable.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dyDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dwDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor dw (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>solution_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the solution to be compiled, as chosen by the user </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1611" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1611" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga816e7586b740e8ad652aac31f9efe9da" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionBackwardWeightsImmediate</definition>
+        <argsstring>(miopenHandle_t handle, const miopenTensorDescriptor_t dyDesc, const void *dy, const miopenTensorDescriptor_t xDesc, const void *x, const miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t dwDesc, void *dw, void *workSpace, size_t workSpaceSize, const uint64_t solution_id)</argsstring>
+        <name>miopenConvolutionBackwardWeightsImmediate</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dyDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>dy</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dwDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>dw</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>workSpace</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>workSpaceSize</declname>
+        </param>
+        <param>
+          <type>const uint64_t</type>
+          <declname>solution_id</declname>
+        </param>
+        <briefdescription>
+<para>Executes the Backward convolution w-r-t weights operation based on the provided solution ID. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dyDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data delta tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>x</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dwDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor dw (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dw</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Weights delta tensor dw (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpace</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Workspace tensor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpaceSize</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Size in bytes of the memory passed in, pointed to by workSpace pointer above </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>solution_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the solution to be compiled, as chosen by the user </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1637" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1637" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga625028c7ac3e3aeccbaea277096cca08" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionForwardGetWorkSpaceSize</definition>
+        <argsstring>(miopenHandle_t handle, const miopenTensorDescriptor_t wDesc, const miopenTensorDescriptor_t xDesc, const miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t yDesc, size_t *workSpaceSize)</argsstring>
+        <name>miopenConvolutionForwardGetWorkSpaceSize</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>wDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>yDesc</declname>
+        </param>
+        <param>
+          <type>size_t *</type>
+          <declname>workSpaceSize</declname>
+        </param>
+        <briefdescription>
+<para>Query the workspace size required for a forward convolution layer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This call is required and must be executed once before running <ref refid="group__convolutions_1gaca2f3b99b04393beebaee41e3d990f68" kindref="member">miopenFindConvolutionForwardAlgorithm()</ref> in order to determine the largest required allocation for the algorithm search; i.e., the maximum size of the memory needed from the set of potential forward convolution algorithm is returned.</para>
+<para>If using Group/Depthwise convolution mode, call <ref refid="group__convolutions_1gad1bdda28a9f5a4a8ea9b718681ac72c2" kindref="member">miopenSetConvolutionGroupCount()</ref> before running this.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>wDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor w (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for input data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>yDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpaceSize</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to memory to return size in bytes (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1669" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1669" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1gaca2f3b99b04393beebaee41e3d990f68" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenFindConvolutionForwardAlgorithm</definition>
+        <argsstring>(miopenHandle_t handle, const miopenTensorDescriptor_t xDesc, const void *x, const miopenTensorDescriptor_t wDesc, const void *w, const miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t yDesc, void *y, const int requestAlgoCount, int *returnedAlgoCount, miopenConvAlgoPerf_t *perfResults, void *workSpace, size_t workSpaceSize, bool exhaustiveSearch)</argsstring>
+        <name>miopenFindConvolutionForwardAlgorithm</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>wDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>yDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>const int</type>
+          <declname>requestAlgoCount</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>returnedAlgoCount</declname>
+        </param>
+        <param>
+          <type><ref refid="structmiopen_conv_algo_perf__t" kindref="compound">miopenConvAlgoPerf_t</ref> *</type>
+          <declname>perfResults</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>workSpace</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>workSpaceSize</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>exhaustiveSearch</declname>
+        </param>
+        <briefdescription>
+<para>Search and run the forward convolutional algorithms and return a list of kernel times. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This function attempts all MIOpen forward convolution algorithms based on the input configuration, and outputs performance metrics to a user-allocated array of type <ref refid="structmiopen_conv_algo_perf__t" kindref="compound">miopenConvAlgoPerf_t</ref>. These metrics are written in a sorted fashion where the first element has the lowest compute time. Users can chose the top-most algorithm if they only care about the fastest algorithm.</para>
+<para>This function is mandatory before using <ref refid="group__convolutions_1ga1de4638ae8f3330f3c777f91a67889ea" kindref="member">miopenConvolutionForward()</ref>. In order to execute this function, <ref refid="group__convolutions_1ga625028c7ac3e3aeccbaea277096cca08" kindref="member">miopenConvolutionForwardGetWorkSpaceSize()</ref> must be run to determine the required memory for this search.</para>
+<para><itemizedlist>
+<listitem><para>If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If a configuration match is not found, a default configuration will be returned.</para>
+</listitem><listitem><para>If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration. If a match is not found, an exhaustive search is performed by running individual algorithms.</para>
+</listitem></itemizedlist>
+</para>
+<para>If using Group/Depthwise convolution mode, call <ref refid="group__convolutions_1gad1bdda28a9f5a4a8ea9b718681ac72c2" kindref="member">miopenSetConvolutionGroupCount()</ref> before running this.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>x</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>wDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor w (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>w</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Weights tensor w (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>yDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor y (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>requestAlgoCount</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of algorithms to return kernel times (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>returnedAlgoCount</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to number of algorithms returned (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>perfResults</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to union of best algorithm for forward and backwards (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpace</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to workspace required for the search (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpaceSize</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Size in bytes of the memory needed for find (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>exhaustiveSearch</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A boolean to toggle a full search of all algorithms and configurations (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1716" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1716" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga1de4638ae8f3330f3c777f91a67889ea" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionForward</definition>
+        <argsstring>(miopenHandle_t handle, const void *alpha, const miopenTensorDescriptor_t xDesc, const void *x, const miopenTensorDescriptor_t wDesc, const void *w, const miopenConvolutionDescriptor_t convDesc, miopenConvFwdAlgorithm_t algo, const void *beta, const miopenTensorDescriptor_t yDesc, void *y, void *workSpace, size_t workSpaceSize)</argsstring>
+        <name>miopenConvolutionForward</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>alpha</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>wDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type><ref refid="group__convolutions_1ga5dd59dc3df4bcf9da4797c6169ad99c3" kindref="member">miopenConvFwdAlgorithm_t</ref></type>
+          <declname>algo</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>beta</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>yDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>workSpace</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>workSpaceSize</declname>
+        </param>
+        <briefdescription>
+<para>Execute a forward convolution layer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Runs the forward convolution layer based on the selected algorithm. The function <ref refid="group__convolutions_1gaca2f3b99b04393beebaee41e3d990f68" kindref="member">miopenFindConvolutionForwardAlgorithm()</ref> must have been executed previously to determine the required memory needed for the workspace and the best convolutional algorithm. The scaling parameter alpha (float) and shift parameter beta (float) are only supported for alpha = 1 and beta = 0.</para>
+<para>The forward convolution is designed to accommodate both packed and non-packed tensor strides for multiple data types and dimensions across various platforms. This flexibility ensures optimal performance in handling diverse computational scenarios. To configure tensor parameters, including strides, users can utilize the APIs <ref refid="group__tensor_1gae57f3c7b71aed10691abc2ac2a5f8f27" kindref="member">miopenSetTensorDescriptor()</ref> and <ref refid="group__tensor_1ga0ac6a668ed3b2e580b45c39b2dbf8b8c" kindref="member">miopenGetTensorDescriptor()</ref>. These APIs empower developers to seamlessly set and retrieve tensor information, facilitating a more intuitive and efficient workflow. The tensor strides are non-packed by default.</para>
+<para>If using Group/Depthwise convolution mode, call <ref refid="group__convolutions_1gad1bdda28a9f5a4a8ea9b718681ac72c2" kindref="member">miopenSetConvolutionGroupCount()</ref> before running this.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>alpha</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point scaling factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>x</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>wDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor w (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>w</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Weights tensor w (inputs) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (inputs) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>algo</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Algorithm selected (inputs) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>beta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point shift factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>yDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor y (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpace</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to workspace required (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpaceSize</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Size in bytes of the memory determined by the find step (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1765" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1765" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga8e445590bd57cd0038324943791a9b4a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionForwardBias</definition>
+        <argsstring>(miopenHandle_t handle, const void *alpha, const miopenTensorDescriptor_t bDesc, const void *b, const void *beta, const miopenTensorDescriptor_t yDesc, void *y)</argsstring>
+        <name>miopenConvolutionForwardBias</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>alpha</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>bDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>b</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>beta</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>yDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>y</declname>
+        </param>
+        <briefdescription>
+<para>Calculate element-wise scale and shift of a tensor via a bias tensor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This function applies an element-wise bias to a data tensor from an input bias tensor. The scaling parameter alpha (float) and shift parameter beta (float) are only supported for alpha = 1 and beta = 0.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>alpha</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point scaling factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>bDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for bias tensor b (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>b</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Bias tensor b (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>beta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point shift factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>yDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor y (input and output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1794" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1794" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1gac94e84d34972a135648c94b89d92f9cf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionBackwardDataGetWorkSpaceSize</definition>
+        <argsstring>(miopenHandle_t handle, const miopenTensorDescriptor_t dyDesc, const miopenTensorDescriptor_t wDesc, const miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t dxDesc, size_t *workSpaceSize)</argsstring>
+        <name>miopenConvolutionBackwardDataGetWorkSpaceSize</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dyDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>wDesc</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dxDesc</declname>
+        </param>
+        <param>
+          <type>size_t *</type>
+          <declname>workSpaceSize</declname>
+        </param>
+        <briefdescription>
+<para>Get the GPU memory required for the backward data convolution algorithm. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>For a provided tensor descriptors and algorithm selection, this function calculates and returns the workspace size required for back propagation on data. This call is required and must be executed once before running <ref refid="group__convolutions_1ga87840a99d86f888f4f3356adf7a15df0" kindref="member">miopenFindConvolutionBackwardDataAlgorithm()</ref> in order to determine the largest required allocation for the algorithm search; i.e., the maximum size of the memory needed from the set of potential backward convolution algorithm is returned.</para>
+<para>If using Group/Depthwise convolution mode, call <ref refid="group__convolutions_1gad1bdda28a9f5a4a8ea9b718681ac72c2" kindref="member">miopenSetConvolutionGroupCount()</ref> before running this.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dyDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>wDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor w (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dxDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor dx (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpaceSize</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Size in bytes of the memory required (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1822" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1822" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga87840a99d86f888f4f3356adf7a15df0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenFindConvolutionBackwardDataAlgorithm</definition>
+        <argsstring>(miopenHandle_t handle, const miopenTensorDescriptor_t dyDesc, const void *dy, const miopenTensorDescriptor_t wDesc, const void *w, const miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t dxDesc, void *dx, const int requestAlgoCount, int *returnedAlgoCount, miopenConvAlgoPerf_t *perfResults, void *workSpace, size_t workSpaceSize, bool exhaustiveSearch)</argsstring>
+        <name>miopenFindConvolutionBackwardDataAlgorithm</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dyDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>dy</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>wDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dxDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>dx</declname>
+        </param>
+        <param>
+          <type>const int</type>
+          <declname>requestAlgoCount</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>returnedAlgoCount</declname>
+        </param>
+        <param>
+          <type><ref refid="structmiopen_conv_algo_perf__t" kindref="compound">miopenConvAlgoPerf_t</ref> *</type>
+          <declname>perfResults</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>workSpace</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>workSpaceSize</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>exhaustiveSearch</declname>
+        </param>
+        <briefdescription>
+<para>Search and run the backwards data convolution algorithms and return a list of kernel times. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This function attempts all MIOpen backward data convolution algorithms, and outputs the performance metrics to a user-allocated array of type <ref refid="structmiopen_conv_algo_perf__t" kindref="compound">miopenConvAlgoPerf_t</ref>. These metrics are written in sorted fashion where the first element has the lowest compute time. This function is mandatory before using backwards convolutions. Users can chose the top-most algorithm if they only care about the fastest algorithm.</para>
+<para>This function is mandatory before using <ref refid="group__convolutions_1ga3fb51da4c191c70727c09a1560d38ddd" kindref="member">miopenConvolutionBackwardData()</ref>. In order to execute this function, miopenConvolutionBackwardsDataGetWorkSpaceSize() must be run to determine the required memory for this search.</para>
+<para><itemizedlist>
+<listitem><para>If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If a configuration match is not found, a default configuration will be returned.</para>
+</listitem><listitem><para>If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration. If a match is not found, an exhaustive search is performed by running individual algorithms.</para>
+</listitem></itemizedlist>
+</para>
+<para>If using Group/Depthwise convolution mode, call <ref refid="group__convolutions_1gad1bdda28a9f5a4a8ea9b718681ac72c2" kindref="member">miopenSetConvolutionGroupCount()</ref> before running this.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dyDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data delta tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>wDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor w (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>w</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Weights tensor w (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dxDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor dx (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data delta tensor dx (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>requestAlgoCount</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of algorithms to return kernel times (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>returnedAlgoCount</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to number of algorithms returned (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>perfResults</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to union of best algorithm for forward and backwards (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpace</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to workspace required for the search (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpaceSize</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Size in bytes of the memory needed for find (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>exhaustiveSearch</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A boolean to toggle a full search of all algorithms and configurations (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1869" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1869" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga3fb51da4c191c70727c09a1560d38ddd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionBackwardData</definition>
+        <argsstring>(miopenHandle_t handle, const void *alpha, const miopenTensorDescriptor_t dyDesc, const void *dy, const miopenTensorDescriptor_t wDesc, const void *w, const miopenConvolutionDescriptor_t convDesc, miopenConvBwdDataAlgorithm_t algo, const void *beta, const miopenTensorDescriptor_t dxDesc, void *dx, void *workSpace, size_t workSpaceSize)</argsstring>
+        <name>miopenConvolutionBackwardData</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>alpha</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dyDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>dy</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>wDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type><ref refid="group__convolutions_1ga774e44db42d175d73c0d87272f6cdc05" kindref="member">miopenConvBwdDataAlgorithm_t</ref></type>
+          <declname>algo</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>beta</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dxDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>dx</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>workSpace</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>workSpaceSize</declname>
+        </param>
+        <briefdescription>
+<para>Execute a backward data convolution layer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Runs the backward data convolution layer based on the selected algorithm. The function <ref refid="group__convolutions_1ga87840a99d86f888f4f3356adf7a15df0" kindref="member">miopenFindConvolutionBackwardDataAlgorithm()</ref> must have been executed previously to determine the required memory needed for the workspace and the best convolutional algorithm.</para>
+<para>The backward data convolution is designed to accommodate both packed and non-packed tensor strides for multiple data types and dimensions across various platforms. This flexibility ensures optimal performance in handling diverse computational scenarios. To configure tensor parameters, including strides, users can utilize the APIs <ref refid="group__tensor_1gae57f3c7b71aed10691abc2ac2a5f8f27" kindref="member">miopenSetTensorDescriptor()</ref> and <ref refid="group__tensor_1ga0ac6a668ed3b2e580b45c39b2dbf8b8c" kindref="member">miopenGetTensorDescriptor()</ref>. These APIs empower developers to seamlessly set and retrieve tensor information, facilitating a more intuitive and efficient workflow. The tensor strides are non-packed by default.</para>
+<para>If using Group/Depthwise convolution mode, call <ref refid="group__convolutions_1gad1bdda28a9f5a4a8ea9b718681ac72c2" kindref="member">miopenSetConvolutionGroupCount()</ref> before running this.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>alpha</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point scaling factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dyDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data delta tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>wDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor w (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>w</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Weights tensor w (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>algo</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Algorithm selected (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>beta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point shift factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dxDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor dx (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data delta tensor dx (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpace</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to workspace required for the search (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpaceSize</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Size in bytes of the memory needed for find (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1918" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1918" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga7eb4416db9701236648ba2b60d91cc1a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionBackwardWeightsGetWorkSpaceSize</definition>
+        <argsstring>(miopenHandle_t handle, const miopenTensorDescriptor_t dyDesc, const miopenTensorDescriptor_t xDesc, const miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t dwDesc, size_t *workSpaceSize)</argsstring>
+        <name>miopenConvolutionBackwardWeightsGetWorkSpaceSize</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dyDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dwDesc</declname>
+        </param>
+        <param>
+          <type>size_t *</type>
+          <declname>workSpaceSize</declname>
+        </param>
+        <briefdescription>
+<para>Get the GPU memory required for the backward weights convolution algorithm. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>For a provided tensor descriptors and algorithm selection, this function calculates and returns the workspace size required for back propagation on data. This call is required and must be executed once before running <ref refid="group__convolutions_1ga57dda8a3c4ecddb988dbba421151e761" kindref="member">miopenFindConvolutionBackwardWeightsAlgorithm()</ref> in order to determine the largest required allocation for the algorithm search; i.e., the maximum size of the memory needed from the set of potential backward weights convolution algorithm is returned.</para>
+<para>If using Group/Depthwise convolution mode, call <ref refid="group__convolutions_1gad1bdda28a9f5a4a8ea9b718681ac72c2" kindref="member">miopenSetConvolutionGroupCount()</ref> before running this.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dyDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dwDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output weights tensor dw (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpaceSize</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Size in bytes of the memory required (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1954" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="1954" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1ga57dda8a3c4ecddb988dbba421151e761" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenFindConvolutionBackwardWeightsAlgorithm</definition>
+        <argsstring>(miopenHandle_t handle, const miopenTensorDescriptor_t dyDesc, const void *dy, const miopenTensorDescriptor_t xDesc, const void *x, const miopenConvolutionDescriptor_t convDesc, const miopenTensorDescriptor_t dwDesc, void *dw, const int requestAlgoCount, int *returnedAlgoCount, miopenConvAlgoPerf_t *perfResults, void *workSpace, size_t workSpaceSize, bool exhaustiveSearch)</argsstring>
+        <name>miopenFindConvolutionBackwardWeightsAlgorithm</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dyDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>dy</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dwDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>dw</declname>
+        </param>
+        <param>
+          <type>const int</type>
+          <declname>requestAlgoCount</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>returnedAlgoCount</declname>
+        </param>
+        <param>
+          <type><ref refid="structmiopen_conv_algo_perf__t" kindref="compound">miopenConvAlgoPerf_t</ref> *</type>
+          <declname>perfResults</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>workSpace</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>workSpaceSize</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>exhaustiveSearch</declname>
+        </param>
+        <briefdescription>
+<para>Search and run the backwards weights convolutional algorithms and return a list of kernel times. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This function attempts all MIOpen backward weights convolution algorithms, and outputs the performance metrics to a user-allocated array of type <ref refid="structmiopen_conv_algo_perf__t" kindref="compound">miopenConvAlgoPerf_t</ref>. These metrics are written in sorted fashion where the first element has the lowest compute time. This function is mandatory before using backwards weight convolutions. Users can chose the top-most algorithm if they only care about the fastest algorithm.</para>
+<para>This function is mandatory before using <ref refid="group__convolutions_1gac651a5c2fe903191bb6a383b1890ea0d" kindref="member">miopenConvolutionBackwardWeights()</ref>. In order to execute this function, miopenConvolutionBackwardsWeightsGetWorkSpaceSize() must be run to determine the required memory for this search.</para>
+<para><itemizedlist>
+<listitem><para>If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If a configuration match is not found, a default configuration will be returned.</para>
+</listitem><listitem><para>If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration. If a match is not found, an exhaustive search is performed by running individual algorithms.</para>
+</listitem></itemizedlist>
+</para>
+<para>If using Group/Depthwise convolution mode, call <ref refid="group__convolutions_1gad1bdda28a9f5a4a8ea9b718681ac72c2" kindref="member">miopenSetConvolutionGroupCount()</ref> before running this.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dyDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data delta tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>x</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data delta tensor dx (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dwDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor dw (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dw</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Weights delta tensor dw (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>requestAlgoCount</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of algorithms to return kernel times (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>returnedAlgoCount</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to number of algorithms returned (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>perfResults</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to union of best algorithm for forward and backwards (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpace</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to workspace required for the search (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpaceSize</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Size in bytes of the memory needed for find (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>exhaustiveSearch</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A boolean to toggle a full search of all algorithms and configurations (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2001" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2001" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1gac651a5c2fe903191bb6a383b1890ea0d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionBackwardWeights</definition>
+        <argsstring>(miopenHandle_t handle, const void *alpha, const miopenTensorDescriptor_t dyDesc, const void *dy, const miopenTensorDescriptor_t xDesc, const void *x, const miopenConvolutionDescriptor_t convDesc, miopenConvBwdWeightsAlgorithm_t algo, const void *beta, const miopenTensorDescriptor_t dwDesc, void *dw, void *workSpace, size_t workSpaceSize)</argsstring>
+        <name>miopenConvolutionBackwardWeights</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>alpha</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dyDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>dy</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>const miopenConvolutionDescriptor_t</type>
+          <declname>convDesc</declname>
+        </param>
+        <param>
+          <type><ref refid="group__convolutions_1gaba316771c206839e54419b135027cbee" kindref="member">miopenConvBwdWeightsAlgorithm_t</ref></type>
+          <declname>algo</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>beta</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dwDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>dw</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>workSpace</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>workSpaceSize</declname>
+        </param>
+        <briefdescription>
+<para>Execute a backward weights convolution layer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Runs the backward weights convolution layer based on the selected algorithm. The function <ref refid="group__convolutions_1ga57dda8a3c4ecddb988dbba421151e761" kindref="member">miopenFindConvolutionBackwardWeightsAlgorithm()</ref> must have been executed previously to determine the required memory needed for the workspace and the best convolutional algorithm.</para>
+<para>The backward weights convolution is designed to accommodate both packed and non-packed tensor strides for multiple data types and dimensions across various platforms. This flexibility ensures optimal performance in handling diverse computational scenarios. To configure tensor parameters, including strides, users can utilize the APIs <ref refid="group__tensor_1gae57f3c7b71aed10691abc2ac2a5f8f27" kindref="member">miopenSetTensorDescriptor()</ref> and <ref refid="group__tensor_1ga0ac6a668ed3b2e580b45c39b2dbf8b8c" kindref="member">miopenGetTensorDescriptor()</ref>. These APIs empower developers to seamlessly set and retrieve tensor information, facilitating a more intuitive and efficient workflow. The tensor strides are non-packed by default.</para>
+<para>If using Group/Depthwise convolution mode, call <ref refid="group__convolutions_1gad1bdda28a9f5a4a8ea9b718681ac72c2" kindref="member">miopenSetConvolutionGroupCount()</ref> before running this.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>alpha</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point scaling factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dyDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data delta tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>x</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>convDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Convolution layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>algo</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Algorithm selected (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>beta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point shift factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dwDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for weight tensor dw (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dw</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Weights delta tensor dw (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpace</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to workspace required for the search (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpaceSize</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Size in bytes of the memory needed for find (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2050" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2050" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__convolutions_1gafe46a24bd8eba36fe34dbf0162ada0d2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenConvolutionBackwardBias</definition>
+        <argsstring>(miopenHandle_t handle, const void *alpha, const miopenTensorDescriptor_t dyDesc, const void *dy, const void *beta, const miopenTensorDescriptor_t dbDesc, void *db)</argsstring>
+        <name>miopenConvolutionBackwardBias</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>alpha</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dyDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>dy</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>beta</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dbDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>db</declname>
+        </param>
+        <briefdescription>
+<para>Calculates the gradient with respect to the bias. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Compute the convolution backwards gradient with respect to the bias tensor. The scaling parameter alpha (float) and shift parameter beta (float) are only supported for alpha = 1 and beta = 0.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>alpha</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point scaling factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dyDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data delta tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>beta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point shift factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dbDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for input bias tensor db (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>db</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Bias delta tensor db (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2079" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2079" declcolumn="17"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

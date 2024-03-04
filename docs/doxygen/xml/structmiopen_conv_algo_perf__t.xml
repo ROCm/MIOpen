@@ -1,0 +1,106 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structmiopen_conv_algo_perf__t" kind="struct" language="C++" prot="public">
+    <compoundname>miopenConvAlgoPerf_t</compoundname>
+    <includes refid="miopen_8h" local="no">miopen.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structmiopen_conv_algo_perf__t_1a486ab07b59bb35d3b5c9a5fc91113848" prot="public" static="no" mutable="no">
+        <type><ref refid="group__convolutions_1ga5dd59dc3df4bcf9da4797c6169ad99c3" kindref="member">miopenConvFwdAlgorithm_t</ref></type>
+        <definition>miopenConvFwdAlgorithm_t miopenConvAlgoPerf_t::fwd_algo</definition>
+        <argsstring></argsstring>
+        <name>fwd_algo</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Forward convolution algorithm enum selection </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1199" column="34" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="1199" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmiopen_conv_algo_perf__t_1a85b22349e9f06690e5de6dfa91e78af2" prot="public" static="no" mutable="no">
+        <type><ref refid="group__convolutions_1gaba316771c206839e54419b135027cbee" kindref="member">miopenConvBwdWeightsAlgorithm_t</ref></type>
+        <definition>miopenConvBwdWeightsAlgorithm_t miopenConvAlgoPerf_t::bwd_weights_algo</definition>
+        <argsstring></argsstring>
+        <name>bwd_weights_algo</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Back propagation on weights convolution algorithm enum selection </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1200" column="41" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="1200" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmiopen_conv_algo_perf__t_1a4c4911f1fcbe6e1a189213b577aaec57" prot="public" static="no" mutable="no">
+        <type><ref refid="group__convolutions_1ga774e44db42d175d73c0d87272f6cdc05" kindref="member">miopenConvBwdDataAlgorithm_t</ref></type>
+        <definition>miopenConvBwdDataAlgorithm_t miopenConvAlgoPerf_t::bwd_data_algo</definition>
+        <argsstring></argsstring>
+        <name>bwd_data_algo</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Back propagation on data convolution algorithm enum selection </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1203" column="13" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="1203" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmiopen_conv_algo_perf__t_1ab4985c1de58c5893b33c7ad7476e35c7" prot="public" static="no" mutable="no">
+        <type>union miopenConvAlgoPerf_t::@0</type>
+        <definition>union miopenConvAlgoPerf_t::@0 miopenConvAlgoPerf_t::@1</definition>
+        <argsstring></argsstring>
+        <name>@1</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1204" column="5"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmiopen_conv_algo_perf__t_1a8bb195c7e7d6254048e91646897bdf30" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float miopenConvAlgoPerf_t::time</definition>
+        <argsstring></argsstring>
+        <name>time</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Time to exectued the selected algorithm represented in the union </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1206" column="11" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="1206" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmiopen_conv_algo_perf__t_1a5fc53268011f327751ea0384e0486034" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t miopenConvAlgoPerf_t::memory</definition>
+        <argsstring></argsstring>
+        <name>memory</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Workspace required to run the selected algorithm represented in the union </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1207" column="12" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="1207" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Perf struct for forward, backward filter, or backward data algorithms. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>Contains the union to hold the selected convolution algorithm for forward, or backwards layers, and also contains the time it took to run the algorithm and the workspace required to run the algorithm. The workspace in this structure can be used when executing the convolution layer. </para>
+    </detaileddescription>
+    <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1195" column="1" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="1196" bodyend="1209"/>
+    <listofallmembers>
+      <member refid="structmiopen_conv_algo_perf__t_1a4c4911f1fcbe6e1a189213b577aaec57" prot="public" virt="non-virtual"><scope>miopenConvAlgoPerf_t</scope><name>bwd_data_algo</name></member>
+      <member refid="structmiopen_conv_algo_perf__t_1a85b22349e9f06690e5de6dfa91e78af2" prot="public" virt="non-virtual"><scope>miopenConvAlgoPerf_t</scope><name>bwd_weights_algo</name></member>
+      <member refid="structmiopen_conv_algo_perf__t_1a486ab07b59bb35d3b5c9a5fc91113848" prot="public" virt="non-virtual"><scope>miopenConvAlgoPerf_t</scope><name>fwd_algo</name></member>
+      <member refid="structmiopen_conv_algo_perf__t_1a5fc53268011f327751ea0384e0486034" prot="public" virt="non-virtual"><scope>miopenConvAlgoPerf_t</scope><name>memory</name></member>
+      <member refid="structmiopen_conv_algo_perf__t_1a8bb195c7e7d6254048e91646897bdf30" prot="public" virt="non-virtual"><scope>miopenConvAlgoPerf_t</scope><name>time</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

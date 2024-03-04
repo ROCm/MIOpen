@@ -1,0 +1,78 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structmiopen_conv_solution__t" kind="struct" language="C++" prot="public">
+    <compoundname>miopenConvSolution_t</compoundname>
+    <includes refid="miopen_8h" local="no">miopen.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structmiopen_conv_solution__t_1acaa5c3a144d37d4e2a5216154f9ffa59" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float miopenConvSolution_t::time</definition>
+        <argsstring></argsstring>
+        <name>time</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Represents the approximate time required to execute this solution on the GPU, in milliseconds. This value may either be based on an acutal kernel run or an estimate based on a heuristic. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1221" column="11" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="1221" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmiopen_conv_solution__t_1a884db41bf1a99e248c60c083158f8ae7" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t miopenConvSolution_t::workspace_size</definition>
+        <argsstring></argsstring>
+        <name>workspace_size</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Workspace required to run the selected algorithm represented in the union </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1224" column="12" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="1224" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmiopen_conv_solution__t_1a3e658d77c459c10fad5b33b9d350a468" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t miopenConvSolution_t::solution_id</definition>
+        <argsstring></argsstring>
+        <name>solution_id</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Identifier for the returned solution </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1226" column="14" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="1226" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmiopen_conv_solution__t_1a142ac7ce088639c58f995ed59f79e5db" prot="public" static="no" mutable="no">
+        <type><ref refid="group__convolutions_1ga3ba938002b32a963925c7cfce51ce15a" kindref="member">miopenConvAlgorithm_t</ref></type>
+        <definition>miopenConvAlgorithm_t miopenConvSolution_t::algorithm</definition>
+        <argsstring></argsstring>
+        <name>algorithm</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>The algorithm used to compute the solution </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1227" column="27" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="1227" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Performance struct for forward, backward filter, or backward data algorithms in immediate mode. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>Contains a 64-bit integer identifying the solution and the algorithm for the solution, as well as the runtime, workspace size and a boolean flag indicating whether the returned solution is a heuristic or resulting from an actual run </para>
+    </detaileddescription>
+    <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="1219" column="1" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="1220" bodyend="1229"/>
+    <listofallmembers>
+      <member refid="structmiopen_conv_solution__t_1a142ac7ce088639c58f995ed59f79e5db" prot="public" virt="non-virtual"><scope>miopenConvSolution_t</scope><name>algorithm</name></member>
+      <member refid="structmiopen_conv_solution__t_1a3e658d77c459c10fad5b33b9d350a468" prot="public" virt="non-virtual"><scope>miopenConvSolution_t</scope><name>solution_id</name></member>
+      <member refid="structmiopen_conv_solution__t_1acaa5c3a144d37d4e2a5216154f9ffa59" prot="public" virt="non-virtual"><scope>miopenConvSolution_t</scope><name>time</name></member>
+      <member refid="structmiopen_conv_solution__t_1a884db41bf1a99e248c60c083158f8ae7" prot="public" virt="non-virtual"><scope>miopenConvSolution_t</scope><name>workspace_size</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

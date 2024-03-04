@@ -1,0 +1,256 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="group__layernorm" kind="group">
+    <compoundname>layernorm</compoundname>
+    <title>Layernorm</title>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="group__layernorm_1ga167bb1f70a5625e10295132444bab39d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenLayerNormForward</definition>
+        <argsstring>(miopenHandle_t handle, miopenNormMode_t mode, const miopenTensorDescriptor_t xDesc, const void *x, const miopenTensorDescriptor_t weightDesc, const void *weight, const miopenTensorDescriptor_t biasDesc, const void *bias, const float epsilon, const int32_t normalized_dim, const miopenTensorDescriptor_t yDesc, void *y, const miopenTensorDescriptor_t meanDesc, void *mean, const miopenTensorDescriptor_t rstdDesc, void *rstd)</argsstring>
+        <name>miopenLayerNormForward</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type><ref refid="group__layernorm_1ga996bace523abc82c6847984c34b60d5b" kindref="member">miopenNormMode_t</ref></type>
+          <declname>mode</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>weightDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>weight</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>biasDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>bias</declname>
+        </param>
+        <param>
+          <type>const float</type>
+          <declname>epsilon</declname>
+        </param>
+        <param>
+          <type>const int32_t</type>
+          <declname>normalized_dim</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>yDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>meanDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>mean</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>rstdDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>rstd</declname>
+        </param>
+        <briefdescription>
+<para>Execute a layernorm forward layer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>LayerNorm mode (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>x</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>weightDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor weight (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>weight</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor weight (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>biasDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor bias (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>bias</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor bias (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>epsilon</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Value to stablize inverse variance calculation (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>normalized_dim</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Nomalized dimensions in the input array (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>yDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor y (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>meanDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor mean (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>mean</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor mean (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>rstdDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor rstd (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>rstd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor rstd (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2542" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2542" declcolumn="17"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="group__layernorm_1ga996bace523abc82c6847984c34b60d5b" prot="public" static="no" strong="no">
+        <type></type>
+        <name>miopenNormMode_t</name>
+        <enumvalue id="group__layernorm_1ga996bace523abc82c6847984c34b60d5ba6dafa3af3a93d940670d2e19448a8b4b" prot="public">
+          <name>MIOPEN_ELEMENTWISE_AFFINE</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>initialized to ones for weights and zeros for biases </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__layernorm_1ga996bace523abc82c6847984c34b60d5ba3eb5ec947f41699cc76f26232a6e1101" prot="public">
+          <name>MIOPEN_WEIGHT_BIAS</name>
+          <initializer>=
+        1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>learnable weights and biases of the module of shape normalized_shape </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>LayerNorm mode </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="474" column="1" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="475" bodyend="479"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

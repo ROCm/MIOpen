@@ -1,0 +1,1384 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="group__pooling" kind="group">
+    <compoundname>pooling</compoundname>
+    <title>Pooling</title>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="group__pooling_1gae90132c94469bb7bfbca5498309fe0f8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>MIOPEN_DECLARE_OBJECT</definition>
+        <argsstring>(miopenPoolingDescriptor)</argsstring>
+        <name>MIOPEN_DECLARE_OBJECT</name>
+        <param>
+          <type>miopenPoolingDescriptor</type>
+        </param>
+        <briefdescription>
+<para>Creates the miopenPoolingDescriptor_t type. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Pooling descriptor is an object that allows the user to specify the dimension sizes of the pooling windows, paddings, strides, and pooling mode. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="310" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="310" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__pooling_1gabd7d9b79e9164e8a3c91855c015cc43d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenCreatePoolingDescriptor</definition>
+        <argsstring>(miopenPoolingDescriptor_t *poolDesc)</argsstring>
+        <name>miopenCreatePoolingDescriptor</name>
+        <param>
+          <type>miopenPoolingDescriptor_t *</type>
+          <declname>poolDesc</declname>
+        </param>
+        <briefdescription>
+<para>Creates a pooling layer descriptor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>poolDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a pooling layer descriptor (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2101" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2101" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__pooling_1gac31ae1c8976de3929adaf898c033f8e8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenSetPoolingIndexType</definition>
+        <argsstring>(miopenPoolingDescriptor_t poolDesc, miopenIndexType_t index_type)</argsstring>
+        <name>miopenSetPoolingIndexType</name>
+        <param>
+          <type>miopenPoolingDescriptor_t</type>
+          <declname>poolDesc</declname>
+        </param>
+        <param>
+          <type><ref refid="group__pooling_1ga8428bfacfbe899245b707fa7a6b95547" kindref="member">miopenIndexType_t</ref></type>
+          <declname>index_type</declname>
+        </param>
+        <briefdescription>
+<para>Set index data type for pooling layer. The default indexing type is uint8_t. Users can set the index type to any of the miopenIndexType_t sizes; 8, 16, 32, or 64 bit unsigned integers. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>poolDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a pooling layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>index_type</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Index type (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2111" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2111" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__pooling_1ga8f2bc026ee75ccac3aaaf18b4f2791dd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenGetPoolingIndexType</definition>
+        <argsstring>(miopenPoolingDescriptor_t poolDesc, miopenIndexType_t *index_type)</argsstring>
+        <name>miopenGetPoolingIndexType</name>
+        <param>
+          <type>miopenPoolingDescriptor_t</type>
+          <declname>poolDesc</declname>
+        </param>
+        <param>
+          <type><ref refid="group__pooling_1ga8428bfacfbe899245b707fa7a6b95547" kindref="member">miopenIndexType_t</ref> *</type>
+          <declname>index_type</declname>
+        </param>
+        <briefdescription>
+<para>Get the index data type for pooling layer. The index type to any of the miopenIndexType_t sizes; 8, 16, 32, or 64 bit unsigned integers. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>poolDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a pooling layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>index_type</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Index type (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2121" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2121" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__pooling_1ga05ef9d8e8b8127e468efe2a4310b180f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenSetPoolingWorkSpaceIndexMode</definition>
+        <argsstring>(miopenPoolingDescriptor_t poolDesc, miopenPoolingWorkspaceIndexMode_t workspace_index)</argsstring>
+        <name>miopenSetPoolingWorkSpaceIndexMode</name>
+        <param>
+          <type>miopenPoolingDescriptor_t</type>
+          <declname>poolDesc</declname>
+        </param>
+        <param>
+          <type><ref refid="group__pooling_1ga8f69978be75d6d32dbc172d3a99695e7" kindref="member">miopenPoolingWorkspaceIndexMode_t</ref></type>
+          <declname>workspace_index</declname>
+        </param>
+        <briefdescription>
+<para>Set workspace index mode for pooling layer. The default mode is miopenPoolingWorkSpaceIndexMask. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>poolDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a pooling layer descriptor (input/output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workspace_index</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Workspace index mode (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2131" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2131" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__pooling_1ga6beeb9aba269f016cfeda70390db77b5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenGetPoolingWorkSpaceIndexMode</definition>
+        <argsstring>(miopenPoolingDescriptor_t poolDesc, miopenPoolingWorkspaceIndexMode_t *workspace_index)</argsstring>
+        <name>miopenGetPoolingWorkSpaceIndexMode</name>
+        <param>
+          <type>miopenPoolingDescriptor_t</type>
+          <declname>poolDesc</declname>
+        </param>
+        <param>
+          <type><ref refid="group__pooling_1ga8f69978be75d6d32dbc172d3a99695e7" kindref="member">miopenPoolingWorkspaceIndexMode_t</ref> *</type>
+          <declname>workspace_index</declname>
+        </param>
+        <briefdescription>
+<para>Get workspace index mode for pooling layer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>poolDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a pooling layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workspace_index</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Workspace index mode (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2140" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2140" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__pooling_1ga03b3553e6cc0162c9a31f47cf9cdd4f0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenSet2dPoolingDescriptor</definition>
+        <argsstring>(miopenPoolingDescriptor_t poolDesc, miopenPoolingMode_t mode, int windowHeight, int windowWidth, int pad_h, int pad_w, int stride_h, int stride_w)</argsstring>
+        <name>miopenSet2dPoolingDescriptor</name>
+        <param>
+          <type>miopenPoolingDescriptor_t</type>
+          <declname>poolDesc</declname>
+        </param>
+        <param>
+          <type><ref refid="group__pooling_1ga4243bc20d51988902e2e22a5d2b6bb5c" kindref="member">miopenPoolingMode_t</ref></type>
+          <declname>mode</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>windowHeight</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>windowWidth</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>pad_h</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>pad_w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>stride_h</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>stride_w</declname>
+        </param>
+        <briefdescription>
+<para>Sets a 2-D pooling layer descriptor details. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Sets the window shape, padding, and stride for a previously created 2-D pooling descriptor.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>poolDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a pooling layer descriptor (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pooling mode enum (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>windowHeight</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Input window height dimension (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>windowWidth</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Input window width dimension (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>pad_h</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of elements to pad height (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>pad_w</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of elements to pad width (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>stride_h</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Vertical stride (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>stride_w</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Horizontal stride (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2157" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2157" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__pooling_1gad72feef4d7d5e37044b61c221bd1e2a9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenGet2dPoolingDescriptor</definition>
+        <argsstring>(const miopenPoolingDescriptor_t poolDesc, miopenPoolingMode_t *mode, int *windowHeight, int *windowWidth, int *pad_h, int *pad_w, int *stride_h, int *stride_w)</argsstring>
+        <name>miopenGet2dPoolingDescriptor</name>
+        <param>
+          <type>const miopenPoolingDescriptor_t</type>
+          <declname>poolDesc</declname>
+        </param>
+        <param>
+          <type><ref refid="group__pooling_1ga4243bc20d51988902e2e22a5d2b6bb5c" kindref="member">miopenPoolingMode_t</ref> *</type>
+          <declname>mode</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>windowHeight</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>windowWidth</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>pad_h</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>pad_w</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>stride_h</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>stride_w</declname>
+        </param>
+        <briefdescription>
+<para>Gets a 2-D pooling layer descriptor details. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Gets the window shape, padding, and stride for a previously created 2-D pooling descriptor.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>poolDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a pooling layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pooling mode enum (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>windowHeight</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Input window height dimension (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>windowWidth</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Input window width dimension (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>pad_h</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of elements to pad height (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>pad_w</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of elements to pad width (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>stride_h</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Vertical stride (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>stride_w</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Horizontal stride (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2180" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2180" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__pooling_1ga1198df51381b094021aee5b1a1a05e3a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenGetPoolingForwardOutputDim</definition>
+        <argsstring>(const miopenPoolingDescriptor_t poolDesc, const miopenTensorDescriptor_t tensorDesc, int *n, int *c, int *h, int *w)</argsstring>
+        <name>miopenGetPoolingForwardOutputDim</name>
+        <param>
+          <type>const miopenPoolingDescriptor_t</type>
+          <declname>poolDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>tensorDesc</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>c</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>w</declname>
+        </param>
+        <briefdescription>
+<para>Gets the shape of the output tensor for 2-D pooling. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Retrieve the tensor dimensions for the forward 2-D pooling. This call is required for the forward if the output dimensions are different than the input tensor dimensions.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>poolDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a pooling layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>tensorDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Input tensor descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>n</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Mini-batch dim (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>c</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of channels (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>h</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Heights of input map (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>w</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Width of input map (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2204" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2204" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__pooling_1ga2c3fa7681fe3535180eaa89ba48eea3b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenSetNdPoolingDescriptor</definition>
+        <argsstring>(miopenPoolingDescriptor_t poolDesc, const miopenPoolingMode_t mode, int nbDims, const int *windowDimA, const int *padA, const int *stridesA)</argsstring>
+        <name>miopenSetNdPoolingDescriptor</name>
+        <param>
+          <type>miopenPoolingDescriptor_t</type>
+          <declname>poolDesc</declname>
+        </param>
+        <param>
+          <type>const <ref refid="group__pooling_1ga4243bc20d51988902e2e22a5d2b6bb5c" kindref="member">miopenPoolingMode_t</ref></type>
+          <declname>mode</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>nbDims</declname>
+        </param>
+        <param>
+          <type>const int *</type>
+          <declname>windowDimA</declname>
+        </param>
+        <param>
+          <type>const int *</type>
+          <declname>padA</declname>
+        </param>
+        <param>
+          <type>const int *</type>
+          <declname>stridesA</declname>
+        </param>
+        <briefdescription>
+<para>Set details of a N-D pooling layer descriptor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Set the window shape, padding, and stride for a previously created N-D pooling descriptor.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>poolDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a pooling layer descriptor (input/output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pooling mode enum (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>nbDims</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Dimension of the pooling (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>windowDimA</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Array of input window dimensions with length equal to or larger than dimsRequested (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>padA</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Array of number of elements to padding with length equal to or larger than dimsRequested (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>stridesA</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Array of stride parameter with length equal to or larger than dimsRequested (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2226" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2226" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__pooling_1gabc760e40557710fe52cafde0cbfdfcf3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenGetNdPoolingDescriptor</definition>
+        <argsstring>(const miopenPoolingDescriptor_t poolDesc, int nbDimsRequested, miopenPoolingMode_t *mode, int *nbDims, int *windowDimA, int *padA, int *stridesA)</argsstring>
+        <name>miopenGetNdPoolingDescriptor</name>
+        <param>
+          <type>const miopenPoolingDescriptor_t</type>
+          <declname>poolDesc</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>nbDimsRequested</declname>
+        </param>
+        <param>
+          <type><ref refid="group__pooling_1ga4243bc20d51988902e2e22a5d2b6bb5c" kindref="member">miopenPoolingMode_t</ref> *</type>
+          <declname>mode</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>nbDims</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>windowDimA</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>padA</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>stridesA</declname>
+        </param>
+        <briefdescription>
+<para>Get details of a N-D pooling layer descriptor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Get the window shape, padding, and stride for a previously created N-D pooling descriptor.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>poolDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a pooling layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>nbDimsRequested</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Dimension of the expected pooling descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pooling mode enum (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>nbDims</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Actual dimension of the pooling descriptor (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>windowDimA</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Array of input window dimensions with length equal to or larger than dimsRequested (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>padA</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Array of number of elements to padding with length equal to or larger than dimsRequested (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>stridesA</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Array of stride parameter with length equal to or larger than dimsRequested (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2249" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2249" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__pooling_1gab70ecbdc8d96942b78b0f3ca785114d6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenGetPoolingNdForwardOutputDim</definition>
+        <argsstring>(const miopenPoolingDescriptor_t poolDesc, const miopenTensorDescriptor_t tensorDesc, int dims, int *tensorDimArr)</argsstring>
+        <name>miopenGetPoolingNdForwardOutputDim</name>
+        <param>
+          <type>const miopenPoolingDescriptor_t</type>
+          <declname>poolDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>tensorDesc</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>dims</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>tensorDimArr</declname>
+        </param>
+        <briefdescription>
+<para>Gets the shape of the output tensor for N-D pooling. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Retrieve the tensor dimensions for the forward N-D pooling. This call is required for the forward if the output dimensions are different than the input tensor dimensions.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>poolDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a pooling layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>tensorDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Input tensor descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dims</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Dimension of the pooling (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>tensorDimArr</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Array of tensor dimension (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2270" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2270" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__pooling_1ga23a4bf9e5cf91da0765c2c386b8aaab6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenPoolingGetWorkSpaceSize</definition>
+        <argsstring>(const miopenTensorDescriptor_t yDesc, size_t *workSpaceSize)</argsstring>
+        <name>miopenPoolingGetWorkSpaceSize</name>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>yDesc</declname>
+        </param>
+        <param>
+          <type>size_t *</type>
+          <declname>workSpaceSize</declname>
+        </param>
+        <briefdescription>
+<para>Get the amount of GPU memory required for pooling. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Retrieves the amount of workspace in bytes require for pooling. This call is required to determine the amount of GPU memory needed for the backwards pooling algorithms. For max- pooling, an assumption is that index data type is uint8_t, therefore the returned workspace size will be based on this assumption even if the user sets the index type with <ref refid="group__pooling_1gac31ae1c8976de3929adaf898c033f8e8" kindref="member">miopenSetPoolingIndexType()</ref>.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>yDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Descriptor for pooling layer (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpaceSize</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to workSpaceSize (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2287" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2287" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__pooling_1ga5a8b1812384cb03b5eb4437950e2f334" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenPoolingGetWorkSpaceSizeV2</definition>
+        <argsstring>(const miopenPoolingDescriptor_t poolDesc, const miopenTensorDescriptor_t yDesc, size_t *workSpaceSize)</argsstring>
+        <name>miopenPoolingGetWorkSpaceSizeV2</name>
+        <param>
+          <type>const miopenPoolingDescriptor_t</type>
+          <declname>poolDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>yDesc</declname>
+        </param>
+        <param>
+          <type>size_t *</type>
+          <declname>workSpaceSize</declname>
+        </param>
+        <briefdescription>
+<para>Get the amount of GPU memory required for pooling. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Retrieves the amount of workspace in bytes require for pooling. This call is required to determine the amount of GPU memory needed for the backwards pooling algorithms. For max- pooling, there is no assumption on index data type. As the user can set the index datatype size using <ref refid="group__pooling_1gac31ae1c8976de3929adaf898c033f8e8" kindref="member">miopenSetPoolingIndexType()</ref>.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>poolDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a pooling layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>yDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Descriptor for pooling layer (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpaceSize</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to workSpaceSize (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2303" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2303" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__pooling_1ga2f64eee5653500719bfd0badb98aad86" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenPoolingForward</definition>
+        <argsstring>(miopenHandle_t handle, const miopenPoolingDescriptor_t poolDesc, const void *alpha, const miopenTensorDescriptor_t xDesc, const void *x, const void *beta, const miopenTensorDescriptor_t yDesc, void *y, bool do_backward, void *workSpace, size_t workSpaceSize)</argsstring>
+        <name>miopenPoolingForward</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenPoolingDescriptor_t</type>
+          <declname>poolDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>alpha</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>beta</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>yDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>do_backward</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>workSpace</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>workSpaceSize</declname>
+        </param>
+        <briefdescription>
+<para>Execute a forward pooling layer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Runs forward pooling. <ref refid="group__pooling_1ga1198df51381b094021aee5b1a1a05e3a" kindref="member">miopenGetPoolingForwardOutputDim()</ref> should be called before <ref refid="group__pooling_1ga2f64eee5653500719bfd0badb98aad86" kindref="member">miopenPoolingForward()</ref>. If the parameter do_backward == 0, then set workSpace = nullptr and workSpaceSize = 0. However, for back-propagation do_backwards must be set to 1 in <ref refid="group__pooling_1ga2f64eee5653500719bfd0badb98aad86" kindref="member">miopenPoolingForward()</ref>.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>poolDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Descriptor for pooling layer (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>alpha</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point scaling factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>x</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>beta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point shift factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>yDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor y (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>do_backward</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Boolean to toggle save data in workspace for backwards pass (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpace</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer user allocated memory (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpaceSize</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Size in bytes of the memory needed (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2327" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2327" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__pooling_1gaf0f319af071fe15254d800bb3e452f20" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenPoolingBackward</definition>
+        <argsstring>(miopenHandle_t handle, const miopenPoolingDescriptor_t poolDesc, const void *alpha, const miopenTensorDescriptor_t yDesc, const void *y, const miopenTensorDescriptor_t dyDesc, const void *dy, const miopenTensorDescriptor_t xDesc, const void *x, const void *beta, const miopenTensorDescriptor_t dxDesc, void *dx, void *workSpace)</argsstring>
+        <name>miopenPoolingBackward</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenPoolingDescriptor_t</type>
+          <declname>poolDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>alpha</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>yDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dyDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>dy</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>beta</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dxDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>dx</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>workSpace</declname>
+        </param>
+        <briefdescription>
+<para>Execute a backward pooling layer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Runs backward pooling. <ref refid="group__pooling_1ga23a4bf9e5cf91da0765c2c386b8aaab6" kindref="member">miopenPoolingGetWorkSpaceSize()</ref> must be called before <ref refid="group__pooling_1gaf0f319af071fe15254d800bb3e452f20" kindref="member">miopenPoolingBackward()</ref> to determine the amount of workSpace to be allocated.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>poolDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Descriptor for pooling layer (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>alpha</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point scaling factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>yDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dyDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data delta tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>x</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor x (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>beta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point shift factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dxDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for tensor dx (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Weights delta tensor dx (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>workSpace</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to user allocated workspace (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2359" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2359" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__pooling_1gae7ea63b05752da3fba82a6dca1de65b4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenDestroyPoolingDescriptor</definition>
+        <argsstring>(miopenPoolingDescriptor_t poolDesc)</argsstring>
+        <name>miopenDestroyPoolingDescriptor</name>
+        <param>
+          <type>miopenPoolingDescriptor_t</type>
+          <declname>poolDesc</declname>
+        </param>
+        <briefdescription>
+<para>Destroys the pooling descriptor object. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>poolDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pooling tensor descriptor type (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2378" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2378" declcolumn="17"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="group__pooling_1ga8428bfacfbe899245b707fa7a6b95547" prot="public" static="no" strong="no">
+        <type></type>
+        <name>miopenIndexType_t</name>
+        <enumvalue id="group__pooling_1ga8428bfacfbe899245b707fa7a6b95547ae75cb44f2c20e2fb87b3222b8b7ebc8b" prot="public">
+          <name>miopenIndexUint8</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>8-bit unsigned </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__pooling_1ga8428bfacfbe899245b707fa7a6b95547a2020981e0bbe101614506772aa324a73" prot="public">
+          <name>miopenIndexUint16</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>16-bit unsigned </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__pooling_1ga8428bfacfbe899245b707fa7a6b95547ab1fa80c8eafef2fe983e52210be8c260" prot="public">
+          <name>miopenIndexUint32</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>32-bit unsigned </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__pooling_1ga8428bfacfbe899245b707fa7a6b95547a4539c9a6e12c960e90ff1ffe388fdcdd" prot="public">
+          <name>miopenIndexUint64</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>64-bit unsigned </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>MIOpen index datatypes. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="394" column="1" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="395" bodyend="400"/>
+      </memberdef>
+      <memberdef kind="enum" id="group__pooling_1ga4243bc20d51988902e2e22a5d2b6bb5c" prot="public" static="no" strong="no">
+        <type></type>
+        <name>miopenPoolingMode_t</name>
+        <enumvalue id="group__pooling_1ga4243bc20d51988902e2e22a5d2b6bb5cad4f167bcecbd60fb7078fb97aaffd3fc" prot="public">
+          <name>miopenPoolingMax</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Maximum pooling </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__pooling_1ga4243bc20d51988902e2e22a5d2b6bb5ca3964ddda768df3b127079997346bfe89" prot="public">
+          <name>miopenPoolingAverage</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Average pooling </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__pooling_1ga4243bc20d51988902e2e22a5d2b6bb5caa060d79a20d907b13a9ecc2a77e88c44" prot="public">
+          <name>miopenPoolingAverageInclusive</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Inclusive Average pooling </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Pooling layer mode </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="441" column="1" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="442" bodyend="446"/>
+      </memberdef>
+      <memberdef kind="enum" id="group__pooling_1ga8f69978be75d6d32dbc172d3a99695e7" prot="public" static="no" strong="no">
+        <type></type>
+        <name>miopenPoolingWorkspaceIndexMode_t</name>
+        <enumvalue id="group__pooling_1ga8f69978be75d6d32dbc172d3a99695e7aa18c786f4a9f7ca40cb70395d5d9aeaa" prot="public">
+          <name>miopenPoolingWorkspaceIndexMask</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Use mask indices, 2D pooling only </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__pooling_1ga8f69978be75d6d32dbc172d3a99695e7a962adb90a1876eb3980c39d5a9247a38" prot="public">
+          <name>miopenPoolingWorkspaceIndexImage</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Use image indices </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Pooling layer workspace index mode. miopenPoolingWorkspaceIndexMask mode records indices indicating the max values&apos; positions in the filter/mask. miopenPoolingWorkspaceIndexImage mode records indices indicating the max values&apos; positions in the image. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="454" column="1" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="455" bodyend="458"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

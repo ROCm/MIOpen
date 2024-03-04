@@ -1,0 +1,799 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="group__dropout" kind="group">
+    <compoundname>dropout</compoundname>
+    <title>Dropout</title>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="group__dropout_1ga283a437b36e9ed35ce7b80490de4d15d" prot="public" static="no" strong="no">
+        <type></type>
+        <name>miopenRNGType_t</name>
+        <enumvalue id="group__dropout_1gga283a437b36e9ed35ce7b80490de4d15daeda0fbe383a397b303a6ab43efa5967e" prot="public">
+          <name>MIOPEN_RNG_PSEUDO_XORWOW</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>XORWOW pseudorandom generator </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>random number generator type </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="4955" column="1" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="4956" bodyend="4958"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="group__dropout_1gabd41a45a7c2f7785eb124080071e9e69" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenCreateDropoutDescriptor</definition>
+        <argsstring>(miopenDropoutDescriptor_t *dropoutDesc)</argsstring>
+        <name>miopenCreateDropoutDescriptor</name>
+        <param>
+          <type>miopenDropoutDescriptor_t *</type>
+          <declname>dropoutDesc</declname>
+        </param>
+        <briefdescription>
+<para>Creates the dropout descriptor object. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>dropoutDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a dropout descriptor type </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="4965" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="4965" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__dropout_1ga053288f154f85d8695f3825853d7b44e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenDestroyDropoutDescriptor</definition>
+        <argsstring>(miopenDropoutDescriptor_t dropoutDesc)</argsstring>
+        <name>miopenDestroyDropoutDescriptor</name>
+        <param>
+          <type>miopenDropoutDescriptor_t</type>
+          <declname>dropoutDesc</declname>
+        </param>
+        <briefdescription>
+<para>Destroys the dropout descriptor object. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>dropoutDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Dropout descriptor type (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="4972" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="4972" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__dropout_1ga7a1ea2d1245dd07eaf7ec2c59e19e842" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenDropoutGetReserveSpaceSize</definition>
+        <argsstring>(const miopenTensorDescriptor_t xDesc, size_t *reserveSpaceSizeInBytes)</argsstring>
+        <name>miopenDropoutGetReserveSpaceSize</name>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>size_t *</type>
+          <declname>reserveSpaceSizeInBytes</declname>
+        </param>
+        <briefdescription>
+<para>Query the amount of memory required to run dropout. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This function calculates the amount of memory required to run dropout. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>reserveSpaceSizeInBytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of bytes of reservespace required for executing dropout (Output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="4982" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="4982" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__dropout_1ga323bbd149e25ef334cb4b52ef4e57a1c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenDropoutGetStatesSize</definition>
+        <argsstring>(miopenHandle_t handle, size_t *stateSizeInBytes)</argsstring>
+        <name>miopenDropoutGetStatesSize</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>size_t *</type>
+          <declname>stateSizeInBytes</declname>
+        </param>
+        <briefdescription>
+<para>Query the amount of memory required to store the states of the random number generators. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This function calculates the amount of memory required to store the states of the random number generators used by miopenDropoutForward. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>stateSizeInBytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of bytes required to store random generator states (Output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="4993" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="4993" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__dropout_1gaabb82ee87a6e073d3acfc95b242fdbb8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenGetDropoutDescriptor</definition>
+        <argsstring>(miopenDropoutDescriptor_t dropoutDesc, miopenHandle_t handle, float *dropout, void **states, unsigned long long *seed, bool *use_mask, bool *state_evo, miopenRNGType_t *rng_mode)</argsstring>
+        <name>miopenGetDropoutDescriptor</name>
+        <param>
+          <type>miopenDropoutDescriptor_t</type>
+          <declname>dropoutDesc</declname>
+        </param>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>float *</type>
+          <declname>dropout</declname>
+        </param>
+        <param>
+          <type>void **</type>
+          <declname>states</declname>
+        </param>
+        <param>
+          <type>unsigned long long *</type>
+          <declname>seed</declname>
+        </param>
+        <param>
+          <type>bool *</type>
+          <declname>use_mask</declname>
+        </param>
+        <param>
+          <type>bool *</type>
+          <declname>state_evo</declname>
+        </param>
+        <param>
+          <type><ref refid="group__dropout_1ga283a437b36e9ed35ce7b80490de4d15d" kindref="member">miopenRNGType_t</ref> *</type>
+          <declname>rng_mode</declname>
+        </param>
+        <briefdescription>
+<para>Get the details of the dropout descriptor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Interface for querying the dropout descriptor <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>dropoutDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Dropout layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dropout</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The probability by which the input is set to 0 in the dropout layer (Output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>states</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to memory that holds random number generator states (Output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>seed</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Seed used to initialize random number generator states (Output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>use_mask</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Boolean flag indicating whether to use a saved mask (an existing or user-defined dropout layout) in reserveSpace (Output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>state_evo</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Boolean flag indicating whether to adopt state evolution strategy to update the PRNG states by the end of each implementation (Output placeholder, currently not enabled) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>rng_mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Random number generator used to generate parallel random number sequences (Output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="5012" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="5012" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__dropout_1gad0b1c52d5641f0fb09f6baf17b7d051f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenRestoreDropoutDescriptor</definition>
+        <argsstring>(miopenDropoutDescriptor_t dropoutDesc, miopenHandle_t handle, float dropout, void *states, size_t stateSizeInBytes, unsigned long long seed, bool use_mask, bool state_evo, miopenRNGType_t rng_mode)</argsstring>
+        <name>miopenRestoreDropoutDescriptor</name>
+        <param>
+          <type>miopenDropoutDescriptor_t</type>
+          <declname>dropoutDesc</declname>
+        </param>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>dropout</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>states</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>stateSizeInBytes</declname>
+        </param>
+        <param>
+          <type>unsigned long long</type>
+          <declname>seed</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>use_mask</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>state_evo</declname>
+        </param>
+        <param>
+          <type><ref refid="group__dropout_1ga283a437b36e9ed35ce7b80490de4d15d" kindref="member">miopenRNGType_t</ref></type>
+          <declname>rng_mode</declname>
+        </param>
+        <briefdescription>
+<para>Restore the dropout descriptor to a saved state. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This function restores the state of dropout descriptor using the address of a state buffer with previously saved PRNG state pattern, without launching the expensive PRNG initialization process.</para>
+<para>Interface for restoring the dropout descriptor <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>dropoutDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Dropout layer descriptor (input/Output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dropout</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The probability by which the input is set to 0 in the dropout layer (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>states</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to memory that holds random number generator states (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>stateSizeInBytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of bytes holding random generator states (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>seed</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Seed used to initialize random number generator states (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>use_mask</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Boolean flag indicating whether to use a saved mask (an existing or user-defined dropout layout) in reserveSpace (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>state_evo</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Boolean flag indicating whether to adopt state evolution strategy to update the PRNG states by the end of each implementation (input placeholder, currently not enabled) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>rng_mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Random number generator used to generate parallel random number sequences (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="5043" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="5043" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__dropout_1gae60f56b35fd49b562141d8e00b1a20e7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenSetDropoutDescriptor</definition>
+        <argsstring>(miopenDropoutDescriptor_t dropoutDesc, miopenHandle_t handle, float dropout, void *states, size_t stateSizeInBytes, unsigned long long seed, bool use_mask, bool state_evo, miopenRNGType_t rng_mode)</argsstring>
+        <name>miopenSetDropoutDescriptor</name>
+        <param>
+          <type>miopenDropoutDescriptor_t</type>
+          <declname>dropoutDesc</declname>
+        </param>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>dropout</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>states</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>stateSizeInBytes</declname>
+        </param>
+        <param>
+          <type>unsigned long long</type>
+          <declname>seed</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>use_mask</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>state_evo</declname>
+        </param>
+        <param>
+          <type><ref refid="group__dropout_1ga283a437b36e9ed35ce7b80490de4d15d" kindref="member">miopenRNGType_t</ref></type>
+          <declname>rng_mode</declname>
+        </param>
+        <briefdescription>
+<para>Initialize the dropout descriptor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Interface for setting up the dropout descriptor <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>dropoutDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Dropout layer descriptor (input/Output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dropout</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The probability by which the input is set to 0 in the dropout layer (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>states</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to memory that holds random number generator states (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>stateSizeInBytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of bytes provided for random generator states (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>seed</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Seed used to initialize random number generator states (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>use_mask</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Boolean flag indicating whether to use a saved mask (an existing or user-defined dropout layout) in reserveSpace (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>state_evo</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Boolean flag indicating whether to adopt state evolution strategy to update the PRNG states by the end of each implementation (input placeholder, currently not enabled) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>rng_mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Random number generator used to generate parallel random number sequences (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="5072" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="5072" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__dropout_1gaa695ad520fe252a47102bb49c56b52a5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenDropoutForward</definition>
+        <argsstring>(miopenHandle_t handle, const miopenDropoutDescriptor_t dropoutDesc, const miopenTensorDescriptor_t noise_shape, const miopenTensorDescriptor_t xDesc, const void *x, const miopenTensorDescriptor_t yDesc, void *y, void *reserveSpace, size_t reserveSpaceSizeInBytes)</argsstring>
+        <name>miopenDropoutForward</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenDropoutDescriptor_t</type>
+          <declname>dropoutDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>noise_shape</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>yDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>reserveSpace</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>reserveSpaceSizeInBytes</declname>
+        </param>
+        <briefdescription>
+<para>Execute forward dropout operation. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Interface for executing the forward pass on a Dropout. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dropoutDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Dropout layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>noise_shape</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for noise shape (input placeholder, currently not enabled) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>x</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>yDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor y (Output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>reserveSpace</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to memory allocated for executing forward dropout, expecting reserveSpace unchanged before next call of miopenDropoutBackward (Output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>reserveSpaceSizeInBytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of bytes of reservespace required for executing forward dropout (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="5099" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="5099" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__dropout_1gac0a6cf12640c7a959a27412b8304954b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenDropoutBackward</definition>
+        <argsstring>(miopenHandle_t handle, const miopenDropoutDescriptor_t dropoutDesc, const miopenTensorDescriptor_t noise_shape, const miopenTensorDescriptor_t dyDesc, const void *dy, const miopenTensorDescriptor_t dxDesc, void *dx, void *reserveSpace, size_t reserveSpaceSizeInBytes)</argsstring>
+        <name>miopenDropoutBackward</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenDropoutDescriptor_t</type>
+          <declname>dropoutDesc</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>noise_shape</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dyDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>dy</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dxDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>dx</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>reserveSpace</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>reserveSpaceSizeInBytes</declname>
+        </param>
+        <briefdescription>
+<para>Execute backward dropout operation. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Interface for executing the backward pass on a Dropout. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dropoutDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Dropout layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>noise_shape</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for noise shape (input placeholder, currently not enabled) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dyDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data delta tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data delta tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dxDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data delta tensor dx (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data delta tensor dx (Output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>reserveSpace</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to memory allocated for executing backward dropout, expecting reserveSpace unchanged after previous call of miopenDropoutForward (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>reserveSpaceSizeInBytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of bytes of reservespace required for executing backward dropout (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="5126" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="5126" declcolumn="17"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

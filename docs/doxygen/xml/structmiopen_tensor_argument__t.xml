@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structmiopen_tensor_argument__t" kind="struct" language="C++" prot="public">
+    <compoundname>miopenTensorArgument_t</compoundname>
+    <includes refid="miopen_8h" local="no">miopen.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structmiopen_tensor_argument__t_1a139891645dcfb2960e7387cd53615b2f" prot="public" static="no" mutable="no">
+        <type><ref refid="group__find2_1ga9aadaf9e83bdc5303cfb58955514502c" kindref="member">miopenTensorArgumentId_t</ref></type>
+        <definition>miopenTensorArgumentId_t miopenTensorArgument_t::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="5454" column="30" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="5454" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmiopen_tensor_argument__t_1adff7d1c55a579d4181c9c07d941a10b5" prot="public" static="no" mutable="no">
+        <type>miopenTensorDescriptor_t *</type>
+        <definition>miopenTensorDescriptor_t* miopenTensorArgument_t::descriptor</definition>
+        <argsstring></argsstring>
+        <name>descriptor</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="5460" column="30" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="5460" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmiopen_tensor_argument__t_1ad009cbec445ff4b67be61ab4331670e7" prot="public" static="no" mutable="no">
+        <type>void *</type>
+        <definition>void* miopenTensorArgument_t::buffer</definition>
+        <argsstring></argsstring>
+        <name>buffer</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="5463" column="10" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="5463" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Values of a tensor argument for the miopenRunSolution function. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="5450" column="1" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="5451" bodyend="5464"/>
+    <listofallmembers>
+      <member refid="structmiopen_tensor_argument__t_1ad009cbec445ff4b67be61ab4331670e7" prot="public" virt="non-virtual"><scope>miopenTensorArgument_t</scope><name>buffer</name></member>
+      <member refid="structmiopen_tensor_argument__t_1adff7d1c55a579d4181c9c07d941a10b5" prot="public" virt="non-virtual"><scope>miopenTensorArgument_t</scope><name>descriptor</name></member>
+      <member refid="structmiopen_tensor_argument__t_1a139891645dcfb2960e7387cd53615b2f" prot="public" virt="non-virtual"><scope>miopenTensorArgument_t</scope><name>id</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

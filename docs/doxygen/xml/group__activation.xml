@@ -1,0 +1,632 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="group__activation" kind="group">
+    <compoundname>activation</compoundname>
+    <title>Activation</title>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="group__activation_1ga9f091c54e4e21e6ae53ab058be2d658f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>MIOPEN_DECLARE_OBJECT</definition>
+        <argsstring>(miopenActivationDescriptor)</argsstring>
+        <name>MIOPEN_DECLARE_OBJECT</name>
+        <param>
+          <type>miopenActivationDescriptor</type>
+        </param>
+        <briefdescription>
+<para>Creates the miopenActivationDescriptor_t type. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Activation descriptor is an object that allows the user to specify the activation mode. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="327" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="327" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__activation_1ga92c0d5c8719120d3ade6a83f9c35c4af" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenCreateActivationDescriptor</definition>
+        <argsstring>(miopenActivationDescriptor_t *activDesc)</argsstring>
+        <name>miopenCreateActivationDescriptor</name>
+        <param>
+          <type>miopenActivationDescriptor_t *</type>
+          <declname>activDesc</declname>
+        </param>
+        <briefdescription>
+<para>Creates the Activation descriptor object. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>activDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to an activation tensor descriptor type </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2789" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2789" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__activation_1ga91813317a3b87f4b6aaaa960a2cfc58a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenSetActivationDescriptor</definition>
+        <argsstring>(const miopenActivationDescriptor_t activDesc, miopenActivationMode_t mode, double activAlpha, double activBeta, double activGamma)</argsstring>
+        <name>miopenSetActivationDescriptor</name>
+        <param>
+          <type>const miopenActivationDescriptor_t</type>
+          <declname>activDesc</declname>
+        </param>
+        <param>
+          <type><ref refid="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6" kindref="member">miopenActivationMode_t</ref></type>
+          <declname>mode</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>activAlpha</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>activBeta</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>activGamma</declname>
+        </param>
+        <briefdescription>
+<para>Sets the activation layer descriptor details. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Sets all of the descriptor details for the activation layer</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>activDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a activation layer descriptor (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Activation mode enum (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>activAlpha</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Alpha value for some activation modes (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>activBeta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Beta value for some activation modes (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>activGamma</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Gamma value for some activation modes (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2803" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2803" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__activation_1gac2a4025376e08329662ebb982e037def" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenGetActivationDescriptor</definition>
+        <argsstring>(const miopenActivationDescriptor_t activDesc, miopenActivationMode_t *mode, double *activAlpha, double *activBeta, double *activGamma)</argsstring>
+        <name>miopenGetActivationDescriptor</name>
+        <param>
+          <type>const miopenActivationDescriptor_t</type>
+          <declname>activDesc</declname>
+        </param>
+        <param>
+          <type><ref refid="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6" kindref="member">miopenActivationMode_t</ref> *</type>
+          <declname>mode</declname>
+        </param>
+        <param>
+          <type>double *</type>
+          <declname>activAlpha</declname>
+        </param>
+        <param>
+          <type>double *</type>
+          <declname>activBeta</declname>
+        </param>
+        <param>
+          <type>double *</type>
+          <declname>activGamma</declname>
+        </param>
+        <briefdescription>
+<para>Gets the activation layer descriptor details. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Retrieves all of the descriptor details for the activation layer.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>activDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a activation layer descriptor (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Activation mode enum (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>activAlpha</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Alpha value for some activation modes (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>activBeta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Beta value for some activation modes (output) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>activGamma</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Gamma value for some activation modes (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2821" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2821" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="group__activation_1ga33971a83fd4a33df97f790421c208d49" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenActivationForward</definition>
+        <argsstring>(miopenHandle_t handle, const miopenActivationDescriptor_t activDesc, const void *alpha, const miopenTensorDescriptor_t xDesc, const void *x, const void *beta, const miopenTensorDescriptor_t yDesc, void *y)</argsstring>
+        <name>miopenActivationForward</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenActivationDescriptor_t</type>
+          <declname>activDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>alpha</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>beta</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>yDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>y</declname>
+        </param>
+        <briefdescription>
+<para>Execute an activation forward layer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>activDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Descriptor for activation layer (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>alpha</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point scaling factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>x</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>beta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point shift factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>yDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for output data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor y (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2839" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2839" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__activation_1ga4f43724d9ab601a14d1355cc3e4ba8ce" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenActivationBackward</definition>
+        <argsstring>(miopenHandle_t handle, const miopenActivationDescriptor_t activDesc, const void *alpha, const miopenTensorDescriptor_t yDesc, const void *y, const miopenTensorDescriptor_t dyDesc, const void *dy, const miopenTensorDescriptor_t xDesc, const void *x, const void *beta, const miopenTensorDescriptor_t dxDesc, void *dx)</argsstring>
+        <name>miopenActivationBackward</name>
+        <param>
+          <type>miopenHandle_t</type>
+          <declname>handle</declname>
+        </param>
+        <param>
+          <type>const miopenActivationDescriptor_t</type>
+          <declname>activDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>alpha</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>yDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dyDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>dy</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>xDesc</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>beta</declname>
+        </param>
+        <param>
+          <type>const miopenTensorDescriptor_t</type>
+          <declname>dxDesc</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>dx</declname>
+        </param>
+        <briefdescription>
+<para>Execute a activation backwards layer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>handle</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>MIOpen handle (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>activDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Descriptor for activation layer (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>alpha</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point scaling factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>yDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for input data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor y (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dyDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for input data tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data delta tensor dy (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>xDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data input tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>x</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data tensor x (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>beta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Floating point shift factor, allocated on the host (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dxDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Tensor descriptor for data output tensor dx (input) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Output data delta tensor dx (output) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2864" column="17" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2864" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="group__activation_1gae281c7cc4e97934b57cbedd6c73c3133" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6" kindref="member">miopenStatus_t</ref></type>
+        <definition>miopenStatus_t miopenDestroyActivationDescriptor</definition>
+        <argsstring>(miopenActivationDescriptor_t activDesc)</argsstring>
+        <name>miopenDestroyActivationDescriptor</name>
+        <param>
+          <type>miopenActivationDescriptor_t</type>
+          <declname>activDesc</declname>
+        </param>
+        <briefdescription>
+<para>Destroys the activation descriptor object. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>activDesc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Activation tensor descriptor type (input) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>miopenStatus_t </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="2883" column="1" declfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" declline="2883" declcolumn="1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6" prot="public" static="no" strong="no">
+        <type></type>
+        <name>miopenActivationMode_t</name>
+        <enumvalue id="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6a3a85417a19911daeecf6e9e5f8952d3b" prot="public">
+          <name>miopenActivationPASTHRU</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>No activation, pass through the data </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6a4a7e7a529bed5bc42fc4966d47ea29b4" prot="public">
+          <name>miopenActivationLOGISTIC</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Sigmoid function: <formula id="4">$1 / (1 + e^{-x})$</formula> </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6aebc2804e6806816dc8db6554d0c670b2" prot="public">
+          <name>miopenActivationTANH</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Tanh activation <formula id="5">$ \beta * tanh( \alpha * x) $</formula> </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6a66fb3d3c74e40e1e1a460fb409be62c0" prot="public">
+          <name>miopenActivationRELU</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Rectified Linear Unit <formula id="6">$ max(0, x) $</formula> </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6ad022a217df2f21174c4d515294f0e727" prot="public">
+          <name>miopenActivationSOFTRELU</name>
+          <initializer>= 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para><formula id="7">$log(1 + e^x)$</formula> </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6a481c9203a79996016e88e0b1baee55b5" prot="public">
+          <name>miopenActivationABS</name>
+          <initializer>= 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Absolute value <formula id="8">$abs(x)$</formula> </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6a7dbe18fe7783fcf9bb4e46d34b8e1d51" prot="public">
+          <name>miopenActivationPOWER</name>
+          <initializer>= 6</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Scaled and shifted power <formula id="9">$(\alpha + \beta * x)^{gamma}$</formula> </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6a5ac41058b9593346704ed86235228f4b" prot="public">
+          <name>miopenActivationCLIPPEDRELU</name>
+          <initializer>=
+        7</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Clipped Rectified Linear Unit <formula id="10">$ min(\alpha, max(0,x)) $</formula> </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6a03c0f145db198f95b49b372470e64f29" prot="public">
+          <name>miopenActivationLEAKYRELU</name>
+          <initializer>=
+        8</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Leaky Rectified Linear Unit <formula id="11">$ \alpha * x | x &lt;= 0; x | x &gt; 0 $</formula> </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="group__activation_1ga5fd27264d844b20dd8d63ab678f09af6ac95a28635391882b82df5d1a9dcbc0a3" prot="public">
+          <name>miopenActivationELU</name>
+          <initializer>=
+        9</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Exponential Rectified Linear Unit <formula id="12">$ \alpha * (e^{x} - 1) | x &lt;= 0; x | x &gt; 0 $</formula> </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Activation layer modes </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/ldelaney/MIOpen/include/miopen/miopen.h" line="495" column="1" bodyfile="/home/ldelaney/MIOpen/include/miopen/miopen.h" bodystart="496" bodyend="511"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>
