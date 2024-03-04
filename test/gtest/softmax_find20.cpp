@@ -44,38 +44,7 @@ using namespace miopen;
 class SoftmaxFind20Test
 {
 public:
-    void Initialize(bool forward)
-    {
-        isForward = forward;
-
-        softmax_descriptor.SetParams(
-            1.0f, 0.0f, MIOPEN_SOFTMAX_ACCURATE, MIOPEN_SOFTMAX_MODE_CHANNEL);
-
-        if(isForward)
-        {
-            xTensor =
-                tensor<float>{test_n, test_c, test_h, test_w}.generate(tensor_elem_gen_integer{17});
-            yTensor = tensor<float>{test_n, test_c, test_h, test_w};
-
-            EXPECT_EQUAL(miopenCreateSoftmaxProblem(
-                             &problem, &softmax_descriptor, miopenProblemDirectionForward),
-                         miopenStatusSuccess);
-        }
-        else
-        {
-            yTensor =
-                tensor<float>{test_n, test_c, test_h, test_w}.generate(tensor_elem_gen_integer{17});
-            dyTensor =
-                tensor<float>{test_n, test_c, test_h, test_w}.generate(tensor_elem_gen_integer{17});
-            dxTensor = tensor<float>{test_n, test_c, test_h, test_w};
-
-            EXPECT_EQUAL(miopenCreateSoftmaxProblem(
-                             &problem, &softmax_descriptor, miopenProblemDirectionBackward),
-                         miopenStatusSuccess);
-        }
-
-        AddTensorDescriptors();
-    }
+    SoftmaxFind20Test(bool forward) : isForward(forward), problem(nullptr) { Initialize(); }
 
     void AddTensorDescriptors()
     {
@@ -282,6 +251,38 @@ public:
     void Finalize() { EXPECT_EQUAL(miopenDestroyProblem(problem), miopenStatusSuccess); }
 
 private:
+    void Initialize()
+    {
+        softmax_descriptor.SetParams(
+            1.0f, 0.0f, MIOPEN_SOFTMAX_ACCURATE, MIOPEN_SOFTMAX_MODE_CHANNEL);
+
+        if(isForward)
+        {
+            xTensor =
+                tensor<float>{test_n, test_c, test_h, test_w}.generate(tensor_elem_gen_integer{17});
+            yTensor = tensor<float>{test_n, test_c, test_h, test_w};
+
+            EXPECT_EQUAL(miopenCreateSoftmaxProblem(
+                             &problem, &softmax_descriptor, miopenProblemDirectionForward),
+                         miopenStatusSuccess);
+        }
+        else
+        {
+            yTensor =
+                tensor<float>{test_n, test_c, test_h, test_w}.generate(tensor_elem_gen_integer{17});
+            dyTensor =
+                tensor<float>{test_n, test_c, test_h, test_w}.generate(tensor_elem_gen_integer{17});
+            dxTensor = tensor<float>{test_n, test_c, test_h, test_w};
+
+            EXPECT_EQUAL(miopenCreateSoftmaxProblem(
+                             &problem, &softmax_descriptor, miopenProblemDirectionBackward),
+                         miopenStatusSuccess);
+        }
+
+        AddTensorDescriptors();
+    }
+
+private:
     tensor<float> xTensor;
     tensor<float> yTensor;
 
@@ -303,9 +304,7 @@ TEST(TestSoftmaxFind20, softmaxForward)
 {
     Handle& handle = get_handle();
 
-    SoftmaxFind20Test test;
-
-    test.Initialize(true);
+    SoftmaxFind20Test test(true);
 
     std::vector<miopenSolution_t> solutions = test.TestFindSolutions(handle);
     test.TestSolutionAttributes(solutions);
@@ -318,9 +317,7 @@ TEST(TestSoftmaxFind20, softmaxBackward)
 {
     Handle& handle = get_handle();
 
-    SoftmaxFind20Test test;
-
-    test.Initialize(false);
+    SoftmaxFind20Test test(false);
 
     std::vector<miopenSolution_t> solutions = test.TestFindSolutions(handle);
     test.TestSolutionAttributes(solutions);
