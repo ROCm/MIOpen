@@ -98,7 +98,7 @@ bool IsCKApplicable(const ProblemDescriptionType& problem)
 }
 
 #define WORKAROUND_CK_ISSUE_1184 1
-#ifdef WORKAROUND_CK_ISSUE_1184
+#if WORKAROUND_CK_ISSUE_1184
 struct HipEventProfiler
 {
     const Handle& handle;
@@ -107,10 +107,7 @@ struct HipEventProfiler
     HipEventPtr stop;
 
     HipEventProfiler(const Handle& handle_)
-        : handle(std::move(handle_)),
-          event_time(0.0f),
-          start(make_hip_event()),
-          stop(make_hip_event())
+        : handle(handle_), event_time(0.0f), start(make_hip_event()), stop(make_hip_event())
     {
         hipEventRecord(start.get(), handle.GetStream());
     }
@@ -152,9 +149,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                 auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx.tensors);
                 auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
                 {
-#ifdef WORKAROUND_CK_ISSUE_1184
                     HipEventProfiler pfr(handle);
-#endif
                     if constexpr(std::is_same<CastType, miopen::conv::WrWInvokeParams>::value)
                     {
                         auto zero           = 0.0f;
@@ -637,15 +632,14 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 std::swap(conv_tensors.x, conv_tensors.y);
                 std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
             }
-#ifdef WORKAROUND_CK_ISSUE_1184
             HipEventProfiler pfr(handle);
-#endif
             input1_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
 
             input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
 
             output_init_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
 
+            /// \todo: Will need SetTensor() to properly zero out non-packed tensors
             if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Weights)
             {
                 output_tr_inst.ZeroOutBuffer();
