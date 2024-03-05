@@ -50,7 +50,7 @@ amdhsa.kernels:
     .wavefront_size: 64
     .workgroup_processor_mode: 0
     .args:
-    - { .size: 4, .offset:   0, .value_kind: by_value, .name: N }
+    - { .size: 4, .offset:   0, .value_kind: by_value, .name: N_ }
     - { .size: 4, .offset:   4, .value_kind: by_value, .name: C }
     - { .size: 4, .offset:   8, .value_kind: by_value, .name: H }
     - { .size: 4, .offset:  12, .value_kind: by_value, .name: W }

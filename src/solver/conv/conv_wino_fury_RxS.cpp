@@ -183,7 +183,7 @@ private:
         const uint64_t ph_activ  = n_works_per_cu;
         const uint64_t ph_filter = f_relaods * c_loops;
 
-        // Constant parameters of the model valid for RX 7900 XTX. Values for other ASICs may be
+        // Constant parameters of the model valid for gfx1100. Values for other ASICs may be
         // different.
         const uint64_t clk_start  = c32_mode ? 2700 : 1650;
         const uint64_t clk_accum  = c32_mode ? 2983 : 1681;
@@ -224,10 +224,8 @@ bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext&
         return false;
 
     const auto dev_name = ctx.GetStream().GetDeviceName();
-    // 1. The shader has been tested on Navi31 (RX7900XTX).
-    // 2. GFX11 ASICs with reduced VGPR RAM size are unsupported (e.g. Navi33).
-    // 3. It is supposed to run on other ASICs with the same type of CUs as in Navi31, such as
-    // Navi32.
+    // 1. The kernel has been tested on gfx1100.
+    // 2. It is supposed to run on other ASICs with the same type of CUs and 1536 VGPRs per SIMD.
     if(!(dev_name == "gfx1100" || dev_name == "gfx1101" || dev_name == "gfx1151"))
         return false;
 
