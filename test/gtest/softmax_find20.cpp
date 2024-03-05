@@ -44,7 +44,7 @@ using namespace miopen;
 class SoftmaxFind20Test
 {
 public:
-    SoftmaxFind20Test(bool forward) : isForward(forward), problem(nullptr) { Initialize(); }
+    SoftmaxFind20Test(bool forward) : problem(nullptr), isForward(forward) { Initialize(); }
 
     void AddTensorDescriptors()
     {
