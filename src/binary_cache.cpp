@@ -165,9 +165,9 @@ std::vector<char> LoadBinary(const TargetProperties& target,
     auto db = GetDb(target, num_cu);
 
 #ifdef _WIN32
-    const auto filename = name + ".obj";
+    const auto filename = append_extension(name, ".obj");
 #else
-    const auto filename = name + ".o";
+    const auto filename = append_extension(name, ".o");
 #endif
     const KernelConfig cfg{filename.string(), args, {}};
 
@@ -196,7 +196,7 @@ void SaveBinary(const std::vector<char>& hsaco,
 
     auto db = GetDb(target, num_cu);
 
-    const auto filename = name + ".o";
+    const auto filename = append_extension(name, ".o");
     KernelConfig cfg{filename.string(), args, hsaco};
 
     MIOPEN_LOG_I2("Saving binary for: " << filename << "; args: " << args);
