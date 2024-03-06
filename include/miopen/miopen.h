@@ -5685,12 +5685,12 @@ typedef enum
  *  @{
  */
 
-/*! @brief Find the the extreme(minimum, maximum) value and index of a tensor across dimensions.
+/*! @brief Find the the extreme(minimum, maximum) value and index of a tensor across Dimension.
  *
  * @param handle                   MIOpen handle (input)
  * @param xDesc                    Tensor descriptor for data input tensor x (input)
  * @param x                        Data tensor x (input)
- * @param dim                      Dimensions to reduce argmax. (input)
+ * @param dim                      Dimension to reduce argmax. (input)
  * @param reduceExtremeOp          Enumerant specifying the operation used by ReduceExtreme (input)
  * @param reduceDesc               Tensor descriptor for reduce data tensor y or indice (input)
  * @param y                        Data tensor y (output)

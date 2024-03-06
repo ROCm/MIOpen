@@ -30,14 +30,6 @@
 
 #include "float_types.h"
 
-#if MIOPEN_USE_BFP16 == 1
-#define CVT_FLOAT2ACCUM(x) (bfloat16_to_float(x))
-#define CVT_ACCUM2FLOAT(x) (float_to_bfloat16(x))
-#define CVT_INTEGRAL2ACCUM(x) ((_FLOAT_ACCUM)(x))
-#define CVT_FP32_2FLOAT(x) (CVT_ACCUM2FLOAT(x))
-#define CVT_FP32_2ACCUM(x) (x)
-#endif
-
 template <typename TI>
 __device__ void argminfwdcontiguous(const TI* __restrict__ x,
                                     int32_t* __restrict__ indice,
