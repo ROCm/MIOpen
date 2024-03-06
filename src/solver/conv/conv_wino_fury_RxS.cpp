@@ -258,8 +258,9 @@ float ConvWinoFuryRxS<Winodata, Winofilter>::GetWti(const ExecutionContext& ctx,
 }
 
 template <uint32_t Winodata, uint32_t Winofilter>
-size_t ConvWinoFuryRxS<Winodata, Winofilter>::GetWorkspaceSize(const ExecutionContext& ctx,
-                                                               const ProblemDescription& problem) const
+size_t
+ConvWinoFuryRxS<Winodata, Winofilter>::GetWorkspaceSize(const ExecutionContext& ctx,
+                                                        const ProblemDescription& problem) const
 {
     std::ignore = ctx;
     std::ignore = problem;
