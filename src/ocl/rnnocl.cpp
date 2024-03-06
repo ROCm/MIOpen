@@ -80,7 +80,11 @@ miopenStatus_t ReducAddBias(miopen::Handle& handle,
                             Data_t red_workSpace,
                             size_t red_workSpace_size)
 {
-    int algo = getReductionAlgo;
+    // nothing to reduce,
+    if(dw_desc.GetLengths()[1] == 1)
+        return miopenStatusSuccess;
+
+    int algo = getReductionAlgo();
 
     switch(algo)
     {
