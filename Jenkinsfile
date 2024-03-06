@@ -475,6 +475,10 @@ pipeline {
             description: "")
         booleanParam(
             name: "TARGET_GFX94X",
+            defaultValue: false,
+            description: "")
+        booleanParam(
+            name: "TARGET_GFX94X_DBSYNC",
             defaultValue: true,
             description: "")
         booleanParam(
@@ -996,7 +1000,7 @@ pipeline {
                 stage('dbsync gfx942') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX94X }
+                        expression { params.TARGET_GFX94X || params.TARGET_GFX94X_DBSYNC }
                     }
                     options {
                         retry(2)
