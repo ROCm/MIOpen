@@ -27,8 +27,18 @@
 #include <miopen/rnn.hpp>
 #include <miopen/rnn_util.hpp>
 #include <algorithm>
+#include <miopen/env.hpp>
+
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_RNNWRW_REDUCTION)
 
 namespace miopen {
+
+int getReductionAlgo()
+{
+    return miopen::IsUnset(ENV(MIOPEN_RNNWRW_REDUCTION))
+               ? 0
+               : miopen::Value(ENV(MIOPEN_RNNWRW_REDUCTION));
+}
 
 void RNNTensorPaddingConverter::ConvertTensorData(const Handle& handle,
                                                   const TensorDescriptor& padded_tensor_desc,
