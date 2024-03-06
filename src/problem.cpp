@@ -288,7 +288,7 @@ softmax::ProblemDescription Problem::AsSoftmax() const
 
     float alpha = softmax_desc.GetAlpha();
     float beta  = softmax_desc.GetBeta();
-    // softmax_desc.
+
     softmax::ProblemDescription problem_description =
         (GetDirection() == miopenProblemDirectionForward)
             ? softmax::ProblemDescription(
@@ -487,8 +487,6 @@ Problem::FindSolutionsImpl(Handle& handle,
 
     solvers.push_back(&attnSoftmaxSolver);
     solvers.push_back(&regularSoftmaxSolver);
-
-    // decltype(auto) db = GetDb(ctx);
 
     for(auto solver : solvers)
     {

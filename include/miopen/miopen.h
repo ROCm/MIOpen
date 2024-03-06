@@ -346,7 +346,7 @@ MIOPEN_DECLARE_OBJECT(miopenDropoutDescriptor);
  */
 MIOPEN_DECLARE_OBJECT(miopenReduceTensorDescriptor);
 
-/*! @ingroup Softmax
+/*! @ingroup softmax
  * @brief Creates the miopenSoftmaxDescriptor_t type
  */
 MIOPEN_DECLARE_OBJECT(miopenSoftmaxDescriptor);
