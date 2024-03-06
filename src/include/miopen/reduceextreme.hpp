@@ -43,4 +43,4 @@ miopenStatus_t ReduceExtremeForward(Handle& handle,
                                     miopenReduceExtremeOp_t reduceExtremeOp);
 
 } // namespace miopen
-#endif // MIOPEN_REDUCEEXTREME_HPP_
+#endif // _MIOPEN_REDUCEEXTREME_HPP_

@@ -149,7 +149,7 @@ private:
     TensorDescriptor reduceDesc;
 
     int32_t dim;
-    miopenReduceExtremeOp_t op;
+    miopenReduceExtremeOp_t reduceExtremeOp;
 
     NetworkConfig MakeForwardNetworkConfig() const;
 };

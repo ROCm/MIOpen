@@ -5635,7 +5635,7 @@ typedef enum
  *
  * @param handle                   MIOpen Handle (input)
  * @param xDesc                    Tensor descriptor for data input tensor x (input)
- * @param dim                      Dimension to reduce calculation. (input)
+ * @param dim                      Dimensions to reduce calculation. (input)
  * @param reduceDesc               Tensor descriptor for output data tensor y (input)
  * @param sizeInBytes              Pointer to data to return the minimum workspace size
  * @return                         miopenStatus_t
@@ -5656,7 +5656,7 @@ miopenGetReduceCalculationWorkspaceSize(miopenHandle_t handle,
  * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
  * @param xDesc                    Tensor descriptor for data input tensor x (input)
  * @param x                        Data tensor x (input)
- * @param dim                      Dimension to reduce calculation. (input)
+ * @param dim                      Dimensions to reduce calculation. (input)
  * @param reduceDesc               Tensor descriptor for output data tensor y (input)
  * @param y                        Data tensor y (output)
  * @return                         miopenStatus_t
@@ -5701,12 +5701,12 @@ typedef enum
  *  @{
  */
 
-/*! @brief Find the the extreme (minimum, maximum) value and index of a tensor across dimension.
+/*! @brief Find the the extreme(minimum, maximum) value and index of a tensor across dimensions.
  *
  * @param handle                   MIOpen handle (input)
  * @param xDesc                    Tensor descriptor for data input tensor x (input)
  * @param x                        Data tensor x (input)
- * @param dim                      Dimension to reduce argmax. (input)
+ * @param dim                      Dimensions to reduce argmax. (input)
  * @param reduceExtremeOp          Enumerant specifying the operation used by ReduceExtreme (input)
  * @param reduceDesc               Tensor descriptor for reduce data tensor y or indice (input)
  * @param y                        Data tensor y (output)
