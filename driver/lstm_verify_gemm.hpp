@@ -38,10 +38,10 @@ void RunLSTMForwardGEMMCPUVerify(miopenHandle_t handle,
                                  bool hx_is_null = false,
                                  bool cx_is_null = false)
 {
-    int batch_n = sumvc(in_n);
+    size_t batch_n = sumvc(in_n);
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bacc, baccbi; // accumulation of batch
+    size_t bacc, baccbi; // accumulation of batch
     int bi = bidirection ? 2 : 1;
 
     int in_stride  = in_h;
@@ -141,8 +141,8 @@ void RunLSTMForwardGEMMCPUVerify(miopenHandle_t handle,
     // forward emulator
     for(int li = 0; li < numlayer; li++)
     {
-        int hid_shift = li * batch_n * hy_stride;
-        int hx_shift  = li * in_n.at(0) * h_stride;
+        size_t hid_shift = li * batch_n * hy_stride;
+        size_t hx_shift  = li * in_n.at(0) * h_stride;
 
         // from input
         if(li == 0)
@@ -215,8 +215,9 @@ void RunLSTMForwardGEMMCPUVerify(miopenHandle_t handle,
         }
         else
         {
-            int wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
-            int prelayer_shift = (li - 1) * batch_n * hy_stride + bi * 5 * hy_h;
+            size_t wei_shift =
+                (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
+            size_t prelayer_shift = (li - 1) * batch_n * hy_stride + bi * 5 * hy_h;
             if(use_dropout)
             {
                 auto dropout_states_tmp = dropout_states_host;
@@ -260,7 +261,7 @@ void RunLSTMForwardGEMMCPUVerify(miopenHandle_t handle,
             // from bias
             if(biased)
             {
-                int wei_shift_bias_temp = wei_shift_bias + li * 2 * wei_stride;
+                size_t wei_shift_bias_temp = wei_shift_bias + li * 2 * wei_stride;
 
                 for(int bs = 0; bs < batch_n; bs++)
                 {
@@ -279,7 +280,7 @@ void RunLSTMForwardGEMMCPUVerify(miopenHandle_t handle,
         for(int ti = 0; ti < seqLength; ti++)
         {
             baccbi -= in_n.at(seqLength - 1 - ti);
-            int wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
+            size_t wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
 
             if(ti == 0)
             {
@@ -306,7 +307,7 @@ void RunLSTMForwardGEMMCPUVerify(miopenHandle_t handle,
                     // from bias
                     if(biased)
                     {
-                        int wei_shift_bias_temp = wei_shift_bias + (li * 2 + 1) * wei_stride;
+                        size_t wei_shift_bias_temp = wei_shift_bias + (li * 2 + 1) * wei_stride;
 
                         for(int bs = 0; bs < in_n[ti]; bs++)
                         {
@@ -379,7 +380,7 @@ void RunLSTMForwardGEMMCPUVerify(miopenHandle_t handle,
                 // from bias
                 if(biased)
                 {
-                    int wei_shift_bias_temp = wei_shift_bias + (li * 2 + 1) * wei_stride;
+                    size_t wei_shift_bias_temp = wei_shift_bias + (li * 2 + 1) * wei_stride;
 
                     for(int bs = 0; bs < in_n[ti]; bs++)
                     {
@@ -419,7 +420,7 @@ void RunLSTMForwardGEMMCPUVerify(miopenHandle_t handle,
                         // from bias
                         if(biased)
                         {
-                            int wei_shift_bias_temp = wei_shift_bias + (li * 2 + 1) * wei_stride;
+                            size_t wei_shift_bias_temp = wei_shift_bias + (li * 2 + 1) * wei_stride;
 
                             for(int bs = in_n.at(seqLength - ti); bs < in_n.at(seqLength - 1 - ti);
                                 bs++)
@@ -455,7 +456,7 @@ void RunLSTMForwardGEMMCPUVerify(miopenHandle_t handle,
                     // from bias
                     if(biased)
                     {
-                        int wei_shift_bias_temp = wei_shift_bias + (li * 2 + 1) * wei_stride;
+                        size_t wei_shift_bias_temp = wei_shift_bias + (li * 2 + 1) * wei_stride;
 
                         for(int bs = 0; bs < in_n.at(seqLength - ti); bs++)
                         {
@@ -491,7 +492,7 @@ void RunLSTMForwardGEMMCPUVerify(miopenHandle_t handle,
                     }
                     else
                     {
-                        int prec_shift = li * batch_n * hy_stride +
+                        size_t prec_shift = li * batch_n * hy_stride +
                                          (bacc - in_n.at(ti - 1)) * hy_stride + bi * 4 * hy_h;
 
                         hid_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) +=
@@ -579,7 +580,7 @@ void RunLSTMForwardGEMMCPUVerify(miopenHandle_t handle,
 
                             if(bs < in_n.at(seqLength - ti))
                             {
-                                int prec_shift =
+                                size_t prec_shift =
                                     li * batch_n * hy_stride +
                                     (baccbi + in_n.at(seqLength - 1 - ti)) * hy_stride +
                                     bi * 4 * hy_h + hy_h;
@@ -641,7 +642,7 @@ void RunLSTMForwardGEMMCPUVerify(miopenHandle_t handle,
     }
 
     // output
-    int prelayer_shift = (numlayer - 1) * batch_n * hy_stride + bi * 5 * hy_h;
+    size_t prelayer_shift = (numlayer - 1) * batch_n * hy_stride + bi * 5 * hy_h;
 
     for(int i = 0; i < numlayer * batch_n * hy_stride * 2; i++)
     {
@@ -711,10 +712,10 @@ void RunLSTMBackwardDataGEMMCPUVerify(
     bool dhy_is_null = false,
     bool dcy_is_null = false)
 {
-    int batch_n = sumvc(in_n);
+    size_t batch_n = sumvc(in_n);
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bacc, baccbi; // accumulation of batch
+    size_t bacc, baccbi; // accumulation of batch
     int bi = bidirection ? 2 : 1;
 
     int in_stride  = in_h;
@@ -816,9 +817,9 @@ void RunLSTMBackwardDataGEMMCPUVerify(
     // bwd data emulator
     for(int li = numlayer - 1; li >= 0; li--)
     {
-        int wei_shift = (in_h + hy_h) * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
-        int hid_shift = li * batch_n * hy_stride;
-        int hx_shift  = li * in_n[0] * h_stride;
+        size_t wei_shift = (in_h + hy_h) * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
+        size_t hid_shift = li * batch_n * hy_stride;
+        size_t hx_shift  = li * in_n[0] * h_stride;
 
         if(li == numlayer - 1)
         {
@@ -833,7 +834,7 @@ void RunLSTMBackwardDataGEMMCPUVerify(
         }
         else
         {
-            int prelayer_shift = (li + 1) * batch_n * hy_stride;
+            size_t prelayer_shift = (li + 1) * batch_n * hy_stride;
 
             ADNN_mm_cpu<Tref>(&dh_state[prelayer_shift],
                               hy_h * bi * 4,
@@ -942,8 +943,8 @@ void RunLSTMBackwardDataGEMMCPUVerify(
                     }
                 }
 
-                int pretime_shift = li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride;
-                int weitime_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
+                size_t pretime_shift = li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride;
+                size_t weitime_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
 
                 ADNN_mm_cpu<Tref>(&dh_state[pretime_shift],
                                   hy_h * 4,
@@ -999,7 +1000,7 @@ void RunLSTMBackwardDataGEMMCPUVerify(
                     {
                         if(bs < in_n[ti + 1])
                         {
-                            int pretime_shift =
+                            size_t pretime_shift =
                                 li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride;
 
                             dh_state[hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h] +=
@@ -1030,7 +1031,7 @@ void RunLSTMBackwardDataGEMMCPUVerify(
                     }
                     else
                     {
-                        int pretime_shift =
+                        size_t pretime_shift =
                             li * batch_n * hy_stride + (bacc - in_n[ti - 1]) * hy_stride;
 
                         dh_state[hid_shift + (bacc + bs) * hy_stride + hy_h + h] +=
@@ -1067,7 +1068,7 @@ void RunLSTMBackwardDataGEMMCPUVerify(
                     {
                         if(ti < seqLength - 1)
                         {
-                            int pretime_shift = li * batch_n * hy_stride +
+                            size_t pretime_shift = li * batch_n * hy_stride +
                                                 (baccbi - in_n[seqLength - 2 - ti]) * hy_stride;
 
                             dh_state[hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h + hy_h +
@@ -1121,7 +1122,8 @@ void RunLSTMBackwardDataGEMMCPUVerify(
 
                             if(bs < in_n[seqLength - ti])
                             {
-                                int pretime_shift = li * batch_n * hy_stride +
+                                size_t pretime_shift =
+                                    li * batch_n * hy_stride +
                                                     (baccbi + in_n[seqLength - 1 - ti]) * hy_stride;
 
                                 dh_state[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h] +=
@@ -1170,8 +1172,8 @@ void RunLSTMBackwardDataGEMMCPUVerify(
         }
 
         // dcx, dhx
-        int pretime_shift = li * batch_n * hy_stride;
-        int weitime_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
+        size_t pretime_shift = li * batch_n * hy_stride;
+        size_t weitime_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
 
         ADNN_mm_cpu<Tref>(&dh_state[pretime_shift],
                           hy_h * 4,
@@ -1335,9 +1337,9 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<Tgpu>& in,
                                         bool use_dropout,
                                         bool hx_is_null = false)
 {
-    int batch_n  = sumvc(in_n);
+    size_t batch_n = sumvc(in_n);
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bacc; // accumulation of batch
+    size_t bacc; // accumulation of batch
     int bi = bidirection ? 2 : 1;
 
     int in_stride  = in_h;
@@ -1398,7 +1400,7 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<Tgpu>& in,
         in_h = 0;
     }
 
-    int wei_shift_bias = (in_h + hy_h + (bi * hy_h + hy_h) * (numlayer - 1)) * wei_stride;
+    size_t wei_shift_bias = (in_h + hy_h + (bi * hy_h + hy_h) * (numlayer - 1)) * wei_stride;
     int wei_len        = wei_shift_bias;
     if(biased)
     {
@@ -1449,11 +1451,12 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<Tgpu>& in,
         }
         else
         {
-            int prelayer_shift =
+            size_t prelayer_shift =
                 use_dropout ? 2 * numlayer * batch_n * hy_stride + (li - 1) * batch_n * hy_h * bi
                             : (li - 1) * batch_n * hy_stride + bi * hy_h * 5;
-            int hid_shift = li * batch_n * hy_stride;
-            int wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
+            size_t hid_shift = li * batch_n * hy_stride;
+            size_t wei_shift =
+                (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
 
             ADNN_mm_cpu<Tref>(&wkspace_state[hid_shift],
                               hy_h * bi * 4,
@@ -1491,9 +1494,9 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<Tgpu>& in,
         bacc = 0;
         for(int ti = 0; ti < seqLength; ti++)
         {
-            int hid_shift = li * batch_n * hy_stride + bacc * hy_stride;
-            int hx_shift  = li * in_n[0] * h_stride;
-            int wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
+            size_t hid_shift = li * batch_n * hy_stride + bacc * hy_stride;
+            size_t hx_shift  = li * in_n[0] * h_stride;
+            size_t wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
             int pretime_shift;
 
             // between time
@@ -1521,7 +1524,7 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<Tgpu>& in,
 
                     if(biased)
                     {
-                        int bias_shift = wei_shift_bias + li * 2 * wei_stride + wei_stride;
+                        size_t bias_shift = wei_shift_bias + li * 2 * wei_stride + wei_stride;
 
                         for(int h = 0; h < hy_h * 4; h++)
                         {
@@ -1559,7 +1562,7 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<Tgpu>& in,
 
                 if(biased)
                 {
-                    int bias_shift = wei_shift_bias + li * 2 * wei_stride + wei_stride;
+                    size_t bias_shift = wei_shift_bias + li * 2 * wei_stride + wei_stride;
 
                     for(int h = 0; h < hy_h * 4; h++)
                     {
@@ -1598,7 +1601,7 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<Tgpu>& in,
 
                         if(biased)
                         {
-                            int bias_shift = wei_shift_bias + li * 2 * wei_stride + wei_stride;
+                            size_t bias_shift = wei_shift_bias + li * 2 * wei_stride + wei_stride;
 
                             for(int h = 0; h < hy_h * 4; h++)
                             {
@@ -1636,7 +1639,7 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<Tgpu>& in,
 
                         if(biased)
                         {
-                            int bias_shift = wei_shift_bias + li * 2 * wei_stride + wei_stride;
+                            size_t bias_shift = wei_shift_bias + li * 2 * wei_stride + wei_stride;
 
                             for(int h = 0; h < hy_h * 4; h++)
                             {
@@ -1672,7 +1675,7 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<Tgpu>& in,
 
                     if(biased)
                     {
-                        int bias_shift = wei_shift_bias + li * 2 * wei_stride + wei_stride;
+                        size_t bias_shift = wei_shift_bias + li * 2 * wei_stride + wei_stride;
 
                         for(int h = 0; h < hy_h * 4; h++)
                         {
