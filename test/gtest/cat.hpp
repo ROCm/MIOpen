@@ -100,15 +100,6 @@ std::vector<CatTestCase> CatTestConfigs()
     // clang-format on
 }
 
-inline int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
-{
-    std::vector<std::size_t> lens = desc.GetLengths();
-    std::vector<int32_t> int32_t_lens(lens.begin(), lens.end());
-
-    // set the strides for the tensor
-    return SetTensorNd(&desc, int32_t_lens, desc.GetType());
-}
-
 template <typename T = float>
 struct CatTest : public ::testing::TestWithParam<CatTestCase>
 {
@@ -127,12 +118,10 @@ protected:
         for(auto in_dim : in_dims)
         {
             inputs.push_back(tensor<T>{in_dim}.generate(gen_value));
-            SetTensorLayout(inputs.back().desc);
             out_dim[dim] += in_dim[dim];
         }
 
         output = tensor<T>{out_dim};
-        SetTensorLayout(output.desc);
         std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
 
         ref_output = tensor<T>{out_dim};

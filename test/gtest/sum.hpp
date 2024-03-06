@@ -99,15 +99,6 @@ std::vector<SumTestCase> SumTestConfigs()
     // clang-format on
 }
 
-static int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
-{
-    const std::vector<std::size_t>& lens = desc.GetLengths();
-    std::vector<int32_t> int32_t_lens(lens.begin(), lens.end());
-
-    // set the strides for the tensor
-    return SetTensorNd(&desc, int32_t_lens, desc.GetType());
-}
-
 template <typename T = float>
 struct SumTest : public ::testing::TestWithParam<SumTestCase>
 {
@@ -135,10 +126,7 @@ protected:
             }
         }
 
-        SetTensorLayout(input.desc);
-
         output = tensor<T>{out_dims};
-        SetTensorLayout(output.desc);
         std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
 
         ref_output = tensor<T>{out_dims};
