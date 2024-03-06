@@ -38,7 +38,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     auto xlength      = xDesc.GetLengths();
     auto outputlength = reduceDesc.GetLengths();
 
-    auto reduce_size  = xlength[dim];
+    auto size         = xlength[dim];
     auto output_numel = std::accumulate(outputlength.begin(),
                                         outputlength.end(),
                                         static_cast<size_t>(1),
@@ -49,9 +49,9 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
     ss << "dtype" << dtype;
     ss << "dim" << dim;
-    ss << "reduce_size" << reduce_size;
+    ss << "reduce_size" << size;
     ss << "output_numel" << output_numel;
-    ss << "reduceExtremeOp" << reduceExtremeOp;
+    ss << "op" << op;
 
     return NetworkConfig{ss.str()};
 }
