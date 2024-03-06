@@ -25,8 +25,6 @@
 ################################################################################
 
 find_package(Threads REQUIRED)
-find_package(rocrand REQUIRED)
-message(STATUS "rocrand_VERSION= ${rocrand_VERSION}")
 
 add_executable(MIOpenDriver main.cpp InputFlags.cpp rocrand_wrapper.cpp)
 if(WIN32)
