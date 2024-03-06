@@ -1406,6 +1406,7 @@ miopenCheckConvolutionForwardUsePreCompiledKernel(miopenHandle_t handle,
                         usePreCompiledKernel);
 
     if(miopen::deref(convDesc).mode == miopenTranspose)
+    {
         return miopen::try_([&] {
             miopen::deref(convDesc).CheckConvBwdDataUsePreCompiledKernel(miopen::deref(handle),
                                                                          miopen::deref(xDesc),
@@ -1418,6 +1419,7 @@ miopenCheckConvolutionForwardUsePreCompiledKernel(miopenHandle_t handle,
                                                                          ignoreAsmBuild,
                                                                          usePreCompiledKernel);
         });
+    }
 
     return miopen::try_([&] {
         miopen::deref(convDesc).CheckConvFwdUsePreCompiledKernel(miopen::deref(handle),
@@ -1459,6 +1461,7 @@ miopenCheckConvolutionBackwardDataUsePreCompiledKernel(miopenHandle_t handle,
                         usePreCompiledKernel);
 
     if(miopen::deref(convDesc).mode == miopenTranspose)
+    {
         return miopen::try_([&] {
             miopen::deref(convDesc).CheckConvFwdUsePreCompiledKernel(miopen::deref(handle),
                                                                      miopen::deref(dyDesc),
@@ -1471,6 +1474,7 @@ miopenCheckConvolutionBackwardDataUsePreCompiledKernel(miopenHandle_t handle,
                                                                      ignoreAsmBuild,
                                                                      usePreCompiledKernel);
         });
+    }
 
     return miopen::try_([&] {
         miopen::deref(convDesc).CheckConvBwdDataUsePreCompiledKernel(miopen::deref(handle),
@@ -1512,6 +1516,7 @@ extern "C" miopenStatus_t miopenCheckConvolutionBackwardWeightsUsePreCompiledKer
                         usePreCompiledKernel);
 
     if(miopen::deref(convDesc).mode == miopenTranspose)
+    {
         return miopen::try_([&] {
             miopen::deref(convDesc).CheckConvBwdWeightsUsePreCompiledKernel(miopen::deref(handle),
                                                                             miopen::deref(xDesc),
@@ -1524,6 +1529,7 @@ extern "C" miopenStatus_t miopenCheckConvolutionBackwardWeightsUsePreCompiledKer
                                                                             ignoreAsmBuild,
                                                                             usePreCompiledKernel);
         });
+    }
 
     return miopen::try_([&] {
         miopen::deref(convDesc).CheckConvBwdWeightsUsePreCompiledKernel(miopen::deref(handle),
