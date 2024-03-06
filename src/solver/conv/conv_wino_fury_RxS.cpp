@@ -53,7 +53,7 @@ using WinoShaderFlagsV40            = miopen::conv::WinoShaderFlagsV40;
 
 namespace {
 
-constexpr uint32_t PowOf2(uint32_t exp) { return 1 << exp; }
+constexpr uint32_t PowOf2(uint32_t exp) { return 1U << exp; }
 
 // Divide two non-negative integers and return ceil of the quotient
 constexpr uint64_t DivCeil(uint64_t numer, uint64_t denom) { return (numer + denom - 1) / denom; }
@@ -128,6 +128,7 @@ public:
           n_groups(n_grp),
           cu_count(cu_cnt)
     {
+        std::ignore = ctx;
     }
 
     bool IsC32ModePreferable()
@@ -139,7 +140,7 @@ public:
     }
 
 private:
-    PerfModelInfo PerfPrediction(bool c32_mode)
+    PerfModelInfo PerfPrediction(bool c32_mode) const
     {
         constexpr uint64_t t_R  = 3;
         constexpr uint64_t t_S  = 3;
@@ -250,13 +251,19 @@ template <uint32_t Winodata, uint32_t Winofilter>
 float ConvWinoFuryRxS<Winodata, Winofilter>::GetWti(const ExecutionContext& ctx,
                                                     const ProblemDescription& problem) const
 {
+    std::ignore = ctx;
+    std::ignore = problem;
+
     return -2.0; // Unknown WTI
 }
 
 template <uint32_t Winodata, uint32_t Winofilter>
-size_t ConvWinoFuryRxS<Winodata, Winofilter>::GetWorkspaceSize(const ExecutionContext&,
-                                                               const ProblemDescription&) const
+size_t ConvWinoFuryRxS<Winodata, Winofilter>::GetWorkspaceSize(const ExecutionContext& ctx,
+                                                               const ProblemDescription& problem) const
 {
+    std::ignore = ctx;
+    std::ignore = problem;
+
     return sync_buffer_size; // 2KB buffer for global sync
 }
 
