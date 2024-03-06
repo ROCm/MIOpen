@@ -145,15 +145,6 @@ std::vector<GroupNormTestCase> GroupNormTestConfigs()
             {64, 1, 0, 0, 256, 1, 1e-5, MIOPEN_WEIGHT_BIAS}};
 }
 
-inline int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
-{
-    const std::vector<std::size_t> lens = desc.GetLengths();
-    std::vector<int32_t> int32_t_lens(lens.begin(), lens.end());
-
-    // set the strides for the tensor
-    return SetTensorNd(&desc, int32_t_lens, desc.GetType());
-}
-
 template <typename T = float>
 struct GroupNormTest : public ::testing::TestWithParam<GroupNormTestCase>
 {
@@ -189,13 +180,6 @@ protected:
         output = tensor<T>{inout_dim};
         mean   = tensor<T>{mean_rstd_dim};
         rstd   = tensor<T>{mean_rstd_dim};
-
-        SetTensorLayout(weight.desc);
-        SetTensorLayout(bias.desc);
-        SetTensorLayout(input.desc);
-        SetTensorLayout(output.desc);
-        SetTensorLayout(mean.desc);
-        SetTensorLayout(rstd.desc);
 
         std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
         std::fill(mean.begin(), mean.end(), std::numeric_limits<T>::quiet_NaN());
