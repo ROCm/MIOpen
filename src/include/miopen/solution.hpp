@@ -121,6 +121,7 @@ private:
 
     void LogDriverCommand(const ConvolutionDescriptor& desc) const;
     void LogDriverCommand(const ActivationDescriptor& desc) const;
+    void LogDriverCommand(const BatchnormDescriptor& desc) const;
 
     void LogDriverCommand(const Problem& problem_) const;
     void LogDriverCommand(const FusedProblem& problem_) const;

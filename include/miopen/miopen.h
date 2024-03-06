@@ -5294,6 +5294,9 @@ typedef enum
     miopenProblemDirectionForward         = 0,
     miopenProblemDirectionBackward        = 1,
     miopenProblemDirectionBackwardWeights = 2,
+#ifdef MIOPEN_BETA_API
+    miopenProblemDirectionInference = 4,
+#endif
 } miopenProblemDirection_t;
 
 /*! @enum miopenTensorArgumentId_t
@@ -5306,13 +5309,30 @@ typedef enum
     miopenTensorConvolutionW      = 2,
     miopenTensorConvolutionY      = 3,
 #ifdef MIOPEN_BETA_API
-    miopenTensorActivationX  = 4,
-    miopenTensorActivationY  = 5,
-    miopenTensorActivationDX = 6,
-    miopenTensorActivationDY = 7,
-    miopenTensorBiasX        = 8,
-    miopenTensorBiasY        = 9,
-    miopenTensorBias         = 10,
+    miopenTensorActivationX                = 4,
+    miopenTensorActivationY                = 5,
+    miopenTensorActivationDX               = 6,
+    miopenTensorActivationDY               = 7,
+    miopenTensorBiasX                      = 8,
+    miopenTensorBiasY                      = 9,
+    miopenTensorBias                       = 10,
+    miopenTensorBatchnormX                 = 11,
+    miopenTensorBatchnormY                 = 12,
+    miopenTensorBatchnormRunningMean       = 13,
+    miopenTensorBatchnormRunningVariance   = 14,
+    miopenTensorBatchnormSavedMean         = 15,
+    miopenTensorBatchnormSavedVariance     = 16,
+    miopenTensorBatchnormScale             = 17,
+    miopenTensorBatchnormScaleDiff         = 18,
+    miopenTensorBatchnormEstimatedMean     = 19,
+    miopenTensorBatchnormEstimatedVariance = 20,
+    miopenTensorBatchnormBiasDiff          = 21,
+    miopenTensorBatchnormDX                = 22,
+    miopenTensorBatchnormDY                = 23,
+
+    miopenScalarArgument              = 1 << 16,
+    miopenScalarBatchnormExpAvgFactor = miopenScalarArgument | 1,
+    miopenScalarBatchnormEpsilon      = miopenScalarArgument | 2,
 #endif
 } miopenTensorArgumentId_t;
 
@@ -5445,7 +5465,7 @@ MIOPEN_EXPORT miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
                                                  size_t* numSolutions,
                                                  size_t maxSolutions);
 
-/*! @brief Values of a tensor argument for the miopenRunSolution function.
+/*! @brief Values of a tensor or scalar argument for the miopenRunSolution function.
  */
 struct miopenTensorArgument_t
 {
@@ -5458,7 +5478,8 @@ struct miopenTensorArgument_t
      * is no way to tell from the API. Intended for the future use.
      */
     miopenTensorDescriptor_t* descriptor;
-    /* @brief Pointer to the device memory buffer to use for the operation.
+    /* @brief Pointer to the device memory buffer to use for the operation or to the host memory if
+     * the value is scalar.
      */
     void* buffer;
 };
@@ -5564,6 +5585,19 @@ MIOPEN_EXPORT miopenStatus_t
 miopenCreateActivationProblem(miopenProblem_t* problem,
                               miopenActivationDescriptor_t operatorDesc,
                               miopenProblemDirection_t direction);
+
+/*! @brief Initializes a problem object describing an activation operation.
+ * @note As of now there is no way to actually get any solution for this kind of problems.
+ *
+ * @param problem   Pointer to the problem to initialize
+ * @param mode      Batchnorm mode
+ * @param direction Direction of the operation
+ * @return          miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenCreateBatchnormProblem(miopenProblem_t* problem,
+                                                          miopenBatchNormMode_t mode,
+                                                          bool runningMeanVariance,
+                                                          miopenProblemDirection_t direction);
 
 /*! @brief Fuse two problems into a single one. Problems can be either regular, or fused. No
  * problems are disposed in the process, so the problem2 should be destroyed manually if it is not

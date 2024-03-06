@@ -116,6 +116,7 @@ void VisitType(int id, Args... args)
 static Data_t AllocateTensor(Handle& handle,
                              const FindOptions& options,
                              std::vector<Allocator::ManageDataPtr>& owned,
+                             std::vector<std::uint64_t>& owned_scalars,
                              miopenTensorArgumentId_t id,
                              const TensorDescriptor& descriptor)
 {
@@ -123,6 +124,9 @@ static Data_t AllocateTensor(Handle& handle,
 
     if(preallocated != options.preallocated_tensors.end())
         return preallocated->second;
+
+    if(id & miopenScalarArgument)
+        return &owned_scalars.emplace_back(0);
 
     const auto element_size = get_data_size(descriptor.GetType());
     auto buffer             = handle.Create(descriptor.GetElementSpace() * element_size);
@@ -159,10 +163,11 @@ std::vector<Solution>
 Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t max_solutions) const
 {
     auto owned_buffers = std::vector<Allocator::ManageDataPtr>{};
+    auto owned_scalars = std::vector<std::uint64_t>{};
     auto buffers       = std::unordered_map<miopenTensorArgumentId_t, Data_t>{};
 
     const auto allocate = [&](auto id, auto&& descriptor) {
-        auto buffer = AllocateTensor(handle, options, owned_buffers, id, descriptor);
+        auto buffer = AllocateTensor(handle, options, owned_buffers, owned_scalars, id, descriptor);
         buffers.emplace(id, buffer);
         return buffer;
     };
@@ -179,6 +184,9 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
                 MIOPEN_THROW(miopenStatusNotImplemented);
             },
             [&](const BiasDescriptor& /*op_desc*/) -> std::vector<Solution> {
+                MIOPEN_THROW(miopenStatusNotImplemented);
+            },
+            [&](const BatchnormDescriptor& /*op_desc*/) -> std::vector<Solution> {
                 MIOPEN_THROW(miopenStatusNotImplemented);
             }),
         operator_descriptor);
@@ -326,7 +334,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
 
     auto find1_solutions = std::vector<miopenConvAlgoPerf_t>{};
     find1_solutions.resize(max_solutions);
-    int found;
+    int found = 0;
 
     switch(direction)
     {
@@ -391,6 +399,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                               options.exhaustive_search);
         break;
     }
+    case miopenProblemDirectionInference: MIOPEN_THROW(miopenStatusBadParm); break;
     }
 
     ret.reserve(found);
@@ -453,12 +462,8 @@ void Problem::ValidateGroupCount(const TensorDescriptor& xDesc,
 
 void Problem::LogDriverCommand() const
 {
-    const auto log_function =
-        boost::hof::match([&](const ConvolutionDescriptor& op_desc) { LogDriverCommand(op_desc); },
-                          [&](const ActivationDescriptor& op_desc) { LogDriverCommand(op_desc); },
-                          [&](const BiasDescriptor&) {});
-
-    boost::apply_visitor(log_function, operator_descriptor);
+    boost::apply_visitor([&](const auto& op_desc) { LogDriverCommand(op_desc); },
+                         operator_descriptor);
 }
 
 void Problem::LogDriverCommand(const ConvolutionDescriptor& conv_desc) const
@@ -479,9 +484,35 @@ void Problem::LogDriverCommand(const ActivationDescriptor& descriptor) const
     miopen::debug::LogCmdActivation(x_desc, descriptor, direction == miopenProblemDirectionForward);
 }
 
+void Problem::LogDriverCommand(const BiasDescriptor& descriptor) const
+{
+    /// \todo: log actual driver command
+    std::ignore = descriptor;
+}
+
+void Problem::LogDriverCommand(const BatchnormDescriptor& descriptor) const
+{
+    /// \todo: log actual driver command
+    std::ignore = descriptor;
+}
+
 void to_json(nlohmann::json& json, const BiasDescriptor&) { json = nlohmann::json{}; }
 
 void from_json(const nlohmann::json&, BiasDescriptor&) {}
+
+void to_json(nlohmann::json& j, const BatchnormDescriptor& descriptor)
+{
+    j = nlohmann::json{
+        {"mode", descriptor.mode},
+        {"runningMeanVariance", descriptor.runningMeanVariance},
+    };
+}
+
+void from_json(const nlohmann::json& j, BatchnormDescriptor& descriptor)
+{
+    j.at("mode").get_to(descriptor.mode);
+    j.at("runningMeanVariance").get_to(descriptor.runningMeanVariance);
+}
 
 void to_json(nlohmann::json& json, const Problem& problem)
 {
@@ -576,25 +607,56 @@ void Problem::CalculateOutput()
             [&](const ActivationDescriptor&) {
                 RegisterTensorDescriptor(GetOutputId(), GetInput());
             },
-            [&](const BiasDescriptor&) { RegisterTensorDescriptor(GetOutputId(), GetInput()); }),
+            [&](const BiasDescriptor&) { RegisterTensorDescriptor(GetOutputId(), GetInput()); },
+            [&](const BatchnormDescriptor&) {
+                RegisterTensorDescriptor(GetOutputId(), GetInput());
+            }),
         operator_descriptor);
 }
 
 miopenTensorArgumentId_t Problem::GetInputId() const
 {
     return boost::apply_visitor(
-        boost::hof::match([](const ConvolutionDescriptor&) { return miopenTensorConvolutionX; },
-                          [](const ActivationDescriptor&) { return miopenTensorActivationX; },
-                          [](const BiasDescriptor&) { return miopenTensorBiasX; }),
+        boost::hof::match(
+            [&](const ConvolutionDescriptor&) {
+                return direction == miopenProblemDirectionForward ? miopenTensorConvolutionX
+                                                                  : miopenTensorConvolutionY;
+            },
+            [&](const ActivationDescriptor&) {
+                return direction == miopenProblemDirectionForward ? miopenTensorActivationX
+                                                                  : miopenTensorActivationDY;
+            },
+            [&](const BiasDescriptor&) {
+                return direction == miopenProblemDirectionForward ? miopenTensorBiasX
+                                                                  : miopenTensorBiasY;
+            },
+            [&](const BatchnormDescriptor&) {
+                return direction == miopenProblemDirectionForward ? miopenTensorBatchnormX
+                                                                  : miopenTensorBatchnormDY;
+            }),
         operator_descriptor);
 }
 
 miopenTensorArgumentId_t Problem::GetOutputId() const
 {
     return boost::apply_visitor(
-        boost::hof::match([](const ConvolutionDescriptor&) { return miopenTensorConvolutionY; },
-                          [](const ActivationDescriptor&) { return miopenTensorActivationY; },
-                          [](const BiasDescriptor&) { return miopenTensorBiasY; }),
+        boost::hof::match(
+            [&](const ConvolutionDescriptor&) {
+                return direction == miopenProblemDirectionForward ? miopenTensorConvolutionY
+                                                                  : miopenTensorConvolutionX;
+            },
+            [&](const ActivationDescriptor&) {
+                return direction == miopenProblemDirectionForward ? miopenTensorActivationY
+                                                                  : miopenTensorActivationDX;
+            },
+            [&](const BiasDescriptor&) {
+                return direction == miopenProblemDirectionForward ? miopenTensorBiasY
+                                                                  : miopenTensorBiasX;
+            },
+            [&](const BatchnormDescriptor&) {
+                return direction == miopenProblemDirectionForward ? miopenTensorBatchnormY
+                                                                  : miopenTensorBatchnormDX;
+            }),
         operator_descriptor);
 }
 
@@ -623,10 +685,11 @@ std::vector<Solution> FusedProblem::FindSolutions(Handle& handle,
     const auto find1_solutions = [&]() {
         OperatorArgs params;
         auto owned_buffers = std::vector<Allocator::ManageDataPtr>{};
+        auto owned_scalars = std::vector<std::uint64_t>{};
 
         const auto make_invoke_params = [&]() {
             auto buffer_allocator = [&](auto id, auto&& desc) {
-                return AllocateTensor(handle, options, owned_buffers, id, desc);
+                return AllocateTensor(handle, options, owned_buffers, owned_scalars, id, desc);
             };
 
             return MakeInvokeParams(buffer_allocator, params);
@@ -679,6 +742,29 @@ void FusedProblem::AddProblemToPlan(FusionPlanDescriptor& plan, const Problem& p
             [&](const BiasDescriptor&) {
                 plan.AddOp(std::make_shared<BiasFusionOpDescriptor>(
                     problem.GetTensorDescriptorChecked(miopenTensorBias, "miopenTensorBias")));
+            },
+            [&](const BatchnormDescriptor& descriptor) {
+                switch(problem.GetDirection())
+                {
+                case miopenProblemDirectionForward:
+                    plan.AddOp(std::make_shared<BatchNormFwdTrainFusionOpDescriptor>(
+                        descriptor.mode, descriptor.runningMeanVariance));
+                    break;
+                case miopenProblemDirectionBackward:
+                    plan.AddOp(
+                        std::make_shared<BatchNormBwdTrainFusionOpDescriptor>(descriptor.mode));
+                    break;
+                case miopenProblemDirectionInference: {
+                    auto smv = problem.GetTensorDescriptorChecked(miopenTensorBatchnormSavedMean,
+                                                                  "miopenTensorBatchnormSavedMean");
+                    plan.AddOp(std::make_shared<BatchNormInferenceFusionOpDescriptor>(
+                        descriptor.mode, smv));
+                    break;
+                }
+                default:
+                    MIOPEN_THROW(miopenStatusBadParm,
+                                 "Batchnorm only has forward, backward and inference directions");
+                }
             }),
         problem.operator_descriptor);
 }
@@ -702,11 +788,12 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
     auto out           = get_buffer(GetOutputId(), out_desc);
 
     for(const auto& problem : problems)
-    {
         for(const auto& pair : problem.tensor_descriptors)
             if(pair.first != problem.GetInputId() && pair.first != problem.GetOutputId())
                 get_buffer(pair.first, pair.second);
 
+    for(const auto& problem : problems)
+    {
         boost::apply_visitor(
             boost::hof::match(
                 [&](const ConvolutionDescriptor& conv_desc) {
@@ -741,6 +828,52 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
                     const auto bias_ptr = buffers.at(miopenTensorBias);
                     operator_args.params.emplace_back(
                         std::make_unique<miopen::fusion::BiasOpInvokeParam>(bias_ptr));
+                },
+                [&](const BatchnormDescriptor& descriptor) {
+                    /// \todo: fix this to pass actual values
+                    switch(problem.GetDirection())
+                    {
+                    case miopenProblemDirectionForward:
+                        operator_args.params.emplace_back(
+                            std::make_unique<miopen::fusion::BatchNormFwdTrainingOpInvokeParam>(
+                                buffers.at(miopenTensorBatchnormRunningMean),
+                                buffers.at(miopenTensorBatchnormRunningVariance),
+                                buffers.at(miopenTensorBatchnormSavedMean),
+                                buffers.at(miopenTensorBatchnormSavedVariance),
+                                buffers.at(miopenTensorBatchnormScale),
+                                buffers.at(miopenTensorBias),
+                                *reinterpret_cast<double*>(
+                                    buffers.at(miopenScalarBatchnormExpAvgFactor)),
+                                *reinterpret_cast<double*>(
+                                    buffers.at(miopenScalarBatchnormEpsilon))));
+                        break;
+                    case miopenProblemDirectionBackward:
+                        operator_args.params.emplace_back(
+                            std::make_unique<miopen::fusion::BatchNormBwdTrainingOpInvokeParam>(
+                                buffers.at(miopenTensorBatchnormX),
+                                buffers.at(miopenTensorBatchnormScale),
+                                buffers.at(miopenTensorBias),
+                                buffers.at(miopenTensorBatchnormScaleDiff),
+                                buffers.at(miopenTensorBatchnormBiasDiff),
+                                buffers.at(miopenTensorBatchnormSavedMean),
+                                buffers.at(miopenTensorBatchnormSavedVariance)));
+                        break;
+                    case miopenProblemDirectionInference: {
+                        operator_args.params.emplace_back(
+                            std::make_unique<miopen::fusion::BatchNormInferenceOpInvokeParam>(
+                                buffers.at(miopenTensorBatchnormScale),
+                                buffers.at(miopenTensorBias),
+                                buffers.at(miopenTensorBatchnormEstimatedMean),
+                                buffers.at(miopenTensorBatchnormEstimatedVariance),
+                                *reinterpret_cast<double*>(
+                                    buffers.at(miopenScalarBatchnormEpsilon))));
+                        break;
+                    }
+                    default:
+                        MIOPEN_THROW(
+                            miopenStatusBadParm,
+                            "Batchnorm only has forward, backward and inference directions");
+                    }
                 }),
             problem.operator_descriptor);
     }
