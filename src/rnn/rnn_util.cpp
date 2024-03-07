@@ -36,7 +36,7 @@ namespace miopen {
 int getReductionAlgo()
 {
     return miopen::IsUnset(ENV(MIOPEN_RNNWRW_REDUCTION))
-               ? 0
+               ? 1
                : miopen::Value(ENV(MIOPEN_RNNWRW_REDUCTION));
 }
 
