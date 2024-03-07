@@ -81,7 +81,7 @@ miopenStatus_t ReducAddBias(miopen::Handle& handle,
                             size_t red_workSpace_size)
 {
     // nothing to reduce,
-    if(dw_desc.GetLengths()[1] == 1)
+    if(ws_desc.GetLengths()[1] == 1)
         return miopenStatusSuccess;
 
     int algo = getReductionAlgo();
@@ -5869,6 +5869,8 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
         int hid_shift = li * batch_n * hy_stride;
         int wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
 
+        size_t dw_bias_offset = wei_shift_bias + li * 2 * wei_stride;
+
         // between layers
         if(li == 0)
         {
@@ -5944,30 +5946,29 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
         }
 
         if(biasMode != 0u)
-        {
+        {           
             size_t dw_bias_offset = wei_shift_bias + li * 2 * wei_stride;
 
             const std::vector<size_t> ws_bias_strides{batch_n * hy_stride, hy_stride, 1};
             const miopen::TensorDescriptor ws_desc{
                 rnn_data_t, {1, batch_n, wei_stride}, ws_bias_strides};
-
+            
             const std::vector<size_t> dw_bias_strides{wei_stride, wei_stride, 1};
             const miopen::TensorDescriptor dw_desc{rnn_data_t, {1, 1, wei_stride}, dw_bias_strides};
 
             size_t main_ws_size =
                 GetMainSolWorkspaceSize(batch_n, miopenRNNTraining, miopenRNNDataSeqMajorNotPadded);
-            
             size_t reduction_ws_size = workSpaceSize - main_ws_size;
 
             Data_t reduction_workSpace = static_cast<char*>(workSpace) + main_ws_size;
 
             ReducAddBias(handle,
-                     dw,
-                     workSpace,
+                         dw,
+                         workSpace,
                          dw_desc,
                          ws_desc,
                          dw_bias_offset,
-                     hid_shift,
+                         hid_shift,
                          reduction_workSpace,
                          reduction_ws_size);
 
@@ -6042,7 +6043,13 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                     const miopen::TensorDescriptor dw_desc{
                         rnn_data_t, {1, 1, wei_stride}, dw_bias_strides};
 
-                    CopyTensor(handle, dw_desc, dw, dw_desc, dw, wei_shift - wei_stride, wei_shift);
+                    CopyTensor(handle,
+                               dw_desc,
+                               dw,
+                               dw_desc,
+                               dw,
+                               dw_bias_offset,
+                               dw_bias_offset + wei_stride);
                     // Update time
                     profileRNNkernels(handle, 1, ctime);
                 }
