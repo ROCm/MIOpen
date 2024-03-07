@@ -56,7 +56,8 @@ bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
     return false;
 }
 
-void checkGemmStatusAndLog(miopenStatus_t gemm_status) {
+void checkGemmStatusAndLog(miopenStatus_t gemm_status)
+{
     if(gemm_status != miopenStatusSuccess)
     {
         if(gemm_status == miopenStatusNotImplemented)
@@ -140,7 +141,7 @@ miopenStatus_t ReducAddBias(miopen::Handle& handle,
                              dstC_with_offset);
     }
     break;
-    case 2: 
+    case 2:
     case 3: {
         float alpha1  = 1.;
         auto red_type = ws_desc.GetType();
@@ -164,10 +165,10 @@ miopenStatus_t ReducAddBias(miopen::Handle& handle,
                                                               lda,
                                                               ldb,
                                                               ldc,
-                                                              1, // batch count
-                                                              0, // Stride A
-                                                              0, // Stride B
-                                                              0, // Stride C
+                                                              1,     // batch count
+                                                              0,     // Stride A
+                                                              0,     // Stride B
+                                                              0,     // Stride C
                                                               alpha, // alpha
                                                               beta,  // beta
                                                               red_type,
@@ -183,11 +184,11 @@ miopenStatus_t ReducAddBias(miopen::Handle& handle,
                                                   dw_bias_offset,
                                                   GemmBackend_t::rocblas);
             checkGemmStatusAndLog(gemm_status);
-}
+        }
         else
         {
             if(dw_desc.GetType() != miopenDataType_t::miopenFloat)
-                MIOPEN_THROW(miopenStatusInternalError , "rocblas_sgemv wrong Type");
+                MIOPEN_THROW(miopenStatusInternalError, "rocblas_sgemv wrong Type");
 
             Data_t srcA_with_offset =
                 static_cast<char*>(workSpace) + ws_bias_offset * GetTypeSize(dw_desc.GetType());
@@ -200,12 +201,12 @@ miopenStatus_t ReducAddBias(miopen::Handle& handle,
                           n,
                           k,
                           &alpha,
-                          static_cast<float*> (srcA_with_offset),
+                          static_cast<float*>(srcA_with_offset),
                           ldb,
-                          static_cast<float*> (red_workSpace),
+                          static_cast<float*>(red_workSpace),
                           1,
                           &beta,
-                          static_cast<float*> (dstY_with_offset),
+                          static_cast<float*>(dstY_with_offset),
                           1);
         }
     }
@@ -5940,19 +5941,19 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                                                   wei_shift,
                                                   GemmBackend_t::rocblas);
 
-            checkGemmStatusAndLog(gemm_status);            
+            checkGemmStatusAndLog(gemm_status);
             // Update time
             profileRNNkernels(handle, 1, ctime);
         }
 
         if(biasMode != 0u)
-        {           
+        {
             size_t dw_bias_offset = wei_shift_bias + li * 2 * wei_stride;
 
             const std::vector<size_t> ws_bias_strides{batch_n * hy_stride, hy_stride, 1};
             const miopen::TensorDescriptor ws_desc{
                 rnn_data_t, {1, batch_n, wei_stride}, ws_bias_strides};
-            
+
             const std::vector<size_t> dw_bias_strides{wei_stride, wei_stride, 1};
             const miopen::TensorDescriptor dw_desc{rnn_data_t, {1, 1, wei_stride}, dw_bias_strides};
 
@@ -6222,7 +6223,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                                      GemmBackend_t::rocblas);
 
                         checkGemmStatusAndLog(gemm_status);
-                        
+
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
                     }
@@ -6301,24 +6302,23 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                         {
                             if(hx != nullptr)
                             {
-                                miopen::GemmDescriptor gemm_desc =
-                                    GemmDescriptor{false,
-                                                   true,
-                                                   false,
-                                                   wei_len,
-                                                   hy_h,
-                                                   in_n.at(cur_time),
-                                                   hy_stride,
-                                                   uni_stride,
-                                                   uni_stride,
-                                                   1, // batch count
-                                                   0, // Stride A
-                                                   0, // Stride B
-                                                   0, // Stride C
-                                                   1, // alpha
-                                                   1, // beta
-                                                   rnn_data_t,
-                                                   false};
+                                miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                                                  true,
+                                                                                  false,
+                                                                                  wei_len,
+                                                                                  hy_h,
+                                                                                  in_n.at(cur_time),
+                                                                                  hy_stride,
+                                                                                  uni_stride,
+                                                                                  uni_stride,
+                                                                                  1, // batch count
+                                                                                  0, // Stride A
+                                                                                  0, // Stride B
+                                                                                  0, // Stride C
+                                                                                  1, // alpha
+                                                                                  1, // beta
+                                                                                  rnn_data_t,
+                                                                                  false};
 
                                 miopenStatus_t gemm_status =
                                     CallGemm(handle,
@@ -6383,24 +6383,23 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
 
                             if(in_n.at(use_time) > 0)
                             {
-                                miopen::GemmDescriptor gemm_desc =
-                                    GemmDescriptor{false,
-                                                   true,
-                                                   false,
-                                                   wei_len,
-                                                   hy_h,
-                                                   in_n.at(use_time),
-                                                   hy_stride,
-                                                   hy_stride,
-                                                   uni_stride,
-                                                   1, // batch count
-                                                   0, // Stride A
-                                                   0, // Stride B
-                                                   0, // Stride C
-                                                   1, // alpha
-                                                   1, // beta
-                                                   rnn_data_t,
-                                                   false};
+                                miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                                                  true,
+                                                                                  false,
+                                                                                  wei_len,
+                                                                                  hy_h,
+                                                                                  in_n.at(use_time),
+                                                                                  hy_stride,
+                                                                                  hy_stride,
+                                                                                  uni_stride,
+                                                                                  1, // batch count
+                                                                                  0, // Stride A
+                                                                                  0, // Stride B
+                                                                                  0, // Stride C
+                                                                                  1, // alpha
+                                                                                  1, // beta
+                                                                                  rnn_data_t,
+                                                                                  false};
 
                                 miopenStatus_t gemm_status =
                                     CallGemm(handle,

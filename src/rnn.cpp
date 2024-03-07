@@ -458,7 +458,7 @@ size_t RNNDescriptor::GetMainSolWorkspaceSize(size_t batchLenSum,
     return (workspaceScale * nLayers * batchLenSum * hsize * typeSize) * (is_bidirect ? 2 : 1);
 }
 
-size_t RNNDescriptor::GetWorkspaceSize(Handle& handle ,
+size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
                                        const SeqTensorDescriptor& xDesc,
                                        miopenRNNFWDMode_t fwdMode) const
 {

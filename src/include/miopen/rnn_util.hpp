@@ -321,12 +321,12 @@ void FillSeqTensorByPaddingMarker(const Handle& handle,
 int getReductionAlgo();
 
 inline size_t ReductionWorkspaceSize(const Handle& handle,
-                              size_t batchLenSum,
-                              size_t nHiddenTensorsPerLayer,
-                              size_t workspaceScale,
-                              size_t hsize,
-                              bool is_bidirect,
-                              miopenDataType_t rnn_data_t)
+                                     size_t batchLenSum,
+                                     size_t nHiddenTensorsPerLayer,
+                                     size_t workspaceScale,
+                                     size_t hsize,
+                                     bool is_bidirect,
+                                     miopenDataType_t rnn_data_t)
 {
     int red_algo = getReductionAlgo();
 
@@ -339,9 +339,9 @@ inline size_t ReductionWorkspaceSize(const Handle& handle,
             miopenNanPropagation_t::MIOPEN_PROPAGATE_NAN,
             miopenReduceTensorIndices_t::MIOPEN_REDUCE_TENSOR_NO_INDICES,
             miopenIndicesType_t::MIOPEN_32BIT_INDICES};
-        
+
         int bidirect_mp = is_bidirect ? 2 : 1;
-        
+
         size_t hy_stride = hsize * bidirect_mp * workspaceScale;
 
         size_t bias_total_cnt = hsize * bidirect_mp * nHiddenTensorsPerLayer;
@@ -357,7 +357,8 @@ inline size_t ReductionWorkspaceSize(const Handle& handle,
 
         reduction_ws = red_add.GetWorkspaceSize(handle, ws_desc, dw_desc);
     }
-    else {
+    else
+    {
         if(red_algo == 2 || red_algo == 3)
         {
             reduction_ws = batchLenSum * GetTypeSize(rnn_data_t);
