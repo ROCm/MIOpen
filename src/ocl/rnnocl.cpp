@@ -5870,7 +5870,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
         int hid_shift = li * batch_n * hy_stride;
         int wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
 
-        size_t dw_bias_offset = wei_shift_bias + li * 2 * wei_stride;
+        size_t dw_bias_offset = wei_shift_bias + static_cast<size_t>(li) * 2 * wei_stride;
 
         // between layers
         if(li == 0)
@@ -5948,12 +5948,17 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
 
         if(biasMode != 0u)
         {
-            const std::vector<size_t> ws_bias_strides{batch_n * hy_stride, hy_stride, 1};
+            const std::vector<size_t> ws_bias_strides{
+                static_cast<size_t>(batch_n) * hy_stride, static_cast<size_t>(hy_stride), 1};
             const miopen::TensorDescriptor ws_desc{
-                rnn_data_t, {1, batch_n, wei_stride}, ws_bias_strides};
+                rnn_data_t,
+                {1, static_cast<size_t>(batch_n), static_cast<size_t>(wei_stride)},
+                ws_bias_strides};
 
-            const std::vector<size_t> dw_bias_strides{wei_stride, wei_stride, 1};
-            const miopen::TensorDescriptor dw_desc{rnn_data_t, {1, 1, wei_stride}, dw_bias_strides};
+            const std::vector<size_t> dw_bias_strides{
+                static_cast<size_t>(wei_stride), static_cast<size_t>(wei_stride), 1};
+            const miopen::TensorDescriptor dw_desc{
+                rnn_data_t, {1, 1, static_cast<size_t>(wei_stride)}, dw_bias_strides};
 
             size_t main_ws_size =
                 GetMainSolWorkspaceSize(batch_n, miopenRNNTraining, miopenRNNDataSeqMajorNotPadded);
