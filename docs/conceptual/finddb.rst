@@ -1,15 +1,30 @@
+.. meta::
+  :description: MIOpen documentation and API reference library
+  :keywords: MIOpen, ROCm, API, documentation
+
+********************************************************************
 Find-Db Database
-================
+********************************************************************
 
-Prior to MIOpen 2.0, users utilized calls such as `miopenFindConvolution*Algorithm()` to gather a set of convolution algorithms in the form of an array of `miopenConvSolution_t` structs. This process is time consuming because it requires online benchmarking of competing algorithms. In MIOpen 2.0 an [immediate mode](https://rocm.docs.amd.com/projects/MIOpen/en/latest/find_and_immediate.html) is introduced. 
+Prior to MIOpen 2.0, you could use calls (such as ``miopenFindConvolution*Algorithm()``) to gather a
+set of convolution algorithms in the form of an array of ``miopenConvSolution_t`` structs. This process
+is time-consuming because it requires online benchmarking of competing algorithms.
 
-Immediate mode is based on a database which contains the results of calls to the legacy Find() stage. This database is called `Find-Db`. It consists of two parts:
-- **System Find-Db**, a system-wide storage which holds the pre-run values for the most applicable configurations,
-- **User Find-Db**, a per-user storage which is intended to hold results for arbitrary user-run configurations. It also performs double duty as a cache for the Find() stage.
+As of MIOpen 2.0, we introduced an
+:doc:`immediate mode <../reference/find-and-immediate>`. Immediate mode is based on a database
+that contains the results of calls to the legacy ``Find()`` stage. We refer to this database as Find-Db.
 
-The User Find-Db **always takes precedence** over System Find-Db.
+Find-Db consists of two parts:
 
-By default, System Find-Db resides within MIOpen's install location, while User Find-Db resides in the user's home directory. See [Setting up locations](https://github.com/ROCm/MIOpen#setting-up-locations) for more information.
+* **System Find-Db**: A system-wide storage that holds pre-run values for the most applicable
+  configurations
+* **User Find-Db**: A per-user storage that is intended to hold results for arbitrary user-run
+  configurations. It also serves as a cache for the ``Find()`` stage.
+
+User Find-Db *always takes precedence* over System Find-Db.
+
+By default, System Find-Db resides within MIOpen's install location, while User Find-Db resides in your
+home directory. Refer to [Setting up locations](https://github.com/ROCm/MIOpen#setting-up-locations) for more information.
 
  * The System Find-Db is *not* modified upon installation of MIOpen.
  * There are separate Find databases for HIP and OpenCL backends.

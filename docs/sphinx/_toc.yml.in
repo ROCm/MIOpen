@@ -1,94 +1,47 @@
 defaults:
   numbered: False
-  maxdepth: 7
+  maxdepth: 6
 root: index
 subtrees:
 - entries:
-    - file: install/index.rst
-      title: Installation
-      subtrees:
-      - entries:
-          - file: install/install.rst 
-            title: Build MIOpen using Docker
-          - file: install/driver.md
-            title: Build the driver 
-          - file: install/embed.md
-            title: Build MIOpen for embedded systems
-            
-    - file: conceptual/index.md
-      title: Conceptual  
-      subtrees:
-      - entries: 
-         - file: conceptual/find_and_immediate.md
-           title: What is MIOpen?
-         - file: conceptual/finddb.md
-           title: Find database
-         - file: conceptual/cache.md
-           title: Cache
-         - file: conceptual/perfdatabase.md
-           title: Performance database         
-         - file: conceptual/MI200AlternateImplementation.md
-           title: MI200 alternate implementation
-         - file: conceptual/MIOpen_Porting_Guide.md
-           title: MIOpen Porting Guide
+  - file: what-is-miopen.rst
+    title: What is MIOpen?
 
-    - file: how-to/index.md
-      title: How to
-      subtrees:
-      - entries:
-        - file: how-to/use-fusion-api.rst
-          title: Use Fusion API
-        - file: how-to/create-a-fusion-plan.rst
-          title: Create a Fusion plan
-        - file: how-to/create-and-add-operators.rst
-          title: Create and add operators
-        - file: how-to/compile-a-fusion-plan.rst
-          title: Compile a Fusion plan
-        - file: how-to/set-the-runtime-arguments.rst
-          title: Set runtime arguments   
-        - file: how-to/execute-a-fusion-plan.rst
-          title: Execute a Fusion plan
-        - file: how-to/destroy-a-fusion-plan.rst
-          title: Destroy a Fusion plan
-        - file: how-to/supported-fusions.rst
-          title: Supported Fusions
-            
-    - file: reference/index.rst
-      title: API reference
-      subtrees:
-      - entries:
-         - file: reference/activation.rst
-           title: Activation
-         - file: reference/batchnorm.rst
-           title: Batchnorm
-         - file: reference/convolution.rst
-           title: Convolution
-         - file: reference/datatypes.md
-           title: Datatypes
-         - file: reference/dropout.rst
-           title: Dropout
-         - file: reference/fusion.rst
-           title: Fusion
-         - file: reference/handle.rst
-           title: Handle
-         - file: reference/layernorm.rst
-           title: Layernorm
-         - file: reference/loss.rst
-           title: Loss
-         - file: reference/lrn.rst
-           title: Local response normalization layer
-         - file: reference/pooling.rst
-           title: Pooling
-         - file: reference/reduction.rst
-           title: Reduction
-         - file: reference/rnn.rst
-           title: Recurrent neural networks
-         - file: reference/softmax.rst
-           title: Softmax
-         - file: reference/sum.rst
-           title: Sum
-         - file: reference/tensor.rst
-           title: Tensor
-        
+- caption: Reference
+  entries:
+  - file: reference/index.rst
+    title: API reference guide
+
+- caption: Install
+  entries:
+  - file: install/install.rst
+    title: Build MIOpen using Docker
+  - file: install/driver.rst
+    title: Build the driver
+  - file: install/embed.rst
+    title: Build MIOpen for embedded systems
+
+- caption: Conceptual
+  entries:
+  - file: conceptual/finddb.rst
+    title: Find database
+  - file: conceptual/cache.rst
+    title: Cache
+  - file: conceptual/perfdatabase.rst
+    title: Performance database
+  - file: conceptual/MI200AlternateImplementation.rst
+    title: MI200 alternate implementation
+  - file: conceptual/MIOpen-porting-guide.rst
+    title: Port to MIOpen
+
+- caption: How to
+  entries:
+  - file: how-to/use-fusion-api.rst
+    title: Use Fusion API
+  - file: how-to/debug-log.rst
+    title: Debug & log
+
+- caption: About
+  entries:
     - file: license.md
       title: License

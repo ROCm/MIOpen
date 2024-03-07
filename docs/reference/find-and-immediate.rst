@@ -1,5 +1,10 @@
+.. meta::
+  :description: What is MIOpen?
+  :keywords: MIOpen, ROCm, API, documentation
 
-## Find and immediate mode
+*************************************************************
+Find and immediate mode
+*************************************************************
 
 ### Find API
 

@@ -1,4 +1,4 @@
-Performance Database
+Using the performance database
 ====================
 
 Many of MIOpen kernels have parameters which affect their performance. Setting these parameters to optimal values allows reaching the best possible throughput. These optimal values depend on many things, including network configuration, GPU type, clock frequencies, ROCm version etc. Because of these dependencies and also due to enormous number of possible network configurations, it is virtually impossible to supply all values that users may need together with the library. Instead, MIOpen provides a set of pre-tuned values for the _most applicable_ network configurations, **and** also means for expanding the set of optimized values. MIOpen's performance database contains these pre-tuned parameter values as well as optimized parameters tuned by users.
