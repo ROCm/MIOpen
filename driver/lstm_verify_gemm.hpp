@@ -493,7 +493,7 @@ void RunLSTMForwardGEMMCPUVerify(miopenHandle_t handle,
                     else
                     {
                         size_t prec_shift = li * batch_n * hy_stride +
-                                         (bacc - in_n.at(ti - 1)) * hy_stride + bi * 4 * hy_h;
+                                            (bacc - in_n.at(ti - 1)) * hy_stride + bi * 4 * hy_h;
 
                         hid_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) +=
                             activfunc(hid_state.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h),
@@ -1069,7 +1069,7 @@ void RunLSTMBackwardDataGEMMCPUVerify(
                         if(ti < seqLength - 1)
                         {
                             size_t pretime_shift = li * batch_n * hy_stride +
-                                                (baccbi - in_n[seqLength - 2 - ti]) * hy_stride;
+                                                   (baccbi - in_n[seqLength - 2 - ti]) * hy_stride;
 
                             dh_state[hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h + hy_h +
                                      h] +=
@@ -1124,7 +1124,7 @@ void RunLSTMBackwardDataGEMMCPUVerify(
                             {
                                 size_t pretime_shift =
                                     li * batch_n * hy_stride +
-                                                    (baccbi + in_n[seqLength - 1 - ti]) * hy_stride;
+                                    (baccbi + in_n[seqLength - 1 - ti]) * hy_stride;
 
                                 dh_state[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h] +=
                                     dh_state[hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
@@ -1338,7 +1338,7 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<Tgpu>& in,
                                         bool hx_is_null = false)
 {
     size_t batch_n = sumvc(in_n);
-    int numlayer = bidirection ? hy_d / 2 : hy_d;
+    int numlayer   = bidirection ? hy_d / 2 : hy_d;
     size_t bacc; // accumulation of batch
     int bi = bidirection ? 2 : 1;
 
@@ -1401,7 +1401,7 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<Tgpu>& in,
     }
 
     size_t wei_shift_bias = (in_h + hy_h + (bi * hy_h + hy_h) * (numlayer - 1)) * wei_stride;
-    int wei_len        = wei_shift_bias;
+    int wei_len           = wei_shift_bias;
     if(biased)
     {
         int in_bias = 2;
