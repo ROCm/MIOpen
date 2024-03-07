@@ -50,7 +50,6 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     python3-pip \
     python3-venv \
     rocblas \
-    rocrand \
     rocm-developer-tools \
     rpm \
     software-properties-common && \
