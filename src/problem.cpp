@@ -298,16 +298,14 @@ softmax::ProblemDescription Problem::AsSoftmax() const
                   GetTensorDescriptorChecked(miopenTensorSoftmaxY, "miopenTensorSoftmaxY"),
                   softmax_desc.GetAlgorithm(),
                   softmax_desc.GetMode())
-            :
-
-            softmax::ProblemDescription(
-                &alpha,
-                &beta,
-                GetTensorDescriptorChecked(miopenTensorSoftmaxY, "miopenTensorSoftmaxY"),
-                GetTensorDescriptorChecked(miopenTensorSoftmaxDY, "miopenTensorSoftmaxDY"),
-                GetTensorDescriptorChecked(miopenTensorSoftmaxDX, "miopenTensorSoftmaxDX"),
-                softmax_desc.GetAlgorithm(),
-                softmax_desc.GetMode());
+            : softmax::ProblemDescription(
+                  &alpha,
+                  &beta,
+                  GetTensorDescriptorChecked(miopenTensorSoftmaxY, "miopenTensorSoftmaxY"),
+                  GetTensorDescriptorChecked(miopenTensorSoftmaxDY, "miopenTensorSoftmaxDY"),
+                  GetTensorDescriptorChecked(miopenTensorSoftmaxDX, "miopenTensorSoftmaxDX"),
+                  softmax_desc.GetAlgorithm(),
+                  softmax_desc.GetMode());
     return problem_description;
 }
 
