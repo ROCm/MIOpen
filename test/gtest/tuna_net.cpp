@@ -15,7 +15,8 @@ std::vector<TunaNetTestCase> GetGfx908FloatTestCases()
               miopen::conv::Direction::Forward,
               miopenFloat,
               miopenTensorNCHW},
-             4, "gfx908"}};
+             4,
+             "gfx908"}};
 }
 
 std::vector<TunaNetTestCase> GetGfx908HalfTestCases()
@@ -24,7 +25,8 @@ std::vector<TunaNetTestCase> GetGfx908HalfTestCases()
               miopen::conv::Direction::Forward,
               miopenHalf,
               miopenTensorNCHW},
-             3, "gfx908"}};
+             3,
+             "gfx908"}};
 }
 
 std::vector<TunaNetTestCase> GetGfx908BF16TestCases()
@@ -33,15 +35,18 @@ std::vector<TunaNetTestCase> GetGfx908BF16TestCases()
               miopen::conv::Direction::Forward,
               miopenBFloat16,
               miopenTensorNCHW},
-             4, "gfx908"}};
+             4,
+             "gfx908"}};
 }
 
-std::vector<TunaNetTestCase> GetGfx90aFloatTestCases() {
+std::vector<TunaNetTestCase> GetGfx90aFloatTestCases()
+{
     return {{{{5, 3, 1301, 1333, 64, 7, 7, 3, 3, 2, 2, 1, 1, miopenConvolution},
-                miopen::conv::Direction::Forward,
-                miopenFloat,
-                miopenTensorNCHW},
-                6, "gfx90a"}};
+              miopen::conv::Direction::Forward,
+              miopenFloat,
+              miopenTensorNCHW},
+             6,
+             "gfx90a"}};
 }
 
 std::vector<TunaNetTestCase> GetGfx90aHalfTestCases()
@@ -50,7 +55,8 @@ std::vector<TunaNetTestCase> GetGfx90aHalfTestCases()
               miopen::conv::Direction::Forward,
               miopenHalf,
               miopenTensorNCHW},
-             4, "gfx90a"}};
+             4,
+             "gfx90a"}};
 }
 
 std::vector<TunaNetTestCase> GetGfx90aBF16TestCases()
@@ -59,7 +65,8 @@ std::vector<TunaNetTestCase> GetGfx90aBF16TestCases()
               miopen::conv::Direction::Forward,
               miopenBFloat16,
               miopenTensorNCHW},
-             6, "gfx90a"}};
+             6,
+             "gfx90a"}};
 }
 
 template <typename G>
@@ -88,7 +95,7 @@ protected:
                                                          conv_desc,
                                                          test_case.direction);
 
-        expected_solver = test_case.expected_solver;
+        expected_solver     = test_case.expected_solver;
         device_architecture = test_case.device_architecture;
 #else
         GTEST_SKIP();
@@ -131,8 +138,7 @@ void TestSolverPredictionModel(miopen::conv::ProblemDescription& problem,
 #else
     std::ignore = problem;
     std::ignore = expected_solver;
-    std::ignore = device_architecture
-    GTEST_SKIP();
+    std::ignore = device_architecture GTEST_SKIP();
 #endif
 }
 
