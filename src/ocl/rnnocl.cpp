@@ -5948,8 +5948,6 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
 
         if(biasMode != 0u)
         {
-            size_t dw_bias_offset = wei_shift_bias + li * 2 * wei_stride;
-
             const std::vector<size_t> ws_bias_strides{batch_n * hy_stride, hy_stride, 1};
             const miopen::TensorDescriptor ws_desc{
                 rnn_data_t, {1, batch_n, wei_stride}, ws_bias_strides};
