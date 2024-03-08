@@ -496,6 +496,7 @@ if(MIOPEN_OFFLINE_COMPILER_PATHS_V2)
 endif()
 
 if(MIOPEN_BUILD_DRIVER)
+    # PR #2785 MIOpenDriver to use rocrand to init buffers
     find_package(rocrand REQUIRED)
     message(STATUS "rocrand_VERSION=${rocrand_VERSION}")
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocrand")
