@@ -33,7 +33,7 @@ Our documentation is structured as follows:
     * :doc:`Performance database <./conceptual/perfdatabase>`
     * :doc:`Port to MIOpen <./conceptual/MIOpen-porting-guide>`
 
-  .. grid-item-card:: How-to
+  .. grid-item-card:: How to
 
     * :doc:`Use Fusion API <./how-to/use-fusion-api>`
     * :doc:`Debug and log <./how-to/debug-log>`

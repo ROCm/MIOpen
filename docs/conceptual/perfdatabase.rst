@@ -1,3 +1,8 @@
+.. meta::
+  :description: Using the performance database
+  :keywords: MIOpen, ROCm, API, documentation, performance database
+
+********************************************************************
 Using the performance database
 ====================
 
