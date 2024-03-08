@@ -273,7 +273,7 @@ public:
 
     status_t AllocOnDevice(stream, context_t ctx, const size_t sz)
     {
-        dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(Tgpu)));
+        dev = std::make_unique<GPUMem>(ctx, sz, sizeof(Tgpu));
         return STATUS_SUCCESS;
     }
 
@@ -303,7 +303,7 @@ public:
         static_assert(std::is_same<T, float>::value           //
                           || std::is_same<T, int32_t>::value, //
                       "Before enabling more types, check thoroughly.");
-        dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(T)));
+        dev = std::make_unique<GPUMem>(ctx, sz, sizeof(T));
         return STATUS_SUCCESS;
     }
 
@@ -367,7 +367,7 @@ public:
 
     status_t AllocOnDevice(stream, context_t ctx, const size_t sz)
     {
-        dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sz, sizeof(Tgpu)));
+        dev = std::make_unique<GPUMem>(ctx, sz, sizeof(Tgpu));
         return STATUS_SUCCESS;
     }
 
