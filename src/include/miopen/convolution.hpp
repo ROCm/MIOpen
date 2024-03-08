@@ -43,7 +43,6 @@
 #include <boost/any.hpp>
 
 #include <string>
-#include <filesystem>
 #include <tuple>
 #include <vector>
 #include <unordered_map>

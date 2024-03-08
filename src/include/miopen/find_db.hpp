@@ -38,10 +38,8 @@
 
 #include <boost/optional.hpp>
 
-#include <filesystem>
 #include <functional>
 #include <vector>
-#include <filesystem>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_DISABLE_FIND_DB)
 

@@ -32,7 +32,6 @@
 #include <miopen/tensor.hpp>
 #include <utility>
 #include <cstdlib>
-#include <filesystem>
 #include "tensor_holder.hpp"
 
 // loop over sub-tensor, and operate on each data

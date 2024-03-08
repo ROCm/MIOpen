@@ -40,7 +40,6 @@
 
 #include <boost/any.hpp>
 
-#include <filesystem>
 #include <memory>
 #include <string>
 #include <vector>

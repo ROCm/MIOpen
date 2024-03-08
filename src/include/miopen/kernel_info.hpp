@@ -30,7 +30,6 @@
 #include <ostream>
 #include <string>
 #include <vector>
-#include <filesystem>
 #include <miopen/kernel.hpp>
 
 namespace miopen {

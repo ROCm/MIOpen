@@ -33,7 +33,6 @@
 #include <boost/optional.hpp>
 #include <hip/hip_runtime_api.h>
 
-#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -61,7 +60,7 @@ struct HIPOCProgramImpl
 
 #if !MIOPEN_USE_COMGR
     void
-    BuildCodeObjectInFile(std::string& params, const std::string& src, const std::filesystem::path& filename);
+    BuildCodeObjectInFile(std::string& params, const std::string& src, const fs::path& filename);
 #else
     void BuildCodeObjectInMemory(const std::string& params, const std::string& src, const fs::path& filename);
 #endif

@@ -274,9 +274,9 @@ struct ExecutionContext
             return "";
         const auto filename = GetStream().GetDbBasename() +
 #if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
-            "_" + std::string{SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER} + ".udb";
+            "_" + SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER + ".udb";
 #else
-            "." + GetUserDbSuffix() + ".cd.updb.txt";
+            "." + GetUserDbSuffix() + ".udb.txt";
 #endif
         return udb / filename;
     }

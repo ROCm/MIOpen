@@ -28,9 +28,9 @@
 #include <miopen/errors.hpp>
 #include <miopen/lock_file.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/filesystem.hpp>
 
 #include <boost/date_time/posix_time/posix_time_types.hpp>
-#include <miopen/filesystem.hpp>
 #include <boost/none.hpp>
 #include <boost/optional.hpp>
 
@@ -38,7 +38,6 @@
 #include <cassert>
 #include <chrono>
 #include <cstdio>
-#include <filesystem>
 #include <fstream>
 #include <ios>
 #include <mutex>
@@ -264,7 +263,7 @@ bool PlainTextDb::FlushUnsafe(const DbRecord& record, const RecordPositions* pos
             return false;
         }
 
-        const auto temp_name = filename + ".temp";
+        const auto temp_name = append_extension(filename, ".temp");
         std::ofstream to(temp_name, std::ios::binary);
 
         if(!to)

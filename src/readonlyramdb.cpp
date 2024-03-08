@@ -32,6 +32,7 @@
 #if MIOPEN_EMBED_DB
 #include <miopen_data.hpp>
 #endif
+
 #include <fstream>
 #include <mutex>
 #include <sstream>

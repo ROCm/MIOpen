@@ -83,7 +83,8 @@ class KernDb : public SQLiteBase<KernDb>
 public:
     KernDb(DbKinds db_kind, const fs::path& filename_, bool is_system);
     // This constructor is only intended for testing
-    KernDb(DbKinds db_kinds, const fs::path& filename_,
+    KernDb(DbKinds db_kind,
+           const fs::path& filename_,
            bool is_system_,
            std::function<std::vector<char>(std::vector<char>, bool*)> compress_fn_,
            std::function<std::vector<char>(std::vector<char>, unsigned int)> decompress_fn_);

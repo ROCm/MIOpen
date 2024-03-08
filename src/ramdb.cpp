@@ -35,7 +35,6 @@
 #include <chrono>
 #include <ctime>
 #include <fstream>
-#include <filesystem>
 #include <limits>
 #include <map>
 #include <mutex>
@@ -43,7 +42,7 @@
 
 namespace miopen {
 
-fs::path RamDb::GetTimeFilePath(const fs::path& path) { return path + ".time"; }
+fs::path RamDb::GetTimeFilePath(const fs::path& path) { return append_extension(path, ".time"); }
 
 static ramdb_clock::time_point GetDbModificationTime(const fs::path& path)
 {

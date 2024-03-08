@@ -30,9 +30,7 @@
 #include <miopen/op_kernel_args.hpp>
 #include <miopen/execution_context.hpp>
 #include <cstdint>
-#include <filesystem>
 #include <vector>
-#include <filesystem>
 
 namespace miopen {
 

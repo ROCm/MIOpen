@@ -41,7 +41,7 @@ namespace tests {
 namespace {
 inline int Child(const TmpDir& temp, const fs::path& exec, const fs::path& source)
 {
-    return temp.Execute(exec, "-source " + source);
+    return temp.Execute(exec.string(), "-source " + source);
 }
 } // namespace
 class InlinerTest
