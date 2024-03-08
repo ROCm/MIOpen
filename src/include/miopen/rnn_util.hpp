@@ -331,6 +331,11 @@ inline size_t ReductionWorkspaceSize(const Handle& handle,
     int red_algo = getReductionAlgo();
 
     size_t reduction_ws = 0;
+
+    // nothing to reduce,
+    if(batchLenSum == 1)
+        return 0;
+
     if(red_algo == 1)
     {
         miopen::ReduceTensorDescriptor red_add{
@@ -354,7 +359,8 @@ inline size_t ReductionWorkspaceSize(const Handle& handle,
 
         const std::vector<size_t> dw_bias_strides{bias_total_cnt, bias_total_cnt, 1};
         const miopen::TensorDescriptor dw_desc{rnn_data_t, {1, 1, bias_total_cnt}, dw_bias_strides};
-
+        
+        
         reduction_ws = red_add.GetWorkspaceSize(handle, ws_desc, dw_desc);
     }
     else

@@ -81,9 +81,7 @@ miopenStatus_t ReducAddBias(miopen::Handle& handle,
                             Data_t red_workSpace,
                             size_t red_workSpace_size)
 {
-    // nothing to reduce,
-    if(ws_desc.GetLengths()[1] == 1)
-        return miopenStatusSuccess;
+    if (ws_desc.GetLengths()[1] != 1) {
 
     int algo = getReductionAlgo();
 
@@ -213,6 +211,14 @@ miopenStatus_t ReducAddBias(miopen::Handle& handle,
     break;
     default: break;
     }
+    }
+    else
+    {
+        // nothing to reduce
+        // just copy data from workspace to dw
+        CopyTensor(handle, ws_desc, workSpace, dw_desc, dw, ws_bias_offset, dw_bias_offset);
+    }
+
     return miopenStatusSuccess;
 }
 
@@ -6043,6 +6049,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                 }
                 else
                 {
+                    // second dw bias equal to the first, so just copy reduction result
                     const std::vector<int> dw_bias_strides{wei_stride, wei_stride, 1};
                     const miopen::TensorDescriptor dw_desc{
                         rnn_data_t, {1, 1, wei_stride}, dw_bias_strides};
