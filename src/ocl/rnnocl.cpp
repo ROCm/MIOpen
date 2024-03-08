@@ -81,8 +81,9 @@ miopenStatus_t ReducAddBias(miopen::Handle& handle,
                             Data_t red_workSpace,
                             size_t red_workSpace_size)
 {
-    if (ws_desc.GetLengths()[1] != 1) {
-        
+    if(ws_desc.GetLengths()[1] != 1)
+    {
+
         int algo = getReductionAlgo();
 
         switch(algo)
@@ -130,7 +131,8 @@ miopenStatus_t ReducAddBias(miopen::Handle& handle,
             Data_t red_workSpace_bugfix = red_workSpace;
             if(dw_desc.GetType() == miopenDataType_t::miopenHalf)
             {
-                if(std::align(4, red_workSpace_size-4, red_workSpace_bugfix, red_workSpace_size) == 0)
+                if(std::align(
+                       4, red_workSpace_size - 4, red_workSpace_bugfix, red_workSpace_size) == 0)
                     MIOPEN_THROW(miopenStatusInternalError, "failed alignment.");
             }
 
@@ -6055,7 +6057,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                     // Update time
                     profileRNNkernels(handle, 1, ctime);
                 }
-                else         
+                else
                 {
                     // second dw bias equal to the first, so just copy reduction result
                     const std::vector<int> dw_bias_strides{wei_stride, wei_stride, 1};
