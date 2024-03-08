@@ -132,7 +132,8 @@ miopenStatus_t ReducAddBias(miopen::Handle& handle,
             if(dw_desc.GetType() == miopenDataType_t::miopenHalf)
             {
                 if(std::align(
-                       4, red_workSpace_size - 4, red_workSpace_bugfix, red_workSpace_size) == 0)
+                       4, red_workSpace_size - 4, red_workSpace_bugfix, red_workSpace_size) ==
+                   nullptr)
                     MIOPEN_THROW(miopenStatusInternalError, "failed alignment.");
             }
 
