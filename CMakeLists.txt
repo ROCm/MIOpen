@@ -163,10 +163,8 @@ option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD
 if(MIOPEN_EMBED_BUILD)
     set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build as a shared library" FORCE)
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." Off)
-    option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" Off)
 else()
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
-    option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" On)
 endif()
 
 if(MIOPEN_EMBED_BUILD)
@@ -183,6 +181,10 @@ set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
 set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
     OpenCL HIP HIPOC HIPNOGPU)
+
+set_var_to_condition(MIOPEN_BUILD_DRIVER_DEFAULT (NOT MIOPEN_EMBED_BUILD) AND (NOT (MIOPEN_BACKEND STREQUAL "HIPNOGPU")))
+option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver (and use it in tests)" ${MIOPEN_BUILD_DRIVER_DEFAULT})
+message(STATUS "MIOPEN_BUILD_DRIVER: ${MIOPEN_BUILD_DRIVER}" )
 
 # OpenCL 1.2
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
