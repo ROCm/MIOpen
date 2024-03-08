@@ -1,0 +1,267 @@
+{
+    "generated_on": "05 Mar 2024, 21:07:54",
+    "database": "tuna_net2",
+    "gpu": {
+        "arch": "gfx942",
+        "num_cu": "304"
+    },
+    "golden_v": null,
+    "kernels": "hip",
+    "num_inputs": 18,
+    "num_algos": 13,
+    "num_solvers": 20,
+    "num_outputs": 34,
+    "encodings": {
+        "Direction": {
+            "B": 0,
+            "W": 1,
+            "F": 2
+        },
+        "Precision": {
+            "FP32": 0,
+            "FP16": 1,
+            "BF16": 2
+        },
+        "Layout": {
+            "NCHW": 0
+        },
+        "algorithm": {
+            "miopenConvolutionBwdDataAlgoImplicitGEMM": 0,
+            "miopenConvolutionBwdWeightsAlgoImplicitGEMM": 1,
+            "miopenConvolutionFwdAlgoWinograd": 2,
+            "miopenConvolutionFwdAlgoImplicitGEMM": 3,
+            "miopenConvolutionFwdAlgoGEMM": 4,
+            "miopenConvolutionBwdDataAlgoWinograd": 5,
+            "miopenConvolutionBwdDataAlgoDirect": 6,
+            "miopenConvolutionBwdWeightsAlgoDirect": 7,
+            "miopenConvolutionBwdWeightsAlgoWinograd": 8,
+            "miopenConvolutionFwdAlgoDirect": 9,
+            "miopenConvolutionBwdDataAlgoGEMM": 10,
+            "miopenConvolutionBwdWeightsAlgoGEMM": 11,
+            "miopenConvolutionFwdAlgoFFT": 12
+        },
+        "solver": {
+            "ConvHipImplicitGemmGroupBwdXdlops": 0,
+            "ConvHipImplicitGemmGroupWrwXdlops": 1,
+            "ConvBinWinogradRxSf3x2": 2,
+            "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC": 3,
+            "GemmFwdRest": 4,
+            "ConvBinWinogradRxSf2x3g1": 5,
+            "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC": 6,
+            "ConvDirectNaiveConvBwd": 7,
+            "ConvDirectNaiveConvWrw": 8,
+            "ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC": 9,
+            "ConvDirectNaiveConvFwd": 10,
+            "GemmBwd1x1_stride1": 11,
+            "GemmFwd1x1_0_1": 12,
+            "GemmFwd1x1_0_2": 13,
+            "GemmWrw1x1_stride1": 14,
+            "GemmWrwUniversal": 15,
+            "GemmBwd1x1_stride2": 16,
+            "ConvBinWinogradRxSf2x3": 17,
+            "GemmBwdRest": 18,
+            "fft": 19
+        }
+    },
+    "stats": {
+        "overall": {
+            "features": {
+                "mean": {
+                    "Inp_0": 325.9003601074219,
+                    "Inp_2": 209.74703979492188,
+                    "Inp_3": 223.189208984375,
+                    "Out_0": 305.352783203125,
+                    "Out_2": 148.64288330078125,
+                    "Out_3": 158.15199279785156,
+                    "Fil_1": 2.190844774246216,
+                    "Fil_2": 2.1959431171417236,
+                    "Pad_1": 0.5862483978271484,
+                    "Pad_2": 0.5853042602539062,
+                    "Str_1": 1.3529942035675049,
+                    "Str_2": 1.352996826171875,
+                    "Dil_1": 1.0099995136260986,
+                    "Dil_2": 1.0099995136260986,
+                    "BatchSize": 21.0903263092041,
+                    "Precision": 0.10639835894107819,
+                    "Direction": 1.004353642463684,
+                    "GroupSize": 1.4401003122329712
+                },
+                "std": {
+                    "Inp_0": 395.52734375,
+                    "Inp_2": 247.92051696777344,
+                    "Inp_3": 262.5870361328125,
+                    "Out_0": 389.11029052734375,
+                    "Out_2": 131.56947326660156,
+                    "Out_3": 139.54478454589844,
+                    "Fil_1": 1.8602221012115479,
+                    "Fil_2": 1.8918968439102173,
+                    "Pad_1": 1.0529791116714478,
+                    "Pad_2": 1.0522027015686035,
+                    "Str_1": 0.4840427041053772,
+                    "Str_2": 0.48404353857040405,
+                    "Dil_1": 0.5050622820854187,
+                    "Dil_2": 0.5050622820854187,
+                    "BatchSize": 99.24071502685547,
+                    "Precision": 0.39602914452552795,
+                    "Direction": 0.8159562349319458,
+                    "GroupSize": 9.683490753173828
+                }
+            },
+            "gt": {
+                "mean": {
+                    "solver": 3.3093411922454834,
+                    "algorithm": 1.5791001319885254,
+                    "solverTime": 0.13766984641551971
+                },
+                "std": {
+                    "solver": 4.573053359985352,
+                    "algorithm": 1.7730216979980469,
+                    "solverTime": 1.1834594011306763
+                }
+            }
+        },
+        "train": {
+            "features": {
+                "mean": {
+                    "Inp_0": 326.24481201171875,
+                    "Inp_2": 209.5318603515625,
+                    "Inp_3": 222.93435668945312,
+                    "Out_0": 305.4000244140625,
+                    "Out_2": 148.52294921875,
+                    "Out_3": 157.99868774414062,
+                    "Fil_1": 2.189711809158325,
+                    "Fil_2": 2.1949269771575928,
+                    "Pad_1": 0.5856471657752991,
+                    "Pad_2": 0.584631085395813,
+                    "Str_1": 1.3529348373413086,
+                    "Str_2": 1.3529348373413086,
+                    "Dil_1": 1.0100735425949097,
+                    "Dil_2": 1.0100735425949097,
+                    "BatchSize": 21.126296997070312,
+                    "Precision": 0.10666031390428543,
+                    "Direction": 1.0044448375701904,
+                    "GroupSize": 1.4357017278671265
+                },
+                "std": {
+                    "Inp_0": 395.72906494140625,
+                    "Inp_2": 248.04124450683594,
+                    "Inp_3": 262.80694580078125,
+                    "Out_0": 388.97845458984375,
+                    "Out_2": 131.7021484375,
+                    "Out_3": 139.69839477539062,
+                    "Fil_1": 1.8590375185012817,
+                    "Fil_2": 1.8915495872497559,
+                    "Pad_1": 1.0527434349060059,
+                    "Pad_2": 1.0519285202026367,
+                    "Str_1": 0.48407119512557983,
+                    "Str_2": 0.48407119512557983,
+                    "Dil_1": 0.5058740973472595,
+                    "Dil_2": 0.5058740973472595,
+                    "BatchSize": 99.31275939941406,
+                    "Precision": 0.39656758308410645,
+                    "Direction": 0.816021203994751,
+                    "GroupSize": 9.708930015563965
+                }
+            },
+            "gt": {
+                "mean": {
+                    "solver": 3.310671806335449,
+                    "algorithm": 1.5796468257904053,
+                    "solverTime": 0.13838908076286316
+                },
+                "std": {
+                    "solver": 4.573086738586426,
+                    "algorithm": 1.7734026908874512,
+                    "solverTime": 1.199255108833313
+                }
+            }
+        },
+        "test": {
+            "features": {
+                "mean": {
+                    "Inp_0": 322.7998352050781,
+                    "Inp_2": 211.68370056152344,
+                    "Inp_3": 225.48233032226562,
+                    "Out_0": 304.9269714355469,
+                    "Out_2": 149.72216796875,
+                    "Out_3": 159.53175354003906,
+                    "Fil_1": 2.2010412216186523,
+                    "Fil_2": 2.205087423324585,
+                    "Pad_1": 0.5916594862937927,
+                    "Pad_2": 0.5913627743721008,
+                    "Str_1": 1.3535282611846924,
+                    "Str_2": 1.3535552024841309,
+                    "Dil_1": 1.0093331336975098,
+                    "Dil_2": 1.0093331336975098,
+                    "BatchSize": 20.766590118408203,
+                    "Precision": 0.10404078662395477,
+                    "Direction": 1.0035337209701538,
+                    "GroupSize": 1.4796881675720215
+                },
+                "std": {
+                    "Inp_0": 393.6990966796875,
+                    "Inp_2": 246.826171875,
+                    "Inp_3": 260.5919494628906,
+                    "Out_0": 390.2998046875,
+                    "Out_2": 130.36614990234375,
+                    "Out_3": 138.1487274169922,
+                    "Fil_1": 1.8708441257476807,
+                    "Fil_2": 1.8950201272964478,
+                    "Pad_1": 1.055096983909607,
+                    "Pad_2": 1.0546624660491943,
+                    "Str_1": 0.4837924540042877,
+                    "Str_2": 0.48380064964294434,
+                    "Dil_1": 0.49770238995552063,
+                    "Dil_2": 0.49770238995552063,
+                    "BatchSize": 98.5907211303711,
+                    "Precision": 0.39114704728126526,
+                    "Direction": 0.8153814077377319,
+                    "GroupSize": 9.45150089263916
+                }
+            },
+            "gt": {
+                "mean": {
+                    "solver": 3.2973673343658447,
+                    "algorithm": 1.574180006980896,
+                    "solverTime": 0.13119730353355408
+                },
+                "std": {
+                    "solver": 4.57279634475708,
+                    "algorithm": 1.7696057558059692,
+                    "solverTime": 1.0304502248764038
+                }
+            }
+        }
+    },
+    "conv_params_used_as_features": [
+        "Inp_0",
+        "Inp_2",
+        "Inp_3",
+        "Out_0",
+        "Out_2",
+        "Out_3",
+        "Fil_1",
+        "Fil_2",
+        "Pad_1",
+        "Pad_2",
+        "Str_1",
+        "Str_2",
+        "Dil_1",
+        "Dil_2",
+        "BatchSize",
+        "Precision",
+        "Direction",
+        "GroupSize"
+    ],
+    "redundant_columns": {
+        "SpatialDim": 2.0,
+        "Inp_1": 1.0,
+        "Out_1": 1.0,
+        "Fil_0": 1.0,
+        "Pad_0": 0.0,
+        "Str_0": 1.0,
+        "Dil_0": 1.0,
+        "BiasFlag": 0.0,
+        "Layout": 0.0
+    }
+}
