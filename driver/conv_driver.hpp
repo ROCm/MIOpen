@@ -298,7 +298,7 @@ public:
     }
 
     template <typename T>
-    status_t AllocOnDevice(stream, context_t ctx, const size_t sz, std::vector<T>& init)
+    status_t AllocOnDevice(stream, context_t ctx, const size_t sz, std::vector<T>&)
     {
         static_assert(std::is_same<T, float>::value           //
                           || std::is_same<T, int32_t>::value, //
