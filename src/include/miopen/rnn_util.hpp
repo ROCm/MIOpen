@@ -340,7 +340,7 @@ inline size_t ReductionWorkspaceSize(const Handle& handle,
     {
         miopen::ReduceTensorDescriptor red_add{
             miopenReduceTensorOp_t::MIOPEN_REDUCE_TENSOR_ADD,
-            rnn_data_t,
+            miopenDataType_t::miopenFloat,                   // compute in float for fp16
             miopenNanPropagation_t::MIOPEN_PROPAGATE_NAN,
             miopenReduceTensorIndices_t::MIOPEN_REDUCE_TENSOR_NO_INDICES,
             miopenIndicesType_t::MIOPEN_32BIT_INDICES};
@@ -359,9 +359,9 @@ inline size_t ReductionWorkspaceSize(const Handle& handle,
 
         const std::vector<size_t> dw_bias_strides{bias_total_cnt, bias_total_cnt, 1};
         const miopen::TensorDescriptor dw_desc{rnn_data_t, {1, 1, bias_total_cnt}, dw_bias_strides};
-        
-        
-        reduction_ws = red_add.GetWorkspaceSize(handle, ws_desc, dw_desc);
+                
+        reduction_ws = red_add.GetWorkspaceSize(handle, ws_desc, dw_desc) + // WA CK bug
+                       (rnn_data_t == miopenDataType_t::miopenHalf ? 4 : 0);
     }
     else
     {

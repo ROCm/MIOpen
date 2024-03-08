@@ -82,135 +82,143 @@ miopenStatus_t ReducAddBias(miopen::Handle& handle,
                             size_t red_workSpace_size)
 {
     if (ws_desc.GetLengths()[1] != 1) {
+        
+        int algo = getReductionAlgo();
 
-    int algo = getReductionAlgo();
-
-    switch(algo)
-    {
-    case 0: {
-        float alpha0 = 0;
-        float alpha1 = 1;
-        float beta_t = 1;
-
-        OpTensor(handle,
-                 miopenTensorOpAdd,
-                 &alpha0,
-                 dw_desc,
-                 dw,
-                 &alpha1,
-                 ws_desc,
-                 workSpace,
-                 &beta_t,
-                 dw_desc,
-                 dw,
-                 dw_bias_offset,
-                 ws_bias_offset,
-                 dw_bias_offset,
-                 true);
-    }
-    break;
-    case 1: {
-        float alpha1 = 1;
-        float beta1  = 1;
-
-        miopen::ReduceTensorDescriptor red_add{
-            miopenReduceTensorOp_t::MIOPEN_REDUCE_TENSOR_ADD,
-            dw_desc.GetType(),
-            miopenNanPropagation_t::MIOPEN_PROPAGATE_NAN,
-            miopenReduceTensorIndices_t::MIOPEN_REDUCE_TENSOR_NO_INDICES,
-            miopenIndicesType_t::MIOPEN_32BIT_INDICES};
-
-        Data_t srcA_with_offset =
-            static_cast<char*>(workSpace) + ws_bias_offset * GetTypeSize(dw_desc.GetType());
-
-        Data_t dstC_with_offset =
-            static_cast<char*>(dw) + dw_bias_offset * GetTypeSize(dw_desc.GetType());
-
-        red_add.ReduceTensor(handle,
-                             nullptr,
-                             0,
-                             red_workSpace,
-                             red_workSpace_size,
-                             &alpha1,
-                             ws_desc,
-                             srcA_with_offset,
-                             &beta1,
-                             dw_desc,
-                             dstC_with_offset);
-    }
-    break;
-    case 2:
-    case 3: {
-        float alpha1  = 1.;
-        auto red_type = ws_desc.GetType();
-        int m = 1, n = ws_desc.GetLengths()[2], k = ws_desc.GetLengths()[1];
-        int lda = k, ldb = ws_desc.GetStrides()[1], ldc = n;
-
-        const miopen::TensorDescriptor red_matrix{
-            red_type, std::vector<int>{1, 1, k}, std::vector<int>{k, k, 1}};
-
-        SetTensor(handle, red_matrix, red_workSpace, &alpha1);
-
-        float alpha = 1, beta = 1;
-        if(algo == 2)
+        switch(algo)
         {
-            miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
-                                                              false,
-                                                              false,
-                                                              m,
-                                                              n,
-                                                              k,
-                                                              lda,
-                                                              ldb,
-                                                              ldc,
-                                                              1,     // batch count
-                                                              0,     // Stride A
-                                                              0,     // Stride B
-                                                              0,     // Stride C
-                                                              alpha, // alpha
-                                                              beta,  // beta
-                                                              red_type,
-                                                              false};
+        case 0: {
+            float alpha0 = 0;
+            float alpha1 = 1;
+            float beta_t = 1;
 
-            miopenStatus_t gemm_status = CallGemm(handle,
-                                                  gemm_desc,
-                                                  red_workSpace,
-                                                  0,
-                                                  workSpace,
-                                                  ws_bias_offset,
-                                                  dw,
-                                                  dw_bias_offset,
-                                                  GemmBackend_t::rocblas);
-            checkGemmStatusAndLog(gemm_status);
+            OpTensor(handle,
+                     miopenTensorOpAdd,
+                     &alpha0,
+                     dw_desc,
+                     dw,
+                     &alpha1,
+                     ws_desc,
+                     workSpace,
+                     &beta_t,
+                     dw_desc,
+                     dw,
+                     dw_bias_offset,
+                     ws_bias_offset,
+                     dw_bias_offset,
+                     true);
         }
-        else
-        {
-            if(dw_desc.GetType() != miopenDataType_t::miopenFloat)
-                MIOPEN_THROW(miopenStatusInternalError, "rocblas_sgemv wrong Type");
+        break;
+        case 1: {
+            float alpha1 = 1;
+            float beta1  = 1;
+
+            miopen::ReduceTensorDescriptor red_add{
+                miopenReduceTensorOp_t::MIOPEN_REDUCE_TENSOR_ADD,
+                miopenDataType_t::miopenFloat,
+                miopenNanPropagation_t::MIOPEN_PROPAGATE_NAN,
+                miopenReduceTensorIndices_t::MIOPEN_REDUCE_TENSOR_NO_INDICES,
+                miopenIndicesType_t::MIOPEN_32BIT_INDICES};
 
             Data_t srcA_with_offset =
                 static_cast<char*>(workSpace) + ws_bias_offset * GetTypeSize(dw_desc.GetType());
 
-            Data_t dstY_with_offset =
+            Data_t dstC_with_offset =
                 static_cast<char*>(dw) + dw_bias_offset * GetTypeSize(dw_desc.GetType());
 
-            rocblas_sgemv(handle.rhandle().get(),
-                          rocblas_operation::rocblas_operation_none,
-                          n,
-                          k,
-                          &alpha,
-                          static_cast<float*>(srcA_with_offset),
-                          ldb,
-                          static_cast<float*>(red_workSpace),
-                          1,
-                          &beta,
-                          static_cast<float*>(dstY_with_offset),
-                          1);
+            // WA CK bug
+            Data_t red_workSpace_bugfix = red_workSpace;
+            if(dw_desc.GetType() == miopenDataType_t::miopenHalf)
+            {
+                if(std::align(4, red_workSpace_size-4, red_workSpace_bugfix, red_workSpace_size) == 0)
+                    MIOPEN_THROW(miopenStatusInternalError, "failed alignment.");
+            }
+
+            red_add.ReduceTensor(handle,
+                                 nullptr,
+                                 0,
+                                 red_workSpace_bugfix,
+                                 red_workSpace_size,
+                                 &alpha1,
+                                 ws_desc,
+                                 srcA_with_offset,
+                                 &beta1,
+                                 dw_desc,
+                                 dstC_with_offset);
         }
-    }
-    break;
-    default: break;
-    }
+        break;
+        case 2:
+        case 3: {
+            float alpha1  = 1.;
+            auto red_type = ws_desc.GetType();
+            int m = 1, n = ws_desc.GetLengths()[2], k = ws_desc.GetLengths()[1];
+            int lda = k, ldb = ws_desc.GetStrides()[1], ldc = n;
+
+            const miopen::TensorDescriptor red_matrix{
+                red_type, std::vector<int>{1, 1, k}, std::vector<int>{k, k, 1}};
+
+            SetTensor(handle, red_matrix, red_workSpace, &alpha1);
+
+            float alpha = 1, beta = 1;
+            if(algo == 2)
+            {
+                miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                                  false,
+                                                                  false,
+                                                                  m,
+                                                                  n,
+                                                                  k,
+                                                                  lda,
+                                                                  ldb,
+                                                                  ldc,
+                                                                  1,     // batch count
+                                                                  0,     // Stride A
+                                                                  0,     // Stride B
+                                                                  0,     // Stride C
+                                                                  alpha, // alpha
+                                                                  beta,  // beta
+                                                                  red_type,
+                                                                  false};
+
+                miopenStatus_t gemm_status = CallGemm(handle,
+                                                      gemm_desc,
+                                                      red_workSpace,
+                                                      0,
+                                                      workSpace,
+                                                      ws_bias_offset,
+                                                      dw,
+                                                      dw_bias_offset,
+                                                      GemmBackend_t::rocblas);
+                checkGemmStatusAndLog(gemm_status);
+            }
+            else
+            {
+                if(dw_desc.GetType() != miopenDataType_t::miopenFloat)
+                    MIOPEN_THROW(miopenStatusInternalError, "rocblas_sgemv wrong Type");
+
+                Data_t srcA_with_offset =
+                    static_cast<char*>(workSpace) + ws_bias_offset * GetTypeSize(dw_desc.GetType());
+
+                Data_t dstY_with_offset =
+                    static_cast<char*>(dw) + dw_bias_offset * GetTypeSize(dw_desc.GetType());
+
+                rocblas_sgemv(handle.rhandle().get(),
+                              rocblas_operation::rocblas_operation_none,
+                              n,
+                              k,
+                              &alpha,
+                              static_cast<float*>(srcA_with_offset),
+                              ldb,
+                              static_cast<float*>(red_workSpace),
+                              1,
+                              &beta,
+                              static_cast<float*>(dstY_with_offset),
+                              1);
+            }
+        }
+        break;
+        default: break;
+        }
     }
     else
     {
@@ -6047,7 +6055,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                     // Update time
                     profileRNNkernels(handle, 1, ctime);
                 }
-                else
+                else         
                 {
                     // second dw bias equal to the first, so just copy reduction result
                     const std::vector<int> dw_bias_strides{wei_stride, wei_stride, 1};
