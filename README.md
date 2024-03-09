@@ -1,6 +1,8 @@
 # MIOpen
 
-AMD's library for high performance machine learning primitives.
+[![codecov](https://codecov.io/github/ROCmSoftwarePlatform/MIOpen/branch/develop/graph/badge.svg?token=k2YZlSy6uN)](https://codecov.io/github/ROCmSoftwarePlatform/MIOpen)
+
+AMD's library for high performance machine learning primitives. 
 Sources and binaries can be found at [MIOpen's GitHub site](https://github.com/ROCm/MIOpen).
 The latest released documentation can be read online [here](https://rocm.docs.amd.com/projects/MIOpen/en/latest/index.html).
 
