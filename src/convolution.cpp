@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include <miopen/convolution.hpp>
 
+#include <miopen/any_solver.hpp>
 #include <miopen/config.h>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
@@ -429,8 +430,12 @@ std::size_t ConvolutionDescriptor::GetWorkSpaceSize(ExecutionContext ctx,
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             break; // Fall down to Normal Find.
         }
-        MIOPEN_LOG_I(solutions.front().workspace_size);
-        return solutions.front().workspace_size;
+        const auto id             = solver::Id{solutions.front().solution_id};
+        const auto& s             = id.GetSolver();
+        const auto workspace_size = s.GetWorkspaceSize(ctx, problem);
+
+        MIOPEN_LOG_I(workspace_size);
+        return workspace_size;
     }
 
     size_t workspace_size;
