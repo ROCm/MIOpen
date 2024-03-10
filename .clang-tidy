@@ -63,6 +63,13 @@
 #   -llvmlibc-inline-function-decl
 #   -readability-avoid-unconditional-preprocessor-if
 #
+# TODO Code Quality WORKAROUND ROCm 6.1
+#   -cppcoreguidelines-missing-std-forward
+#   -cppcoreguidelines-use-default-member-init
+#   -misc-include-cleaner
+#   -modernize-type-traits
+#   -performance-avoid-endl
+#
 Checks: >-
   *,
   -abseil-*,
@@ -93,6 +100,7 @@ Checks: >-
   -cppcoreguidelines-explicit-virtual-functions,
   -cppcoreguidelines-init-variables,
   -cppcoreguidelines-macro-usage,
+  -cppcoreguidelines-missing-std-forward,
   -cppcoreguidelines-narrowing-conversions,
   -cppcoreguidelines-non-private-member-variables-in-classes,
   -cppcoreguidelines-prefer-member-initializer,
@@ -105,6 +113,7 @@ Checks: >-
   -cppcoreguidelines-pro-type-vararg,
   -cppcoreguidelines-rvalue-reference-param-not-moved,
   -cppcoreguidelines-special-member-functions,
+  -cppcoreguidelines-use-default-member-init,
   -fuchsia-*,
   -google-explicit-constructor,
   -google-readability-casting,
@@ -136,6 +145,7 @@ Checks: >-
   -llvm-qualified-auto,
   -misc-confusable-identifiers,
   -misc-const-correctness,
+  -misc-include-cleaner,
   -misc-misplaced-const,
   -misc-non-private-member-variables-in-classes,
   -misc-no-recursion,
@@ -145,6 +155,7 @@ Checks: >-
   -modernize-deprecated-headers,
   -modernize-macro-to-enum,
   -modernize-pass-by-value,
+  -modernize-type-traits,
   -modernize-use-auto,
   -modernize-use-default-member-init,
   -modernize-use-emplace,
@@ -154,6 +165,7 @@ Checks: >-
   -modernize-use-nodiscard,
   -modernize-concat-nested-namespaces,
   -modernize-unary-static-assert,
+  -performance-avoid-endl,
   -performance-no-automatic-move,
   -performance-unnecessary-copy-initialization,
   -performance-unnecessary-value-param,
