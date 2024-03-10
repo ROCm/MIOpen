@@ -64,6 +64,7 @@
 #   -readability-avoid-unconditional-preprocessor-if
 #
 # TODO Code Quality WORKAROUND ROCm 6.1
+#   -cppcoreguidelines-misleading-capture-default-by-value
 #   -cppcoreguidelines-missing-std-forward
 #   -cppcoreguidelines-use-default-member-init
 #   -misc-include-cleaner
@@ -100,6 +101,7 @@ Checks: >-
   -cppcoreguidelines-explicit-virtual-functions,
   -cppcoreguidelines-init-variables,
   -cppcoreguidelines-macro-usage,
+  -cppcoreguidelines-misleading-capture-default-by-value,
   -cppcoreguidelines-missing-std-forward,
   -cppcoreguidelines-narrowing-conversions,
   -cppcoreguidelines-non-private-member-variables-in-classes,
