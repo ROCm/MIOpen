@@ -172,7 +172,7 @@ HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name, const fs::pa
     module = CreateModule(hsaco_file);
 }
 
-HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name, const std::string& blob)
+HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name, const std::vector<char>& blob)
     : program(program_name) ///, module(CreateModuleInMem(blob))
 {
     const auto& arch = miopen::GetStringEnv(ENV(MIOPEN_DEVICE_ARCH));
@@ -341,7 +341,7 @@ HIPOCProgram::HIPOCProgram(const std::string& program_name, const fs::path& hsac
 {
 }
 
-HIPOCProgram::HIPOCProgram(const std::string& program_name, const std::string& hsaco)
+HIPOCProgram::HIPOCProgram(const std::string& program_name, const std::vector<char>& hsaco)
     : impl(std::make_shared<HIPOCProgramImpl>(program_name, hsaco))
 {
 }
@@ -360,9 +360,9 @@ fs::path HIPOCProgram::GetCodeObjectPathname() const
     }
 }
 
-std::string HIPOCProgram::GetCodeObjectBlob() const
+std::vector<char> HIPOCProgram::GetCodeObjectBlob() const
 {
-    return {impl->binary.data(), impl->binary.size()};
+    return impl->binary;
 }
 
 void HIPOCProgram::FreeCodeObjectFileStorage()
