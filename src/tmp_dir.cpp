@@ -40,28 +40,23 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_EXIT_STATUS_TEMP_DIR)
 
 namespace miopen {
 
-// clang-format off
-
-TmpDir::TmpDir(std::string_view prefix)
-    : path{fs::temp_directory_path()}
+TmpDir::TmpDir(std::string_view prefix) : path{fs::temp_directory_path()}
 {
     std::string p{prefix.empty() ? "" : (prefix[0] == '-' ? "" : "-")};
 
-    path /= boost::filesystem::unique_path(
-        "miopen" + p.append(prefix) + "-%%%%-%%%%-%%%%-%%%%").string();
+    path /= boost::filesystem::unique_path("miopen" + p.append(prefix) + "-%%%%-%%%%-%%%%-%%%%")
+                .string();
 
     fs::create_directories(path);
 }
 
-// clang-format on
-
-int TmpDir::Execute(std::string_view exe, std::string_view args) const
+int TmpDir::Execute(std::string_view cmd, std::string_view args) const
 {
     if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_SAVE_TEMP_DIR)))
     {
         MIOPEN_LOG_I2(path.string());
     }
-    auto status = Process{exe}(args, path);
+    auto status = Process{cmd}(args, path);
     if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_EXIT_STATUS_TEMP_DIR)))
     {
         MIOPEN_LOG_I2(status);
@@ -75,7 +70,7 @@ TmpDir::~TmpDir()
     {
 #ifdef _WIN32
         constexpr int remove_max_retries = 5;
-        int count = 0;
+        int count                        = 0;
         while(count < remove_max_retries)
         {
             try
