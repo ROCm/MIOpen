@@ -69,14 +69,14 @@ int TmpDir::Execute(std::string_view exe, std::string_view args) const
     return status;
 }
 
-#define MIOPEN_TMP_DIR_REMOVE_MAX_RETRIES 5
-
 TmpDir::~TmpDir()
 {
     if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_SAVE_TEMP_DIR)))
     {
+#ifdef _WIN32
+        constexpr int remove_max_retries = 5;
         int count = 0;
-        while(count < MIOPEN_TMP_DIR_REMOVE_MAX_RETRIES)
+        while(count < remove_max_retries)
         {
             try
             {
@@ -90,6 +90,9 @@ TmpDir::~TmpDir()
             }
             ++count;
         }
+#else
+        fs::remove_all(path);
+#endif
     }
 }
 
