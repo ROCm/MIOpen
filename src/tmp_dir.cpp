@@ -86,12 +86,13 @@ TmpDir::~TmpDir()
             catch(const fs::filesystem_error& err)
             {
                 MIOPEN_LOG_W(err.what());
-                std::this_thread::sleep_for(std::chrono::milliseconds{250});
+                std::this_thread::sleep_for(std::chrono::milliseconds{125});
             }
             ++count;
         }
 #else
-        fs::remove_all(path);
+        if(!this->path.empty())
+            fs::remove_all(this->path);
 #endif
     }
 }
