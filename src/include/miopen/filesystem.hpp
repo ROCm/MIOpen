@@ -76,6 +76,22 @@ namespace fs = ::std::filesystem;
 namespace fs = ::std::experimental::filesystem;
 #endif
 
+namespace {
+#ifdef _WIN32
+constexpr std::string_view executable_postfix{".exe"};
+constexpr std::string_view library_prefix{""};
+constexpr std::string_view dynamic_library_postfix{".dll"};
+constexpr std::string_view static_library_postfix{".lib"};
+constexpr std::string_view object_file_postfix{".obj"};
+#else
+constexpr std::string_view executable_postfix{""};
+constexpr std::string_view library_prefix{"lib"};
+constexpr std::string_view dynamic_library_postfix{".so"};
+constexpr std::string_view static_library_postfix{".a"};
+constexpr std::string_view object_file_postfix{".o"};
+#endif
+}
+
 inline std::string operator+(const std::string_view s, const fs::path& p)
 {
     return p.string().insert(0, s);
@@ -89,6 +105,46 @@ inline std::string operator+(const fs::path& p, const std::string_view s)
 inline fs::path append_extension(const fs::path& p, const std::string_view s)
 {
     return fs::path{p}.replace_extension(p.extension().string().append(s));
+}
+
+inline fs::path make_executable_name(std::string_view name)
+{
+    return std::string{name}.append(executable_postfix);
+}
+
+inline fs::path make_executable_name(const fs::path& path)
+{
+    return make_executable_name(std::string_view{path.string()});
+}
+
+inline fs::path make_dynamic_library_name(std::string_view name)
+{
+    return std::string{library_prefix}.append(name).append(dynamic_library_postfix);
+}
+
+inline fs::path make_dynamic_library_name(const fs::path& path)
+{
+    return make_dynamic_library_name(std::string_view{path.string()});
+}
+
+inline fs::path make_object_file_name(std::string_view name)
+{
+    return std::string{name}.append(object_file_postfix);
+}
+
+inline fs::path make_object_file_name(const fs::path& path)
+{
+    return make_object_file_name(std::string_view{path.string()});
+}
+
+inline fs::path make_static_library_name(std::string_view name)
+{
+    return std::string{library_prefix}.append(name).append(static_library_postfix);
+}
+
+inline fs::path make_static_library_name(const fs::path& path)
+{
+    return make_static_library_name(std::string_view{path.string()});
 }
 
 } // namespace miopen

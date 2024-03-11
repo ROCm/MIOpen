@@ -102,7 +102,7 @@ bool IsTestSupportedForDevice()
 
 void Run2dDriver(void)
 {
-    if(!(IsTestSupportedForDevice() && (miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))))
+    if(!IsTestSupportedForDevice() && !miopen::IsSet(ENV(MIOPEN_TEST_ALL)))
     {
         GTEST_SKIP();
     }

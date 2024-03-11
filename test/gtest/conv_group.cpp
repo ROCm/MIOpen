@@ -123,7 +123,7 @@ bool IsTestSupportedForDevice()
 void Run2dDriver(void)
 {
     if(!(IsTestSupportedForDevice()                      //
-         && (miopen::IsUnset(ENV(MIOPEN_TEST_ALL))       // standalone run
+         && (!miopen::IsSet(ENV(MIOPEN_TEST_ALL))        // standalone run
              || (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) // or --float full tests enabled
                  && miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float"))))
     {
