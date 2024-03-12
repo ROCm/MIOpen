@@ -513,7 +513,7 @@ file(MAKE_DIRECTORY ${KERNELS_BINARY_DIR})
 
 add_custom_target(generate_kernels ALL)
 
-set(MIOPEN_USE_SQLITE_PERFDB On CACHE BOOL "Use sqlite perfdb instead of text-based.")
+set(MIOPEN_USE_SQLITE_PERFDB Off CACHE BOOL "Use sqlite perfdb instead of text-based.")
 if(MIOPEN_USE_SQLITE_PERFDB)
     set(PERFDB_SUFFIX "")
 else()
