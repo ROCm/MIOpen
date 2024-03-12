@@ -482,6 +482,10 @@ pipeline {
             defaultValue: false,
             description: "")
         booleanParam(
+            name: "TARGET_NAVI32",
+            defaultValue: false,
+            description: "")
+        booleanParam(
             name: "DATATYPE_NA",
             defaultValue: true,
             description: "")
@@ -1058,6 +1062,19 @@ pipeline {
                         buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_cmd: Navi21_build_cmd)
                     }
                 }
+                stage('Fp16 Hip All gfx1101') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_NAVI32 && params.DATATYPE_FP16 }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("navi32") }
+                    steps{
+                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags)
+                    }
+                }
                 stage('Fp32 Hip All gfx908') {
                     when {
                         beforeAgent true
@@ -1144,6 +1161,19 @@ pipeline {
                     agent{ label rocmnode("navi21") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Full_test, build_cmd: Navi21_build_cmd, build_install: "true")
+                    }
+                }
+                stage('Fp32 Hip All Install gfx1101') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_NAVI32 && params.DATATYPE_FP32 }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("navi32") }
+                    steps{
+                        buildHipClangJobAndReboot(setup_flags: Full_test, build_install: "true")
                     }
                 }
                 stage('Fp16 Hip All Install gfx908') {
