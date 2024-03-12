@@ -399,15 +399,21 @@ constexpr std::string_view LoggingParseFunction(const std::string_view func,
 // Warnings in installable builds, errors otherwise.
 #define MIOPEN_LOG_WE(...) MIOPEN_LOG(LogWELevel, __VA_ARGS__)
 
-#define MIOPEN_LOG_DRIVER_CMD(...)                                                    \
-    do                                                                                \
-    {                                                                                 \
-        std::ostringstream miopen_driver_cmd_ss;                                      \
-        miopen_driver_cmd_ss << miopen::LoggingPrefix() << "Command"                  \
-                             << " [" << MIOPEN_GET_FN_NAME << "] ./bin/MIOpenDriver " \
-                             << __VA_ARGS__ << std::endl;                             \
-        std::cerr << miopen_driver_cmd_ss.str();                                      \
+#define MIOPEN_LOG_DRIVER_COMMAND(driver, ...)                                               \
+    do                                                                                       \
+    {                                                                                        \
+        std::ostringstream miopen_driver_cmd_ss;                                             \
+        miopen_driver_cmd_ss << miopen::LoggingPrefix() << "Command"                         \
+                             << " [" << MIOPEN_GET_FN_NAME << "] " driver " " << __VA_ARGS__ \
+                             << std::endl;                                                   \
+        std::cerr << miopen_driver_cmd_ss.str();                                             \
     } while(false)
+
+#ifdef _WIN32
+#define MIOPEN_LOG_DRIVER_CMD(...) MIOPEN_LOG_DRIVER_COMMAND("MIOpenDriver.exe", __VA_ARGS__)
+#else
+#define MIOPEN_LOG_DRIVER_CMD(...) MIOPEN_LOG_DRIVER_COMMAND("./bin/MIOpenDriver", __VA_ARGS__)
+#endif
 
 #if MIOPEN_LOG_FUNC_TIME_ENABLE
 class LogScopeTime
