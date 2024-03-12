@@ -6,9 +6,8 @@
 MIOpen documentation
 ********************************************************************
 
-To learn more about MIOpen docs home page! To learn more, see
+Welcome to our documentation home page. To learn more about MIOpen, refer to
 :doc:`What is MIOpen? <./what-is-miopen>`
-
 
 Our documentation is structured as follows:
 
@@ -18,13 +17,12 @@ Our documentation is structured as follows:
   .. grid-item-card:: Install
 
     * :doc:`Install MIOpen <./install/install>`
-    * :doc:`Build the driver <./install/driver>`
     * :doc:`Build MIOpen for embedded systems <./install/embed>`
     * :doc:`Build MIOpen using Docker <./install/docker-build>`
 
-  ..  grid-item-card:: Reference
+  ..  grid-item-card:: API reference
 
-    * :doc:`API library <./doxygen/html/index>`
+    * :doc:`API library <./doxygen/html/modules>`
 
   .. grid-item-card:: Conceptual
 
@@ -38,7 +36,7 @@ Our documentation is structured as follows:
 
     * :doc:`Use fusion <./how-to/use-fusion-api>`
     * :doc:`Log & debug <./how-to/debug-log>`
-    * :doc:`Use the find API & immediate mode <./how-to/find-and-immediate>`
+    * :doc:`Use the find APIs & immediate mode <./how-to/find-and-immediate>`
 
 To contribute to the documentation refer to
 `Contributing to ROCm <https://rocm.docs.amd.com/en/latest/contribute/contributing.html>`_.

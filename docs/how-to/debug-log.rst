@@ -12,164 +12,257 @@ environmental variables to control logging. Both variables are disabled by defau
 * ``MIOPEN_ENABLE_LOGGING``: Print the basic layer-by-layer MIOpen API call
   information with actual parameters (configurations). This information is important for debugging.
 
+  * To enable feature: ``1``, ``on``, ``yes``, ``true``, ``enable``, ``enabled``
+  * To disable feature: ``0``, ``off``, ``no``, ``false``, ``disable``, ``disabled``
+
 * ``MIOPEN_ENABLE_LOGGING_CMD``: Output the associated ``MIOpenDriver`` command lines into the
   console.
 
+  * To enable feature: ``1``, ``on``, ``yes``, ``true``, ``enable``, ``enabled``
+  * To disable feature: ``0``, ``off``, ``no``, ``false``, ``disable``, ``disabled``
 
+* ``MIOPEN_LOG_LEVEL``: In addition to API call information and driver commands, MIOpen prints
+  information related to the progress of its internal operations. This information can be useful for
+  debugging and understanding the library's principles of operation. `MIOPEN_LOG_LEVEL` controls the
+  verbosity of these messages. Allowed values are:
 
+  * ``0``: Default. Works as level 4 for release builds and level 5 for debug builds.
+  * ``1``: Quiet. No logging messages.
+  * ``2``: Fatal errors only (not used yet).
+  * ``3``: Errors and fatals.
+  * ``4``: All errors and warnings.
+  * ``5``: Info. All the preceding information, plus information for debugging purposes.
+  * ``6``: Detailed information. All the preceding information, plus more detailed information for
+    debugging.
+  * ``7``: Trace. All the preceding information, plus additional details.
 
+* ``MIOPEN_ENABLE_LOGGING_MPMT``: When enabled, each log line is prefixed with information you
+  can use to identify records printed from different processes or threads. This is useful for debugging
+  multi-process/multi-threaded applications.
 
-> **_NOTE 1:_ These two and other two-state ("boolean") environment variables can be set to the following values:**
-> ```
-> 1, on, yes, true, enable, enabled - to enable feature
-> 0, off, no, false, disable, disabled - to disable feature
-> ```
+* ``MIOPEN_ENABLE_LOGGING_ELAPSED_TIME``: Adds a timestamp to each log line that indicates the
+  time elapsed (in milliseconds) since the previous log message.
 
-* `MIOPEN_LOG_LEVEL` - In addition to API call information and driver commands, MIOpen prints various information related to the progress of its internal operations. This information can be useful both for debugging and for understanding the principles of operation of the library. The `MIOPEN_LOG_LEVEL` environment variable controls the verbosity of these messages. Allowed values are:
-  * 0 - Default. Works as level 4 for Release builds, level 5 for Debug builds.
-  * 1 - Quiet. No logging messages.
-  * 2 - Fatal errors only (not used yet).
-  * 3 - Errors and fatals.
-  * 4 - All errors and warnings.
-  * 5 - Info. All the above plus information for debugging purposes.
-  * 6 - Detailed info. All the above plus more detailed information for debugging.
-  * 7 - Trace: the most detailed debugging info plus all above.
+.. tip::
 
-> **_NOTE 2:_ When asking for technical support, please include the console log obtained with the following settings:**
-> ```
-> export MIOPEN_ENABLE_LOGGING=1
-> export MIOPEN_ENABLE_LOGGING_CMD=1
-> export MIOPEN_LOG_LEVEL=6
-> ```
+  If you require technical support, include the console log that is produced from:
 
-* `MIOPEN_ENABLE_LOGGING_MPMT` - When enabled, each log line is prefixed with information which allows the user to identify records printed from different processes and/or threads. Useful for debugging multi-process/multi-threaded apps.
+  .. code:: cpp
 
-* `MIOPEN_ENABLE_LOGGING_ELAPSED_TIME` - Adds a timestamp to each log line. Indicates the time elapsed since the previous log message, in milliseconds.
+    export MIOPEN_ENABLE_LOGGING=1
+    export MIOPEN_ENABLE_LOGGING_CMD=1
+    export MIOPEN_LOG_LEVEL=6
 
-## Layer Filtering
+Layer filtering
+===================================================
 
-The following list of environment variables allow for enabling/disabling various kinds of kernels and algorithms. This can be helpful for both debugging MIOpen and integration with frameworks.
+The following sections contain environment variables that you can use to enable or disable various
+kinds of kernels and algorithms. These are helpful for debugging MIOpen and framework integrations.
 
-> **_NOTE 3:_ These variables can be set to the following values:**
-> ```
-> 1, yes, true, enable, enabled - to enable kernels/algorithm
-> 0, no, false, disable, disabled - to disable kernels/algorithm
-> ```
+For these environment variables, you can use the following values:
 
-If a variable is not set, then MIOpen behaves as if it is set to `enabled`, unless otherwise specified. So all kinds of kernels/algorithms are enabled by default and the below variables can be used for disabling them.
+* To enable kernel/algorithm: ``1``, ``yes``, ``true``, ``enable``, ``enabled``
+* To disable kernel/algorithm: ``0``, ``no``, ``false``, ``disable``, ``disabled``
 
-> **_WARNING:_** **When the library is used with layer filtering, the results of `Find()` calls become narrower than during normal operation. This means that relevant FindDb entries would not include some solutions that normally should be there.** **_Therefore the subsequent Immediate mode `Get()` calls may return incomplete information or even run into Fallback path._**
+.. warning::
 
-In order to rehabilitate the Immediate mode, the user can:
-- Re-enable all solvers and re-run the same `Find()` calls that have been run before,
-- Or, completely remove the User FindDb.
+  When you use the library with layer filtering, the results of ``*Find()`` calls become narrower than
+  during normal operation. This means that relevant FindDb entries won't include all the solutions that
+  are normally there. Therefore, the subsequent immediate mode ``*Get()`` calls may return incomplete
+  information or run into fallback path.
 
-### Filtering by algorithm
+In order to rehabilitate immediate mode, you can:
 
-These variables control the sets (families) of convolution Solutions. For example, Direct algorithm is implemented in several Solutions that use OpenCL, GCN assembly etc. The corresponding variable can disable them all.
-* `MIOPEN_DEBUG_CONV_FFT` - FFT convolution algorithm.
-* `MIOPEN_DEBUG_CONV_DIRECT` - Direct convolution algorithm.
-* `MIOPEN_DEBUG_CONV_GEMM` - GEMM convolution algorithm.
-* `MIOPEN_DEBUG_CONV_WINOGRAD` - Winograd convolution algorithm.
-* `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM` - Implicit GEMM convolution algorithm.
+* Re-enable all solvers and re-run the same ``*Find()`` calls you previously ran
+* Completely remove the User FindDb
 
-### Filtering by build method
+If no variable is set, MIOpen behaves as if the variable is set to ``enabled``. This means that kernels and
+algorithms are enabled by default.
 
-* `MIOPEN_DEBUG_GCN_ASM_KERNELS` - Kernels written in assembly language. Currently these used in many convolutions (some Direct solvers, Winograd kernels, fused convolutions), batch normalization.
-* `MIOPEN_DEBUG_HIP_KERNELS` - Convoluton kernels written in HIP (today, all these implement ImplicitGemm algorithm).
-* `MIOPEN_DEBUG_OPENCL_CONVOLUTIONS` - Convolution kernels written in OpenCL (note that _only_ convolutions affected).
-* `MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES` - Binary kernels. Right now the library does not use binaries.
+Filtering by algorithm
+--------------------------------------------------------------------------------------------------------------
 
-### Filtering out all Solutions except one
+These variables control the sets (families) of convolution solutions. For example, the direct algorithm
+is implemented in several solutions that use OpenCL and GCN assembly. The corresponding variable
+can disable them all.
 
-* `MIOPEN_DEBUG_FIND_ONLY_SOLVER=solution_id`, where `solution_id` should be either numeric or string identifier of some Solution. Directly affects only `Find()` calls _(however there is some indirect connection to Immediate mode; please see the "Warning" above.)_
-  - If `solution_id` denotes some applicable Solution, then only that Solution will be found (plus GEMM and FFT, if these applicable, see _Note 4_).
-  - Else, if `solution_id` is valid but not applicable, then `Find()` would fail with all algorithms (again, except GEMM and FFT, see _Note 4_)
-  - Otherwise the `solution_id` is invalid (i.e. it doesn't match any existing Solution), and the `Find()` call would fail.
+* ``MIOPEN_DEBUG_CONV_FFT``: FFT convolution algorithm.
+* ``MIOPEN_DEBUG_CONV_DIRECT``: Direct convolution algorithm.
+* ``MIOPEN_DEBUG_CONV_GEMM``: GEMM convolution algorithm.
+* ``MIOPEN_DEBUG_CONV_WINOGRAD``: Winograd convolution algorithm.
+* ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM``: Implicit GEMM convolution algorithm.
 
-> **_NOTE 4:_** This env. variable does not affect the "gemm" and "fft" solutions. For now, GEMM and FFT can be disabled only at algorithm level (see above).
+Filtering by build method
+--------------------------------------------------------------------------------------------------------------
 
-### Filtering the Solutions on individual basis
+* ``MIOPEN_DEBUG_GCN_ASM_KERNELS``: Kernels written in assembly language. These are used in
+  many convolutions (some direct solvers, Winograd kernels, and fused convolutions) and batch
+  normalization.
+* ``MIOPEN_DEBUG_HIP_KERNELS``: Convolution kernels written in HIP. These implement the
+  ImplicitGemm algorithm.
+* ``MIOPEN_DEBUG_OPENCL_CONVOLUTIONS``: Convolution kernels written in OpenCL; this only
+  affects convolutions.
+* ``MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES``: Binary kernels. The library does not
+  currently use binaries.
 
-Some of the Solutions have individual controls available. These affect both Find and Immediate modes. _Note the "Warning" above._
+Filtering out all but one solution
+--------------------------------------------------------------------------------------------------------------
 
-Direct Solutions:
-* `MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U` - `ConvAsm3x3U`.
-* `MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U` - `ConvAsm1x1U`.
-* `MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2` - `ConvAsm1x1UV2`.
-* `MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2` - `ConvAsm5x10u2v2f1`, `ConvAsm5x10u2v2b1`.
-* `MIOPEN_DEBUG_CONV_DIRECT_ASM_7X7C3H224W224` - `ConvAsm7x7c3h224w224k64u2v2p3q3f1`.
-* `MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3` - `ConvAsmBwdWrW3x3`.
-* `MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1` - `ConvAsmBwdWrW1x1`.
-* `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11` - `ConvOclDirectFwd11x11`.
-* `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN` - `ConvOclDirectFwdGen`.
-* `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD` - `ConvOclDirectFwd`.
-* `MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1` - `ConvOclDirectFwd1x1`.
-* `MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2` - `ConvOclBwdWrW2<n>` (where n = `{1,2,4,8,16}`), and `ConvOclBwdWrW2NonTunable`.
-* `MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW53` - `ConvOclBwdWrW53`.
-* `MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1` - `ConvOclBwdWrW1x1`
+* ``MIOPEN_DEBUG_FIND_ONLY_SOLVER=solution_id``: Directly affects only ``*Find()`` calls. However,
+  there is an indirect connection to immediate mode (per the previous warning).
+  * ``solution_id`` must be a numeric or a string identifier of some solution.
+  * If ``solution_id`` denotes some applicable solution, then only that solution is found (in addition to
+    GEMM and FFT, if applicable--refer to the following note).
+  * If ``solution_id`` is valid, but not applicable, then ``*Find()`` fails with all algorithms (except for GEMM
+    and FFT,--refer to the following note).
+  * Otherwise, the ``solution_id`` is invalid (i.e., it doesn't match any existing solution) and the ``*Find()``
+   call fails.
 
-Winograd  Solutions:
-* `MIOPEN_DEBUG_AMD_WINOGRAD_3X3` - `ConvBinWinograd3x3U`, FP32 Winograd Fwd/Bwd, filter size fixed to 3x3.
-* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS` - `ConvBinWinogradRxS`, FP32/FP16 F(3,3) Fwd/Bwd and FP32 F(3,2) WrW Winograd. Subsets:
-  * `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW` - FP32 F(3,2) WrW convolutions only.
-  * `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_FWD_BWD` - FP32/FP16 F(3,3) Fwd/Bwd.
-* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2` - `ConvBinWinogradRxSf3x2`, FP32/FP16 Fwd/Bwd F(3,2) Winograd.
-* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3` - `ConvBinWinogradRxSf2x3`, FP32/FP16 Fwd/Bwd F(2,3) Winograd, serves group convolutions only.
-* `MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1` - `ConvBinWinogradRxSf2x3g1`, FP32/FP16 Fwd/Bwd F(2,3) Winograd, for non-group convolutions.
+.. note::
+
+  This environmental variable doesn't affect the GEMM and FFT solutions. For now, GEMM and FFT can
+  only be disabled at the algorithm level.
+
+Filtering the solutions on an individual basis
+--------------------------------------------------------------------------------------------------------------
+
+Some of the solutions have individual controls, which affect both find and immediate modes.
+
+* Direct solutions:
+
+  * ``MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U`` -- ``ConvAsm3x3U``
+  * ``MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U`` -- ``ConvAsm1x1U``
+  * ``MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2`` -- ``ConvAsm1x1UV2``
+  * ``MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2`` -- ``ConvAsm5x10u2v2f1`, `ConvAsm5x10u2v2b1``
+  * ``MIOPEN_DEBUG_CONV_DIRECT_ASM_7X7C3H224W224`` -- ``ConvAsm7x7c3h224w224k64u2v2p3q3f1``
+  * ``MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3`` -- ``ConvAsmBwdWrW3x3``
+  * ``MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1`` -- ``ConvAsmBwdWrW1x1``
+  * ``MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11`` -- ``ConvOclDirectFwd11x11``
+  * ``MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN`` -- ``ConvOclDirectFwdGen``
+  * ``MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD`` -- ``ConvOclDirectFwd``
+  * ``MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1`` -- ``ConvOclDirectFwd1x1``
+  * ``MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2`` -- ``ConvOclBwdWrW2<n>`` (where n = ``{1,2,4,8,16}``)
+    and ``ConvOclBwdWrW2NonTunable``
+  * ``MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW53`` -- ``ConvOclBwdWrW53``
+  * ``MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1`` -- ``ConvOclBwdWrW1x1``
+
+* Winograd solutions:
+
+  * ``MIOPEN_DEBUG_AMD_WINOGRAD_3X3`` -- ``ConvBinWinograd3x3U``, FP32 Winograd Fwd/Bwd,
+    filter size fixed to 3x3
+  * ``MIOPEN_DEBUG_AMD_WINOGRAD_RXS`` -- ``ConvBinWinogradRxS``, FP32/FP16 F(3,3) Fwd/Bwd
+    and FP32 F(3,2) WrW Winograd. Subsets:
+
+    * ``MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW`` -- FP32 F(3,2) WrW convolutions only
+    * ``MIOPEN_DEBUG_AMD_WINOGRAD_RXS_FWD_BWD`` -- FP32/FP16 F(3,3) Fwd/Bwd
+
+  * ``MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2`` -- ``ConvBinWinogradRxSf3x2``, FP32/FP16
+    Fwd/Bwd F(3,2) Winograd
+  * ``MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3`` -- ``ConvBinWinogradRxSf2x3``, FP32/FP16
+    Fwd/Bwd F(2,3) Winograd, serves group convolutions only
+  * ``MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1`` -- ``ConvBinWinogradRxSf2x3g1``, FP32/FP16
+    Fwd/Bwd F(2,3) Winograd, for non-group convolutions
 
 * Multi-pass Winograd:
-  * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2` - `ConvWinograd3x3MultipassWrW<3-2>`, WrW F(3,2), stride 2 only.
-  * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3` - `ConvWinograd3x3MultipassWrW<3-3>`, WrW F(3,3), stride 2 only.
-  * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4` - `ConvWinograd3x3MultipassWrW<3-4>`, WrW F(3,4).
-  * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5` - `ConvWinograd3x3MultipassWrW<3-5>`, WrW F(3,5).
-  * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6` - `ConvWinograd3x3MultipassWrW<3-6>`, WrW F(3,6).
-  * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X3` - `ConvWinograd3x3MultipassWrW<5-3>`, WrW F(5,3).
-  * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X4` - `ConvWinograd3x3MultipassWrW<5-4>`, WrW F(5,4).
-  * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X2`:
-    * `ConvWinograd3x3MultipassWrW<7-2>`, WrW F(7,2)
-    * `ConvWinograd3x3MultipassWrW<7-2-1-1>`, WrW F(7x1,2x1)
-    * `ConvWinograd3x3MultipassWrW<1-1-7-2>`, WrW F(1x7,1x2)
-  * `MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X3`:
-    * `ConvWinograd3x3MultipassWrW<7-3>`, WrW F(7,3)
-    * `ConvWinograd3x3MultipassWrW<7-3-1-1>`, WrW F(7x1,3x1)
-    * `ConvWinograd3x3MultipassWrW<1-1-7-3>`, WrW F(1x7,1x3)
-  * `MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3` - `ConvMPBidirectWinograd<2-3>`, FWD/BWD F(2,3)
-  * `MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F3X3` - `ConvMPBidirectWinograd<3-3>`, FWD/BWD F(3,3)
-  * `MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F4X3` - `ConvMPBidirectWinograd<4-3>`, FWD/BWD F(4,3)
-  * `MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F5X3` - `ConvMPBidirectWinograd<5-3>`, FWD/BWD F(5,3)
-  * `MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F6X3` - `ConvMPBidirectWinograd<6-3>`, FWD/BWD F(6,3)
-  * `MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F2X3` - `ConvMPBidirectWinograd_xdlops<2-3>`, FWD/BWD F(2,3)
-  * `MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F3X3` - `ConvMPBidirectWinograd_xdlops<3-3>`, FWD/BWD F(3,3)
-  * `MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3` - `ConvMPBidirectWinograd_xdlops<4-3>`, FWD/BWD F(4,3)
-  * `MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F5X3` - `ConvMPBidirectWinograd_xdlops<5-3>`, FWD/BWD F(5,3)
-  * `MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3` - `ConvMPBidirectWinograd_xdlops<6-3>`, FWD/BWD F(6,3)
-  * `MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM - `ConvMPBidirectWinograd*`, FWD/BWD FP16 experemental mode. Disabled by default. This mode is experimental. Use it at your own risk.
-* `MIOPEN_DEBUG_AMD_FUSED_WINOGRAD` - Fused FP32 F(3,3) Winograd, variable filter size.
 
-Implicit GEMM Solutions:
-* ASM Implicit GEMM
-    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1` - `ConvAsmImplicitGemmV4R1DynamicFwd`
-    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1` - `ConvAsmImplicitGemmV4R1DynamicFwd_1x1`
-    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1` - `ConvAsmImplicitGemmV4R1DynamicBwd`
-    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_V4R1` - `ConvAsmImplicitGemmV4R1DynamicWrw`
-    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS` - `ConvAsmImplicitGemmGTCDynamicFwdXdlops`
-    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS` - `ConvAsmImplicitGemmGTCDynamicBwdXdlops`
-    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS` - `ConvAsmImplicitGemmGTCDynamicWrwXdlops`
-* HIP Implicit GEMM
-    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1` - `ConvHipImplicitGemmV4R1Fwd`
-    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4` - `ConvHipImplicitGemmV4R4Fwd`
-    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1` - `ConvHipImplicitGemmBwdDataV1R1`
-    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1` - `ConvHipImplicitGemmBwdDataV4R1`
-    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1` - `ConvHipImplicitGemmV4R1WrW`
-    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4` - `ConvHipImplicitGemmV4R4WrW`
-    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_XDLOPS` - `ConvHipImplicitGemmForwardV4R4Xdlops`
-    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R5_XDLOPS` - `ConvHipImplicitGemmForwardV4R5Xdlops`
-    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS` - `ConvHipImplicitGemmBwdDataV1R1Xdlops`
-    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS` - `ConvHipImplicitGemmBwdDataV4R1Xdlops`
-    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_XDLOPS` - `ConvHipImplicitGemmWrwV4R4Xdlops`
-    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS` - `ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm`
-    * `MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_PADDED_GEMM_XDLOPS` - `ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm`
+  * ``MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2`` -- ``ConvWinograd3x3MultipassWrW<3-2>``,
+    WrW F(3,2), stride 2 only
+  * ``MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3`` -- ``ConvWinograd3x3MultipassWrW<3-3>``,
+   WrW F(3,3), stride 2 only
+  * ``MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4`` -- ``ConvWinograd3x3MultipassWrW<3-4>``,
+   WrW F(3,4)
+  * ``MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5`` -- ``ConvWinograd3x3MultipassWrW<3-5>``,
+   WrW F(3,5)
+  * ``MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6`` -- ``ConvWinograd3x3MultipassWrW<3-6>``,
+   WrW F(3,6)
+  * ``MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X3`` -- ``ConvWinograd3x3MultipassWrW<5-3>``,
+   WrW F(5,3)
+  * ``MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X4`` -- ``ConvWinograd3x3MultipassWrW<5-4>``,
+   WrW F(5,4)
+  * ``MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X2``:
+
+    * ``ConvWinograd3x3MultipassWrW<7-2>``, WrW F(7,2)
+    * ``ConvWinograd3x3MultipassWrW<7-2-1-1>``, WrW F(7x1,2x1)
+    * ``ConvWinograd3x3MultipassWrW<1-1-7-2>``, WrW F(1x7,1x2)
+
+  * ``MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X3``:
+
+    * ``ConvWinograd3x3MultipassWrW<7-3>``, WrW F(7,3)
+    * ``ConvWinograd3x3MultipassWrW<7-3-1-1>``, WrW F(7x1,3x1)
+    * ``ConvWinograd3x3MultipassWrW<1-1-7-3>``, WrW F(1x7,1x3)
+
+  * ``MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3`` -- ``ConvMPBidirectWinograd<2-3>``,
+   FWD/BWD F(2,3)
+  * ``MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F3X3`` -- ``ConvMPBidirectWinograd<3-3>``,
+   FWD/BWD F(3,3)
+  * ``MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F4X3`` -- ``ConvMPBidirectWinograd<4-3>``,
+   FWD/BWD F(4,3)
+  * ``MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F5X3`` -- ``ConvMPBidirectWinograd<5-3>``,
+   FWD/BWD F(5,3)
+  * ``MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F6X3`` -- ``ConvMPBidirectWinograd<6-3>``,
+   FWD/BWD F(6,3)
+  * ``MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F2X3`` --
+   ``ConvMPBidirectWinograd_xdlops<2-3>``, FWD/BWD F(2,3)
+  * ``MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F3X3`` --
+   ``ConvMPBidirectWinograd_xdlops<3-3>``, FWD/BWD F(3,3)
+  * ``MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3`` --
+   ``ConvMPBidirectWinograd_xdlops<4-3>``, FWD/BWD F(4,3)
+  * ``MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F5X3`` --
+   ``ConvMPBidirectWinograd_xdlops<5-3>``, FWD/BWD F(5,3)
+  * ``MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3`` --
+   ``ConvMPBidirectWinograd_xdlops<6-3>``, FWD/BWD F(6,3)
+  * ``MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM`` --
+   ``ConvMPBidirectWinograd*``, FWD/BWD FP16 experimental mode (use at your own risk). Disabled
+   by default.
+  * ``MIOPEN_DEBUG_AMD_FUSED_WINOGRAD`` -- Fused FP32 F(3,3) Winograd, variable filter size.
+
+Implicit GEMM solutions:
+
+* ASM implicit GEMM
+
+  * ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1`` --
+ ``ConvAsmImplicitGemmV4R1DynamicFwd``
+  * ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1`` --
+   ``ConvAsmImplicitGemmV4R1DynamicFwd_1x1``
+  * ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1`` --
+   ``ConvAsmImplicitGemmV4R1DynamicBwd``
+  * ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_V4R1`` --
+   ``ConvAsmImplicitGemmV4R1DynamicWrw``
+  * ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS`` --
+   ``ConvAsmImplicitGemmGTCDynamicFwdXdlops``
+  * ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS`` --
+   ``ConvAsmImplicitGemmGTCDynamicBwdXdlops``
+  * ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS`` --
+   ``ConvAsmImplicitGemmGTCDynamicWrwXdlops``
+
+* HIP implicit GEMM
+
+  * ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1`` --
+   ``ConvHipImplicitGemmV4R1Fwd``
+  * ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4`` --
+    ``ConvHipImplicitGemmV4R4Fwd``
+  * ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1`` --
+   ``ConvHipImplicitGemmBwdDataV1R1``
+  * ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1`` --
+    ``ConvHipImplicitGemmBwdDataV4R1``
+  * ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1`` --
+   ``ConvHipImplicitGemmV4R1WrW``
+  * ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4`` --
+   ``ConvHipImplicitGemmV4R4WrW``
+  * ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_XDLOPS`` --
+   ``ConvHipImplicitGemmForwardV4R4Xdlops``
+  * ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R5_XDLOPS`` --
+    ``ConvHipImplicitGemmForwardV4R5Xdlops``
+  * ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS`` --
+    ``ConvHipImplicitGemmBwdDataV1R1Xdlops``
+  * ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS`` --
+   ``ConvHipImplicitGemmBwdDataV4R1Xdlops``
+  * ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_XDLOPS`` --
+   ``ConvHipImplicitGemmWrwV4R4Xdlops``
+  * ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS`` --
+   ``ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm``
+  * ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_PADDED_GEMM_XDLOPS`` --
+   ``ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm``
 
 ## rocBlas Logging and Behavior
 The `ROCBLAS_LAYER` environmental variable can be set to output GEMM information:
