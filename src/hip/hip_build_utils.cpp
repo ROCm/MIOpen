@@ -49,7 +49,7 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_DUMP)
 // This flag Paths are expected to be deprecated/modified
 // in upcoming MAJOR Releases.
 #define MIOPEN_CLANG_REL_PATH "llvm/bin/clang"
-#define MIOPEN_OCL_REL_PATH "bin/clang-ocl"
+#define MIOPEN_OCL_REL_PATH "bin/clang"
 #define MIOPEN_CPPCLANG_REL_PATH "llvm/bin/clang++"
 #define MIOPEN_OFFLOADBUNDLER_REL_PATH "llvm/bin/clang-offload-bundler"
 

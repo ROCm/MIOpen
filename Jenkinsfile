@@ -253,7 +253,7 @@ def buildHipClangJob(Map conf=[:]){
         def lfs_pull = conf.get("lfs_pull", false)
 
         def retimage
-        gitStatusWrapper(credentialsId: "${env.status_wrapper_creds}", gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
+        gitStatusWrapper(credentialsId: "${env.status_wrapper_creds}", gitHubContext: "Jenkins - ${variant}", account: 'ROCm', repo: 'MIOpen') {
             try {
                 (retimage, image) = getDockerImage(conf)
                 if (needs_gpu) {
