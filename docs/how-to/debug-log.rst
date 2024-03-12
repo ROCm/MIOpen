@@ -277,11 +277,11 @@ You can set the ``ROCBLAS_LAYER`` environmental variable to output GEMM informat
 Additionally, you can set the ``MIOPEN_GEMM_ENFORCE_BACKEND`` environment variable to override
 the default GEMM backend (rocBLAS):
 
-* ``MIOPEN_GEMM_ENFORCE_BACKEND=1`, use rocBLAS if enabled
-* ``MIOPEN_GEMM_ENFORCE_BACKEND=2`, reserved
-* ``MIOPEN_GEMM_ENFORCE_BACKEND=3`, no gemm will be called
-* ``MIOPEN_GEMM_ENFORCE_BACKEND=4`, reserved
-* ``MIOPEN_GEMM_ENFORCE_BACKEND=<any other value>`, use default behavior
+* ``MIOPEN_GEMM_ENFORCE_BACKEND=1``, use rocBLAS if enabled
+* ``MIOPEN_GEMM_ENFORCE_BACKEND=2``, reserved
+* ``MIOPEN_GEMM_ENFORCE_BACKEND=3``, no gemm will be called
+* ``MIOPEN_GEMM_ENFORCE_BACKEND=4``, reserved
+* ``MIOPEN_GEMM_ENFORCE_BACKEND=<any other value>``, use default behavior
 
 To disable using rocBlas entirely, set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off` during MIOpen configuration.
 
