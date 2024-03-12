@@ -282,7 +282,7 @@ struct ExecutionContext
 #if MIOPEN_ENABLE_SQLITE
         filename << "_" << SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER << ".udb";
 #else
-        filename << "." << GetUserDbSuffix() << ".cd.updb.txt";
+        filename << "." << GetUserDbSuffix() << ".udb.txt";
 #endif
         return (udb / filename.str()).string();
     }
