@@ -300,7 +300,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
     endif()
     set(MIOPEN_BACKEND_HIP 1)
 
-    find_program(HIP_OC_COMPILER clang
+    find_program(HIP_OC_COMPILER amdclang
         PATH_SUFFIXES bin
         PATHS
             /opt/rocm
