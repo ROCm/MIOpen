@@ -264,20 +264,24 @@ Implicit GEMM solutions:
   * ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_PADDED_GEMM_XDLOPS`` --
    ``ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm``
 
-## rocBlas Logging and Behavior
-The `ROCBLAS_LAYER` environmental variable can be set to output GEMM information:
-* `ROCBLAS_LAYER=`  - is not set, there is no logging
-* `ROCBLAS_LAYER=1` - is set to 1, then there is trace logging
-* `ROCBLAS_LAYER=2` - is set to 2, then there is bench logging
-* `ROCBLAS_LAYER=3` - is set to 3, then there is both trace and bench logging
+rocBlas logging and behavior
+============================================================
 
-Additionally, the environment variable "MIOPEN_GEMM_ENFORCE_BACKEND" can be set to override default GEMM backend (Default GEMM backend is rocBLAS):
+You can set the ``ROCBLAS_LAYER`` environmental variable to output GEMM information:
 
-* `MIOPEN_GEMM_ENFORCE_BACKEND=1`, use rocBLAS if enabled
-* `MIOPEN_GEMM_ENFORCE_BACKEND=2`, reserved
-* `MIOPEN_GEMM_ENFORCE_BACKEND=3`, no gemm will be called
-* `MIOPEN_GEMM_ENFORCE_BACKEND=4`, reserved
-* `MIOPEN_GEMM_ENFORCE_BACKEND=<any other value>`, use default behavior
+* ``ROCBLAS_LAYER=``: Not set--there is no logging
+* ``ROCBLAS_LAYER=1``: Trace logging
+* ``ROCBLAS_LAYER=2``: Bench logging
+* ``ROCBLAS_LAYER=3``: Both trace and bench logging
+
+Additionally, you can set the ``MIOPEN_GEMM_ENFORCE_BACKEND`` environment variable to override
+the default GEMM backend (rocBLAS):
+
+* ``MIOPEN_GEMM_ENFORCE_BACKEND=1`, use rocBLAS if enabled
+* ``MIOPEN_GEMM_ENFORCE_BACKEND=2`, reserved
+* ``MIOPEN_GEMM_ENFORCE_BACKEND=3`, no gemm will be called
+* ``MIOPEN_GEMM_ENFORCE_BACKEND=4`, reserved
+* ``MIOPEN_GEMM_ENFORCE_BACKEND=<any other value>`, use default behavior
 
 To disable using rocBlas entirely, set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off` during MIOpen configuration.
 
