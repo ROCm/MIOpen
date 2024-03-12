@@ -1,13 +1,23 @@
-Debugging and Logging
-=====================
+.. meta::
+  :description: MIOpen documentation
+  :keywords: MIOpen, ROCm, API, documentation
 
-## Logging
+********************************************************************
+Logging & debugging
+********************************************************************
 
-All logging messages output to standard error stream (`stderr`). The following environment variables can be used to control logging:
+All logging messages are output to the standard error stream (``stderr``). You can use the following
+environmental variables to control logging. Both variables are disabled by default.
 
-* `MIOPEN_ENABLE_LOGGING` - Enables printing the basic layer by layer MIOpen API call information with actual parameters (configurations). Important for debugging. Disabled by default.
+* ``MIOPEN_ENABLE_LOGGING``: Print the basic layer-by-layer MIOpen API call
+  information with actual parameters (configurations). This information is important for debugging.
 
-* `MIOPEN_ENABLE_LOGGING_CMD` - A user can use this environmental variable to output the associated `MIOpenDriver` command line(s) onto console. Disabled by default.
+* ``MIOPEN_ENABLE_LOGGING_CMD``: Output the associated ``MIOpenDriver`` command lines into the
+  console.
+
+
+
+
 
 > **_NOTE 1:_ These two and other two-state ("boolean") environment variables can be set to the following values:**
 > ```
@@ -48,16 +58,16 @@ The following list of environment variables allow for enabling/disabling various
 
 If a variable is not set, then MIOpen behaves as if it is set to `enabled`, unless otherwise specified. So all kinds of kernels/algorithms are enabled by default and the below variables can be used for disabling them.
 
-> **_WARNING:_** **When the library is used with layer filtering, the results of `Find()` calls become narrower than during normal operation. This means that relevant find-db entries would not include some solutions that normally should be there.** **_Therefore the subsequent Immediate mode `Get()` calls may return incomplete information or even run into Fallback path._**
+> **_WARNING:_** **When the library is used with layer filtering, the results of `Find()` calls become narrower than during normal operation. This means that relevant FindDb entries would not include some solutions that normally should be there.** **_Therefore the subsequent Immediate mode `Get()` calls may return incomplete information or even run into Fallback path._**
 
 In order to rehabilitate the Immediate mode, the user can:
 - Re-enable all solvers and re-run the same `Find()` calls that have been run before,
-- Or, completely remove the User find-db.
+- Or, completely remove the User FindDb.
 
 ### Filtering by algorithm
 
 These variables control the sets (families) of convolution Solutions. For example, Direct algorithm is implemented in several Solutions that use OpenCL, GCN assembly etc. The corresponding variable can disable them all.
-* `MIOPEN_DEBUG_CONV_FFT` - FFT convolution algorithm. 
+* `MIOPEN_DEBUG_CONV_FFT` - FFT convolution algorithm.
 * `MIOPEN_DEBUG_CONV_DIRECT` - Direct convolution algorithm.
 * `MIOPEN_DEBUG_CONV_GEMM` - GEMM convolution algorithm.
 * `MIOPEN_DEBUG_CONV_WINOGRAD` - Winograd convolution algorithm.
@@ -191,6 +201,7 @@ MIOpen provides the environmental variable `MIOPEN_CHECK_NUMERICS` to allow user
 * `MIOPEN_CHECK_NUMERICS=0x08`: Abort on abnormal result, this will allow users to drop into a debugging session
 * `MIOPEN_CHECK_NUMERICS=0x10`: Print stats, this will compute and print mean/absmean/min/max (note, this is much slower)
 
+.. _control-parallel-compilation:
 
 ## Controlling Parallel Compilation
 

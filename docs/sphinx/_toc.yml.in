@@ -9,17 +9,18 @@ subtrees:
 
 - caption: Reference
   entries:
-  - file: reference/index.rst
-    title: API reference guide
+  - file: doxygen/html/index.html
+    title: API library
 
 - caption: Install
   entries:
   - file: install/install.rst
+    title: Install MIOpen
+  - file: install/docker-build.rst
     title: Build MIOpen using Docker
-  - file: install/driver.rst
-    title: Build the driver
   - file: install/embed.rst
     title: Build MIOpen for embedded systems
+
 
 - caption: Conceptual
   entries:
@@ -27,19 +28,21 @@ subtrees:
     title: Find database
   - file: conceptual/cache.rst
     title: Cache
-  - file: conceptual/perfdatabase.rst
+  - file: conceptual/perfdb.rst
     title: Performance database
-  - file: conceptual/MI200AlternateImplementation.rst
+  - file: conceptual/MI200-alt-implementation.rst
     title: MI200 alternate implementation
-  - file: conceptual/MIOpen-porting-guide.rst
-    title: Port to MIOpen
+  - file: conceptual/porting-guide.rst
+    title: Porting to MIOpen
 
 - caption: How to
   entries:
   - file: how-to/use-fusion-api.rst
     title: Use Fusion API
   - file: how-to/debug-log.rst
-    title: Debug & log
+    title: Log & debug
+  - file: how-to/find-and-immediate.rst
+    title: Use find API & immediate mode
 
 - caption: About
   entries:

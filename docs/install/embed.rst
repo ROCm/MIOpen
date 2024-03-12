@@ -1,6 +1,10 @@
+.. meta::
+  :description: Build MIOpen for embedded systems
+  :keywords: MIOpen, ROCm, API, documentation
 
+********************************************************************
 Build MIOpen for embedded systems
-====================================
+********************************************************************
 
 
 
@@ -16,7 +20,7 @@ mkdir build; cd build;
 ```
 
 ### Configuring for an embedded build
-Minimal static build configuration line without embedded precompiled kernels package, or Find-Db:
+Minimal static build configuration line without embedded precompiled kernels package, or FindDb:
 ```
 CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_BACKEND=HIP -DMIOPEN_EMBED_BUILD=On -DCMAKE_PREFIX_PATH="/some/local/dir" ..
 ```
@@ -28,15 +32,15 @@ CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_BACKEND=HIP -DMIOPEN_USE_HIP_KERNE
 ```
 
 
-### Embedding Find-Db and Performance database:
-The Find-db provides a database of known convolution inputs. This allows user to have the best tuned kernels for their network. Embedding find-db requires a semi-colon separated list of architecture CU pairs to embed on-disk DBs in the binary; e.g., gfx906_60;gfx900_56.
+### Embedding FindDb and Performance database:
+The FindDb provides a database of known convolution inputs. This allows user to have the best tuned kernels for their network. Embedding FindDb requires a semi-colon separated list of architecture CU pairs to embed on-disk DBs in the binary; e.g., gfx906_60;gfx900_56.
 
 Example:
 ```
 CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_EMBED_BUILD=On -DMIOPEN_EMBED_DB=gfx900_56 ..
 ```
 
-This will configure the build directory for embedding not just the find-db, but also the performance database. 
+This will configure the build directory for embedding not just the FindDb, but also the performance database. 
 
 ### Embedding the precompiled kernels package:
 To prevent the loss of performance due to compile time overhead, a build of MIOpen can take advantage of embedding the precompiled kernels package. The precompiled kernels package contains convolution kernels of known inputs and allows the user to avoid compiling kernels during runtime.
@@ -84,7 +88,7 @@ CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_BINCACHE_PATH=http://repo.radeon.c
 ```
 
 ### Full configuration line:
-Putting it all together, building MIOpen statically, and embedding the performance database, find-db, and the precompiled kernels binary:
+Putting it all together, building MIOpen statically, and embedding the performance database, FindDb, and the precompiled kernels binary:
 ```
 CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_BINCACHE_PATH=/path/to/package/install -DMIOPEN_EMBED_BUILD=On -DMIOPEN_EMBED_DB=gfx900_56 .. 
 ```

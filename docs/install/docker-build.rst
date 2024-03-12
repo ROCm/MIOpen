@@ -1,6 +1,10 @@
+.. meta::
+  :description: Build MIOpen using Docker
+  :keywords: MIOpen, ROCm, API, documentation
 
+********************************************************************
 Build MIOpen using Docker
-~~~~~~~~~~
+********************************************************************
 
 You can build MIOpen using Docker in the following ways,
 

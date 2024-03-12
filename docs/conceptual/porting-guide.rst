@@ -3,13 +3,14 @@
   :keywords: MIOpen, ROCm, API, documentation, porting
 
 ********************************************************************
-Porting MIOpen
+Porting to MIOpen
 ********************************************************************
 
 The following is a summary of the key differences between MIOpen and cuDNN.
 
 * Calling ``miopenFindConvolution*Algorithm()`` is `mandatory` before calling any Convolution API
 * The typical calling sequence for MIOpen Convolution APIs is:
+
     * ``miopenConvolution*GetWorkSpaceSize()`` (returns the workspace size required by ``Find()``)
     * ``miopenFindConvolution*Algorithm()`` (returns performance information for various algorithms)
     * ``miopenConvolution*()``

@@ -9,9 +9,6 @@ API reference library
 
 The MIOpen API library is structured as follows:
 
-* :doc:`Find & immediate APIs <./find-and-immediate>`
-
-
 * :doc:`Datatypes <./1-datatypes>`
 * :doc:`Handle <./2-handle>`
 * :doc:`Tensor <./3-tensor>`

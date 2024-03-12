@@ -1,5 +1,5 @@
 .. meta::
-  :description: Find-Db Database
+  :description: Installing MIOpen
   :keywords: MIOpen, ROCm, API, documentation
 
 ********************************************************************
@@ -166,6 +166,8 @@ Here's an example dependency path for an environment in ROCm 3.5 and later:
 
   cmake -DMIOPEN_BACKEND=OpenCL -DMIOPEN_HIP_COMPILER=/opt/rocm/llvm/bin/clang++ -DCMAKE_PREFIX_PATH="/opt/rocm/;/opt/rocm/hip;/root/MIOpen/install_dir" ..
 
+.. _setting-up-locations:
+
 Setting up locations
 --------------------------------------------------------------------------------------------------------
 
@@ -194,7 +196,7 @@ Database paths can be explicitly customized using the ``MIOPEN_SYSTEM_DB_PATH`` 
 and ``MIOPEN_USER_DB_PATH`` (User PerfDb) CMake variables.
 
 To learn more, refer to the
-:doc:`performance database <../conceptual/perfdatabase>` documentation.
+:doc:`performance database <../conceptual/perfdb>` documentation.
 
 Persistent program cache
 --------------------------------------------------------------------------------------------------------
@@ -251,8 +253,6 @@ and measure library performance and verification.
 You can build the driver using the ``MIOpenDriver`` target:
 
 ``cmake --build . --config Release --target MIOpenDriver`` **or** ``make MIOpenDriver``
-
-To learn more, refer to the :doc:`application-driver <./driver>` documentation.
 
 Running the tests
 =========================================================
@@ -339,27 +339,3 @@ If you're using Ubuntu v16, you can install the ``Boost`` packages using:
   configuration stage. However, this is not recommended.
 
 You must install the ``half`` header from the `half website <http://half.sourceforge.net/>`_.
-
-Using Docker
-=========================================================
-
-The easiest way to build MIOpen is via Docker. You can build the top-level Docker file using:
-
-.. code:: shell
-
-  docker build -t miopen-image .
-
-Then, to enter the development environment, use ``docker run``. For example:
-
-.. code:: shell
-
-  docker run -it -v $HOME:/data --privileged --rm --device=/dev/kfd --device /dev/dri:/dev/dri:rw  --volume /dev/dri:/dev/dri:rw -v /var/lib/docker/:/var/lib/docker --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined miopen-image
-
-You can find prebuilt Docker images on
-`ROCm's public Docker Hub <https://hub.docker.com/r/rocm/miopen/tags>`_.
-
-Porting from cuDNN to MIOpen
-=========================================================
-
-Our :doc:`porting guide <../conceptual/MIOpen-porting-guide>` highlights the key differences
-between cuDNN and MIOpen APIs.
