@@ -9,7 +9,7 @@ subtrees:
 
 - caption: Reference
   entries:
-  - file: doxygen/html/index.html
+  - file: doxygen/html/index
     title: API library
 
 - caption: Install
