@@ -540,7 +540,7 @@ function(unpack_db db_bzip2_file)
     else()
         add_dependencies(generate_kernels generate_${__tname})
     endif()
-    set(__fname ${__fname} PARENT_SCOPE)
+    set(unpack_db_result ${__fname} PARENT_SCOPE)
 endfunction()
 
 file(GLOB PERF_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/*.db.bz2")
@@ -549,7 +549,7 @@ file(GLOB FIND_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/*.fdb.txt.
 foreach(DB_BZIP_FILE ${PERF_DB_BZIP_FILES} ${FIND_DB_BZIP_FILES})
     unpack_db(${DB_BZIP_FILE})
     if(MIOPEN_EMBED_DB STREQUAL "" AND NOT MIOPEN_DISABLE_SYSDB AND NOT ENABLE_ASAN_PACKAGING)
-        install(FILES ${KERNELS_BINARY_DIR}/${__fname}
+        install(FILES ${KERNELS_BINARY_DIR}/${unpack_db_result}
                 DESTINATION ${DATABASE_INSTALL_DIR})
     endif()
 endforeach()
@@ -567,7 +567,7 @@ function(install_kdb FILE_NAME COMPONENT_NAME)
             if( NOT MIOPEN_TEST_DBSYNC )
                 set(__component_name COMPONENT ${COMPONENT_NAME})
             endif()
-            rocm_install(FILES ${KERNELS_BINARY_DIR}/${__fname}
+            rocm_install(FILES ${KERNELS_BINARY_DIR}/${unpack_db_result}
                          DESTINATION ${DATABASE_INSTALL_DIR}
                          ${__component_name})
         endif()
