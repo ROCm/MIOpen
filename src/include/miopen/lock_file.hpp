@@ -42,6 +42,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include <string>
+#include <string_view>
 
 namespace miopen {
 
@@ -75,7 +76,7 @@ public:
     }
     void lock()
     {
-        LockOperation("lock", MIOPEN_GET_FN_NAME(), [&]() { std::lock(access_mutex, flock); });
+        LockOperation("lock", MIOPEN_GET_FN_NAME, [&]() { std::lock(access_mutex, flock); });
     }
 
     void lock_shared()
@@ -83,7 +84,7 @@ public:
         access_mutex.lock_shared();
         try
         {
-            LockOperation("shared lock", MIOPEN_GET_FN_NAME(), [&]() { flock.lock_sharable(); });
+            LockOperation("shared lock", MIOPEN_GET_FN_NAME, [&]() { flock.lock_sharable(); });
         }
         catch(...)
         {
@@ -93,7 +94,7 @@ public:
 
     bool try_lock()
     {
-        return TryLockOperation("lock", MIOPEN_GET_FN_NAME(), [&]() {
+        return TryLockOperation("lock", MIOPEN_GET_FN_NAME, [&]() {
             return std::try_lock(access_mutex, flock) != 0;
         });
     }
@@ -104,7 +105,7 @@ public:
             return false;
 
         if(TryLockOperation(
-               "shared lock", MIOPEN_GET_FN_NAME(), [&]() { return flock.try_lock_sharable(); }))
+               "shared lock", MIOPEN_GET_FN_NAME, [&]() { return flock.try_lock_sharable(); }))
             return true;
         access_mutex.unlock();
         return false;
@@ -112,13 +113,13 @@ public:
 
     void unlock()
     {
-        LockOperation("unlock", MIOPEN_GET_FN_NAME(), [&]() { flock.unlock(); });
+        LockOperation("unlock", MIOPEN_GET_FN_NAME, [&]() { flock.unlock(); });
         access_mutex.unlock();
     }
 
     void unlock_shared()
     {
-        LockOperation("unlock shared", MIOPEN_GET_FN_NAME(), [&]() { flock.unlock_sharable(); });
+        LockOperation("unlock shared", MIOPEN_GET_FN_NAME, [&]() { flock.unlock_sharable(); });
         access_mutex.unlock_shared();
     }
 
@@ -130,7 +131,7 @@ public:
         if(!access_mutex.try_lock_for(duration))
             return false;
 
-        if(TryLockOperation("timed lock", MIOPEN_GET_FN_NAME(), [&]() {
+        if(TryLockOperation("timed lock", MIOPEN_GET_FN_NAME, [&]() {
                return flock.timed_lock(ToPTime(duration));
            }))
             return true;
@@ -144,7 +145,7 @@ public:
         if(!access_mutex.try_lock_shared_for(duration))
             return false;
 
-        if(TryLockOperation("shared timed lock", MIOPEN_GET_FN_NAME(), [&]() {
+        if(TryLockOperation("shared timed lock", MIOPEN_GET_FN_NAME, [&]() {
                return flock.timed_lock_sharable(ToPTime(duration));
            }))
             return true;
@@ -186,7 +187,7 @@ private:
 
     void LogFlockError(const boost::interprocess::interprocess_exception& ex,
                        const std::string& operation,
-                       const std::string& from) const
+                       const std::string_view from) const
     {
         // clang-format off
         MIOPEN_LOG_E_FROM(from, "File <" << path << "> " << operation << " failed. "
@@ -197,7 +198,7 @@ private:
     }
 
     void
-    LockOperation(const std::string& op_name, const std::string& from, std::function<void()>&& op)
+    LockOperation(const std::string& op_name, const std::string_view from, std::function<void()>&& op)
     {
         try
         {
@@ -211,7 +212,7 @@ private:
     }
 
     bool TryLockOperation(const std::string& op_name,
-                          const std::string& from,
+                          const std::string_view from,
                           std::function<bool()>&& op)
     {
         try
