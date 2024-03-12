@@ -247,8 +247,8 @@ This installs the library to the ``CMAKE_INSTALL_PREFIX`` path that you specifie
 Building the driver
 =========================================================
 
-MIOpen provides an :doc:`application-driver <./driver>` that you can use to run any layer in isolation,
-and measure library performance and verification.
+MIOpen provides an application driver that you can use to run any layer in isolation, and measure
+library performance and verification.
 
 You can build the driver using the ``MIOpenDriver`` target:
 

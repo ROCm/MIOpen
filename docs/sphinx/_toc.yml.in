@@ -7,9 +7,13 @@ subtrees:
   - file: what-is-miopen.rst
     title: What is MIOpen?
 
-- caption: Reference
+- caption: API reference
   entries:
+<<<<<<< HEAD
   - file: doxygen/html/index
+=======
+  - file: doxygen/html/modules.html
+>>>>>>> 10702365f (more updates)
     title: API library
 
 - caption: Install
@@ -20,7 +24,6 @@ subtrees:
     title: Build MIOpen using Docker
   - file: install/embed.rst
     title: Build MIOpen for embedded systems
-
 
 - caption: Conceptual
   entries:
@@ -42,9 +45,9 @@ subtrees:
   - file: how-to/debug-log.rst
     title: Log & debug
   - file: how-to/find-and-immediate.rst
-    title: Use find API & immediate mode
+    title: Use find APIs & immediate mode
 
 - caption: About
   entries:
-    - file: license.md
-      title: License
+  - file: license.md
+    title: License

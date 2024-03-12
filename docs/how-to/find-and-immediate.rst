@@ -3,7 +3,7 @@
   :keywords: MIOpen, ROCm, API, documentation
 
 ***********************************************************************************
-Using the find API and immediate mode
+Using the find APIs and immediate mode
 ***********************************************************************************
 
 MIOpen contains several convolution algorithms for each stage of training or inference. Prior to
