@@ -603,6 +603,10 @@ endif()
 
 # End KDB package creation
 
+if(NOT MIOPEN_TEST_DISCRETE)
+list(APPEND CPACK_COMPONENTS_ALL client)
+endif()
+
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}
     DESCRIPTION "AMD's DNN Library"
