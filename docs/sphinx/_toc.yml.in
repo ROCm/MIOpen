@@ -7,10 +7,16 @@ subtrees:
   - file: what-is-miopen.rst
     title: What is MIOpen?
 
-- caption: API reference
+- caption: Reference
   entries:
-  - file: doxygen/html/modules
+  - file: reference/index
     title: API library
+    subtrees:
+    - entries:
+      - file: doxygen/html/modules
+        title: Modules
+      - file: reference/datatypes.rst
+        title: Datatypes
 
 - caption: Install
   entries:

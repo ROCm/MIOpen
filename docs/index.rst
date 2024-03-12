@@ -23,6 +23,7 @@ Our documentation is structured as follows:
   ..  grid-item-card:: API reference
 
     * :doc:`API library <./doxygen/html/modules>`
+      * :doc:`Modules <./doxygen/html/modules>`
 
   .. grid-item-card:: Conceptual
 
