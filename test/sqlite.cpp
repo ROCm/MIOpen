@@ -45,7 +45,7 @@ bool test_lfs_db(bool is_system)
     tmp_db_file << lfs_db;
     tmp_db_file.close();
     // construct a db out of it
-    miopen::SQLiteBase<DummyDB> lfs_sqdb{miopen::DbKinds::PerfDb, tmp_db, is_system};
+    miopen::SQLiteBase<DummyDB> lfs_sqdb{tmp_db, is_system};
     return lfs_sqdb.dbInvalid;
 }
 

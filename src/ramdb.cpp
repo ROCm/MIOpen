@@ -86,18 +86,14 @@ static std::chrono::seconds GetLockTimeout() { return std::chrono::seconds{60}; 
 
 using exclusive_lock = std::unique_lock<LockFile>;
 
-RamDb::RamDb(DbKinds db_kind_, std::string path, bool is_system)
-    : PlainTextDb(db_kind_, path, is_system)
-{
-}
+RamDb::RamDb(std::string path, bool is_system) : PlainTextDb(path, is_system) {}
 
-RamDb& RamDb::GetCached(DbKinds db_kind_, const std::string& path, bool is_system)
+RamDb& RamDb::GetCached(const std::string& path, bool is_system)
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
     const std::lock_guard<std::mutex> lock{mutex};
 
-    // We don't have to store kind to properly index as different dbs would have different paths
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static auto instances = std::map<std::string, RamDb*>{};
     const auto it         = instances.find(path);
@@ -112,7 +108,7 @@ RamDb& RamDb::GetCached(DbKinds db_kind_, const std::string& path, bool is_syste
     // footprint in heap is very small. That is why we can omit deletion of
     // these objects thus avoiding bothering with MP/MT syncronization.
     // These will be destroyed altogether with heap.
-    auto instance = new RamDb{db_kind_, path, is_system};
+    auto instance = new RamDb{path, is_system};
     instances.emplace(path, instance);
     if(!DisableUserDbFileIO)
     {
