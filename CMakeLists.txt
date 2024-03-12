@@ -520,7 +520,7 @@ else()
     set(PERFDB_SUFFIX ".txt")
 endif()
 
-function(unpack_db db_bzip2_file suffix_var)
+function(unpack_db db_bzip2_file)
     get_filename_component(__fname ${db_bzip2_file} NAME_WLE)
     add_custom_command(OUTPUT ${KERNELS_BINARY_DIR}/${__fname}
                        COMMAND ${UNZIPPER} -k ${db_bzip2_file} > ${KERNELS_BINARY_DIR}/${__fname})
@@ -531,26 +531,25 @@ function(unpack_db db_bzip2_file suffix_var)
 
     if(NOT MIOPEN_USE_SQLITE_PERFDB AND __extension STREQUAL ".db")
         add_custom_command(OUTPUT ${KERNELS_BINARY_DIR}/${__fname}.txt
-                           DEPENDS $<TARGET_FILE:sqlite2txt> ${KERNELS_BINARY_DIR}/${__fname}
+                           DEPENDS sqlite2txt generate_${__tname}
                            COMMAND $<TARGET_FILE:sqlite2txt> ${KERNELS_BINARY_DIR}/${__fname} ${KERNELS_BINARY_DIR}/${__fname}.txt
         )
         add_custom_target(generate_${__tname}_txt ALL DEPENDS ${KERNELS_BINARY_DIR}/${__fname}.txt)
         add_dependencies(generate_kernels generate_${__tname}_txt)
-        set("${suffix_var}" ".txt" PARENT_SCOPE)
+        set(__fname ${__fname}.txt)
     else()
         add_dependencies(generate_kernels generate_${__tname})
-        set("${suffix_var}" "" PARENT_SCOPE)
     endif()
+    set(__fname ${__fname} PARENT_SCOPE)
 endfunction()
 
 file(GLOB PERF_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/*.db.bz2")
 file(GLOB FIND_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/*.fdb.txt.bz2")
 
 foreach(DB_BZIP_FILE ${PERF_DB_BZIP_FILES} ${FIND_DB_BZIP_FILES})
-    unpack_db(${DB_BZIP_FILE} FILE_SUFFIX)
-    get_filename_component(__fname ${DB_BZIP_FILE} NAME_WLE)
+    unpack_db(${DB_BZIP_FILE})
     if(MIOPEN_EMBED_DB STREQUAL "" AND NOT MIOPEN_DISABLE_SYSDB AND NOT ENABLE_ASAN_PACKAGING)
-        install(FILES ${KERNELS_BINARY_DIR}/${__fname}${FILE_SUFFIX}
+        install(FILES ${KERNELS_BINARY_DIR}/${__fname}
                 DESTINATION ${DATABASE_INSTALL_DIR})
     endif()
 endforeach()
