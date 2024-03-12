@@ -47,9 +47,8 @@
 
 namespace miopen {
 
-PlainTextDb::PlainTextDb(DbKinds db_kind_, const std::string& filename_, bool is_system)
-    : db_kind(db_kind_),
-      filename(filename_),
+PlainTextDb::PlainTextDb(const std::string& filename_, bool is_system)
+    : filename(filename_),
       lock_file(LockFile::Get(LockFilePath(filename_).c_str())),
       warning_if_unreadable(is_system)
 {

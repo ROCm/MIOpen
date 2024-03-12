@@ -26,19 +26,16 @@
 #include <miopen/kern_db.hpp>
 
 namespace miopen {
-KernDb::KernDb(DbKinds db_kind, const std::string& filename_, bool is_system_)
-    : KernDb(db_kind, filename_, is_system_, compress, decompress)
+KernDb::KernDb(const std::string& filename_, bool is_system_)
+    : KernDb(filename_, is_system_, compress, decompress)
 {
 }
 
-KernDb::KernDb(DbKinds db_kind,
-               const std::string& filename_,
+KernDb::KernDb(const std::string& filename_,
                bool is_system_,
                std::function<std::string(std::string, bool*)> compress_fn_,
                std::function<std::string(std::string, unsigned int)> decompress_fn_)
-    : SQLiteBase(db_kind, filename_, is_system_),
-      compress_fn(compress_fn_),
-      decompress_fn(decompress_fn_)
+    : SQLiteBase(filename_, is_system_), compress_fn(compress_fn_), decompress_fn(decompress_fn_)
 {
     if(!is_system && DisableUserDbFileIO)
         return;
