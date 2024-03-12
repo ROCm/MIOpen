@@ -347,8 +347,8 @@ LogParam(std::ostream& os, std::string name, const std::vector<T>& vec, bool ind
 #define MIOPEN_LOG_FUNCTION(...)
 #endif
 
-constexpr std::string_view LoggingParseFunction(
-    const std::string_view func, const std::string_view pretty_func)
+constexpr std::string_view LoggingParseFunction(const std::string_view func,
+                                                const std::string_view pretty_func)
 {
     if(func != "operator()")
         return func;
@@ -399,15 +399,14 @@ constexpr std::string_view LoggingParseFunction(
 // Warnings in installable builds, errors otherwise.
 #define MIOPEN_LOG_WE(...) MIOPEN_LOG(LogWELevel, __VA_ARGS__)
 
-#define MIOPEN_LOG_DRIVER_CMD(...)                                                             \
-    do                                                                                         \
-    {                                                                                          \
-        std::ostringstream miopen_driver_cmd_ss;                                               \
-        miopen_driver_cmd_ss << miopen::LoggingPrefix() << "Command"                           \
-                             << " ["                                                           \
-                             << MIOPEN_GET_FN_NAME                                             \
-                             << "] ./bin/MIOpenDriver " << __VA_ARGS__ << std::endl;           \
-        std::cerr << miopen_driver_cmd_ss.str();                                               \
+#define MIOPEN_LOG_DRIVER_CMD(...)                                                    \
+    do                                                                                \
+    {                                                                                 \
+        std::ostringstream miopen_driver_cmd_ss;                                      \
+        miopen_driver_cmd_ss << miopen::LoggingPrefix() << "Command"                  \
+                             << " [" << MIOPEN_GET_FN_NAME << "] ./bin/MIOpenDriver " \
+                             << __VA_ARGS__ << std::endl;                             \
+        std::cerr << miopen_driver_cmd_ss.str();                                      \
     } while(false)
 
 #if MIOPEN_LOG_FUNC_TIME_ENABLE
