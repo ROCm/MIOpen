@@ -279,10 +279,10 @@ struct ExecutionContext
             return "";
         std::ostringstream filename;
         filename << GetStream().GetDbBasename();
-#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
+#if MIOPEN_ENABLE_SQLITE
         filename << "_" << SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER << ".udb";
 #else
-        filename << "." << GetUserDbSuffix() << ".udb.txt";
+        filename << "." << GetUserDbSuffix() << ".cd.updb.txt";
 #endif
         return (udb / filename.str()).string();
     }
