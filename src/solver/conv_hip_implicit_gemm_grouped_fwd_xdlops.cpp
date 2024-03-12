@@ -32,6 +32,7 @@
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#include <miopen/solver/ck_utility_common.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_forward.hpp>
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
 #endif
@@ -144,10 +145,10 @@ struct CKArgs
 
     int G;
     int N;
+    int K1;
+    int C1;
     int K;
     int C;
-    int C1;
-    int K1;
     int Hi;
     int Wi;
     int Ho;
@@ -414,6 +415,12 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsValidPerformanceConfig(
     return config.IsValid(problem);
 }
 
+size_t ConvHipImplicitGemmGroupFwdXdlops::GetWorkspaceSize(const ExecutionContext&,
+                                                           const ProblemDescription& problem) const
+{
+    return GetWorkspaceSizeLayoutTransformConv(problem);
+}
+
 PerformanceConfigHipImplicitGemmGroupFwdXdlops
 ConvHipImplicitGemmGroupFwdXdlops::Search(const ExecutionContext& ctx,
                                           const ProblemDescription& problem,
@@ -431,7 +438,7 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
         return false;
     if(problem.HasNonPackedTensors())
         return false;
-    if(problem.HasAtLeastOne64BitTensor())
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
     if(problem.IsTensorsCasted())
         return false;
@@ -443,10 +450,12 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
         return false;
     if(!problem.Is2d())
         return false;
-    if(!problem.IsLayoutNHWC())
+    if(!(problem.IsLayoutNHWC() || problem.IsLayoutDefault()))
         return false;
-    const std::string& arch = ctx.GetStream().GetDeviceName();
-    if(!(arch == "gfx908" || arch == "gfx90a"))
+    // needed because layout transpose kernel does not support non-packed tensors
+    if(problem.IsLayoutDefault() && problem.HasNonPackedTensors())
+        return false;
+    if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
     switch(problem.GetInDataType())
     {
@@ -469,29 +478,26 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlops::GetSolution(
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    switch(problem.GetInDataType())
-    {
-    case miopenHalf:
-        return MakeInvokerFactory<DeviceOpGFwdPtrs<ck::half_t>,
-                                  CKArgs,
-                                  miopen::conv::DataInvokeParams>(problem, config.kernel_id);
-    case miopenFloat:
-        return MakeInvokerFactory<DeviceOpGFwdPtrs<float>, CKArgs, miopen::conv::DataInvokeParams>(
-            problem, config.kernel_id);
-    case miopenInt8:
-        return MakeInvokerFactory<DeviceOpGFwdPtrs<int8_t>, CKArgs, miopen::conv::DataInvokeParams>(
-            problem, config.kernel_id);
-    case miopenInt32:
-    case miopenBFloat16:
-    case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
-    default:
-        MIOPEN_THROW(miopenStatusInternalError,
-                     "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");
-    }
-#endif
+    return MakeSolutionGroupConvImplicitGemmXdlops(
+        problem,
+        [&](auto data_type_val) {
+            using T = decltype(data_type_val);
+            return InitInvokerFactoryFwdNCHW<2,
+                                             DeviceOpGFwdPtrs<T>,
+                                             CKArgs,
+                                             miopen::conv::DataInvokeParams>(
+                ctx, problem, config.kernel_id);
+        },
+        [&](auto data_type_val) {
+            using T = decltype(data_type_val);
+            return InitInvokerFactoryNHWC<DeviceOpGFwdPtrs<T>,
+                                          CKArgs,
+                                          miopen::conv::DataInvokeParams>(
+                ctx, problem, config.kernel_id);
+        });
+#else
     return {};
+#endif
 }
 
 } // namespace conv

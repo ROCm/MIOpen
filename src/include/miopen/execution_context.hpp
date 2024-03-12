@@ -119,10 +119,10 @@ struct ExecutionContext
             std::ostringstream filename;
             // clang-format off
             filename << GetStream().GetDbBasename();
-#if MIOPEN_ENABLE_SQLITE
+#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
             const std::string ext = ".db";
 #else
-            const std::string ext = ".cd.pdb.txt";
+            const std::string ext = ".db.txt";
 #endif
             filename << ext;
             // clang-format on
@@ -136,7 +136,6 @@ struct ExecutionContext
                 MIOPEN_LOG_I2("inexact embedded perf database search");
                 const auto db_id        = GetStream().GetTargetProperties().DbId();
                 const int real_cu_count = GetStream().GetMaxComputeUnits();
-                namespace fs            = boost::filesystem;
                 int closest_cu          = std::numeric_limits<int>::max();
                 fs::path best_path;
                 for(auto const& entry : miopen_data())
@@ -187,10 +186,10 @@ struct ExecutionContext
             std::ostringstream filename;
             // clang-format off
         filename << GetStream().GetDbBasename();
-#if MIOPEN_ENABLE_SQLITE
+#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
         const std::string ext = ".db";
 #else
-        const std::string ext = ".cd.pdb.txt";
+        const std::string ext = ".db.txt";
 #endif
         filename << ext;
             // clang-format on
@@ -280,10 +279,10 @@ struct ExecutionContext
             return "";
         std::ostringstream filename;
         filename << GetStream().GetDbBasename();
-#if MIOPEN_ENABLE_SQLITE
+#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
         filename << "_" << SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER << ".udb";
 #else
-        filename << "." << GetUserDbSuffix() << ".cd.updb.txt";
+        filename << "." << GetUserDbSuffix() << ".udb.txt";
 #endif
         return (udb / filename.str()).string();
     }

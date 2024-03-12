@@ -30,7 +30,7 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
-#include <miopen/util_sol.hpp>
+#include <miopen/batched_transpose_sol.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS_NHWC)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
@@ -956,7 +956,7 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(
     if(problem.HasNonPackedTensors())
         return false;
 
-    if(problem.HasAtLeastOne64BitTensor())
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
 
     if(!problem.IsFp32() && !problem.IsFp16() &&
@@ -1017,8 +1017,6 @@ size_t ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetWorkspaceSize(
     size_t size_trans_output = 0;
     size_t size_tensor_cast  = 0;
 
-    constexpr size_t buf_alignment = 256;
-
     size_t workspace_size = 0;
     if(is_nchw)
     {
@@ -1047,7 +1045,7 @@ size_t ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetWorkspaceSize(
     }
 
     MultiBufferWorkspaceTraits wt(
-        {size_trans_input, size_trans_weight, size_trans_output, size_tensor_cast}, buf_alignment);
+        {size_trans_input, size_trans_weight, size_trans_output, size_tensor_cast});
     workspace_size = wt.GetSize();
 
     return workspace_size;

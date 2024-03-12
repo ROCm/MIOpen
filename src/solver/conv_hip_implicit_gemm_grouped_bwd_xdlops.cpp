@@ -87,18 +87,37 @@ struct CKArgs
         output = {G, N, K, Ho, Wo};
         weight = {G, K, C, Y, X};
 
-        // miopen strides to CK strides
-        // On a backward pass, problem.GetIn() means y(or out),
-        // and problem.GetOut means x(or in)
-        auto miopen_in_strides  = problem.GetOut().GetStrides();
-        auto miopen_out_strides = problem.GetIn().GetStrides();
-        auto miopen_wei_strides = problem.GetWeights().GetStrides();
-        miopen_in_strides.insert(miopen_in_strides.begin(), C);
-        miopen_out_strides.insert(miopen_out_strides.begin(), K);
-        miopen_wei_strides.insert(miopen_wei_strides.begin(), K * miopen_wei_strides[0]);
-        std::copy(miopen_in_strides.begin(), miopen_in_strides.end(), in_strides.begin());
-        std::copy(miopen_out_strides.begin(), miopen_out_strides.end(), out_strides.begin());
-        std::copy(miopen_wei_strides.begin(), miopen_wei_strides.end(), wei_strides.begin());
+        // CK strides are in GNCDHW order
+        if(problem.IsLayoutNHWC())
+        {
+            // first entry reserved for G's stride
+            auto copy_strides = [](const auto& src, auto& dst) {
+                assert(dst.size() == (src.size() + 1));
+                std::copy(src.begin(), src.end(), dst.begin() + 1);
+            };
+            copy_strides(problem.GetIn().GetStrides(), in_strides);
+            copy_strides(problem.GetOut().GetStrides(), out_strides);
+            copy_strides(problem.GetWeights().GetStrides(), wei_strides);
+
+            // On a backward pass, problem.GetIn() means y(or out),
+            // and problem.GetOut means x(or in)
+            /// \todo remove this when we stop swapping in and out tensors/descriptors
+            std::swap(in_strides, out_strides);
+
+            // Now compute G's stride
+            in_strides[0]  = C;
+            out_strides[0] = K;
+            wei_strides[0] = K * wei_strides[1];
+        }
+        else
+        {
+            assert(problem.IsLayoutDefault()); // already checked in IsApplicable
+            // for default layout, we produce packed strides for NHWC layout
+            // because we transpose to NHWC layout before calling CK kernel
+            in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
+            out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
+            wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
+        }
 
         strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
@@ -115,7 +134,7 @@ struct CKArgs
     CKArgs& operator=(const CKArgs&) = default;
 
     template <typename ConvPtr>
-    auto MakeArgPtr(const ConvPtr& conv_ptr, ConstData_t out, ConstData_t w, Data_t in) const
+    auto MakeArgPtr(const ConvPtr& conv_ptr, Data_t in, ConstData_t w, ConstData_t out) const
     {
         return conv_ptr->MakeArgumentPointer(out,
                                              w,
@@ -141,7 +160,7 @@ struct CKArgs
     template <typename ConvPtr>
     auto MakeArgPtr(const ConvPtr& conv_ptr, const ConvDataTensors& tensors) const
     {
-        return MakeArgPtr(conv_ptr, tensors.in, tensors.w, tensors.out);
+        return MakeArgPtr(conv_ptr, tensors.out, tensors.w, tensors.in);
     }
 
     template <typename ConvPtr>
@@ -285,6 +304,12 @@ bool ConvHipImplicitGemmGroupBwdXdlops::IsValidPerformanceConfig(
     return config.IsValid(problem);
 }
 
+size_t ConvHipImplicitGemmGroupBwdXdlops::GetWorkspaceSize(const ExecutionContext&,
+                                                           const ProblemDescription& problem) const
+{
+    return GetWorkspaceSizeLayoutTransformConv(problem);
+}
+
 PerformanceConfigHipImplicitGemmGroupBwdXdlops
 ConvHipImplicitGemmGroupBwdXdlops::Search(const ExecutionContext& ctx,
                                           const ProblemDescription& problem,
@@ -304,9 +329,7 @@ bool ConvHipImplicitGemmGroupBwdXdlops::IsApplicable(
         return false;
     if(problem.HasMixedDataTypes())
         return false;
-    if(problem.HasNonPackedTensors())
-        return false;
-    if(problem.HasAtLeastOne64BitTensor())
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
     if(problem.IsTensorsCasted())
         return false;
@@ -314,7 +337,10 @@ bool ConvHipImplicitGemmGroupBwdXdlops::IsApplicable(
         return false;
     if(!problem.Is2d())
         return false;
-    if(!problem.IsLayoutNHWC())
+    if(!(problem.IsLayoutNHWC() || problem.IsLayoutDefault()))
+        return false;
+    // needed because layout transpose kernel does not support non-packed tensors
+    if(problem.IsLayoutDefault() && problem.HasNonPackedTensors())
         return false;
     if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
@@ -339,29 +365,27 @@ ConvSolution ConvHipImplicitGemmGroupBwdXdlops::GetSolution(
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmGroupBwdXdlops& config) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    switch(problem.GetInDataType())
-    {
-    case miopenInt8:
-        return MakeInvokerFactory<DeviceOpGBwdPtrs<int8_t>, CKArgs, miopen::conv::DataInvokeParams>(
-            problem, config.kernel_id);
-    case miopenHalf:
-        return MakeInvokerFactory<DeviceOpGBwdPtrs<ck::half_t>,
-                                  CKArgs,
-                                  miopen::conv::DataInvokeParams>(problem, config.kernel_id);
-    case miopenFloat:
-        return MakeInvokerFactory<DeviceOpGBwdPtrs<float>, CKArgs, miopen::conv::DataInvokeParams>(
-            problem, config.kernel_id);
-    case miopenInt32:
-    case miopenBFloat16:
-    case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
-    default:
-        MIOPEN_THROW(miopenStatusInternalError,
-                     "ConvHipImplicitGemmBwdXdlops operation not implemented for this data type");
-    }
-#endif
+    return MakeSolutionGroupConvImplicitGemmXdlops(
+        problem,
+        [&](auto data_type_val) {
+            using T = decltype(data_type_val);
+            return InitInvokerFactoryBwdNCHW<2,
+                                             DeviceOpGBwdPtrs<T>,
+                                             CKArgs,
+                                             miopen::conv::DataInvokeParams>(
+                ctx, problem, config.kernel_id);
+        },
+        [&](auto data_type_val) {
+            using T = decltype(data_type_val);
+            return InitInvokerFactoryNHWC<DeviceOpGBwdPtrs<T>,
+                                          CKArgs,
+                                          miopen::conv::DataInvokeParams>(
+                ctx, problem, config.kernel_id);
+        });
+
+#else
     return {};
+#endif
 }
 
 } // namespace conv
