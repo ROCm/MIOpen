@@ -106,8 +106,6 @@ const char* getOffloadBundlerBinPath();
 
 #cmakedefine MIOPEN_CACHE_DIR "@MIOPEN_CACHE_DIR@"
 
-#cmakedefine01 MIOPEN_USE_SQLITE_PERFDB
-
 #define MIOPEN_USE_GEMM (MIOPEN_USE_ROCBLAS)
 
 // Usage of "defined" operator within macro expansion is undefined behavior,

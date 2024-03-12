@@ -63,7 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <miopen/ocldeviceinfo.hpp>
 #endif
 #include <miopen/db_path.hpp>
-#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
+#if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
 #else
 #include <miopen/readonlyramdb.hpp>
@@ -134,7 +134,7 @@ class DbTimer;
 
 struct AnyInvokeParams;
 
-#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
+#if MIOPEN_ENABLE_SQLITE
 using PerformanceDb = DbTimer<MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>>;
 #else
 using PerformanceDb = DbTimer<MultiFileDb<ReadonlyRamDb, RamDb, true>>;

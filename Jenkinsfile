@@ -823,19 +823,6 @@ pipeline {
                         buildHipClangJobAndReboot()
                     }
                 }
-                stage('Fp32 Hip SqlitePerfdb gfx90a') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX90A }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("gfx90a") }
-                    steps{
-                        buildHipClangJobAndReboot(make_targets: Smoke_targets, setup_flags: "-DMIOPEN_USE_SQLITE_PERF_DB=On")
-                    }
-                }
             }
         }
         stage("Smoke Fp16/Bf16/Int8") {

@@ -30,7 +30,6 @@
 #include <miopen/batchnorm/problem_description.hpp>
 #include <miopen/conv/problem_description.hpp>
 #include <miopen/problem_description_base.hpp>
-#include <utility>
 
 namespace miopen {
 
@@ -76,13 +75,6 @@ struct FusionDescription : ProblemDescriptionBase
     {
         auto conv_prob = self.GetConvProblem(conv::Direction::Forward);
         conv::ProblemDescription::Visit(conv_prob, f);
-    }
-
-    template <class Self, class F>
-    static void VisitAll(Self&& self, F f)
-    {
-        auto conv_prob = self.GetConvProblem(conv::Direction::Forward);
-        conv::ProblemDescription::VisitAll(conv_prob, f);
     }
 #endif
 

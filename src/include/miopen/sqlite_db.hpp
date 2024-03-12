@@ -210,7 +210,7 @@ class SQLiteBase
 {
 protected:
 public:
-    SQLiteBase(DbKinds, const std::string& filename_, bool is_system_)
+    SQLiteBase(const std::string& filename_, bool is_system_)
         : filename(filename_), is_system(is_system_)
     {
         if(DisableUserDbFileIO && !is_system)
@@ -397,7 +397,7 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
 {
 public:
     static constexpr char const* MIOPEN_PERFDB_SCHEMA_VER = "1.1.0";
-    SQLitePerfDb(DbKinds db_kind, const std::string& filename_, bool is_system);
+    SQLitePerfDb(const std::string& filename_, bool is_system);
 
     template <class T>
     inline void InsertConfig(const T& prob_desc)

@@ -49,14 +49,12 @@ bool& rordb_embed_fs_override()
 }
 } // namespace debug
 
-ReadonlyRamDb&
-ReadonlyRamDb::GetCached(DbKinds db_kind_, const std::string& path, bool warn_if_unreadable)
+ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path, bool warn_if_unreadable)
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
     const std::lock_guard<std::mutex> lock{mutex};
 
-    // We don't have to store kind to properly index as different dbs would have different paths
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static auto instances = std::map<std::string, ReadonlyRamDb*>{};
     const auto it         = instances.find(path);
@@ -71,8 +69,7 @@ ReadonlyRamDb::GetCached(DbKinds db_kind_, const std::string& path, bool warn_if
     // footprint in heap is very small. That is why we can omit deletion of
     // these objects thus avoiding bothering with MP/MT syncronization.
     // These will be destroyed altogether with heap.
-    // NOLINTNEXTLINE (cppcoreguidelines-owning-memory)
-    auto instance = new ReadonlyRamDb{db_kind_, path};
+    auto instance = new ReadonlyRamDb{path};
     instances.emplace(path, instance);
     instance->Prefetch(warn_if_unreadable);
     return *instance;
