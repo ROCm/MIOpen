@@ -81,83 +81,74 @@ std::vector<LayerNormTestCase> LayerNormTestConfigs()
 { // n c d h w nomalized_dim eps ln_mode
     // clang-format off
     return {
-        { 32,   1,   32,  32,  32  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},   // 32x32x32 based on VoxNet arch
-        { 32,   1,   14,  14,  14  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 32,  32,   14,  14,  14  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 32,  32,   12,  12,  12  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 32,  32,    6,   6,   6  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 256,  1,   32,  32,  32  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},   // 32x32x32 based on VoxNet arch
-        { 256, 32,   14,  14,  14  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 256, 32,   12,  12,  12  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 256, 32,    6,   6,   6  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 512,  1,   32,  32,  32  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},   // 32x32x32 based on VoxNet arch
-        { 512, 32,   14,  14,  14  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 512, 32,   12,  12,  12  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 512, 32,    6,   6,   6  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 32,  2,   32,  57, 125  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},    // Hand-gesture recognition CVPR 2015 paper High Res Net Path
-        { 32, 32,   14,  25,  59  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 32, 32,    6,  10,  27  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 32, 32,    4,   6,  11  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 32, 32,    2,   2,   3  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 32, 32,   32,  28,  62  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},    // Hand-gesture recognition CVPR 2015 paper Low Res Net Path
-        { 32, 32,   14,  12,  29  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 32, 32,    6,   4,  12  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 32, 32,    4,   2,   2  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        { 16, 32,    6,  50,  50  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},    // Multi-view 3D convnet
-        { 1, 3,     8,  240, 320 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
-        { 1, 3,    16,  240, 320 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
-        { 1, 3,     8,  128, 171 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
-        { 1, 3,    16,  128, 171 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
-        { 1, 3,     8,  112, 112 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
-        { 1, 3,    16,  112, 112 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
-        { 32,   1,   32,  32,  32  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},          // 32x32x32 based on VoxNet arch
-        { 32,   1,   14,  14,  14  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 32,  32,   14,  14,  14  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 32,  32,   12,  12,  12  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 32,  32,    6,   6,   6  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 256,  1,   32,  32,  32  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},          // 32x32x32 based on VoxNet arch
-        { 256, 32,   14,  14,  14  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 256, 32,   12,  12,  12  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 256, 32,    6,   6,   6  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 512,  1,   32,  32,  32  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},          // 32x32x32 based on VoxNet arch
-        { 512, 32,   14,  14,  14  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 512, 32,   12,  12,  12  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 512, 32,    6,   6,   6  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 32,  2,   32,  57, 125  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},           // Hand-gesture recognition CVPR 2015 paper High Res Net Path
-        { 32, 32,   14,  25,  59  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 32, 32,    6,  10,  27  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 32, 32,    4,   6,  11  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 32, 32,    2,   2,   3  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 32, 32,   32,  28,  62  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},           // Hand-gesture recognition CVPR 2015 paper Low Res Net Path
-        { 32, 32,   14,  12,  29  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 32, 32,    6,   4,  12  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 32, 32,    4,   2,   2  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        { 16, 32,    6,  50,  50  ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},           // Multi-view 3D convnet
-        { 1, 3,     8,  240, 320 ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
-        { 1, 3,    16,  240, 320 ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
-        { 1, 3,     8,  128, 171 ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
-        { 1, 3,    16,  128, 171 ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
-        { 1, 3,     8,  112, 112 ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
-        { 1, 3,    16,  112, 112 ,4 , 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
-        {32, 4,     0,    4, 256 ,1 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {64, 4,     0,    4, 256 ,1 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {32, 4,     0,    4, 256 ,1 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        {64, 4,     0,    4, 256 ,1 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        {32, 0,     0,    0, 256 ,1 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {64, 0,     0,    0, 256 ,1 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {32, 0,     0,    0, 256 ,1 , 1e-5, MIOPEN_WEIGHT_BIAS},
-        {64, 0,     0,    0, 256 ,1 , 1e-5, MIOPEN_WEIGHT_BIAS}
+        { 32,   1,   32,  32,  32  , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},   // 32x32x32 based on VoxNet arch
+        { 32,   1,   14,  14,  14  , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 32,  32,   14,  14,  14  , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 32,  32,   12,  12,  12  , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 32,  32,   6,   6,   6   , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 256,  1,   32,  32,  32  , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},   // 32x32x32 based on VoxNet arch
+        { 256, 32,   14,  14,  14  , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 256, 32,   12,  12,  12  , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 256, 32,   6,   6,   6   , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 512,  1,   32,  32,  32  , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},   // 32x32x32 based on VoxNet arch
+        { 512, 32,   14,  14,  14  , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 512, 32,   12,  12,  12  , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 512, 32,   6,   6,   6   , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 32,   2,   32,  57,  125 , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},    // Hand-gesture recognition CVPR 2015 paper High Res Net Path
+        { 32,  32,   14,  25,  59  , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 32,  32,   6,   10,  27  , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 32,  32,   4,   6,   11  , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 32,  32,   2,   2,   3   , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 32,  32,   32,  28,  62  , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},    // Hand-gesture recognition CVPR 2015 paper Low Res Net Path
+        { 32,  32,   14,  12,  29  , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 32,  32,   6,   4,   12  , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 32,  32,   4,   2,   2   , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 16,  32,   6,   50,  50  , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},    // Multi-view 3D convnet
+        { 1,    3,   8,   240, 320 , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
+        { 1,    3,   16,  240, 320 , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
+        { 1,    3,   8,   128, 171 , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
+        { 1,    3,   16,  128, 171 , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
+        { 1,    3,   8,   112, 112 , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
+        { 1,    3,   16,  112, 112 , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},     // 3D convet on video
+        { 32,   1,   32,  32,  32  , 4, 1e-5, MIOPEN_WEIGHT_BIAS},          // 32x32x32 based on VoxNet arch
+        { 32,   1,   14,  14,  14  , 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 32,  32,   14,  14,  14  , 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 32,  32,   12,  12,  12  , 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 32,  32,   6,   6,   6   , 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 256,  1,   32,  32,  32  , 4, 1e-5, MIOPEN_WEIGHT_BIAS},          // 32x32x32 based on VoxNet arch
+        { 256, 32,   14,  14,  14  , 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 256, 32,   12,  12,  12  , 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 256, 32,   6,   6,   6   , 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 512,  1,   32,  32,  32  , 4, 1e-5, MIOPEN_WEIGHT_BIAS},          // 32x32x32 based on VoxNet arch
+        { 512, 32,   14,  14,  14  , 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 512, 32,   12,  12,  12  , 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 512, 32,   6,   6,   6   , 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 32,   2,   32,  57,  125 , 4, 1e-5, MIOPEN_WEIGHT_BIAS},           // Hand-gesture recognition CVPR 2015 paper High Res Net Path
+        { 32,  32,   14,  25,  59  , 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 32,  32,   6,   10,  27  , 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 32,  32,   4,   6,   11  , 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 32,  32,   2,   2,   3   , 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 32,  32,   32,  28,  62  , 4, 1e-5, MIOPEN_WEIGHT_BIAS},           // Hand-gesture recognition CVPR 2015 paper Low Res Net Path
+        { 32,  32,   14,  12,  29  , 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 32,  32,   6,   4,   12  , 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 32,  32,   4,   2,   2   , 4, 1e-5, MIOPEN_WEIGHT_BIAS},
+        { 16,  32,   6,   50,  50  , 4, 1e-5, MIOPEN_WEIGHT_BIAS},           // Multi-view 3D convnet
+        { 1,   3,    8,   240, 320 , 4, 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
+        { 1,   3,    16,  240, 320 , 4, 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
+        { 1,   3,    8,   128, 171 , 4, 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
+        { 1,   3,    16,  128, 171 , 4, 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
+        { 1,   3,    8,   112, 112 , 4, 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
+        { 1,   3,    16,  112, 112 , 4, 1e-5, MIOPEN_WEIGHT_BIAS},            // 3D convet on video
+        {32,   4,    0,   4,   256 , 1, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        {64,   4,    0,   4,   256 , 1, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        {32,   4,    0,   4,   256 , 1, 1e-5, MIOPEN_WEIGHT_BIAS},
+        {64,   4,    0,   4,   256 , 1, 1e-5, MIOPEN_WEIGHT_BIAS},
+        {32,   0,    0,   0,   256 , 1, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        {64,   0,    0,   0,   256 , 1, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        {32,   0,    0,   0,   256 , 1, 1e-5, MIOPEN_WEIGHT_BIAS},
+        {64,   0,    0,   0,   256 , 1, 1e-5, MIOPEN_WEIGHT_BIAS}
       };
     // clang-format on
-}
-
-static int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
-{
-    const std::vector<std::size_t>& lens = desc.GetLengths();
-    std::vector<int32_t> int32_t_lens(lens.begin(), lens.end());
-
-    // set the strides for the tensor
-    return SetTensorNd(&desc, int32_t_lens, desc.GetType());
 }
 
 template <typename T = float>
@@ -190,15 +181,11 @@ protected:
             auto gen_zero = [&](auto...) { return 0; };
             weight        = tensor<T>{inner_dim}.generate(gen_one);
             bias          = tensor<T>{inner_dim}.generate(gen_zero);
-            SetTensorLayout(weight.desc);
-            SetTensorLayout(bias.desc);
         }
         else
         {
             weight = tensor<T>{inner_dim}.generate(gen_value);
             bias   = tensor<T>{inner_dim}.generate(gen_value);
-            SetTensorLayout(weight.desc);
-            SetTensorLayout(bias.desc);
         }
 
         std::vector<size_t> outer_dim;
@@ -207,14 +194,9 @@ protected:
         else
             outer_dim = {in_dim.begin(), in_dim.end() - (in_dim.size() - nomalized_dim)};
 
-        SetTensorLayout(input.desc);
-
         output = tensor<T>{in_dim};
         mean   = tensor<T>{outer_dim};
         rstd   = tensor<T>{outer_dim};
-        SetTensorLayout(output.desc);
-        SetTensorLayout(mean.desc);
-        SetTensorLayout(rstd.desc);
         std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
         std::fill(mean.begin(), mean.end(), std::numeric_limits<T>::quiet_NaN());
         std::fill(rstd.begin(), rstd.end(), std::numeric_limits<T>::quiet_NaN());
@@ -267,22 +249,28 @@ protected:
 
     void Verify()
     {
-        double threshold = std::numeric_limits<T>::epsilon();
-        auto error       = miopen::rms_range(ref_output, output);
+        // Computation error of fp16 is ~2^13 (=8192) bigger than
+        // the one of fp32 because mantissa is shorter by 13 bits.
+        auto threshold = std::is_same<T, float>::value ? 1.5e-5 : 8.2e-2;
+
+        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+        if(std::is_same<T, bfloat16>::value)
+            threshold *= 8.0;
+        auto error = miopen::rms_range(ref_output, output);
 
         EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-        EXPECT_TRUE(error < threshold * 1000) << "Error output beyond tolerance Error:" << error
-                                              << ",  Thresholdx1000: " << threshold * 1000;
+        EXPECT_TRUE(error < threshold)
+            << "Error output beyond tolerance Error:" << error << ",  Threshold: " << threshold;
 
         error = miopen::rms_range(ref_mean, mean);
         EXPECT_TRUE(miopen::range_distance(ref_mean) == miopen::range_distance(mean));
-        EXPECT_TRUE(error < threshold * 20) << "Error mean beyond tolerance Error:" << error
-                                            << ",  Thresholdx20: " << threshold * 20;
+        EXPECT_TRUE(error < threshold)
+            << "Error mean beyond tolerance Error:" << error << ",  Threshold: " << threshold;
 
         error = miopen::rms_range(ref_rstd, rstd);
         EXPECT_TRUE(miopen::range_distance(ref_rstd) == miopen::range_distance(rstd));
-        EXPECT_TRUE(error < threshold * 2000) << "Error rstd beyond tolerance Error:" << error
-                                              << ",  Thresholdx2000: " << threshold * 2000;
+        EXPECT_TRUE(error < threshold * 4) << "Error rstd beyond tolerance Error:" << error
+                                           << ",  Threshold x 4: " << threshold * 4;
     }
     LayerNormTestCase layernorm_config;
 

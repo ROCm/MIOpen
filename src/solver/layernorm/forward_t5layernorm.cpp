@@ -26,10 +26,10 @@
 
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
-#include <miopen/layernorm.hpp>
 #include <miopen/layernorm/solvers.hpp>
 #include <miopen/layernorm/invoke_params.hpp>
 #include <miopen/layernorm/utils.hpp>
+#include <miopen/t5layernorm.hpp>
 #include <miopen/target_properties.hpp>
 
 #define LOCAL_SIZE 256
@@ -40,8 +40,8 @@ namespace solver {
 
 namespace layernorm {
 
-bool LayernormForward::IsApplicable(const ExecutionContext&,
-                                    const miopen::layernorm::ProblemDescription& problem) const
+bool T5LayernormForward::IsApplicable(const ExecutionContext&,
+                                      const miopen::layernorm::ProblemDescription& problem) const
 {
     if(!problem.IsSameType())
         return false;
@@ -49,16 +49,14 @@ bool LayernormForward::IsApplicable(const ExecutionContext&,
         return false;
     if(!problem.IsAllPacked())
         return false;
-    if(!problem.IsRightNormDim())
-        return false;
-    if(!(sizeof_local_memory(problem) <= TargetProperties::GetMaxLocalMemorySize()))
+    if(!(sizeof_local_memory_t5(problem) <= TargetProperties::GetMaxLocalMemorySize()))
         return false;
     return true;
 }
 
 ConvSolution
-LayernormForward::GetSolution(const ExecutionContext& context,
-                              const miopen::layernorm::ProblemDescription& problem) const
+T5LayernormForward::GetSolution(const ExecutionContext& context,
+                                const miopen::layernorm::ProblemDescription& problem) const
 {
     std::ignore = context;
 
@@ -70,11 +68,8 @@ LayernormForward::GetSolution(const ExecutionContext& context,
         auto output_dtype = miopen::GetDataType(problem.GetYDesc().GetType());
         auto dims         = problem.GetXDesc().GetLengths();
 
-        size_t outer_size = 1;
-        for(size_t i = 0; i < problem.GetNormalizedDim(); i++)
-        {
-            outer_size *= dims[i];
-        }
+        auto outer_size =
+            std::accumulate(dims.begin(), dims.end() - 1, 1ULL, std::multiplies<size_t>());
 
         size_t xlocalsize = LOCAL_SIZE;
         size_t xgridsize  = outer_size * xlocalsize;
@@ -86,7 +81,7 @@ LayernormForward::GetSolution(const ExecutionContext& context,
         auto kernel = KernelInfo{};
 
         kernel.kernel_file = "MIOpenLayerNorm.cpp";
-        kernel.kernel_name = "LayernormFwdContiguous";
+        kernel.kernel_name = "T5LayernormFwdContiguous";
 
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
@@ -113,25 +108,18 @@ LayernormForward::GetSolution(const ExecutionContext& context,
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::layernorm::InvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::layernorm::T5InvokeParams>();
 
             auto dims         = params.xDesc->GetLengths();
-            size_t inner_size = 1;
-
-            for(size_t i = params.normalized_dim; i < dims.size(); i++)
-            {
-                inner_size *= dims[i];
-            }
+            size_t inner_size = dims[dims.size() - 1];
 
             kernel(params.x,
                    params.weight,
-                   params.bias,
                    params.y,
-                   params.mean,
                    params.rstd,
                    params.epsilon,
                    inner_size,
-                   static_cast<bool>(params.mode));
+                   static_cast<bool>(params.mode % 2));
         };
     };
 

@@ -16,3 +16,7 @@ miopenLayerNormForward
 
 .. doxygenfunction::  miopenLayerNormForward
 
+miopenAddLayerNormForward
+----------------------------------
+
+.. doxygenfunction::  miopenAddLayerNormForward

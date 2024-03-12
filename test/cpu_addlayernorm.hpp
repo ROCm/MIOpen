@@ -23,21 +23,22 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CPU_LAYERNORM_HPP
-#define GUARD_CPU_LAYERNORM_HPP
+#ifndef GUARD_CPU_ADDLAYERNORM_HPP
+#define GUARD_CPU_ADDLAYERNORM_HPP
 
 #include "tensor_holder.hpp"
 
 template <class T>
-void cpu_layernorm_forward(tensor<T> input,
-                           tensor<T> weight,
-                           tensor<T> bias,
-                           tensor<T>& ref_output,
-                           tensor<T>& ref_mean,
-                           tensor<T>& ref_rstd,
-                           float eps,
-                           int32_t dim,
-                           miopenNormMode_t mode)
+void cpu_addlayernorm_forward(tensor<T> input,
+                              tensor<T> input2,
+                              tensor<T> weight,
+                              tensor<T> bias,
+                              tensor<T>& ref_output,
+                              tensor<T>& ref_mean,
+                              tensor<T>& ref_rstd,
+                              float eps,
+                              int32_t dim,
+                              miopenNormMode_t mode)
 {
     auto dims         = input.desc.GetLengths();
     size_t outer_size = 1;
@@ -58,7 +59,8 @@ void cpu_layernorm_forward(tensor<T> input,
         float var_v  = 0;
 
         ford(inner_size)([&](int32_t i) {
-            float tmp = static_cast<float>(input[o * inner_size + i]);
+            float tmp = static_cast<float>(input[o * inner_size + i]) +
+                        static_cast<float>(input2[o * inner_size + i]);
             mean_v += tmp;
             var_v += tmp * tmp;
         });
@@ -71,11 +73,13 @@ void cpu_layernorm_forward(tensor<T> input,
         ref_rstd[o] = static_cast<T>(rstd_v);
 
         ford(inner_size)([&](int32_t i) {
-            float weight_v                 = mode ? static_cast<float>(weight[i]) : 1;
-            float bias_v                   = mode ? static_cast<float>(bias[i]) : 0;
-            ref_output[o * inner_size + i] = static_cast<T>(
-                (static_cast<float>(input[o * inner_size + i]) - mean_v) * rstd_v * weight_v +
-                bias_v);
+            float weight_v = mode ? static_cast<float>(weight[i]) : 1;
+            float bias_v   = mode ? static_cast<float>(bias[i]) : 0;
+            ref_output[o * inner_size + i] =
+                static_cast<T>((static_cast<float>(input[o * inner_size + i]) +
+                                static_cast<float>(input2[o * inner_size + i]) - mean_v) *
+                                   rstd_v * weight_v +
+                               bias_v);
         });
     });
 }
