@@ -458,7 +458,7 @@ size_t RNNDescriptor::GetMainSolWorkspaceSize(size_t batchLenSum,
     return (workspaceScale * nLayers * batchLenSum * hsize * typeSize) * (is_bidirect ? 2 : 1);
 }
 
-size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
+size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
                                        const SeqTensorDescriptor& xDesc,
                                        miopenRNNFWDMode_t fwdMode) const
 {
@@ -478,7 +478,15 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
 
     const std::size_t total_sequence_len = xDesc.GetTotalSequenceLen();
 
-    return transformer_tmp_space +
+    size_t reduction_ws = ReductionWorkspaceSize(handle,
+                                                 total_sequence_len,
+                                                 nHiddenTensorsPerLayer,
+                                                 workspaceScale,
+                                                 hsize,
+                                                 dirMode == miopenRNNbidirection,
+                                                 dataType);
+
+    return transformer_tmp_space + reduction_ws +
            GetMainSolWorkspaceSize(total_sequence_len, fwdMode, miopenRNNDataSeqMajorNotPadded);
 }
 
@@ -499,7 +507,7 @@ size_t RNNDescriptor::GetMaxWorkspaceSize(Handle& handle,
 }
 
 // legacy
-size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
+size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
                                        const int seqLength,
                                        c_array_view<const miopenTensorDescriptor_t> xDesc) const
 {
@@ -523,9 +531,17 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
             return x + deref(y).GetLengths()[0];
         });
 
-    return padding_converter_tmp_space + GetMainSolWorkspaceSize(total_sequence_len,
-                                                                 miopenRNNInference,
-                                                                 miopenRNNDataSeqMajorNotPadded);
+    size_t reduction_ws = ReductionWorkspaceSize(handle,
+                                                 total_sequence_len,
+                                                 nHiddenTensorsPerLayer,
+                                                 workspaceScale,
+                                                 hsize,
+                                                 dirMode == miopenRNNbidirection,
+                                                 dataType);
+
+    return padding_converter_tmp_space + reduction_ws +
+           GetMainSolWorkspaceSize(
+               total_sequence_len, miopenRNNInference, miopenRNNDataSeqMajorNotPadded);
 }
 
 /////////////////////////////////
