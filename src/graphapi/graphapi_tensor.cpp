@@ -32,63 +32,78 @@ namespace miopen {
 
 namespace graphapi {
 
-TensorBuilder& TensorBuilder::setDataType(miopenDataType_t dataType)
+TensorBuilder& TensorBuilder::setDataType(miopenDataType_t dataType) &
 {
     mDataType    = dataType;
     mDataTypeSet = true;
     return *this;
 }
 
-TensorBuilder& TensorBuilder::setDim(int64_t numberDimensions, int64_t* dimensions)
+TensorBuilder& TensorBuilder::setDim(const std::vector<int64_t>& dimensions) &
 {
-    mDimensions    = std::vector<size_t>(dimensions, dimensions + numberDimensions);
+    if(std::any_of(dimensions.cbegin(), dimensions.cend(), [](int64_t val) { return val < 0; }))
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    mDimensions    = std::vector<int64_t>(dimensions.cbegin(), dimensions.cend());
     mDimensionsSet = true;
     return *this;
 }
 
-TensorBuilder& TensorBuilder::setId(int64_t id)
+TensorBuilder& TensorBuilder::setId(int64_t id) &
 {
     mUniqueId    = id;
     mUniqueIdSet = true;
     return *this;
 }
 
-TensorBuilder& TensorBuilder::setStride(int64_t numberStrides, int64_t* strides)
+TensorBuilder& TensorBuilder::setStride(const std::vector<int64_t>& strides) &
 {
-    mStrides    = std::vector<size_t>(strides, strides + numberStrides);
+    if(std::any_of(strides.cbegin(), strides.cend(), [](int64_t val) { return val < 0; }))
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    mStrides    = std::vector<int64_t>(strides.cbegin(), strides.cend());
     mStridesSet = true;
     return *this;
 }
 
-TensorBuilder& TensorBuilder::setVirtual(bool isVirtual)
+TensorBuilder& TensorBuilder::setVirtual(bool isVirtual) &
 {
     mVirtual = isVirtual;
     return *this;
 }
 
-std::shared_ptr<TensorDescriptorEx> TensorBuilder::build() const
+Tensor TensorBuilder::build() const&
 {
     if(!mUniqueIdSet || !mDataTypeSet || !mDimensionsSet || !mStridesSet)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    return std::make_shared<TensorDescriptorEx>(
-        mUniqueId, mVirtual, mDataType, mDimensions, mStrides);
+    return Tensor(mDataType, mDimensions, mStrides, mUniqueId, mVirtual);
 }
 
-BackendTensorDescriptor::BackendTensorDescriptor() : mBuilder(std::in_place), mDescriptor(nullptr)
+Tensor TensorBuilder::build() &&
 {
+    if(!mUniqueIdSet || !mDataTypeSet || !mDimensionsSet || !mStridesSet)
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    return Tensor(mDataType, std::move(mDimensions), std::move(mStrides), mUniqueId, mVirtual);
 }
 
-BackendTensorDescriptor::~BackendTensorDescriptor() {}
+BackendTensorDescriptor::~BackendTensorDescriptor() = default;
 
 void BackendTensorDescriptor::setAttribute(miopenBackendAttributeName_t attributeName,
                                            miopenBackendAttributeType_t attributeType,
                                            int64_t elementCount,
                                            void* arrayOfElements)
 {
-    if(mFinalized || !mBuilder.has_value())
+    if(mFinalized)
     {
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
@@ -98,7 +113,7 @@ void BackendTensorDescriptor::setAttribute(miopenBackendAttributeName_t attribut
     case MIOPEN_ATTR_TENSOR_UNIQUE_ID:
         if(attributeType == MIOPEN_TYPE_INT64 && elementCount == 1)
         {
-            mBuilder->setId(*static_cast<int64_t*>(arrayOfElements));
+            mBuilder.setId(*static_cast<int64_t*>(arrayOfElements));
             return;
         }
         else
@@ -109,7 +124,7 @@ void BackendTensorDescriptor::setAttribute(miopenBackendAttributeName_t attribut
     case MIOPEN_ATTR_TENSOR_DATA_TYPE:
         if(attributeType == MIOPEN_TYPE_DATA_TYPE && elementCount == 1)
         {
-            mBuilder->setDataType(*static_cast<miopenDataType_t*>(arrayOfElements));
+            mBuilder.setDataType(*static_cast<miopenDataType_t*>(arrayOfElements));
             return;
         }
         else
@@ -120,7 +135,9 @@ void BackendTensorDescriptor::setAttribute(miopenBackendAttributeName_t attribut
     case MIOPEN_ATTR_TENSOR_DIMENSIONS:
         if(attributeType == MIOPEN_TYPE_INT64 && elementCount > 0)
         {
-            mBuilder->setDim(elementCount, static_cast<int64_t*>(arrayOfElements));
+            mBuilder.setDim(
+                std::vector<int64_t>(static_cast<int64_t*>(arrayOfElements),
+                                     static_cast<int64_t*>(arrayOfElements) + elementCount));
             return;
         }
         else
@@ -131,7 +148,9 @@ void BackendTensorDescriptor::setAttribute(miopenBackendAttributeName_t attribut
     case MIOPEN_ATTR_TENSOR_STRIDES:
         if(attributeType == MIOPEN_TYPE_INT64 && elementCount > 0)
         {
-            mBuilder->setStride(elementCount, static_cast<int64_t*>(arrayOfElements));
+            mBuilder.setStride(
+                std::vector<int64_t>(static_cast<int64_t*>(arrayOfElements),
+                                     static_cast<int64_t*>(arrayOfElements) + elementCount));
             return;
         }
         else
@@ -142,7 +161,7 @@ void BackendTensorDescriptor::setAttribute(miopenBackendAttributeName_t attribut
     case MIOPEN_ATTR_TENSOR_IS_VIRTUAL:
         if(attributeType == MIOPEN_TYPE_BOOLEAN && elementCount == 1)
         {
-            mBuilder->setVirtual(*static_cast<bool*>(arrayOfElements));
+            mBuilder.setVirtual(*static_cast<bool*>(arrayOfElements));
             return;
         }
         else
@@ -161,14 +180,13 @@ void BackendTensorDescriptor::setAttribute(miopenBackendAttributeName_t attribut
 
 void BackendTensorDescriptor::finalize()
 {
-    if(mFinalized || !mBuilder.has_value())
+    if(mFinalized)
     {
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
 
-    mDescriptor = mBuilder->build();
-    mBuilder.reset();
-    mFinalized = true;
+    mDescriptor = std::move(mBuilder).build();
+    mFinalized  = true;
 }
 
 void BackendTensorDescriptor::getAttribute(miopenBackendAttributeName_t attributeName,
@@ -177,7 +195,7 @@ void BackendTensorDescriptor::getAttribute(miopenBackendAttributeName_t attribut
                                            int64_t* elementCount,
                                            void* arrayOfElements)
 {
-    if(!mFinalized || !mDescriptor)
+    if(!mFinalized)
     {
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
@@ -187,7 +205,7 @@ void BackendTensorDescriptor::getAttribute(miopenBackendAttributeName_t attribut
     case MIOPEN_ATTR_TENSOR_UNIQUE_ID:
         if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount == 1)
         {
-            *static_cast<int64_t*>(arrayOfElements) = mDescriptor->getId();
+            *static_cast<int64_t*>(arrayOfElements) = mDescriptor.getId();
             *elementCount                           = 1;
             return;
         }
@@ -199,7 +217,7 @@ void BackendTensorDescriptor::getAttribute(miopenBackendAttributeName_t attribut
     case MIOPEN_ATTR_TENSOR_DATA_TYPE:
         if(attributeType == MIOPEN_TYPE_DATA_TYPE && requestedElementCount == 1)
         {
-            *static_cast<miopenDataType_t*>(arrayOfElements) = mDescriptor->GetType();
+            *static_cast<miopenDataType_t*>(arrayOfElements) = mDescriptor.getDataType();
             *elementCount                                    = 1;
             return;
         }
@@ -211,7 +229,7 @@ void BackendTensorDescriptor::getAttribute(miopenBackendAttributeName_t attribut
     case MIOPEN_ATTR_TENSOR_DIMENSIONS:
         if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount >= 0)
         {
-            const auto& dimensions = mDescriptor->GetLengths();
+            const auto& dimensions = mDescriptor.getDimensions();
             *elementCount          = dimensions.size();
             std::copy_n(dimensions.begin(),
                         std::min(*elementCount, requestedElementCount),
@@ -226,7 +244,7 @@ void BackendTensorDescriptor::getAttribute(miopenBackendAttributeName_t attribut
     case MIOPEN_ATTR_TENSOR_STRIDES:
         if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount >= 0)
         {
-            const auto& strides = mDescriptor->GetStrides();
+            const auto& strides = mDescriptor.getStrides();
             *elementCount       = strides.size();
             std::copy_n(strides.begin(),
                         std::min(*elementCount, requestedElementCount),
@@ -241,7 +259,7 @@ void BackendTensorDescriptor::getAttribute(miopenBackendAttributeName_t attribut
     case MIOPEN_ATTR_TENSOR_IS_VIRTUAL:
         if(attributeType == MIOPEN_TYPE_BOOLEAN && requestedElementCount == 1)
         {
-            *static_cast<bool*>(arrayOfElements) = mDescriptor->getVirtual();
+            *static_cast<bool*>(arrayOfElements) = mDescriptor.getVirtual();
             *elementCount                        = 1;
             return;
         }

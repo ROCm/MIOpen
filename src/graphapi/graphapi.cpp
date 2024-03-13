@@ -28,6 +28,8 @@
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
 
+#include <memory>
+
 extern "C" miopenStatus_t
 miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
                               miopenBackendDescriptor_t* descriptor)

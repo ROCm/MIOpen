@@ -26,50 +26,126 @@
 #pragma once
 
 #include <miopen/graphapi/graphapi.hpp>
-#include <miopen/tensor.hpp>
 
-#include <memory>
 #include <vector>
-#include <optional>
 
 namespace miopen {
 
 namespace graphapi {
 
-class TensorDescriptorEx : public TensorDescriptor
+class Tensor
 {
 public:
-    TensorDescriptorEx() = default;
-    TensorDescriptorEx(int64_t id,
-                       bool isVirtual,
-                       miopenDataType_t dataType,
-                       const std::vector<size_t>& dimensions,
-                       const std::vector<size_t>& strides)
-        : TensorDescriptor(dataType, dimensions, strides), mUniqueId(id), mVirtual(isVirtual)
+    Tensor() noexcept         = default;
+    Tensor(const Tensor&)     = default;
+    Tensor(Tensor&&) noexcept = default;
+    Tensor& operator=(const Tensor&) = default;
+    Tensor& operator=(Tensor&&) noexcept = default;
+    Tensor(miopenDataType_t dataType,
+           const std::vector<int64_t>& dimensions,
+           const std::vector<int64_t>& strides,
+           int64_t id,
+           bool isVirtual)
+        : mDimensions(dimensions),
+          mStrides(strides),
+          mId(id),
+          mDataType(dataType),
+          mVirtual(isVirtual)
     {
     }
-    int64_t getId() const noexcept { return mUniqueId; }
+    Tensor(miopenDataType_t dataType,
+           std::vector<int64_t>&& dimensions,
+           std::vector<int64_t>&& strides,
+           int64_t id,
+           bool isVirtual) noexcept
+        : mDimensions(std::move(dimensions)),
+          mStrides(std::move(strides)),
+          mId(id),
+          mDataType(dataType),
+          mVirtual(isVirtual)
+    {
+    }
+
+    miopenDataType_t getDataType() const noexcept { return mDataType; }
+    const std::vector<int64_t>& getDimensions() const noexcept { return mDimensions; }
+    const std::vector<int64_t>& getStrides() const noexcept { return mStrides; }
+    int64_t getId() const noexcept { return mId; }
     bool getVirtual() const noexcept { return mVirtual; }
 
+    Tensor& setDataType(miopenDataType_t dataType) noexcept
+    {
+        mDataType = dataType;
+        return *this;
+    }
+    Tensor& setDimensions(const std::vector<int64_t>& dimensions)
+    {
+        mDimensions = dimensions;
+        return *this;
+    }
+    Tensor& setDimensions(std::vector<int64_t>&& dimensions) noexcept
+    {
+        mDimensions = std::move(dimensions);
+        return *this;
+    }
+    Tensor& setStrides(const std::vector<int64_t>& strides)
+    {
+        mStrides = strides;
+        return *this;
+    }
+    Tensor& setStrides(std::vector<int64_t>&& strides) noexcept
+    {
+        mStrides = std::move(strides);
+        return *this;
+    }
+    Tensor& setId(int64_t id) noexcept
+    {
+        mId = id;
+        return *this;
+    }
+    Tensor& setVirtual(bool isVirtual) noexcept
+    {
+        mVirtual = isVirtual;
+        return *this;
+    }
+
 private:
-    int64_t mUniqueId = 0;
-    bool mVirtual     = false;
+    std::vector<int64_t> mDimensions;
+    std::vector<int64_t> mStrides;
+    int64_t mId                = 0;
+    miopenDataType_t mDataType = miopenFloat;
+    bool mVirtual              = false;
 };
 
 class TensorBuilder
 {
 public:
-    TensorBuilder& setDataType(miopenDataType_t dataType);
-    TensorBuilder& setDim(int64_t numberDimensions, int64_t* dimensions);
-    TensorBuilder& setId(int64_t id);
-    TensorBuilder& setStride(int64_t numberStrides, int64_t* strides);
-    TensorBuilder& setVirtual(bool isVirtual);
+    TensorBuilder& setDataType(miopenDataType_t dataType) &;
+    TensorBuilder& setDim(const std::vector<int64_t>& dimensions) &;
+    TensorBuilder& setStride(const std::vector<int64_t>& strides) &;
+    TensorBuilder& setId(int64_t id) &;
+    TensorBuilder& setVirtual(bool isVirtual) &;
 
-    std::shared_ptr<TensorDescriptorEx> build() const;
+    TensorBuilder&& setDataType(miopenDataType_t dataType) &&
+    {
+        return std::move(setDataType(dataType));
+    }
+    TensorBuilder&& setDim(const std::vector<int64_t>& dimensions) &&
+    {
+        return std::move(setDim(dimensions));
+    }
+    TensorBuilder&& setStride(const std::vector<int64_t>& strides) &&
+    {
+        return std::move(setStride(strides));
+    }
+    TensorBuilder&& setId(int64_t id) && { return std::move(setId(id)); }
+    TensorBuilder&& setVirtual(bool isVirtual) && { return std::move(setVirtual(isVirtual)); }
+
+    Tensor build() const&;
+    Tensor build() &&;
 
 private:
-    std::vector<size_t> mDimensions;
-    std::vector<size_t> mStrides;
+    std::vector<int64_t> mDimensions;
+    std::vector<int64_t> mStrides;
     int64_t mUniqueId          = 0;
     bool mVirtual              = false;
     miopenDataType_t mDataType = miopenFloat;
@@ -82,7 +158,7 @@ private:
 class BackendTensorDescriptor : public BackendDescriptor
 {
 public:
-    BackendTensorDescriptor();
+    BackendTensorDescriptor() = default;
     virtual ~BackendTensorDescriptor() override;
     virtual void setAttribute(miopenBackendAttributeName_t attributeName,
                               miopenBackendAttributeType_t attributeType,
@@ -95,11 +171,11 @@ public:
                               int64_t* elementCount,
                               void* arrayOfElements) override;
 
-    std::shared_ptr<TensorDescriptorEx> tensorDescriptor() { return mDescriptor; }
+    Tensor& getTensor() { return mDescriptor; }
 
 private:
-    std::optional<TensorBuilder> mBuilder;
-    std::shared_ptr<TensorDescriptorEx> mDescriptor;
+    TensorBuilder mBuilder;
+    Tensor mDescriptor;
 };
 
 } // namespace graphapi
