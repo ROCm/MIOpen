@@ -52,9 +52,9 @@ void SaveBinary(const fs::path& binary_path,
                 const std::string& args);
 #else
 std::vector<char> LoadBinary(const TargetProperties& target,
-                       std::size_t num_cu,
-                       const std::string& name,
-                       const std::string& args);
+                             std::size_t num_cu,
+                             const std::string& name,
+                             const std::string& args);
 
 void SaveBinary(const std::vector<char>& hsaco,
                 const TargetProperties& target,

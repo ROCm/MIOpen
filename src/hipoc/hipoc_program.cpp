@@ -360,10 +360,7 @@ fs::path HIPOCProgram::GetCodeObjectPathname() const
     }
 }
 
-std::vector<char> HIPOCProgram::GetCodeObjectBlob() const
-{
-    return impl->binary;
-}
+std::vector<char> HIPOCProgram::GetCodeObjectBlob() const { return impl->binary; }
 
 void HIPOCProgram::FreeCodeObjectFileStorage()
 {

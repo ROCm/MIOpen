@@ -125,9 +125,9 @@ public:
         auto rc = stmt.Step(sql);
         if(rc == SQLITE_ROW)
         {
-            auto compressed_blob           = stmt.ColumnBlob(0);
-            auto md5_hash                  = stmt.ColumnText(1);
-            auto uncompressed_size         = stmt.ColumnInt64(2);
+            auto compressed_blob                 = stmt.ColumnBlob(0);
+            auto md5_hash                        = stmt.ColumnText(1);
+            auto uncompressed_size               = stmt.ColumnInt64(2);
             std::vector<char>& decompressed_blob = compressed_blob;
             if(uncompressed_size != 0)
             {

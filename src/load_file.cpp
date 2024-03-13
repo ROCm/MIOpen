@@ -43,9 +43,7 @@ std::vector<char> LoadFile(const fs::path& path)
     in.seekg(0, std::ios::beg);
     std::vector<char> v;
     v.reserve(size);
-    v.insert(v.begin(),
-             std::istreambuf_iterator<char>{in},
-             std::istreambuf_iterator<char>{});
+    v.insert(v.begin(), std::istreambuf_iterator<char>{in}, std::istreambuf_iterator<char>{});
     return v;
 }
 

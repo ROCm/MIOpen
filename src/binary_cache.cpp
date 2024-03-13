@@ -152,9 +152,9 @@ fs::path GetCacheFile(const std::string& device, const std::string& name, const 
 
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
 std::vector<char> LoadBinary(const TargetProperties& target,
-                       const size_t num_cu,
-                       const std::string& name,
-                       const std::string& args)
+                             const size_t num_cu,
+                             const std::string& name,
+                             const std::string& args)
 {
     if(miopen::IsCacheDisabled())
         return {};
