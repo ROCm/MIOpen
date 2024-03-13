@@ -468,11 +468,13 @@ T5LayernormBwdWeightContiguousParallel(const INPUT_TYPE* __restrict__ dy,
         dy, x, rstd, workspace, outer_size, inner_size, parallel_size);
 }
 
-extern "C" __global__ void T5LayernormBwdContiguousReduceSum(const INPUT_TYPE* __restrict__ workspace,
-                                                             OUTPUT_TYPE* __restrict__ dw,
-                                                             uint64_t inner_size,
-                                                             uint64_t parallel_size)
+extern "C" __global__ void
+T5LayernormBwdContiguousReduceSum(const INPUT_TYPE* __restrict__ workspace,
+                                  OUTPUT_TYPE* __restrict__ dw,
+                                  uint64_t inner_size,
+                                  uint64_t parallel_size)
 {
     // instantiate the kernel
-    t5layernormbwdcontiguousreduceSum<INPUT_TYPE, OUTPUT_TYPE>(workspace, dw, inner_size, parallel_size);
+    t5layernormbwdcontiguousreduceSum<INPUT_TYPE, OUTPUT_TYPE>(
+        workspace, dw, inner_size, parallel_size);
 }

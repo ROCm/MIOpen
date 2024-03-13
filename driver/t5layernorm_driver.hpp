@@ -153,7 +153,7 @@ int32_t mloT5LayerNormBackckwardweightRunHost(
         Tcheck sum = static_cast<Tcheck>(0);
         for(uint64_t i = 0; i < outer_size; ++i)
         {
-            Tcheck prstd = static_cast<Tcheck>(rstdhost[o]);
+            Tcheck prstd = static_cast<Tcheck>(rstdhost[i]);
             Tcheck pdy   = dy ? static_cast<Tcheck>(dy[i * inner_size + o]) : 0;
             Tcheck px    = static_cast<Tcheck>(x[i * inner_size + o]);
 
@@ -278,7 +278,7 @@ int T5LayerNormDriver<Tgpu, Tref>::GetandSetData()
     SetTensorNd(rstdDesc, outer_len, data_type);
     SetTensorNd(dyDesc, in_len, data_type);
     SetTensorNd(dxDesc, in_len, data_type);
-    SetTensorNd(dwDesc, outer_len, data_type);
+    SetTensorNd(dwDesc, inner_len, data_type);
 
     eps  = static_cast<double>(inflags.GetValueDouble("eps"));
     mode = miopenNormMode_t(inflags.GetValueInt("mode"));

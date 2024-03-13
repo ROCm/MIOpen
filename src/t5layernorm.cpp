@@ -112,18 +112,18 @@ miopenStatus_t T5LayerNormBackward(Handle& handle,
         layernorm::ProblemDescription{mode, dyDesc, xDesc, weightDesc, rstdDesc, dxDesc, dxDesc};
 
     const auto invoke_params = [&]() {
-        auto tmp   = layernorm::T5BwdInvokeParams{};
-        tmp.type   = InvokeType::Run;
-        tmp.dyDesc = &dyDesc;
+        auto tmp           = layernorm::T5BwdInvokeParams{};
+        tmp.type           = InvokeType::Run;
+        tmp.dyDesc         = &dyDesc;
         tmp.workspace      = workspace;
         tmp.workspace_size = workspaceSizeInBytes;
-        tmp.dy     = dy;
-        tmp.x      = x;
-        tmp.weight = weight;
-        tmp.rstd   = rstd;
-        tmp.dx     = dx;
-        tmp.dw     = dw;
-        tmp.mode   = mode;
+        tmp.dy             = dy;
+        tmp.x              = x;
+        tmp.weight         = weight;
+        tmp.rstd           = rstd;
+        tmp.dx             = dx;
+        tmp.dw             = dw;
+        tmp.mode           = mode;
         return tmp;
     }();
 
