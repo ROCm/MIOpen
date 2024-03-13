@@ -959,7 +959,7 @@ pipeline {
                 Navi21_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
             }
             parallel{
-                stage('dbsync gfx908') {
+                stage('Dbsync gfx908') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX908 }
@@ -978,7 +978,7 @@ pipeline {
                                                         needs_gpu:false, needs_reboot:false, build_install: "true")
                     }
                 }
-                stage('dbsync gfx90a') {
+                stage('Dbsync gfx90a') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX90A }
@@ -997,7 +997,7 @@ pipeline {
                                                         needs_gpu:false, needs_reboot:false, build_install: "true")
                     }
                 }
-                stage('dbsync gfx942') {
+                stage('Dbsync gfx942') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX94X || params.TARGET_GFX94X_DBSYNC }
