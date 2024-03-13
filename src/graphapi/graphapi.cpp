@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/graphapi.hpp>
-#include <miopen/graphapi_tensor.hpp>
+#include <miopen/graphapi/graphapi.hpp>
+#include <miopen/graphapi/graphapi_tensor.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
 

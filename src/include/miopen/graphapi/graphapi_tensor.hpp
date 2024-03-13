@@ -25,7 +25,7 @@
  *******************************************************************************/
 #pragma once
 
-#include <miopen/graphapi.hpp>
+#include <miopen/graphapi/graphapi.hpp>
 #include <miopen/tensor.hpp>
 
 #include <memory>
