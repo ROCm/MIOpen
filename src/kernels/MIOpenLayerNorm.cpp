@@ -315,7 +315,7 @@ __device__ void t5layernormbwdweightcontiguous(const TI* __restrict__ dy,
     {
         uint64_t input_idx = i * inner_size + gid;
 
-        FLOAT_ACCUM prstd = CVT_FLOAT2ACCUM(rstd[gid]);
+        FLOAT_ACCUM prstd = CVT_FLOAT2ACCUM(rstd[i]);
         FLOAT_ACCUM pdy   = dy ? CVT_FLOAT2ACCUM(dy[input_idx]) : 0;
 
         sum += pdy * CVT_FLOAT2ACCUM(x[input_idx]) * prstd;
@@ -331,7 +331,7 @@ template <typename TI, typename TO>
 __device__ void t5layernormbwdweightcontiguousparallel(const TI* __restrict__ dy,
                                                        const TI* __restrict__ x,
                                                        const TI* __restrict__ rstd,
-                                                       TO* __restrict__ temp,
+                                                       TO* __restrict__ workspace,
                                                        uint64_t outer_size,
                                                        uint64_t inner_size,
                                                        uint64_t parallel_size)
@@ -360,11 +360,11 @@ __device__ void t5layernormbwdweightcontiguousparallel(const TI* __restrict__ dy
         }
     }
 
-    temp[gid] = CVT_ACCUM2FLOAT(sum);
+    workspace[gid] = CVT_ACCUM2FLOAT(sum);
 }
 
 template <typename TI, typename TO>
-__device__ void t5layernormbwdcontiguousreduceSum(const TI* __restrict__ temp,
+__device__ void t5layernormbwdcontiguousreduceSum(const TI* __restrict__ workspace,
                                                   TO* __restrict__ dw,
                                                   uint64_t inner_size,
                                                   uint64_t parallel_size)
@@ -378,11 +378,13 @@ __device__ void t5layernormbwdcontiguousreduceSum(const TI* __restrict__ temp,
     for(uint64_t i = 0; i < parallel_size; ++i)
     {
         uint64_t input_idx = i * inner_size + gid;
-
-        sum += CVT_FLOAT2ACCUM(temp[input_idx]);
+        sum += CVT_FLOAT2ACCUM(workspace[input_idx]);
     }
 
-    dw[gid] = CVT_ACCUM2FLOAT(sum);
+    if(dw)
+    {
+        dw[gid] = CVT_ACCUM2FLOAT(sum);
+    }
 }
 
 extern "C" __global__ void LayernormFwdContiguous(const INPUT_TYPE* __restrict__ x,
@@ -456,21 +458,21 @@ extern "C" __global__ void
 T5LayernormBwdWeightContiguousParallel(const INPUT_TYPE* __restrict__ dy,
                                        const INPUT_TYPE* __restrict__ x,
                                        const INPUT_TYPE* __restrict__ rstd,
-                                       OUTPUT_TYPE* __restrict__ temp,
+                                       OUTPUT_TYPE* __restrict__ workspace,
                                        uint64_t outer_size,
                                        uint64_t inner_size,
                                        uint64_t parallel_size)
 {
     // instantiate the kernel
     t5layernormbwdweightcontiguousparallel<INPUT_TYPE, OUTPUT_TYPE>(
-        dy, x, rstd, temp, outer_size, inner_size, parallel_size);
+        dy, x, rstd, workspace, outer_size, inner_size, parallel_size);
 }
 
-extern "C" __global__ void T5LayernormBwdContiguousReduceSum(const INPUT_TYPE* __restrict__ temp,
+extern "C" __global__ void T5LayernormBwdContiguousReduceSum(const INPUT_TYPE* __restrict__ workspace,
                                                              OUTPUT_TYPE* __restrict__ dw,
                                                              uint64_t inner_size,
                                                              uint64_t parallel_size)
 {
     // instantiate the kernel
-    t5layernormbwdcontiguousreduceSum<INPUT_TYPE, OUTPUT_TYPE>(temp, dw, inner_size, parallel_size);
+    t5layernormbwdcontiguousreduceSum<INPUT_TYPE, OUTPUT_TYPE>(workspace, dw, inner_size, parallel_size);
 }

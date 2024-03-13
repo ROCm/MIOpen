@@ -124,7 +124,7 @@ void cpu_t5layernorm_backward_weight(
         float sum = 0;
 
         ford(outer_size)([&](int32_t i) {
-            float prstd = static_cast<float>(rstd[o]);
+            float prstd = static_cast<float>(rstd[i]);
             float pdy   = (dy.GetSize() != 0) ? static_cast<float>(dy[i * inner_size + o]) : 0;
             float px    = static_cast<float>(x[i * inner_size + o]);
 

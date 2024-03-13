@@ -214,7 +214,6 @@ protected:
                                             rstd_dev.get(),
                                             ln_mode,
                                             eps);
-        printf("T5LayerNormForward\n");
         EXPECT_EQ(status, miopenStatusSuccess);
 
         y.data    = handle.Read<T>(y_dev, y.data.size());
@@ -242,7 +241,6 @@ protected:
         EXPECT_TRUE(miopen::range_distance(ref_rstd) == miopen::range_distance(rstd));
         EXPECT_TRUE(error < threshold * 4) << "Error rstd beyond tolerance Error:" << error
                                            << ",  Threshold x 4: " << threshold * 4;
-        printf("Verify\n");
     }
     T5LayerNormTestCase t5layernorm_config;
 
@@ -295,16 +293,17 @@ protected:
         }
 
         dx = tensor<T>{in_dim};
-        dw = tensor<T>{outer_dim};
+        dw = tensor<T>{inner_dim};
         std::fill(dx.begin(), dx.end(), std::numeric_limits<T>::quiet_NaN());
         std::fill(dw.begin(), dw.end(), std::numeric_limits<T>::quiet_NaN());
 
         ref_dx = tensor<T>{in_dim};
-        ref_dw = tensor<T>{outer_dim};
+        ref_dw = tensor<T>{inner_dim};
         std::fill(ref_dx.begin(), ref_dx.end(), std::numeric_limits<T>::quiet_NaN());
         std::fill(ref_dw.begin(), ref_dw.end(), std::numeric_limits<T>::quiet_NaN());
 
         std::vector<size_t> workspace_dims;
+        printf("GetT5LayerNormBackwardWorkspaceSize\n");
         ws_sizeInBytes = miopen::GetT5LayerNormBackwardWorkspaceSize(
             handle, dy.desc, x.desc, weight.desc, rstd.desc, dx.desc, dw.desc, ln_mode);
         if(ws_sizeInBytes == static_cast<size_t>(-1))
@@ -328,9 +327,7 @@ protected:
     void RunTest()
     {
         auto&& handle = get_handle();
-
         cpu_t5layernorm_backward<T>(dy, x, weight, rstd, ref_dx, ln_mode);
-
         cpu_t5layernorm_backward_weight<T>(dy, x, rstd, ref_dw, ln_mode);
 
         miopenStatus_t status;
@@ -360,16 +357,25 @@ protected:
 
     void Verify()
     {
-        double threshold = std::numeric_limits<T>::epsilon();
+        // Computation error of fp16 is ~2^13 (=8192) bigger than
+        // the one of fp32 because mantissa is shorter by 13 bits.
+        // In the case of layernorm, there is a cumulative sum operation, and in the case of
+        // floating point operation, the result value can change if the order of the summed values
+        // is changed. So apply a threshold that is 10 times larger than other operations.
+        auto threshold = std::is_same<T, float>::value ? 1.5e-5 : 8.2e-2;
+
+        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+        if(std::is_same<T, bfloat16>::value)
+            threshold *= 8.0;
 
         auto error = miopen::rms_range(ref_dx, dx);
         EXPECT_TRUE(miopen::range_distance(ref_dx) == miopen::range_distance(dx));
-        EXPECT_TRUE(error < threshold * 2000) << "Error dx beyond tolerance Error:" << error
-                                              << ",  Thresholdx2000: " << threshold * 2000;
+        EXPECT_TRUE(error < threshold) << "Error dx beyond tolerance Error:" << error
+                                              << ",  Threshold: " << threshold;
         error = miopen::rms_range(ref_dw, dw);
         EXPECT_TRUE(miopen::range_distance(ref_dw) == miopen::range_distance(dw));
-        EXPECT_TRUE(error < threshold * 2000) << "Error dw beyond tolerance Error:" << error
-                                              << ",  Thresholdx2000: " << threshold * 2000;
+        EXPECT_TRUE(error < threshold) << "Error dw beyond tolerance Error:" << error
+                                              << ",  Threshold: " << threshold;
     }
     T5LayerNormTestCase t5layernorm_config;
 

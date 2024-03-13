@@ -115,6 +115,8 @@ miopenStatus_t T5LayerNormBackward(Handle& handle,
         auto tmp   = layernorm::T5BwdInvokeParams{};
         tmp.type   = InvokeType::Run;
         tmp.dyDesc = &dyDesc;
+        tmp.workspace      = workspace;
+        tmp.workspace_size = workspaceSizeInBytes;
         tmp.dy     = dy;
         tmp.x      = x;
         tmp.weight = weight;

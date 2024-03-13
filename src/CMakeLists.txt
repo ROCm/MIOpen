@@ -85,7 +85,7 @@ endfunction()
 set( MIOpen_Source
     activ/problem_description.cpp
     activ_api.cpp
-    addlayernorm_api
+    addlayernorm_api.cpp
     api/find2_0_commons.cpp
     argmax_api.cpp
     batch_norm.cpp
