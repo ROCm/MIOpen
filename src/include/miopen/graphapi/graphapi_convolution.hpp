@@ -26,56 +26,143 @@
 #pragma once
 
 #include <miopen/graphapi/graphapi.hpp>
+#include <miopen/graphapi/graphapi_operation.hpp>
 #include <miopen/graphapi/graphapi_tensor.hpp>
-#include <miopen/convolution.hpp>
-#include <miopen/problem.hpp>
 
-#include <memory>
-#include <vector>
-#include <unordered_map>
-#include <optional>
+#include <cstdint>
 
 namespace miopen {
 
 namespace graphapi {
 
-class ConvolutionDescriptorEx : public ConvolutionDescriptor
+class Convolution
 {
 public:
-    ConvolutionDescriptorEx(miopenDataType_t theCompType,
-                            size_t theSpatialDims,
-                            miopenConvolutionMode_t theMode,
-                            miopenPaddingMode_t thePadMode,
-                            const std::vector<int>& thePrePaddings,
-                            const std::vector<int>& theFilterStrides,
-                            const std::vector<int>& theDilations,
-                            const std::vector<int>& thePostPaddings);
+    Convolution() noexcept              = default;
+    Convolution(const Convolution&)     = default;
+    Convolution(Convolution&&) noexcept = default;
+    Convolution& operator=(const Convolution&) = default;
+    Convolution& operator=(Convolution&&) noexcept = default;
+    Convolution(miopenDataType_t compType,
+                miopenConvolutionMode_t mode,
+                size_t spatialDims,
+                const std::vector<int64_t>& prePaddings,
+                const std::vector<int64_t>& filterStrides,
+                const std::vector<int64_t>& dilations,
+                const std::vector<int64_t>& postPaddings)
+        : mSpatialDims(spatialDims),
+          mDilations(dilations),
+          mFilterStrides(filterStrides),
+          mPrePaddings(prePaddings),
+          mPostPaddings(postPaddings),
+          mCompType(compType),
+          mMode(mode)
+    {
+    }
+    Convolution(miopenDataType_t compType,
+                miopenConvolutionMode_t mode,
+                size_t spatialDims,
+                std::vector<int64_t>&& prePaddings,
+                std::vector<int64_t>&& filterStrides,
+                std::vector<int64_t>&& dilations,
+                std::vector<int64_t>&& postPaddings)
+        : mSpatialDims(spatialDims),
+          mDilations(std::move(dilations)),
+          mFilterStrides(std::move(filterStrides)),
+          mPrePaddings(std::move(prePaddings)),
+          mPostPaddings(std::move(postPaddings)),
+          mCompType(compType),
+          mMode(mode)
+    {
+    }
 
     miopenDataType_t getCompType() const noexcept { return mCompType; }
+    miopenConvolutionMode_t getMode() const noexcept { return mMode; }
+    int64_t getSpatialDims() const noexcept { return mSpatialDims; }
+    const std::vector<int64_t>& getDilations() const noexcept { return mDilations; }
+    const std::vector<int64_t>& getFilterStrides() const noexcept { return mFilterStrides; }
+    const std::vector<int64_t>& getPrePaddings() const noexcept { return mPrePaddings; }
+    const std::vector<int64_t>& getPostPaddings() const noexcept { return mPostPaddings; }
 
 private:
-    miopenDataType_t mCompType;
+    int64_t mSpatialDims = 0;
+    std::vector<int64_t> mDilations;
+    std::vector<int64_t> mFilterStrides;
+    std::vector<int64_t> mPrePaddings;
+    std::vector<int64_t> mPostPaddings;
+    miopenDataType_t mCompType    = miopenFloat;
+    miopenConvolutionMode_t mMode = miopenConvolution;
 };
 
 class ConvolutionBuilder
 {
 public:
-    ConvolutionBuilder& setCompType(miopenDataType_t dataType);
-    ConvolutionBuilder& setMode(miopenConvolutionMode_t mode);
-    ConvolutionBuilder& setSpatialDims(int64_t spatialDims);
-    ConvolutionBuilder& setDilations(int64_t numberDilations, int64_t* dilations);
-    ConvolutionBuilder& setFilterStrides(int64_t numberFilterStrides, int64_t* filterStrides);
-    ConvolutionBuilder& setPrePaddings(int64_t numberPrePaddings, int64_t* prePaddings);
-    ConvolutionBuilder& setPostPaddings(int64_t numberPostPaddings, int64_t* postPaddings);
+    ConvolutionBuilder& setCompType(miopenDataType_t compType) & noexcept;
+    ConvolutionBuilder& setMode(miopenConvolutionMode_t mode) & noexcept;
+    ConvolutionBuilder& setSpatialDims(int64_t spatialDims) & noexcept;
+    ConvolutionBuilder& setDilations(const std::vector<int64_t>& dilations) &;
+    ConvolutionBuilder& setDilations(std::vector<int64_t>&& dilations) & noexcept;
+    ConvolutionBuilder& setFilterStrides(const std::vector<int64_t>& filterStrides) &;
+    ConvolutionBuilder& setFilterStrides(std::vector<int64_t>&& filterStrides) & noexcept;
+    ConvolutionBuilder& setPrePaddings(const std::vector<int64_t>& prePaddings) &;
+    ConvolutionBuilder& setPrePaddings(std::vector<int64_t>&& prePaddings) & noexcept;
+    ConvolutionBuilder& setPostPaddings(const std::vector<int64_t>& postPaddings) &;
+    ConvolutionBuilder& setPostPaddings(std::vector<int64_t>&& postPaddings) & noexcept;
 
-    std::shared_ptr<ConvolutionDescriptorEx> build() const;
+    ConvolutionBuilder&& setCompType(miopenDataType_t compType) && noexcept
+    {
+        return std::move(setCompType(compType));
+    }
+    ConvolutionBuilder&& setMode(miopenConvolutionMode_t mode) && noexcept
+    {
+        return std::move(setMode(mode));
+    }
+    ConvolutionBuilder&& setSpatialDims(int64_t spatialDims) && noexcept
+    {
+        return std::move(setSpatialDims(spatialDims));
+    }
+    ConvolutionBuilder&& setDilations(const std::vector<int64_t>& dilations) &&
+    {
+        return std::move(setDilations(dilations));
+    }
+    ConvolutionBuilder&& setDilations(std::vector<int64_t>&& dilations) && noexcept
+    {
+        return std::move(setDilations(std::move(dilations)));
+    }
+    ConvolutionBuilder&& setFilterStrides(const std::vector<int64_t>& filterStrides) &&
+    {
+        return std::move(setFilterStrides(filterStrides));
+    }
+    ConvolutionBuilder&& setFilterStrides(std::vector<int64_t>&& filterStrides) && noexcept
+    {
+        return std::move(setFilterStrides(std::move(filterStrides)));
+    }
+    ConvolutionBuilder&& setPrePaddings(const std::vector<int64_t>& prePaddings) &&
+    {
+        return std::move(setPrePaddings(prePaddings));
+    }
+    ConvolutionBuilder&& setPrePaddings(std::vector<int64_t>&& prePaddings) && noexcept
+    {
+        return std::move(setPrePaddings(std::move(prePaddings)));
+    }
+    ConvolutionBuilder&& setPostPaddings(const std::vector<int64_t>& postPaddings) &&
+    {
+        return std::move(setPostPaddings(postPaddings));
+    }
+    ConvolutionBuilder&& setPostPaddings(std::vector<int64_t>&& postPaddings) && noexcept
+    {
+        return std::move(setPostPaddings(std::move(postPaddings)));
+    }
+
+    Convolution build() const&;
+    Convolution build() &&;
 
 private:
-    std::vector<int> mDilations;
-    std::vector<int> mFilterStrides;
-    std::vector<int> mPrePaddings;
-    std::vector<int> mPostPaddings;
-    int64_t mSpatialDims          = 0;
+    int64_t mSpatialDims = 0;
+    std::vector<int64_t> mDilations;
+    std::vector<int64_t> mFilterStrides;
+    std::vector<int64_t> mPrePaddings;
+    std::vector<int64_t> mPostPaddings;
     miopenDataType_t mCompType    = miopenFloat;
     miopenConvolutionMode_t mMode = miopenConvolution;
     bool mCompTypeSet             = false;
@@ -85,13 +172,13 @@ private:
     bool mFilterStridesSet        = false;
     bool mPrePaddingsSet          = false;
     bool mPostPaddingsSet         = false;
+
+    bool validate() const;
 };
 
 class BackendConvolutionDescriptor : public BackendDescriptor
 {
 public:
-    BackendConvolutionDescriptor();
-    virtual ~BackendConvolutionDescriptor() override;
     virtual void setAttribute(miopenBackendAttributeName_t attributeName,
                               miopenBackendAttributeType_t attributeType,
                               int64_t elementCount,
@@ -103,11 +190,12 @@ public:
                               int64_t* elementCount,
                               void* arrayOfElements) override;
 
-    std::shared_ptr<ConvolutionDescriptorEx> getDescriptor() const noexcept { return mDescriptor; }
+    const Convolution* getConvolution() const noexcept { return &mConvolution; }
+    Convolution* getConvolution() noexcept { return &mConvolution; }
 
 private:
-    std::optional<ConvolutionBuilder> mBuilder;
-    std::shared_ptr<ConvolutionDescriptorEx> mDescriptor;
+    ConvolutionBuilder mBuilder;
+    Convolution mConvolution;
 
     void setCompType(miopenBackendAttributeType_t attributeType,
                      int64_t elementCount,
@@ -161,251 +249,178 @@ private:
                          void* arrayOfElements);
 };
 
-class DirectedGraphNode
+class OperationConvolution : public Operation
 {
 public:
-    Problem& getProblem() noexcept { return mProblem; }
-
-    void setInput(miopenTensorArgumentId_t name, std::shared_ptr<TensorDescriptorEx> descriptor);
-    int getInputCount(std::shared_ptr<TensorDescriptorEx> descriptor);
-
-    void setOutput(miopenTensorArgumentId_t name, std::shared_ptr<TensorDescriptorEx> descriptor);
-    int getOutputCount(std::shared_ptr<TensorDescriptorEx> descriptor);
-
-private:
-    Problem mProblem;
-
-    using EdgeSet = std::unordered_map<std::shared_ptr<TensorDescriptorEx>, int>;
-    EdgeSet mInputs;
-    EdgeSet mOutputs;
-};
-
-class OperationConvolution : public DirectedGraphNode
-{
-public:
-    OperationConvolution(std::shared_ptr<ConvolutionDescriptorEx> convolution,
-                         miopenProblemDirection_t direction,
+    OperationConvolution() = default;
+    OperationConvolution(Convolution* convolution,
+                         Tensor* x,
+                         Tensor* y,
+                         Tensor* w,
                          double alpha,
-                         double beta);
+                         double beta) noexcept
+        : mConvolution(convolution), mX(x), mY(y), mW(w), mAlpha(alpha), mBeta(beta)
+    {
+    }
 
+    Convolution* getConvolution() const noexcept { return mConvolution; }
+    Tensor* getX() const noexcept { return mX; }
+    Tensor* getY() const noexcept { return mY; }
+    Tensor* getW() const noexcept { return mW; }
     double getAlpha() const noexcept { return mAlpha; }
     double getBeta() const noexcept { return mBeta; }
 
 private:
-    std::shared_ptr<ConvolutionDescriptorEx> mConvolution;
-    double mAlpha; // TODO: propagate field to problem
-    double mBeta;  // TODO: propagate field to problem
+    Convolution* mConvolution;
+    Tensor* mX;
+    Tensor* mY;
+    Tensor* mW;
+    double mAlpha;
+    double mBeta;
+};
+
+class OperationConvolutionForward : public OperationConvolution
+{
+public:
+    OperationConvolutionForward() = default;
+    OperationConvolutionForward(Convolution* convolution,
+                                Tensor* x,
+                                Tensor* y,
+                                Tensor* w,
+                                double alpha,
+                                double beta) noexcept
+        : OperationConvolution(convolution, x, y, w, alpha, beta)
+    {
+        addInputTensor(x);
+        addInputTensor(w);
+        addOutputTensor(y);
+        if(beta != 0.0)
+        {
+            addInputTensor(y);
+        }
+    }
 };
 
 class OperationConvolutionBuilder
 {
 public:
-    OperationConvolutionBuilder(miopenProblemDirection_t direction) : mDirection(direction) {}
-    std::shared_ptr<OperationConvolution> build() const;
+    OperationConvolutionBuilder& setConvolution(Convolution* convolution) noexcept
+    {
+        mConvolution = convolution;
+        return *this;
+    }
+    OperationConvolutionBuilder& setX(Tensor* x) noexcept
+    {
+        mX = x;
+        return *this;
+    }
+    OperationConvolutionBuilder& setY(Tensor* y) noexcept
+    {
+        mY = y;
+        return *this;
+    }
+    OperationConvolutionBuilder& setW(Tensor* w) noexcept
+    {
+        mW = w;
+        return *this;
+    }
+    OperationConvolutionBuilder& setAlpha(double alpha) noexcept
+    {
+        mAlpha    = alpha;
+        mAlphaSet = true;
+        return *this;
+    }
+    OperationConvolutionBuilder& setBeta(double beta) noexcept
+    {
+        mBeta    = beta;
+        mBetaSet = true;
+        return *this;
+    }
 
 protected:
-    void setConvolution(std::shared_ptr<ConvolutionDescriptorEx> convolution)
-    {
-        mConvolution    = convolution;
-        mConvolutionSet = true;
-    }
-    void setX(std::shared_ptr<TensorDescriptorEx> descriptor)
-    {
-        mX    = descriptor;
-        mXSet = true;
-    }
-    void setW(std::shared_ptr<TensorDescriptorEx> descriptor)
-    {
-        mW    = descriptor;
-        mWSet = true;
-    }
-    void setY(std::shared_ptr<TensorDescriptorEx> descriptor)
-    {
-        mY    = descriptor;
-        mYSet = true;
-    }
-    void setAlpha(double value)
-    {
-        mAlpha    = value;
-        mAlphaSet = true;
-    }
-    void setBeta(double value)
-    {
-        mBeta    = value;
-        mBetaSet = true;
-    }
+    OperationConvolutionBuilder() = default;
 
-private:
-    std::shared_ptr<ConvolutionDescriptorEx> mConvolution;
-    std::shared_ptr<TensorDescriptorEx> mX;
-    std::shared_ptr<TensorDescriptorEx> mW;
-    std::shared_ptr<TensorDescriptorEx> mY;
-    double mAlpha = 1.0;
-    double mBeta  = 0.0;
-    miopenProblemDirection_t mDirection;
-    bool mConvolutionSet = false;
-    bool mXSet           = false;
-    bool mWSet           = false;
-    bool mYSet           = false;
-    bool mAlphaSet       = false;
-    bool mBetaSet        = false;
-
-    friend class BackendOperationConvolutionDescriptor;
+    Convolution* mConvolution = nullptr;
+    Tensor* mX                = nullptr;
+    Tensor* mY                = nullptr;
+    Tensor* mW                = nullptr;
+    double mAlpha             = 1.0;
+    double mBeta              = 0.0;
+    bool mAlphaSet            = false;
+    bool mBetaSet             = false;
 };
 
 class OperationConvolutionForwardBuilder : public OperationConvolutionBuilder
 {
 public:
-    OperationConvolutionForwardBuilder()
-        : OperationConvolutionBuilder(miopenProblemDirectionForward)
-    {
-    }
-    OperationConvolutionForwardBuilder&
-    setConvolution(std::shared_ptr<ConvolutionDescriptorEx> convolution)
+    OperationConvolutionForwardBuilder& setConvolution(Convolution* convolution) noexcept
     {
         OperationConvolutionBuilder::setConvolution(convolution);
         return *this;
     }
-    OperationConvolutionForwardBuilder& setX(std::shared_ptr<TensorDescriptorEx> descriptor)
+    OperationConvolutionForwardBuilder& setX(Tensor* x) noexcept
     {
-        OperationConvolutionBuilder::setX(descriptor);
+        OperationConvolutionBuilder::setX(x);
         return *this;
     }
-    OperationConvolutionForwardBuilder& setW(std::shared_ptr<TensorDescriptorEx> descriptor)
+    OperationConvolutionForwardBuilder& setY(Tensor* y) noexcept
     {
-        OperationConvolutionBuilder::setW(descriptor);
+        OperationConvolutionBuilder::setY(y);
         return *this;
     }
-    OperationConvolutionForwardBuilder& setY(std::shared_ptr<TensorDescriptorEx> descriptor)
+    OperationConvolutionForwardBuilder& setW(Tensor* w) noexcept
     {
-        OperationConvolutionBuilder::setY(descriptor);
+        OperationConvolutionBuilder::setW(w);
         return *this;
     }
-    OperationConvolutionForwardBuilder& setAlpha(double value)
+    OperationConvolutionForwardBuilder& setAlpha(double alpha) noexcept
     {
-        OperationConvolutionBuilder::setAlpha(value);
+        OperationConvolutionBuilder::setAlpha(alpha);
         return *this;
     }
-    OperationConvolutionForwardBuilder& setBeta(double value)
+    OperationConvolutionForwardBuilder& setBeta(double beta) noexcept
     {
-        OperationConvolutionBuilder::setBeta(value);
+        OperationConvolutionBuilder::setBeta(beta);
         return *this;
     }
-};
 
-class OperationConvolutionBackwardDataBuilder : public OperationConvolutionBuilder
-{
-public:
-    OperationConvolutionBackwardDataBuilder()
-        : OperationConvolutionBuilder(miopenProblemDirectionBackward)
+    OperationConvolutionForward build() const
     {
-    }
-    OperationConvolutionBackwardDataBuilder&
-    setConvolution(std::shared_ptr<ConvolutionDescriptorEx> convolution)
-    {
-        OperationConvolutionBuilder::setConvolution(convolution);
-        return *this;
-    }
-    OperationConvolutionBackwardDataBuilder& setDX(std::shared_ptr<TensorDescriptorEx> descriptor)
-    {
-        OperationConvolutionBuilder::setX(descriptor);
-        return *this;
-    }
-    OperationConvolutionBackwardDataBuilder& setW(std::shared_ptr<TensorDescriptorEx> descriptor)
-    {
-        OperationConvolutionBuilder::setW(descriptor);
-        return *this;
-    }
-    OperationConvolutionBackwardDataBuilder& setDY(std::shared_ptr<TensorDescriptorEx> descriptor)
-    {
-        OperationConvolutionBuilder::setY(descriptor);
-        return *this;
-    }
-    OperationConvolutionBackwardDataBuilder& setAlpha(double value)
-    {
-        OperationConvolutionBuilder::setAlpha(value);
-        return *this;
-    }
-    OperationConvolutionBackwardDataBuilder& setBeta(double value)
-    {
-        OperationConvolutionBuilder::setBeta(value);
-        return *this;
-    }
-};
-
-class OperationConvolutionBackwardFilterBuilder : public OperationConvolutionBuilder
-{
-public:
-    OperationConvolutionBackwardFilterBuilder()
-        : OperationConvolutionBuilder(miopenProblemDirectionBackwardWeights)
-    {
-    }
-    OperationConvolutionBackwardFilterBuilder&
-    setConvolution(std::shared_ptr<ConvolutionDescriptorEx> convolution)
-    {
-        OperationConvolutionBuilder::setConvolution(convolution);
-        return *this;
-    }
-    OperationConvolutionBackwardFilterBuilder& setX(std::shared_ptr<TensorDescriptorEx> descriptor)
-    {
-        OperationConvolutionBuilder::setX(descriptor);
-        return *this;
-    }
-    OperationConvolutionBackwardFilterBuilder& setDW(std::shared_ptr<TensorDescriptorEx> descriptor)
-    {
-        OperationConvolutionBuilder::setW(descriptor);
-        return *this;
-    }
-    OperationConvolutionBackwardFilterBuilder& setDY(std::shared_ptr<TensorDescriptorEx> descriptor)
-    {
-        OperationConvolutionBuilder::setY(descriptor);
-        return *this;
-    }
-    OperationConvolutionBackwardFilterBuilder& setAlpha(double value)
-    {
-        OperationConvolutionBuilder::setAlpha(value);
-        return *this;
-    }
-    OperationConvolutionBackwardFilterBuilder& setBeta(double value)
-    {
-        OperationConvolutionBuilder::setBeta(value);
-        return *this;
+        if(mConvolution == nullptr || mX == nullptr || mY == nullptr || mW == nullptr ||
+           !mAlphaSet || !mBetaSet)
+        {
+            MIOPEN_THROW(miopenStatusNotInitialized);
+        }
+        return {mConvolution, mX, mY, mW, mAlpha, mBeta};
     }
 };
 
 class BackendOperationConvolutionDescriptor : public BackendDescriptor
 {
-public:
-    BackendOperationConvolutionDescriptor(miopenProblemDirection_t direction)
-        : mBuilder(std::in_place, direction)
-    {
-    }
-    virtual ~BackendOperationConvolutionDescriptor() override;
-    virtual void finalize() override;
-
-    std::shared_ptr<OperationConvolution> getDescriptor() const noexcept { return mDescriptor; }
-
 protected:
+    virtual OperationConvolutionBuilder& getBuilder()       = 0;
+    virtual OperationConvolution& getOperationConvolution() = 0;
+
+    miopenBackendDescriptor_t mConvolutionDescriptor = nullptr;
+    miopenBackendDescriptor_t mXDescriptor           = nullptr;
+    miopenBackendDescriptor_t mWDescriptor           = nullptr;
+    miopenBackendDescriptor_t mYDescriptor           = nullptr;
+
     void setConvolution(miopenBackendAttributeType_t attributeType,
                         int64_t elementCount,
                         void* arrayOfElements);
-
     void
     setX(miopenBackendAttributeType_t attributeType, int64_t elementCount, void* arrayOfElements);
-
     void
     setW(miopenBackendAttributeType_t attributeType, int64_t elementCount, void* arrayOfElements);
-
     void
     setY(miopenBackendAttributeType_t attributeType, int64_t elementCount, void* arrayOfElements);
-
     void setAlpha(miopenBackendAttributeType_t attributeType,
                   int64_t elementCount,
                   void* arrayOfElements);
     void setBeta(miopenBackendAttributeType_t attributeType,
                  int64_t elementCount,
                  void* arrayOfElements);
-
     void getConvolution(miopenBackendAttributeType_t attributeType,
                         int64_t requestedElementCount,
                         int64_t* elementCount,
@@ -430,72 +445,211 @@ protected:
                  int64_t requestedElementCount,
                  int64_t* elementCount,
                  void* arrayOfElements);
-
-    std::optional<OperationConvolutionBuilder> mBuilder;
-    std::shared_ptr<OperationConvolution> mDescriptor    = nullptr;
-    miopenBackendDescriptor_t mBaseConvolutionDescriptor = nullptr;
-    miopenBackendDescriptor_t mBaseXDescriptor           = nullptr;
-    miopenBackendDescriptor_t mBaseWDescriptor           = nullptr;
-    miopenBackendDescriptor_t mBaseYDescriptor           = nullptr;
 };
 
 class BackendOperationConvolutionForwardDescriptor : public BackendOperationConvolutionDescriptor
 {
 public:
-    BackendOperationConvolutionForwardDescriptor()
-        : BackendOperationConvolutionDescriptor(miopenProblemDirectionForward)
-    {
-    }
-    virtual ~BackendOperationConvolutionForwardDescriptor() override;
     virtual void setAttribute(miopenBackendAttributeName_t attributeName,
                               miopenBackendAttributeType_t attributeType,
                               int64_t elementCount,
                               void* arrayOfElements) override;
+    virtual void finalize() override;
     virtual void getAttribute(miopenBackendAttributeName_t attributeName,
                               miopenBackendAttributeType_t attributeType,
                               int64_t requestedElementCount,
                               int64_t* elementCount,
                               void* arrayOfElements) override;
+    virtual Operation* getOperation() override;
+
+protected:
+    OperationConvolutionForwardBuilder mBuilder;
+    OperationConvolutionForward mOperation;
+
+    virtual OperationConvolutionBuilder& getBuilder() override;
+    virtual OperationConvolution& getOperationConvolution() override;
+};
+
+class OperationConvolutionBackwardData : public OperationConvolution
+{
+public:
+    OperationConvolutionBackwardData() = default;
+    OperationConvolutionBackwardData(Convolution* convolution,
+                                     Tensor* x,
+                                     Tensor* y,
+                                     Tensor* w,
+                                     double alpha,
+                                     double beta) noexcept
+        : OperationConvolution(convolution, x, y, w, alpha, beta)
+    {
+        addOutputTensor(x);
+        addInputTensor(w);
+        addInputTensor(y);
+        if(beta != 0.0)
+        {
+            addInputTensor(x);
+        }
+    }
+};
+
+class OperationConvolutionBackwardDataBuilder : public OperationConvolutionBuilder
+{
+public:
+    OperationConvolutionBackwardDataBuilder& setConvolution(Convolution* convolution) noexcept
+    {
+        OperationConvolutionBuilder::setConvolution(convolution);
+        return *this;
+    }
+    OperationConvolutionBackwardDataBuilder& setX(Tensor* x) noexcept
+    {
+        OperationConvolutionBuilder::setX(x);
+        return *this;
+    }
+    OperationConvolutionBackwardDataBuilder& setY(Tensor* y) noexcept
+    {
+        OperationConvolutionBuilder::setY(y);
+        return *this;
+    }
+    OperationConvolutionBackwardDataBuilder& setW(Tensor* w) noexcept
+    {
+        OperationConvolutionBuilder::setW(w);
+        return *this;
+    }
+    OperationConvolutionBackwardDataBuilder& setAlpha(double alpha) noexcept
+    {
+        OperationConvolutionBuilder::setAlpha(alpha);
+        return *this;
+    }
+    OperationConvolutionBackwardDataBuilder& setBeta(double beta) noexcept
+    {
+        OperationConvolutionBuilder::setBeta(beta);
+        return *this;
+    }
+
+    OperationConvolutionBackwardData build() const
+    {
+        if(mConvolution == nullptr || mX == nullptr || mY == nullptr || mW == nullptr ||
+           !mAlphaSet || !mBetaSet)
+        {
+            MIOPEN_THROW(miopenStatusNotInitialized);
+        }
+        return {mConvolution, mX, mY, mW, mAlpha, mBeta};
+    }
 };
 
 class BackendOperationConvolutionBackwardDataDescriptor
     : public BackendOperationConvolutionDescriptor
 {
 public:
-    BackendOperationConvolutionBackwardDataDescriptor()
-        : BackendOperationConvolutionDescriptor(miopenProblemDirectionBackward)
-    {
-    }
-    virtual ~BackendOperationConvolutionBackwardDataDescriptor() override;
     virtual void setAttribute(miopenBackendAttributeName_t attributeName,
                               miopenBackendAttributeType_t attributeType,
                               int64_t elementCount,
                               void* arrayOfElements) override;
+    virtual void finalize() override;
     virtual void getAttribute(miopenBackendAttributeName_t attributeName,
                               miopenBackendAttributeType_t attributeType,
                               int64_t requestedElementCount,
                               int64_t* elementCount,
                               void* arrayOfElements) override;
+    virtual Operation* getOperation() override;
+
+private:
+    OperationConvolutionBackwardDataBuilder mBuilder;
+    OperationConvolutionBackwardData mOperation;
+
+    virtual OperationConvolutionBuilder& getBuilder() override;
+    virtual OperationConvolution& getOperationConvolution() override;
+};
+
+class OperationConvolutionBackwardFilter : public OperationConvolution
+{
+public:
+    OperationConvolutionBackwardFilter() = default;
+    OperationConvolutionBackwardFilter(Convolution* convolution,
+                                       Tensor* x,
+                                       Tensor* y,
+                                       Tensor* w,
+                                       double alpha,
+                                       double beta) noexcept
+        : OperationConvolution(convolution, x, y, w, alpha, beta)
+    {
+        addInputTensor(x);
+        addOutputTensor(w);
+        addInputTensor(y);
+        if(beta != 0.0)
+        {
+            addInputTensor(w);
+        }
+    }
+};
+
+class OperationConvolutionBackwardFilterBuilder : public OperationConvolutionBuilder
+{
+public:
+    OperationConvolutionBackwardFilterBuilder& setConvolution(Convolution* convolution) noexcept
+    {
+        OperationConvolutionBuilder::setConvolution(convolution);
+        return *this;
+    }
+    OperationConvolutionBackwardFilterBuilder& setX(Tensor* x) noexcept
+    {
+        OperationConvolutionBuilder::setX(x);
+        return *this;
+    }
+    OperationConvolutionBackwardFilterBuilder& setY(Tensor* y) noexcept
+    {
+        OperationConvolutionBuilder::setY(y);
+        return *this;
+    }
+    OperationConvolutionBackwardFilterBuilder& setW(Tensor* w) noexcept
+    {
+        OperationConvolutionBuilder::setW(w);
+        return *this;
+    }
+    OperationConvolutionBackwardFilterBuilder& setAlpha(double alpha) noexcept
+    {
+        OperationConvolutionBuilder::setAlpha(alpha);
+        return *this;
+    }
+    OperationConvolutionBackwardFilterBuilder& setBeta(double beta) noexcept
+    {
+        OperationConvolutionBuilder::setBeta(beta);
+        return *this;
+    }
+
+    OperationConvolutionBackwardFilter build() const
+    {
+        if(mConvolution == nullptr || mX == nullptr || mY == nullptr || mW == nullptr ||
+           !mAlphaSet || !mBetaSet)
+        {
+            MIOPEN_THROW(miopenStatusNotInitialized);
+        }
+        return {mConvolution, mX, mY, mW, mAlpha, mBeta};
+    }
 };
 
 class BackendOperationConvolutionBackwardFilterDescriptor
     : public BackendOperationConvolutionDescriptor
 {
 public:
-    BackendOperationConvolutionBackwardFilterDescriptor()
-        : BackendOperationConvolutionDescriptor(miopenProblemDirectionBackwardWeights)
-    {
-    }
-    virtual ~BackendOperationConvolutionBackwardFilterDescriptor() override;
     virtual void setAttribute(miopenBackendAttributeName_t attributeName,
                               miopenBackendAttributeType_t attributeType,
                               int64_t elementCount,
                               void* arrayOfElements) override;
+    virtual void finalize() override;
     virtual void getAttribute(miopenBackendAttributeName_t attributeName,
                               miopenBackendAttributeType_t attributeType,
                               int64_t requestedElementCount,
                               int64_t* elementCount,
                               void* arrayOfElements) override;
+    virtual Operation* getOperation() override;
+
+private:
+    OperationConvolutionBackwardFilterBuilder mBuilder;
+    OperationConvolutionBackwardFilter mOperation;
+
+    virtual OperationConvolutionBuilder& getBuilder() override;
+    virtual OperationConvolution& getOperationConvolution() override;
 };
 
 } // namespace graphapi

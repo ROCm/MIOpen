@@ -23,161 +23,128 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/algorithm.hpp>
 #include <miopen/graphapi/graphapi_convolution.hpp>
 #include <miopen/errors.hpp>
-
-#include <limits>
-#include <algorithm>
 
 namespace miopen {
 
 namespace graphapi {
 
-ConvolutionDescriptorEx::ConvolutionDescriptorEx(miopenDataType_t theCompType,
-                                                 size_t theSpatialDims,
-                                                 miopenConvolutionMode_t theMode,
-                                                 miopenPaddingMode_t thePadMode,
-                                                 const std::vector<int>& thePrePaddings,
-                                                 const std::vector<int>& theFilterStrides,
-                                                 const std::vector<int>& theDilations,
-                                                 const std::vector<int>& thePostPaddings)
-    : ConvolutionDescriptor(theSpatialDims,
-                            theMode,
-                            thePadMode,
-                            thePrePaddings,
-                            theFilterStrides,
-                            theDilations,
-                            thePostPaddings),
-      mCompType(theCompType)
+ConvolutionBuilder& ConvolutionBuilder::setCompType(miopenDataType_t compType) & noexcept
 {
-}
-
-ConvolutionBuilder& ConvolutionBuilder::setCompType(miopenDataType_t dataType)
-{
-    mCompType    = dataType;
+    mCompType    = compType;
     mCompTypeSet = true;
     return *this;
 }
-
-ConvolutionBuilder& ConvolutionBuilder::setMode(miopenConvolutionMode_t mode)
+ConvolutionBuilder& ConvolutionBuilder::setMode(miopenConvolutionMode_t mode) & noexcept
 {
     mMode    = mode;
     mModeSet = true;
     return *this;
 }
-
-ConvolutionBuilder& ConvolutionBuilder::setSpatialDims(int64_t spatialDims)
+ConvolutionBuilder& ConvolutionBuilder::setSpatialDims(int64_t spatialDims) & noexcept
 {
     mSpatialDims    = spatialDims;
     mSpatialDimsSet = true;
     return *this;
 }
-
-ConvolutionBuilder& ConvolutionBuilder::setDilations(int64_t numberDilations, int64_t* dilations)
+ConvolutionBuilder& ConvolutionBuilder::setDilations(const std::vector<int64_t>& dilations) &
 {
-    mDilationsSet = std::all_of(dilations, dilations + numberDilations, [](auto value) {
-        return value >= std::numeric_limits<int>::lowest() &&
-               value <= std::numeric_limits<int>::max();
-    });
-
-    if(!mDilationsSet)
-    {
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
-
-    mDilations = std::vector<int>(dilations, dilations + numberDilations);
-
+    mDilations    = dilations;
+    mDilationsSet = true;
+    return *this;
+}
+ConvolutionBuilder& ConvolutionBuilder::setDilations(std::vector<int64_t>&& dilations) & noexcept
+{
+    mDilations    = std::move(dilations);
+    mDilationsSet = true;
+    return *this;
+}
+ConvolutionBuilder&
+ConvolutionBuilder::setFilterStrides(const std::vector<int64_t>& filterStrides) &
+{
+    mFilterStrides    = filterStrides;
+    mFilterStridesSet = true;
+    return *this;
+}
+ConvolutionBuilder&
+ConvolutionBuilder::setFilterStrides(std::vector<int64_t>&& filterStrides) & noexcept
+{
+    mFilterStrides    = std::move(filterStrides);
+    mFilterStridesSet = true;
+    return *this;
+}
+ConvolutionBuilder& ConvolutionBuilder::setPrePaddings(const std::vector<int64_t>& prePaddings) &
+{
+    mPrePaddings    = prePaddings;
+    mPrePaddingsSet = true;
+    return *this;
+}
+ConvolutionBuilder&
+ConvolutionBuilder::setPrePaddings(std::vector<int64_t>&& prePaddings) & noexcept
+{
+    mPrePaddings    = std::move(prePaddings);
+    mPrePaddingsSet = true;
+    return *this;
+}
+ConvolutionBuilder& ConvolutionBuilder::setPostPaddings(const std::vector<int64_t>& postPaddings) &
+{
+    mPostPaddings    = postPaddings;
+    mPostPaddingsSet = true;
+    return *this;
+}
+ConvolutionBuilder&
+ConvolutionBuilder::setPostPaddings(std::vector<int64_t>&& postPaddings) & noexcept
+{
+    mPostPaddings    = std::move(postPaddings);
+    mPostPaddingsSet = true;
     return *this;
 }
 
-ConvolutionBuilder& ConvolutionBuilder::setFilterStrides(int64_t numberFilterStrides,
-                                                         int64_t* filterStrides)
+bool ConvolutionBuilder::validate() const
 {
-    mFilterStridesSet =
-        std::all_of(filterStrides, filterStrides + numberFilterStrides, [](auto value) {
-            return value >= std::numeric_limits<int>::lowest() &&
-                   value <= std::numeric_limits<int>::max();
-        });
+    return mCompTypeSet && mModeSet && mSpatialDimsSet && mDilationsSet && mFilterStridesSet &&
+           mPrePaddingsSet && mPostPaddingsSet && mSpatialDims >= 1 &&
+           mDilations.size() == mSpatialDims && mFilterStrides.size() == mSpatialDims &&
+           mPrePaddings.size() == mSpatialDims && mPostPaddings.size() == mSpatialDims &&
+           miopen::all_of(mDilations, [](auto value) { return value > 0; }) &&
+           miopen::all_of(mFilterStrides, [](auto value) { return value > 0; }) &&
+           miopen::all_of(mPrePaddings, [](auto value) { return value >= 0; }) &&
+           miopen::all_of(mPostPaddings, [](auto value) { return value >= 0; });
+}
 
-    if(!mFilterStridesSet)
+Convolution ConvolutionBuilder::build() const&
+{
+    if(!validate())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-
-    mFilterStrides = std::vector<int>(filterStrides, filterStrides + numberFilterStrides);
-
-    return *this;
+    return {
+        mCompType, mMode, mSpatialDims, mPrePaddings, mFilterStrides, mDilations, mPostPaddings};
 }
 
-ConvolutionBuilder& ConvolutionBuilder::setPrePaddings(int64_t numberPrePaddings,
-                                                       int64_t* prePaddings)
+Convolution ConvolutionBuilder::build() &&
 {
-    mDilationsSet = std::all_of(prePaddings, prePaddings + numberPrePaddings, [](auto value) {
-        return value >= std::numeric_limits<int>::lowest() &&
-               value <= std::numeric_limits<int>::max();
-    });
-
-    if(!mPrePaddingsSet)
+    if(!validate())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-
-    mPrePaddings = std::vector<int>(prePaddings, prePaddings + numberPrePaddings);
-
-    return *this;
+    return {mCompType,
+            mMode,
+            mSpatialDims,
+            std::move(mPrePaddings),
+            std::move(mFilterStrides),
+            std::move(mDilations),
+            std::move(mPostPaddings)};
 }
-
-ConvolutionBuilder& ConvolutionBuilder::setPostPaddings(int64_t numberPostPaddings,
-                                                        int64_t* postPaddings)
-{
-    mDilationsSet = std::all_of(postPaddings, postPaddings + numberPostPaddings, [](auto value) {
-        return value >= std::numeric_limits<int>::lowest() &&
-               value <= std::numeric_limits<int>::max();
-    });
-
-    if(!mPostPaddingsSet)
-    {
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
-
-    mPostPaddings = std::vector<int>(postPaddings, postPaddings + numberPostPaddings);
-
-    return *this;
-}
-
-std::shared_ptr<ConvolutionDescriptorEx> ConvolutionBuilder::build() const
-{
-    if(!mCompTypeSet || !mModeSet || !mSpatialDimsSet || !mDilationsSet || !mFilterStridesSet ||
-       !mPrePaddingsSet || !mPostPaddingsSet ||
-       (mDilations.size() != mSpatialDims && mFilterStrides.size() != mSpatialDims &&
-        mPrePaddings.size() != mSpatialDims && mPostPaddings.size() != mSpatialDims))
-    {
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
-
-    return std::make_shared<ConvolutionDescriptorEx>(mCompType,
-                                                     mSpatialDims,
-                                                     mMode,
-                                                     miopenPaddingDefault,
-                                                     mPrePaddings,
-                                                     mFilterStrides,
-                                                     mDilations,
-                                                     mPostPaddings);
-}
-
-BackendConvolutionDescriptor::BackendConvolutionDescriptor()
-    : mBuilder(std::in_place), mDescriptor(nullptr)
-{
-}
-
-BackendConvolutionDescriptor::~BackendConvolutionDescriptor() {}
 
 void BackendConvolutionDescriptor::setAttribute(miopenBackendAttributeName_t attributeName,
                                                 miopenBackendAttributeType_t attributeType,
                                                 int64_t elementCount,
                                                 void* arrayOfElements)
 {
-    if(mFinalized || !mBuilder.has_value())
+    if(mFinalized)
     {
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
@@ -218,14 +185,13 @@ void BackendConvolutionDescriptor::setAttribute(miopenBackendAttributeName_t att
 
 void BackendConvolutionDescriptor::finalize()
 {
-    if(mFinalized || !mBuilder.has_value())
+    if(mFinalized)
     {
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
 
-    mDescriptor = mBuilder->build();
-    mBuilder.reset();
-    mFinalized = true;
+    mConvolution = std::move(mBuilder).build();
+    mFinalized   = true;
 }
 
 void BackendConvolutionDescriptor::getAttribute(miopenBackendAttributeName_t attributeName,
@@ -234,7 +200,7 @@ void BackendConvolutionDescriptor::getAttribute(miopenBackendAttributeName_t att
                                                 int64_t* elementCount,
                                                 void* arrayOfElements)
 {
-    if(!mFinalized || !mDescriptor)
+    if(!mFinalized)
     {
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
@@ -279,8 +245,7 @@ void BackendConvolutionDescriptor::setCompType(miopenBackendAttributeType_t attr
 {
     if(attributeType == MIOPEN_TYPE_DATA_TYPE && elementCount == 1)
     {
-        if(mBuilder)
-            mBuilder->setCompType(*static_cast<miopenDataType_t*>(arrayOfElements));
+        mBuilder.setCompType(*static_cast<miopenDataType_t*>(arrayOfElements));
     }
     else
     {
@@ -294,8 +259,7 @@ void BackendConvolutionDescriptor::setMode(miopenBackendAttributeType_t attribut
 {
     if(attributeType == MIOPEN_TYPE_CONVOLUTION_MODE && elementCount == 1)
     {
-        if(mBuilder)
-            mBuilder->setMode(*static_cast<miopenConvolutionMode_t*>(arrayOfElements));
+        mBuilder.setMode(*static_cast<miopenConvolutionMode_t*>(arrayOfElements));
     }
     else
     {
@@ -309,8 +273,7 @@ void BackendConvolutionDescriptor::setSpatialDims(miopenBackendAttributeType_t a
 {
     if(attributeType == MIOPEN_TYPE_INT64 && elementCount == 1)
     {
-        if(mBuilder)
-            mBuilder->setSpatialDims(*static_cast<int64_t*>(arrayOfElements));
+        mBuilder.setSpatialDims(*static_cast<int64_t*>(arrayOfElements));
     }
     else
     {
@@ -324,8 +287,8 @@ void BackendConvolutionDescriptor::setDilations(miopenBackendAttributeType_t att
 {
     if(attributeType == MIOPEN_TYPE_INT64 && elementCount > 0)
     {
-        if(mBuilder)
-            mBuilder->setDilations(elementCount, static_cast<int64_t*>(arrayOfElements));
+        mBuilder.setDilations({static_cast<int64_t*>(arrayOfElements),
+                               static_cast<int64_t*>(arrayOfElements) + elementCount});
     }
     else
     {
@@ -339,8 +302,8 @@ void BackendConvolutionDescriptor::setFilterStrides(miopenBackendAttributeType_t
 {
     if(attributeType == MIOPEN_TYPE_INT64 && elementCount > 0)
     {
-        if(mBuilder)
-            mBuilder->setFilterStrides(elementCount, static_cast<int64_t*>(arrayOfElements));
+        mBuilder.setFilterStrides({static_cast<int64_t*>(arrayOfElements),
+                                   static_cast<int64_t*>(arrayOfElements) + elementCount});
     }
     else
     {
@@ -354,8 +317,8 @@ void BackendConvolutionDescriptor::setPrePaddings(miopenBackendAttributeType_t a
 {
     if(attributeType == MIOPEN_TYPE_INT64 && elementCount > 0)
     {
-        if(mBuilder)
-            mBuilder->setPrePaddings(elementCount, static_cast<int64_t*>(arrayOfElements));
+        mBuilder.setPrePaddings({static_cast<int64_t*>(arrayOfElements),
+                                 static_cast<int64_t*>(arrayOfElements) + elementCount});
     }
     else
     {
@@ -369,8 +332,8 @@ void BackendConvolutionDescriptor::setPostPaddings(miopenBackendAttributeType_t 
 {
     if(attributeType == MIOPEN_TYPE_INT64 && elementCount > 0)
     {
-        if(mBuilder)
-            mBuilder->setPostPaddings(elementCount, static_cast<int64_t*>(arrayOfElements));
+        mBuilder.setPostPaddings({static_cast<int64_t*>(arrayOfElements),
+                                  static_cast<int64_t*>(arrayOfElements) + elementCount});
     }
     else
     {
@@ -385,7 +348,7 @@ void BackendConvolutionDescriptor::getCompType(miopenBackendAttributeType_t attr
 {
     if(attributeType == MIOPEN_TYPE_DATA_TYPE && requestedElementCount == 1)
     {
-        *static_cast<miopenDataType_t*>(arrayOfElements) = mDescriptor->getCompType();
+        *static_cast<miopenDataType_t*>(arrayOfElements) = mConvolution.getCompType();
         *elementCount                                    = 1;
     }
     else
@@ -401,7 +364,7 @@ void BackendConvolutionDescriptor::getMode(miopenBackendAttributeType_t attribut
 {
     if(attributeType == MIOPEN_TYPE_CONVOLUTION_MODE && requestedElementCount == 1)
     {
-        *static_cast<miopenConvolutionMode_t*>(arrayOfElements) = mDescriptor->mode;
+        *static_cast<miopenConvolutionMode_t*>(arrayOfElements) = mConvolution.getMode();
         *elementCount                                           = 1;
     }
     else
@@ -417,7 +380,7 @@ void BackendConvolutionDescriptor::getSpatialDims(miopenBackendAttributeType_t a
 {
     if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount == 1)
     {
-        *static_cast<int64_t*>(arrayOfElements) = mDescriptor->spatialDim;
+        *static_cast<int64_t*>(arrayOfElements) = mConvolution.getSpatialDims();
         *elementCount                           = 1;
     }
     else
@@ -431,9 +394,9 @@ void BackendConvolutionDescriptor::getDilations(miopenBackendAttributeType_t att
                                                 int64_t* elementCount,
                                                 void* arrayOfElements)
 {
-    if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount >= 0)
+    if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount > 0)
     {
-        const auto& dilations = mDescriptor->GetConvDilations();
+        const auto& dilations = mConvolution.getDilations();
         *elementCount         = dilations.size();
         std::copy_n(dilations.begin(),
                     std::min(*elementCount, requestedElementCount),
@@ -450,9 +413,9 @@ void BackendConvolutionDescriptor::getFilterStrides(miopenBackendAttributeType_t
                                                     int64_t* elementCount,
                                                     void* arrayOfElements)
 {
-    if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount >= 0)
+    if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount > 0)
     {
-        const auto& strides = mDescriptor->GetConvStrides();
+        const auto& strides = mConvolution.getFilterStrides();
         *elementCount       = strides.size();
         std::copy_n(strides.begin(),
                     std::min(*elementCount, requestedElementCount),
@@ -469,9 +432,9 @@ void BackendConvolutionDescriptor::getPrePaddings(miopenBackendAttributeType_t a
                                                   int64_t* elementCount,
                                                   void* arrayOfElements)
 {
-    if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount >= 0)
+    if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount > 0)
     {
-        const auto& pads = mDescriptor->GetConvPads();
+        const auto& pads = mConvolution.getPrePaddings();
         *elementCount    = pads.size();
         std::copy_n(pads.begin(),
                     std::min(*elementCount, requestedElementCount),
@@ -488,9 +451,9 @@ void BackendConvolutionDescriptor::getPostPaddings(miopenBackendAttributeType_t 
                                                    int64_t* elementCount,
                                                    void* arrayOfElements)
 {
-    if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount >= 0)
+    if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount > 0)
     {
-        const auto& postPads = mDescriptor->GetTransposeConvPads();
+        const auto& postPads = mConvolution.getPostPaddings();
         *elementCount        = postPads.size();
         std::copy_n(postPads.begin(),
                     std::min(*elementCount, requestedElementCount),
@@ -502,91 +465,15 @@ void BackendConvolutionDescriptor::getPostPaddings(miopenBackendAttributeType_t 
     }
 }
 
-void DirectedGraphNode::setInput(miopenTensorArgumentId_t name,
-                                 std::shared_ptr<TensorDescriptorEx> descriptor)
-{
-    mProblem.RegisterTensorDescriptor(name, miopen::deref(descriptor));
-    ++mInputs[descriptor];
-}
-
-int DirectedGraphNode::getInputCount(std::shared_ptr<TensorDescriptorEx> descriptor)
-{
-    auto iter = mInputs.find(descriptor);
-    return iter != mInputs.end() ? iter->second : 0;
-}
-
-void DirectedGraphNode::setOutput(miopenTensorArgumentId_t name,
-                                  std::shared_ptr<TensorDescriptorEx> descriptor)
-{
-    mProblem.RegisterTensorDescriptor(name, miopen::deref(descriptor));
-    ++mOutputs[descriptor];
-}
-
-int DirectedGraphNode::getOutputCount(std::shared_ptr<TensorDescriptorEx> descriptor)
-{
-    auto iter = mOutputs.find(descriptor);
-    return iter != mOutputs.end() ? iter->second : 0;
-}
-
-OperationConvolution::OperationConvolution(std::shared_ptr<ConvolutionDescriptorEx> convolution,
-                                           miopenProblemDirection_t direction,
-                                           double alpha,
-                                           double beta)
-    : mConvolution(std::move(convolution)), mAlpha(alpha), mBeta(beta)
-{
-    auto& problem = getProblem();
-    problem.SetDirection(direction);
-    problem.SetOperatorDescriptor(*mConvolution);
-}
-
-std::shared_ptr<OperationConvolution> OperationConvolutionBuilder::build() const
-{
-    if(!mConvolutionSet || !mXSet || !mWSet || !mYSet || !mAlphaSet || !mBetaSet)
-    {
-        MIOPEN_THROW(miopenStatusNotInitialized);
-    }
-
-    auto graphNode =
-        std::make_shared<OperationConvolution>(mConvolution, mDirection, mAlpha, mBeta);
-    graphNode->setInput(miopenTensorConvolutionX, mX);
-    graphNode->setInput(miopenTensorConvolutionW, mW);
-    graphNode->setOutput(miopenTensorConvolutionY, mY);
-
-    if(mBeta != 0.0)
-    {
-        graphNode->setInput(miopenTensorConvolutionY, mY);
-    }
-
-    return graphNode;
-}
-
-BackendOperationConvolutionDescriptor::~BackendOperationConvolutionDescriptor() {}
-
-void BackendOperationConvolutionDescriptor::finalize()
-{
-    if(mFinalized || !mBuilder.has_value())
-    {
-        MIOPEN_THROW(miopenStatusNotInitialized);
-    }
-
-    mDescriptor = mBuilder->build();
-    mBuilder.reset();
-    mFinalized = true;
-}
-
 void BackendOperationConvolutionDescriptor::setConvolution(
     miopenBackendAttributeType_t attributeType, int64_t elementCount, void* arrayOfElements)
 {
     if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && elementCount == 1)
     {
-        mBaseConvolutionDescriptor =
-            deref(static_cast<miopenBackendDescriptor_t*>(arrayOfElements));
-        auto& baseDescr = deref(mBaseConvolutionDescriptor);
-        auto& convDescr = dynamic_cast<BackendConvolutionDescriptor&>(baseDescr);
-        if(mBuilder)
-        {
-            mBuilder->setConvolution(convDescr.getDescriptor());
-        }
+        mConvolutionDescriptor = deref(static_cast<miopenBackendDescriptor_t*>(arrayOfElements));
+        auto& baseDescr        = deref(mConvolutionDescriptor);
+        auto& convDescr        = dynamic_cast<BackendConvolutionDescriptor&>(baseDescr);
+        getBuilder().setConvolution(convDescr.getConvolution());
     }
     else
     {
@@ -600,13 +487,10 @@ void BackendOperationConvolutionDescriptor::setX(miopenBackendAttributeType_t at
 {
     if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && elementCount == 1)
     {
-        mBaseXDescriptor = deref(static_cast<miopenBackendDescriptor_t*>(arrayOfElements));
-        auto& baseDescr  = deref(mBaseXDescriptor);
-        auto& tensDescr  = dynamic_cast<BackendTensorDescriptor&>(baseDescr);
-        if(mBuilder)
-        {
-            mBuilder->setX(tensDescr.tensorDescriptor());
-        }
+        mXDescriptor    = deref(static_cast<miopenBackendDescriptor_t*>(arrayOfElements));
+        auto& baseDescr = deref(mXDescriptor);
+        auto& tensDescr = dynamic_cast<BackendTensorDescriptor&>(baseDescr);
+        getBuilder().setX(tensDescr.getTensor());
     }
     else
     {
@@ -620,13 +504,10 @@ void BackendOperationConvolutionDescriptor::setW(miopenBackendAttributeType_t at
 {
     if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && elementCount == 1)
     {
-        mBaseWDescriptor = deref(static_cast<miopenBackendDescriptor_t*>(arrayOfElements));
-        auto& baseDescr  = deref(mBaseWDescriptor);
-        auto& tensDescr  = dynamic_cast<BackendTensorDescriptor&>(baseDescr);
-        if(mBuilder)
-        {
-            mBuilder->setW(tensDescr.tensorDescriptor());
-        }
+        mWDescriptor    = deref(static_cast<miopenBackendDescriptor_t*>(arrayOfElements));
+        auto& baseDescr = deref(mWDescriptor);
+        auto& tensDescr = dynamic_cast<BackendTensorDescriptor&>(baseDescr);
+        getBuilder().setW(tensDescr.getTensor());
     }
     else
     {
@@ -640,13 +521,10 @@ void BackendOperationConvolutionDescriptor::setY(miopenBackendAttributeType_t at
 {
     if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && elementCount == 1)
     {
-        mBaseYDescriptor = deref(static_cast<miopenBackendDescriptor_t*>(arrayOfElements));
-        auto& baseDescr  = deref(mBaseYDescriptor);
-        auto& tensDescr  = dynamic_cast<BackendTensorDescriptor&>(baseDescr);
-        if(mBuilder)
-        {
-            mBuilder->setY(tensDescr.tensorDescriptor());
-        }
+        mYDescriptor    = deref(static_cast<miopenBackendDescriptor_t*>(arrayOfElements));
+        auto& baseDescr = deref(mYDescriptor);
+        auto& tensDescr = dynamic_cast<BackendTensorDescriptor&>(baseDescr);
+        getBuilder().setY(tensDescr.getTensor());
     }
     else
     {
@@ -660,17 +538,11 @@ void BackendOperationConvolutionDescriptor::setAlpha(miopenBackendAttributeType_
 {
     if(attributeType == MIOPEN_TYPE_DOUBLE && elementCount > 0)
     {
-        if(mBuilder)
-        {
-            mBuilder->setAlpha(deref(static_cast<double*>(arrayOfElements)));
-        }
+        getBuilder().setAlpha(deref(static_cast<double*>(arrayOfElements)));
     }
     else if(attributeType == MIOPEN_TYPE_FLOAT && elementCount > 0)
     {
-        if(mBuilder)
-        {
-            mBuilder->setAlpha(deref(static_cast<float*>(arrayOfElements)));
-        }
+        getBuilder().setAlpha(deref(static_cast<float*>(arrayOfElements)));
     }
     else
     {
@@ -684,17 +556,11 @@ void BackendOperationConvolutionDescriptor::setBeta(miopenBackendAttributeType_t
 {
     if(attributeType == MIOPEN_TYPE_DOUBLE && elementCount > 0)
     {
-        if(mBuilder)
-        {
-            mBuilder->setBeta(deref(static_cast<double*>(arrayOfElements)));
-        }
+        getBuilder().setBeta(deref(static_cast<double*>(arrayOfElements)));
     }
     else if(attributeType == MIOPEN_TYPE_FLOAT && elementCount > 0)
     {
-        if(mBuilder)
-        {
-            mBuilder->setBeta(deref(static_cast<float*>(arrayOfElements)));
-        }
+        getBuilder().setBeta(deref(static_cast<float*>(arrayOfElements)));
     }
     else
     {
@@ -711,7 +577,7 @@ void BackendOperationConvolutionDescriptor::getConvolution(
     if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && requestedElementCount > 0)
     {
         *elementCount                                             = 1;
-        *static_cast<miopenBackendDescriptor_t*>(arrayOfElements) = mBaseConvolutionDescriptor;
+        *static_cast<miopenBackendDescriptor_t*>(arrayOfElements) = mConvolutionDescriptor;
         return;
     }
     else
@@ -728,7 +594,7 @@ void BackendOperationConvolutionDescriptor::getX(miopenBackendAttributeType_t at
     if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && requestedElementCount > 0)
     {
         *elementCount                                             = 1;
-        *static_cast<miopenBackendDescriptor_t*>(arrayOfElements) = mBaseXDescriptor;
+        *static_cast<miopenBackendDescriptor_t*>(arrayOfElements) = mXDescriptor;
         return;
     }
     else
@@ -745,7 +611,7 @@ void BackendOperationConvolutionDescriptor::getW(miopenBackendAttributeType_t at
     if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && requestedElementCount > 0)
     {
         *elementCount                                             = 1;
-        *static_cast<miopenBackendDescriptor_t*>(arrayOfElements) = mBaseWDescriptor;
+        *static_cast<miopenBackendDescriptor_t*>(arrayOfElements) = mWDescriptor;
         return;
     }
     else
@@ -762,7 +628,7 @@ void BackendOperationConvolutionDescriptor::getY(miopenBackendAttributeType_t at
     if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && requestedElementCount > 0)
     {
         *elementCount                                             = 1;
-        *static_cast<miopenBackendDescriptor_t*>(arrayOfElements) = mBaseYDescriptor;
+        *static_cast<miopenBackendDescriptor_t*>(arrayOfElements) = mYDescriptor;
         return;
     }
     else
@@ -779,13 +645,13 @@ void BackendOperationConvolutionDescriptor::getAlpha(miopenBackendAttributeType_
     if(attributeType == MIOPEN_TYPE_DOUBLE && requestedElementCount > 0)
     {
         *elementCount                          = 1;
-        *static_cast<double*>(arrayOfElements) = mDescriptor->getAlpha();
+        *static_cast<double*>(arrayOfElements) = getOperationConvolution().getAlpha();
         return;
     }
     else if(attributeType == MIOPEN_TYPE_FLOAT && requestedElementCount > 0)
     {
         *elementCount                         = 1;
-        *static_cast<float*>(arrayOfElements) = mDescriptor->getAlpha();
+        *static_cast<float*>(arrayOfElements) = getOperationConvolution().getAlpha();
         return;
     }
     else
@@ -802,13 +668,13 @@ void BackendOperationConvolutionDescriptor::getBeta(miopenBackendAttributeType_t
     if(attributeType == MIOPEN_TYPE_DOUBLE && requestedElementCount > 0)
     {
         *elementCount                          = 1;
-        *static_cast<double*>(arrayOfElements) = mDescriptor->getBeta();
+        *static_cast<double*>(arrayOfElements) = getOperationConvolution().getBeta();
         return;
     }
     else if(attributeType == MIOPEN_TYPE_FLOAT && requestedElementCount > 0)
     {
         *elementCount                         = 1;
-        *static_cast<float*>(arrayOfElements) = mDescriptor->getBeta();
+        *static_cast<float*>(arrayOfElements) = getOperationConvolution().getBeta();
         return;
     }
     else
@@ -817,15 +683,13 @@ void BackendOperationConvolutionDescriptor::getBeta(miopenBackendAttributeType_t
     }
 }
 
-BackendOperationConvolutionForwardDescriptor::~BackendOperationConvolutionForwardDescriptor() {}
-
 void BackendOperationConvolutionForwardDescriptor::setAttribute(
     miopenBackendAttributeName_t attributeName,
     miopenBackendAttributeType_t attributeType,
     int64_t elementCount,
     void* arrayOfElements)
 {
-    if(mFinalized || !mBuilder.has_value())
+    if(mFinalized)
     {
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
@@ -858,6 +722,16 @@ void BackendOperationConvolutionForwardDescriptor::setAttribute(
 
     default: MIOPEN_THROW(miopenStatusBadParm);
     }
+}
+
+void BackendOperationConvolutionForwardDescriptor::finalize()
+{
+    if(mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+    mOperation = mBuilder.build();
+    mFinalized = true;
 }
 
 void BackendOperationConvolutionForwardDescriptor::getAttribute(
@@ -867,7 +741,7 @@ void BackendOperationConvolutionForwardDescriptor::getAttribute(
     int64_t* elementCount,
     void* arrayOfElements)
 {
-    if(!mFinalized || !mDescriptor)
+    if(!mFinalized)
     {
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
@@ -902,9 +776,23 @@ void BackendOperationConvolutionForwardDescriptor::getAttribute(
     }
 }
 
-BackendOperationConvolutionBackwardDataDescriptor::
-    ~BackendOperationConvolutionBackwardDataDescriptor()
+Operation* BackendOperationConvolutionForwardDescriptor::getOperation()
 {
+    if(!mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusInternalError);
+    }
+    return &mOperation;
+}
+
+OperationConvolutionBuilder& BackendOperationConvolutionForwardDescriptor::getBuilder()
+{
+    return mBuilder;
+}
+
+OperationConvolution& BackendOperationConvolutionForwardDescriptor::getOperationConvolution()
+{
+    return mOperation;
 }
 
 void BackendOperationConvolutionBackwardDataDescriptor::setAttribute(
@@ -913,7 +801,7 @@ void BackendOperationConvolutionBackwardDataDescriptor::setAttribute(
     int64_t elementCount,
     void* arrayOfElements)
 {
-    if(mFinalized || !mBuilder.has_value())
+    if(mFinalized)
     {
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
@@ -946,6 +834,16 @@ void BackendOperationConvolutionBackwardDataDescriptor::setAttribute(
 
     default: MIOPEN_THROW(miopenStatusBadParm);
     }
+}
+
+void BackendOperationConvolutionBackwardDataDescriptor::finalize()
+{
+    if(mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+    mOperation = mBuilder.build();
+    mFinalized = true;
 }
 
 void BackendOperationConvolutionBackwardDataDescriptor::getAttribute(
@@ -955,7 +853,7 @@ void BackendOperationConvolutionBackwardDataDescriptor::getAttribute(
     int64_t* elementCount,
     void* arrayOfElements)
 {
-    if(!mFinalized || !mDescriptor)
+    if(!mFinalized)
     {
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
@@ -990,9 +888,23 @@ void BackendOperationConvolutionBackwardDataDescriptor::getAttribute(
     }
 }
 
-BackendOperationConvolutionBackwardFilterDescriptor::
-    ~BackendOperationConvolutionBackwardFilterDescriptor()
+Operation* BackendOperationConvolutionBackwardDataDescriptor::getOperation()
 {
+    if(!mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusInternalError);
+    }
+    return &mOperation;
+}
+
+OperationConvolutionBuilder& BackendOperationConvolutionBackwardDataDescriptor::getBuilder()
+{
+    return mBuilder;
+}
+
+OperationConvolution& BackendOperationConvolutionBackwardDataDescriptor::getOperationConvolution()
+{
+    return mOperation;
 }
 
 void BackendOperationConvolutionBackwardFilterDescriptor::setAttribute(
@@ -1001,7 +913,7 @@ void BackendOperationConvolutionBackwardFilterDescriptor::setAttribute(
     int64_t elementCount,
     void* arrayOfElements)
 {
-    if(mFinalized || !mBuilder.has_value())
+    if(mFinalized)
     {
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
@@ -1036,6 +948,16 @@ void BackendOperationConvolutionBackwardFilterDescriptor::setAttribute(
     }
 }
 
+void BackendOperationConvolutionBackwardFilterDescriptor::finalize()
+{
+    if(mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+    mOperation = mBuilder.build();
+    mFinalized = true;
+}
+
 void BackendOperationConvolutionBackwardFilterDescriptor::getAttribute(
     miopenBackendAttributeName_t attributeName,
     miopenBackendAttributeType_t attributeType,
@@ -1043,7 +965,7 @@ void BackendOperationConvolutionBackwardFilterDescriptor::getAttribute(
     int64_t* elementCount,
     void* arrayOfElements)
 {
-    if(!mFinalized || !mDescriptor)
+    if(!mFinalized)
     {
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
@@ -1076,6 +998,25 @@ void BackendOperationConvolutionBackwardFilterDescriptor::getAttribute(
 
     default: MIOPEN_THROW(miopenStatusBadParm);
     }
+}
+
+Operation* BackendOperationConvolutionBackwardFilterDescriptor::getOperation()
+{
+    if(!mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusInternalError);
+    }
+    return &mOperation;
+}
+
+OperationConvolutionBuilder& BackendOperationConvolutionBackwardFilterDescriptor::getBuilder()
+{
+    return mBuilder;
+}
+
+OperationConvolution& BackendOperationConvolutionBackwardFilterDescriptor::getOperationConvolution()
+{
+    return mOperation;
 }
 
 } // namespace graphapi
