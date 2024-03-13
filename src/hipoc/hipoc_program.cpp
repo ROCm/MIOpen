@@ -151,7 +151,7 @@ static hipModulePtr CreateModule(const fs::path& hsaco_file)
     auto status = hipModuleLoad(&raw_m, hsaco_file.string().c_str());
     hipModulePtr m{raw_m};
     if(status != hipSuccess)
-        MIOPEN_THROW_HIP_STATUS(status, "Failed creating module from file " + hsaco_file.string());
+        MIOPEN_THROW_HIP_STATUS(status, "Failed creating module from file " + hsaco_file);
     return m;
 }
 
@@ -209,7 +209,7 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
 {
 
     dir.emplace(filename);
-    hsaco_file = dir->path / (filename + ".o");
+    hsaco_file = make_object_file_name(dir.get() / filename);
 
     if(miopen::EndsWith(filename, ".so"))
     {
@@ -242,11 +242,11 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
         params += " -cl-kernel-arg-info -cl-denorms-are-zero";
         params += " -cl-std=CL2.0 -mllvm -amdgpu-early-inline-all";
         params += " -mllvm -amdgpu-internalize-symbols ";
-        params += " " + filename + " -o " + hsaco_file.string();
+        params += " " + filename + " -o " + hsaco_file;
         dir->Execute(HIP_OC_COMPILER, params);
     }
     if(!fs::exists(hsaco_file))
-        MIOPEN_THROW("Cant find file: " + hsaco_file.string());
+        MIOPEN_THROW("Cant find file: " + hsaco_file);
 }
 
 #else // MIOPEN_USE_COMGR
