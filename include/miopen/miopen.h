@@ -5730,6 +5730,63 @@ MIOPEN_EXPORT miopenStatus_t miopenGroupNormForward(miopenHandle_t handle,
 // CLOSEOUT groupnorm DOXYGEN GROUP
 #endif
 
+#ifdef MIOPEN_BETA_API
+// Adam APIs
+/** @addtogroup adam
+ *
+ *  @{
+ */
+/*! @brief Execute a adam layer
+ *
+ * @param handle        MIOpen handle (input)
+ * @param paramDesc     Tensor descriptor for data input tensor param (input)
+ * @param param         Data tensor param (input/output)
+ * @param gradDesc      Tensor descriptor for data input tensor grad (input)
+ * @param grad          Data tensor grad (input)
+ * @param expAvgDesc    Tensor descriptor for data input tensor exp avg (input)
+ * @param expAvg        Data tensor exp avg (input/output)
+ * @param expAvgSqDesc  Tensor descriptor for data input tensor exp avg sqs (input)
+ * @param expAvgSq      Data tensor exp avg sgs (input/output)
+ * @param stepDesc      Tensor descriptor for data input tensor state step (input)
+ * @param step          Data tensor state step (input/output)
+ * @param lr            Learning rate (input)
+ * @param beta1         coefficients used for computing running averages of gradient and its square
+ * @param beta2         coefficients used for computing running averages of gradient and its square
+ * @param weight_decay  weight decay (input)
+ * @param eps           Term added to the denominator to improve numerical stability (input)
+ * @param maximize      maximize the objective with respect to the params, instead of minimizing
+ * @param gradScaleDesc Tensor descriptor for data input tensor grad scale (input)
+ * @param gradScale     Data tensor grad scale (input)
+ * @param foundInfDesc  Tensor descriptor for data input tensor found inf (input)
+ * @param foundInf      Data tensor found inf (input)
+ * @return              miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenAdam(miopenHandle_t handle,
+                                        const miopenTensorDescriptor_t paramDesc,
+                                        void* param,
+                                        const miopenTensorDescriptor_t gradDesc,
+                                        const void* grad,
+                                        const miopenTensorDescriptor_t expAvgDesc,
+                                        void* expAvg,
+                                        const miopenTensorDescriptor_t expAvgSqDesc,
+                                        void* expAvgSq,
+                                        const miopenTensorDescriptor_t stepDesc,
+                                        void* step,
+                                        const double lr,
+                                        const double beta1,
+                                        const double beta2,
+                                        const double weight_decay,
+                                        const double eps,
+                                        const bool amsgrad,
+                                        const miopenTensorDescriptor_t gradScaleDesc,
+                                        const void* gradScale,
+                                        const miopenTensorDescriptor_t foundInfDesc,
+                                        const void* foundInf);
+
+/** @} */
+// CLOSEOUT ADAM DOXYGEN GROUP
+#endif
+
 #ifdef __cplusplus
 }
 #endif
