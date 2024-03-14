@@ -42,7 +42,7 @@ extern "C" miopenStatus_t miopenCreateSoftmaxDescriptor(miopenSoftmaxDescriptor_
     MIOPEN_LOG_FUNCTION(activDesc);
     return miopen::try_([&] {
         auto& desc = miopen::deref(activDesc);
-        desc = new miopen::SoftmaxDescriptor();
+        desc       = new miopen::SoftmaxDescriptor();
     });
 }
 
