@@ -78,8 +78,9 @@ miopenStatus_t miopenCreateBiasProblem(miopenProblem_t* problem, miopenProblemDi
     MIOPEN_LOG_FUNCTION(problem, direction);
 
     return miopen::try_([&] {
-        miopen::deref(problem) = new miopen::ProblemContainer();
-        auto& container_deref  = miopen::deref(*problem);
+        auto& container_ptr   = miopen::deref(problem);
+        container_ptr         = new miopen::ProblemContainer();
+        auto& container_deref = miopen::deref(*problem);
 
         container_deref.item = miopen::Problem();
         auto& problem_deref  = boost::get<miopen::Problem>(container_deref.item);
@@ -97,8 +98,9 @@ miopenStatus_t miopenCreateBatchnormProblem(miopenProblem_t* problem,
     MIOPEN_LOG_FUNCTION(problem, mode, direction);
 
     return miopen::try_([&] {
-        miopen::deref(problem) = new miopen::ProblemContainer();
-        auto& container_deref  = miopen::deref(*problem);
+        auto& container_ptr   = miopen::deref(problem);
+        container_ptr         = new miopen::ProblemContainer();
+        auto& container_deref = miopen::deref(*problem);
 
         container_deref.item = miopen::Problem();
         auto& problem_deref  = boost::get<miopen::Problem>(container_deref.item);
@@ -173,7 +175,10 @@ miopenStatus_t miopenSetProblemTensorDescriptor(miopenProblem_t problem,
 miopenStatus_t miopenCreateFindOptions(miopenFindOptions_t* options)
 {
     MIOPEN_LOG_FUNCTION(options);
-    return miopen::try_([&] { miopen::deref(options) = new miopen::FindOptions(); });
+    return miopen::try_([&] {
+        auto& options_ptr = miopen::deref(options);
+        options_ptr       = new miopen::FindOptions();
+    });
 }
 
 miopenStatus_t miopenDestroyFindOptions(miopenFindOptions_t options)
