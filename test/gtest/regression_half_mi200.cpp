@@ -31,8 +31,6 @@
 #include "get_handle.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)
 
 namespace regression_half_mi200 {
@@ -100,7 +98,7 @@ void Run2dDriver(void)
             return str.data();
         });
         testing::internal::CaptureStderr();
-        test_drive<conv3d_driver>(ptrs.size(), ptrs.data());
+        test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
         auto capture = testing::internal::GetCapturedStderr();
         std::cout << capture;
     }
