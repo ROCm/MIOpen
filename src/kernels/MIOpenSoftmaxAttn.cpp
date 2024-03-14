@@ -33,19 +33,6 @@
 #endif
 
 namespace {
-template <typename DST, typename SRC>
-constexpr DST bitcast(SRC val)
-{
-    static_assert(sizeof(DST) == sizeof(SRC));
-    DST tmp;
-    /// TODO: wait for C++20 and use std::bit_cast
-    /// until then it's the true way of type puning
-    __builtin_memcpy(&tmp, &val, sizeof(DST));
-    /// unions can work for C99 and later but not for C++,
-    /// though compilers widely and unoficially support it
-    return tmp;
-}
-
 constexpr float max_op(float a, float b) { return a > b ? a : b; };
 constexpr float max_abs_op(float a, float b) { return max_op(abs(a), abs(b)); };
 constexpr float plus_op(float a, float b) { return a + b; };
@@ -74,8 +61,8 @@ __device__ float reductionFullWarp(float reduced_val, uint32_t laneId, Op op)
 
         idx = idx >= ((laneId + WARP_SIZE) & ~warp_msk) ? laneId : idx;
         int itmp =
-            __builtin_amdgcn_ds_bpermute(static_cast<int>(idx << 2), bitcast<int>(reduced_val));
-        tmp = bitcast<float>(itmp);
+            __builtin_amdgcn_ds_bpermute(static_cast<int>(idx << 2), __float_as_int(reduced_val));
+        tmp = __int_as_float(itmp);
     }
     else
     {
