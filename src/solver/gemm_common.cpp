@@ -75,6 +75,37 @@ std::size_t MaxMemAllocSz(Handle& h, const miopen::conv::ProblemDescription& pro
     return std::min(m, limit);
 }
 
+bool IsAnyBufferBf16(const TensorDescriptor& xDesc,
+                     const TensorDescriptor& yDesc,
+                     const TensorDescriptor& wDesc)
+{
+    return xDesc.GetType() == miopenBFloat16    //
+           || yDesc.GetType() == miopenBFloat16 //
+           || wDesc.GetType() == miopenBFloat16;
+}
+
+bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
+                     const TensorDescriptor& yDesc,
+                     const TensorDescriptor& wDesc)
+{
+    return xDesc.GetType() == miopenHalf    //
+           || yDesc.GetType() == miopenHalf //
+           || wDesc.GetType() == miopenHalf;
+}
+
+double SlowdownFactor(const int n_oper, const double oper_factor, const double multiple_oper_factor)
+{
+    if(n_oper > 0)
+    {
+        auto rv = oper_factor;
+        if(n_oper > 1)
+            rv *= multiple_oper_factor;
+        return rv;
+    }
+    else
+        return 1.0;
+}
+
 } // namespace gemm
 } // namespace conv
 } // namespace solver

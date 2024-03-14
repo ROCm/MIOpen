@@ -48,33 +48,6 @@ namespace conv {
 
 using ProblemDescription = miopen::conv::ProblemDescription;
 
-#if MIOPEN_USE_GEMM
-#ifdef CPPCHECK
-// Keep the value unknown in cppcheck since this can differ between opencl and hip
-static bool IsBf16Supported;
-static bool IsFp16Supported;
-#else
-static constexpr const bool IsBf16Supported = MIOPEN_USE_ROCBLAS;
-static constexpr const bool IsFp16Supported = MIOPEN_USE_ROCBLAS;
-#endif
-
-static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
-                                   const TensorDescriptor& yDesc,
-                                   const TensorDescriptor& wDesc)
-{
-    return xDesc.GetType() == miopenBFloat16 || yDesc.GetType() == miopenBFloat16 ||
-           wDesc.GetType() == miopenBFloat16;
-}
-
-static inline bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
-                                   const TensorDescriptor& yDesc,
-                                   const TensorDescriptor& wDesc)
-{
-    return xDesc.GetType() == miopenHalf || yDesc.GetType() == miopenHalf ||
-           wDesc.GetType() == miopenHalf;
-}
-#endif
-
 bool GemmFwdBase::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
@@ -128,28 +101,14 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext& ctx, const ProblemDescrip
         return false;
     }
     return problem.IsDirectionForward() && problem.IsLayoutDefault() &&
-           !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsBf16Supported) &&
-           !(IsAnyBufferFp16(xDesc, yDesc, wDesc) && !IsFp16Supported);
+           !(gemm::IsAnyBufferBf16(xDesc, yDesc, wDesc) && !gemm::IsBf16Supported) &&
+           !(gemm::IsAnyBufferFp16(xDesc, yDesc, wDesc) && !gemm::IsFp16Supported);
 #else
     std::ignore = ctx;
     std::ignore = problem;
     return false;
 #endif
 };
-
-static double
-SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_factor)
-{
-    if(n_oper > 0)
-    {
-        auto rv = oper_factor;
-        if(n_oper > 1)
-            rv *= multiple_oper_factor;
-        return rv;
-    }
-    else
-        return 1.0;
-}
 
 float GemmFwdBase::GetWti(const ExecutionContext&, const ProblemDescription& problem) const
 {
@@ -216,13 +175,13 @@ float GemmFwdBase::GetWti(const ExecutionContext&, const ProblemDescription& pro
     }
 
     auto wti = 1.0;
-    wti *= SlowdownFactor(n_transpose_NCHW2CNHW, 0.7, 0.9);
-    wti *= SlowdownFactor(n_transpose_CNHW2NCHW, 0.7, 0.9);
-    wti *= SlowdownFactor(n_gemm_runs, 0.9, 0.9);
-    wti *= SlowdownFactor(n_gemm_strided_batched, 1.0, 0.95);
-    wti *= SlowdownFactor(n_transpose_packed_MN2NM, 0.7, 0.9);
-    wti *= SlowdownFactor(n_CastTensor, 0.95, 0.9);
-    wti *= SlowdownFactor(n_Im2ColGPU, 0.4, 0.8);
+    wti *= gemm::SlowdownFactor(n_transpose_NCHW2CNHW, 0.7, 0.9);
+    wti *= gemm::SlowdownFactor(n_transpose_CNHW2NCHW, 0.7, 0.9);
+    wti *= gemm::SlowdownFactor(n_gemm_runs, 0.9, 0.9);
+    wti *= gemm::SlowdownFactor(n_gemm_strided_batched, 1.0, 0.95);
+    wti *= gemm::SlowdownFactor(n_transpose_packed_MN2NM, 0.7, 0.9);
+    wti *= gemm::SlowdownFactor(n_CastTensor, 0.95, 0.9);
+    wti *= gemm::SlowdownFactor(n_Im2ColGPU, 0.4, 0.8);
     return wti;
 }
 
