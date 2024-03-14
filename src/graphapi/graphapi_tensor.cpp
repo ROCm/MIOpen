@@ -83,7 +83,7 @@ Tensor TensorBuilder::build() const&
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    return Tensor(mDataType, mDimensions, mStrides, mUniqueId, mVirtual);
+    return {mDataType, mDimensions, mStrides, mUniqueId, mVirtual};
 }
 
 Tensor TensorBuilder::build() &&
@@ -93,7 +93,7 @@ Tensor TensorBuilder::build() &&
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    return Tensor(mDataType, std::move(mDimensions), std::move(mStrides), mUniqueId, mVirtual);
+    return {mDataType, std::move(mDimensions), std::move(mStrides), mUniqueId, mVirtual};
 }
 
 BackendTensorDescriptor::~BackendTensorDescriptor() = default;
