@@ -5349,6 +5349,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
 /*! @brief Initializes a problem object describing a softmax operation.
  *
  * @param problem      Pointer to the problem to initialize
+ * @param operatorDesc Descriptor of the operator to be used
  * @param direction    Direction of the operation
  * @return             miopenStatus_t
  */
