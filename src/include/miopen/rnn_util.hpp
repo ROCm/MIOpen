@@ -32,6 +32,7 @@
 #include <miopen/common.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/seq_tensor.hpp>
+#include <miopen/reducetensor.hpp>
 
 namespace miopen {
 
@@ -316,6 +317,61 @@ private:
 void FillSeqTensorByPaddingMarker(const Handle& handle,
                                   const SeqTensorDescriptor& desc,
                                   Data_t data);
+
+int getReductionAlgo();
+
+inline size_t ReductionWorkspaceSize(const Handle& handle,
+                                     size_t batchLenSum,
+                                     size_t nHiddenTensorsPerLayer,
+                                     size_t workspaceScale,
+                                     size_t hsize,
+                                     bool is_bidirect,
+                                     miopenDataType_t rnn_data_t)
+{
+    int red_algo = getReductionAlgo();
+
+    size_t reduction_ws = 0;
+
+    // nothing to reduce,
+    if(batchLenSum == 1)
+        return 0;
+
+    if(red_algo == 1)
+    {
+        miopen::ReduceTensorDescriptor red_add{
+            miopenReduceTensorOp_t::MIOPEN_REDUCE_TENSOR_ADD,
+            miopenDataType_t::miopenFloat, // compute in float for fp16
+            miopenNanPropagation_t::MIOPEN_PROPAGATE_NAN,
+            miopenReduceTensorIndices_t::MIOPEN_REDUCE_TENSOR_NO_INDICES,
+            miopenIndicesType_t::MIOPEN_32BIT_INDICES};
+
+        int bidirect_mp = is_bidirect ? 2 : 1;
+
+        size_t hy_stride = hsize * bidirect_mp * workspaceScale;
+
+        size_t bias_total_cnt = hsize * bidirect_mp * nHiddenTensorsPerLayer;
+
+        const std::vector<size_t> ws_bias_strides{
+            batchLenSum * workspaceScale * hsize * bidirect_mp, hy_stride, 1};
+
+        const miopen::TensorDescriptor ws_desc{
+            rnn_data_t, {1, batchLenSum, bias_total_cnt}, ws_bias_strides};
+
+        const std::vector<size_t> dw_bias_strides{bias_total_cnt, bias_total_cnt, 1};
+        const miopen::TensorDescriptor dw_desc{rnn_data_t, {1, 1, bias_total_cnt}, dw_bias_strides};
+
+        reduction_ws = red_add.GetWorkspaceSize(handle, ws_desc, dw_desc) + // WA CK bug
+                       (rnn_data_t == miopenDataType_t::miopenHalf ? 4 : 0);
+    }
+    else
+    {
+        if(red_algo == 2 || red_algo == 3)
+        {
+            reduction_ws = batchLenSum * GetTypeSize(rnn_data_t);
+        }
+    }
+    return reduction_ws;
+}
 
 } // namespace miopen
 
