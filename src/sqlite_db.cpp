@@ -351,7 +351,7 @@ std::string SQLite::Statement::ColumnText(int idx)
 
 std::vector<char> SQLite::Statement::ColumnBlob(int idx)
 {
-    auto ptr = reinterpret_cast<const char*>(sqlite3_column_blob(pImpl->ptrStmt.get(), idx));
+    auto ptr = static_cast<const char*>(sqlite3_column_blob(pImpl->ptrStmt.get(), idx));
     auto sz  = sqlite3_column_bytes(pImpl->ptrStmt.get(), idx);
     return {ptr, ptr + sz};
 }
