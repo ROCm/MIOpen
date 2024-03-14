@@ -39,9 +39,11 @@ namespace miopen {
 
 extern "C" miopenStatus_t miopenCreateSoftmaxDescriptor(miopenSoftmaxDescriptor_t* activDesc)
 {
-
     MIOPEN_LOG_FUNCTION(activDesc);
-    return miopen::try_([&] { miopen::deref(activDesc) = new miopen::SoftmaxDescriptor(); });
+    return miopen::try_([&] {
+        auto& desc = miopen::deref(activDesc);
+        desc = new miopen::SoftmaxDescriptor();
+    });
 }
 
 extern "C" miopenStatus_t miopenSetSoftmaxDescriptor(miopenSoftmaxDescriptor_t activDesc,
