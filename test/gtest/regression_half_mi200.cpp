@@ -109,6 +109,6 @@ using namespace regression_half_mi200;
 
 TEST_P(ConfigWithHalf_regression_half_mi200, FloatTest_regression_half_mi200) { Run2dDriver(); };
 
-INSTANTIATE_TEST_SUITE_P(RegressionHalfVega,
+INSTANTIATE_TEST_SUITE_P(RegressionHalfMi200,
                          ConfigWithHalf_regression_half_mi200,
                          testing::Values(GetTestCases()));

@@ -113,6 +113,6 @@ using namespace regression_issue_2012;
 
 TEST_P(ConfigWithFloat_regression_issue_2012, FloatTest_regression_issue_2012) { Run2dDriver(); };
 
-INSTANTIATE_TEST_SUITE_P(RegressionHalfVega,
+INSTANTIATE_TEST_SUITE_P(RegressionIssue2012,
                          ConfigWithFloat_regression_issue_2012,
                          testing::Values(GetTestCases()));
