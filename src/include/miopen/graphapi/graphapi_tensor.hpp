@@ -121,7 +121,9 @@ class TensorBuilder
 public:
     TensorBuilder& setDataType(miopenDataType_t dataType) &;
     TensorBuilder& setDim(const std::vector<int64_t>& dimensions) &;
+    TensorBuilder& setDim(std::vector<int64_t>&& dimensions) &;
     TensorBuilder& setStride(const std::vector<int64_t>& strides) &;
+    TensorBuilder& setStride(std::vector<int64_t>&& strides) &;
     TensorBuilder& setId(int64_t id) &;
     TensorBuilder& setVirtual(bool isVirtual) &;
 
@@ -133,9 +135,17 @@ public:
     {
         return std::move(setDim(dimensions));
     }
+    TensorBuilder&& setDim(std::vector<int64_t>&& dimensions) &&
+    {
+        return std::move(setDim(std::move(dimensions)));
+    }
     TensorBuilder&& setStride(const std::vector<int64_t>& strides) &&
     {
         return std::move(setStride(strides));
+    }
+    TensorBuilder&& setStride(std::vector<int64_t>&& strides) &&
+    {
+        return std::move(setStride(std::move(strides)));
     }
     TensorBuilder&& setId(int64_t id) && { return std::move(setId(id)); }
     TensorBuilder&& setVirtual(bool isVirtual) && { return std::move(setVirtual(isVirtual)); }
@@ -144,15 +154,11 @@ public:
     Tensor build() &&;
 
 private:
-    std::vector<int64_t> mDimensions;
-    std::vector<int64_t> mStrides;
-    int64_t mUniqueId          = 0;
-    bool mVirtual              = false;
-    miopenDataType_t mDataType = miopenFloat;
-    bool mUniqueIdSet          = false;
-    bool mDataTypeSet          = false;
-    bool mDimensionsSet        = false;
-    bool mStridesSet           = false;
+    Tensor mTensor;
+    bool mUniqueIdSet   = false;
+    bool mDataTypeSet   = false;
+    bool mDimensionsSet = false;
+    bool mStridesSet    = false;
 };
 
 class BackendTensorDescriptor : public BackendDescriptor
