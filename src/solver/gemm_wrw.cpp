@@ -3,18 +3,13 @@
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/gemm_v2.hpp>
+#include <miopen/solver/gemm_common.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/util.hpp>
 
 #include <boost/range/adaptors.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
-
-// copy from convolution.cpp
-// Workaround for issue 1430.
-// Vega20 fails to access GPU memory larger than the return value of GetMaxMemoryAllocSize() of
-// Vega10
-#define MAX_MEM_ALLOC_SZ (std::min(handle.GetMaxMemoryAllocSize(), size_t(7287183769)))
 
 namespace miopen {
 namespace solver {
@@ -23,12 +18,13 @@ namespace conv {
 using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_USE_GEMM
+
 #ifdef CPPCHECK
 // Keep the value unknown in cppcheck since this can differ between opencl and hip
-static bool IsBF16PathValid;
+static bool IsBF16Supported;
 static bool IsFp16Supported;
 #else
-static const bool IsBF16PathValid = MIOPEN_USE_ROCBLAS;
+static const bool IsBF16Supported = MIOPEN_USE_ROCBLAS;
 static const bool IsFp16Supported = MIOPEN_USE_ROCBLAS;
 #endif
 
@@ -109,7 +105,7 @@ bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx, const ProblemDescrip
         return false;
     }
     return problem.IsDirectionBackwardWrW() && problem.IsLayoutDefault() &&
-           !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsBF16PathValid) &&
+           !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsBF16Supported) &&
            !(IsAnyBufferFp16(xDesc, dyDesc, dwDesc) && !IsFp16Supported);
 #else
     std::ignore = ctx;
@@ -376,9 +372,12 @@ size_t GemmWrwUniversal::GetWorkspaceSize(const ExecutionContext& context,
                                          std::multiplies<std::size_t>()) *
                          conv.group_count;
 
-    if(ws_size > MAX_MEM_ALLOC_SZ)
+    if(ws_size > gemm::MaxMemAllocSz(handle, problem))
+    {
+        MIOPEN_LOG_I2("GemmWrwUniversal: " << ws_size << " > "
+                                           << gemm::MaxMemAllocSz(handle, problem));
         return 0;
-
+    }
     return ws_size;
 #else
     std::ignore = context;

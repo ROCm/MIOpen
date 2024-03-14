@@ -35,17 +35,12 @@
 #include <miopen/tensor_ops.hpp>
 #include <miopen/util.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/solver/gemm_common.hpp>
 
 #include <boost/any.hpp>
 #include <boost/range/adaptors.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
-
-// copy from convolution.cpp
-// Workaround for issue 1430.
-// Vega20 fails to access GPU memory larger than the return value of GetMaxMemoryAllocSize() of
-// Vega10
-#define MAX_MEM_ALLOC_SZ (std::min(handle.GetMaxMemoryAllocSize(), size_t(7287183769)))
 
 namespace miopen {
 namespace solver {
@@ -228,9 +223,10 @@ size_t GemmBwd1x1_stride2::GetWorkspaceSize(const ExecutionContext& context,
     const auto dy_t_size  = dyDesc.GetElementSize() * GetTypeSize(dyDesc.GetType());
     const auto gemm_trans = dx_t_size + dy_t_size;
 
-    if(gemm_trans > MAX_MEM_ALLOC_SZ)
+    if(gemm_trans > gemm::MaxMemAllocSz(handle, problem))
     {
-        MIOPEN_LOG_I2(gemm_trans << " > " << MAX_MEM_ALLOC_SZ);
+        MIOPEN_LOG_I2("GemmBwd1x1_stride2: " << gemm_trans << " > "
+                                             << gemm::MaxMemAllocSz(handle, problem));
         return 0;
     }
     return gemm_trans;
@@ -659,9 +655,10 @@ size_t GemmBwdRest::GetWorkspaceSize(const ExecutionContext& context,
                                            std::multiplies<std::size_t>()) *
                            GetTypeSize(dyDesc.GetType()) * conv.group_count;
 
-    if(gemm_size > MAX_MEM_ALLOC_SZ)
+    if(gemm_size > gemm::MaxMemAllocSz(handle, problem))
     {
-        MIOPEN_LOG_I2(gemm_size << " > " << MAX_MEM_ALLOC_SZ);
+        MIOPEN_LOG_I2("GemmBwdRest: " << gemm_size << " > "
+                                      << gemm::MaxMemAllocSz(handle, problem));
         return 0;
     }
     return gemm_size;

@@ -35,6 +35,7 @@
 #include <miopen/tensor_ops.hpp>
 #include <miopen/util.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/solver/gemm_common.hpp>
 
 #include <boost/any.hpp>
 #include <boost/range/adaptors.hpp>
@@ -225,12 +226,6 @@ float GemmFwdBase::GetWti(const ExecutionContext&, const ProblemDescription& pro
     return wti;
 }
 
-// copy from convolution.cpp
-// Workaround for issue 1430.
-// Vega20 fails to access GPU memory larger than the return value of GetMaxMemoryAllocSize() of
-// Vega10
-#define MAX_MEM_ALLOC_SZ (std::min(handle.GetMaxMemoryAllocSize(), size_t(7287183769)))
-
 size_t GemmFwd1x1_0_2::GetWorkspaceSize(const ExecutionContext& context,
                                         const ProblemDescription& problem) const
 {
@@ -256,9 +251,10 @@ size_t GemmFwd1x1_0_2::GetWorkspaceSize(const ExecutionContext& context,
     const auto y_t_size   = yDesc.GetElementSize() * GetTypeSize(yDesc.GetType());
     const auto gemm_trans = x_t_size + y_t_size;
 
-    if(gemm_trans > MAX_MEM_ALLOC_SZ)
+    if(gemm_trans > gemm::MaxMemAllocSz(handle, problem))
     {
-        MIOPEN_LOG_I2(gemm_trans << " > " << MAX_MEM_ALLOC_SZ);
+        MIOPEN_LOG_I2("GemmFwd1x1_0_2:" << gemm_trans << " > "
+                                        << gemm::MaxMemAllocSz(handle, problem));
         return 0;
     }
     return gemm_trans;
@@ -539,9 +535,10 @@ size_t GemmFwd1x1_0_1_int8::GetWorkspaceSize(const ExecutionContext& context,
                                          std::multiplies<std::size_t>()) *
                          GetTypeSize(wDesc.GetType()) * conv.group_count;
 
-    if(ws_size > MAX_MEM_ALLOC_SZ)
+    if(ws_size > gemm::MaxMemAllocSz(handle, problem))
     {
-        MIOPEN_LOG_I2(ws_size << " > " << MAX_MEM_ALLOC_SZ);
+        MIOPEN_LOG_I2("GemmFwd1x1_0_1_int8:" << ws_size << " > "
+                                             << gemm::MaxMemAllocSz(handle, problem));
         return 0;
     }
     return ws_size;
@@ -999,9 +996,9 @@ size_t GemmFwdRest::GetWorkspaceSize(const ExecutionContext& context,
 
     const auto ws_sz = (wDesc.GetType() == miopenInt8 ? 2 * workspace_size : workspace_size);
 
-    if(ws_sz > MAX_MEM_ALLOC_SZ)
+    if(ws_sz > gemm::MaxMemAllocSz(handle, problem))
     {
-        MIOPEN_LOG_I2(ws_sz << " > " << MAX_MEM_ALLOC_SZ);
+        MIOPEN_LOG_I2("GemmFwdRest: " << ws_sz << " > " << gemm::MaxMemAllocSz(handle, problem));
         return 0;
     }
     return ws_sz;
