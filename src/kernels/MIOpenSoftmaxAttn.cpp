@@ -34,7 +34,7 @@
 
 namespace {
 constexpr float max_op(float a, float b) { return a > b ? a : b; };
-constexpr float max_abs_op(float a, float b) { return max_op(abs(a), abs(b)); };
+constexpr float max_abs_op(float a, float b) { return max_op(fabsf(a), fabsf(b)); };
 constexpr float plus_op(float a, float b) { return a + b; };
 constexpr float identety_op(float a) { return a; };
 } // namespace
@@ -206,7 +206,7 @@ extern "C" __global__ void SoftMaxWarp(const float* in,
 
         float r_max = reductionFullWarp<warpSize>(local_val, laneId, max_op);
 
-        local_val = (laneId < seq_len) ? exp(local_val - r_max) : 0;
+        local_val = (laneId < seq_len) ? expf(local_val - r_max) : 0;
 
         float r_sum = 1.f / reductionFullWarp<warpSize>(local_val, laneId, plus_op);
 
@@ -262,7 +262,7 @@ extern "C" __global__ void SoftMaxBlock(const float* in,
             (lid < seq_len) ? (*line) * descaler : std::numeric_limits<float>::lowest();
         float r_max = reductionBlock<NumWarps>(local_val, max_op, lid, laneId, warpId);
 
-        local_val = (lid < seq_len) ? exp(local_val - r_max) : 0;
+        local_val = (lid < seq_len) ? expf(local_val - r_max) : 0;
 
         float r_sum = 1.f / reductionBlock<NumWarps>(local_val, plus_op, lid, laneId, warpId);
 
@@ -330,14 +330,14 @@ extern "C" __global__ void SoftMaxCommon(const float* in,
                                 0,
                                 seq_len,
                                 plus_op,
-                                [r_max](float x) { return exp(x - r_max); },
+                                [r_max](float x) { return expf(x - r_max); },
                                 lid,
                                 laneId,
                                 warpId);
 
         for(uint32_t loop_lid = lid; loop_lid < seq_len; loop_lid += blockDim.x)
         {
-            float local_val = exp(line[loop_lid] - r_max) * r_sum;
+            float local_val = expf(line[loop_lid] - r_max) * r_sum;
             res[loop_lid]   = local_val;
             r_Amax          = max_abs_op(r_Amax, local_val);
         }
