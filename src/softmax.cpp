@@ -54,7 +54,8 @@ extern "C" miopenStatus_t miopenSetSoftmaxDescriptor(miopenSoftmaxDescriptor_t s
 {
 
     MIOPEN_LOG_FUNCTION(softmaxDesc, alpha, beta, algorithm, mode);
-    return miopen::try_([&] { miopen::deref(softmaxDesc).SetParams(alpha, beta, algorithm, mode); });
+    return miopen::try_(
+        [&] { miopen::deref(softmaxDesc).SetParams(alpha, beta, algorithm, mode); });
 }
 
 std::ostream& operator<<(std::ostream& stream, const SoftmaxDescriptor& x)

@@ -490,7 +490,7 @@ Problem::FindSolutionsImpl(Handle& handle,
     {
         if(!solver->IsApplicable(ctx, problem_description))
         {
-            MIOPEN_LOG_I2("solver " << solver->SolverDbId() << "is not applicable for the given problem description");
+            MIOPEN_LOG_I2(solver->SolverDbId() << ": Not applicable");
             continue;
         }
 

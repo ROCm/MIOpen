@@ -5310,10 +5310,10 @@ typedef enum
     miopenTensorConvolutionX      = 1,
     miopenTensorConvolutionW      = 2,
     miopenTensorConvolutionY      = 3,
-    miopenTensorSoftmaxX  = 4,
-    miopenTensorSoftmaxY  = 5,
-    miopenTensorSoftmaxDX = 6,
-    miopenTensorSoftmaxDY = 7,
+    miopenTensorSoftmaxX          = 4,
+    miopenTensorSoftmaxY          = 5,
+    miopenTensorSoftmaxDX         = 6,
+    miopenTensorSoftmaxDY         = 7,
 
 #ifdef MIOPEN_BETA_API
     miopenTensorActivationX  = 8,
