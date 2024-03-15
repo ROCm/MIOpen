@@ -40,13 +40,12 @@ void SetupEnvVar(void)
     miopen::UpdateEnvVar(ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string("GemmBwdRest"));
 }
 
-void GetArgs(const std::string& param, std::vector<std::string>& tokens)
+std::vector<std::string> GetArgs(const std::string& param)
 {
     std::stringstream ss(param);
     std::istream_iterator<std::string> begin(ss);
     std::istream_iterator<std::string> end;
-    while(begin != end)
-        tokens.push_back(*begin++);
+    return {begin, end};
 }
 
 std::vector<std::string> GetTestCases(void)
@@ -58,7 +57,7 @@ std::vector<std::string> GetTestCases(void)
 
     // clang-format off
     return std::vector<std::string>{
-        {cmd + conv_verbose_b + " --input 64 256 28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4"}
+        {cmd + conv_verbose_b + " --cmode conv --pmode default --group-count 1 --batch_size 2 --input_channels 64 --output_channels 32 --spatial_dim_elements 128 128 128 --filter_dims 3 3 3 --pads_strides_dilations 1 1 1 1 1 1 1 1 1 --trans_output_pads 0 0 0 --in_layout NCDHW --fil_layout NCDHW --out_layout NCDHW"}
     };
     // clang-format on
 }
@@ -89,8 +88,7 @@ void Run2dDriver(void)
 
     for(const auto& test_value : params)
     {
-        std::vector<std::string> tokens;
-        GetArgs(test_value, tokens);
+        std::vector<std::string> tokens = GetArgs(test_value);
         std::vector<const char*> ptrs;
 
         std::transform(tokens.begin(), tokens.end(), std::back_inserter(ptrs), [](const auto& str) {

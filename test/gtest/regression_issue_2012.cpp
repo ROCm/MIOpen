@@ -40,13 +40,12 @@ void SetupEnvVar(void)
     miopen::UpdateEnvVar(ENV(MIOPEN_FIND_MODE), std::string("normal"));
 }
 
-void GetArgs(const std::string& param, std::vector<std::string>& tokens)
+std::vector<std::string> GetArgs(const std::string& param)
 {
     std::stringstream ss(param);
     std::istream_iterator<std::string> begin(ss);
     std::istream_iterator<std::string> end;
-    while(begin != end)
-        tokens.push_back(*begin++);
+    return {begin, end};
 }
 
 std::vector<std::string> GetTestCases(void)
@@ -93,8 +92,7 @@ void Run2dDriver(void)
 
     for(const auto& test_value : params)
     {
-        std::vector<std::string> tokens;
-        GetArgs(test_value, tokens);
+        std::vector<std::string> tokens = GetArgs(test_value);
         std::vector<const char*> ptrs;
 
         std::transform(tokens.begin(), tokens.end(), std::back_inserter(ptrs), [](const auto& str) {
