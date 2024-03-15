@@ -37,24 +37,24 @@
 
 namespace miopen {
 
-extern "C" miopenStatus_t miopenCreateSoftmaxDescriptor(miopenSoftmaxDescriptor_t* activDesc)
+extern "C" miopenStatus_t miopenCreateSoftmaxDescriptor(miopenSoftmaxDescriptor_t* softmaxDesc)
 {
-    MIOPEN_LOG_FUNCTION(activDesc);
+    MIOPEN_LOG_FUNCTION(softmaxDesc);
     return miopen::try_([&] {
-        auto& desc = miopen::deref(activDesc);
+        auto& desc = miopen::deref(softmaxDesc);
         desc       = new miopen::SoftmaxDescriptor();
     });
 }
 
-extern "C" miopenStatus_t miopenSetSoftmaxDescriptor(miopenSoftmaxDescriptor_t activDesc,
+extern "C" miopenStatus_t miopenSetSoftmaxDescriptor(miopenSoftmaxDescriptor_t softmaxDesc,
                                                      float alpha,
                                                      float beta,
                                                      miopenSoftmaxAlgorithm_t algorithm,
                                                      miopenSoftmaxMode_t mode)
 {
 
-    MIOPEN_LOG_FUNCTION(activDesc, alpha, beta, algorithm, mode);
-    return miopen::try_([&] { miopen::deref(activDesc).SetParams(alpha, beta, algorithm, mode); });
+    MIOPEN_LOG_FUNCTION(softmaxDesc, alpha, beta, algorithm, mode);
+    return miopen::try_([&] { miopen::deref(softmaxDesc).SetParams(alpha, beta, algorithm, mode); });
 }
 
 std::ostream& operator<<(std::ostream& stream, const SoftmaxDescriptor& x)

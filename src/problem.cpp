@@ -478,8 +478,8 @@ Problem::FindSolutionsImpl(Handle& handle,
 
     const auto algo = AlgorithmName{"Softmax"};
 
-    solver::softmax::AttnSoftmax attnSoftmaxSolver;
-    solver::softmax::Softmax regularSoftmaxSolver;
+    static solver::softmax::AttnSoftmax attnSoftmaxSolver;
+    static solver::softmax::Softmax regularSoftmaxSolver;
 
     std::vector<solver::softmax::SoftmaxSolver*> solvers;
 
@@ -490,6 +490,7 @@ Problem::FindSolutionsImpl(Handle& handle,
     {
         if(!solver->IsApplicable(ctx, problem_description))
         {
+            MIOPEN_LOG_I2("solver " << solver->SolverDbId() << "is not applicable for the given problem description");
             continue;
         }
 
@@ -497,7 +498,7 @@ Problem::FindSolutionsImpl(Handle& handle,
 
         /// \todo time measurement will be done later. For now we set less time for attention
         /// softmax and slightly bigger for regular
-        solution.SetTime(solver == &attnSoftmaxSolver ? 0.0f : 1.0f);
+        solution.SetTime(solver == &attnSoftmaxSolver ? 1.0f : 2.0f);
         solution.SetWorkspaceSize(solver->GetWorkspaceSize(ctx, problem_description));
         solution.SetSolver(solver->SolverDbId());
         solution.SetProblem({*this});

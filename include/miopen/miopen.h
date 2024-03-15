@@ -5310,19 +5310,20 @@ typedef enum
     miopenTensorConvolutionX      = 1,
     miopenTensorConvolutionW      = 2,
     miopenTensorConvolutionY      = 3,
+    miopenTensorSoftmaxX  = 4,
+    miopenTensorSoftmaxY  = 5,
+    miopenTensorSoftmaxDX = 6,
+    miopenTensorSoftmaxDY = 7,
+
 #ifdef MIOPEN_BETA_API
-    miopenTensorActivationX  = 4,
-    miopenTensorActivationY  = 5,
-    miopenTensorActivationDX = 6,
-    miopenTensorActivationDY = 7,
-    miopenTensorBiasX        = 8,
-    miopenTensorBiasY        = 9,
-    miopenTensorBias         = 10,
+    miopenTensorActivationX  = 8,
+    miopenTensorActivationY  = 9,
+    miopenTensorActivationDX = 10,
+    miopenTensorActivationDY = 11,
+    miopenTensorBiasX        = 12,
+    miopenTensorBiasY        = 13,
+    miopenTensorBias         = 14,
 #endif
-    miopenTensorSoftmaxX  = 11,
-    miopenTensorSoftmaxY  = 12,
-    miopenTensorSoftmaxDX = 13,
-    miopenTensorSoftmaxDY = 14,
 
 } miopenTensorArgumentId_t;
 
