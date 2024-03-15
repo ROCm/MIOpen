@@ -37,7 +37,7 @@ namespace regression_half_mi200 {
 void SetupEnvVar(void)
 {
     miopen::UpdateEnvVar(ENV(MIOPEN_FIND_MODE), std::string("normal"));
-    miopen::UpdateEnvVar(ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string("1"));
+    miopen::UpdateEnvVar(ENV(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS), true);
     miopen::UpdateEnvVar(ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
                          std::string("ConvHipImplicitGemmForwardV4R4Xdlops"));
 }
@@ -73,7 +73,6 @@ class ConfigWithHalf_regression_half_mi200 : public testing::TestWithParam<std::
 
 bool IsTestSupportedForDevice()
 {
-    using namespace miopen::debug;
     using e_mask = enabled<Gpu::Default>;
     using d_mask = disabled<Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();

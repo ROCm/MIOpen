@@ -36,7 +36,7 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)
 namespace regression_issue_2012 {
 void SetupEnvVar(void)
 {
-    miopen::UpdateEnvVar(ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string("1"));
+    miopen::UpdateEnvVar(ENV(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS), true);
     miopen::UpdateEnvVar(ENV(MIOPEN_FIND_MODE), std::string("normal"));
 }
 
@@ -77,7 +77,6 @@ class ConfigWithFloat_regression_issue_2012 : public testing::TestWithParam<std:
 
 bool IsTestSupportedForDevice()
 {
-    using namespace miopen::debug;
     using e_mask = enabled<Gpu::Default>;
     using d_mask = disabled<Gpu::gfx900, Gpu::gfx906, Gpu::gfx90A>;
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();

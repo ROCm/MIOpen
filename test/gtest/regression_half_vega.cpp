@@ -71,7 +71,6 @@ class ConfigWithHalf_regression_half_vega : public testing::TestWithParam<std::v
 
 bool IsTestSupportedForDevice()
 {
-    using namespace miopen::debug;
     using e_mask = enabled<Gpu::Default>;
     using d_mask = disabled<Gpu::gfx908, Gpu::gfx90A>;
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
