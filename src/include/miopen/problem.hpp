@@ -31,6 +31,7 @@
 #include <miopen/activ.hpp>
 #include <miopen/allocator.hpp>
 #include <miopen/convolution.hpp>
+#include <miopen/mha/mha_descriptor.hpp>
 #include <miopen/object.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/tensor.hpp>
@@ -65,7 +66,7 @@ struct BiasDescriptor
 
 // The order of types is important for deserialization and should be preserved between releases.
 using OperatorDescriptor =
-    boost::variant<ConvolutionDescriptor, ActivationDescriptor, BiasDescriptor>;
+    boost::variant<ConvolutionDescriptor, ActivationDescriptor, BiasDescriptor, MHADescriptor>;
 
 struct Problem
 {
@@ -99,6 +100,7 @@ struct Problem
 
     conv::ProblemDescription AsConvolution() const;
     activ::ProblemDescription AsActivation() const;
+    mha::ProblemDescription AsMHA() const;
 
     [[nodiscard]] miopenTensorArgumentId_t GetInputId() const;
     [[nodiscard]] miopenTensorArgumentId_t GetOutputId() const;
@@ -154,6 +156,12 @@ private:
                                             std::size_t max_solutions,
                                             const Buffers& buffers,
                                             const ConvolutionDescriptor& conv_desc) const;
+
+    std::vector<Solution> FindSolutionsImpl(Handle& handle,
+                                            const FindOptions& options,
+                                            std::size_t max_solutions,
+                                            const Buffers& buffers,
+                                            const MHADescriptor& mha_desc) const;
 
     void LogDriverCommand(const ConvolutionDescriptor& conv_desc) const;
     void LogDriverCommand(const ActivationDescriptor& descriptor) const;

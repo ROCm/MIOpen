@@ -34,7 +34,6 @@ namespace mha {
 // Are we going to use backend descriptors? If yes just chnage the typedef
 typedef TensorDescriptor MHATensorDescriptor;
 
-
 struct MHAInputDescsForward
 {
     //input tensors

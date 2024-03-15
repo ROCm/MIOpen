@@ -346,6 +346,12 @@ MIOPEN_DECLARE_OBJECT(miopenDropoutDescriptor);
  */
 MIOPEN_DECLARE_OBJECT(miopenReduceTensorDescriptor);
 
+/*! @ingroup mha
+ * @brief Creates the miopenMHADescriptor_t type
+ */
+MIOPEN_DECLARE_OBJECT(miopenMHADescriptor);
+
+
 /*! @ingroup tensor
  * @enum miopenDataType_t
  * MIOpen floating point datatypes. Both 32-bit and 16-bit floats are supported in MIOpen.
@@ -5314,6 +5320,28 @@ typedef enum
     miopenTensorBiasY        = 9,
     miopenTensorBias         = 10,
 #endif
+    // MHA Forward op input tensors
+    miopenTensorMHAK        = 15,
+    miopenTensorMHAQ        = 16,
+    miopenTensorMHAV        = 17,
+
+    miopenTensorMHADescaleK = 18,
+    miopenTensorMHADescaleQ = 19,
+    miopenTensorMHADescaleV = 20,
+    miopenTensorMHADescaleS = 21,
+    miopenTensorMHAScaleS   = 22,
+    miopenTensorMHAScaleO   = 23,
+    miopenTensorMHADropoutSeed   = 24,
+    miopenTensorMHADropoutOffset = 25,
+
+    // MHA Forward op output tensors
+    miopenTensorMHAO     = 26,
+    miopenTensorMHAAmaxO = 27,
+    miopenTensorMHAAmaxS = 28,
+
+    miopenTensorMHAM     = 29,
+    miopenTensorMHAZInv  = 30,
+
 } miopenTensorArgumentId_t;
 
 /*! @enum miopenTensorArgumentId_t
@@ -5335,6 +5363,10 @@ typedef enum
 MIOPEN_EXPORT miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
                                                      miopenConvolutionDescriptor_t operatorDesc,
                                                      miopenProblemDirection_t direction);
+
+MIOPEN_EXPORT miopenStatus_t miopenCreateMHAProblem(miopenProblem_t* problem,
+                                                    miopenMHADescriptor_t operatorDesc,
+                                                    miopenProblemDirection_t direction);                                                     
 
 /*! @brief Destroys a problem object.
  *

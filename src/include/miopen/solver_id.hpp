@@ -54,7 +54,8 @@ enum class Primitive
     Pooling,
     Normalization,
     Reduce,
-    Cat
+    Cat,
+    MHA
 };
 
 struct MIOPEN_EXPORT Id

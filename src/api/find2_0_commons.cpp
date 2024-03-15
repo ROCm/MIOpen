@@ -89,6 +89,14 @@ miopenStatus_t miopenCreateBiasProblem(miopenProblem_t* problem, miopenProblemDi
     });
 }
 
+miopenStatus_t miopenCreateMHAProblem(miopenProblem_t* problem,
+                                          miopenMHADescriptor_t operatorDesc,
+                                          miopenProblemDirection_t direction)
+{
+    MIOPEN_LOG_FUNCTION(problem, direction);
+    return MakeProblem(problem, operatorDesc, direction);
+}
+
 miopenStatus_t miopenFuseProblems(miopenProblem_t problem1, miopenProblem_t problem2)
 {
     MIOPEN_LOG_FUNCTION(problem1, problem2);
@@ -263,6 +271,23 @@ inline std::ostream& operator<<(std::ostream& stream, const miopenTensorArgument
     case miopenTensorBias: stream << "Bias"; break;
     case miopenTensorBiasX: stream << "BiasX"; break;
     case miopenTensorBiasY: stream << "BiasY"; break;
+    case miopenTensorMHAK: stream << "MHAK"; break;
+    case miopenTensorMHAQ: stream << "MHAQ"; break;
+    case miopenTensorMHAV: stream << "MHAV"; break;
+    case miopenTensorMHADescaleK: stream << "MHADescaleK"; break;
+    case miopenTensorMHADescaleQ: stream << "DescaleQ"; break;
+    case miopenTensorMHADescaleV: stream << "DescaleV"; break;
+    case miopenTensorMHADescaleS: stream << "MHADescaleS"; break;
+    case miopenTensorMHAScaleS: stream << "MHAScaleS"; break;
+    case miopenTensorMHAScaleO: stream << "MHAScaleO"; break;
+    case miopenTensorMHADropoutSeed: stream << "MHADropoutSeed"; break;
+    case miopenTensorMHADropoutOffset: stream << "MHADropoutOffset"; break;
+    case miopenTensorMHAO: stream << "MHAO"; break;
+    case miopenTensorMHAAmaxO: stream << "MHAAmaxO"; break;
+    case miopenTensorMHAAmaxS: stream << "MHAAmaxS"; break;
+    case miopenTensorMHAM: stream << "MHAM"; break;
+    case miopenTensorMHAZInv: stream << "MHAZInv"; break;
+
     case miopenTensorArgumentIdInvalid: stream << "Invalid"; break;
     }
 
