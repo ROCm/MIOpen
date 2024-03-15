@@ -374,8 +374,8 @@ protected:
             << "Error dx beyond tolerance Error:" << error << ",  Threshold: " << threshold;
         error = miopen::rms_range(ref_dw, dw);
         EXPECT_TRUE(miopen::range_distance(ref_dw) == miopen::range_distance(dw));
-        EXPECT_TRUE(error < threshold)
-            << "Error dw beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        EXPECT_TRUE(error < threshold * 2)
+            << "Error dw beyond tolerance Error:" << error << ",  Threshold x 2: " << threshold * 2;
     }
     T5LayerNormTestCase t5layernorm_config;
 

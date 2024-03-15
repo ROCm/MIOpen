@@ -266,6 +266,15 @@ T5LayernormBackward::GetSolution(const ExecutionContext& context,
                     get_parallelism_size(reqd_work_item_cnt, inner_size, outer_size);
 
                 auto elapsed = 0.f;
+                HipEventPtr start;
+                HipEventPtr stop;
+
+                if(handle_.IsProfilingEnabled())
+                {
+                    start = miopen::make_hip_event();
+                    stop  = miopen::make_hip_event();
+                    hipEventRecord(start.get(), handle_.GetStream());
+                }
 
                 kernel(params.dy,
                        params.x,
@@ -275,9 +284,6 @@ T5LayernormBackward::GetSolution(const ExecutionContext& context,
                        inner_size,
                        static_cast<bool>(params.mode % 2));
 
-                if(handle_.IsProfilingEnabled())
-                    elapsed = handle_.GetKernelTime();
-
                 weight_parallel_kernel(params.dy,
                                        params.x,
                                        params.rstd,
@@ -286,18 +292,13 @@ T5LayernormBackward::GetSolution(const ExecutionContext& context,
                                        inner_size,
                                        parallelism_size);
 
-                if(handle_.IsProfilingEnabled())
-                {
-                    elapsed += handle_.GetKernelTime();
-                    handle_.ResetKernelTime();
-                    handle_.AccumKernelTime(elapsed);
-                };
-
                 weight_kernel(params.workspace, params.dw, inner_size, parallelism_size);
 
                 if(handle_.IsProfilingEnabled())
                 {
-                    elapsed += handle_.GetKernelTime();
+                    hipEventRecord(stop.get(), handle_.GetStream());
+                    hipEventSynchronize(stop.get());
+                    hipEventElapsedTime(&elapsed, start.get(), stop.get());
                     handle_.ResetKernelTime();
                     handle_.AccumKernelTime(elapsed);
                 };
@@ -320,6 +321,15 @@ T5LayernormBackward::GetSolution(const ExecutionContext& context,
                 auto inner_size = dims[dims.size() - 1];
 
                 auto elapsed = 0.f;
+                HipEventPtr start;
+                HipEventPtr stop;
+
+                if(handle_.IsProfilingEnabled())
+                {
+                    start = miopen::make_hip_event();
+                    stop  = miopen::make_hip_event();
+                    hipEventRecord(start.get(), handle_.GetStream());
+                }
 
                 kernel(params.dy,
                        params.x,
@@ -329,14 +339,13 @@ T5LayernormBackward::GetSolution(const ExecutionContext& context,
                        inner_size,
                        static_cast<bool>(params.mode % 2));
 
-                if(handle_.IsProfilingEnabled())
-                    elapsed = handle_.GetKernelTime();
-
                 weight_kernel(params.dy, params.x, params.rstd, params.dw, outer_size, inner_size);
 
                 if(handle_.IsProfilingEnabled())
                 {
-                    elapsed += handle_.GetKernelTime();
+                    hipEventRecord(stop.get(), handle_.GetStream());
+                    hipEventSynchronize(stop.get());
+                    hipEventElapsedTime(&elapsed, start.get(), stop.get());
                     handle_.ResetKernelTime();
                     handle_.AccumKernelTime(elapsed);
                 };

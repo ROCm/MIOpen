@@ -264,15 +264,27 @@ int main(int argc, char* argv[])
     }
     else if(base_arg == "addlayernorm")
     {
-        drv = new LayerNormDriver<float, float>();
+        drv = new AddLayerNormDriver<float, float>();
     }
     else if(base_arg == "addlayernormfp16")
     {
-        drv = new LayerNormDriver<float16, float>();
+        drv = new AddLayerNormDriver<float16, float>();
     }
     else if(base_arg == "addlayernormbfp16")
     {
-        drv = new LayerNormDriver<bfloat16, float>();
+        drv = new AddLayerNormDriver<float, float>();
+    }
+    else if(base_arg == "t5layernorm")
+    {
+        drv = new T5LayerNormDriver<float, float>();
+    }
+    else if(base_arg == "t5layernormfp16")
+    {
+        drv = new T5LayerNormDriver<float16, float>();
+    }
+    else if(base_arg == "t5layernormbfp16")
+    {
+        drv = new T5LayerNormDriver<bfloat16, float>();
     }
     else
     {

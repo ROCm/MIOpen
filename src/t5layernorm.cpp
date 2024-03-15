@@ -109,7 +109,7 @@ miopenStatus_t T5LayerNormBackward(Handle& handle,
                                    miopenNormMode_t mode)
 {
     const auto problem =
-        layernorm::ProblemDescription{mode, dyDesc, xDesc, weightDesc, rstdDesc, dxDesc, dxDesc};
+        layernorm::ProblemDescription{mode, dyDesc, xDesc, weightDesc, rstdDesc, dxDesc, dwDesc};
 
     const auto invoke_params = [&]() {
         auto tmp           = layernorm::T5BwdInvokeParams{};

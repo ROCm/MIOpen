@@ -118,7 +118,7 @@ int32_t mloT5LayerNormBackwardRunHost(miopenTensorDescriptor_t dyDesc,
 
         Tcheck ds    = sum;
         Tcheck s     = static_cast<Tcheck>(1) / inner_size;
-        Tcheck prstd = CVT_FLOAT2ACCUM(rstdhost[o]);
+        Tcheck prstd = rstdhost[o];
         Tcheck a     = ds * prstd * prstd * prstd * s;
 
         for(int32_t i = 0; i < inner_size; i++)
@@ -175,6 +175,9 @@ public:
         miopenCreateTensorDescriptor(&weightDesc);
         miopenCreateTensorDescriptor(&yDesc);
         miopenCreateTensorDescriptor(&rstdDesc);
+        miopenCreateTensorDescriptor(&dyDesc);
+        miopenCreateTensorDescriptor(&dxDesc);
+        miopenCreateTensorDescriptor(&dwDesc);
 
         data_type = miopen_type<Tgpu>{};
     }
@@ -204,6 +207,9 @@ public:
         miopenDestroyTensorDescriptor(weightDesc);
         miopenDestroyTensorDescriptor(yDesc);
         miopenDestroyTensorDescriptor(rstdDesc);
+        miopenDestroyTensorDescriptor(dyDesc);
+        miopenDestroyTensorDescriptor(dxDesc);
+        miopenDestroyTensorDescriptor(dwDesc);
     }
 
 private:
@@ -232,12 +238,12 @@ private:
     std::vector<Tgpu> x;
     std::vector<Tgpu> weight;
     std::vector<Tgpu> y;
-    std::vector<Tref> rstd;
+    std::vector<Tgpu> rstd;
     std::vector<Tref> yhost;
     std::vector<Tref> rstdhost;
-    std::vector<Tref> dy;
-    std::vector<Tref> dx;
-    std::vector<Tref> dw;
+    std::vector<Tgpu> dy;
+    std::vector<Tgpu> dx;
+    std::vector<Tgpu> dw;
     std::vector<Tref> dxhost;
     std::vector<Tref> dwhost;
 
@@ -266,11 +272,11 @@ int T5LayerNormDriver<Tgpu, Tref>::GetandSetData()
 
     std::vector<int> inner_len;
 
-    inner_len = {in_len.begin() + 1, in_len.end()};
+    inner_len = {in_len[in_len.size() - 1]};
 
     std::vector<int> outer_len;
 
-    outer_len = {in_len.begin(), in_len.end() - (in_len.size() - 1)};
+    outer_len = {in_len.begin(), in_len.end() - 1};
 
     SetTensorNd(xDesc, in_len, data_type);
     SetTensorNd(weightDesc, inner_len, data_type);
@@ -361,7 +367,7 @@ int T5LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     size_t dw_sz     = GetTensorSize(dwDesc);
 
     miopenGetT5LayerNormBackwardWorkspaceSize(
-        GetHandle(), mode, dyDesc, xDesc, weightDesc, rstdDesc, dxDesc, &ws_sizeInBytes);
+        GetHandle(), mode, dyDesc, xDesc, weightDesc, rstdDesc, dxDesc, dwDesc, &ws_sizeInBytes);
     if(ws_sizeInBytes == static_cast<size_t>(-1))
         return miopenStatusAllocFailed;
 
@@ -499,22 +505,22 @@ int T5LayerNormDriver<Tgpu, Tref>::RunBackwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenT5LayerNormForward(GetHandle(),
-                                 mode,
-                                 workspace_dev->GetMem(),
-                                 ws_sizeInBytes,
-                                 dyDesc,
-                                 dy_dev->GetMem(),
-                                 xDesc,
-                                 x_dev->GetMem(),
-                                 weightDesc,
-                                 weight_dev->GetMem(),
-                                 rstdDesc,
-                                 rstd_dev->GetMem(),
-                                 dxDesc,
-                                 dx_dev->GetMem(),
-                                 dwDesc,
-                                 dw_dev->GetMem());
+        miopenT5LayerNormBackward(GetHandle(),
+                                  mode,
+                                  workspace_dev->GetMem(),
+                                  ws_sizeInBytes,
+                                  dyDesc,
+                                  dy_dev->GetMem(),
+                                  xDesc,
+                                  x_dev->GetMem(),
+                                  weightDesc,
+                                  weight_dev->GetMem(),
+                                  rstdDesc,
+                                  rstd_dev->GetMem(),
+                                  dxDesc,
+                                  dx_dev->GetMem(),
+                                  dwDesc,
+                                  dw_dev->GetMem());
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);

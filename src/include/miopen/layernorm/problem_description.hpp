@@ -119,7 +119,7 @@ struct ProblemDescription : ProblemDescriptionBase
           rstdDesc(rstdDesc_),
           dyDesc(dyDesc_),
           dxDesc(dxDesc_),
-          dwDesc(dxDesc_)
+          dwDesc(dwDesc_)
     {
     }
 
