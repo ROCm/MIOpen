@@ -16,13 +16,13 @@ The MIOpen API library is structured as follows:
   * :doc:`Handle <../doxygen/html/group__handle>`
   * :doc:`Tensor <../doxygen/html/group__tensor>`
   * :doc:`Activation <../doxygen/html/group__activation>`
-  * :doc:`Convolutional <../doxygen/html/group__convolutions>`
+  * :doc:`Convolution <../doxygen/html/group__convolutions>`
   * :doc:`Recurrent neural networks (RNN) <../doxygen/html/group___r_n_n>`
   * :doc:`Batch normalization <../doxygen/html/group__batchnorm>`
   * :doc:`Local response normalization (LRN) <../doxygen/html/group___l_r_n>`
   * :doc:`Pooling <../doxygen/html/group__pooling>`
   * :doc:`Softmax <../doxygen/html/group__softmax>`
-  * :doc:`fusion layer <../doxygen/html/group___f_u_s_i_o_n>`
+  * :doc:`Fusion <../doxygen/html/group___f_u_s_i_o_n>`
   * :doc:`Loss function <../doxygen/html/group___loss_function>`
   * :doc:`Dropout <../doxygen/html/group__dropout>`
   * :doc:`Reduction <../doxygen/html/group___tensor_reduce>`

@@ -72,7 +72,7 @@ results on disk so the subsequent calls during the same MIOpen session run faste
 Internally, MIOpen's find calls compile and benchmark a set of ``solvers`` contained in
 ``miopenConvAlgoPerf_t``. This is performed in parallel with ``miopenConvAlgorithm_t``. You can
 control the level of parallelism using an environmental variable. Refer to the debugging section,
- :ref:`controlling parallel compilation <control-parallel-compilation>` for more information.
+:ref:`controlling parallel compilation <control-parallel-compilation>` for more information.
 
 Immediate mode
 =====================================================
@@ -173,7 +173,7 @@ depending on whether the CMake variable ``MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK``
 
 If you require the best possible performance, run the find stage at least once.
 
-AI-based heuristic fallback (default):
+AI-based heuristic fallback (default)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If ``MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK`` is set to ``ON`` (default), the immediate mode
@@ -184,7 +184,7 @@ First, the applicability of the AI-based heuristic for the given configuration i
 applicable, it feeds various parameters of the given configuration into a neural network that has been
 tuned to predict the optimal solution with 90% accuracy.
 
-Weighted throughput index-based fallback:
+Weighted throughput index-based fallback
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When ``MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK`` is set to ``OFF``, or the AI heuristic is not

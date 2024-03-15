@@ -388,6 +388,6 @@ Semantics:
   and gfx906/60 (or less CUs). No default limit is set for other GPUs.
 * Special values:
 
-  * 0: Use the default limit, as if the variable is unset
-  * 1: Completely prohibit the use of workspace
-  * -1: Remove the default limit
+  * ``0``: Use the default limit, as if the variable is unset
+  * ``1``: Completely prohibit the use of workspace
+  * ``-1``: Remove the default limit

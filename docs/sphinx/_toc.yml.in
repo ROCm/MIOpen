@@ -7,6 +7,15 @@ subtrees:
   - file: what-is-miopen.rst
     title: What is MIOpen?
 
+- caption: Install
+  entries:
+  - file: install/install.rst
+    title: Install MIOpen
+  - file: install/docker-build.rst
+    title: Build MIOpen using Docker
+  - file: install/embed.rst
+    title: Build MIOpen for embedded systems
+
 - caption: Reference
   entries:
   - file: reference/index
@@ -17,15 +26,6 @@ subtrees:
         title: Modules
       - file: reference/datatypes.rst
         title: Datatypes
-
-- caption: Install
-  entries:
-  - file: install/install.rst
-    title: Install MIOpen
-  - file: install/docker-build.rst
-    title: Build MIOpen using Docker
-  - file: install/embed.rst
-    title: Build MIOpen for embedded systems
 
 - caption: Conceptual
   entries:

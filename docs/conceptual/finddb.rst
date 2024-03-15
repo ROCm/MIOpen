@@ -28,8 +28,8 @@ home directory.
 
 Note that:
 
- * The System FindDb is `not` modified upon installation of MIOpen.
- * There are separate Find databases for HIP and OpenCL backends.
+* The System FindDb is `not` modified upon installation of MIOpen.
+* There are separate Find databases for HIP and OpenCL backends.
 
 Populating User FindDb
 =============================================================

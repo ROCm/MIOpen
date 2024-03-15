@@ -1,209 +1,305 @@
-Fusion API: Getting Started
-===========================
-## Introduction
-Increasing depth of deep learning networks necessitate the need for novel mechanisms to improve performance on GPUs. One mechanism to achieve higher efficiency is to _fuse_ separate kernels into a single kernel to reduce off-chip memory access and avoid kernel launch overhead. This document outlines the addition of a Fusion API to the MIOpen library. The fusion API would allow users to specify operators that they wants to fuse in a single kernel, compile it and then launch the kernel. While not all combinations might be supported by the library, the API is flexible enough to allow the specification of many operations in any order from a finite set of supported operations. The API provides a mechanism to report unsupported combinations.
+.. meta::
+  :description: Using the Fusion API
+  :keywords: MIOpen, ROCm, API, documentation, fusion API
 
-A complete example of the Fusion API in the context of MIOpen is given [here](https://github.com/ROCm/MIOpenExamples/tree/master/fusion). We will use code from the example project as we go along. The example project creates a fusion plan to merge the convolution, bias and activation operations. For a list of supported fusion operations and associated constraints please refer to the [Supported Fusions](#supported-fusions) section. The example depicts bare-bones code without any error checking or even populating the tensors with meaningful data in the interest of simplicity.
+************************************************************************************************
+Using the fusion API
+************************************************************************************************
 
-The following list outlines the steps required 
+Increasing the depth of deep-learning networks requires novel mechanisms to improve GPU
+performance. One mechanism to achieve higher efficiency is to `fuse` separate kernels into a single
+kernel in order to reduce off-chip memory access and avoid kernel launch overhead.
 
-- Create a fusion plan
-- Create and add the convolution, bias and activation operators
-- Compile the Fusion Plan 
-- Set the runtime arguments for each operator
-- Execute the fusion plan
-- Cleanup
+Using MIOpen's fusion API, you can specify operators that you want to fuse into a single kernel,
+compile that kernel, and then launch it. While not all combinations are supported, the API is flexible
+enough to allow the specification of several operations, in any order, from the set of supported
+operations. The API provides a mechanism to report unsupported combinations.
 
-The above steps assume that an MIOpen handle object has already been initialized. Moreover, the order in which operators are created is important, since it represents the order of operations on the data itself. Therefore a fusion plan with convolution created before activation is a different fusion plan as opposed to if activation was added before convolution. 
+You can find a complete example of MIOpen's fusion API in our GitHub repository
+`example folder <https://github.com/ROCm/MIOpenExamples/tree/master/fusion>`_. The code
+examples in this document are from the example project.
 
-The following sections further elaborate the above steps as well as give code examples to make these ideas concrete.
+.. note::
+  The example project creates a fusion plan to merge the convolution, bias, and activation operations.
+  For a list of supported fusion operations and associated constraints, refer to the
+  :ref:`Supported fusions <supported-fusions>` section. For simplicity, the example doesn't populate
+  the tensors with meaningful data and shows only basic code without any error checking.
 
-### Intended Audience
-The primary consumers of the fusion API are high level frameworks such as TensorFlow/XLA or PyTorch etc.
+Once you've initialized an MIOpen handle object, the workflow for using the fusion API is:
 
-## Create a Fusion Plan
-A **Fusion Plan** is the data structure which holds all the metadata about the users fusion intent as well as logic to **Compile** and **Execute** a fusion plan. As mentioned earlier, a fusion plan holds the order in which different opertions would be applied on the data, but it also specifies the _axis_ of fusion as well. Currently only **vertical** (sequential) fusions are supported implying the flow of data between operations is sequential.
+* Create a fusion plan
+* Create and add the convolution, bias, and activation operators
+* Compile the fusion plan
+* Set the runtime arguments for each operator
+* Run the fusion plan
+* Cleanup
 
-A fusion plan is created using the API call `miopenCreateFusionPlan` with the signature:
+The order in which you create operators is important because this order represents the order of
+operations for the data. Therefore, a fusion plan where convolution is created before activation differs
+from a fusion plan where activation is added before convolution.
 
-```cpp
-miopenStatus_t
-miopenCreateFusionPlan(miopenFusionPlanDescriptor_t* fusePlanDesc,
-const miopenFusionDirection_t fuseDirection,const miopenTensorDescriptor_t inputDesc);
-``` 
+.. note::
+  The primary consumers of the fusion API are high-level frameworks, such as TensorFlow/XLA and
+  PyTorch.
 
-The *input tensor descriptor* specifies the geometry of the incoming data. Since the data geometry of the intermediate operations can be derived from the *input tensor descriptor*, therefore only the *input tensor descriptor* is required for the fusion plan and not for the individual operations. In our fusion example the following lines of code accomplish this:
-```cpp
-miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, input.desc);
-```
-Where `fusePlanDesc` is an object of type `miopenFusionPlanDescriptor_t` and `input.desc` is the `miopenTensorDescriptor_t` object.
+Creating a fusion plan
+=================================================
 
-## Create and add Operators
-The fusion API introduces the notion of **operators** which represent different operations that are intended to be fused together by the API consumer. Currently, the API supports the following operators:
+A **fusion plan** is the data structure that holds all the metadata regarding fusion intent, and the
+logic to compile and run a fusion plan. The fusion plan not only contains the order in which different
+operations are applied on the data, but also specifies the `axis` of fusion. Currently, only `vertical`
+(sequential) fusions are supported (implying the flow of data between operations is sequential).
 
-*    Convolution Forward
-*    Activation Forward
-*    BatchNorm Inference
-*    Bias Forward
+You can create a fusion plan using ``miopenCreateFusionPlan``, as follows:
 
-Notice that _Bias_ is a separate operator, although it is typically only used with convolution. This list is expected to grow as support for more operators is added to the API, moreover, operators for backward passes are in the works as well.
+.. code:: cpp
 
-The fusion API provides calls for the creation of the supported operators, here we would describe the process for the convolution operator, details for other operators may be found in the [miopen header file](https://rocm.docs.amd.com/projects/MIOpen/en/latest/fusion.html) 
+  miopenStatus_t
+  miopenCreateFusionPlan(miopenFusionPlanDescriptor_t* fusePlanDesc,
+  const miopenFusionDirection_t fuseDirection,const miopenTensorDescriptor_t inputDesc);
 
-Once the fusion plan descriptor is created, two or more operators can be added to it by using the individual operator creation API calls. Creation of an operator might fail if the API does not support the fusion of the operations being added and report back immediately to the user. For our example we need to add the Convolution, Bias and Activation operations to our freshly minted fusion plan. This is done using the following calls for the Convolution, Bias and Activation operations respectively:
+The `input tensor descriptor` specifies the geometry of the incoming data. Because the data geometry
+of the intermediate operations can be derived from the input tensor descriptor, only this is required for
+the fusion plan (i.e. the input tensor descriptor isn't required for the individual operations).
 
-```cpp
-miopenStatus_t
-miopenCreateOpConvForward(miopenFusionPlanDescriptor_t fusePlanDesc,
-                          miopenFusionOpDescriptor_t* convOp,
-                          miopenConvolutionDescriptor_t convDesc,
-                          const miopenTensorDescriptor_t wDesc);
-miopenStatus_t
-miopenCreateOpBiasForward(miopenFusionPlanDescriptor_t fusePlanDesc,
-                          miopenFusionOpDescriptor_t* biasOp,
-                          const miopenTensorDescriptor_t bDesc);
+.. code:: cpp
 
-miopenStatus_t
-miopenCreateOpActivationForward(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                miopenFusionOpDescriptor_t* activOp,
-                                miopenActivationMode_t mode);
-```
+  miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, input.desc);
 
-The following lines in the fusion example project use these API calls to create and insert the operators in the fusion plan:
+Where:
+* ``fusePlanDesc`` is an object of type ``miopenFusionPlanDescriptor_t``
+* ``input.desc`` is the ``miopenTensorDescriptor_t`` object
 
-```cpp
-miopenCreateOpConvForward(fusePlanDesc, &convoOp, conv_desc, weights.desc);
-miopenCreateOpBiasForward(fusePlanDesc, &biasOp, bias.desc);
-miopenCreateOpActivationForward(fusePlanDesc, &activOp, miopenActivationRELU);
-```
+Creating and adding operators
+=================================================
 
-It may be noted that `conv_desc` is the regular MIOpen Convolution descriptor and is created in the standard way before it is referenced here. For more details on creating and setting the convolution descriptor please refer to the example code as well as the [MIOpen documentation](https://rocm.docs.amd.com/projects/MIOpen/en/latest/convolution.html). In the above snippet `weights.desc` refers to the `miopenTensorDescriptor_t` for the convolution operations and `bias.desc` refers to the object of the same type for the bias operation. The order of insertion of operators indicates the order in which the operations would be performed on the data. Therefore, the above code implies that the convolution operation would be the first operation to execute on the incoming data, followed by the bias and activation operations. 
+Operators represent the different operations that you want fused. Currently, the API supports these
+operators:
 
-During this process, it is important that the returned codes be checked to make sure that the operations as well as their order is supported. The operator insertion might fail for a number of reasons such as unsupported sequence of operations, unsupported dimensions of the input or in case of convolution unsupported dimensions for the filters. In the above example, these aspects are ignored for the sake of simplicity.
+* Convolution forward
+* Activation forward
+* BatchNorm inference
+* Bias forward
 
-## Compile the Fusion Plan
+.. note::
 
-Following the operator addition, the user would compile the fusion plan, to populate the MIOpen kernel cache with the fused kernel and make it ready for execution. The API call that accomplishes this is:
+  Although bias is a separate operator, it's typically only used with convolution.
 
-```cpp
-miopenStatus_t
-miopenCompileFusionPlan(miopenHandle_t handle, miopenFusionPlanDescriptor_t fusePlanDesc);
-```
+We plan to add support for more operators, including operators for backward passes, in the future.
 
-The corresponding code snippet in the example is as follows:
+The fusion API provides calls for the creation of the supported operators. To learn more, refer to the
+:doc:`Fusion <../doxygen/html/group___f_u_s_i_o_n>` API documentation.
 
-```cpp
-auto status = miopenCompileFusionPlan(mio::handle(), fusePlanDesc);
-if (status != miopenStatusSuccess) {
-return -1;
-}
-```
-In order to compile the fusion plan, the user is assumed to have acquired an MIOpen handle object, in the example code above this is accomplished using the `mio::handle()` helper function. While a fusion plan itself is not bound to a MIOpen handle object, it would however need to be recompiled for each handle separately. It may be noted that compilation of a fusion plan might fail for a number of reasons, moreover it is not assured that a fused version of the kernel would offer any performance improvement over the separately run kernels.
+Once you've created the fusion plan descriptor, you can add two or more operators to it by using the
+individual operator creation API calls. If the API doesn't support the fusion of the operations you add,
+the creation might fail.
 
-Compiling a fusion plan is a costly operation in terms of run-time. Therefore, it is recommended that a fusion plan should only be compiled once and may be reused for execution with different runtime parameters as described in the next section. 
+In our example, we add the convolution, bias, and activation operations to our newly created fusion
+plan.
 
-## Set the runtime arguments
+.. code:: cpp
 
-While the underlying MIOpen descriptor of the fusion operator specifies the data geometry and parameters, the fusion plan still needs access to the data to execute a successfully compiled fusion plan. The arguments mechanism in the Fusion API provides such data before a fusion plan may be executed. For example the convolution operator requires *weights* to carry out the convolution computation, a bias operator requires the actual bias values etc. Therefore, before a fusion plan may be executed, arguments required by each fusion operator need to be specified. To begin, we create the `miopenOperatorArgs_t` object using:
+  miopenStatus_t
+  miopenCreateOpConvForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                            miopenFusionOpDescriptor_t* convOp,
+                            miopenConvolutionDescriptor_t convDesc,
+                            const miopenTensorDescriptor_t wDesc);
+  miopenStatus_t
+  miopenCreateOpBiasForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                            miopenFusionOpDescriptor_t* biasOp,
+                            const miopenTensorDescriptor_t bDesc);
 
-```cpp
-miopenStatus_t miopenCreateOperatorArgs(miopenOperatorArgs_t* args);
-``` 
+  miopenStatus_t
+  miopenCreateOpActivationForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                  miopenFusionOpDescriptor_t* activOp,
+                                  miopenActivationMode_t mode);
 
-Once created, runtime arguments for each operation may be set. In our running example, the forward convolution operator requires the convolution weights argument which is supplied using the API call:
 
-```cpp
-miopenStatus_t
-miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
-                           const miopenFusionOpDescriptor_t convOp,
-                           const void* alpha,
-                           const void* beta,
-                           const void* w);
-```
+``conv_desc`` is the regular MIOpen convolution descriptor. For more information on creating and
+setting the this descriptor, refer to the example code and the
+:doc:`Convolution <../doxygen/html/group__convolutions>` API documentation.
 
-Similarly the parameters for bias and activation are given by:
+``weights.desc`` refers to ``miopenTensorDescriptor_t`` for the convolution operations.
 
-```cpp
-miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t args,
-                                          const miopenFusionOpDescriptor_t biasOp,
-                                          const void* alpha,
-                                          const void* beta,
-                                          const void* bias);
-                                          
-miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
-                                           const miopenFusionOpDescriptor_t activOp,
-                                           const void* alpha,
-                                           const void* beta,
-                                           double activAlpha,
-                                           double activBeta,
-                                           double activGamma);
-```
+``bias.desc`` refers to the object of the same type for the bias operation.
+
+In the preceding code, the convolution operation is the first operation to run on the incoming data,
+followed by the bias, and then activation operations.
+
+During this process, it is important that you verify the returned codes to make sure the operations (and
+their order) is supported. The operator insertion can fail for a number of reasons, such as unsupported
+operation sequence, unsupported input dimensions, or, in the case of convolution, unsupported filter
+dimensions. In the preceding example, these aspects are ignored for the sake of simplicity.
+
+Compiling the fusion plan
+=================================================
+
+Following the operator addition, you can compile the fusion plan. This populates the MIOpen kernel
+cache with the fused kernel and gets it ready to run.
+
+.. code:: cpp
+
+  miopenStatus_t
+  miopenCompileFusionPlan(miopenHandle_t handle, miopenFusionPlanDescriptor_t fusePlanDesc);
+
+
+The corresponding code snippet in the example is:
+
+.. code:: cpp
+
+  auto status = miopenCompileFusionPlan(mio::handle(), fusePlanDesc);
+  if (status != miopenStatusSuccess) {
+  return -1;
+  }
+
+In order to compile the fusion plan, you must have acquired an MIOpen handle object. In the
+preceding code, this is accomplished using the ``mio::handle()`` helper function. While a fusion plan is
+itself not bound to an MIOpen handle object, it must be recompiled for each handle separately.
+
+Compiling a fusion plan is a costly operation in terms of run-time, and compilation can fail for a
+number of reasons. Therefore, we recommended only compiling your fusion plan once and reusing it
+with different runtime parameters, as described in the next section.
+
+Setting runtime arguments
+=================================================
+
+While the fusion operator for the underlying MIOpen descriptor specifies the data geometry and
+parameters, the fusion plan still needs access to the data to run a successfully compiled fusion plan.
+The arguments mechanism in the fusion API provides this data before a fusion plan can be run. For
+example, the convolution operator requires `weights` to carry out the convolution computation,and the
+bias operator requires the actual bias values. Therefore, before you can run a fusion plan, you must
+specify the arguments required by each fusion operator.
+
+To begin, create the ``miopenOperatorArgs_t`` object using:
+
+.. code:: cpp
+
+  miopenStatus_t miopenCreateOperatorArgs(miopenOperatorArgs_t* args);
+
+Once created, you can set the runtime arguments for each operation. In our example, the forward
+convolution operator requires the convolution weights argument, which is supplied using:
+
+.. code:: cpp
+
+  miopenStatus_t
+  miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
+                            const miopenFusionOpDescriptor_t convOp,
+                            const void* alpha,
+                            const void* beta,
+                            const void* w);
+
+Similarly, the parameters for bias and activation are given by:
+
+.. code:: cpp
+
+  miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t args,
+                                            const miopenFusionOpDescriptor_t biasOp,
+                                            const void* alpha,
+                                            const void* beta,
+                                            const void* bias);
+
+  miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
+                                            const miopenFusionOpDescriptor_t activOp,
+                                            const void* alpha,
+                                            const void* beta,
+                                            double activAlpha,
+                                            double activBeta,
+                                            double activGamma);
 
 In our example code, we set the arguments for the operations as follows:
 
-```cpp
-miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, weights.data);
-miopenSetOpArgsActivForward(fusionArgs, activOp, &alpha, &beta, activ_alpha,
-                          activ_beta, activ_gamma);
-miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, bias.data);
-```
+.. code:: cpp
 
-This separation between the fusion plan and the arguments required by each operator allows better reuse of the fusion plan with different arguments as well as avoids the necessity of recompiling the fusion plan to run the same combination of operators with different arguments. 
+  miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, weights.data);
+  miopenSetOpArgsActivForward(fusionArgs, activOp, &alpha, &beta, activ_alpha,
+                            activ_beta, activ_gamma);
+  miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, bias.data);
 
-As mentioned in the section [Compile the Fusion Plan](#compile-the-fusion-plan) earlier, the compilation step for a fusion plan might be costly, therefore a fusion plan should only be compiled once in its lifetime. A fusion plan needs not be recompiled if the input desciptor or any of the parameters to the `miopenCreateOp*` API calls are different, otherwise a compiled fusion plan may be reused again and again with a different set of arguments. In our example this is demonstrated in lines 77 - 85 of `main.cpp`. 
+The separation between the fusion plan and the arguments required by each operator allows better
+reuse of the fusion plan with different arguments. It also avoids the necessity to recompile the fusion
+plan to run the same combination of operators with different arguments.
 
-## Execute a Fusion Plan
+As previously mentioned, the compilation step for a fusion plan can be costly; therefore, we
+recommend only compiling a fusion plan once in its lifetime. A fusion plan doesn't need to be
+recompiled if the input descriptor or any of the parameters in the ``miopenCreateOp*`` API calls are
+different. You can repeatedly reuse a compiled fusion plan with a different set of arguments.
 
-Once the fusion plan has been compiled and arguments set for each operator, it may be executed with the API call given below passing it the actual data to be processed.
+In our example, this is demonstrated in ``main.cpp``, lines 77 through 85.
 
-```cpp
-miopenStatus_t
-miopenExecuteFusionPlan(const miopenHandle_t handle,
-                        const miopenFusionPlanDescriptor_t fusePlanDesc,
-                        const miopenTensorDescriptor_t inputDesc,
-                        const void* input,
-                        const miopenTensorDescriptor_t outputDesc,
-                        void* output,
-                        miopenOperatorArgs_t args);
-```
+Running a fusion plan
+========================================================
 
-The following code snippet in the example accomplishes the fusion plan execution:
+Once you've compiled the fusion plan and set arguments set for each operator, you can run it as
+follows:
 
-```cpp
-miopenExecuteFusionPlan(mio::handle(), fusePlanDesc, input.desc, input.data,
-                        output.desc, output.data, fusionArgs);
-```
+.. code:: cpp
 
-It may be noted that it is an error to attempt to execute a fusion plan that is either not compiled or has been invalidated by changing the input tensor descriptor or any of the operation parameters. 
+  miopenStatus_t
+  miopenExecuteFusionPlan(const miopenHandle_t handle,
+                          const miopenFusionPlanDescriptor_t fusePlanDesc,
+                          const miopenTensorDescriptor_t inputDesc,
+                          const void* input,
+                          const miopenTensorDescriptor_t outputDesc,
+                          void* output,
+                          miopenOperatorArgs_t args);
 
+The following code snippet runs the fusion plan:
 
-## Cleanup
-Once the application is done with the fusion plan, the fusion plan and the fusion args objects may be destroyed using the API calls:
+.. code:: cpp
 
-```cpp
-miopenStatus_t miopenDestroyFusionPlan(miopenFusionPlanDescriptor_t fusePlanDesc);
-```
-Once the fusion plan object is destroyed, all the operations created are destroyed automatically and do not need any special cleanup.
+  miopenExecuteFusionPlan(mio::handle(), fusePlanDesc, input.desc, input.data,
+                          output.desc, output.data, fusionArgs);
 
+If you try to run a fusion plan that is not compiled, or has been invalidated by changing the input
+tensor descriptor or any of the operation parameters, you'll get an error.
 
-## Supported Fusions 
-The tables below outlines the supported fusions for fp32 and fp16 as well as any applicable constraints. **(C = convolution, B = bias, N = batch normalization, A = activation)**
-Fusion Plans with grouped convolutions are not supported.
+Cleanup
+=================================================
 
+Once the application is done with the fusion plan, you can detroy the fusion plan and the fusion args
+objects:
 
-![Convolution based fp32 fusion](data/fp32fusions.png)
+.. code:: cpp
 
+  miopenStatus_t miopenDestroyFusionPlan(miopenFusionPlanDescriptor_t fusePlanDesc);
 
-![Convolution based fp16 fusion](data/fp16fusions.png)
+After the fusion plan object is destroyed, all the operations are automatically destroyed, and you don't
+need to worry about additional cleanup.
 
+.. _supported-fusions:
 
-## Performance Comparison to Non-Fused Kernels
+Supported fusions
+=================================================
 
+The following tables outline the supported fusions for FP32 and FP16, including any applicable
+constraints.
 
-The following graph depicts the speedup gained for a fused Convolution+Bias+Activation over a non-fused version, all configurations have a batch size of 64:
+.. note::
 
-![CBA Graph](data/cba.png)
+  Fusion Plans with grouped convolutions are not supported.
 
-Speedup obtained by fusing Batchnorm (spatial mode) with Activation are presented in the graph below:
+**C = convolution, B = bias, N = batch normalization, A = activation**
 
-![Batchnorm activation fusion](data/na.png)
+.. image:: ../data/how-to/fp32fusions.png
+  :width: 800
+  :alt: Convolution based fp32 fusion
+
+.. image:: ../data/how-to/fp16fusions.png
+  :width: 800
+  :alt: Convolution based fp16 fusion
+
+Comparing performance with non-fused kernels
+=================================================
+
+The following graph depicts the speedup gained for a fused convolution+bias+activation over a
+non-fused version. All configurations have a batch size of 64:
+
+.. image:: ../data/how-to/cba.png
+  :width: 800
+  :alt: convolution-bias-activation graph
+
+The following graph depicts the speedup obtained by fusing BatchNorm (spatial mode) with activation:
+
+.. image:: ../data/how-to/na.png
+  :width: 800
+  :alt: BatchNorm activation fusion

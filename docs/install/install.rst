@@ -10,23 +10,29 @@ To install MIOpen, you must first install these prerequisites:
 
 * A :doc:`ROCm <rocm:index>`-enabled platform
 * A base software stack that includes either:
-  *HIP (HIP and HCC libraries and header files)
+
+  * HIP (HIP and HCC libraries and header files)
   * OpenCL (OpenCL libraries and header files)--this is now deprecated
+
 * `ROCm CMake <https://github.com/ROCm/rocm-cmake>`_: provides CMake modules for common
   build tasks needed for the ROCm software stack
 * `Half <http://half.sourceforge.net/>`_: IEEE 754-based, half-precision floating-point library
 * `Boost <http://www.boost.org/>`_: Version 1.79 is recommended, as older versions may need patches
   to work on newer systems
+
   * MIOpen uses ``boost-system`` and ``boost-filesystem`` packages to enable persistent
     :doc:`kernel cache <../conceptual/cache>`
+
 * `SQLite3 <https://sqlite.org/index.html>`_: A reading and writing performance database
 * lbzip2: A multi-threaded compress or decompress utility
 * :doc:`rocBLAS <rocblas:index>`: AMD's library for Basic Linear Algebra Subprograms (BLAS) on the
   ROCm platform.
+
   * Minimum version branch for pre-ROCm 3.5
     `master-rocm-2.10 <https://github.com/ROCm/rocBLAS/tree/master-rocm-2.10>`_
   * Minimum version branch for post-ROCm 3.5
     `master-rocm-3.5 <https://github.com/ROCm/rocBLAS/tree/master-rocm-3.5>`_
+
 * `Multi-Level Intermediate Representation (MLIR) <https://github.com/ROCm/rocMLIR>`_ with its
   MIOpen dialect to support and complement kernel development
 * :doc:`Composable Kernel <composable_kernel:index>`: A C++ templated device library for
@@ -65,6 +71,7 @@ Where ``<arch>`` is the GPU architecture (e.g., ``gfx900``, ``gfx906``, ``gfx103
 number of CUs available in the GPU (e.g., ``56``, ``64``).
 
 .. note::
+
   Not installing these packages doesn't impact the functioning of MIOpen, since MIOpen compiles
   them on the target machine once you run the kernel. However, the compilation step may significantly
   increase the startup time for different operations.
@@ -288,7 +295,7 @@ Storing large file using Git Large File Storage
 
 Git Large File Storage (LFS) replaces large files, such as audio samples, videos, datasets, and graphics
 with text pointers inside Git, while storing the file contents on a remote server. In MIOpen, we use Gi
-LFS to store our large files, such as our kernel database files (*.kdb) that are normally > 0.5 GB.
+LFS to store our large files, such as our kernel database files (``*.kdb``) that are normally > 0.5 GB.
 
 You can install Git LFS using the following code:
 

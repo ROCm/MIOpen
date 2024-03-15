@@ -25,6 +25,6 @@ salients apply to this alternate implementation:
 
 * You can also override the behavior using the
   ``MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL`` environment variable. When set to ``1``,
-   ``MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL``  engages the alternate implementation;
-   when set to ``0``, it's disabled. Keep in mind that the environment variable impacts the convolution
-   operation in all directions.
+  ``MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL``  engages the alternate implementation;
+  when set to ``0``, it's disabled. Keep in mind that the environment variable impacts the convolution
+  operation in all directions.
