@@ -42,11 +42,10 @@ namespace miopen {
 
 TmpDir::TmpDir(std::string_view prefix) : path{fs::temp_directory_path()}
 {
-    std::string p{prefix.empty() ? "" :
-        (prefix[0] == '-' ? "" : "-") + std::string{prefix}};
+    std::string p{prefix.empty() ? "" : (prefix[0] == '-' ? "" : "-")};
 
-    path /= boost::filesystem::unique_path(
-        "miopen" + p + "-%%%%-%%%%-%%%%-%%%%").string();
+    path /= boost::filesystem::unique_path("miopen" + p.append(prefix) + "-%%%%-%%%%-%%%%-%%%%")
+                .string();
 
     fs::create_directories(path);
 }
@@ -71,8 +70,10 @@ TmpDir::~TmpDir()
 {
     if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_SAVE_TEMP_DIR)))
     {
-        int count = 0;
-        while(count < MIOPEN_TMP_DIR_REMOVE_MAX_RETRIES)
+#ifdef _WIN32
+        constexpr int remove_max_retries = 5;
+        int count                        = 0;
+        while(count < remove_max_retries)
         {
             try
             {
@@ -82,10 +83,14 @@ TmpDir::~TmpDir()
             catch(const fs::filesystem_error& err)
             {
                 MIOPEN_LOG_W(err.what());
-                std::this_thread::sleep_for(std::chrono::milliseconds{250});
+                std::this_thread::sleep_for(std::chrono::milliseconds{125});
             }
             ++count;
         }
+#else
+        if(!this->path.empty())
+            fs::remove_all(this->path);
+#endif
     }
 }
 
