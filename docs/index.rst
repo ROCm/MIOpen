@@ -20,7 +20,7 @@ Our documentation is structured as follows:
     * :doc:`Build MIOpen for embedded systems <./install/embed>`
     * :doc:`Build MIOpen using Docker <./install/docker-build>`
 
-  ..  grid-item-card:: API reference
+  ..  grid-item-card:: Reference
 
     * :doc:`API library <reference/index>`
 
