@@ -72,6 +72,8 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
         ss << "dxpk" << static_cast<int>(xdxDesc.IsPacked());
     }
 
+    ss << "a" << alpha;
+    ss << "b" << beta;
     ss << "algo" << static_cast<int>(algorithm);
     ss << "mode" << static_cast<int>(mode);
 
