@@ -127,11 +127,11 @@ def run_driver_cmds(filename, install_path, override=None):
             cmd = f"export LD_LIBRARY_PATH={install_path}/lib && export MIOPEN_LOG_LEVEL=6 && "\
                   f"export MIOPEN_SYSTEM_DB_PATH={install_path}/share/miopen/db && "\
                   f"{var_str} "\
-                  f"{install_path}/bin/{driver_cmd} -V 0 -i 10 -w 1 -t 1"
+                  f"{install_path}/bin/{driver_cmd} -V 0 -i 10 -w 1 -t 1 -G 1"
           else:
             cmd = f"export LD_LIBRARY_PATH={install_path}/lib && export MIOPEN_LOG_LEVEL=6 && "\
                   f"export MIOPEN_SYSTEM_DB_PATH={install_path}/share/miopen/db && "\
-                  f"{install_path}/bin/{driver_cmd} -V 0 -i 10 -w 1 -t 1"
+                  f"{install_path}/bin/{driver_cmd} -V 0 -i 10 -w 1 -t 1 -G 1"
           print(f'Running cm: {cmd}')
           proc = subprocess.Popen(cmd,
                                   shell=True,

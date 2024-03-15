@@ -138,7 +138,8 @@ void TestSolverPredictionModel(miopen::conv::ProblemDescription& problem,
 #else
     std::ignore = problem;
     std::ignore = expected_solver;
-    std::ignore = device_architecture GTEST_SKIP();
+    std::ignore = device_architecture;
+    GTEST_SKIP();
 #endif
 }
 
