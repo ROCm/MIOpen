@@ -163,10 +163,8 @@ option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD
 if(MIOPEN_EMBED_BUILD)
     set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build as a shared library" FORCE)
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." Off)
-    option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" Off)
 else()
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
-    option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" On)
 endif()
 
 if(MIOPEN_EMBED_BUILD)
@@ -183,6 +181,10 @@ set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
 set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
     OpenCL HIP HIPOC HIPNOGPU)
+
+set_var_to_condition(MIOPEN_BUILD_DRIVER_DEFAULT (NOT MIOPEN_EMBED_BUILD) AND (NOT (MIOPEN_BACKEND STREQUAL "HIPNOGPU")))
+option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver (and use it in tests)" ${MIOPEN_BUILD_DRIVER_DEFAULT})
+message(STATUS "MIOPEN_BUILD_DRIVER: ${MIOPEN_BUILD_DRIVER}" )
 
 # OpenCL 1.2
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
@@ -419,6 +421,10 @@ endif()
 
 option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)
 set(BOOST_COMPONENTS filesystem)
+if(MIOPEN_BUILD_DRIVER)
+    # boost core is a header only component that can't be found by find_package
+    # list(APPEND BOOST_COMPONENTS core)
+endif()
 add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
@@ -494,6 +500,13 @@ endif()
 
 if(MIOPEN_OFFLINE_COMPILER_PATHS_V2)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocm-core")
+endif()
+
+if(MIOPEN_BUILD_DRIVER)
+    # PR #2785 MIOpenDriver to use rocrand to init buffers
+    find_package(rocrand REQUIRED)
+    message(STATUS "rocrand_VERSION=${rocrand_VERSION}")
+    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocrand")
 endif()
 
 if(MIOPEN_BACKEND STREQUAL "HIP")
