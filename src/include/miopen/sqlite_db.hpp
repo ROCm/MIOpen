@@ -54,6 +54,7 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_DISABLE_SQL_WAL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_PERFDB_OVERRIDE)
+
 namespace miopen {
 
 constexpr bool InMemDb = MIOPEN_EMBED_DB;
@@ -250,7 +251,7 @@ public:
             filename   = "";
             if(!is_system)
             {
-                MIOPEN_THROW(miopenStatusInternalError, "Cannot open database file:" + filename_.string());
+                MIOPEN_THROW(miopenStatusInternalError, "Cannot open database file:" + filename_);
             }
             else
             {

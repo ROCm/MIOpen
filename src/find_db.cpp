@@ -65,7 +65,7 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathEmbed(Handle& handle,
         const auto suffix     = GetSystemFindDbSuffix() + path_suffix;
         const auto filename   = base_name + "." + suffix + ext;
         const auto file_path  = root_path / filename;
-        if(miopen_data().find(filename + ".o") != miopen_data().end())
+        if(miopen_data().find(make_object_file_name(filename).string()) != miopen_data().end())
         {
             MIOPEN_LOG_I2("Found exact embedded find database file:" << filename);
             return file_path.string();

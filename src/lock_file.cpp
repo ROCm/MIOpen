@@ -24,14 +24,11 @@
  *
  *******************************************************************************/
 
+#include <regex>
 #include <miopen/errors.hpp>
 #include <miopen/lock_file.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/md5.hpp>
-
-#ifdef _WIN32
-#include <boost/algorithm/string/replace.hpp>
-#endif
 
 namespace miopen {
 
@@ -91,31 +88,29 @@ LockFile::LockFile(const fs::path& path_, PassKey) : path(path_)
     }
 }
 
-LockFile& LockFile::Get(const fs::path& path_)
+LockFile& LockFile::Get(const fs::path& path)
 {
 #ifdef _WIN32
-    std::string p{path_.string()};
-    // The character ':' is reserved on Windows and cannot be used
-    // for constructing a path except following a drive letter.
-    boost::replace_all(p, ":memory:", "memory_");
-    fs::path path{p};
+    // The character ':' is reserved on Windows and cannot be used for constructing
+    // a path except when it follows a drive letter.
+    fs::path file{std::regex_replace(path.string(), std::regex(":memory:"), "memory_")};
 #else
-#define path path_
+#define file path
 #endif
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
     std::lock_guard<std::mutex> lock(mutex);
 
     { // To guarantee that construction won't be called if not required.
-        auto found = LockFiles().find(path);
+        auto found = LockFiles().find(file);
 
         if(found != LockFiles().end())
             return found->second;
     }
 
     auto emplaced = LockFiles().emplace(std::piecewise_construct,
-                                        std::forward_as_tuple(path),
-                                        std::forward_as_tuple(path, PassKey{}));
+                                        std::forward_as_tuple(file),
+                                        std::forward_as_tuple(file, PassKey{}));
     return emplaced.first->second;
 }
 } // namespace miopen

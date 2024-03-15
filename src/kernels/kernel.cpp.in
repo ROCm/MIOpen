@@ -24,9 +24,9 @@
  *
  *******************************************************************************/
 #include <algorithm>
-#include <filesystem>
 #include <map>
 #include <string>
+#include <miopen/filesystem.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/stringutils.hpp>
 
@@ -53,7 +53,7 @@ std::string GetKernelSrc(const fs::path& name)
     // Use the base name of the string
     auto it = kernels().find(name.filename());
     if(it == kernels().end())
-        MIOPEN_THROW("Failed to load kernel source: " + name.filename().string());
+        MIOPEN_THROW("Failed to load kernel source: " + name.filename());
 
     return it->second;
 }

@@ -174,7 +174,7 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     // hip version
     params += " -DHIP_PACKAGE_VERSION_FLAT=" + std::to_string(HIP_PACKAGE_VERSION_FLAT) + " ";
 
-    auto bin_file = tmp_dir->path / (filename + ".o");
+    auto bin_file = make_object_file_name(tmp / filename);
 
     // compile
     {

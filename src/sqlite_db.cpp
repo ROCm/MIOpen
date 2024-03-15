@@ -95,7 +95,7 @@ class SQLite::impl
         if(is_system)
         {
 
-            const auto& it_p = miopen_data().find(filepath.filename() + ".o");
+            const auto& it_p = miopen_data().find(make_object_file_name(filepath.filename()));
             if(it_p == miopen_data().end())
             {
                 MIOPEN_LOG_I("Unknown database: " + filepath + " in internal file cache");
@@ -235,7 +235,7 @@ int SQLite::Retry(std::function<int()> f, [[maybe_unused]] fs::path filename)
     int rc = f();
     if(rc == SQLITE_BUSY)
     {
-        MIOPEN_THROW("Timeout while waiting for Database: " + filename.string());
+        MIOPEN_THROW("Timeout while waiting for Database: " + filename);
     }
     else
         return rc;
@@ -350,7 +350,7 @@ std::string SQLite::Statement::ColumnText(int idx)
 
 std::vector<char> SQLite::Statement::ColumnBlob(int idx)
 {
-    auto ptr = reinterpret_cast<const char*>(sqlite3_column_blob(pImpl->ptrStmt.get(), idx));
+    auto ptr = static_cast<const char*>(sqlite3_column_blob(pImpl->ptrStmt.get(), idx));
     auto sz  = sqlite3_column_bytes(pImpl->ptrStmt.get(), idx);
     return {ptr, ptr + sz};
 }

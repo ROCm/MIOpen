@@ -1052,17 +1052,17 @@ static std::string GetStatusText(const hiprtcResult status)
     return std::string(reason) + " (" + std::to_string(static_cast<int>(status)) + ')';
 }
 
-#define HIPRTC_CALL_BASE(call, info, action, statusdef)                                         \
-    do                                                                                          \
-    {                                                                                           \
-        statusdef status = (call);                                                              \
-        if(status != HIPRTC_SUCCESS)                                                            \
-        {                                                                                       \
-            MIOPEN_LOG_E("\'" #call "\' " << info << ": " << GetStatusText(status));            \
-            (action);                                                                           \
-        }                                                                                       \
-        else if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_LOG_CALLS)))                           \
-            MIOPEN_LOG_I("Ok \'" #call "\' " << info);                                          \
+#define HIPRTC_CALL_BASE(call, info, action, statusdef)                              \
+    do                                                                               \
+    {                                                                                \
+        statusdef status = (call);                                                   \
+        if(status != HIPRTC_SUCCESS)                                                 \
+        {                                                                            \
+            MIOPEN_LOG_E("\'" #call "\' " << info << ": " << GetStatusText(status)); \
+            (action);                                                                \
+        }                                                                            \
+        else if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_LOG_CALLS)))                \
+            MIOPEN_LOG_I("Ok \'" #call "\' " << info);                               \
     } while(false)
 
 /// \ref comgr_throw_macros
@@ -1100,7 +1100,8 @@ static hiprtc_program_ptr CreateProgram(std::string_view src,
     hiprtcProgram prog = nullptr;
     hiprtcResult status;
     HIPRTC_CALL_INFO_NOSTATUSDEF(
-        hiprtcCreateProgram(&prog, src.data(), name.string().c_str(), numHeaders, headers, includeNames), name.c_str());
+        hiprtcCreateProgram(&prog, src.data(), name.string().c_str(), numHeaders, headers,
+            includeNames), name);
     hiprtc_program_ptr p{prog}; // To destroy prog even if hiprtcCreateProgram() failed.
     if(status != HIPRTC_SUCCESS)
     {

@@ -39,6 +39,8 @@
 #include <boost/thread.hpp>
 
 #include <array>
+#include <cstdio>
+#include <cstdlib>
 #include <fstream>
 #include <mutex>
 #include <random>
@@ -857,7 +859,7 @@ public:
 
                 if(thread_logs_root())
                 {
-                    args += std::string{" --"} + DbMultiThreadedTest::logs_path_arg + " " + thread_logs_root()->string();
+                    args += std::string{" --"} + DbMultiThreadedTest::logs_path_arg + " " + *thread_logs_root();
                 }
 
                 if(full_set())
@@ -899,10 +901,7 @@ public:
     }
 
 private:
-    static fs::path LockFilePath(const fs::path& db_path)
-    {
-        return append_extension(db_path, ".test.lock");
-    }
+    static fs::path LockFilePath(const fs::path& db_path) { return db_path + ".test.lock"; }
 };
 
 class DbMultiProcessReadTest : public DbTest
@@ -936,7 +935,7 @@ public:
 
                 if(thread_logs_root())
                 {
-                    args += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " + thread_logs_root()->string();
+                    args += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " + *thread_logs_root();
                 }
 
                 if(full_set())
@@ -969,7 +968,7 @@ public:
     }
 
 private:
-    static fs::path LockFilePath(const fs::path& db_path) { return append_extension(db_path, ".test.lock"); }
+    static fs::path LockFilePath(const fs::path& db_path) { return db_path + ".test.lock"; }
 };
 
 class DbMultiFileTest : public DbTest

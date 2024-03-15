@@ -35,17 +35,16 @@ namespace miopen {
 
 std::vector<char> LoadFile(const fs::path& path)
 {
-    std::ifstream in(path, std::ios::binary | std::ios::ate);
+    std::error_code error_code;
+    const auto size = fs::file_size(path, error_code);
+    if(error_code)
+        MIOPEN_THROW(path.string() + ": " + error_code.message());
+    std::ifstream in(path, std::ios::binary);
     if(!in.is_open())
-        MIOPEN_THROW("Unable to open file: " + path);
-    in.unsetf(std::ios::skipws);
-    auto size = in.tellg();
-    in.seekg(0, std::ios::beg);
-    std::vector<char> v;
-    v.reserve(size);
-    v.insert(v.begin(),
-             std::istreambuf_iterator<char>{in},
-             std::istreambuf_iterator<char>{});
+        MIOPEN_THROW(path.string() + ": file opening error");
+    std::vector<char> v(size);
+    if(in.read(v.data(), v.size()).fail())
+        MIOPEN_THROW(path.string() + ": file reading error");
     return v;
 }
 

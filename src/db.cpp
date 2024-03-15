@@ -263,7 +263,7 @@ bool PlainTextDb::FlushUnsafe(const DbRecord& record, const RecordPositions* pos
             return false;
         }
 
-        const auto temp_name = append_extension(filename, ".temp");
+        const auto temp_name = filename + ".temp";
         std::ofstream to(temp_name, std::ios::binary);
 
         if(!to)

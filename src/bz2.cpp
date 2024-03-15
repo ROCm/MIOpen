@@ -63,7 +63,8 @@ std::vector<char> compress(const std::vector<char>& v, bool* compressed)
 {
     auto result      = v;
     unsigned int len = result.size();
-    auto e           = BZ2_bzBuffToBuffCompress(result.data(), &len, const_cast<char*>(v.data()), v.size(), 9, 0, 30);
+    auto e           = BZ2_bzBuffToBuffCompress(
+        result.data(), &len, const_cast<char*>(v.data()), v.size(), 9, 0, 30);
     if(compressed != nullptr and e == BZ_OUTBUFF_FULL)
     {
         *compressed = false;
@@ -80,7 +81,8 @@ std::vector<char> decompress(const std::vector<char>& v, unsigned int size)
 {
     std::vector<char> result(size, 0);
     unsigned int len = result.size();
-    auto e           = BZ2_bzBuffToBuffDecompress(result.data(), &len, const_cast<char*>(v.data()), v.size(), 0, 0);
+    auto e           = BZ2_bzBuffToBuffDecompress(
+        result.data(), &len, const_cast<char*>(v.data()), v.size(), 0, 0);
     check_bz2_error(e, "BZ2_bzBuffToBuffDecompress");
     result.resize(len);
     return result;

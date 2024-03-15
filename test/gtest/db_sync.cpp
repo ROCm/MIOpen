@@ -445,10 +445,6 @@ bool CheckKDBJournalMode(const fs::path& filename)
 
 } // namespace miopen
 
-namespace {
-std::string operator+(const fs::path& path, std::string_view s) { return path.string() + s.data(); }
-}
-
 void SetupPaths(fs::path& fdb_file_path,
                 fs::path& pdb_file_path,
                 fs::path& kdb_file_path,
@@ -565,11 +561,7 @@ void CheckDynamicFDBEntry(size_t thread_index,
                 for(const auto& kern : sol.construction_params)
                 {
                     std::string compile_options = kern.comp_options;
-#ifdef _WIN32
-                    fs::path program_file = kern.kernel_file.string() + ".obj";
-#else
-                    fs::path program_file = kern.kernel_file.string() + ".o";
-#endif
+                    auto program_file           = miopen::make_object_file_name(kern.kernel_file);
                     ASSERT_TRUE(kern.kernel_file.extension() != ".mlir")
                         << "MLIR detected in dynamic solvers";
                     compile_options += " -mcpu=" + handle.GetDeviceName();
@@ -741,11 +733,7 @@ void CheckFDBEntry(size_t thread_index,
                     {
                         bool found                  = false;
                         std::string compile_options = kern.comp_options;
-#ifdef _WIN32
-                        auto program_file = kern.kernel_file + ".obj";
-#else
-                        auto program_file = kern.kernel_file + ".o";
-#endif
+                        auto program_file           = miopen::make_object_file_name(kern.kernel_file);
                         if(kern.kernel_file.extension() != ".mlir")
                         {
                             auto& handle = ctx.GetStream();

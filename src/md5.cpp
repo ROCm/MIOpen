@@ -322,14 +322,8 @@ std::string md5(const void* data, size_t length)
     return sout.str();
 }
 
-std::string md5(const std::string& s)
-{
-    return md5(s.data(), s.size());
-}
+std::string md5(const std::string& s) { return md5(s.data(), s.size()); }
 
-std::string md5(const std::vector<char>& v)
-{
-    return md5(v.data(), v.size());
-}
+std::string md5(const std::vector<char>& v) { return md5(v.data(), v.size()); }
 
 } // namespace miopen

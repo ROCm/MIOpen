@@ -188,7 +188,7 @@ struct ExecutionContext
 #else
             constexpr std::string_view ext = ".db.txt";
 #endif
-            std::string filename{GetStream().GetDbBasename() + ext.data()};
+            fs::path filename{GetStream().GetDbBasename().append(ext)};
 
             // clang-format on
             if(fs::exists(pdb_path / filename))

@@ -36,7 +36,6 @@
 
 #include <chrono>
 #include <string>
-#include <filesystem>
 
 namespace miopen {
 

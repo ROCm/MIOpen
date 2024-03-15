@@ -53,7 +53,6 @@
 #include <algorithm>
 #include <cassert>
 #include <chrono>
-#include <filesystem>
 #include <thread>
 #include <mutex>
 #include <shared_mutex>
@@ -543,7 +542,7 @@ Program Handle::LoadProgram(const fs::path& program_name,
     }
     else
     {
-        return HIPOCProgram{program_name.string(), hsaco};
+        return HIPOCProgram{program_name, hsaco};
     }
 }
 

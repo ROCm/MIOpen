@@ -28,7 +28,6 @@
 
 #include <string>
 #include <vector>
-#include <filesystem>
 
 #include <miopen/config.h>
 #include <miopen/filesystem.hpp>

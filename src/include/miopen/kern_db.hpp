@@ -47,7 +47,7 @@ namespace miopen {
 struct KernelConfig
 {
     static std::string table_name() { return "kern_db"; }
-    std::filesystem::path kernel_name;
+    fs::path kernel_name;
     std::string kernel_args;
     std::vector<char> kernel_blob;
     static std::vector<std::string> FieldNames()
@@ -77,8 +77,8 @@ struct KernelConfig
 
 class KernDb : public SQLiteBase<KernDb>
 {
-    std::function<std::vector<char>(std::vector<char>, bool*)> compress_fn;
-    std::function<std::vector<char>(std::vector<char>, unsigned int)> decompress_fn;
+    std::function<std::vector<char>(const std::vector<char>&, bool*)> compress_fn;
+    std::function<std::vector<char>(const std::vector<char>&, unsigned int)> decompress_fn;
 
 public:
     KernDb(DbKinds db_kind, const fs::path& filename_, bool is_system);
@@ -86,8 +86,8 @@ public:
     KernDb(DbKinds db_kind,
            const fs::path& filename_,
            bool is_system_,
-           std::function<std::vector<char>(std::vector<char>, bool*)> compress_fn_,
-           std::function<std::vector<char>(std::vector<char>, unsigned int)> decompress_fn_);
+           std::function<std::vector<char>(const std::vector<char>&, bool*)> compress_fn_,
+           std::function<std::vector<char>(const std::vector<char>&, unsigned int)> decompress_fn_);
     template <typename T>
     bool RemoveRecordUnsafe(const T& problem_config)
     {
@@ -122,9 +122,9 @@ public:
         auto rc = stmt.Step(sql);
         if(rc == SQLITE_ROW)
         {
-            auto compressed_blob           = stmt.ColumnBlob(0);
-            auto md5_hash                  = stmt.ColumnText(1);
-            auto uncompressed_size         = stmt.ColumnInt64(2);
+            auto compressed_blob                 = stmt.ColumnBlob(0);
+            auto md5_hash                        = stmt.ColumnText(1);
+            auto uncompressed_size               = stmt.ColumnInt64(2);
             std::vector<char>& decompressed_blob = compressed_blob;
             if(uncompressed_size != 0)
             {

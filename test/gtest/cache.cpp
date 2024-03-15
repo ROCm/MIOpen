@@ -33,7 +33,6 @@
 #include "test.hpp"
 #include "random.hpp"
 
-
 #include <gtest/gtest.h>
 
 #if MIOPEN_ENABLE_SQLITE

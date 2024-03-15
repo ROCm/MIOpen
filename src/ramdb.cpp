@@ -42,7 +42,7 @@
 
 namespace miopen {
 
-fs::path RamDb::GetTimeFilePath(const fs::path& path) { return append_extension(path, ".time"); }
+fs::path RamDb::GetTimeFilePath(const fs::path& path) { return path + ".time"; }
 
 static ramdb_clock::time_point GetDbModificationTime(const fs::path& path)
 {

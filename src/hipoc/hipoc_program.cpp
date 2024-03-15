@@ -206,7 +206,7 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params, const std::str
 {
 
     dir.emplace(filename);
-    hsaco_file = dir->path / (filename + ".o");
+    hsaco_file = make_object_file_name(dir / filename);
 
     if(filename.extension() == ".so")
     {
@@ -354,10 +354,7 @@ fs::path HIPOCProgram::GetCodeObjectPathname() const
     }
 }
 
-std::vector<char> HIPOCProgram::GetCodeObjectBlob() const
-{
-    return impl->binary;
-}
+std::vector<char> HIPOCProgram::GetCodeObjectBlob() const { return impl->binary; }
 
 void HIPOCProgram::FreeCodeObjectFileStorage()
 {
