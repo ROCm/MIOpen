@@ -402,3 +402,48 @@ extern "C" __global__ void SoftMaxCommon(const float* in,
         rng_state[blockIdx.x * blockDim.x + threadIdx.x] = rng;
     }
 }
+
+extern "C" __global__ void ScaleReduce(const float* in,
+                                       float* out,
+                                       float* __restrict__ Amax,
+                                       const float* __restrict__ descale_S,
+                                       const float* __restrict__ descale_V,
+                                       const float* __restrict__ scale_O,
+                                       uint32_t seq_len,
+                                       uint64_t nhs)
+{
+    const float descaler = (*descale_S) * (*descale_V);
+    const float scaler   = (*scale_O);
+
+    const auto gid  = blockIdx.x * blockDim.x + threadIdx.x;
+    const auto step = gridDim.x * blockDim.x;
+
+    auto in_ptr    = in + gid;
+    auto out_ptr   = out + gid;
+    const auto end = in_ptr + static_cast<unt64_t>(seq_len) * nhs;
+
+    float r_Amax = 0;
+
+    while(in_ptr < end)
+    {
+        const auto res = *in_ptr * descaler;
+
+        r_Amax = max_op(r_Amax, fabsf(res));
+
+        *out_ptr = res * scaler;
+
+        in_ptr += step;
+        out_ptr += step;
+    }
+
+    constexpr uint32_t NumWarps = THREADS / warpSize;
+    const uint32_t lid          = threadIdx.x;
+    const uint32_t laneId       = lid % warpSize;
+    const uint32_t warpId       = lid / warpSize;
+
+    r_Amax = reductionBlock<NumWarps>(r_Amax, max_op, lid, laneId, warpId);
+    if(lid == 0)
+    {
+        atomicMaxOfAbsolutValues(Amax, r_Amax);
+    }
+}
