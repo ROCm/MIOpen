@@ -1030,7 +1030,6 @@ add_custom_test(test_regression_half_vega SKIP_UNLESS_ALL FLOAT_DISABLED HALF_EN
 set_tests_properties(test_regression_half_vega PROPERTIES RUN_SERIAL On)
 
 set(ENVS_REGRESSION_ISSUE_1012
-    MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS=1
     MIOPEN_FIND_MODE=normal)
 
 set(ARGS_REGRESSION_ISSUE_1012
