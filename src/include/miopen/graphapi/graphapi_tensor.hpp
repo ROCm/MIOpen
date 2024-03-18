@@ -27,6 +27,7 @@
 
 #include <miopen/graphapi/graphapi.hpp>
 
+#include <cstdint>
 #include <vector>
 
 namespace miopen {

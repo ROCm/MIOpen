@@ -87,8 +87,6 @@ set( MIOpen_Source
     activ_api.cpp
     api/find2_0_commons.cpp
     argmax_api.cpp
-    graphapi/graphapi.cpp
-    graphapi/graphapi_tensor.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
@@ -123,6 +121,8 @@ set( MIOpen_Source
     fusion.cpp
     fusion/problem_description.cpp
     generic_search.cpp
+    graphapi/graphapi.cpp
+    graphapi/graphapi_tensor.cpp
     groupnorm_api.cpp
     groupnorm/problem_description.cpp
     handle_api.cpp

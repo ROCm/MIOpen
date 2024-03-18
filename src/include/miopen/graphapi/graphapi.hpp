@@ -28,6 +28,8 @@
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
 
+#include <cstdint>
+
 namespace miopen {
 
 namespace graphapi {
