@@ -311,7 +311,7 @@ void Solution::RunImpl(Handle& handle,
                                                descaleS.buffer,
                                                scaleS.buffer,
                                                scaleO.buffer,
-                                               1.f, // temporary solution
+                                               mha_desc.GetScale(),
                                                mha_desc.GetDropoutProbability(),
                                                o.buffer,
                                                amaxO.buffer,

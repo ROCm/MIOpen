@@ -42,13 +42,18 @@ struct MHADescriptor : miopenMHADescriptor
 {
     MHADescriptor() {}
 
-    void SetParams(float dropoutProbability_, uint64_t dropoutSeed_, uint64_t dropoutOffset_)
+    void SetParams(float scale_,
+                   float dropoutProbability_,
+                   uint64_t dropoutSeed_,
+                   uint64_t dropoutOffset_)
     {
+        scale              = scale_;
         dropoutProbability = dropoutProbability_;
         dropoutSeed        = dropoutSeed_;
         dropoutOffset      = dropoutOffset_;
     }
 
+    float GetScale() const { return scale; }
     float GetDropoutProbability() const { return dropoutProbability; }
     uint64_t GetDropoutSeed() const { return dropoutSeed; }
     uint64_t GetDropoutOffset() const { return dropoutOffset; }
@@ -59,6 +64,7 @@ struct MHADescriptor : miopenMHADescriptor
     friend void from_json(const nlohmann::json& json, MHADescriptor& descriptor);
 
 private:
+    float scale;
     float dropoutProbability;
     uint64_t dropoutSeed;
     uint64_t dropoutOffset;
