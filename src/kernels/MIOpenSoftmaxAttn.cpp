@@ -403,14 +403,13 @@ extern "C" __global__ void SoftMaxCommon(const float* in,
     }
 }
 
-extern "C" __global__ void ScaleReduce(const float* in,
-                                       float* out,
+extern "C" __global__ void ScaleReduce(const float* __restrict__ in,
+                                       float* __restrict__ out,
                                        float* __restrict__ Amax,
                                        const float* __restrict__ descale_S,
                                        const float* __restrict__ descale_V,
                                        const float* __restrict__ scale_O,
-                                       uint32_t seq_len,
-                                       uint64_t nhs)
+                                       uint64_t nhsd)
 {
     const float descaler = (*descale_S) * (*descale_V);
     const float scaler   = (*scale_O);
@@ -420,7 +419,7 @@ extern "C" __global__ void ScaleReduce(const float* in,
 
     auto in_ptr    = in + gid;
     auto out_ptr   = out + gid;
-    const auto end = in_ptr + static_cast<unt64_t>(seq_len) * nhs;
+    const auto end = in_ptr + nhsd;
 
     float r_Amax = 0;
 

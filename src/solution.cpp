@@ -278,11 +278,6 @@ void Solution::RunImpl(Handle& handle,
             auto scaleS   = get_input_checked(miopenTensorMHAScaleS, "miopenTensorMHAScaleS");
             auto scaleO   = get_input_checked(miopenTensorMHAScaleO, "miopenTensorMHAScaleO");
 
-            auto dropoutSeed =
-                get_input_checked(miopenTensorMHADropoutSeed, "miopenTensorMHADropoutSeed");
-            auto dropoutOffset =
-                get_input_checked(miopenTensorMHADropoutOffset, "miopenTensorMHADropoutOffset");
-
             auto o     = get_input_checked(miopenTensorMHAO, "miopenTensorMHAO");
             auto amaxO = get_input_checked(miopenTensorMHAAmaxO, "miopenTensorMHAAmaxO");
             auto amaxS = get_input_checked(miopenTensorMHAAmaxS, "miopenTensorMHAAmaxS");
@@ -298,10 +293,9 @@ void Solution::RunImpl(Handle& handle,
                                                            *descaleS.descriptor,
                                                            *scaleS.descriptor,
                                                            *scaleO.descriptor,
-                                                           mha_desc.GetScale(),
                                                            mha_desc.GetDropoutProbability(),
-                                                           *dropoutSeed.descriptor,
-                                                           *dropoutOffset.descriptor,
+                                                           mha_desc.GetDropoutSeed(),
+                                                           mha_desc.GetDropoutOffset(),
                                                            *o.descriptor,
                                                            *amaxO.descriptor,
                                                            *amaxS.descriptor,
@@ -317,15 +311,15 @@ void Solution::RunImpl(Handle& handle,
                                                descaleS.buffer,
                                                scaleS.buffer,
                                                scaleO.buffer,
-                                               dropoutSeed.buffer,
-                                               dropoutOffset.buffer,
+                                               1.f, // temporary solution
+                                               mha_desc.GetDropoutProbability(),
                                                o.buffer,
                                                amaxO.buffer,
                                                amaxS.buffer,
                                                m.buffer,
                                                zInv.buffer};
 
-            return mha::InvokeParams(inputDescsForward, dataForward);
+            return mha::InvokeParams(inputDescsForward, dataForward, workspace, workspace_size);
         }
         case miopenProblemDirectionBackward: {
             MIOPEN_THROW(miopenStatusNotImplemented);

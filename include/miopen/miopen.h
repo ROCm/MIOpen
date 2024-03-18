@@ -5330,16 +5330,14 @@ typedef enum
     miopenTensorMHADescaleS      = 21,
     miopenTensorMHAScaleS        = 22,
     miopenTensorMHAScaleO        = 23,
-    miopenTensorMHADropoutSeed   = 24,
-    miopenTensorMHADropoutOffset = 25,
 
     // MHA Forward op output tensors
-    miopenTensorMHAO     = 26,
-    miopenTensorMHAAmaxO = 27,
-    miopenTensorMHAAmaxS = 28,
+    miopenTensorMHAO     = 24,
+    miopenTensorMHAAmaxO = 25,
+    miopenTensorMHAAmaxS = 26,
 
-    miopenTensorMHAM    = 29,
-    miopenTensorMHAZInv = 30,
+    miopenTensorMHAM    = 27,
+    miopenTensorMHAZInv = 28,
 
 } miopenTensorArgumentId_t;
 

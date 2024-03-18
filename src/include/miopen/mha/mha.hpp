@@ -47,10 +47,9 @@ struct MHAInputDescsForward
     TensorDescriptor scaleODesc;
 
     // input scalars
-    float scale;
     float dropoutProbability;
-    TensorDescriptor dropoutSeed;
-    TensorDescriptor dropoutOffset;
+    uint64_t dropoutSeed;
+    uint64_t dropoutOffset;
 
     // output tensors
     TensorDescriptor oDesc;
@@ -77,8 +76,9 @@ struct MHADataForward
     ConstData_t scaleSData;
     ConstData_t scaleOData;
 
-    ConstData_t dropoutSeedData;
-    ConstData_t dropoutOffsetData;
+    // input scalars
+    float scale;
+    float dropoutProbability;
 
     // output tensors
     Data_t oData;

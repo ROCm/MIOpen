@@ -35,20 +35,28 @@ namespace mha {
 
 struct InvokeParams : public miopen::InvokeParams
 {
-    InvokeParams(const MHAInputDescsForward& inputDescsForward, const MHADataForward& dataForward)
-        : mhaInputDescsForward(inputDescsForward), mhaDataForward(dataForward)
+    InvokeParams(const MHAInputDescsForward& inputDescsForward,
+                 const MHADataForward& dataForward,
+                 Data_t ws,
+                 std::size_t wsSize)
+        : mhaInputDescsForward(inputDescsForward),
+          mhaDataForward(dataForward),
+          workSpace(ws),
+          workSpaceSize(wsSize)
     {
     }
 
     const MHAInputDescsForward& GetDescs() const { return mhaInputDescsForward; }
     const MHADataForward& GetData() const { return mhaDataForward; }
 
-    std::size_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
+    std::size_t GetWorkspaceSize() const { return workSpaceSize; }
+    Data_t GetWorkspace() const { return workSpace; }
 
 private:
     MHAInputDescsForward mhaInputDescsForward;
     MHADataForward mhaDataForward;
+    Data_t workSpace;
+    std::size_t workSpaceSize;
 };
 
 } // namespace mha

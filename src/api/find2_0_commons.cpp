@@ -280,8 +280,6 @@ inline std::ostream& operator<<(std::ostream& stream, const miopenTensorArgument
     case miopenTensorMHADescaleS: stream << "MHADescaleS"; break;
     case miopenTensorMHAScaleS: stream << "MHAScaleS"; break;
     case miopenTensorMHAScaleO: stream << "MHAScaleO"; break;
-    case miopenTensorMHADropoutSeed: stream << "MHADropoutSeed"; break;
-    case miopenTensorMHADropoutOffset: stream << "MHADropoutOffset"; break;
     case miopenTensorMHAO: stream << "MHAO"; break;
     case miopenTensorMHAAmaxO: stream << "MHAAmaxO"; break;
     case miopenTensorMHAAmaxS: stream << "MHAAmaxS"; break;
