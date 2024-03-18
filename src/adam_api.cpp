@@ -102,8 +102,8 @@ extern "C" miopenStatus_t miopenAdam(miopenHandle_t handle,
                         foundInfDesc,
                         foundInf);
     LogCmdAdam(paramDesc);
-    auto gradScaleDescPtr = (gradScaleDesc) ? &miopen::deref(gradScaleDesc) : nullptr;
-    auto foundInfDescPtr  = (foundInfDesc) ? &miopen::deref(foundInfDesc) : nullptr;
+    auto gradScaleDescPtr = (gradScaleDesc != nullptr) ? &miopen::deref(gradScaleDesc) : nullptr;
+    auto foundInfDescPtr  = (foundInfDesc != nullptr) ? &miopen::deref(foundInfDesc) : nullptr;
     return miopen::try_([&] {
         miopen::Adam(miopen::deref(handle),
                      miopen::deref(paramDesc),

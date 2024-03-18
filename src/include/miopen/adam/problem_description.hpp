@@ -56,7 +56,7 @@ struct ProblemDescription : ProblemDescriptionBase
                        const TensorDescriptor* foundInfDesc_)
         : paramDesc(paramDesc_),
           gradDesc(gradDesc_),
-          expAvgDesc(gradDesc_),
+          expAvgDesc(expAvgDesc_),
           expAvgSqDesc(expAvgSqDesc_),
           stepDesc(stepDesc_),
           lr(lr_),

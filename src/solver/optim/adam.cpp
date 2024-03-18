@@ -61,11 +61,10 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
     constexpr size_t local_size = 256;
 
     auto result = ConvSolution{miopenStatusSuccess};
+    auto dtype  = problem.GetParamDesc().GetType();
+    auto numel  = problem.GetParamDesc().GetElementSize();
 
     {
-        auto dtype = problem.GetParamDesc().GetType();
-        auto numel = problem.GetParamDesc().GetElementSize();
-
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
             {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
@@ -87,7 +86,7 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
 
     if(problem.IsAmp())
     {
-        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+        result.invoker_factory = [numel](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel = handle_.Run(kernels.front());
                 decltype(auto) params = raw_params.CastTo<miopen::adam::InvokeParams>();
@@ -96,23 +95,22 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
                        params.grad,
                        params.expAvg,
                        params.expAvgSq,
+                       params.gradScale,
+                       params.foundInf,
                        params.step,
                        params.lr,
                        params.beta1,
                        params.beta2,
-                       params.weight_decay,
                        params.eps,
+                       params.weight_decay,
                        params.amsgrad,
-                       params.gradScaleDesc,
-                       params.gradScale,
-                       params.foundInfDesc,
-                       params.foundInf);
+                       numel);
             };
         };
     }
     else
     {
-        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+        result.invoker_factory = [numel](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel = handle_.Run(kernels.front());
                 decltype(auto) params = raw_params.CastTo<miopen::adam::InvokeParams>();
@@ -125,9 +123,10 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
                        params.lr,
                        params.beta1,
                        params.beta2,
-                       params.weight_decay,
                        params.eps,
-                       params.amsgrad);
+                       params.weight_decay,
+                       params.amsgrad,
+                       numel);
             };
         };
     }
