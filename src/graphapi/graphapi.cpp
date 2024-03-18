@@ -152,6 +152,11 @@ void BackendDescriptor::execute([[maybe_unused]] miopenHandle_t handle,
     MIOPEN_THROW(miopenStatusBadParm);
 }
 
+Operation* BackendDescriptor::getOperation()
+{
+    return nullptr;
+}
+
 } // namespace graphapi
 
 } // namespace miopen
