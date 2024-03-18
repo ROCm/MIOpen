@@ -63,15 +63,11 @@ constexpr uint64_t RoundUpToMultiple(uint64_t val, uint64_t mul) { return DivCei
 // Number of thread groups
 uint32_t GetNGroups(uint64_t cu_count)
 {
-    auto n_groups = cu_count;
-
     // Current limitations:
     // n_groups < 2^8
-    constexpr auto max_n_groups = PowOf2(8) - 1;
-    if(n_groups > max_n_groups)
-        n_groups = max_n_groups;
+    constexpr uint64_t max_n_groups = PowOf2(8) - 1;
 
-    return n_groups;
+    return std::min(cu_count, max_n_groups);
 }
 
 bool IsShaderConstraintsMetV2(const WinoShaderArgsV40& args, uint32_t n_groups)

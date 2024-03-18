@@ -105,8 +105,8 @@ InvokerFactory MakeGcnAsmWinoV40InvokerFactory(const WinoShaderArgsV40& args,
                 args.out_h,               // uint32_t,    output height
                 args.out_w,               // uint32_t,    output width
                 bias_addr,                // uint64_t,    address of bias buffer
-                args.alpha,               // alpha,       activation parameter alpha
-                args.beta,                // alpha,       activation parameter beta
+                args.alpha,               // fp32,        activation parameter alpha
+                args.beta,                // fp32,        activation parameter beta
                 d_offset,                 // uint64_t,    byte offset for buffer referenced by data_addr
                 f_offset,                 // uint64_t,    byte offset for buffer referenced by filter_addr
                 o_offset,                 // uint64_t,    byte offset for buffer referenced by output_addr
