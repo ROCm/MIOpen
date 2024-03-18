@@ -1,4 +1,4 @@
- /*******************************************************************************
+/*******************************************************************************
  *
  * MIT License
  *
@@ -31,48 +31,45 @@
 namespace miopen {
 namespace mha {
 
-// Are we going to use backend descriptors? If yes just chnage the typedef
-typedef TensorDescriptor MHATensorDescriptor;
-
 struct MHAInputDescsForward
 {
-    //input tensors
-    MHATensorDescriptor kDesc;
-    MHATensorDescriptor qDesc;
-    MHATensorDescriptor vDesc;
+    // input tensors
+    TensorDescriptor kDesc;
+    TensorDescriptor qDesc;
+    TensorDescriptor vDesc;
 
-    //input scaling tensors
-    MHATensorDescriptor descaleKDesc;
-    MHATensorDescriptor descaleQDesc;
-    MHATensorDescriptor descaleVDesc;
-    MHATensorDescriptor descaleSDesc;
-    MHATensorDescriptor scaleSDesc;
-    MHATensorDescriptor scaleODesc;
+    // input scaling tensors
+    TensorDescriptor descaleKDesc;
+    TensorDescriptor descaleQDesc;
+    TensorDescriptor descaleVDesc;
+    TensorDescriptor descaleSDesc;
+    TensorDescriptor scaleSDesc;
+    TensorDescriptor scaleODesc;
 
-    //input scalars
+    // input scalars
     float scale;
     float dropoutProbability;
-    MHATensorDescriptor dropoutSeed;
-    MHATensorDescriptor dropoutOffset;
- 
-    //output tensors
-    MHATensorDescriptor oDesc;
-    MHATensorDescriptor amaxODesc;
-    MHATensorDescriptor amaxSDesc;
+    TensorDescriptor dropoutSeed;
+    TensorDescriptor dropoutOffset;
 
-    //output tensors for training only
-    MHATensorDescriptor mDesc;
-    MHATensorDescriptor zInvDesc;
+    // output tensors
+    TensorDescriptor oDesc;
+    TensorDescriptor amaxODesc;
+    TensorDescriptor amaxSDesc;
+
+    // output tensors for training only
+    TensorDescriptor mDesc;
+    TensorDescriptor zInvDesc;
 };
 
-struct MHADataForward 
+struct MHADataForward
 {
-    //input tensors
+    // input tensors
     ConstData_t kData;
     ConstData_t qData;
     ConstData_t vData;
 
-    //input scaling tensors
+    // input scaling tensors
     ConstData_t descaleKData;
     ConstData_t descaleQData;
     ConstData_t descaleVData;
@@ -82,17 +79,16 @@ struct MHADataForward
 
     ConstData_t dropoutSeedData;
     ConstData_t dropoutOffsetData;
- 
-    //output tensors
+
+    // output tensors
     Data_t oData;
     Data_t amaxOData;
     Data_t amaxSData;
 
-    //output tensors for training only
+    // output tensors for training only
     Data_t mData;
     Data_t zInvData;
 };
 
-
-} // mha
-} // miopen
+} // namespace mha
+} // namespace miopen

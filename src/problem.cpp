@@ -182,7 +182,7 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
             },
             [&](const MHADescriptor& op_desc) {
                 return FindSolutionsImpl(handle, options, max_solutions, buffers, op_desc);
-            },            
+            },
             [&](const BiasDescriptor& /*op_desc*/) -> std::vector<Solution> {
                 MIOPEN_THROW(miopenStatusNotImplemented);
             }),
@@ -286,13 +286,12 @@ mha::ProblemDescription Problem::AsMHA() const
 {
     const auto& mha_desc = boost::get<MHADescriptor>(operator_descriptor);
 
-    if (GetDirection() == miopenProblemDirectionBackward))
+    if(GetDirection() == miopenProblemDirectionBackward)
     {
         MIOPEN_THROW(miopenStatusNotImplemented, "MHA Backward is not currently implemented!");
     }
 
-    MHAInputDescsForward mhaInputDescsForward = 
-    {
+    mha::MHAInputDescsForward mhaInputDescsForward = {
         GetTensorDescriptorChecked(miopenTensorMHAK, "miopenTensorMHAK"),
         GetTensorDescriptorChecked(miopenTensorMHAQ, "miopenTensorMHAQ"),
         GetTensorDescriptorChecked(miopenTensorMHAV, "miopenTensorMHAV"),
@@ -310,9 +309,9 @@ mha::ProblemDescription Problem::AsMHA() const
         GetTensorDescriptorChecked(miopenTensorMHAAmaxO, "miopenTensorMHAAmaxO"),
         GetTensorDescriptorChecked(miopenTensorMHAAmaxS, "miopenTensorMHAAmaxS"),
         GetTensorDescriptorChecked(miopenTensorMHAM, "miopenTensorMHAM"),
-        GetTensorDescriptorChecked(miopenTensorMHAZInv, "miopenTensorMHAZInv"),        
-    }
-    
+        GetTensorDescriptorChecked(miopenTensorMHAZInv, "miopenTensorMHAZInv"),
+    };
+
     return mha::ProblemDescription(mhaInputDescsForward);
 }
 
@@ -495,7 +494,6 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
         if(!solver->IsApplicable(ctx, problem_description))
         {
             continue;
-
         }
 
         auto solution = Solution();
@@ -520,7 +518,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
         }
     }
 
-    return ret;    
+    return ret;
 }
 
 void Problem::ValidateGroupCount(const TensorDescriptor& xDesc,
@@ -779,8 +777,7 @@ void FusedProblem::AddProblemToPlan(FusionPlanDescriptor& plan, const Problem& p
             [&](const MHADescriptor&) {
                 // Not implemented
                 assert(false);
-                MIOPEN_THROW(miopenStatusNotImplemented,
-                             "MHA is not implemented for FusedProblem");
+                MIOPEN_THROW(miopenStatusNotImplemented, "MHA is not implemented for FusedProblem");
             }),
         problem.operator_descriptor);
 }
@@ -843,7 +840,7 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
                     const auto bias_ptr = buffers.at(miopenTensorBias);
                     operator_args.params.emplace_back(
                         std::make_unique<miopen::fusion::BiasOpInvokeParam>(bias_ptr));
-                }, 
+                },
                 [&](const MHADescriptor&) {
                     // Not implemented
                     assert(false);

@@ -32,28 +32,27 @@
 #include <miopen/target_properties.hpp>
 #include <miopen/float_equal.hpp>
 
-
 namespace miopen {
 
 namespace solver {
 
 namespace mha {
 
-bool MHA::IsApplicable(
-    [[maybe_unused]] const ExecutionContext& context,
-    [[maybe_unused]] const miopen::mha::ProblemDescription& problem) const
+bool MHA::IsApplicable([[maybe_unused]] const ExecutionContext& context,
+                       [[maybe_unused]] const miopen::mha::ProblemDescription& problem) const
 {
     return true;
 }
 
-std::size_t MHA::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
-                                  [[maybe_unused]] const miopen::mha::ProblemDescription& problem) const
+std::size_t
+MHA::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
+                      [[maybe_unused]] const miopen::mha::ProblemDescription& problem) const
 {
     return 0;
 }
 
 ConvSolution MHA::GetSolution([[maybe_unused]] const ExecutionContext& context,
-                                  const miopen::mha::ProblemDescription& problem) const
+                              const miopen::mha::ProblemDescription& problem) const
 {
     ConvSolution result;
     return result;

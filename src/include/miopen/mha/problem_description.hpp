@@ -40,13 +40,12 @@ struct ProblemDescription : ProblemDescriptionBase
 {
     // softmax forward constructor
     ProblemDescription(const MHAInputDescsForward& descs)
-        : isForward(true),
-        mhaInputDescsForward(descs)
-    {       
+        : isForward(true), mhaInputDescsForward(descs)
+    {
     }
 
     bool IsForward() const { return isForward; }
-    const MHAInputDescsForward& GetDescs() const {return mhaInputDescsForward;}
+    const MHAInputDescsForward& GetDescs() const { return mhaInputDescsForward; }
 
     NetworkConfig MakeNetworkConfig() const;
 

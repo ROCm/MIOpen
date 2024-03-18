@@ -44,17 +44,17 @@ struct MHADescriptor : miopenMHADescriptor
 
     void SetParams(float scale_, float dropoutProbability_)
     {
-        scale = scale_;
+        scale              = scale_;
         dropoutProbability = dropoutProbability_;
     }
 
-    float GetScale() const {return scale;}
-    float GetDropoutProbability() const {return dropoutProbability;}
+    float GetScale() const { return scale; }
+    float GetDropoutProbability() const { return dropoutProbability; }
 
-    friend std::ostream& operator<<(std::ostream& stream, const SoftmaxDescriptor& x);
+    friend std::ostream& operator<<(std::ostream& stream, const MHADescriptor& x);
 
-    friend void to_json(nlohmann::json& json, const SoftmaxDescriptor& descriptor);
-    friend void from_json(const nlohmann::json& json, SoftmaxDescriptor& descriptor);
+    friend void to_json(nlohmann::json& json, const MHADescriptor& descriptor);
+    friend void from_json(const nlohmann::json& json, MHADescriptor& descriptor);
 
 private:
     float scale;
@@ -66,4 +66,3 @@ private:
 MIOPEN_DEFINE_OBJECT(miopenMHADescriptor, miopen::MHADescriptor);
 
 #endif // _MIOPEN_SOFTMAX_HPP_
- 

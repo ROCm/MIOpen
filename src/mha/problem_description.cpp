@@ -41,7 +41,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
     if(isForward)
     {
-       // TODO Implement
+        // TODO Implement
     }
 
     return NetworkConfig{ss.str()};

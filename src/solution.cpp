@@ -82,7 +82,7 @@ void Solution::Run(Handle& handle,
                         },
                         [&](const MHADescriptor& op_desc) {
                             RunImpl(handle, inputs, workspace, workspace_size, op_desc);
-                        },
+                        }),
                     problem_.GetOperatorDescriptor());
             },
             [&](const FusedProblem& problem_) {
@@ -263,9 +263,6 @@ void Solution::RunImpl(Handle& handle,
 
     const mha::ProblemDescription problem_description = problem_casted.AsMHA();
 
-    float scale = mha_desc.GetScale();
-    float dropoutProbability = mha_desc.GetDropoutProbability);
-
     const auto invoke_ctx = [&]() -> AnyInvokeParams {
         switch(problem_casted.GetDirection())
         {
@@ -274,31 +271,59 @@ void Solution::RunImpl(Handle& handle,
             auto q = get_input_checked(miopenTensorMHAQ, "miopenTensorMHAQ");
             auto v = get_input_checked(miopenTensorMHAV, "miopenTensorMHAV");
 
-            auto descaleK = get_input_checked(miopenTensorMHADescaleK, "miopenTensorMHADescaleK");                                    
+            auto descaleK = get_input_checked(miopenTensorMHADescaleK, "miopenTensorMHADescaleK");
             auto descaleQ = get_input_checked(miopenTensorMHADescaleQ, "miopenTensorMHADescaleQ");
-            auto dscaleV = get_input_checked(miopenTensorMHADescaleV, "miopenTensorMHADescaleV");
+            auto descaleV = get_input_checked(miopenTensorMHADescaleV, "miopenTensorMHADescaleV");
             auto descaleS = get_input_checked(miopenTensorMHADescaleS, "miopenTensorMHADescaleS");
-            auto scaleS = get_input_checked(miopenTensorMHAScaleS, "miopenTensorMHAScaleS");
-            auto scaleO = get_input_checked(miopenTensorMHAScaleO, "miopenTensorMHAScaleO");
+            auto scaleS   = get_input_checked(miopenTensorMHAScaleS, "miopenTensorMHAScaleS");
+            auto scaleO   = get_input_checked(miopenTensorMHAScaleO, "miopenTensorMHAScaleO");
 
-            auto dropoutSeed = get_input_checked(miopenTensorMHADropoutSeed, "miopenTensorMHADropoutSeed");
-            auto dropoutOffset = get_input_checked(miopenTensorMHADropoutOffset, "miopenTensorMHADropoutOffset");
+            auto dropoutSeed =
+                get_input_checked(miopenTensorMHADropoutSeed, "miopenTensorMHADropoutSeed");
+            auto dropoutOffset =
+                get_input_checked(miopenTensorMHADropoutOffset, "miopenTensorMHADropoutOffset");
 
-            auto o = get_input_checked(miopenTensorMHAO, "miopenTensorMHAO");
+            auto o     = get_input_checked(miopenTensorMHAO, "miopenTensorMHAO");
             auto amaxO = get_input_checked(miopenTensorMHAAmaxO, "miopenTensorMHAAmaxO");
-            auto amaxS = get_input_checked(miopenTensorMHAAmaxS, "miopenTensorMHAAmaxS");                                    
-            auto m = get_input_checked(miopenTensorMHAM, "miopenTensorMHAM");
-            auto zInv = get_input_checked(miopenTensorMHAZInv, "miopenTensorMHAZInv");
+            auto amaxS = get_input_checked(miopenTensorMHAAmaxS, "miopenTensorMHAAmaxS");
+            auto m     = get_input_checked(miopenTensorMHAM, "miopenTensorMHAM");
+            auto zInv  = get_input_checked(miopenTensorMHAZInv, "miopenTensorMHAZInv");
 
-            MHAInputDescsForward inputDescsForward = {*k.descriptor, *q.descriptor, *v.descriptor, *descaleK.descriptor, *descaleQ.descriptor,
-                                                      *descaleV.descriptor, *descaleS.descriptor, mha_desc.GetScale(), mha_desc.GetDropoutProbability(),
-                                                      *scaleS.descriptor, *scaleO.descriptor, dropoutSeed.descriptor, dropoutOffset.descriptor,
-                                                      *o.descriptor, *amaxO.descriptor, *amaxS.descriptor, *m.descriptor, *zInv.descriptor};
+            mha::MHAInputDescsForward inputDescsForward = {*k.descriptor,
+                                                           *q.descriptor,
+                                                           *v.descriptor,
+                                                           *descaleK.descriptor,
+                                                           *descaleQ.descriptor,
+                                                           *descaleV.descriptor,
+                                                           *descaleS.descriptor,
+                                                           *scaleS.descriptor,
+                                                           *scaleO.descriptor,
+                                                           mha_desc.GetScale(),
+                                                           mha_desc.GetDropoutProbability(),
+                                                           *dropoutSeed.descriptor,
+                                                           *dropoutOffset.descriptor,
+                                                           *o.descriptor,
+                                                           *amaxO.descriptor,
+                                                           *amaxS.descriptor,
+                                                           *m.descriptor,
+                                                           *zInv.descriptor};
 
-            MHADataForward dataForward = {k.buffer, q.buffer, v.buffer, descaleK.buffer, descaleQ.buffer,
-                                            descaleV.buffer, descaleS.buffer,
-                                            scaleS.buffer, scaleO.buffer, dropoutSeed.buffer, dropoutOffset.buffer,
-                                            o.buffer, amaxO.buffer, amaxS.buffer, m.buffer, zInv.buffer};
+            mha::MHADataForward dataForward = {k.buffer,
+                                               q.buffer,
+                                               v.buffer,
+                                               descaleK.buffer,
+                                               descaleQ.buffer,
+                                               descaleV.buffer,
+                                               descaleS.buffer,
+                                               scaleS.buffer,
+                                               scaleO.buffer,
+                                               dropoutSeed.buffer,
+                                               dropoutOffset.buffer,
+                                               o.buffer,
+                                               amaxO.buffer,
+                                               amaxS.buffer,
+                                               m.buffer,
+                                               zInv.buffer};
 
             return mha::InvokeParams(inputDescsForward, dataForward);
         }
@@ -325,8 +350,8 @@ void Solution::RunImpl(Handle& handle,
 
         const auto mha_solution = mha.GetSolution(ctx, problem_description);
 
-        decltype(auto) invoker = handle.PrepareInvoker(*mha_solution.invoker_factory,
-                                                       mha_solution.construction_params);
+        decltype(auto) invoker =
+            handle.PrepareInvoker(*mha_solution.invoker_factory, mha_solution.construction_params);
         handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
         invoker(handle, invoke_ctx);
     }

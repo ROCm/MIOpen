@@ -13,9 +13,8 @@ extern "C" miopenStatus_t miopenCreateMHADescriptor(miopenSoftmaxDescriptor_t* m
     });
 }
 
-extern "C" miopenStatus_t miopenSetMHADescriptor(miopenSoftmaxDescriptor_t mhaDesc,
-                                                     float scale,
-                                                     float dropoutProbability)
+extern "C" miopenStatus_t
+miopenSetMHADescriptor(miopenSoftmaxDescriptor_t mhaDesc, float scale, float dropoutProbability)
 {
     MIOPEN_LOG_FUNCTION(mhaDesc, scale, dropoutProbability);
     return miopen::try_([&] { miopen::deref(activDesc).SetParams(scale, dropoutProbability); });
@@ -23,7 +22,8 @@ extern "C" miopenStatus_t miopenSetMHADescriptor(miopenSoftmaxDescriptor_t mhaDe
 
 std::ostream& operator<<(std::ostream& stream, const MHADescriptor& x)
 {
-    stream << "mha," << "scale" << x.GetScale() << ",dropoutProbability" << x.GetDropoutProbability() << ",";
+    stream << "mha,"
+           << "scale" << x.GetScale() << ",dropoutProbability" << x.GetDropoutProbability() << ",";
 
     return stream;
 }

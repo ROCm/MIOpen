@@ -32,6 +32,7 @@
 #include <miopen/allocator.hpp>
 #include <miopen/convolution.hpp>
 #include <miopen/mha/mha_descriptor.hpp>
+#include <miopen/mha/problem_description.hpp>
 #include <miopen/object.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/tensor.hpp>
