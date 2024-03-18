@@ -70,21 +70,23 @@ struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
     {
-        G  = ProblemInterpreter::GetGroupCountG(problem);
-        N  = ProblemInterpreter::GetBatchN(problem);
-        K1 = ProblemInterpreter::GetOutputChannelK(problem);
-        C1 = ProblemInterpreter::GetInputChannelC(problem);
-        C  = C1 / G; // Number of input Channel per group
-        K  = K1 / G; // Number of output Channel per group
-        Hi = ProblemInterpreter::GetInputHeightHi(problem);
-        Wi = ProblemInterpreter::GetInputWidthWi(problem);
-        Ho = ProblemInterpreter::GetOutputHeightHo(problem);
-        Wo = ProblemInterpreter::GetOutputWidthWo(problem);
-        Y  = ProblemInterpreter::GetFilterHeightY(problem);
-        X  = ProblemInterpreter::GetFilterWidthX(problem);
-        Di = ProblemInterpreter::GetInputDepthDi(problem);
-        Do = ProblemInterpreter::GetOutputDepthDo(problem);
-        Z  = ProblemInterpreter::GetFilterDepthZ(problem);
+        G     = ProblemInterpreter::GetGroupCountG(problem);
+        N     = ProblemInterpreter::GetBatchN(problem);
+        K1    = ProblemInterpreter::GetOutputChannelK(problem);
+        C1    = ProblemInterpreter::GetInputChannelC(problem);
+        C     = C1 / G; // Number of input Channel per group
+        K     = K1 / G; // Number of output Channel per group
+        Hi    = ProblemInterpreter::GetInputHeightHi(problem);
+        Wi    = ProblemInterpreter::GetInputWidthWi(problem);
+        Ho    = ProblemInterpreter::GetOutputHeightHo(problem);
+        Wo    = ProblemInterpreter::GetOutputWidthWo(problem);
+        Y     = ProblemInterpreter::GetFilterHeightY(problem);
+        X     = ProblemInterpreter::GetFilterWidthX(problem);
+        Di    = ProblemInterpreter::GetInputDepthDi(problem);
+        Do    = ProblemInterpreter::GetOutputDepthDo(problem);
+        Z     = ProblemInterpreter::GetFilterDepthZ(problem);
+        alpha = ProblemInterpreter::GetAlpha(problem);
+        beta  = ProblemInterpreter::GetBeta(problem);
 
         input  = {G, N, C, Di, Hi, Wi};
         output = {G, N, K, Do, Ho, Wo};
@@ -192,6 +194,8 @@ struct CKArgs
     int Y;
     int X;
     int Z;
+    const void* alpha = nullptr;
+    const void* beta  = nullptr;
     std::array<ck::index_t, 6> input;
     std::array<ck::index_t, 6> in_strides;
     std::array<ck::index_t, 6> output;

@@ -226,6 +226,16 @@ struct ProblemInterpreter
         return problem.GetPadW();
     }
 
+    static const auto GetAlpha(const miopen::conv::ProblemDescription& problem)
+    {
+        return problem.GetAlpha();
+    }
+
+    static const auto GetBeta(const miopen::conv::ProblemDescription& problem)
+    {
+        return problem.GetBeta();
+    }
+
     // adjust right padding size so that filter will not move out-of-bound
     static auto GetAdjustedInputRightPadD(const miopen::conv::ProblemDescription& problem)
     {

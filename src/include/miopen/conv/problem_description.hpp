@@ -146,7 +146,9 @@ struct ProblemDescription : ProblemDescriptionBase
                        const TensorDescriptor& out_, // y for Forward, x for Backward*
                        const ConvolutionDescriptor& conv_,
                        Direction direction_,
-                       int bias_ = 0)
+                       int bias_          = 0,
+                       const void* alpha_ = nullptr,
+                       const void* beta_  = nullptr)
         : in(in_),
           weights(weights_),
           out(out_),
@@ -155,7 +157,9 @@ struct ProblemDescription : ProblemDescriptionBase
           weights_layout(ComputeWeightsLayout()),
           out_layout(ComputeOutLayout()),
           direction(direction_),
-          bias(bias_)
+          bias(bias_),
+          alpha(alpha_),
+          beta(beta_)
     {
         HeuristicUpdateLayouts();
     }
@@ -295,6 +299,21 @@ struct ProblemDescription : ProblemDescriptionBase
     bool IsDirectionBackwardData() const { return direction == conv::Direction::BackwardData; }
     bool IsDirectionBackwardWrW() const { return direction == conv::Direction::BackwardWeights; }
     std::string GetDirectionStr() const;
+
+    const void* GetAlpha() const { return alpha; }
+    const void* GetBeta() const { return beta; }
+
+    bool IsDefaultAlphaBetaType() const
+    {
+        if(alpha == nullptr && beta == nullptr)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
 
     int GetBias() const { return bias; }
 
@@ -447,6 +466,7 @@ struct ProblemDescription : ProblemDescriptionBase
         f(self.GetDilationD(), "dilation_d");
         f(self.GetBias(), "bias");
         f(self.GetGroupCount(), "group_count");
+        f(static_cast<int>(self.IsDefaultAlphaBetaType()), "alpha_beta_type");
     }
 
     template <class Self>
@@ -479,6 +499,8 @@ private:
     std::string out_layout;
     Direction direction = Direction::Forward;
     int bias            = 0;
+    const void* alpha;
+    const void* beta;
 };
 
 } // namespace conv
