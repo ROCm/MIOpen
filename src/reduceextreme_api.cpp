@@ -98,18 +98,39 @@ extern "C" miopenStatus_t miopenReduceExtremeForward(miopenHandle_t handle,
                                                      const miopenTensorDescriptor_t indiceDesc,
                                                      void* indice)
 {
-    MIOPEN_LOG_FUNCTION(handle, xDesc, x, dim, reduceExtremeOp, yDesc, y, indiceDesc, indice);
 
-    LogCmdReduceExtreme(xDesc, dim, reduceExtremeOp, true);
-    return miopen::try_([&] {
-        miopen::ReduceExtremeForward(miopen::deref(handle),
-                                     miopen::deref(xDesc),
-                                     DataCast(x),
-                                     miopen::deref(yDesc),
-                                     DataCast(y),
-                                     miopen::deref(indiceDesc),
-                                     DataCast(indice),
-                                     dim,
-                                     reduceExtremeOp);
-    });
+    if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMIN) ||
+       reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMAX)
+    {
+        MIOPEN_LOG_FUNCTION(handle, xDesc, x, dim, reduceExtremeOp, indiceDesc, indice);
+
+        LogCmdReduceExtreme(xDesc, dim, reduceExtremeOp, true);
+
+        return miopen::try_([&] {
+            miopen::ReduceExtremeForward(miopen::deref(handle),
+                                         miopen::deref(xDesc),
+                                         DataCast(x),
+                                         miopen::deref(indiceDesc),
+                                         DataCast(indice),
+                                         dim,
+                                         reduceExtremeOp);
+        });
+    }
+    else
+    {
+        MIOPEN_LOG_FUNCTION(handle, xDesc, x, dim, reduceExtremeOp, yDesc, y, indiceDesc, indice);
+
+        LogCmdReduceExtreme(xDesc, dim, reduceExtremeOp, true);
+        return miopen::try_([&] {
+            miopen::ReduceExtremeForward(miopen::deref(handle),
+                                         miopen::deref(xDesc),
+                                         DataCast(x),
+                                         miopen::deref(yDesc),
+                                         DataCast(y),
+                                         miopen::deref(indiceDesc),
+                                         DataCast(indice),
+                                         dim,
+                                         reduceExtremeOp);
+        });
+    }
 }

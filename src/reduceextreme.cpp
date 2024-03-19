@@ -38,8 +38,6 @@ namespace miopen {
 miopenStatus_t ReduceExtremeForward(Handle& handle,
                                     const TensorDescriptor& xDesc,
                                     ConstData_t x,
-                                    const TensorDescriptor& yDesc,
-                                    Data_t y,
                                     const TensorDescriptor& indiceDesc,
                                     Data_t indice,
                                     int32_t dim,
@@ -89,7 +87,21 @@ miopenStatus_t ReduceExtremeForward(Handle& handle,
 
         return miopenStatusSuccess;
     }
-    else if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN)
+
+    return miopenStatusUnsupportedOp;
+}
+
+miopenStatus_t ReduceExtremeForward(Handle& handle,
+                                    const TensorDescriptor& xDesc,
+                                    ConstData_t x,
+                                    const TensorDescriptor& yDesc,
+                                    Data_t y,
+                                    const TensorDescriptor& indiceDesc,
+                                    Data_t indice,
+                                    int32_t dim,
+                                    miopenReduceExtremeOp_t reduceExtremeOp)
+{
+    if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN)
     {
         const auto problem =
             reduce::ProblemDescription{xDesc, yDesc, indiceDesc, dim, reduceExtremeOp};

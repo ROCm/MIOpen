@@ -60,9 +60,9 @@ bool ArgmaxForward::IsApplicable(const ExecutionContext& context,
 {
     if(!problem.IsRightDim())
         return false;
-    if(!problem.IsRightLength())
+    if(!problem.IsRightLengthIndice())
         return false;
-    if(!problem.IsAllPacked())
+    if(!problem.IsAllPackedIndice())
         return false;
     if(!problem.IsNotLastDim())
         return false;
