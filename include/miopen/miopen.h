@@ -5310,6 +5310,22 @@ typedef enum
     miopenTensorConvolutionX      = 1,
     miopenTensorConvolutionW      = 2,
     miopenTensorConvolutionY      = 3,
+
+    miopenTensorMHAK        = 8,
+    miopenTensorMHAQ        = 9,
+    miopenTensorMHAV        = 10,
+    miopenTensorMHADescaleK = 11,
+    miopenTensorMHADescaleQ = 12,
+    miopenTensorMHADescaleV = 13,
+    miopenTensorMHADescaleS = 14,
+    miopenTensorMHAScaleS   = 15,
+    miopenTensorMHAScaleO   = 16,
+    miopenTensorMHAO        = 17,
+    miopenTensorMHAAmaxO    = 18,
+    miopenTensorMHAAmaxS    = 19,
+    miopenTensorMHAM        = 20,
+    miopenTensorMHAZInv     = 21,
+
 #ifdef MIOPEN_BETA_API
     miopenTensorActivationX  = 4,
     miopenTensorActivationY  = 5,
@@ -5319,25 +5335,6 @@ typedef enum
     miopenTensorBiasY        = 9,
     miopenTensorBias         = 10,
 #endif
-    // MHA Forward op input tensors
-    miopenTensorMHAK = 15,
-    miopenTensorMHAQ = 16,
-    miopenTensorMHAV = 17,
-
-    miopenTensorMHADescaleK      = 18,
-    miopenTensorMHADescaleQ      = 19,
-    miopenTensorMHADescaleV      = 20,
-    miopenTensorMHADescaleS      = 21,
-    miopenTensorMHAScaleS        = 22,
-    miopenTensorMHAScaleO        = 23,
-
-    // MHA Forward op output tensors
-    miopenTensorMHAO     = 24,
-    miopenTensorMHAAmaxO = 25,
-    miopenTensorMHAAmaxS = 26,
-
-    miopenTensorMHAM    = 27,
-    miopenTensorMHAZInv = 28,
 
 } miopenTensorArgumentId_t;
 

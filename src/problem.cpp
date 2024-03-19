@@ -492,6 +492,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     {
         if(!solver->IsApplicable(ctx, problem_description))
         {
+            MIOPEN_LOG_I2(solver->SolverDbId() << ": Not applicable");
             continue;
         }
 
