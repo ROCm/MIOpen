@@ -26,6 +26,7 @@
 #pragma once
 
 #include <miopen/graphapi/graphapi.hpp>
+#include <miopen/tensor.hpp>
 
 #include <cstdint>
 #include <vector>
@@ -65,6 +66,13 @@ public:
           mDataType(dataType),
           mVirtual(isVirtual)
     {
+    }
+
+    operator miopen::TensorDescriptor() const
+    {
+        return {mDataType,
+                std::vector<std::size_t>(mDimensions.cbegin(), mDimensions.cbegin()),
+                std::vector<std::size_t>(mStrides.cbegin(), mStrides.cbegin())};
     }
 
     miopenDataType_t getDataType() const noexcept { return mDataType; }
