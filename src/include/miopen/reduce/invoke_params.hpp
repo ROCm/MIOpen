@@ -37,7 +37,8 @@ struct InvokeParams : public miopen::InvokeParams
     InvokeParams() = default;
 
     const TensorDescriptor* xDesc      = nullptr;
-    const TensorDescriptor* reduceDesc = nullptr;
+    const TensorDescriptor* yDesc      = nullptr;
+    const TensorDescriptor* indiceDesc = nullptr;
 
     ConstData_t x                            = nullptr;
     Data_t y                                 = nullptr;

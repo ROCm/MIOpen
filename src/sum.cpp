@@ -37,12 +37,12 @@ namespace miopen {
 
 std::size_t GetSumWorkspaceSize(Handle& handle,
                                 const TensorDescriptor& xDesc,
-                                const TensorDescriptor& reduceDesc,
+                                const TensorDescriptor& yDesc,
                                 int32_t dim)
 {
     auto ctx = ExecutionContext{&handle};
     const auto problem =
-        reduce::ProblemDescription{MIOPEN_SUM_NOT_PROPAGATE_NAN, xDesc, reduceDesc, dim};
+        reduce::ProblemDescription{MIOPEN_SUM_NOT_PROPAGATE_NAN, xDesc, yDesc, dim};
 
     const auto algo    = AlgorithmName{"SumForward"};
     const auto solvers = solver::SolverContainer<solver::reduce::SumForward>{};
@@ -57,18 +57,18 @@ miopenStatus_t SumForward(Handle& handle,
                           size_t workspaceSizeInBytes,
                           const TensorDescriptor& xDesc,
                           ConstData_t x,
-                          const TensorDescriptor& reduceDesc,
+                          const TensorDescriptor& yDesc,
                           Data_t y,
                           miopenSumNanPropagation_t nanPropagation,
                           int32_t dim)
 {
-    const auto problem = reduce::ProblemDescription{nanPropagation, xDesc, reduceDesc, dim};
+    const auto problem = reduce::ProblemDescription{nanPropagation, xDesc, yDesc, dim};
 
     const auto invoke_params = [&]() {
         auto tmp           = reduce::InvokeParams{};
         tmp.type           = InvokeType::Run;
         tmp.xDesc          = &xDesc;
-        tmp.reduceDesc     = &reduceDesc;
+        tmp.yDesc          = &yDesc;
         tmp.x              = x;
         tmp.y              = y;
         tmp.workspace      = workspace;

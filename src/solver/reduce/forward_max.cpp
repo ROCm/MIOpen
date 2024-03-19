@@ -49,7 +49,7 @@ size_t MaxForward::XGridSize(std::vector<size_t> ydims) const
 bool MaxForward::OverMaxGridSize(const ExecutionContext& context,
                                  const miopen::reduce::ProblemDescription& problem) const
 {
-    auto ydims = problem.GetReduceDesc().GetLengths();
+    auto ydims = problem.GetYDesc().GetLengths();
     if(XGridSize(ydims) > context.GetStream().GetImage3dMaxWidth())
         return false;
     return true;
@@ -80,9 +80,10 @@ ConvSolution MaxForward::GetSolution(const ExecutionContext&,
 
     auto dtype        = problem.GetXDesc().GetType();
     auto input_dtype  = miopen::GetDataType(problem.GetXDesc().GetType());
-    auto output_dtype = miopen::GetDataType(problem.GetReduceDesc().GetType());
+    auto output_dtype = miopen::GetDataType(problem.GetYDesc().GetType());
+    auto indice_dtype = miopen::GetDataType(problem.GetIndiceDesc().GetType());
     auto xdims        = problem.GetXDesc().GetLengths();
-    auto ydims        = problem.GetReduceDesc().GetLengths();
+    auto ydims        = problem.GetYDesc().GetLengths();
 
     {
         size_t xlocalsize;
@@ -105,7 +106,7 @@ ConvSolution MaxForward::GetSolution(const ExecutionContext&,
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
-        };
+            {"INDICE_TYPE", indice_dtype}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
@@ -126,7 +127,7 @@ ConvSolution MaxForward::GetSolution(const ExecutionContext&,
             decltype(auto) params = raw_params.CastTo<miopen::reduce::InvokeParams>();
 
             auto xdims = params.xDesc->GetLengths();
-            auto ydims = params.reduceDesc->GetLengths();
+            auto ydims = params.yDesc->GetLengths();
             auto dim   = params.dim;
 
             int32_t reduce_size = static_cast<int32_t>(xdims[dim]);

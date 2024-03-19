@@ -49,7 +49,7 @@ size_t ArgminForward::XGridSize(std::vector<size_t> indicedims) const
 bool ArgminForward::OverMaxGridSize(const ExecutionContext& context,
                                     const miopen::reduce::ProblemDescription& problem) const
 {
-    auto indicedims = problem.GetReduceDesc().GetLengths();
+    auto indicedims = problem.GetIndiceDesc().GetLengths();
     if(XGridSize(indicedims) > context.GetStream().GetImage3dMaxWidth())
         return false;
     return true;
@@ -76,10 +76,11 @@ ConvSolution ArgminForward::GetSolution(const ExecutionContext&,
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto dtype       = problem.GetXDesc().GetType();
-    auto input_dtype = miopen::GetDataType(problem.GetXDesc().GetType());
-    auto xdims       = problem.GetXDesc().GetLengths();
-    auto indicedims  = problem.GetReduceDesc().GetLengths();
+    auto dtype        = problem.GetXDesc().GetType();
+    auto input_dtype  = miopen::GetDataType(problem.GetXDesc().GetType());
+    auto indice_dtype = miopen::GetDataType(problem.GetIndiceDesc().GetType());
+    auto xdims        = problem.GetXDesc().GetLengths();
+    auto indicedims   = problem.GetIndiceDesc().GetLengths();
 
     {
         size_t xlocalsize;
@@ -101,6 +102,7 @@ ConvSolution ArgminForward::GetSolution(const ExecutionContext&,
             {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
+            {"INDICE_TYPE", indice_dtype},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -122,7 +124,7 @@ ConvSolution ArgminForward::GetSolution(const ExecutionContext&,
             decltype(auto) params = raw_params.CastTo<miopen::reduce::InvokeParams>();
 
             auto xdims      = params.xDesc->GetLengths();
-            auto indicedims = params.reduceDesc->GetLengths();
+            auto indicedims = params.indiceDesc->GetLengths();
             auto dim        = params.dim;
 
             int32_t reduce_size = static_cast<int32_t>(xdims[dim]);

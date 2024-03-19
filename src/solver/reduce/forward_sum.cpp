@@ -72,7 +72,7 @@ bool IsImprovementOverROCm(const ExecutionContext& context,
                            const miopen::reduce::ProblemDescription& problem)
 {
     auto xdims = problem.GetXDesc().GetLengths();
-    auto ydims = problem.GetReduceDesc().GetLengths();
+    auto ydims = problem.GetYDesc().GetLengths();
     auto dim   = problem.GetDim();
 
     auto reduce_size = xdims[dim];
@@ -121,7 +121,7 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
 
     auto dtype = problem.GetXDesc().GetType();
     auto xdims = problem.GetXDesc().GetLengths();
-    auto ydims = problem.GetReduceDesc().GetLengths();
+    auto ydims = problem.GetYDesc().GetLengths();
     auto dim   = problem.GetDim();
 
     auto reduce_size = xdims[dim];
@@ -208,7 +208,7 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
                 decltype(auto) params          = raw_params.CastTo<miopen::reduce::InvokeParams>();
 
                 auto xdims = params.xDesc->GetLengths();
-                auto ydims = params.reduceDesc->GetLengths();
+                auto ydims = params.yDesc->GetLengths();
                 auto dim   = params.dim;
 
                 auto reduce_size = xdims[dim];
@@ -259,7 +259,7 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
                 decltype(auto) params = raw_params.CastTo<miopen::reduce::InvokeParams>();
 
                 auto xdims = params.xDesc->GetLengths();
-                auto ydims = params.reduceDesc->GetLengths();
+                auto ydims = params.yDesc->GetLengths();
                 auto dim   = params.dim;
 
                 auto reduce_size = xdims[dim];
@@ -285,7 +285,7 @@ std::size_t SumForward::GetWorkspaceSize(const ExecutionContext& context,
                                          const miopen::reduce::ProblemDescription& problem) const
 {
     auto xdims = problem.GetXDesc().GetLengths();
-    auto ydims = problem.GetReduceDesc().GetLengths();
+    auto ydims = problem.GetYDesc().GetLengths();
 
     auto reduce_size = xdims[problem.GetDim()];
     auto output_numel =

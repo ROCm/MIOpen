@@ -93,19 +93,21 @@ extern "C" miopenStatus_t miopenReduceExtremeForward(miopenHandle_t handle,
                                                      const void* x,
                                                      const int32_t dim,
                                                      const miopenReduceExtremeOp_t reduceExtremeOp,
-                                                     const miopenTensorDescriptor_t reduceDesc,
+                                                     const miopenTensorDescriptor_t yDesc,
                                                      void* y,
+                                                     const miopenTensorDescriptor_t indiceDesc,
                                                      void* indice)
 {
-    MIOPEN_LOG_FUNCTION(handle, xDesc, x, dim, reduceExtremeOp, reduceDesc, y, indice);
+    MIOPEN_LOG_FUNCTION(handle, xDesc, x, dim, reduceExtremeOp, yDesc, y, indiceDesc, indice);
 
     LogCmdReduceExtreme(xDesc, dim, reduceExtremeOp, true);
     return miopen::try_([&] {
         miopen::ReduceExtremeForward(miopen::deref(handle),
                                      miopen::deref(xDesc),
                                      DataCast(x),
-                                     miopen::deref(reduceDesc),
+                                     miopen::deref(yDesc),
                                      DataCast(y),
+                                     miopen::deref(indiceDesc),
                                      DataCast(indice),
                                      dim,
                                      reduceExtremeOp);

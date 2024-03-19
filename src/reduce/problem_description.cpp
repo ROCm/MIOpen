@@ -36,7 +36,7 @@ namespace reduce {
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
     auto xlength      = xDesc.GetLengths();
-    auto outputlength = reduceDesc.GetLengths();
+    auto outputlength = yDesc.GetLengths();
 
     auto size         = xlength[dim];
     auto output_numel = std::accumulate(outputlength.begin(),
@@ -51,7 +51,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     ss << "dim" << dim;
     ss << "size" << size;
     ss << "output_numel" << output_numel;
-    ss << "op" << op;
+    ss << "reduceExtremeOp" << reduceExtremeOp;
 
     return NetworkConfig{ss.str()};
 }
