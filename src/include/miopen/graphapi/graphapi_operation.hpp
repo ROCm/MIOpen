@@ -29,7 +29,6 @@
 #include <miopen/graphapi/graphapi_tensor.hpp>
 
 #include <algorithm>
-#include <tuple>
 #include <vector>
 
 namespace miopen {
@@ -39,91 +38,34 @@ namespace graphapi {
 class Operation
 {
 public:
-    enum class ArgumentId
+    Operation& addInputTensor(Tensor* tensor)
     {
-        X,
-        Y,
-        W
-    };
-
-    Operation& clearInputsOutputs()
-    {
-        mInputs.clear();
-        mOutputs.clear();
-        return *this;
-    }
-    Operation& setInput(ArgumentId argumentId, Tensor* pTensor)
-    {
-        auto existing =
-            std::find_if(mInputs.begin(), mInputs.end(), [argumentId](const auto& item) {
-                return std::get<0>(item) == argumentId;
-            });
-        if(existing == mInputs.end())
+        if(std::find(mInputs.cbegin(), mInputs.cend(), tensor) == mInputs.cend())
         {
-            mInputs.emplace_back(argumentId, pTensor);
-        }
-        else
-        {
-            std::get<1>(*existing) = pTensor;
+            mInputs.push_back(tensor);
         }
         return *this;
     }
-    Operation& setOutput(ArgumentId argumentId, Tensor* pTensor)
+    Operation& addOutputTensor(Tensor* tensor)
     {
-        auto existing =
-            std::find_if(mOutputs.begin(), mOutputs.end(), [argumentId](const auto& item) {
-                return std::get<0>(item) == argumentId;
-            });
-        if(existing == mOutputs.end())
+        if(std::find(mOutputs.cbegin(), mOutputs.cend(), tensor) == mOutputs.cend())
         {
-            mOutputs.emplace_back(argumentId, pTensor);
-        }
-        else
-        {
-            std::get<1>(*existing) = pTensor;
+            mOutputs.push_back(tensor);
         }
         return *this;
     }
-    Tensor* getInput(ArgumentId argumentId) const
+    bool hasInputTensor(Tensor* tensor) const noexcept
     {
-        auto searched =
-            std::find_if(mInputs.begin(), mInputs.end(), [argumentId](const auto& item) {
-                return std::get<0>(item) == argumentId;
-            });
-        if(searched == mInputs.end())
-        {
-            MIOPEN_THROW(miopenStatusInternalError);
-        }
-        return std::get<1>(*searched);
+        return std::find(mInputs.cbegin(), mInputs.cend(), tensor) != mInputs.cend();
     }
-    Tensor* getOutput(ArgumentId argumentId) const
+    bool hasOutputTensor(Tensor* tensor) const noexcept
     {
-        auto searched =
-            std::find_if(mOutputs.begin(), mOutputs.end(), [argumentId](const auto& item) {
-                return std::get<0>(item) == argumentId;
-            });
-        if(searched == mOutputs.end())
-        {
-            MIOPEN_THROW(miopenStatusInternalError);
-        }
-        return std::get<1>(*searched);
-    }
-    bool hasInput(Tensor* pTensor)
-    {
-        return std::find_if(mInputs.begin(), mInputs.end(), [pTensor](const auto& item) {
-                   return std::get<1>(item) == pTensor;
-               }) != mInputs.end();
-    }
-    bool hasOutput(Tensor* pTensor)
-    {
-        return std::find_if(mOutputs.begin(), mOutputs.end(), [pTensor](const auto& item) {
-                   return std::get<1>(item) == pTensor;
-               }) != mOutputs.end();
+        return std::find(mOutputs.cbegin(), mOutputs.cend(), tensor) != mOutputs.cend();
     }
 
 private:
-    std::vector<std::tuple<ArgumentId, Tensor*>> mInputs;
-    std::vector<std::tuple<ArgumentId, Tensor*>> mOutputs;
+    std::vector<Tensor*> mInputs;
+    std::vector<Tensor*> mOutputs;
 };
 
 } // namespace graphapi
