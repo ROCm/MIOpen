@@ -778,9 +778,17 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
     auto& out_desc = problems.back().GetOutput();
 
     const auto get_buffer = [&](auto id, auto&& descriptor) {
+        if(const auto found = buffers.find(id); found != buffers.end())
+            return found->second;
         auto buffer = buffer_getter(id, descriptor);
         buffers.emplace(id, buffer);
         return buffer;
+    };
+
+    const auto get_scalar = [&](auto id, auto type_marker) {
+        // This is hacky because we lack separate way to pass them through API
+        return *reinterpret_cast<std::decay_t<decltype(type_marker)>*>(
+            get_buffer(id, TensorDescriptor()));
     };
 
     bool gfx90aaltimpl = false;
@@ -842,10 +850,8 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
                                 buffers.at(miopenTensorBatchnormSavedVariance),
                                 buffers.at(miopenTensorBatchnormScale),
                                 buffers.at(miopenTensorBias),
-                                *reinterpret_cast<double*>(
-                                    buffers.at(miopenScalarBatchnormExpAvgFactor)),
-                                *reinterpret_cast<double*>(
-                                    buffers.at(miopenScalarBatchnormEpsilon))));
+                                get_scalar(miopenScalarBatchnormExpAvgFactor, double{}),
+                                get_scalar(miopenScalarBatchnormEpsilon, double{})));
                         break;
                     case miopenProblemDirectionBackward:
                         operator_args.params.emplace_back(
@@ -865,8 +871,7 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
                                 buffers.at(miopenTensorBias),
                                 buffers.at(miopenTensorBatchnormEstimatedMean),
                                 buffers.at(miopenTensorBatchnormEstimatedVariance),
-                                *reinterpret_cast<double*>(
-                                    buffers.at(miopenScalarBatchnormEpsilon))));
+                                get_scalar(miopenScalarBatchnormEpsilon, double{})));
                         break;
                     }
                     default:
