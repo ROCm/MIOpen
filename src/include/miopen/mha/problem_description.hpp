@@ -47,7 +47,7 @@ struct ProblemDescription : ProblemDescriptionBase
     bool IsForward() const { return isForward; }
     const MHAInputDescsForward& GetDescs() const { return mhaInputDescsForward; }
 
-    NetworkConfig MakeNetworkConfig() const;
+    NetworkConfig MakeNetworkConfig() const override;
 
 private:
     const bool isForward;

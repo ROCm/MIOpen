@@ -132,7 +132,8 @@ set( MIOpen_Source
     load_file.cpp
     lock_file.cpp
     logger.cpp
-    mha/problem_description.cpp    
+    mha/problem_description.cpp
+    mha/mha_descriptor.cpp
     lrn_api.cpp
     op_args.cpp
     operator.cpp

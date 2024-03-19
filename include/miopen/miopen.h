@@ -5358,9 +5358,53 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
                                                      miopenConvolutionDescriptor_t operatorDesc,
                                                      miopenProblemDirection_t direction);
 
+/*! @brief Initializes a problem object describing a MHA operation.
+ *
+ * @param problem      Pointer to the problem to initialize
+ * @param operatorDesc Descriptor of the operator to be used
+ * @param direction    Direction of the operation
+ * @return             miopenStatus_t
+ */
+
 MIOPEN_EXPORT miopenStatus_t miopenCreateMHAProblem(miopenProblem_t* problem,
                                                     miopenMHADescriptor_t operatorDesc,
                                                     miopenProblemDirection_t direction);
+
+/*! @brief Sets the MHA descriptor details
+ *
+ * Sets all of the descriptor details for the MHA
+ *
+ * @param mhaDesc               Pointer to a MHA descriptor
+ * @param scale                 scale
+ * @param dropoutProbability    dropoutProbability
+ * @param dropoutSeed           dropoutSeed
+ * @param dropoutOffset         dropoutOffset
+ * @return                      miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenSetMHADescriptor(miopenMHADescriptor_t mhaDesc,
+                                                    float scale,
+                                                    float dropoutProbability,
+                                                    uint64_t dropoutSeed,
+                                                    uint64_t dropoutOffset);
+
+/*! @brief Gets the MHA descriptor details
+ *
+ * Retrieves all of the descriptor details for the MHA.
+ *
+ * @param mhaDesc               Pointer to a MHA descriptor
+ * @param scale                 scale
+ * @param dropoutProbability    dropoutProbability
+ * @param dropoutSeed           dropoutSeed
+ * @param dropoutOffset         dropoutOffset
+ * @return             miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenGetMHADescriptor(miopenMHADescriptor_t mhaDesc,
+                                                    float* scale,
+                                                    float* dropoutProbability,
+                                                    uint64_t* dropoutSeed,
+                                                    uint64_t* dropoutOffset);
 
 /*! @brief Destroys a problem object.
  *
