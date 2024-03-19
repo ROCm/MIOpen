@@ -52,6 +52,8 @@ miopenStatus_t Adam(Handle& handle,
                     const double weight_decay,
                     const double eps,
                     const bool amsgrad,
+                    const bool maximize,
+                    const bool amp,
                     const TensorDescriptor* gradScaleDescPtr,
                     ConstData_t gradScale,
                     const TensorDescriptor* foundInfDescPtr,
@@ -68,6 +70,8 @@ miopenStatus_t Adam(Handle& handle,
                                                   weight_decay,
                                                   eps,
                                                   amsgrad,
+                                                  maximize,
+                                                  amp,
                                                   gradScaleDescPtr,
                                                   foundInfDescPtr};
 
@@ -92,11 +96,15 @@ miopenStatus_t Adam(Handle& handle,
         tmp.weight_decay = weight_decay;
         tmp.eps          = eps;
         tmp.amsgrad      = amsgrad;
+        tmp.maximize     = maximize;
 
-        tmp.gradScaleDesc = gradScaleDescPtr;
-        tmp.gradScale     = gradScale;
-        tmp.foundInfDesc  = foundInfDescPtr;
-        tmp.foundInf      = foundInf;
+        if(amp)
+        {
+            tmp.gradScaleDesc = gradScaleDescPtr;
+            tmp.gradScale     = gradScale;
+            tmp.foundInfDesc  = foundInfDescPtr;
+            tmp.foundInf      = foundInf;
+        }
 
         return tmp;
     }();

@@ -30,32 +30,32 @@
 #include "float_types.h"
 
 template <typename T>
-inline __device__ void AdamInternal(T* param_,
+inline __device__ void AdamInternal(size_t gid,
+                                    T* params,
                                     T grad,
-                                    T* exp_avg_,
-                                    T* exp_avg_sq_,
-                                    T* max_exp_avg_sq_,
+                                    T* exp_avgs,
+                                    T* exp_avg_sqs,
+                                    T* max_exp_avg_sqs,
                                     float lr,
                                     float beta1,
                                     float beta2,
-                                    float eps,
                                     float weight_decay,
+                                    float eps,
                                     int step,
                                     bool amsgrad,
-                                    size_t gid)
+                                    bool maximize)
 {
-
-    T param      = param_[gid];
-    T exp_avg    = exp_avg_[gid];
-    T exp_avg_sq = exp_avg_sq_[gid];
+    T param      = params[gid];
+    T exp_avg    = exp_avgs[gid];
+    T exp_avg_sq = exp_avg_sqs[gid];
 
     T bias_correction1 = 1 - pow(beta1, step);
     T bias_correction2 = 1 - pow(beta2, step);
 
+    if(maximize)
+        grad *= -1;
     if(weight_decay != 0)
-    {
         grad += param * weight_decay;
-    }
 
     exp_avg    = exp_avg * beta1 + grad * (1 - beta1);
     exp_avg_sq = exp_avg_sq * beta2 + grad * grad * (1 - beta2);
@@ -63,11 +63,11 @@ inline __device__ void AdamInternal(T* param_,
     T denom;
     if(amsgrad)
     {
-        T max_exp_avg_sq = max_exp_avg_sq_[gid];
+        T max_exp_avg_sq = max_exp_avg_sqs[gid];
         if(exp_avg_sq > max_exp_avg_sq)
         {
             max_exp_avg_sq       = exp_avg_sq;
-            max_exp_avg_sq_[gid] = max_exp_avg_sq;
+            max_exp_avg_sqs[gid] = max_exp_avg_sq;
         }
 
         denom = sqrt(max_exp_avg_sq) / sqrt(bias_correction2) + eps;
@@ -81,23 +81,24 @@ inline __device__ void AdamInternal(T* param_,
 
     param = param - step_size * exp_avg / denom;
 
-    param_[gid]      = param;
-    exp_avg_[gid]    = exp_avg;
-    exp_avg_sq_[gid] = exp_avg_sq;
+    params[gid]      = param;
+    exp_avgs[gid]    = exp_avg;
+    exp_avg_sqs[gid] = exp_avg_sq;
 }
 
-extern "C" __global__ void AdamPacked(FLOAT* param,
-                                      FLOAT* grad,
-                                      FLOAT* exp_avg,
-                                      FLOAT* exp_avg_sq,
-                                      FLOAT* max_exp_avg_sq,
+extern "C" __global__ void AdamPacked(FLOAT* params,
+                                      FLOAT* grads,
+                                      FLOAT* exp_avgs,
+                                      FLOAT* exp_avg_sqs,
+                                      FLOAT* max_exp_avg_sqs,
                                       int* step,
                                       float lr,
                                       float beta1,
                                       float beta2,
-                                      float eps,
                                       float weight_decay,
+                                      float eps,
                                       bool amsgrad,
+                                      bool maximize,
                                       long input_size)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -107,42 +108,45 @@ extern "C" __global__ void AdamPacked(FLOAT* param,
         return;
 
     __shared__ int step_val;
+
     if(lid == 0)
         step_val = step[0];
+
     __syncthreads();
 
-    AdamInternal<FLOAT>(param,
-                        grad[gid],
-                        exp_avg,
-                        exp_avg_sq,
-                        max_exp_avg_sq,
+    AdamInternal<FLOAT>(gid,
+                        params,
+                        grads[gid],
+                        exp_avgs,
+                        exp_avg_sqs,
+                        max_exp_avg_sqs,
                         lr,
                         beta1,
                         beta2,
-                        eps,
                         weight_decay,
+                        eps,
                         step_val,
                         amsgrad,
-                        gid);
+                        maximize);
 }
 
-extern "C" __global__ void AmpAdamPacked(FLOAT* param,
-                                         FLOAT* grad,
-                                         FLOAT* exp_avg,
-                                         FLOAT* exp_avg_sq,
-                                         FLOAT* max_exp_avg_sq,
+extern "C" __global__ void AmpAdamPacked(FLOAT* params,
+                                         FLOAT* grads,
+                                         FLOAT* exp_avgs,
+                                         FLOAT* exp_avg_sqs,
+                                         FLOAT* max_exp_avg_sqs,
                                          FLOAT* grad_scale,
                                          FLOAT* inf_found,
                                          int* step,
                                          float lr,
                                          float beta1,
                                          float beta2,
-                                         float eps,
                                          float weight_decay,
+                                         float eps,
                                          bool amsgrad,
+                                         bool maximize,
                                          long input_size)
 {
-
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
     size_t lid = threadIdx.x;
 
@@ -166,21 +170,23 @@ extern "C" __global__ void AmpAdamPacked(FLOAT* param,
 
     if(found_inf)
         return;
-    FLOAT grad_val = grad[gid] * scale_factor;
 
-    AdamInternal<FLOAT>(param,
-                        grad_val,
-                        exp_avg,
-                        exp_avg_sq,
-                        max_exp_avg_sq,
+    FLOAT grad = grads[gid] / scale_factor;
+
+    AdamInternal<FLOAT>(gid,
+                        params,
+                        grad,
+                        exp_avgs,
+                        exp_avg_sqs,
+                        max_exp_avg_sqs,
                         lr,
                         beta1,
                         beta2,
-                        eps,
                         weight_decay,
+                        eps,
                         step_val,
                         amsgrad,
-                        gid);
+                        maximize);
 }
 
 extern "C" __global__ void AmpAdamUpdateStep(bool* found_inf, int* step)

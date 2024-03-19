@@ -101,9 +101,10 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
                        params.lr,
                        params.beta1,
                        params.beta2,
-                       params.eps,
                        params.weight_decay,
+                       params.eps,
                        params.amsgrad,
+                       params.maximize,
                        numel);
             };
         };
@@ -123,9 +124,10 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
                        params.lr,
                        params.beta1,
                        params.beta2,
-                       params.eps,
                        params.weight_decay,
+                       params.eps,
                        params.amsgrad,
+                       params.maximize,
                        numel);
             };
         };

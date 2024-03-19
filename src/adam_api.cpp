@@ -75,6 +75,8 @@ extern "C" miopenStatus_t miopenAdam(miopenHandle_t handle,
                                      const double weight_decay,
                                      const double eps,
                                      const bool amsgrad,
+                                     const bool maximize,
+                                     const bool amp,
                                      const miopenTensorDescriptor_t gradScaleDesc,
                                      const void* gradScale,
                                      const miopenTensorDescriptor_t foundInfDesc,
@@ -97,13 +99,15 @@ extern "C" miopenStatus_t miopenAdam(miopenHandle_t handle,
                         weight_decay,
                         eps,
                         amsgrad,
+                        maximize,
+                        amp,
                         gradScaleDesc,
                         gradScale,
                         foundInfDesc,
                         foundInf);
     LogCmdAdam(paramDesc);
-    auto gradScaleDescPtr = (gradScaleDesc != nullptr) ? &miopen::deref(gradScaleDesc) : nullptr;
-    auto foundInfDescPtr  = (foundInfDesc != nullptr) ? &miopen::deref(foundInfDesc) : nullptr;
+    auto gradScaleDescPtr = (amp) ? &miopen::deref(gradScaleDesc) : nullptr;
+    auto foundInfDescPtr  = (amp) ? &miopen::deref(foundInfDesc) : nullptr;
     return miopen::try_([&] {
         miopen::Adam(miopen::deref(handle),
                      miopen::deref(paramDesc),
@@ -122,6 +126,8 @@ extern "C" miopenStatus_t miopenAdam(miopenHandle_t handle,
                      weight_decay,
                      eps,
                      amsgrad,
+                     maximize,
+                     amp,
                      gradScaleDescPtr,
                      DataCast(gradScale),
                      foundInfDescPtr,

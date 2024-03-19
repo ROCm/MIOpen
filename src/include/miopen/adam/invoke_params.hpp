@@ -52,12 +52,14 @@ struct InvokeParams : public miopen::InvokeParams
     ConstData_t gradScale = nullptr;
     ConstData_t foundInf  = nullptr;
 
-    double lr           = 0;
-    double beta1        = 0;
-    double beta2        = 0;
-    double weight_decay = 0;
-    double eps          = 0;
+    double lr           = 0.0;
+    double beta1        = 0.0;
+    double beta2        = 0.0;
+    double weight_decay = 0.0;
+    double eps          = 0.0;
     bool amsgrad        = false;
+    bool maximize       = false;
+    bool amp            = false;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }

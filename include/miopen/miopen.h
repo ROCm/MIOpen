@@ -5778,10 +5778,12 @@ MIOPEN_EXPORT miopenStatus_t miopenAdam(miopenHandle_t handle,
                                         const double weight_decay,
                                         const double eps,
                                         const bool amsgrad,
-                                        const miopenTensorDescriptor_t gradScaleDesc,
-                                        const void* gradScale,
-                                        const miopenTensorDescriptor_t foundInfDesc,
-                                        const void* foundInf);
+                                        const bool maximize,
+                                        const bool amp                               = false,
+                                        const miopenTensorDescriptor_t gradScaleDesc = nullptr,
+                                        const void* gradScale                        = nullptr,
+                                        const miopenTensorDescriptor_t foundInfDesc  = nullptr,
+                                        const void* foundInf                         = nullptr);
 
 /** @} */
 // CLOSEOUT ADAM DOXYGEN GROUP

@@ -36,17 +36,20 @@ namespace adam {
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    auto numel         = paramDesc.GetElementSize();
-    auto dtype         = paramDesc.GetType();
-    std::string kernel = IsAllPacked() ? "AdamPacked" : "Adam";
-    if(IsAmp())
-        kernel += "Amp";
+    auto numel  = paramDesc.GetElementSize();
+    auto dtype  = paramDesc.GetType();
+    auto kernel = IsAllPacked() ? "AdamPacked" : "Adam";
 
     std::ostringstream ss;
 
     ss << kernel;
     ss << "dtype" << dtype;
     ss << "numel" << numel;
+    if(IsAmp())
+    {
+        auto grad_dtype = gradDesc.GetType();
+        ss << "grad_dtype" << grad_dtype;
+    }
 
     return NetworkConfig{ss.str()};
 }

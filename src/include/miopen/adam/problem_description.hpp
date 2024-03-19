@@ -52,6 +52,8 @@ struct ProblemDescription : ProblemDescriptionBase
                        double weight_decay_,
                        double eps_,
                        bool amsgrad_,
+                       bool maximize_,
+                       bool amp_,
                        const TensorDescriptor* gradScaleDesc_,
                        const TensorDescriptor* foundInfDesc_)
         : paramDesc(paramDesc_),
@@ -64,21 +66,14 @@ struct ProblemDescription : ProblemDescriptionBase
           beta2(beta2_),
           weight_decay(weight_decay_),
           eps(eps_),
-          amsgrad(amsgrad_)
+          amsgrad(amsgrad_),
+          maximize(maximize_),
+          is_amp(amp_)
     {
-        if(gradScaleDesc_ != nullptr && foundInfDesc_ != nullptr)
+        if(is_amp)
         {
-            is_amp        = true;
             gradScaleDesc = *gradScaleDesc_;
             foundInfDesc  = *foundInfDesc_;
-        }
-        else if(gradScaleDesc_ == nullptr && foundInfDesc_ == nullptr)
-        {
-            is_amp = false;
-        }
-        else
-        {
-            MIOPEN_THROW(miopenStatusBadParm, "");
         }
     }
 
@@ -95,6 +90,7 @@ struct ProblemDescription : ProblemDescriptionBase
     double GetWeight_decay() const { return weight_decay; }
     double GetEps() const { return eps; }
     bool GetAmsgrad() const { return amsgrad; }
+    bool GetMaximize() const { return maximize; }
 
     bool IsAmp() const { return is_amp; }
     bool IsValidType() const { return true; }
@@ -127,6 +123,7 @@ private:
     double weight_decay = 0.0;
     double eps          = 0.0;
     bool amsgrad        = false;
+    bool maximize       = false;
     bool is_amp         = false;
 
     NetworkConfig MakeForwardNetworkConfig() const;
