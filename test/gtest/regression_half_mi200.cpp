@@ -31,13 +31,11 @@
 #include "get_handle.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)
 
 namespace regression_half_mi200 {
 void SetupEnvVar(void)
 {
     miopen::UpdateEnvVar(ENV(MIOPEN_FIND_MODE), std::string("normal"));
-    miopen::UpdateEnvVar(ENV(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS), true);
     miopen::UpdateEnvVar(ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
                          std::string("ConvHipImplicitGemmForwardV4R4Xdlops"));
 }
