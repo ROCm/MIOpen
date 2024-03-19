@@ -5375,10 +5375,10 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateMHAProblem(miopenProblem_t* problem,
  * Sets all of the descriptor details for the MHA
  *
  * @param mhaDesc               Pointer to a MHA descriptor
- * @param scale                 scale
- * @param dropoutProbability    dropoutProbability
- * @param dropoutSeed           dropoutSeed
- * @param dropoutOffset         dropoutOffset
+ * @param scale                 Scale
+ * @param dropoutProbability    DropoutProbability
+ * @param dropoutSeed           DropoutSeed
+ * @param dropoutOffset         DropoutOffset
  * @return                      miopenStatus_t
  */
 
@@ -5393,10 +5393,10 @@ MIOPEN_EXPORT miopenStatus_t miopenSetMHADescriptor(miopenMHADescriptor_t mhaDes
  * Retrieves all of the descriptor details for the MHA.
  *
  * @param mhaDesc               Pointer to a MHA descriptor
- * @param scale                 scale
- * @param dropoutProbability    dropoutProbability
- * @param dropoutSeed           dropoutSeed
- * @param dropoutOffset         dropoutOffset
+ * @param scale                 Scale (output)
+ * @param dropoutProbability    DropoutProbability (output)
+ * @param dropoutSeed           DropoutSeed (output)
+ * @param dropoutOffset         DropoutOffset (output)
  * @return             miopenStatus_t
  */
 
