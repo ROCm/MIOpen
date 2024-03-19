@@ -23,10 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/algorithm.hpp>
 #include <miopen/graphapi/graphapi_tensor.hpp>
 #include <miopen/errors.hpp>
-
-#include <algorithm>
 
 namespace miopen {
 
@@ -34,96 +33,92 @@ namespace graphapi {
 
 TensorBuilder& TensorBuilder::setDataType(miopenDataType_t dataType) &
 {
-    mTensor.setDataType(dataType);
+    mDataType    = dataType;
     mDataTypeSet = true;
     return *this;
 }
 
 TensorBuilder& TensorBuilder::setDim(const std::vector<int64_t>& dimensions) &
 {
-    if(dimensions.empty() ||
-       std::any_of(dimensions.cbegin(), dimensions.cend(), [](int64_t val) { return val <= 0; }))
+    if(dimensions.empty() || miopen::any_of(dimensions, [](int64_t val) { return val <= 0; }))
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    mTensor.setDimensions(dimensions);
+    mDimensions    = dimensions;
     mDimensionsSet = true;
     return *this;
 }
 
 TensorBuilder& TensorBuilder::setDim(std::vector<int64_t>&& dimensions) &
 {
-    if(dimensions.empty() ||
-       std::any_of(dimensions.cbegin(), dimensions.cend(), [](int64_t val) { return val <= 0; }))
+    if(dimensions.empty() || miopen::any_of(dimensions, [](int64_t val) { return val <= 0; }))
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    mTensor.setDimensions(std::move(dimensions));
+    mDimensions    = std::move(dimensions);
     mDimensionsSet = true;
     return *this;
 }
 
 TensorBuilder& TensorBuilder::setStride(const std::vector<int64_t>& strides) &
 {
-    if(strides.empty() ||
-       std::any_of(strides.cbegin(), strides.cend(), [](int64_t val) { return val <= 0; }))
+    if(strides.empty() || miopen::any_of(strides, [](int64_t val) { return val <= 0; }))
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    mTensor.setStrides(strides);
+    mStrides    = strides;
     mStridesSet = true;
     return *this;
 }
 
 TensorBuilder& TensorBuilder::setStride(std::vector<int64_t>&& strides) &
 {
-    if(strides.empty() ||
-       std::any_of(strides.cbegin(), strides.cend(), [](int64_t val) { return val <= 0; }))
+    if(strides.empty() || miopen::any_of(strides, [](int64_t val) { return val <= 0; }))
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    mTensor.setStrides(std::move(strides));
+    mStrides    = std::move(strides);
     mStridesSet = true;
     return *this;
 }
 
 TensorBuilder& TensorBuilder::setId(int64_t id) &
 {
-    mTensor.setId(id);
+    mId          = id;
     mUniqueIdSet = true;
     return *this;
 }
 
 TensorBuilder& TensorBuilder::setVirtual(bool isVirtual) &
 {
-    mTensor.setVirtual(isVirtual);
+    mVirtual = isVirtual;
     return *this;
 }
 
 Tensor TensorBuilder::build() const&
 {
     if(!mUniqueIdSet || !mDataTypeSet || !mDimensionsSet || !mStridesSet ||
-       mTensor.getDimensions().size() != mTensor.getStrides().size())
+       mDimensions.size() != mStrides.size())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    return mTensor;
+    return {mDataType, mDimensions, mStrides, mId, mVirtual};
 }
 
 Tensor TensorBuilder::build() &&
 {
     if(!mUniqueIdSet || !mDataTypeSet || !mDimensionsSet || !mStridesSet ||
-       mTensor.getDimensions().size() != mTensor.getStrides().size())
+       mDimensions.size() != mStrides.size())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    return std::move(mTensor);
+    return {mDataType, std::move(mDimensions), std::move(mStrides), mId, mVirtual};
 }
 
 BackendTensorDescriptor::~BackendTensorDescriptor() = default;

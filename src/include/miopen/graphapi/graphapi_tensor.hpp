@@ -73,42 +73,6 @@ public:
     int64_t getId() const noexcept { return mId; }
     bool getVirtual() const noexcept { return mVirtual; }
 
-    Tensor& setDataType(miopenDataType_t dataType) noexcept
-    {
-        mDataType = dataType;
-        return *this;
-    }
-    Tensor& setDimensions(const std::vector<int64_t>& dimensions)
-    {
-        mDimensions = dimensions;
-        return *this;
-    }
-    Tensor& setDimensions(std::vector<int64_t>&& dimensions) noexcept
-    {
-        mDimensions = std::move(dimensions);
-        return *this;
-    }
-    Tensor& setStrides(const std::vector<int64_t>& strides)
-    {
-        mStrides = strides;
-        return *this;
-    }
-    Tensor& setStrides(std::vector<int64_t>&& strides) noexcept
-    {
-        mStrides = std::move(strides);
-        return *this;
-    }
-    Tensor& setId(int64_t id) noexcept
-    {
-        mId = id;
-        return *this;
-    }
-    Tensor& setVirtual(bool isVirtual) noexcept
-    {
-        mVirtual = isVirtual;
-        return *this;
-    }
-
 private:
     std::vector<int64_t> mDimensions;
     std::vector<int64_t> mStrides;
@@ -155,11 +119,15 @@ public:
     Tensor build() &&;
 
 private:
-    Tensor mTensor;
-    bool mUniqueIdSet   = false;
-    bool mDataTypeSet   = false;
-    bool mDimensionsSet = false;
-    bool mStridesSet    = false;
+    std::vector<int64_t> mDimensions;
+    std::vector<int64_t> mStrides;
+    int64_t mId                = 0;
+    miopenDataType_t mDataType = miopenFloat;
+    bool mVirtual              = false;
+    bool mUniqueIdSet          = false;
+    bool mDataTypeSet          = false;
+    bool mDimensionsSet        = false;
+    bool mStridesSet           = false;
 };
 
 class BackendTensorDescriptor : public BackendDescriptor
@@ -178,7 +146,8 @@ public:
                               int64_t* elementCount,
                               void* arrayOfElements) override;
 
-    Tensor& getTensor() { return mDescriptor; }
+    const Tensor* getTensor() const { return &mDescriptor; }
+    Tensor* getTensor() { return &mDescriptor; }
 
 private:
     TensorBuilder mBuilder;
