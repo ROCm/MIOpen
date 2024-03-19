@@ -849,7 +849,7 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
                                 buffers.at(miopenTensorBatchnormSavedMean),
                                 buffers.at(miopenTensorBatchnormSavedVariance),
                                 buffers.at(miopenTensorBatchnormScale),
-                                buffers.at(miopenTensorBias),
+                                buffers.at(miopenTensorBatchnormBias),
                                 get_scalar(miopenScalarBatchnormExpAvgFactor, double{}),
                                 get_scalar(miopenScalarBatchnormEpsilon, double{})));
                         break;
@@ -858,7 +858,7 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
                             std::make_unique<miopen::fusion::BatchNormBwdTrainingOpInvokeParam>(
                                 buffers.at(miopenTensorBatchnormX),
                                 buffers.at(miopenTensorBatchnormScale),
-                                buffers.at(miopenTensorBias),
+                                buffers.at(miopenTensorBatchnormBias),
                                 buffers.at(miopenTensorBatchnormScaleDiff),
                                 buffers.at(miopenTensorBatchnormBiasDiff),
                                 buffers.at(miopenTensorBatchnormSavedMean),
@@ -868,7 +868,7 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
                         operator_args.params.emplace_back(
                             std::make_unique<miopen::fusion::BatchNormInferenceOpInvokeParam>(
                                 buffers.at(miopenTensorBatchnormScale),
-                                buffers.at(miopenTensorBias),
+                                buffers.at(miopenTensorBatchnormBias),
                                 buffers.at(miopenTensorBatchnormEstimatedMean),
                                 buffers.at(miopenTensorBatchnormEstimatedVariance),
                                 get_scalar(miopenScalarBatchnormEpsilon, double{})));

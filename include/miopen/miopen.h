@@ -5326,9 +5326,10 @@ typedef enum
     miopenTensorBatchnormScaleDiff         = 18,
     miopenTensorBatchnormEstimatedMean     = 19,
     miopenTensorBatchnormEstimatedVariance = 20,
-    miopenTensorBatchnormBiasDiff          = 21,
-    miopenTensorBatchnormDX                = 22,
-    miopenTensorBatchnormDY                = 23,
+    miopenTensorBatchnormBias              = 21,
+    miopenTensorBatchnormBiasDiff          = 22,
+    miopenTensorBatchnormDX                = 23,
+    miopenTensorBatchnormDY                = 24,
 
     miopenScalarArgument              = 1 << 16,
     miopenScalarBatchnormExpAvgFactor = miopenScalarArgument | 1,

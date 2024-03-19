@@ -188,7 +188,7 @@ struct verify_fwd_batchnorm_spatial_activ
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorBatchnormSavedVariance, savedInvVar_dev.get());
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorBatchnormRunningMean, runningMean_dev.get());
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorBatchnormRunningVariance, runningVariance_dev.get());
-        miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorBias, bnbias_dev.get());
+        miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorBatchnormBias, bnbias_dev.get());
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorActivationY, out_dev.get());
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenScalarBatchnormExpAvgFactor, &expAvgFactor);
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenScalarBatchnormEpsilon, &epsilon);
@@ -202,7 +202,7 @@ struct verify_fwd_batchnorm_spatial_activ
             miopenTensorArgument_t{miopenTensorBatchnormSavedVariance, nullptr, savedInvVar_dev.get()},
             miopenTensorArgument_t{miopenTensorBatchnormRunningMean, nullptr, runningMean_dev.get()},
             miopenTensorArgument_t{miopenTensorBatchnormRunningVariance, nullptr, runningVariance_dev.get()},
-            miopenTensorArgument_t{miopenTensorBias, nullptr, bnbias_dev.get()},
+            miopenTensorArgument_t{miopenTensorBatchnormBias, nullptr, bnbias_dev.get()},
             miopenTensorArgument_t{miopenTensorActivationY, nullptr, out_dev.get()},
             miopenTensorArgument_t{miopenScalarBatchnormExpAvgFactor, nullptr, &expAvgFactor},
             miopenTensorArgument_t{miopenScalarBatchnormEpsilon, nullptr, &epsilon},
@@ -429,7 +429,7 @@ struct verify_bwd_batchnorm_spatial_activ
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorBatchnormSavedVariance, savedInvVar_dev.get());
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorBatchnormScaleDiff, dgamma_dev.get());
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorBatchnormBiasDiff, dbeta_dev.get());
-        miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorBias, bnbias_dev.get());
+        miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorBatchnormBias, bnbias_dev.get());
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorActivationX, xin_dev.get());
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorActivationY, yin_dev.get());
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorActivationDX, dxout_dev.get());
@@ -444,7 +444,7 @@ struct verify_bwd_batchnorm_spatial_activ
             miopenTensorArgument_t{miopenTensorBatchnormSavedVariance, nullptr, savedInvVar_dev.get()},
             miopenTensorArgument_t{miopenTensorBatchnormScaleDiff, nullptr, dgamma_dev.get()},
             miopenTensorArgument_t{miopenTensorBatchnormBiasDiff, nullptr, dbeta_dev.get()},
-            miopenTensorArgument_t{miopenTensorBias, nullptr, bnbias_dev.get()},
+            miopenTensorArgument_t{miopenTensorBatchnormBias, nullptr, bnbias_dev.get()},
             miopenTensorArgument_t{miopenTensorActivationX, nullptr, yin_dev.get()},
             miopenTensorArgument_t{miopenTensorActivationY, nullptr, yin_dev.get()},
             miopenTensorArgument_t{miopenTensorActivationDX, nullptr, dxout_dev.get()},
@@ -643,7 +643,7 @@ struct verify_fwd_batchnorm_peract_activ
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorBatchnormSavedVariance, savedInvVar_dev.get());
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorBatchnormRunningMean, runningMean_dev.get());
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorBatchnormRunningVariance, runningVariance_dev.get());
-        miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorBias, bnbias_dev.get());
+        miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorBatchnormBias, bnbias_dev.get());
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorActivationY, out_dev.get());
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenScalarBatchnormExpAvgFactor, &expAvgFactor);
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenScalarBatchnormEpsilon, &epsilon);
@@ -657,7 +657,7 @@ struct verify_fwd_batchnorm_peract_activ
             miopenTensorArgument_t{miopenTensorBatchnormSavedVariance, nullptr, savedInvVar_dev.get()},
             miopenTensorArgument_t{miopenTensorBatchnormRunningMean, nullptr, runningMean_dev.get()},
             miopenTensorArgument_t{miopenTensorBatchnormRunningVariance, nullptr, runningVariance_dev.get()},
-            miopenTensorArgument_t{miopenTensorBias, nullptr, bnbias_dev.get()},
+            miopenTensorArgument_t{miopenTensorBatchnormBias, nullptr, bnbias_dev.get()},
             miopenTensorArgument_t{miopenTensorActivationY, nullptr, out_dev.get()},
             miopenTensorArgument_t{miopenScalarBatchnormExpAvgFactor, nullptr, &expAvgFactor},
             miopenTensorArgument_t{miopenScalarBatchnormEpsilon, nullptr, &epsilon},
@@ -862,7 +862,7 @@ struct verify_bwd_batchnorm_peract_activ
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorBatchnormSavedVariance, savedInvVar_dev.get());
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorBatchnormScaleDiff, dgamma_dev.get());
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorBatchnormBiasDiff, dbeta_dev.get());
-        miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorBias, bnbias_dev.get());
+        miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorBatchnormBias, bnbias_dev.get());
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorActivationX, xin_dev.get());
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorActivationY, yin_dev.get());
         miopenSetFindOptionPreallocatedTensor(find_options.get(), miopenTensorActivationDX, dxout_dev.get());
@@ -877,7 +877,7 @@ struct verify_bwd_batchnorm_peract_activ
             miopenTensorArgument_t{miopenTensorBatchnormSavedVariance, nullptr, savedInvVar_dev.get()},
             miopenTensorArgument_t{miopenTensorBatchnormScaleDiff, nullptr, dgamma_dev.get()},
             miopenTensorArgument_t{miopenTensorBatchnormBiasDiff, nullptr, dbeta_dev.get()},
-            miopenTensorArgument_t{miopenTensorBias, nullptr, bnbias_dev.get()},
+            miopenTensorArgument_t{miopenTensorBatchnormBias, nullptr, bnbias_dev.get()},
             miopenTensorArgument_t{miopenTensorActivationX, nullptr, yin_dev.get()},
             miopenTensorArgument_t{miopenTensorActivationY, nullptr, yin_dev.get()},
             miopenTensorArgument_t{miopenTensorActivationDX, nullptr, dxout_dev.get()},
@@ -1086,12 +1086,8 @@ struct na_fusion_driver : test_driver
                 miopenSetProblemTensorDescriptor(problem, miopenTensorBatchnormSavedVariance, &derivedBnDesc);
                 miopenSetProblemTensorDescriptor(problem, miopenTensorBatchnormRunningMean, &derivedBnDesc);
                 miopenSetProblemTensorDescriptor(problem, miopenTensorBatchnormRunningVariance, &derivedBnDesc);
+                miopenSetProblemTensorDescriptor(problem, miopenTensorBatchnormBias, &shift.desc);
                 // clang-format on
-
-                AddAndFuse(problem, [&](auto bias) {
-                    miopenCreateBiasProblem(bias, miopenProblemDirectionForward);
-                    miopenSetProblemTensorDescriptor(*bias, miopenTensorBias, &shift.desc);
-                });
 
                 AddAndFuse(problem, [&](auto activation) {
                     miopenCreateActivationProblem(
@@ -1118,12 +1114,8 @@ struct na_fusion_driver : test_driver
                 miopenSetProblemTensorDescriptor(problem, miopenTensorBatchnormSavedVariance, &derivedBnDesc);
                 miopenSetProblemTensorDescriptor(problem, miopenTensorBatchnormScaleDiff, &derivedBnDesc);
                 miopenSetProblemTensorDescriptor(problem, miopenTensorBatchnormBiasDiff, &derivedBnDesc);
+                miopenSetProblemTensorDescriptor(problem, miopenTensorBatchnormBias, &shift.desc);
                 // clang-format on
-
-                AddAndFuse(problem, [&](auto bias) {
-                    miopenCreateBiasProblem(bias, miopenProblemDirectionBackward);
-                    miopenSetProblemTensorDescriptor(*bias, miopenTensorBias, &shift.desc);
-                });
 
                 AddAndFuse(problem, [&](auto activation) {
                     miopenCreateActivationProblem(
@@ -1229,15 +1221,8 @@ struct na_fusion_driver : test_driver
                 EXPECT_EQUAL(miopenStatusSuccess, miopenSetProblemTensorDescriptor(problem, miopenTensorBatchnormSavedVariance, &derivedBnDesc));
                 EXPECT_EQUAL(miopenStatusSuccess, miopenSetProblemTensorDescriptor(problem, miopenTensorBatchnormRunningMean, &derivedBnDesc));
                 EXPECT_EQUAL(miopenStatusSuccess, miopenSetProblemTensorDescriptor(problem, miopenTensorBatchnormRunningVariance, &derivedBnDesc));
+                miopenSetProblemTensorDescriptor(problem, miopenTensorBatchnormBias, &shift.desc);
                 // clang-format on
-
-                AddAndFuse(problem, [&](auto bias) {
-                    EXPECT_EQUAL(miopenStatusSuccess,
-                                 miopenCreateBiasProblem(bias, miopenProblemDirectionForward));
-                    EXPECT_EQUAL(
-                        miopenStatusSuccess,
-                        miopenSetProblemTensorDescriptor(*bias, miopenTensorBias, &shift.desc));
-                });
 
                 AddAndFuse(problem, [&](auto activation) {
                     EXPECT_EQUAL(miopenStatusSuccess,
@@ -1269,12 +1254,8 @@ struct na_fusion_driver : test_driver
                 miopenSetProblemTensorDescriptor(problem, miopenTensorBatchnormSavedVariance, &derivedBnDesc);
                 miopenSetProblemTensorDescriptor(problem, miopenTensorBatchnormScaleDiff, &derivedBnDesc);
                 miopenSetProblemTensorDescriptor(problem, miopenTensorBatchnormBiasDiff, &derivedBnDesc);
+                miopenSetProblemTensorDescriptor(problem, miopenTensorBatchnormBias, &shift.desc);
                 // clang-format on
-
-                AddAndFuse(problem, [&](auto bias) {
-                    miopenCreateBiasProblem(bias, miopenProblemDirectionBackward);
-                    miopenSetProblemTensorDescriptor(*bias, miopenTensorBias, &shift.desc);
-                });
 
                 AddAndFuse(problem, [&](auto activation) {
                     miopenCreateActivationProblem(
