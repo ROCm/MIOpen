@@ -311,7 +311,8 @@ mha::ProblemDescription Problem::AsMHA() const
         GetTensorDescriptorChecked(miopenTensorMHAZInv, "miopenTensorMHAZInv"),
     };
 
-    return mha::ProblemDescription(mhaInputDescsForward);
+    mha::ProblemDescription ret(mhaInputDescsForward);
+    return ret;
 }
 
 std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
@@ -469,10 +470,10 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
 }
 
 std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
-                                                 const FindOptions& options,
+                                                 [[maybe_unused]] const FindOptions& options,
                                                  std::size_t max_solutions,
-                                                 const Buffers& buffers,
-                                                 const MHADescriptor& mha_desc) const
+                                                 [[maybe_unused]] const Buffers& buffers,
+                                                 [[maybe_unused]] const MHADescriptor& mha_desc) const
 {
     auto ret = std::vector<Solution>{};
 
