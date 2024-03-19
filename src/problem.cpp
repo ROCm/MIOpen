@@ -469,11 +469,12 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     return ret;
 }
 
-std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
-                                                 [[maybe_unused]] const FindOptions& options,
-                                                 std::size_t max_solutions,
-                                                 [[maybe_unused]] const Buffers& buffers,
-                                                 [[maybe_unused]] const MHADescriptor& mha_desc) const
+std::vector<Solution>
+Problem::FindSolutionsImpl(Handle& handle,
+                           [[maybe_unused]] const FindOptions& options,
+                           std::size_t max_solutions,
+                           [[maybe_unused]] const Buffers& buffers,
+                           [[maybe_unused]] const MHADescriptor& mha_desc) const
 {
     auto ret = std::vector<Solution>{};
 
