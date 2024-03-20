@@ -116,6 +116,7 @@ void VisitType(int id, Args... args)
 static Data_t AllocateTensor(Handle& handle,
                              const FindOptions& options,
                              std::vector<Allocator::ManageDataPtr>& owned,
+                             std::vector<std::uint64_t>& owned_scalars,
                              miopenTensorArgumentId_t id,
                              const TensorDescriptor& descriptor)
 {
@@ -123,6 +124,9 @@ static Data_t AllocateTensor(Handle& handle,
 
     if(preallocated != options.preallocated_tensors.end())
         return preallocated->second;
+
+    if(id & miopenScalarArgument)
+        return &owned_scalars.emplace_back(0);
 
     const auto element_size = get_data_size(descriptor.GetType());
     auto buffer             = handle.Create(descriptor.GetElementSpace() * element_size);
@@ -160,9 +164,10 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
 {
     auto owned_buffers = std::vector<Allocator::ManageDataPtr>{};
     auto buffers       = std::unordered_map<miopenTensorArgumentId_t, Data_t>{};
+    auto owned_scalars = std::vector<std::uint64_t>{};
 
     const auto allocate = [&](auto id, auto&& descriptor) {
-        auto buffer = AllocateTensor(handle, options, owned_buffers, id, descriptor);
+        auto buffer = AllocateTensor(handle, options, owned_buffers, owned_scalars, id, descriptor);
         buffers.emplace(id, buffer);
         return buffer;
     };
@@ -623,10 +628,11 @@ std::vector<Solution> FusedProblem::FindSolutions(Handle& handle,
     const auto find1_solutions = [&]() {
         OperatorArgs params;
         auto owned_buffers = std::vector<Allocator::ManageDataPtr>{};
+        auto owned_scalars = std::vector<std::uint64_t>{};
 
         const auto make_invoke_params = [&]() {
             auto buffer_allocator = [&](auto id, auto&& desc) {
-                return AllocateTensor(handle, options, owned_buffers, id, desc);
+                return AllocateTensor(handle, options, owned_buffers, owned_scalars, id, desc);
             };
 
             return MakeInvokeParams(buffer_allocator, params);
@@ -692,10 +698,21 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
     auto& out_desc = problems.back().GetOutput();
 
     const auto get_buffer = [&](auto id, auto&& descriptor) {
+        if(const auto found = buffers.find(id); found != buffers.end())
+            return found->second;
         auto buffer = buffer_getter(id, descriptor);
         buffers.emplace(id, buffer);
         return buffer;
     };
+
+    // This is not used right now, but there is a PR using it already and it is an example on how to get a scalar.
+    const auto get_scalar = [&](auto id, auto type_marker) {
+        // This is hacky because we lack separate way to pass them through API
+        return *reinterpret_cast<std::decay_t<decltype(type_marker)>*>(
+            get_buffer(id, TensorDescriptor()));
+    };
+
+    std::ignore = get_scalar;
 
     bool gfx90aaltimpl = false;
     auto in            = get_buffer(GetInputId(), in_desc);
