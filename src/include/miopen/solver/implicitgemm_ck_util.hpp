@@ -30,7 +30,14 @@
 #include <miopen/conv/wrw_invoke_params.hpp>
 
 namespace miopen {
+
+namespace conv {
+struct ProblemDescription;
+} // namespace conv
+
 namespace solver {
+
+struct ConvSolution;
 
 template <typename ConvPtrsType>
 typename ConvPtrsType::iterator FindConvPtrByID(ConvPtrsType& conv_ptrs,
@@ -43,7 +50,7 @@ typename ConvPtrsType::iterator FindConvPtrByID(ConvPtrsType& conv_ptrs,
 
 template <typename DeviceOpType,
           typename CKArgsType,
-          typename ProblemDescriptionType = ProblemDescription>
+          typename ProblemDescriptionType = miopen::conv::ProblemDescription>
 std::vector<std::string> FillValidKernelsIDs(const ProblemDescriptionType& problem)
 {
     const auto args      = CKArgsType{problem};
@@ -63,7 +70,7 @@ std::vector<std::string> FillValidKernelsIDs(const ProblemDescriptionType& probl
 
 template <typename DeviceOpType,
           typename CKArgsType,
-          typename ProblemDescriptionType = ProblemDescription>
+          typename ProblemDescriptionType = miopen::conv::ProblemDescription>
 bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string& kernel_id)
 {
     auto conv_ptrs = DeviceOpType::GetInstances();
@@ -74,12 +81,10 @@ bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string&
 
 template <typename DeviceOpType,
           typename CKArgsType,
-          typename ProblemDescriptionType = ProblemDescription>
+          typename ProblemDescriptionType = miopen::conv::ProblemDescription>
 bool IsCKApplicable(const ProblemDescriptionType& problem)
 {
     const auto args = CKArgsType{problem};
-    // if(!std::all_of(args.strides.begin(), args.strides.end(), [](auto x) { return x == 1; }))
-    //     return false;
 
     const auto ptrs = DeviceOpType::GetInstances();
     return std::any_of(
@@ -89,14 +94,17 @@ bool IsCKApplicable(const ProblemDescriptionType& problem)
 template <typename DeviceOpType,
           typename CKArgsType,
           typename CastType,
-          typename ProblemDescriptionType = ProblemDescription>
-ConvSolution InitInvokerFactory(const ProblemDescriptionType& problem, const std::string& kernel_id)
+          typename ProblemDescriptionType = miopen::conv::ProblemDescription>
+ConvSolution MakeInvokerFactory(const ProblemDescriptionType& problem, const std::string& kernel_id)
 {
     auto conv_ptrs = DeviceOpType::GetInstances();
     auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id);
 
     if(ptr_iter == conv_ptrs.end())
-        MIOPEN_THROW("PerformanceConfig kernel '" + kernel_id + "' does not exist");
+    {
+        MIOPEN_LOG_E("PerformanceConfig kernel '" + kernel_id + "' does not exist.");
+        return {miopenStatusInvalidValue};
+    }
 
     ConvSolution result;
     result.invoker_factory =
@@ -124,7 +132,7 @@ ConvSolution InitInvokerFactory(const ProblemDescriptionType& problem, const std
 template <typename DeviceOpType,
           typename CKArgsType,
           typename CastType,
-          typename ProblemDescriptionType = ProblemDescription>
+          typename ProblemDescriptionType = miopen::conv::ProblemDescription>
 ConvSolution InitAnyInvokerFactory(const ProblemDescriptionType& problem,
                                    const std::string& kernel_id)
 {

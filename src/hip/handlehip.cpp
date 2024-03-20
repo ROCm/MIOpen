@@ -30,21 +30,20 @@
 #include <miopen/binary_cache.hpp>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/gemm_geometry.hpp>
 #include <miopen/handle_lock.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/logger.hpp>
-#include <miopen/rocm_features.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/target_properties.hpp>
 #include <miopen/timer.hpp>
 
 #if !MIOPEN_ENABLE_SQLITE_KERN_CACHE
 #include <miopen/write_file.hpp>
+#include <boost/filesystem/operations.hpp>
 #endif
 
-#include <boost/filesystem.hpp>
+#include <miopen/filesystem.hpp>
 #include <miopen/load_file.hpp>
 
 #ifndef _WIN32
@@ -58,23 +57,15 @@
 #include <mutex>
 #include <shared_mutex>
 
-#define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30 \
-    (MIOPEN_USE_COMGR && BUILD_SHARED_LIBS && (HIP_PACKAGE_VERSION_FLAT < 4003000000ULL))
-
 /// hipMemGetInfo constantly fails on gfx906/900 and Navi21.
 /// Brute-force W/A: return fixed values.
-#define WORKAROUND_FAULTY_HIPMEMGETINFO_VEGA_NAVI2X (ROCM_FEATURE_DEPRECATED_VEGA_NAVI2X)
+#define WORKAROUND_FAULTY_HIPMEMGETINFO_VEGA_NAVI2X (HIP_PACKAGE_VERSION_FLAT >= 5007000000ULL)
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_CU)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEVICE_CU)
 
 namespace miopen {
 
 namespace {
-
-#if MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30
-void toCallHipInit() __attribute__((constructor(1000)));
-void toCallHipInit() { hipInit(0); }
-#endif
 
 hipError_t hip_mem_get_info_wrapper(std::size_t* const free, std::size_t* const total)
 {
@@ -227,11 +218,7 @@ struct HandleImpl
     {
         hipDeviceProp_t props{};
         hipGetDeviceProperties(&props, device);
-#if ROCM_FEATURE_HIP_GCNARCHNAME_RETURNS_CODENAME
-        const std::string name("gfx" + std::to_string(props.gcnArch));
-#else
         const std::string name(props.gcnArchName);
-#endif
         MIOPEN_LOG_NQI("Raw device name: " << name);
         return name; // NOLINT (performance-no-automatic-move)
     }
@@ -355,6 +342,7 @@ void Handle::ReserveExtraStreamsInPool(int cnt) const
     int last_stream_id = this->impl->ms_resourse_ptr->stream_pool.size();
 
     if(last_stream_id < cnt)
+    {
         for(; last_stream_id < cnt; last_stream_id++)
         {
             auto new_stream = this->impl->create_stream_non_blocking();
@@ -365,6 +353,7 @@ void Handle::ReserveExtraStreamsInPool(int cnt) const
             this->impl->ms_resourse_ptr->add_stream(std::move(new_stream));
 #endif
         }
+    }
 }
 
 miopenAcceleratorQueue_t Handle::GetStream() const
@@ -439,10 +428,8 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                const std::vector<size_t>& vgd,
                                const std::string& params,
                                std::size_t cache_index,
-                               bool is_kernel_str,
                                const std::string& kernel_src) const
 {
-
     auto obj = this->impl->cache.AddKernel(*this,
                                            algorithm,
                                            network_config,
@@ -452,7 +439,6 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                            vgd,
                                            params,
                                            cache_index,
-                                           is_kernel_str,
                                            kernel_src);
     return this->Run(obj);
 }
@@ -500,7 +486,6 @@ KernelInvoke Handle::Run(Kernel k) const
 
 Program Handle::LoadProgram(const std::string& program_name,
                             std::string params,
-                            bool is_kernel_str,
                             const std::string& kernel_src) const
 {
     this->impl->set_ctx();
@@ -511,11 +496,8 @@ Program Handle::LoadProgram(const std::string& program_name,
     if(!miopen::EndsWith(program_name, ".mlir"))
         params = params + " -mcpu=" + this->GetTargetProperties().Name();
 
-    auto hsaco = miopen::LoadBinary(this->GetTargetProperties(),
-                                    this->GetMaxComputeUnits(),
-                                    program_name,
-                                    params,
-                                    is_kernel_str);
+    auto hsaco = miopen::LoadBinary(
+        this->GetTargetProperties(), this->GetMaxComputeUnits(), program_name, params);
     if(hsaco.empty())
     {
         const auto arch_target_id = miopen::SplitDelim(arch_name, ':');
@@ -526,8 +508,7 @@ Program Handle::LoadProgram(const std::string& program_name,
             hsaco                = miopen::LoadBinary(this->GetTargetProperties(),
                                        this->GetMaxComputeUnits(),
                                        program_name,
-                                       orig_params + " -mcpu=" + base_arch,
-                                       is_kernel_str);
+                                       orig_params + " -mcpu=" + base_arch);
         }
     }
 
@@ -536,9 +517,8 @@ Program Handle::LoadProgram(const std::string& program_name,
     if(hsaco.empty())
     {
         CompileTimer ct;
-        auto p = HIPOCProgram{
-            program_name, params, is_kernel_str, this->GetTargetProperties(), kernel_src};
-        ct.Log("Kernel", is_kernel_str ? std::string() : program_name);
+        auto p = HIPOCProgram{program_name, params, this->GetTargetProperties(), kernel_src};
+        ct.Log("Kernel", program_name);
 
 // Save to cache
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
@@ -548,15 +528,14 @@ Program Handle::LoadProgram(const std::string& program_name,
                            this->GetTargetProperties(),
                            this->GetMaxComputeUnits(),
                            program_name,
-                           params,
-                           is_kernel_str);
+                           params);
 #else
         auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
         if(p.IsCodeObjectInMemory())
             miopen::WriteFile(p.GetCodeObjectBlob(), path);
         else
-            boost::filesystem::copy_file(p.GetCodeObjectPathname(), path);
-        miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params, is_kernel_str);
+            fs::copy_file(p.GetCodeObjectPathname(), path);
+        miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params);
 #endif
         p.FreeCodeObjectFileStorage();
         return p;
@@ -640,7 +619,7 @@ std::size_t Handle::GetGlobalMemorySize() const
 
 std::size_t Handle::GetMaxComputeUnits() const
 {
-    const std::size_t num_cu = Value(MIOPEN_DEVICE_CU{});
+    const std::size_t num_cu = Value(ENV(MIOPEN_DEVICE_CU));
     if(num_cu > 0)
         return num_cu;
 

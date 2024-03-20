@@ -34,10 +34,13 @@
 #include <miopen/tensor_ops.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 static const inline std::vector<TunableImplicitGemmGTCDynamic_t>&
 GetImplicitGemmWrwGTCDynamicXdlopsKernelList()
@@ -418,11 +421,11 @@ static inline int if_gemm_k_global_split(const ProblemDescription& problem,
                                          const int b)
 {
     int gemm_k_global_split = 0;
-    const int n             = problem.GetBatchSize_();
-    const int k             = problem.GetInChannels_();
-    const int c             = problem.GetOutChannels_();
-    const int y             = problem.GetWeightsHeight_();
-    const int x             = problem.GetWeightsWidth_();
+    const int n             = problem.GetBatchSize();
+    const int k             = problem.GetInChannels();
+    const int c             = problem.GetOutChannels();
+    const int y             = problem.GetWeightsHeight();
+    const int x             = problem.GetWeightsWidth();
 
     const auto& gemm_m = k;
     const auto gemm_n  = c * y * x;
@@ -444,26 +447,26 @@ static inline int if_gemm_k_global_split(const ProblemDescription& problem,
 }
 
 inline std::vector<OpKernelArg>
-ComputeDynamicIGemmWrwKernelArgs(const conv::ProblemDescription& problem,
+ComputeDynamicIGemmWrwKernelArgs(const ProblemDescription& problem,
                                  const int log2_gemm_k_global_splits,
                                  const int nxb,
                                  const int gemm_k_per_block)
 {
-    int hi         = problem.GetOutHeight_();
-    int wi         = problem.GetOutWidth_();
-    int n          = problem.GetInBatchSize_();
-    int k          = problem.GetInChannels_();
-    int c          = problem.GetOutChannels_();
-    int ho         = problem.GetInHeight_();
-    int wo         = problem.GetInWidth_();
-    int stride_h   = problem.GetOutHeight_() > 1 ? problem.GetKernelStrideH() : 1;
-    int stride_w   = problem.GetOutWidth_() > 1 ? problem.GetKernelStrideW() : 1;
-    int dilation_h = problem.GetWeightsHeight_() > 1 ? problem.GetDilationH() : 1;
-    int dilation_w = problem.GetWeightsWidth_() > 1 ? problem.GetDilationW() : 1;
+    int hi         = problem.GetOutHeight();
+    int wi         = problem.GetOutWidth();
+    int n          = problem.GetInBatchSize();
+    int k          = problem.GetInChannels();
+    int c          = problem.GetOutChannels();
+    int ho         = problem.GetInHeight();
+    int wo         = problem.GetInWidth();
+    int stride_h   = problem.GetOutHeight() > 1 ? problem.GetKernelStrideH() : 1;
+    int stride_w   = problem.GetOutWidth() > 1 ? problem.GetKernelStrideW() : 1;
+    int dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
+    int dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
     int pad_h      = problem.GetPadH();
     int pad_w      = problem.GetPadW();
-    int y          = problem.GetWeightsHeight_();
-    int x          = problem.GetWeightsWidth_();
+    int y          = problem.GetWeightsHeight();
+    int x          = problem.GetWeightsWidth();
     int group      = problem.GetGroupCount();
 
     int dim_b = (ho * wo + nxb - 1) / nxb * nxb;
@@ -534,17 +537,17 @@ static inline std::tuple<bool, // is valid
                          int>  // gemm_k_split
 FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ProblemDescription& problem)
 {
-    const int n           = problem.GetBatchSize_();
-    const int k           = problem.GetInChannels_();
-    const int c           = problem.GetOutChannels_();
-    const int ho          = problem.GetInHeight_();
-    const int wo          = problem.GetInWidth_();
-    const int y           = problem.GetWeightsHeight_();
-    const int x           = problem.GetWeightsWidth_();
+    const int n           = problem.GetBatchSize();
+    const int k           = problem.GetInChannels();
+    const int c           = problem.GetOutChannels();
+    const int ho          = problem.GetInHeight();
+    const int wo          = problem.GetInWidth();
+    const int y           = problem.GetWeightsHeight();
+    const int x           = problem.GetWeightsWidth();
     const auto stride_h   = problem.GetKernelStrideH();
     const auto stride_w   = problem.GetKernelStrideW();
-    const auto dilation_h = problem.GetWeightsHeight_() > 1 ? problem.GetDilationH() : 1;
-    const auto dilation_w = problem.GetWeightsWidth_() > 1 ? problem.GetDilationW() : 1;
+    const auto dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
+    const auto dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
     const auto pad_h      = problem.GetPadH();
     const auto pad_w      = problem.GetPadW();
     const auto precision  = problem.IsFp16() ? miopenHalf : miopenFloat;
@@ -746,8 +749,10 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ProblemDescription& problem)
             else
             {
                 if(cfg.tensor_a_thread_lengths[2] * cfg.tensor_a_thread_lengths[3] > 1)
+                {
                     if(gemm_m % gemm_m_per_block != 0)
                         continue;
+                }
             }
 
             if(wo % cfg.tensor_b_thread_lengths[1] != 0)
@@ -797,13 +802,15 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetWorkspaceSize(const ExecutionContext&
                                                          const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
+    {
         return 0;
+    }
     else
     {
-        const int k        = problem.GetInChannels_();
-        const int c        = problem.GetOutChannels_();
-        const int y        = problem.GetWeightsHeight_();
-        const int x        = problem.GetWeightsWidth_();
+        const int k        = problem.GetInChannels();
+        const int c        = problem.GetOutChannels();
+        const int y        = problem.GetWeightsHeight();
+        const int x        = problem.GetWeightsWidth();
         const auto ngroups = problem.GetGroupCount();
 
         return static_cast<size_t>(ngroups) * (k / ngroups) * (c / ngroups) * y * x *
@@ -814,7 +821,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetWorkspaceSize(const ExecutionContext&
 bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ExecutionContext& ctx,
                                                           const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS)))
         return false;
 
     if(problem.GetConv().attribute.deterministic)
@@ -827,10 +834,16 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ExecutionContext
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
 
     if(!problem.Is2d())
+        return false;
+
+    if(problem.HasNonPackedTensors())
+        return false;
+
+    if(problem.HasAtLeastOne64BitTensor())
         return false;
 
     if(!problem.IsFp32() && !problem.IsFp16())
@@ -846,9 +859,7 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ExecutionContext
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
@@ -933,7 +944,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ExecutionContext& ctx,
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) mutable {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
                 decltype(auto) wrw_invoke_params =
-                    primitive_parameters.CastTo<conv::WrWInvokeParams>();
+                    primitive_parameters.CastTo<miopen::conv::WrWInvokeParams>();
                 const auto& tensors = wrw_invoke_params.tensors;
                 const auto k        = handle.Run(kernels[0]);
                 float elapsed       = 0;
@@ -966,7 +977,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ExecutionContext& ctx,
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) mutable {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
                 decltype(auto) wrw_invoke_params =
-                    primitive_parameters.CastTo<conv::WrWInvokeParams>();
+                    primitive_parameters.CastTo<miopen::conv::WrWInvokeParams>();
                 const auto& tensors       = wrw_invoke_params.tensors;
                 const auto k              = handle.Run(kernels[0]);
                 const auto& workSpace     = wrw_invoke_params.workSpace;
@@ -975,9 +986,11 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ExecutionContext& ctx,
                 float zero                = 0.f;
 
                 if(workSpace == nullptr || workSpaceSize < required_workspace_size)
+                {
                     MIOPEN_THROW("Not enough workspace has been provided for "
                                  "ConvAsmImplicitGemmGTCDynamicWrwXdlops with fp16 and atomic "
                                  "add.");
+                }
 
                 SetTensor(handle, workspaceDesc, workSpace, &zero);
                 if(handle.IsProfilingEnabled())
@@ -993,6 +1006,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ExecutionContext& ctx,
 
                 CastTensor(handle,
                            &lowp_quant,
+                           false,
                            workspaceDesc,
                            workSpace,
                            tensors.dwDesc,
@@ -1016,7 +1030,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ExecutionContext& ctx,
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) mutable {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
                 decltype(auto) wrw_invoke_params =
-                    primitive_parameters.CastTo<conv::WrWInvokeParams>();
+                    primitive_parameters.CastTo<miopen::conv::WrWInvokeParams>();
                 const auto& tensors = wrw_invoke_params.tensors;
                 const auto k        = handle.Run(kernels[0]);
 
@@ -1032,5 +1046,6 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ExecutionContext& ctx,
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

@@ -36,10 +36,13 @@
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_data.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 template <typename DataType>
@@ -88,8 +91,10 @@ struct CKArgs
         weight = {G, K, C, Z, Y, X};
 
         // miopen strides to CK strides
-        auto miopen_in_strides  = problem.GetIn().GetStrides();
-        auto miopen_out_strides = problem.GetOut().GetStrides();
+        // On a backward pass, problem.GetIn() means y(or out),
+        // and problem.GetOut means x(or in)
+        auto miopen_in_strides  = problem.GetOut().GetStrides();
+        auto miopen_out_strides = problem.GetIn().GetStrides();
         auto miopen_wei_strides = problem.GetWeights().GetStrides();
         miopen_in_strides.insert(miopen_in_strides.begin(), C);
         miopen_out_strides.insert(miopen_out_strides.begin(), K);
@@ -119,6 +124,29 @@ struct CKArgs
     template <typename ConvPtr>
     auto MakeArgPtr(const ConvPtr& conv_ptr, ConstData_t in, ConstData_t w, Data_t out) const
     {
+
+#if 0 // Leaving for debugging needs
+        std::cout << "y ptr = " << in << std::endl;
+        std::cout << "w ptr = " << w << std::endl;
+        std::cout << "x ptr = " << out << std::endl;
+
+        auto print_vec = [](const char* name, const auto& vec) {
+            std::cout << name << " = [ ";
+            for(const auto& v : vec)
+            {
+                std::cout << v << ", ";
+            }
+            std::cout << "]\n";
+        };
+#define PRINT_VEC(x) print_vec(#x, x);
+
+        PRINT_VEC(output);
+        PRINT_VEC(out_strides);
+        PRINT_VEC(input);
+        PRINT_VEC(in_strides);
+        PRINT_VEC(weight);
+        PRINT_VEC(wei_strides);
+#endif
         return conv_ptr->MakeArgumentPointer(in,
                                              w,
                                              {},
@@ -217,7 +245,6 @@ void PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::HeuristicInit(
     case miopenFloat: Init<float>(problem); break;
     case miopenInt8: Init<int8_t>(problem); break;
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenFloat8:
     case miopenBFloat8:
@@ -260,7 +287,6 @@ bool PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::IsValid(
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
     case miopenInt8: return CheckIsSupportCKArgs<int8_t>(problem);
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenFloat8:
     case miopenBFloat8:
@@ -306,23 +332,23 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::IsApplicable(
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS)))
         return false;
-    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)))
         return false;
-    if(problem.GetInDataType() != problem.GetWeightsDataType() ||
-       problem.GetWeightsDataType() != problem.GetOutDataType() ||
-       problem.GetInDataType() != problem.GetOutDataType())
+    if(problem.HasAtLeastOne64BitTensor())
+        return false;
+    if(problem.HasMixedDataTypes())
         return false;
     if(problem.IsTensorsCasted())
         return false;
-    if(!problem.direction.IsBackwardData())
+    if(!problem.IsDirectionBackwardData())
         return false;
     if(!problem.Is3d())
         return false;
     if(!problem.IsLayoutNHWC())
         return false;
-    if(!ck_utility::is_conv_ck_supported_hardware(ctx.GetStream().GetDeviceName(), false))
+    if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
     switch(problem.GetInDataType())
     {
@@ -330,7 +356,6 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::IsApplicable(
     case miopenFloat: return CheckCKApplicability<float>(problem);
     case miopenInt8: return CheckCKApplicability<int8_t>(problem);
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenFloat8:
     case miopenBFloat8:
@@ -349,16 +374,16 @@ ConvSolution ConvHipImplicitGemm3DGroupBwdXdlops::GetSolution(
     switch(problem.GetInDataType())
     {
     case miopenInt8:
-        return InitInvokerFactory<DeviceOpGBwdPtrs<int8_t>, CKArgs, conv::DataInvokeParams>(
+        return MakeInvokerFactory<DeviceOpGBwdPtrs<int8_t>, CKArgs, miopen::conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenHalf:
-        return InitInvokerFactory<DeviceOpGBwdPtrs<ck::half_t>, CKArgs, conv::DataInvokeParams>(
-            problem, config.kernel_id);
+        return MakeInvokerFactory<DeviceOpGBwdPtrs<ck::half_t>,
+                                  CKArgs,
+                                  miopen::conv::DataInvokeParams>(problem, config.kernel_id);
     case miopenFloat:
-        return InitInvokerFactory<DeviceOpGBwdPtrs<float>, CKArgs, conv::DataInvokeParams>(
+        return MakeInvokerFactory<DeviceOpGBwdPtrs<float>, CKArgs, miopen::conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble:
     case miopenFloat8:
@@ -371,5 +396,6 @@ ConvSolution ConvHipImplicitGemm3DGroupBwdXdlops::GetSolution(
     return {};
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

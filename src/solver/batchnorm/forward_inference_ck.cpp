@@ -32,7 +32,7 @@
 #include <miopen/solver/ck_utility_common.hpp>
 #include <ck/library/tensor_operation_instance/gpu/batchnorm_infer.hpp>
 #endif
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_CK_BN_INFER)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_CK_BN_INFER)
 
 namespace miopen {
 namespace solver {
@@ -175,19 +175,16 @@ static void RunCKSolution(const Handle& handle,
 }
 #endif
 
-bool BnCKFwdInference::IsApplicable(const ExecutionContext& context,
-                                    const miopen::batchnorm::ProblemDescription& bn_problem) const
+bool BnCKFwdInference::IsApplicable(
+    [[maybe_unused]] const ExecutionContext& context,
+    [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
-#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = context;
-    std::ignore = bn_problem;
-    return false;
-#else
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_BN_INFER{}))
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_CK_BN_INFER)))
         return false;
     if(!bn_problem.IsLayoutNHWC())
         return false;
-    if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
+    if(!ck_utility::is_ck_whitelist(context.GetStream()))
         return false;
 
     switch(bn_problem.GetXDesc().GetType())
@@ -200,26 +197,18 @@ bool BnCKFwdInference::IsApplicable(const ExecutionContext& context,
         return (CheckCKApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem) != -1);
     case miopenInt32:
     case miopenInt8:
-    case miopenInt8x4: // Support discontinued.
     case miopenFloat8:
-    case miopenBFloat8:
-    default: MIOPEN_THROW("Unsupported datatype");
+    case miopenBFloat8: break;
     }
-    return false;
 #endif
+    return false;
 }
 
-ConvSolution
-BnCKFwdInference::GetSolution(const ExecutionContext& context,
-                              const miopen::batchnorm::ProblemDescription& bn_problem) const
+ConvSolution BnCKFwdInference::GetSolution(
+    [[maybe_unused]] const ExecutionContext& context,
+    [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
-#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = context;
-    std::ignore = bn_problem;
-    return {};
-#else
-    std::ignore = context;
-
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     ConvSolution result;
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         std::ignore = kernels;
@@ -244,7 +233,6 @@ BnCKFwdInference::GetSolution(const ExecutionContext& context,
                 break;
             case miopenInt8:
             case miopenInt32:
-            case miopenInt8x4: // Support discontinued.
             case miopenFloat8:
             case miopenBFloat8:
             default: MIOPEN_THROW("Unsupported datatype");
@@ -252,6 +240,8 @@ BnCKFwdInference::GetSolution(const ExecutionContext& context,
         };
     };
     return result;
+#else
+    return {};
 #endif
 }
 

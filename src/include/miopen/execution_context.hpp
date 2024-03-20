@@ -34,7 +34,7 @@
 #if MIOPEN_EMBED_DB
 #include <miopen_data.hpp>
 #endif
-#include <boost/filesystem.hpp>
+#include <miopen/filesystem.hpp>
 
 #include <string>
 
@@ -65,9 +65,16 @@ public:
 
 namespace miopen {
 
-namespace conv {
-struct ProblemDescription;
-} // namespace conv
+namespace debug {
+
+/// Inform the library that some warm-up (e.g. the one implemented in the driver)
+/// is in progress. The library can use this, for example, to disable some
+/// workarounds that would affect warm-up otherwise.
+/// WARNING: This switch is not intended for use in multi-threaded applications.
+MIOPEN_EXPORT extern bool
+    IsWarmupOngoing; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+
+} // namespace debug
 
 struct ExecutionContext
 {
@@ -108,7 +115,7 @@ struct ExecutionContext
     std::string GetPerfDbPathEmbed() const
     {
         static const auto result = [&] {
-            boost::filesystem::path pdb_path(GetSystemDbPath());
+            fs::path pdb_path(GetSystemDbPath());
             std::ostringstream filename;
             // clang-format off
             filename << GetStream().GetDbBasename();
@@ -176,7 +183,7 @@ struct ExecutionContext
     std::string GetPerfDbPathFile() const
     {
         static const auto result = [&] {
-            const boost::filesystem::path pdb_path(GetSystemDbPath());
+            const fs::path pdb_path(GetSystemDbPath());
             std::ostringstream filename;
             // clang-format off
         filename << GetStream().GetDbBasename();
@@ -187,7 +194,7 @@ struct ExecutionContext
 #endif
         filename << ext;
             // clang-format on
-            if(boost::filesystem::exists(pdb_path / filename.str()))
+            if(fs::exists(pdb_path / filename.str()))
             {
                 MIOPEN_LOG_I("Found exact perf database file");
                 return (pdb_path / filename.str()).string();
@@ -197,7 +204,6 @@ struct ExecutionContext
                 MIOPEN_LOG_I2("inexact perf database search");
                 const auto db_id        = GetStream().GetTargetProperties().DbId();
                 const int real_cu_count = GetStream().GetMaxComputeUnits();
-                namespace fs            = boost::filesystem;
                 if(fs::exists(pdb_path) && fs::is_directory(pdb_path))
                 {
                     MIOPEN_LOG_I2("Iterating over perf db directory " << pdb_path.string());
@@ -219,10 +225,14 @@ struct ExecutionContext
                             try
                             {
                                 if(pos != std::string::npos)
+                                {
                                     cur_count = std::stoi(fname.substr(pos + 1));
+                                }
                                 else
+                                {
                                     cur_count =
                                         std::stoi(fname.substr(db_id.length()), nullptr, 16);
+                                }
                             }
                             catch(const std::exception& e)
                             {

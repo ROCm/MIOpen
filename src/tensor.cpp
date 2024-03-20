@@ -50,7 +50,6 @@ bool IsDataTypeSupported(miopenDataType_t t)
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt8:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: return true;
     }
@@ -75,12 +74,17 @@ bool IsLayoutSupported(miopenTensorLayout_t layout)
 }
 
 template <class T>
-bool CheckLengths(const std::vector<T>& lens)
+bool CheckLengths(const std::vector<T>& lens, T maxval = 0)
 {
     if(lens.empty())
         return false;
     if(!std::all_of(lens.cbegin(), lens.cend(), [](T x) { return x > 0; }))
         return false;
+    if(maxval)
+    {
+        if(!std::all_of(lens.cbegin(), lens.cend(), [maxval](T x) { return x <= maxval; }))
+            return false;
+    }
     return true;
 }
 
@@ -205,8 +209,8 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
     if(lens_in.empty())
         MIOPEN_THROW(miopenStatusBadParm, "Number of dimensions must be > 1");
 
-    if(!CheckLengths(lens_in))
-        MIOPEN_THROW(miopenStatusBadParm, "Lengths must be > 0");
+    if(!CheckLengths(lens_in, static_cast<std::size_t>(std::numeric_limits<int64_t>::max())))
+        MIOPEN_THROW(miopenStatusBadParm, "Lengths must be > 0 and <= INT64_MAX");
 
     this->CalculateVectorLength();
 
@@ -215,8 +219,8 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
         if(lens_in.size() != strides_in.size())
             MIOPEN_THROW(miopenStatusBadParm, "Lengths and strides dimensions must be equal");
 
-        if(!CheckLengths(strides_in))
-            MIOPEN_THROW(miopenStatusBadParm, "Strides must be > 0");
+        if(!CheckLengths(strides_in, static_cast<std::size_t>(std::numeric_limits<int64_t>::max())))
+            MIOPEN_THROW(miopenStatusBadParm, "Strides must be > 0 and <= INT64_MAX");
 
         strides = strides_in;
         packed  = (this->GetElementSize() == this->GetElementSpace());
@@ -228,6 +232,7 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
         SetStrideNd(GetLayout_str());
     }
 }
+
 void TensorDescriptor::SetStrideNd(const std::string& layout)
 {
     std::string default_layout = miopen::tensor_layout_get_default(layout.size());
@@ -425,6 +430,19 @@ std::size_t TensorDescriptor::GetNumBytes() const
 
 bool TensorDescriptor::IsPacked() const { return this->packed; }
 
+bool TensorDescriptor::Is64Bit() const
+{
+    if(std::any_of(lens.cbegin(), lens.cend(), [](std::size_t x) {
+           return x > std::numeric_limits<int>::max();
+       }))
+        return true;
+    if(std::any_of(strides.cbegin(), strides.cend(), [](std::size_t x) {
+           return x > std::numeric_limits<int>::max();
+       }))
+        return true;
+    return false;
+}
+
 bool TensorDescriptor::operator==(const TensorDescriptor& rhs) const
 {
     assert(this->lens.size() == rhs.strides.size());
@@ -462,8 +480,10 @@ std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t)
     LogRange(stream << "{", t.lens, ", ") << "}, ";
     LogRange(stream << "{", t.strides, ", ") << "}, ";
     if(t.packed)
+    {
         stream << "packed"
                << ", ";
+    }
 
     if(t.cast_type)
     {
@@ -500,8 +520,6 @@ void from_json(const nlohmann::json& j, TensorDescriptor& descriptor)
 
 } // namespace miopen
 
-// TODO(paul): Remove
-MIOPEN_EXPORT
 int miopenGetTensorIndex(miopenTensorDescriptor_t tensorDesc, std::initializer_list<int> indices)
 {
     return miopen::deref(tensorDesc).GetIndex(indices);

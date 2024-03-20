@@ -57,7 +57,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/find_controls.hpp>
-#include <miopen/problem_description.hpp>
+#include <miopen/execution_context.hpp>
 #include "random.hpp"
 #include <numeric>
 #include <sstream>
@@ -74,14 +74,18 @@
 #include <boost/optional.hpp>
 
 // Declare hidden function for MIGraphX to smoke test it.
-extern "C" miopenStatus_t miopenHiddenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc,
-                                                             int findMode);
+extern "C" MIOPEN_EXPORT miopenStatus_t
+miopenHiddenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc, int findMode);
 
 #define WORKAROUND_ISSUE_2176 1 // https://github.com/AMDComputeLibraries/MLOpen/issues/2176
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_USE_GPU_REFERENCE)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_SUBNORM_PERCENTAGE)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DRIVER_PAD_BUFFERS_2M)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DRIVER_USE_GPU_REFERENCE)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DRIVER_SUBNORM_PERCENTAGE)
+
+// Support in the library discontinued, but left in the driver
+// for reference in the future.
+#define miopenInt8x4 (static_cast<miopenDataType_t>(4))
 
 #if MIOPEN_BACKEND_OPENCL
 #define STATUS_SUCCESS CL_SUCCESS
@@ -97,8 +101,10 @@ struct AutoMiopenWarmupMode
     {
         debug_logging_quiet_prev          = miopen::debug::LoggingQuiet;
         debug_find_enforce_disable_prev   = miopen::debug::FindEnforceDisable;
+        debug_is_warmup_ongoing_prev      = miopen::debug::IsWarmupOngoing;
         miopen::debug::LoggingQuiet       = true;
         miopen::debug::FindEnforceDisable = true;
+        miopen::debug::IsWarmupOngoing    = true;
     }
     AutoMiopenWarmupMode(const AutoMiopenWarmupMode&) = delete;
     AutoMiopenWarmupMode(AutoMiopenWarmupMode&&)      = delete;
@@ -108,11 +114,13 @@ struct AutoMiopenWarmupMode
     {
         miopen::debug::LoggingQuiet       = debug_logging_quiet_prev;
         miopen::debug::FindEnforceDisable = debug_find_enforce_disable_prev;
+        miopen::debug::IsWarmupOngoing    = debug_is_warmup_ongoing_prev;
     }
 
 private:
     bool debug_logging_quiet_prev;
     bool debug_find_enforce_disable_prev;
+    bool debug_is_warmup_ongoing_prev;
 };
 
 struct AutoPrepareForGpuReference
@@ -1235,12 +1243,12 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     size_t in_sz  = GetTensorSize(inputTensor);
     size_t wei_sz = GetTensorSize(weightTensor);
     size_t out_sz = GetTensorSize(outputTensor);
-    auto subnorm_percentage = miopen::Value(MIOPEN_DRIVER_SUBNORM_PERCENTAGE{});
+    auto subnorm_percentage = miopen::Value(ENV(MIOPEN_DRIVER_SUBNORM_PERCENTAGE));
     if(subnorm_percentage != 0)
         std::cout << "MIOPEN_DRIVER_SUBNORM_PERCENTAGE = " << subnorm_percentage << std::endl;
 
     // Workaround: Pad buffers allocations to be a multiple of 2M
-    if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
+    if(miopen::IsEnabled(ENV(MIOPEN_DRIVER_PAD_BUFFERS_2M)))
     {
         // PadBufferSize(in_sz, sizeof(Tgpu));
         PadBufferSize(wei_sz, sizeof(Tgpu));
@@ -1266,7 +1274,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             size_t warmup_in_sz  = GetTensorSize(warmupInputTensor);
             size_t warmup_wei_sz = GetTensorSize(warmupWeightTensor);
             size_t warmup_out_sz = GetTensorSize(warmupOutputTensor);
-            if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
+            if(miopen::IsEnabled(ENV(MIOPEN_DRIVER_PAD_BUFFERS_2M)))
             {
                 PadBufferSize(warmup_wei_sz, sizeof(warmup_Tgpu));
                 PadBufferSize(warmup_out_sz, sizeof(warmup_Tgpu));
@@ -1407,16 +1415,13 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             new GPUMem(ctx, GetTensorSize(weightTensor_vect4), sizeof(Tgpu)));
     }
 
-    outhost   = tensor<Tref>(miopen_type<Tref>{},
-                           miopen::deref(outputTensor).GetLayout_t(),
+    outhost   = tensor<Tref>(miopen::deref(outputTensor).GetLayout_t(),
                            miopen::deref(outputTensor).GetLengths(),
                            miopen::deref(outputTensor).GetStrides());
-    din_host  = tensor<Tref>(miopen_type<Tref>{},
-                            miopen::deref(inputTensor).GetLayout_t(),
+    din_host  = tensor<Tref>(miopen::deref(inputTensor).GetLayout_t(),
                             miopen::deref(inputTensor).GetLengths(),
                             miopen::deref(inputTensor).GetStrides());
-    dwei_host = tensor<Tref>(miopen_type<Tref>{},
-                             miopen::deref(weightTensor).GetLayout_t(),
+    dwei_host = tensor<Tref>(miopen::deref(weightTensor).GetLayout_t(),
                              miopen::deref(weightTensor).GetLengths(),
                              miopen::deref(weightTensor).GetStrides());
 
@@ -1602,7 +1607,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 template <typename Tgpu, typename Tref>
 bool ConvDriver<Tgpu, Tref>::UseGPUReference()
 {
-    if(!miopen::IsDisabled(MIOPEN_DRIVER_USE_GPU_REFERENCE{}))
+    if(!miopen::IsDisabled(ENV(MIOPEN_DRIVER_USE_GPU_REFERENCE)))
     {
         if((miopen_type<Tref>{} == miopenFloat &&
             (miopen_type<Tgpu>{} == miopenFloat || miopen_type<Tgpu>{} == miopenHalf ||

@@ -43,7 +43,7 @@
 template <typename T = float>
 struct ConvBiasActivInferTest
     : public ::testing::TestWithParam<
-          std::tuple<miopenActivationMode_t, ConvTestCase, miopenTensorLayout_t>>,
+          std::tuple<miopenActivationMode_t, ConvTestCaseBase, miopenTensorLayout_t>>,
       ConvFwdSolverTestBase<T>
 {
 protected:
@@ -90,7 +90,7 @@ protected:
                             cfsb::ref_out.data);
         cfsb::ThresholdChecks();
     }
-    ConvTestCase conv_config;
+    ConvTestCaseBase conv_config;
     miopen::ActivationDescriptor activ_desc;
     tensor<T> bias;
     miopen::Allocator::ManageDataPtr bias_dev;

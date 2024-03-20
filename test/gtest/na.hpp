@@ -25,8 +25,6 @@
  *******************************************************************************/
 #pragma once
 
-#include <random>
-
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/solver_id.hpp>
@@ -35,7 +33,7 @@
 
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
-
+#include "random.hpp"
 struct BNTestCase
 {
     size_t N;
@@ -56,7 +54,7 @@ struct BNTestCase
     std::vector<size_t> GetInput() { return {N, C, H, W}; }
 };
 
-std::vector<BNTestCase> Network1()
+std::vector<BNTestCase> Networkna1()
 {
     // pyt_mlperf_resnet50v1.5
     return {
@@ -107,17 +105,13 @@ protected:
         shift       = tensor<T>{derivedBnDesc.GetLengths()};
         estMean     = tensor<T>{derivedBnDesc.GetLengths()};
         estVariance = tensor<T>{derivedBnDesc.GetLengths()};
-        std::random_device rd{};
-        std::mt19937 gen{rd()};
-        std::uniform_int_distribution<> d{0, 100};
-        auto gen_value = [&](auto...) {
-            return 1e-2 * static_cast<T>(d(gen)) * ((d(gen) % 2 == 1) ? -1 : 1);
-        };
+
+        auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
         input.generate(gen_value);
         scale.generate(gen_value);
         shift.generate(gen_value);
         estMean.generate(gen_value);
-        auto gen_var = [&](auto...) { return 1e-2 * (static_cast<T>(d(gen)) + 1); };
+        auto gen_var = [](auto...) { return static_cast<T>(1e-2 * (prng::gen_0_to_B(100) + 1)); };
         estVariance.generate(gen_var);
         activ_desc    = {activ_mode, activ_alpha, activ_beta, activ_gamma};
         output        = tensor<T>{bn_config.GetInput()};

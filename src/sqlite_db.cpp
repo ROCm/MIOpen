@@ -28,16 +28,14 @@
 #include <miopen/errors.hpp>
 #include <miopen/lock_file.hpp>
 #include <miopen/logger.hpp>
-#include <miopen/md5.hpp>
-#include <miopen/problem_description.hpp>
+#include <miopen/conv/problem_description.hpp>
 #include <miopen/exp_backoff.hpp>
+#include <miopen/filesystem.hpp>
 
 #if MIOPEN_EMBED_DB
 #include <miopen_data.hpp>
 #endif
 #include <boost/date_time/posix_time/posix_time_types.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/filesystem/path.hpp>
 #include <boost/none.hpp>
 #include <boost/optional.hpp>
 
@@ -74,16 +72,16 @@ class SQLite::impl
     };
     using sqlite3_ptr = std::unique_ptr<sqlite3, SQLiteCloser>;
 #if MIOPEN_EMBED_DB
-    int CreateInMemDb(const boost::filesystem::path& filepath, bool is_system)
+    int CreateInMemDb(const fs::path& filepath, bool is_system)
     {
         sqlite3* ptr_tmp = nullptr;
         int rc           = 0;
-#ifdef __clang__
+#if defined(__clang__) || defined(__llvm__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wcast-function-type-strict"
 #endif
         sqlite3_auto_extension(reinterpret_cast<void (*)(void)>(miopen_sqlite3_memvfs_init));
-#ifdef __clang__
+#if defined(__clang__) || defined(__llvm__)
 #pragma clang diagnostic pop
 #endif
         // Open an in-memory database to use as a handle for loading the memvfs extension
@@ -146,13 +144,13 @@ class SQLite::impl
         return rc;
     }
 #endif
-    int CreateFileDb(const boost::filesystem::path& filepath, bool is_system)
+    int CreateFileDb(const fs::path& filepath, bool is_system)
     {
         sqlite3* ptr_tmp = nullptr;
         int rc           = 0;
         if(is_system)
         {
-            if(boost::filesystem::file_size(filepath) <
+            if(fs::file_size(filepath) <
                512) // size of a very small database, Empty MIOpen DBs are 20 kb
             {
                 rc = -1;
@@ -178,7 +176,7 @@ class SQLite::impl
 public:
     impl(const std::string& filename_, bool is_system)
     {
-        boost::filesystem::path filepath(filename_);
+        fs::path filepath(filename_);
         int rc = 0;
 #if MIOPEN_EMBED_DB
         rc = CreateInMemDb(filepath, is_system);
@@ -252,7 +250,9 @@ int SQLite::Retry(std::function<int()> f, [[maybe_unused]] std::string filename)
         {
             ++tries;
             if(tries < 10)
+            {
                 std::this_thread::yield();
+            }
             else
             {
                 auto slot = *exp_bo;
@@ -447,10 +447,10 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_, bool is_system_)
     // Check fields for the tables
     if(!dbInvalid)
     {
-        if(!CheckTableColumns(ProblemDescription::table_name(), prob_desc.FieldNames()))
+        if(!CheckTableColumns(conv::ProblemDescription::table_name(), prob_desc.FieldNames()))
         {
             std::ostringstream ss;
-            ss << "Invalid fields in table: " << ProblemDescription::table_name()
+            ss << "Invalid fields in table: " << conv::ProblemDescription::table_name()
                << " disabling access to " << filename;
             MIOPEN_LOG_W(ss.str());
             dbInvalid = true;
