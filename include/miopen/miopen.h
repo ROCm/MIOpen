@@ -5359,6 +5359,48 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateSoftmaxProblem(miopenProblem_t* problem
                                                         miopenSoftmaxDescriptor_t operatorDesc,
                                                         miopenProblemDirection_t direction);
 
+/*! @brief Creates the Softmax descriptor object
+ *
+ * @param softmaxDesc Pointer to an softmax descriptor type
+ * @return            miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenCreateSoftmaxDescriptor(miopenSoftmaxDescriptor_t* softmaxDesc);
+
+/*! @brief Sets the softmax descriptor details
+ *
+ * Sets all of the descriptor details for the softmax layer
+ *
+ * @param softmaxDesc  Pointer to a softmax layer descriptor
+ * @param alpha        Softmax alpha parameter
+ * @param beta         Softmax beta parameter
+ * @param algorithm    Softmax algorithm
+ * @param mode         Softmax mode
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetSoftmaxDescriptor(miopenSoftmaxDescriptor_t softmaxDesc,
+                                                        float alpha,
+                                                        float beta,
+                                                        miopenSoftmaxAlgorithm_t algorithm,
+                                                        miopenSoftmaxMode_t mode);
+
+/*! @brief Gets the softmax layer descriptor details
+ *
+ * Retrieves all of the descriptor details for the softmax layer.
+ *
+ * @param softmaxDesc   Pointer to a softmax layer descriptor (input)
+ * @param alpha         Softmax alpha parameter (output)
+ * @param beta          Softmax beta parameter (output)
+ * @param algorithm     Softmax algorithm (output)
+ * @param mode          Softmax mode (output)
+ * @return              miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetSoftmaxDescriptor(const miopenSoftmaxDescriptor_t softmaxDesc,
+                                                        float* alpha,
+                                                        float* beta,
+                                                        miopenSoftmaxAlgorithm_t* algorithm,
+                                                        miopenSoftmaxMode_t* mode);
+
 /*! @brief Destroys a problem object.
  *
  * @param problem Problem to destroy
