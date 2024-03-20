@@ -46,8 +46,10 @@ constexpr float plus_op(float a, float b) { return a + b; };
 __device__ float atomicMaxOfAbsolutValues(float* addr, float value)
 {
     // ordered non-negatve and even infinity values can be compared as integers
-    // NOLINTNEXTLINE
+    // NOLINTBEGIN
+    // cppcheck-suppress invalidPointerCast
     return __int_as_float(atomicMax(reinterpret_cast<int32_t*>(addr), __float_as_int(value)));
+    // NOLINTEND
 }
 
 template <uint32_t WARP_SIZE, typename Op, uint32_t SWIZZLE_SIZE = WARP_SIZE>
