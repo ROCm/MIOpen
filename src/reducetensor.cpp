@@ -37,6 +37,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <cstdint>
 #include <algorithm>
 #include <cmath>
 #include <ostream>
@@ -568,7 +569,7 @@ std::size_t ReduceTensorDescriptor::GetWorkspaceSize(const Handle& handle,
     std::size_t wsSizeInBytes =
         !need_indices ? workspace_size * detail::GetDataTypeSize(inDesc.GetType())
                       : workspace_size * (detail::GetDataTypeSize(inDesc.GetType()) + sizeof(int)) +
-                            64 + sizeof(int) + sizeof(int);
+                            64 + sizeof(int) + 64;
 
     // dynamic reduction use one additional page for storing tensor descriptors
     if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_DYNAMIC_REDUCTION)))
@@ -1031,9 +1032,9 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                                        std::to_string(static_cast<int>(use_padding.first)) +
                                        std::to_string(static_cast<int>(use_padding.second));
 
-        int alignment = sizeof(int);
+        int alignment            = 64;
         Data_t workspace_aligned = reinterpret_cast<Data_t>(
-            (reinterpret_cast<unsigned long>(workspace) + alignment - 1) / alignment * alignment);
+            (reinterpret_cast<uintptr_t>(workspace) + alignment - 1) / alignment * alignment);
 
         if(!reduceAllDims)
         {
