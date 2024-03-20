@@ -95,8 +95,8 @@ ConvSolution MaxForward::GetSolution(const ExecutionContext&,
 
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenMax.cpp";
-        kernel.kernel_name = "MaxFwdContiguous";
+        kernel.kernel_file = "MIOpenReduceExtreme.cpp";
+        kernel.kernel_name = "ExtremeFwdContiguous";
         xlocalsize         = LOCAL_SIZE;
         xgridsize          = XGridSize(ydims);
 
@@ -105,8 +105,9 @@ ConvSolution MaxForward::GetSolution(const ExecutionContext&,
             {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-            {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
-            {"INDICE_TYPE", indice_dtype}};
+            {"OUTPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
+            {"INDICE_TYPE", indice_dtype},
+            {"OP_TYPE", "ReduceExtremeOp_t::Max"}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 

@@ -92,8 +92,8 @@ ConvSolution ArgminForward::GetSolution(const ExecutionContext&,
 
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenArgmin.cpp";
-        kernel.kernel_name = "ArgminFwdContiguous";
+        kernel.kernel_file = "MIOpenReduceExtreme.cpp";
+        kernel.kernel_name = "ExtremeFwdContiguous";
         xlocalsize         = LOCAL_SIZE;
         xgridsize          = XGridSize(indicedims);
 
@@ -102,8 +102,9 @@ ConvSolution ArgminForward::GetSolution(const ExecutionContext&,
             {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
+            {"OUTPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"INDICE_TYPE", indice_dtype},
-        };
+            {"OP_TYPE", "ReduceExtremeOp_t::Argmin"}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
@@ -134,7 +135,7 @@ ConvSolution ArgminForward::GetSolution(const ExecutionContext&,
             auto inner_size = std::accumulate(
                 xdims.begin() + dim + 1, xdims.end(), 1ULL, std::multiplies<size_t>());
 
-            kernel(params.x, params.indice, indice_numel, reduce_size, inner_size);
+            kernel(params.x, nullptr, params.indice, indice_numel, reduce_size, inner_size);
         };
     };
 
