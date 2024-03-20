@@ -2431,7 +2431,7 @@ struct conv_driver : test_driver
                         else
                         {
                             show_command();
-                            std::cout << "FAILED: bad output_type: '" << output_type '\''
+                            std::cout << "FAILED: bad output_type: '" << output_type << '\''
                                       << std::endl;
                         }
                     }
