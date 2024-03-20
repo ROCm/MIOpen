@@ -36,11 +36,11 @@ inline __device__ void AdamInternal(size_t gid,
                                     T* exp_avgs,
                                     T* exp_avg_sqs,
                                     T* max_exp_avg_sqs,
-                                    float lr,
-                                    float beta1,
-                                    float beta2,
-                                    float weight_decay,
-                                    float eps,
+                                    double lr,
+                                    double beta1,
+                                    double beta2,
+                                    double weight_decay,
+                                    double eps,
                                     int step,
                                     bool amsgrad,
                                     bool maximize)
@@ -49,8 +49,8 @@ inline __device__ void AdamInternal(size_t gid,
     T exp_avg    = exp_avgs[gid];
     T exp_avg_sq = exp_avg_sqs[gid];
 
-    T bias_correction1 = 1 - pow(beta1, step);
-    T bias_correction2 = 1 - pow(beta2, step);
+    double bias_correction1 = 1 - pow(beta1, step);
+    double bias_correction2 = 1 - pow(beta2, step);
 
     if(maximize)
         grad *= -1;
@@ -60,7 +60,7 @@ inline __device__ void AdamInternal(size_t gid,
     exp_avg    = exp_avg * beta1 + grad * (1 - beta1);
     exp_avg_sq = exp_avg_sq * beta2 + grad * grad * (1 - beta2);
 
-    T denom;
+    double denom;
     if(amsgrad)
     {
         T max_exp_avg_sq = max_exp_avg_sqs[gid];
@@ -77,9 +77,7 @@ inline __device__ void AdamInternal(size_t gid,
         denom = sqrt(exp_avg_sq) / sqrt(bias_correction2) + eps;
     }
 
-    T step_size = lr / bias_correction1;
-
-    param = param - step_size * exp_avg / denom;
+    param -= (lr / bias_correction1) * exp_avg / denom;
 
     params[gid]      = param;
     exp_avgs[gid]    = exp_avg;
@@ -92,11 +90,11 @@ extern "C" __global__ void AdamPacked(FLOAT* params,
                                       FLOAT* exp_avg_sqs,
                                       FLOAT* max_exp_avg_sqs,
                                       int* step,
-                                      float lr,
-                                      float beta1,
-                                      float beta2,
-                                      float weight_decay,
-                                      float eps,
+                                      double lr,
+                                      double beta1,
+                                      double beta2,
+                                      double weight_decay,
+                                      double eps,
                                       bool amsgrad,
                                       bool maximize,
                                       long input_size)
@@ -135,14 +133,14 @@ extern "C" __global__ void AmpAdamPacked(FLOAT* params,
                                          FLOAT* exp_avgs,
                                          FLOAT* exp_avg_sqs,
                                          FLOAT* max_exp_avg_sqs,
-                                         FLOAT* grad_scale,
-                                         FLOAT* inf_found,
+                                         int32_t* grad_scale,
+                                         bool* inf_found,
                                          int* step,
-                                         float lr,
-                                         float beta1,
-                                         float beta2,
-                                         float weight_decay,
-                                         float eps,
+                                         double lr,
+                                         double beta1,
+                                         double beta2,
+                                         double weight_decay,
+                                         double eps,
                                          bool amsgrad,
                                          bool maximize,
                                          long input_size)

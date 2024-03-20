@@ -27,6 +27,7 @@
 #include <cstdio>
 
 #include "activ_driver.hpp"
+#include "adam_driver.hpp"
 #include "bn_driver.hpp"
 #include "conv_driver.hpp"
 #include "CBAInferFusion_driver.hpp"
@@ -259,6 +260,14 @@ int main(int argc, char* argv[])
     else if(base_arg == "catbfp16")
     {
         drv = new CatDriver<bfloat16>();
+    }
+    else if(base_arg == "adam")
+    {
+        drv = new AdamDriver<float, float>();
+    }
+    else if(base_arg == "adamfp16")
+    {
+        drv = new AdamDriver<float16, float>();
     }
     else
     {
