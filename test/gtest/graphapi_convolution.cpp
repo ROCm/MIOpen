@@ -659,3 +659,148 @@ INSTANTIATE_TEST_SUITE_P(
             false, miopenInt8, miopenConvolution, 2, {1, 1}, {1, 1}, {-1, 0}, {0, 0}},
         GraphApiConvolutionDesctiptorTuple{
             false, miopenInt8, miopenConvolution, 2, {1, 1}, {1, 1}, {0, 0}, {0, -1}}));
+
+template <typename T>
+class GraphApiOperationConvolution : public testing::Test
+{
+protected:
+    using TestCase = std::tuple<bool,
+                                miopen::graphapi::Convolution*,
+                                miopen::graphapi::Tensor*,
+                                miopen::graphapi::Tensor*,
+                                miopen::graphapi::Tensor*,
+                                const char*>;
+
+    void SetUp() override
+    {
+        testCases = {TestCase{true, &this->convolution, &this->x, &this->y, &this->w, ""},
+                     TestCase{false, nullptr, &this->x, &this->y, &this->w, "convolution"},
+                     TestCase{false, &this->convolution, nullptr, &this->y, &this->w, "X tensor"},
+                     TestCase{false, &this->convolution, &this->x, nullptr, &this->w, "Y tensor"},
+                     TestCase{false, &this->convolution, &this->x, &this->y, nullptr, "W tensor"}};
+    }
+
+    miopen::graphapi::Convolution convolution;
+    miopen::graphapi::Tensor x;
+    miopen::graphapi::Tensor y;
+    miopen::graphapi::Tensor w;
+    double dAlpha = 1.0;
+    double dBeta  = 0.0;
+    float fAlpha  = 1.0f;
+    float fBeta   = 0.0f;
+
+    std::array<TestCase, 5> testCases;
+};
+
+using GraphApiOperationConvolutionClasses =
+    testing::Types<miopen::graphapi::OperationConvolutionForwardBuilder,
+                   miopen::graphapi::OperationConvolutionBackwardDataBuilder,
+                   miopen::graphapi::OperationConvolutionBackwardFilterBuilder>;
+
+TYPED_TEST_SUITE(GraphApiOperationConvolution, GraphApiOperationConvolutionClasses);
+
+TYPED_TEST(GraphApiOperationConvolution, BuilderValidateAttributes)
+{
+    for(auto [attrsValid, convolution, x, y, w, message] : this->testCases)
+    {
+        if(attrsValid)
+        {
+            EXPECT_NO_THROW({
+                auto op = TypeParam()
+                              .setConvolution(convolution)
+                              .setX(x)
+                              .setY(y)
+                              .setW(w)
+                              .setAlpha(this->dAlpha)
+                              .setBeta(this->dBeta)
+                              .build();
+            }) << "Builder didn't validate correct attributes";
+        }
+        else
+        {
+            EXPECT_ANY_THROW({
+                auto op = TypeParam()
+                              .setConvolution(convolution)
+                              .setX(x)
+                              .setY(y)
+                              .setW(w)
+                              .setAlpha(this->dAlpha)
+                              .setBeta(this->dBeta)
+                              .build();
+            }) << "Builder validated incorrect "
+               << message;
+        }
+    }
+}
+
+TYPED_TEST(GraphApiOperationConvolution, BuilderMissingSetter)
+{
+    for(auto [attrsValid, convolution, x, y, w, message] : this->testCases)
+    {
+        EXPECT_ANY_THROW({
+            auto op = TypeParam()
+                          .setX(&this->x)
+                          .setY(&this->y)
+                          .setW(&this->w)
+                          .setAlpha(this->dAlpha)
+                          .setBeta(this->dBeta)
+                          .build();
+        }) << "Builder validated attributes despite missing"
+              "setConvolution() call";
+
+        EXPECT_ANY_THROW({
+            auto op = TypeParam()
+                          .setConvolution(convolution)
+                          .setY(y)
+                          .setW(w)
+                          .setAlpha(this->dAlpha)
+                          .setBeta(this->dBeta)
+                          .build();
+        }) << "Builder validated attributes despite missing"
+              "setX() call";
+
+        EXPECT_ANY_THROW({
+            auto op = TypeParam()
+                          .setConvolution(convolution)
+                          .setX(x)
+                          .setW(w)
+                          .setAlpha(this->dAlpha)
+                          .setBeta(this->dBeta)
+                          .build();
+        }) << "Builder validated attributes despite missing"
+              "setY() call";
+
+        EXPECT_ANY_THROW({
+            auto op = TypeParam()
+                          .setConvolution(convolution)
+                          .setX(x)
+                          .setY(y)
+                          .setAlpha(this->dAlpha)
+                          .setBeta(this->dBeta)
+                          .build();
+        }) << "Builder validated attributes despite missing"
+              "setW() call";
+
+        EXPECT_ANY_THROW({
+            auto op = TypeParam()
+                          .setConvolution(convolution)
+                          .setX(x)
+                          .setY(y)
+                          .setW(w)
+                          .setBeta(this->dBeta)
+                          .build();
+        }) << "Builder validated attributes despite missing"
+              "setAlpha() call";
+
+        EXPECT_ANY_THROW({
+            auto op = TypeParam()
+                          .setConvolution(convolution)
+                          .setX(x)
+                          .setY(y)
+                          .setW(w)
+                          .setAlpha(this->dAlpha)
+                          .build();
+        }) << "Builder validated attributes despite missing"
+              "setBeta() call";
+    }
+}
