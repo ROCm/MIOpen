@@ -358,15 +358,15 @@ TEST_P(GraphApiConvolution, BuilderMoveValues)
     miopen::graphapi::Convolution conv;
     try
     {
-        conv = miopen::graphapi::ConvolutionBuilder()
-                   .setCompType(compType)
-                   .setMode(mode)
-                   .setSpatialDims(spatialDims)
-                   .setDilations(std::move(srcDilations))
-                   .setFilterStrides(std::move(srcFilterStrides))
-                   .setPrePaddings(std::move(srcPrePaddings))
-                   .setPostPaddings(std::move(srcPostPaddings))
-                   .build();
+        miopen::graphapi::ConvolutionBuilder builder;
+        builder.setCompType(compType);
+        builder.setMode(mode);
+        builder.setSpatialDims(spatialDims);
+        builder.setDilations(std::move(srcDilations));
+        builder.setFilterStrides(std::move(srcFilterStrides));
+        builder.setPrePaddings(std::move(srcPrePaddings));
+        builder.setPostPaddings(std::move(srcPostPaddings));
+        conv = std::move(builder).build();
     }
     catch(...)
     {
