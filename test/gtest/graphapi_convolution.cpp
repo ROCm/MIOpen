@@ -34,17 +34,16 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-using GraphApiConvolutionDesctiptorTuple = std::tuple<bool,
-                                                      miopenDataType_t,
-                                                      miopenConvolutionMode_t,
-                                                      int64_t,
-                                                      std::vector<int64_t>,
-                                                      std::vector<int64_t>,
-                                                      std::vector<int64_t>,
-                                                      std::vector<int64_t>>;
+using GraphApiConvolutionTuple = std::tuple<bool,
+                                            miopenDataType_t,
+                                            miopenConvolutionMode_t,
+                                            int64_t,
+                                            std::vector<int64_t>,
+                                            std::vector<int64_t>,
+                                            std::vector<int64_t>,
+                                            std::vector<int64_t>>;
 
-class GraphApiConvolutionDescriptor
-    : public testing::TestWithParam<GraphApiConvolutionDesctiptorTuple>
+class GraphApiConvolution : public testing::TestWithParam<GraphApiConvolutionTuple>
 {
 protected:
     void SetUp() override
@@ -68,7 +67,7 @@ protected:
     bool attrsValid;
 };
 
-TEST_P(GraphApiConvolutionDescriptor, BuilderValidateAttributes)
+TEST_P(GraphApiConvolution, BuilderValidateAttributes)
 {
     bool thrown = false;
     try
@@ -87,10 +86,29 @@ TEST_P(GraphApiConvolutionDescriptor, BuilderValidateAttributes)
     {
         thrown = true;
     }
-    EXPECT_NE(thrown, attrsValid) << "Builder failure";
+    EXPECT_NE(thrown, attrsValid) << "R-value builder failure";
+
+    thrown = false;
+    try
+    {
+        miopen::graphapi::ConvolutionBuilder builder;
+        auto conv = builder.setCompType(compType)
+                        .setMode(mode)
+                        .setSpatialDims(spatialDims)
+                        .setDilations(dilations)
+                        .setFilterStrides(filterStrides)
+                        .setPrePaddings(prePaddings)
+                        .setPostPaddings(postPaddings)
+                        .build();
+    }
+    catch(...)
+    {
+        thrown = true;
+    }
+    EXPECT_NE(thrown, attrsValid) << "L-value builder failure";
 }
 
-TEST_P(GraphApiConvolutionDescriptor, RVBuilderMissingSetter)
+TEST_P(GraphApiConvolution, RVBuilderMissingSetter)
 {
     EXPECT_ANY_THROW({
         auto conv = miopen::graphapi::ConvolutionBuilder()
@@ -101,7 +119,7 @@ TEST_P(GraphApiConvolutionDescriptor, RVBuilderMissingSetter)
                         .setPrePaddings(prePaddings)
                         .setPostPaddings(postPaddings)
                         .build();
-    }) << "Builder failure on missing "
+    }) << "Builder validated attributes despite missing "
           "graphapi::ConvolutionBuilder::setCompType() call";
 
     EXPECT_ANY_THROW({
@@ -113,7 +131,7 @@ TEST_P(GraphApiConvolutionDescriptor, RVBuilderMissingSetter)
                         .setPrePaddings(prePaddings)
                         .setPostPaddings(postPaddings)
                         .build();
-    }) << "Builder failure on missing "
+    }) << "Builder validated attributes despite missing "
           "graphapi::ConvolutionBuilder::setMode() call";
 
     EXPECT_ANY_THROW({
@@ -125,7 +143,7 @@ TEST_P(GraphApiConvolutionDescriptor, RVBuilderMissingSetter)
                         .setPrePaddings(prePaddings)
                         .setPostPaddings(postPaddings)
                         .build();
-    }) << "Builder failure on missing "
+    }) << "Builder validated attributes despite missing "
           "graphapi::ConvolutionBuilder::setSpatialDims() call";
 
     EXPECT_ANY_THROW({
@@ -137,7 +155,7 @@ TEST_P(GraphApiConvolutionDescriptor, RVBuilderMissingSetter)
                         .setPrePaddings(prePaddings)
                         .setPostPaddings(postPaddings)
                         .build();
-    }) << "Builder failure on missing "
+    }) << "Builder validated attributes despite missing "
           "graphapi::ConvolutionBuilder::setDilations() call";
 
     EXPECT_ANY_THROW({
@@ -149,7 +167,7 @@ TEST_P(GraphApiConvolutionDescriptor, RVBuilderMissingSetter)
                         .setPrePaddings(prePaddings)
                         .setPostPaddings(postPaddings)
                         .build();
-    }) << "Builder failure on missing "
+    }) << "Builder validated attributes despite missing "
           "graphapi::ConvolutionBuilder::setFilterStrides() call";
 
     EXPECT_ANY_THROW({
@@ -161,7 +179,7 @@ TEST_P(GraphApiConvolutionDescriptor, RVBuilderMissingSetter)
                         .setFilterStrides(filterStrides)
                         .setPostPaddings(postPaddings)
                         .build();
-    }) << "Builder failure on missing "
+    }) << "Builder validated attributes despite missing "
           "graphapi::ConvolutionBuilder::setPrePaddings() call";
 
     EXPECT_ANY_THROW({
@@ -173,11 +191,11 @@ TEST_P(GraphApiConvolutionDescriptor, RVBuilderMissingSetter)
                         .setFilterStrides(filterStrides)
                         .setPrePaddings(prePaddings)
                         .build();
-    }) << "Builder failure on missing "
+    }) << "Builder validated attributes despite missing "
           "graphapi::ConvolutionBuilder::setPostPaddings() call";
 }
 
-TEST_P(GraphApiConvolutionDescriptor, LVBuilderMissingSetter)
+TEST_P(GraphApiConvolution, LVBuilderMissingSetter)
 {
     EXPECT_ANY_THROW({
         miopen::graphapi::ConvolutionBuilder builder;
@@ -188,7 +206,7 @@ TEST_P(GraphApiConvolutionDescriptor, LVBuilderMissingSetter)
                         .setPrePaddings(prePaddings)
                         .setPostPaddings(postPaddings)
                         .build();
-    }) << "Builder failure on missing "
+    }) << "Builder validated attributes despite missing "
           "graphapi::ConvolutionBuilder::setCompType() call";
 
     EXPECT_ANY_THROW({
@@ -200,7 +218,7 @@ TEST_P(GraphApiConvolutionDescriptor, LVBuilderMissingSetter)
                         .setPrePaddings(prePaddings)
                         .setPostPaddings(postPaddings)
                         .build();
-    }) << "Builder failure on missing "
+    }) << "Builder validated attributes despite missing "
           "graphapi::ConvolutionBuilder::setMode() call";
 
     EXPECT_ANY_THROW({
@@ -212,7 +230,7 @@ TEST_P(GraphApiConvolutionDescriptor, LVBuilderMissingSetter)
                         .setPrePaddings(prePaddings)
                         .setPostPaddings(postPaddings)
                         .build();
-    }) << "Builder failure on missing "
+    }) << "Builder validated attributes despite missing "
           "graphapi::ConvolutionBuilder::setSpatialDims() call";
 
     EXPECT_ANY_THROW({
@@ -224,7 +242,7 @@ TEST_P(GraphApiConvolutionDescriptor, LVBuilderMissingSetter)
                         .setPrePaddings(prePaddings)
                         .setPostPaddings(postPaddings)
                         .build();
-    }) << "Builder failure on missing "
+    }) << "Builder validated attributes despite missing "
           "graphapi::ConvolutionBuilder::setDilations() call";
 
     EXPECT_ANY_THROW({
@@ -236,7 +254,7 @@ TEST_P(GraphApiConvolutionDescriptor, LVBuilderMissingSetter)
                         .setPrePaddings(prePaddings)
                         .setPostPaddings(postPaddings)
                         .build();
-    }) << "Builder failure on missing "
+    }) << "Builder validated attributes despite missing "
           "graphapi::ConvolutionBuilder::setFilterStrides() call";
 
     EXPECT_ANY_THROW({
@@ -248,7 +266,7 @@ TEST_P(GraphApiConvolutionDescriptor, LVBuilderMissingSetter)
                         .setFilterStrides(filterStrides)
                         .setPostPaddings(postPaddings)
                         .build();
-    }) << "Builder failure on missing "
+    }) << "Builder validated attributes despite missing "
           "graphapi::ConvolutionBuilder::setPrePaddings() call";
 
     EXPECT_ANY_THROW({
@@ -260,11 +278,11 @@ TEST_P(GraphApiConvolutionDescriptor, LVBuilderMissingSetter)
                         .setFilterStrides(filterStrides)
                         .setPrePaddings(prePaddings)
                         .build();
-    }) << "Builder failure on missing "
+    }) << "Builder validated attributes despite missing "
           "graphapi::ConvolutionBuilder::setPostPaddings() call";
 }
 
-TEST_P(GraphApiConvolutionDescriptor, BuilderCopyValues)
+TEST_P(GraphApiConvolution, BuilderCopyValues)
 {
     auto srcDilations     = dilations;
     auto srcFilterStrides = filterStrides;
@@ -274,7 +292,7 @@ TEST_P(GraphApiConvolutionDescriptor, BuilderCopyValues)
     auto srcDilationsAddress     = srcDilations.data();
     auto srcFilterStridesAddress = srcFilterStrides.data();
     auto srcPrePaddingsAddress   = srcPrePaddings.data();
-    auto srcPostPaddingAddress   = srcPostPaddings.data();
+    auto srcPostPaddingsAddress  = srcPostPaddings.data();
 
     bool thrown = false;
     miopen::graphapi::Convolution conv;
@@ -320,11 +338,11 @@ TEST_P(GraphApiConvolutionDescriptor, BuilderCopyValues)
         << "graphapi::ConvolutionBuilder::setFilterStrides unexpectedly moved the parameter";
     EXPECT_NE(conv.getPrePaddings().data(), srcPrePaddingsAddress)
         << "graphapi::ConvolutionBuilder::setPrePaddings unexpectedly moved the parameter";
-    EXPECT_NE(conv.getPostPaddings().data(), srcPostPaddingAddress)
+    EXPECT_NE(conv.getPostPaddings().data(), srcPostPaddingsAddress)
         << "graphapi::ConvolutionBuilder::setPostPaddings unexpectedly moved the parameter";
 }
 
-TEST_P(GraphApiConvolutionDescriptor, BuilderMoveValues)
+TEST_P(GraphApiConvolution, BuilderMoveValues)
 {
     auto srcDilations     = dilations;
     auto srcFilterStrides = filterStrides;
@@ -334,7 +352,7 @@ TEST_P(GraphApiConvolutionDescriptor, BuilderMoveValues)
     auto srcDilationsAddress     = srcDilations.data();
     auto srcFilterStridesAddress = srcFilterStrides.data();
     auto srcPrePaddingsAddress   = srcPrePaddings.data();
-    auto srcPostPaddingAddress   = srcPostPaddings.data();
+    auto srcPostPaddingsAddress  = srcPostPaddings.data();
 
     bool thrown = false;
     miopen::graphapi::Convolution conv;
@@ -380,11 +398,11 @@ TEST_P(GraphApiConvolutionDescriptor, BuilderMoveValues)
         << "graphapi::ConvolutionBuilder::setFilterStrides didn't move the parameter";
     EXPECT_EQ(conv.getPrePaddings().data(), srcPrePaddingsAddress)
         << "graphapi::ConvolutionBuilder::setPrePaddings didn't move the parameter";
-    EXPECT_EQ(conv.getPostPaddings().data(), srcPostPaddingAddress)
+    EXPECT_EQ(conv.getPostPaddings().data(), srcPostPaddingsAddress)
         << "graphapi::ConvolutionBuilder::setPostPaddings didn't move the parameter";
 }
 
-TEST_P(GraphApiConvolutionDescriptor, CFunctions)
+TEST_P(GraphApiConvolution, CFunctions)
 {
     // clang-format off
     // Create Desctiptor
@@ -421,7 +439,7 @@ TEST_P(GraphApiConvolutionDescriptor, CFunctions)
     status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_CONV_MODE, MIOPEN_TYPE_CONVOLUTION_MODE, 2, twoBytes);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_CONV_MODE was set with invalid element count";
     status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_CONV_MODE, MIOPEN_TYPE_CONVOLUTION_MODE, 1, nullptr);
-    EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_COMP_TYPE was set with null array of elements";
+    EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_CONV_MODE was set with null array of elements";
     status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_CONV_MODE, MIOPEN_TYPE_CONVOLUTION_MODE, 1, &mode);
     if(attrsValid) // implementation may postpone validating values to finalize()
         EXPECT_EQ(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_CONV_MODE wasn't set";
@@ -433,7 +451,7 @@ TEST_P(GraphApiConvolutionDescriptor, CFunctions)
     status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS, MIOPEN_TYPE_INT64, 2, twoBytes);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS was set with invalid element count";
     status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS, MIOPEN_TYPE_INT64, 1, nullptr);
-    EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_COMP_TYPE was set with null array of elements";
+    EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS was set with null array of elements";
     status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS, MIOPEN_TYPE_INT64, 1, &spatialDims);
     if(attrsValid) // implementation may postpone validating values to finalize()
         EXPECT_EQ(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS wasn't set";
@@ -636,28 +654,28 @@ TEST_P(GraphApiConvolutionDescriptor, CFunctions)
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    GraphApiConvolutionDescriptor,
-    GraphApiConvolutionDescriptor,
+    GraphApiConvolution,
+    GraphApiConvolution,
     testing::Values(
-        GraphApiConvolutionDesctiptorTuple{
+        GraphApiConvolutionTuple{
             true, miopenInt8, miopenConvolution, 2, {5, 6}, {20, 21}, {3, 4}, {1, 2}},
-        GraphApiConvolutionDesctiptorTuple{
+        GraphApiConvolutionTuple{
             false, miopenInt8, miopenConvolution, 3, {1, 1}, {1, 1}, {0, 0}, {0, 0}},
-        GraphApiConvolutionDesctiptorTuple{
+        GraphApiConvolutionTuple{
             false, miopenInt8, miopenConvolution, 2, {1, 1, 1}, {1, 1}, {0, 0}, {0, 0}},
-        GraphApiConvolutionDesctiptorTuple{
+        GraphApiConvolutionTuple{
             false, miopenInt8, miopenConvolution, 2, {1, 1}, {1, 1, 1}, {0, 0}, {0, 0}},
-        GraphApiConvolutionDesctiptorTuple{
+        GraphApiConvolutionTuple{
             false, miopenInt8, miopenConvolution, 2, {1, 1}, {1, 1}, {0, 0, 0}, {0, 0}},
-        GraphApiConvolutionDesctiptorTuple{
+        GraphApiConvolutionTuple{
             false, miopenInt8, miopenConvolution, 2, {1, 1}, {1, 1}, {0, 0}, {0, 0, 0}},
-        GraphApiConvolutionDesctiptorTuple{
+        GraphApiConvolutionTuple{
             false, miopenInt8, miopenConvolution, 2, {1, 0}, {1, 1}, {0, 0}, {0, 0}},
-        GraphApiConvolutionDesctiptorTuple{
+        GraphApiConvolutionTuple{
             false, miopenInt8, miopenConvolution, 2, {1, 1}, {1, 0}, {0, 0}, {0, 0}},
-        GraphApiConvolutionDesctiptorTuple{
+        GraphApiConvolutionTuple{
             false, miopenInt8, miopenConvolution, 2, {1, 1}, {1, 1}, {-1, 0}, {0, 0}},
-        GraphApiConvolutionDesctiptorTuple{
+        GraphApiConvolutionTuple{
             false, miopenInt8, miopenConvolution, 2, {1, 1}, {1, 1}, {0, 0}, {0, -1}}));
 
 template <typename T>
