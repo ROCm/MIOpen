@@ -26,44 +26,38 @@
 
 #pragma once
 
-#include <miopen/invoke_params.hpp>
-#include <miopen/tensor.hpp>
+#include <miopen/optim/adam/problem_description.hpp>
+#include <miopen/solver.hpp>
+
+#include <utility>
 
 namespace miopen {
+
+namespace solver {
+
 namespace adam {
 
-struct InvokeParams : public miopen::InvokeParams
+using AdamSolver = NonTunableSolverBase<ExecutionContext, miopen::adam::ProblemDescription>;
+
+struct Adam final : AdamSolver
 {
-    InvokeParams() = default;
+    const std::string& SolverDbId() const override { return GetSolverDbId<Adam>(); }
 
-    const TensorDescriptor* paramDesc     = nullptr;
-    const TensorDescriptor* gradDesc      = nullptr;
-    const TensorDescriptor* expAvgDesc    = nullptr;
-    const TensorDescriptor* expAvgSqDesc  = nullptr;
-    const TensorDescriptor* stepDesc      = nullptr;
-    const TensorDescriptor* gradScaleDesc = nullptr;
-    const TensorDescriptor* foundInfDesc  = nullptr;
-
-    Data_t param          = nullptr;
-    ConstData_t grad      = nullptr;
-    Data_t expAvg         = nullptr;
-    Data_t expAvgSq       = nullptr;
-    Data_t step           = nullptr;
-    ConstData_t gradScale = nullptr;
-    ConstData_t foundInf  = nullptr;
-
-    double lr           = 0.0;
-    double beta1        = 0.0;
-    double beta2        = 0.0;
-    double weight_decay = 0.0;
-    double eps          = 0.0;
-    bool amsgrad        = false;
-    bool maximize       = false;
-    bool amp            = false;
-
-    std::size_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::adam::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::adam::ProblemDescription& problem) const override;
+    std::size_t GetWorkspaceSize(
+        [[maybe_unused]] const ExecutionContext& context,
+        [[maybe_unused]] const miopen::adam::ProblemDescription& problem) const override
+    {
+        return 0;
+    }
+    bool MayNeedWorkspace() const override { return false; }
 };
 
 } // namespace adam
+
+} // namespace solver
+
 } // namespace miopen

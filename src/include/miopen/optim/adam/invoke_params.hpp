@@ -26,38 +26,39 @@
 
 #pragma once
 
-#include <miopen/solver.hpp>
-#include <miopen/adam/problem_description.hpp>
-
-#include <utility>
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
-
-namespace solver {
-
 namespace adam {
 
-using AdamSolver = NonTunableSolverBase<ExecutionContext, miopen::adam::ProblemDescription>;
-
-struct Adam final : AdamSolver
+struct InvokeParams : public miopen::InvokeParams
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<Adam>(); }
+    InvokeParams() = default;
 
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::adam::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::adam::ProblemDescription& problem) const override;
-    std::size_t GetWorkspaceSize(
-        [[maybe_unused]] const ExecutionContext& context,
-        [[maybe_unused]] const miopen::adam::ProblemDescription& problem) const override
-    {
-        return 0;
-    }
-    bool MayNeedWorkspace() const override { return false; }
+    const TensorDescriptor* paramDesc = nullptr;
+    const TensorDescriptor* gradDesc  = nullptr;
+
+    Data_t param          = nullptr;
+    ConstData_t grad      = nullptr;
+    Data_t expAvg         = nullptr;
+    Data_t expAvgSq       = nullptr;
+    Data_t maxExpAvgSq    = nullptr;
+    Data_t step           = nullptr;
+    ConstData_t gradScale = nullptr;
+    ConstData_t foundInf  = nullptr;
+
+    double lr           = 0.0;
+    double beta1        = 0.0;
+    double beta2        = 0.0;
+    double weight_decay = 0.0;
+    double eps          = 0.0;
+    bool amsgrad        = false;
+    bool maximize       = false;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
 };
 
 } // namespace adam
-
-} // namespace solver
-
 } // namespace miopen

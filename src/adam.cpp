@@ -24,13 +24,13 @@
  *
  *******************************************************************************/
 #include <miopen/adam.hpp>
-#include <miopen/adam/invoke_params.hpp>
-#include <miopen/adam/solvers.hpp>
 #include <miopen/check_numerics.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/find_solution.hpp>
 #include <miopen/float_equal.hpp>
 #include <miopen/kernel_cache.hpp>
+#include <miopen/optim/adam/invoke_params.hpp>
+#include <miopen/optim/adam/solvers.hpp>
 #include <miopen/tensor.hpp>
 
 namespace miopen {
@@ -53,7 +53,8 @@ miopenStatus_t Adam(Handle& handle,
                     const double eps,
                     const bool amsgrad,
                     const bool maximize,
-                    const bool amp,
+                    const TensorDescriptor* maxExpAvgSqDescPtr,
+                    Data_t maxExpAvgSq,
                     const TensorDescriptor* gradScaleDescPtr,
                     ConstData_t gradScale,
                     const TensorDescriptor* foundInfDescPtr,
@@ -71,7 +72,7 @@ miopenStatus_t Adam(Handle& handle,
                                                   eps,
                                                   amsgrad,
                                                   maximize,
-                                                  amp,
+                                                  maxExpAvgSqDescPtr,
                                                   gradScaleDescPtr,
                                                   foundInfDescPtr};
 
@@ -79,16 +80,13 @@ miopenStatus_t Adam(Handle& handle,
         auto tmp = adam::InvokeParams{};
         tmp.type = InvokeType::Run;
 
-        tmp.paramDesc    = &paramDesc;
-        tmp.param        = param;
-        tmp.gradDesc     = &gradDesc;
-        tmp.grad         = grad;
-        tmp.expAvgDesc   = &expAvgDesc;
-        tmp.expAvg       = expAvg;
-        tmp.expAvgSqDesc = &expAvgSqDesc;
-        tmp.expAvgSq     = expAvgSq;
-        tmp.stepDesc     = &stepDesc;
-        tmp.step         = step;
+        tmp.paramDesc = &paramDesc;
+        tmp.param     = param;
+        tmp.gradDesc  = &gradDesc;
+        tmp.grad      = grad;
+        tmp.expAvg    = expAvg;
+        tmp.expAvgSq  = expAvgSq;
+        tmp.step      = step;
 
         tmp.lr           = lr;
         tmp.beta1        = beta1;
@@ -98,13 +96,9 @@ miopenStatus_t Adam(Handle& handle,
         tmp.amsgrad      = amsgrad;
         tmp.maximize     = maximize;
 
-        if(amp)
-        {
-            tmp.gradScaleDesc = gradScaleDescPtr;
-            tmp.gradScale     = gradScale;
-            tmp.foundInfDesc  = foundInfDescPtr;
-            tmp.foundInf      = foundInf;
-        }
+        tmp.maxExpAvgSq = maxExpAvgSq;
+        tmp.gradScale   = gradScale;
+        tmp.foundInf    = foundInf;
 
         return tmp;
     }();

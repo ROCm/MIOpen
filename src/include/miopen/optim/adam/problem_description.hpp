@@ -53,7 +53,7 @@ struct ProblemDescription : ProblemDescriptionBase
                        double eps_,
                        bool amsgrad_,
                        bool maximize_,
-                       bool amp_,
+                       const TensorDescriptor* maxExpAvgSqDesc_,
                        const TensorDescriptor* gradScaleDesc_,
                        const TensorDescriptor* foundInfDesc_)
         : paramDesc(paramDesc_),
@@ -68,13 +68,12 @@ struct ProblemDescription : ProblemDescriptionBase
           eps(eps_),
           amsgrad(amsgrad_),
           maximize(maximize_),
-          is_amp(amp_)
+          maxExpAvgSqDesc(maxExpAvgSqDesc_),
+          gradScaleDesc(gradScaleDesc_),
+          foundInfDesc(foundInfDesc_)
     {
-        if(is_amp)
-        {
-            gradScaleDesc = *gradScaleDesc_;
-            foundInfDesc  = *foundInfDesc_;
-        }
+        if(gradScaleDesc != nullptr || foundInfDesc != nullptr)
+            is_amp = true;
     }
 
     const TensorDescriptor& GetParamDesc() const { return paramDesc; }
@@ -82,8 +81,6 @@ struct ProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetExpAvgDesc() const { return expAvgDesc; }
     const TensorDescriptor& GetExpAvgSqsDesc() const { return expAvgSqDesc; }
     const TensorDescriptor& GetStepDesc() const { return stepDesc; }
-    const TensorDescriptor& GetGradScaleDesc() const { return gradScaleDesc; }
-    const TensorDescriptor& GetFoundInfDesc() const { return foundInfDesc; }
     double GetLr() const { return lr; }
     double GetBeta1() const { return beta1; }
     double GetBeta2() const { return beta2; }
@@ -98,11 +95,8 @@ struct ProblemDescription : ProblemDescriptionBase
     bool IsAllPacked() const
     {
         if(!(paramDesc.IsPacked() && gradDesc.IsPacked() && expAvgDesc.IsPacked() &&
-             expAvgSqDesc.IsPacked() && stepDesc.IsPacked() && gradScaleDesc.IsPacked() &&
-             foundInfDesc.IsPacked()))
-        {
+             expAvgSqDesc.IsPacked()))
             return false;
-        }
         return true;
     }
 
@@ -114,8 +108,6 @@ private:
     TensorDescriptor expAvgDesc{};
     TensorDescriptor expAvgSqDesc{};
     TensorDescriptor stepDesc{};
-    TensorDescriptor gradScaleDesc{};
-    TensorDescriptor foundInfDesc{};
 
     double lr           = 0.0;
     double beta1        = 0.0;
@@ -125,6 +117,10 @@ private:
     bool amsgrad        = false;
     bool maximize       = false;
     bool is_amp         = false;
+
+    const TensorDescriptor* maxExpAvgSqDesc = nullptr;
+    const TensorDescriptor* gradScaleDesc   = nullptr;
+    const TensorDescriptor* foundInfDesc    = nullptr;
 
     NetworkConfig MakeForwardNetworkConfig() const;
 };

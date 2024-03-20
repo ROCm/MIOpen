@@ -24,9 +24,9 @@
  *
  *******************************************************************************/
 
-#include <miopen/adam/problem_description.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/names.hpp>
+#include <miopen/optim/adam/problem_description.hpp>
 
 #include <sstream>
 

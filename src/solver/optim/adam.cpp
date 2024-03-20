@@ -24,12 +24,12 @@
  *
  *******************************************************************************/
 
-#include <miopen/adam/solvers.hpp>
+#include <miopen/optim/adam/solvers.hpp>
 
 #include <miopen/adam.hpp>
-#include <miopen/adam/invoke_params.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/optim/adam/invoke_params.hpp>
 #include <miopen/target_properties.hpp>
 
 namespace miopen {
@@ -95,6 +95,7 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
                        params.grad,
                        params.expAvg,
                        params.expAvgSq,
+                       params.maxExpAvgSq,
                        params.gradScale,
                        params.foundInf,
                        params.step,
@@ -120,6 +121,7 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
                        params.grad,
                        params.expAvg,
                        params.expAvgSq,
+                       params.maxExpAvgSq,
                        params.step,
                        params.lr,
                        params.beta1,

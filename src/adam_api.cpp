@@ -76,7 +76,8 @@ extern "C" miopenStatus_t miopenAdam(miopenHandle_t handle,
                                      const double eps,
                                      const bool amsgrad,
                                      const bool maximize,
-                                     const bool amp,
+                                     const miopenTensorDescriptor_t maxExpAvgSqDesc,
+                                     void* maxExpAvgSq,
                                      const miopenTensorDescriptor_t gradScaleDesc,
                                      const void* gradScale,
                                      const miopenTensorDescriptor_t foundInfDesc,
@@ -100,14 +101,15 @@ extern "C" miopenStatus_t miopenAdam(miopenHandle_t handle,
                         eps,
                         amsgrad,
                         maximize,
-                        amp,
                         gradScaleDesc,
                         gradScale,
                         foundInfDesc,
                         foundInf);
     LogCmdAdam(paramDesc);
-    auto gradScaleDescPtr = (amp) ? &miopen::deref(gradScaleDesc) : nullptr;
-    auto foundInfDescPtr  = (amp) ? &miopen::deref(foundInfDesc) : nullptr;
+    auto maxExpAvgSqDescPtr =
+        (maxExpAvgSqDesc != nullptr) ? &miopen::deref(maxExpAvgSqDesc) : nullptr;
+    auto gradScaleDescPtr = (gradScaleDesc != nullptr) ? &miopen::deref(gradScaleDesc) : nullptr;
+    auto foundInfDescPtr  = (foundInfDesc != nullptr) ? &miopen::deref(foundInfDesc) : nullptr;
     return miopen::try_([&] {
         miopen::Adam(miopen::deref(handle),
                      miopen::deref(paramDesc),
@@ -127,7 +129,8 @@ extern "C" miopenStatus_t miopenAdam(miopenHandle_t handle,
                      eps,
                      amsgrad,
                      maximize,
-                     amp,
+                     maxExpAvgSqDescPtr,
+                     DataCast(maxExpAvgSq),
                      gradScaleDescPtr,
                      DataCast(gradScale),
                      foundInfDescPtr,
