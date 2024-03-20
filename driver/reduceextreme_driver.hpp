@@ -42,15 +42,87 @@
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
 
-template <typename Tgpu, typename Tcheck>
-int32_t mloArgmaxForwardRunHost(miopenTensorDescriptor_t xDesc,
-                                miopenTensorDescriptor_t indiceDesc,
-                                Tgpu* x,
-                                int32_t* indicehost,
-                                int32_t dim)
+enum class ReduceExtremeOp_t
 {
-    auto x_dims      = miopen::deref(xDesc).GetLengths();
-    auto indice_dims = miopen::deref(indiceDesc).GetLengths();
+    Argmin = 1,
+    Argmax = 2,
+    Min    = 3,
+    Max    = 4,
+};
+
+template <typename T1, typename T2, ReduceExtremeOp_t op>
+struct reduce_func
+{
+    inline constexpr void calculate(T1& a, T1 b, T2& c, T2 d) const;
+};
+
+template <typename T1, typename T2>
+struct reduce_func<T1, T2, ReduceExtremeOp_t::Max>
+{
+    inline constexpr void calculate(T1& a, T1 b, T2& c, T2 d) const
+    {
+        if(a < b)
+        {
+            a = b;
+            c = d;
+        }
+    }
+};
+
+template <typename T1, typename T2>
+struct reduce_func<T1, T2, ReduceExtremeOp_t::Min>
+{
+    inline constexpr void calculate(T1& a, T1 b, T2& c, T2 d) const
+    {
+        if(a > b)
+        {
+            a = b;
+            c = d;
+        }
+    }
+};
+
+template <typename T1, typename T2>
+struct reduce_func<T1, T2, ReduceExtremeOp_t::Argmax>
+{
+    inline constexpr void calculate(T1& a, T1 b, T2& c, T2 d) const
+    {
+        if(a < b)
+        {
+            a = b;
+            c = d;
+        }
+    }
+};
+
+template <typename T1, typename T2>
+struct reduce_func<T1, T2, ReduceExtremeOp_t::Argmin>
+{
+    inline constexpr void calculate(T1& a, T1 b, T2& c, T2 d) const
+    {
+        if(a > b)
+        {
+            a = b;
+            c = d;
+        }
+    }
+};
+
+template <typename Tgpu, typename Tcheck, ReduceExtremeOp_t op>
+int32_t mloReduceExtremeForwardRunHost(miopenTensorDescriptor_t xDesc,
+                                       miopenTensorDescriptor_t yDesc,
+                                       miopenTensorDescriptor_t indiceDesc,
+                                       Tgpu* x,
+                                       Tcheck* yhost,
+                                       int32_t* indicehost,
+                                       int32_t dim)
+{
+    auto x_dims = miopen::deref(xDesc).GetLengths();
+    std::vector<std::size_t> indice_dims;
+    if(yhost)
+        indice_dims = miopen::deref(yDesc).GetLengths();
+    else
+        indice_dims = miopen::deref(indiceDesc).GetLengths();
 
     int32_t reduce_size = static_cast<int32_t>(x_dims[dim]);
     auto indice_numel =
@@ -65,147 +137,18 @@ int32_t mloArgmaxForwardRunHost(miopenTensorDescriptor_t xDesc,
     {
         size_t x_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
 
-        int32_t max_idx = 0;
-        Tcheck max      = static_cast<Tcheck>(x[x_idx]);
+        int32_t extreme_idx = 0;
+        Tcheck extreme      = static_cast<Tcheck>(x[x_idx]);
 
         for(int32_t i = 1; i < reduce_size; i++)
         {
             x_idx += inner_size;
             Tcheck val = static_cast<Tcheck>(x[x_idx]);
-            if(max < val)
-            {
-                max     = val;
-                max_idx = i;
-            }
+            reduce_func<Tcheck, int32_t, op>{}.calculate(extreme, val, extreme_idx, i);
         }
-        indicehost[o] = max_idx;
-    }
-    return ret;
-}
-
-template <typename Tgpu, typename Tcheck>
-int32_t mloArgminForwardRunHost(miopenTensorDescriptor_t xDesc,
-                                miopenTensorDescriptor_t indiceDesc,
-                                Tgpu* x,
-                                int32_t* indicehost,
-                                int32_t dim)
-{
-    auto x_dims      = miopen::deref(xDesc).GetLengths();
-    auto indice_dims = miopen::deref(indiceDesc).GetLengths();
-
-    int32_t reduce_size = static_cast<int32_t>(x_dims[dim]);
-    auto indice_numel =
-        std::accumulate(indice_dims.begin(), indice_dims.end(), 1L, std::multiplies<int64_t>());
-
-    auto inner_size =
-        std::accumulate(x_dims.begin() + dim + 1, x_dims.end(), 1ULL, std::multiplies<uint64_t>());
-
-    int32_t ret = 0;
-
-    for(size_t o = 0; o < indice_numel; o++)
-    {
-        size_t x_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
-
-        int32_t min_idx = 0;
-        Tcheck min      = static_cast<Tcheck>(x[x_idx]);
-
-        for(int32_t i = 1; i < reduce_size; i++)
-        {
-            x_idx += inner_size;
-            Tcheck val = static_cast<Tcheck>(x[x_idx]);
-            if(min > val)
-            {
-                min     = val;
-                min_idx = i;
-            }
-        }
-        indicehost[o] = min_idx;
-    }
-    return ret;
-}
-
-template <typename Tgpu, typename Tcheck>
-int32_t mloMaxForwardRunHost(miopenTensorDescriptor_t xDesc,
-                             miopenTensorDescriptor_t yDesc,
-                             Tgpu* x,
-                             Tgpu* yhost,
-                             int32_t* indicehost,
-                             int32_t dim)
-{
-    auto x_dims = miopen::deref(xDesc).GetLengths();
-    auto y_dims = miopen::deref(yDesc).GetLengths();
-
-    int32_t reduce_size = static_cast<int32_t>(x_dims[dim]);
-    auto output_numel =
-        std::accumulate(y_dims.begin(), y_dims.end(), 1L, std::multiplies<int64_t>());
-
-    auto inner_size =
-        std::accumulate(x_dims.begin() + dim + 1, x_dims.end(), 1ULL, std::multiplies<uint64_t>());
-
-    int32_t ret = 0;
-
-    for(size_t o = 0; o < output_numel; o++)
-    {
-        size_t x_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
-
-        int32_t max_idx = 0;
-        Tcheck max      = static_cast<Tcheck>(x[x_idx]);
-
-        for(int32_t i = 1; i < reduce_size; i++)
-        {
-            x_idx += inner_size;
-            Tcheck val = static_cast<Tcheck>(x[x_idx]);
-            if(max < val)
-            {
-                max     = val;
-                max_idx = i;
-            }
-        }
-        indicehost[o] = max_idx;
-        yhost[o]      = max;
-    }
-    return ret;
-}
-
-template <typename Tgpu, typename Tcheck>
-int32_t mloMinForwardRunHost(miopenTensorDescriptor_t xDesc,
-                             miopenTensorDescriptor_t yDesc,
-                             Tgpu* x,
-                             Tgpu* yhost,
-                             int32_t* indicehost,
-                             int32_t dim)
-{
-    auto x_dims = miopen::deref(xDesc).GetLengths();
-    auto y_dims = miopen::deref(yDesc).GetLengths();
-
-    int32_t reduce_size = static_cast<int32_t>(x_dims[dim]);
-    auto output_numel =
-        std::accumulate(y_dims.begin(), y_dims.end(), 1L, std::multiplies<int64_t>());
-
-    auto inner_size =
-        std::accumulate(x_dims.begin() + dim + 1, x_dims.end(), 1ULL, std::multiplies<uint64_t>());
-
-    int32_t ret = 0;
-
-    for(size_t o = 0; o < output_numel; o++)
-    {
-        size_t x_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
-
-        int32_t min_idx = 0;
-        Tcheck min      = static_cast<Tcheck>(x[x_idx]);
-
-        for(int32_t i = 1; i < reduce_size; i++)
-        {
-            x_idx += inner_size;
-            Tcheck val = static_cast<Tcheck>(x[x_idx]);
-            if(min > val)
-            {
-                min     = val;
-                min_idx = i;
-            }
-        }
-        indicehost[o] = min_idx;
-        yhost[o]      = min;
+        indicehost[o] = extreme_idx;
+        if(yhost)
+            yhost[o] = extreme;
     }
     return ret;
 }
@@ -262,7 +205,7 @@ private:
 
     std::vector<Tgpu> x;
     std::vector<Tgpu> y;
-    std::vector<Tgpu> yhost;
+    std::vector<Tref> yhost;
     std::vector<int32_t> indice;
     std::vector<int32_t> indicehost;
 
@@ -290,6 +233,8 @@ int ReduceExtremeDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
     dim                     = inflags.GetValueInt("DimToReduce");
     reduceExtremeOp = static_cast<miopenReduceExtremeOp_t>(inflags.GetValueInt("ReduceExtremeOp"));
+    if((reduceExtremeOp < 1) || (reduceExtremeOp > 4))
+        std::cerr << "Error ReduceExtremeOp(1-4)\n" << std::endl;
 
     SetTensorNd(xDesc, in_len, data_type);
 
@@ -325,9 +270,9 @@ int ReduceExtremeDriver<Tgpu, Tref>::AddCmdLineArgs()
         "DimToReduce", 'R', "0", "The indice of the dimensions to be reduced(Default=1)", "int");
     inflags.AddInputFlag("ReduceExtremeOp",
                          'O',
-                         "0",
+                         "1",
                          "Reduce Extreme Operation Type (check the enum miopenReduceExtremeOp_t in "
-                         "miopen.h) (Default=0 to Find the the minimum index)",
+                         "miopen.h) (Default=1 to Find the the minimum index)",
                          "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
@@ -391,7 +336,7 @@ int ReduceExtremeDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int32_t i = 0; i < in_sz; i++)
     {
-        x[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        x[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(1.0));
     }
 
     if(x_dev->ToGPU(GetStream(), x.data()) != 0)
@@ -405,7 +350,7 @@ int ReduceExtremeDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     {
         y_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
         y     = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-        yhost = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+        yhost = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
         if(y_dev->ToGPU(GetStream(), y.data()) != 0)
             std::cerr << "Error copying (y) to GPU, size: " << y_dev->GetSize() << std::endl;
@@ -491,21 +436,23 @@ int ReduceExtremeDriver<Tgpu, Tref>::RunForwardCPU()
 {
     if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMIN)
     {
-        mloArgminForwardRunHost<Tgpu, Tref>(xDesc, indiceDesc, x.data(), indicehost.data(), dim);
+        mloReduceExtremeForwardRunHost<Tgpu, Tref, ReduceExtremeOp_t::Argmin>(
+            xDesc, nullptr, indiceDesc, x.data(), nullptr, indicehost.data(), dim);
     }
     else if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMAX)
     {
-        mloArgmaxForwardRunHost<Tgpu, Tref>(xDesc, indiceDesc, x.data(), indicehost.data(), dim);
+        mloReduceExtremeForwardRunHost<Tgpu, Tref, ReduceExtremeOp_t::Argmax>(
+            xDesc, nullptr, indiceDesc, x.data(), nullptr, indicehost.data(), dim);
     }
     else if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN)
     {
-        mloMinForwardRunHost<Tgpu, Tref>(
-            xDesc, yDesc, x.data(), yhost.data(), indicehost.data(), dim);
+        mloReduceExtremeForwardRunHost<Tgpu, Tref, ReduceExtremeOp_t::Min>(
+            xDesc, yDesc, indiceDesc, x.data(), yhost.data(), indicehost.data(), dim);
     }
     else if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX)
     {
-        mloMaxForwardRunHost<Tgpu, Tref>(
-            xDesc, yDesc, x.data(), yhost.data(), indicehost.data(), dim);
+        mloReduceExtremeForwardRunHost<Tgpu, Tref, ReduceExtremeOp_t::Max>(
+            xDesc, yDesc, indiceDesc, x.data(), yhost.data(), indicehost.data(), dim);
     }
 
     return miopenStatusSuccess;

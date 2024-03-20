@@ -25,7 +25,6 @@
  *******************************************************************************/
 
 #include "../driver/tensor_driver.hpp"
-#include "cpu_reduceextreme.hpp"
 #include "get_handle.hpp"
 #include "random.hpp"
 #include "tensor_holder.hpp"
@@ -33,6 +32,113 @@
 #include <gtest/gtest.h>
 #include <miopen/reduceextreme.hpp>
 #include <miopen/miopen.h>
+
+enum class ReduceExtremeOp_t
+{
+    Argmin = 1,
+    Argmax = 2,
+    Min    = 3,
+    Max    = 4,
+};
+
+template <typename T1, typename T2, ReduceExtremeOp_t op>
+struct reduce_func
+{
+    inline constexpr void calculate(T1& a, T1 b, T2& c, T2 d) const;
+};
+
+template <typename T1, typename T2>
+struct reduce_func<T1, T2, ReduceExtremeOp_t::Max>
+{
+    inline constexpr void calculate(T1& a, T1 b, T2& c, T2 d) const
+    {
+        if(a < b)
+        {
+            a = b;
+            c = d;
+        }
+    }
+};
+
+template <typename T1, typename T2>
+struct reduce_func<T1, T2, ReduceExtremeOp_t::Min>
+{
+    inline constexpr void calculate(T1& a, T1 b, T2& c, T2 d) const
+    {
+        if(a > b)
+        {
+            a = b;
+            c = d;
+        }
+    }
+};
+
+template <typename T1, typename T2>
+struct reduce_func<T1, T2, ReduceExtremeOp_t::Argmax>
+{
+    inline constexpr void calculate(T1& a, T1 b, T2& c, T2 d) const
+    {
+        if(a < b)
+        {
+            a = b;
+            c = d;
+        }
+    }
+};
+
+template <typename T1, typename T2>
+struct reduce_func<T1, T2, ReduceExtremeOp_t::Argmin>
+{
+    inline constexpr void calculate(T1& a, T1 b, T2& c, T2 d) const
+    {
+        if(a > b)
+        {
+            a = b;
+            c = d;
+        }
+    }
+};
+
+template <typename T, ReduceExtremeOp_t op>
+void cpu_extreme_forward(tensor<T> input,
+                         tensor<T>& ref_output,
+                         tensor<int32_t>& ref_indice,
+                         int32_t dim,
+                         miopenReduceExtremeOp_t reduceExtremeOp)
+{
+    auto input_dims = input.desc.GetLengths();
+    std::vector<std::size_t> output_dims;
+
+    if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX) ||
+       reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN)
+        output_dims = ref_output.desc.GetLengths();
+    else
+        output_dims = ref_indice.desc.GetLengths();
+
+    auto reduce_size = input_dims[dim];
+    auto output_numel =
+        std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
+
+    auto inner_size = std::accumulate(
+        input_dims.begin() + dim + 1, input_dims.end(), 1ULL, std::multiplies<uint64_t>());
+
+    par_ford(output_numel)([&](size_t o) {
+        size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
+
+        int32_t extreme_idx = 0;
+        T extreme           = input[input_idx];
+
+        ford(reduce_size)([&](size_t i) {
+            T val = input[input_idx];
+            reduce_func<T, int32_t, op>{}.calculate(extreme, val, extreme_idx, i);
+            input_idx += inner_size;
+        });
+        if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX) ||
+           reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN)
+            ref_output[o] = extreme;
+        ref_indice[o] = extreme_idx;
+    });
+}
 
 struct ReduceExtremeTestCase
 {
@@ -189,19 +295,23 @@ protected:
 
         if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMIN)
         {
-            cpu_argmin_forward<T>(input, ref_indice, dim);
+            cpu_extreme_forward<T, ReduceExtremeOp_t::Argmin>(
+                input, ref_output, ref_indice, dim, reduceExtremeOp);
         }
         else if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMAX)
         {
-            cpu_argmax_forward<T>(input, ref_indice, dim);
+            cpu_extreme_forward<T, ReduceExtremeOp_t::Argmax>(
+                input, ref_output, ref_indice, dim, reduceExtremeOp);
         }
         else if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN)
         {
-            cpu_min_forward<T>(input, ref_output, ref_indice, dim);
+            cpu_extreme_forward<T, ReduceExtremeOp_t::Min>(
+                input, ref_output, ref_indice, dim, reduceExtremeOp);
         }
         else if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX)
         {
-            cpu_max_forward<T>(input, ref_output, ref_indice, dim);
+            cpu_extreme_forward<T, ReduceExtremeOp_t::Max>(
+                input, ref_output, ref_indice, dim, reduceExtremeOp);
         }
 
         miopenStatus_t status;
@@ -223,8 +333,6 @@ protected:
             status = miopen::ReduceExtremeForward(handle,
                                                   input.desc,
                                                   input_dev.get(),
-                                                  nullptr,
-                                                  nullptr,
                                                   indice.desc,
                                                   indice_dev.get(),
                                                   dim,
