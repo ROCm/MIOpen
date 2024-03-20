@@ -568,7 +568,7 @@ std::size_t ReduceTensorDescriptor::GetWorkspaceSize(const Handle& handle,
     std::size_t wsSizeInBytes =
         !need_indices ? workspace_size * detail::GetDataTypeSize(inDesc.GetType())
                       : workspace_size * (detail::GetDataTypeSize(inDesc.GetType()) + sizeof(int)) +
-                            64 + sizeof(int);
+                            64 + sizeof(int) + sizeof(int);
 
     // dynamic reduction use one additional page for storing tensor descriptors
     if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_DYNAMIC_REDUCTION)))
@@ -717,9 +717,9 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
     float alphaVal = (srcDataType == miopenDouble)
                          ? static_cast<float>(*reinterpret_cast<const double*>(alpha))
                          : *reinterpret_cast<const float*>(alpha);
-    float betaVal  = (srcDataType == miopenDouble)
-                         ? static_cast<float>(*reinterpret_cast<const double*>(beta))
-                         : *reinterpret_cast<const float*>(beta);
+    float betaVal = (srcDataType == miopenDouble)
+                        ? static_cast<float>(*reinterpret_cast<const double*>(beta))
+                        : *reinterpret_cast<const float*>(beta);
 
     if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_DYNAMIC_REDUCTION)))
     { // use static reduction
@@ -1031,6 +1031,10 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                                        std::to_string(static_cast<int>(use_padding.first)) +
                                        std::to_string(static_cast<int>(use_padding.second));
 
+        int alignment = sizeof(int);
+        Data_t workspace_aligned = reinterpret_cast<Data_t>(
+            (reinterpret_cast<unsigned long>(workspace) + alignment - 1) / alignment * alignment);
+
         if(!reduceAllDims)
         {
             handle.AddKernel(
@@ -1055,7 +1059,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                 p_outStrides[3],
                 p_outStrides[4],
                 p_outStrides[5],
-                workspace);
+                workspace_aligned);
         }
         else
         {
@@ -1075,7 +1079,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                 p_inStrides[3],
                 p_inStrides[4],
                 p_inStrides[5],
-                workspace);
+                workspace_aligned);
         }
 
         if(handle.IsProfilingEnabled())
@@ -1094,7 +1098,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
             A,
             betaVal,
             C,
-            workspace,
+            workspace_aligned,
             ws_buf2_bytes_offset,
             indices);
 
@@ -1148,13 +1152,13 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                     p_outStrides[3],
                     p_outStrides[4],
                     p_outStrides[5],
-                    workspace);
+                    workspace_aligned);
             }
             else
             {
                 handle.AddKernel(
                     algo_name, network_config_2, program_name2, kernel_name2, vld, vgd1, param2)(
-                    gridSize_2, blkGroupSize, workspace);
+                    gridSize_2, blkGroupSize, workspace_aligned);
             }
 
             if(handle.IsProfilingEnabled())
@@ -1167,7 +1171,14 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 
             handle.AddKernel(
                 algo_name, network_config_2, program_name2, kernel_name2, vld, vgd2_2, param2)(
-                origReduceLen, alphaVal, A, betaVal, C, workspace, ws_buf2_bytes_offset, indices);
+                origReduceLen,
+                alphaVal,
+                A,
+                betaVal,
+                C,
+                workspace_aligned,
+                ws_buf2_bytes_offset,
+                indices);
 
             if(handle.IsProfilingEnabled())
                 time_reduce += handle.GetKernelTime();
