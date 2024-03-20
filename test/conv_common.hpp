@@ -2148,9 +2148,12 @@ struct conv_driver : test_driver
         bool is_bfloat16 =
             (input.desc.GetType() == miopenBFloat16 && weights.desc.GetType() == miopenBFloat16);
 
-        // bfloat16 is not supported for conv3d
         if(is_bfloat16 && !(filter.spatialDim == 2))
+        {
+            show_command();
+            std::cout << "Skipped: bfloat16 is supported for 2D conv only" << std::endl;
             return;
+        }
 
         if(((filter.mode == miopenTranspose) &&
             ((filter.group_count == 1 && in_c_len == wei_k_len) ||
@@ -2167,6 +2170,8 @@ struct conv_driver : test_driver
                 {
                     if(miopen::any_of(filter.GetConvStrides(), [](auto v) { return v == 0; }))
                     {
+                        show_command();
+                        std::cout << "Skipped: stride[i] == 0" << std::endl;
                         return;
                     }
 
@@ -2194,13 +2199,19 @@ struct conv_driver : test_driver
 
                     if(miopen::any_of(out_spatial_len, [](auto v) { return v <= 0; }))
                     {
+                        show_command();
+                        std::cout << "Skipped: out_spatial_len[i] <= 0" << std::endl;
                         return;
                     }
                 }
                 else if(filter.paddingMode == miopenPaddingValid)
                 {
                     if(miopen::any_of(filter.GetConvStrides(), [](auto v) { return v == 0; }))
+                    {
+                        show_command();
+                        std::cout << "Skipped: stride[i] == 0" << std::endl;
                         return;
+                    }
 
                     std::vector<ptrdiff_t> out_spatial_len(spatial_dim);
 
@@ -2216,6 +2227,8 @@ struct conv_driver : test_driver
 
                     if(miopen::any_of(out_spatial_len, [](auto v) { return v <= 0; }))
                     {
+                        show_command();
+                        std::cout << "Skipped: out_spatial_len[i] <= 0" << std::endl;
                         return;
                     }
                 }
@@ -2288,16 +2301,6 @@ struct conv_driver : test_driver
                         get_handle(), filter, input.desc, weights.desc, output.desc);
                 }
 #endif
-
-                // bwd53 kernel (large images supported) doesnt support stride !=1 and dilation and
-                // pad.
-                if(filter.GetSpatialDimension() == 2 && in_spatial_len[1] >= 2048 &&
-                   ((filter.GetConvStrides()[0] != 1) || (filter.GetConvStrides()[1] != 1) ||
-                    (filter.GetConvDilations()[0] != 1) || (filter.GetConvDilations()[1] != 1) ||
-                    (filter.GetConvPads()[1] != 0) || (filter.GetConvPads()[0] != 0)))
-                {
-                    return;
-                }
 
                 input.generate(gen_positive_value);
                 output.generate(gen_positive_value);
@@ -2424,6 +2427,12 @@ struct conv_driver : test_driver
                                 0,
                                 search,
                                 int8_vectorize});
+                        }
+                        else
+                        {
+                            show_command();
+                            std::cout << "FAILED: bad output_type: '" << output_type '\''
+                                      << std::endl;
                         }
                     }
                     else
