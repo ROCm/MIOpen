@@ -160,10 +160,8 @@ bool MHA::IsApplicable([[maybe_unused]] const ExecutionContext& context,
 std::size_t MHA::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
                                   const miopen::mha::ProblemDescription& problem) const
 {
-    return std::get<size_t>(SpitBufferToWorkspace(problem.GetDescs().descaleQDesc.GetLengths(),
-                                                  problem.GetDescs().dropoutProbability,
-                                                  nullptr,
-                                                  0));
+    return std::get<size_t>(SpitBufferToWorkspace(
+        problem.GetDescs().kDesc.GetLengths(), problem.GetDescs().dropoutProbability, nullptr, 0));
 }
 
 ConvSolution MHA::GetSolution(const ExecutionContext& context,
@@ -171,7 +169,7 @@ ConvSolution MHA::GetSolution(const ExecutionContext& context,
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto [N, H, S, D] = miopen::tien<4>(problem.GetDescs().descaleQDesc.GetLengths());
+    auto [N, H, S, D] = miopen::tien<4>(problem.GetDescs().kDesc.GetLengths());
     uint32_t seq_len  = S;
     uint64_t nhs      = N * H * S;
     uint64_t nhsd     = N * H * S * D;
@@ -200,8 +198,10 @@ ConvSolution MHA::GetSolution(const ExecutionContext& context,
     scale_reduce_kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
     scale_reduce_kernel.kernel_file  = "MIOpenSoftmaxAttn.cpp";
     scale_reduce_kernel.kernel_name  = "ScaleReduce";
-    scale_reduce_kernel.l_wk         = {256, 1, 1};
-    scale_reduce_kernel.g_wk         = {nhsd, 1, 1};
+    local_threads            = RoundUpToMultiple<uint64_t>(std::min<uint64_t>(nhsd, 256), 32);
+    global_threads           = RoundUpToMultiple(nhsd, local_threads);
+    scale_reduce_kernel.l_wk = {local_threads, 1, 1};
+    scale_reduce_kernel.g_wk = {global_threads, 1, 1};
 
     result.invoker_factory = [seq_len, nhs, nhsd, nh = N * H, s = S, d = D](
                                  const std::vector<Kernel>& kernels) {
@@ -219,51 +219,49 @@ ConvSolution MHA::GetSolution(const ExecutionContext& context,
                                       params.GetWorkspace(),
                                       params.GetWorkspaceSize());
 
-            void* prng_host;
-            hipMemcpyAsync(std::get<Data_t>(prng_ws),
-                           prng_host,
-                           std::get<size_t>(prng_ws),
-                           hipMemcpyHostToDevice,
-                           handle_.GetStream());
-
             float alpha = 1.0f;
             float beta  = 0.0f;
+
 #if MIOPEN_USE_ROCBLAS
             rocblas_status status = rocblas_set_atomics_mode(
-                handle_.rhandle().get(), rocblas_atomics_mode::rocblas_atomics_allowed);
+                handle_.rhandle().get(), rocblas_atomics_mode::rocblas_atomics_not_allowed);
             if(status != rocblas_status::rocblas_status_success)
             {
                 MIOPEN_THROW("rocblas_set_atomics_mode failed");
             }
 
-            status = rocblas_gemm_batched_ex(handle_.rhandle().get(),
-                                             rocblas_operation_none,      // Q direct
-                                             rocblas_operation_transpose, // K transpose
-                                             s,
-                                             d,
-                                             s,
-                                             &params.GetData().scale,
-                                             static_cast<const float*>(params.GetData().qData),
-                                             rocblas_datatype::rocblas_datatype_f32_r,
-                                             s,
-                                             static_cast<const float*>(params.GetData().kData),
-                                             rocblas_datatype::rocblas_datatype_f32_r,
-                                             s,
-                                             &beta,
-                                             static_cast<const float*>(std::get<Data_t>(fp32_ws)),
-                                             rocblas_datatype::rocblas_datatype_f32_r,
-                                             s,
-                                             static_cast<float*>(std::get<Data_t>(fp32_ws)),
-                                             rocblas_datatype::rocblas_datatype_f32_r,
-                                             s,
-                                             nh,
-                                             rocblas_datatype::rocblas_datatype_f32_r,
-                                             rocblas_gemm_algo::rocblas_gemm_algo_standard,
-                                             0,
-                                             0);
+            status = rocblas_gemm_strided_batched_ex(handle_.rhandle().get(),
+                                                     rocblas_operation_transpose,
+                                                     rocblas_operation_none,
+                                                     s,
+                                                     s,
+                                                     d,
+                                                     &params.GetData().scale,
+                                                     params.GetData().kData,
+                                                     rocblas_datatype::rocblas_datatype_f32_r,
+                                                     d,
+                                                     s * d,
+                                                     params.GetData().qData,
+                                                     rocblas_datatype::rocblas_datatype_f32_r,
+                                                     d,
+                                                     d * s,
+                                                     &beta,
+                                                     std::get<Data_t>(fp32_ws),
+                                                     rocblas_datatype::rocblas_datatype_f32_r,
+                                                     s,
+                                                     s * s,
+                                                     std::get<Data_t>(fp32_ws),
+                                                     rocblas_datatype::rocblas_datatype_f32_r,
+                                                     s,
+                                                     s * s,
+                                                     nh,
+                                                     rocblas_datatype::rocblas_datatype_f32_r,
+                                                     rocblas_gemm_algo::rocblas_gemm_algo_standard,
+                                                     0,
+                                                     0);
             if(status != rocblas_status::rocblas_status_success)
             {
-                MIOPEN_THROW("miopen_rocblas_gemm_batched_ex failed");
+                MIOPEN_THROW("Q*KT rocblas_gemm_strided_batched_ex failed");
             }
 #endif
             softmax_kernel(std::get<Data_t>(fp32_ws),
@@ -279,38 +277,43 @@ ConvSolution MHA::GetSolution(const ExecutionContext& context,
                            seq_len,
                            nhs);
 #if MIOPEN_USE_ROCBLAS
-            status = rocblas_gemm_batched_ex(handle_.rhandle().get(),
-                                             rocblas_operation_none, // TEMP direct
-                                             rocblas_operation_none, // V direct
-                                             s,
-                                             d,
-                                             s,
-                                             &alpha,
-                                             static_cast<const float*>(std::get<Data_t>(fp8_ws)),
-                                             rocblas_datatype::rocblas_datatype_f32_r,
-                                             s,
-                                             static_cast<const float*>(params.GetData().vData),
-                                             rocblas_datatype::rocblas_datatype_f32_r,
-                                             d,
-                                             &beta,
-                                             static_cast<const float*>(std::get<Data_t>(fp32_ws)),
-                                             rocblas_datatype::rocblas_datatype_f32_r,
-                                             s,
-                                             static_cast<float*>(std::get<Data_t>(fp32_ws)),
-                                             rocblas_datatype::rocblas_datatype_f32_r,
-                                             s,
-                                             nh,
-                                             rocblas_datatype::rocblas_datatype_f32_r,
-                                             rocblas_gemm_algo::rocblas_gemm_algo_standard,
-                                             0,
-                                             0);
+
+            status = rocblas_gemm_strided_batched_ex(
+                handle_.rhandle().get(),
+                rocblas_operation_none, // Q direct, but transposed for the column-major case
+                rocblas_operation_none, // K transpose, but not transposed for the column-major case
+                d,
+                s,
+                s,
+                &alpha,
+                params.GetData().vData,
+                rocblas_datatype::rocblas_datatype_f32_r,
+                d,
+                d * s,
+                std::get<Data_t>(fp8_ws),
+                rocblas_datatype::rocblas_datatype_f32_r,
+                s,
+                s * s,
+                &beta,
+                std::get<Data_t>(fp32_ws),
+                rocblas_datatype::rocblas_datatype_f32_r,
+                d,
+                d * s,
+                std::get<Data_t>(fp32_ws),
+                rocblas_datatype::rocblas_datatype_f32_r,
+                d,
+                d * s,
+                nh,
+                rocblas_datatype::rocblas_datatype_f32_r,
+                rocblas_gemm_algo::rocblas_gemm_algo_standard,
+                0,
+                0);
             if(status != rocblas_status::rocblas_status_success)
             {
-                MIOPEN_THROW("miopen_rocblas_gemm_batched_ex failed");
+                MIOPEN_THROW("S*V rocblas_gemm_strided_batched_ex failed");
             }
 #endif
             scale_reduce_kernel(std::get<Data_t>(fp32_ws),
-                                params.GetData().mData,
                                 params.GetData().oData,
                                 params.GetData().amaxOData,
                                 params.GetData().descaleSData,
