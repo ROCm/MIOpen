@@ -115,7 +115,7 @@ inline void createTensorDescArray(std::vector<miopen::TensorDescriptor>& td,
 inline std::tuple<size_t, size_t>
 GetTempPackedBuffersSize(std::vector<int> batchs, int in_vec, int out_vec)
 {
-    size_t total_batch = std::accumulate(batchs.begin(), batchs.end(), 0);
+    size_t total_batch = std::accumulate(batchs.begin(), batchs.end(), 0ULL);
 
     size_t in_buff_size  = total_batch * in_vec;
     size_t out_buff_size = total_batch * out_vec;
@@ -132,7 +132,7 @@ inline size_t getSuperTensorSize(const std::vector<int>& bs,
                                  bool isPadded)
 {
     return static_cast<size_t>(isPadded ? seqLength * maxPaddingVal
-                                        : std::accumulate(bs.begin(), bs.end(), 0)) *
+                                        : std::accumulate(bs.begin(), bs.end(), 0ULL)) *
            static_cast<size_t>(isInput ? inputSize : hiddenSize * (isBidirect ? 2 : 1));
 }
 
