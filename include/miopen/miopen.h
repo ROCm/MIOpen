@@ -5311,29 +5311,32 @@ typedef enum
     miopenTensorConvolutionW      = 2,
     miopenTensorConvolutionY      = 3,
 
-    miopenTensorMHAK        = 4,
-    miopenTensorMHAQ        = 5,
-    miopenTensorMHAV        = 6,
-    miopenTensorMHADescaleK = 7,
-    miopenTensorMHADescaleQ = 8,
-    miopenTensorMHADescaleV = 9,
-    miopenTensorMHADescaleS = 10,
-    miopenTensorMHAScaleS   = 11,
-    miopenTensorMHAScaleO   = 12,
-    miopenTensorMHAO        = 13,
-    miopenTensorMHAAmaxO    = 14,
-    miopenTensorMHAAmaxS    = 15,
-    miopenTensorMHAM        = 16,
-    miopenTensorMHAZInv     = 17,
+    miopenTensorMHAK                  = 4,
+    miopenTensorMHAQ                  = 5,
+    miopenTensorMHAV                  = 6,
+    miopenTensorMHADescaleK           = 7,
+    miopenTensorMHADescaleQ           = 8,
+    miopenTensorMHADescaleV           = 9,
+    miopenTensorMHADescaleS           = 10,
+    miopenTensorMHAScaleS             = 11,
+    miopenTensorMHAScaleO             = 12,
+    miopenTensorMHADropoutProbability = 13,
+    miopenTensorMHADropoutSeed        = 14,
+    miopenTensorMHADropoutOffset      = 15,
+    miopenTensorMHAO                  = 16,
+    miopenTensorMHAAmaxO              = 17,
+    miopenTensorMHAAmaxS              = 18,
+    miopenTensorMHAM                  = 19,
+    miopenTensorMHAZInv               = 20,
 
 #ifdef MIOPEN_BETA_API
-    miopenTensorActivationX  = 18,
-    miopenTensorActivationY  = 19,
-    miopenTensorActivationDX = 20,
-    miopenTensorActivationDY = 21,
-    miopenTensorBiasX        = 22,
-    miopenTensorBiasY        = 23,
-    miopenTensorBias         = 24,
+    miopenTensorActivationX  = 21,
+    miopenTensorActivationY  = 22,
+    miopenTensorActivationDX = 23,
+    miopenTensorActivationDY = 24,
+    miopenTensorBiasX        = 25,
+    miopenTensorBiasY        = 26,
+    miopenTensorBias         = 27,
 #endif
 
 } miopenTensorArgumentId_t;
@@ -5376,17 +5379,10 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateMHAProblem(miopenProblem_t* problem,
  *
  * @param mhaDesc               Pointer to a MHA descriptor
  * @param scale                 Scale
- * @param dropoutProbability    DropoutProbability
- * @param dropoutSeed           DropoutSeed
- * @param dropoutOffset         DropoutOffset
  * @return                      miopenStatus_t
  */
 
-MIOPEN_EXPORT miopenStatus_t miopenSetMHADescriptor(miopenMHADescriptor_t mhaDesc,
-                                                    float scale,
-                                                    float dropoutProbability,
-                                                    uint64_t dropoutSeed,
-                                                    uint64_t dropoutOffset);
+MIOPEN_EXPORT miopenStatus_t miopenSetMHADescriptor(miopenMHADescriptor_t mhaDesc, float scale);
 
 /*! @brief Gets the MHA descriptor details
  *
@@ -5394,17 +5390,10 @@ MIOPEN_EXPORT miopenStatus_t miopenSetMHADescriptor(miopenMHADescriptor_t mhaDes
  *
  * @param mhaDesc               Pointer to a MHA descriptor
  * @param scale                 Scale (output)
- * @param dropoutProbability    DropoutProbability (output)
- * @param dropoutSeed           DropoutSeed (output)
- * @param dropoutOffset         DropoutOffset (output)
  * @return             miopenStatus_t
  */
 
-MIOPEN_EXPORT miopenStatus_t miopenGetMHADescriptor(miopenMHADescriptor_t mhaDesc,
-                                                    float* scale,
-                                                    float* dropoutProbability,
-                                                    uint64_t* dropoutSeed,
-                                                    uint64_t* dropoutOffset);
+MIOPEN_EXPORT miopenStatus_t miopenGetMHADescriptor(miopenMHADescriptor_t mhaDesc, float* scale);
 
 /*! @brief Destroys a problem object.
  *

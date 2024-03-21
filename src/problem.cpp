@@ -282,7 +282,7 @@ activ::ProblemDescription Problem::AsActivation() const
     }
 }
 
-mha::ProblemDescription Problem::AsMHA() const
+mha::ProblemDescription Problem::AsMHA(const Buffers& buffers) const
 {
     const auto& mha_desc = boost::get<MHADescriptor>(operator_descriptor);
 
@@ -290,6 +290,16 @@ mha::ProblemDescription Problem::AsMHA() const
     {
         MIOPEN_THROW(miopenStatusNotImplemented, "MHA Backward is not currently implemented!");
     }
+
+    const auto get_buffer_checked = [&](auto name, const std::string& name_str) {
+        const auto it = buffers.find(name);
+        if(it == buffers.end())
+        {
+            MIOPEN_THROW(miopenStatusInvalidValue,
+                         "buffer for tensor " + name_str + " is missing.");
+        }
+        return it->second;
+    };
 
     mha::MHAInputDescsForward mhaInputDescsForward = {
         GetTensorDescriptorChecked(miopenTensorMHAK, "miopenTensorMHAK"),
@@ -301,9 +311,17 @@ mha::ProblemDescription Problem::AsMHA() const
         GetTensorDescriptorChecked(miopenTensorMHADescaleS, "miopenTensorMHADescaleS"),
         GetTensorDescriptorChecked(miopenTensorMHAScaleS, "miopenTensorMHAScaleS"),
         GetTensorDescriptorChecked(miopenTensorMHAScaleO, "miopenTensorMHAScaleO"),
-        mha_desc.GetDropoutProbability(),
-        mha_desc.GetDropoutSeed(),
-        mha_desc.GetDropoutOffset(),
+
+        mha_desc.GetScale(),
+        GetTensorDescriptorChecked(miopenTensorMHADropoutProbability,
+                                   "miopenTensorMHADropoutProbability"),
+        GetTensorDescriptorChecked(miopenTensorMHADropoutSeed, "miopenTensorMHADropoutSeed"),
+        GetTensorDescriptorChecked(miopenTensorMHADropoutOffset, "miopenTensorMHADropoutOffset"),
+
+        get_buffer_checked(miopenTensorMHADropoutProbability, "miopenTensorMHADropoutProbability"),
+        get_buffer_checked(miopenTensorMHADropoutSeed, "miopenTensorMHADropoutSeed"),
+        get_buffer_checked(miopenTensorMHADropoutOffset, "miopenTensorMHADropoutOffset"),
+
         GetTensorDescriptorChecked(miopenTensorMHAO, "miopenTensorMHAO"),
         GetTensorDescriptorChecked(miopenTensorMHAAmaxO, "miopenTensorMHAAmaxO"),
         GetTensorDescriptorChecked(miopenTensorMHAAmaxS, "miopenTensorMHAAmaxS"),
@@ -311,8 +329,7 @@ mha::ProblemDescription Problem::AsMHA() const
         GetTensorDescriptorChecked(miopenTensorMHAZInv, "miopenTensorMHAZInv"),
     };
 
-    mha::ProblemDescription ret(mhaInputDescsForward);
-    return ret;
+    return {mhaInputDescsForward};
 }
 
 std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
@@ -473,14 +490,14 @@ std::vector<Solution>
 Problem::FindSolutionsImpl(Handle& handle,
                            [[maybe_unused]] const FindOptions& options,
                            std::size_t max_solutions,
-                           [[maybe_unused]] const Buffers& buffers,
+                           const Buffers& buffers,
                            [[maybe_unused]] const MHADescriptor& mha_desc) const
 {
     auto ret = std::vector<Solution>{};
 
     auto ctx = ExecutionContext{&handle};
 
-    const mha::ProblemDescription problem_description = AsMHA();
+    const mha::ProblemDescription problem_description = AsMHA(buffers);
 
     const auto algo = AlgorithmName{"MHA"};
 

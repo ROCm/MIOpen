@@ -160,8 +160,10 @@ bool MHA::IsApplicable([[maybe_unused]] const ExecutionContext& context,
 std::size_t MHA::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
                                   const miopen::mha::ProblemDescription& problem) const
 {
-    return std::get<size_t>(SpitBufferToWorkspace(
-        problem.GetDescs().kDesc.GetLengths(), problem.GetDescs().dropoutProbability, nullptr, 0));
+    // TODO
+    float d_p = 0.0;
+    return std::get<size_t>(
+        SpitBufferToWorkspace(problem.GetDescs().kDesc.GetLengths(), d_p, nullptr, 0));
 }
 
 ConvSolution MHA::GetSolution(const ExecutionContext& context,
@@ -203,126 +205,130 @@ ConvSolution MHA::GetSolution(const ExecutionContext& context,
     scale_reduce_kernel.l_wk = {local_threads, 1, 1};
     scale_reduce_kernel.g_wk = {global_threads, 1, 1};
 
-    result.invoker_factory =
-        [seq_len, nhs, nhsd, nh = N * H, s = S, d = D](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-                decltype(auto) softmax_kernel      = handle_.Run(kernels.front());
-                decltype(auto) scale_reduce_kernel = handle_.Run(kernels.back());
-                decltype(auto) params              = raw_params.CastTo<miopen::mha::InvokeParams>();
+    float pd_scale = problem.GetDescs().scale;
 
-                hipMemsetAsync(params.GetData().amaxSData, 0, sizeof(float), handle_.GetStream());
-                hipMemsetAsync(params.GetData().amaxOData, 0, sizeof(float), handle_.GetStream());
+    result.invoker_factory = [seq_len, nhs, nhsd, nh = N * H, s = S, d = D, pd_scale](
+                                 const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+            decltype(auto) softmax_kernel      = handle_.Run(kernels.front());
+            decltype(auto) scale_reduce_kernel = handle_.Run(kernels.back());
+            decltype(auto) params              = raw_params.CastTo<miopen::mha::InvokeParams>();
 
-                auto [fp32_ws, fp8_ws, prng_ws, total_size] =
-                    SpitBufferToWorkspace(params.GetDescs().descaleQDesc.GetLengths(),
-                                          params.GetData().dropoutProbability,
-                                          params.GetWorkspace(),
-                                          params.GetWorkspaceSize());
+            hipMemsetAsync(params.GetData().amaxSData, 0, sizeof(float), handle_.GetStream());
+            hipMemsetAsync(params.GetData().amaxOData, 0, sizeof(float), handle_.GetStream());
 
-                float alpha = 1.0f;
-                float beta  = 0.0f;
+            // TODO
+            float d_p = 0.0f;
+            auto [fp32_ws, fp8_ws, prng_ws, total_size] =
+                SpitBufferToWorkspace(params.GetDescs().descaleQDesc.GetLengths(),
+                                      d_p,
+                                      params.GetWorkspace(),
+                                      params.GetWorkspaceSize());
+
+            float alpha = 1.0f;
+            float beta  = 0.0f;
 
 #if MIOPEN_USE_ROCBLAS
-                rocblas_status status = rocblas_set_atomics_mode(
-                    handle_.rhandle().get(), rocblas_atomics_mode::rocblas_atomics_not_allowed);
-                if(status != rocblas_status::rocblas_status_success)
-                {
-                    MIOPEN_THROW("rocblas_set_atomics_mode failed");
-                }
+            rocblas_status status = rocblas_set_atomics_mode(
+                handle_.rhandle().get(), rocblas_atomics_mode::rocblas_atomics_not_allowed);
+            if(status != rocblas_status::rocblas_status_success)
+            {
+                MIOPEN_THROW("rocblas_set_atomics_mode failed");
+            }
 
-                status =
-                    (rocblas_gemm_strided_batched_ex)(handle_.rhandle().get(),
-                                                      rocblas_operation_transpose,
-                                                      rocblas_operation_none,
-                                                      s,
-                                                      s,
-                                                      d,
-                                                      &params.GetData().scale,
-                                                      params.GetData().kData,
-                                                      rocblas_datatype::rocblas_datatype_f32_r,
-                                                      d,
-                                                      s * d,
-                                                      params.GetData().qData,
-                                                      rocblas_datatype::rocblas_datatype_f32_r,
-                                                      d,
-                                                      d * s,
-                                                      &beta,
-                                                      std::get<Data_t>(fp32_ws),
-                                                      rocblas_datatype::rocblas_datatype_f32_r,
-                                                      s,
-                                                      s * s,
-                                                      std::get<Data_t>(fp32_ws),
-                                                      rocblas_datatype::rocblas_datatype_f32_r,
-                                                      s,
-                                                      s * s,
-                                                      nh,
-                                                      rocblas_datatype::rocblas_datatype_f32_r,
-                                                      rocblas_gemm_algo::rocblas_gemm_algo_standard,
-                                                      0,
-                                                      0);
-                if(status != rocblas_status::rocblas_status_success)
-                {
-                    MIOPEN_THROW("Q*KT rocblas_gemm_strided_batched_ex failed");
-                }
+            status =
+                (rocblas_gemm_strided_batched_ex)(handle_.rhandle().get(),
+                                                  rocblas_operation_transpose,
+                                                  rocblas_operation_none,
+                                                  s,
+                                                  s,
+                                                  d,
+                                                  &pd_scale,
+                                                  params.GetData().kData,
+                                                  rocblas_datatype::rocblas_datatype_f32_r,
+                                                  d,
+                                                  s * d,
+                                                  params.GetData().qData,
+                                                  rocblas_datatype::rocblas_datatype_f32_r,
+                                                  d,
+                                                  d * s,
+                                                  &beta,
+                                                  std::get<Data_t>(fp32_ws),
+                                                  rocblas_datatype::rocblas_datatype_f32_r,
+                                                  s,
+                                                  s * s,
+                                                  std::get<Data_t>(fp32_ws),
+                                                  rocblas_datatype::rocblas_datatype_f32_r,
+                                                  s,
+                                                  s * s,
+                                                  nh,
+                                                  rocblas_datatype::rocblas_datatype_f32_r,
+                                                  rocblas_gemm_algo::rocblas_gemm_algo_standard,
+                                                  0,
+                                                  0);
+            if(status != rocblas_status::rocblas_status_success)
+            {
+                MIOPEN_THROW("Q*KT rocblas_gemm_strided_batched_ex failed");
+            }
 #endif
-                softmax_kernel(std::get<Data_t>(fp32_ws),
-                               std::get<Data_t>(fp8_ws),
-                               params.GetData().mData,
-                               params.GetData().zInvData,
-                               params.GetData().amaxSData,
-                               params.GetData().descaleQData,
-                               params.GetData().descaleKData,
-                               params.GetData().scaleSData,
-                               std::get<Data_t>(prng_ws),
-                               params.GetData().dropoutProbability,
-                               seq_len,
-                               nhs);
+            softmax_kernel(std::get<Data_t>(fp32_ws),
+                           std::get<Data_t>(fp8_ws),
+                           params.GetData().mData,
+                           params.GetData().zInvData,
+                           params.GetData().amaxSData,
+                           params.GetData().descaleQData,
+                           params.GetData().descaleKData,
+                           params.GetData().scaleSData,
+                           std::get<Data_t>(prng_ws),
+                           d_p,
+                           seq_len,
+                           nhs);
 #if MIOPEN_USE_ROCBLAS
 
-                status =
-                    (rocblas_gemm_strided_batched_ex)(handle_.rhandle().get(),
-                                                      rocblas_operation_none,
-                                                      rocblas_operation_none,
-                                                      d,
-                                                      s,
-                                                      s,
-                                                      &alpha,
-                                                      params.GetData().vData,
-                                                      rocblas_datatype::rocblas_datatype_f32_r,
-                                                      d,
-                                                      d * s,
-                                                      std::get<Data_t>(fp8_ws),
-                                                      rocblas_datatype::rocblas_datatype_f32_r,
-                                                      s,
-                                                      s * s,
-                                                      &beta,
-                                                      std::get<Data_t>(fp32_ws),
-                                                      rocblas_datatype::rocblas_datatype_f32_r,
-                                                      d,
-                                                      d * s,
-                                                      std::get<Data_t>(fp32_ws),
-                                                      rocblas_datatype::rocblas_datatype_f32_r,
-                                                      d,
-                                                      d * s,
-                                                      nh,
-                                                      rocblas_datatype::rocblas_datatype_f32_r,
-                                                      rocblas_gemm_algo::rocblas_gemm_algo_standard,
-                                                      0,
-                                                      0);
-                if(status != rocblas_status::rocblas_status_success)
-                {
-                    MIOPEN_THROW("S*V rocblas_gemm_strided_batched_ex failed");
-                }
+            status =
+                (rocblas_gemm_strided_batched_ex)(handle_.rhandle().get(),
+                                                  rocblas_operation_none,
+                                                  rocblas_operation_none,
+                                                  d,
+                                                  s,
+                                                  s,
+                                                  &alpha,
+                                                  params.GetData().vData,
+                                                  rocblas_datatype::rocblas_datatype_f32_r,
+                                                  d,
+                                                  d * s,
+                                                  std::get<Data_t>(fp8_ws),
+                                                  rocblas_datatype::rocblas_datatype_f32_r,
+                                                  s,
+                                                  s * s,
+                                                  &beta,
+                                                  std::get<Data_t>(fp32_ws),
+                                                  rocblas_datatype::rocblas_datatype_f32_r,
+                                                  d,
+                                                  d * s,
+                                                  std::get<Data_t>(fp32_ws),
+                                                  rocblas_datatype::rocblas_datatype_f32_r,
+                                                  d,
+                                                  d * s,
+                                                  nh,
+                                                  rocblas_datatype::rocblas_datatype_f32_r,
+                                                  rocblas_gemm_algo::rocblas_gemm_algo_standard,
+                                                  0,
+                                                  0);
+            if(status != rocblas_status::rocblas_status_success)
+            {
+                MIOPEN_THROW("S*V rocblas_gemm_strided_batched_ex failed");
+            }
 #endif
-                scale_reduce_kernel(std::get<Data_t>(fp32_ws),
-                                    params.GetData().oData,
-                                    params.GetData().amaxOData,
-                                    params.GetData().descaleSData,
-                                    params.GetData().descaleVData,
-                                    params.GetData().scaleOData,
-                                    nhsd);
-            };
+            scale_reduce_kernel(std::get<Data_t>(fp32_ws),
+                                params.GetData().oData,
+                                params.GetData().amaxOData,
+                                params.GetData().descaleSData,
+                                params.GetData().descaleVData,
+                                params.GetData().scaleOData,
+                                nhsd);
         };
+    };
 
     result.construction_params.push_back(softmax_kernel);
     result.construction_params.push_back(scale_reduce_kernel);

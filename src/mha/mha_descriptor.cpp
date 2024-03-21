@@ -14,38 +14,22 @@ extern "C" miopenStatus_t miopenCreateMHADescriptor(miopenMHADescriptor_t* mhaDe
     });
 }
 
-extern "C" miopenStatus_t miopenSetMHADescriptor(miopenMHADescriptor_t mhaDesc,
-                                                 float scale,
-                                                 float dropoutProbability,
-                                                 uint64_t dropoutSeed,
-                                                 uint64_t dropoutOffset)
+extern "C" miopenStatus_t miopenSetMHADescriptor(miopenMHADescriptor_t mhaDesc, float scale)
 {
-    MIOPEN_LOG_FUNCTION(mhaDesc, scale, dropoutProbability, dropoutSeed, dropoutOffset);
-    return miopen::try_([&] {
-        miopen::deref(mhaDesc).SetParams(scale, dropoutProbability, dropoutSeed, dropoutOffset);
-    });
+    MIOPEN_LOG_FUNCTION(mhaDesc, scale);
+    return miopen::try_([&] { miopen::deref(mhaDesc).SetParams(scale); });
 }
 
-extern "C" miopenStatus_t miopenGetMHADescriptor(miopenMHADescriptor_t mhaDesc,
-                                                 float* scale,
-                                                 float* dropoutProbability,
-                                                 uint64_t* dropoutSeed,
-                                                 uint64_t* dropoutOffset)
+extern "C" miopenStatus_t miopenGetMHADescriptor(miopenMHADescriptor_t mhaDesc, float* scale)
 {
     MIOPEN_LOG_FUNCTION(mhaDesc);
-    return miopen::try_([&] {
-        *scale              = miopen::deref(mhaDesc).GetScale();
-        *dropoutProbability = miopen::deref(mhaDesc).GetDropoutProbability();
-        *dropoutSeed        = miopen::deref(mhaDesc).GetDropoutSeed();
-        *dropoutOffset      = miopen::deref(mhaDesc).GetDropoutOffset();
-    });
+    return miopen::try_([&] { *scale = miopen::deref(mhaDesc).GetScale(); });
 }
 
 std::ostream& operator<<(std::ostream& stream, const MHADescriptor& x)
 {
     stream << "mha,"
-           << "scale" << x.GetScale() << ",dropoutProbability" << x.GetDropoutProbability()
-           << ",dropoutSeed" << x.dropoutSeed << ",dropoutOffset" << x.dropoutOffset << ",";
+           << "scale" << x.GetScale() << ",";
 
     return stream;
 }
@@ -54,18 +38,12 @@ void to_json(nlohmann::json& json, const MHADescriptor& descriptor)
 {
     json = nlohmann::json{
         {"scale", descriptor.GetScale()},
-        {"dropoutProbability", descriptor.GetDropoutProbability()},
-        {"dropoutSeed", descriptor.GetDropoutSeed()},
-        {"dropoutOffset", descriptor.GetDropoutOffset()},
     };
 }
 
 void from_json(const nlohmann::json& json, MHADescriptor& descriptor)
 {
     json.at("scale").get_to(descriptor.scale);
-    json.at("dropoutProbability").get_to(descriptor.dropoutProbability);
-    json.at("dropoutSeed").get_to(descriptor.dropoutSeed);
-    json.at("dropoutOffset").get_to(descriptor.dropoutOffset);
 }
 
 } // namespace miopen

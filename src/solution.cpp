@@ -246,7 +246,7 @@ void Solution::RunImpl(Handle& handle,
                        std::size_t workspace_size,
                        const MHADescriptor& mha_desc)
 {
-    const auto& problem_casted = boost::get<const Problem&>(problem.item);
+    const Problem& problem_casted = boost::get<const Problem&>(problem.item);
 
     const auto get_input_checked = [&](auto name, const std::string& name_str) {
         const auto& found = inputs.find(name);
@@ -261,7 +261,14 @@ void Solution::RunImpl(Handle& handle,
         return ret;
     };
 
-    const mha::ProblemDescription problem_description = problem_casted.AsMHA();
+    Problem::Buffers buffers;
+
+    for(auto& input : inputs)
+    {
+        buffers[input.first] = input.second.buffer;
+    }
+
+    const mha::ProblemDescription problem_description = problem_casted.AsMHA(buffers);
 
     const auto invoke_ctx = [&]() -> AnyInvokeParams {
         switch(problem_casted.GetDirection())
@@ -278,6 +285,13 @@ void Solution::RunImpl(Handle& handle,
             auto scaleS   = get_input_checked(miopenTensorMHAScaleS, "miopenTensorMHAScaleS");
             auto scaleO   = get_input_checked(miopenTensorMHAScaleO, "miopenTensorMHAScaleO");
 
+            auto dropoutProbability = get_input_checked(miopenTensorMHADropoutProbability,
+                                                        "miopenTensorMHADropoutProbability");
+            auto dropoutSeed =
+                get_input_checked(miopenTensorMHADropoutSeed, "miopenTensorMHADropoutSeed");
+            auto dropoutOffset =
+                get_input_checked(miopenTensorMHADropoutOffset, "miopenTensorMHADropoutOffset");
+
             auto o     = get_input_checked(miopenTensorMHAO, "miopenTensorMHAO");
             auto amaxO = get_input_checked(miopenTensorMHAAmaxO, "miopenTensorMHAAmaxO");
             auto amaxS = get_input_checked(miopenTensorMHAAmaxS, "miopenTensorMHAAmaxS");
@@ -293,9 +307,15 @@ void Solution::RunImpl(Handle& handle,
                                                            *descaleS.descriptor,
                                                            *scaleS.descriptor,
                                                            *scaleO.descriptor,
-                                                           mha_desc.GetDropoutProbability(),
-                                                           mha_desc.GetDropoutSeed(),
-                                                           mha_desc.GetDropoutOffset(),
+
+                                                           mha_desc.GetScale(),
+                                                           *dropoutProbability.descriptor,
+                                                           *dropoutSeed.descriptor,
+                                                           *dropoutOffset.descriptor,
+                                                           dropoutProbability.buffer,
+                                                           dropoutSeed.buffer,
+                                                           dropoutOffset.buffer,
+
                                                            *o.descriptor,
                                                            *amaxO.descriptor,
                                                            *amaxS.descriptor,
@@ -311,8 +331,6 @@ void Solution::RunImpl(Handle& handle,
                                                descaleS.buffer,
                                                scaleS.buffer,
                                                scaleO.buffer,
-                                               mha_desc.GetScale(),
-                                               mha_desc.GetDropoutProbability(),
                                                o.buffer,
                                                amaxO.buffer,
                                                amaxS.buffer,
