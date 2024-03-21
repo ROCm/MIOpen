@@ -358,14 +358,14 @@ extern "C" __global__ void SoftMaxCommon(const float* in,
                                 0,
                                 seq_len,
                                 plus_op,
-                                [r_max](float x) { return expf(x - r_max); },
+                                [r_max, descaler](float x) { return expf(x * descaler - r_max); },
                                 lid,
                                 laneId,
                                 warpId);
 
         for(uint32_t loop_lid = lid; loop_lid < seq_len; loop_lid += blockDim.x)
         {
-            float local_val = expf(line[loop_lid] - r_max) * r_sum;
+            float local_val = expf(line[loop_lid] * descaler - r_max) * r_sum;
 
             // it is supposed to be maximum of absolut values
             // but after the exponent it is already non-negative
