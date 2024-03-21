@@ -77,12 +77,25 @@ protected:
                               scale_O,
                               multi_head_attention_fp8);
         Concat(multi_head_attention_fp8, concatinated_attention_fp8);
+
+        MultiHeadAttentionBackwardDataf32(q_val,
+                                          k_val,
+                                          v_val,
+                                          multi_head_attention, // o_val
+                                          dO_val,
+                                          q_dot_k_transpose,
+                                          softmax,
+                                          attn_max,
+                                          z_sum,
+                                          dQ_val,
+                                          dK_val,
+                                          dV_val);
     }
 
     void TearDown() override
     {
         tensor<T> attention_golden(final_transformed_attention.desc.GetLengths());
-        ExtractGoldenDataFromJson(json_attention_golden_data, attention_golden);
+        ExtractGoldenDataFromJson(json_attention_golden_data_fwd, attention_golden);
 
         double error     = miopen::rms_range(attention_golden, final_transformed_attention);
         double threshold = 1e-5;
@@ -160,6 +173,14 @@ protected:
         v_weights.generate(GenData<T>{});
 
         final_linear_transform_weights.generate(GenData<T>{});
+
+        // backward
+        dO_val = v_val;
+        dQ_val = dO_val;
+        dK_val = dO_val;
+        dV_val = dO_val;
+        dO_val.generate(GenData<T>{});
+        // backward
     }
 
     CPUMHATestCase cpu_mha_test_case;
@@ -204,6 +225,13 @@ protected:
     double s_scale;
     double v_scale;
     double scale_O;
+
+    // backward
+    tensor<T> dQ_val;
+    tensor<T> dK_val;
+    tensor<T> dV_val;
+    tensor<T> dO_val;
+    tensor<T> o_val;
 };
 
 } // namespace cpu

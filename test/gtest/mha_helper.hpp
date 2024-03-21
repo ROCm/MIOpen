@@ -121,10 +121,6 @@ template <typename T1, typename T2>
 void Dot_4D_4D_T(const tensor<T1>& A_mat, const tensor<T1>& B_mat, tensor<T2>& C_mat)
 {
     size_t k_val = A_mat.desc.GetLengths()[3];
-    if(k_val != B_mat.desc.GetLengths()[3])
-    {
-        std::cout << "jere\n";
-    }
     assert(k_val == B_mat.desc.GetLengths()[3]); // since transpose
 
     C_mat.par_for_each([&](size_t b_id, size_t h_id, size_t sl_id, size_t dk_id) {
@@ -143,10 +139,7 @@ void Dot_4D_T_4D(const tensor<T1>& A_mat, const tensor<T1>& B_mat, tensor<T2>& C
 {
     size_t k_val = A_mat.desc.GetLengths()[3];
     if(k_val != B_mat.desc.GetLengths()[3])
-    {
-        std::cout << "jere\n";
-    }
-    assert(k_val == B_mat.desc.GetLengths()[2]); // since transpose
+        assert(k_val == B_mat.desc.GetLengths()[2]); // since transpose
 
     C_mat.par_for_each([&](size_t b_id, size_t h_id, size_t sl_id, size_t dk_id) {
         double sum(0);
@@ -457,6 +450,44 @@ void MultiHeadAttentionf32(const tensor<T>& q_val,
 
     // O = (Q.dot(Kt)).dot(V)
     Dot_4D_4D(softmax, v_val, multi_head_attention);
+}
+
+template <typename T>
+void MultiHeadAttentionBackwardDataf32(const tensor<T>& q_val,
+                                       const tensor<T>& k_val,
+                                       const tensor<T>& v_val,
+                                       const tensor<T>& o_val, // attention
+                                       const tensor<T>& dO_val,
+                                       const tensor<T>& q_dot_k_transpose,
+                                       const tensor<T>& softmax,
+                                       const tensor<T>& attn_max,
+                                       const tensor<T>& z_sum,
+                                       tensor<T>& dQ_val,
+                                       tensor<T>& dK_val,
+                                       tensor<T>& dV_val)
+{
+    tensor<T> dO_dot_V_tranpsoe_val(q_dot_k_transpose.desc.GetLengths());
+    tensor<T> bwd_intermediate(q_dot_k_transpose.desc.GetLengths());
+    tensor<T> dO_pointwiseMul_o_val(dO_val.desc.GetLengths());
+    tensor<T> dO_pointwiseMul_o_val_rrsum(
+        {o_val.desc.GetLengths()[0], o_val.desc.GetLengths()[1], o_val.desc.GetLengths()[2], 1});
+
+    // dO x V
+    Dot_4D_4D_T(dO_val, v_val, dO_dot_V_tranpsoe_val);
+
+    PointWiseMultiply(dO_val, o_val, dO_pointwiseMul_o_val);
+    RowReductionSum(dO_pointwiseMul_o_val, dO_pointwiseMul_o_val_rrsum);
+    BroadCastSub(dO_dot_V_tranpsoe_val, dO_pointwiseMul_o_val_rrsum, bwd_intermediate);
+    PointWiseMultiply(bwd_intermediate, softmax, bwd_intermediate);
+
+    Dot_4D_T_4D(softmax, dO_val, dV_val);
+
+    // dO x O
+
+    // both dk and dQ
+    // finally
+    Dot_4D_4D(bwd_intermediate, k_val, dQ_val);
+    Dot_4D_T_4D(bwd_intermediate, q_val, dK_val);
 }
 
 template <typename T>
