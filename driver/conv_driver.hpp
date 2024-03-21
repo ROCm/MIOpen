@@ -258,7 +258,7 @@ public:
             return;
         }
 
-        for(int i = 0; i < sz; ++i)
+        for(size_t i = 0; i < sz; ++i)
         {
             /// \anchor move_rand
             /// Generate random value, even if buffer is unused. This provides the same
@@ -1659,7 +1659,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                 if(!biasFileName.empty())
                     read = readBufferFromFile<float>(b_int8.data(), b_sz, biasFileName.c_str());
                 if(!read)
-                    for(int i = 0; i < b_sz; i++)
+                    for(size_t i = 0; i < b_sz; ++i)
                         b_int8[i] = static_cast<float>(i % 8) + prng::gen_canonical<float>();
             }
             std::ignore = b.AllocOnDeviceAndInit(q, ctx, b_sz, b_int8);
@@ -1702,15 +1702,20 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
             if(!is_gpualloc)
             {
-                for(int i = 0; i < b_sz; i++)
+                for(size_t i = 0; i < b_sz; ++i)
                 {
                     if(!b_read)
                     {
-                        b.GetVector()[i] = static_cast<Tgpu>(i % 8)                         //
+                        /// (i % 8) can't be converted to F8 type as there is no suitable
+                        /// conversion, but we have conversions from int and from uint8_t.
+                        /// int is not good as it would produce negative results
+                        /// after truncation of size_t, while we want positive values.
+                        /// uint8_t is fine because (i % 8) fits into 3 bits.
+                        b.GetVector()[i] = static_cast<Tgpu>(static_cast<uint8_t>(i) % 8)   //
                                            + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) //
                                                      : prng::gen_canonical<Tgpu>());
                     }
-                    db.GetVector()[i] = static_cast<Tgpu>(i % 8)                         //
+                    db.GetVector()[i] = static_cast<Tgpu>(static_cast<uint8_t>(i) % 8)   //
                                         + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) //
                                                   : prng::gen_canonical<Tgpu>());
                 }
@@ -2515,7 +2520,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
         {
             auto out_tmp = tensor<Tgpu>(miopen::deref(outputTensor));
             out.CopyFromDeviceToHost(GetStream(), out_tmp);
-            for(int i = 0; i < out_tmp.data.size(); i++)
+            for(size_t i = 0; i < out_tmp.data.size(); ++i)
             {
                 outhost.data[i] = static_cast<Tref>(out_tmp.data[i]);
             }
@@ -3426,7 +3431,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsGPUReference()
         {
             auto dwei_tmp = tensor<Tgpu>(miopen::deref(weightTensor));
             dwei.CopyFromDeviceToHost(GetStream(), dwei_tmp);
-            for(int i = 0; i < dwei_tmp.data.size(); i++)
+            for(size_t i = 0; i < dwei_tmp.data.size(); ++i)
             {
                 dwei_host.data[i] = static_cast<Tref>(dwei_tmp.data[i]);
             }
@@ -3477,7 +3482,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
         {
             auto din_tmp = tensor<Tgpu>(miopen::deref(inputTensor));
             din.CopyFromDeviceToHost(GetStream(), din_tmp);
-            for(int i = 0; i < din_tmp.data.size(); i++)
+            for(size_t i = 0; i < din_tmp.data.size(); ++i)
             {
                 din_host.data[i] = static_cast<Tref>(din_tmp.data[i]);
             }
@@ -3532,6 +3537,10 @@ std::string ConvDriver<Tgpu, Tref>::GetVerificationCacheFileName(
         if(std::is_same<decltype(type), int8_t>::value)
         {
             return "int8";
+        }
+        if(std::is_same<decltype(type), int32_t>::value)
+        {
+            return "int32";
         }
         else if(std::is_same<decltype(type), float16>::value)
         {
