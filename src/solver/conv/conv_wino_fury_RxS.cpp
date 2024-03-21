@@ -278,9 +278,9 @@ ConvSolution
 ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
                                                    const ProblemDescription& problem) const
 {
-    const auto dev_name = ctx.GetStream().GetDeviceName();
-    const auto cu_count = ctx.GetStream().GetMaxHardwareComputeUnits();
-    const auto n_groups = GetNGroups(cu_count);
+    const auto dev_name         = ctx.GetStream().GetDeviceName();
+    const auto cu_count         = ctx.GetStream().GetMaxHardwareComputeUnits();
+    const auto n_groups         = GetNGroups(cu_count);
     const auto reduced_vgpr_mem = GpuHasReducedVGPRMem(dev_name);
 
     constexpr size_t wg_size = 384;
@@ -337,7 +337,9 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
     }
     else
     {
-        kernel_postfix += ShaderModel(ctx, args, cu_count, n_groups, reduced_vgpr_mem).IsC32ModePreferable() ? "_c32" : "_c16";
+        bool c32_mode =
+            ShaderModel(ctx, args, cu_count, n_groups, reduced_vgpr_mem).IsC32ModePreferable();
+        kernel_postfix += c32_mode ? "_c32" : "_c16";
     }
     kernel_postfix += "_stride1";
 
