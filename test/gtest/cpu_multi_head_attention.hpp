@@ -55,27 +55,37 @@ protected:
         Dot_3D_3D_T(word_position, v_weights, v_val);
 
         double sqr_dk = std::sqrt(q_val.desc.GetLengths()[3]);
-        ScaleToFP32(q_val, sqr_dk);
+        ScaleMult(q_val, 1.0 / sqr_dk, q_val);
 
         MultiHeadAttentionf32(
-            q_val, k_val, v_val, q_dot_k_transpose, rrm, zinv_tensors, atten_heads);
+            q_val, k_val, v_val, q_dot_k_transpose, softmax, attn_max, z_sum, multi_head_attention);
 
-        Concat(atten_heads, concatinated_O_val);
-        Dot_3D_2D_T(concatinated_O_val, final_linear_transform_weights, final_atten_heads);
+        Concat(multi_head_attention, concatinated_attention);
+        Dot_3D_2D_T(
+            concatinated_attention, final_linear_transform_weights, final_transformed_attention);
 
-        MultiHeadAttentionfp8(
-            q_val, k_val, v_val, q_dot_k_transpose, rrm, zinv_tensors, atten_heads_fp8);
-        Concat(atten_heads_fp8, concatinated_O_val_fp8);
+        MultiHeadAttentionfp8(q_val,
+                              k_val,
+                              v_val,
+                              q_dot_k_transpose,
+                              attn_max,
+                              q_scale,
+                              k_scale,
+                              aMax_S,
+                              s_scale,
+                              v_scale,
+                              scale_O,
+                              multi_head_attention_fp8);
+        Concat(multi_head_attention_fp8, concatinated_attention_fp8);
     }
 
     void TearDown() override
     {
-        tensor<T> attention_golden(final_atten_heads.desc.GetLengths());
+        tensor<T> attention_golden(final_transformed_attention.desc.GetLengths());
         ExtractGoldenDataFromJson(json_attention_golden_data, attention_golden);
-        // output_tensor_to_screen(q_val, "q_val", 4);
 
-        double error     = miopen::rms_range(attention_golden, final_atten_heads);
-        double threshold = 0.155;
+        double error     = miopen::rms_range(attention_golden, final_transformed_attention);
+        double threshold = 1e-5;
         EXPECT_TRUE(error < threshold)
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
     }
@@ -110,42 +120,39 @@ protected:
         k_val = q_val;
         v_val = q_val;
 
-        atten_heads                    = tensor<T>{cpu_mha_test_case.batch_size,
-                                cpu_mha_test_case.num_heads,
-                                cpu_mha_test_case.sequence_length,
-                                d_k};
-        final_linear_transform_weights = tensor<T>(std::vector<int>{
-            cpu_mha_test_case.problem_dimension, cpu_mha_test_case.problem_dimension});
-
-        concatinated_O_val = tensor<T>{std::vector<int>{
-            cpu_mha_test_case.batch_size,
-            cpu_mha_test_case.sequence_length,
-            cpu_mha_test_case.problem_dimension}}; // cpu_mha_test_case.num_heads*d_k
-        final_atten_heads  = concatinated_O_val;
-
-        concatinated_O_val_fp8 =
-            tensor<float8>{std::vector<int>{cpu_mha_test_case.batch_size,
-                                            cpu_mha_test_case.sequence_length,
-                                            cpu_mha_test_case.problem_dimension}};
-        atten_heads_fp8 = tensor<float8>{cpu_mha_test_case.batch_size,
+        multi_head_attention           = tensor<T>{cpu_mha_test_case.batch_size,
                                          cpu_mha_test_case.num_heads,
                                          cpu_mha_test_case.sequence_length,
                                          d_k};
+        final_linear_transform_weights = tensor<T>(std::vector<int>{
+            cpu_mha_test_case.problem_dimension, cpu_mha_test_case.problem_dimension});
+
+        concatinated_attention      = tensor<T>{std::vector<int>{
+            cpu_mha_test_case.batch_size,
+            cpu_mha_test_case.sequence_length,
+            cpu_mha_test_case.problem_dimension}}; // cpu_mha_test_case.num_heads*d_k
+        final_transformed_attention = concatinated_attention;
+
+        concatinated_attention_fp8 =
+            tensor<float8>{std::vector<int>{cpu_mha_test_case.batch_size,
+                                            cpu_mha_test_case.sequence_length,
+                                            cpu_mha_test_case.problem_dimension}};
+        multi_head_attention_fp8 = tensor<float8>{cpu_mha_test_case.batch_size,
+                                                  cpu_mha_test_case.num_heads,
+                                                  cpu_mha_test_case.sequence_length,
+                                                  d_k};
 
         q_dot_k_transpose = tensor<T>{cpu_mha_test_case.batch_size,
                                       cpu_mha_test_case.num_heads,
                                       cpu_mha_test_case.sequence_length,
                                       cpu_mha_test_case.sequence_length};
+        softmax           = q_dot_k_transpose;
         // reduce row max
-        rrm = tensor<T>{cpu_mha_test_case.batch_size,
-                        cpu_mha_test_case.num_heads,
-                        cpu_mha_test_case.sequence_length,
-                        1};
-        //
-        zinv_tensors = tensor<T>{cpu_mha_test_case.batch_size,
-                                 cpu_mha_test_case.num_heads,
-                                 cpu_mha_test_case.sequence_length,
-                                 1};
+        attn_max = tensor<T>{cpu_mha_test_case.batch_size,
+                             cpu_mha_test_case.num_heads,
+                             cpu_mha_test_case.sequence_length,
+                             1};
+        z_sum    = attn_max;
 
         word_position.generate(GenData<T>{});
         q_weights.generate(GenData<T>{});
@@ -157,32 +164,46 @@ protected:
 
     CPUMHATestCase cpu_mha_test_case;
 
+    // input
     tensor<T> word_position;
 
+    size_t d_k;
+
+    // weights
     tensor<T> q_weights;
     tensor<T> k_weights;
     tensor<T> v_weights;
+    // This for the final linear transformation
+    // of the attention.
     tensor<T> final_linear_transform_weights;
 
+    // QKV vectors
     tensor<T> q_val;
     tensor<T> k_val;
     tensor<T> v_val;
 
+    // softmax
     tensor<T> q_dot_k_transpose;
-    tensor<T> concatinated_O_val;
+    tensor<T> attn_max;
+    tensor<T> z_sum;
+    tensor<T> softmax;
 
-    // tensor<T> mask;
-    tensor<T> rrm;
-    tensor<T> zinv_tensors;
-    size_t d_k;
+    // attention
+    tensor<T> multi_head_attention;
+    tensor<float8> multi_head_attention_fp8;
 
-    tensor<T> atten_heads;
-    tensor<T> final_atten_heads;
+    tensor<T> concatinated_attention;
+    tensor<float8> concatinated_attention_fp8;
 
-    tensor<float8> concatinated_O_val_fp8;
-    tensor<float8> atten_heads_fp8;
+    tensor<T> final_transformed_attention;
 
-    // row reduction max
+    // scales
+    double q_scale;
+    double k_scale;
+    double aMax_S;
+    double s_scale;
+    double v_scale;
+    double scale_O;
 };
 
 } // namespace cpu
