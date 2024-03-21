@@ -803,6 +803,11 @@ if(MIOPEN_USE_COMGR)
     target_internal_library(MIOpen amd_comgr)
 endif()
 
+if(MIOPEN_OFFLINE_COMPILER_PATHS_V2)
+    # Adding rocm-core library dependency for API getROCmInstallPath()
+    target_link_libraries(MIOpen PRIVATE rocm-core)
+endif()
+
 if(rocblas_FOUND)
     target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:roc::rocblas> )
     target_link_libraries( MIOpen PRIVATE roc::rocblas )
