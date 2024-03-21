@@ -32,7 +32,7 @@
 \kernel_name:
 .endm
 
-.macro METADATA sc,wc,wg_x, kernel_name
+.macro METADATA sc, wc, wg_x, kernel_name
 .amdgpu_metadata
 ---
 amdhsa.version: [ 1, 2 ]
@@ -107,18 +107,17 @@ amdhsa.kernels:
     - { .size: 1, .offset: 203, .value_kind: hidden_none }
 
     - { .size: 4, .offset: 204, .value_kind: hidden_none }
-    - { .size: 8, .offset: 208, .value_kind: global_buffer, .name: filter_addr, .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 208, .value_kind: global_buffer, .name: sync_addr, .address_space: global, .is_const: false }
 ...
 .end_amdgpu_metadata
 .endm // METADATA
 
 .altmacro
-.macro METADATA_WRAPPER sc,wc,wg_x, kernel_name
+.macro METADATA_WRAPPER sc, wc, wg_x, kernel_name
     METADATA %\sc, %\wc, %\wg_x, \kernel_name
 .endm
 
 .macro kernel_end kernel_name
-s_endpgm
 .Lfunc_end0:
    .size \kernel_name, .Lfunc_end0 - \kernel_name
 .endm
@@ -128,7 +127,13 @@ s_endpgm
 kernel_end \kernel_name
 
 .if (.amdgcn.gfx_generation_number == 11)
-    vgpr_cnt = 252
+    .if ((.amdgcn.gfx_generation_minor == 0 && (.amdgcn.gfx_generation_stepping == 0 || .amdgcn.gfx_generation_stepping == 1)) || (.amdgcn.gfx_generation_minor == 5 && .amdgcn.gfx_generation_stepping == 1))
+        // gfx1100, gfx1101, gfx1151
+        vgpr_cnt = 252
+    .else
+        // gfx1102, gfx1103, gfx1150
+        vgpr_cnt = 168
+    .endif
     sgpr_cnt = 0 // 128 SGPRs always allocated for gfx10-gfx11
     workgroup_size_x = 384
 .endif
@@ -158,24 +163,16 @@ __dx10_clamp = 0
 .end_amdhsa_kernel
 .endif
 
-METADATA_WRAPPER sgpr_cnt,0,workgroup_size_x, <\kernel_name>
+METADATA_WRAPPER sgpr_cnt, 0, workgroup_size_x, <\kernel_name>
 
-.endm
-
-.macro PROLOG_KERNEL_DESCRIPTOR_WRAPPER machine_version, kernel_name_postfix
-    PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConvFury_v2_0_0_gfx\machine_version\()_\kernel_name_postfix
-.endm
-
-.macro EPILOG_KERNEL_DESCRIPTOR_WRAPPER machine_version, kernel_name_postfix
-    EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConvFury_v2_0_0_gfx\machine_version\()_\kernel_name_postfix
 .endm
 
 .macro KERNEL_PROLOG kernel_name_postfix
-	PROLOG_KERNEL_DESCRIPTOR_WRAPPER %.amdgcn.gfx_generation_number, \kernel_name_postfix
+    PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConvFury_v2_3_0_\kernel_name_postfix
 .endm
 
 .macro KERNEL_EPILOG kernel_name_postfix
-	EPILOG_KERNEL_DESCRIPTOR_WRAPPER %.amdgcn.gfx_generation_number, \kernel_name_postfix
+    EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConvFury_v2_3_0_\kernel_name_postfix
 .endm
 
 .if (.amdgcn.gfx_generation_number != 11)

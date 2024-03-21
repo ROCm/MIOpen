@@ -26,10 +26,10 @@
 
 #pragma once
 
-#include <miopen/conv/problem_description.hpp>
-
 namespace miopen {
 namespace conv {
+
+struct ProblemDescription;
 
 enum class WinoShaderFlagsV40 : uint64_t
 {

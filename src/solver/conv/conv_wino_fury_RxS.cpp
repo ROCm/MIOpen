@@ -96,11 +96,19 @@ bool IsShaderConstraintsMet(const WinoShaderArgsV40& args, uint32_t n_groups)
     return IsShaderConstraintsMetV2(args, n_groups);
 }
 
+bool GpuHasReducedVGPRMem(const std::string& dev_name)
+{
+    if(dev_name == "gfx1100" || dev_name == "gfx1101" || dev_name == "gfx1151")
+        return false;
+    return true;
+}
+
 class ShaderModel
 {
     const uint64_t N, C, K, R, S, oH, oW, G;
     const uint64_t n_groups;
     const uint32_t cu_count;
+    const bool reduced_vgpr;
 
     struct PerfModelInfo
     {
@@ -112,7 +120,8 @@ public:
     ShaderModel(const ExecutionContext& ctx,
                 const WinoShaderArgsV40& args,
                 uint32_t cu_cnt,
-                uint32_t n_grp)
+                uint32_t n_grp,
+                bool reduced_vgpr_mem)
         : N(args.N),
           C(args.C),
           K(args.K),
@@ -122,7 +131,8 @@ public:
           oW(args.out_w),
           G(args.G),
           n_groups(n_grp),
-          cu_count(cu_cnt)
+          cu_count(cu_cnt),
+          reduced_vgpr(reduced_vgpr_mem)
     {
         std::ignore = ctx;
     }
@@ -172,7 +182,7 @@ private:
         PerfModelInfo out;
         out.granularity_loss = static_cast<float>(macsg - macs) / macsg;
 
-        const uint64_t n_works_per_filter = 9;
+        const uint64_t n_works_per_filter = reduced_vgpr ? 5 : 10;
         const uint64_t f_relaods = c_loops == 1 ? 1 : DivCeil(n_works_per_cu, n_works_per_filter);
 
         const uint64_t ph_start  = c32_mode ? 4 : 6;
@@ -181,11 +191,12 @@ private:
         const uint64_t ph_filter = f_relaods * c_loops;
 
         // Constant parameters of the model valid for gfx1100. Values for other ASICs may be
-        // different.
-        const uint64_t clk_start  = c32_mode ? 2700 : 1650;
-        const uint64_t clk_accum  = c32_mode ? 2983 : 1681;
-        const uint64_t clk_activ  = c32_mode ? 3033 : 1733;
-        const uint64_t clk_filter = c32_mode ? 2700 : 1650;
+        // different, however as an approximate heuristic for choosing between C16 and C32
+        // modes it would be enough.
+        const uint64_t clk_start  = c32_mode ? 2600 : 1450;
+        const uint64_t clk_accum  = c32_mode ? 2938 : 1645;
+        const uint64_t clk_activ  = c32_mode ? 2989 : 1696;
+        const uint64_t clk_filter = c32_mode ? 2600 : 1450;
 
         out.predicted_clk = ph_start * clk_start + ph_accum * clk_accum + ph_activ * clk_activ +
                             ph_filter * clk_filter;
@@ -221,9 +232,7 @@ bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext&
         return false;
 
     const auto dev_name = ctx.GetStream().GetDeviceName();
-    // 1. The kernel has been tested on gfx1100.
-    // 2. It is supposed to run on other ASICs with the same type of CUs and 1536 VGPRs per SIMD.
-    if(!(dev_name == "gfx1100" || dev_name == "gfx1101" || dev_name == "gfx1151"))
+    if(!StartsWith(dev_name, "gfx11"))
         return false;
 
     if(problem.GetInLayout() != "NCHW")
@@ -272,6 +281,7 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
     const auto dev_name = ctx.GetStream().GetDeviceName();
     const auto cu_count = ctx.GetStream().GetMaxHardwareComputeUnits();
     const auto n_groups = GetNGroups(cu_count);
+    const auto reduced_vgpr_mem = GpuHasReducedVGPRMem(dev_name);
 
     constexpr size_t wg_size = 384;
 
@@ -296,13 +306,13 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
     }
 
     // Kernel name & file
-    const std::string kernel_version = "_v2_0_0";
+    const std::string kernel_version = "_v2_3_0";
     std::string kernel_name          = "miopenSp3AsmConvFury" + kernel_version;
     std::string kernel_file          = "Conv_Winograd_Fury" + kernel_version;
 
     if(StartsWith(dev_name, "gfx11"))
     {
-        kernel_name += "_gfx11";
+        kernel_name += reduced_vgpr_mem ? "_gfx1102" : "_gfx1100";
     }
     else
     {
@@ -321,8 +331,14 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
     }
 
     kernel_postfix += IS2X3 ? "_f2x3" : "_f3x2";
-    kernel_postfix +=
-        ShaderModel(ctx, args, cu_count, n_groups).IsC32ModePreferable() ? "_c32" : "_c16";
+    if(reduced_vgpr_mem)
+    {
+        kernel_postfix += "_c16"; // For ASICs with redused VGPR memory we have only one kernel
+    }
+    else
+    {
+        kernel_postfix += ShaderModel(ctx, args, cu_count, n_groups, reduced_vgpr_mem).IsC32ModePreferable() ? "_c32" : "_c16";
+    }
     kernel_postfix += "_stride1";
 
     kernel_name += kernel_postfix;
@@ -337,7 +353,7 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 #endif
-    // kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
+    kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
 
     kernel.l_wk.push_back(wg_size);
     kernel.l_wk.push_back(1);

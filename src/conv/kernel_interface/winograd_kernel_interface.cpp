@@ -27,6 +27,7 @@
 #include <miopen/conv/kernel_interface/winograd_kernel_interface.hpp>
 
 #include <miopen/buffer_info.hpp>
+#include <miopen/conv/problem_description.hpp>
 
 namespace miopen {
 namespace conv {

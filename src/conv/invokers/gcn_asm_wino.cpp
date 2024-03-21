@@ -26,6 +26,7 @@
 
 #include <miopen/conv/invokers/gcn_asm_wino.hpp>
 
+#include <miopen/conv_algo_name.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/handle.hpp>
@@ -34,10 +35,10 @@ namespace miopen {
 namespace conv {
 
 InvokerFactory MakeGcnAsmWinoV40InvokerFactory(const WinoShaderArgsV40& args,
-                                               conv::Direction direction,
+                                               Direction direction,
                                                std::size_t sync_buffer_size)
 {
-    const bool is_backWrW = (direction == conv::Direction::BackwardWeights);
+    const bool is_backWrW = (direction == Direction::BackwardWeights);
 
     return [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
