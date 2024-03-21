@@ -619,7 +619,7 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     int nseq              = inflags.GetValueInt("seq_len");
     std::vector<int> in_n = GetInputTensorLengthsFromCmdLine();
     std::size_t inputBatchLenSum;
-    inputBatchLenSum = std::accumulate(in_n.begin(), in_n.begin() + nseq, 0);
+    inputBatchLenSum = std::accumulate(in_n.begin(), in_n.begin() + nseq, 0ULL);
 
     int hid_h = inflags.GetValueInt("hid_h");
     int layer = inflags.GetValueInt("num_layer");
@@ -906,7 +906,7 @@ int RNNDriver<Tgpu, Tref>::RunForwardGPU()
 std::tuple<size_t, size_t>
 GetTempPackedBuffersSize(std::vector<int> batchs, int in_vec, int out_vec)
 {
-    size_t total_batch = std::accumulate(batchs.begin(), batchs.end(), 0);
+    size_t total_batch = std::accumulate(batchs.begin(), batchs.end(), 0ULL);
 
     size_t in_buff_size  = total_batch * in_vec;
     size_t out_buff_size = total_batch * out_vec;
