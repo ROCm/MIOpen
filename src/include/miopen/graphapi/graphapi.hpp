@@ -53,7 +53,7 @@ public:
     virtual void execute(miopenHandle_t handle, miopenBackendDescriptor_t variantPack);
     virtual Operation* getOperation();
 
-    bool getFinalised() const noexcept { return mFinalized; };
+    bool getFinalized() const noexcept { return mFinalized; };
 
 protected:
     bool mFinalized = false;
