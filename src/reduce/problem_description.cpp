@@ -38,7 +38,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     auto xlength = xDesc.GetLengths();
     std::vector<std::size_t> outputlength;
     if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN) ||
-       (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN))
+       (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX))
         outputlength = yDesc.GetLengths();
     else
         outputlength = indiceDesc.GetLengths();
