@@ -421,10 +421,10 @@ TEST_P(GraphApiConvolution, CFunctions)
 
     // Set compType
     bool allParamsSet = true;
-    char twoBytes[2] = {0, 0};
+    char buffer[64] = {0};
     status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_COMP_TYPE, MIOPEN_TYPE_BOOLEAN, 1, &compType);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_COMP_TYPE was set with invalid type";
-    status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_COMP_TYPE, MIOPEN_TYPE_DATA_TYPE, 2, twoBytes);
+    status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_COMP_TYPE, MIOPEN_TYPE_DATA_TYPE, 2, buffer);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_COMP_TYPE was set with invalid element count";
     status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_COMP_TYPE, MIOPEN_TYPE_DATA_TYPE, 1, nullptr);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_COMP_TYPE was set with null array of elements";
@@ -436,7 +436,7 @@ TEST_P(GraphApiConvolution, CFunctions)
     // Set mode
     status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_CONV_MODE, MIOPEN_TYPE_BOOLEAN, 1, &mode);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_CONV_MODE was set with invalid type";
-    status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_CONV_MODE, MIOPEN_TYPE_CONVOLUTION_MODE, 2, twoBytes);
+    status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_CONV_MODE, MIOPEN_TYPE_CONVOLUTION_MODE, 2, buffer);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_CONV_MODE was set with invalid element count";
     status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_CONV_MODE, MIOPEN_TYPE_CONVOLUTION_MODE, 1, nullptr);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_CONV_MODE was set with null array of elements";
@@ -448,7 +448,7 @@ TEST_P(GraphApiConvolution, CFunctions)
     // Set spatialDims
     status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS, MIOPEN_TYPE_BOOLEAN, 1, &spatialDims);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS was set with invalid type";
-    status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS, MIOPEN_TYPE_INT64, 2, twoBytes);
+    status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS, MIOPEN_TYPE_INT64, 2, buffer);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS was set with invalid element count";
     status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS, MIOPEN_TYPE_INT64, 1, nullptr);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS was set with null array of elements";
@@ -460,7 +460,7 @@ TEST_P(GraphApiConvolution, CFunctions)
     // Set dilations
     status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_DILATIONS, MIOPEN_TYPE_BOOLEAN, dilations.size(), dilations.data());
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_DILATIONS was set with invalid type";
-    status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_DILATIONS, MIOPEN_TYPE_INT64, 0, twoBytes);
+    status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_DILATIONS, MIOPEN_TYPE_INT64, 0, buffer);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_DILATIONS was set with invalid element count";
     status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_DILATIONS, MIOPEN_TYPE_INT64, dilations.size(), nullptr);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_COMP_TYPE was set with null array of elements";
@@ -472,7 +472,7 @@ TEST_P(GraphApiConvolution, CFunctions)
     // Set filterStrides
     status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES, MIOPEN_TYPE_BOOLEAN, filterStrides.size(), filterStrides.data());
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES was set with invalid type";
-    status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES, MIOPEN_TYPE_INT64, 0, twoBytes);
+    status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES, MIOPEN_TYPE_INT64, 0, buffer);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES was set with invalid element count";
     status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES, MIOPEN_TYPE_INT64, filterStrides.size(), nullptr);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES was set with null array of elements";
@@ -484,7 +484,7 @@ TEST_P(GraphApiConvolution, CFunctions)
     // Set prePaddings
     status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS, MIOPEN_TYPE_BOOLEAN, prePaddings.size(), prePaddings.data());
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS was set with invalid type";
-    status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS, MIOPEN_TYPE_INT64, 0, twoBytes);
+    status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS, MIOPEN_TYPE_INT64, 0, buffer);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS was set with invalid element count";
     status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS, MIOPEN_TYPE_INT64, prePaddings.size(), nullptr);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS was set with null array of elements";
@@ -496,7 +496,7 @@ TEST_P(GraphApiConvolution, CFunctions)
     // Set postPaddings
     status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_POST_PADDINGS, MIOPEN_TYPE_BOOLEAN, postPaddings.size(), postPaddings.data());
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_POST_PADDINGS was set with invalid type";
-    status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_POST_PADDINGS, MIOPEN_TYPE_INT64, 0, twoBytes);
+    status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_POST_PADDINGS, MIOPEN_TYPE_INT64, 0, buffer);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_POST_PADDINGS was set with invalid element count";
     status = miopenBackendSetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_POST_PADDINGS, MIOPEN_TYPE_INT64, postPaddings.size(), nullptr);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_POST_PADDINGS was set with null array of elements";
@@ -506,9 +506,9 @@ TEST_P(GraphApiConvolution, CFunctions)
     allParamsSet = allParamsSet && (status == miopenStatusSuccess);
 
     // Get attibute before finalizing
-    miopenDataType_t gotCompType;
+    miopenDataType_t gotCompType = miopenHalf;
     int64_t elementCount = 0;
-    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_COMP_TYPE, MIOPEN_TYPE_BOOLEAN, 1, &elementCount, &gotCompType);
+    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_COMP_TYPE, MIOPEN_TYPE_DATA_TYPE, 1, &elementCount, &gotCompType);
     if(status == miopenStatusSuccess)
     {
         miopenBackendDestroyDescriptor(descrConv);
@@ -532,7 +532,7 @@ TEST_P(GraphApiConvolution, CFunctions)
     {
         miopenBackendDestroyDescriptor(descrConv);
         ASSERT_NE(status, miopenStatusSuccess) << "MIOPEN_BACKEND_CONVOLUTION_DESCRIPTOR was finalized on invalid attributes";
-        return; // no need to continue with not finalized descriptor
+        return; // no need to continue with non-finalized descriptor
     }
 
     // Set Attributes after finalizing
@@ -560,8 +560,10 @@ TEST_P(GraphApiConvolution, CFunctions)
     // Get compType
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_COMP_TYPE, MIOPEN_TYPE_BOOLEAN, 1, &elementCount, &gotCompType);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_COMP_TYPE was retrieved with invalid type";
-    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_COMP_TYPE, MIOPEN_TYPE_DATA_TYPE, 2, &elementCount, twoBytes);
+    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_COMP_TYPE, MIOPEN_TYPE_DATA_TYPE, 2, &elementCount, buffer);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_COMP_TYPE was retrieved with invalid element count";
+    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_COMP_TYPE, MIOPEN_TYPE_DATA_TYPE, 1, nullptr, &gotCompType);
+    EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_COMP_TYPE was retrieved with null element count";
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_COMP_TYPE, MIOPEN_TYPE_DATA_TYPE, 1, &elementCount, nullptr);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_COMP_TYPE was retrieved with null array of elements";
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_COMP_TYPE, MIOPEN_TYPE_DATA_TYPE, 1, &elementCount, &gotCompType);
@@ -573,8 +575,10 @@ TEST_P(GraphApiConvolution, CFunctions)
     miopenConvolutionMode_t gotMode;
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_CONV_MODE, MIOPEN_TYPE_BOOLEAN, 1, &elementCount, &gotMode);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_CONV_MODE was retrieved with invalid type";
-    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_CONV_MODE, MIOPEN_TYPE_CONVOLUTION_MODE, 2, &elementCount, twoBytes);
+    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_CONV_MODE, MIOPEN_TYPE_CONVOLUTION_MODE, 2, &elementCount, buffer);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_CONV_MODE was retrieved with invalid element count";
+    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_CONV_MODE, MIOPEN_TYPE_CONVOLUTION_MODE, 1, nullptr, &gotMode);
+    EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_CONV_MODE was retrieved with null element count";
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_CONV_MODE, MIOPEN_TYPE_CONVOLUTION_MODE, 1, &elementCount, nullptr);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_CONV_MODE was retrieved with null array of elements";
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_CONV_MODE, MIOPEN_TYPE_CONVOLUTION_MODE, 1, &elementCount, &gotMode);
@@ -586,8 +590,10 @@ TEST_P(GraphApiConvolution, CFunctions)
     int64_t gotSpatialDims = 0;
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS, MIOPEN_TYPE_BOOLEAN, 1, &elementCount, &gotSpatialDims);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS was retrieved with invalid type";
-    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS, MIOPEN_TYPE_INT64, 2, &elementCount, twoBytes);
+    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS, MIOPEN_TYPE_INT64, 2, &elementCount, buffer);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS was retrieved with invalid element count";
+    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS, MIOPEN_TYPE_INT64, 1, nullptr, &gotSpatialDims);
+    EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS was retrieved with null element count";
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS, MIOPEN_TYPE_INT64, 1, &elementCount, nullptr);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS was retrieved with null array of elements";
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS, MIOPEN_TYPE_INT64, 1, &elementCount, &gotSpatialDims);
@@ -599,8 +605,10 @@ TEST_P(GraphApiConvolution, CFunctions)
     std::vector<int64_t> gotDilations {dilations.size(), 0};
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_DILATIONS, MIOPEN_TYPE_BOOLEAN, gotDilations.size(), &elementCount, gotDilations.data());
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_DILATIONS was retrieved with invalid type";
-    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_DILATIONS, MIOPEN_TYPE_INT64, 0, &elementCount, twoBytes);
+    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_DILATIONS, MIOPEN_TYPE_INT64, 0, &elementCount, buffer);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_DILATIONS was retrieved with invalid element count";
+    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_DILATIONS, MIOPEN_TYPE_INT64, gotDilations.size(), nullptr, gotDilations.data());
+    EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_DILATIONS was retrieved with null element count";
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_DILATIONS, MIOPEN_TYPE_INT64, gotDilations.size(), &elementCount, nullptr);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_DILATIONS was retrieved with null array of elements";
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_DILATIONS, MIOPEN_TYPE_INT64, gotDilations.size(), &elementCount, gotDilations.data());
@@ -612,8 +620,10 @@ TEST_P(GraphApiConvolution, CFunctions)
     std::vector<int64_t> gotFilterStrides {filterStrides.size(), 0};
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES, MIOPEN_TYPE_BOOLEAN, gotFilterStrides.size(), &elementCount, gotFilterStrides.data());
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES was retrieved with invalid type";
-    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES, MIOPEN_TYPE_INT64, 0, &elementCount, twoBytes);
+    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES, MIOPEN_TYPE_INT64, 0, &elementCount, buffer);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES was retrieved with invalid element count";
+    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES, MIOPEN_TYPE_INT64, gotFilterStrides.size(), nullptr, gotFilterStrides.data());
+    EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES was retrieved with null element count";
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES, MIOPEN_TYPE_INT64, gotFilterStrides.size(), &elementCount, nullptr);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES was retrieved with null array of elements";
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES, MIOPEN_TYPE_INT64, gotFilterStrides.size(), &elementCount, gotFilterStrides.data());
@@ -625,8 +635,10 @@ TEST_P(GraphApiConvolution, CFunctions)
     std::vector<int64_t> gotPrePaddings {prePaddings.size(), 0};
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS, MIOPEN_TYPE_BOOLEAN, gotPrePaddings.size(), &elementCount, gotPrePaddings.data());
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS was retrieved with invalid type";
-    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS, MIOPEN_TYPE_INT64, 0, &elementCount, twoBytes);
+    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS, MIOPEN_TYPE_INT64, 0, &elementCount, buffer);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS was retrieved with invalid element count";
+    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS, MIOPEN_TYPE_INT64, gotPrePaddings.size(), nullptr, gotPrePaddings.data());
+    EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS was retrieved with null element count";
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS, MIOPEN_TYPE_INT64, gotPrePaddings.size(), &elementCount, nullptr);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS was retrieved with null array of elements";
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS, MIOPEN_TYPE_INT64, gotPrePaddings.size(), &elementCount, gotPrePaddings.data());
@@ -638,8 +650,10 @@ TEST_P(GraphApiConvolution, CFunctions)
     std::vector<int64_t> gotPostPaddings {postPaddings.size(), 0};
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_POST_PADDINGS, MIOPEN_TYPE_BOOLEAN, gotPostPaddings.size(), &elementCount, gotPostPaddings.data());
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_POST_PADDINGS was retrieved with invalid type";
-    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_POST_PADDINGS, MIOPEN_TYPE_INT64, 0, &elementCount, twoBytes);
+    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_POST_PADDINGS, MIOPEN_TYPE_INT64, 0, &elementCount, buffer);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_POST_PADDINGS was retrieved with invalid element count";
+    status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_POST_PADDINGS, MIOPEN_TYPE_INT64, gotPostPaddings.size(), nullptr, gotPostPaddings.data());
+    EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_POST_PADDINGS was retrieved with null element count";
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_POST_PADDINGS, MIOPEN_TYPE_INT64, gotPostPaddings.size(), &elementCount, nullptr);
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_POST_PADDINGS was retrieved with null array of elements";
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_POST_PADDINGS, MIOPEN_TYPE_INT64, gotPostPaddings.size(), &elementCount, gotPostPaddings.data());
@@ -679,7 +693,7 @@ INSTANTIATE_TEST_SUITE_P(
             false, miopenInt8, miopenConvolution, 2, {1, 1}, {1, 1}, {0, 0}, {0, -1}}));
 
 template <typename T>
-class GraphApiOperationConvolution : public testing::Test
+class GraphApiOperationConvolutionBuilder : public testing::Test
 {
 protected:
     using TestCase = std::tuple<bool,
@@ -710,14 +724,14 @@ protected:
     std::array<TestCase, 5> testCases;
 };
 
-using GraphApiOperationConvolutionClasses =
+using GraphApiOperationConvolutionBuilderClasses =
     testing::Types<miopen::graphapi::OperationConvolutionForwardBuilder,
                    miopen::graphapi::OperationConvolutionBackwardDataBuilder,
                    miopen::graphapi::OperationConvolutionBackwardFilterBuilder>;
 
-TYPED_TEST_SUITE(GraphApiOperationConvolution, GraphApiOperationConvolutionClasses);
+TYPED_TEST_SUITE(GraphApiOperationConvolutionBuilder, GraphApiOperationConvolutionBuilderClasses);
 
-TYPED_TEST(GraphApiOperationConvolution, BuilderValidateAttributes)
+TYPED_TEST(GraphApiOperationConvolutionBuilder, ValidateAttributes)
 {
     for(auto [attrsValid, convolution, x, y, w, message] : this->testCases)
     {
@@ -751,7 +765,7 @@ TYPED_TEST(GraphApiOperationConvolution, BuilderValidateAttributes)
     }
 }
 
-TYPED_TEST(GraphApiOperationConvolution, BuilderMissingSetter)
+TYPED_TEST(GraphApiOperationConvolutionBuilder, MissingSetter)
 {
     for(auto [attrsValid, convolution, x, y, w, message] : this->testCases)
     {
