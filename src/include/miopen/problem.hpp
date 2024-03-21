@@ -31,6 +31,7 @@
 #include <miopen/activ.hpp>
 #include <miopen/allocator.hpp>
 #include <miopen/convolution.hpp>
+#include <miopen/softmax.hpp>
 #include <miopen/object.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/tensor.hpp>
@@ -59,13 +60,17 @@ namespace conv {
 struct ProblemDescription;
 } // namespace conv
 
+namespace softmax {
+struct ProblemDescription;
+} // namespace softmax
+
 struct BiasDescriptor
 {
 };
 
 // The order of types is important for deserialization and should be preserved between releases.
 using OperatorDescriptor =
-    boost::variant<ConvolutionDescriptor, ActivationDescriptor, BiasDescriptor>;
+    boost::variant<ConvolutionDescriptor, ActivationDescriptor, BiasDescriptor, SoftmaxDescriptor>;
 
 struct Problem
 {
@@ -99,6 +104,7 @@ struct Problem
 
     conv::ProblemDescription AsConvolution() const;
     activ::ProblemDescription AsActivation() const;
+    softmax::ProblemDescription AsSoftmax() const;
 
     [[nodiscard]] miopenTensorArgumentId_t GetInputId() const;
     [[nodiscard]] miopenTensorArgumentId_t GetOutputId() const;
@@ -154,6 +160,12 @@ private:
                                             std::size_t max_solutions,
                                             const Buffers& buffers,
                                             const ConvolutionDescriptor& conv_desc) const;
+
+    std::vector<Solution> FindSolutionsImpl(Handle& handle,
+                                            const FindOptions& options,
+                                            std::size_t max_solutions,
+                                            const Buffers& buffers,
+                                            const SoftmaxDescriptor& softmax_desc) const;
 
     void LogDriverCommand(const ConvolutionDescriptor& conv_desc) const;
     void LogDriverCommand(const ActivationDescriptor& descriptor) const;

@@ -74,9 +74,9 @@ struct InvokeParams : public miopen::InvokeParams
                  Data_t dx_,
                  miopenSoftmaxAlgorithm_t algorithm_,
                  miopenSoftmaxMode_t mode_,
-                 int y_offset_,
-                 int dy_offset_,
-                 int dx_offset_)
+                 int y_offset_  = 0,
+                 int dy_offset_ = 0,
+                 int dx_offset_ = 0)
         : algorithm(algorithm_),
           mode(mode_),
 

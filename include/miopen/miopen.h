@@ -346,6 +346,11 @@ MIOPEN_DECLARE_OBJECT(miopenDropoutDescriptor);
  */
 MIOPEN_DECLARE_OBJECT(miopenReduceTensorDescriptor);
 
+/*! @ingroup softmax
+ * @brief Creates the miopenSoftmaxDescriptor_t type
+ */
+MIOPEN_DECLARE_OBJECT(miopenSoftmaxDescriptor);
+
 /*! @ingroup tensor
  * @enum miopenDataType_t
  * MIOpen floating point datatypes. Both 32-bit and 16-bit floats are supported in MIOpen.
@@ -5313,7 +5318,12 @@ typedef enum
     miopenTensorBiasX        = 8,
     miopenTensorBiasY        = 9,
     miopenTensorBias         = 10,
+    miopenTensorSoftmaxX     = 11,
+    miopenTensorSoftmaxY     = 12,
+    miopenTensorSoftmaxDX    = 13,
+    miopenTensorSoftmaxDY    = 14,
 #endif
+
 } miopenTensorArgumentId_t;
 
 /*! @enum miopenTensorArgumentId_t
@@ -5335,6 +5345,48 @@ typedef enum
 MIOPEN_EXPORT miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
                                                      miopenConvolutionDescriptor_t operatorDesc,
                                                      miopenProblemDirection_t direction);
+
+/*! @brief Creates the Softmax descriptor object
+ *
+ * @param softmaxDesc Pointer to an softmax descriptor type
+ * @return            miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenCreateSoftmaxDescriptor(miopenSoftmaxDescriptor_t* softmaxDesc);
+
+/*! @brief Sets the softmax descriptor details
+ *
+ * Sets all of the descriptor details for the softmax layer
+ *
+ * @param softmaxDesc  Pointer to a softmax layer descriptor
+ * @param alpha        Softmax alpha parameter
+ * @param beta         Softmax beta parameter
+ * @param algorithm    Softmax algorithm
+ * @param mode         Softmax mode
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetSoftmaxDescriptor(miopenSoftmaxDescriptor_t softmaxDesc,
+                                                        float alpha,
+                                                        float beta,
+                                                        miopenSoftmaxAlgorithm_t algorithm,
+                                                        miopenSoftmaxMode_t mode);
+
+/*! @brief Gets the softmax layer descriptor details
+ *
+ * Retrieves all of the descriptor details for the softmax layer.
+ *
+ * @param softmaxDesc   Pointer to a softmax layer descriptor (input)
+ * @param alpha         Softmax alpha parameter (output)
+ * @param beta          Softmax beta parameter (output)
+ * @param algorithm     Softmax algorithm (output)
+ * @param mode          Softmax mode (output)
+ * @return              miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetSoftmaxDescriptor(const miopenSoftmaxDescriptor_t softmaxDesc,
+                                                        float* alpha,
+                                                        float* beta,
+                                                        miopenSoftmaxAlgorithm_t* algorithm,
+                                                        miopenSoftmaxMode_t* mode);
 
 /*! @brief Destroys a problem object.
  *
@@ -5595,6 +5647,18 @@ MIOPEN_EXPORT miopenStatus_t miopenFuseProblems(miopenProblem_t problem1, miopen
  */
 MIOPEN_EXPORT miopenStatus_t miopenCreateBiasProblem(miopenProblem_t* problem,
                                                      miopenProblemDirection_t direction);
+
+/*! @brief Initializes a problem object describing a softmax operation.
+ *
+ * @param problem      Pointer to the problem to initialize
+ * @param operatorDesc Descriptor of the operator to be used
+ * @param direction    Direction of the operation
+ * @return             miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenCreateSoftmaxProblem(miopenProblem_t* problem,
+                                                        miopenSoftmaxDescriptor_t operatorDesc,
+                                                        miopenProblemDirection_t direction);
 
 #endif
 
