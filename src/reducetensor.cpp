@@ -718,9 +718,9 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
     float alphaVal = (srcDataType == miopenDouble)
                          ? static_cast<float>(*reinterpret_cast<const double*>(alpha))
                          : *reinterpret_cast<const float*>(alpha);
-    float betaVal = (srcDataType == miopenDouble)
-                        ? static_cast<float>(*reinterpret_cast<const double*>(beta))
-                        : *reinterpret_cast<const float*>(beta);
+    float betaVal  = (srcDataType == miopenDouble)
+                         ? static_cast<float>(*reinterpret_cast<const double*>(beta))
+                         : *reinterpret_cast<const float*>(beta);
 
     if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_DYNAMIC_REDUCTION)))
     { // use static reduction
