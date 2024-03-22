@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_SOFTMAX_HPP_
-#define MIOPEN_SOFTMAX_HPP_
+#ifndef MIOPEN_MHADESCRIPTOR_HPP_
+#define MIOPEN_MHADESCRIPTOR_HPP_
 
 #include <miopen/common.hpp>
 #include <miopen/miopen.h>
@@ -59,4 +59,4 @@ private:
 
 MIOPEN_DEFINE_OBJECT(miopenMHADescriptor, miopen::MHADescriptor);
 
-#endif // _MIOPEN_SOFTMAX_HPP_
+#endif // MIOPEN_MHADESCRIPTOR_HPP_
