@@ -267,7 +267,7 @@ int AdamDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("maximize", 'm', "0", "whether to use the maximize (Default=0)", "int");
 
     inflags.AddInputFlag("amp", 'p', "0", "auto mixed pricision (Default=0)", "int");
-    inflags.AddInputFlag("scale", 's', "1", "grad scale factor (Default=1)", "int");
+    inflags.AddInputFlag("scale", 's', "65536", "grad scale factor (Default=65536)", "int");
     inflags.AddInputFlag("found_inf", 'f', "0", "found inf in grad (Default=0)", "int");
 
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
@@ -333,7 +333,11 @@ int AdamDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         exp_avg_sq[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
 
         if(amp)
+        {
             grad[i] *= grad_scale;
+            if(std::isnan(grad[i]))
+                std::cerr << "Error init (grad), idx: " << i << ", value: " << grad[i] << std::endl;
+        }
 
         param_host[i]      = param[i];
         exp_avg_host[i]    = exp_avg[i];

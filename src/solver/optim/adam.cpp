@@ -82,31 +82,45 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
         kernel.kernel_name = problem.IsAmp() ? "AmpAdamPacked" : "AdamPacked";
 
         result.construction_params.push_back(kernel);
+
+        if(problem.IsAmp())
+        {
+            auto update_step_kernel = kernel;
+
+            update_step_kernel.l_wk[0]     = 1;
+            update_step_kernel.g_wk[0]     = 1;
+            update_step_kernel.kernel_name = "AmpAdamUpdateStep";
+
+            result.construction_params.push_back(update_step_kernel);
+        }
     }
 
     if(problem.IsAmp())
     {
         result.invoker_factory = [numel](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-                decltype(auto) kernel = handle_.Run(kernels.front());
-                decltype(auto) params = raw_params.CastTo<miopen::adam::InvokeParams>();
+                decltype(auto) kernel_adam = handle_.Run(kernels[0]);
+                decltype(auto) kernel_step = handle_.Run(kernels[1]);
+                decltype(auto) params      = raw_params.CastTo<miopen::adam::InvokeParams>();
 
-                kernel(params.param,
-                       params.grad,
-                       params.expAvg,
-                       params.expAvgSq,
-                       params.maxExpAvgSq,
-                       params.gradScale,
-                       params.foundInf,
-                       params.step,
-                       params.lr,
-                       params.beta1,
-                       params.beta2,
-                       params.weight_decay,
-                       params.eps,
-                       params.amsgrad,
-                       params.maximize,
-                       numel);
+                kernel_adam(params.param,
+                            params.grad,
+                            params.expAvg,
+                            params.expAvgSq,
+                            params.maxExpAvgSq,
+                            params.gradScale,
+                            params.foundInf,
+                            params.step,
+                            params.lr,
+                            params.beta1,
+                            params.beta2,
+                            params.weight_decay,
+                            params.eps,
+                            params.amsgrad,
+                            params.maximize,
+                            numel);
+
+                kernel_step(params.foundInf, params.step);
             };
         };
     }
