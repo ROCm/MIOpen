@@ -4631,7 +4631,7 @@ private:
 };
 
 struct PerformanceConfigHipImplicitGemm3DGroupWrwXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemm3DGroupWrwXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemm3DGroupWrwXdlops>
 {
     int index;
     std::string kernel_id;
@@ -4712,7 +4712,7 @@ private:
 };
 
 struct PerformanceConfigHipImplicitGemm3DGroupBwdXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemm3DGroupBwdXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemm3DGroupBwdXdlops>
 {
     int index;
     std::string kernel_id;
@@ -4793,7 +4793,7 @@ private:
 };
 
 struct PerformanceConfigHipImplicitGemmGroupBwdXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemmGroupBwdXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmGroupBwdXdlops>
 {
     int index;
     std::string kernel_id;
@@ -4873,7 +4873,7 @@ private:
 };
 
 struct PerformanceConfigHipImplicitGemmGroupWrwXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemmGroupWrwXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmGroupWrwXdlops>
 {
     int index;
     std::string kernel_id;
@@ -5025,7 +5025,7 @@ private:
 };
 
 struct PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops>
 {
     int index;
     std::string kernel_id;
@@ -5102,7 +5102,7 @@ private:
 };
 
 struct PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops>
 {
     int index;
     std::string kernel_id;
