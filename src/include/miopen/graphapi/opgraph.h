@@ -4,6 +4,8 @@
 #include <vector>
 #include <unordered_map>
 
+#include <cassert>
+
 namespace miopen {
 
 namespace graphapi {
@@ -17,65 +19,98 @@ namespace internal {
   bool contains(const C& container, const typename C::value_type& val) noexcept {
     return std::find(container.cbegin(), container.cend(), val) != container.cend();
   }
-}
+} // end namespace internal
 
-class OpNode {
+
+class OpGraphBuilder;
+class OpGraph;
+
+struct OpNode {
+
+  using Edge = std::pair<OpNode*, TensorDescriptorEx*>;
+
+  friend class OpGraphBuilder;
+  friend class OpGraph;
 
 protected:
-  void addInTensor(const TensorDescriptorEx* tensor);
 
-public:
-  bool hasInTensor(const TensorDescriptorEx* tensor) {
-    return internal::contains(mInputTensors, tensor);
-  }
+  virtual const std::string& SignName() const = 0;
 
-  bool hasOutTensor(const TensorDescriptorEx* tensor) {
-    return internal::contains(mOutputTensors, tensor);
-  }
+  const auto& iterateInTensors() const { return mInTensors; }
 
-  bool hasOutNeighbor(OpNode* dst) const { 
-    return internal::contains(mOutNeighbors, dst);
-  }
+  const auto& iterateOutTensors() const { return mOutTensors; }
 
-  bool hasInNeighbor(OpNode* src) const { 
-    return internal::contains(mInNeighbors, src);
-  }
+  const auto& iterateInEdges() const { return mInEdges; }
 
-  const auto& iterateInTensors() const { return mInputTensors; }
-
-  const auto& iterateOutTensors() const { return mOutputTensors; }
-
-  const auto& iterateInNeighbors() const { return mInNeighbors; }
-
-  const auto& iterateOutNeighbors() const { return mOutNeighbors; }
-
+  const auto& iterateOutEdges() const { return mOutEdges; }
   
-  void addOutNeighbor(OpNode* dst) {
+  void addInTensor(TensorDescriptorEx* tens_ptr) {
+    assert(!hasInTensor(tens_ptr));
+    mInTensors.emplace_back(tens_ptr);
+  }
+  
+  void addOutTensor(TensorDescriptorEx* tens_ptr) {
+    assert(!hasOutTensor(tens_ptr));
+    mOutTensors.emplace_back(tens_ptr);
+  }
+
+  bool hasInTensor(TensorDescriptorEx* tensor) const {
+    return internal::contains(mInTensors, tensor);
+  }
+
+  bool hasOutTensor(TensorDescriptorEx* tensor) const {
+    return internal::contains(mOutTensors, tensor);
+  }
+
+  bool hasInEdge(OpNode* src, TensorDescriptorEx* tens_ptr) const { 
+    Edge e{src, tens_ptr};
+    return internal::contains(mInEdges, e);
+  }
+
+  bool hasOutEdge(OpNode* dst, TensorDescriptorEx* tens_ptr) const { 
+    Edge e{dst, tens_ptr};
+    return internal::contains(mOutEdges, e);
+  }
+
+  void addOutEdge(OpNode* dst, TensorDescriptorEx* tens_ptr) {
     assert(dst);
-    if (!hasOutNeighbor(dst)) {
-      mOutNeighbors.emplace_back(dst);
+    Edge e{dst, tens_ptr};
+    if (!hasOutEdge(e)) {
+      mOutEdges.emplace_back(e);
     }
   }
 
-  void addInNeighbor(OpNode* src) {
+  void addInEdge(OpNode* src, TensorDescriptorEx* tens_ptr) {
     assert(src);
-    if (!hasInNeighbor(src)) {
-      mInNeighbors.emplace_back(src);
+    Edge e{src, tens_ptr};
+    if (!hasInEdge(e)) {
+      mInEdges.emplace_back(e);
     }
   }
 
 private:
 
+  // NOTE(Amber): We could implement the iterate{In,Out}Tensors, 
+  // has{In,Out}Tensor has pure virtual functions that derived classes must
+  // override and thus avoid duplicating tensor pointers in this class by
+  // eliminating the vectors below.
 
-  std::vector<TensorDescriptorEx*> mInputTensors;
-  std::vector<TensorDescriptorEx*> mOutputTensors;
+  std::vector<TensorDescriptorEx*> mInTensors;
+  std::vector<TensorDescriptorEx*> mOutTensors;
 
-  std::vector<OpNode*> mInNeighbors;
-  std::vector<OpNode*> mOutNeighbors;
+  std::vector<Edge> mInEdges;
+  std::vector<Edge> mOutEdges;
 
 };
 
-class OpGraphBuilder;
+using OpEdge = OpNode::Edge;
+
+class SourceOpNode: public OpNode {
+};
+
+class SinkOpNode: public OpNode {
+};
+
 
 class OpGraph {
 
@@ -85,24 +120,38 @@ public:
     return std::find(nodes.cbegin(), nodes.cend(), n) != nodes.cend();
   }
 
+  bool hasEdge(OpNode* src, TensorDescriptorEx* tens_ptr, OpNode* dst) const {
+    assert(src);
+    assert(dst);
+    return src->hasOutEdge(dst, tens_ptr) && dst->hasInEdge(src, tens_ptr);
+  }
+
 private:
 
   friend class OpGraphBuilder;
 
-  void addNode(OpNode* n) {
-    assert(!hasNode(n));
-    nodes.emplace_back(n);
+  void addNodes(std::vector<OpNode*>&& nodes) {
+    mNodes = std::move(nodes);
   }
 
-  void addEdge(OpNode* src, OpNode* dst) {
+  void addEdge(OpNode* src, TensorDescriptorEx* tens_ptr, OpNode* dst) {
     assert(src);
     assert(dst);
-    src->addOutNeighbor(dst);
-    dst->addInNeighbor(src);
+    src->addOutEdge(dst, tens_ptr);
+    dst->addInEdge(src, tens_ptr);
   }
 
+  void addEdgeFromSrc(OpNode* dst, TensorDescriptorEx* tens_ptr) {
+    addEdge(&mSrcNode, tens_ptr, dst);
+  }
 
-  std::vector<OpNode*> nodes;
+  void addEdgeToSink(OpNode* src, TensorDescriptorEx* tens_ptr) {
+    addEdge(src, tens_ptr, &mSinkNode);
+  }
+
+  SourceOpNode mSrcNode{};
+  SinkOpNode mSinkNode{};
+  std::vector<OpNode*> mNodes{};
 
 };
 
@@ -134,8 +183,6 @@ public:
 
     for (OpNode* n: mNodes) {
 
-      graph.addNode(n);
-
       for (TensorDescriptorEx* i: mNodes->iterateInTensors()) {
         auto [iter, _ignore] = e_map.emplace(i); // add empty EdgeInfo if not present
 
@@ -151,13 +198,14 @@ public:
       }
     }
 
+    graph.addNodes(mNodes);
+
 
     for (const auto& [tens_ptr, edge_info]: e_map) {
 
-
       if (edge_info.mSrc != nullptr && !edge_info.mDests.empty()) {
         for (const auto& d : edge_info.mDests) {
-          graph.addEdge(edge_info.mSrc, d);
+          graph.addEdge(edge_info.mSrc, tens_ptr, d);
         }
       } else if (edge_info.mSrc == nullptr) {
 
@@ -168,13 +216,13 @@ public:
         // NOTE(Amber): we may take out this step if we decide not to add a source
         // and sink in the graph
         for (const auto& d : edge_info.mDests) {
-          graph.addEdgeFromSrc(d);
+          graph.addEdgeFromSrc(d, tens_ptr);
         }
       } else if (edge_info.mDests.empty()) {
         // tens_ptr is a non-virtual output tensor
         assert(!tens_ptr->isVirtual());
         assert(edge_info.mSrc != nullptr);
-        graph.addEdgeToSink(edge_info.mSrc);
+        graph.addEdgeToSink(edge_info.mSrc, tens_ptr);
       } else {
         // both can't be true at the same time
         assert(!(edge_info.mSrc == nullptr && edge_info.mDests.empty())); 
@@ -191,13 +239,6 @@ private:
 };
 
 
-
-
-void ConstructGraph
-
-
-
 } // end namespace graphapi
-
 
 } // end namespace miopen
