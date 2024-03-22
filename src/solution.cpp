@@ -126,14 +126,11 @@ void Solution::LogDriverCommand(const ActivationDescriptor& desc) const
 void Solution::LogDriverCommand(const Problem& problem_) const
 {
     boost::apply_visitor(
-        boost::hof::match([&](const BiasDescriptor&) { /* \todo: think on how to log bias */ },
-                          [&](const MHADescriptor&) { /* \todo: think on how to log softmax */ },
-                          [&](const auto& op_desc) { LogDriverCommand(op_desc); },
         boost::hof::match(
             [&](const BiasDescriptor&) { /* \todo: think on how to log bias */ },
+            [&](const MHADescriptor&) { /* \todo: think on how to log mha */ },
             [&](const SoftmaxDescriptor&) { /* \todo: think on how to log softmax */ },
             [&](const auto& op_desc) { LogDriverCommand(op_desc); }),
-
         problem_.GetOperatorDescriptor());
 }
 

@@ -336,7 +336,7 @@ mha::ProblemDescription Problem::AsMHA(const Buffers& buffers) const
 
     return {mhaInputDescsForward};
 }
-  
+
 softmax::ProblemDescription Problem::AsSoftmax() const
 {
     const auto& softmax_desc = boost::get<SoftmaxDescriptor>(operator_descriptor);
@@ -572,7 +572,7 @@ Problem::FindSolutionsImpl(Handle& handle,
 
     return ret;
 }
-  
+
 std::vector<Solution>
 Problem::FindSolutionsImpl(Handle& handle,
                            [[maybe_unused]] const FindOptions& options,
@@ -625,7 +625,7 @@ Problem::FindSolutionsImpl(Handle& handle,
     }
 
     return ret;
-}  
+}
 
 void Problem::ValidateGroupCount(const TensorDescriptor& xDesc,
                                  const TensorDescriptor& wDesc,

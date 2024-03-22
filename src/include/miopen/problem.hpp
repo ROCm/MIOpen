@@ -71,8 +71,11 @@ struct BiasDescriptor
 };
 
 // The order of types is important for deserialization and should be preserved between releases.
-using OperatorDescriptor =
-    boost::variant<ConvolutionDescriptor, ActivationDescriptor, BiasDescriptor, SoftmaxDescriptor, MHADescriptor>;
+using OperatorDescriptor = boost::variant<ConvolutionDescriptor,
+                                          ActivationDescriptor,
+                                          BiasDescriptor,
+                                          SoftmaxDescriptor,
+                                          MHADescriptor>;
 
 struct Problem
 {
@@ -169,7 +172,7 @@ private:
                                             std::size_t max_solutions,
                                             const Buffers& buffers,
                                             const MHADescriptor& mha_desc) const;
-  
+
     std::vector<Solution> FindSolutionsImpl(Handle& handle,
                                             const FindOptions& options,
                                             std::size_t max_solutions,

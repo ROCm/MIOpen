@@ -89,7 +89,6 @@ miopenStatus_t miopenCreateBiasProblem(miopenProblem_t* problem, miopenProblemDi
     });
 }
 
-
 miopenStatus_t miopenCreateMHAProblem(miopenProblem_t* problem,
                                       miopenMHADescriptor_t operatorDesc,
                                       miopenProblemDirection_t direction)
