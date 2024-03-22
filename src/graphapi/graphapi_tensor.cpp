@@ -260,8 +260,8 @@ void BackendTensorDescriptor::getAttribute(miopenBackendAttributeName_t attribut
             std::copy_n(dimensions.begin(),
                         // WORKAROUND: building on Windows is failing due to conflicting definitions
                         // of std::min() between the MSVC standard library and HIP Clang wrappers.
-                        *elementCount < requestedElementCount ? *elementCount :
-                                                                requestedElementCount,
+                        *elementCount < requestedElementCount ? *elementCount
+                                                              : requestedElementCount,
                         static_cast<int64_t*>(arrayOfElements));
             return;
         }
@@ -278,8 +278,8 @@ void BackendTensorDescriptor::getAttribute(miopenBackendAttributeName_t attribut
             std::copy_n(strides.begin(),
                         // WORKAROUND: building on Windows is failing due to conflicting definitions
                         // of std::min() between the MSVC standard library and HIP Clang wrappers.
-                        *elementCount < requestedElementCount ? *elementCount :
-                                                              requestedElementCount,
+                        *elementCount < requestedElementCount ? *elementCount
+                                                              : requestedElementCount,
                         static_cast<int64_t*>(arrayOfElements));
             return;
         }
