@@ -55,7 +55,8 @@ enum class Primitive
     Normalization,
     Reduce,
     Cat,
-    MHA
+    MHA,
+    Softmax
 };
 
 struct MIOPEN_EXPORT Id

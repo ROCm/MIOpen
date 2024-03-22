@@ -89,9 +89,18 @@ miopenStatus_t miopenCreateBiasProblem(miopenProblem_t* problem, miopenProblemDi
     });
 }
 
+
 miopenStatus_t miopenCreateMHAProblem(miopenProblem_t* problem,
                                       miopenMHADescriptor_t operatorDesc,
                                       miopenProblemDirection_t direction)
+{
+    MIOPEN_LOG_FUNCTION(problem, direction);
+    return MakeProblem(problem, operatorDesc, direction);
+}
+
+miopenStatus_t miopenCreateSoftmaxProblem(miopenProblem_t* problem,
+                                          miopenSoftmaxDescriptor_t operatorDesc,
+                                          miopenProblemDirection_t direction)
 {
     MIOPEN_LOG_FUNCTION(problem, direction);
     return MakeProblem(problem, operatorDesc, direction);
@@ -288,6 +297,10 @@ inline std::ostream& operator<<(std::ostream& stream, const miopenTensorArgument
     case miopenTensorMHAAmaxS: stream << "MHAAmaxS"; break;
     case miopenTensorMHAM: stream << "MHAM"; break;
     case miopenTensorMHAZInv: stream << "MHAZInv"; break;
+    case miopenTensorSoftmaxX: stream << "SoftmaxX"; break;
+    case miopenTensorSoftmaxY: stream << "SoftmaxY"; break;
+    case miopenTensorSoftmaxDX: stream << "SoftmaxDX"; break;
+    case miopenTensorSoftmaxDY: stream << "SoftmaxDY"; break;
 
     case miopenTensorArgumentIdInvalid: stream << "Invalid"; break;
     }
