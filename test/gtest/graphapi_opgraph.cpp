@@ -31,13 +31,46 @@
 
 namespace gr = miopen::graphapi;
 
+template <bool IsVirtual>
+gr::Tensor makeDummyTensor(char name[8]) {
+  int64_t id = 0;
+  std::copy(name, name+8, reinterpret_cast<char*>(&id));
+
+  return gr::TensorBuilder{}.
+    setDataType(miopenFloat).
+    setDim({1}).
+    setStride({1}).
+    setId(id).
+    setVirtual(IsVirtual).
+    build();
+
+}
+
 struct DummyNode: public gr::OpNode {
-  std::string name;
-  // TODO: add in and out tensors
+  std::string mName;
+  std::vector<Tensor*> mInTensors;
+  std::vector<Tensor*> mOutTensors;
 
   DummyNode(
+      const char* name, 
+      std::initializer_list<Tensor*> ins,
+      std::initializer_list<Tensor*> outs)
+    :
+      mName(name),
+      mInTensors(ins),
+      mOutTensors(outs)
+  {}
 
-  virtual const std::string& SignName() const override { return name; }
+  const std::string& SignName() const final { return mName; }
+
+  std::vector<gr::Tensor*> getInTensors() const final {
+    return mInTensors;
+  }
+
+  std::vector<Tensor*> getOutTensors() const final {
+    return mOutTensors;
+  }
+
 };
 
 TEST(GraphAPI, BuildDiamond) {
@@ -60,13 +93,20 @@ TEST(GraphAPI, BuildDiamond) {
    *       v
   */
 
+  auto t_in = makeDummyTensor<false>("t_in");
+  auto t_out = makeDummyTensor<false>("t_out");
+
+  auto t_a = makeDummyTensor<true>("t_a");
+  auto t_b = makeDummyTensor<true>("t_b");
+  auto t_c = makeDummyTensor<true>("t_c");
+  auto t_d = makeDummyTensor<true>("t_d");
+
   gr::OpGraphBuilder graph_builder;
 
   DummyNode top{"top"};
   DummyNode left{"left"};
   DummyNode right{"right"};
   DummyNode bottom{"bottom"};
-
 
   graph_builder.addNode(&top);
   graph_builder.addNode(&left);

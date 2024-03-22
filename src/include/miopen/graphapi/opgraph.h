@@ -1,5 +1,7 @@
 #pragma once
 
+#include <miopen/graphapi/graphapi_tensor.hpp>
+
 #include <algorithm>
 #include <vector>
 #include <unordered_map>
@@ -9,10 +11,6 @@
 namespace miopen {
 
 namespace graphapi {
-
-class TensorDescriptorEx; // TODO(Amber): may need to remove
-
-
 
 namespace internal {
   template <typename C>
@@ -27,7 +25,7 @@ class OpGraph;
 
 struct OpNode {
 
-  using Edge = std::pair<OpNode*, TensorDescriptorEx*>;
+  using Edge = std::pair<OpNode*, Tensor*>;
 
   friend class OpGraphBuilder;
   friend class OpGraph;
@@ -36,43 +34,29 @@ protected:
 
   virtual const std::string& SignName() const = 0;
 
-  const auto& iterateInTensors() const { return mInTensors; }
+  virtual std::vector<Tensor*> getInTensors() const = 0;
 
-  const auto& iterateOutTensors() const { return mOutTensors; }
+  virtual std::vector<Tensor*> getOutTensors() const = 0;
+
+  /*
+
+  */
 
   const auto& iterateInEdges() const { return mInEdges; }
 
   const auto& iterateOutEdges() const { return mOutEdges; }
-  
-  void addInTensor(TensorDescriptorEx* tens_ptr) {
-    assert(!hasInTensor(tens_ptr));
-    mInTensors.emplace_back(tens_ptr);
-  }
-  
-  void addOutTensor(TensorDescriptorEx* tens_ptr) {
-    assert(!hasOutTensor(tens_ptr));
-    mOutTensors.emplace_back(tens_ptr);
-  }
 
-  bool hasInTensor(TensorDescriptorEx* tensor) const {
-    return internal::contains(mInTensors, tensor);
-  }
-
-  bool hasOutTensor(TensorDescriptorEx* tensor) const {
-    return internal::contains(mOutTensors, tensor);
-  }
-
-  bool hasInEdge(OpNode* src, TensorDescriptorEx* tens_ptr) const { 
+  bool hasInEdge(OpNode* src, Tensor* tens_ptr) const { 
     Edge e{src, tens_ptr};
     return internal::contains(mInEdges, e);
   }
 
-  bool hasOutEdge(OpNode* dst, TensorDescriptorEx* tens_ptr) const { 
+  bool hasOutEdge(OpNode* dst, Tensor* tens_ptr) const { 
     Edge e{dst, tens_ptr};
     return internal::contains(mOutEdges, e);
   }
 
-  void addOutEdge(OpNode* dst, TensorDescriptorEx* tens_ptr) {
+  void addOutEdge(OpNode* dst, Tensor* tens_ptr) {
     assert(dst);
     Edge e{dst, tens_ptr};
     if (!hasOutEdge(e)) {
@@ -80,7 +64,7 @@ protected:
     }
   }
 
-  void addInEdge(OpNode* src, TensorDescriptorEx* tens_ptr) {
+  void addInEdge(OpNode* src, Tensor* tens_ptr) {
     assert(src);
     Edge e{src, tens_ptr};
     if (!hasInEdge(e)) {
@@ -95,8 +79,10 @@ private:
   // override and thus avoid duplicating tensor pointers in this class by
   // eliminating the vectors below.
 
-  std::vector<TensorDescriptorEx*> mInTensors;
-  std::vector<TensorDescriptorEx*> mOutTensors;
+  /*
+  std::vector<Tensor*> mInTensors;
+  std::vector<Tensor*> mOutTensors;
+  */
 
   std::vector<Edge> mInEdges;
   std::vector<Edge> mOutEdges;
@@ -106,9 +92,66 @@ private:
 using OpEdge = OpNode::Edge;
 
 class SourceOpNode: public OpNode {
+protected:
+    
+  friend class OpGraph;
+
+  const std::string& SignName() const final { 
+    static const std::string s =  "INTERNAL::SRC"; 
+    return s;
+  }
+
+  std::vector<Tensor*> getInTensors() const final {
+    return {};
+  }
+
+  std::vector<Tensor*> getOutTensors() const final {
+    return mOutTensors;
+  }
+
+  bool hasOutTensor(Tensor* tensor) const {
+    return internal::contains(mOutTensors, tensor);
+  }
+
+  void addOutTensor(Tensor* tens_ptr) {
+    assert(!hasOutTensor(tens_ptr));
+    mOutTensors.emplace_back(tens_ptr);
+  }
+
+private:
+
+  std::vector<Tensor*> mOutTensors;
 };
 
 class SinkOpNode: public OpNode {
+protected:
+
+  friend class OpGraph;
+
+  const std::string& SignName() const final { 
+    static const std::string s =  "INTERNAL::SINK"; 
+    return s;
+  }
+
+  std::vector<Tensor*> getInTensors() const final {
+    return mInTensors;
+  }
+
+  std::vector<Tensor*> getOutTensors() const final {
+    return {};
+  }
+
+  bool hasInTensor(Tensor* tensor) const {
+    return internal::contains(mInTensors, tensor);
+  }
+
+  void addInTensor(Tensor* tens_ptr) {
+    assert(!hasInTensor(tens_ptr));
+    mInTensors.emplace_back(tens_ptr);
+  }
+  
+  std::vector<Tensor*> mInTensors;
+
 };
 
 
@@ -117,10 +160,10 @@ class OpGraph {
 public:
 
   bool hasNode(OpNode* n) const {
-    return std::find(nodes.cbegin(), nodes.cend(), n) != nodes.cend();
+    return internal::contains(mNodes, n);
   }
 
-  bool hasEdge(OpNode* src, TensorDescriptorEx* tens_ptr, OpNode* dst) const {
+  bool hasEdge(OpNode* src, Tensor* tens_ptr, OpNode* dst) const {
     assert(src);
     assert(dst);
     return src->hasOutEdge(dst, tens_ptr) && dst->hasInEdge(src, tens_ptr);
@@ -134,18 +177,20 @@ private:
     mNodes = std::move(nodes);
   }
 
-  void addEdge(OpNode* src, TensorDescriptorEx* tens_ptr, OpNode* dst) {
+  void addEdge(OpNode* src, Tensor* tens_ptr, OpNode* dst) {
     assert(src);
     assert(dst);
     src->addOutEdge(dst, tens_ptr);
     dst->addInEdge(src, tens_ptr);
   }
 
-  void addEdgeFromSrc(OpNode* dst, TensorDescriptorEx* tens_ptr) {
+  void addEdgeFromSrc(OpNode* dst, Tensor* tens_ptr) {
+    mSrcNode.addOutTensor(tens_ptr);
     addEdge(&mSrcNode, tens_ptr, dst);
   }
 
-  void addEdgeToSink(OpNode* src, TensorDescriptorEx* tens_ptr) {
+  void addEdgeToSink(OpNode* src, Tensor* tens_ptr) {
+    mSinkNode.addInTensor(tens_ptr);
     addEdge(src, tens_ptr, &mSinkNode);
   }
 
@@ -161,7 +206,7 @@ class OpGraphBuilder {
 public:
 
   bool hasNode(OpNode* node) const { 
-    return std::find(mNodes.cbegin(), mNodes.cend(), node) != mNodes.cend();
+    return internal::contains(mNodes, node);
   }
 
   void addNode(OpNode* node) {
@@ -179,26 +224,26 @@ public:
     OpGraph graph;
 
     // key = tensor ptr, value = vec. of dest nodes
-    std::unordered_map<TensorDescriptorEx*, EdgeInfo> e_map;
+    std::unordered_map<Tensor*, EdgeInfo> e_map;
 
     for (OpNode* n: mNodes) {
 
-      for (TensorDescriptorEx* i: mNodes->iterateInTensors()) {
+      for (Tensor* i: n->getInTensors()) {
         auto [iter, _ignore] = e_map.emplace(i); // add empty EdgeInfo if not present
 
         iter->second.mDests.emplace_back(n);
 
       }
 
-      for (TensorDescriptorEx* o: mNodes->iterateOutTensors()) {
-        auto [iter, _ignore] = e_map.emplace(i); // add empty EdgeInfo if not present
+      for (Tensor* o: n->getOutTensors()) {
+        auto [iter, _ignore] = e_map.emplace(o); // add empty EdgeInfo if not present
                                                
         assert(iter->second.mSrc == nullptr);
         iter->second.mSrc = n;
       }
     }
 
-    graph.addNodes(mNodes);
+    graph.addNodes(std::move(mNodes));
 
 
     for (const auto& [tens_ptr, edge_info]: e_map) {
