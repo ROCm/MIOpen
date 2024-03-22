@@ -79,8 +79,6 @@ using OperatorDescriptor = boost::variant<ConvolutionDescriptor,
 
 struct Problem
 {
-    using Buffers = std::unordered_map<miopenTensorArgumentId_t, Data_t>;
-
     friend struct FusedProblem;
 
     Problem() = default;
@@ -111,7 +109,7 @@ struct Problem
 
     conv::ProblemDescription AsConvolution() const;
     activ::ProblemDescription AsActivation() const;
-    mha::ProblemDescription AsMHA(const Buffers& buffers) const;
+    mha::ProblemDescription AsMHA() const;
     softmax::ProblemDescription AsSoftmax() const;
 
     [[nodiscard]] miopenTensorArgumentId_t GetInputId() const;
@@ -157,6 +155,8 @@ struct Problem
     friend void from_json(const nlohmann::json& j, Problem& problem);
 
 private:
+    using Buffers = std::unordered_map<miopenTensorArgumentId_t, Data_t>;
+
     miopenProblemDirection_t direction = miopenProblemDirectionForward;
     std::unordered_map<miopenTensorArgumentId_t, TensorDescriptor> tensor_descriptors;
     OperatorDescriptor operator_descriptor;

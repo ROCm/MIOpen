@@ -54,10 +54,6 @@ struct MHAInputDescsForward
     TensorDescriptor dropoutSeedDesc;
     TensorDescriptor dropoutOffsetDesc;
 
-    ConstData_t dropoutProbabilityData;
-    ConstData_t dropoutSeedData;
-    ConstData_t dropoutOffsetData;
-
     // output tensors
     TensorDescriptor oDesc;
     TensorDescriptor amaxODesc;
@@ -82,6 +78,10 @@ struct MHADataForward
     ConstData_t descaleSData;
     ConstData_t scaleSData;
     ConstData_t scaleOData;
+
+    ConstData_t dropoutProbabilityData;
+    ConstData_t dropoutSeedData;
+    ConstData_t dropoutOffsetData;
 
     // output tensors
     Data_t oData;

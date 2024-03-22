@@ -269,14 +269,7 @@ void Solution::RunImpl(Handle& handle,
         return ret;
     };
 
-    Problem::Buffers buffers;
-
-    for(auto& input : inputs)
-    {
-        buffers[input.first] = input.second.buffer;
-    }
-
-    const mha::ProblemDescription problem_description = problem_casted.AsMHA(buffers);
+    const mha::ProblemDescription problem_description = problem_casted.AsMHA();
 
     const auto invoke_ctx = [&]() -> AnyInvokeParams {
         switch(problem_casted.GetDirection())
@@ -320,9 +313,6 @@ void Solution::RunImpl(Handle& handle,
                                                            *dropoutProbability.descriptor,
                                                            *dropoutSeed.descriptor,
                                                            *dropoutOffset.descriptor,
-                                                           dropoutProbability.buffer,
-                                                           dropoutSeed.buffer,
-                                                           dropoutOffset.buffer,
 
                                                            *o.descriptor,
                                                            *amaxO.descriptor,
@@ -339,6 +329,9 @@ void Solution::RunImpl(Handle& handle,
                                                descaleS.buffer,
                                                scaleS.buffer,
                                                scaleO.buffer,
+                                               dropoutProbability.buffer,
+                                               dropoutSeed.buffer,
+                                               dropoutOffset.buffer,
                                                o.buffer,
                                                amaxO.buffer,
                                                amaxS.buffer,

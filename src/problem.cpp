@@ -287,7 +287,7 @@ activ::ProblemDescription Problem::AsActivation() const
     }
 }
 
-mha::ProblemDescription Problem::AsMHA(const Buffers& buffers) const
+mha::ProblemDescription Problem::AsMHA() const
 {
     const auto& mha_desc = boost::get<MHADescriptor>(operator_descriptor);
 
@@ -295,16 +295,6 @@ mha::ProblemDescription Problem::AsMHA(const Buffers& buffers) const
     {
         MIOPEN_THROW(miopenStatusNotImplemented, "MHA Backward is not currently implemented!");
     }
-
-    const auto get_buffer_checked = [&](auto name, const std::string& name_str) {
-        const auto it = buffers.find(name);
-        if(it == buffers.end())
-        {
-            MIOPEN_THROW(miopenStatusInvalidValue,
-                         "buffer for tensor " + name_str + " is missing.");
-        }
-        return it->second;
-    };
 
     mha::MHAInputDescsForward mhaInputDescsForward = {
         GetTensorDescriptorChecked(miopenTensorMHAK, "miopenTensorMHAK"),
@@ -322,10 +312,6 @@ mha::ProblemDescription Problem::AsMHA(const Buffers& buffers) const
                                    "miopenTensorMHADropoutProbability"),
         GetTensorDescriptorChecked(miopenTensorMHADropoutSeed, "miopenTensorMHADropoutSeed"),
         GetTensorDescriptorChecked(miopenTensorMHADropoutOffset, "miopenTensorMHADropoutOffset"),
-
-        get_buffer_checked(miopenTensorMHADropoutProbability, "miopenTensorMHADropoutProbability"),
-        get_buffer_checked(miopenTensorMHADropoutSeed, "miopenTensorMHADropoutSeed"),
-        get_buffer_checked(miopenTensorMHADropoutOffset, "miopenTensorMHADropoutOffset"),
 
         GetTensorDescriptorChecked(miopenTensorMHAO, "miopenTensorMHAO"),
         GetTensorDescriptorChecked(miopenTensorMHAAmaxO, "miopenTensorMHAAmaxO"),
@@ -584,7 +570,7 @@ Problem::FindSolutionsImpl(Handle& handle,
 
     auto ctx = ExecutionContext{&handle};
 
-    const mha::ProblemDescription problem_description = AsMHA(buffers);
+    const mha::ProblemDescription problem_description = AsMHA();
 
     const auto algo = AlgorithmName{"MHA"};
 
