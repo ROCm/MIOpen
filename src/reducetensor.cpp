@@ -37,7 +37,7 @@
 
 #include <cassert>
 #include <cstddef>
-#include <cstdint>
+#include <memory>
 #include <algorithm>
 #include <cmath>
 #include <ostream>
@@ -1033,8 +1033,8 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                                        std::to_string(static_cast<int>(use_padding.second));
 
         int alignment            = 64;
-        Data_t workspace_aligned = reinterpret_cast<Data_t>(
-            (reinterpret_cast<uintptr_t>(workspace) + alignment - 1) / alignment * alignment);
+        Data_t workspace_aligned = std::align(
+            alignment, workspaceSizeInBytes - alignment, workspace, workspaceSizeInBytes);
 
         if(!reduceAllDims)
         {
