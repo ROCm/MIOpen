@@ -242,11 +242,11 @@ int AdamDriver<Tgpu, Tref>::GetandSetData()
     SetTensorNd(expAvgSqDesc, param_len, data_type);
     if(amsgrad)
         SetTensorNd(maxExpAvgSqDesc, param_len, data_type);
-    SetTensorNd(stepDesc, one_size, data_type);
+    SetTensorNd(stepDesc, one_size, miopenInt32);
     if(amp)
     {
-        SetTensorNd(gradScaleDesc, one_size, data_type);
-        SetTensorNd(foundInfDesc, one_size, data_type);
+        SetTensorNd(gradScaleDesc, one_size, miopenInt32);
+        SetTensorNd(foundInfDesc, one_size, miopenInt32);
     }
 
     return 0;
@@ -264,11 +264,11 @@ int AdamDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("eps", 'e', "0.00000001", "eps (Default=0.00000001)", "float");
     inflags.AddInputFlag("weight_decay", 'd', "0", "weight decay (Default=0)", "float");
     inflags.AddInputFlag("amsgrad", 'a', "0", "whether to use the AMSGrad (Default=0)", "int");
-    inflags.AddInputFlag("maximize", 'm', "0", "whether to use the AMSGrad (Default=0)", "int");
+    inflags.AddInputFlag("maximize", 'm', "0", "whether to use the maximize (Default=0)", "int");
 
     inflags.AddInputFlag("amp", 'p', "0", "auto mixed pricision (Default=0)", "int");
     inflags.AddInputFlag("scale", 's', "1", "grad scale factor (Default=1)", "int");
-    inflags.AddInputFlag("found_inf", 'f', "0", "grad scale factor (Default=0)", "int");
+    inflags.AddInputFlag("found_inf", 'f', "0", "found inf in grad (Default=0)", "int");
 
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");

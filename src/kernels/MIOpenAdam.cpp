@@ -158,7 +158,7 @@ extern "C" __global__ void AmpAdamPacked(FLOAT* params,
     if(lid == 0)
     {
         found_inf = (inf_found) ? *inf_found : false;
-        if(found_inf)
+        if(!found_inf)
         {
             scale_factor = (grad_scale) ? *grad_scale : 1.0f;
             step_val     = *step + 1;
