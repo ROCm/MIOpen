@@ -76,7 +76,11 @@ Metadata::Metadata(const std::string& arch)
       features_mean(common::LookupValues<std::string, float>(
           features, json["stats"]["overall"]["features"]["mean"])),
       features_std(common::LookupValues<std::string, float>(
-          features, json["stats"]["overall"]["features"]["std"]))
+          features, json["stats"]["overall"]["features"]["std"])),
+      test_features_mean(common::LookupValues<std::string, float>(
+          features, json["stats"]["test"]["features"]["mean"])),
+      test_features_std(common::LookupValues<std::string, float>(
+          features, json["stats"]["test"]["features"]["std"]))
 {
 }
 
@@ -435,7 +439,7 @@ protected:
 
         // normalize
         for(size_t i = 0; i < features.size(); ++i)
-            features[i] = (features[i] - metadata.features_mean[i]) / metadata.features_std[i];
+            features[i] = (features[i] - metadata.test_features_mean[i]) / metadata.test_features_std[i];
 
         return features;
     }
