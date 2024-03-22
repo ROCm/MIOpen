@@ -131,9 +131,12 @@ inline size_t getSuperTensorSize(const std::vector<int>& bs,
                                  bool isInput,
                                  bool isPadded)
 {
-    return static_cast<size_t>(isPadded ? seqLength * maxPaddingVal
-                                        : std::accumulate(bs.begin(), bs.end(), 0ULL)) *
-           static_cast<size_t>(isInput ? inputSize : hiddenSize * (isBidirect ? 2 : 1));
+    return (isPadded //
+                ? static_cast<size_t>(seqLength) * maxPaddingVal
+                : std::accumulate(bs.begin(), bs.end(), 0ULL)) //
+           * (isInput                                          //
+                  ? static_cast<size_t>(inputSize)
+                  : static_cast<size_t>(hiddenSize) * (isBidirect ? 2 : 1));
 }
 
 template <typename Tgpu>
