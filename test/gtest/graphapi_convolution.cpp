@@ -27,9 +27,11 @@
 #include <miopen/miopen.h>
 #include <miopen/graphapi/graphapi_convolution.hpp>
 
-#include <vector>
+#include <algorithm>
 #include <cstdint>
+#include <memory>
 #include <tuple>
+#include <vector>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -836,3 +838,1286 @@ TYPED_TEST(GraphApiOperationConvolutionBuilder, MissingSetter)
               "setBeta() call";
     }
 }
+
+namespace miopen {
+
+namespace graphapi {
+
+struct GTestDescAttr
+{
+    struct TestCase
+    {
+        const char* textName;
+        miopenBackendAttributeName_t name;
+        miopenBackendAttributeType_t type;
+        int64_t count;
+        void* data;
+
+        miopenBackendAttributeType_t invalidType;
+        void* invalidTypeData;
+
+        int64_t invalidCount;
+        void* invalidCountData;
+
+        void* readBuffer;
+    };
+
+    GTestDescAttr() = default;
+    GTestDescAttr(const TestCase& testCase) : mTestCase(testCase) {}
+
+    TestCase testCase() const { return mTestCase; }
+    virtual bool testReadBuffer() = 0;
+
+    virtual ~GTestDescAttr() = default;
+
+protected:
+    TestCase mTestCase;
+};
+
+template <typename ValueType, typename InvalidType>
+struct GTestDescAttrValues : GTestDescAttr
+{
+    GTestDescAttrValues(const char* textName,
+                        miopenBackendAttributeName_t name,
+                        miopenBackendAttributeType_t type,
+                        miopenBackendAttributeType_t invalidType,
+                        int64_t invalidCount,
+                        std::initializer_list<ValueType> values)
+        : mValues(values),
+          mInvalidTypeValues(std::max(1ul, values.size())),
+          mInvalidCountValues(std::max(1l, invalidCount),
+                              values.size() > 0 ? *values.begin() : ValueType{}),
+          mReadValues(values.size())
+    {
+        mTestCase.textName = textName;
+        mTestCase.name     = name;
+        mTestCase.type     = type;
+        mTestCase.count    = mValues.size();
+        mTestCase.data     = mValues.data();
+
+        mTestCase.invalidType     = invalidType;
+        mTestCase.invalidTypeData = mInvalidTypeValues.data();
+
+        mTestCase.invalidCount     = invalidCount;
+        mTestCase.invalidCountData = mInvalidCountValues.data();
+
+        mTestCase.readBuffer = mReadValues.data();
+    }
+    virtual bool testReadBuffer() override
+    {
+        return std::equal(mValues.begin(), mValues.end(), mReadValues.begin());
+    }
+
+private:
+    std::vector<ValueType> mValues;
+    std::vector<InvalidType> mInvalidTypeValues;
+    std::vector<ValueType> mInvalidCountValues;
+    std::vector<ValueType> mReadValues;
+};
+
+struct GTestDescriptor
+{
+    const char* textName;
+    miopenBackendDescriptorType_t type;
+    bool attrsValid;
+    std::vector<std::shared_ptr<GTestDescAttr>> attributes;
+};
+
+} // namespace graphapi
+
+} // namespace miopen
+
+namespace {
+
+using miopen::graphapi::GTestDescAttrValues;
+using miopen::graphapi::GTestDescriptor;
+using GTestAttrAlphaDouble = GTestDescAttrValues<double, char>;
+using GTestAttrAlphaFloat  = GTestDescAttrValues<float, char>;
+
+struct GTestAttrConv : GTestDescAttrValues<miopenBackendDescriptor_t, char>
+{
+    GTestAttrConv(const char* textName,
+                  miopenBackendAttributeName_t name,
+                  bool finalized = true,
+                  bool nullValue = false)
+        : GTestDescAttrValues<miopenBackendDescriptor_t, char>(
+              textName,
+              name,
+              MIOPEN_TYPE_BACKEND_DESCRIPTOR,
+              MIOPEN_TYPE_CHAR,
+              0,
+              std::initializer_list<miopenBackendDescriptor_t>{nullValue ? nullptr : &mConv}),
+          mConv(finalized)
+    {
+    }
+
+private:
+    // TODO: Use GMOCK instead of manual overriding the behavior of
+    //       the base class
+    struct Descr : miopen::graphapi::BackendConvolutionDescriptor
+    {
+        Descr(bool finalized) { mFinalized = finalized; }
+    };
+    Descr mConv;
+};
+
+struct GTestAttrTensor : GTestDescAttrValues<miopenBackendDescriptor_t, char>
+{
+    GTestAttrTensor(const char* textName,
+                    miopenBackendAttributeName_t name,
+                    bool finalized = true,
+                    bool nullValue = false)
+        : GTestDescAttrValues<miopenBackendDescriptor_t, char>(
+              textName,
+              name,
+              MIOPEN_TYPE_BACKEND_DESCRIPTOR,
+              MIOPEN_TYPE_CHAR,
+              0,
+              std::initializer_list<miopenBackendDescriptor_t>{nullValue ? nullptr : &mTens}),
+          mTens(finalized)
+    {
+    }
+
+private:
+    // TODO: Use GMOCK instead of manual overriding the behavior of
+    //       the base class
+    struct Descr : miopen::graphapi::BackendTensorDescriptor
+    {
+        Descr(bool finalized) { mFinalized = finalized; }
+    };
+    Descr mTens;
+};
+
+} // namespace
+
+class GraphApiOperationConvolution : public testing::TestWithParam<GTestDescriptor>
+{
+};
+
+TEST_P(GraphApiOperationConvolution, CFuntions)
+{
+    auto [descrTextName, descrType, attrsValid, attributes] = GetParam();
+
+    // Create Desctiptor
+    miopenBackendDescriptor_t descr;
+    // clang-format off
+    miopenStatus_t status = miopenBackendCreateDescriptor(descrType, &descr);
+    ASSERT_EQ(status, miopenStatusSuccess) << descrTextName << " wasn't created";
+    ASSERT_NE(descr, nullptr) << "A null " << descrTextName << " was created";
+    // clang-format on
+
+    // Finalize before setting attributes
+    status = miopenBackendFinalize(descr);
+    if(status == miopenStatusSuccess)
+    {
+        miopenBackendDestroyDescriptor(descr);
+        FAIL() << descrTextName << " was finalized without setting attributes";
+    }
+
+    // Set attributes (should succeed)
+    bool anyAttributeFailed = false;
+    for(auto& attrPtr : attributes)
+    {
+        auto [textName,
+              name,
+              type,
+              count,
+              data,
+              invalidType,
+              invalidTypeData,
+              invalidCount,
+              invalidCountData,
+              readBuffer] = attrPtr->testCase();
+
+        // clang-format off
+        status = miopenBackendSetAttribute(descr, name, invalidType, count, invalidTypeData);
+        EXPECT_NE(status, miopenStatusSuccess) << textName << " was set with invalid type";
+
+        status = miopenBackendSetAttribute(descr, name, type, invalidCount, invalidCountData);
+        EXPECT_NE(status, miopenStatusSuccess) << textName << " was set with invalid element count";
+
+        status = miopenBackendSetAttribute(descr, name, type, count, nullptr);
+        EXPECT_NE(status, miopenStatusSuccess) << textName << " was set with null array of elements";
+
+        status = miopenBackendSetAttribute(descr, name, type, count, data);
+        if(attrsValid) // implementation may postpone validating values to finalize()
+            EXPECT_EQ(status, miopenStatusSuccess) << textName << " wasn't set";
+        // clang-format on
+
+        anyAttributeFailed = anyAttributeFailed || (status != miopenStatusSuccess);
+    }
+
+    // Get attibute before finalizing (not a one should succeed)
+    bool anyAttributeGot = false;
+    for(auto& attrPtr : attributes)
+    {
+        auto [textName,
+              name,
+              type,
+              count,
+              data,
+              invalidType,
+              invalidTypeData,
+              invalidCount,
+              invalidCountData,
+              readBuffer] = attrPtr->testCase();
+
+        int64_t elementCount = 0;
+
+        status = miopenBackendGetAttribute(descr, name, type, count, &elementCount, readBuffer);
+        EXPECT_NE(status, miopenStatusSuccess) << textName << " was retrieved before finalize()";
+
+        anyAttributeGot = anyAttributeGot || (status == miopenStatusSuccess);
+    }
+
+    // Stop further execution if needed
+    if(anyAttributeGot)
+    {
+        miopenBackendDestroyDescriptor(descr);
+        FAIL() << "Some attributes of " << descrTextName << " were retrieved before finalize()";
+    }
+    if(anyAttributeFailed && attrsValid)
+    {
+        miopenBackendDestroyDescriptor(descr);
+        FAIL() << "Not all attributes of " << descrTextName << " were set";
+    }
+
+    // Finalize
+    status = miopenBackendFinalize(descr);
+
+    // Stop further execution if finalize() acted incorrectly
+    if(attrsValid && status != miopenStatusSuccess)
+    {
+        miopenBackendDestroyDescriptor(descr);
+        FAIL() << descrTextName << " wasn't finalized";
+    }
+    else if(!attrsValid)
+    {
+        miopenBackendDestroyDescriptor(descr);
+        ASSERT_NE(status, miopenStatusSuccess)
+            << descrTextName << " was finalized on invalid attributes";
+
+        // No need to proceed with invalid attributes
+        return;
+    }
+
+    // Set attributes after finalizing (not a one should succeed)
+    bool anyAttributeSet = false;
+    for(auto& attrPtr : attributes)
+    {
+        auto [textName,
+              name,
+              type,
+              count,
+              data,
+              invalidType,
+              invalidTypeData,
+              invalidCount,
+              invalidCountData,
+              readBuffer] = attrPtr->testCase();
+
+        status = miopenBackendSetAttribute(descr, name, type, count, data);
+        EXPECT_NE(status, miopenStatusSuccess) << textName << " was set after finalize()";
+
+        anyAttributeSet = anyAttributeSet || (status == miopenStatusSuccess);
+    }
+
+    // Stop if an attribute was set
+    if(anyAttributeSet)
+    {
+        miopenBackendDestroyDescriptor(descr);
+        ASSERT_NE(status, miopenStatusSuccess)
+            << "An attribute of " << descrTextName << " was set after finalize()";
+    }
+
+    // Get attributes
+    for(auto& attrPtr : attributes)
+    {
+        auto [textName,
+              name,
+              type,
+              count,
+              data,
+              invalidType,
+              invalidTypeData,
+              invalidCount,
+              invalidCountData,
+              readBuffer] = attrPtr->testCase();
+
+        int64_t elementCount = 0;
+        // clang-format off
+        status = miopenBackendGetAttribute(descr, name, invalidType, count, &elementCount, invalidTypeData);
+        EXPECT_NE(status, miopenStatusSuccess) << textName << " was retrieved with invalid type";
+        status = miopenBackendGetAttribute(descr, name, type, invalidCount, &elementCount, invalidCountData);
+        EXPECT_NE(status, miopenStatusSuccess) << textName << " was retrieved with invalid element count";
+        status = miopenBackendGetAttribute(descr, name, type, count, nullptr, readBuffer);
+        EXPECT_NE(status, miopenStatusSuccess) << textName << " was retrieved with null element count";
+        status = miopenBackendGetAttribute(descr, name, type, count, &elementCount, nullptr);
+        EXPECT_NE(status, miopenStatusSuccess) << textName << " was retrieved with null array of elements";
+        status = miopenBackendGetAttribute(descr, name, type, count, &elementCount, readBuffer);
+        EXPECT_EQ(status, miopenStatusSuccess) << textName << " wasn't retrieved";
+        if(status == miopenStatusSuccess)
+            EXPECT_TRUE(attrPtr->testReadBuffer()) << textName << " set and retrieved values differ";
+        // clang-format on
+    }
+}
+
+// TODO: Use testing::Combine to make
+//       this list concise
+INSTANTIATE_TEST_SUITE_P(
+    GraphApiOperationConvolution,
+    GraphApiOperationConvolution,
+    testing::Values(
+
+        // Forward valid
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR,
+            true,
+            {std::make_shared<GTestAttrConv>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_CONV_DESC",
+                                             MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_CONV_DESC),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_X",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_X),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_Y",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_Y),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_W",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_W),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_ALPHA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.9}),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_BETA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.1})}},
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR,
+            true,
+            {std::make_shared<GTestAttrConv>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_CONV_DESC",
+                                             MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_CONV_DESC),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_X",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_X),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_Y",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_Y),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_W",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_W),
+             std::make_shared<GTestAttrAlphaFloat>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_ALPHA,
+                 MIOPEN_TYPE_FLOAT,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<float>{0.9}),
+             std::make_shared<GTestAttrAlphaFloat>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_BETA",
+                                                   MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_BETA,
+                                                   MIOPEN_TYPE_FLOAT,
+                                                   MIOPEN_TYPE_CHAR,
+                                                   0,
+                                                   std::initializer_list<float>{0.1})}},
+
+        // Forward non-finalized attr
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_CONV_DESC",
+                                             MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_CONV_DESC,
+                                             false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_X",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_X,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_Y",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_Y,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_W",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_W,
+                                               true),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_ALPHA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.9}),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_BETA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.1})}},
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_CONV_DESC",
+                                             MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_CONV_DESC,
+                                             true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_X",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_X,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_Y",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_Y,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_W",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_W,
+                                               true),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_ALPHA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.9}),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_BETA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.1})}},
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_CONV_DESC",
+                                             MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_CONV_DESC,
+                                             true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_X",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_X,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_Y",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_Y,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_W",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_W,
+                                               true),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_ALPHA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.9}),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_BETA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.1})}},
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_CONV_DESC",
+                                             MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_CONV_DESC,
+                                             true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_X",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_X,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_Y",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_Y,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_W",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_W,
+                                               false),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_ALPHA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.9}),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_BETA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.1})}},
+
+        // Forward null attr
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_CONV_DESC",
+                                             MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_CONV_DESC,
+                                             true,
+                                             true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_X",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_X,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_Y",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_Y,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_W",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_W,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_ALPHA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.9}),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_BETA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.1})}},
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_CONV_DESC",
+                                             MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_CONV_DESC,
+                                             true,
+                                             false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_X",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_X,
+                                               true,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_Y",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_Y,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_W",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_W,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_ALPHA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.9}),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_BETA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.1})}},
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_CONV_DESC",
+                                             MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_CONV_DESC,
+                                             true,
+                                             false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_X",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_X,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_Y",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_Y,
+                                               true,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_W",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_W,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_ALPHA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.9}),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_BETA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.1})}},
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_CONV_DESC",
+                                             MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_CONV_DESC,
+                                             true,
+                                             false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_X",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_X,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_Y",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_Y,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_W",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_W,
+                                               true,
+                                               true),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_ALPHA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.9}),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_BETA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.1})}},
+
+        // Bwd data valid
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR,
+            true,
+            {std::make_shared<GTestAttrConv>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_CONV_DESC",
+                                             MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_CONV_DESC),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DX",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DX),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DY",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DY),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_W",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_W),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_ALPHA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.9}),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_BETA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.1})}},
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR,
+            true,
+            {std::make_shared<GTestAttrConv>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_CONV_DESC",
+                                             MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_CONV_DESC),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DX",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DX),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DY",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DY),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_W",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_W),
+             std::make_shared<GTestAttrAlphaFloat>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_ALPHA,
+                 MIOPEN_TYPE_FLOAT,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<float>{0.9}),
+             std::make_shared<GTestAttrAlphaFloat>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_BETA,
+                 MIOPEN_TYPE_FLOAT,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<float>{0.1})}},
+
+        // Bwd data non-finalized attr
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_CONV_DESC",
+                                             MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_CONV_DESC,
+                                             false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DX",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DX,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DY",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DY,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_W",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_W,
+                                               true),
+             std::make_shared<GTestAttrAlphaFloat>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_ALPHA,
+                 MIOPEN_TYPE_FLOAT,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<float>{0.9}),
+             std::make_shared<GTestAttrAlphaFloat>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_BETA,
+                 MIOPEN_TYPE_FLOAT,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<float>{0.1})}},
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_CONV_DESC",
+                                             MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_CONV_DESC,
+                                             true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DX",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DX,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DY",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DY,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_W",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_W,
+                                               true),
+             std::make_shared<GTestAttrAlphaFloat>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_ALPHA,
+                 MIOPEN_TYPE_FLOAT,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<float>{0.9}),
+             std::make_shared<GTestAttrAlphaFloat>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_BETA,
+                 MIOPEN_TYPE_FLOAT,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<float>{0.1})}},
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_CONV_DESC",
+                                             MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_CONV_DESC,
+                                             true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DX",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DX,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DY",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DY,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_W",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_W,
+                                               true),
+             std::make_shared<GTestAttrAlphaFloat>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_ALPHA,
+                 MIOPEN_TYPE_FLOAT,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<float>{0.9}),
+             std::make_shared<GTestAttrAlphaFloat>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_BETA,
+                 MIOPEN_TYPE_FLOAT,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<float>{0.1})}},
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_CONV_DESC",
+                                             MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_CONV_DESC,
+                                             true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DX",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DX,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DY",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DY,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_W",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_W,
+                                               false),
+             std::make_shared<GTestAttrAlphaFloat>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_ALPHA,
+                 MIOPEN_TYPE_FLOAT,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<float>{0.9}),
+             std::make_shared<GTestAttrAlphaFloat>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_BETA,
+                 MIOPEN_TYPE_FLOAT,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<float>{0.1})}},
+
+        // Bwd data null attr
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_CONV_DESC",
+                                             MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_CONV_DESC,
+                                             true,
+                                             true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DX",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DX,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DY",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DY,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_W",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_W,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrAlphaFloat>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_ALPHA,
+                 MIOPEN_TYPE_FLOAT,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<float>{0.9}),
+             std::make_shared<GTestAttrAlphaFloat>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_BETA,
+                 MIOPEN_TYPE_FLOAT,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<float>{0.1})}},
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_CONV_DESC",
+                                             MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_CONV_DESC,
+                                             true,
+                                             false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DX",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DX,
+                                               true,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DY",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DY,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_W",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_W,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrAlphaFloat>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_ALPHA,
+                 MIOPEN_TYPE_FLOAT,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<float>{0.9}),
+             std::make_shared<GTestAttrAlphaFloat>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_BETA,
+                 MIOPEN_TYPE_FLOAT,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<float>{0.1})}},
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_CONV_DESC",
+                                             MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_CONV_DESC,
+                                             true,
+                                             false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DX",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DX,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DY",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DY,
+                                               true,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_W",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_W,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrAlphaFloat>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_ALPHA,
+                 MIOPEN_TYPE_FLOAT,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<float>{0.9}),
+             std::make_shared<GTestAttrAlphaFloat>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_BETA,
+                 MIOPEN_TYPE_FLOAT,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<float>{0.1})}},
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_CONV_DESC",
+                                             MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_CONV_DESC,
+                                             true,
+                                             false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DX",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DX,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DY",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DY,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_W",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_W,
+                                               true,
+                                               true),
+             std::make_shared<GTestAttrAlphaFloat>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_ALPHA,
+                 MIOPEN_TYPE_FLOAT,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<float>{0.9}),
+             std::make_shared<GTestAttrAlphaFloat>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_BETA,
+                 MIOPEN_TYPE_FLOAT,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<float>{0.1})}},
+
+        // Bwd filter valid
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR,
+            true,
+            {std::make_shared<GTestAttrConv>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_CONV_DESC",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_CONV_DESC),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_X",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_X),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DY",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DY),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DW",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DW),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_ALPHA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.9}),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_BETA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.1})}},
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR,
+            true,
+            {std::make_shared<GTestAttrConv>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_CONV_DESC",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_CONV_DESC),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_X",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_X),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DY",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DY),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DW",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DW),
+             std::make_shared<GTestAttrAlphaFloat>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_ALPHA,
+                 MIOPEN_TYPE_FLOAT,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<float>{0.9}),
+             std::make_shared<GTestAttrAlphaFloat>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_BETA,
+                 MIOPEN_TYPE_FLOAT,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<float>{0.1})}},
+
+        // Bwd non-finalized attr
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_CONV_DESC",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_CONV_DESC,
+                 false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_X",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_X,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DY",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DY,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DW",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DW,
+                                               true),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_ALPHA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.9}),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_BETA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.1})}},
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_CONV_DESC",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_CONV_DESC,
+                 true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_X",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_X,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DY",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DY,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DW",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DW,
+                                               true),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_ALPHA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.9}),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_BETA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.1})}},
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_CONV_DESC",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_CONV_DESC,
+                 true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_X",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_X,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DY",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DY,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DW",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DW,
+                                               true),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_ALPHA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.9}),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_BETA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.1})}},
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_CONV_DESC",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_CONV_DESC,
+                 true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_X",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_X,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DY",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DY,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DW",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DW,
+                                               false),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_ALPHA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.9}),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_BETA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.1})}},
+
+        // Bwd null attr
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_CONV_DESC",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_CONV_DESC,
+                 true,
+                 true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_X",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_X,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DY",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DY,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DW",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DW,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_ALPHA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.9}),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_BETA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.1})}},
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_CONV_DESC",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_CONV_DESC,
+                 true,
+                 false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_X",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_X,
+                                               true,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DY",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DY,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DW",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DW,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_ALPHA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.9}),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_BETA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.1})}},
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_CONV_DESC",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_CONV_DESC,
+                 true,
+                 false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_X",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_X,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DY",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DY,
+                                               true,
+                                               true),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DW",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DW,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_ALPHA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.9}),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_BETA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.1})}},
+        GTestDescriptor{
+            "MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR",
+            MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR,
+            false,
+            {std::make_shared<GTestAttrConv>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_CONV_DESC",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_CONV_DESC,
+                 true,
+                 false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_X",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_X,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DY",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DY,
+                                               true,
+                                               false),
+             std::make_shared<GTestAttrTensor>("MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DW",
+                                               MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DW,
+                                               true,
+                                               true),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_ALPHA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_ALPHA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.9}),
+             std::make_shared<GTestAttrAlphaDouble>(
+                 "MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_BETA",
+                 MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_BETA,
+                 MIOPEN_TYPE_DOUBLE,
+                 MIOPEN_TYPE_CHAR,
+                 0,
+                 std::initializer_list<double>{0.1})}}
+
+        ));
