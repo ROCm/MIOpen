@@ -726,9 +726,11 @@ void BackendOperationConvolutionForwardDescriptor::setAttribute(
 
 void BackendOperationConvolutionForwardDescriptor::finalize()
 {
-    if(mFinalized)
+    if(mFinalized || !deref(mConvolutionDescriptor).getFinalized() ||
+       !deref(mXDescriptor).getFinalized() || !deref(mYDescriptor).getFinalized() ||
+       !deref(mWDescriptor).getFinalized())
     {
-        MIOPEN_THROW(miopenStatusNotInitialized);
+        MIOPEN_THROW(miopenStatusBadParm);
     }
     mOperation = mBuilder.build();
     mFinalized = true;
@@ -838,9 +840,11 @@ void BackendOperationConvolutionBackwardDataDescriptor::setAttribute(
 
 void BackendOperationConvolutionBackwardDataDescriptor::finalize()
 {
-    if(mFinalized)
+    if(mFinalized || !deref(mConvolutionDescriptor).getFinalized() ||
+       !deref(mXDescriptor).getFinalized() || !deref(mYDescriptor).getFinalized() ||
+       !deref(mWDescriptor).getFinalized())
     {
-        MIOPEN_THROW(miopenStatusNotInitialized);
+        MIOPEN_THROW(miopenStatusBadParm);
     }
     mOperation = mBuilder.build();
     mFinalized = true;
@@ -950,9 +954,11 @@ void BackendOperationConvolutionBackwardFilterDescriptor::setAttribute(
 
 void BackendOperationConvolutionBackwardFilterDescriptor::finalize()
 {
-    if(mFinalized)
+    if(mFinalized || !deref(mConvolutionDescriptor).getFinalized() ||
+       !deref(mXDescriptor).getFinalized() || !deref(mYDescriptor).getFinalized() ||
+       !deref(mWDescriptor).getFinalized())
     {
-        MIOPEN_THROW(miopenStatusNotInitialized);
+        MIOPEN_THROW(miopenStatusBadParm);
     }
     mOperation = mBuilder.build();
     mFinalized = true;
