@@ -56,6 +56,12 @@ extern "C" miopenStatus_t miopenBackendSetAttribute(miopenBackendDescriptor_t de
                                                     void* arrayOfElements)
 {
     MIOPEN_LOG_FUNCTION(attributeName, attributeType, elementCount);
+
+    if(arrayOfElements == nullptr)
+    {
+        return miopenStatusBadParm;
+    }
+
     return miopen::try_(
         [&] {
             auto& theDescriptor = miopen::deref(descriptor);
@@ -81,6 +87,11 @@ extern "C" miopenStatus_t miopenBackendGetAttribute(miopenBackendDescriptor_t de
                                                     int64_t* elementCount,
                                                     void* arrayOfElements)
 {
+    if(elementCount == nullptr || arrayOfElements == nullptr)
+    {
+        return miopenStatusBadParm;
+    }
+
     return miopen::try_(
         [&] {
             auto& theDescriptor = miopen::deref(descriptor);
