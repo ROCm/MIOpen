@@ -9,6 +9,7 @@
     "kernels": "hip",
     "num_inputs": 18,
     "num_solvers": 20,
+    "num_outputs": 20,
     "encodings": {
         "Direction": {
             "B": 0,
