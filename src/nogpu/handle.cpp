@@ -251,6 +251,8 @@ std::size_t Handle::GetMaxMemoryAllocSize()
         return this->impl->max_mem_alloc_size;
 }
 
+bool Handle::CooperativeLaunchSupported() const { return false; }
+
 const TargetProperties& Handle::GetTargetProperties() const
 {
     return this->impl->target_properties;

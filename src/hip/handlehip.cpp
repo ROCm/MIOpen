@@ -666,6 +666,17 @@ std::size_t Handle::GetMaxMemoryAllocSize()
     return m_MaxMemoryAllocSizeCached;
 }
 
+bool Handle::CooperativeLaunchSupported() const
+{
+    int result;
+    auto status =
+        hipDeviceGetAttribute(&result, hipDeviceAttributeCooperativeLaunch, this->impl->device);
+    if(status != hipSuccess)
+        MIOPEN_THROW_HIP_STATUS(status);
+
+    return result == 1;
+}
+
 std::string Handle::GetDeviceNameImpl() const { return this->impl->get_device_name(); }
 
 std::string Handle::GetDeviceName() const { return this->impl->target_properties.Name(); }

@@ -154,6 +154,7 @@ struct MIOPEN_EXPORT Handle : miopenHandle
 
     std::size_t m_MaxMemoryAllocSizeCached = 0;
     std::size_t GetMaxMemoryAllocSize();
+    bool CooperativeLaunchSupported() const;
 
     std::string GetDeviceName() const;
     const TargetProperties& GetTargetProperties() const;

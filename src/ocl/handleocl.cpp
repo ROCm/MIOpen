@@ -480,6 +480,8 @@ std::size_t Handle::GetMaxMemoryAllocSize()
     return m_MaxMemoryAllocSizeCached;
 }
 
+bool Handle::CooperativeLaunchSupported() const { return false; }
+
 std::size_t Handle::GetMaxComputeUnits() const
 {
     return miopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(miopen::GetDevice(this->GetStream()));

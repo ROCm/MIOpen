@@ -281,7 +281,8 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
     const auto dev_name         = ctx.GetStream().GetDeviceName();
     const auto cu_count         = ctx.GetStream().GetMaxHardwareComputeUnits();
     const auto n_groups         = GetNGroups(cu_count);
-    const auto reduced_vgpr_mem = GpuHasReducedVGPRMem(dev_name);
+    const bool reduced_vgpr_mem = GpuHasReducedVGPRMem(dev_name);
+    const bool coop_launch      = ctx.GetStream().CooperativeLaunchSupported();
 
     constexpr size_t wg_size = 384;
 
