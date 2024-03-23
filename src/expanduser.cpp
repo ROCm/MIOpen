@@ -87,6 +87,12 @@
 
 MIOPEN_DECLARE_ENV_VAR_STR(HOME)
 
+#ifdef _WIN32
+MIOPEN_DECLARE_ENV_VAR_STR(USERPROFILE, miopen::fs::temp_directory_path().string())
+MIOPEN_DECLARE_ENV_VAR_STR(HOMEPATH, miopen::fs::temp_directory_path().string())
+MIOPEN_DECLARE_ENV_VAR_STR(HOMEDRIVE)
+#endif
+
 namespace miopen {
 
 #ifdef __linux__
@@ -179,7 +185,7 @@ bool IsNetworkedFilesystem(const fs::path& path_)
 namespace {
 std::string GetHomeDir()
 {
-    const auto p = GetStringEnv(ENV(HOME));
+    const auto p = env::value(HOME);
     if(!(p.empty() || p == std::string("/")))
     {
         return p;
@@ -201,39 +207,18 @@ fs::path ExpandUser(const std::string& path)
 #else
 
 namespace {
-std::optional<std::string> GetEnvironmentVariable(const std::string_view name)
-{
-    std::size_t required_size;
-    getenv_s(&required_size, nullptr, 0, name.data());
-    if(required_size == 0)
-    {
-        return std::nullopt;
-    }
-    // getenv_s returns the required size of a string including '\0' character.
-    std::string result(required_size - 1, 'A');
-    getenv_s(&required_size, result.data(), required_size, name.data());
-    return {result};
-}
-
+template <typename T>
 std::optional<std::pair<std::string::size_type, std::string>>
-ReplaceVariable(const std::string& path, std::string_view name, std::size_t offset = 0)
+ReplaceVariable(std::string_view path, T t, std::size_t offset = 0)
 {
-    std::vector<std::string> variables{
-        "$" + std::string{name}, "$env:" + std::string{name}, "%" + std::string{name} + "%"};
+    std::vector<std::string> variables{"$" + env::name(t), "$env:" + env::name(t), "%" + env::name(t) + "%"};
     for(auto& variable : variables)
     {
         auto pos{path.find(variable, offset)};
         if(pos != std::string::npos)
         {
-            auto result{path};
-            auto value{GetEnvironmentVariable(name)};
-            if(!value)
-            {
-                // TODO: log warning message that the name used
-                //       does not correspond to an environment variable.
-                value = fs::temp_directory_path().string();
-            }
-            result.replace(pos, variable.length(), *value);
+            std::string result{path};
+            result.replace(pos, variable.length(), env::value(t));
             return {{pos, result}};
         }
     }
@@ -243,16 +228,16 @@ ReplaceVariable(const std::string& path, std::string_view name, std::size_t offs
 
 fs::path ExpandUser(const std::string& path)
 {
-    auto result{ReplaceVariable(path, "USERPROFILE")};
+    auto result{ReplaceVariable(path, USERPROFILE)};
     if(!result)
     {
-        result = ReplaceVariable(path, "HOME");
+        result = ReplaceVariable(path, HOME);
         if(!result)
         {
-            result = ReplaceVariable(path, "HOMEDRIVE");
+            result = ReplaceVariable(path, HOMEDRIVE);
             if(result)
             {
-                result = ReplaceVariable(std::get<1>(*result), "HOMEPATH", std::get<0>(*result));
+                result = ReplaceVariable(std::get<1>(*result), HOMEPATH, std::get<0>(*result));
                 // TODO: if (not result): log warning message that
                 //       HOMEDRIVE and HOMEPATH work in conjunction, respectively.
             }

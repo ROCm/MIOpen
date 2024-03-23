@@ -37,21 +37,21 @@ namespace conv_igemm_dynamic {
 
 auto GetTestCases()
 {
-    const auto env = std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-                                std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                                          std::string_view("ConvAsmImplicitGemmV4R1DynamicFwd")}};
+    const auto env = std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                                std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER,
+                                          "ConvAsmImplicitGemmV4R1DynamicFwd"}};
     const auto env_1x1 =
-        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                             std::string_view("ConvAsmImplicitGemmV4R1DynamicFwd_1x1")}};
+        std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER,
+                             "ConvAsmImplicitGemmV4R1DynamicFwd_1x1"}};
     const auto env_wrw =
-        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                             std::string_view("ConvAsmImplicitGemmV4R1DynamicWrw")}};
+        std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER,
+                             "ConvAsmImplicitGemmV4R1DynamicWrw"}};
     const auto env_bwd =
-        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                             std::string_view("ConvAsmImplicitGemmV4R1DynamicBwd")}};
+        std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER,
+                             "ConvAsmImplicitGemmV4R1DynamicBwd"}};
 
     const std::string v           = " --verbose";
     const std::string dis_bk_data = " --disable-backward-data";
@@ -79,7 +79,7 @@ auto GetTestCases()
         // clang-format on
     };
 
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
+    if(env::enabled(MIOPEN_TEST_ALL))
     {
         basic_tests.insert(basic_tests.end(),
                            {
@@ -111,7 +111,7 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest() { return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)); }
+bool SkipTest() { return env::enabled(MIOPEN_TEST_GPU_XNACK_ENABLED); }
 
 class Conv2dFloatDynamic : public FloatTestCase<std::vector<TestCase>>
 {

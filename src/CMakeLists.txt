@@ -113,6 +113,7 @@ set( MIOpen_Source
     driver_arguments.cpp
     dropout.cpp
     dropout_api.cpp
+    env.cpp
     execution_context.cpp
     expanduser.cpp
     find_controls.cpp

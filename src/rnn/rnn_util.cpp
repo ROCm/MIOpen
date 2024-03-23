@@ -35,9 +35,7 @@ namespace miopen {
 
 int getReductionAlgo()
 {
-    return miopen::IsUnset(ENV(MIOPEN_RNNWRW_REDUCTION))
-               ? 1
-               : miopen::Value(ENV(MIOPEN_RNNWRW_REDUCTION));
+    return env::value_or(MIOPEN_RNNWRW_REDUCTION, 1);
 }
 
 void RNNTensorPaddingConverter::ConvertTensorData(const Handle& handle,

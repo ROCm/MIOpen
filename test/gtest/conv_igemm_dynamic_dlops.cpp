@@ -38,9 +38,8 @@ namespace {
 auto GetTestCases()
 {
     const auto env_fwd =
-        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                             std::string_view("ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC")}};
+        std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC"}};
 
     const std::string v           = " --verbose";
     const std::string dis_bk_data = " --disable-backward-data";
@@ -148,8 +147,8 @@ using TestCase = decltype(GetTestCases())::value_type;
 
 bool SkipTest()
 {
-    return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)) ||
-           miopen::IsDisabled(ENV(MIOPEN_TEST_ALL));
+    return env::enabled(MIOPEN_TEST_GPU_XNACK_ENABLED) ||
+           env::disabled(MIOPEN_TEST_ALL);
 }
 
 bool IsTestSupportedForDevice()

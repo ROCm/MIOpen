@@ -42,7 +42,7 @@ namespace miopen {
 #define MIOPEN_DECLARE_HANDLE_MUTEX(x)                               \
     struct x                                                         \
     {                                                                \
-        static const char* value() { return ".miopen-" #x ".lock"; } \
+        static const char* env::value() { return ".miopen-" #x ".lock"; } \
     };
 
 #if MIOPEN_GPU_SYNC

@@ -37,8 +37,8 @@ namespace {
 auto GetTestCases()
 {
     const auto env = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvBinWinograd3x3U")}};
+        std::pair{MIOPEN_FIND_MODE, "normal"},
+        std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvBinWinograd3x3U"}};
 
     const std::string vf = " --verbose --disable-backward-data --disable-backward-weights";
     const std::string vb = " --verbose --disable-forward --disable-backward-weights";
@@ -54,7 +54,7 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest() { return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)); }
+bool SkipTest() { return env::enabled(MIOPEN_TEST_GPU_XNACK_ENABLED); }
 
 bool IsTestSupportedForDevice()
 {

@@ -30,22 +30,22 @@
 
 TEST(LOG_TEST, AssertLogCmdOutput)
 {
-    TestLogFun(miopen::debug::LogCmdConvolution, envConv, logConv, true);
+    TestLogFun(miopen::debug::LogCmdConvolution, logConv, true);
 }
 
 TEST(LOG_TEST, AssertLogFindCmdOutput)
 {
-    TestLogFun(miopen::debug::LogCmdFindConvolution, envConv, logFindConv, true);
+    TestLogFun(miopen::debug::LogCmdFindConvolution, logFindConv, true);
 }
 
 TEST(LOG_TEST_FUSION, AssertTestLogCmdCBAFusionOutput)
 {
-    TestLogCmdCBAFusion(miopen::debug::LogCmdFusion, envConv, logFusionConvBiasActiv, true);
+    TestLogCmdCBAFusion(miopen::debug::LogCmdFusion, logFusionConvBiasActiv, true);
 }
 
 TEST(LOG_TEST_FUSION, AssertTestLogCmdBNormFusionOutput)
 {
-    TestLogCmdBNormFusion(miopen::debug::LogCmdFusion, envConv, logBnormActiv, true);
+    TestLogCmdBNormFusion(miopen::debug::LogCmdFusion, logBnormActiv, true);
 }
 
 #endif

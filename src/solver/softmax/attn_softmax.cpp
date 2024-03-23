@@ -70,7 +70,7 @@ bool AttnSoftmax::IsApplicable([[maybe_unused]] const ExecutionContext& context,
     const size_t seq_len = problem.GetXDesc().GetStrides().front(); // c * h * w
     const size_t nhs     = problem.GetXDesc().GetLengths().front(); // n
 
-    return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_SOFTMAX)) && //
+    return !env::disabled(MIOPEN_DEBUG_ATTN_SOFTMAX) &&                //
            seq_len <= std::numeric_limits<uint32_t>::max() &&     //
            problem.GetAlgorithm() == MIOPEN_SOFTMAX_ACCURATE &&   //
            problem.IsForward() &&                                 //

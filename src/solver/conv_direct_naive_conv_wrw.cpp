@@ -41,7 +41,7 @@ bool ConvDirectNaiveConvWrw::IsApplicable(const ExecutionContext& ctx,
                                           const ProblemDescription& problem) const
 {
     if(!miopen::debug::AlwaysEnableConvDirectNaive &&
-       miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_WRW)))
+       env::disabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_WRW))
         return false;
 
     if(!ConvDirectNaiveConvIsApplicableByKernelType(ctx, problem))
