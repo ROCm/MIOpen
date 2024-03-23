@@ -32,15 +32,11 @@ struct OpNode {
 
 protected:
 
-  virtual const std::string& SignName() const = 0;
+  virtual const std::string& signName() const = 0;
 
   virtual std::vector<Tensor*> getInTensors() const = 0;
 
   virtual std::vector<Tensor*> getOutTensors() const = 0;
-
-  /*
-
-  */
 
   const auto& iterateInEdges() const { return mInEdges; }
 
@@ -59,7 +55,7 @@ protected:
   void addOutEdge(OpNode* dst, Tensor* tens_ptr) {
     assert(dst);
     Edge e{dst, tens_ptr};
-    if (!hasOutEdge(e)) {
+    if (!hasOutEdge(dst, tens_ptr)) {
       mOutEdges.emplace_back(e);
     }
   }
@@ -67,7 +63,7 @@ protected:
   void addInEdge(OpNode* src, Tensor* tens_ptr) {
     assert(src);
     Edge e{src, tens_ptr};
-    if (!hasInEdge(e)) {
+    if (!hasInEdge(src, tens_ptr)) {
       mInEdges.emplace_back(e);
     }
   }
@@ -96,7 +92,7 @@ protected:
     
   friend class OpGraph;
 
-  const std::string& SignName() const final { 
+  const std::string& signName() const final { 
     static const std::string s =  "INTERNAL::SRC"; 
     return s;
   }
@@ -128,7 +124,7 @@ protected:
 
   friend class OpGraph;
 
-  const std::string& SignName() const final { 
+  const std::string& signName() const final { 
     static const std::string s =  "INTERNAL::SINK"; 
     return s;
   }
@@ -229,14 +225,14 @@ public:
     for (OpNode* n: mNodes) {
 
       for (Tensor* i: n->getInTensors()) {
-        auto [iter, _ignore] = e_map.emplace(i); // add empty EdgeInfo if not present
+        auto [iter, _ignore] = e_map.emplace(i, EdgeInfo{}); // add empty EdgeInfo if not present
 
         iter->second.mDests.emplace_back(n);
 
       }
 
       for (Tensor* o: n->getOutTensors()) {
-        auto [iter, _ignore] = e_map.emplace(o); // add empty EdgeInfo if not present
+        auto [iter, _ignore] = e_map.emplace(o, EdgeInfo{}); // add empty EdgeInfo if not present
                                                
         assert(iter->second.mSrc == nullptr);
         iter->second.mSrc = n;

@@ -32,9 +32,10 @@
 namespace gr = miopen::graphapi;
 
 template <bool IsVirtual>
-gr::Tensor makeDummyTensor(char name[8]) {
+gr::Tensor makeDummyTensor(std::string_view name) {
+  assert(name.size() <= sizeof(int64_t));
   int64_t id = 0;
-  std::copy(name, name+8, reinterpret_cast<char*>(&id));
+  std::copy(name.begin(), name.end(), reinterpret_cast<char*>(&id));
 
   return gr::TensorBuilder{}.
     setDataType(miopenFloat).
@@ -48,26 +49,26 @@ gr::Tensor makeDummyTensor(char name[8]) {
 
 struct DummyNode: public gr::OpNode {
   std::string mName;
-  std::vector<Tensor*> mInTensors;
-  std::vector<Tensor*> mOutTensors;
+  std::vector<gr::Tensor*> mInTensors;
+  std::vector<gr::Tensor*> mOutTensors;
 
   DummyNode(
       const char* name, 
-      std::initializer_list<Tensor*> ins,
-      std::initializer_list<Tensor*> outs)
+      std::initializer_list<gr::Tensor*> ins,
+      std::initializer_list<gr::Tensor*> outs)
     :
       mName(name),
       mInTensors(ins),
       mOutTensors(outs)
   {}
 
-  const std::string& SignName() const final { return mName; }
+  const std::string& signName() const final { return mName; }
 
   std::vector<gr::Tensor*> getInTensors() const final {
     return mInTensors;
   }
 
-  std::vector<Tensor*> getOutTensors() const final {
+  std::vector<gr::Tensor*> getOutTensors() const final {
     return mOutTensors;
   }
 
@@ -103,10 +104,10 @@ TEST(GraphAPI, BuildDiamond) {
 
   gr::OpGraphBuilder graph_builder;
 
-  DummyNode top{"top"};
-  DummyNode left{"left"};
-  DummyNode right{"right"};
-  DummyNode bottom{"bottom"};
+  DummyNode top{"top", {&t_in}, {&t_a, &t_b}};
+  DummyNode left{"left", {&t_a}, {&t_c}};
+  DummyNode right{"right", {&t_b}, {&t_d}};
+  DummyNode bottom{"bottom", {&t_c, &t_d}, {&t_out}};
 
   graph_builder.addNode(&top);
   graph_builder.addNode(&left);
@@ -115,15 +116,15 @@ TEST(GraphAPI, BuildDiamond) {
 
   gr::OpGraph graph = std::move(graph_builder).build();
 
-  ASSERT(graph.hasNode(&top));
-  ASSERT(graph.hasNode(&left));
-  ASSERT(graph.hasNode(&right));
-  ASSERT(graph.hasNode(&bottom));
+  ASSERT_TRUE(graph.hasNode(&top));
+  ASSERT_TRUE(graph.hasNode(&left));
+  ASSERT_TRUE(graph.hasNode(&right));
+  ASSERT_TRUE(graph.hasNode(&bottom));
 
-  ASSERT(graph.hasEdge(&top, &t_a, &left));
-  ASSERT(graph.hasEdge(&top, &t_b, &right));
-  ASSERT(graph.hasEdge(&left, &t_c, &bottom));
-  ASSERT(graph.hasEdge(&right, &t_d, &bottom));
+  ASSERT_TRUE(graph.hasEdge(&top, &t_a, &left));
+  ASSERT_TRUE(graph.hasEdge(&top, &t_b, &right));
+  ASSERT_TRUE(graph.hasEdge(&left, &t_c, &bottom));
+  ASSERT_TRUE(graph.hasEdge(&right, &t_d, &bottom));
 
 }
 
