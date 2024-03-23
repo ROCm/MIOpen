@@ -179,15 +179,9 @@ private:
 
 #define MIOPEN_DECLARE_ENV_VAR_STR(name, ...) MIOPEN_DECLARE_ENV_VAR(name, std::string, __VA_ARGS__)
 
-inline bool disabled(const detail::EnvVar<bool>& t)
-{
-    return !t.template value<bool>(true);
-}
+inline bool disabled(const detail::EnvVar<bool>& t) { return !t.template value<bool>(true); }
 
-inline bool enabled(const detail::EnvVar<bool>& t)
-{
-    return t.template value<bool>();
-}
+inline bool enabled(const detail::EnvVar<bool>& t) { return t.template value<bool>(); }
 
 template <typename T, typename U = typename T::value_type>
 inline U value(T t)

@@ -37,21 +37,18 @@ namespace conv_igemm_dynamic {
 
 auto GetTestCases()
 {
-    const auto env = std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
-                                std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER,
-                                          "ConvAsmImplicitGemmV4R1DynamicFwd"}};
-    const auto env_1x1 =
+    const auto env =
         std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
-                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER,
-                             "ConvAsmImplicitGemmV4R1DynamicFwd_1x1"}};
+                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsmImplicitGemmV4R1DynamicFwd"}};
+    const auto env_1x1 = std::tuple{
+        std::pair{MIOPEN_FIND_MODE, "normal"},
+        std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsmImplicitGemmV4R1DynamicFwd_1x1"}};
     const auto env_wrw =
         std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
-                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER,
-                             "ConvAsmImplicitGemmV4R1DynamicWrw"}};
+                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsmImplicitGemmV4R1DynamicWrw"}};
     const auto env_bwd =
         std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
-                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER,
-                             "ConvAsmImplicitGemmV4R1DynamicBwd"}};
+                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsmImplicitGemmV4R1DynamicBwd"}};
 
     const std::string v           = " --verbose";
     const std::string dis_bk_data = " --disable-backward-data";

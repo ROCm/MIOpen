@@ -38,13 +38,11 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto bwd = std::tuple{
-        std::pair{MIOPEN_FIND_MODE, "normal"},
-        std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvMlirIgemmBwdXdlops"}};
+    const auto bwd = std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                                std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvMlirIgemmBwdXdlops"}};
 
-    const auto wrw = std::tuple{
-        std::pair{MIOPEN_FIND_MODE, "normal"},
-        std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvMlirIgemmWrWXdlops"}};
+    const auto wrw = std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                                std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvMlirIgemmWrWXdlops"}};
 
     const std::string flags_bwd = " --verbose --disable-forward --disable-backward-weights";
     const std::string flags_wrw = " --verbose --disable-forward --disable-backward-data";
@@ -79,10 +77,7 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest()
-{
-    return !(env::enabled(MIOPEN_TEST_MLIR)) || env::disabled(MIOPEN_TEST_ALL);
-}
+bool SkipTest() { return !(env::enabled(MIOPEN_TEST_MLIR)) || env::disabled(MIOPEN_TEST_ALL); }
 
 bool IsTestSupportedForDevice()
 {

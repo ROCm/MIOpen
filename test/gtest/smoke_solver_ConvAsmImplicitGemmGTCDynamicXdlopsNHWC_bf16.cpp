@@ -36,14 +36,13 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto env =
-        std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
-                   std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
-                   std::pair{MIOPEN_FIND_MODE, "normal"},
-                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER,
-                                 "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;"
-                                 "ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
-                                 "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC"}};
+    const auto env = std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
+                                std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+                                std::pair{MIOPEN_FIND_MODE, "normal"},
+                                std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER,
+                                          "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;"
+                                          "ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
+                                          "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC"}};
 
     const std::string vf = " --verbose --disable-backward-data --disable-backward-weights";
     const std::string vb = " --verbose --disable-forward --disable-backward-weights";

@@ -129,7 +129,7 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
 
     // sync LDS
     compiler_flag << " -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM="
-                  << (env::disabled(MIOPEN_DEBUG_CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM)  ? '0' : '1');
+                  << (env::disabled(MIOPEN_DEBUG_CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM) ? '0' : '1');
 
     // buffer addressing
     compiler_flag << " -DCK_USE_AMD_BUFFER_ADDRESSING="

@@ -125,8 +125,8 @@ using namespace rnn_extra;
 
 TEST_P(RNNExtraConfigWithFloat, FloatTest_rnn_extra)
 {
-    if(!MIOPEN_TEST_ALL || (env::enabled(MIOPEN_TEST_ALL) &&
-                            env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
     {
         Run2dDriverFloat();
     }

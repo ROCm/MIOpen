@@ -49,9 +49,10 @@ static bool SkipTest(const std::string& float_arg)
 void SetupEnvVar()
 {
     env::update(MIOPEN_FIND_MODE, "normal");
-    env::update(MIOPEN_DEBUG_FIND_ONLY_SOLVER,
-            "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
-            "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC");
+    env::update(
+        MIOPEN_DEBUG_FIND_ONLY_SOLVER,
+        "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
+        "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC");
 }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)

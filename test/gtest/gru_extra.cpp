@@ -112,8 +112,8 @@ using namespace gru_extra;
 
 TEST_P(GRUExtraConfigWithFloat, FloatTest_gru_extra)
 {
-    if(!MIOPEN_TEST_ALL || (env::enabled(MIOPEN_TEST_ALL) &&
-                            env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
     {
         Run2dDriverFloat();
     }

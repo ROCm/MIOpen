@@ -165,10 +165,7 @@ const char* LoggingLevelToCString(const LoggingLevel level)
     default: return "<Unknown>";
     }
 }
-bool IsLoggingCmd()
-{
-    return env::enabled(MIOPEN_ENABLE_LOGGING_CMD) && !IsLoggingDebugQuiet();
-}
+bool IsLoggingCmd() { return env::enabled(MIOPEN_ENABLE_LOGGING_CMD) && !IsLoggingDebugQuiet(); }
 
 std::string LoggingPrefix()
 {

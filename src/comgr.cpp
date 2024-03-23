@@ -133,7 +133,7 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)
                                                << GetStatusText(status)); \
             (action);                                                     \
         }                                                                 \
-        else if(env::enabled(MIOPEN_DEBUG_COMGR_LOG_CALLS))     \
+        else if(env::enabled(MIOPEN_DEBUG_COMGR_LOG_CALLS))               \
             MIOPEN_LOG_I("Ok \'" #comgrcall "\' " << to_string(info));    \
     } while(false)
 
@@ -1064,7 +1064,7 @@ static std::string GetStatusText(const hiprtcResult status)
             MIOPEN_LOG_E("\'" #call "\' " << to_string(info) << ": " << GetStatusText(status)); \
             (action);                                                                           \
         }                                                                                       \
-        else if(env::enabled(MIOPEN_DEBUG_COMGR_LOG_CALLS))                           \
+        else if(env::enabled(MIOPEN_DEBUG_COMGR_LOG_CALLS))                                     \
             MIOPEN_LOG_I("Ok \'" #call "\' " << to_string(info));                               \
     } while(false)
 

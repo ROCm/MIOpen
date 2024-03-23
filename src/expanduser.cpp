@@ -207,18 +207,19 @@ fs::path ExpandUser(const std::string& path)
 #else
 
 namespace {
-template <typename T>
-std::optional<std::pair<std::string::size_type, std::string>>
-ReplaceVariable(std::string_view path, T t, std::size_t offset = 0)
+std::optional<std::pair<std::string::size_type, std::string>> ReplaceVariable(
+    std::string_view path, const env::detail::EnvVar<std::string>& t, std::size_t offset = 0)
 {
-    std::vector<std::string> variables{"$" + env::name(t), "$env:" + env::name(t), "%" + env::name(t) + "%"};
+    std::vector<std::string> variables{"$" + std::string{t.name()},
+                                       "$env:" + std::string{t.name()},
+                                       "%" + std::string{t.name()} + "%"};
     for(auto& variable : variables)
     {
         auto pos{path.find(variable, offset)};
         if(pos != std::string::npos)
         {
             std::string result{path};
-            result.replace(pos, variable.length(), env::value(t));
+            result.replace(pos, variable.length(), t.value<std::string>());
             return {{pos, result}};
         }
     }
@@ -237,7 +238,7 @@ fs::path ExpandUser(const std::string& path)
             result = ReplaceVariable(path, HOMEDRIVE);
             if(result)
             {
-                result = ReplaceVariable(std::get<1>(*result), HOMEPATH, std::get<0>(*result));
+                result = ReplaceVariable(result->second, HOMEPATH, result->first);
                 // TODO: if (not result): log warning message that
                 //       HOMEDRIVE and HOMEPATH work in conjunction, respectively.
             }

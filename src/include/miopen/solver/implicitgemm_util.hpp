@@ -552,7 +552,8 @@ static inline auto get_static_ck_common_compiler_flag(const ExecutionContext& ct
     // LDS sync
     compiler_flag +=
         std::string(" -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM=") +
-        (env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM) ? '0' : '1');
+        (env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM) ? '0'
+                                                                                         : '1');
 
     // workaround
     compiler_flag +=

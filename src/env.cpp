@@ -40,7 +40,7 @@
 #include <Windows.h>
 #endif
 
-namespace miopen::env::internal {
+namespace miopen::env::detail {
 
 void setEnvironmentVariable(std::string_view name, std::string_view value)
 {
@@ -83,4 +83,4 @@ std::optional<std::string> getEnvironmentVariable(std::string_view name)
 #endif
 }
 
-} // namespace miopen::internal
+} // namespace miopen::env::detail

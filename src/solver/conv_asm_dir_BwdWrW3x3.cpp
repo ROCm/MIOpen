@@ -431,8 +431,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ExecutionContext& ctx,
         return false;
 
 #if WORKAROUND_SWDEV_330460
-    if(!env::enabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3) && name == "gfx90a" &&
-       problem.IsFp32())
+    if(!env::enabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3) && name == "gfx90a" && problem.IsFp32())
         return false;
 #endif
 

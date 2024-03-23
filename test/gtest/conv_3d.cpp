@@ -86,8 +86,8 @@ bool IsTestSupportedForDevice()
 
 void Run2dDriver()
 {
-    if(!(IsTestSupportedForDevice()               //
-         && (!MIOPEN_TEST_ALL                     // standalone run
+    if(!(IsTestSupportedForDevice()            //
+         && (!MIOPEN_TEST_ALL                  // standalone run
              || (env::enabled(MIOPEN_TEST_ALL) // or --float full tests enabled
                  && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))))
     {

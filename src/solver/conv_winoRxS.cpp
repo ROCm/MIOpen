@@ -692,8 +692,7 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
         // clang-format on
 
 #if WORKAROUND_ISSUE_2492_GRANULARITY_LOSS
-    if(!env::disabled(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492) &&
-       !miopen::debug::IsWarmupOngoing)
+    if(!env::disabled(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492) && !miopen::debug::IsWarmupOngoing)
     {
         constexpr double max_perf_drop_due_to_granularity = 200; // Times.
         const auto gl = ShaderModel(ctx, problem, Winodata, Winofilter).GetGranularityLoss();
@@ -706,8 +705,7 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
 #endif
 
 #if WORKAROUND_ISSUE_2492_TINY_TENSOR
-    if(!env::disabled(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492) &&
-       !miopen::debug::IsWarmupOngoing)
+    if(!env::disabled(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492) && !miopen::debug::IsWarmupOngoing)
     {
         // Group count is not taken into account intentionally.
         if(problem.GetInHeight() <= 6     //

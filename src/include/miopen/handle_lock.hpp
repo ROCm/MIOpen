@@ -39,9 +39,9 @@
 
 namespace miopen {
 
-#define MIOPEN_DECLARE_HANDLE_MUTEX(x)                               \
-    struct x                                                         \
-    {                                                                \
+#define MIOPEN_DECLARE_HANDLE_MUTEX(x)                                    \
+    struct x                                                              \
+    {                                                                     \
         static const char* env::value() { return ".miopen-" #x ".lock"; } \
     };
 

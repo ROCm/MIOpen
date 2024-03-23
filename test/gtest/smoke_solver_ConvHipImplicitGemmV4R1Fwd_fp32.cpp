@@ -39,13 +39,13 @@ auto GetTestCases()
     // MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=1 is necessary due to WORKAROUND_iGemm_936 in
     // Jenkinsfile, which disables ConvHipImplicitGemmV4R1Fwd, but we still want to check that the
     // solver is not broken.
-    const auto env_fwd = std::tuple{
-        std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
-        std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
-        std::pair{MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1, true},
-        std::pair{MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
-        std::pair{MIOPEN_FIND_MODE, "normal"},
-        std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmV4R1Fwd"}};
+    const auto env_fwd =
+        std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
+                   std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+                   std::pair{MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1, true},
+                   std::pair{MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
+                   std::pair{MIOPEN_FIND_MODE, "normal"},
+                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmV4R1Fwd"}};
 
     const std::string vf = " --verbose --disable-backward-data --disable-backward-weights";
 

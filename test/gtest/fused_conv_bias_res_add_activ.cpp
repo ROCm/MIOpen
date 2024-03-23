@@ -54,8 +54,8 @@ bool TestIsApplicable()
 #else
     /// \todo Check against specific ASCIs.
 #endif
-        && (float_arg == "--half" // So far only test for fp16 is implemented.
-            || float_arg.empty()) // Empty when gtest is run without parameters.
+        && (float_arg == "--half"           // So far only test for fp16 is implemented.
+            || float_arg.empty())           // Empty when gtest is run without parameters.
         && !env::disabled(MIOPEN_TEST_ALL); // Not disabled when gtest is run without parameters.
 #else
     return false;

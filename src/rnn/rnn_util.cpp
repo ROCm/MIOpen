@@ -33,10 +33,7 @@ MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_RNNWRW_REDUCTION)
 
 namespace miopen {
 
-int getReductionAlgo()
-{
-    return env::value_or(MIOPEN_RNNWRW_REDUCTION, 1);
-}
+int getReductionAlgo() { return env::value_or(MIOPEN_RNNWRW_REDUCTION, 1); }
 
 void RNNTensorPaddingConverter::ConvertTensorData(const Handle& handle,
                                                   const TensorDescriptor& padded_tensor_desc,

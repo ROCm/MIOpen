@@ -384,16 +384,14 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 
     if(wino_data_tile == 3 && wino_filter_tile == 2)
     {
-        if(env::disabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2) ||
-           problem.GetKernelStrideH() == 1)
+        if(env::disabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2) || problem.GetKernelStrideH() == 1)
         {
             return false;
         }
     }
     if(wino_data_tile == 3 && wino_filter_tile == 3)
     {
-        if(env::disabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3) ||
-           problem.GetKernelStrideH() == 1)
+        if(env::disabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3) || problem.GetKernelStrideH() == 1)
         {
             return false;
         }

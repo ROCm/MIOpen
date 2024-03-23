@@ -36,11 +36,10 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto env_wrw = std::tuple{
-        std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
-        std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
-        std::pair{MIOPEN_FIND_MODE, "normal"},
-        std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsmBwdWrW3x3"}};
+    const auto env_wrw = std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
+                                    std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+                                    std::pair{MIOPEN_FIND_MODE, "normal"},
+                                    std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsmBwdWrW3x3"}};
 
     const std::string vw = " --verbose --disable-forward --disable-backward-data";
 
