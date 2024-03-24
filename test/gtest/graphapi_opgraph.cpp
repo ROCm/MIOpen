@@ -32,99 +32,91 @@
 namespace gr = miopen::graphapi;
 
 template <bool IsVirtual>
-gr::Tensor makeDummyTensor(std::string_view name) {
-  assert(name.size() <= sizeof(int64_t));
-  int64_t id = 0;
-  std::copy(name.begin(), name.end(), reinterpret_cast<char*>(&id));
+gr::Tensor makeDummyTensor(std::string_view name)
+{
+    assert(name.size() <= sizeof(int64_t));
+    int64_t id = 0;
+    std::copy(name.begin(), name.end(), reinterpret_cast<char*>(&id));
 
-  return gr::TensorBuilder{}.
-    setDataType(miopenFloat).
-    setDim({1}).
-    setStride({1}).
-    setId(id).
-    setVirtual(IsVirtual).
-    build();
-
+    return gr::TensorBuilder{}
+        .setDataType(miopenFloat)
+        .setDim({1})
+        .setStride({1})
+        .setId(id)
+        .setVirtual(IsVirtual)
+        .build();
 }
 
-struct DummyNode: public gr::OpNode {
-  std::string mName;
-  std::vector<gr::Tensor*> mInTensors;
-  std::vector<gr::Tensor*> mOutTensors;
+struct DummyNode : public gr::OpNode
+{
+    std::string mName;
+    std::vector<gr::Tensor*> mInTensors;
+    std::vector<gr::Tensor*> mOutTensors;
 
-  DummyNode(
-      const char* name, 
-      std::initializer_list<gr::Tensor*> ins,
-      std::initializer_list<gr::Tensor*> outs)
-    :
-      mName(name),
-      mInTensors(ins),
-      mOutTensors(outs)
-  {}
+    DummyNode(const char* name,
+              std::initializer_list<gr::Tensor*> ins,
+              std::initializer_list<gr::Tensor*> outs)
+        : mName(name), mInTensors(ins), mOutTensors(outs)
+    {
+    }
 
-  const std::string& signName() const final { return mName; }
+    const std::string& signName() const final { return mName; }
 
-  std::vector<gr::Tensor*> getInTensors() const final {
-    return mInTensors;
-  }
+    std::vector<gr::Tensor*> getInTensors() const final { return mInTensors; }
 
-  std::vector<gr::Tensor*> getOutTensors() const final {
-    return mOutTensors;
-  }
-
+    std::vector<gr::Tensor*> getOutTensors() const final { return mOutTensors; }
 };
 
-TEST(GraphAPI, BuildDiamond) {
+TEST(GraphAPI, BuildDiamond)
+{
 
-  /*
-   *       |
-   *       | t_in
-   *       v
-   *      Top 
-   * t_a /   \ t_b
-   *    /     \
-   *   v       v
-   *  Left    Right
-   *    \      /
-   * t_c \    / t_d
-   *      v  v
-   *     Bottom
-   *       |
-   *       |t_out
-   *       v
-  */
+    /*
+     *       |
+     *       | t_in
+     *       v
+     *      Top
+     * t_a /   \ t_b
+     *    /     \
+     *   v       v
+     *  Left    Right
+     *    \      /
+     * t_c \    / t_d
+     *      v  v
+     *     Bottom
+     *       |
+     *       |t_out
+     *       v
+     */
 
-  auto t_in = makeDummyTensor<false>("t_in");
-  auto t_out = makeDummyTensor<false>("t_out");
+    auto t_in  = makeDummyTensor<false>("t_in");
+    auto t_out = makeDummyTensor<false>("t_out");
 
-  auto t_a = makeDummyTensor<true>("t_a");
-  auto t_b = makeDummyTensor<true>("t_b");
-  auto t_c = makeDummyTensor<true>("t_c");
-  auto t_d = makeDummyTensor<true>("t_d");
+    auto t_a = makeDummyTensor<true>("t_a");
+    auto t_b = makeDummyTensor<true>("t_b");
+    auto t_c = makeDummyTensor<true>("t_c");
+    auto t_d = makeDummyTensor<true>("t_d");
 
-  gr::OpGraphBuilder graph_builder;
+    gr::OpGraphBuilder graph_builder;
 
-  DummyNode top{"top", {&t_in}, {&t_a, &t_b}};
-  DummyNode left{"left", {&t_a}, {&t_c}};
-  DummyNode right{"right", {&t_b}, {&t_d}};
-  DummyNode bottom{"bottom", {&t_c, &t_d}, {&t_out}};
+    DummyNode top{"top", {&t_in}, {&t_a, &t_b}};
+    DummyNode left{"left", {&t_a}, {&t_c}};
+    DummyNode right{"right", {&t_b}, {&t_d}};
+    DummyNode bottom{"bottom", {&t_c, &t_d}, {&t_out}};
 
-  graph_builder.addNode(&top);
-  graph_builder.addNode(&left);
-  graph_builder.addNode(&right);
-  graph_builder.addNode(&bottom);
+    graph_builder.addNode(&top);
+    graph_builder.addNode(&left);
+    graph_builder.addNode(&right);
+    graph_builder.addNode(&bottom);
 
-  gr::OpGraph graph = std::move(graph_builder).build();
+    gr::OpGraph graph = std::move(graph_builder).build();
 
-  ASSERT_TRUE(graph.hasNode(&top));
-  ASSERT_TRUE(graph.hasNode(&left));
-  ASSERT_TRUE(graph.hasNode(&right));
-  ASSERT_TRUE(graph.hasNode(&bottom));
+    ASSERT_TRUE(graph.hasNode(&top));
+    ASSERT_TRUE(graph.hasNode(&left));
+    ASSERT_TRUE(graph.hasNode(&right));
+    ASSERT_TRUE(graph.hasNode(&bottom));
 
-  ASSERT_TRUE(graph.hasEdge(&top, &t_a, &left));
-  ASSERT_TRUE(graph.hasEdge(&top, &t_b, &right));
-  ASSERT_TRUE(graph.hasEdge(&left, &t_c, &bottom));
-  ASSERT_TRUE(graph.hasEdge(&right, &t_d, &bottom));
-
+    ASSERT_TRUE(graph.hasEdge(&top, &t_a, &left));
+    ASSERT_TRUE(graph.hasEdge(&top, &t_b, &right));
+    ASSERT_TRUE(graph.hasEdge(&left, &t_c, &bottom));
+    ASSERT_TRUE(graph.hasEdge(&right, &t_d, &bottom));
 }
-
