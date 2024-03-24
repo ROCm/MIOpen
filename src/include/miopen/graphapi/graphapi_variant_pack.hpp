@@ -26,14 +26,34 @@
 
 #pragma once
 
-#include <algorithm>
+#include <miopen/algorithm.hpp>
+#include <miopen/errors.hpp>
+
 #include <cassert>
 #include <cstdint>
+#include <set>
+#include <tuple>
 #include <vector>
 
 namespace miopen {
 
 namespace graphapi {
+
+namespace detail {
+
+template <typename Range>
+bool noRepetitions(const Range& r)
+{
+    std::set<std::remove_cv_t<std::remove_reference_t<decltype(*r.begin())>>> uniqueSet;
+    bool isUnique = true;
+    for(auto it = r.begin(), end = r.end(); isUnique && it != end; ++it)
+    {
+        std::tie(std::ignore, isUnique) = uniqueSet.insert(*it);
+    }
+    return isUnique;
+}
+
+} // namespace detail
 
 class VariantPack
 {
@@ -46,51 +66,142 @@ public:
     VariantPack(const std::vector<int64_t>& tensorIds,
                 const std::vector<void*>& dataPointers,
                 void* workspace)
+        : mTensorIds(tensorIds), mDataPointers(dataPointers), mWorkspace(workspace)
     {
     }
     VariantPack(std::vector<int64_t>&& tensorIds,
                 std::vector<void*>&& dataPointers,
                 void* workspace)
+        : mTensorIds(std::move(tensorIds)),
+          mDataPointers(std::move(dataPointers)),
+          mWorkspace(workspace)
     {
     }
 
-    void* getDataPointer(int64_t tensorId) const noexcept { return nullptr; }
-    void* getWorkspace() const noexcept { return nullptr; }
+    void* getDataPointer(int64_t tensorId) const
+    {
+        assert(mTensorIds.size() == mDataPointers.size());
+        auto iter = std::find(mTensorIds.cbegin(), mTensorIds.cend(), tensorId);
+        MIOPEN_THROW_IF(iter == mTensorIds.cend(), "No such tensor id in VariantPack");
+        return *(mDataPointers.cbegin() + (iter - mTensorIds.cbegin()));
+    }
+    void* getWorkspace() const noexcept { return mWorkspace; }
 
 private:
+    std::vector<int64_t> mTensorIds;
+    std::vector<void*> mDataPointers;
+    void* mWorkspace = nullptr;
+
+    friend class VariantPackBuilder;
 };
 
 class VariantPackBuilder
 {
 public:
-    VariantPackBuilder& setTensorIds(const std::vector<int64_t>& tensorIds) & { return *this; }
-    VariantPackBuilder& setTensorIds(std::vector<int64_t>&& tensorIds) & { return *this; }
-    VariantPackBuilder& setDataPointers(const std::vector<void*>& dataPointers) & { return *this; }
-    VariantPackBuilder& setDataPointers(std::vector<void*>&& dataPointers) & { return *this; }
-    VariantPackBuilder& setWorkspace(void* workspace) & { return *this; }
+    VariantPackBuilder& setTensorIds(const std::vector<int64_t>& tensorIds) &
+    {
+        if(!detail::noRepetitions(tensorIds))
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+
+        mVariantPack.mTensorIds = tensorIds;
+        mTensorIdsSet           = true;
+        return *this;
+    }
+    VariantPackBuilder& setTensorIds(std::vector<int64_t>&& tensorIds) &
+    {
+        if(!detail::noRepetitions(tensorIds))
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+
+        mVariantPack.mTensorIds = std::move(tensorIds);
+        mTensorIdsSet           = true;
+        return *this;
+    }
+    VariantPackBuilder& setDataPointers(const std::vector<void*>& dataPointers) &
+    {
+        if(miopen::any_of(dataPointers, [](const auto& v) { return v == nullptr; }) ||
+           !detail::noRepetitions(dataPointers))
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+
+        mVariantPack.mDataPointers = dataPointers;
+        mDataPointersSet           = true;
+        return *this;
+    }
+    VariantPackBuilder& setDataPointers(std::vector<void*>&& dataPointers) &
+    {
+        if(miopen::any_of(dataPointers, [](const auto& v) { return v == nullptr; }) ||
+           !detail::noRepetitions(dataPointers))
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+
+        mVariantPack.mDataPointers = std::move(dataPointers);
+        mDataPointersSet           = true;
+        return *this;
+    }
+    VariantPackBuilder& setWorkspace(void* workspace) &
+    {
+        if(workspace == nullptr)
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+
+        mVariantPack.mWorkspace = workspace;
+        return *this;
+    }
 
     VariantPackBuilder&& setTensorIds(const std::vector<int64_t>& tensorIds) &&
     {
-        return std::move(*this);
+        return std::move(setTensorIds(tensorIds));
     }
     VariantPackBuilder&& setTensorIds(std::vector<int64_t>&& tensorIds) &&
     {
-        return std::move(*this);
+        return std::move(setTensorIds(std::move(tensorIds)));
     }
     VariantPackBuilder&& setDataPointers(const std::vector<void*>& dataPointers) &&
     {
-        return std::move(*this);
+        return std::move(setDataPointers(dataPointers));
     }
     VariantPackBuilder&& setDataPointers(std::vector<void*>&& dataPointers) &&
     {
-        return std::move(*this);
+        return std::move(setDataPointers(std::move(dataPointers)));
     }
-    VariantPackBuilder&& setWorkspace(void* workspace) && { return std::move(*this); }
+    VariantPackBuilder&& setWorkspace(void* workspace) &&
+    {
+        return std::move(setWorkspace(workspace));
+    }
 
-    VariantPack build() const& { return {}; }
-    VariantPack build() && { return {}; }
+    VariantPack build() const&
+    {
+        if(!validate())
+            MIOPEN_THROW(miopenStatusBadParm);
+        return mVariantPack;
+    }
+    VariantPack build() &&
+    {
+        if(!validate())
+            MIOPEN_THROW(miopenStatusBadParm);
+        return std::move(mVariantPack);
+    }
 
 private:
+    VariantPack mVariantPack;
+    bool mTensorIdsSet    = false;
+    bool mDataPointersSet = false;
+
+    bool validate() const
+    {
+        return mTensorIdsSet && mDataPointersSet && mVariantPack.mWorkspace != nullptr &&
+               mVariantPack.mTensorIds.size() == mVariantPack.mDataPointers.size() &&
+               std::find(mVariantPack.mDataPointers.cbegin(),
+                         mVariantPack.mDataPointers.cend(),
+                         mVariantPack.mWorkspace) == mVariantPack.mDataPointers.cend();
+    }
 };
 
 } // namespace graphapi
