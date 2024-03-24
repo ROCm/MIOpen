@@ -28,6 +28,9 @@
 // of std::min() between the MSVC standard library and HIP Clang wrappers.
 // this avoids including cuda_wrappers version of <algorithm>
 #define __CLANG_CUDA_WRAPPERS_ALGORITHM
+// silent unused macro warning
+#ifdef __CLANG_CUDA_WRAPPERS_ALGORITHM
+#endif
 // end of workaround.
 
 #include <miopen/algorithm.hpp>
