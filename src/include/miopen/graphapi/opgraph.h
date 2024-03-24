@@ -54,31 +54,19 @@ protected:
 
   void addOutEdge(OpNode* dst, Tensor* tens_ptr) {
     assert(dst);
-    Edge e{dst, tens_ptr};
     if (!hasOutEdge(dst, tens_ptr)) {
-      mOutEdges.emplace_back(e);
+      mOutEdges.emplace_back(dst, tens_ptr);
     }
   }
 
   void addInEdge(OpNode* src, Tensor* tens_ptr) {
     assert(src);
-    Edge e{src, tens_ptr};
     if (!hasInEdge(src, tens_ptr)) {
-      mInEdges.emplace_back(e);
+      mInEdges.emplace_back(src, tens_ptr);
     }
   }
 
 private:
-
-  // NOTE(Amber): We could implement the iterate{In,Out}Tensors, 
-  // has{In,Out}Tensor has pure virtual functions that derived classes must
-  // override and thus avoid duplicating tensor pointers in this class by
-  // eliminating the vectors below.
-
-  /*
-  std::vector<Tensor*> mInTensors;
-  std::vector<Tensor*> mOutTensors;
-  */
 
   std::vector<Edge> mInEdges;
   std::vector<Edge> mOutEdges;
