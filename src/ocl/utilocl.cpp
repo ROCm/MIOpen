@@ -802,7 +802,7 @@ float transpose_NCHW2CNHW(const Handle& handle,
         auto&& kernels = handle.GetKernels(kernel_name, network_config);
         if(!kernels.empty())
         {
-            auto kernel  = kernels.front();
+            auto kernel = kernels.front();
             kernel.SetLocalDims(vld[0], vld[1], vld[2]);
             kernel.SetGlobalDims(vgd[0], vgd[1], vgd[2]);
             kernel(in, out, in_offset, out_offset, RD_BLCK, HW_RD, n, c, h_in, w_in);
@@ -843,7 +843,7 @@ float transpose_NCHW2CNHW(const Handle& handle,
         auto&& kernels = handle.GetKernels(kernel_name, network_config);
         if(!kernels.empty())
         {
-            auto kernel  = kernels.front();
+            auto kernel = kernels.front();
             kernel.SetLocalDims(vld[0], vld[1], vld[2]);
             kernel.SetGlobalDims(vgd[0], vgd[1], vgd[2]);
             kernel(in,
@@ -935,7 +935,7 @@ float transpose_CNHW2NCHW(const Handle& handle,
         auto&& kernels = handle.GetKernels(kernel_name, network_config);
         if(!kernels.empty())
         {
-            auto kernel  = kernels.front();
+            auto kernel = kernels.front();
             kernel.SetLocalDims(vld[0], vld[1], vld[2]);
             kernel.SetGlobalDims(vgd[0], vgd[1], vgd[2]);
             kernel(in, out, in_offset, out_offset, RD_BLCK, HW_RD, n, c, h_out, w_out);
@@ -980,7 +980,7 @@ float transpose_CNHW2NCHW(const Handle& handle,
         auto&& kernels = handle.GetKernels(kernel_name, network_config);
         if(!kernels.empty())
         {
-            auto kernel  = kernels.front();
+            auto kernel = kernels.front();
             kernel.SetLocalDims(vld[0], vld[1], vld[2]);
             kernel.SetGlobalDims(vgd[0], vgd[1], vgd[2]);
             kernel(in,
@@ -1177,7 +1177,7 @@ float transpose_packed_MN2NM(const Handle& handle,
 
     if(!kernels.empty())
     {
-        auto kernel  = kernels.front();
+        auto kernel = kernels.front();
         kernel.SetLocalDims(vld[0], vld[1], vld[2]);
         kernel.SetGlobalDims(vgd[0], vgd[1], vgd[2]);
         kernel(in, out, n, m, in_offset, out_offset);

@@ -152,12 +152,12 @@ void HIPOCKernelInvoke::run_cooperative(void** kern_args) const
     if(gdims[0] >= (1ULL << 32) || gdims[1] >= (1ULL << 32) || gdims[2] >= (1ULL << 32))
         MIOPEN_THROW("gridDim x blockDim >= 2^32");
 
-    if(gdims[0]%ldims[0] != 0 || gdims[1]%ldims[1] != 0 || gdims[2]%ldims[2] != 0)
+    if(gdims[0] % ldims[0] != 0 || gdims[1] % ldims[1] != 0 || gdims[2] % ldims[2] != 0)
         MIOPEN_THROW(miopenStatusInternalError);
 
-    unsigned grid_dim_x = gdims[0]/ldims[0];
-    unsigned grid_dim_y = gdims[1]/ldims[1];
-    unsigned grid_dim_z = gdims[2]/ldims[2];
+    unsigned grid_dim_x = gdims[0] / ldims[0];
+    unsigned grid_dim_y = gdims[1] / ldims[1];
+    unsigned grid_dim_z = gdims[2] / ldims[2];
 
     MIOPEN_HANDLE_LOCK
 

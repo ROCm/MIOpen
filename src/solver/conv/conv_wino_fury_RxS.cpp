@@ -143,7 +143,7 @@ public:
         std::ignore = ctx;
     }
 
-    bool IsC32ModePreferable()
+    bool IsC32ModePreferable() const
     {
         PerfModelInfo perf_model_c16, perf_model_c32;
         perf_model_c16 = PerfPrediction(false);
@@ -276,7 +276,7 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetWorkspaceSize(const ExecutionContext& 
 {
     std::ignore = problem;
 
-    const bool coop_launch      = ctx.GetStream().CooperativeLaunchSupported();
+    const bool coop_launch = ctx.GetStream().CooperativeLaunchSupported();
     return coop_launch ? sync_buffer_size : 0; // 2KB buffer for global sync
 }
 
@@ -300,8 +300,9 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
         MIOPEN_THROW(miopenStatusInternalError);
     }
 
+    const auto shader_model = ShaderModel(ctx, args, cu_count, n_groups, reduced_vgpr_mem);
     // For ASICs with redused VGPR memory we have only c16 kernel
-    const bool c32_mode = reduced_vgpr_mem ? false : ShaderModel(ctx, args, cu_count, n_groups, reduced_vgpr_mem).IsC32ModePreferable();
+    const bool c32_mode = reduced_vgpr_mem ? false : shader_model.IsC32ModePreferable();
 
     // Warning
     static bool IsWarned = false;
@@ -383,11 +384,11 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
     if(problem.IsDirectionBackwardData())
         flags |= WinoShaderFlagsV40::F_REVERSE_R | WinoShaderFlagsV40::F_REVERSE_S;
 
-    uint8_t sync_limit = 0;
+    uint8_t sync_limit  = 0;
     uint8_t sync_period = 0;
     if(coop_launch)
     {
-        sync_limit = 255;
+        sync_limit  = 255;
         sync_period = c32_mode ? 3 : 4;
     }
     args.SetShaderParams(n_groups, flags, sync_limit, sync_period);

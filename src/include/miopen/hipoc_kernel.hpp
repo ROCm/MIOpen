@@ -118,7 +118,13 @@ struct HIPOCKernelInvoke
                       std::string pname,
                       std::function<void(hipEvent_t, hipEvent_t)> pcallback,
                       bool pcoop_launch)
-        : stream(pstream), fun(pfun), ldims(pldims), gdims(pgdims), name(pname), callback(pcallback), coop_launch(pcoop_launch)
+        : stream(pstream),
+          fun(pfun),
+          ldims(pldims),
+          gdims(pgdims),
+          name(pname),
+          callback(pcallback),
+          coop_launch(pcoop_launch)
     {
     }
 
@@ -161,15 +167,9 @@ struct HIPOCKernelInvoke
         }
     }
 
-    void SetLocalDims(size_t dim_x, size_t dim_y, size_t dim_z)
-    {
-        ldims = {dim_x, dim_y, dim_z};
-    }
+    void SetLocalDims(size_t dim_x, size_t dim_y, size_t dim_z) { ldims = {dim_x, dim_y, dim_z}; }
 
-    void SetGlobalDims(size_t dim_x, size_t dim_y, size_t dim_z)
-    {
-        gdims = {dim_x, dim_y, dim_z};
-    }
+    void SetGlobalDims(size_t dim_x, size_t dim_y, size_t dim_z) { gdims = {dim_x, dim_y, dim_z}; }
 
     const std::string& GetName() const { return name; }
 
@@ -222,7 +222,7 @@ struct HIPOCKernel
 
     HIPOCKernelInvoke Invoke(hipStream_t stream,
                              std::function<void(hipEvent_t, hipEvent_t)> callback = nullptr,
-                             bool coop_launch = false) const;
+                             bool coop_launch                                     = false) const;
 };
 
 } // namespace miopen

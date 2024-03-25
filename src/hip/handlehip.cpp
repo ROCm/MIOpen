@@ -478,7 +478,9 @@ const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
 KernelInvoke Handle::Run(Kernel k, bool coop_launch) const
 {
     this->impl->set_ctx();
-    auto callback = (this->impl->enable_profiling || MIOPEN_GPU_SYNC) ? this->impl->elapsed_time_handler() : nullptr;
+    auto callback = (this->impl->enable_profiling || MIOPEN_GPU_SYNC)
+                        ? this->impl->elapsed_time_handler()
+                        : nullptr;
     return k.Invoke(this->GetStream(), callback, coop_launch);
 }
 

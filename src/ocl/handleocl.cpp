@@ -369,7 +369,7 @@ const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
 KernelInvoke Handle::Run(Kernel k, bool coop_launch) const
 {
     if(coop_launch)
-            MIOPEN_THROW(miopenStatusInternalError);
+        MIOPEN_THROW(miopenStatusInternalError);
 
     auto q = this->GetStream();
     if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
