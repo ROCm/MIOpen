@@ -88,11 +88,11 @@ public:
     void* getWorkspace() const noexcept { return mWorkspace; }
 
 private:
+    friend class VariantPackBuilder;
+
     std::vector<int64_t> mTensorIds;
     std::vector<void*> mDataPointers;
     void* mWorkspace = nullptr;
-
-    friend class VariantPackBuilder;
 };
 
 class VariantPackBuilder
@@ -190,10 +190,6 @@ public:
     }
 
 private:
-    VariantPack mVariantPack;
-    bool mTensorIdsSet    = false;
-    bool mDataPointersSet = false;
-
     bool validate() const
     {
         return mTensorIdsSet && mDataPointersSet && mVariantPack.mWorkspace != nullptr &&
@@ -202,6 +198,10 @@ private:
                          mVariantPack.mDataPointers.cend(),
                          mVariantPack.mWorkspace) == mVariantPack.mDataPointers.cend();
     }
+
+    VariantPack mVariantPack;
+    bool mTensorIdsSet    = false;
+    bool mDataPointersSet = false;
 };
 
 } // namespace graphapi
