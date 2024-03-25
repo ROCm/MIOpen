@@ -4656,11 +4656,6 @@ struct PerformanceConfigHipImplicitGemm3DGroupWrwXdlops
         return IsValid(problem);
     }
     bool IsValid(const miopen::conv::ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemm3DGroupWrwXdlops& other) const;
 
 private:
@@ -4737,11 +4732,6 @@ struct PerformanceConfigHipImplicitGemm3DGroupBwdXdlops
         return IsValid(problem);
     }
     bool IsValid(const miopen::conv::ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemm3DGroupBwdXdlops& other) const;
 
 private:
@@ -4818,11 +4808,6 @@ struct PerformanceConfigHipImplicitGemmGroupBwdXdlops
         return IsValid(problem);
     }
     bool IsValid(const miopen::conv::ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemmGroupBwdXdlops& other) const;
 
 private:
@@ -4898,11 +4883,6 @@ struct PerformanceConfigHipImplicitGemmGroupWrwXdlops
         return IsValid(problem);
     }
     bool IsValid(const miopen::conv::ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemmGroupWrwXdlops& other) const;
 
 private:
@@ -5050,11 +5030,6 @@ struct PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops
         return IsValid(problem);
     }
     bool IsValid(const miopen::conv::ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops& other) const;
 
 private:
@@ -5127,11 +5102,6 @@ struct PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops
         return IsValid(problem);
     }
     bool IsValid(const miopen::conv::ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops& other) const;
 
 private:
