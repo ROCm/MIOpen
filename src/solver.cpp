@@ -33,6 +33,7 @@
 #include <miopen/layernorm/solvers.hpp>
 #include <miopen/pooling/solvers.hpp>
 #include <miopen/reduce/solvers.hpp>
+#include <miopen/softmax/solvers.hpp>
 
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
@@ -642,9 +643,14 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        ++id,
                        conv::ConvHipImplicitGemmGroupWrwXdlops{},
                        miopenConvolutionAlgoImplicitGEMM);
+
+    Register(registry, ++id, Primitive::Softmax, softmax::Softmax{}.SolverDbId());
+    Register(registry, ++id, Primitive::Softmax, softmax::AttnSoftmax{}.SolverDbId());
+
     Register(registry, ++id, Primitive::Reduce, reduce::ArgminForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Reduce, reduce::MaxForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Reduce, reduce::MinForward{}.SolverDbId());
+
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

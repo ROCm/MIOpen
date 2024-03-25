@@ -379,8 +379,8 @@ int SQLite::Statement::BindInt64(int idx, const int64_t num)
     return 0;
 }
 
-SQLitePerfDb::SQLitePerfDb(const std::string& filename_, bool is_system_)
-    : SQLiteBase(filename_, is_system_)
+SQLitePerfDb::SQLitePerfDb(DbKinds db_kind, const std::string& filename_, bool is_system_)
+    : SQLiteBase(db_kind, filename_, is_system_)
 {
     if(DisableUserDbFileIO && !is_system)
         return;
