@@ -125,7 +125,7 @@ struct MIOPEN_EXPORT Handle : miopenHandle
         return this->Run(ks.front());
     }
 
-    KernelInvoke Run(Kernel k) const;
+    KernelInvoke Run(Kernel k, bool coop_launch = false) const;
     const std::vector<Kernel>& GetKernelsImpl(const std::string& algorithm,
                                               const std::string& network_config) const;
 

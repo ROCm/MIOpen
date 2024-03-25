@@ -79,8 +79,7 @@ enum class WinoShaderActivationModeV40_t : uint8_t
 
 inline std::ostream& operator<<(std::ostream& s, const WinoShaderActivationModeV40_t& mode)
 {
-    using T = std::underlying_type_t<WinoShaderActivationModeV40_t>;
-    s << static_cast<T>(mode);
+    s << static_cast<unsigned>(mode);
     return s;
 }
 

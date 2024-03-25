@@ -39,23 +39,28 @@ InvokerFactory MakeGcnAsmWinoV40InvokerFactory(const WinoShaderArgsV40& args,
                                                std::size_t sync_buffer_size)
 {
     const bool is_backWrW = (direction == Direction::BackwardWeights);
+    const bool coop_launch = (args.sync_period != 0);
 
     return [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto k = handle.Run(kernels[0]);
+            const auto k = handle.Run(kernels[0], coop_launch);
 
-            const auto data_addr   = !is_backWrW
+            ConstData_t data_addr   = !is_backWrW
                                          ? primitive_params.CastTo<DataInvokeParams>().tensors.in
                                          : primitive_params.CastTo<WrWInvokeParams>().tensors.x;
-            const auto filter_addr = !is_backWrW
+            ConstData_t filter_addr = !is_backWrW
                                          ? primitive_params.CastTo<DataInvokeParams>().tensors.w
                                          : primitive_params.CastTo<WrWInvokeParams>().tensors.dy;
-            const auto output_addr = !is_backWrW
+            Data_t output_addr = !is_backWrW
                                          ? primitive_params.CastTo<DataInvokeParams>().tensors.out
                                          : primitive_params.CastTo<WrWInvokeParams>().tensors.dw;
-            const auto sync_addr   = !is_backWrW
-                                         ? primitive_params.CastTo<DataInvokeParams>().workSpace
-                                         : primitive_params.CastTo<WrWInvokeParams>().workSpace;
+            Data_t sync_addr = nullptr;
+            if(coop_launch)
+            {
+                sync_addr = !is_backWrW
+                                ? primitive_params.CastTo<DataInvokeParams>().workSpace
+                                : primitive_params.CastTo<WrWInvokeParams>().workSpace;
+            }
 
             uint64_t bias_addr = 0;
 
@@ -80,11 +85,17 @@ InvokerFactory MakeGcnAsmWinoV40InvokerFactory(const WinoShaderArgsV40& args,
                 << " o_N_stride=" << args.o_N_stride << " o_K_stride=" << args.o_K_stride
                 << " o_H_stride=" << args.o_H_stride << " o_G_stride=" << args.o_G_stride
                 << " n_groups=" << args.n_groups << " flags=" << args.flags
-                << " sync_limit=" << args.sync_limit << " sync_period=" << args.sync_period);
+                << " sync_limit=" << static_cast<unsigned>(args.sync_limit)
+                << " sync_period=" << static_cast<unsigned>(args.sync_period));
             // clang-format on
 
-            // 2KB sync buffer that has to be zeroed before each shader dispatch
-            hipMemsetAsync(sync_addr, 0, sync_buffer_size, handle.GetStream());
+            if(coop_launch)
+            {
+                // Sync buffer that has to be zeroed before each shader dispatch
+                auto status = hipMemsetAsync(sync_addr, 0, sync_buffer_size, handle.GetStream());
+                if(status != hipSuccess)
+                    MIOPEN_THROW_HIP_STATUS(status, "hipMemsetAsync() failed");
+            }
 
             // clang-format off
             // Any reserved fields should be set to 0

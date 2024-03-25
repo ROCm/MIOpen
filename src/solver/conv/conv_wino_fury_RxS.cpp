@@ -34,13 +34,16 @@
 #endif
 #include <miopen/stringutils.hpp>
 
+// CLR BUG: too many blocks in cooperative launch
+#define WORKAROUND_SWDEV_XXXXXX_COOP_LAUNCH_TOO_MANY_BLOCKS 1
+
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F2X3)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F3X2)
 
 #define IS2X3 (Winodata == 2 && Winofilter == 3)
 #define IS3X2 (Winodata == 3 && Winofilter == 2)
 
-constexpr std::size_t sync_buffer_size = 2048;
+constexpr std::size_t sync_buffer_size = 2048; // 2K
 
 namespace miopen {
 namespace solver {
@@ -67,6 +70,9 @@ uint32_t GetNGroups(uint64_t cu_count)
     // n_groups < 2^8
     constexpr uint64_t max_n_groups = PowOf2(8) - 1;
 
+#if WORKAROUND_SWDEV_XXXXXX_COOP_LAUNCH_TOO_MANY_BLOCKS
+    cu_count /= 2; // WGP
+#endif
     return std::min(cu_count, max_n_groups);
 }
 
@@ -232,6 +238,7 @@ bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext&
         return false;
 
     const auto dev_name = ctx.GetStream().GetDeviceName();
+    // All gfx11 ASICs are supported
     if(!StartsWith(dev_name, "gfx11"))
         return false;
 
@@ -267,10 +274,10 @@ size_t
 ConvWinoFuryRxS<Winodata, Winofilter>::GetWorkspaceSize(const ExecutionContext& ctx,
                                                         const ProblemDescription& problem) const
 {
-    std::ignore = ctx;
     std::ignore = problem;
 
-    return sync_buffer_size; // 2KB buffer for global sync
+    const bool coop_launch      = ctx.GetStream().CooperativeLaunchSupported();
+    return coop_launch ? sync_buffer_size : 0; // 2KB buffer for global sync
 }
 
 template <uint32_t Winodata, uint32_t Winofilter>
@@ -293,6 +300,9 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
         MIOPEN_THROW(miopenStatusInternalError);
     }
 
+    // For ASICs with redused VGPR memory we have only c16 kernel
+    const bool c32_mode = reduced_vgpr_mem ? false : ShaderModel(ctx, args, cu_count, n_groups, reduced_vgpr_mem).IsC32ModePreferable();
+
     // Warning
     static bool IsWarned = false;
     if(!IsWarned)
@@ -300,8 +310,8 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
         if(cu_count != n_groups)
         {
             MIOPEN_LOG_WE(SolverDbId()
-                          << ": GPU has " << cu_count << "CUs, but this solver supports max "
-                          << n_groups << "and thus may show sub-optimal performance.");
+                          << ": GPU has " << cu_count << " CUs, but this solver supports max "
+                          << n_groups << " and thus may show sub-optimal performance.");
         }
         IsWarned = true;
     }
@@ -332,16 +342,7 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
     }
 
     kernel_postfix += IS2X3 ? "_f2x3" : "_f3x2";
-    if(reduced_vgpr_mem)
-    {
-        kernel_postfix += "_c16"; // For ASICs with redused VGPR memory we have only one kernel
-    }
-    else
-    {
-        bool c32_mode =
-            ShaderModel(ctx, args, cu_count, n_groups, reduced_vgpr_mem).IsC32ModePreferable();
-        kernel_postfix += c32_mode ? "_c32" : "_c16";
-    }
+    kernel_postfix += c32_mode ? "_c32" : "_c16";
     kernel_postfix += "_stride1";
 
     kernel_name += kernel_postfix;
@@ -382,13 +383,21 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
     if(problem.IsDirectionBackwardData())
         flags |= WinoShaderFlagsV40::F_REVERSE_R | WinoShaderFlagsV40::F_REVERSE_S;
 
-    args.SetShaderParams(n_groups, flags, 0, 0);
+    uint8_t sync_limit = 0;
+    uint8_t sync_period = 0;
+    if(coop_launch)
+    {
+        sync_limit = 255;
+        sync_period = c32_mode ? 3 : 4;
+    }
+    args.SetShaderParams(n_groups, flags, sync_limit, sync_period);
 
     // Solution
     ConvSolution result;
     result.construction_params.push_back(kernel);
     result.invoker_factory = miopen::conv::MakeGcnAsmWinoV40InvokerFactory(
-        args, problem.GetDirection(), sync_buffer_size);
+        args, problem.GetDirection(), coop_launch ? sync_buffer_size : 0);
+    result.workspace_sz = GetWorkspaceSize(ctx, problem);
 
     return result;
 }

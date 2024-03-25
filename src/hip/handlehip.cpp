@@ -475,13 +475,11 @@ const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
     return this->impl->cache.GetKernels(algorithm, network_config);
 }
 
-KernelInvoke Handle::Run(Kernel k) const
+KernelInvoke Handle::Run(Kernel k, bool coop_launch) const
 {
     this->impl->set_ctx();
-    if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
-        return k.Invoke(this->GetStream(), this->impl->elapsed_time_handler());
-    else
-        return k.Invoke(this->GetStream());
+    auto callback = (this->impl->enable_profiling || MIOPEN_GPU_SYNC) ? this->impl->elapsed_time_handler() : nullptr;
+    return k.Invoke(this->GetStream(), callback, coop_launch);
 }
 
 Program Handle::LoadProgram(const std::string& program_name,
