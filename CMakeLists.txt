@@ -163,10 +163,8 @@ option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD
 if(MIOPEN_EMBED_BUILD)
     set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build as a shared library" FORCE)
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." Off)
-    option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" Off)
 else()
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
-    option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" On)
 endif()
 
 if(MIOPEN_EMBED_BUILD)
@@ -183,6 +181,10 @@ set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
 set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
     OpenCL HIP HIPOC HIPNOGPU)
+
+set_var_to_condition(MIOPEN_BUILD_DRIVER_DEFAULT (NOT MIOPEN_EMBED_BUILD) AND (NOT (MIOPEN_BACKEND STREQUAL "HIPNOGPU")))
+option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver (and use it in tests)" ${MIOPEN_BUILD_DRIVER_DEFAULT})
+message(STATUS "MIOPEN_BUILD_DRIVER: ${MIOPEN_BUILD_DRIVER}" )
 
 # OpenCL 1.2
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
@@ -215,15 +217,6 @@ endif()
 # HIP is always required
 find_package(hip REQUIRED PATHS /opt/rocm)
 message(STATUS "Build with HIP ${hip_VERSION}")
-target_flags(HIP_COMPILER_FLAGS hip::device)
-# Remove cuda arch flags
-string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
-string(REGEX REPLACE --offload-arch=[a-z0-9:+-]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
-# Skip library paths since hip will incorrectly treat it as a source file
-string(APPEND HIP_COMPILER_FLAGS " ")
-foreach(_unused RANGE 2)
-    string(REGEX REPLACE " /[^ ]+\\.(a|so) " " " HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
-endforeach()
 
 # Override HIP version in config.h, if necessary.
 # The variables set by find_package() can't be overwritten,
@@ -260,6 +253,22 @@ set(MIOPEN_hip_VERSION ${MIOPEN_hip_VERSION_MAJOR}.${MIOPEN_hip_VERSION_MINOR}.$
 # build time errors, because HIPRTC is a relatively new component.
 set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT (MIOPEN_USE_COMGR AND (MIOPEN_hip_VERSION VERSION_GREATER_EQUAL 5)))
 option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MIOPEN_USE_HIPRTC_DEFAULT})
+
+# Do not append system include directories to HIP compiler flags when HIPRTC is used
+set_var_to_condition(MIOPEN_HIP_COMPILER_USE_SYSTEM_INCLUDE_DIRECTORIES_DEFAULT
+              (NOT (MIOPEN_USE_HIPRTC AND (MIOPEN_hip_VERSION VERSION_GREATER_EQUAL 6.1.40091))))
+option(MIOPEN_HIP_COMPILER_USE_SYSTEM_INCLUDE_DIRECTORIES "Append include directories to compiler flags"
+       ${MIOPEN_HIP_COMPILER_USE_SYSTEM_INCLUDE_DIRECTORIES_DEFAULT})
+
+target_flags(HIP_COMPILER_FLAGS hip::device)
+# Remove cuda arch flags
+string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+string(REGEX REPLACE --offload-arch=[a-z0-9:+-]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+# Skip library paths since hip will incorrectly treat it as a source file
+string(APPEND HIP_COMPILER_FLAGS " ")
+foreach(_unused RANGE 2)
+    string(REGEX REPLACE " /[^ ]+\\.(a|so) " " " HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+endforeach()
 
 # WORKAROUND_SWDEV_413293
 # Assume that any HIP kernel can be launched with non-uniform block size; otherwise
@@ -300,7 +309,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
     endif()
     set(MIOPEN_BACKEND_HIP 1)
 
-    find_program(HIP_OC_COMPILER clang
+    find_program(HIP_OC_COMPILER amdclang
         PATH_SUFFIXES bin
         PATHS
             /opt/rocm
@@ -412,6 +421,10 @@ endif()
 
 option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)
 set(BOOST_COMPONENTS filesystem)
+if(MIOPEN_BUILD_DRIVER)
+    # boost core is a header only component that can't be found by find_package
+    # list(APPEND BOOST_COMPONENTS core)
+endif()
 add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
@@ -487,6 +500,13 @@ endif()
 
 if(MIOPEN_OFFLINE_COMPILER_PATHS_V2)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocm-core")
+endif()
+
+if(MIOPEN_BUILD_DRIVER)
+    # PR #2785 MIOpenDriver to use rocrand to init buffers
+    find_package(rocrand REQUIRED)
+    message(STATUS "rocrand_VERSION=${rocrand_VERSION}")
+    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocrand")
 endif()
 
 if(MIOPEN_BACKEND STREQUAL "HIP")
@@ -603,6 +623,10 @@ else()
 endif()
 
 # End KDB package creation
+
+if(NOT MIOPEN_TEST_DISCRETE)
+list(APPEND CPACK_COMPONENTS_ALL client)
+endif()
 
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}
