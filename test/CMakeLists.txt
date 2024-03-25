@@ -1038,6 +1038,12 @@ add_custom_test(test_regression_half_mi200 GFX900_DISABLED GFX906_DISABLED GFX90
     ENVIRONMENT ${ENVS_FIND_ONLY_HIP_IGEMM_V4R4XDLOPS}
     COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --input 120 64 75 75 --weights 128 64 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_ENABLE_FORWARD_ONLY}
 )
-#override if we need to install gtests
+#Dont install the tests if we are building each test separately
+#When the tests are built as a single unit, then we want to be 
+#able to package them
 set(INSTALL_GTEST OFF)
+if(MIOPEN_TEST_DISCRETE)
 add_subdirectory(gtest EXCLUDE_FROM_ALL)
+else()
+add_subdirectory(gtest)
+endif()
