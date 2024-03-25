@@ -50,7 +50,7 @@ public:
                               void* arrayOfElements) = 0;
     virtual void execute(miopenHandle_t handle, miopenBackendDescriptor_t variantPack);
 
-    bool getFinalized() const noexcept { return mFinalized; };
+    bool isFinalized() const noexcept { return mFinalized; };
 
 protected:
     bool mFinalized = false;
