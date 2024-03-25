@@ -1594,7 +1594,7 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlops::GetSolution(const ExecutionContext& ctx,
 
     kernel.comp_options = options.str();
 
-    MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
+    MIOPEN_LOG_I2(kernel.kernel_file << ":" << kernel.kernel_name);
 
     result.invoker_factory =
         miopen::conv::MakeImplGemmDynamicForwardInvokerFactory<TunableImplicitGemmGTCDynamic_t>(
