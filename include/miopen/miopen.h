@@ -6163,8 +6163,8 @@ MIOPEN_DECLARE_OBJECT(miopenBackendDescriptor)
  * @retval  miopenStatusAllocFailed    The memory allocation failed
  * @retval  miopenStatusUnknownError   The error information was not gathered
  */
-miopenStatus_t miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
-                                             miopenBackendDescriptor_t* descriptor);
+MIOPEN_EXPORT miopenStatus_t miopenBackendCreateDescriptor(
+    miopenBackendDescriptorType_t descriptorType, miopenBackendDescriptor_t* descriptor);
 
 /*! @brief Sets an attribute of a descriptor
  *
@@ -6195,11 +6195,11 @@ miopenStatus_t miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descr
  *                                     supported by the current version
  * @retval  miopenStatusUnknownError   The error information was not gathered
  */
-miopenStatus_t miopenBackendSetAttribute(miopenBackendDescriptor_t descriptor,
-                                         miopenBackendAttributeName_t attributeName,
-                                         miopenBackendAttributeType_t attributeType,
-                                         int64_t elementCount,
-                                         void* arrayOfElements);
+MIOPEN_EXPORT miopenStatus_t miopenBackendSetAttribute(miopenBackendDescriptor_t descriptor,
+                                                       miopenBackendAttributeName_t attributeName,
+                                                       miopenBackendAttributeType_t attributeType,
+                                                       int64_t elementCount,
+                                                       void* arrayOfElements);
 
 /*! @brief Finalizes a backend descriptor
  *
