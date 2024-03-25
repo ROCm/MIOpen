@@ -188,9 +188,6 @@ private:
     std::vector<Tref> exp_avg_sq_host;
     std::vector<Tref> max_exp_avg_sq_host;
 
-    int32_t step      = 0;
-    int32_t step_host = 0;
-
     double lr;
     double beta1;
     double beta2;
@@ -200,6 +197,7 @@ private:
     bool maximize  = false;
     bool amp       = false;
     bool found_inf = false;
+    int32_t step   = 0;
     int grad_scale = 1;
     int iter       = 0;
 };
@@ -392,13 +390,6 @@ int AdamDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < iter; i++)
     {
-        if(!amp)
-        {
-            step++;
-            if(step_dev->ToGPU(GetStream(), &step) != 0)
-                std::cerr << "Error copying (step) to GPU, size: " << step_dev->GetSize()
-                          << std::endl;
-        }
         miopenAdam(GetHandle(),
                    paramDesc,
                    param_dev->GetMem(),
@@ -444,22 +435,6 @@ int AdamDriver<Tgpu, Tref>::RunForwardGPU()
 
     if(param_dev->FromGPU(GetStream(), param.data()) != 0)
         std::cerr << "Error copying (param_dev) from GPU, size: " << param_dev->GetSize()
-                  << std::endl;
-
-    if(exp_avg_dev->FromGPU(GetStream(), exp_avg.data()) != 0)
-        std::cerr << "Error copying (exp_avg_dev) from GPU, size: " << exp_avg_dev->GetSize()
-                  << std::endl;
-
-    if(exp_avg_sq_dev->FromGPU(GetStream(), exp_avg_sq.data()) != 0)
-        std::cerr << "Error copying (exp_avg_sq_dev) from GPU, size: " << exp_avg_sq_dev->GetSize()
-                  << std::endl;
-
-    if(amsgrad && max_exp_avg_sq_dev->FromGPU(GetStream(), max_exp_avg_sq.data()) != 0)
-        std::cerr << "Error copying (max_exp_avg_sq_dev) from GPU, size: "
-                  << max_exp_avg_sq_dev->GetSize() << std::endl;
-
-    if(amp && step_dev->FromGPU(GetStream(), &step) != 0)
-        std::cerr << "Error copying (step_dev) from GPU, size: " << step_dev->GetSize()
                   << std::endl;
 
     return miopenStatusSuccess;
@@ -522,33 +497,11 @@ int AdamDriver<Tgpu, Tref>::VerifyForward()
 {
     RunForwardCPU();
     const Tref tolerance = GetTolerance();
-    auto err_param       = miopen::rms_range(param_host, param);
-    auto err_exp_avg     = miopen::rms_range(exp_avg_host, exp_avg);
-    auto err_exp_avg_sq  = miopen::rms_range(exp_avg_sq_host, exp_avg_sq);
-    auto err_max_exp_avg_sq =
-        (amsgrad) ? miopen::rms_range(max_exp_avg_sq_host, max_exp_avg_sq) : 0.0f;
+    auto error           = miopen::rms_range(param_host, param);
 
-    if(!std::isfinite(err_param) || err_param > tolerance)
+    if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Forward Adam param FAILED: " << err_param << std::endl;
-        return EC_VerifyFwd;
-    }
-
-    if(!std::isfinite(err_exp_avg) || err_exp_avg > tolerance)
-    {
-        std::cout << "Forward Adam exp_avg FAILED: " << err_exp_avg << std::endl;
-        return EC_VerifyFwd;
-    }
-
-    if(!std::isfinite(err_exp_avg_sq) || err_exp_avg_sq > tolerance)
-    {
-        std::cout << "Forward Adam exp_avg_sq FAILED: " << err_exp_avg_sq << std::endl;
-        return EC_VerifyFwd;
-    }
-
-    if(!std::isfinite(err_max_exp_avg_sq) || err_max_exp_avg_sq > tolerance)
-    {
-        std::cout << "Forward Adam max_exp_avg_sq FAILED: " << err_max_exp_avg_sq << std::endl;
+        std::cout << "Forward Adam FAILED: " << error << std::endl;
         return EC_VerifyFwd;
     }
 

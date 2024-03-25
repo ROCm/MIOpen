@@ -49,8 +49,8 @@ inline __device__ void AdamInternal(size_t gid,
     T exp_avg    = exp_avgs[gid];
     T exp_avg_sq = exp_avg_sqs[gid];
 
-    double bias_correction1 = 1 - pow(beta1, step);
-    double bias_correction2 = 1 - pow(beta2, step);
+    T bias_correction1 = 1 - pow(beta1, step);
+    T bias_correction2 = 1 - pow(beta2, step);
 
     if(maximize)
         grad *= -1;
@@ -60,7 +60,7 @@ inline __device__ void AdamInternal(size_t gid,
     exp_avg    = exp_avg * beta1 + grad * (1 - beta1);
     exp_avg_sq = exp_avg_sq * beta2 + grad * grad * (1 - beta2);
 
-    double denom;
+    T denom;
     if(amsgrad)
     {
         T max_exp_avg_sq = max_exp_avg_sqs[gid];
@@ -108,7 +108,7 @@ extern "C" __global__ void AdamPacked(FLOAT* params,
     __shared__ int step_val;
 
     if(lid == 0)
-        step_val = step[0];
+        step_val = *step + 1;
 
     __syncthreads();
 
@@ -134,7 +134,7 @@ extern "C" __global__ void AmpAdamPacked(FLOAT* params,
                                          FLOAT* exp_avg_sqs,
                                          FLOAT* max_exp_avg_sqs,
                                          int32_t* grad_scale,
-                                         bool* inf_found,
+                                         bool* found_inf,
                                          int* step,
                                          double lr,
                                          double beta1,
@@ -152,21 +152,18 @@ extern "C" __global__ void AmpAdamPacked(FLOAT* params,
         return;
 
     __shared__ int step_val;
-    __shared__ bool found_inf;
+    __shared__ bool skip;
     __shared__ float scale_factor;
 
     if(lid == 0)
     {
-        found_inf = (inf_found) ? *inf_found : false;
-        if(!found_inf)
-        {
-            scale_factor = (grad_scale) ? *grad_scale : 1.0f;
-            step_val     = *step + 1;
-        }
+        skip         = (found_inf) ? *found_inf : false;
+        scale_factor = (grad_scale) ? *grad_scale : 1.0f;
+        step_val     = *step + 1;
     }
     __syncthreads();
 
-    if(found_inf)
+    if(skip)
         return;
 
     FLOAT grad = grads[gid] / scale_factor;
@@ -187,8 +184,10 @@ extern "C" __global__ void AmpAdamPacked(FLOAT* params,
                         maximize);
 }
 
-extern "C" __global__ void AmpAdamUpdateStep(bool* found_inf, int* step)
+extern "C" __global__ void AdamUpdateStep(bool* found_inf, int* step)
 {
-    if(!*found_inf)
-        *step += 1;
+    if(found_inf && *found_inf)
+        return;
+
+    *step += 1;
 }
