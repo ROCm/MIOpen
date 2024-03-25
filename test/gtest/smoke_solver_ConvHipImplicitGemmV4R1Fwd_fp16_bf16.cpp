@@ -41,7 +41,7 @@ auto GetTestCases()
     // solver is not broken. smoke_solver_ConvHipImplicitGemmV4R1Fwd is split to BF16+FP16 and
     // FP32 tests because of WORKAROUND_ISSUE_2038, which disables validation of FP16 and BF16
     // datatypes in this test, see
-    // https://github.com/ROCmSoftwarePlatform/MIOpen/pull/2043#issuecomment-1482657160
+    // https://github.com/ROCm/MIOpen/pull/2043#issuecomment-1482657160
     const auto env_fwd = std::tuple{
         std::pair{ENV(MIOPEN_FIND_ENFORCE), std::string_view("SEARCH_DB_UPDATE")},
         std::pair{ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX), std::string_view("5")},
