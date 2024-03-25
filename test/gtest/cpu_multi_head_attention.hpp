@@ -39,6 +39,17 @@ std::vector<CPUMHATestCase> CPUMHAConfigs()
     // clang-format on
 }
 
+template <typename T>
+void check(const std::string& json_data, tensor<T>& computed_tensor, const double& threshold)
+{
+    tensor<T> golden_tensor(computed_tensor.desc.GetLengths());
+
+    ExtractDataFromJson(json_data, golden_tensor);
+    double error = miopen::rms_range(golden_tensor, computed_tensor);
+    EXPECT_TRUE(error < threshold)
+        << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+}
+
 template <typename T = float>
 struct CPUMHATest : public ::testing::TestWithParam<CPUMHATestCase>
 {
@@ -59,7 +70,6 @@ protected:
 
         MultiHeadAttentionf32(
             q_val, k_val, v_val, q_dot_k_transpose, softmax, attn_max, z_sum, multi_head_attention);
-
         Concat(multi_head_attention, concatinated_attention);
         Dot_3D_2D_T(
             concatinated_attention, final_linear_transform_weights, final_transformed_attention);
@@ -77,17 +87,32 @@ protected:
                               scale_O,
                               multi_head_attention_fp8);
         Concat(multi_head_attention_fp8, concatinated_attention_fp8);
+
+        MultiHeadAttentionBackwardDataf32(q_val,
+                                          k_val,
+                                          v_val,
+                                          multi_head_attention, // o_val
+                                          dO_val,
+                                          q_dot_k_transpose,
+                                          softmax,
+                                          attn_max,
+                                          z_sum,
+                                          dQ_val,
+                                          dK_val,
+                                          dV_val);
+        Concat(dV_val, concatinated_dV_val);
+        Concat(dQ_val, concatinated_dQ_val);
+        Concat(dK_val, concatinated_dK_val);
     }
 
     void TearDown() override
     {
-        tensor<T> attention_golden(final_transformed_attention.desc.GetLengths());
-        ExtractGoldenDataFromJson(json_attention_golden_data, attention_golden);
 
-        double error     = miopen::rms_range(attention_golden, final_transformed_attention);
-        double threshold = 1e-5;
-        EXPECT_TRUE(error < threshold)
-            << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        check(json_str_fwd, final_transformed_attention, 1e-5);
+        check(json_str_dV, concatinated_dV_val, 1e-2);
+        check(json_str_dQ, concatinated_dQ_val, 1e-2);
+        check(json_str_dK, concatinated_dK_val, 1e-2);
+        // output_tensor_to_screen(golden_tensor, "attention golden", 5);
     }
 
     void init()
@@ -160,6 +185,17 @@ protected:
         v_weights.generate(GenData<T>{});
 
         final_linear_transform_weights.generate(GenData<T>{});
+
+        // backward
+        dO_val = v_val;
+        dQ_val = dO_val;
+        dK_val = dO_val;
+        dV_val = dO_val;
+        dO_val.generate(GenData<T>{});
+        concatinated_dV_val = concatinated_attention;
+        concatinated_dQ_val = concatinated_attention;
+        concatinated_dK_val = concatinated_attention;
+        // backward
     }
 
     CPUMHATestCase cpu_mha_test_case;
@@ -204,6 +240,17 @@ protected:
     double s_scale;
     double v_scale;
     double scale_O;
+
+    // backward
+    tensor<T> dQ_val;
+    tensor<T> dK_val;
+    tensor<T> dV_val;
+    tensor<T> dO_val;
+    tensor<T> o_val;
+
+    tensor<T> concatinated_dV_val;
+    tensor<T> concatinated_dQ_val;
+    tensor<T> concatinated_dK_val;
 };
 
 } // namespace cpu
