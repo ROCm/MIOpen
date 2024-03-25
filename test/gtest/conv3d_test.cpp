@@ -27,7 +27,7 @@
 #include <miopen/miopen.h>
 #include <miopen/env.hpp>
 #include <gtest/gtest.h>
-#include "../conv3d.cpp"
+#include "../conv3d.hpp"
 #include "get_handle.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
@@ -104,19 +104,19 @@ std::vector<std::string> GetTestCases(const std::string& precision)
     const std::vector<std::string> test_cases = {
         // clang-format off
     // test_conv3d_extra
-    {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5" + psd0},
-    {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5" + psd1},
-    {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5" + psd2},
-    {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5" + psd3},
+    {precision + " --input 2 16 50 50 50 --weights 32 16 5 5 5" + psd0},
+    {precision + " --input 2 16 50 50 50 --weights 32 16 5 5 5" + psd1},
+    {precision + " --input 2 16 50 50 50 --weights 32 16 5 5 5" + psd2},
+    {precision + " --input 2 16 50 50 50 --weights 32 16 5 5 5" + psd3},
     //test_conv3d_extra reduced set
-    {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5" + psd0 },
-    {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5" + psd1 },
-    {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5" + psd2 },
-    {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5" + psd3 },
-    {precision + "--input 1 16 4 161 700 --weights 16 16 3 11 11" + psd4 },
-    {precision + "--input 1 16 4 161 700 --weights 16 16 3 11 11" + psd5 },
-    {precision + "--input 1 16 4 140 602 --weights 16 16 3 11 11" + psd4 },
-    {precision + "--input 1 16 4 140 602 --weights 16 16 3 11 11" + psd5 }
+    {precision + " --input 2 16 50 50 50 --weights 32 16 5 5 5" + psd0 },
+    {precision + " --input 2 16 50 50 50 --weights 32 16 5 5 5" + psd1 },
+    {precision + " --input 2 16 50 50 50 --weights 32 16 5 5 5" + psd2 },
+    {precision + " --input 2 16 50 50 50 --weights 32 16 5 5 5" + psd3 },
+    {precision + " --input 1 16 4 161 700 --weights 16 16 3 11 11" + psd4 },
+    {precision + " --input 1 16 4 161 700 --weights 16 16 3 11 11" + psd5 },
+    {precision + " --input 1 16 4 140 602 --weights 16 16 3 11 11" + psd4 },
+    {precision + " --input 1 16 4 140 602 --weights 16 16 3 11 11" + psd5 }
         // clang-format on
     };
     return test_cases;

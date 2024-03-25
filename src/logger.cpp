@@ -188,16 +188,4 @@ std::string LoggingPrefix()
     return ss.str();
 }
 
-/// Expected to be invoked with __func__ and __PRETTY_FUNCTION__.
-std::string LoggingParseFunction(const char* func, const char* pretty_func)
-{
-    std::string fname{func};
-    if(fname != "operator()")
-        return fname;
-    // lambda
-    const std::string pf{pretty_func};
-    const std::string pf_tail{pf.substr(0, pf.find_first_of('('))};
-    return pf_tail.substr(1 + pf_tail.find_last_of(':'));
-}
-
 } // namespace miopen
