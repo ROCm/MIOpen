@@ -84,6 +84,7 @@ void Run2dDriver(void)
     {
         GTEST_SKIP();
     }
+    SetupEnvVar();
     std::vector<std::string> params = ConfigWithHalf_regression_half_vega::GetParam();
 
     for(const auto& test_value : params)

@@ -83,6 +83,7 @@ void Run2dDriver(void)
     {
         GTEST_SKIP();
     }
+    SetupEnvVar();
     std::vector<std::string> params = ConfigWithFloat_regression_issue_2012::GetParam();
 
     for(const auto& test_value : params)
