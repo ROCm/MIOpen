@@ -158,6 +158,8 @@ public:
     Convolution build() &&;
 
 private:
+    bool validate() const;
+
     int64_t mSpatialDims = 0;
     std::vector<int64_t> mDilations;
     std::vector<int64_t> mFilterStrides;
@@ -172,8 +174,6 @@ private:
     bool mFilterStridesSet        = false;
     bool mPrePaddingsSet          = false;
     bool mPostPaddingsSet         = false;
-
-    bool validate() const;
 };
 
 class BackendConvolutionDescriptor : public BackendDescriptor
@@ -194,9 +194,6 @@ public:
     Convolution* getConvolution() noexcept { return &mConvolution; }
 
 private:
-    ConvolutionBuilder mBuilder;
-    Convolution mConvolution;
-
     void setCompType(miopenBackendAttributeType_t attributeType,
                      int64_t elementCount,
                      void* arrayOfElements);
@@ -247,6 +244,9 @@ private:
                          int64_t requestedElementCount,
                          int64_t* elementCount,
                          void* arrayOfElements);
+
+    ConvolutionBuilder mBuilder;
+    Convolution mConvolution;
 };
 
 class OperationConvolution : public Operation
@@ -463,11 +463,11 @@ public:
     virtual Operation* getOperation() override;
 
 protected:
-    OperationConvolutionForwardBuilder mBuilder;
-    OperationConvolutionForward mOperation;
-
     virtual OperationConvolutionBuilder& getBuilder() override;
     virtual OperationConvolution& getOperationConvolution() override;
+
+    OperationConvolutionForwardBuilder mBuilder;
+    OperationConvolutionForward mOperation;
 };
 
 class OperationConvolutionBackwardData : public OperationConvolution
@@ -554,11 +554,11 @@ public:
     virtual Operation* getOperation() override;
 
 private:
-    OperationConvolutionBackwardDataBuilder mBuilder;
-    OperationConvolutionBackwardData mOperation;
-
     virtual OperationConvolutionBuilder& getBuilder() override;
     virtual OperationConvolution& getOperationConvolution() override;
+
+    OperationConvolutionBackwardDataBuilder mBuilder;
+    OperationConvolutionBackwardData mOperation;
 };
 
 class OperationConvolutionBackwardFilter : public OperationConvolution
@@ -645,11 +645,11 @@ public:
     virtual Operation* getOperation() override;
 
 private:
-    OperationConvolutionBackwardFilterBuilder mBuilder;
-    OperationConvolutionBackwardFilter mOperation;
-
     virtual OperationConvolutionBuilder& getBuilder() override;
     virtual OperationConvolution& getOperationConvolution() override;
+
+    OperationConvolutionBackwardFilterBuilder mBuilder;
+    OperationConvolutionBackwardFilter mOperation;
 };
 
 } // namespace graphapi
