@@ -5951,6 +5951,7 @@ MIOPEN_EXPORT miopenStatus_t miopenT5LayerNormBackward(miopenHandle_t handle,
 // CLOSEOUT LAYERNORM DOXYGEN GROUP
 #endif
 
+#ifdef MIOPEN_BETA_API
 // Graph API
 /** @addtogroup GraphAPI
  *
