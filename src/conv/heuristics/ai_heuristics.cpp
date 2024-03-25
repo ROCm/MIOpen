@@ -439,7 +439,8 @@ protected:
 
         // normalize
         for(size_t i = 0; i < features.size(); ++i)
-            features[i] = (features[i] - metadata.test_features_mean[i]) / metadata.test_features_std[i];
+            features[i] =
+                (features[i] - metadata.test_features_mean[i]) / metadata.test_features_std[i];
 
         return features;
     }
