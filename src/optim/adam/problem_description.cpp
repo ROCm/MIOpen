@@ -36,7 +36,6 @@ namespace adam {
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    auto numel  = paramDesc.GetElementSize();
     auto dtype  = paramDesc.GetType();
     auto kernel = IsAllPacked() ? "AdamPacked" : "Adam";
 
@@ -44,7 +43,6 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
     ss << kernel;
     ss << "dtype" << dtype;
-    ss << "numel" << numel;
     if(IsAmp())
     {
         auto grad_dtype = gradDesc.GetType();

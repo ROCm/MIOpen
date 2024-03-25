@@ -58,11 +58,8 @@ inline size_t AlignUp(size_t num, size_t align) { return (num + align - 1) / ali
 ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
                                const miopen::adam::ProblemDescription& problem) const
 {
-    constexpr size_t local_size = 256;
-
     auto result = ConvSolution{miopenStatusSuccess};
     auto dtype  = problem.GetParamDesc().GetType();
-    auto numel  = problem.GetParamDesc().GetElementSize();
 
     {
         const auto build_params = KernelBuildParameters{
@@ -73,10 +70,10 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
 
         auto kernel = KernelInfo{};
 
-        kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
+        kernel.l_wk.push_back(1);
+        kernel.g_wk.push_back(1);
 
-        kernel.l_wk.push_back(std::min(numel, local_size));
-        kernel.g_wk.push_back(AlignUp(numel, local_size));
+        kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
         kernel.kernel_file = "MIOpenAdam.cpp";
         kernel.kernel_name = problem.IsAmp() ? "AmpAdamPacked" : "AdamPacked";
@@ -85,23 +82,25 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
 
         if(problem.IsAmp())
         {
-            auto update_step_kernel = kernel;
-
-            update_step_kernel.l_wk[0]     = 1;
-            update_step_kernel.g_wk[0]     = 1;
+            auto update_step_kernel        = kernel;
             update_step_kernel.kernel_name = "AmpAdamUpdateStep";
 
             result.construction_params.push_back(update_step_kernel);
         }
     }
 
+    constexpr size_t local_size = 256;
     if(problem.IsAmp())
     {
-        result.invoker_factory = [numel](const std::vector<Kernel>& kernels) {
+        result.invoker_factory = [local_size](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel_adam = handle_.Run(kernels[0]);
                 decltype(auto) kernel_step = handle_.Run(kernels[1]);
                 decltype(auto) params      = raw_params.CastTo<miopen::adam::InvokeParams>();
+                decltype(auto) numel       = params.paramDesc->GetElementSize();
+
+                kernel_adam.ldims = {std::min(numel, local_size), 1, 1};
+                kernel_adam.gdims = {AlignUp(numel, local_size), 1, 1};
 
                 kernel_adam(params.param,
                             params.grad,
@@ -126,10 +125,14 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
     }
     else
     {
-        result.invoker_factory = [numel](const std::vector<Kernel>& kernels) {
+        result.invoker_factory = [local_size](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel = handle_.Run(kernels.front());
                 decltype(auto) params = raw_params.CastTo<miopen::adam::InvokeParams>();
+                decltype(auto) numel  = params.paramDesc->GetElementSize();
+
+                kernel.ldims = {std::min(numel, local_size), 1, 1};
+                kernel.gdims = {AlignUp(numel, local_size), 1, 1};
 
                 kernel(params.param,
                        params.grad,
