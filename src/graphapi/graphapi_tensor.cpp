@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #include <miopen/algorithm.hpp>
 #include <miopen/graphapi/graphapi_tensor.hpp>
 #include <miopen/errors.hpp>
@@ -257,7 +258,10 @@ void BackendTensorDescriptor::getAttribute(miopenBackendAttributeName_t attribut
             const auto& dimensions = mDescriptor.getDimensions();
             *elementCount          = dimensions.size();
             std::copy_n(dimensions.begin(),
-                        std::min(*elementCount, requestedElementCount),
+                        // WORKAROUND: building on Windows is failing due to conflicting definitions
+                        // of std::min() between the MSVC standard library and HIP Clang wrappers.
+                        *elementCount < requestedElementCount ? *elementCount
+                                                              : requestedElementCount,
                         static_cast<int64_t*>(arrayOfElements));
             return;
         }
@@ -272,7 +276,10 @@ void BackendTensorDescriptor::getAttribute(miopenBackendAttributeName_t attribut
             const auto& strides = mDescriptor.getStrides();
             *elementCount       = strides.size();
             std::copy_n(strides.begin(),
-                        std::min(*elementCount, requestedElementCount),
+                        // WORKAROUND: building on Windows is failing due to conflicting definitions
+                        // of std::min() between the MSVC standard library and HIP Clang wrappers.
+                        *elementCount < requestedElementCount ? *elementCount
+                                                              : requestedElementCount,
                         static_cast<int64_t*>(arrayOfElements));
             return;
         }
