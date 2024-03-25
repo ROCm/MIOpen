@@ -481,7 +481,6 @@ void MultiHeadAttentionBackwardDataf32(const tensor<T>& q_val,
     PointWiseMultiply(bwd_intermediate, softmax, bwd_intermediate);
 
     Dot_4D_T_4D(softmax, dO_val, dV_val);
-
     // dO x O
 
     // both dk and dQ
@@ -490,23 +489,14 @@ void MultiHeadAttentionBackwardDataf32(const tensor<T>& q_val,
     Dot_4D_T_4D(bwd_intermediate, q_val, dK_val);
 }
 
+//give type and key I will give you data
 template <typename T>
-void ExtractGoldenDataFromJson(const std::string& json_attention_golden_data,
-                               tensor<T>& attention_golden)
+void ExtractDataFromJson(const std::string& json_attention_golden_data,
+                               tensor<T>& attention_golden, const std::string& key="tensor")
 {
-
     auto jsonTensor = nlohmann::json::parse(json_attention_golden_data);
-    std::vector<std::vector<float>> tensorData =
-        jsonTensor["tensor"].get<std::vector<std::vector<float>>>();
-    // Check if the "tensor" key exists and is an array
-    if(!jsonTensor.contains("tensor") || !jsonTensor["tensor"].is_array())
-    {
-        std::cerr << "'tensor' key not found or is not an array" << std::endl;
-        exit(1);
-    }
-    // Extract the 2D array and flatten it
     std::vector<float> flatTensor;
-    for(const auto& row : jsonTensor["tensor"])
+    for(const auto& row : jsonTensor[key])
     {
         if(!row.is_array())
         {
@@ -526,6 +516,7 @@ void ExtractGoldenDataFromJson(const std::string& json_attention_golden_data,
         }
     }
     attention_golden.data = flatTensor;
+
 }
 
 } // namespace cpu

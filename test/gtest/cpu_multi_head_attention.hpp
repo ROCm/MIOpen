@@ -39,6 +39,17 @@ std::vector<CPUMHATestCase> CPUMHAConfigs()
     // clang-format on
 }
 
+template <typename T>
+void check(const std::string& json_data, tensor<T>& computed_tensor, const double& threshold)
+{
+    tensor<T> golden_tensor(computed_tensor.desc.GetLengths());
+
+    ExtractDataFromJson(json_data, golden_tensor);
+    double error     = miopen::rms_range(golden_tensor, computed_tensor);
+    EXPECT_TRUE(error < threshold)
+        << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+}
+
 template <typename T = float>
 struct CPUMHATest : public ::testing::TestWithParam<CPUMHATestCase>
 {
@@ -54,12 +65,13 @@ protected:
         Dot_3D_3D_T(word_position, k_weights, k_val);
         Dot_3D_3D_T(word_position, v_weights, v_val);
 
+
+
         double sqr_dk = std::sqrt(q_val.desc.GetLengths()[3]);
         ScaleMult(q_val, 1.0 / sqr_dk, q_val);
 
         MultiHeadAttentionf32(
             q_val, k_val, v_val, q_dot_k_transpose, softmax, attn_max, z_sum, multi_head_attention);
-
         Concat(multi_head_attention, concatinated_attention);
         Dot_3D_2D_T(
             concatinated_attention, final_linear_transform_weights, final_transformed_attention);
@@ -90,17 +102,21 @@ protected:
                                           dQ_val,
                                           dK_val,
                                           dV_val);
+        Concat(dV_val, concatinated_dV_val);
+        Concat(dQ_val, concatinated_dQ_val);
+        Concat(dK_val, concatinated_dK_val);
+        
+
     }
 
     void TearDown() override
     {
-        tensor<T> attention_golden(final_transformed_attention.desc.GetLengths());
-        ExtractGoldenDataFromJson(json_attention_golden_data_fwd, attention_golden);
 
-        double error     = miopen::rms_range(attention_golden, final_transformed_attention);
-        double threshold = 1e-5;
-        EXPECT_TRUE(error < threshold)
-            << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        check(json_str_fwd, final_transformed_attention,1e-5);
+        check(json_str_dV, concatinated_dV_val, 1e-2);
+        check(json_str_dQ, concatinated_dQ_val, 1e-2);
+        check(json_str_dK, concatinated_dK_val, 1e-2);
+        // output_tensor_to_screen(golden_tensor, "attention golden", 5);
     }
 
     void init()
@@ -180,6 +196,9 @@ protected:
         dK_val = dO_val;
         dV_val = dO_val;
         dO_val.generate(GenData<T>{});
+        concatinated_dV_val = concatinated_attention;
+        concatinated_dQ_val = concatinated_attention;
+        concatinated_dK_val = concatinated_attention;
         // backward
     }
 
@@ -232,6 +251,10 @@ protected:
     tensor<T> dV_val;
     tensor<T> dO_val;
     tensor<T> o_val;
+
+    tensor<T> concatinated_dV_val;
+    tensor<T> concatinated_dQ_val;
+    tensor<T> concatinated_dK_val;
 };
 
 } // namespace cpu
