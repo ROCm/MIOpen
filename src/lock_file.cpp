@@ -31,7 +31,7 @@
 
 namespace miopen {
 
-inline void LogFsError(const fs::filesystem_error& ex, const std::string& from)
+inline void LogFsError(const fs::filesystem_error& ex, const std::string_view from)
 {
     // clang-format off
     MIOPEN_LOG_E_FROM(from, "File system operation error in LockFile. "
@@ -58,7 +58,7 @@ std::string LockFilePath(const fs::path& filename_)
     }
     catch(const fs::filesystem_error& ex)
     {
-        LogFsError(ex, MIOPEN_GET_FN_NAME());
+        LogFsError(ex, MIOPEN_GET_FN_NAME);
         throw;
     }
 }
@@ -77,12 +77,12 @@ LockFile::LockFile(const char* path_, PassKey) : path(path_)
     }
     catch(const fs::filesystem_error& ex)
     {
-        LogFsError(ex, MIOPEN_GET_FN_NAME());
+        LogFsError(ex, MIOPEN_GET_FN_NAME);
         throw;
     }
     catch(const boost::interprocess::interprocess_exception& ex)
     {
-        LogFlockError(ex, "lock initialization", MIOPEN_GET_FN_NAME());
+        LogFlockError(ex, "lock initialization", MIOPEN_GET_FN_NAME);
         throw;
     }
 }
