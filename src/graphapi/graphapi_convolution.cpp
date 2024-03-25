@@ -726,9 +726,9 @@ void BackendOperationConvolutionForwardDescriptor::setAttribute(
 
 void BackendOperationConvolutionForwardDescriptor::finalize()
 {
-    if(mFinalized || !deref(mConvolutionDescriptor).getFinalized() ||
-       !deref(mXDescriptor).getFinalized() || !deref(mYDescriptor).getFinalized() ||
-       !deref(mWDescriptor).getFinalized())
+    if(mFinalized || !deref(mConvolutionDescriptor).isFinalized() ||
+       !deref(mXDescriptor).isFinalized() || !deref(mYDescriptor).isFinalized() ||
+       !deref(mWDescriptor).isFinalized())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -840,9 +840,9 @@ void BackendOperationConvolutionBackwardDataDescriptor::setAttribute(
 
 void BackendOperationConvolutionBackwardDataDescriptor::finalize()
 {
-    if(mFinalized || !deref(mConvolutionDescriptor).getFinalized() ||
-       !deref(mXDescriptor).getFinalized() || !deref(mYDescriptor).getFinalized() ||
-       !deref(mWDescriptor).getFinalized())
+    if(mFinalized || !deref(mConvolutionDescriptor).isFinalized() ||
+       !deref(mXDescriptor).isFinalized() || !deref(mYDescriptor).isFinalized() ||
+       !deref(mWDescriptor).isFinalized())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -954,9 +954,9 @@ void BackendOperationConvolutionBackwardFilterDescriptor::setAttribute(
 
 void BackendOperationConvolutionBackwardFilterDescriptor::finalize()
 {
-    if(mFinalized || !deref(mConvolutionDescriptor).getFinalized() ||
-       !deref(mXDescriptor).getFinalized() || !deref(mYDescriptor).getFinalized() ||
-       !deref(mWDescriptor).getFinalized())
+    if(mFinalized || !deref(mConvolutionDescriptor).isFinalized() ||
+       !deref(mXDescriptor).isFinalized() || !deref(mYDescriptor).isFinalized() ||
+       !deref(mWDescriptor).isFinalized())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
