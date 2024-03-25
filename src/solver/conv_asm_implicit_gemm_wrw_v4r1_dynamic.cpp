@@ -388,7 +388,7 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ExecutionConte
 
     kernel.comp_options = options.str();
 
-    MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
+    MIOPEN_LOG_I2(kernel.kernel_file << ":" << kernel.kernel_name);
 
     result.construction_params.push_back(kernel);
 
