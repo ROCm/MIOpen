@@ -45,7 +45,7 @@ void check(const std::string& json_data, tensor<T>& computed_tensor, const doubl
     tensor<T> golden_tensor(computed_tensor.desc.GetLengths());
 
     ExtractDataFromJson(json_data, golden_tensor);
-    double error     = miopen::rms_range(golden_tensor, computed_tensor);
+    double error = miopen::rms_range(golden_tensor, computed_tensor);
     EXPECT_TRUE(error < threshold)
         << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
 }
@@ -64,8 +64,6 @@ protected:
         Dot_3D_3D_T(word_position, q_weights, q_val);
         Dot_3D_3D_T(word_position, k_weights, k_val);
         Dot_3D_3D_T(word_position, v_weights, v_val);
-
-
 
         double sqr_dk = std::sqrt(q_val.desc.GetLengths()[3]);
         ScaleMult(q_val, 1.0 / sqr_dk, q_val);
@@ -105,14 +103,12 @@ protected:
         Concat(dV_val, concatinated_dV_val);
         Concat(dQ_val, concatinated_dQ_val);
         Concat(dK_val, concatinated_dK_val);
-        
-
     }
 
     void TearDown() override
     {
 
-        check(json_str_fwd, final_transformed_attention,1e-5);
+        check(json_str_fwd, final_transformed_attention, 1e-5);
         check(json_str_dV, concatinated_dV_val, 1e-2);
         check(json_str_dQ, concatinated_dQ_val, 1e-2);
         check(json_str_dK, concatinated_dK_val, 1e-2);

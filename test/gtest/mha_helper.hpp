@@ -489,10 +489,11 @@ void MultiHeadAttentionBackwardDataf32(const tensor<T>& q_val,
     Dot_4D_T_4D(bwd_intermediate, q_val, dK_val);
 }
 
-//give type and key I will give you data
+// give type and key I will give you data
 template <typename T>
 void ExtractDataFromJson(const std::string& json_attention_golden_data,
-                               tensor<T>& attention_golden, const std::string& key="tensor")
+                         tensor<T>& attention_golden,
+                         const std::string& key = "tensor")
 {
     auto jsonTensor = nlohmann::json::parse(json_attention_golden_data);
     std::vector<float> flatTensor;
@@ -516,7 +517,6 @@ void ExtractDataFromJson(const std::string& json_attention_golden_data,
         }
     }
     attention_golden.data = flatTensor;
-
 }
 
 } // namespace cpu
