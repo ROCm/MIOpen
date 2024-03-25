@@ -59,7 +59,7 @@
 #define SKIP_KDB_PDB_TESTING 0       // Allows testing FDB on gfx1030.
 #define SKIP_CONVOCLDIRECTFWDFUSED 0 // Allows testing FDB on gfx1030 (legacy fdb).
 
-namespace fs = miopen::fs;
+namespace fs  = miopen::fs;
 namespace env = miopen::env;
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DBSYNC)
