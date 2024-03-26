@@ -803,7 +803,8 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
         return buffer;
     };
 
-    // This is not used right now, but there is a PR using it already and it is an example on how to get a scalar.
+    // This is not used right now, but there is a PR using it already and it is an example on how to
+    // get a scalar.
     const auto get_scalar = [&](auto id, auto type_marker) {
         // This is hacky because we lack separate way to pass them through API
         return *reinterpret_cast<std::decay_t<decltype(type_marker)>*>(
