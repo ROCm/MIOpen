@@ -29,6 +29,7 @@ find_package(Threads REQUIRED)
 add_executable(MIOpenDriver 
     InputFlags.cpp
     conv.cpp
+    fusion.cpp
     main.cpp
     rocrand_wrapper.cpp)
 if(WIN32)

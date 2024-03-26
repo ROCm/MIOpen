@@ -27,9 +27,12 @@
 #ifndef MIO_CONV_BATCHNORM_ACTIV_HOST_H_
 #define MIO_CONV_BATCHNORM_ACTIV_HOST_H_
 
+#include "mloNeuronHost.hpp"
+
 #include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <miopen/tensor_extra.hpp>
 
 #include <cmath>
 #include <iomanip>

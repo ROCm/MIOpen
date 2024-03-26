@@ -27,6 +27,7 @@
 #include <cstdio>
 
 #include "conv.hpp"
+#include "fusion.hpp"
 
 #include "activ_driver.hpp"
 #include "bn_driver.hpp"
@@ -72,16 +73,10 @@ int main(int argc, char* argv[])
 
     Driver* drv = makeDriverConv(base_arg);
     if(drv != nullptr)
+        drv = makeDriverFusion(base_arg);
+    if(drv != nullptr)
     {
-        if(base_arg == "CBAInfer")
-        {
-            drv = new CBAInferFusionDriver<float, double>();
-        }
-        else if(base_arg == "CBAInferfp16")
-        {
-            drv = new CBAInferFusionDriver<float16, double>();
-        }
-        else if(base_arg == "pool")
+        if(base_arg == "pool")
         {
             drv = new PoolDriver<float, double>();
         }

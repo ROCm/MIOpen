@@ -26,26 +26,29 @@
 #ifndef GUARD_MIOPEN_CONV_BN_ACTIV_INFER_DRIVER_HPP
 #define GUARD_MIOPEN_CONV_BN_ACTIV_INFER_DRIVER_HPP
 
-#include "../test/verify.hpp"
 #include "InputFlags.hpp"
 #include "driver.hpp"
 #include "miopen_ConvBatchNormActivHost.hpp"
+#include "mloNeuronHost.hpp"
+#include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
+
+#include "../test/verify.hpp"
+
+#include <miopen/env.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/miopen.h>
+#include <miopen/tensor.hpp>
+
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <cstdlib>
 #include <float.h>
 #include <memory>
-#include <miopen/miopen.h>
-#include <miopen/env.hpp>
-#include <miopen/handle.hpp>
-#include <miopen/tensor.hpp>
 #include <numeric>
 #include <vector>
-#include <cassert>
-#include "random.hpp"
-#include "mloNeuronHost.hpp"
 
 #define MIO_BN_DEBUG 0
 #define MIO_BN_MAX_DEBUGLOOP 65536
