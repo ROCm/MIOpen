@@ -499,8 +499,8 @@ private:
     std::string out_layout;
     Direction direction = Direction::Forward;
     int bias            = 0;
-    const void* alpha;
-    const void* beta;
+    const void* alpha   = nullptr;
+    const void* beta    = nullptr;
 };
 
 } // namespace conv
