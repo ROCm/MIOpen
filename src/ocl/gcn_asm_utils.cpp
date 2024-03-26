@@ -23,8 +23,11 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/env.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/config.h>
+
+namespace env = miopen::env;
 
 #if MIOPEN_USE_COMGR
 
