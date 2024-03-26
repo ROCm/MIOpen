@@ -26,22 +26,26 @@
 #ifndef GUARD_MIOPEN_BN_DRIVER_HPP
 #define GUARD_MIOPEN_BN_DRIVER_HPP
 
-#include "../test/verify.hpp"
 #include "InputFlags.hpp"
 #include "driver.hpp"
 #include "miopen_BatchNormHost.hpp"
+#include "random.hpp"
+#include "tensor_driver.hpp"
 #include "timer.hpp"
+
+#include "../test/verify.hpp"
+
+#include <miopen/handle.hpp>
+#include <miopen/miopen.h>
+#include <miopen/tensor.hpp>
+
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <float.h>
 #include <memory>
-#include <miopen/miopen.h>
-#include <miopen/handle.hpp>
-#include <miopen/tensor.hpp>
 #include <numeric>
 #include <vector>
-#include "random.hpp"
 
 #define MIO_BN_DEBUG 0
 #define MIO_BN_MAX_DEBUGLOOP 65536

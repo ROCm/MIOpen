@@ -26,12 +26,12 @@
 #include <iostream>
 #include <cstdio>
 
+#include "activ.hpp"
 #include "conv.hpp"
 #include "fusion.hpp"
 #include "pool.hpp"
 #include "lrn.hpp"
 
-#include "activ_driver.hpp"
 #include "bn_driver.hpp"
 #include "CBAInferFusion_driver.hpp"
 #include "driver.hpp"
@@ -83,16 +83,10 @@ int main(int argc, char* argv[])
     if(drv != nullptr)
         drv = makeDriverLrn(base_arg);
     if(drv != nullptr)
+        drv = makeDriverActiv(base_arg);
+    if(drv != nullptr)
     {
-        if(base_arg == "activ")
-        {
-            drv = new ActivationDriver<float, double>();
-        }
-        else if(base_arg == "activfp16")
-        {
-            drv = new ActivationDriver<float16, double>();
-        }
-        else if(base_arg == "softmax")
+        if(base_arg == "softmax")
         {
             drv = new SoftmaxDriver<float, double>();
         }
