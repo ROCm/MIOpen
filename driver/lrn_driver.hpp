@@ -26,21 +26,25 @@
 #ifndef GUARD_MIOPEN_LRN_DRIVER_HPP
 #define GUARD_MIOPEN_LRN_DRIVER_HPP
 
-#include "../test/verify.hpp"
 #include "InputFlags.hpp"
 #include "driver.hpp"
 #include "mloNormHost.hpp"
+#include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
+#include "util_driver.hpp"
+
+#include "../test/verify.hpp"
+
+#include <miopen/miopen.h>
+#include <miopen/tensor.hpp>
+
 #include <algorithm>
 #include <cstdlib>
 #include <float.h>
 #include <memory>
-#include <miopen/miopen.h>
-#include <miopen/tensor.hpp>
 #include <numeric>
 #include <vector>
-#include "random.hpp"
 
 template <typename Tgpu, typename Tref>
 class LRNDriver : public Driver
@@ -274,11 +278,7 @@ int LRNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         dout[i] = Data_scale * prng::gen_A_to_B(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
     }
 
-#if MIOPEN_BACKEND_OPENCL
-    cl_int status;
-#elif MIOPEN_BACKEND_HIP
-    int status;
-#endif
+    status_t status;
     status = in_dev->ToGPU(q, in.data());
     if(do_backward)
     {
@@ -289,7 +289,7 @@ int LRNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     status = din_dev->ToGPU(q, din.data());
     status |= dout_dev->ToGPU(q, dout.data());
 
-    if(status != CL_SUCCESS)
+    if(status != STATUS_SUCCESS)
         printf("Error copying data to GPU\n");
 
     return miopenStatusSuccess;

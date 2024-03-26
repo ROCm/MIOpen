@@ -33,6 +33,7 @@ add_executable(MIOpenDriver
     conv3.cpp
     conv_common.cpp
     fusion.cpp
+    lrn.cpp
     main.cpp
     pool.cpp
     rocrand_wrapper.cpp)
