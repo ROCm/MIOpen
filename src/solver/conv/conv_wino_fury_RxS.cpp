@@ -34,8 +34,7 @@
 #endif
 #include <miopen/stringutils.hpp>
 
-// CLR BUG: too many blocks in cooperative launch
-#define WORKAROUND_SWDEV_XXXXXX_COOP_LAUNCH_TOO_MANY_BLOCKS 1
+#define WORKAROUND_SWDEV_453577 1
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F2X3)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F3X2)
@@ -70,7 +69,7 @@ uint32_t GetNGroups(uint64_t cu_count)
     // n_groups < 2^8
     constexpr uint64_t max_n_groups = PowOf2(8) - 1;
 
-#if WORKAROUND_SWDEV_XXXXXX_COOP_LAUNCH_TOO_MANY_BLOCKS
+#if WORKAROUND_SWDEV_453577
     cu_count /= 2; // WGP
 #endif
     return std::min(cu_count, max_n_groups);
