@@ -29,6 +29,7 @@
 #include "activ.hpp"
 #include "conv.hpp"
 #include "fusion.hpp"
+#include "gemm.hpp"
 #include "lrn.hpp"
 #include "pool.hpp"
 #include "softmax.hpp"
@@ -37,7 +38,6 @@
 #include "CBAInferFusion_driver.hpp"
 #include "driver.hpp"
 #include "groupnorm_driver.hpp"
-#include "gemm_driver.hpp"
 #include "rnn_driver.hpp"
 #include "rnn_seq_driver.hpp"
 #include "ctc_driver.hpp"
@@ -87,19 +87,10 @@ int main(int argc, char* argv[])
     if(drv != nullptr)
         drv = makeDriverSoftmax(base_arg);
     if(drv != nullptr)
+        drv = makeDriverGemm(base_arg);
+    if(drv != nullptr)
     {
-#if MIOPEN_USE_GEMM
-        if(base_arg == "gemm")
-        {
-            drv = new GemmDriver<float>();
-        }
-        else if(base_arg == "gemmfp16")
-        {
-            drv = new GemmDriver<float16>();
-        }
-        else
-#endif
-            if(base_arg == "bnorm")
+        if(base_arg == "bnorm")
         {
             drv = new BatchNormDriver<float, double>();
         }
