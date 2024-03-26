@@ -521,6 +521,10 @@ ReduceTensorDescriptor::ReduceTensorDescriptor(miopenReduceTensorOp_t reduceTens
         MIOPEN_THROW("Only int32 type is supported for ReduceTensor indices.");
 };
 
+// This is WS requirement of the dynamic reduction.
+// We must enforce it especially when reduction is used internally.
+constexpr std::size_t workspaceAlignRequirementBytes = 64;
+
 // return the size of the workspace in bytes, so that the workspace buffer can be prepared by the
 // user
 std::size_t ReduceTensorDescriptor::GetWorkspaceSize(const Handle& handle,
@@ -569,7 +573,7 @@ std::size_t ReduceTensorDescriptor::GetWorkspaceSize(const Handle& handle,
     std::size_t wsSizeInBytes =
         !need_indices ? workspace_size * detail::GetDataTypeSize(inDesc.GetType())
                       : workspace_size * (detail::GetDataTypeSize(inDesc.GetType()) + sizeof(int)) +
-                            64 + sizeof(int) + 64;
+                            64 + sizeof(int) + workspaceAlignRequirementBytes;
 
     // dynamic reduction use one additional page for storing tensor descriptors
     if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_DYNAMIC_REDUCTION)))
@@ -1032,9 +1036,10 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                                        std::to_string(static_cast<int>(use_padding.first)) +
                                        std::to_string(static_cast<int>(use_padding.second));
 
-        int alignment            = 64;
-        Data_t workspace_aligned = std::align(
-            alignment, workspaceSizeInBytes - alignment, workspace, workspaceSizeInBytes);
+        std::align(workspaceAlignRequirementBytes,
+                   ws_sizeInBytes - workspaceAlignRequirementBytes,
+                   workspace,
+                   workspaceSizeInBytes);
 
         if(!reduceAllDims)
         {
@@ -1060,7 +1065,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                 p_outStrides[3],
                 p_outStrides[4],
                 p_outStrides[5],
-                workspace_aligned);
+                workspace);
         }
         else
         {
@@ -1080,7 +1085,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                 p_inStrides[3],
                 p_inStrides[4],
                 p_inStrides[5],
-                workspace_aligned);
+                workspace);
         }
 
         if(handle.IsProfilingEnabled())
@@ -1099,7 +1104,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
             A,
             betaVal,
             C,
-            workspace_aligned,
+            workspace,
             ws_buf2_bytes_offset,
             indices);
 
@@ -1153,13 +1158,13 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                     p_outStrides[3],
                     p_outStrides[4],
                     p_outStrides[5],
-                    workspace_aligned);
+                    workspace);
             }
             else
             {
                 handle.AddKernel(
                     algo_name, network_config_2, program_name2, kernel_name2, vld, vgd1, param2)(
-                    gridSize_2, blkGroupSize, workspace_aligned);
+                    gridSize_2, blkGroupSize, workspace);
             }
 
             if(handle.IsProfilingEnabled())
@@ -1172,14 +1177,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 
             handle.AddKernel(
                 algo_name, network_config_2, program_name2, kernel_name2, vld, vgd2_2, param2)(
-                origReduceLen,
-                alphaVal,
-                A,
-                betaVal,
-                C,
-                workspace_aligned,
-                ws_buf2_bytes_offset,
-                indices);
+                origReduceLen, alphaVal, A, betaVal, C, workspace, ws_buf2_bytes_offset, indices);
 
             if(handle.IsProfilingEnabled())
                 time_reduce += handle.GetKernelTime();
