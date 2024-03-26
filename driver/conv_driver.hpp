@@ -84,20 +84,6 @@ MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DRIVER_SUBNORM_PERCENTAGE)
 // for reference in the future.
 #define miopenInt8x4 (static_cast<miopenDataType_t>(4))
 
-#if MIOPEN_BACKEND_OPENCL
-#define STATUS_SUCCESS CL_SUCCESS
-typedef cl_int status_t;
-typedef cl_context context_t;
-#define DEFINE_CONTEXT(name) context_t name
-typedef cl_command_queue stream;
-#else // MIOPEN_BACKEND_HIP
-#define STATUS_SUCCESS 0
-typedef int status_t;
-typedef uint32_t context_t;
-#define DEFINE_CONTEXT(name) context_t name = 0
-typedef hipStream_t stream;
-#endif
-
 struct AutoMiopenWarmupMode
 {
     AutoMiopenWarmupMode()

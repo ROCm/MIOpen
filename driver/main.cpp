@@ -28,6 +28,7 @@
 
 #include "conv.hpp"
 #include "fusion.hpp"
+#include "pool.hpp"
 
 #include "activ_driver.hpp"
 #include "bn_driver.hpp"
@@ -36,7 +37,6 @@
 #include "groupnorm_driver.hpp"
 #include "gemm_driver.hpp"
 #include "lrn_driver.hpp"
-#include "pool_driver.hpp"
 #include "softmax_driver.hpp"
 #include "rnn_driver.hpp"
 #include "rnn_seq_driver.hpp"
@@ -75,16 +75,10 @@ int main(int argc, char* argv[])
     if(drv != nullptr)
         drv = makeDriverFusion(base_arg);
     if(drv != nullptr)
+        drv = makeDriverPool(base_arg);
+    if(drv != nullptr)
     {
-        if(base_arg == "pool")
-        {
-            drv = new PoolDriver<float, double>();
-        }
-        else if(base_arg == "poolfp16")
-        {
-            drv = new PoolDriver<float16, double>();
-        }
-        else if(base_arg == "lrn")
+        if(base_arg == "lrn")
         {
             drv = new LRNDriver<float, double>();
         }

@@ -31,6 +31,7 @@ add_executable(MIOpenDriver
     conv.cpp
     fusion.cpp
     main.cpp
+    pool.cpp
     rocrand_wrapper.cpp)
 if(WIN32)
     # Refer to https://en.cppreference.com/w/cpp/language/types for details.

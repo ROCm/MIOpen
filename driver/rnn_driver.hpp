@@ -27,29 +27,34 @@
 #define GUARD_MIOPEN_RNN_DRIVER_HPP
 
 #include "InputFlags.hpp"
-#include "rnn_verify_gemm.hpp"
-#include "lstm_verify_gemm.hpp"
-#include "gru_verify_gemm.hpp"
 #include "driver.hpp"
+#include "gru_verify_gemm.hpp"
+#include "lstm_verify_gemm.hpp"
+#include "mloConvHost.hpp"
+#include "random.hpp"
+#include "rnn_verify_gemm.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
+#include "util_file.hpp"
 #include "util_driver.hpp"
-#include "random.hpp"
+
 #include <../test/verify.hpp>
-#include <algorithm>
-#include <cstdlib>
-#include <cstring>
-#include <cfloat>
-#include <fstream>
-#include <memory>
+
+#include <miopen/env.hpp>
 #include <miopen/miopen.h>
 #include <miopen/rnn.hpp>
 #include <miopen/tensor.hpp>
-#include <miopen/env.hpp>
+
+#include <algorithm>
+#include <array>
+#include <cfloat>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <memory>
 #include <numeric>
 #include <sstream>
 #include <vector>
-#include <array>
 
 template <typename Tgpu, typename Tref>
 class RNNDriver : public Driver
@@ -901,16 +906,6 @@ int RNNDriver<Tgpu, Tref>::RunForwardGPU()
        */
 
     return miopenStatusSuccess;
-}
-
-std::tuple<size_t, size_t>
-GetTempPackedBuffersSize(std::vector<int> batchs, int in_vec, int out_vec)
-{
-    size_t total_batch = std::accumulate(batchs.begin(), batchs.end(), 0);
-
-    size_t in_buff_size  = total_batch * in_vec;
-    size_t out_buff_size = total_batch * out_vec;
-    return {in_buff_size, out_buff_size};
 }
 
 template <typename Tgpu>

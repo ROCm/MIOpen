@@ -33,6 +33,7 @@
 #include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
+#include "util_driver.hpp"
 
 #include "../test/verify.hpp"
 
@@ -61,12 +62,6 @@
 #define ERRTOL 1e-4
 #define RMSTOL_FP32 1e-4
 #define RMSTOL_FP16 0.5e-3
-
-#ifdef MIOPEN_BACKEND_HIP
-#ifndef CL_SUCCESS
-#define CL_SUCCESS 0
-#endif
-#endif
 
 #define CBA_DEBUG_VALUES 0
 
@@ -518,15 +513,13 @@ template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::createSaveBuffers()
 {
 
+    status_t status = STATUS_SUCCESS;
 #if MIOPEN_BACKEND_OPENCL
-    cl_int status = CL_SUCCESS;
     cl_context ctx;
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    int status   = 0;
 #endif
 
-    if(status != CL_SUCCESS)
+    if(status != STATUS_SUCCESS)
         printf("Error copying data to GPU\n");
 
     return miopenStatusSuccess;
@@ -536,13 +529,10 @@ template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::createRunningBuffers()
 {
 
+    status_t status = STATUS_SUCCESS;
+    DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-    cl_int status = CL_SUCCESS;
-    cl_context ctx;
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    int status   = 0;
-    uint32_t ctx = 0;
 #endif
 
     if(useBatchNorm)
@@ -572,7 +562,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::createRunningBuffers()
         // GPU data transfer
         status |= runningMean_dev->ToGPU(q, runningMean.data());
         status |= runningVariance_dev->ToGPU(q, runningVariance.data());
-        if(status != CL_SUCCESS)
+        if(status != STATUS_SUCCESS)
         {
             printf("Error copying data to GPU\n");
             exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
@@ -590,13 +580,10 @@ template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
 
+    status_t status = STATUS_SUCCESS;
+    DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-    cl_int status = CL_SUCCESS;
-    cl_context ctx;
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    int status   = 0;
-    uint32_t ctx = 0;
 #endif
 
     size_t in_sz  = GetTensorSize(inputTensor);
@@ -703,7 +690,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     status |= in_dev->ToGPU(q, in.data());
     status |= createRunningBuffers();
 
-    if(status != CL_SUCCESS)
+    if(status != STATUS_SUCCESS)
         printf("Fatal: Error copying data to GPU\nExiting...\n\n");
 
     return miopenStatusSuccess;
