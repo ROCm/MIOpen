@@ -5324,7 +5324,7 @@ typedef enum
     miopenTensorSoftmaxDY    = 14,
 #endif
 
-    miopenScalarArgument = 1 << 16,
+    miopenTensorArgumentIsScalar = 1U << 31,
 } miopenTensorArgumentId_t;
 
 /*! @enum miopenTensorArgumentId_t
