@@ -64,9 +64,9 @@ struct CPUMHATestCase
     }
 };
 
-double GetF8Scaling(double max_val)
+float GetF8Scaling(float max_val)
 {
-    const double fp8_E4M3_max = 240.0f;
+    constexpr float fp8_E4M3_max = 240.0f;
 
     return fp8_E4M3_max / max_val;
 }
@@ -228,6 +228,17 @@ void ScaleMult(const tensor<T1>& tensor_val,
     });
 }
 
+template <typename T1, typename T2, typename T3>
+void ScaleMult3d(const tensor<T1>& tensor_val,
+                 const T2& scale_factor,
+                 tensor<T3>& tensor_scale_factor)
+{
+    tensor_scale_factor.par_for_each([&](size_t b_id, size_t sl_i_id, size_t sl_j_id) {
+        tensor_scale_factor(b_id, sl_i_id, sl_j_id) =
+            T3(tensor_val(b_id, sl_i_id, sl_j_id) * scale_factor);
+    });
+}
+
 template <class T>
 void PointWiseExp(const tensor<T>& tensor_val, tensor<T>& tensor_exp_val)
 {
@@ -319,8 +330,8 @@ void DropOut(tensor<T>& q_dot_k_transpose, const double& drop_out_rate)
         });
 }
 
-template <class T>
-void Concat(const tensor<T>& A_mat, tensor<T>& B_mat)
+template <class T, class U>
+void Concat(const tensor<T>& A_mat, tensor<U>& B_mat)
 {
     const auto& dims = A_mat.desc.GetLengths();
     size_t d_k       = dims[3];
@@ -365,19 +376,20 @@ template <typename T>
 void MultiHeadAttentionfp8(const tensor<T>& q_val,
                            const tensor<T>& k_val,
                            const tensor<T>& v_val,
-                           const tensor<T>& q_dot_k_transpose,
-                           const tensor<T>& attn_max,
-                           double& q_scale,
-                           double& k_scale,
-                           double& aMax_S,
-                           double& s_scale,
-                           double& v_scale,
-                           double& scale_O,
+                           tensor<T>& softmax,
+                           tensor<T>& attn_max,
+                           tensor<T>& Z_sum,
+                           float& q_scale,
+                           float& k_scale,
+                           float& aMax_S,
+                           float& s_scale,
+                           float& v_scale,
+                           float& scale_O,
                            tensor<float8>& multi_head_attention_fp8)
 {
     tensor<float8> q_val_fp8(q_val.desc.GetLengths());
     tensor<float8> k_val_fp8(k_val.desc.GetLengths());
-    tensor<T> q_dot_k_fp8_stored_in_fp32_tensor(q_dot_k_transpose.desc.GetLengths());
+    tensor<T> q_dot_k_fp8_stored_in_fp32_tensor(softmax.desc.GetLengths());
 
     q_scale = GetF8Scaling(FindMax4D(q_val)); // (max fp8 can represent)/(max val in q_val)
     k_scale = GetF8Scaling(FindMax4D(k_val)); // (max fp8 can represent)/(max val in k_val)
@@ -394,29 +406,22 @@ void MultiHeadAttentionfp8(const tensor<T>& q_val,
     ScaleMult(q_dot_k_fp8_stored_in_fp32_tensor, 1.0 / q_scale, q_dot_k_fp8_stored_in_fp32_tensor);
     ScaleMult(q_dot_k_fp8_stored_in_fp32_tensor, 1.0 / k_scale, q_dot_k_fp8_stored_in_fp32_tensor);
 
-    tensor<T> internal_low_precision_softmax(q_dot_k_transpose.desc.GetLengths());
-    tensor<T> internal_low_precision_attn_max(attn_max.desc.GetLengths());
-    tensor<T> internal_low_precision_Z_sum(attn_max.desc.GetLengths());
-
-    SoftMax(q_dot_k_fp8_stored_in_fp32_tensor,
-            internal_low_precision_softmax,
-            internal_low_precision_attn_max,
-            internal_low_precision_Z_sum /*attn_norm*/);
+    SoftMax(q_dot_k_fp8_stored_in_fp32_tensor, softmax, attn_max, Z_sum);
 
     // drop out
     // DropOut(q_dot_k_transpose, cpu_mha_test_case.drop_out_rate);
 
     // Get scaling for softmax
-    aMax_S  = FindMax4D(internal_low_precision_softmax);
+    aMax_S  = FindMax4D(softmax);
     s_scale = GetF8Scaling(aMax_S);
     // Get scaling of V
     v_scale = GetF8Scaling(FindMax4D(v_val));
 
-    tensor<float8> softmax_fp8(q_dot_k_transpose.desc.GetLengths());
+    tensor<float8> softmax_fp8(softmax.desc.GetLengths());
     tensor<float8> v_val_fp8(v_val.desc.GetLengths());
 
     // get fp8 version of Softmax(Q.dot(K_transpose)) and V
-    ScaleMult(internal_low_precision_softmax, s_scale, softmax_fp8);
+    ScaleMult(softmax, s_scale, softmax_fp8);
     ScaleMult(v_val, v_scale, v_val_fp8);
 
     tensor<T> atten_heads_fp32(multi_head_attention_fp8.desc.GetLengths());
@@ -460,41 +465,33 @@ void MultiHeadAttentionf32(const tensor<T>& q_val,
 }
 
 template <typename T>
-void ExtractGoldenDataFromJson(const std::string& json_attention_golden_data,
-                               tensor<T>& attention_golden)
+tensor<float> ExtractGoldenDataFromJson(std::string_view json_attention_data,
+                                        const tensor<T>& tensor_val)
 {
-
-    auto jsonTensor = nlohmann::json::parse(json_attention_golden_data);
-    std::vector<std::vector<float>> tensorData =
-        jsonTensor["tensor"].get<std::vector<std::vector<float>>>();
+    auto jsonTensor = nlohmann::json::parse(json_attention_data);
     // Check if the "tensor" key exists and is an array
-    if(!jsonTensor.contains("tensor") || !jsonTensor["tensor"].is_array())
-    {
-        std::cerr << "'tensor' key not found or is not an array" << std::endl;
-        exit(1);
-    }
+    EXPECT_TRUE(jsonTensor.contains("tensor") && jsonTensor["tensor"].is_array())
+        << "Malformed ref data: 'tensor' key not found or is not an array";
+
     // Extract the 2D array and flatten it
-    std::vector<float> flatTensor;
+    tensor<float> res(tensor_val.desc);
+    res.data.clear(); // tensor constructed with .resize(), but we need push_back
     for(const auto& row : jsonTensor["tensor"])
     {
-        if(!row.is_array())
-        {
-            std::cerr << "Expected a row to be an array, but found a different type" << std::endl;
-            exit(1);
-        }
+        EXPECT_TRUE(row.is_array())
+            << "Malformed ref data: expected a row to be an array, but found a different type";
         for(const auto& val : row)
         {
-            // Ensure each value is a number before adding it to the flatTensor
-            if(!val.is_number())
-            {
-                std::cerr << "Expected a value to be a number, but found a different type"
-                          << std::endl;
-                exit(1);
-            }
-            flatTensor.push_back(val.get<float>());
+            EXPECT_TRUE(val.is_number()) << "Malformed ref data: expected a value to be a "
+                                            "number, but found a different type";
+            res.data.emplace_back(val.get<float>());
         }
     }
-    attention_golden.data = flatTensor;
+
+    EXPECT_EQ(res.data.size(), tensor_val.data.size())
+        << "Malformed ref data: reference tensor has different size";
+
+    return res;
 }
 
 } // namespace cpu
