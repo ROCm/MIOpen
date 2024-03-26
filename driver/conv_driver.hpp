@@ -28,6 +28,7 @@
 
 #include "InputFlags.hpp"
 #include "conv_verify.hpp"
+#include "conv_common.hpp"
 #include "driver.hpp"
 #include "mloConvHost.hpp"
 #include "random.hpp"
@@ -1306,28 +1307,7 @@ std::vector<int> ConvDriver<Tgpu, Tref>::GetOutputTensorLengths()
     return out_lens;
 }
 
-namespace detail {
-
-template <typename T>
-T RanGenWeights()
-{
-    return prng::gen_A_to_B(static_cast<T>(-0.5), static_cast<T>(0.5));
-}
-
-// Shift FP16 distribution towards positive numbers,
-// otherwise Winograd FP16 validation fails.
-template <>
-float16 RanGenWeights()
-{
-    return prng::gen_A_to_B(static_cast<float16>(-1.0 / 3.0), static_cast<float16>(0.5));
-}
-
-// int8 has it's own range
-template <>
-int8_t RanGenWeights()
-{
-    return prng::gen_A_to_B(static_cast<int8_t>(-1), static_cast<int8_t>(1));
-}
+namespace {
 
 template <typename T>
 void RanGenSubnormBuffer(T* buf, size_t size, int percentage)
@@ -1344,33 +1324,7 @@ void RanGenSubnormBuffer(T* buf, size_t size, int percentage)
     });
 }
 
-template <>
-float8 RanGenWeights()
-{
-    const auto tmp =
-        prng::gen_0_to_B(1.0) > 0.5 ? static_cast<float>(0.0) : static_cast<float>(1.0);
-    // 1 in 2 chance of number being positive
-    const float sign =
-        (prng::gen_0_to_B(1.0) > 0.5) ? static_cast<float>(-1) : static_cast<float>(1);
-    const auto tmp2 = static_cast<float>(std::numeric_limits<float8>::epsilon()) *
-                      static_cast<float>(2) * sign * static_cast<float>(tmp);
-    return static_cast<float8>(tmp2);
-}
-
-template <>
-bfloat8 RanGenWeights()
-{
-    const auto tmp =
-        prng::gen_0_to_B(1.0) > 0.5 ? static_cast<float>(0.0) : static_cast<float>(1.0);
-    // 1 in 2 chance of number being positive
-    const float sign =
-        (prng::gen_0_to_B(1.0) > 0.5) ? static_cast<float>(-1) : static_cast<float>(1);
-    const auto tmp2 = static_cast<float>(std::numeric_limits<float8>::epsilon()) *
-                      static_cast<float>(2) * sign * static_cast<float>(tmp);
-    return static_cast<bfloat8>(tmp2);
-}
-
-} // namespace detail
+} // namespace
 
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
@@ -1631,7 +1585,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
         if(is_wrw)
             if(!is_gpualloc)
-                detail::RanGenSubnormBuffer<Tgpu>(dout.GetVectorData(), out_sz, subnorm_percentage);
+                RanGenSubnormBuffer<Tgpu>(dout.GetVectorData(), out_sz, subnorm_percentage);
 
         if(inflags.GetValueInt("bias") != 0)
         {
@@ -1677,13 +1631,13 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     if(!weiRead)
     {
-        auto gen = [&]() -> auto { return Data_scale * detail::RanGenWeights<Tgpu>(); };
+        auto gen = [&]() -> auto { return Data_scale * conv::RanGenWeights<Tgpu>(); };
         wei.InitHostData(wei_sz, is_fwd || is_bwd, gen);
     }
 
     if(is_fwd || is_bwd)
         if(!is_gpualloc)
-            detail::RanGenSubnormBuffer<Tgpu>(wei.GetVectorData(), wei_sz, subnorm_percentage);
+            RanGenSubnormBuffer<Tgpu>(wei.GetVectorData(), wei_sz, subnorm_percentage);
 
     if(inflags.GetValueInt("dump_output"))
     {

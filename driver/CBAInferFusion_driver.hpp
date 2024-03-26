@@ -641,8 +641,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             scale[i] = 1.; // prng::gen_canonical<Tgpu>(); // 1.0;
             bias[i]  = 10.;
 #else
-            scale[i] = prng::gen_canonical<Tgpu>();
-            bias[i]  = prng::gen_canonical<Tgpu>();
+            scale[i]           = prng::gen_canonical<Tgpu>();
+            bias[i]            = prng::gen_canonical<Tgpu>();
 #endif
         }
         status |= scale_dev->ToGPU(q, scale.data());
@@ -667,9 +667,9 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         in_host[i] = static_cast<double>(rval);
         in[i]      = rval;
 #else
-        auto rval  = prng::gen_canonical<Tgpu>();
+        auto rval = prng::gen_canonical<Tgpu>();
         in_host[i] = static_cast<double>(rval);
-        in[i]      = rval;
+        in[i] = rval;
 #endif
     }
 

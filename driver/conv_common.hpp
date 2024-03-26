@@ -23,22 +23,44 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "conv.hpp"
-#include "conv_driver.hpp"
+#ifndef GUARD_DRIVER_CONV_COMMON_HPP
+#define GUARD_DRIVER_CONV_COMMON_HPP
 
-Driver* makeDriverConv(const std::string& base_arg)
+#include "random.hpp"
+
+#include <miopen/bfloat16.hpp>
+
+#include <cstdint>
+#if !defined(_WIN32)
+#include <half/half.hpp>
+#else
+#include <half.hpp>
+#endif
+using half         = half_float::half;
+using hip_bfloat16 = bfloat16;
+#include <hip_float8.hpp>
+
+using float16 = half_float::half;
+using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
+using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
+
+namespace conv {
+
+template <typename T>
+T RanGenWeights()
 {
-    if(base_arg == "conv")
-        return new ConvDriver<float, float>();
-    if(base_arg == "convfp16")
-        return new ConvDriver<float16, float>();
-    if(base_arg == "convbfp16")
-        return new ConvDriver<bfloat16, float>();
-    if(base_arg == "convint8")
-        return new ConvDriver<int8_t, int32_t>();
-    if(base_arg == "convfp8")
-        return new ConvDriver<float8, float>();
-    if(base_arg == "convbfp8")
-        return new ConvDriver<bfloat8, float>();
-    return nullptr;
+    return prng::gen_A_to_B(static_cast<T>(-0.5), static_cast<T>(0.5));
 }
+
+template <>
+float16 RanGenWeights();
+template <>
+int8_t RanGenWeights();
+template <>
+float8 RanGenWeights();
+template <>
+bfloat8 RanGenWeights();
+
+} // namespace conv
+
+#endif // GUARD_DRIVER_CONV_COMMON_HPP

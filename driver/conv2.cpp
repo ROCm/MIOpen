@@ -23,14 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_DRIVER_CONV_HPP
-#define GUARD_DRIVER_CONV_HPP
+#include "conv.hpp"
+#include "conv_driver.hpp"
 
-#include "driver.hpp"
-#include <string>
-
-Driver* makeDriverConv1(const std::string&);
-Driver* makeDriverConv2(const std::string&);
-Driver* makeDriverConv3(const std::string&);
-
-#endif // GUARD_DRIVER_CONV_HPP
+Driver* makeDriverConv2(const std::string& base_arg)
+{
+    if(base_arg == "convbfp16")
+        return new ConvDriver<bfloat16, float>();
+    if(base_arg == "convint8")
+        return new ConvDriver<int8_t, int32_t>();
+    return nullptr;
+}

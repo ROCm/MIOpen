@@ -71,7 +71,11 @@ int main(int argc, char* argv[])
         std::cout << " " << argv[i];
     std::cout << std::endl;
 
-    Driver* drv = makeDriverConv(base_arg);
+    Driver* drv = makeDriverConv1(base_arg);
+    if(drv != nullptr)
+        drv = makeDriverConv2(base_arg);
+    if(drv != nullptr)
+        drv = makeDriverConv3(base_arg);
     if(drv != nullptr)
         drv = makeDriverFusion(base_arg);
     if(drv != nullptr)
