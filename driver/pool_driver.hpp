@@ -28,19 +28,23 @@
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
+#include "mloConvHost.hpp"
 #include "mloPoolingHost.hpp"
+#include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
+#include "util_file.hpp"
+
+#include <miopen/miopen.h>
+#include <miopen/pooling.hpp>
+#include <miopen/tensor.hpp>
+
 #include <algorithm>
 #include <cstdlib>
 #include <float.h>
 #include <memory>
-#include <miopen/miopen.h>
-#include <miopen/tensor.hpp>
-#include <miopen/pooling.hpp>
 #include <numeric>
 #include <vector>
-#include "random.hpp"
 
 template <typename T>
 void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems);

@@ -27,10 +27,12 @@
 #ifndef MIO_CONV_BATCHNORM_ACTIV_HOST_H_
 #define MIO_CONV_BATCHNORM_ACTIV_HOST_H_
 
-#include <cmath>
-#include <iomanip>
+#include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+
+#include <cmath>
+#include <iomanip>
 
 template <typename Tgpu, typename Tref>
 int miopenBNSpatialFwdInferHost(miopenTensorDescriptor_t& inputTensor,

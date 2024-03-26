@@ -26,7 +26,11 @@
 
 find_package(Threads REQUIRED)
 
-add_executable(MIOpenDriver main.cpp InputFlags.cpp rocrand_wrapper.cpp)
+add_executable(MIOpenDriver 
+    InputFlags.cpp
+    conv.cpp
+    main.cpp
+    rocrand_wrapper.cpp)
 if(WIN32)
     # Refer to https://en.cppreference.com/w/cpp/language/types for details.
     target_compile_options(MIOpenDriver PRIVATE $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:Clang>:-U__LP64__>>)

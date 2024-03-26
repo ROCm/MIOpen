@@ -29,42 +29,46 @@
 #include "InputFlags.hpp"
 #include "conv_verify.hpp"
 #include "driver.hpp"
-#include "rocrand_wrapper.hpp"
 #include "mloConvHost.hpp"
+#include "random.hpp"
+#include "rocrand_wrapper.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "util_driver.hpp"
+#include "util_file.hpp"
+
+#include <miopen/algorithm.hpp>
+#include <miopen/conv_algo_name.hpp>
+#include <miopen/convolution.hpp>
+#include <miopen/env.hpp>
+#include <miopen/execution_context.hpp>
+#include <miopen/find_controls.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/miopen.h>
+#include <miopen/miopen_internal.h>
+#include <miopen/solver.hpp>
+#include <miopen/tensor.hpp>
+
+#include <../test/cpu_bias.hpp>
+#include <../test/cpu_conv.hpp>
+#include <../test/serialize.hpp>
+#include <../test/tensor_holder.hpp>
+#include <../test/verify.hpp>
+
+#include <boost/optional.hpp>
+#include <boost/optional/optional_io.hpp>
+#include <boost/range/adaptors.hpp>
+
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <float.h>
 #include <fstream>
 #include <memory>
-#include <miopen/miopen.h>
-#include <miopen/miopen_internal.h>
-#include <miopen/tensor.hpp>
-#include <miopen/env.hpp>
-#include <miopen/algorithm.hpp>
-#include <miopen/conv_algo_name.hpp>
-#include <miopen/logger.hpp>
-#include <miopen/convolution.hpp>
-#include <miopen/solver.hpp>
-#include <miopen/find_controls.hpp>
-#include <miopen/execution_context.hpp>
-#include "random.hpp"
 #include <numeric>
 #include <sstream>
-#include <vector>
 #include <type_traits>
-#include <boost/range/adaptors.hpp>
-#include <boost/optional/optional_io.hpp>
-#include <../test/verify.hpp>
-#include <../test/serialize.hpp>
-#include <../test/tensor_holder.hpp>
-#include <../test/cpu_conv.hpp>
-#include <../test/cpu_bias.hpp>
-
-#include <boost/optional.hpp>
+#include <vector>
 
 // Declare hidden function for MIGraphX to smoke test it.
 extern "C" MIOPEN_EXPORT miopenStatus_t
@@ -146,27 +150,6 @@ private:
     bool quiet_prev;
 };
 
-template <typename T>
-void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems)
-{
-    if(data == nullptr)
-    {
-        printf("Ignored ouput file %s - no host buffer to dump data from (nullptr)\n", fileName);
-        return;
-    }
-    std::ofstream outFile(fileName, std::ios::binary);
-    if(outFile)
-    {
-        outFile.write(reinterpret_cast<char*>(data), dataNumItems * sizeof(T));
-        outFile.close();
-        printf("Wrote output to file %s\n", fileName);
-    }
-    else
-    {
-        printf("Could not open file %s for writing\n", fileName);
-    }
-}
-
 static inline miopenDataType_t DataTypeFromShortString(const std::string& type)
 {
     static const std::unordered_map<std::string, miopenDataType_t> conv_map = {
@@ -184,29 +167,6 @@ static inline miopenDataType_t DataTypeFromShortString(const std::string& type)
     else
     {
         MIOPEN_THROW("Invalid compute/cast type short hand supplied");
-    }
-}
-
-template <typename T>
-bool readBufferFromFile(T* data, size_t dataNumItems, const char* fileName)
-{
-    if(data == nullptr)
-    {
-        printf("Ignored input file %s - no host buffer to copy data into (nullptr)\n", fileName);
-        return false;
-    }
-    std::ifstream infile(fileName, std::ios::binary);
-    if(infile)
-    {
-        infile.read(reinterpret_cast<char*>(data), dataNumItems * sizeof(T));
-        infile.close();
-        printf("Read data from input file %s\n", fileName);
-        return true;
-    }
-    else
-    {
-        printf("Could not open file %s for reading\n", fileName);
-        return false;
     }
 }
 

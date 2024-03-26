@@ -26,23 +26,27 @@
 #pragma once
 
 #include "InputFlags.hpp"
-#include "driver.hpp"
-#include "timer.hpp"
-#include "random.hpp"
 #include "ctc_verify.hpp"
+#include "driver.hpp"
+#include "random.hpp"
+#include "timer.hpp"
+#include "util_file.hpp"
+
+#include <miopen/env.hpp>
+#include <miopen/miopen.h>
+
 #include <../test/verify.hpp>
+
 #include <algorithm>
+#include <array>
+#include <cfloat>
 #include <cstdlib>
 #include <cstring>
-#include <cfloat>
 #include <fstream>
 #include <memory>
-#include <miopen/miopen.h>
-#include <miopen/env.hpp>
 #include <numeric>
 #include <sstream>
 #include <vector>
-#include <array>
 
 template <typename Tgpu, typename Tref = Tgpu>
 class CTCDriver : public Driver

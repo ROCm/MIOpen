@@ -38,6 +38,7 @@
 #include <float.h>
 #include <memory>
 #include <miopen/miopen.h>
+#include <miopen/env.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/tensor.hpp>
 #include <numeric>
@@ -65,6 +66,8 @@
 #endif
 
 #define CBA_DEBUG_VALUES 0
+
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DRIVER_PAD_BUFFERS_2M)
 
 //"Fusion mode (cbna = 0, cna = 1, na = 2, cn = 3, cba = 4, ca = 5, cb = 6) (Default=cbna)",
 typedef enum
