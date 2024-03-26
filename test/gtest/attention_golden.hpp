@@ -1,6 +1,6 @@
 #include <string_view>
 
-//json_attention_golden_data calculated with pytorch
+// json_attention_golden_data calculated with pytorch
 static const std::string_view json_attention_golden_data =
     R"json({
     "tensor": [
