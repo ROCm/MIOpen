@@ -127,7 +127,7 @@ static Data_t AllocateTensor(Handle& handle,
     if(preallocated != options.preallocated_tensors.end())
         return preallocated->second;
 
-    if(id & miopenScalarArgument)
+    if(id & miopenTensorArgumentIsScalar)
         return &owned_scalars.emplace_back(0);
 
     const auto element_size = get_data_size(descriptor.GetType());
