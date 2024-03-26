@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include <miopen/errors.hpp>
 #include <miopen/graphapi/graphapi.hpp>
+#include <miopen/graphapi/pointwise.hpp>
 #include <miopen/graphapi/tensor.hpp>
 #include <miopen/logger.hpp>
 
@@ -40,6 +41,10 @@ miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
 
         switch(descriptorType)
         {
+        case MIOPEN_BACKEND_POINTWISE_DESCRIPTOR:
+            outputDesciptor = new miopen::graphapi::BackendPointwiseDescriptor();
+            break;
+
         case MIOPEN_BACKEND_TENSOR_DESCRIPTOR:
             outputDesciptor = new miopen::graphapi::BackendTensorDescriptor();
             break;
@@ -134,12 +139,22 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
 
         switch(descriptorType)
         {
+        case MIOPEN_BACKEND_POINTWISE_DESCRIPTOR:
+            if(std::align(alignof(miopen::graphapi::BackendPointwiseDescriptor),
+                          sizeof(miopen::graphapi::BackendPointwiseDescriptor),
+                          address,
+                          sizeInBytes) == descriptor)
+            {
+                new(descriptor) miopen::graphapi::BackendPointwiseDescriptor();
+                break;
+            }
+            MIOPEN_THROW(miopenStatusBadParm);
+
         case MIOPEN_BACKEND_TENSOR_DESCRIPTOR:
             if(std::align(alignof(miopen::graphapi::BackendTensorDescriptor),
                           sizeof(miopen::graphapi::BackendTensorDescriptor),
                           address,
-                          sizeInBytes) == nullptr &&
-               address == descriptor)
+                          sizeInBytes) == descriptor)
             {
                 new(descriptor) miopen::graphapi::BackendTensorDescriptor();
                 break;
