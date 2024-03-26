@@ -27,6 +27,7 @@
 #include <cstdio>
 
 #include "activ.hpp"
+#include "bnorm.hpp"
 #include "conv.hpp"
 #include "fusion.hpp"
 #include "gemm.hpp"
@@ -34,7 +35,6 @@
 #include "pool.hpp"
 #include "softmax.hpp"
 
-#include "bn_driver.hpp"
 #include "CBAInferFusion_driver.hpp"
 #include "driver.hpp"
 #include "groupnorm_driver.hpp"
@@ -89,16 +89,10 @@ int main(int argc, char* argv[])
     if(drv != nullptr)
         drv = makeDriverGemm(base_arg);
     if(drv != nullptr)
+        drv = makeDriverBnorm(base_arg);
+    if(drv != nullptr)
     {
-        if(base_arg == "bnorm")
-        {
-            drv = new BatchNormDriver<float, double>();
-        }
-        else if(base_arg == "bnormfp16")
-        {
-            drv = new BatchNormDriver<float16, double, float>();
-        }
-        else if(base_arg == "rnn_seq")
+        if(base_arg == "rnn_seq")
         {
             drv = new RNNSeqDriver<float, double>();
         }
