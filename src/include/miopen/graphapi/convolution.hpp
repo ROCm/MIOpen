@@ -291,14 +291,9 @@ public:
                                 double beta) noexcept
         : OperationConvolution(convolution, x, w, y, alpha, beta)
     {
-        addInputTensor(x);
-        addInputTensor(w);
-        addOutputTensor(y);
-        if(beta != 0.0)
-        {
-            addInputTensor(y);
-        }
     }
+    virtual std::vector<Tensor*> getInTensors() const override { return {getX(), getW()}; }
+    virtual std::vector<Tensor*> getOutTensors() const override { return {getY()}; }
 };
 
 class OperationConvolutionBuilder
@@ -482,14 +477,9 @@ public:
                                      double beta) noexcept
         : OperationConvolution(convolution, x, w, y, alpha, beta)
     {
-        addOutputTensor(x);
-        addInputTensor(w);
-        addInputTensor(y);
-        if(beta != 0.0)
-        {
-            addInputTensor(x);
-        }
     }
+    virtual std::vector<Tensor*> getInTensors() const override { return {getW(), getY()}; }
+    virtual std::vector<Tensor*> getOutTensors() const override { return {getX()}; }
 };
 
 class OperationConvolutionBackwardDataBuilder : public OperationConvolutionBuilder
@@ -573,14 +563,9 @@ public:
                                        double beta) noexcept
         : OperationConvolution(convolution, x, w, y, alpha, beta)
     {
-        addInputTensor(x);
-        addOutputTensor(w);
-        addInputTensor(y);
-        if(beta != 0.0)
-        {
-            addInputTensor(w);
-        }
     }
+    virtual std::vector<Tensor*> getInTensors() const override { return {getX(), getY()}; }
+    virtual std::vector<Tensor*> getOutTensors() const override { return {getW()}; }
 };
 
 class OperationConvolutionBackwardFilterBuilder : public OperationConvolutionBuilder

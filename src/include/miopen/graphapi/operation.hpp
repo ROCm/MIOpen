@@ -38,34 +38,15 @@ namespace graphapi {
 class OpNode
 {
 public:
-    OpNode& addInputTensor(Tensor* tensor)
-    {
-        if(std::find(mInputs.cbegin(), mInputs.cend(), tensor) == mInputs.cend())
-        {
-            mInputs.push_back(tensor);
-        }
-        return *this;
-    }
-    OpNode& addOutputTensor(Tensor* tensor)
-    {
-        if(std::find(mOutputs.cbegin(), mOutputs.cend(), tensor) == mOutputs.cend())
-        {
-            mOutputs.push_back(tensor);
-        }
-        return *this;
-    }
-    bool hasInputTensor(Tensor* tensor) const noexcept
-    {
-        return std::find(mInputs.cbegin(), mInputs.cend(), tensor) != mInputs.cend();
-    }
-    bool hasOutputTensor(Tensor* tensor) const noexcept
-    {
-        return std::find(mOutputs.cbegin(), mOutputs.cend(), tensor) != mOutputs.cend();
-    }
+    virtual ~OpNode() = default;
 
-private:
-    std::vector<Tensor*> mInputs;
-    std::vector<Tensor*> mOutputs;
+    virtual std::vector<Tensor*> getInTensors() const = 0;
+
+    virtual std::vector<Tensor*> getOutTensors() const = 0;
+
+    /* TODO: The remaining part of the class is being
+     * developed separately. Needs merging after finished.
+     */
 };
 
 } // namespace graphapi
