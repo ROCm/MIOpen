@@ -40,7 +40,6 @@
 #include "softmax.hpp"
 #include "tensorop.hpp"
 
-#include "CBAInferFusion_driver.hpp"
 #include "driver.hpp"
 #include "layernorm_driver.hpp"
 #include "sum_driver.hpp"
