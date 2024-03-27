@@ -288,7 +288,7 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
 #if WORKAROUND_SWDEV_453577
     const bool coop_launch = false;
 #else
-    const bool coop_launch      = ctx.GetStream().CooperativeLaunchSupported();
+    const bool coop_launch = ctx.GetStream().CooperativeLaunchSupported();
 #endif
 
     constexpr size_t wg_size = 384;
