@@ -38,6 +38,7 @@ add_executable(MIOpenDriver
     fusion.cpp
     gemm.cpp
     groupnorm.cpp
+    layernorm.cpp
     lrn.cpp
     main.cpp
     pool.cpp

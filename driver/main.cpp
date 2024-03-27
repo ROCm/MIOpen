@@ -33,6 +33,7 @@
 #include "fusion.hpp"
 #include "gemm.hpp"
 #include "groupnorm.hpp"
+#include "layernorm.hpp"
 #include "lrn.hpp"
 #include "pool.hpp"
 #include "reduce.hpp"
@@ -41,7 +42,6 @@
 #include "tensorop.hpp"
 
 #include "driver.hpp"
-#include "layernorm_driver.hpp"
 #include "sum_driver.hpp"
 #include "argmax_driver.hpp"
 #include "cat_driver.hpp"
@@ -98,20 +98,10 @@ int main(int argc, char* argv[])
     if(drv != nullptr)
         drv = makeDriverReduce(base_arg);
     if(drv != nullptr)
+        drv = makeDriverLayernorm(base_arg);
+    if(drv != nullptr)
     {
-        if(base_arg == "layernorm")
-        {
-            drv = new LayerNormDriver<float, float>();
-        }
-        else if(base_arg == "layernormfp16")
-        {
-            drv = new LayerNormDriver<float16, float>();
-        }
-        else if(base_arg == "layernormbfp16")
-        {
-            drv = new LayerNormDriver<bfloat16, float>();
-        }
-        else if(base_arg == "sum")
+        if(base_arg == "sum")
         {
             drv = new SumDriver<float, float>();
         }
