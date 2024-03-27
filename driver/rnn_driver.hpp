@@ -35,8 +35,8 @@
 #include "rnn_verify_gemm.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
-#include "util_file.hpp"
 #include "util_driver.hpp"
+#include "util_file.hpp"
 
 #include <../test/verify.hpp>
 
@@ -486,12 +486,9 @@ int RNNDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
         miopenDropoutGetStatesSize(GetHandle(), &statesSizeInBytes);
         size_t states_size = statesSizeInBytes / sizeof(prngStates);
 
+        DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-        cl_context ctx;
-
         clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-        uint32_t ctx = 0;
 #endif
 
         dropout_states_dev =
@@ -569,12 +566,9 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     workSpace_sz /= sizeof(Tgpu);
     reserveSpace_sz = (reserveSpace_sz + sizeof(Tgpu) - 1) / sizeof(Tgpu);
 
+    DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
-
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
 #endif
 
     in_dev           = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
@@ -738,13 +732,7 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         dumpBufferToFile("dump_wei.bin", wei.data(), wei_sz);
     }
 
-#if MIOPEN_BACKEND_OPENCL
-    cl_int status;
-#elif MIOPEN_BACKEND_HIP
-#define CL_SUCCESS 0
-    int status;
-#endif
-
+    status_t status;
     status = in_dev->ToGPU(q, in.data());
     status |= wei_dev->ToGPU(q, wei.data());
     status |= out_dev->ToGPU(q, out.data());
@@ -753,7 +741,7 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     status |= workspace_dev->ToGPU(q, workspace.data());
     status |= reservespace_dev->ToGPU(q, reservespace.data());
 
-    if(status != CL_SUCCESS)
+    if(status != STATUS_SUCCESS)
         printf("Error copying data to GPU\n");
 
     if(inflags.GetValueInt("forw") != 2)
@@ -761,7 +749,7 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         status = hy_dev->ToGPU(q, hy.data());
         status |= cy_dev->ToGPU(q, cy.data());
 
-        if(status != CL_SUCCESS)
+        if(status != STATUS_SUCCESS)
             printf("Error copying data to GPU\n");
     }
 
@@ -775,7 +763,7 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         status |= dhy_dev->ToGPU(q, dhy.data());
         status |= dcy_dev->ToGPU(q, dcy.data());
 
-        if(status != CL_SUCCESS)
+        if(status != STATUS_SUCCESS)
             printf("Error copying data to GPU\n");
     }
 

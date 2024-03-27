@@ -31,6 +31,7 @@
 #include "dropout_gpu_emulator.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
+#include "util_driver.hpp"
 #include "util_file.hpp"
 
 #include <../test/verify.hpp>
@@ -223,12 +224,9 @@ int DropoutDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     miopenDropoutGetStatesSize(GetHandle(), &statesSizeInBytes);
     size_t states_size = statesSizeInBytes / sizeof(prngStates);
 
+    DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
-
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
 #endif
 
     states_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, states_size, sizeof(prngStates)));
@@ -291,13 +289,7 @@ int DropoutDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         dumpBufferToFile("dump_dout.bin", dout.data.data(), out_sz);
     }
 
-#if MIOPEN_BACKEND_OPENCL
-    cl_int status;
-#elif MIOPEN_BACKEND_HIP
-#define CL_SUCCESS 0
-    int status;
-#endif
-
+    status_t status;
     status = in_dev->ToGPU(q, in.data.data());
     status |= din_dev->ToGPU(q, din.data.data());
     status |= out_dev->ToGPU(q, out.data.data());
@@ -313,7 +305,7 @@ int DropoutDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         status |= reservespace_dev->ToGPU(q, reservespace.data());
     }
 
-    if(status != CL_SUCCESS)
+    if(status != STATUS_SUCCESS)
         printf("Error copying data to GPU\n");
 
     return miopenStatusSuccess;

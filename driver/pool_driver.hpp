@@ -377,12 +377,9 @@ int PoolDriver_impl<Tgpu, Tref, Index>::AllocateBuffersAndCopy()
         workSpaceSize /
         sizeof(Index); // work space is used by mask_dev and mask which are of type Index
 
+    DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
-
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
 #endif
     in_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
     out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));

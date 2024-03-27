@@ -243,12 +243,10 @@ int GemmDriver<T>::AllocateBuffersAndCopy()
     size_t a_sz = gemm_desc.m * gemm_desc.k + (gemm_desc.batch_count - 1) * gemm_desc.strideA;
     size_t b_sz = gemm_desc.k * gemm_desc.n + (gemm_desc.batch_count - 1) * gemm_desc.strideB;
     size_t c_sz = gemm_desc.m * gemm_desc.n + (gemm_desc.batch_count - 1) * gemm_desc.strideC;
-#if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
 
+    DEFINE_CONTEXT(ctx);
+#if MIOPEN_BACKEND_OPENCL
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx      = 0;
 #endif
     a_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, a_sz, sizeof(T)));
     b_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, b_sz, sizeof(T)));

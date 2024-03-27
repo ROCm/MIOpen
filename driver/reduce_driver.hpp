@@ -326,12 +326,9 @@ int ReduceDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                                                  : this->ws_sizeInBytes / (sizeof(Tgpu) + sizeof(int));
     size_t indices_nelem = this->indices_sizeInBytes / sizeof(int);
 
+    DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
-
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
 #endif
     in_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_nelem, sizeof(Tgpu)));
     out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_nelem, sizeof(Tgpu)));

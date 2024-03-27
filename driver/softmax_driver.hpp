@@ -190,12 +190,10 @@ int SoftmaxDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     size_t in_sz  = GetTensorSize(inputTensor);
     size_t out_sz = GetTensorSize(outputTensor);
-#if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
 
+    DEFINE_CONTEXT(ctx);
+#if MIOPEN_BACKEND_OPENCL
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
 #endif
     in_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
     out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
