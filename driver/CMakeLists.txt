@@ -28,31 +28,31 @@ find_package(Threads REQUIRED)
 
 add_executable(MIOpenDriver 
     InputFlags.cpp
-    activ.cpp
-    argmax.cpp
-    bnorm.cpp
-    cat.cpp
-    conv.cpp
     conv_common.cpp
-    convbfp16.cpp
-    convbfp8.cpp
-    convfp16.cpp
-    convfp8.cpp
-    convint8.cpp
-    dropout.cpp
-    fusion.cpp
-    gemm.cpp
-    groupnorm.cpp
-    layernorm.cpp
-    lrn.cpp
+    m_activ.cpp
+    m_argmax.cpp
+    m_bnorm.cpp
+    m_cat.cpp
+    m_conv.cpp
+    m_convbfp16.cpp
+    m_convbfp8.cpp
+    m_convfp16.cpp
+    m_convfp8.cpp
+    m_convint8.cpp
+    m_dropout.cpp
+    m_fusion.cpp
+    m_gemm.cpp
+    m_groupnorm.cpp
+    m_layernorm.cpp
+    m_lrn.cpp
+    m_pool.cpp
+    m_reduce.cpp
+    m_rnn.cpp
+    m_softmax.cpp
+    m_sum.cpp
+    m_tensorop.cpp
     main.cpp
-    pool.cpp
-    reduce.cpp
-    rnn.cpp
-    rocrand_wrapper.cpp
-    softmax.cpp
-    sum.cpp
-    tensorop.cpp)
+    rocrand_wrapper.cpp)
 if(WIN32)
     # Refer to https://en.cppreference.com/w/cpp/language/types for details.
     target_compile_options(MIOpenDriver PRIVATE $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:Clang>:-U__LP64__>>)

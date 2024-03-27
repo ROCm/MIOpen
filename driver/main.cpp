@@ -23,30 +23,30 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <iostream>
-#include <cstdio>
-
-#include "activ.hpp"
-#include "argmax.hpp"
-#include "bnorm.hpp"
-#include "cat.hpp"
-#include "conv.hpp"
-#include "dropout.hpp"
-#include "fusion.hpp"
-#include "gemm.hpp"
-#include "groupnorm.hpp"
-#include "layernorm.hpp"
-#include "lrn.hpp"
-#include "pool.hpp"
-#include "reduce.hpp"
-#include "rnn.hpp"
-#include "softmax.hpp"
-#include "sum.hpp"
-#include "tensorop.hpp"
-
 #include "driver.hpp"
+#include "m_activ.hpp"
+#include "m_argmax.hpp"
+#include "m_bnorm.hpp"
+#include "m_cat.hpp"
+#include "m_conv.hpp"
+#include "m_dropout.hpp"
+#include "m_fusion.hpp"
+#include "m_gemm.hpp"
+#include "m_groupnorm.hpp"
+#include "m_layernorm.hpp"
+#include "m_lrn.hpp"
+#include "m_pool.hpp"
+#include "m_reduce.hpp"
+#include "m_rnn.hpp"
+#include "m_softmax.hpp"
+#include "m_sum.hpp"
+#include "m_tensorop.hpp"
+
 #include <miopen/config.h>
 #include <miopen/stringutils.hpp>
+
+#include <cstdio>
+#include <iostream>
 
 int main(int argc, char* argv[])
 {
