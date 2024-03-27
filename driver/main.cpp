@@ -29,6 +29,7 @@
 #include "activ.hpp"
 #include "argmax.hpp"
 #include "bnorm.hpp"
+#include "cat.hpp"
 #include "conv.hpp"
 #include "dropout.hpp"
 #include "fusion.hpp"
@@ -44,7 +45,6 @@
 #include "tensorop.hpp"
 
 #include "driver.hpp"
-#include "cat_driver.hpp"
 #include <miopen/config.h>
 #include <miopen/stringutils.hpp>
 
@@ -110,20 +110,7 @@ int main(int argc, char* argv[])
     if(drv != nullptr)
         drv = makeDriverArgmax(base_arg);
     if(drv != nullptr)
-    {
-        if(base_arg == "cat")
-        {
-            drv = new CatDriver<float>();
-        }
-        else if(base_arg == "catfp16")
-        {
-            drv = new CatDriver<float16>();
-        }
-        else if(base_arg == "catbfp16")
-        {
-            drv = new CatDriver<bfloat16>();
-        }
-    }
+        drv = makeDriverCat(base_arg);
     if(drv == nullptr)
     {
         printf("Incorrect BaseArg\n");
