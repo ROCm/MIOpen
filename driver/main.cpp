@@ -27,6 +27,7 @@
 #include <cstdio>
 
 #include "activ.hpp"
+#include "argmax.hpp"
 #include "bnorm.hpp"
 #include "conv.hpp"
 #include "dropout.hpp"
@@ -43,7 +44,6 @@
 #include "tensorop.hpp"
 
 #include "driver.hpp"
-#include "argmax_driver.hpp"
 #include "cat_driver.hpp"
 #include <miopen/config.h>
 #include <miopen/stringutils.hpp>
@@ -108,20 +108,10 @@ int main(int argc, char* argv[])
     if(drv != nullptr)
         drv = makeDriverSum(base_arg);
     if(drv != nullptr)
+        drv = makeDriverArgmax(base_arg);
+    if(drv != nullptr)
     {
-        if(base_arg == "argmax")
-        {
-            drv = new ArgmaxDriver<float, float>();
-        }
-        else if(base_arg == "argmaxfp16")
-        {
-            drv = new ArgmaxDriver<float16, float>();
-        }
-        else if(base_arg == "argmaxbfp16")
-        {
-            drv = new ArgmaxDriver<bfloat16, float>();
-        }
-        else if(base_arg == "cat")
+        if(base_arg == "cat")
         {
             drv = new CatDriver<float>();
         }
