@@ -1036,10 +1036,13 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                                        std::to_string(static_cast<int>(use_padding.first)) +
                                        std::to_string(static_cast<int>(use_padding.second));
 
-        std::align(workspaceAlignRequirementBytes,
-                   ws_sizeInBytes - workspaceAlignRequirementBytes,
-                   workspace,
-                   workspaceSizeInBytes);
+        if(nullptr == std::align(workspaceAlignRequirementBytes,
+                                 ws_sizeInBytes - workspaceAlignRequirementBytes,
+                                 workspace,
+                                 workspaceSizeInBytes))
+        {
+            MIOPEN_THROW(miopenStatusInternalError, "Alignment failed. There is not enough space.");
+        }
 
         if(!reduceAllDims)
         {
