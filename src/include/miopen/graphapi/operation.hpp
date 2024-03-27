@@ -26,7 +26,7 @@
 #pragma once
 
 #include <miopen/errors.hpp>
-#include <miopen/graphapi/graphapi_tensor.hpp>
+#include <miopen/graphapi/tensor.hpp>
 
 #include <algorithm>
 #include <vector>

@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 #include <miopen/algorithm.hpp>
-#include <miopen/graphapi/graphapi_convolution.hpp>
+#include <miopen/graphapi/convolution.hpp>
 #include <miopen/errors.hpp>
 
 namespace miopen {

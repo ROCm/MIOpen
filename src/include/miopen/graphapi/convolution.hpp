@@ -26,8 +26,8 @@
 #pragma once
 
 #include <miopen/graphapi/graphapi.hpp>
-#include <miopen/graphapi/graphapi_operation.hpp>
-#include <miopen/graphapi/graphapi_tensor.hpp>
+#include <miopen/graphapi/operation.hpp>
+#include <miopen/graphapi/tensor.hpp>
 
 #include <cstdint>
 
