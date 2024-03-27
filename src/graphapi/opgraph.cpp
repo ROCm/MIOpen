@@ -27,6 +27,7 @@
 #include <miopen/errors.hpp>
 #include <miopen/graphapi/opgraph.hpp>
 
+#include <deque>
 #include <unordered_map>
 
 namespace miopen {
@@ -92,6 +93,221 @@ OpGraph OpGraphBuilder::build() &&
     }
 
     return graph;
+}
+
+VecOfPaths OpGraph::getAllPaths() const
+{
+    // TODO(Amber): does not check for cycles. Use DFS to first check for cycles
+    // at construction time perhaps.
+    VecOfPaths all_paths;
+
+    std::deque<Path> paths_to_explore;
+    paths_to_explore.emplace_back(Path{const_cast<SourceOpNode*>(mSrcNode.get())});
+
+    while(!paths_to_explore.empty())
+    {
+        Path path = paths_to_explore.front();
+        paths_to_explore.pop_front();
+
+        assert(!path.empty());
+        const OpNode* last_node = path.back();
+        assert(last_node);
+        if(last_node->getOutEdges().empty())
+        {
+            // all paths should terminate at the sink
+            assert(last_node == mSinkNode.get());
+            all_paths.emplace_back(std::move(path));
+        }
+        else
+        {
+            for(const auto& [dst, tens_ptr] : last_node->getOutEdges())
+            {
+                Path newPath{path};
+                newPath.emplace_back(dst);
+                paths_to_explore.emplace_back(std::move(newPath));
+            }
+        }
+    } // end while
+
+    return all_paths;
+}
+
+std::string pathToStr(const Path& path)
+{
+    std::ostringstream oss;
+    for(const OpNode* n : path)
+    {
+        oss << n->signName() << ",";
+    }
+    return oss.str();
+}
+
+namespace internal {
+
+using MapSizeToPathVec = std::unordered_map<size_t, VecOfPaths>;
+
+bool checkSameNodesByName(const OpGraph& left, const OpGraph& right)
+{
+    auto l_names = left.getNodeNames();
+    auto r_names = right.getNodeNames();
+    if(l_names.size() != r_names.size())
+    {
+        return false;
+    }
+
+    std::sort(l_names.begin(), l_names.end());
+    std::sort(r_names.begin(), r_names.end());
+
+    return l_names == r_names;
+}
+
+bool checkSameDegreeVecs(const OpGraph& left, const OpGraph& right)
+{
+    auto l_degs = left.getInOutDegrees();
+    auto r_degs = right.getInOutDegrees();
+
+    /*
+    auto sort_deg_vec = [] (auto& deg_vec) {
+
+        std::sort(deg_vec.begin(), deg_vec.end(),
+            [] (const auto& left, const auto& right) {
+              if (left.first == right.first) {
+                return left.second < right.second;
+              }
+              return left.first < right.first;
+            });
+
+    };
+    sort_deg_vec(l_degs);
+    sort_deg_vec(r_degs);
+    */
+    std::sort(l_degs.begin(), l_degs.end());
+    std::sort(r_degs.begin(), r_degs.end());
+    return l_degs == r_degs;
+}
+
+auto groupBySize(VecOfPaths&& all_paths)
+{
+    MapSizeToPathVec paths_by_size;
+
+    for(auto& p : all_paths)
+    {
+        auto [it, _ignore] = paths_by_size.emplace(p.size(), VecOfPaths{});
+        it->second.emplace_back(std::move(p));
+    }
+
+    return paths_by_size;
+}
+
+/*
+auto sumPathSizes(const VecOfPaths& all_paths) {
+    size_t ret = 0;
+    for (const auto& p: all_paths) {
+      ret += p.size();
+    }
+    return ret;
+}
+*/
+
+bool checkSamePathVecs(const VecOfPaths& left, const VecOfPaths& right)
+{
+    if(left.size() != right.size())
+    {
+        return false;
+    }
+
+    using VecOfStr = std::vector<std::string>;
+
+    auto pathvec_to_strvec = [](const VecOfPaths& pathvec) {
+        VecOfStr ret;
+        for(const Path& path : pathvec)
+        {
+            ret.emplace_back(pathToStr(path));
+        }
+        return ret;
+    };
+
+    VecOfStr l_paths_as_str = pathvec_to_strvec(left);
+    VecOfStr r_paths_as_str = pathvec_to_strvec(right);
+
+    std::sort(l_paths_as_str.begin(), l_paths_as_str.end());
+    std::sort(r_paths_as_str.begin(), r_paths_as_str.end());
+
+    return l_paths_as_str == r_paths_as_str;
+}
+
+bool checkSamePaths(const OpGraph& left, const OpGraph& right)
+{
+
+    auto l_paths = left.getAllPaths();
+    auto r_paths = right.getAllPaths();
+
+    if(l_paths.size() != r_paths.size())
+    {
+        return false;
+    }
+
+    auto l_paths_by_sz = groupBySize(std::move(l_paths));
+    auto r_paths_by_sz = groupBySize(std::move(r_paths));
+
+    auto get_keys = [](const MapSizeToPathVec& paths_by_size) {
+        std::vector<size_t> keys{};
+        for(const auto& [k, v] : paths_by_size)
+        {
+            keys.emplace_back(k);
+        }
+        return keys;
+    };
+
+    auto l_keys = get_keys(l_paths_by_sz);
+    auto r_keys = get_keys(r_paths_by_sz);
+
+    if(l_keys != r_keys)
+    {
+        return false;
+    }
+
+    for(size_t k : l_keys)
+    {
+        if(!checkSamePathVecs(l_paths_by_sz[k], r_paths_by_sz[k]))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+} // end namespace internal
+
+bool isIsomorphic(const OpGraph& left, const OpGraph& right)
+{
+    if(left.numNodes() != right.numNodes())
+    {
+        return false;
+    }
+
+    if(left.numEdges() != right.numEdges())
+    {
+        return false;
+    }
+
+    if(!internal::checkSameNodesByName(left, right))
+    {
+        return false;
+    }
+
+    if(!internal::checkSameDegreeVecs(left, right))
+    {
+        return false;
+    }
+
+    if(!internal::checkSamePaths(left, right))
+    {
+        return false;
+    }
+
+    return true;
 }
 
 } // end namespace graphapi

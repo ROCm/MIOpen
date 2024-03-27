@@ -23,45 +23,17 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #include "graphapi_opgraph_common.hpp"
 
-TEST(GraphAPI, BuildDiamond)
+TEST(GraphMatchingAPI, DiamondGraphMatch)
 {
     using namespace graphapi_opgraph_tests;
 
-    /*
-     *       |
-     *       | t_in
-     *       v
-     *      Top
-     * t_a /   \ t_b
-     *    /     \
-     *   v       v
-     *  Left    Right
-     *    \      /
-     * t_c \    / t_d
-     *      v  v
-     *     Bottom
-     *       |
-     *       |t_out
-     *       v
-     */
+    DiamondGraphHolder dgh1{};
 
-    DiamondGraphHolder d{};
+    ASSERT_TRUE(gr::isIsomorphic(dgh1.graph, dgh1.graph));
 
-    ASSERT_TRUE(d.graph.hasNode(&d.top));
-    ASSERT_TRUE(d.graph.hasNode(&d.left));
-    ASSERT_TRUE(d.graph.hasNode(&d.right));
-    ASSERT_TRUE(d.graph.hasNode(&d.bottom));
+    DiamondGraphHolder dgh2{};
 
-    ASSERT_TRUE(d.graph.hasEdge(&d.top, &d.t_a, &d.left));
-    ASSERT_TRUE(d.graph.hasEdge(&d.top, &d.t_b, &d.right));
-    ASSERT_TRUE(d.graph.hasEdge(&d.left, &d.t_c, &d.bottom));
-    ASSERT_TRUE(d.graph.hasEdge(&d.right, &d.t_d, &d.bottom));
-
-    ASSERT_TRUE(d.graph.numNodes() == 4);
-    ASSERT_TRUE(d.graph.numEdges() == 4);
-    ASSERT_TRUE(d.graph.hasEdgeToSink(&d.bottom, &d.t_out));
-    ASSERT_TRUE(d.graph.hasEdgeFromSource(&d.top, &d.t_in));
+    ASSERT_TRUE(gr::isIsomorphic(dgh1.graph, dgh2.graph));
 }
