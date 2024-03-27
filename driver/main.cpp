@@ -39,7 +39,6 @@
 #include "CBAInferFusion_driver.hpp"
 #include "driver.hpp"
 #include "groupnorm_driver.hpp"
-#include "ctc_driver.hpp"
 #include "dropout_driver.hpp"
 #include "tensorop_driver.hpp"
 #include "reduce_driver.hpp"
@@ -93,11 +92,7 @@ int main(int argc, char* argv[])
         drv = makeDriverRnn(base_arg);
     if(drv != nullptr)
     {
-        if(base_arg == "ctc")
-        {
-            drv = new CTCDriver<float>();
-        }
-        else if(base_arg == "dropout")
+        if(base_arg == "dropout")
         {
             drv = new DropoutDriver<float, float>();
         }

@@ -26,6 +26,7 @@
 #include "rnn.hpp"
 #include "rnn_driver.hpp"
 #include "rnn_seq_driver.hpp"
+#include "ctc_driver.hpp"
 
 Driver* makeDriverRnn(const std::string& base_arg)
 {
@@ -37,5 +38,7 @@ Driver* makeDriverRnn(const std::string& base_arg)
         return new RNNDriver<float, double>();
     if(base_arg == "rnnfp16")
         return new RNNDriver<float16, double>();
+    if(base_arg == "ctc")
+        return new CTCDriver<float>();
     return nullptr;
 }

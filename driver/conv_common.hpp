@@ -26,6 +26,14 @@
 #ifndef GUARD_DRIVER_CONV_COMMON_HPP
 #define GUARD_DRIVER_CONV_COMMON_HPP
 
+/// This module is introduced in order to get rid of the followinf false linker warnings:
+/// ld.lld: error: duplicate symbol: signed char detail::RanGenWeights<signed char>()
+/// >>> defined at conv1.cpp
+/// >>>            CMakeFiles/MIOpenDriver.dir/conv1.cpp.o:(signed char detail::RanGenWeights<signed
+/// char>())
+/// >>> defined at conv3.cpp
+/// >>>            CMakeFiles/MIOpenDriver.dir/conv3.cpp.o:(.text+0x10)
+
 #include "random.hpp"
 
 #include <miopen/bfloat16.hpp>

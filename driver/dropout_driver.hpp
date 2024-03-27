@@ -28,22 +28,26 @@
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
-#include "timer.hpp"
 #include "dropout_gpu_emulator.hpp"
-#include <miopen/dropout.hpp>
+#include "timer.hpp"
+#include "util_file.hpp"
+
 #include <../test/verify.hpp>
+
+#include <miopen/dropout.hpp>
+#include <miopen/env.hpp>
+#include <miopen/miopen.h>
+
 #include <algorithm>
+#include <array>
+#include <cfloat>
 #include <cstdlib>
 #include <cstring>
-#include <cfloat>
 #include <fstream>
 #include <memory>
-#include <miopen/miopen.h>
-#include <miopen/env.hpp>
 #include <numeric>
 #include <sstream>
 #include <vector>
-#include <array>
 
 template <typename Tgpu, typename Tref = Tgpu>
 class DropoutDriver : public Driver
