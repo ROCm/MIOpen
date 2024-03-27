@@ -25,7 +25,7 @@
  *******************************************************************************/
 #include <miopen/errors.hpp>
 #include <miopen/graphapi/graphapi.hpp>
-#include <miopen/graphapi/graphapi_tensor.hpp>
+#include <miopen/graphapi/tensor.hpp>
 #include <miopen/logger.hpp>
 
 #include <memory>
