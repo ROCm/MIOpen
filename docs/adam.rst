@@ -1,5 +1,5 @@
 
-Cat Layer(experimental)
+Adam Layer(experimental)
 ===========================
 
 The adam types and functions.
@@ -10,4 +10,10 @@ miopenAdam
 -----------------------
 
 .. doxygenfunction::  miopenAdam
+
+
+miopenAmpAdam
+-----------------------
+
+.. doxygenfunction::  miopenAmpAdam
 

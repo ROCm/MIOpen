@@ -117,10 +117,6 @@ public:
         miopenCreateTensorDescriptor(&gradDesc);
         miopenCreateTensorDescriptor(&expAvgDesc);
         miopenCreateTensorDescriptor(&expAvgSqDesc);
-        miopenCreateTensorDescriptor(&maxExpAvgSqDesc);
-        miopenCreateTensorDescriptor(&stepDesc);
-        miopenCreateTensorDescriptor(&gradScaleDesc);
-        miopenCreateTensorDescriptor(&foundInfDesc);
 
         data_type = miopen_type<Tgpu>{};
     }
@@ -148,10 +144,14 @@ public:
         miopenDestroyTensorDescriptor(gradDesc);
         miopenDestroyTensorDescriptor(expAvgDesc);
         miopenDestroyTensorDescriptor(expAvgSqDesc);
-        miopenDestroyTensorDescriptor(maxExpAvgSqDesc);
-        miopenDestroyTensorDescriptor(stepDesc);
-        miopenDestroyTensorDescriptor(gradScaleDesc);
-        miopenDestroyTensorDescriptor(foundInfDesc);
+        if(maxExpAvgSqDesc)
+            miopenDestroyTensorDescriptor(maxExpAvgSqDesc);
+        if(stepDesc)
+            miopenDestroyTensorDescriptor(stepDesc);
+        if(gradScaleDesc)
+            miopenDestroyTensorDescriptor(gradScaleDesc);
+        if(stepDesc)
+            miopenDestroyTensorDescriptor(foundInfDesc);
     }
 
 private:
@@ -159,14 +159,14 @@ private:
 
     int forw = 1;
 
-    miopenTensorDescriptor_t paramDesc;
-    miopenTensorDescriptor_t gradDesc;
-    miopenTensorDescriptor_t expAvgDesc;
-    miopenTensorDescriptor_t expAvgSqDesc;
-    miopenTensorDescriptor_t maxExpAvgSqDesc;
-    miopenTensorDescriptor_t stepDesc;
-    miopenTensorDescriptor_t gradScaleDesc;
-    miopenTensorDescriptor_t foundInfDesc;
+    miopenTensorDescriptor_t paramDesc       = nullptr;
+    miopenTensorDescriptor_t gradDesc        = nullptr;
+    miopenTensorDescriptor_t expAvgDesc      = nullptr;
+    miopenTensorDescriptor_t expAvgSqDesc    = nullptr;
+    miopenTensorDescriptor_t maxExpAvgSqDesc = nullptr;
+    miopenTensorDescriptor_t stepDesc        = nullptr;
+    miopenTensorDescriptor_t gradScaleDesc   = nullptr;
+    miopenTensorDescriptor_t foundInfDesc    = nullptr;
 
     std::unique_ptr<GPUMem> param_dev;
     std::unique_ptr<GPUMem> grad_dev;
@@ -239,10 +239,16 @@ int AdamDriver<Tgpu, Tref>::GetandSetData()
     SetTensorNd(expAvgDesc, param_len, data_type);
     SetTensorNd(expAvgSqDesc, param_len, data_type);
     if(amsgrad)
+    {
+        miopenCreateTensorDescriptor(&maxExpAvgSqDesc);
         SetTensorNd(maxExpAvgSqDesc, param_len, data_type);
-    SetTensorNd(stepDesc, one_size, miopenInt32);
+    }
     if(amp)
     {
+        miopenCreateTensorDescriptor(&stepDesc);
+        miopenCreateTensorDescriptor(&gradScaleDesc);
+        miopenCreateTensorDescriptor(&foundInfDesc);
+        SetTensorNd(stepDesc, one_size, miopenInt32);
         SetTensorNd(gradScaleDesc, one_size, miopenInt32);
         SetTensorNd(foundInfDesc, one_size, miopenInt32);
     }
@@ -298,12 +304,13 @@ int AdamDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     grad_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, param_sz, sizeof(Tgpu)));
     exp_avg_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, param_sz, sizeof(Tgpu)));
     exp_avg_sq_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, param_sz, sizeof(Tgpu)));
-    step_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, 1, sizeof(int)));
+
     if(amsgrad)
         max_exp_avg_sq_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, param_sz, sizeof(Tgpu)));
 
     if(amp)
     {
+        step_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, 1, sizeof(int)));
         scale_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, 1, sizeof(int)));
         found_inf_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, 1, sizeof(bool)));
     }
@@ -356,9 +363,6 @@ int AdamDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         std::cerr << "Error copying (exp_avg_sq) to GPU, size: " << exp_avg_sq_dev->GetSize()
                   << std::endl;
 
-    if(step_dev->ToGPU(GetStream(), &step) != 0)
-        std::cerr << "Error copying (step) to GPU, size: " << step_dev->GetSize() << std::endl;
-
     if(amsgrad)
     {
         if(max_exp_avg_sq_dev->ToGPU(GetStream(), max_exp_avg_sq.data()) != 0)
@@ -368,6 +372,9 @@ int AdamDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     if(amp)
     {
+        if(step_dev->ToGPU(GetStream(), &step) != 0)
+            std::cerr << "Error copying (step) to GPU, size: " << step_dev->GetSize() << std::endl;
+
         if(scale_dev->ToGPU(GetStream(), &grad_scale) != 0)
             std::cerr << "Error copying (scale) to GPU, size: " << scale_dev->GetSize()
                       << std::endl;
@@ -385,35 +392,84 @@ int AdamDriver<Tgpu, Tref>::RunForwardGPU()
     float kernel_total_time = 0;
     float kernel_first_time = 0;
 
+    void* max_exp_avg_sq_ptr = amsgrad ? max_exp_avg_sq_dev->GetMem() : nullptr;
+    void* grad_scale_ptr     = amp ? scale_dev->GetMem() : nullptr;
+    void* found_inf_ptr      = amp ? found_inf_dev->GetMem() : nullptr;
+    void* step_ptr           = amp ? step_dev->GetMem() : nullptr;
+
     Timer t;
     START_TIME
 
     for(int i = 0; i < iter; i++)
     {
-        miopenAdam(GetHandle(),
-                   paramDesc,
-                   param_dev->GetMem(),
-                   gradDesc,
-                   grad_dev->GetMem(),
-                   expAvgDesc,
-                   exp_avg_dev->GetMem(),
-                   expAvgSqDesc,
-                   exp_avg_sq_dev->GetMem(),
-                   stepDesc,
-                   step_dev->GetMem(),
-                   lr,
-                   beta1,
-                   beta2,
-                   weight_decay,
-                   eps,
-                   amsgrad,
-                   maximize,
-                   amsgrad ? maxExpAvgSqDesc : nullptr,
-                   amsgrad ? max_exp_avg_sq_dev->GetMem() : nullptr,
-                   amp ? gradScaleDesc : nullptr,
-                   amp ? scale_dev->GetMem() : nullptr,
-                   amp ? foundInfDesc : nullptr,
-                   amp ? found_inf_dev->GetMem() : nullptr);
+        if(amp)
+        {
+            miopenAmpAdam(GetHandle(),
+                          paramDesc,
+                          param_dev->GetMem(),
+                          gradDesc,
+                          grad_dev->GetMem(),
+                          expAvgDesc,
+                          exp_avg_dev->GetMem(),
+                          expAvgSqDesc,
+                          exp_avg_sq_dev->GetMem(),
+                          maxExpAvgSqDesc,
+                          max_exp_avg_sq_ptr,
+                          gradScaleDesc,
+                          grad_scale_ptr,
+                          foundInfDesc,
+                          found_inf_ptr,
+                          stepDesc,
+                          step_ptr,
+                          lr,
+                          beta1,
+                          beta2,
+                          weight_decay,
+                          eps,
+                          amsgrad,
+                          maximize,
+                          paramDesc,
+                          param_dev->GetMem(),
+                          expAvgDesc,
+                          exp_avg_dev->GetMem(),
+                          expAvgSqDesc,
+                          exp_avg_sq_dev->GetMem(),
+                          maxExpAvgSqDesc,
+                          max_exp_avg_sq_ptr,
+                          stepDesc,
+                          step_ptr);
+        }
+        else
+        {
+            step++;
+            miopenAdam(GetHandle(),
+                       paramDesc,
+                       param_dev->GetMem(),
+                       gradDesc,
+                       grad_dev->GetMem(),
+                       expAvgDesc,
+                       exp_avg_dev->GetMem(),
+                       expAvgSqDesc,
+                       exp_avg_sq_dev->GetMem(),
+                       maxExpAvgSqDesc,
+                       max_exp_avg_sq_ptr,
+                       step,
+                       lr,
+                       beta1,
+                       beta2,
+                       weight_decay,
+                       eps,
+                       amsgrad,
+                       maximize,
+                       paramDesc,
+                       param_dev->GetMem(),
+                       expAvgDesc,
+                       exp_avg_dev->GetMem(),
+                       expAvgSqDesc,
+                       exp_avg_sq_dev->GetMem(),
+                       maxExpAvgSqDesc,
+                       max_exp_avg_sq_ptr);
+        }
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);

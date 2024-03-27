@@ -39,15 +39,21 @@ struct InvokeParams : public miopen::InvokeParams
     const TensorDescriptor* paramDesc = nullptr;
     const TensorDescriptor* gradDesc  = nullptr;
 
-    Data_t param          = nullptr;
-    ConstData_t grad      = nullptr;
-    Data_t expAvg         = nullptr;
-    Data_t expAvgSq       = nullptr;
-    Data_t maxExpAvgSq    = nullptr;
-    Data_t step           = nullptr;
-    ConstData_t gradScale = nullptr;
-    ConstData_t foundInf  = nullptr;
+    ConstData_t paramIn       = nullptr;
+    Data_t paramOut           = nullptr;
+    ConstData_t gradIn        = nullptr;
+    ConstData_t expAvgIn      = nullptr;
+    Data_t expAvgOut          = nullptr;
+    ConstData_t expAvgSqIn    = nullptr;
+    Data_t expAvgSqOut        = nullptr;
+    ConstData_t maxExpAvgSqIn = nullptr;
+    Data_t maxExpAvgSqOut     = nullptr;
+    ConstData_t gradScale     = nullptr;
+    ConstData_t foundInf      = nullptr;
+    ConstData_t stepIn        = nullptr;
+    Data_t stepOut            = nullptr;
 
+    int step            = 0;
     double lr           = 0.0;
     double beta1        = 0.0;
     double beta2        = 0.0;

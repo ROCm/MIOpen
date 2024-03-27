@@ -41,11 +41,15 @@ namespace adam {
 
 struct ProblemDescription : ProblemDescriptionBase
 {
-    ProblemDescription(const TensorDescriptor& paramDesc_,
-                       const TensorDescriptor& gradDesc_,
-                       const TensorDescriptor& expAvgDesc_,
-                       const TensorDescriptor& expAvgSqDesc_,
-                       const TensorDescriptor& stepDesc_,
+    ProblemDescription(const TensorDescriptor& paramInDesc_,
+                       const TensorDescriptor& gradInDesc_,
+                       const TensorDescriptor& expAvgInDesc_,
+                       const TensorDescriptor& expAvgSqInDesc_,
+                       const TensorDescriptor* maxExpAvgSqInDesc_,
+                       const TensorDescriptor* gradScaleDesc_,
+                       const TensorDescriptor* foundInfDesc_,
+                       const TensorDescriptor* stepInDesc_,
+                       int32_t step_,
                        double lr_,
                        double beta1_,
                        double beta2_,
@@ -53,14 +57,20 @@ struct ProblemDescription : ProblemDescriptionBase
                        double eps_,
                        bool amsgrad_,
                        bool maximize_,
-                       const TensorDescriptor* maxExpAvgSqDesc_,
-                       const TensorDescriptor* gradScaleDesc_,
-                       const TensorDescriptor* foundInfDesc_)
-        : paramDesc(paramDesc_),
-          gradDesc(gradDesc_),
-          expAvgDesc(expAvgDesc_),
-          expAvgSqDesc(expAvgSqDesc_),
-          stepDesc(stepDesc_),
+                       const TensorDescriptor* paramOutDesc_,
+                       const TensorDescriptor* expAvgOutDesc_,
+                       const TensorDescriptor* expAvgSqOutDesc_,
+                       const TensorDescriptor* maxExpAvgSqOutDesc_,
+                       const TensorDescriptor* stepOutDesc_)
+        : paramInDesc(paramInDesc_),
+          gradInDesc(gradInDesc_),
+          expAvgInDesc(expAvgInDesc_),
+          expAvgSqInDesc(expAvgSqInDesc_),
+          maxExpAvgSqInDesc(maxExpAvgSqInDesc_),
+          gradScaleDesc(gradScaleDesc_),
+          foundInfDesc(foundInfDesc_),
+          stepInDesc(stepInDesc_),
+          step(step_),
           lr(lr_),
           beta1(beta1_),
           beta2(beta2_),
@@ -68,19 +78,18 @@ struct ProblemDescription : ProblemDescriptionBase
           eps(eps_),
           amsgrad(amsgrad_),
           maximize(maximize_),
-          maxExpAvgSqDesc(maxExpAvgSqDesc_),
-          gradScaleDesc(gradScaleDesc_),
-          foundInfDesc(foundInfDesc_)
+          paramOutDesc(paramOutDesc_),
+          expAvgOutDesc(expAvgOutDesc_),
+          expAvgSqOutDesc(expAvgSqOutDesc_),
+          maxExpAvgSqOutDesc(maxExpAvgSqOutDesc_),
+          stepOutDesc(stepOutDesc_)
     {
         if(gradScaleDesc != nullptr || foundInfDesc != nullptr)
             is_amp = true;
     }
 
-    const TensorDescriptor& GetParamDesc() const { return paramDesc; }
-    const TensorDescriptor& GetGradDesc() const { return gradDesc; }
-    const TensorDescriptor& GetExpAvgDesc() const { return expAvgDesc; }
-    const TensorDescriptor& GetExpAvgSqsDesc() const { return expAvgSqDesc; }
-    const TensorDescriptor& GetStepDesc() const { return stepDesc; }
+    const TensorDescriptor& GetParamDesc() const { return paramInDesc; }
+    const TensorDescriptor& GetGradDesc() const { return gradInDesc; }
     double GetLr() const { return lr; }
     double GetBeta1() const { return beta1; }
     double GetBeta2() const { return beta2; }
@@ -88,14 +97,15 @@ struct ProblemDescription : ProblemDescriptionBase
     double GetEps() const { return eps; }
     bool GetAmsgrad() const { return amsgrad; }
     bool GetMaximize() const { return maximize; }
+    bool ExistStepOut() const { return (stepOutDesc != nullptr); }
 
     bool IsAmp() const { return is_amp; }
     bool IsValidType() const { return true; }
 
     bool IsAllPacked() const
     {
-        if(!(paramDesc.IsPacked() && gradDesc.IsPacked() && expAvgDesc.IsPacked() &&
-             expAvgSqDesc.IsPacked()))
+        if(!(paramInDesc.IsPacked() && gradInDesc.IsPacked() && expAvgInDesc.IsPacked() &&
+             expAvgSqInDesc.IsPacked()))
             return false;
         return true;
     }
@@ -103,12 +113,16 @@ struct ProblemDescription : ProblemDescriptionBase
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
-    TensorDescriptor paramDesc{};
-    TensorDescriptor gradDesc{};
-    TensorDescriptor expAvgDesc{};
-    TensorDescriptor expAvgSqDesc{};
-    TensorDescriptor stepDesc{};
+    TensorDescriptor paramInDesc{};
+    TensorDescriptor gradInDesc{};
+    TensorDescriptor expAvgInDesc{};
+    TensorDescriptor expAvgSqInDesc{};
+    const TensorDescriptor* maxExpAvgSqInDesc = nullptr;
+    const TensorDescriptor* gradScaleDesc     = nullptr;
+    const TensorDescriptor* foundInfDesc      = nullptr;
+    const TensorDescriptor* stepInDesc        = nullptr;
 
+    int32_t step        = 0;
     double lr           = 0.0;
     double beta1        = 0.0;
     double beta2        = 0.0;
@@ -118,9 +132,11 @@ private:
     bool maximize       = false;
     bool is_amp         = false;
 
-    const TensorDescriptor* maxExpAvgSqDesc = nullptr;
-    const TensorDescriptor* gradScaleDesc   = nullptr;
-    const TensorDescriptor* foundInfDesc    = nullptr;
+    const TensorDescriptor* paramOutDesc       = nullptr;
+    const TensorDescriptor* expAvgOutDesc      = nullptr;
+    const TensorDescriptor* expAvgSqOutDesc    = nullptr;
+    const TensorDescriptor* maxExpAvgSqOutDesc = nullptr;
+    const TensorDescriptor* stepOutDesc        = nullptr;
 
     NetworkConfig MakeForwardNetworkConfig() const;
 };

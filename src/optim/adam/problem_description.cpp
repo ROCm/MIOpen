@@ -36,7 +36,7 @@ namespace adam {
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    auto dtype  = paramDesc.GetType();
+    auto dtype  = paramInDesc.GetType();
     auto kernel = IsAllPacked() ? "AdamPacked" : "Adam";
 
     std::ostringstream ss;
@@ -45,7 +45,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     ss << "dtype" << dtype;
     if(IsAmp())
     {
-        auto grad_dtype = gradDesc.GetType();
+        auto grad_dtype = gradInDesc.GetType();
         ss << "grad_dtype" << grad_dtype;
     }
 

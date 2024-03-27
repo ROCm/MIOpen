@@ -80,10 +80,13 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
 
         result.construction_params.push_back(kernel);
 
-        auto kernel_update_step        = kernel;
-        kernel_update_step.kernel_name = "AdamUpdateStep";
+        if(problem.ExistStepOut())
+        {
+            auto kernel_update_step        = kernel;
+            kernel_update_step.kernel_name = "AdamUpdateStep";
 
-        result.construction_params.push_back(kernel_update_step);
+            result.construction_params.push_back(kernel_update_step);
+        }
     }
 
     constexpr size_t local_size = 512;
@@ -100,14 +103,14 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
                 kernel_adam.ldims = {local_size, 1, 1};
                 kernel_adam.gdims = {AlignUp(numel, local_size), 1, 1};
 
-                kernel_adam(params.param,
-                            params.grad,
-                            params.expAvg,
-                            params.expAvgSq,
-                            params.maxExpAvgSq,
+                kernel_adam(params.paramIn,
+                            params.gradIn,
+                            params.expAvgIn,
+                            params.expAvgSqIn,
+                            params.maxExpAvgSqIn,
                             params.gradScale,
                             params.foundInf,
-                            params.step,
+                            params.stepIn,
                             params.lr,
                             params.beta1,
                             params.beta2,
@@ -115,19 +118,28 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
                             params.eps,
                             params.amsgrad,
                             params.maximize,
+                            params.paramOut,
+                            nullptr,
+                            params.expAvgOut,
+                            params.expAvgSqOut,
+                            params.maxExpAvgSqOut,
+                            params.stepOut,
                             numel);
 
-                if(handle_.IsProfilingEnabled())
-                    elapsed = handle_.GetKernelTime();
-
-                kernel_step(params.foundInf, params.step);
-
-                if(handle_.IsProfilingEnabled())
+                if(params.stepOut != nullptr)
                 {
-                    elapsed += handle_.GetKernelTime();
-                    handle_.ResetKernelTime();
-                    handle_.AccumKernelTime(elapsed);
-                };
+                    if(handle_.IsProfilingEnabled())
+                        elapsed = handle_.GetKernelTime();
+
+                    kernel_step(params.foundInf, params.stepOut);
+
+                    if(handle_.IsProfilingEnabled())
+                    {
+                        elapsed += handle_.GetKernelTime();
+                        handle_.ResetKernelTime();
+                        handle_.AccumKernelTime(elapsed);
+                    };
+                }
             };
         };
     }
@@ -135,41 +147,31 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
     {
         result.invoker_factory = [](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-                decltype(auto) kernel_adam = handle_.Run(kernels[0]);
-                decltype(auto) kernel_step = handle_.Run(kernels[1]);
-                decltype(auto) params      = raw_params.CastTo<miopen::adam::InvokeParams>();
-                decltype(auto) numel       = params.paramDesc->GetElementSize();
-                auto elapsed               = 0.f;
+                decltype(auto) kernel = handle_.Run(kernels.front());
+                decltype(auto) params = raw_params.CastTo<miopen::adam::InvokeParams>();
+                decltype(auto) numel  = params.paramDesc->GetElementSize();
 
-                kernel_adam.ldims = {local_size, 1, 1};
-                kernel_adam.gdims = {AlignUp(numel, local_size), 1, 1};
+                kernel.ldims = {local_size, 1, 1};
+                kernel.gdims = {AlignUp(numel, local_size), 1, 1};
 
-                kernel_adam(params.param,
-                            params.grad,
-                            params.expAvg,
-                            params.expAvgSq,
-                            params.maxExpAvgSq,
-                            params.step,
-                            params.lr,
-                            params.beta1,
-                            params.beta2,
-                            params.weight_decay,
-                            params.eps,
-                            params.amsgrad,
-                            params.maximize,
-                            numel);
-
-                if(handle_.IsProfilingEnabled())
-                    elapsed = handle_.GetKernelTime();
-
-                kernel_step(nullptr, params.step);
-
-                if(handle_.IsProfilingEnabled())
-                {
-                    elapsed += handle_.GetKernelTime();
-                    handle_.ResetKernelTime();
-                    handle_.AccumKernelTime(elapsed);
-                };
+                kernel(params.paramIn,
+                       params.gradIn,
+                       params.expAvgIn,
+                       params.expAvgSqIn,
+                       params.maxExpAvgSqIn,
+                       params.step,
+                       params.lr,
+                       params.beta1,
+                       params.beta2,
+                       params.weight_decay,
+                       params.eps,
+                       params.amsgrad,
+                       params.maximize,
+                       params.paramOut,
+                       params.expAvgOut,
+                       params.expAvgSqOut,
+                       params.maxExpAvgSqOut,
+                       numel);
             };
         };
     }

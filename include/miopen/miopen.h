@@ -5738,40 +5738,50 @@ MIOPEN_EXPORT miopenStatus_t miopenGroupNormForward(miopenHandle_t handle,
  */
 /*! @brief Execute a adam layer
  *
- * @param handle        MIOpen handle (input)
- * @param paramDesc     Tensor descriptor for data input tensor param (input)
- * @param param         Data tensor param (input/output)
- * @param gradDesc      Tensor descriptor for data input tensor grad (input)
- * @param grad          Data tensor grad (input)
- * @param expAvgDesc    Tensor descriptor for data input tensor exp avg (input)
- * @param expAvg        Data tensor exp avg (input/output)
- * @param expAvgSqDesc  Tensor descriptor for data input tensor exp avg sqs (input)
- * @param expAvgSq      Data tensor exp avg sgs (input/output)
- * @param stepDesc      Tensor descriptor for data input tensor state step (input)
- * @param step          Data tensor state step (input/output)
- * @param lr            Learning rate (input)
- * @param beta1         coefficients used for computing running averages of gradient and its square
- * @param beta2         coefficients used for computing running averages of gradient and its square
- * @param weight_decay  weight decay (input)
- * @param eps           Term added to the denominator to improve numerical stability (input)
- * @param maximize      maximize the objective with respect to the params, instead of minimizing
- * @param gradScaleDesc Tensor descriptor for data input tensor grad scale (input)
- * @param gradScale     Data tensor grad scale (input)
- * @param foundInfDesc  Tensor descriptor for data input tensor found inf (input)
- * @param foundInf      Data tensor found inf (input)
- * @return              miopenStatus_t
+ * @param handle             MIOpen handle (input)
+ * @param paramInDesc        Tensor descriptor for data input tensor param (input)
+ * @param paramIn            Data tensor param (input)
+ * @param gradInDesc         Tensor descriptor for data input tensor grad (input)
+ * @param gradIn             Data tensor grad (input)
+ * @param expAvgInDesc       Tensor descriptor for data input tensor exp avg (input)
+ * @param expAvgIn           Data tensor exp avg (input)
+ * @param expAvgSqInDesc     Tensor descriptor for data input tensor exp avg sqs (input)
+ * @param expAvgSqIn         Data tensor exp avg sgs (input)
+ * @param maxExpAvgSqInDesc  Tensor descriptor for data input tensor exp avg sqs (input)
+ * @param maxExpAvgSqIn      Data tensor exp avg sgs (input)
+ * @param step               Data tensor state step (input)
+ * @param lr                 Learning rate (input)
+ * @param beta1              coefficients used for computing running averages of gradient and its
+ * square
+ * @param beta2              coefficients used for computing running averages of gradient and its
+ * square
+ * @param weight_decay       weight decay (input)
+ * @param eps                Term added to the denominator to improve numerical stability (input)
+ * @param amsgrad            ams grad
+ * @param maximize           maximize the objective with respect to the params, instead of
+ * minimizing
+ * @param paramOutDesc       Tensor descriptor for data input tensor param (input)
+ * @param paramOut           Data tensor param (output)
+ * @param expAvgOutDesc      Tensor descriptor for data input tensor exp avg (input)
+ * @param expAvgOut          Data tensor exp avg (output)
+ * @param expAvgSqOutDesc    Tensor descriptor for data input tensor exp avg sqs (input)
+ * @param expAvgSqOut        Data tensor exp avg sgs (output)
+ * @param maxExpAvgSqOutDesc Tensor descriptor for data input tensor exp avg sqs (input)
+ * @param maxExpAvgSqOut     Data tensor exp avg sgs (output)
+ * @return                   miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenAdam(miopenHandle_t handle,
-                                        const miopenTensorDescriptor_t paramDesc,
-                                        void* param,
-                                        const miopenTensorDescriptor_t gradDesc,
-                                        const void* grad,
-                                        const miopenTensorDescriptor_t expAvgDesc,
-                                        void* expAvg,
-                                        const miopenTensorDescriptor_t expAvgSqDesc,
-                                        void* expAvgSq,
-                                        const miopenTensorDescriptor_t stepDesc,
-                                        void* step,
+                                        const miopenTensorDescriptor_t paramInDesc,
+                                        const void* paramIn,
+                                        const miopenTensorDescriptor_t gradInDesc,
+                                        const void* gradIn,
+                                        const miopenTensorDescriptor_t expAvgInDesc,
+                                        const void* expAvgIn,
+                                        const miopenTensorDescriptor_t expAvgSqInDesc,
+                                        const void* expAvgSqIn,
+                                        const miopenTensorDescriptor_t maxExpAvgSqInDesc,
+                                        const void* maxExpAvgSqIn,
+                                        const int step,
                                         const double lr,
                                         const double beta1,
                                         const double beta2,
@@ -5779,15 +5789,101 @@ MIOPEN_EXPORT miopenStatus_t miopenAdam(miopenHandle_t handle,
                                         const double eps,
                                         const bool amsgrad,
                                         const bool maximize,
-                                        const miopenTensorDescriptor_t maxExpAvgSqDesc = nullptr,
-                                        void* maxExpAvgSq                              = nullptr,
-                                        const miopenTensorDescriptor_t gradScaleDesc   = nullptr,
-                                        const void* gradScale                          = nullptr,
-                                        const miopenTensorDescriptor_t foundInfDesc    = nullptr,
-                                        const void* foundInf                           = nullptr);
+                                        const miopenTensorDescriptor_t paramOutDesc,
+                                        void* paramOut,
+                                        const miopenTensorDescriptor_t expAvgOutDesc,
+                                        void* expAvgOut,
+                                        const miopenTensorDescriptor_t expAvgSqOutDesc,
+                                        void* expAvgSqOut,
+                                        const miopenTensorDescriptor_t maxExpAvgSqOutDesc,
+                                        void* maxExpAvgSqOut);
 
 /** @} */
 // CLOSEOUT ADAM DOXYGEN GROUP
+#endif
+
+#ifdef MIOPEN_BETA_API
+// AmpAdam APIs
+/** @addtogroup amp_adam
+ *
+ *  @{
+ */
+/*! @brief Execute a amp_adam layer
+ *
+ * @param handle             MIOpen handle (input)
+ * @param paramInDesc        Tensor descriptor for data input tensor param (input)
+ * @param paramIn            Data tensor param (input)
+ * @param gradInDesc         Tensor descriptor for data input tensor grad (input)
+ * @param gradIn             Data tensor grad (input)
+ * @param expAvgInDesc       Tensor descriptor for data input tensor exp avg (input)
+ * @param expAvgIn           Data tensor exp avg (input)
+ * @param expAvgSqInDesc     Tensor descriptor for data input tensor exp avg sqs (input)
+ * @param expAvgSqIn         Data tensor exp avg sgs (input)
+ * @param maxExpAvgSqInDesc  Tensor descriptor for data input tensor exp avg sqs (input)
+ * @param maxExpAvgSqIn      Data tensor exp avg sgs (input)
+ * @param stepInDesc         Tensor descriptor for data input tensor state step (input)
+ * @param stepIn             Data tensor state step (input/output)
+ * @param gradScaleDesc      Tensor descriptor for data input tensor grad scale (input)
+ * @param gradScale          Data tensor grad scale (input)
+ * @param foundInfDesc       Tensor descriptor for data input tensor found inf (input)
+ * @param foundInf           Data tensor found inf (input)
+ * @param lr                 Learning rate (input)
+ * @param beta1              coefficients used for computing running averages of gradient and its
+ * square
+ * @param beta2              coefficients used for computing running averages of gradient and its
+ * square
+ * @param weight_decay       weight decay (input)
+ * @param eps                Term added to the denominator to improve numerical stability (input)
+ * @param amsgrad            ams grad
+ * @param maximize           maximize the objective with respect to the params, instead of
+ * minimizing
+ * @param paramOutDesc       Tensor descriptor for data input tensor param (input)
+ * @param paramOut           Data tensor param (output)
+ * @param expAvgOutDesc      Tensor descriptor for data input tensor exp avg (input)
+ * @param expAvgOut          Data tensor exp avg (output)
+ * @param expAvgSqOutDesc    Tensor descriptor for data input tensor exp avg sqs (input)
+ * @param expAvgSqOut        Data tensor exp avg sgs (output)
+ * @param maxExpAvgSqOutDesc Tensor descriptor for data input tensor exp avg sqs (input)
+ * @param maxExpAvgSqOut     Data tensor exp avg sgs (output)
+ * @return                   miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenAmpAdam(miopenHandle_t handle,
+                                           const miopenTensorDescriptor_t paramInDesc,
+                                           const void* paramIn,
+                                           const miopenTensorDescriptor_t gradInDesc,
+                                           const void* gradIn,
+                                           const miopenTensorDescriptor_t expAvgInDesc,
+                                           const void* expAvgIn,
+                                           const miopenTensorDescriptor_t expAvgSqInDesc,
+                                           const void* expAvgSqIn,
+                                           const miopenTensorDescriptor_t maxExpAvgSqInDesc,
+                                           const void* maxExpAvgSqIn,
+                                           const miopenTensorDescriptor_t gradScaleDesc,
+                                           const void* gradScale,
+                                           const miopenTensorDescriptor_t foundInfDesc,
+                                           const void* foundInf,
+                                           const miopenTensorDescriptor_t stepInDesc,
+                                           const void* stepIn,
+                                           const double lr,
+                                           const double beta1,
+                                           const double beta2,
+                                           const double weight_decay,
+                                           const double eps,
+                                           const bool amsgrad,
+                                           const bool maximize,
+                                           const miopenTensorDescriptor_t paramOutDesc,
+                                           void* paramOut,
+                                           const miopenTensorDescriptor_t expAvgOutDesc,
+                                           void* expAvgOut,
+                                           const miopenTensorDescriptor_t expAvgSqOutDesc,
+                                           void* expAvgSqOut,
+                                           const miopenTensorDescriptor_t maxExpAvgSqOutDesc,
+                                           void* maxExpAvgSqOut,
+                                           const miopenTensorDescriptor_t stepOutDesc,
+                                           void* stepOut);
+
+/** @} */
+// CLOSEOUT AMP_ADAM DOXYGEN GROUP
 #endif
 
 #ifdef __cplusplus
