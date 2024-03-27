@@ -324,7 +324,8 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
 
     if(StartsWith(dev_name, "gfx11"))
     {
-        kernel_name += reduced_vgpr_mem ? "_gfx1102" : "_gfx1100";
+        kernel_name += "_gfx11";
+        kernel_name += reduced_vgpr_mem ? "_1024vgprs" : "_1536vgprs";
     }
     else
     {

@@ -415,9 +415,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/rocm_version.inc
         kernels/stride_array.hpp
         kernels/utilities.inc
-        kernels/winograd/Conv_Winograd_Fury_v2_3_0_gfx1100_fp16_fp16acc_f2x3_c16_stride1.inc
-        kernels/winograd/Conv_Winograd_Fury_v2_3_0_gfx1100_fp16_fp16acc_f2x3_c32_stride1.inc
-        kernels/winograd/Conv_Winograd_Fury_v2_3_0_gfx1102_fp16_fp16acc_f2x3_c16_stride1.inc
+        kernels/winograd/Conv_Winograd_Fury_v2_3_0_gfx11_1536vgprs_fp16_fp16acc_f2x3_c16_stride1.inc
+        kernels/winograd/Conv_Winograd_Fury_v2_3_0_gfx11_1536vgprs_fp16_fp16acc_f2x3_c32_stride1.inc
+        kernels/winograd/Conv_Winograd_Fury_v2_3_0_gfx11_1024vgprs_fp16_fp16acc_f2x3_c16_stride1.inc
         kernels/winograd/Conv_Winograd_Fury_v2_3_0_metadata.inc
         kernels/workaround_issue_1431.hpp
         kernels/xform_bidirect_winograd_code.inc

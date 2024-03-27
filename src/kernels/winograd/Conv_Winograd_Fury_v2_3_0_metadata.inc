@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-.macro PROLOG_KERNEL_DESCRIPTOR kernel_name
+.macro PROLOG_KERNEL_DESCRIPTOR kernel_name:req
 .text
 .globl \kernel_name
 .p2align 8
@@ -32,7 +32,7 @@
 \kernel_name:
 .endm
 
-.macro METADATA sc, wc, wg_x, kernel_name
+.macro METADATA sc:req, wc:req, wg_x:req, kernel_name:req
 .amdgpu_metadata
 ---
 amdhsa.version: [ 1, 2 ]
@@ -119,16 +119,16 @@ amdhsa.kernels:
 .endm // METADATA
 
 .altmacro
-.macro METADATA_WRAPPER sc, wc, wg_x, kernel_name
+.macro METADATA_WRAPPER sc:req, wc:req, wg_x:req, kernel_name:req
     METADATA %\sc, %\wc, %\wg_x, \kernel_name
 .endm
 
-.macro kernel_end kernel_name
+.macro kernel_end kernel_name:req
 .Lfunc_end0:
    .size \kernel_name, .Lfunc_end0 - \kernel_name
 .endm
 
-.macro EPILOG_KERNEL_DESCRIPTOR kernel_name
+.macro EPILOG_KERNEL_DESCRIPTOR kernel_name:req
 
 kernel_end \kernel_name
 
@@ -173,12 +173,20 @@ METADATA_WRAPPER sgpr_cnt, 0, workgroup_size_x, <\kernel_name>
 
 .endm
 
-.macro KERNEL_PROLOG kernel_name_postfix
-    PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConvFury_v2_3_0_\kernel_name_postfix
+.macro PROLOG_KERNEL_DESCRIPTOR_WRAPPER machine_version:req, kernel_name_postfix:req
+    PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConvFury_v2_3_0_gfx\machine_version\()\kernel_name_postfix
 .endm
 
-.macro KERNEL_EPILOG kernel_name_postfix
-    EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConvFury_v2_3_0_\kernel_name_postfix
+.macro EPILOG_KERNEL_DESCRIPTOR_WRAPPER machine_version:req, kernel_name_postfix:req
+    EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConvFury_v2_3_0_gfx\machine_version\()\kernel_name_postfix
+.endm
+
+.macro KERNEL_PROLOG kernel_name_postfix:req
+	PROLOG_KERNEL_DESCRIPTOR_WRAPPER %.amdgcn.gfx_generation_number, \kernel_name_postfix
+.endm
+
+.macro KERNEL_EPILOG kernel_name_postfix:req
+	EPILOG_KERNEL_DESCRIPTOR_WRAPPER %.amdgcn.gfx_generation_number, \kernel_name_postfix
 .endm
 
 .if (.amdgcn.gfx_generation_number != 11)
