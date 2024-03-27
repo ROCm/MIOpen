@@ -255,8 +255,8 @@ public:
     OperationConvolution() = default;
     OperationConvolution(Convolution* convolution,
                          Tensor* x,
-                         Tensor* y,
                          Tensor* w,
+                         Tensor* y,
                          double alpha,
                          double beta) noexcept
         : mConvolution(convolution), mX(x), mY(y), mW(w), mAlpha(alpha), mBeta(beta)
@@ -285,11 +285,11 @@ public:
     OperationConvolutionForward() = default;
     OperationConvolutionForward(Convolution* convolution,
                                 Tensor* x,
-                                Tensor* y,
                                 Tensor* w,
+                                Tensor* y,
                                 double alpha,
                                 double beta) noexcept
-        : OperationConvolution(convolution, x, y, w, alpha, beta)
+        : OperationConvolution(convolution, x, w, y, alpha, beta)
     {
         addInputTensor(x);
         addInputTensor(w);
@@ -391,7 +391,7 @@ public:
         {
             MIOPEN_THROW(miopenStatusNotInitialized);
         }
-        return {mConvolution, mX, mY, mW, mAlpha, mBeta};
+        return {mConvolution, mX, mW, mY, mAlpha, mBeta};
     }
 };
 
@@ -476,11 +476,11 @@ public:
     OperationConvolutionBackwardData() = default;
     OperationConvolutionBackwardData(Convolution* convolution,
                                      Tensor* x,
-                                     Tensor* y,
                                      Tensor* w,
+                                     Tensor* y,
                                      double alpha,
                                      double beta) noexcept
-        : OperationConvolution(convolution, x, y, w, alpha, beta)
+        : OperationConvolution(convolution, x, w, y, alpha, beta)
     {
         addOutputTensor(x);
         addInputTensor(w);
@@ -533,7 +533,7 @@ public:
         {
             MIOPEN_THROW(miopenStatusNotInitialized);
         }
-        return {mConvolution, mX, mY, mW, mAlpha, mBeta};
+        return {mConvolution, mX, mW, mY, mAlpha, mBeta};
     }
 };
 
@@ -567,11 +567,11 @@ public:
     OperationConvolutionBackwardFilter() = default;
     OperationConvolutionBackwardFilter(Convolution* convolution,
                                        Tensor* x,
-                                       Tensor* y,
                                        Tensor* w,
+                                       Tensor* y,
                                        double alpha,
                                        double beta) noexcept
-        : OperationConvolution(convolution, x, y, w, alpha, beta)
+        : OperationConvolution(convolution, x, w, y, alpha, beta)
     {
         addInputTensor(x);
         addOutputTensor(w);
@@ -624,7 +624,7 @@ public:
         {
             MIOPEN_THROW(miopenStatusNotInitialized);
         }
-        return {mConvolution, mX, mY, mW, mAlpha, mBeta};
+        return {mConvolution, mX, mW, mY, mAlpha, mBeta};
     }
 };
 
