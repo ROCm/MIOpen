@@ -37,6 +37,7 @@ add_executable(MIOpenDriver
     dropout.cpp
     fusion.cpp
     gemm.cpp
+    groupnorm.cpp
     lrn.cpp
     main.cpp
     pool.cpp

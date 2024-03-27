@@ -51,7 +51,7 @@
 #define XORWOW_JUMP_LOG2 2
 #define XORWOW_JUMP_LOG2_MASK ((1 << XORWOW_JUMP_LOG2) - 1)
 
-static inline unsigned int xorwow_next(prngStates* cur_state)
+inline unsigned int xorwow_next(prngStates* cur_state)
 {
     const unsigned int t = cur_state->x ^ (cur_state->x >> 2);
     cur_state->x         = cur_state->y;

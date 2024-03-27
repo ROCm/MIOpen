@@ -32,6 +32,7 @@
 #include "dropout.hpp"
 #include "fusion.hpp"
 #include "gemm.hpp"
+#include "groupnorm.hpp"
 #include "lrn.hpp"
 #include "pool.hpp"
 #include "rnn.hpp"
@@ -39,7 +40,6 @@
 
 #include "CBAInferFusion_driver.hpp"
 #include "driver.hpp"
-#include "groupnorm_driver.hpp"
 #include "tensorop_driver.hpp"
 #include "reduce_driver.hpp"
 #include "layernorm_driver.hpp"
@@ -93,20 +93,10 @@ int main(int argc, char* argv[])
     if(drv != nullptr)
         drv = makeDriverDropout(base_arg);
     if(drv != nullptr)
+        drv = makeDriverGroupnorm(base_arg);
+    if(drv != nullptr)
     {
-        if(base_arg == "groupnorm")
-        {
-            drv = new GroupNormDriver<float, double>();
-        }
-        else if(base_arg == "groupnormfp16")
-        {
-            drv = new GroupNormDriver<float16, double>();
-        }
-        else if(base_arg == "groupnormbfp16")
-        {
-            drv = new GroupNormDriver<bfloat16, double>();
-        }
-        else if(base_arg == "tensorop")
+        if(base_arg == "tensorop")
         {
             drv = new TensorOpDriver<float, float>();
         }
