@@ -49,6 +49,7 @@ add_executable(MIOpenDriver
     rnn.cpp
     rocrand_wrapper.cpp
     softmax.cpp
+    sum.cpp
     tensorop.cpp)
 if(WIN32)
     # Refer to https://en.cppreference.com/w/cpp/language/types for details.

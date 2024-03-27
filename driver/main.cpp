@@ -39,10 +39,10 @@
 #include "reduce.hpp"
 #include "rnn.hpp"
 #include "softmax.hpp"
+#include "sum.hpp"
 #include "tensorop.hpp"
 
 #include "driver.hpp"
-#include "sum_driver.hpp"
 #include "argmax_driver.hpp"
 #include "cat_driver.hpp"
 #include <miopen/config.h>
@@ -106,20 +106,10 @@ int main(int argc, char* argv[])
     if(drv != nullptr)
         drv = makeDriverLayernorm(base_arg);
     if(drv != nullptr)
+        drv = makeDriverSum(base_arg);
+    if(drv != nullptr)
     {
-        if(base_arg == "sum")
-        {
-            drv = new SumDriver<float, float>();
-        }
-        else if(base_arg == "sumfp16")
-        {
-            drv = new SumDriver<float16, float>();
-        }
-        else if(base_arg == "sumbfp16")
-        {
-            drv = new SumDriver<bfloat16, float>();
-        }
-        else if(base_arg == "argmax")
+        if(base_arg == "argmax")
         {
             drv = new ArgmaxDriver<float, float>();
         }
