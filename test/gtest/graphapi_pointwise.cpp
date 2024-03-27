@@ -31,7 +31,7 @@
 
 #include <gtest/gtest.h>
 
-#include "graphapi.hpp"
+#include "graphapi_gtest_common.hpp"
 
 TEST(GraphApiPointwiseBuilder, Attributes)
 {
@@ -173,7 +173,6 @@ void PrintTo(const TestCaseType& v, std::ostream* os)
         << ", elu_alpha: " << (std::get<6>(v) ? "double" : "float")
         << ", softplus_beta: " << (std::get<7>(v) ? "double" : "float")
         << ", axis: " << std::get<8>(v);
-    //<< (v == MIOPEN_PROPAGATE_NAN ? "MIOPEN_PROPAGATE_NAN" : "MIOPEN_NOT_PROPAGATE_NAN");
 }
 
 class GraphApiPointwise : public testing::TestWithParam<TestCaseType>

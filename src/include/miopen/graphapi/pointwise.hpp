@@ -40,6 +40,17 @@ namespace graphapi {
 
 class Pointwise
 {
+private:
+    double mReluLowerClip      = 0.0;
+    double mReluUpperClip      = std::numeric_limits<double>::max();
+    double mReluLowerClipSlope = 0.0;
+    double mEluAlpha           = 1.0;
+    double mSoftPlusBeta       = 1.0;
+    int64_t mAxis              = -1;
+    miopenPointwiseMode_t mMode;
+    miopenDataType_t mMathPrecision;
+    miopenNanPropagation_t mNanPropagation = MIOPEN_NOT_PROPAGATE_NAN;
+
 public:
     Pointwise() noexcept = default;
     Pointwise(miopenPointwiseMode_t mode,
@@ -75,20 +86,15 @@ public:
 
 private:
     friend class PointwiseBuilder;
-
-    double mReluLowerClip      = 0.0;
-    double mReluUpperClip      = std::numeric_limits<double>::max();
-    double mReluLowerClipSlope = 0.0;
-    double mEluAlpha           = 1.0;
-    double mSoftPlusBeta       = 1.0;
-    int64_t mAxis              = -1;
-    miopenPointwiseMode_t mMode;
-    miopenDataType_t mMathPrecision;
-    miopenNanPropagation_t mNanPropagation = MIOPEN_NOT_PROPAGATE_NAN;
 };
 
 class PointwiseBuilder
 {
+private:
+    Pointwise mPointwise;
+    bool mModeSet          = false;
+    bool mMathPrecisionSet = false;
+
 public:
     PointwiseBuilder& setMode(miopenPointwiseMode_t mode) noexcept
     {
@@ -146,15 +152,14 @@ public:
         }
         return mPointwise;
     }
-
-private:
-    Pointwise mPointwise;
-    bool mModeSet          = false;
-    bool mMathPrecisionSet = false;
 };
 
 class BackendPointwiseDescriptor : public BackendDescriptor
 {
+private:
+    PointwiseBuilder mBuilder;
+    Pointwise mPointwise;
+
 public:
     virtual void setAttribute(miopenBackendAttributeName_t attributeName,
                               miopenBackendAttributeType_t attributeType,
@@ -167,10 +172,10 @@ public:
                               int64_t* elementCount,
                               void* arrayOfElements) override;
 
-private:
-    PointwiseBuilder mBuilder;
-    Pointwise mPointwise;
+    const Pointwise* getPointwise() const { return &mPointwise; }
+    Pointwise* getPointwise() { return &mPointwise; }
 
+private:
     using Setter = std::function<PointwiseBuilder&(PointwiseBuilder&, double value)>;
 
     void setFloatOrDouble(Setter setter,
