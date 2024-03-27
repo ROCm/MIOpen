@@ -25,7 +25,7 @@
  *******************************************************************************/
 #include <miopen/algorithm.hpp>
 #include <miopen/miopen.h>
-#include <miopen/graphapi/graphapi_convolution.hpp>
+#include <miopen/graphapi/convolution.hpp>
 
 #include <algorithm>
 #include <cstdint>
@@ -604,7 +604,7 @@ TEST_P(GraphApiConvolution, CFunctions)
         EXPECT_EQ(gotSpatialDims, spatialDims) << "MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS set and retrieved values differ";
 
     // Get dilations
-    std::vector<int64_t> gotDilations {dilations.size(), 0};
+    std::vector<int64_t> gotDilations(dilations.size());
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_DILATIONS, MIOPEN_TYPE_BOOLEAN, gotDilations.size(), &elementCount, gotDilations.data());
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_DILATIONS was retrieved with invalid type";
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_DILATIONS, MIOPEN_TYPE_INT64, 0, &elementCount, buffer);
@@ -619,7 +619,7 @@ TEST_P(GraphApiConvolution, CFunctions)
         EXPECT_THAT(gotDilations, testing::ContainerEq(dilations)) << "MIOPEN_ATTR_CONVOLUTION_DILATIONS set and retrieved values differ";
 
     // Get filterStrides
-    std::vector<int64_t> gotFilterStrides {filterStrides.size(), 0};
+    std::vector<int64_t> gotFilterStrides(filterStrides.size());
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES, MIOPEN_TYPE_BOOLEAN, gotFilterStrides.size(), &elementCount, gotFilterStrides.data());
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES was retrieved with invalid type";
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES, MIOPEN_TYPE_INT64, 0, &elementCount, buffer);
@@ -634,7 +634,7 @@ TEST_P(GraphApiConvolution, CFunctions)
         EXPECT_THAT(gotFilterStrides, testing::ContainerEq(filterStrides)) << "MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES set and retrieved values differ";
 
     // Get prePaddings
-    std::vector<int64_t> gotPrePaddings {prePaddings.size(), 0};
+    std::vector<int64_t> gotPrePaddings(prePaddings.size());
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS, MIOPEN_TYPE_BOOLEAN, gotPrePaddings.size(), &elementCount, gotPrePaddings.data());
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS was retrieved with invalid type";
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS, MIOPEN_TYPE_INT64, 0, &elementCount, buffer);
@@ -649,7 +649,7 @@ TEST_P(GraphApiConvolution, CFunctions)
         EXPECT_THAT(gotPrePaddings, testing::ContainerEq(prePaddings)) << "MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS set and retrieved values differ";
 
     // Get postPaddings
-    std::vector<int64_t> gotPostPaddings {postPaddings.size(), 0};
+    std::vector<int64_t> gotPostPaddings(postPaddings.size());
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_POST_PADDINGS, MIOPEN_TYPE_BOOLEAN, gotPostPaddings.size(), &elementCount, gotPostPaddings.data());
     EXPECT_NE(status, miopenStatusSuccess) << "MIOPEN_ATTR_CONVOLUTION_POST_PADDINGS was retrieved with invalid type";
     status = miopenBackendGetAttribute(descrConv, MIOPEN_ATTR_CONVOLUTION_POST_PADDINGS, MIOPEN_TYPE_INT64, 0, &elementCount, buffer);
@@ -839,9 +839,7 @@ TYPED_TEST(GraphApiOperationConvolutionBuilder, MissingSetter)
     }
 }
 
-namespace miopen {
-
-namespace graphapi {
+namespace {
 
 struct GTestDescAttr
 {
@@ -863,7 +861,6 @@ struct GTestDescAttr
     };
 
     GTestDescAttr() = default;
-    GTestDescAttr(const TestCase& testCase) : mTestCase(testCase) {}
 
     TestCase testCase() const { return mTestCase; }
     virtual bool testReadBuffer() = 0;
@@ -923,14 +920,6 @@ struct GTestDescriptor
     std::vector<std::shared_ptr<GTestDescAttr>> attributes;
 };
 
-} // namespace graphapi
-
-} // namespace miopen
-
-namespace {
-
-using miopen::graphapi::GTestDescAttrValues;
-using miopen::graphapi::GTestDescriptor;
 using GTestAttrAlphaDouble = GTestDescAttrValues<double, char>;
 using GTestAttrAlphaFloat  = GTestDescAttrValues<float, char>;
 
@@ -952,8 +941,6 @@ struct GTestAttrConv : GTestDescAttrValues<miopenBackendDescriptor_t, char>
     }
 
 private:
-    // TODO: Use GMOCK instead of manual overriding the behavior of
-    //       the base class
     struct Descr : miopen::graphapi::BackendConvolutionDescriptor
     {
         Descr(bool finalized) { mFinalized = finalized; }
@@ -979,8 +966,6 @@ struct GTestAttrTensor : GTestDescAttrValues<miopenBackendDescriptor_t, char>
     }
 
 private:
-    // TODO: Use GMOCK instead of manual overriding the behavior of
-    //       the base class
     struct Descr : miopen::graphapi::BackendTensorDescriptor
     {
         Descr(bool finalized) { mFinalized = finalized; }
