@@ -102,7 +102,7 @@ protected:
                                   miopen::max_diff(ref, tensor_val)};
             };
 
-        const auto [error, max_diff]    = calcStats(final_transformed_attention);
+        const auto [error, max_diff] = calcStats(final_transformed_attention);
         // CI clang-tidy treats is as "boolean value assigned to float"
         const double error_threshold    = ((std::is_same_v<OutputType, float>) ? 1e-7 : 1e-2);
         const double max_diff_threshold = ((std::is_same_v<OutputType, float>) ? 1e-6 : 1e-1);
