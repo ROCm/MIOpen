@@ -69,9 +69,6 @@ uint32_t GetNGroups(uint64_t cu_count)
     // n_groups < 2^8
     constexpr uint64_t max_n_groups = PowOf2(8) - 1;
 
-#if WORKAROUND_SWDEV_453577
-    cu_count /= 2; // WGP
-#endif
     return std::min(cu_count, max_n_groups);
 }
 
@@ -288,7 +285,11 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
     const auto cu_count         = ctx.GetStream().GetMaxHardwareComputeUnits();
     const auto n_groups         = GetNGroups(cu_count);
     const bool reduced_vgpr_mem = GpuHasReducedVGPRMem(dev_name);
+#if WORKAROUND_SWDEV_453577
+    const bool coop_launch = false;
+#else
     const bool coop_launch      = ctx.GetStream().CooperativeLaunchSupported();
+#endif
 
     constexpr size_t wg_size = 384;
 
