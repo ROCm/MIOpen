@@ -37,10 +37,10 @@
 #include "pool.hpp"
 #include "rnn.hpp"
 #include "softmax.hpp"
+#include "tensorop.hpp"
 
 #include "CBAInferFusion_driver.hpp"
 #include "driver.hpp"
-#include "tensorop_driver.hpp"
 #include "reduce_driver.hpp"
 #include "layernorm_driver.hpp"
 #include "sum_driver.hpp"
@@ -95,16 +95,10 @@ int main(int argc, char* argv[])
     if(drv != nullptr)
         drv = makeDriverGroupnorm(base_arg);
     if(drv != nullptr)
+        drv = makeDriverTensorop(base_arg);
+    if(drv != nullptr)
     {
-        if(base_arg == "tensorop")
-        {
-            drv = new TensorOpDriver<float, float>();
-        }
-        else if(base_arg == "tensoropfp16")
-        {
-            drv = new TensorOpDriver<float16, float>();
-        }
-        else if(base_arg == "reduce")
+        if(base_arg == "reduce")
         {
             drv = new ReduceDriver<float, float>();
         }

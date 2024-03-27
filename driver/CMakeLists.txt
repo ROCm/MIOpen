@@ -43,7 +43,8 @@ add_executable(MIOpenDriver
     pool.cpp
     rnn.cpp
     rocrand_wrapper.cpp
-    softmax.cpp)
+    softmax.cpp
+    tensorop.cpp)
 if(WIN32)
     # Refer to https://en.cppreference.com/w/cpp/language/types for details.
     target_compile_options(MIOpenDriver PRIVATE $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:Clang>:-U__LP64__>>)

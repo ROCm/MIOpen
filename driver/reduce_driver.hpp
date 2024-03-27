@@ -32,6 +32,7 @@
 #include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
+#include "util_driver.hpp"
 #include "util_file.hpp"
 
 #include "../test/verify.hpp"
@@ -360,15 +361,11 @@ int ReduceDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         };
     };
 
-#if MIOPEN_BACKEND_OPENCL
-    cl_int status;
-#elif MIOPEN_BACKEND_HIP
-    int status;
-#endif
+    status_t status;
     status = in_dev->ToGPU(q, in.data());
     status |= out_dev->ToGPU(q, out.data());
 
-    if(status != CL_SUCCESS)
+    if(status != STATUS_SUCCESS)
         printf("Error copying data to GPU\n");
 
     return miopenStatusSuccess;
