@@ -35,13 +35,13 @@
 #include "groupnorm.hpp"
 #include "lrn.hpp"
 #include "pool.hpp"
+#include "reduce.hpp"
 #include "rnn.hpp"
 #include "softmax.hpp"
 #include "tensorop.hpp"
 
 #include "CBAInferFusion_driver.hpp"
 #include "driver.hpp"
-#include "reduce_driver.hpp"
 #include "layernorm_driver.hpp"
 #include "sum_driver.hpp"
 #include "argmax_driver.hpp"
@@ -97,20 +97,10 @@ int main(int argc, char* argv[])
     if(drv != nullptr)
         drv = makeDriverTensorop(base_arg);
     if(drv != nullptr)
+        drv = makeDriverReduce(base_arg);
+    if(drv != nullptr)
     {
-        if(base_arg == "reduce")
-        {
-            drv = new ReduceDriver<float, float>();
-        }
-        else if(base_arg == "reducefp16")
-        {
-            drv = new ReduceDriver<float16, float>();
-        }
-        else if(base_arg == "reducefp64")
-        {
-            drv = new ReduceDriver<double, double>();
-        }
-        else if(base_arg == "layernorm")
+        if(base_arg == "layernorm")
         {
             drv = new LayerNormDriver<float, float>();
         }

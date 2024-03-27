@@ -41,6 +41,7 @@ add_executable(MIOpenDriver
     lrn.cpp
     main.cpp
     pool.cpp
+    reduce.cpp
     rnn.cpp
     rocrand_wrapper.cpp
     softmax.cpp
