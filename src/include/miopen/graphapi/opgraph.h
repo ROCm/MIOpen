@@ -3,6 +3,7 @@
 #include <miopen/graphapi/graphapi_tensor.hpp>
 
 #include <algorithm>
+#include <deque>
 #include <vector>
 #include <unordered_map>
 
@@ -72,6 +73,9 @@ protected:
         }
     }
 
+    size_t getInDegree() const { return mInEdges.size(); }
+    size_t getOutDegree() const { return mOutEdges.size(); }
+
 private:
     std::vector<Edge> mInEdges;
     std::vector<Edge> mOutEdges;
@@ -132,6 +136,9 @@ protected:
     std::vector<Tensor*> mInTensors;
 };
 
+using Path = std::vector<OpNode*>;
+using VecOfPaths = std::vector<Path>;
+
 class OpGraph
 {
 
@@ -143,6 +150,58 @@ public:
         assert(src);
         assert(dst);
         return src->hasOutEdge(dst, tens_ptr) && dst->hasInEdge(src, tens_ptr);
+    }
+
+    size_t numNodes() const { 
+      return mNodes.size();
+    }
+
+    size_t numEdges() const { 
+      size_t ret = 0;
+      for (OpNode* n: mNodes) {
+        ret += n->getOutDegree();
+      }
+      // ignore the edges that lead to mSinkNode
+      assert(ret >= mSinkNode.getInDegree());
+      ret -= mSinkNode.getInDegree();
+
+      return ret;
+    }
+
+    std::vector<std::pair<size_t, size_t>> getInOutDegrees() const { 
+      std::vector<std::pair<size_t, size_t>> ret;
+      for (OpNode* n: mNodes) {
+        ret.emplace_back(n->getInDegree(), n->getOutDegree());
+      }
+      return ret;
+    }
+
+    VecOfPaths getAllPaths() const {
+      // TODO(Amber): does not check for cycles. Use DFS to first check for cycles
+      // at construction time perhaps. 
+      VecOfPaths all_paths;
+
+      std::deque<Path> paths_to_explore = {mSrcNode};
+
+      while (!paths_to_explore.empty()) {
+        Path path = paths_to_explore.front();
+        paths_to_explore.pop_front();
+
+        OpNode* last_node = path.back();
+        if (last_node->iterateOutEdges().empty()) {
+          // all paths should terminate at the sink
+          assert(last_node == &mSinkNode);
+          all_paths.emplace_back(std::move(path));
+        } else {
+          for (auto& [dst, tens_ptr]: last_node->iterateOutEdges()) {
+            Path newPath{path};
+            newPath.emplace_back(dst);
+            paths_to_explore.emplace_back(std::move(newPath));
+          }
+        }
+      } // end while
+
+      return all_paths;
     }
 
 private:
@@ -268,6 +327,119 @@ public:
 private:
     std::vector<OpNode*> mNodes;
 };
+
+
+inline bool DegreeEqualityTest(const OpGraph& left, const OpGraph& right) {
+  auto l_degs = left.getInOutDegrees();
+  auto r_degs = right.getInOutDegrees();
+
+  auto sort_deg_vec = [] (auto& deg_vec) {
+
+      std::sort(deg_vec.begin(), deg_vec.end(), 
+          [] (const auto& left, const auto& right) {
+            if (left.first == right.first) {
+              return left.second < right.second;
+            }
+            return left.first < right.first;
+          });
+
+  };
+  sort_deg_vec(l_degs);
+  sort_deg_vec(r_degs);
+  return l_degs == r_degs;
+}
+
+inline bool PathEqualityTest(const OpGraph& left, const OpGraph& right) {
+
+  using MapSizeToPathVec = std::unordered_map<size_t, VecOfPaths>;
+
+  auto group_by_size = [] (VecOfPaths&& all_paths) {
+    MapSizeToPathVec paths_by_size;
+
+    for (auto& p: all_paths) {
+      auto [it, _ignore]  = paths_by_size.emplace(p.size(), VecOfPaths{});
+      it->second.emplace_back(std::move(p));
+    }
+
+    return paths_by_size;
+  };
+
+  MapSizeToPathVec l_paths_by_sz{};
+  auto r_paths_by_sz = l_paths_by_sz;
+
+  {
+    auto l_paths = left.getAllPaths();
+    auto r_paths = right.getAllPaths();
+
+    if (l_paths.size() != r_paths.size()) {
+      return false;
+    }
+
+    auto sum_paths = [] (const VecOfPaths all_paths) {
+      size_t ret = 0;
+      for (const auto& p: all_paths) {
+        ret += p.size();
+      }
+      return ret;
+    };
+
+    if (sum_paths(l_paths) != sum_paths(r_paths)) {
+      return false;
+    }
+
+    l_paths_by_sz = group_by_size(std::move(l_paths));
+    r_paths_by_sz = group_by_size(std::move(r_paths));
+  }
+
+  auto get_keys = [] (const MapSizeToPathVec& paths_by_size) {
+    std::vector<size_t> keys{};
+    for (const auto& [k, v]: paths_by_size) {
+      keys.emplace_back(k);
+    }
+    return keys;
+  };
+
+  auto l_keys = get_keys(l_paths_by_sz);
+  auto r_keys = get_keys(r_paths_by_sz);
+
+  if (l_keys != r_keys) {
+    return false;
+  }
+
+  auto check_equal_path_vecs = [](VecOfPaths& left, const VecOfPaths& right) {
+    if (left.size() != right.size()) {
+      return false;
+    }
+
+    std::sort(left.begin(), left.end());
+    std::sort(right.begin(), right.end());
+
+    return left == right;
+  }
+
+  for (size_t k: l_keys) {
+    if (!check_equal_path_vecs(l_paths_by_sz[k], r_paths_by_sz[k])) {
+      return false;
+    }
+  }
+
+  return true;
+
+}
+
+
+inline bool isIsomorphic(const OpGraph& left, const OpGraph& right) {
+  if (left.numNodes() != right.numNodes()) {
+    return false;
+  }
+
+  if (!DegreeEqualityTest(left, right)) {
+    return false;
+  }
+}
+
+
+
 
 } // end namespace graphapi
 
