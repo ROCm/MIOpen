@@ -26,11 +26,9 @@
 #include "conv.hpp"
 #include "conv_driver.hpp"
 
-Driver* makeDriverConv1(const std::string& base_arg)
+Driver* makeDriverConvbfp8(const std::string& base_arg)
 {
-    if(base_arg == "conv")
-        return new ConvDriver<float, float>();
-    if(base_arg == "convfp16")
-        return new ConvDriver<float16, float>();
+    if(base_arg == "convbfp8")
+        return new ConvDriver<bfloat8, float>();
     return nullptr;
 }

@@ -27,13 +27,16 @@
 find_package(Threads REQUIRED)
 
 add_executable(MIOpenDriver 
+    InputFlags.cpp
     activ.cpp
     bnorm.cpp
-    InputFlags.cpp
-    conv1.cpp
-    conv2.cpp
-    conv3.cpp
+    conv.cpp
     conv_common.cpp
+    convbfp16.cpp
+    convbfp8.cpp
+    convfp16.cpp
+    convfp8.cpp
+    convint8.cpp
     dropout.cpp
     fusion.cpp
     gemm.cpp
