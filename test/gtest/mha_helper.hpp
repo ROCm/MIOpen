@@ -282,16 +282,16 @@ void BroadCastAdd(const tensor<T>& tensor_val1,
 }
 
 template <class T>
-void BroadCastDiv(const tensor<T>& tensor_val, const tensor<T>& z_sum, tensor<T>& tensor_div_z_sum)
+void BroadCastMul(const tensor<T>& tensor_val, const tensor<T>& z_sum, tensor<T>& tensor_div_z_sum)
 {
     tensor_div_z_sum.par_for_each([&](size_t b_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
         tensor_div_z_sum(b_id, h_id, sl_i_id, sl_j_id) =
-            tensor_val(b_id, h_id, sl_i_id, sl_j_id) / z_sum(b_id, h_id, sl_i_id, 0);
+            tensor_val(b_id, h_id, sl_i_id, sl_j_id) * z_sum(b_id, h_id, sl_i_id, 0);
     });
 }
 
 template <class T>
-void RowReductionSum(const tensor<T>& A_mat, tensor<T>& rrsum_tensor)
+void RowReductionReciprocalSum(const tensor<T>& A_mat, tensor<T>& rrsum_tensor)
 {
     size_t sl_dim = A_mat.desc.GetLengths()[3];
     rrsum_tensor.par_for_each([&](size_t b_id, size_t h_id, size_t sl_id, size_t sl0_id) {
@@ -300,7 +300,7 @@ void RowReductionSum(const tensor<T>& A_mat, tensor<T>& rrsum_tensor)
         {
             sum += A_mat(b_id, h_id, sl_id, id);
         }
-        rrsum_tensor(b_id, h_id, sl_id, sl0_id) = sum;
+        rrsum_tensor(b_id, h_id, sl_id, sl0_id) = static_cast<T>(1) / sum;
     });
 }
 
@@ -363,13 +363,13 @@ void SoftMax(const tensor<T>& q_dot_k_transpose,
     // Compute the exponential of each element
     // exp(row_max)
     auto exp_q_dot_k_transpose_sub_attn_max = q_dot_k_transpose_sub_attn_max;
-    PointWiseExp(q_dot_k_transpose, exp_q_dot_k_transpose_sub_attn_max);
+    PointWiseExp(q_dot_k_transpose_sub_attn_max, exp_q_dot_k_transpose_sub_attn_max);
 
-    // z_sum aka attn_norm = sum(exp((q_dot_k_transpose - attn_max)))
-    RowReductionSum(exp_q_dot_k_transpose_sub_attn_max, z_sum);
+    // z_sum aka attn_norm = 1 / sum(exp((q_dot_k_transpose - attn_max)))
+    RowReductionReciprocalSum(exp_q_dot_k_transpose_sub_attn_max, z_sum);
 
-    // softmax = exp((q_dot_k_transpose - attn_max)) / z_sum
-    BroadCastDiv(exp_q_dot_k_transpose_sub_attn_max, z_sum, softmax);
+    // softmax = exp((q_dot_k_transpose - attn_max)) * z_sum
+    BroadCastMul(exp_q_dot_k_transpose_sub_attn_max, z_sum, softmax);
 }
 
 template <typename T>
