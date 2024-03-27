@@ -167,9 +167,9 @@ public:
 
 struct GTestDescriptor
 {
-    const char* textName;
-    miopenBackendDescriptorType_t type;
-    bool attrsValid;
+    const char* textName               = "";
+    miopenBackendDescriptorType_t type = miopenBackendDescriptorType_t(0);
+    bool attrsValid                    = false;
     std::vector<std::shared_ptr<GTestDescriptorAttribute>> attributes;
 };
 

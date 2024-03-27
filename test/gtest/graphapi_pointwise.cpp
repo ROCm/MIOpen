@@ -141,11 +141,7 @@ public:
 class Descriptor : public GTestDescriptor
 {
 public:
-    Descriptor()
-        : GTestDescriptor{
-              "MIOPEN_BACKEND_POINTWISE_DESCRIPTOR", MIOPEN_BACKEND_POINTWISE_DESCRIPTOR, true, {}}
-    {
-    }
+    Descriptor();
     Descriptor(std::initializer_list<std::shared_ptr<GTestDescriptorAttribute>> attributes_)
         : GTestDescriptor{"MIOPEN_BACKEND_POINTWISE_DESCRIPTOR",
                           MIOPEN_BACKEND_POINTWISE_DESCRIPTOR,
