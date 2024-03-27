@@ -29,6 +29,7 @@
 #include "InputFlags.hpp"
 #include "driver.hpp"
 #include "dropout_gpu_emulator.hpp"
+#include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "util_file.hpp"
 

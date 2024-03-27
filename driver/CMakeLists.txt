@@ -34,6 +34,7 @@ add_executable(MIOpenDriver
     conv2.cpp
     conv3.cpp
     conv_common.cpp
+    dropout.cpp
     fusion.cpp
     gemm.cpp
     lrn.cpp

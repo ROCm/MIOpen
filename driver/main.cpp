@@ -29,6 +29,7 @@
 #include "activ.hpp"
 #include "bnorm.hpp"
 #include "conv.hpp"
+#include "dropout.hpp"
 #include "fusion.hpp"
 #include "gemm.hpp"
 #include "lrn.hpp"
@@ -39,7 +40,6 @@
 #include "CBAInferFusion_driver.hpp"
 #include "driver.hpp"
 #include "groupnorm_driver.hpp"
-#include "dropout_driver.hpp"
 #include "tensorop_driver.hpp"
 #include "reduce_driver.hpp"
 #include "layernorm_driver.hpp"
@@ -91,16 +91,10 @@ int main(int argc, char* argv[])
     if(drv != nullptr)
         drv = makeDriverRnn(base_arg);
     if(drv != nullptr)
+        drv = makeDriverDropout(base_arg);
+    if(drv != nullptr)
     {
-        if(base_arg == "dropout")
-        {
-            drv = new DropoutDriver<float, float>();
-        }
-        else if(base_arg == "dropoutfp16")
-        {
-            drv = new DropoutDriver<float16, float>();
-        }
-        else if(base_arg == "groupnorm")
+        if(base_arg == "groupnorm")
         {
             drv = new GroupNormDriver<float, double>();
         }

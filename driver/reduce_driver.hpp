@@ -26,31 +26,35 @@
 #ifndef GUARD_MIOPEN_REDUCE_DRIVER_HPP
 #define GUARD_MIOPEN_REDUCE_DRIVER_HPP
 
-#include "../test/verify.hpp"
 #include "InputFlags.hpp"
 #include "driver.hpp"
+#include "miopen_Reduction.hpp"
+#include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
-#include <algorithm>
-#include <cstdlib>
-#include <float.h>
-#include <memory>
+#include "util_file.hpp"
+
+#include "../test/verify.hpp"
+
 #include <miopen/miopen.h>
 #include <miopen/reduce_common.hpp>
 #include <miopen/tensor.hpp>
-#include <numeric>
-#include <vector>
-#include <string>
-#include <cassert>
-#include <type_traits>
+
 #if !defined(_WIN32)
 #include <half/half.hpp>
 #else
 #include <half.hpp>
 #endif
-#include "random.hpp"
 
-#include "miopen_Reduction.hpp"
+#include <algorithm>
+#include <cassert>
+#include <cstdlib>
+#include <float.h>
+#include <memory>
+#include <numeric>
+#include <string>
+#include <type_traits>
+#include <vector>
 
 template <typename Tgpu, typename Tref>
 class ReduceDriver : public Driver
