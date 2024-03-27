@@ -33,13 +33,12 @@
 #include "gemm.hpp"
 #include "lrn.hpp"
 #include "pool.hpp"
+#include "rnn.hpp"
 #include "softmax.hpp"
 
 #include "CBAInferFusion_driver.hpp"
 #include "driver.hpp"
 #include "groupnorm_driver.hpp"
-#include "rnn_driver.hpp"
-#include "rnn_seq_driver.hpp"
 #include "ctc_driver.hpp"
 #include "dropout_driver.hpp"
 #include "tensorop_driver.hpp"
@@ -91,24 +90,10 @@ int main(int argc, char* argv[])
     if(drv != nullptr)
         drv = makeDriverBnorm(base_arg);
     if(drv != nullptr)
+        drv = makeDriverRnn(base_arg);
+    if(drv != nullptr)
     {
-        if(base_arg == "rnn_seq")
-        {
-            drv = new RNNSeqDriver<float, double>();
-        }
-        else if(base_arg == "rnn_seqfp16")
-        {
-            drv = new RNNSeqDriver<float16, double>();
-        }
-        else if(base_arg == "rnn")
-        {
-            drv = new RNNDriver<float, double>();
-        }
-        else if(base_arg == "rnnfp16")
-        {
-            drv = new RNNDriver<float16, double>();
-        }
-        else if(base_arg == "ctc")
+        if(base_arg == "ctc")
         {
             drv = new CTCDriver<float>();
         }
