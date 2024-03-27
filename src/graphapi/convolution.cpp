@@ -778,7 +778,7 @@ void BackendOperationConvolutionForwardDescriptor::getAttribute(
     }
 }
 
-Operation* BackendOperationConvolutionForwardDescriptor::getOperation()
+OpNode* BackendOperationConvolutionForwardDescriptor::getOperation()
 {
     if(!mFinalized)
     {
@@ -892,7 +892,7 @@ void BackendOperationConvolutionBackwardDataDescriptor::getAttribute(
     }
 }
 
-Operation* BackendOperationConvolutionBackwardDataDescriptor::getOperation()
+OpNode* BackendOperationConvolutionBackwardDataDescriptor::getOperation()
 {
     if(!mFinalized)
     {
@@ -1006,7 +1006,7 @@ void BackendOperationConvolutionBackwardFilterDescriptor::getAttribute(
     }
 }
 
-Operation* BackendOperationConvolutionBackwardFilterDescriptor::getOperation()
+OpNode* BackendOperationConvolutionBackwardFilterDescriptor::getOperation()
 {
     if(!mFinalized)
     {

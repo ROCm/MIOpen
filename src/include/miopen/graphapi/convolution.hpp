@@ -249,7 +249,7 @@ private:
     Convolution mConvolution;
 };
 
-class OperationConvolution : public Operation
+class OperationConvolution : public OpNode
 {
 public:
     OperationConvolution() = default;
@@ -460,7 +460,7 @@ public:
                               int64_t requestedElementCount,
                               int64_t* elementCount,
                               void* arrayOfElements) override;
-    virtual Operation* getOperation() override;
+    virtual OpNode* getOperation() override;
 
 protected:
     virtual OperationConvolutionBuilder& getBuilder() override;
@@ -551,7 +551,7 @@ public:
                               int64_t requestedElementCount,
                               int64_t* elementCount,
                               void* arrayOfElements) override;
-    virtual Operation* getOperation() override;
+    virtual OpNode* getOperation() override;
 
 private:
     virtual OperationConvolutionBuilder& getBuilder() override;
@@ -642,7 +642,7 @@ public:
                               int64_t requestedElementCount,
                               int64_t* elementCount,
                               void* arrayOfElements) override;
-    virtual Operation* getOperation() override;
+    virtual OpNode* getOperation() override;
 
 private:
     virtual OperationConvolutionBuilder& getBuilder() override;

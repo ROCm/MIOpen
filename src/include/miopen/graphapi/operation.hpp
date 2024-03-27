@@ -35,10 +35,10 @@ namespace miopen {
 
 namespace graphapi {
 
-class Operation
+class OpNode
 {
 public:
-    Operation& addInputTensor(Tensor* tensor)
+    OpNode& addInputTensor(Tensor* tensor)
     {
         if(std::find(mInputs.cbegin(), mInputs.cend(), tensor) == mInputs.cend())
         {
@@ -46,7 +46,7 @@ public:
         }
         return *this;
     }
-    Operation& addOutputTensor(Tensor* tensor)
+    OpNode& addOutputTensor(Tensor* tensor)
     {
         if(std::find(mOutputs.cbegin(), mOutputs.cend(), tensor) == mOutputs.cend())
         {
