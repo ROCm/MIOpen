@@ -57,6 +57,11 @@ bool noRepetitions(const Range& r)
 
 class VariantPack
 {
+private:
+    std::vector<int64_t> mTensorIds;
+    std::vector<void*> mDataPointers;
+    void* mWorkspace = nullptr;
+
 public:
     VariantPack() noexcept              = default;
     VariantPack(const VariantPack&)     = default;
@@ -89,14 +94,15 @@ public:
 
 private:
     friend class VariantPackBuilder;
-
-    std::vector<int64_t> mTensorIds;
-    std::vector<void*> mDataPointers;
-    void* mWorkspace = nullptr;
 };
 
 class VariantPackBuilder
 {
+private:
+    VariantPack mVariantPack;
+    bool mTensorIdsSet    = false;
+    bool mDataPointersSet = false;
+
 public:
     VariantPackBuilder& setTensorIds(const std::vector<int64_t>& tensorIds) &
     {
@@ -198,10 +204,6 @@ private:
                          mVariantPack.mDataPointers.cend(),
                          mVariantPack.mWorkspace) == mVariantPack.mDataPointers.cend();
     }
-
-    VariantPack mVariantPack;
-    bool mTensorIdsSet    = false;
-    bool mDataPointersSet = false;
 };
 
 } // namespace graphapi

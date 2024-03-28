@@ -72,6 +72,11 @@ using GraphApiVariantPackTuple =
 class GraphApiVariantPackBuilder : public testing::TestWithParam<GraphApiVariantPackTuple>
 {
 protected:
+    bool attrsValid;
+    ValidatedVector<int64_t> tensorIds;
+    ValidatedVector<void*> dataPointers;
+    ValidatedValue<void*> workspace;
+
     void SetUp() override { std::tie(attrsValid, tensorIds, dataPointers, workspace) = GetParam(); }
     miopen::graphapi::VariantPack buildByLValue()
     {
@@ -151,11 +156,6 @@ protected:
             builder.setWorkspace(workspace.value);
         }
     }
-
-    bool attrsValid;
-    ValidatedVector<int64_t> tensorIds;
-    ValidatedVector<void*> dataPointers;
-    ValidatedValue<void*> workspace;
 };
 
 TEST_P(GraphApiVariantPackBuilder, ValidateAttributes)
