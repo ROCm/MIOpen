@@ -152,7 +152,7 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
             if(std::align(alignof(miopen::graphapi::BackendConvolutionDescriptor),
                           sizeof(miopen::graphapi::BackendConvolutionDescriptor),
                           address,
-                          sizeInBytes) == nullptr &&
+                          sizeInBytes) != nullptr &&
                address == descriptor)
             {
                 new(descriptor) miopen::graphapi::BackendConvolutionDescriptor();
@@ -166,7 +166,7 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
             if(std::align(alignof(miopen::graphapi::BackendOperationConvolutionForwardDescriptor),
                           sizeof(miopen::graphapi::BackendOperationConvolutionForwardDescriptor),
                           address,
-                          sizeInBytes) == nullptr &&
+                          sizeInBytes) != nullptr &&
                address == descriptor)
             {
                 new(descriptor) miopen::graphapi::BackendOperationConvolutionForwardDescriptor();
@@ -181,7 +181,7 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
                    alignof(miopen::graphapi::BackendOperationConvolutionBackwardFilterDescriptor),
                    sizeof(miopen::graphapi::BackendOperationConvolutionBackwardFilterDescriptor),
                    address,
-                   sizeInBytes) == nullptr &&
+                   sizeInBytes) != nullptr &&
                address == descriptor)
             {
                 new(descriptor)
@@ -197,7 +197,7 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
                    alignof(miopen::graphapi::BackendOperationConvolutionBackwardDataDescriptor),
                    sizeof(miopen::graphapi::BackendOperationConvolutionBackwardDataDescriptor),
                    address,
-                   sizeInBytes) == nullptr &&
+                   sizeInBytes) != nullptr &&
                address == descriptor)
             {
                 new(descriptor)
@@ -212,7 +212,7 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
             if(std::align(alignof(miopen::graphapi::BackendTensorDescriptor),
                           sizeof(miopen::graphapi::BackendTensorDescriptor),
                           address,
-                          sizeInBytes) == nullptr &&
+                          sizeInBytes) != nullptr &&
                address == descriptor)
             {
                 new(descriptor) miopen::graphapi::BackendTensorDescriptor();
@@ -222,7 +222,7 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
                 MIOPEN_THROW(miopenStatus_t::miopenStatusUnsupportedOp);
             }
             break;
-        default: MIOPEN_THROW(miopenStatus_t::miopenStatusUnsupportedOp);
+        default: MIOPEN_THROW(miopenStatusUnsupportedOp);
         }
     });
 }
