@@ -28,8 +28,11 @@
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
+#include "../workspace.hpp"
 
 #include <miopen/mha/mha_descriptor.hpp>
+#include <miopen/mha/solvers.hpp>
+#include <miopen/mha/invoke_params.hpp>
 
 #include <miopen/miopen.h>
 
@@ -43,48 +46,27 @@ using namespace miopen;
 
 struct TensorStruct
 {
-    TensorStruct(const std::string& name_, bool isFloat = true) : name(name_), isFloatTensor(isFloat) {}
+    TensorStruct(bool isFloat = true) : isFloatTensor(isFloat) {}
+
 
     bool isFloatTensor;
-    std::string name;
     tensor<float> tensorFloat;
 
-    //
+    Allocator::ManageDataPtr gpuBuffer;
+
+    // TODO Unsued for now
     //tensor<unit64_t> tensorUint64;
 };
 
 typedef std::shared_ptr<TensorStruct> TensorStructPtr;
 
+typedef std::map<miopenTensorArgumentId_t, TensorStructPtr> TensorStructMap;
+
 class MHAFind20Test
 {
 public:
     MHAFind20Test(bool forward) : problem(nullptr), isForward(forward) { Initialize(); }
-
-    void AddTensorDescriptors()
-    {
-        std::cerr << "Creating mha tensor descriptors..." << std::endl;
-
-        auto test_set_tensor_descriptor = [this](miopenTensorArgumentId_t name,
-                                                 TensorDescriptor& desc) {
-            EXPECT_EQUAL(miopenSetProblemTensorDescriptor(problem, name, &desc),
-                         miopenStatusSuccess);
-        };
-
-        if(isForward)
-        {
-            test_set_tensor_descriptor(miopenTensorSoftmaxX, xTensor.desc);
-            //test_set_tensor_descriptor(miopenTensorSoftmaxY, yTensor.desc);
-        }
-        else
-        {
-            //test_set_tensor_descriptor(miopenTensorSoftmaxY, yTensor.desc);
-            //test_set_tensor_descriptor(miopenTensorSoftmaxDY, dyTensor.desc);
-            //test_set_tensor_descriptor(miopenTensorSoftmaxDX, dxTensor.desc);
-        }
-
-        std::cerr << "Created mha tensor descriptors." << std::endl;
-    }
-
+  
     std::vector<miopenSolution_t> TestFindSolutions(Handle& handle)
     {
         std::cerr << "Testing miopenFindSolutions..." << std::endl;
@@ -126,135 +108,76 @@ public:
 
     void TestRunSolutionsForward(Handle& handle, const std::vector<miopenSolution_t>& solutions)
     {
-        std::cerr << "Testing solution functions..." << std::endl;
+        std::cerr << "Testing forward solution functions..." << std::endl;
 
-        //miopenTensorDescriptor_t x_desc = &xTensor.desc, y_desc = &yTensor.desc;
+        const unsigned int numTensors = tensors.size();
 
-        const unsigned int numTensors = 2;
+        auto arguments = std::make_unique<miopenTensorArgument_t[]>(numTensors);
+
+        std::vector<miopenTensorDescriptor_t>  descVector(numTensors);
+
+        int i = 0;
+        for (const auto& it : tensors)
+        {
+            descVector[i] = &it.second->tensorFloat.desc;
+
+            it.second->gpuBuffer = handle.Write(it.second->tensorFloat.data);
+
+            arguments[i].id         = it.first;
+            arguments[i].descriptor = &descVector[i];
+            arguments[i].buffer     = it.second->gpuBuffer.get();
+
+            i++;
+        }
+
+        std::vector<miopenTensorArgumentId_t> output_ids = {miopenTensorMHAO, miopenTensorMHAAmaxO, miopenTensorMHAAmaxS, miopenTensorMHAM};
+
+        std::size_t workspace_size = 0;
+        uint64_t solver_id;
+
+        Workspace workspace;
 
         for(const auto& solution : solutions)
-        {
-            auto arguments = std::make_unique<miopenTensorArgument_t[]>(numTensors);
+        {    
+            miopenGetSolutionWorkspaceSize(solution, &workspace_size);
+            miopenGetSolutionSolverId(solution, &solver_id);
 
-            /*auto in_gpu  = handle.Write(xTensor.data);
-            auto out_gpu = handle.Write(yTensor.data);
-
-            miopenTensorArgumentId_t names[numTensors]       = {miopenTensorSoftmaxX,
-                                                          miopenTensorSoftmaxY};
-            void* buffers[numTensors]                        = {in_gpu.get(), out_gpu.get()};
-            miopenTensorDescriptor_t descriptors[numTensors] = {x_desc, y_desc};
-
-            for(auto i = 0; i < numTensors; ++i)
-            {
-                arguments[i].id         = names[i];
-                arguments[i].descriptor = &descriptors[i];
-                arguments[i].buffer     = buffers[i];
-            }
+            workspace.resize(workspace_size);
 
             std::cerr << "Run a solution." << std::endl;
             EXPECT_EQUAL(
                 miopenRunSolution(&handle, solution, numTensors, arguments.get(), nullptr, 0),
                 miopenStatusSuccess);
 
-            float alpha = mha_descriptor.GetAlpha();
-            float beta  = mha_descriptor.GetBeta();
+            TensorStructMap outputTensorResults;
 
-            // tensor<float> yTensorDup = yTensor;
-            tensor<float> yTensorRef = tensor<float>{test_n, test_c, test_h, test_w};
+            // reading results from find 2.0 call and preparing structures for non find 2.0 outputs to compare with
+            for (const auto& id : output_ids)
+            {
+                const TensorStructPtr& tensorStructPtr = tensors[id];
+                tensorStructPtr->tensorFloat.data = handle.Read<float>(tensorStructPtr->gpuBuffer, tensorStructPtr->tensorFloat.data.size());
 
-            auto out_gpu_ref = handle.Write(yTensorRef.data);
+                outputTensorResults[id] = TensorStructPtr (new TensorStruct());
+                outputTensorResults[id]->tensorFloat = tensorStructPtr->tensorFloat;
+            }
 
-            // Run softmax in a usual way (which is tested) and compare results
-            EXPECT_EQUAL(miopenSoftmaxForward_V2(&handle,
-                                                 &alpha,
-                                                 x_desc,
-                                                 in_gpu.get(),
-                                                 &beta,
-                                                 &yTensorRef.desc,
-                                                 out_gpu_ref.get(),
-                                                 mha_descriptor.GetAlgorithm(),
-                                                 mha_descriptor.GetMode()),
-                         miopenStatusSuccess);
+            GetResultsWithoutFind20(handle, outputTensorResults, workspace, solver_id);
 
-            yTensor.data    = handle.Read<float>(out_gpu, yTensor.data.size());
-            yTensorRef.data = handle.Read<float>(out_gpu_ref, yTensorRef.data.size());
-
-            double error           = miopen::rms_range(yTensorRef.data, yTensor.data);
+            /*double error           = miopen::rms_range(yTensorRef.data, yTensor.data);
             const double tolerance = 1e-3;
 
             EXPECT_TRUE(std::isfinite(error) && error <= tolerance)
                 << "Outputs do not match each other. Error:" << error;*/
         }
 
-        std::cerr << "Finished testing solution functions." << std::endl;
+        std::cerr << "Finished testing forward solution functions." << std::endl;
     }
 
     void TestRunSolutionsBackward(Handle& handle, const std::vector<miopenSolution_t>& solutions)
     {
-        std::cerr << "Testing solution functions..." << std::endl;
+        std::cerr << "Testing backward solution functions..." << std::endl;
 
-/*        miopenTensorDescriptor_t y_desc  = &yTensor.desc;
-        miopenTensorDescriptor_t dy_desc = &dyTensor.desc;
-        miopenTensorDescriptor_t dx_desc = &dxTensor.desc;*/
-
-        const unsigned int numTensors = 3;
-
-        for(const auto& solution : solutions)
-        {
-            auto arguments = std::make_unique<miopenTensorArgument_t[]>(numTensors);
-
-            //auto in1_gpu = handle.Write(yTensor.data);
-            //auto in2_gpu = handle.Write(dyTensor.data);
-            //auto out_gpu = handle.Write(dxTensor.data);
-
-            /*miopenTensorArgumentId_t names[numTensors] = {
-                miopenTensorSoftmaxY, miopenTensorSoftmaxDY, miopenTensorSoftmaxDX};
-            void* buffers[numTensors] = {in1_gpu.get(), in2_gpu.get(), out_gpu.get()};
-            miopenTensorDescriptor_t descriptors[numTensors] = {y_desc, dy_desc, dx_desc};
-
-            for(auto i = 0; i < numTensors; ++i)
-            {
-                arguments[i].id         = names[i];
-                arguments[i].descriptor = &descriptors[i];
-                arguments[i].buffer     = buffers[i];
-            }
-
-            std::cerr << "Run a solution." << std::endl;
-            EXPECT_EQUAL(
-                miopenRunSolution(&handle, solution, numTensors, arguments.get(), nullptr, 0),
-                miopenStatusSuccess);*/
-
-            // tensor<float> yTensorDup = yTensor;
-            //tensor<float> dxTensorRef = tensor<float>{test_n, test_c, test_h, test_w};
-
-            // this is dx
-           /* auto out_gpu_ref = handle.Write(dxTensorRef.data);
-
-            // Run softmax in a usual way (which is tested) and compare results
-            EXPECT_EQUAL(miopenSoftmaxBackward_V2(&handle,
-                                                  &alpha,
-                                                  y_desc,
-                                                  in1_gpu.get(),
-                                                  dy_desc,
-                                                  in2_gpu.get(),
-                                                  &beta,
-                                                  &dxTensorRef.desc,
-                                                  out_gpu_ref.get(),
-                                                  softmax_descriptor.GetAlgorithm(),
-                                                  softmax_descriptor.GetMode()),
-                         miopenStatusSuccess);
-
-            yTensor.data     = handle.Read<float>(out_gpu, yTensor.data.size());
-            dxTensorRef.data = handle.Read<float>(out_gpu_ref, dxTensorRef.data.size());
-
-            double error           = miopen::rms_range(dxTensorRef.data, yTensor.data);
-            const double tolerance = 1e-3;
-
-            EXPECT_TRUE(std::isfinite(error) && error <= tolerance)
-                << "Outputs do not match each other. Error:" << error;*/
-        }
-
-        std::cerr << "Finished testing solution functions." << std::endl;
+        std::cerr << "Finished testing backward solution functions." << std::endl;
     }
 
     void Finalize() { EXPECT_EQUAL(miopenDestroyProblem(problem), miopenStatusSuccess); }
@@ -267,77 +190,136 @@ private:
                 id == miopenTensorMHADropoutOffset;
     }
 
-    void AddTensorMetadata(miopenTensorArgumentId_t id, const std::string& name)
+    void CreateTensor(miopenTensorArgumentId_t id, 
+                        unsigned int n = 1,
+                        unsigned int c = 1,
+                        unsigned int h = 1,
+                        unsigned int w = 1,
+                        bool generate = true)
     {
+        // TODO Unused for now
         bool floatFlag = !IsDropoutTensorId(id);
-        tensors[id] = new TensorStruct(name, floatFlag);
+        tensors[id] = TensorStructPtr(new TensorStruct(floatFlag));
+
+        tensors[id]->tensorFloat = tensor<float>{test_n, test_c, test_h, test_w};
+
+        if (generate)
+        {
+            tensors[id]->tensorFloat.generate(tensor_elem_gen_integer{17});
+        }
+
+        EXPECT_EQUAL(miopenSetProblemTensorDescriptor(problem, id, &tensors[id]->tensorFloat.desc), miopenStatusSuccess);
     }
 
     void Initialize()
     {
         mha_descriptor.SetParams(1.0f);
+
+        EXPECT_EQUAL(miopenCreateMHAProblem(&problem, &mha_descriptor, miopenProblemDirectionForward), miopenStatusSuccess);
             
         if(isForward)
         {
-            AddTensorMetadata(miopenTensorMHAK, "miopenTensorMHAK");
-            AddTensorMetadata(miopenTensorMHAQ, "miopenTensorMHAQ");
-            AddTensorMetadata(miopenTensorMHAV, "miopenTensorMHAV");
-            AddTensorMetadata(miopenTensorMHADescaleK, "miopenTensorMHADescaleK");
+            CreateTensor(miopenTensorMHAK, test_n, test_c, test_h, test_w);
+            CreateTensor(miopenTensorMHAQ, test_n, test_c, test_h, test_w);
+            CreateTensor(miopenTensorMHAV, test_n, test_c, test_h, test_w);
 
-            AddTensorMetadata(miopenTensorMHADescaleQ, "miopenTensorMHADescaleQ");
-            AddTensorMetadata(miopenTensorMHADescaleV, "miopenTensorMHADescaleV");
-            AddTensorMetadata(miopenTensorMHADescaleS, "miopenTensorMHADescaleS");
-            AddTensorMetadata(miopenTensorMHAScaleS, "miopenTensorMHAScaleS");
-            AddTensorMetadata(miopenTensorMHAScaleO, "miopenTensorMHAScaleO");
+            CreateTensor(miopenTensorMHADescaleK);
+            CreateTensor(miopenTensorMHADescaleQ);
+            CreateTensor(miopenTensorMHADescaleV);
+            CreateTensor(miopenTensorMHADescaleS);
+            CreateTensor(miopenTensorMHAScaleS);
+            CreateTensor(miopenTensorMHAScaleO);
 
-            AddTensorMetadata(miopenTensorMHADropoutProbability, "miopenTensorMHADropoutProbability");
-            AddTensorMetadata(miopenTensorMHADropoutSeed, "miopenTensorMHADropoutSeed");
-            AddTensorMetadata(miopenTensorMHADropoutOffset, "miopenTensorMHADropoutOffset");
+            CreateTensor(miopenTensorMHADropoutProbability);
+            CreateTensor(miopenTensorMHADropoutSeed);
+            CreateTensor(miopenTensorMHADropoutOffset);
 
-            AddTensorMetadata(miopenTensorMHAO, "miopenTensorMHAO");
-            AddTensorMetadata(miopenTensorMHAAmaxO, "miopenTensorMHAAmaxO");
-            AddTensorMetadata(miopenTensorMHAAmaxS, "miopenTensorMHAAmaxS");
-            AddTensorMetadata(miopenTensorMHAM, "miopenTensorMHAM");
-            AddTensorMetadata(miopenTensorMHAZInv, "miopenTensorMHAZInv");
-              
-          /*  xTensor =
-                tensor<float>{test_n, test_c, test_h, test_w}.generate(tensor_elem_gen_integer{17});
-            yTensor = tensor<float>{test_n, test_c, test_h, test_w};*/
-
-            EXPECT_EQUAL(miopenCreateMHAProblem(
-                             &problem, &mha_descriptor, miopenProblemDirectionForward),
-                         miopenStatusSuccess);
+            CreateTensor(miopenTensorMHAO, test_n, test_c, test_h, test_w);
+            CreateTensor(miopenTensorMHAAmaxO, 1, 1, 1, 1, false);
+            CreateTensor(miopenTensorMHAAmaxS, 1, 1, 1, 1, false);
+            CreateTensor(miopenTensorMHAM, test_n, test_c, test_h, 1, false);
+            CreateTensor(miopenTensorMHAZInv, test_n, test_c, test_h, 1, false);             
         }
         else
         {
-            /*yTensor =
-                tensor<float>{test_n, test_c, test_h, test_w}.generate(tensor_elem_gen_integer{17});
-            dyTensor =
-                tensor<float>{test_n, test_c, test_h, test_w}.generate(tensor_elem_gen_integer{17});
-            dxTensor = tensor<float>{test_n, test_c, test_h, test_w};
-
-            EXPECT_EQUAL(miopenCreateSoftmaxProblem(
-                             &problem, &softmax_descriptor, miopenProblemDirectionBackward),
-                         miopenStatusSuccess);*/
+            // todo add backward path test
         }
-
-        AddTensorDescriptors();
     }
 
+    void GetResultsWithoutFind20(Handle& handle, TensorStructMap& outputResultsMap, Workspace& workspace, uint64_t solver_id)
+    {
+        // Get Problem object to use helper asMHA() function. Downcast is used in order to reuse some code
+        ProblemContainer* pc = static_cast<ProblemContainer*>(problem);
+
+        const Problem& problem_casted = boost::get<const Problem&>(pc->item);
+        const mha::ProblemDescription problem_description = problem_casted.AsMHA();
+
+        const auto invoke_ctx = [&]() -> AnyInvokeParams {
+            const mha::MHAInputDescsForward& inputDescsForward = problem_description.GetDescs();
+
+            mha::MHADataForward dataForward = {tensors[miopenTensorMHAK]->gpuBuffer.get(),
+                                            tensors[miopenTensorMHAQ]->gpuBuffer.get(),
+                                            tensors[miopenTensorMHAV]->gpuBuffer.get(),
+                                            tensors[miopenTensorMHADescaleK]->gpuBuffer.get(),
+                                            tensors[miopenTensorMHADescaleQ]->gpuBuffer.get(),
+                                            tensors[miopenTensorMHADescaleV]->gpuBuffer.get(),
+                                            tensors[miopenTensorMHADescaleS]->gpuBuffer.get(),
+                                            tensors[miopenTensorMHAScaleS]->gpuBuffer.get(),
+                                            tensors[miopenTensorMHAScaleO]->gpuBuffer.get(),
+
+                                            tensors[miopenTensorMHADropoutProbability]->gpuBuffer.get(),
+                                            tensors[miopenTensorMHADropoutSeed]->gpuBuffer.get(),
+                                            tensors[miopenTensorMHADropoutOffset]->gpuBuffer.get(),
+
+                                            outputResultsMap[miopenTensorMHAO]->gpuBuffer.get(),
+                                            outputResultsMap[miopenTensorMHAAmaxO]->gpuBuffer.get(),
+                                            outputResultsMap[miopenTensorMHAAmaxS]->gpuBuffer.get(),
+                                            outputResultsMap[miopenTensorMHAM]->gpuBuffer.get(),
+                                            outputResultsMap[miopenTensorMHAZInv]->gpuBuffer.get()};
+
+            return mha::InvokeParams(inputDescsForward, dataForward, workspace.ptr(), workspace.size());
+        }();
+
+        const auto net_cfg       = problem_description.MakeNetworkConfig();
+        const auto found_invoker = handle.GetInvoker(net_cfg, solver::Id(solver_id));
+
+        if(found_invoker)
+        {
+            (*found_invoker)(handle, invoke_ctx);
+        }
+        else
+        {
+            auto ctx = ExecutionContext{&handle};
+
+            solver::mha::MHA mha;
+
+            const auto mha_solution = mha.GetSolution(ctx, problem_description);
+
+            decltype(auto) invoker =
+                handle.PrepareInvoker(*mha_solution.invoker_factory, mha_solution.construction_params);
+            handle.RegisterInvoker(invoker, net_cfg, solver::Id(solver_id).ToString());
+            invoker(handle, invoke_ctx);
+        }
+
+        for (const auto& it : outputResultsMap)
+        {
+            it.second->tensorFloat.data = handle.Read<float>(it.second->gpuBuffer, it.second->tensorFloat.data.size());
+        }
+    }    
+
 private:
-    std::map<miopenTensorArgumentId_t, TensorStructPtr> tensors;
+    TensorStructMap tensors;
 
     MHADescriptor mha_descriptor;
+
     miopenProblem_t problem;
 
     bool isForward;
 
-    const unsigned int test_n = 100;
-    const unsigned int test_c = 3;
-    const unsigned int test_h = 32;
-    const unsigned int test_w = 32;
-
-    const miopenTensorArgumentId_t
+    const unsigned int test_n = 2;
+    const unsigned int test_c = 4;
+    const unsigned int test_h = 8;
+    const unsigned int test_w = 16;
 };
 
 TEST(TestMHAFind20, MHAForward)
