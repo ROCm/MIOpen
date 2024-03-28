@@ -190,7 +190,8 @@ static auto GetWindogradWrWSolvers()
         miopen::solver::conv::ConvWinograd3x3MultipassWrW<1, 1, 7, 2>,
         miopen::solver::conv::ConvWinograd3x3MultipassWrW<1, 1, 7, 3>,
         miopen::solver::conv::ConvWinograd3x3MultipassWrW<5, 3>,
-        miopen::solver::conv::ConvWinograd3x3MultipassWrW<5, 4>>{};
+        miopen::solver::conv::ConvWinograd3x3MultipassWrW<5, 4>,
+        miopen::solver::conv::ConvWinoFuryRxS<2, 3>>{};
 }
 
 static auto GetBwdWrW2DSolvers()

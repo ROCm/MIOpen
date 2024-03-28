@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,15 +23,20 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.include "Conv_Winograd_Fury_v1_1_1_metadata.inc"
 
-.if (.amdgcn.gfx_generation_number == 11)
-    KERNEL_PROLOG fp16_fp16acc_f2x3_stride1
+#pragma once
 
-    .include "Conv_Winograd_Fury_v1_1_1_gfx11_fp16_fp16acc_f2x3_stride1.inc"
+#include <miopen/conv/kernel_interface/winograd_kernel_interface.hpp>
+#include <miopen/invoker.hpp>
 
-    KERNEL_EPILOG fp16_fp16acc_f2x3_stride1
-.else
-    .error "Unsupported gfx generation"
-    .end
-.endif
+namespace miopen {
+namespace conv {
+
+enum class Direction;
+
+InvokerFactory MakeGcnAsmWinoV40InvokerFactory(const WinoShaderArgsV40& args,
+                                               Direction direction,
+                                               std::size_t sync_buffer_size);
+
+} // namespace conv
+} // namespace miopen
