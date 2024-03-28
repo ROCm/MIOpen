@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,13 +24,16 @@
  *
  *******************************************************************************/
 
-#include <miopen/argmax.hpp>
+#include <miopen/reduceextreme.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
-static void LogCmdArgmax(const miopenTensorDescriptor_t xDesc, bool is_fwd)
+static void LogCmdReduceExtreme(const miopenTensorDescriptor_t xDesc,
+                                const int32_t dim,
+                                const miopenReduceExtremeOp_t reduceExtremeOp,
+                                bool is_fwd)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -38,15 +41,15 @@ static void LogCmdArgmax(const miopenTensorDescriptor_t xDesc, bool is_fwd)
         auto dtype = miopen::deref(xDesc).GetType();
         if(dtype == miopenHalf)
         {
-            ss << "argmaxfp16";
+            ss << "reduceextremefp16";
         }
         else if(dtype == miopenFloat)
         {
-            ss << "argmaxfp32";
+            ss << "reduceextremefp32";
         }
         else if(dtype == miopenBFloat16)
         {
-            ss << "argmaxbfp16";
+            ss << "reduceextremebfp16";
         }
 
         int32_t size = {0};
@@ -77,26 +80,57 @@ static void LogCmdArgmax(const miopenTensorDescriptor_t xDesc, bool is_fwd)
 
         ss << " -F " << ((is_fwd) ? "1" : "2");
 
+        ss << " -R " << dim;
+
+        ss << " -O " << reduceExtremeOp;
+
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 }
 
-extern "C" miopenStatus_t miopenArgmaxForward(miopenHandle_t handle,
-                                              const miopenTensorDescriptor_t xDesc,
-                                              const void* x,
-                                              const int32_t dim,
-                                              const miopenTensorDescriptor_t yDesc,
-                                              void* y)
+extern "C" miopenStatus_t miopenReduceExtremeForward(miopenHandle_t handle,
+                                                     const miopenTensorDescriptor_t xDesc,
+                                                     const void* x,
+                                                     const int32_t dim,
+                                                     const miopenReduceExtremeOp_t reduceExtremeOp,
+                                                     const miopenTensorDescriptor_t yDesc,
+                                                     void* y,
+                                                     const miopenTensorDescriptor_t indiceDesc,
+                                                     void* indice)
 {
-    MIOPEN_LOG_FUNCTION(handle, xDesc, x, dim, yDesc, y);
 
-    LogCmdArgmax(xDesc, true);
-    return miopen::try_([&] {
-        miopen::ArgmaxForward(miopen::deref(handle),
-                              miopen::deref(xDesc),
-                              DataCast(x),
-                              miopen::deref(yDesc),
-                              DataCast(y),
-                              dim);
-    });
+    if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMIN) ||
+       reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMAX)
+    {
+        MIOPEN_LOG_FUNCTION(handle, xDesc, x, dim, reduceExtremeOp, indiceDesc, indice);
+
+        LogCmdReduceExtreme(xDesc, dim, reduceExtremeOp, true);
+
+        return miopen::try_([&] {
+            miopen::ReduceExtremeForward(miopen::deref(handle),
+                                         miopen::deref(xDesc),
+                                         DataCast(x),
+                                         miopen::deref(indiceDesc),
+                                         DataCast(indice),
+                                         dim,
+                                         reduceExtremeOp);
+        });
+    }
+    else
+    {
+        MIOPEN_LOG_FUNCTION(handle, xDesc, x, dim, reduceExtremeOp, yDesc, y, indiceDesc, indice);
+
+        LogCmdReduceExtreme(xDesc, dim, reduceExtremeOp, true);
+        return miopen::try_([&] {
+            miopen::ReduceExtremeForward(miopen::deref(handle),
+                                         miopen::deref(xDesc),
+                                         DataCast(x),
+                                         miopen::deref(yDesc),
+                                         DataCast(y),
+                                         miopen::deref(indiceDesc),
+                                         DataCast(indice),
+                                         dim,
+                                         reduceExtremeOp);
+        });
+    }
 }

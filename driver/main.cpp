@@ -44,7 +44,7 @@
 #include "reduce_driver.hpp"
 #include "layernorm_driver.hpp"
 #include "sum_driver.hpp"
-#include "argmax_driver.hpp"
+#include "reduceextreme_driver.hpp"
 #include "cat_driver.hpp"
 #include <miopen/config.h>
 #include <miopen/stringutils.hpp>
@@ -236,17 +236,17 @@ int main(int argc, char* argv[])
     {
         drv = new SumDriver<bfloat16, float>();
     }
-    else if(base_arg == "argmax")
+    else if(base_arg == "reduceextreme")
     {
-        drv = new ArgmaxDriver<float, float>();
+        drv = new ReduceExtremeDriver<float, float>();
     }
-    else if(base_arg == "argmaxfp16")
+    else if(base_arg == "reduceextremefp16")
     {
-        drv = new ArgmaxDriver<float16, float>();
+        drv = new ReduceExtremeDriver<float16, float>();
     }
-    else if(base_arg == "argmaxbfp16")
+    else if(base_arg == "reduceextremebfp16")
     {
-        drv = new ArgmaxDriver<bfloat16, float>();
+        drv = new ReduceExtremeDriver<bfloat16, float>();
     }
     else if(base_arg == "cat")
     {

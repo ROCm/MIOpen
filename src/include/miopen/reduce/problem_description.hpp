@@ -47,14 +47,31 @@ struct ProblemDescription : ProblemDescriptionBase
     {
     }
 
-    ProblemDescription(const TensorDescriptor& xDesc_, const TensorDescriptor& yDesc_, int32_t dim_)
-        : xDesc(xDesc_), yDesc(yDesc_), dim(dim_)
+    ProblemDescription(const TensorDescriptor& xDesc_,
+                       const TensorDescriptor& yDesc_,
+                       const TensorDescriptor& indiceDesc_,
+                       int32_t dim_,
+                       miopenReduceExtremeOp_t reduceExtremeOp_)
+        : xDesc(xDesc_),
+          yDesc(yDesc_),
+          indiceDesc(indiceDesc_),
+          dim(dim_),
+          reduceExtremeOp(reduceExtremeOp_)
+    {
+    }
+
+    ProblemDescription(const TensorDescriptor& xDesc_,
+                       const TensorDescriptor& indiceDesc_,
+                       int32_t dim_,
+                       miopenReduceExtremeOp_t reduceExtremeOp_)
+        : xDesc(xDesc_), indiceDesc(indiceDesc_), dim(dim_), reduceExtremeOp(reduceExtremeOp_)
     {
     }
 
     miopenSumNanPropagation_t GetNanPropagation_() const { return nanPropagation; }
     const TensorDescriptor& GetXDesc() const { return xDesc; }
     const TensorDescriptor& GetYDesc() const { return yDesc; }
+    const TensorDescriptor& GetIndiceDesc() const { return indiceDesc; }
     int32_t GetDim() const { return dim; }
 
     bool IsSameType() const
@@ -95,6 +112,31 @@ struct ProblemDescription : ProblemDescriptionBase
         return true;
     }
 
+    bool IsRightLengthIndice() const
+    {
+        if(xDesc.GetLengths().size() == 1)
+            return true;
+
+        int32_t posy = 0;
+        for(int32_t i = 0; i < xDesc.GetLengths().size(); i++)
+        {
+            if(i == dim)
+                continue;
+
+            if(xDesc.GetLengths()[i] != indiceDesc.GetLengths()[posy])
+            {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+                MIOPEN_THROW(miopenStatusBadParm, "Reduce: Tensor dimension lengths do not match.");
+#else
+                return false;
+#endif
+            }
+
+            posy++;
+        }
+        return true;
+    }
+
     bool IsRightDim() const
     {
         if((dim < 0) || (dim > xDesc.GetLengths().size()))
@@ -120,6 +162,35 @@ struct ProblemDescription : ProblemDescriptionBase
             return false;
 #endif
         }
+
+        return true;
+    }
+
+    bool IsAllPackedWithIndice() const
+    {
+        if(!(xDesc.IsPacked() && yDesc.IsPacked() && indiceDesc.IsPacked()))
+        {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+            MIOPEN_THROW(miopenStatusBadParm, "Reduce: Unpacked tensors not supported.");
+#else
+            return false;
+#endif
+        }
+
+        return true;
+    }
+
+    bool IsAllPackedIndice() const
+    {
+        if(!(xDesc.IsPacked() && indiceDesc.IsPacked()))
+        {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+            MIOPEN_THROW(miopenStatusBadParm, "Reduce: Unpacked tensors not supported.");
+#else
+            return false;
+#endif
+        }
+
         return true;
     }
 
@@ -130,14 +201,23 @@ struct ProblemDescription : ProblemDescriptionBase
         return true;
     }
 
+    bool IsLargeReduceSize() const
+    {
+        if(xDesc.GetLengths()[dim] > 64)
+            return false;
+        return true;
+    }
+
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
     miopenSumNanPropagation_t nanPropagation;
     TensorDescriptor xDesc;
     TensorDescriptor yDesc;
+    TensorDescriptor indiceDesc;
 
     int32_t dim;
+    miopenReduceExtremeOp_t reduceExtremeOp;
 
     NetworkConfig MakeForwardNetworkConfig() const;
 };
