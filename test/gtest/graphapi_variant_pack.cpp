@@ -34,6 +34,8 @@
 
 #include <gtest/gtest.h>
 
+#include "graphapi_gtest_common.hpp"
+
 namespace {
 
 template <typename T>
@@ -64,10 +66,10 @@ struct ValidatedValue
     friend void PrintTo(const ValidatedValue& v, std::ostream* os) { *os << v.value; }
 };
 
-} // namespace
-
 using GraphApiVariantPackTuple =
     std::tuple<bool, ValidatedVector<int64_t>, ValidatedVector<void*>, ValidatedValue<void*>>;
+
+} // namespace
 
 class GraphApiVariantPackBuilder : public testing::TestWithParam<GraphApiVariantPackTuple>
 {
@@ -308,86 +310,340 @@ TEST_P(GraphApiVariantPackBuilder, RetrieveAttributes)
     EXPECT_EQ(vPack.getWorkspace(), workspace.value) << "Workspace is set or retrieved incorrectly";
 }
 
+namespace {
+
+using miopen::graphapi::GTestDescriptor;
+using miopen::graphapi::GTestDescriptorAttribute;
+using miopen::graphapi::GTestDescriptorSingleValueAttribute;
+using miopen::graphapi::GTestDescriptorVectorAttribute;
+
+class TensorIds : public GTestDescriptorVectorAttribute<int64_t, char>
+{
+public:
+    TensorIds() = default;
+    TensorIds(const ValidatedVector<int64_t>& vv)
+        : GTestDescriptorVectorAttribute<int64_t, char>(vv.valid,
+                                                        "MIOPEN_ATTR_VARIANT_PACK_UNIQUE_IDS",
+                                                        MIOPEN_ATTR_VARIANT_PACK_UNIQUE_IDS,
+                                                        MIOPEN_TYPE_INT64,
+                                                        MIOPEN_TYPE_CHAR,
+                                                        -1,
+                                                        vv.values)
+    {
+    }
+};
+
+class DataPointers : public GTestDescriptorVectorAttribute<void*, char>
+{
+public:
+    DataPointers() = default;
+    DataPointers(const ValidatedVector<void*>& vv)
+        : GTestDescriptorVectorAttribute<void*, char>(vv.valid,
+                                                      "MIOPEN_ATTR_VARIANT_PACK_DATA_POINTERS",
+                                                      MIOPEN_ATTR_VARIANT_PACK_DATA_POINTERS,
+                                                      MIOPEN_TYPE_VOID_PTR,
+                                                      MIOPEN_TYPE_CHAR,
+                                                      -1,
+                                                      vv.values)
+    {
+    }
+};
+
+class Workspace : public GTestDescriptorSingleValueAttribute<void*, char>
+{
+public:
+    Workspace() = default;
+    Workspace(const ValidatedValue<void*>& vv)
+        : GTestDescriptorSingleValueAttribute<void*, char>(vv.valid,
+                                                           "MIOPEN_ATTR_VARIANT_PACK_WORKSPACE",
+                                                           MIOPEN_ATTR_VARIANT_PACK_WORKSPACE,
+                                                           MIOPEN_TYPE_VOID_PTR,
+                                                           MIOPEN_TYPE_CHAR,
+                                                           2,
+                                                           vv.value)
+    {
+    }
+};
+
+} // namespace
+
+class GraphApiVariantPack : public testing::TestWithParam<GraphApiVariantPackTuple>
+{
+protected:
+    // to be used in the test
+    GTestDescriptor<GTestDescriptorAttribute*> descriptor;
+
+    // descriptor above contains pointer to these:
+    TensorIds mTensorIds;
+    DataPointers mDataPointers;
+    Workspace mWorkspace;
+
+    void SetUp() override
+    {
+        bool valid                                             = false;
+        std::tie(valid, mTensorIds, mDataPointers, mWorkspace) = GetParam();
+        descriptor = {"MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR",
+                      MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR,
+                      valid,
+                      {&mTensorIds, &mDataPointers, &mWorkspace}};
+    }
+};
+
+TEST_P(GraphApiVariantPack, CFuncions)
+{
+    auto [descrTextName, descrType, attrsValid, attributes] = descriptor;
+
+    // Create Desctiptor
+    miopenBackendDescriptor_t descr;
+    // clang-format off
+    miopenStatus_t status = miopenBackendCreateDescriptor(descrType, &descr);
+    ASSERT_EQ(status, miopenStatusSuccess) << descrTextName << " wasn't created";
+    ASSERT_NE(descr, nullptr) << "A null " << descrTextName << " was created";
+    // clang-format on
+
+    // Finalize before setting attributes
+    status = miopenBackendFinalize(descr);
+    if(status == miopenStatusSuccess)
+    {
+        miopenBackendDestroyDescriptor(descr);
+        FAIL() << descrTextName << " was finalized without setting attributes";
+    }
+
+    // Set attributes (should succeed)
+    bool anyAttributeFailed = false;
+    for(auto& attrPtr : attributes)
+    {
+        auto [isCorrect,
+              textName,
+              name,
+              type,
+              count,
+              data,
+              invalidType,
+              invalidTypeData,
+              invalidCount,
+              invalidCountData,
+              readBuffer] = attrPtr->getTestCase();
+
+        // clang-format off
+        status = miopenBackendSetAttribute(descr, name, invalidType, count, invalidTypeData);
+        EXPECT_NE(status, miopenStatusSuccess) << textName << " was set with invalid type";
+
+        status = miopenBackendSetAttribute(descr, name, type, invalidCount, invalidCountData);
+        EXPECT_NE(status, miopenStatusSuccess) << textName << " was set with invalid element count";
+
+        status = miopenBackendSetAttribute(descr, name, type, count, nullptr);
+        EXPECT_NE(status, miopenStatusSuccess) << textName << " was set with null array of elements";
+
+        status = miopenBackendSetAttribute(descr, name, type, count, data);
+        if(attrsValid) // implementation may postpone validating values to finalize()
+            EXPECT_EQ(status, miopenStatusSuccess) << textName << " wasn't set";
+        // clang-format on
+
+        anyAttributeFailed = anyAttributeFailed || (status != miopenStatusSuccess);
+    }
+
+    // Get attibute before finalizing (not a one should succeed)
+    bool anyAttributeGot = false;
+    for(auto& attrPtr : attributes)
+    {
+        auto [isCorrect,
+              textName,
+              name,
+              type,
+              count,
+              data,
+              invalidType,
+              invalidTypeData,
+              invalidCount,
+              invalidCountData,
+              readBuffer] = attrPtr->getTestCase();
+
+        int64_t elementCount = 0;
+
+        status = miopenBackendGetAttribute(descr, name, type, count, &elementCount, readBuffer);
+        EXPECT_NE(status, miopenStatusSuccess) << textName << " was retrieved before finalize()";
+
+        anyAttributeGot = anyAttributeGot || (status == miopenStatusSuccess);
+    }
+
+    // Stop further execution if needed
+    if(anyAttributeGot)
+    {
+        miopenBackendDestroyDescriptor(descr);
+        FAIL() << "Some attributes of " << descrTextName << " were retrieved before finalize()";
+    }
+    if(anyAttributeFailed && attrsValid)
+    {
+        miopenBackendDestroyDescriptor(descr);
+        FAIL() << "Not all attributes of " << descrTextName << " were set";
+    }
+
+    // Finalize
+    status = miopenBackendFinalize(descr);
+
+    // Stop further execution if finalize() acted incorrectly
+    if(attrsValid && status != miopenStatusSuccess)
+    {
+        miopenBackendDestroyDescriptor(descr);
+        FAIL() << descrTextName << " wasn't finalized";
+    }
+    else if(!attrsValid)
+    {
+        miopenBackendDestroyDescriptor(descr);
+        ASSERT_NE(status, miopenStatusSuccess)
+            << descrTextName << " was finalized on invalid attributes";
+
+        // No need to proceed with invalid attributes
+        return;
+    }
+
+    // Set attributes after finalizing (not a one should succeed)
+    bool anyAttributeSet = false;
+    for(auto& attrPtr : attributes)
+    {
+        auto [isCorrect,
+              textName,
+              name,
+              type,
+              count,
+              data,
+              invalidType,
+              invalidTypeData,
+              invalidCount,
+              invalidCountData,
+              readBuffer] = attrPtr->getTestCase();
+
+        status = miopenBackendSetAttribute(descr, name, type, count, data);
+        EXPECT_NE(status, miopenStatusSuccess) << textName << " was set after finalize()";
+
+        anyAttributeSet = anyAttributeSet || (status == miopenStatusSuccess);
+    }
+
+    // Stop if an attribute was set
+    if(anyAttributeSet)
+    {
+        miopenBackendDestroyDescriptor(descr);
+        ASSERT_NE(status, miopenStatusSuccess)
+            << "An attribute of " << descrTextName << " was set after finalize()";
+    }
+
+    // Get attributes
+    for(auto& attrPtr : attributes)
+    {
+        auto [isCorrect,
+              textName,
+              name,
+              type,
+              count,
+              data,
+              invalidType,
+              invalidTypeData,
+              invalidCount,
+              invalidCountData,
+              readBuffer] = attrPtr->getTestCase();
+
+        int64_t elementCount = 0;
+        // clang-format off
+        status = miopenBackendGetAttribute(descr, name, invalidType, count, &elementCount, invalidTypeData);
+        EXPECT_NE(status, miopenStatusSuccess) << textName << " was retrieved with invalid type";
+        status = miopenBackendGetAttribute(descr, name, type, invalidCount, &elementCount, invalidCountData);
+        EXPECT_NE(status, miopenStatusSuccess) << textName << " was retrieved with invalid element count";
+        status = miopenBackendGetAttribute(descr, name, type, count, nullptr, readBuffer);
+        EXPECT_NE(status, miopenStatusSuccess) << textName << " was retrieved with null element count";
+        status = miopenBackendGetAttribute(descr, name, type, count, &elementCount, nullptr);
+        EXPECT_NE(status, miopenStatusSuccess) << textName << " was retrieved with null array of elements";
+        status = miopenBackendGetAttribute(descr, name, type, count, &elementCount, readBuffer);
+        EXPECT_EQ(status, miopenStatusSuccess) << textName << " wasn't retrieved";
+        EXPECT_EQ(count, elementCount) << textName << " set and retrieved number of elements differ";
+        if(status == miopenStatusSuccess && count == elementCount)
+            EXPECT_TRUE(attrPtr->isSetAndGotEqual()) << textName << " set and retrieved values differ";
+        // clang-format on
+    }
+}
+
 static char mem[10][256];
 
-INSTANTIATE_TEST_SUITE_P(
-    ValidAttributes,
-    GraphApiVariantPackBuilder,
+auto ValidAttributesTestCases =
     testing::Values(GraphApiVariantPackTuple{true, {true, {}}, {true, {}}, {true, mem[9]}},
                     GraphApiVariantPackTuple{
                         true, {true, {1, 2, 3}}, {true, {mem[0], mem[1], mem[2]}}, {true, mem[9]}},
                     GraphApiVariantPackTuple{true,
                                              {true, {1, 2, 3, 4, 5}},
                                              {true, {mem[0], mem[1], mem[2], mem[3], mem[4]}},
-                                             {true, mem[9]}}));
-INSTANTIATE_TEST_SUITE_P(
-    InvalidIds,
-    GraphApiVariantPackBuilder,
-    testing::Combine(
-        testing::Values(false),
-        testing::Values(ValidatedVector<int64_t>{false, {1, 2, 1, 4, 5}},
-                        ValidatedVector<int64_t>{false, {1, 2, 3, 2, 5}},
-                        ValidatedVector<int64_t>{false, {1, 5, 3, 4, 5}}),
-        testing::Values(ValidatedVector<void*>{true, {mem[0], mem[1], mem[2], mem[3], mem[4]}},
-                        ValidatedVector<void*>{true, {mem[0], mem[1], mem[2]}},
-                        ValidatedVector<void*>{true, {}}),
-        testing::Values(ValidatedValue<void*>{true, mem[9]})));
-INSTANTIATE_TEST_SUITE_P(
-    InvalidPointers,
-    GraphApiVariantPackBuilder,
-    testing::Combine(
-        testing::Values(false),
-        testing::Values(ValidatedVector<int64_t>{true, {1, 2, 3, 4, 5}},
-                        ValidatedVector<int64_t>{true, {1, 2, 3}},
-                        ValidatedVector<int64_t>{true, {}}),
-        testing::Values(ValidatedVector<void*>{false, {nullptr, mem[1], mem[2], mem[3], mem[4]}},
-                        ValidatedVector<void*>{false, {mem[0], nullptr, mem[2], mem[3], mem[4]}},
-                        ValidatedVector<void*>{false, {mem[0], mem[1], nullptr, mem[3], mem[4]}},
-                        ValidatedVector<void*>{false, {mem[0], mem[1], mem[2], nullptr, mem[4]}},
-                        ValidatedVector<void*>{false, {mem[0], mem[1], mem[2], mem[3], nullptr}},
-                        ValidatedVector<void*>{false, {mem[0], mem[1], mem[2], mem[0], mem[4]}},
-                        ValidatedVector<void*>{false, {mem[0], mem[4], mem[2], mem[3], mem[4]}},
-                        ValidatedVector<void*>{false, {mem[0], mem[1], mem[2], mem[2], mem[4]}}),
-        testing::Values(ValidatedValue<void*>{false, nullptr},
-                        ValidatedValue<void*>{true, mem[2]},
-                        ValidatedValue<void*>{true, mem[9]})));
-INSTANTIATE_TEST_SUITE_P(
-    NullWorkspace,
-    GraphApiVariantPackBuilder,
-    testing::Combine(testing::Values(false),
-                     testing::Values(ValidatedVector<int64_t>{true, {}},
-                                     ValidatedVector<int64_t>{true, {1, 2, 3, 4, 5}}),
-                     testing::Values(ValidatedVector<void*>{true, {}},
-                                     ValidatedVector<void*>{
-                                         true, {mem[0], mem[1], mem[2], mem[3], mem[4]}}),
-                     testing::Values(ValidatedValue<void*>{false, nullptr})));
-INSTANTIATE_TEST_SUITE_P(InvalidWorkspace,
-                         GraphApiVariantPackBuilder,
-                         testing::Combine(testing::Values(false),
-                                          testing::Values(ValidatedVector<int64_t>{true, {}},
-                                                          ValidatedVector<int64_t>{
-                                                              true, {1, 2, 3, 4, 5}}),
-                                          testing::Values(ValidatedVector<void*>{
-                                              true, {mem[0], mem[1], mem[2], mem[3], mem[4]}}),
-                                          testing::Values(ValidatedValue<void*>{true, mem[0]},
-                                                          ValidatedValue<void*>{true, mem[1]},
-                                                          ValidatedValue<void*>{true, mem[2]},
-                                                          ValidatedValue<void*>{true, mem[3]},
-                                                          ValidatedValue<void*>{true, mem[4]})));
-INSTANTIATE_TEST_SUITE_P(
-    SizeMismatch,
-    GraphApiVariantPackBuilder,
-    testing::Combine(testing::Values(false),
-                     testing::Values(ValidatedVector<int64_t>{true, {}},
-                                     ValidatedVector<int64_t>{true, {1, 2, 3, 4, 5}},
-                                     ValidatedVector<int64_t>{false, {5, 2, 3, 4, 5}}),
-                     testing::Values(ValidatedVector<void*>{true, {mem[0]}},
-                                     ValidatedVector<void*>{false, {nullptr}},
-                                     ValidatedVector<void*>{true, {mem[0], mem[1], mem[2], mem[3]}},
-                                     ValidatedVector<void*>{false,
-                                                            {mem[0], mem[3], mem[2], mem[3]}}),
-                     testing::Values(ValidatedValue<void*>{true, mem[0]},
-                                     ValidatedValue<void*>{true, mem[1]},
-                                     ValidatedValue<void*>{true, mem[2]},
-                                     ValidatedValue<void*>{true, mem[3]},
-                                     ValidatedValue<void*>{true, mem[9]})));
+                                             {true, mem[9]}});
+
+auto InvalidIdsTestCases = testing::Combine(
+    testing::Values(false),
+    testing::Values(ValidatedVector<int64_t>{false, {1, 2, 1, 4, 5}},
+                    ValidatedVector<int64_t>{false, {1, 2, 3, 2, 5}},
+                    ValidatedVector<int64_t>{false, {1, 5, 3, 4, 5}}),
+    testing::Values(ValidatedVector<void*>{true, {mem[0], mem[1], mem[2], mem[3], mem[4]}},
+                    ValidatedVector<void*>{true, {mem[0], mem[1], mem[2]}},
+                    ValidatedVector<void*>{true, {}}),
+    testing::Values(ValidatedValue<void*>{true, mem[9]}));
+
+auto InvalidPointersTestCases = testing::Combine(
+    testing::Values(false),
+    testing::Values(ValidatedVector<int64_t>{true, {1, 2, 3, 4, 5}},
+                    ValidatedVector<int64_t>{true, {1, 2, 3}},
+                    ValidatedVector<int64_t>{true, {}}),
+    testing::Values(ValidatedVector<void*>{false, {nullptr, mem[1], mem[2], mem[3], mem[4]}},
+                    ValidatedVector<void*>{false, {mem[0], nullptr, mem[2], mem[3], mem[4]}},
+                    ValidatedVector<void*>{false, {mem[0], mem[1], nullptr, mem[3], mem[4]}},
+                    ValidatedVector<void*>{false, {mem[0], mem[1], mem[2], nullptr, mem[4]}},
+                    ValidatedVector<void*>{false, {mem[0], mem[1], mem[2], mem[3], nullptr}},
+                    ValidatedVector<void*>{false, {mem[0], mem[1], mem[2], mem[0], mem[4]}},
+                    ValidatedVector<void*>{false, {mem[0], mem[4], mem[2], mem[3], mem[4]}},
+                    ValidatedVector<void*>{false, {mem[0], mem[1], mem[2], mem[2], mem[4]}}),
+    testing::Values(ValidatedValue<void*>{false, nullptr},
+                    ValidatedValue<void*>{true, mem[2]},
+                    ValidatedValue<void*>{true, mem[9]}));
+
+auto NullWorkspace = testing::Combine(
+    testing::Values(false),
+    testing::Values(ValidatedVector<int64_t>{true, {}},
+                    ValidatedVector<int64_t>{true, {1, 2, 3, 4, 5}}),
+    testing::Values(ValidatedVector<void*>{true, {}},
+                    ValidatedVector<void*>{true, {mem[0], mem[1], mem[2], mem[3], mem[4]}}),
+    testing::Values(ValidatedValue<void*>{false, nullptr}));
+
+auto InvalidWorkspace = testing::Combine(
+    testing::Values(false),
+    testing::Values(ValidatedVector<int64_t>{true, {}},
+                    ValidatedVector<int64_t>{true, {1, 2, 3, 4, 5}}),
+    testing::Values(ValidatedVector<void*>{true, {mem[0], mem[1], mem[2], mem[3], mem[4]}}),
+    testing::Values(ValidatedValue<void*>{true, mem[0]},
+                    ValidatedValue<void*>{true, mem[1]},
+                    ValidatedValue<void*>{true, mem[2]},
+                    ValidatedValue<void*>{true, mem[3]},
+                    ValidatedValue<void*>{true, mem[4]}));
+
+auto SizeMismatch = testing::Combine(
+    testing::Values(false),
+    testing::Values(ValidatedVector<int64_t>{true, {}},
+                    ValidatedVector<int64_t>{true, {1, 2, 3, 4, 5}},
+                    ValidatedVector<int64_t>{false, {5, 2, 3, 4, 5}}),
+    testing::Values(ValidatedVector<void*>{true, {mem[0]}},
+                    ValidatedVector<void*>{false, {nullptr}},
+                    ValidatedVector<void*>{true, {mem[0], mem[1], mem[2], mem[3]}},
+                    ValidatedVector<void*>{false, {mem[0], mem[3], mem[2], mem[3]}}),
+    testing::Values(ValidatedValue<void*>{true, mem[0]},
+                    ValidatedValue<void*>{true, mem[1]},
+                    ValidatedValue<void*>{true, mem[2]},
+                    ValidatedValue<void*>{true, mem[3]},
+                    ValidatedValue<void*>{true, mem[9]}));
+
+INSTANTIATE_TEST_SUITE_P(ValidAttributes, GraphApiVariantPackBuilder, ValidAttributesTestCases);
+INSTANTIATE_TEST_SUITE_P(InvalidIds, GraphApiVariantPackBuilder, InvalidIdsTestCases);
+INSTANTIATE_TEST_SUITE_P(InvalidPointers, GraphApiVariantPackBuilder, InvalidPointersTestCases);
+INSTANTIATE_TEST_SUITE_P(NullWorkspace, GraphApiVariantPackBuilder, NullWorkspace);
+INSTANTIATE_TEST_SUITE_P(InvalidWorkspace, GraphApiVariantPackBuilder, InvalidWorkspace);
+INSTANTIATE_TEST_SUITE_P(SizeMismatch, GraphApiVariantPackBuilder, SizeMismatch);
+
+INSTANTIATE_TEST_SUITE_P(ValidAttributes, GraphApiVariantPack, ValidAttributesTestCases);
+INSTANTIATE_TEST_SUITE_P(InvalidIds, GraphApiVariantPack, InvalidIdsTestCases);
+INSTANTIATE_TEST_SUITE_P(InvalidPointers, GraphApiVariantPack, InvalidPointersTestCases);
+INSTANTIATE_TEST_SUITE_P(NullWorkspace, GraphApiVariantPack, NullWorkspace);
+INSTANTIATE_TEST_SUITE_P(InvalidWorkspace, GraphApiVariantPack, InvalidWorkspace);
+INSTANTIATE_TEST_SUITE_P(SizeMismatch, GraphApiVariantPack, SizeMismatch);

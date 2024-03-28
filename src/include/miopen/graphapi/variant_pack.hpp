@@ -28,11 +28,11 @@
 
 #include <miopen/algorithm.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/graphapi/graphapi.hpp>
 
 #include <cassert>
 #include <cstdint>
 #include <set>
-#include <tuple>
 #include <vector>
 
 namespace miopen {
@@ -94,6 +94,7 @@ public:
 
 private:
     friend class VariantPackBuilder;
+    friend class BackendVariantPackDescriptor;
 };
 
 class VariantPackBuilder
@@ -204,6 +205,28 @@ private:
                          mVariantPack.mDataPointers.cend(),
                          mVariantPack.mWorkspace) == mVariantPack.mDataPointers.cend();
     }
+};
+
+class BackendVariantPackDescriptor : public BackendDescriptor
+{
+private:
+    VariantPackBuilder mBuilder;
+    VariantPack mVariantPack;
+
+public:
+    void virtual setAttribute(miopenBackendAttributeName_t attributeName,
+                              miopenBackendAttributeType_t attributeType,
+                              int64_t elementCount,
+                              void* arrayOfElements) override;
+    void virtual finalize() override;
+    void virtual getAttribute(miopenBackendAttributeName_t attributeName,
+                              miopenBackendAttributeType_t attributeType,
+                              int64_t requestedElementCount,
+                              int64_t* elementCount,
+                              void* arrayOfElements) override;
+
+    const VariantPack* getVariantPack() const { return &mVariantPack; }
+    VariantPack* getVariantPack() { return &mVariantPack; }
 };
 
 } // namespace graphapi
