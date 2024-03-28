@@ -776,7 +776,7 @@ struct ctc_driver : test_driver
         losses = tensor<T>{lossesDims};
         std::fill(losses.begin(), losses.end(), T(0));
 
-        size_t labels_sz = std::accumulate(labelLengths.begin(), labelLengths.end(), 0);
+        size_t labels_sz = std::accumulate(labelLengths.begin(), labelLengths.end(), 0ULL);
 
         auto labels  = std::vector<int>(labels_sz);
         int blank_lb = ctcLossDesc.blank_label_id;

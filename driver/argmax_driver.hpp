@@ -54,7 +54,7 @@ int32_t mloArgmaxForwardRunHost(miopenTensorDescriptor_t inputDesc,
 
     int32_t reduce_size = static_cast<int32_t>(input_dims[dim]);
     auto output_numel =
-        std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
+        std::accumulate(output_dims.begin(), output_dims.end(), 1LL, std::multiplies<int64_t>());
 
     auto inner_size = std::accumulate(
         input_dims.begin() + dim + 1, input_dims.end(), 1ULL, std::multiplies<uint64_t>());

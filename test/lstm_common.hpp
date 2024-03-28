@@ -465,7 +465,7 @@ struct verify_forward_infer_lstm : verify_forward_lstm<T>
         {
             reserveSpaceSize /= sizeof(T);
             reserveSpaceSize -=
-                nLayers * std::accumulate(batch_seq.begin(), batch_seq.begin() + seqLength, 0) *
+                nLayers * std::accumulate(batch_seq.begin(), batch_seq.begin() + seqLength, 0ULL) *
                 hiddenSize * bi;
             reserveSpaceSize *= 2;
             reserveSpaceSize *= sizeof(T);
@@ -771,7 +771,7 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
             outputCPPDescs, outputDescs, batch_seq, out_h, miopen::deref(rnnDesc).dataType);
 
         size_t inputBatchLenSum =
-            std::accumulate(batch_seq.begin(), batch_seq.begin() + seqLength, 0);
+            std::accumulate(batch_seq.begin(), batch_seq.begin() + seqLength, 0ULL);
 
         size_t reserveSpaceSize;
         reserveSpaceSize = 2 * 6 * miopen::deref(rnnDesc).nLayers * inputBatchLenSum * out_h;
@@ -1075,7 +1075,8 @@ verify_backward_data_lstm<T>::cpu() const
     std::vector<T> dhx(initHidden.size());
     std::vector<T> dcx(initHidden.size());
 
-    size_t inputBatchLenSum = std::accumulate(batch_seq.begin(), batch_seq.begin() + seqLength, 0);
+    size_t inputBatchLenSum =
+        std::accumulate(batch_seq.begin(), batch_seq.begin() + seqLength, 0ULL);
     size_t reserveSpaceSize;
     reserveSpaceSize = 2ULL * 6 * miopen::deref(rnnDesc).nLayers * inputBatchLenSum * hiddenSize *
                        ((dirMode != 0) ? 2 : 1);
@@ -1778,7 +1779,7 @@ struct lstm_basic_driver : test_driver
         std::vector<T> rsvgpu(reserveSpaceSize, T(0));
 
         size_t inputBatchLenSum =
-            std::accumulate(batchSeq.begin(), batchSeq.begin() + seqLength, 0);
+            std::accumulate(batchSeq.begin(), batchSeq.begin() + seqLength, 0ULL);
         reserveSpaceSize =
             2ULL * 6 * numLayers * inputBatchLenSum * hiddenSize * ((dirMode != 0) ? 2 : 1);
         if(useDropout != 0)

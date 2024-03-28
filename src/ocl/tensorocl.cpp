@@ -1432,9 +1432,8 @@ void SetTensor(const Handle& handle,
 #ifndef NDEBUG
     if(yDesc.GetSize() != yDesc_flat.GetSize())
     {
-        MIOPEN_LOG_I2(__func__ << std::endl
-                               << "real descriptor: " << yDesc << std::endl
-                               << "flat descriptor: " << yDesc_flat << std::endl);
+        MIOPEN_LOG_I2("real descriptor: " << yDesc);
+        MIOPEN_LOG_I2("flat descriptor: " << yDesc_flat);
     }
 #endif
 
@@ -1586,9 +1585,8 @@ void ScaleTensor(const Handle& handle,
 #ifndef NDEBUG
     if(yDesc.GetSize() != yDesc_flat.GetSize())
     {
-        MIOPEN_LOG_I2(__func__ << std::endl
-                               << "real descriptor: " << yDesc << std::endl
-                               << "flat descriptor: " << yDesc_flat << std::endl);
+        MIOPEN_LOG_I2("real descriptor: " << yDesc);
+        MIOPEN_LOG_I2("flat descriptor: " << yDesc_flat);
     }
 #endif
 
@@ -1765,11 +1763,10 @@ void CopyTensor(const Handle& handle,
 #ifndef NDEBUG
     if(srcDesc.GetSize() != srcDesc_flat.GetSize())
     {
-        MIOPEN_LOG_I2(__func__ << std::endl
-                               << "src real descriptor: " << srcDesc << std::endl
-                               << "src flat descriptor: " << srcDesc_flat << std::endl
-                               << "dst real descriptor: " << dstDesc << std::endl
-                               << "dst flat descriptor: " << dstDesc_flat << std::endl);
+        MIOPEN_LOG_I2("src real descriptor: " << srcDesc);
+        MIOPEN_LOG_I2("src flat descriptor: " << srcDesc_flat);
+        MIOPEN_LOG_I2("dst real descriptor: " << dstDesc);
+        MIOPEN_LOG_I2("dst flat descriptor: " << dstDesc_flat);
     }
 #endif
 
@@ -1975,11 +1972,10 @@ void CastTensor(const Handle& handle,
 #ifndef NDEBUG
     if(srcDesc.GetSize() != srcDesc_flat.GetSize())
     {
-        MIOPEN_LOG_I2(__func__ << std::endl
-                               << "src real descriptor: " << srcDesc << std::endl
-                               << "src flat descriptor: " << srcDesc_flat << std::endl
-                               << "dst real descriptor: " << dstDesc << std::endl
-                               << "dst flat descriptor: " << dstDesc_flat << std::endl);
+        MIOPEN_LOG_I2("src real descriptor: " << srcDesc);
+        MIOPEN_LOG_I2("src flat descriptor: " << srcDesc_flat);
+        MIOPEN_LOG_I2("dst real descriptor: " << dstDesc);
+        MIOPEN_LOG_I2("dst flat descriptor: " << dstDesc_flat);
     }
 #endif
 
@@ -2259,16 +2255,14 @@ void TransformTensor(const Handle& handle,
 #ifndef NDEBUG
         if(xDesc.GetSize() != xDesc_flat.GetSize())
         {
-            MIOPEN_LOG_I2(__func__ << std::endl
-                                   << "real descriptor: " << xDesc << std::endl
-                                   << "flat descriptor: " << xDesc_flat << std::endl);
+            MIOPEN_LOG_I2("x real descriptor: " << xDesc);
+            MIOPEN_LOG_I2("x flat descriptor: " << xDesc_flat);
         }
 
         if(yDesc.GetSize() != yDesc_flat.GetSize())
         {
-            MIOPEN_LOG_I2(__func__ << std::endl
-                                   << "real descriptor: " << yDesc << std::endl
-                                   << "flat descriptor: " << yDesc_flat << std::endl);
+            MIOPEN_LOG_I2("y real descriptor: " << yDesc);
+            MIOPEN_LOG_I2("y flat descriptor: " << yDesc_flat);
         }
 #endif
 

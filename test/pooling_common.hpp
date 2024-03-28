@@ -283,7 +283,7 @@ struct verify_backward_pooling
                             std::size_t mx_idx_dim = mx_idx;
                             mx_idx_dim /= std::accumulate(in_dim.begin() + i + 3,
                                                           in_dim.end(),
-                                                          1,
+                                                          1ULL,
                                                           std::multiplies<std::size_t>());
                             mx_idx_dim %= in_dim[i + 2];
                             idx[i + 2] = mx_idx_dim;
