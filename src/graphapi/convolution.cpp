@@ -396,8 +396,7 @@ void BackendConvolutionDescriptor::getDilations(miopenBackendAttributeType_t att
         std::copy_n(dilations.begin(),
                     // WORKAROUND: building on Windows is failing due to conflicting definitions
                     // of std::min() between the MSVC standard library and HIP Clang wrappers.
-                    *elementCount < requestedElementCount ? *elementCount
-                                                          : requestedElementCount,
+                    *elementCount < requestedElementCount ? *elementCount : requestedElementCount,
                     static_cast<int64_t*>(arrayOfElements));
     }
     else
@@ -418,8 +417,7 @@ void BackendConvolutionDescriptor::getFilterStrides(miopenBackendAttributeType_t
         std::copy_n(strides.begin(),
                     // WORKAROUND: building on Windows is failing due to conflicting definitions
                     // of std::min() between the MSVC standard library and HIP Clang wrappers.
-                    *elementCount < requestedElementCount ? *elementCount
-                                                          : requestedElementCount,
+                    *elementCount < requestedElementCount ? *elementCount : requestedElementCount,
                     static_cast<int64_t*>(arrayOfElements));
     }
     else
@@ -440,8 +438,7 @@ void BackendConvolutionDescriptor::getPrePaddings(miopenBackendAttributeType_t a
         std::copy_n(pads.begin(),
                     // WORKAROUND: building on Windows is failing due to conflicting definitions
                     // of std::min() between the MSVC standard library and HIP Clang wrappers.
-                    *elementCount < requestedElementCount ? *elementCount
-                                                          : requestedElementCount,
+                    *elementCount < requestedElementCount ? *elementCount : requestedElementCount,
                     static_cast<int64_t*>(arrayOfElements));
     }
     else
@@ -462,8 +459,7 @@ void BackendConvolutionDescriptor::getPostPaddings(miopenBackendAttributeType_t 
         std::copy_n(postPads.begin(),
                     // WORKAROUND: building on Windows is failing due to conflicting definitions
                     // of std::min() between the MSVC standard library and HIP Clang wrappers.
-                    *elementCount < requestedElementCount ? *elementCount
-                                                          : requestedElementCount,
+                    *elementCount < requestedElementCount ? *elementCount : requestedElementCount,
                     static_cast<int64_t*>(arrayOfElements));
     }
     else
