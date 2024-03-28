@@ -98,8 +98,8 @@ public:
                                    int64_t invalidCount,
                                    std::initializer_list<ValueType> values)
         : mValues(values),
-          mInvalidTypeValues(std::max(1ul, values.size())),
-          mInvalidCountValues(std::max(1l, invalidCount),
+          mInvalidTypeValues(std::max(static_cast<decltype(values.size())>(1), values.size())),
+          mInvalidCountValues(std::max(static_cast<decltype(invalidCount)>(1), invalidCount),
                               values.size() > 0 ? *values.begin() : ValueType{}),
           mReadValues(values.size())
     {
