@@ -238,7 +238,7 @@ extern "C" miopenStatus_t miopenAmpAdam(miopenHandle_t handle,
         (maxExpAvgSqInDesc != nullptr) ? &miopen::deref(maxExpAvgSqInDesc) : nullptr;
     auto gradScaleDescPtr = (gradScaleDesc != nullptr) ? &miopen::deref(gradScaleDesc) : nullptr;
     auto foundInfDescPtr  = (foundInfDesc != nullptr) ? &miopen::deref(foundInfDesc) : nullptr;
-    auto paramOutDescPtr  = (paramInDesc != nullptr) ? &miopen::deref(paramInDesc) : nullptr;
+    auto paramOutDescPtr  = (paramOutDesc != nullptr) ? &miopen::deref(paramOutDesc) : nullptr;
     auto expAvgOutDescPtr = (expAvgOutDesc != nullptr) ? &miopen::deref(expAvgOutDesc) : nullptr;
     auto expAvgSqOutDescPtr =
         (expAvgSqOutDesc != nullptr) ? &miopen::deref(expAvgSqOutDesc) : nullptr;

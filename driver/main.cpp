@@ -269,6 +269,10 @@ int main(int argc, char* argv[])
     {
         drv = new AdamDriver<float16, float>();
     }
+    else if(base_arg == "ampadam")
+    {
+        drv = new AdamDriver<float, float, true, float16>();
+    }
     else
     {
         printf("Incorrect BaseArg\n");
