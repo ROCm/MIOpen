@@ -59,13 +59,14 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
                                const miopen::adam::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
-    auto dtype  = problem.GetParamDesc().GetType();
 
     {
+        auto param_dtype = miopen::GetDataType(problem.GetParamDesc().GetType());
+        auto grad_dtype  = miopen::GetDataType(problem.GetGradDesc().GetType());
+
         const auto build_params = KernelBuildParameters{
-            {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-            {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-            {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
+            {"PARAM_TYPE", param_dtype == "bfloat16" ? "ushort" : param_dtype},
+            {"GRAD_TYPE", grad_dtype == "bfloat16" ? "ushort" : grad_dtype},
         };
 
         auto kernel = KernelInfo{};
@@ -80,7 +81,7 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
 
         result.construction_params.push_back(kernel);
 
-        if(problem.ExistStepOut())
+        if(problem.IsAmp() && problem.ExistStepOut())
         {
             auto kernel_update_step        = kernel;
             kernel_update_step.kernel_name = "AdamUpdateStep";
