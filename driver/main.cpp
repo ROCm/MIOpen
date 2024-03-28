@@ -27,6 +27,7 @@
 #include <cstdio>
 
 #include "activ_driver.hpp"
+#include "addlayernorm_driver.hpp"
 #include "bn_driver.hpp"
 #include "conv_driver.hpp"
 #include "CBAInferFusion_driver.hpp"
@@ -44,6 +45,7 @@
 #include "reduce_driver.hpp"
 #include "layernorm_driver.hpp"
 #include "sum_driver.hpp"
+#include "t5layernorm_driver.hpp"
 #include "argmax_driver.hpp"
 #include "cat_driver.hpp"
 #include <miopen/config.h>
@@ -259,6 +261,30 @@ int main(int argc, char* argv[])
     else if(base_arg == "catbfp16")
     {
         drv = new CatDriver<bfloat16>();
+    }
+    else if(base_arg == "addlayernorm")
+    {
+        drv = new AddLayerNormDriver<float, float>();
+    }
+    else if(base_arg == "addlayernormfp16")
+    {
+        drv = new AddLayerNormDriver<float16, float>();
+    }
+    else if(base_arg == "addlayernormbfp16")
+    {
+        drv = new AddLayerNormDriver<float, float>();
+    }
+    else if(base_arg == "t5layernorm")
+    {
+        drv = new T5LayerNormDriver<float, float>();
+    }
+    else if(base_arg == "t5layernormfp16")
+    {
+        drv = new T5LayerNormDriver<float16, float>();
+    }
+    else if(base_arg == "t5layernormbfp16")
+    {
+        drv = new T5LayerNormDriver<bfloat16, float>();
     }
     else
     {
