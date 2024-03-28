@@ -5324,6 +5324,7 @@ typedef enum
     miopenTensorSoftmaxDY    = 14,
 #endif
 
+    miopenTensorArgumentIsScalar = 1U << 31,
 } miopenTensorArgumentId_t;
 
 /*! @enum miopenTensorArgumentId_t
@@ -5497,7 +5498,7 @@ MIOPEN_EXPORT miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
                                                  size_t* numSolutions,
                                                  size_t maxSolutions);
 
-/*! @brief Values of a tensor argument for the miopenRunSolution function.
+/*! @brief Values of a tensor or scalar argument for the miopenRunSolution function.
  */
 struct miopenTensorArgument_t
 {
@@ -5510,7 +5511,8 @@ struct miopenTensorArgument_t
      * is no way to tell from the API. Intended for the future use.
      */
     miopenTensorDescriptor_t* descriptor;
-    /* @brief Pointer to the device memory buffer to use for the operation.
+    /* @brief Pointer to the device memory buffer to use for the operation or to the host memory if
+     * the value is scalar.
      */
     void* buffer;
 };
