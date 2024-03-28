@@ -515,7 +515,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
     const auto tensors = ConvFwdTensors{xDesc, x, wDesc, w, yDesc, y};
     ValidateTensors(tensors);
-    ValidateAlphaBeta(alpha, beta);
 
     ConvForwardCheckNumerics(handle, tensors, [&]() {
         ValidateGroupCount(xDesc, wDesc, *this);
@@ -523,15 +522,19 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         const auto algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), conv::Direction::Forward)};
 
-        const auto problem =
-            conv::ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+        const auto problem = conv::ProblemDescription{
+            xDesc, wDesc, yDesc, *this, conv::Direction::Forward, 0, alpha, beta};
         const auto network_config = problem.MakeNetworkConfig();
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(invoker)
         {
-            const auto& invoke_ctx = conv::DataInvokeParams{
-                tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetFwd()};
+            const auto& invoke_ctx = conv::DataInvokeParams{tensors,
+                                                            workSpace,
+                                                            workSpaceSize,
+                                                            this->attribute.gfx90aFp16alt.GetFwd(),
+                                                            alpha,
+                                                            beta};
             (*invoker)(handle, invoke_ctx);
             return;
         }
