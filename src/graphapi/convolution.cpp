@@ -23,6 +23,17 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
+// WORKAROUND: building on Windows is failing due to conflicting definitions
+// of std::min() between the MSVC standard library and HIP Clang wrappers.
+// this avoids including cuda_wrappers version of <algorithm>
+#define __CLANG_CUDA_WRAPPERS_ALGORITHM
+#define __CLANG_CUDA_WRAPPERS_ALGORITHM // NOLINT: silent clang-tidy 'reserved identifier'
+// silent unused macro warning
+#ifdef __CLANG_CUDA_WRAPPERS_ALGORITHM
+#endif
+// end of workaround.
+
 #include <miopen/algorithm.hpp>
 #include <miopen/graphapi/convolution.hpp>
 #include <miopen/errors.hpp>
