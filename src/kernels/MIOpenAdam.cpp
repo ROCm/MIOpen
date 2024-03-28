@@ -37,11 +37,11 @@ inline __device__ void AdamInternal(size_t gid,
                                     T1* exp_avg_in,
                                     T1* exp_avg_sq_in,
                                     T1* max_exp_avg_sq_in,
-                                    double lr,
-                                    double beta1,
-                                    double beta2,
-                                    double weight_decay,
-                                    double eps,
+                                    T2 lr,
+                                    T2 beta1,
+                                    T2 beta2,
+                                    T2 weight_decay,
+                                    T2 eps,
                                     int step,
                                     bool amsgrad,
                                     bool maximize,
@@ -51,9 +51,9 @@ inline __device__ void AdamInternal(size_t gid,
                                     T1* exp_avg_sq_out,
                                     T1* max_exp_avg_sq_out)
 {
-    T1 param      = param_in[gid];
-    T1 exp_avg    = exp_avg_in[gid];
-    T1 exp_avg_sq = exp_avg_sq_in[gid];
+    T2 param      = param_in[gid];
+    T2 exp_avg    = exp_avg_in[gid];
+    T2 exp_avg_sq = exp_avg_sq_in[gid];
 
     float bias_correction1 = 1 - pow(beta1, step);
     float bias_correction2 = 1 - pow(beta2, step);
@@ -66,10 +66,10 @@ inline __device__ void AdamInternal(size_t gid,
     exp_avg    = exp_avg * beta1 + grad * (1 - beta1);
     exp_avg_sq = exp_avg_sq * beta2 + grad * grad * (1 - beta2);
 
-    T1 denom;
+    T2 denom;
     if(amsgrad)
     {
-        T1 max_exp_avg_sq = max_exp_avg_sq_in[gid];
+        T2 max_exp_avg_sq = max_exp_avg_sq_in[gid];
         if(exp_avg_sq > max_exp_avg_sq)
         {
             max_exp_avg_sq          = exp_avg_sq;
@@ -93,23 +93,23 @@ inline __device__ void AdamInternal(size_t gid,
     exp_avg_sq_out[gid] = exp_avg_sq;
 }
 
-extern "C" __global__ void AdamPacked(PARAM_TYPE* params_in,
-                                      PARAM_TYPE* grad_in,
-                                      PARAM_TYPE* exp_avg_in,
-                                      PARAM_TYPE* exp_avg_sq_in,
-                                      PARAM_TYPE* max_exp_avg_sq_in,
+extern "C" __global__ void AdamPacked(PTYPE* params_in,
+                                      PTYPE* grad_in,
+                                      PTYPE* exp_avg_in,
+                                      PTYPE* exp_avg_sq_in,
+                                      PTYPE* max_exp_avg_sq_in,
                                       int step,
-                                      double lr,
-                                      double beta1,
-                                      double beta2,
-                                      double weight_decay,
-                                      double eps,
+                                      float lr,
+                                      float beta1,
+                                      float beta2,
+                                      float weight_decay,
+                                      float eps,
                                       bool amsgrad,
                                       bool maximize,
-                                      PARAM_TYPE* param_out,
-                                      PARAM_TYPE* exp_avg_out,
-                                      PARAM_TYPE* exp_avg_sq_out,
-                                      PARAM_TYPE* max_exp_avg_sq_out,
+                                      PTYPE* param_out,
+                                      PTYPE* exp_avg_out,
+                                      PTYPE* exp_avg_sq_out,
+                                      PTYPE* max_exp_avg_sq_out,
                                       long input_size)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -117,47 +117,47 @@ extern "C" __global__ void AdamPacked(PARAM_TYPE* params_in,
     if(gid >= input_size)
         return;
 
-    AdamInternal<PARAM_TYPE, PARAM_TYPE>(gid,
-                                         params_in,
-                                         grad_in[gid],
-                                         exp_avg_in,
-                                         exp_avg_sq_in,
-                                         max_exp_avg_sq_in,
-                                         lr,
-                                         beta1,
-                                         beta2,
-                                         weight_decay,
-                                         eps,
-                                         step,
-                                         amsgrad,
-                                         maximize,
-                                         param_out,
-                                         nullptr,
-                                         exp_avg_out,
-                                         exp_avg_sq_out,
-                                         max_exp_avg_sq_out);
+    AdamInternal<PTYPE, CTYPE>(gid,
+                               params_in,
+                               grad_in[gid],
+                               exp_avg_in,
+                               exp_avg_sq_in,
+                               max_exp_avg_sq_in,
+                               lr,
+                               beta1,
+                               beta2,
+                               weight_decay,
+                               eps,
+                               step,
+                               amsgrad,
+                               maximize,
+                               param_out,
+                               nullptr,
+                               exp_avg_out,
+                               exp_avg_sq_out,
+                               max_exp_avg_sq_out);
 }
 
-extern "C" __global__ void AmpAdamPacked(PARAM_TYPE* param_in,
-                                         GRAD_TYPE* grad_in,
-                                         PARAM_TYPE* exp_avg_in,
-                                         PARAM_TYPE* exp_avg_sq_in,
-                                         PARAM_TYPE* max_exp_avg_sq_in,
+extern "C" __global__ void AmpAdamPacked(PTYPE* param_in,
+                                         GTYPE* grad_in,
+                                         PTYPE* exp_avg_in,
+                                         PTYPE* exp_avg_sq_in,
+                                         PTYPE* max_exp_avg_sq_in,
                                          int32_t* grad_scale,
                                          bool* found_inf,
                                          int* step,
-                                         double lr,
-                                         double beta1,
-                                         double beta2,
-                                         double weight_decay,
-                                         double eps,
+                                         float lr,
+                                         float beta1,
+                                         float beta2,
+                                         float weight_decay,
+                                         float eps,
                                          bool amsgrad,
                                          bool maximize,
-                                         PARAM_TYPE* param_out,
+                                         PTYPE* param_out,
                                          half* param_out_fp16,
-                                         PARAM_TYPE* exp_avg_out,
-                                         PARAM_TYPE* exp_avg_sq_out,
-                                         PARAM_TYPE* max_exp_avg_sq_out,
+                                         PTYPE* exp_avg_out,
+                                         PTYPE* exp_avg_sq_out,
+                                         PTYPE* max_exp_avg_sq_out,
                                          long input_size)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -181,27 +181,28 @@ extern "C" __global__ void AmpAdamPacked(PARAM_TYPE* param_in,
     if(skip)
         return;
 
-    PARAM_TYPE grad = grad_in[gid] / scale_factor;
+    CTYPE grad = grad_in[gid];
+    grad /= scale_factor;
 
-    AdamInternal<PARAM_TYPE, GRAD_TYPE>(gid,
-                                        param_in,
-                                        grad,
-                                        exp_avg_in,
-                                        exp_avg_sq_in,
-                                        max_exp_avg_sq_in,
-                                        lr,
-                                        beta1,
-                                        beta2,
-                                        weight_decay,
-                                        eps,
-                                        step_val,
-                                        amsgrad,
-                                        maximize,
-                                        param_out,
-                                        param_out_fp16,
-                                        exp_avg_out,
-                                        exp_avg_sq_out,
-                                        max_exp_avg_sq_out);
+    AdamInternal<PTYPE, CTYPE>(gid,
+                               param_in,
+                               grad,
+                               exp_avg_in,
+                               exp_avg_sq_in,
+                               max_exp_avg_sq_in,
+                               lr,
+                               beta1,
+                               beta2,
+                               weight_decay,
+                               eps,
+                               step_val,
+                               amsgrad,
+                               maximize,
+                               param_out,
+                               param_out_fp16,
+                               exp_avg_out,
+                               exp_avg_sq_out,
+                               max_exp_avg_sq_out);
 }
 
 extern "C" __global__ void AdamUpdateStep(bool* found_inf, int* step)

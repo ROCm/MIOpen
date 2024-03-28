@@ -53,14 +53,14 @@ struct InvokeParams : public miopen::InvokeParams
     ConstData_t stepIn        = nullptr;
     Data_t stepOut            = nullptr;
 
-    int step            = 0;
-    double lr           = 0.0;
-    double beta1        = 0.0;
-    double beta2        = 0.0;
-    double weight_decay = 0.0;
-    double eps          = 0.0;
-    bool amsgrad        = false;
-    bool maximize       = false;
+    int step           = 0;
+    float lr           = 0.0;
+    float beta1        = 0.0;
+    float beta2        = 0.0;
+    float weight_decay = 0.0;
+    float eps          = 0.0;
+    bool amsgrad       = false;
+    bool maximize      = false;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }

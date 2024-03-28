@@ -63,10 +63,12 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
     {
         auto param_dtype = miopen::GetDataType(problem.GetParamDesc().GetType());
         auto grad_dtype  = miopen::GetDataType(problem.GetGradDesc().GetType());
+        auto ptype_size  = miopen::get_data_size(problem.GetParamDesc().GetType());
 
         const auto build_params = KernelBuildParameters{
-            {"PARAM_TYPE", param_dtype == "bfloat16" ? "ushort" : param_dtype},
-            {"GRAD_TYPE", grad_dtype == "bfloat16" ? "ushort" : grad_dtype},
+            {"PTYPE", param_dtype == "bfloat16" ? "ushort" : param_dtype},
+            {"GTYPE", grad_dtype == "bfloat16" ? "ushort" : grad_dtype},
+            {"CTYPE", ptype_size > 4 ? "double" : "float"},
         };
 
         auto kernel = KernelInfo{};
