@@ -64,6 +64,8 @@ public:
     const std::unordered_map<size_t, std::string> solver_map;
     const std::vector<float> features_mean;
     const std::vector<float> features_std;
+    const std::vector<float> test_features_mean;
+    const std::vector<float> test_features_std;
     Metadata(const std::string& arch);
     size_t EncodeDirection(miopen::conv::Direction dir) const;
     size_t EncodePrecision(miopenDataType_t data_type) const;
