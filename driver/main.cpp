@@ -31,6 +31,7 @@
 #include "conv_driver.hpp"
 #include "CBAInferFusion_driver.hpp"
 #include "driver.hpp"
+#include "getitem_driver.hpp"
 #include "groupnorm_driver.hpp"
 #include "gemm_driver.hpp"
 #include "lrn_driver.hpp"
@@ -259,6 +260,18 @@ int main(int argc, char* argv[])
     else if(base_arg == "catbfp16")
     {
         drv = new CatDriver<bfloat16>();
+    }
+    else if(base_arg == "getitem")
+    {
+        drv = new GetitemDriver<float>();
+    }
+    else if(base_arg == "getitemfp16")
+    {
+        drv = new GetitemDriver<float16>();
+    }
+    else if(base_arg == "getitembfp16")
+    {
+        drv = new GetitemDriver<bfloat16>();
     }
     else
     {

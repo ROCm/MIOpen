@@ -68,6 +68,7 @@
  * @defgroup argmax
  * @defgroup groupnorm
  * @defgroup cat
+ * @defgroup getitem
  *
  */
 
@@ -6325,6 +6326,40 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
 /** @} */
 // CLOSEOUT BackendAPI DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+// GetItem APIs
+/** @addtogroup getitem
+ *
+ *  @{
+ */
+/*! @brief Execute a getitem backward layer
+ *
+ * @param handle         MIOpen handle (input)
+ * @param xCount         Number of input tensor x (input)
+ * @param xDescs         Tensor descriptor of input tensor x (input)
+ * @param xs             Source data tensor x (input)
+ * @param yDesc          Tensor descriptor of output tensor y (input)
+ * @param y              Data tensor y (output)
+ * @param dim            Concatenation dimension (input)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetitemBackwardForward(miopenHandle_t handle,
+                                                          const miopenTensorDescriptor_t dyDesc,
+                                                          const void* dy,
+                                                          const miopenTensorDescriptor_t xDesc,
+                                                          const void* x,
+                                                          const miopenTensorDescriptor_t* indexDesc,
+                                                          const void* const* index,
+                                                          const miopenTensorDescriptor_t yDesc,
+                                                          const void* y,
+                                                          const miopenTensorDescriptor_t dxDesc,
+                                                          void* dx,
+                                                          const int32_t dim);
+
+/** @} */
+// CLOSEOUT GETITEM DOXYGEN GROUP
+#endif
 
 #ifdef __cplusplus
 }
