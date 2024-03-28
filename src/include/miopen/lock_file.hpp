@@ -94,9 +94,8 @@ public:
 
     bool try_lock()
     {
-        return TryLockOperation("lock", MIOPEN_GET_FN_NAME, [&]() {
-            return std::try_lock(access_mutex, flock) != 0;
-        });
+        return TryLockOperation(
+            "lock", MIOPEN_GET_FN_NAME, [&]() { return std::try_lock(access_mutex, flock) != 0; });
     }
 
     bool try_lock_shared()
@@ -197,8 +196,9 @@ private:
         // clang-format on
     }
 
-    void
-    LockOperation(const std::string& op_name, const std::string_view from, std::function<void()>&& op)
+    void LockOperation(const std::string& op_name,
+                       const std::string_view from,
+                       std::function<void()>&& op)
     {
         try
         {

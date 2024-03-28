@@ -4632,7 +4632,7 @@ private:
 };
 
 struct PerformanceConfigHipImplicitGemm3DGroupWrwXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemm3DGroupWrwXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemm3DGroupWrwXdlops>
 {
     int index;
     std::string kernel_id;
@@ -4657,11 +4657,6 @@ struct PerformanceConfigHipImplicitGemm3DGroupWrwXdlops
         return IsValid(problem);
     }
     bool IsValid(const miopen::conv::ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemm3DGroupWrwXdlops& other) const;
 
 private:
@@ -4713,7 +4708,7 @@ private:
 };
 
 struct PerformanceConfigHipImplicitGemm3DGroupBwdXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemm3DGroupBwdXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemm3DGroupBwdXdlops>
 {
     int index;
     std::string kernel_id;
@@ -4738,11 +4733,6 @@ struct PerformanceConfigHipImplicitGemm3DGroupBwdXdlops
         return IsValid(problem);
     }
     bool IsValid(const miopen::conv::ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemm3DGroupBwdXdlops& other) const;
 
 private:
@@ -4794,7 +4784,7 @@ private:
 };
 
 struct PerformanceConfigHipImplicitGemmGroupBwdXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemmGroupBwdXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmGroupBwdXdlops>
 {
     int index;
     std::string kernel_id;
@@ -4819,11 +4809,6 @@ struct PerformanceConfigHipImplicitGemmGroupBwdXdlops
         return IsValid(problem);
     }
     bool IsValid(const miopen::conv::ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemmGroupBwdXdlops& other) const;
 
 private:
@@ -4874,7 +4859,7 @@ private:
 };
 
 struct PerformanceConfigHipImplicitGemmGroupWrwXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemmGroupWrwXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmGroupWrwXdlops>
 {
     int index;
     std::string kernel_id;
@@ -4899,11 +4884,6 @@ struct PerformanceConfigHipImplicitGemmGroupWrwXdlops
         return IsValid(problem);
     }
     bool IsValid(const miopen::conv::ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemmGroupWrwXdlops& other) const;
 
 private:
@@ -5026,7 +5006,7 @@ private:
 };
 
 struct PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops>
 {
     int index;
     std::string kernel_id;
@@ -5051,11 +5031,6 @@ struct PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops
         return IsValid(problem);
     }
     bool IsValid(const miopen::conv::ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops& other) const;
 
 private:
@@ -5103,7 +5078,7 @@ private:
 };
 
 struct PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops>
 {
     int index;
     std::string kernel_id;
@@ -5128,11 +5103,6 @@ struct PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops
         return IsValid(problem);
     }
     bool IsValid(const miopen::conv::ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops& other) const;
 
 private:

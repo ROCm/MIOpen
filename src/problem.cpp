@@ -31,6 +31,8 @@
 #include <miopen/conv/problem_description.hpp>
 #include <miopen/convolution.hpp>
 #include <miopen/conv_algo_name.hpp>
+#include <miopen/softmax/problem_description.hpp>
+#include <miopen/softmax/solvers.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/fusion_plan.hpp>
@@ -127,11 +129,6 @@ static Data_t AllocateTensor(Handle& handle,
     const auto element_size = get_data_size(descriptor.GetType());
     auto buffer             = handle.Create(descriptor.GetElementSpace() * element_size);
 
-    visit_float(descriptor.GetType(), [&](auto as_float) {
-        const auto zero = as_float(0.f);
-        SetTensor(handle, descriptor, buffer.get(), &zero);
-    });
-
     const auto allocated = buffer.get();
     owned.emplace_back(std::move(buffer));
     return allocated;
@@ -173,6 +170,9 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
     auto ret = boost::apply_visitor(
         boost::hof::match(
             [&](const ConvolutionDescriptor& op_desc) {
+                return FindSolutionsImpl(handle, options, max_solutions, buffers, op_desc);
+            },
+            [&](const SoftmaxDescriptor& op_desc) {
                 return FindSolutionsImpl(handle, options, max_solutions, buffers, op_desc);
             },
             [&](const ActivationDescriptor& /*op_desc*/) -> std::vector<Solution> {
@@ -275,6 +275,33 @@ activ::ProblemDescription Problem::AsActivation() const
 
         return {activ_desc, x_desc, y_desc, dx_desc, dy_desc};
     }
+}
+
+softmax::ProblemDescription Problem::AsSoftmax() const
+{
+    const auto& softmax_desc = boost::get<SoftmaxDescriptor>(operator_descriptor);
+
+    float alpha = softmax_desc.GetAlpha();
+    float beta  = softmax_desc.GetBeta();
+
+    softmax::ProblemDescription problem_description =
+        (GetDirection() == miopenProblemDirectionForward)
+            ? softmax::ProblemDescription(
+                  &alpha,
+                  &beta,
+                  GetTensorDescriptorChecked(miopenTensorSoftmaxX, "miopenTensorSoftmaxX"),
+                  GetTensorDescriptorChecked(miopenTensorSoftmaxY, "miopenTensorSoftmaxY"),
+                  softmax_desc.GetAlgorithm(),
+                  softmax_desc.GetMode())
+            : softmax::ProblemDescription(
+                  &alpha,
+                  &beta,
+                  GetTensorDescriptorChecked(miopenTensorSoftmaxY, "miopenTensorSoftmaxY"),
+                  GetTensorDescriptorChecked(miopenTensorSoftmaxDY, "miopenTensorSoftmaxDY"),
+                  GetTensorDescriptorChecked(miopenTensorSoftmaxDX, "miopenTensorSoftmaxDX"),
+                  softmax_desc.GetAlgorithm(),
+                  softmax_desc.GetMode());
+    return problem_description;
 }
 
 std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
@@ -431,6 +458,61 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     return ret;
 }
 
+std::vector<Solution>
+Problem::FindSolutionsImpl(Handle& handle,
+                           [[maybe_unused]] const FindOptions& options,
+                           std::size_t max_solutions,
+                           [[maybe_unused]] const Buffers& buffers,
+                           [[maybe_unused]] const SoftmaxDescriptor& softmax_desc) const
+{
+    auto ret = std::vector<Solution>();
+
+    auto ctx = ExecutionContext{&handle};
+
+    const softmax::ProblemDescription problem_description = AsSoftmax();
+
+    const auto algo = AlgorithmName{"Softmax"};
+
+    static solver::softmax::AttnSoftmax attnSoftmaxSolver;
+    static solver::softmax::Softmax regularSoftmaxSolver;
+
+    std::vector<solver::softmax::SoftmaxSolver*> solvers;
+
+    solvers.push_back(&attnSoftmaxSolver);
+    solvers.push_back(&regularSoftmaxSolver);
+
+    for(auto solver : solvers)
+    {
+        if(!solver->IsApplicable(ctx, problem_description))
+        {
+            MIOPEN_LOG_I2(solver->SolverDbId() << ": Not applicable");
+            continue;
+        }
+
+        auto solution = Solution();
+
+        /// \todo time measurement will be done later. For now we set less time for attention
+        /// softmax and slightly bigger for regular
+        solution.SetTime(solver == &attnSoftmaxSolver ? 1.0f : 2.0f);
+        solution.SetWorkspaceSize(solver->GetWorkspaceSize(ctx, problem_description));
+        solution.SetSolver(solver->SolverDbId());
+        solution.SetProblem({*this});
+
+        MIOPEN_LOG_I("Found solution: " << solution.GetSolver().ToString() << " , "
+                                        << solution.GetWorkspaceSize() << ", "
+                                        << solution.GetTime());
+
+        ret.emplace_back(std::move(solution));
+
+        if(ret.size() >= max_solutions)
+        {
+            break;
+        }
+    }
+
+    return ret;
+}
+
 void Problem::ValidateGroupCount(const TensorDescriptor& xDesc,
                                  const TensorDescriptor& wDesc,
                                  const ConvolutionDescriptor& conv)
@@ -456,7 +538,8 @@ void Problem::LogDriverCommand() const
     const auto log_function =
         boost::hof::match([&](const ConvolutionDescriptor& op_desc) { LogDriverCommand(op_desc); },
                           [&](const ActivationDescriptor& op_desc) { LogDriverCommand(op_desc); },
-                          [&](const BiasDescriptor&) {});
+                          [&](const BiasDescriptor&) {},
+                          [&](const SoftmaxDescriptor&) {});
 
     boost::apply_visitor(log_function, operator_descriptor);
 }
@@ -576,6 +659,7 @@ void Problem::CalculateOutput()
             [&](const ActivationDescriptor&) {
                 RegisterTensorDescriptor(GetOutputId(), GetInput());
             },
+            [&](const SoftmaxDescriptor&) { RegisterTensorDescriptor(GetOutputId(), GetInput()); },
             [&](const BiasDescriptor&) { RegisterTensorDescriptor(GetOutputId(), GetInput()); }),
         operator_descriptor);
 }
@@ -585,7 +669,8 @@ miopenTensorArgumentId_t Problem::GetInputId() const
     return boost::apply_visitor(
         boost::hof::match([](const ConvolutionDescriptor&) { return miopenTensorConvolutionX; },
                           [](const ActivationDescriptor&) { return miopenTensorActivationX; },
-                          [](const BiasDescriptor&) { return miopenTensorBiasX; }),
+                          [](const BiasDescriptor&) { return miopenTensorBiasX; },
+                          [](const SoftmaxDescriptor&) { return miopenTensorSoftmaxX; }),
         operator_descriptor);
 }
 
@@ -594,7 +679,8 @@ miopenTensorArgumentId_t Problem::GetOutputId() const
     return boost::apply_visitor(
         boost::hof::match([](const ConvolutionDescriptor&) { return miopenTensorConvolutionY; },
                           [](const ActivationDescriptor&) { return miopenTensorActivationY; },
-                          [](const BiasDescriptor&) { return miopenTensorBiasY; }),
+                          [](const BiasDescriptor&) { return miopenTensorBiasY; },
+                          [](const SoftmaxDescriptor&) { return miopenTensorSoftmaxY; }),
         operator_descriptor);
 }
 
@@ -679,7 +765,14 @@ void FusedProblem::AddProblemToPlan(FusionPlanDescriptor& plan, const Problem& p
             [&](const BiasDescriptor&) {
                 plan.AddOp(std::make_shared<BiasFusionOpDescriptor>(
                     problem.GetTensorDescriptorChecked(miopenTensorBias, "miopenTensorBias")));
+            },
+            [&](const SoftmaxDescriptor&) {
+                // Not implemented
+                assert(false);
+                MIOPEN_THROW(miopenStatusNotImplemented,
+                             "Softmax is not implemented for FusedProblem");
             }),
+
         problem.operator_descriptor);
 }
 
@@ -741,7 +834,14 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
                     const auto bias_ptr = buffers.at(miopenTensorBias);
                     operator_args.params.emplace_back(
                         std::make_unique<miopen::fusion::BiasOpInvokeParam>(bias_ptr));
+                },
+                [&](const SoftmaxDescriptor&) {
+                    // Not implemented
+                    assert(false);
+                    MIOPEN_THROW(miopenStatusNotImplemented,
+                                 "Softmax is not implemented for FusedProblem");
                 }),
+
             problem.operator_descriptor);
     }
 
