@@ -299,26 +299,7 @@ void Solution::RunImpl(Handle& handle,
             auto m     = get_input_checked(miopenTensorMHAM, "miopenTensorMHAM");
             auto zInv  = get_input_checked(miopenTensorMHAZInv, "miopenTensorMHAZInv");
 
-            mha::MHAInputDescsForward inputDescsForward = {*k.descriptor,
-                                                           *q.descriptor,
-                                                           *v.descriptor,
-                                                           *descaleK.descriptor,
-                                                           *descaleQ.descriptor,
-                                                           *descaleV.descriptor,
-                                                           *descaleS.descriptor,
-                                                           *scaleS.descriptor,
-                                                           *scaleO.descriptor,
-
-                                                           mha_desc.GetScale(),
-                                                           *dropoutProbability.descriptor,
-                                                           *dropoutSeed.descriptor,
-                                                           *dropoutOffset.descriptor,
-
-                                                           *o.descriptor,
-                                                           *amaxO.descriptor,
-                                                           *amaxS.descriptor,
-                                                           *m.descriptor,
-                                                           *zInv.descriptor};
+            mha::MHAInputDescsForward inputDescsForward = problem_description.GetDescs();
 
             mha::MHADataForward dataForward = {k.buffer,
                                                q.buffer,
