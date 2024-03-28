@@ -69,47 +69,47 @@ int main(int argc, char* argv[])
     std::cout << std::endl;
 
     Driver* drv = makeDriverConv(base_arg);
-    if(drv != nullptr)
+    if(drv == nullptr)
         drv = makeDriverConvfp16(base_arg);
-    if(drv != nullptr)
+    if(drv == nullptr)
         drv = makeDriverConvbfp16(base_arg);
-    if(drv != nullptr)
+    if(drv == nullptr)
         drv = makeDriverConvint8(base_arg);
-    if(drv != nullptr)
+    if(drv == nullptr)
         drv = makeDriverConvfp8(base_arg);
-    if(drv != nullptr)
+    if(drv == nullptr)
         drv = makeDriverConvbfp8(base_arg);
-    if(drv != nullptr)
+    if(drv == nullptr)
         drv = makeDriverFusion(base_arg);
-    if(drv != nullptr)
+    if(drv == nullptr)
         drv = makeDriverPool(base_arg);
-    if(drv != nullptr)
+    if(drv == nullptr)
         drv = makeDriverLrn(base_arg);
-    if(drv != nullptr)
+    if(drv == nullptr)
         drv = makeDriverActiv(base_arg);
-    if(drv != nullptr)
+    if(drv == nullptr)
         drv = makeDriverSoftmax(base_arg);
-    if(drv != nullptr)
+    if(drv == nullptr)
         drv = makeDriverGemm(base_arg);
-    if(drv != nullptr)
+    if(drv == nullptr)
         drv = makeDriverBnorm(base_arg);
-    if(drv != nullptr)
+    if(drv == nullptr)
         drv = makeDriverRnn(base_arg);
-    if(drv != nullptr)
+    if(drv == nullptr)
         drv = makeDriverDropout(base_arg);
-    if(drv != nullptr)
+    if(drv == nullptr)
         drv = makeDriverGroupnorm(base_arg);
-    if(drv != nullptr)
+    if(drv == nullptr)
         drv = makeDriverTensorop(base_arg);
-    if(drv != nullptr)
+    if(drv == nullptr)
         drv = makeDriverReduce(base_arg);
-    if(drv != nullptr)
+    if(drv == nullptr)
         drv = makeDriverLayernorm(base_arg);
-    if(drv != nullptr)
+    if(drv == nullptr)
         drv = makeDriverSum(base_arg);
-    if(drv != nullptr)
+    if(drv == nullptr)
         drv = makeDriverArgmax(base_arg);
-    if(drv != nullptr)
+    if(drv == nullptr)
         drv = makeDriverCat(base_arg);
     if(drv == nullptr)
     {
