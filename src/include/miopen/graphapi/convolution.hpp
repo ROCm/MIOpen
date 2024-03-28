@@ -92,6 +92,8 @@ private:
     std::vector<int64_t> mPostPaddings;
     miopenDataType_t mCompType    = miopenFloat;
     miopenConvolutionMode_t mMode = miopenConvolution;
+
+    friend class ConvolutionBuilder;
 };
 
 class ConvolutionBuilder
@@ -160,20 +162,14 @@ public:
 private:
     bool validate() const;
 
-    int64_t mSpatialDims = 0;
-    std::vector<int64_t> mDilations;
-    std::vector<int64_t> mFilterStrides;
-    std::vector<int64_t> mPrePaddings;
-    std::vector<int64_t> mPostPaddings;
-    miopenDataType_t mCompType    = miopenFloat;
-    miopenConvolutionMode_t mMode = miopenConvolution;
-    bool mCompTypeSet             = false;
-    bool mModeSet                 = false;
-    bool mSpatialDimsSet          = false;
-    bool mDilationsSet            = false;
-    bool mFilterStridesSet        = false;
-    bool mPrePaddingsSet          = false;
-    bool mPostPaddingsSet         = false;
+    Convolution mConvolution;
+    bool mCompTypeSet      = false;
+    bool mModeSet          = false;
+    bool mSpatialDimsSet   = false;
+    bool mDilationsSet     = false;
+    bool mFilterStridesSet = false;
+    bool mPrePaddingsSet   = false;
+    bool mPostPaddingsSet  = false;
 };
 
 class BackendConvolutionDescriptor : public BackendDescriptor

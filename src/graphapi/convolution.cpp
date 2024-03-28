@@ -33,85 +33,87 @@ namespace graphapi {
 
 ConvolutionBuilder& ConvolutionBuilder::setCompType(miopenDataType_t compType) & noexcept
 {
-    mCompType    = compType;
-    mCompTypeSet = true;
+    mConvolution.mCompType = compType;
+    mCompTypeSet           = true;
     return *this;
 }
 ConvolutionBuilder& ConvolutionBuilder::setMode(miopenConvolutionMode_t mode) & noexcept
 {
-    mMode    = mode;
-    mModeSet = true;
+    mConvolution.mMode = mode;
+    mModeSet           = true;
     return *this;
 }
 ConvolutionBuilder& ConvolutionBuilder::setSpatialDims(int64_t spatialDims) & noexcept
 {
-    mSpatialDims    = spatialDims;
-    mSpatialDimsSet = true;
+    mConvolution.mSpatialDims = spatialDims;
+    mSpatialDimsSet           = true;
     return *this;
 }
 ConvolutionBuilder& ConvolutionBuilder::setDilations(const std::vector<int64_t>& dilations) &
 {
-    mDilations    = dilations;
-    mDilationsSet = true;
+    mConvolution.mDilations = dilations;
+    mDilationsSet           = true;
     return *this;
 }
 ConvolutionBuilder& ConvolutionBuilder::setDilations(std::vector<int64_t>&& dilations) & noexcept
 {
-    mDilations    = std::move(dilations);
-    mDilationsSet = true;
+    mConvolution.mDilations = std::move(dilations);
+    mDilationsSet           = true;
     return *this;
 }
 ConvolutionBuilder&
 ConvolutionBuilder::setFilterStrides(const std::vector<int64_t>& filterStrides) &
 {
-    mFilterStrides    = filterStrides;
-    mFilterStridesSet = true;
+    mConvolution.mFilterStrides = filterStrides;
+    mFilterStridesSet           = true;
     return *this;
 }
 ConvolutionBuilder&
 ConvolutionBuilder::setFilterStrides(std::vector<int64_t>&& filterStrides) & noexcept
 {
-    mFilterStrides    = std::move(filterStrides);
-    mFilterStridesSet = true;
+    mConvolution.mFilterStrides = std::move(filterStrides);
+    mFilterStridesSet           = true;
     return *this;
 }
 ConvolutionBuilder& ConvolutionBuilder::setPrePaddings(const std::vector<int64_t>& prePaddings) &
 {
-    mPrePaddings    = prePaddings;
-    mPrePaddingsSet = true;
+    mConvolution.mPrePaddings = prePaddings;
+    mPrePaddingsSet           = true;
     return *this;
 }
 ConvolutionBuilder&
 ConvolutionBuilder::setPrePaddings(std::vector<int64_t>&& prePaddings) & noexcept
 {
-    mPrePaddings    = std::move(prePaddings);
-    mPrePaddingsSet = true;
+    mConvolution.mPrePaddings = std::move(prePaddings);
+    mPrePaddingsSet           = true;
     return *this;
 }
 ConvolutionBuilder& ConvolutionBuilder::setPostPaddings(const std::vector<int64_t>& postPaddings) &
 {
-    mPostPaddings    = postPaddings;
-    mPostPaddingsSet = true;
+    mConvolution.mPostPaddings = postPaddings;
+    mPostPaddingsSet           = true;
     return *this;
 }
 ConvolutionBuilder&
 ConvolutionBuilder::setPostPaddings(std::vector<int64_t>&& postPaddings) & noexcept
 {
-    mPostPaddings    = std::move(postPaddings);
-    mPostPaddingsSet = true;
+    mConvolution.mPostPaddings = std::move(postPaddings);
+    mPostPaddingsSet           = true;
     return *this;
 }
 
 bool ConvolutionBuilder::validate() const
 {
     return mCompTypeSet && mModeSet && mSpatialDimsSet && mDilationsSet && mFilterStridesSet &&
-           mPrePaddingsSet && mPostPaddingsSet && mSpatialDims >= 1 &&
-           mDilations.size() == mSpatialDims && mFilterStrides.size() == mSpatialDims &&
-           mPrePaddings.size() == mSpatialDims && mPostPaddings.size() == mSpatialDims &&
-           miopen::all_of(mDilations, [](auto value) { return value > 0; }) &&
-           miopen::all_of(mFilterStrides, [](auto value) { return value > 0; }) &&
-           miopen::all_of(mPrePaddings, [](auto value) { return value >= 0; }) &&
-           miopen::all_of(mPostPaddings, [](auto value) { return value >= 0; });
+           mPrePaddingsSet && mPostPaddingsSet && mConvolution.mSpatialDims >= 1 &&
+           mConvolution.mDilations.size() == mConvolution.mSpatialDims &&
+           mConvolution.mFilterStrides.size() == mConvolution.mSpatialDims &&
+           mConvolution.mPrePaddings.size() == mConvolution.mSpatialDims &&
+           mConvolution.mPostPaddings.size() == mConvolution.mSpatialDims &&
+           miopen::all_of(mConvolution.mDilations, [](auto value) { return value > 0; }) &&
+           miopen::all_of(mConvolution.mFilterStrides, [](auto value) { return value > 0; }) &&
+           miopen::all_of(mConvolution.mPrePaddings, [](auto value) { return value >= 0; }) &&
+           miopen::all_of(mConvolution.mPostPaddings, [](auto value) { return value >= 0; });
 }
 
 Convolution ConvolutionBuilder::build() const&
@@ -120,8 +122,7 @@ Convolution ConvolutionBuilder::build() const&
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    return {
-        mCompType, mMode, mSpatialDims, mPrePaddings, mFilterStrides, mDilations, mPostPaddings};
+    return mConvolution;
 }
 
 Convolution ConvolutionBuilder::build() &&
@@ -130,13 +131,7 @@ Convolution ConvolutionBuilder::build() &&
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    return {mCompType,
-            mMode,
-            mSpatialDims,
-            std::move(mPrePaddings),
-            std::move(mFilterStrides),
-            std::move(mDilations),
-            std::move(mPostPaddings)};
+    return std::move(mConvolution);
 }
 
 void BackendConvolutionDescriptor::setAttribute(miopenBackendAttributeName_t attributeName,
