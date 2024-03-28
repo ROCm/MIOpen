@@ -1,18 +1,18 @@
 ## Prerequisites
 
 * More information about ROCm stack via [ROCm Information Portal](https://docs.amd.com/).
-* A ROCm enabled platform, more info [here](https://rocm.github.io/install.html).
+* A ROCm enabled platform, more info {doc}`here <rocm-install-on-linux:reference/system-requirements>`.
 * Base software stack, which includes:
   * HIP - 
     * HIP and HCC libraries and header files.
   * OpenCL - OpenCL libraries and header files.
-* [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) - enable various functionalities including transposed and dilated convolutions. 
+* [MIOpenGEMM](https://github.com/ROCm/MIOpenGEMM) - enable various functionalities including transposed and dilated convolutions. 
   * This is optional on the HIP backend, and required on the OpenCL backend.
   * Users can enable this library using the cmake configuration flag `-DMIOPEN_USE_MIOPENGEMM=On`, which is enabled by default when OpenCL backend is chosen.
-* [ROCm cmake](https://github.com/RadeonOpenCompute/rocm-cmake) - provide cmake modules for common build tasks needed for the ROCM software stack.
+* [ROCm cmake](https://github.com/ROCm/rocm-cmake) - provide cmake modules for common build tasks needed for the ROCM software stack.
 * [Half](http://half.sourceforge.net/) - IEEE 754-based half-precision floating point library
 * [Boost](http://www.boost.org/) 
-  * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html)
+  * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](./cache.md)
   * Version 1.79 is recommended, older version may need patches to work on newer systems, e.g. boost1{69,70,72} w/glibc-2.34
 * [SQLite3](https://sqlite.org/index.html) - reading and writing performance database
 * [MIOpenTENSILE](https://github.com/ROCmSoftwarePlatform/MIOpenTensile) - users can enable this library using the cmake configuration flag`-DMIOPEN_USE_MIOPENTENSILE=On`. (deprecated after ROCm 5.1.1)
@@ -56,7 +56,7 @@ The script `utils/install_precompiled_kernels.sh` provided as part of MIOpen aut
 
 The above script depends on the __rocminfo__ package to query the GPU architecture.
 
-More info can be found [here](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/develop/doc/src/cache.md#installing-pre-compiled-kernels).
+More info can be found [here](./cache.md).
 
 ## Installing the dependencies
 
@@ -74,4 +74,4 @@ This prefix can used to specify the dependency path during the configuration pha
 
 * MIOpen's HIP backend uses [rocBLAS](https://github.com/ROCmSoftwarePlatform/rocBLAS) by default. Users can install rocBLAS minimum release by using `apt-get install rocblas`. To disable using rocBLAS set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off`. rocBLAS is *not* available for the OpenCL backend.
 
-* MIOpen's OpenCL backend uses [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) by default. Users can install MIOpenGEMM minimum release by using `apt-get install miopengemm`.
+* MIOpen's OpenCL backend uses [MIOpenGEMM](https://github.com/ROCm/MIOpenGEMM) by default. Users can install MIOpenGEMM minimum release by using `apt-get install miopengemm`.

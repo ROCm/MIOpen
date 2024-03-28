@@ -30,4 +30,4 @@ If MIOpen kernels package is not installed, or if we do not deliver the kernels 
 
 The performance degradation mentioned in the warning only affects the network start-up time (aka "initial iteration time") and thus can be safely ignored.
 
-Please refer to the MIOpen installation instructions: [installing MIOpen kernels package](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/install.html#installing-miopen-kernels-package) for guidance on installing the MIOpen kernels package.
+Please refer to the MIOpen installation instructions: [installing MIOpen kernels package](./install.md) for guidance on installing the MIOpen kernels package.
