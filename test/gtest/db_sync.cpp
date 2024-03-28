@@ -560,7 +560,7 @@ void CheckDynamicFDBEntry(size_t thread_index,
                 for(const auto& kern : sol.construction_params)
                 {
                     std::string compile_options = kern.comp_options;
-                    std::string program_file    = kern.kernel_file + ".o";
+                    auto program_file = miopen::make_object_file_name(kern.kernel_file).string();
                     ASSERT_TRUE(!miopen::EndsWith(kern.kernel_file, ".mlir"))
                         << "MLIR detected in dynamic solvers";
                     compile_options += " -mcpu=" + handle.GetDeviceName();
@@ -732,7 +732,8 @@ void CheckFDBEntry(size_t thread_index,
                     {
                         bool found                  = false;
                         std::string compile_options = kern.comp_options;
-                        std::string program_file    = kern.kernel_file + ".o";
+                        auto program_file =
+                            miopen::make_object_file_name(kern.kernel_file).string();
                         if(!miopen::EndsWith(kern.kernel_file, ".mlir"))
                         {
                             auto& handle = ctx.GetStream();

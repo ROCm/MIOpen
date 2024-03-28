@@ -4,9 +4,7 @@
 
 namespace miopen {
 
-std::string LoadFile(const fs::path& p) { return LoadFile(p.string()); }
-
-std::string LoadFile(const std::string& s)
+std::string LoadFile(const fs::path& s)
 {
     const std::ifstream t(s);
     std::stringstream buffer;

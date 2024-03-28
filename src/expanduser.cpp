@@ -157,7 +157,7 @@ bool IsNetworkedFilesystem(const fs::path& path_)
     {
         if(fs::exists(path))
             break;
-        MIOPEN_LOG_NQI2("Path does not exist: '" << path.string() << '\'');
+        MIOPEN_LOG_NQI2("Path does not exist: '" << path << '\'');
         path = path.parent_path();
         if(path.empty())
             break;
@@ -167,12 +167,11 @@ bool IsNetworkedFilesystem(const fs::path& path_)
     if(rc != 0)
     {
         // NOLINTNEXTLINE (concurrency-mt-unsafe)
-        MIOPEN_LOG_NQE("statfs('" << path.string() << "') rc = " << rc << ", '" << strerror(errno)
-                                  << "'");
+        MIOPEN_LOG_NQE("statfs('" << path << "') rc = " << rc << ", '" << strerror(errno) << "'");
         return false;
     }
-    MIOPEN_LOG_NQI("Filesystem type at '" << path.string() << "' is: 0x" << std::hex << stat.f_type
-                                          << " '" << Stringize(stat.f_type) << '\'');
+    MIOPEN_LOG_NQI("Filesystem type at '" << path << "' is: 0x" << std::hex << stat.f_type << " '"
+                                          << Stringize(stat.f_type) << '\'');
     return IsNetworked(stat.f_type);
 }
 

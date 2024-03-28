@@ -273,8 +273,8 @@ public:
                 else
                 {
                     MIOPEN_LOG(log_level,
-                               "Unable to read system database file:" + filename_ +
-                                   " Performance may degrade");
+                               "Unable to read system database file:"
+                                   << filename_ << " Performance may degrade");
                 }
             }
         }

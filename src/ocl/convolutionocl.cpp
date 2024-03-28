@@ -364,14 +364,11 @@ void DumpTensorToFileFromDevice(const miopen::Handle& handle,
         MIOPEN_LOG_E("Directory does not exists : " << path);
         return;
     }
-    std::string file_name_with_path_str = file_name_with_path.string();
 
-    std::ofstream file_stream;
-    file_stream.open(file_name_with_path_str);
-
+    std::ofstream file_stream{file_name_with_path};
     if(!file_stream.is_open())
     {
-        MIOPEN_LOG_E("Cannot write to file : " << file_name_with_path_str);
+        MIOPEN_LOG_E("Cannot write to file : " << file_name_with_path);
         return;
     }
 
@@ -382,10 +379,10 @@ void DumpTensorToFileFromDevice(const miopen::Handle& handle,
     handle.ReadTo(hdata.data(), dData, num_bytes);
     MIOPEN_LOG_I2("Done bringing tensor from device to host");
     // write tensor data to file
-    const char* pointer = reinterpret_cast<const char*>(&hdata[0]);
+    const char* pointer = hdata.data();
     file_stream.write(pointer, num_bytes);
     file_stream.close();
-    MIOPEN_LOG_I("Dumping tensor to file : " << file_name_with_path_str);
+    MIOPEN_LOG_I("Dumping tensor to file : " << file_name_with_path);
 }
 
 static void ConvForwardCheckNumerics(const Handle& handle,

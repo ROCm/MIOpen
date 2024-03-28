@@ -73,7 +73,8 @@ struct EmbedSQLite : test_driver
             // Get filename for the sys db
             // Check it in miopen_data()
             fs::path pdb_path(ctx.GetPerfDbPath());
-            const auto& it_p = miopen_data().find(pdb_path.filename().string() + ".o");
+            const auto& it_p =
+                miopen_data().find(make_object_file_name(pdb_path.filename()).string());
             EXPECT(it_p != miopen_data().end());
             // find all the entries in perf db
             // Assert result is non-empty

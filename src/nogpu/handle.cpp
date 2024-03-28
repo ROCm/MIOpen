@@ -187,9 +187,8 @@ Program Handle::LoadProgram(const std::string& program_name,
 
 // Save to cache
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
-        miopen::SaveBinary(p.IsCodeObjectInMemory()
-                               ? p.GetCodeObjectBlob()
-                               : miopen::LoadFile(p.GetCodeObjectPathname().string()),
+        miopen::SaveBinary(p.IsCodeObjectInMemory() ? p.GetCodeObjectBlob()
+                                                    : miopen::LoadFile(p.GetCodeObjectPathname()),
                            this->GetTargetProperties(),
                            this->GetMaxComputeUnits(),
                            program_name,
