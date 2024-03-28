@@ -134,6 +134,8 @@ set( MIOpen_Source
     load_file.cpp
     lock_file.cpp
     logger.cpp
+    mha/problem_description.cpp
+    mha/mha_descriptor.cpp
     lrn_api.cpp
     op_args.cpp
     operator.cpp
@@ -256,6 +258,7 @@ set( MIOpen_Source
     solver/layernorm/forward_layernorm.cpp
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
+    solver/mha/mha_solver.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
@@ -409,6 +412,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/miopen_limits.hpp
         kernels/miopen_type_traits.hpp
         kernels/miopen_utility.hpp
+        kernels/miopen_rocrand.hpp
         kernels/neuron.inc
         kernels/rocm_version.inc
         kernels/stride_array.hpp

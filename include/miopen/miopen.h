@@ -346,6 +346,11 @@ MIOPEN_DECLARE_OBJECT(miopenDropoutDescriptor);
  */
 MIOPEN_DECLARE_OBJECT(miopenReduceTensorDescriptor);
 
+/*! @ingroup mha
+ * @brief Creates the miopenMHADescriptor_t type
+ */
+MIOPEN_DECLARE_OBJECT(miopenMHADescriptor);
+
 /*! @ingroup softmax
  * @brief Creates the miopenSoftmaxDescriptor_t type
  */
@@ -5310,18 +5315,37 @@ typedef enum
     miopenTensorConvolutionX      = 1,
     miopenTensorConvolutionW      = 2,
     miopenTensorConvolutionY      = 3,
+
+    miopenTensorMHAK                  = 4,
+    miopenTensorMHAQ                  = 5,
+    miopenTensorMHAV                  = 6,
+    miopenTensorMHADescaleK           = 7,
+    miopenTensorMHADescaleQ           = 8,
+    miopenTensorMHADescaleV           = 9,
+    miopenTensorMHADescaleS           = 10,
+    miopenTensorMHAScaleS             = 11,
+    miopenTensorMHAScaleO             = 12,
+    miopenTensorMHADropoutProbability = 13,
+    miopenTensorMHADropoutSeed        = 14,
+    miopenTensorMHADropoutOffset      = 15,
+    miopenTensorMHAO                  = 16,
+    miopenTensorMHAAmaxO              = 17,
+    miopenTensorMHAAmaxS              = 18,
+    miopenTensorMHAM                  = 19,
+    miopenTensorMHAZInv               = 20,
+
 #ifdef MIOPEN_BETA_API
-    miopenTensorActivationX  = 4,
-    miopenTensorActivationY  = 5,
-    miopenTensorActivationDX = 6,
-    miopenTensorActivationDY = 7,
-    miopenTensorBiasX        = 8,
-    miopenTensorBiasY        = 9,
-    miopenTensorBias         = 10,
-    miopenTensorSoftmaxX     = 11,
-    miopenTensorSoftmaxY     = 12,
-    miopenTensorSoftmaxDX    = 13,
-    miopenTensorSoftmaxDY    = 14,
+    miopenTensorActivationX  = 21,
+    miopenTensorActivationY  = 22,
+    miopenTensorActivationDX = 23,
+    miopenTensorActivationDY = 24,
+    miopenTensorBiasX        = 25,
+    miopenTensorBiasY        = 26,
+    miopenTensorBias         = 27,
+    miopenTensorSoftmaxX     = 28,
+    miopenTensorSoftmaxY     = 29,
+    miopenTensorSoftmaxDX    = 30,
+    miopenTensorSoftmaxDY    = 31,
 #endif
 
 } miopenTensorArgumentId_t;
@@ -5345,6 +5369,40 @@ typedef enum
 MIOPEN_EXPORT miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
                                                      miopenConvolutionDescriptor_t operatorDesc,
                                                      miopenProblemDirection_t direction);
+
+/*! @brief Initializes a problem object describing a MHA operation.
+ *
+ * @param problem      Pointer to the problem to initialize
+ * @param operatorDesc Descriptor of the operator to be used
+ * @param direction    Direction of the operation
+ * @return             miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenCreateMHAProblem(miopenProblem_t* problem,
+                                                    miopenMHADescriptor_t operatorDesc,
+                                                    miopenProblemDirection_t direction);
+
+/*! @brief Sets the MHA descriptor details
+ *
+ * Sets all of the descriptor details for the MHA
+ *
+ * @param mhaDesc               Pointer to a MHA descriptor
+ * @param scale                 Scale
+ * @return                      miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenSetMHADescriptor(miopenMHADescriptor_t mhaDesc, float scale);
+
+/*! @brief Gets the MHA descriptor details
+ *
+ * Retrieves all of the descriptor details for the MHA.
+ *
+ * @param mhaDesc               Pointer to a MHA descriptor
+ * @param scale                 Scale (output)
+ * @return             miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenGetMHADescriptor(miopenMHADescriptor_t mhaDesc, float* scale);
 
 /*! @brief Creates the Softmax descriptor object
  *
