@@ -26,11 +26,11 @@
 #include <gtest/gtest.h>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
+#include <miopen/env.hpp>
 
 #include "tensor_holder.hpp"
 #include "get_handle.hpp"
 #include "conv_test_base.hpp"
-#include "../env_utils.hpp"
 
 #if MIOPEN_BACKEND_HIP
 
@@ -235,9 +235,10 @@ TEST(TestFusionPlan, BadEmptyFusionPlan)
     EXPECT_ANY_THROW(obj.Applicability());
 }
 
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_FIND_ENFORCE, 3, true)
+
 TEST(TestFusionPlan, UnSupportedFusionPlanDuringSearchMode)
 {
-    setEnvironmentVariable("MIOPEN_FIND_ENFORCE", "3");
     TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
         miopenTensorNHWC, miopenActivationRELU);
     if(obj.Skip())

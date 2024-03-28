@@ -32,6 +32,8 @@
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
+namespace env = miopen::env;
+
 namespace gru_extra {
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
@@ -110,12 +112,15 @@ using namespace gru_extra;
 
 TEST_P(GRUExtraConfigWithFloat, FloatTest_gru_extra)
 {
-    if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-         miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float")))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
+    {
         Run2dDriverFloat();
+    }
     else
+    {
         GTEST_SKIP();
+    }
 };
 
 INSTANTIATE_TEST_SUITE_P(ConvTrans, GRUExtraConfigWithFloat, testing::Values(GetTestCases()));

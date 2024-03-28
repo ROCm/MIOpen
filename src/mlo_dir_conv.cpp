@@ -261,7 +261,7 @@ FindAllImplicitGemmWorkspaceSizes(const miopen::ExecutionContext& ctx,
                                   const miopen::conv::ProblemDescription& problem)
 {
 #if WORKAROUND_SWDEV_227826
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)))
+    if(env::enabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS))
         return GetImplicitGemmSolvers().GetWorkspaceSizes(ctx, problem);
     else
         return GetImplicitGemmSolvers().GetWorkspaceSizes(ctx, problem, 1);
@@ -276,7 +276,7 @@ FindAllImplicitGemmSolutions(const miopen::ExecutionContext& ctx,
                              const miopen::AnyInvokeParams& invoke_ctx)
 {
 #if WORKAROUND_SWDEV_227826
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)))
+    if(env::enabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS))
         return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, problem, GetDb(ctx), invoke_ctx);
     else
         return GetImplicitGemmSolvers().SearchForAllSolutions(
@@ -314,7 +314,7 @@ FindImplicitGemmWrWWorkspaceSizes(const miopen::ExecutionContext& ctx,
                                   const miopen::conv::ProblemDescription& problem)
 {
 #if WORKAROUND_SWDEV_227826
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)))
+    if(env::enabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS))
         return GetImplicitGemmWrWSolvers().GetWorkspaceSizes(ctx, problem);
     else
         return GetImplicitGemmWrWSolvers().GetWorkspaceSizes(ctx, problem, 1);
@@ -329,7 +329,7 @@ FindImplicitGemmWrWAllSolutions(const miopen::ExecutionContext& ctx,
                                 const miopen::AnyInvokeParams& invoke_ctx)
 {
 #if WORKAROUND_SWDEV_227826
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)))
+    if(env::enabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS))
         return GetImplicitGemmWrWSolvers().SearchForAllSolutions(
             ctx, problem, GetDb(ctx), invoke_ctx);
     else

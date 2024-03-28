@@ -58,7 +58,7 @@ void OCLKernelInvoke::run() const
 
     MIOPEN_HANDLE_LOCK
 
-    const auto& arch = miopen::GetStringEnv(ENV(MIOPEN_DEVICE_ARCH));
+    const auto& arch = env::value(MIOPEN_DEVICE_ARCH);
     if(!arch.empty())
     {
         MIOPEN_THROW("MIOPEN_DEVICE_ARCH used, escaping launching kernel");

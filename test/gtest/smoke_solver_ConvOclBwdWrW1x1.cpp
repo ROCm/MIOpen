@@ -34,9 +34,8 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto env = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvOclBwdWrW1x1")}};
+    const auto env = std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                                std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvOclBwdWrW1x1"}};
 
     const std::string vw = " --verbose --disable-forward --disable-backward-data";
 

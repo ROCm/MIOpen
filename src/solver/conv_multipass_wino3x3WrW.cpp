@@ -384,16 +384,14 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 
     if(wino_data_tile == 3 && wino_filter_tile == 2)
     {
-        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2)) ||
-           problem.GetKernelStrideH() == 1)
+        if(env::disabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2) || problem.GetKernelStrideH() == 1)
         {
             return false;
         }
     }
     if(wino_data_tile == 3 && wino_filter_tile == 3)
     {
-        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3)) ||
-           problem.GetKernelStrideH() == 1)
+        if(env::disabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3) || problem.GetKernelStrideH() == 1)
         {
             return false;
         }
@@ -405,17 +403,17 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
     {
         if(wino_data_tile == 3 && wino_filter_tile == 4)
         {
-            if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4)))
+            if(!env::enabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4))
                 return false;
         }
         if(wino_data_tile == 3 && wino_filter_tile == 5)
         {
-            if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5)))
+            if(!env::enabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5))
                 return false;
         }
         if(wino_data_tile == 3 && wino_filter_tile == 6)
         {
-            if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6)))
+            if(!env::enabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6))
                 return false;
         }
     }
@@ -424,39 +422,39 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
     {
         if(wino_data_tile == 3 && wino_filter_tile == 4)
         {
-            if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4)))
+            if(env::disabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4))
                 return false;
         }
         if(wino_data_tile == 3 && wino_filter_tile == 5)
         {
-            if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5)))
+            if(env::disabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5))
                 return false;
         }
         if(wino_data_tile == 3 && wino_filter_tile == 6)
         {
-            if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6)))
+            if(env::disabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6))
                 return false;
         }
     }
 
     if(wino_data_tile == 7 && wino_filter_tile == 2)
     {
-        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X2)))
+        if(env::disabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X2))
             return false;
     }
     if(wino_data_tile == 7 && wino_filter_tile == 3)
     {
-        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X3)))
+        if(env::disabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X3))
             return false;
     }
     if(wino_data_tile == 5 && wino_filter_tile == 3)
     {
-        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X3)))
+        if(env::disabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X3))
             return false;
     }
     if(wino_data_tile == 5 && wino_filter_tile == 4)
     {
-        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X4)))
+        if(env::disabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X4))
             return false;
     }
     if(!ctx.use_asm_kernels)
@@ -494,7 +492,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
         return false;
 
     {
-        std::size_t limit = miopen::Value(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX));
+        std::size_t limit = env::value(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX);
 #if WORKAROUND_SWDEV_203031
         if(limit == 0)
         {

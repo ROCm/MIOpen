@@ -34,17 +34,16 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto env_fwd = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvOclDirectFwd11x11")}};
+    const auto env_fwd =
+        std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvOclDirectFwd11x11"}};
 
-    const auto env_fwd_gen = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvOclDirectFwdGen")}};
+    const auto env_fwd_gen =
+        std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvOclDirectFwdGen"}};
 
-    const auto env_wrw = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvOclBwdWrW53")}};
+    const auto env_wrw = std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                                    std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvOclBwdWrW53"}};
 
     const std::string vf = " --verbose --disable-backward-data --disable-backward-weights";
     const std::string vw = " --verbose --disable-forward --disable-backward-data";

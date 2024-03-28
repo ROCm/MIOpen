@@ -34,6 +34,8 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
 
+namespace env = miopen::env;
+
 namespace conv_extra {
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -48,8 +50,8 @@ std::vector<std::string> GetTestCases(void)
 {
     std::string cmd       = "test_conv2d ";
     std::string v         = " --verbose ";
-    std::string float_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    std::string flag_arg  = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLAGS_ARGS));
+    std::string float_arg = env::value(MIOPEN_TEST_FLOAT_ARG);
+    std::string flag_arg  = env::value(MIOPEN_TEST_FLAGS_ARGS);
 
     // clang-format off
     return std::vector<std::string>{
@@ -102,7 +104,7 @@ bool IsTestSupportedForDevice()
 
 void Run2dDriver(void)
 {
-    if(!(IsTestSupportedForDevice() && (miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))))
+    if(!IsTestSupportedForDevice() && !env::enabled(MIOPEN_TEST_ALL))
     {
         GTEST_SKIP();
     }

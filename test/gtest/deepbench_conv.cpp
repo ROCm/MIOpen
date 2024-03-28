@@ -82,7 +82,7 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest() { return miopen::IsDisabled(ENV(MIOPEN_TEST_DEEPBENCH)); }
+bool SkipTest() { return env::disabled(MIOPEN_TEST_DEEPBENCH); }
 
 class Conv2dFloat_deepbench : public FloatTestCase<std::vector<TestCase>>
 {
