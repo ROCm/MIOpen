@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include <miopen/graphapi/graphapi_variant_pack.hpp>
+#include <miopen/graphapi/variant_pack.hpp>
 #include <miopen/miopen.h>
 
 #include <algorithm>
