@@ -37,6 +37,15 @@ namespace graphapi {
 
 class Convolution
 {
+private:
+    int64_t mSpatialDims = 0;
+    std::vector<int64_t> mDilations;
+    std::vector<int64_t> mFilterStrides;
+    std::vector<int64_t> mPrePaddings;
+    std::vector<int64_t> mPostPaddings;
+    miopenDataType_t mCompType    = miopenFloat;
+    miopenConvolutionMode_t mMode = miopenConvolution;
+
 public:
     Convolution() noexcept              = default;
     Convolution(const Convolution&)     = default;
@@ -85,19 +94,21 @@ public:
     const std::vector<int64_t>& getPostPaddings() const noexcept { return mPostPaddings; }
 
 private:
-    int64_t mSpatialDims = 0;
-    std::vector<int64_t> mDilations;
-    std::vector<int64_t> mFilterStrides;
-    std::vector<int64_t> mPrePaddings;
-    std::vector<int64_t> mPostPaddings;
-    miopenDataType_t mCompType    = miopenFloat;
-    miopenConvolutionMode_t mMode = miopenConvolution;
-
     friend class ConvolutionBuilder;
 };
 
 class ConvolutionBuilder
 {
+private:
+    Convolution mConvolution;
+    bool mCompTypeSet      = false;
+    bool mModeSet          = false;
+    bool mSpatialDimsSet   = false;
+    bool mDilationsSet     = false;
+    bool mFilterStridesSet = false;
+    bool mPrePaddingsSet   = false;
+    bool mPostPaddingsSet  = false;
+
 public:
     ConvolutionBuilder& setCompType(miopenDataType_t compType) & noexcept;
     ConvolutionBuilder& setMode(miopenConvolutionMode_t mode) & noexcept;
@@ -161,19 +172,14 @@ public:
 
 private:
     bool validate() const;
-
-    Convolution mConvolution;
-    bool mCompTypeSet      = false;
-    bool mModeSet          = false;
-    bool mSpatialDimsSet   = false;
-    bool mDilationsSet     = false;
-    bool mFilterStridesSet = false;
-    bool mPrePaddingsSet   = false;
-    bool mPostPaddingsSet  = false;
 };
 
 class BackendConvolutionDescriptor : public BackendDescriptor
 {
+private:
+    ConvolutionBuilder mBuilder;
+    Convolution mConvolution;
+
 public:
     virtual void setAttribute(miopenBackendAttributeName_t attributeName,
                               miopenBackendAttributeType_t attributeType,
@@ -240,13 +246,18 @@ private:
                          int64_t requestedElementCount,
                          int64_t* elementCount,
                          void* arrayOfElements);
-
-    ConvolutionBuilder mBuilder;
-    Convolution mConvolution;
 };
 
 class OperationConvolution : public OpNode
 {
+private:
+    Convolution* mConvolution;
+    Tensor* mX;
+    Tensor* mY;
+    Tensor* mW;
+    double mAlpha;
+    double mBeta;
+
 public:
     OperationConvolution() = default;
     OperationConvolution(Convolution* convolution,
@@ -265,14 +276,6 @@ public:
     Tensor* getW() const noexcept { return mW; }
     double getAlpha() const noexcept { return mAlpha; }
     double getBeta() const noexcept { return mBeta; }
-
-private:
-    Convolution* mConvolution;
-    Tensor* mX;
-    Tensor* mY;
-    Tensor* mW;
-    double mAlpha;
-    double mBeta;
 };
 
 class OperationConvolutionForward : public OperationConvolution
@@ -294,6 +297,16 @@ public:
 
 class OperationConvolutionBuilder
 {
+protected:
+    Convolution* mConvolution = nullptr;
+    Tensor* mX                = nullptr;
+    Tensor* mY                = nullptr;
+    Tensor* mW                = nullptr;
+    double mAlpha             = 1.0;
+    double mBeta              = 0.0;
+    bool mAlphaSet            = false;
+    bool mBetaSet             = false;
+
 public:
     OperationConvolutionBuilder& setConvolution(Convolution* convolution) noexcept
     {
@@ -330,15 +343,6 @@ public:
 
 protected:
     OperationConvolutionBuilder() = default;
-
-    Convolution* mConvolution = nullptr;
-    Tensor* mX                = nullptr;
-    Tensor* mY                = nullptr;
-    Tensor* mW                = nullptr;
-    double mAlpha             = 1.0;
-    double mBeta              = 0.0;
-    bool mAlphaSet            = false;
-    bool mBetaSet             = false;
 };
 
 class OperationConvolutionForwardBuilder : public OperationConvolutionBuilder
@@ -389,13 +393,13 @@ public:
 class BackendOperationConvolutionDescriptor : public BackendDescriptor
 {
 protected:
-    virtual OperationConvolutionBuilder& getBuilder()       = 0;
-    virtual OperationConvolution& getOperationConvolution() = 0;
-
     miopenBackendDescriptor_t mConvolutionDescriptor = nullptr;
     miopenBackendDescriptor_t mXDescriptor           = nullptr;
     miopenBackendDescriptor_t mWDescriptor           = nullptr;
     miopenBackendDescriptor_t mYDescriptor           = nullptr;
+
+    virtual OperationConvolutionBuilder& getBuilder()       = 0;
+    virtual OperationConvolution& getOperationConvolution() = 0;
 
     void setConvolution(miopenBackendAttributeType_t attributeType,
                         int64_t elementCount,
@@ -440,6 +444,10 @@ protected:
 
 class BackendOperationConvolutionForwardDescriptor : public BackendOperationConvolutionDescriptor
 {
+private:
+    OperationConvolutionForwardBuilder mBuilder;
+    OperationConvolutionForward mOperation;
+
 public:
     virtual void setAttribute(miopenBackendAttributeName_t attributeName,
                               miopenBackendAttributeType_t attributeType,
@@ -456,9 +464,6 @@ public:
 protected:
     virtual OperationConvolutionBuilder& getBuilder() override;
     virtual OperationConvolution& getOperationConvolution() override;
-
-    OperationConvolutionForwardBuilder mBuilder;
-    OperationConvolutionForward mOperation;
 };
 
 class OperationConvolutionBackwardData : public OperationConvolution
@@ -526,6 +531,10 @@ public:
 class BackendOperationConvolutionBackwardDataDescriptor
     : public BackendOperationConvolutionDescriptor
 {
+private:
+    OperationConvolutionBackwardDataBuilder mBuilder;
+    OperationConvolutionBackwardData mOperation;
+
 public:
     virtual void setAttribute(miopenBackendAttributeName_t attributeName,
                               miopenBackendAttributeType_t attributeType,
@@ -542,9 +551,6 @@ public:
 private:
     virtual OperationConvolutionBuilder& getBuilder() override;
     virtual OperationConvolution& getOperationConvolution() override;
-
-    OperationConvolutionBackwardDataBuilder mBuilder;
-    OperationConvolutionBackwardData mOperation;
 };
 
 class OperationConvolutionBackwardFilter : public OperationConvolution
@@ -612,6 +618,10 @@ public:
 class BackendOperationConvolutionBackwardFilterDescriptor
     : public BackendOperationConvolutionDescriptor
 {
+private:
+    OperationConvolutionBackwardFilterBuilder mBuilder;
+    OperationConvolutionBackwardFilter mOperation;
+
 public:
     virtual void setAttribute(miopenBackendAttributeName_t attributeName,
                               miopenBackendAttributeType_t attributeType,
@@ -628,9 +638,6 @@ public:
 private:
     virtual OperationConvolutionBuilder& getBuilder() override;
     virtual OperationConvolution& getOperationConvolution() override;
-
-    OperationConvolutionBackwardFilterBuilder mBuilder;
-    OperationConvolutionBackwardFilter mOperation;
 };
 
 } // namespace graphapi
