@@ -64,7 +64,7 @@ The results of Find() are returned in an array of `miopenConvAlgoPerf_t` structs
 
 This call sequence is executed once per session as it is inherently expensive. Of those, `miopenFindConvolution*()` is the most expensive call. It caches its own results on disk, so the subsequent calls during the same MIOpen session will execute faster. However, it is better to remember results of `miopenFindConvolution*()` in the application, as recommended above. 
 
-Internally MIOpen's Find calls will compile and benchmark a set of `solvers` contained in `miopenConvAlgoPerf_t` this is done in parallel per `miopenConvAlgorithm_t`. The level of parallelism can be controlled using an environment variable. See the debugging section [controlling parallel compilation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/DebugAndLogging.html#controlling-parallel-compilation) for more details.
+Internally MIOpen's Find calls will compile and benchmark a set of `solvers` contained in `miopenConvAlgoPerf_t` this is done in parallel per `miopenConvAlgorithm_t`. The level of parallelism can be controlled using an environment variable. See the [debugging section](./DebugAndLogging.md) for more details.
 
 
 ## Immediate Mode API
@@ -139,7 +139,7 @@ miopenConvolutionForwardCompileSolution(handle,
 
 ## Immediate Mode Fallback
 
-The immediate mode is underpinned by the [Find-Db](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html), however it may not contain every configuration of interest. If Find-Db encounters a database miss it has two fallback paths it can take, depending on whether the cmake variable MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK is set to ON or OFF. However, if the user requires the best possible performance they should run the Find stage at least once.
+The immediate mode is underpinned by the [Find-Db](./finddb.md), however it may not contain every configuration of interest. If Find-Db encounters a database miss it has two fallback paths it can take, depending on whether the cmake variable MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK is set to ON or OFF. However, if the user requires the best possible performance they should run the Find stage at least once.
 
 ### 1. AI-based Heuristic Fallback (Default)
 
