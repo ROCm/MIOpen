@@ -139,18 +139,6 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
 
         switch(descriptorType)
         {
-        case MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR:
-            if(std::align(alignof(miopen::graphapi::BackendVariantPackDescriptor),
-                          sizeof(miopen::graphapi::BackendVariantPackDescriptor),
-                          address,
-                          sizeInBytes) != nullptr &&
-               address == descriptor)
-            {
-                new(descriptor) miopen::graphapi::BackendVariantPackDescriptor();
-                break;
-            }
-            MIOPEN_THROW(miopenStatusBadParm);
-
         case MIOPEN_BACKEND_TENSOR_DESCRIPTOR:
             if(std::align(alignof(miopen::graphapi::BackendTensorDescriptor),
                           sizeof(miopen::graphapi::BackendTensorDescriptor),
@@ -159,6 +147,18 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
                address == descriptor)
             {
                 new(descriptor) miopen::graphapi::BackendTensorDescriptor();
+                break;
+            }
+            MIOPEN_THROW(miopenStatusBadParm);
+
+        case MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR:
+            if(std::align(alignof(miopen::graphapi::BackendVariantPackDescriptor),
+                          sizeof(miopen::graphapi::BackendVariantPackDescriptor),
+                          address,
+                          sizeInBytes) != nullptr &&
+               address == descriptor)
+            {
+                new(descriptor) miopen::graphapi::BackendVariantPackDescriptor();
                 break;
             }
             MIOPEN_THROW(miopenStatusBadParm);

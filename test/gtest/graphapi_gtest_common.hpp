@@ -38,6 +38,34 @@ namespace miopen {
 
 namespace graphapi {
 
+template <typename T>
+struct ValidatedVector
+{
+    bool valid;
+    std::vector<T> values;
+
+    friend void PrintTo(const ValidatedVector& v, std::ostream* os)
+    {
+        *os << '{';
+        auto begin = v.values.cbegin();
+        auto end   = v.values.cend();
+        if(begin != end)
+            *os << *begin++;
+        while(begin != end)
+            *os << ' ' << *begin++;
+        *os << '}';
+    }
+};
+
+template <typename T>
+struct ValidatedValue
+{
+    bool valid;
+    T value;
+
+    friend void PrintTo(const ValidatedValue& v, std::ostream* os) { *os << v.value; }
+};
+
 class GTestDescriptorAttribute
 {
 public:

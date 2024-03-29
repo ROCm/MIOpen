@@ -38,34 +38,8 @@
 
 namespace {
 
-template <typename T>
-struct ValidatedVector
-{
-    bool valid;
-    std::vector<T> values;
-
-    friend void PrintTo(const ValidatedVector& v, std::ostream* os)
-    {
-        *os << '{';
-        auto begin = v.values.cbegin();
-        auto end   = v.values.cend();
-        if(begin != end)
-            *os << *begin++;
-        while(begin != end)
-            *os << ' ' << *begin++;
-        *os << '}';
-    }
-};
-
-template <typename T>
-struct ValidatedValue
-{
-    bool valid;
-    T value;
-
-    friend void PrintTo(const ValidatedValue& v, std::ostream* os) { *os << v.value; }
-};
-
+using miopen::graphapi::ValidatedVector;
+using miopen::graphapi::ValidatedValue;
 using GraphApiVariantPackTuple =
     std::tuple<bool, ValidatedVector<int64_t>, ValidatedVector<void*>, ValidatedValue<void*>>;
 
@@ -564,7 +538,7 @@ TEST_P(GraphApiVariantPack, CFuncions)
 
 static char mem[10][256];
 
-auto ValidAttributesTestCases =
+static auto ValidAttributesTestCases =
     testing::Values(GraphApiVariantPackTuple{true, {true, {}}, {true, {}}, {true, mem[9]}},
                     GraphApiVariantPackTuple{
                         true, {true, {1, 2, 3}}, {true, {mem[0], mem[1], mem[2]}}, {true, mem[9]}},
@@ -573,7 +547,7 @@ auto ValidAttributesTestCases =
                                              {true, {mem[0], mem[1], mem[2], mem[3], mem[4]}},
                                              {true, mem[9]}});
 
-auto InvalidIdsTestCases = testing::Combine(
+static auto InvalidIdsTestCases = testing::Combine(
     testing::Values(false),
     testing::Values(ValidatedVector<int64_t>{false, {1, 2, 1, 4, 5}},
                     ValidatedVector<int64_t>{false, {1, 2, 3, 2, 5}},
@@ -583,7 +557,7 @@ auto InvalidIdsTestCases = testing::Combine(
                     ValidatedVector<void*>{true, {}}),
     testing::Values(ValidatedValue<void*>{true, mem[9]}));
 
-auto InvalidPointersTestCases = testing::Combine(
+static auto InvalidPointersTestCases = testing::Combine(
     testing::Values(false),
     testing::Values(ValidatedVector<int64_t>{true, {1, 2, 3, 4, 5}},
                     ValidatedVector<int64_t>{true, {1, 2, 3}},
@@ -600,7 +574,7 @@ auto InvalidPointersTestCases = testing::Combine(
                     ValidatedValue<void*>{true, mem[2]},
                     ValidatedValue<void*>{true, mem[9]}));
 
-auto NullWorkspace = testing::Combine(
+static auto NullWorkspace = testing::Combine(
     testing::Values(false),
     testing::Values(ValidatedVector<int64_t>{true, {}},
                     ValidatedVector<int64_t>{true, {1, 2, 3, 4, 5}}),
@@ -608,7 +582,7 @@ auto NullWorkspace = testing::Combine(
                     ValidatedVector<void*>{true, {mem[0], mem[1], mem[2], mem[3], mem[4]}}),
     testing::Values(ValidatedValue<void*>{false, nullptr}));
 
-auto InvalidWorkspace = testing::Combine(
+static auto InvalidWorkspace = testing::Combine(
     testing::Values(false),
     testing::Values(ValidatedVector<int64_t>{true, {}},
                     ValidatedVector<int64_t>{true, {1, 2, 3, 4, 5}}),
@@ -619,7 +593,7 @@ auto InvalidWorkspace = testing::Combine(
                     ValidatedValue<void*>{true, mem[3]},
                     ValidatedValue<void*>{true, mem[4]}));
 
-auto SizeMismatch = testing::Combine(
+static auto SizeMismatch = testing::Combine(
     testing::Values(false),
     testing::Values(ValidatedVector<int64_t>{true, {}},
                     ValidatedVector<int64_t>{true, {1, 2, 3, 4, 5}},
