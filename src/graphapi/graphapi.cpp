@@ -138,7 +138,7 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
             if(std::align(alignof(miopen::graphapi::BackendTensorDescriptor),
                           sizeof(miopen::graphapi::BackendTensorDescriptor),
                           address,
-                          sizeInBytes) == nullptr &&
+                          sizeInBytes) != nullptr &&
                address == descriptor)
             {
                 new(descriptor) miopen::graphapi::BackendTensorDescriptor();
@@ -146,7 +146,7 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
             }
             MIOPEN_THROW(miopenStatusBadParm);
 
-        default: MIOPEN_THROW(miopenStatus_t::miopenStatusUnsupportedOp);
+        default: MIOPEN_THROW(miopenStatusUnsupportedOp);
         }
     });
 }
