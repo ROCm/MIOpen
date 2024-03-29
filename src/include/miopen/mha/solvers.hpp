@@ -37,11 +37,11 @@ namespace solver {
 
 namespace mha {
 
-using MHASolver = NonTunableSolverBase<ExecutionContext, miopen::mha::ProblemDescription>;
+using MhaSolver = NonTunableSolverBase<ExecutionContext, miopen::mha::ProblemDescription>;
 
-struct MHA final : MHASolver
+struct Mha final : MhaSolver
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<MHA>(); }
+    const std::string& SolverDbId() const override { return GetSolverDbId<Mha>(); }
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::mha::ProblemDescription& problem) const override;

@@ -75,7 +75,7 @@ using OperatorDescriptor = boost::variant<ConvolutionDescriptor,
                                           ActivationDescriptor,
                                           BiasDescriptor,
                                           SoftmaxDescriptor,
-                                          MHADescriptor>;
+                                          MhaDescriptor>;
 
 struct Problem
 {
@@ -109,7 +109,7 @@ struct Problem
 
     conv::ProblemDescription AsConvolution() const;
     activ::ProblemDescription AsActivation() const;
-    mha::ProblemDescription AsMHA() const;
+    mha::ProblemDescription AsMha() const;
     softmax::ProblemDescription AsSoftmax() const;
 
     [[nodiscard]] miopenTensorArgumentId_t GetInputId() const;
@@ -171,7 +171,7 @@ private:
                                             const FindOptions& options,
                                             std::size_t max_solutions,
                                             const Buffers& buffers,
-                                            const MHADescriptor& mha_desc) const;
+                                            const MhaDescriptor& mha_desc) const;
 
     std::vector<Solution> FindSolutionsImpl(Handle& handle,
                                             const FindOptions& options,

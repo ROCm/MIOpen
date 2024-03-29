@@ -347,9 +347,9 @@ MIOPEN_DECLARE_OBJECT(miopenDropoutDescriptor);
 MIOPEN_DECLARE_OBJECT(miopenReduceTensorDescriptor);
 
 /*! @ingroup mha
- * @brief Creates the miopenMHADescriptor_t type
+ * @brief Creates the miopenMhaDescriptor_t type
  */
-MIOPEN_DECLARE_OBJECT(miopenMHADescriptor);
+MIOPEN_DECLARE_OBJECT(miopenMhaDescriptor);
 
 /*! @ingroup softmax
  * @brief Creates the miopenSoftmaxDescriptor_t type
@@ -5316,23 +5316,23 @@ typedef enum
     miopenTensorConvolutionW      = 2,
     miopenTensorConvolutionY      = 3,
 
-    miopenTensorMHAK                  = 4,
-    miopenTensorMHAQ                  = 5,
-    miopenTensorMHAV                  = 6,
-    miopenTensorMHADescaleK           = 7,
-    miopenTensorMHADescaleQ           = 8,
-    miopenTensorMHADescaleV           = 9,
-    miopenTensorMHADescaleS           = 10,
-    miopenTensorMHAScaleS             = 11,
-    miopenTensorMHAScaleO             = 12,
-    miopenTensorMHADropoutProbability = 13,
-    miopenTensorMHADropoutSeed        = 14,
-    miopenTensorMHADropoutOffset      = 15,
-    miopenTensorMHAO                  = 16,
-    miopenTensorMHAAmaxO              = 17,
-    miopenTensorMHAAmaxS              = 18,
-    miopenTensorMHAM                  = 19,
-    miopenTensorMHAZInv               = 20,
+    miopenTensorMhaK                  = 4,
+    miopenTensorMhaQ                  = 5,
+    miopenTensorMhaV                  = 6,
+    miopenTensorMhaDescaleK           = 7,
+    miopenTensorMhaDescaleQ           = 8,
+    miopenTensorMhaDescaleV           = 9,
+    miopenTensorMhaDescaleS           = 10,
+    miopenTensorMhaScaleS             = 11,
+    miopenTensorMhaScaleO             = 12,
+    miopenTensorMhaDropoutProbability = 13,
+    miopenTensorMhaDropoutSeed        = 14,
+    miopenTensorMhaDropoutOffset      = 15,
+    miopenTensorMhaO                  = 16,
+    miopenTensorMhaAmaxO              = 17,
+    miopenTensorMhaAmaxS              = 18,
+    miopenTensorMhaM                  = 19,
+    miopenTensorMhaZInv               = 20,
 
 #ifdef MIOPEN_BETA_API
     miopenTensorActivationX  = 21,
@@ -5370,7 +5370,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
                                                      miopenConvolutionDescriptor_t operatorDesc,
                                                      miopenProblemDirection_t direction);
 
-/*! @brief Initializes a problem object describing a MHA operation.
+/*! @brief Initializes a problem object describing a Mha operation.
  *
  * @param problem      Pointer to the problem to initialize
  * @param operatorDesc Descriptor of the operator to be used
@@ -5378,31 +5378,39 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
  * @return             miopenStatus_t
  */
 
-MIOPEN_EXPORT miopenStatus_t miopenCreateMHAProblem(miopenProblem_t* problem,
-                                                    miopenMHADescriptor_t operatorDesc,
+MIOPEN_EXPORT miopenStatus_t miopenCreateMhaProblem(miopenProblem_t* problem,
+                                                    miopenMhaDescriptor_t operatorDesc,
                                                     miopenProblemDirection_t direction);
 
-/*! @brief Sets the MHA descriptor details
+/*! @brief Creates the mha descriptor object
  *
- * Sets all of the descriptor details for the MHA
+ * @param mhaDesc     Pointer to a mha descriptor type
+ * @return            miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenCreateMhaDescriptor(miopenMhaDescriptor_t* mhaDesc);
+
+/*! @brief Sets the Mha descriptor details
  *
- * @param mhaDesc               Pointer to a MHA descriptor
+ * Sets all of the descriptor details for the Mha
+ *
+ * @param mhaDesc               Pointer to a Mha descriptor
  * @param scale                 Scale
  * @return                      miopenStatus_t
  */
 
-MIOPEN_EXPORT miopenStatus_t miopenSetMHADescriptor(miopenMHADescriptor_t mhaDesc, float scale);
+MIOPEN_EXPORT miopenStatus_t miopenSetMhaDescriptor(miopenMhaDescriptor_t mhaDesc, float scale);
 
-/*! @brief Gets the MHA descriptor details
+/*! @brief Gets the Mha descriptor details
  *
- * Retrieves all of the descriptor details for the MHA.
+ * Retrieves all of the descriptor details for the Mha.
  *
- * @param mhaDesc               Pointer to a MHA descriptor
- * @param scale                 Scale (output)
- * @return             miopenStatus_t
+ * @param mhaDesc       Pointer to a Mha descriptor
+ * @param scale         Scale (output)
+ * @return              miopenStatus_t
  */
 
-MIOPEN_EXPORT miopenStatus_t miopenGetMHADescriptor(miopenMHADescriptor_t mhaDesc, float* scale);
+MIOPEN_EXPORT miopenStatus_t miopenGetMhaDescriptor(miopenMhaDescriptor_t mhaDesc, float* scale);
 
 /*! @brief Creates the Softmax descriptor object
  *
@@ -6221,8 +6229,8 @@ MIOPEN_DECLARE_OBJECT(miopenBackendDescriptor)
  * @retval  miopenStatusAllocFailed    The memory allocation failed
  * @retval  miopenStatusUnknownError   The error information was not gathered
  */
-miopenStatus_t miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
-                                             miopenBackendDescriptor_t* descriptor);
+MIOPEN_EXPORT miopenStatus_t miopenBackendCreateDescriptor(
+    miopenBackendDescriptorType_t descriptorType, miopenBackendDescriptor_t* descriptor);
 
 /*! @brief Sets an attribute of a descriptor
  *
@@ -6253,11 +6261,11 @@ miopenStatus_t miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descr
  *                                     supported by the current version
  * @retval  miopenStatusUnknownError   The error information was not gathered
  */
-miopenStatus_t miopenBackendSetAttribute(miopenBackendDescriptor_t descriptor,
-                                         miopenBackendAttributeName_t attributeName,
-                                         miopenBackendAttributeType_t attributeType,
-                                         int64_t elementCount,
-                                         void* arrayOfElements);
+MIOPEN_EXPORT miopenStatus_t miopenBackendSetAttribute(miopenBackendDescriptor_t descriptor,
+                                                       miopenBackendAttributeName_t attributeName,
+                                                       miopenBackendAttributeType_t attributeType,
+                                                       int64_t elementCount,
+                                                       void* arrayOfElements);
 
 /*! @brief Finalizes a backend descriptor
  *
