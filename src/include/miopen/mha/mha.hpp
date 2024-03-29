@@ -31,7 +31,7 @@
 namespace miopen {
 namespace mha {
 
-struct MHAInputDescsForward
+struct MhaInputDescsForward
 {
     // input tensors
     TensorDescriptor kDesc;
@@ -64,7 +64,7 @@ struct MHAInputDescsForward
     TensorDescriptor zInvDesc;
 };
 
-struct MHADataForward
+struct MhaDataForward
 {
     // input tensors
     ConstData_t kData;
