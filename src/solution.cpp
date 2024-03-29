@@ -299,28 +299,9 @@ void Solution::RunImpl(Handle& handle,
             auto m     = get_input_checked(miopenTensorMhaM, "miopenTensorMhaM");
             auto zInv  = get_input_checked(miopenTensorMhaZInv, "miopenTensorMhaZInv");
 
-            mha::MHAInputDescsForward inputDescsForward = {*k.descriptor,
-                                                           *q.descriptor,
-                                                           *v.descriptor,
-                                                           *descaleK.descriptor,
-                                                           *descaleQ.descriptor,
-                                                           *descaleV.descriptor,
-                                                           *descaleS.descriptor,
-                                                           *scaleS.descriptor,
-                                                           *scaleO.descriptor,
+            const mha::MhaInputDescsForward& inputDescsForward = problem_description.GetDescs();
 
-                                                           mha_desc.GetScale(),
-                                                           *dropoutProbability.descriptor,
-                                                           *dropoutSeed.descriptor,
-                                                           *dropoutOffset.descriptor,
-
-                                                           *o.descriptor,
-                                                           *amaxO.descriptor,
-                                                           *amaxS.descriptor,
-                                                           *m.descriptor,
-                                                           *zInv.descriptor};
-
-            mha::MHADataForward dataForward = {k.buffer,
+            mha::MhaDataForward dataForward = {k.buffer,
                                                q.buffer,
                                                v.buffer,
                                                descaleK.buffer,
