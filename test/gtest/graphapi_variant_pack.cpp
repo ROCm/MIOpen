@@ -38,8 +38,8 @@
 
 namespace {
 
-using miopen::graphapi::ValidatedVector;
 using miopen::graphapi::ValidatedValue;
+using miopen::graphapi::ValidatedVector;
 using GraphApiVariantPackTuple =
     std::tuple<bool, ValidatedVector<int64_t>, ValidatedVector<void*>, ValidatedValue<void*>>;
 
