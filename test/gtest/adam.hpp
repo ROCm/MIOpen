@@ -1,0 +1,268 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+#define MIOPEN_BETA_API 1
+#include "../driver/tensor_driver.hpp"
+#include "cpu_adam.hpp"
+#include "get_handle.hpp"
+#include "random.hpp"
+#include "tensor_holder.hpp"
+#include "verify.hpp"
+#include <gtest/gtest.h>
+#include <miopen/adam.hpp>
+#include <miopen/miopen.h>
+
+struct AdamTestCase
+{
+    std::vector<int> input;
+    float lr;
+    float beta1;
+    float beta2;
+    float weight_decay;
+    float eps;
+    bool amsgrad;
+    bool maximize;
+
+    friend std::ostream& operator<<(std::ostream& os, const AdamTestCase& tc)
+    {
+        os << " input:" << tc.input[0];
+        for(int i = 1; i < tc.input.size(); i++)
+        {
+            os << "x" << tc.input[i];
+        }
+        return os << " lr:" << tc.lr << " beta1:" << tc.beta1 << " beta2:" << tc.beta2
+                  << " weight_decay:" << tc.weight_decay << " eps:" << tc.eps
+                  << " amsgrad:" << tc.amsgrad << " maximize:" << tc.maximize;
+    }
+
+    const std::vector<int>& GetInput() { return input; }
+};
+
+std::vector<AdamTestCase> AdamTestConfigs()
+{ // dim, dims
+    // clang-format off
+    return {{{64}, 0.001, 0.9, 0.999, 0, 0.000001, false, false},
+            {{64, 3, 3, 3}, 0.001, 0.9, 0.999, 0, 0.000001, false, false},
+            {{192, 128, 3, 3}, 0.001, 0.9, 0.999, 0, 0.000001, false, false},
+            {{255, 256, 1, 1}, 0.001, 0.9, 0.999, 0, 0.000001, false, false}};
+    // clang-format on
+}
+
+template <typename T1 = float, typename T2 = float, bool is_amp = false>
+struct AdamTest : public ::testing::TestWithParam<AdamTestCase>
+{
+protected:
+    void SetUp() override
+    {
+        auto&& handle  = get_handle();
+        adam_config    = GetParam();
+        auto gen_value = [](auto...) { return prng::gen_descreet_unsigned<T1>(1e-2, 100); };
+        auto dims      = adam_config.GetInput();
+
+        lr           = adam_config.lr;
+        beta1        = adam_config.beta1;
+        beta2        = adam_config.beta2;
+        weight_decay = adam_config.weight_decay;
+        eps          = adam_config.eps;
+        amsgrad      = adam_config.amsgrad;
+        maximize     = adam_config.maximize;
+
+        param          = tensor<T1>{dims}.generate(gen_value);
+        grad           = tensor<T1>{dims}.generate(gen_value);
+        exp_avg        = tensor<T1>{dims}.generate(gen_value);
+        exp_avg_sq     = tensor<T1>{dims}.generate(gen_value);
+        max_exp_avg_sq = tensor<T1>{dims}.generate(gen_value);
+        ref_param      = tensor<T1>{param};
+
+        param_dev          = handle.Write(param.data);
+        grad_dev           = handle.Write(grad.data);
+        exp_avg_dev        = handle.Write(exp_avg.data);
+        exp_avg_sq_dev     = handle.Write(exp_avg_sq.data);
+        max_exp_avg_sq_dev = handle.Write(max_exp_avg_sq.data);
+
+        if(is_amp)
+        {
+            step[0]       = 0;
+            grad_scale[0] = 65536;
+            found_inf[0]  = 0;
+
+            step_dev       = handle.Write(step.data);
+            grad_scale_dev = handle.Write(grad_scale.data);
+            found_inf_dev  = handle.Write(found_inf.data);
+        }
+        else
+        {
+            step[0]       = 1;
+            grad_scale[0] = 1.0f;
+            found_inf[0]  = 0;
+        }
+    }
+
+    void RunTest()
+    {
+        auto&& handle = get_handle();
+
+        cpu_adam<T1, T2>(ref_param,
+                         grad,
+                         exp_avg,
+                         exp_avg_sq,
+                         max_exp_avg_sq,
+                         lr,
+                         beta1,
+                         beta2,
+                         weight_decay,
+                         eps,
+                         amsgrad,
+                         maximize,
+                         is_amp,
+                         grad_scale[0],
+                         found_inf[0],
+                         step_count);
+
+        for(int i = 1; i <= step_count; i++)
+        {
+            miopenStatus_t status;
+
+            if(is_amp)
+            {
+                status = miopen::Adam(handle,
+                                      param.desc,
+                                      param_dev.get(),
+                                      grad.desc,
+                                      grad_dev.get(),
+                                      exp_avg.desc,
+                                      exp_avg_dev.get(),
+                                      exp_avg_sq.desc,
+                                      exp_avg_sq_dev.get(),
+                                      amsgrad ? &max_exp_avg_sq.desc : nullptr,
+                                      amsgrad ? max_exp_avg_sq_dev.get() : nullptr,
+                                      &grad_scale.desc,
+                                      grad_scale_dev.get(),
+                                      &found_inf.desc,
+                                      found_inf_dev.get(),
+                                      &step.desc,
+                                      step_dev.get(),
+                                      -1,
+                                      lr,
+                                      beta1,
+                                      beta2,
+                                      weight_decay,
+                                      eps,
+                                      amsgrad,
+                                      maximize,
+                                      &param.desc,
+                                      param_dev.get(),
+                                      &exp_avg.desc,
+                                      exp_avg_dev.get(),
+                                      &exp_avg_sq.desc,
+                                      exp_avg_sq_dev.get(),
+                                      amsgrad ? &max_exp_avg_sq.desc : nullptr,
+                                      amsgrad ? max_exp_avg_sq_dev.get() : nullptr,
+                                      &step.desc,
+                                      step_dev.get());
+            }
+            else
+            {
+                status = miopen::Adam(handle,
+                                      param.desc,
+                                      param_dev.get(),
+                                      grad.desc,
+                                      grad_dev.get(),
+                                      exp_avg.desc,
+                                      exp_avg_dev.get(),
+                                      exp_avg_sq.desc,
+                                      exp_avg_sq_dev.get(),
+                                      amsgrad ? &max_exp_avg_sq.desc : nullptr,
+                                      amsgrad ? max_exp_avg_sq_dev.get() : nullptr,
+                                      nullptr,
+                                      nullptr,
+                                      nullptr,
+                                      nullptr,
+                                      nullptr,
+                                      nullptr,
+                                      i,
+                                      lr,
+                                      beta1,
+                                      beta2,
+                                      weight_decay,
+                                      eps,
+                                      amsgrad,
+                                      maximize,
+                                      &param.desc,
+                                      param_dev.get(),
+                                      &exp_avg.desc,
+                                      exp_avg_dev.get(),
+                                      &exp_avg_sq.desc,
+                                      exp_avg_sq_dev.get(),
+                                      amsgrad ? &max_exp_avg_sq.desc : nullptr,
+                                      amsgrad ? max_exp_avg_sq_dev.get() : nullptr,
+                                      nullptr,
+                                      nullptr);
+            }
+            EXPECT_EQ(status, miopenStatusSuccess);
+        }
+
+        param.data = handle.Read<T1>(param_dev, param.data.size());
+    }
+
+    void Verify()
+    {
+        double threshold = std::numeric_limits<T1>::epsilon();
+        auto error       = miopen::rms_range(ref_param, param);
+
+        EXPECT_TRUE(miopen::range_distance(ref_param) == miopen::range_distance(param));
+        EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance Error:" << error
+                                            << ",  Thresholdx10: " << threshold * 10;
+    }
+    AdamTestCase adam_config;
+
+    tensor<T1> param;
+    tensor<T1> ref_param;
+    tensor<T2> grad;
+    tensor<T1> exp_avg;
+    tensor<T1> exp_avg_sq;
+    tensor<T1> max_exp_avg_sq;
+    tensor<int> step{1};
+    tensor<int> found_inf{1};
+    tensor<int> grad_scale{1};
+
+    miopen::Allocator::ManageDataPtr param_dev;
+    miopen::Allocator::ManageDataPtr grad_dev;
+    miopen::Allocator::ManageDataPtr exp_avg_dev;
+    miopen::Allocator::ManageDataPtr exp_avg_sq_dev;
+    miopen::Allocator::ManageDataPtr max_exp_avg_sq_dev;
+    miopen::Allocator::ManageDataPtr step_dev;
+    miopen::Allocator::ManageDataPtr found_inf_dev;
+    miopen::Allocator::ManageDataPtr grad_scale_dev;
+
+    float lr                            = 0.0f;
+    float beta1                         = 0.0f;
+    float beta2                         = 0.0f;
+    float weight_decay                  = 0.0f;
+    float eps                           = 0.0f;
+    bool amsgrad                        = false;
+    bool maximize                       = false;
+    constexpr static int32_t step_count = 10;
+};

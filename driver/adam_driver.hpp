@@ -52,6 +52,7 @@ void mloAdamRunHost(int32_t iter,
                     Tref* grad,
                     Tref* exp_avg,
                     Tref* exp_avg_sq,
+                    Tref* max_exp_avg_sq,
                     float lr,
                     float beta1,
                     float beta2,
@@ -60,7 +61,6 @@ void mloAdamRunHost(int32_t iter,
                     bool amsgrad,
                     bool maximize,
                     bool is_amp,
-                    Tref* max_exp_avg_sq,
                     int32_t grad_scale,
                     bool found_inf)
 {
@@ -516,6 +516,7 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::RunForwardCPU()
                          grad_host.data(),
                          exp_avg_host.data(),
                          exp_avg_sq_host.data(),
+                         max_exp_avg_sq_host.data(),
                          lr,
                          beta1,
                          beta2,
@@ -524,7 +525,6 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::RunForwardCPU()
                          amsgrad,
                          maximize,
                          is_amp,
-                         max_exp_avg_sq_host.data(),
                          grad_scale,
                          found_inf);
 
