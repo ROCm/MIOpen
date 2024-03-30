@@ -60,8 +60,56 @@ TEST_P(GraphApiReductionBuilder, MissingSetter)
         << "Builder validated attributes despite missing setCompType() call";
 }
 
+namespace {
+
+using miopen::graphapi::GTestDescriptorAttribute;
+using miopen::graphapi::GTestDescriptorSingleValueAttribute;
+using miopen::graphapi::GTestGraphApiExecute;
+
+} // namespace
+
+class GraphApiReduction : public testing::TestWithParam<DescriptorTuple>
+{
+protected:
+    GTestGraphApiExecute<GTestDescriptorAttribute*> execute;
+
+    // Pointers to these are stored inside 'execute' object (above)
+    GTestDescriptorSingleValueAttribute<miopenReduceTensorOp_t, char> mReductionOperator;
+    GTestDescriptorSingleValueAttribute<miopenDataType_t, char> mCompType;
+
+    void SetUp() override
+    {
+        auto [reductionOperator, compType] = GetParam();
+
+        mReductionOperator = {true,
+                              "MIOPEN_ATTR_REDUCTION_OPERATOR",
+                              MIOPEN_ATTR_REDUCTION_OPERATOR,
+                              MIOPEN_TYPE_REDUCTION_OPERATOR_TYPE,
+                              MIOPEN_TYPE_CHAR,
+                              2,
+                              reductionOperator};
+
+        mCompType = {true,
+                     "MIOPEN_ATTR_REDUCTION_COMP_TYPE",
+                     MIOPEN_ATTR_REDUCTION_COMP_TYPE,
+                     MIOPEN_TYPE_DATA_TYPE,
+                     MIOPEN_TYPE_CHAR,
+                     2,
+                     compType};
+
+        execute.descriptor.attributes = {&mReductionOperator, &mCompType};
+
+        execute.descriptor.attrsValid = true;
+        execute.descriptor.textName   = "MIOPEN_BACKEND_REDUCTION_DESCRIPTOR";
+        execute.descriptor.type       = MIOPEN_BACKEND_REDUCTION_DESCRIPTOR;
+    }
+};
+
+TEST_P(GraphApiReduction, CFunctions) { execute(); }
+
 static auto testCases =
     testing::Combine(testing::Values(MIOPEN_REDUCE_TENSOR_ADD, MIOPEN_REDUCE_TENSOR_MUL),
                      testing::Values(miopenFloat, miopenHalf));
 
 INSTANTIATE_TEST_SUITE_P(TestCases, GraphApiReductionBuilder, testCases);
+INSTANTIATE_TEST_SUITE_P(TestCases, GraphApiReduction, testCases);

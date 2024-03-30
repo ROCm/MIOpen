@@ -26,6 +26,7 @@
 #pragma once
 
 #include <miopen/miopen.h>
+#include <miopen/graphapi/graphapi.hpp>
 
 namespace miopen {
 
@@ -73,6 +74,28 @@ public:
     }
 
     Reduction build();
+};
+
+class BackendReductionDescriptor : public BackendDescriptor
+{
+private:
+    ReductionBuilder mBuilder;
+    Reduction mReduction;
+
+public:
+    void setAttribute(miopenBackendAttributeName_t attributeName,
+                      miopenBackendAttributeType_t attributeType,
+                      int64_t elementCount,
+                      void* arrayOfElements) override;
+    void finalize() override;
+    void getAttribute(miopenBackendAttributeName_t attributeName,
+                      miopenBackendAttributeType_t attributeType,
+                      int64_t requestedElementCount,
+                      int64_t* elementCount,
+                      void* arrayOfElements) override;
+
+    const Reduction* getReduction() const { return &mReduction; }
+    Reduction* getReduction() { return &mReduction; }
 };
 
 } // namespace graphapi

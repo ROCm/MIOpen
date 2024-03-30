@@ -43,6 +43,97 @@ Reduction ReductionBuilder::build()
     }
 }
 
+void BackendReductionDescriptor::setAttribute(miopenBackendAttributeName_t attributeName,
+                                              miopenBackendAttributeType_t attributeType,
+                                              int64_t elementCount,
+                                              void* arrayOfElements)
+{
+    if(mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+
+    switch(attributeName)
+    {
+    case MIOPEN_ATTR_REDUCTION_OPERATOR:
+        if(attributeType == MIOPEN_TYPE_REDUCTION_OPERATOR_TYPE && elementCount == 1)
+        {
+            mBuilder.setReductionOperator(*static_cast<miopenReduceTensorOp_t*>(arrayOfElements));
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+        break;
+
+    case MIOPEN_ATTR_REDUCTION_COMP_TYPE:
+        if(attributeType == MIOPEN_TYPE_DATA_TYPE && elementCount == 1)
+        {
+            mBuilder.setCompType(*static_cast<miopenDataType_t*>(arrayOfElements));
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+        break;
+
+    default: MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
+void BackendReductionDescriptor::finalize()
+{
+    if(mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+
+    mReduction = mBuilder.build();
+    mFinalized = true;
+}
+
+void BackendReductionDescriptor::getAttribute(miopenBackendAttributeName_t attributeName,
+                                              miopenBackendAttributeType_t attributeType,
+                                              int64_t requestedElementCount,
+                                              int64_t* elementCount,
+                                              void* arrayOfElements)
+{
+    if(!mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+
+    switch(attributeName)
+    {
+    case MIOPEN_ATTR_REDUCTION_OPERATOR:
+        if(attributeType == MIOPEN_TYPE_REDUCTION_OPERATOR_TYPE && requestedElementCount == 1)
+        {
+            *elementCount = 1;
+            *static_cast<miopenReduceTensorOp_t*>(arrayOfElements) =
+                mReduction.getReductionOperator();
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+        break;
+
+    case MIOPEN_ATTR_REDUCTION_COMP_TYPE:
+        if(attributeType == MIOPEN_TYPE_DATA_TYPE && requestedElementCount == 1)
+        {
+            *elementCount                                    = 1;
+            *static_cast<miopenDataType_t*>(arrayOfElements) = mReduction.getCompType();
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+        break;
+
+    default: MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
 } // namespace graphapi
 
 } // namespace miopen
