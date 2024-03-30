@@ -122,6 +122,7 @@ set( MIOpen_Source
     fusion/problem_description.cpp
     generic_search.cpp
     graphapi/graphapi.cpp
+    graphapi/reduction.cpp
     graphapi/tensor.cpp
     groupnorm_api.cpp
     groupnorm/problem_description.cpp
