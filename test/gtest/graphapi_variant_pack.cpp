@@ -290,6 +290,7 @@ using miopen::graphapi::GTestDescriptor;
 using miopen::graphapi::GTestDescriptorAttribute;
 using miopen::graphapi::GTestDescriptorSingleValueAttribute;
 using miopen::graphapi::GTestDescriptorVectorAttribute;
+using miopen::graphapi::GTestGraphApiExecute;
 
 class TensorIds : public GTestDescriptorVectorAttribute<int64_t, char>
 {
@@ -345,7 +346,7 @@ class GraphApiVariantPack : public testing::TestWithParam<GraphApiVariantPackTup
 {
 protected:
     // to be used in the test
-    GTestDescriptor<GTestDescriptorAttribute*> descriptor;
+    GTestGraphApiExecute<GTestDescriptorAttribute*> execute;
 
     // descriptor above contains pointer to these:
     TensorIds mTensorIds;
@@ -356,185 +357,14 @@ protected:
     {
         bool valid                                             = false;
         std::tie(valid, mTensorIds, mDataPointers, mWorkspace) = GetParam();
-        descriptor = {"MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR",
-                      MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR,
-                      valid,
-                      {&mTensorIds, &mDataPointers, &mWorkspace}};
+        execute.descriptor = {"MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR",
+                              MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR,
+                              valid,
+                              {&mTensorIds, &mDataPointers, &mWorkspace}};
     }
 };
 
-TEST_P(GraphApiVariantPack, CFuncions)
-{
-    auto [descrTextName, descrType, attrsValid, attributes] = descriptor;
-
-    // Create Desctiptor
-    miopenBackendDescriptor_t descr;
-    // clang-format off
-    miopenStatus_t status = miopenBackendCreateDescriptor(descrType, &descr);
-    ASSERT_EQ(status, miopenStatusSuccess) << descrTextName << " wasn't created";
-    ASSERT_NE(descr, nullptr) << "A null " << descrTextName << " was created";
-    // clang-format on
-
-    // Finalize before setting attributes
-    status = miopenBackendFinalize(descr);
-    if(status == miopenStatusSuccess)
-    {
-        miopenBackendDestroyDescriptor(descr);
-        FAIL() << descrTextName << " was finalized without setting attributes";
-    }
-
-    // Set attributes (should succeed)
-    bool anyAttributeFailed = false;
-    for(auto& attrPtr : attributes)
-    {
-        auto [isCorrect,
-              textName,
-              name,
-              type,
-              count,
-              data,
-              invalidType,
-              invalidTypeData,
-              invalidCount,
-              invalidCountData,
-              readBuffer] = attrPtr->getTestCase();
-
-        // clang-format off
-        status = miopenBackendSetAttribute(descr, name, invalidType, count, invalidTypeData);
-        EXPECT_NE(status, miopenStatusSuccess) << textName << " was set with invalid type";
-
-        status = miopenBackendSetAttribute(descr, name, type, invalidCount, invalidCountData);
-        EXPECT_NE(status, miopenStatusSuccess) << textName << " was set with invalid element count";
-
-        status = miopenBackendSetAttribute(descr, name, type, count, nullptr);
-        EXPECT_NE(status, miopenStatusSuccess) << textName << " was set with null array of elements";
-
-        status = miopenBackendSetAttribute(descr, name, type, count, data);
-        if(attrsValid) // implementation may postpone validating values to finalize()
-            EXPECT_EQ(status, miopenStatusSuccess) << textName << " wasn't set";
-        // clang-format on
-
-        anyAttributeFailed = anyAttributeFailed || (status != miopenStatusSuccess);
-    }
-
-    // Get attibute before finalizing (not a one should succeed)
-    bool anyAttributeGot = false;
-    for(auto& attrPtr : attributes)
-    {
-        auto [isCorrect,
-              textName,
-              name,
-              type,
-              count,
-              data,
-              invalidType,
-              invalidTypeData,
-              invalidCount,
-              invalidCountData,
-              readBuffer] = attrPtr->getTestCase();
-
-        int64_t elementCount = 0;
-
-        status = miopenBackendGetAttribute(descr, name, type, count, &elementCount, readBuffer);
-        EXPECT_NE(status, miopenStatusSuccess) << textName << " was retrieved before finalize()";
-
-        anyAttributeGot = anyAttributeGot || (status == miopenStatusSuccess);
-    }
-
-    // Stop further execution if needed
-    if(anyAttributeGot)
-    {
-        miopenBackendDestroyDescriptor(descr);
-        FAIL() << "Some attributes of " << descrTextName << " were retrieved before finalize()";
-    }
-    if(anyAttributeFailed && attrsValid)
-    {
-        miopenBackendDestroyDescriptor(descr);
-        FAIL() << "Not all attributes of " << descrTextName << " were set";
-    }
-
-    // Finalize
-    status = miopenBackendFinalize(descr);
-
-    // Stop further execution if finalize() acted incorrectly
-    if(attrsValid && status != miopenStatusSuccess)
-    {
-        miopenBackendDestroyDescriptor(descr);
-        FAIL() << descrTextName << " wasn't finalized";
-    }
-    else if(!attrsValid)
-    {
-        miopenBackendDestroyDescriptor(descr);
-        ASSERT_NE(status, miopenStatusSuccess)
-            << descrTextName << " was finalized on invalid attributes";
-
-        // No need to proceed with invalid attributes
-        return;
-    }
-
-    // Set attributes after finalizing (not a one should succeed)
-    bool anyAttributeSet = false;
-    for(auto& attrPtr : attributes)
-    {
-        auto [isCorrect,
-              textName,
-              name,
-              type,
-              count,
-              data,
-              invalidType,
-              invalidTypeData,
-              invalidCount,
-              invalidCountData,
-              readBuffer] = attrPtr->getTestCase();
-
-        status = miopenBackendSetAttribute(descr, name, type, count, data);
-        EXPECT_NE(status, miopenStatusSuccess) << textName << " was set after finalize()";
-
-        anyAttributeSet = anyAttributeSet || (status == miopenStatusSuccess);
-    }
-
-    // Stop if an attribute was set
-    if(anyAttributeSet)
-    {
-        miopenBackendDestroyDescriptor(descr);
-        ASSERT_NE(status, miopenStatusSuccess)
-            << "An attribute of " << descrTextName << " was set after finalize()";
-    }
-
-    // Get attributes
-    for(auto& attrPtr : attributes)
-    {
-        auto [isCorrect,
-              textName,
-              name,
-              type,
-              count,
-              data,
-              invalidType,
-              invalidTypeData,
-              invalidCount,
-              invalidCountData,
-              readBuffer] = attrPtr->getTestCase();
-
-        int64_t elementCount = 0;
-        // clang-format off
-        status = miopenBackendGetAttribute(descr, name, invalidType, count, &elementCount, invalidTypeData);
-        EXPECT_NE(status, miopenStatusSuccess) << textName << " was retrieved with invalid type";
-        status = miopenBackendGetAttribute(descr, name, type, invalidCount, &elementCount, invalidCountData);
-        EXPECT_NE(status, miopenStatusSuccess) << textName << " was retrieved with invalid element count";
-        status = miopenBackendGetAttribute(descr, name, type, count, nullptr, readBuffer);
-        EXPECT_NE(status, miopenStatusSuccess) << textName << " was retrieved with null element count";
-        status = miopenBackendGetAttribute(descr, name, type, count, &elementCount, nullptr);
-        EXPECT_NE(status, miopenStatusSuccess) << textName << " was retrieved with null array of elements";
-        status = miopenBackendGetAttribute(descr, name, type, count, &elementCount, readBuffer);
-        EXPECT_EQ(status, miopenStatusSuccess) << textName << " wasn't retrieved";
-        EXPECT_EQ(count, elementCount) << textName << " set and retrieved number of elements differ";
-        if(status == miopenStatusSuccess && count == elementCount)
-            EXPECT_TRUE(attrPtr->isSetAndGotEqual()) << textName << " set and retrieved values differ";
-        // clang-format on
-    }
-}
+TEST_P(GraphApiVariantPack, CFuncions) { execute(); }
 
 static char mem[10][256];
 
