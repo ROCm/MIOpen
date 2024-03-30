@@ -26,6 +26,9 @@
 #pragma once
 
 #include <miopen/miopen.h>
+#include <miopen/graphapi/graphapi.hpp>
+
+#include <cstdint>
 
 namespace miopen {
 
@@ -102,6 +105,28 @@ public:
     RngBuilder& setBernoulliProb(double bernoulliProb);
 
     Rng build() const;
+};
+
+class BackendRngDescriptor : public BackendDescriptor
+{
+private:
+    RngBuilder mBuilder;
+    Rng mRng;
+
+public:
+    virtual void setAttribute(miopenBackendAttributeName_t attributeName,
+                              miopenBackendAttributeType_t attributeType,
+                              int64_t elementCount,
+                              void* arrayOfElements) override;
+    virtual void finalize() override;
+    virtual void getAttribute(miopenBackendAttributeName_t attributeName,
+                              miopenBackendAttributeType_t attributeType,
+                              int64_t requestedElementCount,
+                              int64_t* elementCount,
+                              void* arrayOfElements) override;
+
+    const Rng* getRng() const noexcept { return &mRng; }
+    Rng* getRng() noexcept { return &mRng; }
 };
 
 } // namespace graphapi

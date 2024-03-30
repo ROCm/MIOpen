@@ -27,6 +27,8 @@
 #include <miopen/errors.hpp>
 #include <miopen/graphapi/rng.hpp>
 
+#include <cstdint>
+
 namespace miopen {
 
 namespace graphapi {
@@ -70,6 +72,124 @@ Rng RngBuilder::build() const
     else
     {
         MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
+void BackendRngDescriptor::setAttribute(miopenBackendAttributeName_t attributeName,
+                                        miopenBackendAttributeType_t attributeType,
+                                        int64_t elementCount,
+                                        void* arrayOfElements)
+{
+    if(mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+
+    using Setter = RngBuilder& (RngBuilder::*)(double);
+
+    auto callSetter = [=](Setter setter) {
+        if(attributeType == MIOPEN_TYPE_DOUBLE && elementCount == 1)
+        {
+            (mBuilder.*setter)(*static_cast<double*>(arrayOfElements));
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+    };
+
+    switch(attributeName)
+    {
+    case MIOPEN_ATTR_RNG_DISTRIBUTION:
+        if(attributeType == MIOPEN_TYPE_RNG_DISTRIBUTION && elementCount == 1)
+        {
+            mBuilder.setDistribution(*static_cast<miopenRngDistribution_t*>(arrayOfElements));
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+        break;
+
+    case MIOPEN_ATTR_RNG_NORMAL_DIST_MEAN: callSetter(&RngBuilder::setNormalMean); break;
+
+    case MIOPEN_ATTR_RNG_NORMAL_DIST_STANDARD_DEVIATION:
+        callSetter(&RngBuilder::setNormalStdev);
+        break;
+
+    case MIOPEN_ATTR_RNG_UNIFORM_DIST_MINIMUM: callSetter(&RngBuilder::setUniformMin); break;
+
+    case MIOPEN_ATTR_RNG_UNIFORM_DIST_MAXIMUM: callSetter(&RngBuilder::setUniformMax); break;
+
+    case MIOPEN_ATTR_RNG_BERNOULLI_DIST_PROBABILITY:
+        callSetter(&RngBuilder::setBernoulliProb);
+        break;
+
+    default: MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
+void BackendRngDescriptor::finalize()
+{
+    if(mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+
+    mRng       = mBuilder.build();
+    mFinalized = true;
+}
+
+void BackendRngDescriptor::getAttribute(miopenBackendAttributeName_t attributeName,
+                                        miopenBackendAttributeType_t attributeType,
+                                        int64_t requestedElementCount,
+                                        int64_t* elementCount,
+                                        void* arrayOfElements)
+{
+    if(!mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+
+    using Getter = double (Rng::*)() const;
+
+    auto callGetter = [=](Getter getter) {
+        if(attributeType == MIOPEN_TYPE_DOUBLE && requestedElementCount == 1)
+        {
+            *elementCount                          = 1;
+            *static_cast<double*>(arrayOfElements) = (mRng.*getter)();
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+    };
+
+    switch(attributeName)
+    {
+    case MIOPEN_ATTR_RNG_DISTRIBUTION:
+        if(attributeType == MIOPEN_TYPE_RNG_DISTRIBUTION && requestedElementCount == 1)
+        {
+            *elementCount                                           = 1;
+            *static_cast<miopenRngDistribution_t*>(arrayOfElements) = mRng.getDistribution();
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+        break;
+
+    case MIOPEN_ATTR_RNG_NORMAL_DIST_MEAN: callGetter(&Rng::getNormalMean); break;
+
+    case MIOPEN_ATTR_RNG_NORMAL_DIST_STANDARD_DEVIATION: callGetter(&Rng::getNormalStdev); break;
+
+    case MIOPEN_ATTR_RNG_UNIFORM_DIST_MINIMUM: callGetter(&Rng::getUniformMin); break;
+
+    case MIOPEN_ATTR_RNG_UNIFORM_DIST_MAXIMUM: callGetter(&Rng::getUniformMax); break;
+
+    case MIOPEN_ATTR_RNG_BERNOULLI_DIST_PROBABILITY: callGetter(&Rng::getBernoulliProb); break;
+
+    default: MIOPEN_THROW(miopenStatusBadParm);
     }
 }
 

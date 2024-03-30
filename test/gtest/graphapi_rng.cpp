@@ -122,6 +122,95 @@ TEST_P(GraphApiRngBuilder, ValidateAttributes)
     }
 }
 
+namespace {
+
+using miopen::graphapi::GTestDescriptorAttribute;
+using miopen::graphapi::GTestDescriptorSingleValueAttribute;
+using miopen::graphapi::GTestGraphApiExecute;
+
+} // namespace
+
+class GraphApiRng : public testing::TestWithParam<DescriptorTuple>
+{
+protected:
+    GTestGraphApiExecute<GTestDescriptorAttribute*> execute;
+
+    // Pointers to these are used in execute object above
+    GTestDescriptorSingleValueAttribute<miopenRngDistribution_t, char> mDistribution;
+    GTestDescriptorSingleValueAttribute<double, char> mNormalMean;
+    GTestDescriptorSingleValueAttribute<double, char> mNormalStdev;
+    GTestDescriptorSingleValueAttribute<double, char> mUniformMin;
+    GTestDescriptorSingleValueAttribute<double, char> mUniformMax;
+    GTestDescriptorSingleValueAttribute<double, char> mBernoulliProb;
+
+    void SetUp() override
+    {
+        auto [valid, distribution, normalMean, normalStdev, uniformMin, uniformMax, bernoulliProb] =
+            GetParam();
+
+        mDistribution = {true,
+                         "MIOPEN_ATTR_RNG_DISTRIBUTION",
+                         MIOPEN_ATTR_RNG_DISTRIBUTION,
+                         MIOPEN_TYPE_RNG_DISTRIBUTION,
+                         MIOPEN_TYPE_CHAR,
+                         2,
+                         distribution};
+
+        mNormalMean = {true,
+                       "MIOPEN_ATTR_RNG_NORMAL_DIST_MEAN",
+                       MIOPEN_ATTR_RNG_NORMAL_DIST_MEAN,
+                       MIOPEN_TYPE_DOUBLE,
+                       MIOPEN_TYPE_CHAR,
+                       2,
+                       normalMean};
+
+        mNormalStdev = {normalStdev.valid,
+                        "MIOPEN_ATTR_RNG_NORMAL_DIST_STANDARD_DEVIATION",
+                        MIOPEN_ATTR_RNG_NORMAL_DIST_STANDARD_DEVIATION,
+                        MIOPEN_TYPE_DOUBLE,
+                        MIOPEN_TYPE_CHAR,
+                        2,
+                        normalStdev.value};
+
+        mUniformMin = {true,
+                       "MIOPEN_ATTR_RNG_UNIFORM_DIST_MINIMUM",
+                       MIOPEN_ATTR_RNG_UNIFORM_DIST_MINIMUM,
+                       MIOPEN_TYPE_DOUBLE,
+                       MIOPEN_TYPE_CHAR,
+                       2,
+                       uniformMin};
+
+        mUniformMax = {true,
+                       "MIOPEN_ATTR_RNG_UNIFORM_DIST_MAXIMUM",
+                       MIOPEN_ATTR_RNG_UNIFORM_DIST_MAXIMUM,
+                       MIOPEN_TYPE_DOUBLE,
+                       MIOPEN_TYPE_CHAR,
+                       2,
+                       uniformMax};
+
+        mBernoulliProb = {bernoulliProb.valid,
+                          "MIOPEN_ATTR_RNG_BERNOULLI_DIST_PROBABILITY",
+                          MIOPEN_ATTR_RNG_BERNOULLI_DIST_PROBABILITY,
+                          MIOPEN_TYPE_DOUBLE,
+                          MIOPEN_TYPE_CHAR,
+                          2,
+                          bernoulliProb.value};
+
+        execute.descriptor.textName   = "MIOPEN_BACKEND_RNG_DESCRIPTOR";
+        execute.descriptor.type       = MIOPEN_BACKEND_RNG_DESCRIPTOR;
+        execute.descriptor.attrsValid = valid;
+
+        execute.descriptor.attributes = {&mDistribution,
+                                         &mNormalMean,
+                                         &mNormalStdev,
+                                         &mUniformMin,
+                                         &mUniformMax,
+                                         &mBernoulliProb};
+    }
+};
+
+TEST_P(GraphApiRng, CFunctions) { execute(); }
+
 static auto validAttributesNormal =
     testing::Combine(testing::Values(true),
                      testing::Values(MIOPEN_RNG_DISTRIBUTION_NORMAL),
@@ -193,3 +282,11 @@ INSTANTIATE_TEST_SUITE_P(InvalidAttributesUniform, GraphApiRngBuilder, invalidAt
 INSTANTIATE_TEST_SUITE_P(InvalidAttributesBernoulli,
                          GraphApiRngBuilder,
                          invalidAttributesBernoulli);
+
+INSTANTIATE_TEST_SUITE_P(ValidAttributesNormal, GraphApiRng, validAttributesNormal);
+INSTANTIATE_TEST_SUITE_P(ValidAttributesUniform, GraphApiRng, validAttributesUniform);
+INSTANTIATE_TEST_SUITE_P(ValidAttributesBernoulli, GraphApiRng, validAttributesBernoulli);
+
+INSTANTIATE_TEST_SUITE_P(InvalidAttributesNormal, GraphApiRng, invalidAttributesNormal);
+INSTANTIATE_TEST_SUITE_P(InvalidAttributesUniform, GraphApiRng, invalidAttributesUniform);
+INSTANTIATE_TEST_SUITE_P(InvalidAttributesBernoulli, GraphApiRng, invalidAttributesBernoulli);
