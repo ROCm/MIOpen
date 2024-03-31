@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include <miopen/algorithm.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/graphapi/rng.hpp>
 
@@ -191,6 +192,99 @@ void BackendRngDescriptor::getAttribute(miopenBackendAttributeName_t attributeNa
 
     default: MIOPEN_THROW(miopenStatusBadParm);
     }
+}
+
+std::vector<Tensor*> OperationRng::getInTensors() const
+{
+    if(mSeed.index() == 0)
+    {
+        return {mOffset};
+    }
+    else
+    {
+        return {std::get<Tensor*>(mSeed), mOffset};
+    }
+}
+
+std::vector<Tensor*> OperationRng::getOutTensors() const { return {mOutput}; }
+
+OperationRngBuilder& OperationRngBuilder::setRng(Rng* rng)
+{
+    if(rng != nullptr)
+    {
+        mOperationRng.mRng = rng;
+        return *this;
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
+OperationRngBuilder& OperationRngBuilder::setOutput(Tensor* output)
+{
+    if(output != nullptr)
+    {
+        mOperationRng.mOutput = output;
+        return *this;
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
+OperationRngBuilder& OperationRngBuilder::setSeed(int64_t seed) noexcept
+{
+    mOperationRng.mSeed = seed;
+    return *this;
+}
+
+OperationRngBuilder& OperationRngBuilder::setSeed(Tensor* seed)
+{
+    bool valid = seed != nullptr;
+
+    valid = valid && miopen::all_of(seed->getDimensions(), [](auto v) { return v == 1; }) &&
+            miopen::all_of(seed->getStrides(), [](auto v) { return v == 1; });
+
+    if(valid)
+    {
+        mOperationRng.mSeed = seed;
+        return *this;
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
+OperationRngBuilder& OperationRngBuilder::setOffset(Tensor* offset)
+{
+    bool valid = offset != nullptr;
+
+    valid = valid && miopen::all_of(offset->getDimensions(), [](auto v) { return v == 1; }) &&
+            miopen::all_of(offset->getStrides(), [](auto v) { return v == 1; });
+
+    if(valid)
+    {
+        mOperationRng.mOffset = offset;
+        return *this;
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
+OperationRng OperationRngBuilder::build()
+{
+    if(mOperationRng.mRng == nullptr || mOperationRng.mOutput == nullptr ||
+       mOperationRng.mOffset == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    return mOperationRng;
 }
 
 } // namespace graphapi
