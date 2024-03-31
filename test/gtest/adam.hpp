@@ -70,7 +70,7 @@ std::vector<AdamTestCase> AdamTestConfigs()
     // clang-format on
 }
 
-template <typename T1 = float, typename T2 = float, bool is_amp = false>
+template <typename Tp = float, typename Tg = float, bool is_amp = false>
 struct AdamTest : public ::testing::TestWithParam<AdamTestCase>
 {
 protected:
@@ -78,7 +78,7 @@ protected:
     {
         auto&& handle  = get_handle();
         adam_config    = GetParam();
-        auto gen_value = [](auto...) { return prng::gen_descreet_unsigned<T1>(1e-2, 100); };
+        auto gen_value = [](auto...) { return prng::gen_descreet_unsigned<Tp>(1e-2, 100); };
         auto dims      = adam_config.GetInput();
 
         lr           = adam_config.lr;
@@ -89,12 +89,12 @@ protected:
         amsgrad      = adam_config.amsgrad;
         maximize     = adam_config.maximize;
 
-        param          = tensor<T1>{dims}.generate(gen_value);
-        grad           = tensor<T1>{dims}.generate(gen_value);
-        exp_avg        = tensor<T1>{dims}.generate(gen_value);
-        exp_avg_sq     = tensor<T1>{dims}.generate(gen_value);
-        max_exp_avg_sq = tensor<T1>{dims}.generate(gen_value);
-        ref_param      = tensor<T1>{param};
+        param          = tensor<Tp>{dims}.generate(gen_value);
+        grad           = tensor<Tg>{dims}.generate(gen_value);
+        exp_avg        = tensor<Tp>{dims}.generate(gen_value);
+        exp_avg_sq     = tensor<Tp>{dims}.generate(gen_value);
+        max_exp_avg_sq = tensor<Tp>{dims}.generate(gen_value);
+        ref_param      = tensor<Tp>{param};
 
         param_dev          = handle.Write(param.data);
         grad_dev           = handle.Write(grad.data);
@@ -124,7 +124,7 @@ protected:
     {
         auto&& handle = get_handle();
 
-        cpu_adam<T1, T2>(ref_param,
+        cpu_adam<Tp, Tg>(ref_param,
                          grad,
                          exp_avg,
                          exp_avg_sq,
@@ -224,12 +224,12 @@ protected:
             EXPECT_EQ(status, miopenStatusSuccess);
         }
 
-        param.data = handle.Read<T1>(param_dev, param.data.size());
+        param.data = handle.Read<Tp>(param_dev, param.data.size());
     }
 
     void Verify()
     {
-        double threshold = std::numeric_limits<T1>::epsilon();
+        double threshold = std::numeric_limits<Tp>::epsilon();
         auto error       = miopen::rms_range(ref_param, param);
 
         EXPECT_TRUE(miopen::range_distance(ref_param) == miopen::range_distance(param));
@@ -238,12 +238,12 @@ protected:
     }
     AdamTestCase adam_config;
 
-    tensor<T1> param;
-    tensor<T1> ref_param;
-    tensor<T2> grad;
-    tensor<T1> exp_avg;
-    tensor<T1> exp_avg_sq;
-    tensor<T1> max_exp_avg_sq;
+    tensor<Tp> param;
+    tensor<Tp> ref_param;
+    tensor<Tg> grad;
+    tensor<Tp> exp_avg;
+    tensor<Tp> exp_avg_sq;
+    tensor<Tp> max_exp_avg_sq;
     tensor<int> step{1};
     tensor<int> found_inf{1};
     tensor<int> grad_scale{1};
@@ -257,12 +257,12 @@ protected:
     miopen::Allocator::ManageDataPtr found_inf_dev;
     miopen::Allocator::ManageDataPtr grad_scale_dev;
 
-    float lr                            = 0.0f;
-    float beta1                         = 0.0f;
-    float beta2                         = 0.0f;
-    float weight_decay                  = 0.0f;
-    float eps                           = 0.0f;
-    bool amsgrad                        = false;
-    bool maximize                       = false;
-    constexpr static int32_t step_count = 10;
+    float lr           = 0.0f;
+    float beta1        = 0.0f;
+    float beta2        = 0.0f;
+    float weight_decay = 0.0f;
+    float eps          = 0.0f;
+    bool amsgrad       = false;
+    bool maximize      = false;
+    int32_t step_count = 10;
 };
