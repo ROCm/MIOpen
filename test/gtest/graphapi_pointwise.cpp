@@ -26,8 +26,8 @@
 
 #include <miopen/graphapi/pointwise.hpp>
 
-#include <memory>
 #include <tuple>
+#include <variant>
 
 #include <gtest/gtest.h>
 
@@ -54,10 +54,12 @@ namespace {
 using miopen::graphapi::GTestDescriptor;
 using miopen::graphapi::GTestDescriptorAttribute;
 using miopen::graphapi::GTestDescriptorSingleValueAttribute;
+using miopen::graphapi::GTestGraphApiExecute;
 
 class Mode : public GTestDescriptorSingleValueAttribute<miopenPointwiseMode_t, char>
 {
 public:
+    Mode() = default;
     Mode(miopenPointwiseMode_t mode)
         : GTestDescriptorSingleValueAttribute<miopenPointwiseMode_t, char>(
               true,
@@ -74,6 +76,7 @@ public:
 class Precision : public GTestDescriptorSingleValueAttribute<miopenDataType_t, char>
 {
 public:
+    Precision() = default;
     Precision(miopenDataType_t precision)
         : GTestDescriptorSingleValueAttribute<miopenDataType_t, char>(
               true,
@@ -90,6 +93,7 @@ public:
 class NanPropagation : public GTestDescriptorSingleValueAttribute<miopenNanPropagation_t, char>
 {
 public:
+    NanPropagation() = default;
     NanPropagation(miopenNanPropagation_t value)
         : GTestDescriptorSingleValueAttribute<miopenNanPropagation_t, char>(
               true,
@@ -106,6 +110,7 @@ public:
 class DoubleAttribute : public GTestDescriptorSingleValueAttribute<double, char>
 {
 public:
+    DoubleAttribute() = default;
     DoubleAttribute(const char* textName, miopenBackendAttributeName_t name)
         : GTestDescriptorSingleValueAttribute<double, char>(
               true, textName, name, MIOPEN_TYPE_DOUBLE, MIOPEN_TYPE_CHAR, 2, 0.7)
@@ -126,6 +131,7 @@ public:
 class Axis : public GTestDescriptorSingleValueAttribute<int64_t, char>
 {
 public:
+    Axis() = default;
     Axis(int64_t value)
         : GTestDescriptorSingleValueAttribute<int64_t, char>(true,
                                                              "MIOPEN_ATTR_POINTWISE_AXIS",
@@ -138,16 +144,36 @@ public:
     }
 };
 
-class Descriptor : public GTestDescriptor
+class DoubleOrFloatAttribute
 {
+private:
+    std::variant<DoubleAttribute, FloatAttribute> mAttribute;
+
 public:
-    Descriptor() = default;
-    Descriptor(std::initializer_list<std::shared_ptr<GTestDescriptorAttribute>> attributes_)
-        : GTestDescriptor{"MIOPEN_BACKEND_POINTWISE_DESCRIPTOR",
-                          MIOPEN_BACKEND_POINTWISE_DESCRIPTOR,
-                          true,
-                          attributes_}
+    DoubleOrFloatAttribute() = default;
+
+    void set(bool isDouble, const char* textName, miopenBackendAttributeName_t name)
     {
+        if(isDouble)
+        {
+            mAttribute = DoubleAttribute(textName, name);
+        }
+        else
+        {
+            mAttribute = FloatAttribute(textName, name);
+        }
+    }
+
+    GTestDescriptorAttribute* get()
+    {
+        if(mAttribute.index() == 0)
+        {
+            return &std::get<0>(mAttribute);
+        }
+        else
+        {
+            return &std::get<1>(mAttribute);
+        }
     }
 };
 
@@ -178,221 +204,71 @@ void PrintTo(const TestCaseType& v, std::ostream* os)
 class GraphApiPointwise : public testing::TestWithParam<TestCaseType>
 {
 protected:
-    Descriptor descriptor;
+    GTestGraphApiExecute<GTestDescriptorAttribute*> execute;
 
-    std::shared_ptr<GTestDescriptorAttribute>
-    createDoubleOrFloat(bool isDouble, const char* textName, miopenBackendAttributeName_t name)
-    {
-        if(isDouble)
-            return std::make_shared<DoubleAttribute>(textName, name);
-        else
-            return std::make_shared<FloatAttribute>(textName, name);
-    }
+    Mode mMode;
+    Precision mPrecision;
+    NanPropagation mNanPropagation;
+    DoubleOrFloatAttribute mReluLowerClip;
+    DoubleOrFloatAttribute mReluUpperClip;
+    DoubleOrFloatAttribute mReluLowerClipSlope;
+    DoubleOrFloatAttribute mEluAlpha;
+    DoubleOrFloatAttribute mSoftPlusBeta;
+    Axis mAxis;
 
     void SetUp() override
     {
         auto [mode,
               precision,
               nanPropagation,
-              reluLowerClip,
-              reluUpperClip,
-              reluLowerClipSlope,
-              eluAlpha,
-              softPlusBeta,
+              isReluLowerClipDouble,
+              isReluUpperClipDouble,
+              isReluLowerClipSlopeDouble,
+              isEluAlphaDouble,
+              IsSoftPlusBetaDouble,
               axis] = GetParam();
-        descriptor  = {std::make_shared<Mode>(mode),
-                      std::make_shared<Precision>(precision),
-                      std::make_shared<NanPropagation>(nanPropagation),
-                      createDoubleOrFloat(reluLowerClip,
-                                          "MIOPEN_ATTR_POINTWISE_RELU_LOWER_CLIP",
-                                          MIOPEN_ATTR_POINTWISE_RELU_LOWER_CLIP),
-                      createDoubleOrFloat(reluUpperClip,
-                                          "MIOPEN_ATTR_POINTWISE_RELU_UPPER_CLIP",
-                                          MIOPEN_ATTR_POINTWISE_RELU_UPPER_CLIP),
-                      createDoubleOrFloat(reluLowerClipSlope,
-                                          "MIOPEN_ATTR_POINTWISE_RELU_LOWER_CLIP_SLOPE",
-                                          MIOPEN_ATTR_POINTWISE_RELU_LOWER_CLIP_SLOPE),
-                      createDoubleOrFloat(eluAlpha,
-                                          "MIOPEN_ATTR_POINTWISE_ELU_ALPHA",
-                                          MIOPEN_ATTR_POINTWISE_ELU_ALPHA),
-                      createDoubleOrFloat(softPlusBeta,
-                                          "MIOPEN_ATTR_POINTWISE_SOFTPLUS_BETA",
-                                          MIOPEN_ATTR_POINTWISE_SOFTPLUS_BETA),
-                      std::make_shared<Axis>(axis)};
+
+        mMode           = {mode};
+        mPrecision      = {precision};
+        mNanPropagation = {nanPropagation};
+        mAxis           = axis;
+
+        mReluLowerClip.set(isReluLowerClipDouble,
+                           "MIOPEN_ATTR_POINTWISE_RELU_LOWER_CLIP",
+                           MIOPEN_ATTR_POINTWISE_RELU_LOWER_CLIP);
+
+        mReluUpperClip.set(isReluUpperClipDouble,
+                           "MIOPEN_ATTR_POINTWISE_RELU_UPPER_CLIP",
+                           MIOPEN_ATTR_POINTWISE_RELU_UPPER_CLIP);
+
+        mReluLowerClipSlope.set(isReluLowerClipSlopeDouble,
+                                "MIOPEN_ATTR_POINTWISE_RELU_LOWER_CLIP_SLOPE",
+                                MIOPEN_ATTR_POINTWISE_RELU_LOWER_CLIP_SLOPE);
+
+        mEluAlpha.set(
+            isEluAlphaDouble, "MIOPEN_ATTR_POINTWISE_ELU_ALPHA", MIOPEN_ATTR_POINTWISE_ELU_ALPHA);
+
+        mSoftPlusBeta.set(IsSoftPlusBetaDouble,
+                          "MIOPEN_ATTR_POINTWISE_SOFTPLUS_BETA",
+                          MIOPEN_ATTR_POINTWISE_SOFTPLUS_BETA);
+
+        execute.descriptor.attributes = {&mMode,
+                                         &mPrecision,
+                                         &mNanPropagation,
+                                         mReluLowerClip.get(),
+                                         mReluUpperClip.get(),
+                                         mReluLowerClipSlope.get(),
+                                         mEluAlpha.get(),
+                                         mSoftPlusBeta.get(),
+                                         &mAxis};
+
+        execute.descriptor.attrsValid = true;
+        execute.descriptor.textName   = "MIOPEN_BACKEND_POINTWISE_DESCRIPTOR";
+        execute.descriptor.type       = MIOPEN_BACKEND_POINTWISE_DESCRIPTOR;
     }
 };
 
-TEST_P(GraphApiPointwise, CFuncions)
-{
-    auto [descrTextName, descrType, attrsValid, attributes] = descriptor;
-
-    // Create Desctiptor
-    miopenBackendDescriptor_t descr;
-    // clang-format off
-    miopenStatus_t status = miopenBackendCreateDescriptor(descrType, &descr);
-    ASSERT_EQ(status, miopenStatusSuccess) << descrTextName << " wasn't created";
-    ASSERT_NE(descr, nullptr) << "A null " << descrTextName << " was created";
-    // clang-format on
-
-    // Finalize before setting attributes
-    status = miopenBackendFinalize(descr);
-    if(status == miopenStatusSuccess)
-    {
-        miopenBackendDestroyDescriptor(descr);
-        FAIL() << descrTextName << " was finalized without setting attributes";
-    }
-
-    // Set attributes (should succeed)
-    bool anyAttributeFailed = false;
-    for(auto& attrPtr : attributes)
-    {
-        auto [isCorrect,
-              textName,
-              name,
-              type,
-              count,
-              data,
-              invalidType,
-              invalidTypeData,
-              invalidCount,
-              invalidCountData,
-              readBuffer] = attrPtr->getTestCase();
-
-        // clang-format off
-        status = miopenBackendSetAttribute(descr, name, invalidType, count, invalidTypeData);
-        EXPECT_NE(status, miopenStatusSuccess) << textName << " was set with invalid type";
-
-        status = miopenBackendSetAttribute(descr, name, type, invalidCount, invalidCountData);
-        EXPECT_NE(status, miopenStatusSuccess) << textName << " was set with invalid element count";
-
-        status = miopenBackendSetAttribute(descr, name, type, count, nullptr);
-        EXPECT_NE(status, miopenStatusSuccess) << textName << " was set with null array of elements";
-
-        status = miopenBackendSetAttribute(descr, name, type, count, data);
-        if(attrsValid) // implementation may postpone validating values to finalize()
-            EXPECT_EQ(status, miopenStatusSuccess) << textName << " wasn't set";
-        // clang-format on
-
-        anyAttributeFailed = anyAttributeFailed || (status != miopenStatusSuccess);
-    }
-
-    // Get attibute before finalizing (not a one should succeed)
-    bool anyAttributeGot = false;
-    for(auto& attrPtr : attributes)
-    {
-        auto [isCorrect,
-              textName,
-              name,
-              type,
-              count,
-              data,
-              invalidType,
-              invalidTypeData,
-              invalidCount,
-              invalidCountData,
-              readBuffer] = attrPtr->getTestCase();
-
-        int64_t elementCount = 0;
-
-        status = miopenBackendGetAttribute(descr, name, type, count, &elementCount, readBuffer);
-        EXPECT_NE(status, miopenStatusSuccess) << textName << " was retrieved before finalize()";
-
-        anyAttributeGot = anyAttributeGot || (status == miopenStatusSuccess);
-    }
-
-    // Stop further execution if needed
-    if(anyAttributeGot)
-    {
-        miopenBackendDestroyDescriptor(descr);
-        FAIL() << "Some attributes of " << descrTextName << " were retrieved before finalize()";
-    }
-    if(anyAttributeFailed && attrsValid)
-    {
-        miopenBackendDestroyDescriptor(descr);
-        FAIL() << "Not all attributes of " << descrTextName << " were set";
-    }
-
-    // Finalize
-    status = miopenBackendFinalize(descr);
-
-    // Stop further execution if finalize() acted incorrectly
-    if(attrsValid && status != miopenStatusSuccess)
-    {
-        miopenBackendDestroyDescriptor(descr);
-        FAIL() << descrTextName << " wasn't finalized";
-    }
-    else if(!attrsValid)
-    {
-        miopenBackendDestroyDescriptor(descr);
-        ASSERT_NE(status, miopenStatusSuccess)
-            << descrTextName << " was finalized on invalid attributes";
-
-        // No need to proceed with invalid attributes
-        return;
-    }
-
-    // Set attributes after finalizing (not a one should succeed)
-    bool anyAttributeSet = false;
-    for(auto& attrPtr : attributes)
-    {
-        auto [isCorrect,
-              textName,
-              name,
-              type,
-              count,
-              data,
-              invalidType,
-              invalidTypeData,
-              invalidCount,
-              invalidCountData,
-              readBuffer] = attrPtr->getTestCase();
-
-        status = miopenBackendSetAttribute(descr, name, type, count, data);
-        EXPECT_NE(status, miopenStatusSuccess) << textName << " was set after finalize()";
-
-        anyAttributeSet = anyAttributeSet || (status == miopenStatusSuccess);
-    }
-
-    // Stop if an attribute was set
-    if(anyAttributeSet)
-    {
-        miopenBackendDestroyDescriptor(descr);
-        ASSERT_NE(status, miopenStatusSuccess)
-            << "An attribute of " << descrTextName << " was set after finalize()";
-    }
-
-    // Get attributes
-    for(auto& attrPtr : attributes)
-    {
-        auto [isCorrect,
-              textName,
-              name,
-              type,
-              count,
-              data,
-              invalidType,
-              invalidTypeData,
-              invalidCount,
-              invalidCountData,
-              readBuffer] = attrPtr->getTestCase();
-
-        int64_t elementCount = 0;
-        // clang-format off
-        status = miopenBackendGetAttribute(descr, name, invalidType, count, &elementCount, invalidTypeData);
-        EXPECT_NE(status, miopenStatusSuccess) << textName << " was retrieved with invalid type";
-        status = miopenBackendGetAttribute(descr, name, type, invalidCount, &elementCount, invalidCountData);
-        EXPECT_NE(status, miopenStatusSuccess) << textName << " was retrieved with invalid element count";
-        status = miopenBackendGetAttribute(descr, name, type, count, nullptr, readBuffer);
-        EXPECT_NE(status, miopenStatusSuccess) << textName << " was retrieved with null element count";
-        status = miopenBackendGetAttribute(descr, name, type, count, &elementCount, nullptr);
-        EXPECT_NE(status, miopenStatusSuccess) << textName << " was retrieved with null array of elements";
-        status = miopenBackendGetAttribute(descr, name, type, count, &elementCount, readBuffer);
-        EXPECT_EQ(status, miopenStatusSuccess) << textName << " wasn't retrieved";
-        if(status == miopenStatusSuccess)
-        EXPECT_TRUE(attrPtr->isSetAndGotEqual()) << textName << " set and retrieved values differ";
-        // clang-format on
-    }
-}
+TEST_P(GraphApiPointwise, CFuncions) { execute(); }
 
 INSTANTIATE_TEST_SUITE_P(
     CFuncionsTest,
