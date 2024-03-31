@@ -177,6 +177,34 @@ public:
     OperationRng build();
 };
 
+class BackendOperationRngDescriptor : public BackendDescriptor
+{
+private:
+    OperationRngBuilder mBuilder;
+    OperationRng mOperationRng;
+    miopenBackendDescriptor_t mRngDescriptor    = nullptr;
+    miopenBackendDescriptor_t mOutputDescriptor = nullptr; // sometimes called Y
+    miopenBackendDescriptor_t mSeedDescriptor   = nullptr;
+    miopenBackendDescriptor_t mOffsetDescriptor = nullptr;
+
+public:
+    void setAttribute(miopenBackendAttributeName_t attributeName,
+                      miopenBackendAttributeType_t attributeType,
+                      int64_t elementCount,
+                      void* arrayOfElements) override;
+    void finalize() override;
+    void getAttribute(miopenBackendAttributeName_t attributeName,
+                      miopenBackendAttributeType_t attributeType,
+                      int64_t requestedElementCount,
+                      int64_t* elementCount,
+                      void* arrayOfElements) override;
+
+    OpNode* getOperation() override;
+
+    const OperationRng* getRng() const { return &mOperationRng; }
+    OperationRng* getRng() { return &mOperationRng; }
+};
+
 } // namespace graphapi
 
 } // namespace miopen
