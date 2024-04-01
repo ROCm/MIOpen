@@ -124,7 +124,8 @@ set( MIOpen_Source
     fusion/problem_description.cpp
     generic_search.cpp
     graphapi/graphapi.cpp
-    graphapi/graphapi_tensor.cpp
+    graphapi/rng.cpp
+    graphapi/tensor.cpp
     groupnorm_api.cpp
     groupnorm/problem_description.cpp
     handle_api.cpp
