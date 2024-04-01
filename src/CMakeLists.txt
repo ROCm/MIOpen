@@ -123,6 +123,7 @@ set( MIOpen_Source
     generic_search.cpp
     graphapi/graphapi.cpp
     graphapi/pointwise.cpp
+    graphapi/rng.cpp
     graphapi/tensor.cpp
     groupnorm_api.cpp
     groupnorm/problem_description.cpp

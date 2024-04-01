@@ -26,11 +26,9 @@
 
 #pragma once
 
-#include <miopen/errors.hpp>
 #include <miopen/graphapi/graphapi.hpp>
 
 #include <cstdint>
-#include <functional>
 #include <limits>
 #include <vector>
 
@@ -144,14 +142,7 @@ public:
         return *this;
     }
 
-    Pointwise build() const
-    {
-        if(!mModeSet || !mMathPrecisionSet)
-        {
-            MIOPEN_THROW(miopenStatusBadParm);
-        }
-        return mPointwise;
-    }
+    Pointwise build();
 };
 
 class BackendPointwiseDescriptor : public BackendDescriptor
@@ -174,52 +165,6 @@ public:
 
     const Pointwise* getPointwise() const { return &mPointwise; }
     Pointwise* getPointwise() { return &mPointwise; }
-
-private:
-    using Setter = std::function<PointwiseBuilder&(PointwiseBuilder&, double value)>;
-
-    void setFloatOrDouble(Setter setter,
-                          miopenBackendAttributeType_t attributeType,
-                          int64_t elementCount,
-                          void* arrayOfElements)
-    {
-        if(attributeType == MIOPEN_TYPE_FLOAT && elementCount == 1)
-        {
-            std::invoke(setter, mBuilder, *static_cast<float*>(arrayOfElements));
-        }
-        else if(attributeType == MIOPEN_TYPE_DOUBLE && elementCount == 1)
-        {
-            std::invoke(setter, mBuilder, *static_cast<double*>(arrayOfElements));
-        }
-        else
-        {
-            MIOPEN_THROW(miopenStatusBadParm);
-        }
-    }
-
-    using Getter = std::function<double(const Pointwise&)>;
-
-    void getFloatOrDouble(Getter getter,
-                          miopenBackendAttributeType_t attributeType,
-                          int64_t requestedElementCount,
-                          int64_t* elementCount,
-                          void* arrayOfElements)
-    {
-        if(attributeType == MIOPEN_TYPE_FLOAT && requestedElementCount == 1)
-        {
-            *elementCount                         = 1;
-            *static_cast<float*>(arrayOfElements) = std::invoke(getter, mPointwise);
-        }
-        else if(attributeType == MIOPEN_TYPE_DOUBLE && requestedElementCount == 1)
-        {
-            *elementCount                          = 1;
-            *static_cast<double*>(arrayOfElements) = std::invoke(getter, mPointwise);
-        }
-        else
-        {
-            MIOPEN_THROW(miopenStatusBadParm);
-        }
-    }
 };
 
 } // namespace graphapi

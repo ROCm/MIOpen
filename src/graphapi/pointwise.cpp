@@ -31,6 +31,15 @@ namespace miopen {
 
 namespace graphapi {
 
+Pointwise PointwiseBuilder::build()
+{
+    if(!mModeSet || !mMathPrecisionSet)
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+    return mPointwise;
+}
+
 void BackendPointwiseDescriptor::setAttribute(miopenBackendAttributeName_t attributeName,
                                               miopenBackendAttributeType_t attributeType,
                                               int64_t elementCount,
@@ -40,6 +49,23 @@ void BackendPointwiseDescriptor::setAttribute(miopenBackendAttributeName_t attri
     {
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
+
+    using Setter = PointwiseBuilder& (PointwiseBuilder::*)(double value);
+
+    auto setFloatOrDouble = [=](Setter setter) {
+        if(attributeType == MIOPEN_TYPE_FLOAT && elementCount == 1)
+        {
+            (mBuilder.*setter)(*static_cast<float*>(arrayOfElements));
+        }
+        else if(attributeType == MIOPEN_TYPE_DOUBLE && elementCount == 1)
+        {
+            (mBuilder.*setter)(*static_cast<double*>(arrayOfElements));
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+    };
 
     switch(attributeName)
     {
@@ -77,28 +103,21 @@ void BackendPointwiseDescriptor::setAttribute(miopenBackendAttributeName_t attri
         break;
 
     case MIOPEN_ATTR_POINTWISE_RELU_LOWER_CLIP:
-        setFloatOrDouble(
-            &PointwiseBuilder::setReluLowerClip, attributeType, elementCount, arrayOfElements);
+        setFloatOrDouble(&PointwiseBuilder::setReluLowerClip);
         break;
 
     case MIOPEN_ATTR_POINTWISE_RELU_UPPER_CLIP:
-        setFloatOrDouble(
-            &PointwiseBuilder::setReluUpperClip, attributeType, elementCount, arrayOfElements);
+        setFloatOrDouble(&PointwiseBuilder::setReluUpperClip);
         break;
 
     case MIOPEN_ATTR_POINTWISE_RELU_LOWER_CLIP_SLOPE:
-        setFloatOrDouble(
-            &PointwiseBuilder::setReluLowerClipSlope, attributeType, elementCount, arrayOfElements);
+        setFloatOrDouble(&PointwiseBuilder::setReluLowerClipSlope);
         break;
 
-    case MIOPEN_ATTR_POINTWISE_ELU_ALPHA:
-        setFloatOrDouble(
-            &PointwiseBuilder::setEluAlpha, attributeType, elementCount, arrayOfElements);
-        break;
+    case MIOPEN_ATTR_POINTWISE_ELU_ALPHA: setFloatOrDouble(&PointwiseBuilder::setEluAlpha); break;
 
     case MIOPEN_ATTR_POINTWISE_SOFTPLUS_BETA:
-        setFloatOrDouble(
-            &PointwiseBuilder::setSoftPlusBeta, attributeType, elementCount, arrayOfElements);
+        setFloatOrDouble(&PointwiseBuilder::setSoftPlusBeta);
         break;
 
     case MIOPEN_ATTR_POINTWISE_AXIS:
@@ -137,6 +156,25 @@ void BackendPointwiseDescriptor::getAttribute(miopenBackendAttributeName_t attri
     {
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
+
+    using Getter = double (Pointwise::*)() const;
+
+    auto getFloatOrDouble = [=](Getter getter) {
+        if(attributeType == MIOPEN_TYPE_FLOAT && requestedElementCount == 1)
+        {
+            *elementCount                         = 1;
+            *static_cast<float*>(arrayOfElements) = (mPointwise.*getter)();
+        }
+        else if(attributeType == MIOPEN_TYPE_DOUBLE && requestedElementCount == 1)
+        {
+            *elementCount                          = 1;
+            *static_cast<double*>(arrayOfElements) = (mPointwise.*getter)();
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+    };
 
     switch(attributeName)
     {
@@ -177,44 +215,20 @@ void BackendPointwiseDescriptor::getAttribute(miopenBackendAttributeName_t attri
         break;
 
     case MIOPEN_ATTR_POINTWISE_RELU_LOWER_CLIP:
-        getFloatOrDouble(&Pointwise::getReluLowerClip,
-                         attributeType,
-                         requestedElementCount,
-                         elementCount,
-                         arrayOfElements);
+        getFloatOrDouble(&Pointwise::getReluLowerClip);
         break;
 
     case MIOPEN_ATTR_POINTWISE_RELU_UPPER_CLIP:
-        getFloatOrDouble(&Pointwise::getReluUpperClip,
-                         attributeType,
-                         requestedElementCount,
-                         elementCount,
-                         arrayOfElements);
+        getFloatOrDouble(&Pointwise::getReluUpperClip);
         break;
 
     case MIOPEN_ATTR_POINTWISE_RELU_LOWER_CLIP_SLOPE:
-        getFloatOrDouble(&Pointwise::getReluLowerClipSlope,
-                         attributeType,
-                         requestedElementCount,
-                         elementCount,
-                         arrayOfElements);
+        getFloatOrDouble(&Pointwise::getReluLowerClipSlope);
         break;
 
-    case MIOPEN_ATTR_POINTWISE_ELU_ALPHA:
-        getFloatOrDouble(&Pointwise::getEluAlpha,
-                         attributeType,
-                         requestedElementCount,
-                         elementCount,
-                         arrayOfElements);
-        break;
+    case MIOPEN_ATTR_POINTWISE_ELU_ALPHA: getFloatOrDouble(&Pointwise::getEluAlpha); break;
 
-    case MIOPEN_ATTR_POINTWISE_SOFTPLUS_BETA:
-        getFloatOrDouble(&Pointwise::getSoftPlusBeta,
-                         attributeType,
-                         requestedElementCount,
-                         elementCount,
-                         arrayOfElements);
-        break;
+    case MIOPEN_ATTR_POINTWISE_SOFTPLUS_BETA: getFloatOrDouble(&Pointwise::getSoftPlusBeta); break;
 
     case MIOPEN_ATTR_POINTWISE_AXIS:
         if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount == 1)
