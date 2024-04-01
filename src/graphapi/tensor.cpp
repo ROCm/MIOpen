@@ -25,7 +25,7 @@
  *******************************************************************************/
 
 #include <miopen/algorithm.hpp>
-#include <miopen/graphapi/graphapi_tensor.hpp>
+#include <miopen/graphapi/tensor.hpp>
 #include <miopen/errors.hpp>
 
 namespace miopen {
