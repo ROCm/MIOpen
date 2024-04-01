@@ -30,11 +30,14 @@
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/batched_transpose_sol.hpp>
 #include <miopen/tensor_ops.hpp>
+
 #include <type_traits>
 
 #if MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/utility/data_type.hpp>
 #endif // MIOPEN_USE_COMPOSABLEKERNEL
+
+namespace miopen {
 
 template <typename DataType, typename... Args>
 struct is_one_of : std::false_type
@@ -54,10 +57,8 @@ DataType GetNumFromVoidPtr(const void* ptr)
     static_assert(is_one_of<DataType, ck::half_t, float, int8_t>::value,
                   "DataType must be ck::half_t, float, or int8_t.");
 
-    return *static_cast<const DataType*>(ptr);
+    return *static_cast<const float*>(ptr);
 }
-
-namespace miopen {
 
 namespace conv {
 struct ProblemDescription;

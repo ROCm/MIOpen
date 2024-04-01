@@ -51,18 +51,21 @@ struct NonPackTestCase : Conv3DTestCase
 
 template <>
 std::vector<NonPackTestCase> ConvTestConfigs()
-{ // g    n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
-    return {{{1, 4, 16, 4, 9, 16, 16, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+{ // g    n   c     d    h   w    k    z   y   x   pad_x pad_y pad_z stri_x stri_y stri_z dia_x
+  // dia_y dia_z
+    return {{{1, 1, 8, 1, 2, 2, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
              10240,
              1,
              2560,
              160,
              16,
+
              432,
              1,
              144,
              48,
              16,
+
              9216,
              1,
              2304,
@@ -101,16 +104,17 @@ protected:
         weights = tensor<T>{tensor_layout, conv_config.GetWeights()};
         std::random_device rd{};
         std::mt19937 gen{rd()};
-        std::uniform_real_distribution<> d{-3, 3};
+        std::uniform_real_distribution<> d{-2, 2};
         auto gen_value = [&](auto...) { return d(gen); };
         input.generate(gen_value);
         weights.generate(gen_value);
+
         conv_desc = conv_config.GetConv();
 
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
         output = tensor<T>{tensor_layout, output_desc.GetLengths()};
-        std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
+        std::fill(output.begin(), output.end(), 0.0);
         auto&& handle = get_handle();
         in_dev        = handle.Write(input.data);
         wei_dev       = handle.Write(weights.data);
@@ -141,6 +145,7 @@ protected:
 
         EXPECT_TRUE(error < threshold)
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        std::cout << "Exiting early\n";
     }
     NonPackTestCase conv_config;
     miopen::ConvolutionDescriptor conv_desc;

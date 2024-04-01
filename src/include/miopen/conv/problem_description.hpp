@@ -42,6 +42,9 @@ namespace miopen {
 
 struct ExecutionContext;
 
+static const float default_alphaValue = 1.0f;
+static const float default_betaValue  = 0.0f;
+
 std::string
 EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataType_t out);
 
@@ -147,8 +150,8 @@ struct ProblemDescription : ProblemDescriptionBase
                        const ConvolutionDescriptor& conv_,
                        Direction direction_,
                        int bias_          = 0,
-                       const void* alpha_ = nullptr,
-                       const void* beta_  = nullptr)
+                       const void* alpha_ = static_cast<const void*>(&default_alphaValue),
+                       const void* beta_  = static_cast<const void*>(&default_betaValue))
         : in(in_),
           weights(weights_),
           out(out_),
