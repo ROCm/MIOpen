@@ -55,7 +55,12 @@ using WinoShaderFlagsV40            = miopen::conv::WinoShaderFlagsV40;
 
 namespace {
 
-constexpr uint32_t PowOf2(uint32_t exp) { return 1U << exp; }
+// Template is used to catch -Wshift-count-overflow
+template <uint32_t exp>
+constexpr uint32_t PowOf2()
+{
+    return 1U << exp;
+}
 
 // Divide two non-negative integers and return ceil of the quotient
 constexpr uint64_t DivCeil(uint64_t numer, uint64_t denom) { return (numer + denom - 1) / denom; }
@@ -67,7 +72,7 @@ uint32_t GetNGroups(uint64_t cu_count)
 {
     // Current limitations:
     // n_groups < 2^8
-    constexpr uint64_t max_n_groups = PowOf2(8) - 1;
+    constexpr uint64_t max_n_groups = PowOf2<8>() - 1;
 
     return std::min(cu_count, max_n_groups);
 }
@@ -76,18 +81,18 @@ bool IsShaderConstraintsMetV2(const WinoShaderArgsV40& args, uint32_t n_groups)
 {
     // Current limitations:
     // clang-format off
-    return args.N < PowOf2(16)
-        && args.C < PowOf2(16)
-        && args.H < PowOf2(16)
-        && args.W < PowOf2(16)
+    return args.N < PowOf2<16>()
+        && args.C < PowOf2<16>()
+        && args.H < PowOf2<16>()
+        && args.W < PowOf2<16>()
         && args.pad_h >= std::numeric_limits<int16_t>::min() && args.pad_h <= std::numeric_limits<int16_t>::max()
         && args.pad_w >= std::numeric_limits<int16_t>::min() && args.pad_w <= std::numeric_limits<int16_t>::max()
-        && args.out_h < PowOf2(16)
-        && args.out_w < PowOf2(16) - 3
+        && args.out_h < PowOf2<16>()
+        && args.out_w < PowOf2<16>() - 3
         && args.R <= 3
         && args.S <= 3
-        && (static_cast<uint64_t>(args.N - 1) * args.C + 1) * args.H * args.W < PowOf2(31)
-        && (static_cast<uint64_t>(args.N - 1) * args.K + 1) * args.out_h * args.out_w < PowOf2(31)
+        && (static_cast<uint64_t>(args.N - 1) * args.C + 1) * args.H * args.W < PowOf2<31>()
+        && (static_cast<uint64_t>(args.N - 1) * args.K + 1) * args.out_h * args.out_w < PowOf2<31>()
         && DivCeil(args.K, 16) <= n_groups
         && args.G == 1;
     // clang-format on
