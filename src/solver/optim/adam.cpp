@@ -92,7 +92,7 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
         }
     }
 
-    constexpr size_t local_size = 512;
+    constexpr size_t local_size = 256;
     if(problem.IsAmp())
     {
         result.invoker_factory = [](const std::vector<Kernel>& kernels) {
@@ -107,10 +107,15 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
                 kernel_adam.gdims = {AlignUp(numel, local_size), 1, 1};
 
                 kernel_adam(params.paramIn,
+                            params.paramOut,
+                            nullptr,
                             params.gradIn,
                             params.expAvgIn,
+                            params.expAvgOut,
                             params.expAvgSqIn,
+                            params.expAvgSqOut,
                             params.maxExpAvgSqIn,
+                            params.maxExpAvgSqOut,
                             params.gradScale,
                             params.foundInf,
                             params.stepIn,
@@ -121,12 +126,6 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
                             params.eps,
                             params.amsgrad,
                             params.maximize,
-                            params.paramOut,
-                            nullptr,
-                            params.expAvgOut,
-                            params.expAvgSqOut,
-                            params.maxExpAvgSqOut,
-                            params.stepOut,
                             numel);
 
                 if(params.stepOut != nullptr)
@@ -134,14 +133,14 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
                     if(handle_.IsProfilingEnabled())
                         elapsed = handle_.GetKernelTime();
 
-                    kernel_step(params.foundInf, params.stepOut);
+                    kernel_step(params.foundInf, params.stepIn, params.stepOut);
 
                     if(handle_.IsProfilingEnabled())
                     {
                         elapsed += handle_.GetKernelTime();
                         handle_.ResetKernelTime();
                         handle_.AccumKernelTime(elapsed);
-                    };
+                    }
                 }
             };
         };
@@ -158,22 +157,22 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
                 kernel.gdims = {AlignUp(numel, local_size), 1, 1};
 
                 kernel(params.paramIn,
+                       params.paramOut,
                        params.gradIn,
                        params.expAvgIn,
+                       params.expAvgOut,
                        params.expAvgSqIn,
+                       params.expAvgSqOut,
                        params.maxExpAvgSqIn,
-                       params.step,
+                       params.maxExpAvgSqOut,
                        params.lr,
                        params.beta1,
                        params.beta2,
                        params.weight_decay,
                        params.eps,
+                       params.step,
                        params.amsgrad,
                        params.maximize,
-                       params.paramOut,
-                       params.expAvgOut,
-                       params.expAvgSqOut,
-                       params.maxExpAvgSqOut,
                        numel);
             };
         };
