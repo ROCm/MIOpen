@@ -80,8 +80,8 @@ bool IsShaderConstraintsMetV2(const WinoShaderArgsV40& args, uint32_t n_groups)
         && args.C < PowOf2(16)
         && args.H < PowOf2(16)
         && args.W < PowOf2(16)
-        && static_cast<uint64_t>(args.pad_h) < PowOf2(16)
-        && static_cast<uint64_t>(args.pad_w) < PowOf2(16)
+        && args.pad_h >= std::numeric_limits<int16_t>::min() && args.pad_h <= std::numeric_limits<int16_t>::max()
+        && args.pad_w >= std::numeric_limits<int16_t>::min() && args.pad_w <= std::numeric_limits<int16_t>::max()
         && args.out_h < PowOf2(16)
         && args.out_w < PowOf2(16) - 3
         && args.R <= 3
