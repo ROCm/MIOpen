@@ -93,9 +93,13 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
     }
 
     constexpr size_t local_size = 256;
+    auto& handle = context.GetStream();
+    auto numCu   = handle.GetMaxComputeUnits();
+    auto max_gdim = numCu * 8 * local_size;
+
     if(problem.IsAmp())
     {
-        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+        result.invoker_factory = [max_gdim](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel_adam = handle_.Run(kernels[0]);
                 decltype(auto) kernel_step = handle_.Run(kernels[1]);
@@ -104,7 +108,7 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
                 auto elapsed               = 0.f;
 
                 kernel_adam.ldims = {local_size, 1, 1};
-                kernel_adam.gdims = {AlignUp(numel, local_size), 1, 1};
+                kernel_adam.gdims = {std::min(max_gdim, AlignUp(numel, local_size)), 1, 1};
 
                 kernel_adam(params.paramIn,
                             params.paramOut,
@@ -147,14 +151,14 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
     }
     else
     {
-        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+        result.invoker_factory = [max_gdim](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel = handle_.Run(kernels.front());
                 decltype(auto) params = raw_params.CastTo<miopen::adam::InvokeParams>();
                 decltype(auto) numel  = params.paramDesc->GetElementSize();
 
                 kernel.ldims = {local_size, 1, 1};
-                kernel.gdims = {AlignUp(numel, local_size), 1, 1};
+                kernel.gdims = {std::min(max_gdim, AlignUp(numel, local_size)), 1, 1};
 
                 kernel(params.paramIn,
                        params.paramOut,

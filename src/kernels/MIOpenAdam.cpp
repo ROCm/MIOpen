@@ -112,29 +112,30 @@ extern "C" __global__ void AdamPacked(PTYPE* param_in,
                                       long input_size)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t gsz = gridDim.x * blockDim.x;
 
-    if(gid >= input_size)
-        return;
-    CTYPE grad = grad_in[gid];
+    for(;gid < input_size; gid += gsz) {
+        CTYPE grad = grad_in[gid];
 
-    AdamInternal<PTYPE, CTYPE>(param_in,
-                               param_out,
-                               exp_avg_in,
-                               exp_avg_out,
-                               exp_avg_sq_in,
-                               exp_avg_sq_out,
-                               max_exp_avg_sq_in,
-                               max_exp_avg_sq_out,
-                               grad,
-                               lr,
-                               beta1,
-                               beta2,
-                               weight_decay,
-                               eps,
-                               step,
-                               amsgrad,
-                               maximize,
-                               gid);
+        AdamInternal<PTYPE, CTYPE>(param_in,
+                                   param_out,
+                                   exp_avg_in,
+                                   exp_avg_out,
+                                   exp_avg_sq_in,
+                                   exp_avg_sq_out,
+                                   max_exp_avg_sq_in,
+                                   max_exp_avg_sq_out,
+                                   grad,
+                                   lr,
+                                   beta1,
+                                   beta2,
+                                   weight_decay,
+                                   eps,
+                                   step,
+                                   amsgrad,
+                                   maximize,
+                                   gid);
+    }
 }
 
 extern "C" __global__ void AmpAdamPacked(PTYPE* param_in,
@@ -160,6 +161,7 @@ extern "C" __global__ void AmpAdamPacked(PTYPE* param_in,
                                          long input_size)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t gsz = gridDim.x * blockDim.x;
     size_t lid = threadIdx.x;
 
     if(gid >= input_size)
@@ -180,30 +182,32 @@ extern "C" __global__ void AmpAdamPacked(PTYPE* param_in,
     if(skip)
         return;
 
-    CTYPE grad = grad_in[gid];
-    grad /= scale_factor;
+    for(;gid < input_size; gid += gsz) {
+        CTYPE grad = grad_in[gid];
+        grad /= scale_factor;
 
-    AdamInternal<PTYPE, CTYPE>(param_in,
-                               param_out,
-                               exp_avg_in,
-                               exp_avg_out,
-                               exp_avg_sq_in,
-                               exp_avg_sq_out,
-                               max_exp_avg_sq_in,
-                               max_exp_avg_sq_out,
-                               grad,
-                               lr,
-                               beta1,
-                               beta2,
-                               weight_decay,
-                               eps,
-                               step_val,
-                               amsgrad,
-                               maximize,
-                               gid);
+        AdamInternal<PTYPE, CTYPE>(param_in,
+                                   param_out,
+                                   exp_avg_in,
+                                   exp_avg_out,
+                                   exp_avg_sq_in,
+                                   exp_avg_sq_out,
+                                   max_exp_avg_sq_in,
+                                   max_exp_avg_sq_out,
+                                   grad,
+                                   lr,
+                                   beta1,
+                                   beta2,
+                                   weight_decay,
+                                   eps,
+                                   step_val,
+                                   amsgrad,
+                                   maximize,
+                                   gid);
 
-    if(param_out_fp16)
-        param_out_fp16[gid] = (half)param_out[gid];
+        if(param_out_fp16)
+            param_out_fp16[gid] = (half)param_out[gid];
+    }
 }
 
 extern "C" __global__ void AdamUpdateStep(bool* found_inf, int* step_in, int* step_out)
