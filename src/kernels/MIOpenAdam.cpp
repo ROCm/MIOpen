@@ -114,7 +114,8 @@ extern "C" __global__ void AdamPacked(PTYPE* param_in,
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
     size_t gsz = gridDim.x * blockDim.x;
 
-    for(;gid < input_size; gid += gsz) {
+    for(; gid < input_size; gid += gsz)
+    {
         CTYPE grad = grad_in[gid];
 
         AdamInternal<PTYPE, CTYPE>(param_in,
@@ -182,7 +183,8 @@ extern "C" __global__ void AmpAdamPacked(PTYPE* param_in,
     if(skip)
         return;
 
-    for(;gid < input_size; gid += gsz) {
+    for(; gid < input_size; gid += gsz)
+    {
         CTYPE grad = grad_in[gid];
         grad /= scale_factor;
 

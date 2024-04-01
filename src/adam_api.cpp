@@ -117,10 +117,6 @@ extern "C" miopenStatus_t miopenAdam(miopenHandle_t handle,
     LogCmdAdam(paramInDesc);
     auto maxExpAvgSqInDescPtr =
         (maxExpAvgSqInDesc != nullptr) ? &miopen::deref(maxExpAvgSqInDesc) : nullptr;
-    auto paramOutDescPtr  = (paramOutDesc != nullptr) ? &miopen::deref(paramOutDesc) : nullptr;
-    auto expAvgOutDescPtr = (expAvgOutDesc != nullptr) ? &miopen::deref(expAvgOutDesc) : nullptr;
-    auto expAvgSqOutDescPtr =
-        (expAvgSqOutDesc != nullptr) ? &miopen::deref(expAvgSqOutDesc) : nullptr;
     auto maxExpAvgSqOutDescPtr =
         (maxExpAvgSqOutDesc != nullptr) ? &miopen::deref(maxExpAvgSqOutDesc) : nullptr;
 
@@ -128,14 +124,24 @@ extern "C" miopenStatus_t miopenAdam(miopenHandle_t handle,
         miopen::Adam(miopen::deref(handle),
                      miopen::deref(paramInDesc),
                      DataCast(paramIn),
+                     miopen::deref(paramOutDesc),
+                     DataCast(paramOut),
                      miopen::deref(gradInDesc),
                      DataCast(gradIn),
                      miopen::deref(expAvgInDesc),
                      DataCast(expAvgIn),
+                     miopen::deref(expAvgOutDesc),
+                     DataCast(expAvgOut),
                      miopen::deref(expAvgSqInDesc),
                      DataCast(expAvgSqIn),
+                     miopen::deref(expAvgSqOutDesc),
+                     DataCast(expAvgSqOut),
                      maxExpAvgSqInDescPtr,
                      DataCast(maxExpAvgSqIn),
+                     maxExpAvgSqOutDescPtr,
+                     DataCast(maxExpAvgSqOut),
+                     nullptr,
+                     nullptr,
                      nullptr,
                      nullptr,
                      nullptr,
@@ -149,17 +155,7 @@ extern "C" miopenStatus_t miopenAdam(miopenHandle_t handle,
                      weight_decay,
                      eps,
                      amsgrad,
-                     maximize,
-                     paramOutDescPtr,
-                     DataCast(paramOut),
-                     expAvgOutDescPtr,
-                     DataCast(expAvgOut),
-                     expAvgSqOutDescPtr,
-                     DataCast(expAvgSqOut),
-                     maxExpAvgSqOutDescPtr,
-                     DataCast(maxExpAvgSqOut),
-                     nullptr,
-                     nullptr);
+                     maximize);
     });
 }
 
@@ -236,34 +232,40 @@ extern "C" miopenStatus_t miopenAmpAdam(miopenHandle_t handle,
     LogCmdAdam(paramInDesc);
     auto maxExpAvgSqInDescPtr =
         (maxExpAvgSqInDesc != nullptr) ? &miopen::deref(maxExpAvgSqInDesc) : nullptr;
-    auto gradScaleDescPtr = (gradScaleDesc != nullptr) ? &miopen::deref(gradScaleDesc) : nullptr;
-    auto foundInfDescPtr  = (foundInfDesc != nullptr) ? &miopen::deref(foundInfDesc) : nullptr;
-    auto paramOutDescPtr  = (paramOutDesc != nullptr) ? &miopen::deref(paramOutDesc) : nullptr;
-    auto expAvgOutDescPtr = (expAvgOutDesc != nullptr) ? &miopen::deref(expAvgOutDesc) : nullptr;
-    auto expAvgSqOutDescPtr =
-        (expAvgSqOutDesc != nullptr) ? &miopen::deref(expAvgSqOutDesc) : nullptr;
     auto maxExpAvgSqOutDescPtr =
         (maxExpAvgSqOutDesc != nullptr) ? &miopen::deref(maxExpAvgSqOutDesc) : nullptr;
-    auto stepOutDescPtr = (stepOutDesc != nullptr) ? &miopen::deref(stepOutDesc) : nullptr;
+    auto gradScaleDescPtr = (gradScaleDesc != nullptr) ? &miopen::deref(gradScaleDesc) : nullptr;
+    auto foundInfDescPtr  = (foundInfDesc != nullptr) ? &miopen::deref(foundInfDesc) : nullptr;
+    auto stepOutDescPtr   = (stepOutDesc != nullptr) ? &miopen::deref(stepOutDesc) : nullptr;
 
     return miopen::try_([&] {
         miopen::Adam(miopen::deref(handle),
                      miopen::deref(paramInDesc),
                      DataCast(paramIn),
+                     miopen::deref(paramOutDesc),
+                     DataCast(paramOut),
                      miopen::deref(gradInDesc),
                      DataCast(gradIn),
                      miopen::deref(expAvgInDesc),
                      DataCast(expAvgIn),
+                     miopen::deref(expAvgOutDesc),
+                     DataCast(expAvgOut),
                      miopen::deref(expAvgSqInDesc),
                      DataCast(expAvgSqIn),
+                     miopen::deref(expAvgSqOutDesc),
+                     DataCast(expAvgSqOut),
                      maxExpAvgSqInDescPtr,
                      DataCast(maxExpAvgSqIn),
+                     maxExpAvgSqOutDescPtr,
+                     DataCast(maxExpAvgSqOut),
                      gradScaleDescPtr,
                      DataCast(gradScale),
                      foundInfDescPtr,
                      DataCast(foundInf),
                      &miopen::deref(stepInDesc),
                      DataCast(stepIn),
+                     stepOutDescPtr,
+                     DataCast(stepOut),
                      -1,
                      lr,
                      beta1,
@@ -271,16 +273,6 @@ extern "C" miopenStatus_t miopenAmpAdam(miopenHandle_t handle,
                      weight_decay,
                      eps,
                      amsgrad,
-                     maximize,
-                     paramOutDescPtr,
-                     DataCast(paramOut),
-                     expAvgOutDescPtr,
-                     DataCast(expAvgOut),
-                     expAvgSqOutDescPtr,
-                     DataCast(expAvgSqOut),
-                     maxExpAvgSqOutDescPtr,
-                     DataCast(maxExpAvgSqOut),
-                     stepOutDescPtr,
-                     DataCast(stepOut));
+                     maximize);
     });
 }

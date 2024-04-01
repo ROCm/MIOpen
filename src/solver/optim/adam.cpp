@@ -38,17 +38,10 @@ namespace solver {
 
 namespace adam {
 
-bool IsImprovementOverROCm([[maybe_unused]] const miopen::adam::ProblemDescription& problem)
-{
-    return true;
-}
-
 bool Adam::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                         const miopen::adam::ProblemDescription& problem) const
 {
     if(!problem.IsAllPacked())
-        return false;
-    if(!IsImprovementOverROCm(problem))
         return false;
     return true;
 }
@@ -66,8 +59,8 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
         auto ptype_size  = miopen::get_data_size(problem.GetParamDesc().GetType());
 
         const auto build_params = KernelBuildParameters{
-            {"PTYPE", param_dtype == "bfloat16" ? "ushort" : param_dtype},
-            {"GTYPE", grad_dtype == "bfloat16" ? "ushort" : grad_dtype},
+            {"PTYPE", param_dtype},
+            {"GTYPE", grad_dtype},
             {"CTYPE", ptype_size > 4 ? "double" : "float"},
         };
 
@@ -93,9 +86,9 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
     }
 
     constexpr size_t local_size = 256;
-    auto& handle = context.GetStream();
-    auto numCu   = handle.GetMaxComputeUnits();
-    auto max_gdim = numCu * 8 * local_size;
+    auto& handle                = context.GetStream();
+    auto numCu                  = handle.GetMaxComputeUnits();
+    auto max_gdim               = numCu * 8 * local_size;
 
     if(problem.IsAmp())
     {
