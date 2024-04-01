@@ -145,7 +145,6 @@ protected:
 
         EXPECT_TRUE(error < threshold)
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
-        std::cout << "Exiting early\n";
     }
     NonPackTestCase conv_config;
     miopen::ConvolutionDescriptor conv_desc;
