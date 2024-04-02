@@ -30,7 +30,7 @@
 #include <miopen/env.hpp>
 #include <miopen/visit_float.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1)
 
 #define TWO_PASSES 1
 
@@ -38,17 +38,22 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
-bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& ctx,
+using ProblemDescription = miopen::conv::ProblemDescription;
+
+bool ConvOclBwdWrW1x1::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
 {
 #if WORKAROUND_SWDEV_266868
     if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx10") ||
        StartsWith(ctx.GetStream().GetDeviceName(), "gfx11"))
-        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1{}))
+    {
+        if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1)))
             return false;
+    }
 #endif
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1)))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
@@ -56,16 +61,20 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.Is2d())
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
+        return false;
+    if(problem.HasNonPackedTensors())
+        return false;
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
+    if(problem.IsTensorsCasted())
+        return false;
 
     bool result = (problem.GetWeightsWidth() == 1 && problem.GetWeightsHeight() == 1 &&
                    problem.GetDilationW() == 1 && problem.GetDilationH() == 1 &&
@@ -92,7 +101,7 @@ static inline int GetNPasses(const ProblemDescription& problem)
     return n_passes;
 }
 
-size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext&,
+size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ExecutionContext&,
                                           const ProblemDescription& problem) const
 {
     const int n_passes = GetNPasses(problem);
@@ -100,7 +109,7 @@ size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext&,
        (n_passes > 1 && problem.GetPadH() == 0 && problem.GetPadW() == 0 &&
         (problem.GetKernelStrideW() > 1 || problem.GetKernelStrideH() > 1)))
     {
-        const auto in_channel_stride = problem.GetInStride() * problem.GetInHeight();
+        const auto in_channel_stride = problem.GetInStrideH() * problem.GetInHeight();
         const auto in_batch_stride   = in_channel_stride * problem.GetOutChannels();
         return GetTypeSize(problem.GetOutDataType()) * in_batch_stride * problem.GetBatchSize();
     }
@@ -108,7 +117,7 @@ size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext&,
         return 0;
 }
 
-ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvOclBwdWrW1x1::GetSolution(const ExecutionContext& ctx,
                                            const ProblemDescription& problem) const
 {
     ConvSolution result;
@@ -123,8 +132,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
         // Jian: following kernel uses C as input, K as output, different from original definition
         // FIX ME! FIX ME! FIX ME!
         // JIANYANG: not know the meaning of following ==>
-        result.n_stacks      = 1;
-        result.n_stacks      = std::min(problem.GetBatchSize(), result.n_stacks);
+        result.n_stacks      = std::min(problem.GetBatchSize(), static_cast<std::size_t>(1));
         result.out_pix_tile0 = 1;
         result.out_pix_tile1 = 1;
         result.in_tile1      = 1;
@@ -219,16 +227,16 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
 
         int read_unit = 4;
         // subsampled input
-        int in_width  = (n_passes > 1) ? problem.GetInWidth() : problem.GetOutWidth();
-        int in_height = (n_passes > 1) ? problem.GetInHeight() : problem.GetOutHeight();
-        int in_stride = (n_passes > 1) ? problem.GetInStride() : problem.GetOutStride();
+        int in_width          = (n_passes > 1) ? problem.GetInWidth() : problem.GetOutWidth();
+        std::size_t in_height = (n_passes > 1) ? problem.GetInHeight() : problem.GetOutHeight();
+        std::size_t in_stride = (n_passes > 1) ? problem.GetInStrideH() : problem.GetOutStrideH();
         int in_channel_stride =
             (n_passes > 1) ? in_stride * in_height : problem.GetOutChannelStride();
         int in_batch_stride    = (n_passes > 1) ? in_channel_stride * problem.GetOutChannels()
                                                 : problem.GetOutBatchStride();
         int out_batch_stride   = problem.GetInBatchStride();
         int out_channel_stride = problem.GetInChannelStride();
-        int out_stride         = problem.GetInStride();
+        int out_stride         = problem.GetInStrideH();
         int wei_batch_stride   = problem.GetInChannels() * problem.GetOutChannels() *
                                problem.GetWeightsWidth() * problem.GetWeightsHeight();
         int wei_channel_stride =
@@ -261,9 +269,9 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
 
             out_pad_min_x =
                 (problem.GetPadW() + problem.GetKernelStrideW() - 1) / problem.GetKernelStrideW();
-            out_pad_width =
-                (problem.GetOutWidth() - in_pad_min_x + problem.GetKernelStrideW() - 1) /
-                problem.GetKernelStrideW();
+            out_pad_width = (static_cast<int>(problem.GetOutWidth()) - in_pad_min_x +
+                             problem.GetKernelStrideW() - 1) /
+                            problem.GetKernelStrideW();
         }
         if(problem.GetPadH() > 0)
         {
@@ -274,9 +282,9 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
 
             out_pad_min_y =
                 (problem.GetPadH() + problem.GetKernelStrideH() - 1) / problem.GetKernelStrideH();
-            out_pad_height =
-                (problem.GetOutHeight() - in_pad_min_y + problem.GetKernelStrideH() - 1) /
-                problem.GetKernelStrideH();
+            out_pad_height = (static_cast<int>(problem.GetOutHeight()) - in_pad_min_y +
+                              problem.GetKernelStrideH() - 1) /
+                             problem.GetKernelStrideH();
         }
 
         if(problem.GetPadW() > 0 || problem.GetPadH() > 0 ||
@@ -289,8 +297,8 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
             // read_unit = (out_pad_width % 7 == 0) ? 7 : (out_pad_width % 5 == 0) ? 5 :
             // (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0) ? 3 : (out_pad_width % 2
             // == 0) ? 2 : 1;
-            max_loads_per_readunit =
-                (out_pad_width / read_unit) * out_pad_height * problem.GetBatchSize();
+            max_loads_per_readunit = (out_pad_width / read_unit) * out_pad_height *
+                                     static_cast<int>(problem.GetBatchSize());
         }
 
         int kernel_stride_w = problem.GetKernelStrideW();
@@ -317,7 +325,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
                                                       : 1;
         int n_grp0_size0 = 256;
         // real input strides
-        int in0_stride         = problem.GetOutStride();
+        int in0_stride         = problem.GetOutStrideH();
         int in0_channel_stride = problem.GetOutChannelStride();
         int in0_batch_stride   = problem.GetOutBatchStride();
         int kernel0_stride0    = problem.GetKernelStrideW();
@@ -454,9 +462,10 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
         {
             result.invoker_factory = [ws_sz](const std::vector<Kernel>& kernels) {
                 return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-                    const auto ss_kernel      = handle.Run(kernels[0]);
-                    const auto main_kernel    = handle.Run(kernels[1]);
-                    const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+                    const auto ss_kernel   = handle.Run(kernels[0]);
+                    const auto main_kernel = handle.Run(kernels[1]);
+                    const auto& invoke_params =
+                        primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
 
                     if(invoke_params.workSpaceSize < ws_sz)
                         MIOPEN_THROW("Not enough workspace for ConvOclBwdWrW1x1");
@@ -485,10 +494,11 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
         {
             result.invoker_factory = [](const std::vector<Kernel>& kernels) {
                 return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-                    const auto k              = handle.Run(kernels[0]);
-                    const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
-                    const auto& tensors       = invoke_params.tensors;
-                    const auto padding_val    = 0.f;
+                    const auto k = handle.Run(kernels[0]);
+                    const auto& invoke_params =
+                        primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
+                    const auto& tensors    = invoke_params.tensors;
+                    const auto padding_val = 0.f;
 
                     visit_float(tensors.dyDesc.GetType(), [&](auto as_float) {
                         k(tensors.dy, tensors.x, tensors.dw, as_float(padding_val));
@@ -499,5 +509,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
     }
     return result;
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen

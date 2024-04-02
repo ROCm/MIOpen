@@ -44,7 +44,7 @@
 
 namespace miopen {
 
-void CTCLossDescriptor::CTCLoss(const Handle& handle,
+void CTCLossDescriptor::CTCLoss(Handle& handle,
                                 const TensorDescriptor& probsDesc,
                                 ConstData_t probs,
                                 const int* labels,
@@ -97,8 +97,10 @@ void CTCLossDescriptor::CTCLoss(const Handle& handle,
                 MIOPEN_THROW("Wrong label id");
             }
             if(j > 0)
+            {
                 if(labels[labels_offset[i] + j] == labels[labels_offset[i] + j - 1])
                     repeat[i]++;
+            }
         }
 
         if(labelLengths[i] + repeat[i] > inputLengths[i])
@@ -248,12 +250,16 @@ void CTCLossDescriptor::CTCLoss(const Handle& handle,
                   " -DBLANK_LB_ID=" + std::to_string(blank_label_id);
 
         if(!probsDesc.IsPacked())
+        {
             params += " -DPROBS_STRIDE0=" + std::to_string(probsDesc.GetStrides()[0]) +
                       " -DPROBS_STRIDE1=" + std::to_string(probsDesc.GetStrides()[1]);
+        }
 
         if(!gradientsDesc.IsPacked())
+        {
             params += " -DGRADS_STRIDE0=" + std::to_string(gradientsDesc.GetStrides()[0]) +
                       " -DGRADS_STRIDE1=" + std::to_string(gradientsDesc.GetStrides()[1]);
+        }
 
         params += " -DSOFTMAX_APPLIED=" + std::to_string(static_cast<int>(apply_softmax_layer)) +
                   " -DSOFTMAX_LEN=" + std::to_string(class_sz);
@@ -268,14 +274,18 @@ void CTCLossDescriptor::CTCLoss(const Handle& handle,
                + class_sz
 #endif
            <= lcl_mem_per_grp)
+        {
             params += " -DOPT_LCL_MEM_BETA";
+        }
 
         if(static_cast<size_t>(max_S_len) * 3
 #if MIOPEN_BACKEND_OPENCL
                + class_sz
 #endif
            <= lcl_mem_per_grp)
+        {
             params += " -DOPT_LCL_MEM_LB";
+        }
 
         if(probsDesc.GetType() == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";

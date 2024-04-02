@@ -197,7 +197,8 @@ struct verify_tensor_ops
                          c_dev.get(),
                          Aoffset,
                          Boffset,
-                         Coffset);
+                         Coffset,
+                         false); // it does not verify non-standard behaviour
 
         if(not no_validate)
         {

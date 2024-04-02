@@ -3,13 +3,12 @@
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/gemm_v2.hpp>
-#include <miopen/solver/gemm_common.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/util.hpp>
 
 #include <boost/range/adaptors.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 
 // copy from convolution.cpp
 // Workaround for issue 1430.
@@ -19,6 +18,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_USE_GEMM
 #ifdef CPPCHECK
@@ -26,8 +28,8 @@ namespace solver {
 static bool IsBF16PathValid;
 static bool IsFp16Supported;
 #else
-static const bool IsBF16PathValid = (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE);
-static const bool IsFp16Supported = (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE);
+static const bool IsBF16PathValid = MIOPEN_USE_ROCBLAS;
+static const bool IsFp16Supported = MIOPEN_USE_ROCBLAS;
 #endif
 
 static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
@@ -61,17 +63,52 @@ SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_
 }
 #endif
 
-bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx,
-                               const conv::ProblemDescription& problem) const
+bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
-    if(conv::solver::gemm::IsWorkaroundIssue1315(ctx))
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
-    const auto& dyDesc = problem.GetIn();
-    const auto& dwDesc = problem.GetWeights();
-    const auto& xDesc  = problem.GetOut();
-    return problem.GetDirection() == conv::Direction::BackwardWeights &&
-           problem.IsLayoutDefault() &&
+
+    const auto& dyDesc             = problem.GetIn();
+    const auto& dwDesc             = problem.GetWeights();
+    const auto& xDesc              = problem.GetOut();
+    const auto rblas_fp8_supported = miopen::StartsWith(ctx.GetStream().GetDeviceName(), "gfx94");
+    if(problem.IsTensorsCasted())
+    {
+        if(!rblas_fp8_supported)
+        {
+            MIOPEN_LOG_I2("GEMM not supported with casted tensors on this GPU architecture");
+            return false;
+        }
+        if(xDesc.GetCastType() && dyDesc.GetCastType())
+        {
+            const auto a_cast_type = xDesc.GetCastType();
+            const auto b_cast_type = dyDesc.GetCastType();
+            if(a_cast_type != miopenFloat8 && b_cast_type != miopenBFloat8)
+            {
+                MIOPEN_LOG_W(
+                    "Casting is only supported for the miopenFloat8 and miopenBFloat8 data types");
+                return false;
+            }
+            if(a_cast_type != miopenFloat8 && b_cast_type != miopenBFloat8)
+            {
+                MIOPEN_LOG_W(
+                    "Casting is only supported for the miopenFloat8 and miopenBFloat8 data types");
+                return false;
+            }
+        }
+        else
+        {
+            MIOPEN_LOG_I("Both the input and output tensors need to be casted");
+            return false;
+        }
+    }
+    if(problem.IsFp8() && !rblas_fp8_supported)
+    {
+        MIOPEN_LOG_I2("GEMM not applicable for F8 on this GPU architecture");
+        return false;
+    }
+    return problem.IsDirectionBackwardWrW() && problem.IsLayoutDefault() &&
            !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsBF16PathValid) &&
            !(IsAnyBufferFp16(xDesc, dyDesc, dwDesc) && !IsFp16Supported);
 #else
@@ -81,7 +118,7 @@ bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx,
 #endif
 }
 
-float GemmWrwBase::GetWti(const ExecutionContext&, const conv::ProblemDescription& problem) const
+float GemmWrwBase::GetWti(const ExecutionContext&, const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     const auto& dwDesc = problem.GetWeights();
@@ -129,7 +166,7 @@ float GemmWrwBase::GetWti(const ExecutionContext&, const conv::ProblemDescriptio
 }
 
 bool GemmWrw1x1_stride1::IsApplicable(const ExecutionContext& context,
-                                      const conv::ProblemDescription& problem) const
+                                      const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     if(!GemmWrwBase::IsApplicable(context, problem))
@@ -152,7 +189,7 @@ bool GemmWrw1x1_stride1::IsApplicable(const ExecutionContext& context,
 }
 
 ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
-                                             const conv::ProblemDescription& problem) const
+                                             const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     const auto& dyDesc     = problem.GetIn();
@@ -171,11 +208,20 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
     }
 
     // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
-    const auto gemm_desc = [&]() {
+    const auto tmp_gemm_desc = [&]() {
         auto tmp          = group_count > 1
                                 ? CreateGemmDescriptorGroupConvBwdWeight(dyDesc, xDesc, dwDesc, group_count)
                                 : CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(dyDesc, xDesc, dwDesc);
         tmp.deterministic = problem.GetConv().attribute.deterministic;
+        if(problem.IsTensorsCasted())
+        {
+            // IsApplicable ensures that both are casted
+            if(dyDesc.GetCastType())
+                tmp.a_cast_type = *dyDesc.GetCastType();
+            if(xDesc.GetCastType())
+                tmp.b_cast_type = *xDesc.GetCastType();
+        }
+        tmp.conv_attributes = problem.GetConv().attribute;
         return tmp;
     }();
 
@@ -198,10 +244,10 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
     auto solution = ConvSolution{miopenStatusSuccess};
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
-        const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
+        const bool time_precision = (!IsDisabled(ENV(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)));
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& conv_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+            const auto& conv_params = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
             const auto& dy          = conv_params.tensors.dy;
             const auto& dw          = conv_params.tensors.dw;
             const auto& dwDesc_     = conv_params.tensors.dwDesc;
@@ -216,6 +262,11 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
                 MIOPEN_LOG_FUNCTION("conv, 1x1");
             }
 
+            const auto gemm_desc = [&]() {
+                auto tmp            = tmp_gemm_desc;
+                tmp.gfx90a_alt_impl = conv_params.gfx90aFp16alt;
+                return tmp;
+            }();
             if(conv_params.type != InvokeType::Run)
             {
                 const auto status = CallGemmTimeMeasure(
@@ -229,8 +280,7 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
                     0,
                     time_precision,
                     group_count > 1 ? callGemmStridedBatched : callGemmStridedBatchedSequential,
-                    group_count > 1 ? GemmBackend_t::miopentensile : GemmBackend_t::miopengemm,
-                    conv_params.gfx90aFp16alt);
+                    GemmBackend_t::rocblas);
 
                 if(status != miopenStatusSuccess)
                     MIOPEN_THROW("GemmWrw1x1_stride1 execution failure.");
@@ -266,8 +316,7 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
                                                                    in_offset,
                                                                    dw,
                                                                    0,
-                                                                   GemmBackend_t::miopentensile,
-                                                                   conv_params.gfx90aFp16alt);
+                                                                   GemmBackend_t::rocblas);
 
                         if(status != miopenStatusSuccess)
                             MIOPEN_THROW("GemmWrw1x1_stride1 execution failure.");
@@ -285,16 +334,8 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
                 else
                 {
                     // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
-                    const auto status = CallGemmStridedBatchedSequential(handle,
-                                                                         gemm_desc,
-                                                                         dy,
-                                                                         0,
-                                                                         x,
-                                                                         0,
-                                                                         dw,
-                                                                         0,
-                                                                         GemmBackend_t::miopengemm,
-                                                                         conv_params.gfx90aFp16alt);
+                    const auto status = CallGemmStridedBatchedSequential(
+                        handle, gemm_desc, dy, 0, x, 0, dw, 0, GemmBackend_t::rocblas);
 
                     if(status != miopenStatusSuccess)
                         MIOPEN_THROW("GemmWrw1x1_stride1 execution failure.");
@@ -311,7 +352,7 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
 }
 
 size_t GemmWrwUniversal::GetWorkspaceSize(const ExecutionContext& context,
-                                          const conv::ProblemDescription& problem) const
+                                          const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     auto& handle       = context.GetStream();
@@ -347,7 +388,7 @@ size_t GemmWrwUniversal::GetWorkspaceSize(const ExecutionContext& context,
 }
 
 bool GemmWrwUniversal::IsApplicable(const ExecutionContext& context,
-                                    const conv::ProblemDescription& problem) const
+                                    const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     if(!GemmWrwBase::IsApplicable(context, problem))
@@ -363,7 +404,7 @@ bool GemmWrwUniversal::IsApplicable(const ExecutionContext& context,
 }
 
 ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
-                                           const conv::ProblemDescription& problem) const
+                                           const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     const auto& dyDesc     = problem.GetIn();
@@ -373,11 +414,20 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
     const auto group_count = conv.group_count;
 
     // dw = dy * transpose(Im2Col(x))
-    const auto gemm_desc = [&]() {
+    const auto tmp_gemm_desc = [&]() {
         auto tmp          = group_count > 1
                                 ? CreateGemmDescriptorGroupConvBwdWeight(dyDesc, xDesc, dwDesc, group_count)
                                 : CreateGemmDescriptorConvBwdWeight(dyDesc, xDesc, dwDesc);
         tmp.deterministic = problem.GetConv().attribute.deterministic;
+        if(problem.IsTensorsCasted())
+        {
+            // IsApplicable ensures that both are casted
+            if(dyDesc.GetCastType())
+                tmp.a_cast_type = *dyDesc.GetCastType();
+            if(xDesc.GetCastType())
+                tmp.b_cast_type = *xDesc.GetCastType();
+        }
+        tmp.conv_attributes = problem.GetConv().attribute;
         return tmp;
     }();
 
@@ -411,10 +461,10 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
     solution.workspace_sz = workspace_req;
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
-        const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
+        const bool time_precision = (!IsDisabled(ENV(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)));
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& conv_params    = primitive_params.CastTo<conv::WrWInvokeParams>();
+            const auto& conv_params    = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
             const auto& dy             = conv_params.tensors.dy;
             const auto& dyDesc_        = conv_params.tensors.dyDesc;
             const auto& dwDesc_        = conv_params.tensors.dwDesc;
@@ -439,6 +489,11 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
                              std::to_string(workspace_req) + ")");
             }
 
+            const auto gemm_desc = [&]() {
+                auto tmp            = tmp_gemm_desc;
+                tmp.gfx90a_alt_impl = conv_params.gfx90aFp16alt;
+                return tmp;
+            }();
             if(conv_params.type == InvokeType::Run)
             {
                 // Zeroing out the output buffer
@@ -478,8 +533,7 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
                                                         0,
                                                         dw,
                                                         0,
-                                                        GemmBackend_t::miopentensile,
-                                                        conv_params.gfx90aFp16alt);
+                                                        GemmBackend_t::rocblas);
                     }
                     else
                     {
@@ -492,8 +546,7 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
                                           0,
                                           dw,
                                           0,
-                                          GemmBackend_t::miopengemm,
-                                          conv_params.gfx90aFp16alt);
+                                          GemmBackend_t::rocblas);
                     }
 
                     if(status != miopenStatusSuccess)
@@ -528,19 +581,18 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
                                         workspace,
                                         dyDesc_.GetType());
 
-                const auto status = CallGemmTimeMeasure(
-                    handle,
-                    gemm_desc,
-                    dy,
-                    0,
-                    workspace,
-                    0,
-                    dw,
-                    0,
-                    time_precision,
-                    group_count > 1 ? callGemmStridedBatched : callGemm,
-                    group_count > 1 ? GemmBackend_t::miopentensile : GemmBackend_t::miopengemm,
-                    conv_params.gfx90aFp16alt);
+                const auto status =
+                    CallGemmTimeMeasure(handle,
+                                        gemm_desc,
+                                        dy,
+                                        0,
+                                        workspace,
+                                        0,
+                                        dw,
+                                        0,
+                                        time_precision,
+                                        group_count > 1 ? callGemmStridedBatched : callGemm,
+                                        GemmBackend_t::rocblas);
 
                 if(status != miopenStatusSuccess)
                     MIOPEN_THROW("GemmWrw1x1_stride1 execution failure.");
@@ -560,5 +612,6 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
 #endif
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

@@ -26,20 +26,23 @@
 
 #pragma once
 
+#include <miopen/execution_context.hpp>
+#include <miopen/conv/problem_description.hpp>
+
 namespace miopen {
 
-struct FusionContext : miopen::ExecutionContext
+struct Handle;
+
+struct FusionContext : ExecutionContext
 {
     explicit FusionContext(Handle& handle) : ExecutionContext(&handle) {}
 
-    ConvolutionContext GetConvContext(const miopen::ProblemDescription& conv_problem) const
+    ExecutionContext GetConvContext(const conv::ProblemDescription& conv_problem) const
     {
-        auto ctx = ConvolutionContext{*this};
-        conv_problem.conv_problem.SetupFloats(ctx);
+        auto ctx = ExecutionContext{*this};
+        conv_problem.SetupFloats(ctx);
         return ctx;
     }
-
-    bool is_for_generic_search = false;
 };
 
 } // namespace miopen

@@ -52,12 +52,36 @@
 // we will keep ConvBinWinoRxS<2,3> for group convolutions only.
 #define WORKAROUND_ISSUE_1681 0
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)
+/// \anchor disable_winograd_with_huge_granularity_loss
+/// This is to exclude Winograd from PyTorch correctness tests.
+/// These tests are written in incorrect manner.
+/// They are very sensitive to the values in the output tensors,
+/// but do not provide inputs that guarantee minimal deviation
+/// (a numerical difference between kernel output and theoretically
+/// "ideal" output). This is especially important for Winograd.
+/// As a result, the PyTorch correctness tests often produce false
+/// failures when Winograd algorithm is used. As PyTorch correctness
+/// tests use very small convolutions and Winograd algorithm is
+/// ineffective with such small configs due to huge granularity loss,
+/// we can disable Winograd without any performance implications.
+#define WORKAROUND_ISSUE_2492_GRANULARITY_LOSS 0
+/// \anchor disable_winograd_with_small_tensor
+/// This is alternative W/A for the same problem, which
+/// resolves issues shown at
+/// https://github.com/ROCm/MIOpen/issues/2492#issuecomment-1910928563
+/// The idea is to disable the solver for very small tensors.
+/// PyTorch tests use sizes like 2x2x6x6 (NCHW), but let's add
+/// some spare space for N anc C and disable starting from 4x4x6x6.
+#define WORKAROUND_ISSUE_2492_TINY_TENSOR 1
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492)
+
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)
+
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS)
 
 #define MAX_CU_LIMIT 512
 
@@ -71,6 +95,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS)
 /// models for other solvers, OR when GEMM WTI model is improved.
 /// --atamazov 2020-11-07.
 #define WTI_MODEL_ALLOW_ANY_RS 1
+#define WTI_MODEL_ALLOW_ANY_CK 1
 
 static inline size_t Ceil(const size_t v, const size_t m)
 {
@@ -164,20 +189,21 @@ static inline int GetBestNGroupParam(const int R,
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 namespace {
-// clang-format off
-    auto PerfFieldRules()
-    {
-        return seq::MakeRuleSet(
-            std::make_tuple(seq::Span<int, 1, MAX_CU_LIMIT>{}, &PerformanceConfigConvBinWinogradRxS::n_groups)
-        );
-    }
-// clang-format on
+
+auto PerfFieldRules()
+{
+    return seq::MakeRuleSet(std::make_tuple(seq::Span<int, 1, MAX_CU_LIMIT>{},
+                                            &PerformanceConfigConvBinWinogradRxS::n_groups));
+}
 
 // Winograd v21 is preferred on Vega10/Vega20 ASICs due to ~25% performance regression with Winograd
 // v30. The exception is Winograd F(3,2) stride2 as this mode is unsupported in v21. Details:
-// https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1927#issuecomment-1412741130
+// https://github.com/ROCm/MIOpen/pull/1927#issuecomment-1412741130
 template <int Winodata, int Winofilter>
 inline bool IsWinogradV21Preferred(const std::string& asic, const ProblemDescription& problem)
 {
@@ -276,7 +302,7 @@ inline bool IsShaderConstraintsMet(const ProblemDescription& problem,
 {
     // Padding for bwd data shall not be negative.
     /// \todo Either remove WrW related code or re-use function from RxS
-    if(problem.direction.IsBackwardData())
+    if(problem.IsDirectionBackwardData())
     {
         if(!(0 <= problem.GetBackwardPadW() && problem.GetBackwardPadW() < std::pow(2, 16)))
             return false;
@@ -285,9 +311,7 @@ inline bool IsShaderConstraintsMet(const ProblemDescription& problem,
     }
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     return IsWinogradV21Preferred<Winodata, Winofilter>(asic, problem)
                ? IsShaderConstraintsMetV21(problem, R, S, C, K, H, W, OH, OW, N)
@@ -302,7 +326,7 @@ PerformanceConfigConvBinWinogradRxS::PerformanceConfigConvBinWinogradRxS(int n_g
 }
 
 template <int Winodata, int Winofilter>
-void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ConvolutionContext& ctx,
+void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ExecutionContext& ctx,
                                                         const ProblemDescription& problem)
 {
     const auto n_inputs_per_group  = problem.GetInChannels() / problem.GetGroupCount(),
@@ -313,7 +337,7 @@ void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ConvolutionContext
         return;
     }
 
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
     {
         n_groups = GetBestNGroupParam(problem.GetInHeight(),
                                       problem.GetInWidth(),
@@ -365,7 +389,7 @@ bool PerformanceConfigConvBinWinogradRxS::IsValidValue() const
     return PerfFieldRules().IsIn(*this);
 }
 
-bool PerformanceConfigConvBinWinogradRxS::IsValid(const ConvolutionContext& ctx) const
+bool PerformanceConfigConvBinWinogradRxS::IsValid(const ExecutionContext& ctx) const
 {
     if(ctx.GetStream().GetMaxHardwareComputeUnits() < n_groups)
         return false;
@@ -384,7 +408,7 @@ bool PerformanceConfigConvBinWinogradRxS::operator==(
 template <int Winodata, int Winofilter>
 PerformanceConfigConvBinWinogradRxS
 ConvBinWinoRxS<Winodata, Winofilter>::GetDefaultPerformanceConfig(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     PerformanceConfigConvBinWinogradRxS pp;
     pp.HeuristicInit<Winodata, Winofilter>(ctx, problem);
@@ -394,7 +418,7 @@ ConvBinWinoRxS<Winodata, Winofilter>::GetDefaultPerformanceConfig(
 
 template <int Winodata, int Winofilter>
 bool ConvBinWinoRxS<Winodata, Winofilter>::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription&,
     const PerformanceConfigConvBinWinogradRxS& config) const
 {
@@ -403,7 +427,7 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsValidPerformanceConfig(
 
 template <int Winodata, int Winofilter>
 PerformanceConfigConvBinWinogradRxS
-ConvBinWinoRxS<Winodata, Winofilter>::Search(const ConvolutionContext& ctx,
+ConvBinWinoRxS<Winodata, Winofilter>::Search(const ExecutionContext& ctx,
                                              const ProblemDescription& problem,
                                              const AnyInvokeParams& invoke_ctx) const
 {
@@ -434,9 +458,10 @@ class ShaderModel : public UnifiedDescriptionConv2d
     bool is_2x3;
 
     bool out_of_model_scope; // Shader model produces unreliable results.
+    double granularity_loss;
 
 public:
-    ShaderModel(const ConvolutionContext& ctx,
+    ShaderModel(const ExecutionContext& ctx,
                 const ProblemDescription& problem,
                 size_t Winodata,
                 size_t Winofilter)
@@ -449,19 +474,21 @@ public:
           is_2x3{IS2X3},
           out_of_model_scope
     {
-        !(problem.GetGroupCount() == 1) || //
-            !(U == 1) ||                   //
-            !(V == 1) ||                   //
-            !(input_stride_h == 1) ||      //
-            !(input_stride_w == 1) ||      //
-            !(filter_stride_h == 1) ||     //
-            !(filter_stride_w == 1) ||     //
+        !(problem.GetGroupCount() == 1) //
+            || !(U == 1)                //
+            || !(V == 1)                //
+            || !(input_stride_h == 1)   //
+            || !(input_stride_w == 1)   //
+            || !(filter_stride_h == 1)  //
+            || !(filter_stride_w == 1)  //
 #if !WTI_MODEL_ALLOW_ANY_RS
-            !(R <= 5) || //
-            !(S <= 5) || //
+            || !(R <= 5) //
+            || !(S <= 5) //
 #endif
-            !(C >= 16) || //
-            !(K >= 16)
+#if !WTI_MODEL_ALLOW_ANY_CK
+            || !(C >= 16) //
+            || !(K >= 16)
+#endif
     }
     {
         /// \todo add G to UnifiedDescriptionConv2d
@@ -514,13 +541,6 @@ public:
         R_loops = Rg / Tr;
         C_loops = Cg / C_factor;
 
-        if(G == 1)
-        {
-            n_groups       = n_CU;
-            n_works_per_CU = Ceil(n_works, n_CU);
-            return;
-        }
-
         const auto NKWH_w = K_factor * NHW_tiles_factor * Toh * Tow;
         const auto grid_g = static_cast<double>(NKWH_w * Cg * Rg * Sg) / 1e6;
 
@@ -532,15 +552,23 @@ public:
                 return 1. - dc_macs / macs_g;
             };
 
+        if(G == 1)
+        {
+            n_groups         = n_CU;
+            n_works_per_CU   = Ceil(n_works, n_CU);
+            granularity_loss = compute_granularity_loss(n_groups);
+            return;
+        }
+
         n_groups         = 1;
-        double best_loss = compute_granularity_loss(n_groups);
+        granularity_loss = compute_granularity_loss(n_groups);
         for(auto i = n_groups + 1; i < n_CU; ++i)
         {
             auto loss = compute_granularity_loss(i);
-            if(loss < best_loss)
+            if(loss < granularity_loss)
             {
-                n_groups  = i;
-                best_loss = loss;
+                n_groups         = i;
+                granularity_loss = loss;
             }
         }
 
@@ -607,10 +635,12 @@ public:
 
         return WTI_predicted;
     }
+
+    double GetGranularityLoss() const { return granularity_loss; }
 };
 
 template <int Winodata, int Winofilter>
-static float GetWtiBase(const ConvolutionContext& ctx, const ProblemDescription& problem)
+static float GetWtiBase(const ExecutionContext& ctx, const ProblemDescription& problem)
 {
     constexpr auto WTI_UNKNOWN = -2.0;
     const auto rv              = ShaderModel(ctx, problem, Winodata, Winofilter).ComputeWti();
@@ -618,11 +648,17 @@ static float GetWtiBase(const ConvolutionContext& ctx, const ProblemDescription&
 }
 
 template <int Winodata, int Winofilter>
-static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescription& problem)
+static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescription& problem)
 {
     if(!problem.Is2d())
         return false;
+    if(problem.HasNonPackedTensors())
+        return false;
+    if(!problem.AllTensorsDimsFitIntoInt())
+        return false;
     if(!(problem.IsFp32() || problem.IsFp16()))
+        return false;
+    if(problem.IsTensorsCasted())
         return false;
     if(!ctx.use_asm_kernels)
         return false;
@@ -642,7 +678,7 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
          StartsWith(name, "gfx103") || StartsWith(name, "gfx11")))
         return false;
 
-    if(name == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
+    if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 
     // clang-format off
@@ -653,12 +689,39 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
         && problem.GetBias() == 0
         && problem.GetInLayout() == "NCHW"))
         return false;
-    // clang-format on
+        // clang-format on
+
+#if WORKAROUND_ISSUE_2492_GRANULARITY_LOSS
+    if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492)) &&
+       !miopen::debug::IsWarmupOngoing)
+    {
+        constexpr double max_perf_drop_due_to_granularity = 200; // Times.
+        const auto gl = ShaderModel(ctx, problem, Winodata, Winofilter).GetGranularityLoss();
+        if(gl > (1.0 - 1.0 / max_perf_drop_due_to_granularity))
+        {
+            MIOPEN_LOG_I("granularity_loss =" << gl);
+            return false;
+        }
+    }
+#endif
+
+#if WORKAROUND_ISSUE_2492_TINY_TENSOR
+    if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492)) &&
+       !miopen::debug::IsWarmupOngoing)
+    {
+        // Group count is not taken into account intentionally.
+        if(problem.GetInHeight() <= 6     //
+           && problem.GetInWidth() <= 6   //
+           && problem.GetBatchSize() <= 4 //
+           && problem.GetInChannels() <= 4)
+            return false;
+    }
+#endif
 
     const auto n_inputs_per_group  = problem.GetInChannels() / problem.GetGroupCount(),
                n_outputs_per_group = problem.GetOutChannels() / problem.GetGroupCount();
 
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
     {
         if(problem.GetKernelStrideW() == 2)
             return false;
@@ -691,21 +754,21 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
 }
 
 template <int Winodata, int Winofilter>
-bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext& ctx,
+bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext& ctx,
                                                         const ProblemDescription& problem) const
 {
     if(IS2X3)
     {
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3{}))
+        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3)))
             return false;
 #if !WORKAROUND_ISSUE_1681
-        if(problem.GetGroupCount() == 1 && !problem.direction.IsBackwardWrW())
+        if(problem.GetGroupCount() == 1 && !problem.IsDirectionBackwardWrW())
             return false;
 #endif
     }
     if(IS3X2)
     {
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2{}))
+        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2)))
             return false;
     }
     return IsApplicableBase<Winodata, Winofilter>(ctx, problem);
@@ -713,28 +776,25 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext
 
 template <int Winodata, int Winofilter>
 static inline boost::optional<PerformanceConfigConvBinWinogradRxS>
-GetPerfConfFromEnv(const ConvolutionContext& ctx)
+GetPerfConfFromEnv(const ExecutionContext& ctx)
 {
     PerformanceConfigConvBinWinogradRxS fromEnv;
     std::string s;
-    const char* p_asciz = nullptr;
     const char* env_name;
 
     if(IS2X3)
     {
-        p_asciz  = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS{});
-        env_name = MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS::value();
+        s        = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS));
+        env_name = "MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS";
     }
     else if(IS3X2)
     {
-        p_asciz  = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS{});
-        env_name = MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS::value();
+        s        = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS));
+        env_name = "MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS";
     }
 
-    if(p_asciz == nullptr)
+    if(s.empty())
         return {};
-
-    s = std::string(p_asciz);
 
     if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(ctx))
     {
@@ -749,7 +809,7 @@ GetPerfConfFromEnv(const ConvolutionContext& ctx)
 
 template <int Winodata, int Winofilter>
 ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceConfigConvBinWinogradRxS& config) const
 {
@@ -759,10 +819,12 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     if(!IsWarned)
     {
         if(ctx.GetStream().GetMaxHardwareComputeUnits() > MAX_CU_LIMIT)
+        {
             MIOPEN_LOG_WE(SolverDbId()
                           << ": GPU has " << ctx.GetStream().GetMaxHardwareComputeUnits()
                           << "CUs, but this solver supports max " << MAX_CU_LIMIT
                           << "and thus may show sub-optimal performance.");
+        }
         IsWarned = true;
     }
 
@@ -836,7 +898,7 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     {
         kernel_postfix += "_stride1";
     }
-    else if(problem.GetKernelStrideW() == 2 && !problem.direction.IsBackwardData())
+    else if(problem.GetKernelStrideW() == 2 && !problem.IsDirectionBackwardData())
     {
         kernel_postfix += "_stride2";
     }
@@ -877,8 +939,8 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     int N, C, H, W, K, out_H, out_W, R, S, pad_H, pad_W;
     MemLayout_t d_layout, o_layout, f_layout;
 
-    const bool is_forward = problem.direction.IsForward();
-    const bool is_backWrW = problem.direction.IsBackwardWrW();
+    const bool is_forward = problem.IsDirectionForward();
+    const bool is_backWrW = problem.IsDirectionBackwardWrW();
     const int group_cnt   = problem.GetGroupCount();
 
     if(!is_backWrW)
@@ -927,8 +989,8 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
                                 &pad_W);
         N /= group_cnt;
         K /= group_cnt;
-        pad_H = problem.conv_problem.GetConv().GetConvPads()[0];
-        pad_W = problem.conv_problem.GetConv().GetConvPads()[1];
+        pad_H = problem.GetConv().GetConvPads()[0];
+        pad_W = problem.GetConv().GetConvPads()[1];
 
         d_layout =
             GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(problem.GetInLayout())), true);
@@ -955,14 +1017,14 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
 
             const auto k = handle.Run(kernels[0]);
             const auto data_tensors =
-                !is_backWrW ? primitive_params.CastTo<conv::DataInvokeParams>().tensors.in
-                            : primitive_params.CastTo<conv::WrWInvokeParams>().tensors.x;
+                !is_backWrW ? primitive_params.CastTo<miopen::conv::DataInvokeParams>().tensors.in
+                            : primitive_params.CastTo<miopen::conv::WrWInvokeParams>().tensors.x;
             const auto filter_tensors =
-                !is_backWrW ? primitive_params.CastTo<conv::DataInvokeParams>().tensors.w
-                            : primitive_params.CastTo<conv::WrWInvokeParams>().tensors.dy;
+                !is_backWrW ? primitive_params.CastTo<miopen::conv::DataInvokeParams>().tensors.w
+                            : primitive_params.CastTo<miopen::conv::WrWInvokeParams>().tensors.dy;
             const auto out_tensors =
-                !is_backWrW ? primitive_params.CastTo<conv::DataInvokeParams>().tensors.out
-                            : primitive_params.CastTo<conv::WrWInvokeParams>().tensors.dw;
+                !is_backWrW ? primitive_params.CastTo<miopen::conv::DataInvokeParams>().tensors.out
+                            : primitive_params.CastTo<miopen::conv::WrWInvokeParams>().tensors.dw;
 
             // clang-format off
                 MIOPEN_LOG_I2(" N=" << N << " G=" << group_cnt << " C=" << C << " H=" << H << " W=" << W << " K=" << K
@@ -1072,21 +1134,21 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     return result;
 }
 
-bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ConvolutionContext& ctx,
+bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ExecutionContext& ctx,
                                             const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)))
         return false;
     return IsApplicableBase<2, 3>(ctx, problem) && problem.GetGroupCount() == 1;
 }
 
-float ConvBinWinogradRxSf2x3g1::GetWti(const ConvolutionContext& ctx,
+float ConvBinWinogradRxSf2x3g1::GetWti(const ExecutionContext& ctx,
                                        const ProblemDescription& problem) const
 {
     return GetWtiBase<2, 3>(ctx, problem);
 }
 
-ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ExecutionContext& ctx,
                                                    const ProblemDescription& problem) const
 {
     const auto tunable = ConvBinWinoRxS<2, 3>{};
@@ -1096,5 +1158,6 @@ ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ConvolutionContext& ctx
 template struct ConvBinWinoRxS<2, 3>;
 template struct ConvBinWinoRxS<3, 2>;
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

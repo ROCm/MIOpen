@@ -29,15 +29,18 @@
 #include <miopen/env.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
-bool ConvOclDirectFwdGen::IsApplicable(const ConvolutionContext& ctx,
+using ProblemDescription = miopen::conv::ProblemDescription;
+
+bool ConvOclDirectFwdGen::IsApplicable(const ExecutionContext& ctx,
                                        const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN)))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
@@ -45,56 +48,33 @@ bool ConvOclDirectFwdGen::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.Is2d())
         return false;
+    if(problem.HasNonPackedTensors())
+        return false;
+    if(!problem.AllTensorsDimsFitIntoInt())
+        return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
-    if(!problem.IsLayoutDefault())
-    {
+    if(problem.IsTensorsCasted())
         return false;
-    }
-
+    if(!problem.IsLayoutDefault())
+        return false;
     if(problem.GetGroupCount() > 1)
         return false;
 
-    // clang-format off
-    { // Factored out from ConvolutionDescriptor::IsDirectSupported(), which is now dissmissed.
-        const auto& p = problem; // alias
-        const bool supported =
-            ((p.GetWeightsHeight() == p.GetWeightsWidth())
-              && ((p.GetWeightsHeight() == 3 && p.GetKernelStrideH() <= 2 && p.GetKernelStrideW() <= 2)
-                || p.GetWeightsHeight() == 5
-                || p.GetWeightsHeight() == 7
-                || p.GetWeightsHeight() == 9
-                || p.GetWeightsHeight() == 11))
-          || (p.GetWeightsHeight() == 5
-              && (p.GetWeightsWidth() == 10 || p.GetWeightsWidth() == 20)
-              && p.GetKernelStrideH() == 2
-              && p.GetKernelStrideW() == 2
-              && p.GetPadH() == 0
-              && p.GetPadW() == 0);
-
-        if(!supported)
-            return false;
-    }
-
-    { // Workaround for issue 1681
-        if(problem.IsFp32() && problem.GetInChannels() > 3)
-            return false;
-    }
-
-    return problem.direction.IsForward()
-        && problem.GetKernelStrideW() == problem.GetKernelStrideH()
-        && problem.GetPadW() == problem.GetPadH()
-        && problem.GetDilationW() == 1
-        && problem.GetDilationH() == 1
-        && (problem.GetWeightsWidth() > 11
-            || problem.GetWeightsHeight() > 11
-            || (!(problem.GetWeightsWidth() == 1 && problem.GetWeightsHeight() == 1)
-                && (problem.GetKernelStrideW() > 1 || problem.GetKernelStrideH() > 1))); // clang-format on
+    return problem.IsDirectionForward()                                                 //
+           && problem.GetKernelStrideW() == problem.GetKernelStrideH()                  //
+           && problem.GetPadW() == problem.GetPadH()                                    //
+           && problem.GetDilationW() == 1                                               //
+           && problem.GetDilationH() == 1                                               //
+           && (problem.GetWeightsWidth() > 11                                           //
+               || problem.GetWeightsHeight() > 11                                       //
+               || (!(problem.GetWeightsWidth() == 1 && problem.GetWeightsHeight() == 1) //
+                   && (problem.GetKernelStrideW() > 1 || problem.GetKernelStrideH() > 1)));
 }
 
-ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvOclDirectFwdGen::GetSolution(const ExecutionContext& ctx,
                                               const ProblemDescription& problem) const
 {
     int n_in_stacks = 0;
@@ -160,11 +140,14 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& ctx,
 
     int n_ins = n_ins0 * n_ins1; // number of inputs each a from different stack
 
-    n_outs = std::min(n_outs, problem.GetOutChannels());
-    n_ins  = std::min(n_ins, problem.GetBatchSize());
+    n_outs = std::min(n_outs, static_cast<int>(problem.GetOutChannels()));
+    n_ins  = std::min(n_ins, static_cast<int>(problem.GetBatchSize()));
 
-    n_out_stacks   = (n_outs * n_out_stacks <= problem.GetOutChannels()) ? n_out_stacks : 1;
-    n_in_stacks    = (n_ins * n_in_stacks <= problem.GetBatchSize()) ? n_in_stacks : 1;
+    n_out_stacks = (static_cast<std::size_t>(n_outs) * n_out_stacks <= problem.GetOutChannels())
+                       ? n_out_stacks
+                       : 1;
+    n_in_stacks =
+        (static_cast<std::size_t>(n_ins) * n_in_stacks <= problem.GetBatchSize()) ? n_in_stacks : 1;
     int total_ins  = n_ins * n_in_stacks;
     int total_outs = n_outs * n_out_stacks;
 
@@ -233,7 +216,7 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& ctx,
         std::string(" -DMLO_OUT_HEIGHT=") +
         std::to_string(static_cast<long long>(problem.GetOutHeight())) +
         std::string(" -DMLO_OUT_STRIDE=") +
-        std::to_string(static_cast<long long>(problem.GetOutStride())) +
+        std::to_string(static_cast<long long>(problem.GetOutStrideH())) +
         std::string(" -DMLO_OUT_CHNL_STRIDE=") +
         std::to_string(static_cast<long long>(problem.GetOutChannelStride())) +
         std::string(" -DMLO_OUT_BATCH_STRIDE=") +
@@ -248,7 +231,7 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& ctx,
         std::string(" -DMLO_IN_HEIGHT=") +
         std::to_string(static_cast<long long>(problem.GetInHeight())) +
         std::string(" -DMLO_IN_STRIDE=") +
-        std::to_string(static_cast<long long>(problem.GetInStride())) +
+        std::to_string(static_cast<long long>(problem.GetInStrideH())) +
         std::string(" -DMLO_IN_CHNL_STRIDE=") +
         std::to_string(static_cast<long long>(problem.GetInChannelStride())) +
         std::string(" -DMLO_IN_BATCH_STRIDE=") +
@@ -306,8 +289,10 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& ctx,
 
     ConvSolution result;
     result.construction_params.push_back(construction_params);
-    result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
+    result.invoker_factory = &miopen::conv::MakeGenericXWYPadInvoker;
     return result;
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen

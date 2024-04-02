@@ -42,20 +42,22 @@
 
 namespace miopen {
 namespace tests {
-class TrivialTestSolver final : public solver::ConvSolver
+
+class TrivialTestSolver final : public solver::conv::ConvSolver
 {
 public:
     static const char* FileName() { return "TrivialTestSolver"; }
 
     const std::string& SolverDbId() const override { return GetSolverDbId<TrivialTestSolver>(); }
 
-    bool IsApplicable(const ConvolutionContext&, const ProblemDescription& problem) const override
+    bool IsApplicable(const ExecutionContext&,
+                      const conv::ProblemDescription& problem) const override
     {
         return problem.GetInWidth() == 1;
     }
 
-    solver::ConvSolution GetSolution(const ConvolutionContext&,
-                                     const ProblemDescription&) const override
+    solver::ConvSolution GetSolution(const ExecutionContext&,
+                                     const conv::ProblemDescription&) const override
     {
         solver::ConvSolution ret;
         solver::KernelInfo kernel;
@@ -79,7 +81,7 @@ struct TestConfig : solver::PerfConfigBase<TestConfig>
     }
 };
 
-class SearchableTestSolver final : public solver::ConvTunableSolver<TestConfig>
+class SearchableTestSolver final : public solver::conv::ConvTunableSolver<TestConfig>
 {
 public:
     static int searches_done() { return _serches_done; }
@@ -88,28 +90,28 @@ public:
 
     const std::string& SolverDbId() const override { return GetSolverDbId<SearchableTestSolver>(); }
 
-    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override
+    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const override
     {
         return true;
     }
 
-    TestConfig GetDefaultPerformanceConfig(const ConvolutionContext&,
-                                           const ProblemDescription&) const override
+    TestConfig GetDefaultPerformanceConfig(const ExecutionContext&,
+                                           const conv::ProblemDescription&) const override
     {
         TestConfig config{};
         config.str = NoSearchFileName();
         return config;
     }
 
-    bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                  const ProblemDescription&,
+    bool IsValidPerformanceConfig(const ExecutionContext&,
+                                  const conv::ProblemDescription&,
                                   const TestConfig&) const override
     {
         return true;
     }
 
-    TestConfig Search(const ConvolutionContext&,
-                      const ProblemDescription&,
+    TestConfig Search(const ExecutionContext&,
+                      const conv::ProblemDescription&,
                       const AnyInvokeParams&) const override
     {
         TestConfig config;
@@ -118,8 +120,8 @@ public:
         return config;
     }
 
-    solver::ConvSolution GetSolution(const ConvolutionContext&,
-                                     const ProblemDescription&,
+    solver::ConvSolution GetSolution(const ExecutionContext&,
+                                     const conv::ProblemDescription&,
                                      const TestConfig& config) const override
     {
 
@@ -140,8 +142,8 @@ private:
 // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
 int SearchableTestSolver::_serches_done = 0;
 
-static solver::ConvSolution FindSolution(const ConvolutionContext& ctx,
-                                         const ProblemDescription& problem,
+static solver::ConvSolution FindSolution(const ExecutionContext& ctx,
+                                         const conv::ProblemDescription& problem,
                                          const std::string& db_path)
 {
     PlainTextDb db(db_path);
@@ -175,29 +177,29 @@ public:
         ConstructTest(db_path,
                       TrivialTestSolver::FileName(),
                       {1, 1, 1, 1},
-                      [](ConvolutionContext& c) { c.do_search = true; });
+                      [](ExecutionContext& c) { c.do_search = true; });
 
         ConstructTest(db_path,
                       SearchableTestSolver::NoSearchFileName(),
                       {1, 1, 1, 2},
-                      [](ConvolutionContext& c) { c.do_search = false; });
+                      [](ExecutionContext& c) { c.do_search = false; });
 
         ConstructTest(db_path,
                       SearchableTestSolver::FileName(),
                       {1, 1, 1, 2},
-                      [](ConvolutionContext& c) { c.do_search = true; });
+                      [](ExecutionContext& c) { c.do_search = true; });
 
         const auto& searchable_solver = StaticContainer<const SearchableTestSolver>::Instance();
         const auto searches           = SearchableTestSolver::searches_done();
 
         // Should read in both cases: result is already in DB, solver is searchable.
         ConstructTest(
-            db_path, SearchableTestSolver::FileName(), {1, 1, 1, 2}, [](ConvolutionContext&) {});
+            db_path, SearchableTestSolver::FileName(), {1, 1, 1, 2}, [](ExecutionContext&) {});
 
         ConstructTest(db_path,
                       SearchableTestSolver::FileName(),
                       {1, 1, 1, 2},
-                      [](ConvolutionContext& c) { c.do_search = true; });
+                      [](ExecutionContext& c) { c.do_search = true; });
 
         // Checking no more searches were done.
         EXPECT_EQUAL(searches, searchable_solver.searches_done());
@@ -208,14 +210,14 @@ private:
         const std::string& db_path,
         const char* expected_kernel,
         const std::initializer_list<size_t>& in,
-        const std::function<void(ConvolutionContext&)>& context_filler = [](ConvolutionContext&) {})
+        const std::function<void(ExecutionContext&)>& context_filler = [](ExecutionContext&) {})
     {
         const auto problem = conv::ProblemDescription{TensorDescriptor{miopenFloat, in},
                                                       TensorDescriptor{miopenFloat, in},
                                                       TensorDescriptor{miopenFloat, in},
                                                       ConvolutionDescriptor{},
                                                       conv::Direction::Forward};
-        auto ctx           = ConvolutionContext{};
+        auto ctx           = ExecutionContext{};
         ctx.SetStream(&get_handle());
         context_filler(ctx);
 
@@ -225,6 +227,7 @@ private:
         EXPECT_EQUAL(sol.construction_params[0].kernel_file, expected_kernel);
     }
 };
+
 } // namespace tests
 } // namespace miopen
 

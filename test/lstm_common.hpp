@@ -27,6 +27,7 @@
 #ifndef GUARD_MIOPEN_TEST_LSTM_COMMON_HPP
 #define GUARD_MIOPEN_TEST_LSTM_COMMON_HPP
 
+#include "workspace.hpp"
 #include "driver.hpp"
 #include "dropout_util.hpp"
 #include "get_handle.hpp"
@@ -35,7 +36,7 @@
 #include "verify.hpp"
 #include "rnn_util.hpp"
 #include "random.hpp"
-#include "cpu_lstm.hpp"
+#include "cpu_rnn.hpp"
 #include <array>
 #include <cmath>
 #include <ctime>
@@ -96,6 +97,8 @@ struct verify_backward_data_lstm
     std::vector<T> initHidden; // HX
     std::vector<T> initCell;   // CX
     std::vector<T> weights;
+    std::vector<T>& RSVgpu;
+    std::vector<T>& RSVcpu;
     std::vector<int> batch_seq;
     int hiddenSize;
     int seqLength;
@@ -115,8 +118,6 @@ struct verify_backward_data_lstm
     bool nodcx;
     bool use_dropout;
     bool use_seqPadding;
-    typename std::vector<T>::iterator RSVgpu;
-    typename std::vector<T>::iterator RSVcpu;
 
     verify_backward_data_lstm(miopenRNNDescriptor_t pRD,
                               const std::vector<T>& py,
@@ -153,6 +154,8 @@ struct verify_backward_data_lstm
           initHidden(phx),
           initCell(pcx),
           weights(pW),
+          RSVgpu(pRSVgpu),
+          RSVcpu(pRSVcpu),
           batch_seq(pBS),
           hiddenSize(pHS),
           seqLength(pS),
@@ -171,9 +174,7 @@ struct verify_backward_data_lstm
           nodhx(pnodhx),
           nodcx(pnodcx),
           use_dropout(puse_dropout),
-          use_seqPadding(puse_seqPadding),
-          RSVgpu(pRSVgpu.begin()),
-          RSVcpu(pRSVcpu.begin())
+          use_seqPadding(puse_seqPadding)
     {
         if(!nohx)
             initHidden = phx; // this may be intentionally a nullptr
@@ -229,10 +230,10 @@ struct verify_backward_data_lstm
 
         switch(badtensor)
         {
-        case(0): std::cout << "Output dx failed verification." << std::endl; break;
-        case(1): std::cout << "Hidden state dhx tensor failed verification." << std::endl; break;
-        case(2): std::cout << "Hidden cell dcx tensor failed verification." << std::endl; break;
-        case(3): std::cout << "Workspace space tensor failed verification." << std::endl; break;
+        case(0): std::cout << "Output dx tensor report." << std::endl; break;
+        case(1): std::cout << "Hidden state dhx tensor report." << std::endl; break;
+        case(2): std::cout << "Hidden cell dcx tensor report." << std::endl; break;
+        case(3): std::cout << "Workspace space tensor report." << std::endl; break;
         default: break;
         }
     }
@@ -248,6 +249,8 @@ struct verify_backward_weights_lstm
     std::vector<T> input;      // Y
     std::vector<T> dy;         // dY
     std::vector<T> initHidden; // HX
+    std::vector<T> reserveSpace_gpu;
+    std::vector<T> reserveSpace_cpu;
     std::vector<T> workSpace;
     std::vector<int> batch_seq;
     int weightSize;
@@ -264,8 +267,6 @@ struct verify_backward_weights_lstm
     bool nohx;
     bool use_dropout;
     bool use_seqPadding;
-    typename std::vector<T> reserveSpace_gpu;
-    typename std::vector<T> reserveSpace_cpu;
 
     verify_backward_weights_lstm(miopenRNNDescriptor_t pRD,
                                  const std::vector<T>& px,
@@ -291,6 +292,8 @@ struct verify_backward_weights_lstm
         : input(px),
           dy(pdy),
           initHidden(phx),
+          reserveSpace_gpu(pRSVgpu),
+          reserveSpace_cpu(pRSVcpu),
           workSpace(pWS),
           batch_seq(pBS),
           weightSize(pW),
@@ -306,9 +309,7 @@ struct verify_backward_weights_lstm
           realHiddenSize(pHXZ),
           nohx(pnohx),
           use_dropout(puse_dropout),
-          use_seqPadding(puse_seqPadding),
-          reserveSpace_gpu(pRSVgpu),
-          reserveSpace_cpu(pRSVcpu)
+          use_seqPadding(puse_seqPadding)
     {
         if(!nohx)
             initHidden = phx; // this may be intentionally a nullptr
@@ -533,8 +534,7 @@ struct verify_forward_infer_lstm : verify_forward_lstm<T>
 
         auto&& handle = get_handle();
 
-        size_t out_sz        = 0;
-        size_t workSpaceSize = 0;
+        size_t out_sz = 0;
 
         std::vector<miopen::TensorDescriptor> inputCPPDescs;
         std::vector<miopenTensorDescriptor_t> inputDescs;
@@ -549,9 +549,10 @@ struct verify_forward_infer_lstm : verify_forward_lstm<T>
                               hiddenSize * ((dirMode != 0) ? 2 : 1),
                               miopen::deref(rnnDesc).dataType);
 
-        miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
+        size_t workspace_size = 0;
+        miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workspace_size);
 
-        std::vector<T> workSpace(workSpaceSize / sizeof(T));
+        Workspace wspace{workspace_size};
 
         auto input_dev = handle.Write(input);
 
@@ -565,8 +566,6 @@ struct verify_forward_infer_lstm : verify_forward_lstm<T>
         auto cy = initCell;
         std::fill(cy.begin(), cy.end(), 0.);
 
-        auto workSpace_dev = handle.Write(workSpace);
-
         std::vector<int> hlens(3, 0);
         hlens[0] = nLayers * (dirMode != 0 ? 2 : 1);
         hlens[1] = batch_seq[0];
@@ -577,6 +576,9 @@ struct verify_forward_infer_lstm : verify_forward_lstm<T>
         wlen[0] = weights.size();
         miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, wlen);
 
+        /// \todo: fix the handle.Write() calls below because they generate
+        /// temporary objects that may get destroyed before the
+        /// miopenRNNForwardInference call happens
         miopenRNNForwardInference(&handle,
                                   rnnDesc,
                                   seqLength,
@@ -594,8 +596,8 @@ struct verify_forward_infer_lstm : verify_forward_lstm<T>
                                   ((nohy) ? nullptr : handle.Write(hy).get()),
                                   &hiddenDesc,
                                   ((nocy) ? nullptr : handle.Write(cy).get()),
-                                  workSpace_dev.get(),
-                                  workSpaceSize);
+                                  wspace.ptr(),
+                                  wspace.size());
 
 #if(MIO_LSTM_TEST_DEBUG == 2)
         auto outdata = handle.Read<T>(output_dev, output.size());
@@ -641,7 +643,7 @@ struct verify_forward_infer_lstm : verify_forward_lstm<T>
         std::cout << "hz: " << hiddenSize << " batch_n: " << batch_n << " seqLength: " << seqLength
                   << " inputLen: " << inputVecLen << " numLayers: " << nLayers << std::endl;
         std::cout << "Forward Inference LSTM: " << std::endl;
-        std::cout << "Output tensor output failed verification." << std::endl;
+        std::cout << "Output tensor report." << std::endl;
     }
 };
 //~~~~~~~~~~~~ END FWD INFERENCE ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -673,9 +675,10 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
     using verify_forward_lstm<T>::nocy;
     using verify_forward_lstm<T>::use_seqPadding;
 
+    std::vector<T>& RSVgpu;
+    std::vector<T>& RSVcpu;
+
     bool use_dropout;
-    typename std::vector<T>::iterator RSVgpu;
-    typename std::vector<T>::iterator RSVcpu;
 
     verify_forward_train_lstm(miopenRNNDescriptor_t pRD,
                               const std::vector<T>& px,
@@ -700,7 +703,7 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
                               const bool pnocy           = false,
                               const bool puse_dropout    = false,
                               const bool puse_seqPadding = false)
-        : RSVgpu(pRSVgpu.begin()), RSVcpu(pRSVcpu.begin())
+        : RSVgpu(pRSVgpu), RSVcpu(pRSVcpu)
     {
         input          = px;
         initHidden     = phx;
@@ -861,7 +864,11 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
             ChangeDataPadding(*packed_output, output, batch_seq, batch_seq[0], out_h, true);
         }
 
-        std::copy(reserveSpace.begin(), reserveSpace.end(), RSVcpu);
+        if(reserveSpace.size() != RSVcpu.size())
+        {
+            std::abort();
+        }
+        std::copy(reserveSpace.begin(), reserveSpace.end(), RSVcpu.begin());
 
         auto retSet = std::make_tuple(
             output, (nohy ? initHidden : hiddenState), (nocy ? initCell : cellState));
@@ -908,17 +915,15 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
         std::fill(output.begin(), output.end(), static_cast<T>(0));
         auto output_dev = handle.Write(output);
 
-        size_t workSpaceSize    = 0;
+        size_t workspace_size = 0;
+        miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workspace_size);
+        Workspace wspace{workspace_size};
+
         size_t reserveSpaceSize = 0;
-        miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
         miopenGetRNNTrainingReserveSize(
             &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
-
-        std::vector<T> workSpace(workSpaceSize / sizeof(T));
-        std::vector<T> reserveSpace((reserveSpaceSize + sizeof(T) - 1) / sizeof(T));
-
-        auto workSpace_dev    = handle.Write(workSpace);
-        auto reserveSpace_dev = handle.Write(reserveSpace);
+        reserveSpaceSize = (reserveSpaceSize + (sizeof(T) - 1)) & ~(sizeof(T) - 1);
+        Workspace rspace{reserveSpaceSize};
 
         auto weights_dev = handle.Write(weights);
 
@@ -957,10 +962,10 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
                                  ((nohy) ? nullptr : hy_dev.get()),
                                  &hiddenDesc,
                                  ((nocy) ? nullptr : cy_dev.get()),
-                                 workSpace_dev.get(),
-                                 workSpaceSize,
-                                 reserveSpace_dev.get(),
-                                 reserveSpaceSize);
+                                 wspace.ptr(),
+                                 wspace.size(),
+                                 rspace.ptr(),
+                                 rspace.size());
 
 #if(MIO_LSTM_TEST_DEBUG == 2)
         auto outdata = handle.Read<T>(output_dev, output.size());
@@ -969,9 +974,7 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
             printf("GPU outdata[%d]: %f\n", i, outdata[i]);
         }
 #endif
-        reserveSpace =
-            handle.Read<T>(reserveSpace_dev, (reserveSpaceSize + sizeof(T) - 1) / sizeof(T));
-        std::copy(reserveSpace.begin(), reserveSpace.end(), RSVgpu);
+        rspace.ReadTo(RSVgpu);
 
         std::vector<T> output_gpu = handle.Read<T>(output_dev, output.size());
 
@@ -1022,9 +1025,9 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
 
         switch(badtensor)
         {
-        case(0): std::cout << "Output tensor output failed verification." << std::endl; break;
-        case(1): std::cout << "Hidden state tensor failed verification." << std::endl; break;
-        case(2): std::cout << "Cell state tensor failed verification." << std::endl; break;
+        case(0): std::cout << "Output tensor report." << std::endl; break;
+        case(1): std::cout << "Hidden state tensor report." << std::endl; break;
+        case(2): std::cout << "Cell state tensor report." << std::endl; break;
         default: break;
         }
     }
@@ -1049,7 +1052,7 @@ verify_backward_data_lstm<T>::cpu() const
     int hy_h      = hiddenSize;
     int bi_stride = bi * hy_h;
     int out_h     = hiddenSize * ((dirMode != 0) ? 2 : 1);
-    size_t workSpaceSize;
+    size_t workspace_size;
 
     std::vector<miopen::TensorDescriptor> inputCPPDescs;
     std::vector<miopenTensorDescriptor_t> inputDescs;
@@ -1066,8 +1069,8 @@ verify_backward_data_lstm<T>::cpu() const
                                       true,
                                       use_seqPadding);
 
-    miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
-    std::vector<T> workSpace(workSpaceSize / sizeof(T));
+    miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workspace_size);
+    std::vector<T> workSpace(workspace_size / sizeof(T));
     std::vector<T> dx(in_sz);
     std::vector<T> dhx(initHidden.size());
     std::vector<T> dcx(initHidden.size());
@@ -1086,8 +1089,11 @@ verify_backward_data_lstm<T>::cpu() const
         reserveSpaceSize = (reserveSpaceSize + sizeof(T) - 1) / sizeof(T);
     }
 
-    std::vector<T> reserveSpace(reserveSpaceSize);
-    std::copy(RSVcpu, RSVcpu + reserveSpaceSize, reserveSpace.begin());
+    if(reserveSpaceSize != RSVcpu.size())
+    {
+        std::abort();
+    }
+    std::vector<T> reserveSpace(RSVcpu);
 
     std::vector<T> converted_dinput;
     std::vector<T> converted_output;
@@ -1119,7 +1125,7 @@ verify_backward_data_lstm<T>::cpu() const
         packed_doutput = &converted_doutput;
 
         // WA
-        wa_workSpace.resize(workSpaceSize / sizeof(T) - (packedXInSize + packedYOutSize));
+        wa_workSpace.resize(workspace_size / sizeof(T) - (packedXInSize + packedYOutSize));
         wa_shifted_workSpace = &wa_workSpace;
     }
     else
@@ -1186,7 +1192,7 @@ verify_backward_data_lstm<T>::cpu() const
                   workSpace.begin() + converted_doutput.size() + converted_dinput.size());
     }
 
-    std::copy(reserveSpace.begin(), reserveSpace.end(), RSVcpu);
+    std::copy(reserveSpace.begin(), reserveSpace.end(), RSVcpu.begin());
 
     // TODO: remove workSpace
     auto retSet =
@@ -1210,8 +1216,6 @@ verify_backward_data_lstm<T>::gpu() const
 
     auto&& handle = get_handle();
 
-    size_t workSpaceSize = 0;
-
     std::vector<miopen::TensorDescriptor> inputCPPDescs;
     std::vector<miopenTensorDescriptor_t> inputDescs;
     createTensorDescArray(
@@ -1225,20 +1229,37 @@ verify_backward_data_lstm<T>::gpu() const
                           hiddenSize * ((dirMode != 0) ? 2 : 1),
                           miopen::deref(rnnDesc).dataType);
 
-    miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
-    std::vector<T> workSpace(workSpaceSize / sizeof(T));
-    auto workSpace_dev = handle.Write(workSpace);
+    size_t workspace_size = 0;
+    miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workspace_size);
+    if(workspace_size % sizeof(T) != 0)
+    {
+        std::abort();
+    }
+    Workspace wspace{};
+    // Needed to zero out the workspace (happens in std::vector's constructor)
+    // or else this test fails verification when workspace is compared against the
+    // workspace returned by ::cpu method in this class
+    wspace.Write(std::vector<T>(workspace_size / sizeof(T)));
+    // wspace.resize(workspace_size);
 
-    size_t reserveSpaceSize;
+    size_t reserveSpaceSize = 0;
     miopenGetRNNTrainingReserveSize(
         &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
-    std::vector<T> reserveSpace((reserveSpaceSize + sizeof(T) - 1) / sizeof(T));
-    std::copy(RSVgpu, RSVgpu + reserveSpace.size(), reserveSpace.begin());
+    /// \todo: fix miopenGetRNNTrainingReserveSize to return a multiple of
+    /// sizeof(T)
+    // Needed because reserveSpaceSize returned is not a multiple of sizeof(T).
+    reserveSpaceSize = (reserveSpaceSize + (sizeof(T) - 1)) & ~(sizeof(T) - 1);
 
-    auto yin_dev          = handle.Write(yin);
-    auto dyin_dev         = handle.Write(dy);
-    auto reserveSpace_dev = handle.Write(reserveSpace);
-    auto weights_dev      = handle.Write(weights);
+    if(reserveSpaceSize != (RSVgpu.size() * sizeof(T)))
+    {
+        std::abort();
+    }
+    Workspace rspace{};
+    rspace.Write(RSVgpu);
+
+    auto yin_dev     = handle.Write(yin);
+    auto dyin_dev    = handle.Write(dy);
+    auto weights_dev = handle.Write(weights);
 
     std::vector<int> hlens(3, 0);
     hlens[0] = nLayers * (dirMode != 0 ? 2 : 1);
@@ -1284,18 +1305,18 @@ verify_backward_data_lstm<T>::gpu() const
                           ((nodhx) ? nullptr : dhx_dev.get()),
                           &hiddenDesc,
                           ((nodcx) ? nullptr : dcx_dev.get()),
-                          workSpace_dev.get(),
-                          workSpaceSize,
-                          reserveSpace_dev.get(),
-                          reserveSpace.size() * sizeof(T));
+                          wspace.ptr(),
+                          wspace.size(),
+                          rspace.ptr(),
+                          rspace.size());
 
-    reserveSpace = handle.Read<T>(reserveSpace_dev, reserveSpace.size());
-    std::copy(reserveSpace.begin(), reserveSpace.end(), RSVgpu);
+    assert(RSVgpu.size() * sizeof(T) == rspace.size());
+    rspace.ReadTo(RSVgpu);
     // TODO: remove workSpace
     auto retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
                                   (nodhx ? initHidden : handle.Read<T>(dhx_dev, dhx.size())),
                                   (nodcx ? initCell : handle.Read<T>(dcx_dev, dcx.size())),
-                                  handle.Read<T>(workSpace_dev, workSpace.size()));
+                                  wspace.Read<std::vector<T>>());
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
     auto t_end = std::chrono::high_resolution_clock::now();
@@ -1427,8 +1448,12 @@ std::vector<T> verify_backward_weights_lstm<T>::gpu() const
                           hiddenSize * ((dirMode != 0) ? 2 : 1),
                           miopen::deref(rnnDesc).dataType);
 
-    auto workSpace_dev    = handle.Write(workSpace);
-    auto reserveSpace_dev = handle.Write(reserveSpace_gpu);
+    Workspace wspace{};
+    wspace.Write(workSpace);
+
+    Workspace rspace{};
+    rspace.Write(reserveSpace_gpu);
+
     std::vector<T> dweights(weightSize);
     auto dweights_dev = handle.Write(dweights);
     miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, {weightSize});
@@ -1452,10 +1477,10 @@ std::vector<T> verify_backward_weights_lstm<T>::gpu() const
                              dy_dev.get(),
                              &weightDesc,
                              dweights_dev.get(),
-                             workSpace_dev.get(),
-                             workSpace.size() * sizeof(T),
-                             reserveSpace_dev.get(),
-                             reserveSpace_gpu.size() * sizeof(T));
+                             wspace.ptr(),
+                             wspace.size(),
+                             rspace.ptr(),
+                             rspace.size());
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
     auto t_end = std::chrono::high_resolution_clock::now();
@@ -1503,7 +1528,7 @@ struct lstm_basic_driver : test_driver
 
     void run()
     {
-
+        const double Data_scale = 0.001;
 #if(MIOPEN_BACKEND_OPENCL == 1)
 #if WORKAROUND_ISSUE_692 == 1
         std::cout << "Skip test for Issue #692: " << std::endl;
@@ -1632,10 +1657,9 @@ struct lstm_basic_driver : test_driver
                                                true,
                                                usePadding);
         std::vector<T> input(in_sz);
-        srand(0);
         for(std::size_t i = 0; i < in_sz; i++)
         {
-            input[i] = /*(((GET_RAND()%2)==1)?-1:1)**/ 0.001 * float(GET_RAND() % 100);
+            input[i] = prng::gen_descreet_unsigned<T>(Data_scale, 100);
         }
 
         std::size_t hx_sz = ((dirMode != 0) ? 2ULL : 1ULL) * hiddenSize * batchSize * numLayers;
@@ -1655,7 +1679,7 @@ struct lstm_basic_driver : test_driver
         std::vector<T> weights(wei_sz);
         for(std::size_t i = 0; i < wei_sz; i++)
         {
-            weights[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 0.001 * float(GET_RAND() % 100);
+            weights[i] = prng::gen_descreet_uniform_sign<T>(Data_scale, 100);
         }
 
 #if(MIO_LSTM_TEST_DEBUG > 0)
@@ -1680,7 +1704,7 @@ struct lstm_basic_driver : test_driver
         {
             for(std::size_t i = 0; i < hx_sz; i++)
             {
-                hx[i] = 0.001 * float(GET_RAND() % 100);
+                hx[i] = prng::gen_descreet_unsigned<T>(Data_scale, 100);
             }
         }
 
@@ -1688,7 +1712,7 @@ struct lstm_basic_driver : test_driver
         {
             for(std::size_t i = 0; i < hx_sz; i++)
             {
-                dhyin[i] = 0.001 * float(GET_RAND() % 100);
+                dhyin[i] = prng::gen_descreet_unsigned<T>(Data_scale, 100);
             }
         }
 
@@ -1696,7 +1720,7 @@ struct lstm_basic_driver : test_driver
         {
             for(std::size_t i = 0; i < hx_sz; i++)
             {
-                cx[i] = 0.001 * float(GET_RAND() % 100);
+                cx[i] = prng::gen_descreet_unsigned<T>(Data_scale, 100);
             }
         }
 
@@ -1704,7 +1728,7 @@ struct lstm_basic_driver : test_driver
         {
             for(std::size_t i = 0; i < hx_sz; i++)
             {
-                dcyin[i] = 0.001 * float(GET_RAND() % 100);
+                dcyin[i] = prng::gen_descreet_unsigned<T>(Data_scale, 100);
             }
         }
 
@@ -1733,10 +1757,10 @@ struct lstm_basic_driver : test_driver
                                            false,
                                            usePadding);
 
-        size_t workSpaceSize;
-        miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
+        size_t workspace_size;
+        miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workspace_size);
 
-        size_t total_mem = statesSizeInBytes + reserveSpaceSize + workSpaceSize +
+        size_t total_mem = statesSizeInBytes + reserveSpaceSize + workspace_size +
                            (2 * out_sz + in_sz + wei_sz + (nohx ? 0 : hx_sz) + (nohy ? 0 : hx_sz) +
                             (nodhx ? 0 : hx_sz) + (nodhy ? 0 : hx_sz) + (nocx ? 0 : hx_sz) +
                             (nocy ? 0 : hx_sz) + (nodcx ? 0 : hx_sz) + (nodcy ? 0 : hx_sz)) *
@@ -1792,7 +1816,7 @@ struct lstm_basic_driver : test_driver
         std::vector<T> dyin(out_sz);
         for(std::size_t i = 0; i < out_sz; i++)
         {
-            dyin[i] = /*(((GET_RAND()%2)==1)?-1:1)**/ 0.001 * float(GET_RAND() % 100);
+            dyin[i] = prng::gen_descreet_unsigned<T>(Data_scale, 100);
         }
 
 #if(MIO_LSTM_TEST_DEBUG > 0)
@@ -1816,7 +1840,7 @@ struct lstm_basic_driver : test_driver
 #if(MIO_LSTM_TEST_DEBUG > 0)
         printf("Running backward weights LSTM.\n");
         printf("reserve sz: %d, workSpace sz: %d, weight sz: %d\n",
-               reserveSpaceBwdData.size(),
+               rsvcpu.size(),
                workSpaceBwdData.size(),
                wei_sz);
         fflush(nullptr);

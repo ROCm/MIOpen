@@ -27,7 +27,6 @@
 #include <miopen/miopen.h>
 #include <miopen/errors.hpp>
 #include <miopen/hip_build_utils.hpp>
-#include <miopen/rocm_features.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/mlir_common.hpp>
 
@@ -57,32 +56,28 @@ static const char* DTypeName(miopenDataType_t ty)
     case miopenBFloat16: return "bf16";
     case miopenInt32: return "i32";
     case miopenInt8: return "i8";
-    case miopenInt8x4: return "i8x4";
+    case miopenFloat8: return "fp8";
+    case miopenBFloat8: return "bfp8";
     }
     MIOPEN_THROW(miopenStatusInternalError, "Value outside of datatype enum");
 }
 
 static std::string GetIsaName(const miopen::TargetProperties& target)
 {
-#if ROCM_FEATURE_TARGETID_OFF
-    const char* const ecc_suffix = (target.Sramecc() && *target.Sramecc()) ? ":sramecc+" : "";
-    return {"amdgcn-amd-amdhsa:" + target.Name() + ecc_suffix};
-#else
     const LcOptionTargetStrings lots(target);
     return "amdgcn-amd-amdhsa:" + lots.targetId;
-#endif
 }
 
-std::string GetKernelName(const ProblemDescription& problem, bool is_xdlops, int kernel_id)
+std::string GetKernelName(const conv::ProblemDescription& problem, bool is_xdlops, int kernel_id)
 {
     std::string version;
     std::string direction;
-    if(problem.direction.IsForward())
+    if(problem.IsDirectionForward())
     {
         version   = "_v4r4";
         direction = "_fwd";
     }
-    else if(problem.direction.IsBackwardData())
+    else if(problem.IsDirectionBackwardData())
     {
         version   = "_v4r1";
         direction = "_bwd";
@@ -101,13 +96,13 @@ std::string GetKernelName(const ProblemDescription& problem, bool is_xdlops, int
     return kernel_name + std::to_string(kernel_id);
 }
 
-static std::string GetOperation(const ProblemDescription& problem)
+static std::string GetOperation(const conv::ProblemDescription& problem)
 {
-    if(problem.direction.IsForward())
+    if(problem.IsDirectionForward())
     {
         return "conv2d";
     }
-    else if(problem.direction.IsBackwardData())
+    else if(problem.IsDirectionBackwardData())
     {
         return "conv2d_bwd_data";
     }
@@ -119,8 +114,8 @@ static std::string GetOperation(const ProblemDescription& problem)
 
 /* Construct the options string passed to MLIR to cause it
 to generate a given convolution.*/
-std::string ConstructBuildOptions(const ConvolutionContext& ctx,
-                                  const ProblemDescription& problem,
+std::string ConstructBuildOptions(const ExecutionContext& ctx,
+                                  const conv::ProblemDescription& problem,
                                   bool is_xdlops,
                                   int kernel_id)
 {

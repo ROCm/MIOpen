@@ -30,10 +30,13 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <cstddef>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 PerformanceImplicitGemmV4R4WrW::PerformanceImplicitGemmV4R4WrW(int BlockSize_,
                                                                int GemmMPerBlock_,
@@ -474,7 +477,7 @@ bool PerformanceImplicitGemmV4R4WrW::IsValid(const ProblemDescription& problem) 
     return (valid and lds_size <= get_lds_max_number_of_byte());
 }
 
-void PerformanceImplicitGemmV4R4WrW::HeuristicInit(const ConvolutionContext& ctx,
+void PerformanceImplicitGemmV4R4WrW::HeuristicInit(const ExecutionContext& ctx,
                                                    const ProblemDescription& problem)
 {
     std::ignore = ctx;
@@ -575,26 +578,32 @@ ConvHipImplicitGemmV4R4WrW::CalculateGemmSize(const ProblemDescription& problem)
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
 }
 
-bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ConvolutionContext& ctx,
+bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ExecutionContext& ctx,
                                               const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4)))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.GetConv().attribute.deterministic)
         return false;
     if(!ctx.use_hip_kernels)
+        return false;
+    if(problem.HasNonPackedTensors())
+        return false;
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
     if(!problem.IsLayoutDefault())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
     if(!problem.Is2d() && !problem.Is3d())
         return false;
     if(!problem.IsFp32())
+        return false;
+    if(problem.IsTensorsCasted())
         return false;
     if(problem.GetGroupCount() != 1)
         return false;
@@ -610,14 +619,14 @@ bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ConvolutionContext& ctx,
 }
 
 PerformanceImplicitGemmV4R4WrW
-ConvHipImplicitGemmV4R4WrW::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
+ConvHipImplicitGemmV4R4WrW::GetDefaultPerformanceConfig(const ExecutionContext& ctx,
                                                         const ProblemDescription& problem) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmV4R4WrW>(ctx, problem);
 }
 
 bool ConvHipImplicitGemmV4R4WrW::IsValidPerformanceConfig(
-    const ConvolutionContext&,
+    const ExecutionContext&,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmV4R4WrW& config) const
 {
@@ -626,7 +635,7 @@ bool ConvHipImplicitGemmV4R4WrW::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmV4R4WrW
-ConvHipImplicitGemmV4R4WrW::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmV4R4WrW::Search(const ExecutionContext& ctx,
                                    const ProblemDescription& problem,
                                    const AnyInvokeParams& invoke_ctx) const
 {
@@ -634,7 +643,7 @@ ConvHipImplicitGemmV4R4WrW::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution
-ConvHipImplicitGemmV4R4WrW::GetSolution(const ConvolutionContext& ctx,
+ConvHipImplicitGemmV4R4WrW::GetSolution(const ExecutionContext& ctx,
                                         const ProblemDescription& problem,
                                         const PerformanceImplicitGemmV4R4WrW& config) const
 {
@@ -776,7 +785,7 @@ ConvHipImplicitGemmV4R4WrW::GetSolution(const ConvolutionContext& ctx,
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+            const auto& invoke_params = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
             const auto& tensors       = invoke_params.tensors;
             handle.Run(kernels[0])(tensors.x, tensors.dy, tensors.dw);
         };
@@ -785,5 +794,6 @@ ConvHipImplicitGemmV4R4WrW::GetSolution(const ConvolutionContext& ctx,
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

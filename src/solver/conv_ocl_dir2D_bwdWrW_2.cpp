@@ -36,11 +36,14 @@
 
 #include <algorithm>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2_SEARCH_OPTIMIZED)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2_SEARCH_OPTIMIZED)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 inline static bool Is_1_to_8(const int& v)
 {
@@ -139,7 +142,7 @@ static bool IsTunable(const ProblemDescription& problem)
               (problem.GetWeightsWidth() == 1 && problem.GetWeightsHeight() == 1)));
 }
 
-bool ConvOclBwdWrW2NonTunable::IsApplicable(const ConvolutionContext& ctx,
+bool ConvOclBwdWrW2NonTunable::IsApplicable(const ExecutionContext& ctx,
                                             const ProblemDescription& problem) const
 {
     // At present, auto-tuning is disabled for non-group 3x3 and 1x1 filters for multiple
@@ -148,7 +151,7 @@ bool ConvOclBwdWrW2NonTunable::IsApplicable(const ConvolutionContext& ctx,
     return ConvOclBwdWrW2<1>::IsApplicableBase(ctx, problem) && !IsTunable(problem);
 }
 
-ConvSolution ConvOclBwdWrW2NonTunable::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvOclBwdWrW2NonTunable::GetSolution(const ExecutionContext& ctx,
                                                    const ProblemDescription& problem) const
 {
     // Invoking base class GetSolution with default values for params obtained
@@ -172,7 +175,7 @@ template <int N_BATCH_LOOPS>
 bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::SetNextValue(const ProblemDescription&)
 {
     // Increment with wrap-around:
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2_SEARCH_OPTIMIZED{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2_SEARCH_OPTIMIZED)))
     {
         do
         {
@@ -230,7 +233,7 @@ static size_t GetNBatchBlks(const ProblemDescription& problem)
 
 template <int N_BATCH_LOOPS>
 bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     if(!IsValidValue())
     {
@@ -243,8 +246,7 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(
     // Check 1: n_back_loops
     // Ensure that the total amount of system memory used by intermediate object
     // that holds the weights of x number of batches doesn't exceed system memory
-    size_t wei_cstride =
-        static_cast<size_t>(problem.GetWeightsHeight()) * problem.GetWeightsWidth();
+    size_t wei_cstride = problem.GetWeightsHeight() * problem.GetWeightsWidth();
     size_t wei_bstride = (problem.GetOutChannels() / problem.GetGroupCount()) * wei_cstride;
 
     // number  of batch iterations
@@ -300,7 +302,8 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(
 
     // Check 5: n_out_rows_in_lcl  should exceed LDS limit
     size_t in_lcl_height =
-        (n_out_rows_in_lcl - 1) * problem.GetKernelStrideH() + problem.GetWeightsHeight();
+        static_cast<std::size_t>(n_out_rows_in_lcl - 1) * problem.GetKernelStrideH() +
+        problem.GetWeightsHeight();
     size_t in_lcl_sz = 0;
     {
         // Chao: Reserve space in LDS for left padding, it also reserve
@@ -367,7 +370,7 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(
                 return false;
             size_t n_wei_blk = workgroup_size / wei_blk_sz;
             if(n_wei_blk == 0)
-            { /// \todo This is quickfix for DIV/0, see ROCmSoftwarePlatform/MIOpen/issues/70.
+            { /// \todo This is quickfix for DIV/0, see ROCm/MIOpen/issues/70.
                 MIOPEN_LOG_I2("ConvOClBwdWrW2: GRP_SZ < wei_blk_sz, not applicable?");
                 return false;
             }
@@ -401,9 +404,7 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(
     if(n_batch_blks > 1)
     {
         size_t data_len     = GetTypeSize(problem.GetOutDataType());
-        result.workspace_sz = static_cast<std::size_t>(wei_bstride) *
-                              static_cast<std::size_t>(problem.GetInChannels()) * n_batch_blks *
-                              static_cast<std::size_t>(data_len);
+        result.workspace_sz = wei_bstride * problem.GetInChannels() * n_batch_blks * data_len;
 
 #if WORKAROUND_ISSUE_1185
         if(result.workspace_sz >
@@ -424,6 +425,7 @@ void PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::HeuristicInit(
     n_waves                                = 1;
     read_size                              = 6;
     const auto n_output_channels_per_group = problem.GetInChannels() / problem.GetGroupCount();
+    // NOLINTBEGIN(*-braces-around-statements)
     if(n_output_channels_per_group % 4 == 0)
         n_out_channels_per_tile = 4;
     else if(n_output_channels_per_group % 3 == 0)
@@ -432,13 +434,14 @@ void PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::HeuristicInit(
         n_out_channels_per_tile = 2;
     else
         n_out_channels_per_tile = 1;
+    // NOLINTEND(*-braces-around-statements)
     n_out_channels_tiles = 1;
     n_out_rows_in_lcl    = problem.GetWeightsHeight();
 }
 
 template <int N_BATCH_LOOPS>
 bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config) const
 {
@@ -446,10 +449,10 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsValidPerformanceConfig(
 }
 
 template <int N_BATCH_LOOPS>
-bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& ctx,
+bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ExecutionContext& ctx,
                                                      const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2)))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
@@ -457,16 +460,18 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& c
         return false;
     if(!problem.Is2d())
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
+        return false;
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
+    if(problem.IsTensorsCasted())
+        return false;
 
     return problem.GetDilationW() == 1 && problem.GetDilationH() == 1 &&
 #if 0
@@ -477,13 +482,14 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& c
            // previous read, (MLO_N_ALIGNED_OUT_SCAN_BLK * MLO_FILTER_STRIDE1) of it is fresh read
            // from device memory. So (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1) need no less than 0.
            // TODO: chao: revisit this if failure is encountered.
-           problem.GetWeightsHeight() - problem.GetKernelStrideH() >= 0 &&
+           problem.GetWeightsHeight() >= problem.GetKernelStrideH() &&
 #endif
 
            // The first scan of stripe of the input into LDS will read a strip of height
            // (kernel_size_h - kernel_stride_h), this stripe should include the whole lower bound
            // padding, as well as some or none of the input.
-           problem.GetWeightsHeight() - problem.GetKernelStrideH() >= problem.GetPadH() &&
+           static_cast<int>(problem.GetWeightsHeight()) - problem.GetKernelStrideH() >=
+               problem.GetPadH() &&
            problem.GetBatchSize() >= N_BATCH_LOOPS &&
            /// \todo Workaround for issue 1693
            !(problem.GetWeightsWidth() >= 8 && problem.GetWeightsWidth() % 2 == 0 &&
@@ -502,7 +508,7 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& c
 }
 
 template <int N_BATCH_LOOPS>
-bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const ConvolutionContext& ctx,
+bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const ExecutionContext& ctx,
                                                  const ProblemDescription& problem) const
 {
     return IsApplicableBase(ctx, problem) && IsTunable(problem);
@@ -510,7 +516,7 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const ConvolutionContext& ctx,
 
 template <int N_BATCH_LOOPS>
 PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
-ConvOclBwdWrW2<N_BATCH_LOOPS>::GetDefaultPerformanceConfig(const ConvolutionContext&,
+ConvOclBwdWrW2<N_BATCH_LOOPS>::GetDefaultPerformanceConfig(const ExecutionContext&,
                                                            const ProblemDescription& problem) const
 {
     PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS> pp;
@@ -519,7 +525,7 @@ ConvOclBwdWrW2<N_BATCH_LOOPS>::GetDefaultPerformanceConfig(const ConvolutionCont
 }
 
 template <int N_BATCH_LOOPS>
-size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const ConvolutionContext&,
+size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const ExecutionContext&,
                                                        const ProblemDescription& problem) const
 {
     const size_t n_batch_blks = GetNBatchBlks<N_BATCH_LOOPS>(problem);
@@ -528,10 +534,8 @@ size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const ConvolutionContext&
         const auto n_input_channels_per_group = problem.GetOutChannels() / problem.GetGroupCount();
         const auto wei_cstride = problem.GetWeightsWidth() * problem.GetWeightsHeight();
         const auto wei_bstride = n_input_channels_per_group * wei_cstride;
-        int data_len           = GetTypeSize(problem.GetOutDataType());
-        return static_cast<std::size_t>(wei_bstride) *
-               static_cast<std::size_t>(problem.GetInChannels()) *
-               static_cast<std::size_t>(n_batch_blks) * static_cast<std::size_t>(data_len);
+        const auto data_len    = GetTypeSize(problem.GetOutDataType());
+        return wei_bstride * problem.GetInChannels() * n_batch_blks * data_len;
     }
     else
         return 0;
@@ -539,7 +543,7 @@ size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const ConvolutionContext&
 
 template <int N_BATCH_LOOPS>
 ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config) const
 {
@@ -547,10 +551,10 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
     const auto hw_wave_size   = 64;
     const auto workgroup_size = hw_wave_size * config.n_waves;
 
-    const auto n_input_channels_per_group  = problem.GetOutChannels() / problem.GetGroupCount();
-    const auto n_output_channels_per_group = problem.GetInChannels() / problem.GetGroupCount();
-    const auto wei_cstride                 = problem.GetWeightsWidth() * problem.GetWeightsHeight();
-    const auto wei_bstride                 = n_input_channels_per_group * wei_cstride;
+    const int n_input_channels_per_group  = problem.GetOutChannels() / problem.GetGroupCount();
+    const int n_output_channels_per_group = problem.GetInChannels() / problem.GetGroupCount();
+    const int wei_cstride                 = problem.GetWeightsWidth() * problem.GetWeightsHeight();
+    const auto wei_bstride                = n_input_channels_per_group * wei_cstride;
 
     result.n_in_data_tiles    = 1;
     const size_t n_batch_blks = GetNBatchBlks<N_BATCH_LOOPS>(problem);
@@ -581,14 +585,13 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
         size_t in_width  = problem.GetOutWidth(); // out is in, in is out
         size_t out_width = problem.GetInWidth();
 
-        size_t in_lcl_width_effective =
-            std::max(in_width + 2 * static_cast<size_t>(problem.GetPadW()),
-                     std::max(static_cast<size_t>(problem.GetPadW()) +
-                                  static_cast<size_t>(
-                                      std::ceil(static_cast<float>(in_width) / config.read_size) *
-                                      config.read_size),
-                              static_cast<size_t>(problem.GetWeightsWidth()) +
-                                  (out_width - 1) * problem.GetKernelStrideW()));
+        size_t in_lcl_width_effective = std::max(
+            in_width + 2 * static_cast<size_t>(problem.GetPadW()),
+            std::max(
+                static_cast<size_t>(problem.GetPadW()) +
+                    static_cast<size_t>(std::ceil(static_cast<float>(in_width) / config.read_size) *
+                                        config.read_size),
+                problem.GetWeightsWidth() + (out_width - 1) * problem.GetKernelStrideW()));
 
         size_t in_lcl_width_right_buffer = std::max(
             static_cast<int>(in_lcl_width_effective - (in_width + 2ULL * problem.GetPadW())), 0);
@@ -622,8 +625,8 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
     std::string UT_READ_TYPE =
         (utility_read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((utility_read_unit));
 
-    if(!problem.direction.IsBackwardWrW())
-        MIOPEN_THROW("!problem.direction.IsBackwardWrW()");
+    if(!problem.IsDirectionBackwardWrW())
+        MIOPEN_THROW("!problem.IsDirectionBackwardWrW()");
     // it's backward - inputs are outputs and vs versa
     const auto comp_options =
         std::string(" -DMLO_DIR_FORWARD=0") + std::string(" -DMLO_GRP_SZ=") +
@@ -644,10 +647,10 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
         std::to_string(n_batch_blks) + std::string(" -DMLO_OUT_BATCH_STRIDE=") +
         std::to_string((problem.GetInBatchStride())) + std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
         std::to_string((problem.GetInChannelStride())) + std::string(" -DMLO_OUT_STRIDE=") +
-        std::to_string((problem.GetInStride())) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
+        std::to_string((problem.GetInStrideH())) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
         std::to_string((problem.GetOutBatchStride())) + std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
         std::to_string((problem.GetOutChannelStride())) + std::string(" -DMLO_IN_STRIDE=") +
-        std::to_string((problem.GetOutStride())) + std::string(" -DMLO_WEI_BATCH_STRIDE=") +
+        std::to_string((problem.GetOutStrideH())) + std::string(" -DMLO_WEI_BATCH_STRIDE=") +
         std::to_string((wei_bstride)) + std::string(" -DMLO_WEI_CHANNEL_STRIDE=") +
         std::to_string((wei_cstride)) + std::string(" -DMLO_IN_WIDTH=") +
         std::to_string((problem.GetOutWidth())) + std::string(" -DMLO_IN_HEIGHT=") +
@@ -726,8 +729,7 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
         kernel.l_wk.push_back(1);
 
         assert(utility_read_unit != 0);
-        int gbl_ut_wk0 = static_cast<int>(static_cast<int>(wei_bstride) * problem.GetInChannels() /
-                                          utility_read_unit);
+        unsigned gbl_ut_wk0 = wei_bstride * problem.GetInChannels() / utility_read_unit;
 
         kernel.g_wk.push_back(gbl_ut_wk0);
         kernel.g_wk.push_back(1);
@@ -737,14 +739,14 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
 
     const auto ws_sz       = GetWorkspaceSize(ctx, problem);
     result.workspace_sz    = ws_sz;
-    result.invoker_factory = conv::MakeOclWrWRdcInvokerFactory(n_batch_blks > 1, ws_sz);
+    result.invoker_factory = miopen::conv::MakeOclWrWRdcInvokerFactory(n_batch_blks > 1, ws_sz);
 
     return result;
 }
 
 template <int N_BATCH_LOOPS>
 PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
-ConvOclBwdWrW2<N_BATCH_LOOPS>::Search(const ConvolutionContext& ctx,
+ConvOclBwdWrW2<N_BATCH_LOOPS>::Search(const ExecutionContext& ctx,
                                       const ProblemDescription& problem,
                                       const AnyInvokeParams& invoke_ctx) const
 {
@@ -766,5 +768,6 @@ template struct ConvOclBwdWrW2<4>;
 template struct ConvOclBwdWrW2<8>;
 template struct ConvOclBwdWrW2<16>;
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

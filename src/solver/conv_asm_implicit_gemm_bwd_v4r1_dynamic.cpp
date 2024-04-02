@@ -31,10 +31,13 @@
 #include <algorithm>
 #include <miopen/solver/implicitgemm_util.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 static inline bool FindImplicitGemmDynamicKernelBwd(const ProblemDescription& problem,
                                                     std::string& kernel_name,
@@ -130,7 +133,7 @@ static inline bool FindImplicitGemmDynamicKernelBwd(const ProblemDescription& pr
 bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ExecutionContext& ctx,
                                                      const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1)))
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
@@ -140,13 +143,22 @@ bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ExecutionContext& ctx
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!problem.direction.IsBackwardData())
+    if(!problem.IsDirectionBackwardData())
+        return false;
+
+    if(problem.HasNonPackedTensors())
+        return false;
+
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
 
     if(!problem.Is2d())
         return false;
 
     if(!problem.IsFp32())
+        return false;
+
+    if(problem.IsTensorsCasted())
         return false;
 
     if(!ctx.rmv.IsV3())
@@ -156,9 +168,7 @@ bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ExecutionContext& ctx
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
@@ -204,10 +214,12 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicBwd::GetSolution(const ExecutionConte
 
     kernel.comp_options = options.str();
 
-    result.invoker_factory = conv::MakeImplGemmDynamicBackwardDataInvokerFactory(problem, int(0));
+    result.invoker_factory =
+        miopen::conv::MakeImplGemmDynamicBackwardDataInvokerFactory(problem, int(0));
     result.construction_params.push_back(kernel);
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

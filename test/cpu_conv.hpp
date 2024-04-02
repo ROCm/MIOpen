@@ -39,12 +39,19 @@
 #include "tensor_holder.hpp"
 #include <miopen/stringutils.hpp>
 #include <miopen/functional.hpp>
+#include <hip_float8.hpp>
 
 template <class T, class... Ts>
 static constexpr auto make_array(T x, Ts... xs)
 {
     return std::array<T, 1 + sizeof...(Ts)>{{x, xs...}};
 }
+
+template <typename T>
+struct PassThru
+{
+    T operator()(T t) { return t; }
+};
 
 template <typename Tin, typename Twei, typename Tout>
 struct cpu_convolution_acc_type
@@ -66,6 +73,8 @@ struct cpu_convolution_acc_type<int8_t, int8_t, float>
 
 template <std::size_t ConvDim,
           typename Tacc,
+          typename FI,
+          typename FW,
           typename Tin,
           typename Twei,
           typename Tout,
@@ -76,7 +85,9 @@ void cpu_convolution_forward_impl(const tensor<Tin>& in,
                                   const Range& pads,
                                   const Range& strides,
                                   const Range& dilations,
-                                  std::size_t group_count)
+                                  std::size_t group_count,
+                                  FI fi = {},
+                                  FW fw = {})
 {
     static_assert(ConvDim > 0, "wrong! convolution dim should be larger than 0");
     assert(in.desc.GetSize() == ConvDim + 2 and wei.desc.GetSize() == ConvDim + 2 and
@@ -162,22 +173,30 @@ void cpu_convolution_forward_impl(const tensor<Tin>& in,
                         in_id[0] = out_n_id;
                         in_id[1] = in_c_id;
                         std::copy_n(in_spatial_id.begin(), ConvDim, in_id.begin() + 2);
-                        acc +=
-                            Tacc(in(in_id)) * Tacc(wei(out_k_id, wei_c_id, wei_spatial_id_pack...));
+                        Tacc tmp1 = static_cast<Tacc>(fi(in(in_id)));
+                        Tacc tmp2 =
+                            static_cast<Tacc>(fw(wei(out_k_id, wei_c_id, wei_spatial_id_pack...)));
+                        acc += tmp1 * tmp2;
                     }
                 }
             });
         });
         if(vector_len > 1)
+        {
             out(out_k_id % vector_len, out_n_id, out_k_id / vector_len, out_spatial_id_pack...) =
-                acc;
+                static_cast<Tout>(acc);
+        }
         else
-            out(out_n_id, out_k_id, out_spatial_id_pack...) = acc;
+        {
+            out(out_n_id, out_k_id, out_spatial_id_pack...) = static_cast<Tout>(acc);
+        }
     });
 }
 
 template <std::size_t ConvDim,
           typename Tacc,
+          typename FW,
+          typename FO,
           typename Tin,
           typename Twei,
           typename Tout,
@@ -188,7 +207,9 @@ void cpu_convolution_backward_data_impl(tensor<Tin>& in,
                                         const Range& pads,
                                         const Range& strides,
                                         const Range& dilations,
-                                        std::size_t group_count)
+                                        std::size_t group_count,
+                                        FW fw = {},
+                                        FO fo = {})
 {
     static_assert(ConvDim > 0, "wrong! convolution dim should be larger than 0");
     assert(in.desc.GetSize() == ConvDim + 2 and wei.desc.GetSize() == ConvDim + 2 and
@@ -255,19 +276,21 @@ void cpu_convolution_backward_data_impl(tensor<Tin>& in,
                         out_id[0] = in_n_id;
                         out_id[1] = out_k_id;
                         std::copy_n(out_spatial_id.begin(), ConvDim, out_id.begin() + 2);
-
-                        acc += Tacc(out(out_id)) *
-                               Tacc(wei(out_k_id, wei_c_id, wei_spatial_id_pack...));
+                        Tacc tmp1 = fo(out(out_id));
+                        Tacc tmp2 = fw(wei(out_k_id, wei_c_id, wei_spatial_id_pack...));
+                        acc += tmp1 * tmp2;
                     }
                 });
             });
-
-            in(in_n_id, in_c_id, in_spatial_id_pack...) = acc;
+            // TODO: Why do we need a no-lint here ?
+            in(in_n_id, in_c_id, in_spatial_id_pack...) = static_cast<Tout>(acc); // NOLINT
         });
 }
 
 template <std::size_t ConvDim,
           typename Tacc,
+          typename FI,
+          typename FO,
           typename Tin,
           typename Twei,
           typename Tout,
@@ -278,7 +301,9 @@ void cpu_convolution_backward_weight_impl(const tensor<Tin>& in,
                                           const Range& pads,
                                           const Range& strides,
                                           const Range& dilations,
-                                          std::size_t group_count)
+                                          std::size_t group_count,
+                                          FI fi,
+                                          FO fo)
 {
     static_assert(ConvDim > 0, "wrong! convolution dim should be larger than 0");
     assert(in.desc.GetSize() == ConvDim + 2 and wei.desc.GetSize() == ConvDim + 2 and
@@ -303,54 +328,60 @@ void cpu_convolution_backward_weight_impl(const tensor<Tin>& in,
     auto par_ford_wei_kc_spatial =
         miopen::unpacker(miopen::prepender(par_ford, wei_k_len, wei_c_len))(wei_spatial_len);
 
-    par_ford_wei_kc_spatial([&](std::size_t wei_k_id,
-                                std::size_t wei_c_id,
-                                auto... wei_spatial_id_pack) {
-        auto wei_spatial_id = make_array(wei_spatial_id_pack...);
+    par_ford_wei_kc_spatial(
+        [&](std::size_t wei_k_id, std::size_t wei_c_id, auto... wei_spatial_id_pack) {
+            auto wei_spatial_id = make_array(wei_spatial_id_pack...);
 
-        std::size_t group_id = wei_k_id / wei_k_len_per_group;
-        std::size_t in_c_id  = group_id * wei_c_len + wei_c_id;
+            std::size_t group_id = wei_k_id / wei_k_len_per_group;
+            std::size_t in_c_id  = group_id * wei_c_len + wei_c_id;
 
-        Tacc acc = 0;
+            Tacc acc = 0;
 
-        ford(out_n_len)([&](std::size_t out_n_id) {
-            auto ford_out_spatial = miopen::unpacker(ford)(out_spatial_len);
+            ford(out_n_len)([&](std::size_t out_n_id) {
+                auto ford_out_spatial = miopen::unpacker(ford)(out_spatial_len);
 
-            ford_out_spatial([&](auto... out_spatial_id_pack) {
-                auto out_spatial_id = make_array(out_spatial_id_pack...);
+                ford_out_spatial([&](auto... out_spatial_id_pack) {
+                    auto out_spatial_id = make_array(out_spatial_id_pack...);
 
-                std::array<std::ptrdiff_t, ConvDim> in_spatial_id{};
+                    std::array<std::ptrdiff_t, ConvDim> in_spatial_id{};
 
-                for(std::size_t i = 0; i < ConvDim; ++i)
-                {
-                    in_spatial_id[i] =
-                        out_spatial_id[i] * strides[i] + wei_spatial_id[i] * dilations[i] - pads[i];
-                }
+                    for(std::size_t i = 0; i < ConvDim; ++i)
+                    {
+                        in_spatial_id[i] = out_spatial_id[i] * strides[i] +
+                                           wei_spatial_id[i] * dilations[i] - pads[i];
+                    }
 
-                bool out_of_bound = false;
-                for(std::size_t i = 0; i < ConvDim; ++i)
-                {
-                    out_of_bound = out_of_bound or
-                                   (in_spatial_id[i] < 0 or in_spatial_id[i] >= in_spatial_len[i]);
-                }
+                    bool out_of_bound = false;
+                    for(std::size_t i = 0; i < ConvDim; ++i)
+                    {
+                        out_of_bound = out_of_bound or (in_spatial_id[i] < 0 or
+                                                        in_spatial_id[i] >= in_spatial_len[i]);
+                    }
 
-                if(!out_of_bound)
-                {
-                    std::array<std::size_t, ConvDim + 2> in_id{};
-                    in_id[0] = out_n_id;
-                    in_id[1] = in_c_id;
-                    std::copy_n(in_spatial_id.begin(), ConvDim, in_id.begin() + 2);
+                    if(!out_of_bound)
+                    {
+                        std::array<std::size_t, ConvDim + 2> in_id{};
+                        in_id[0] = out_n_id;
+                        in_id[1] = in_c_id;
+                        std::copy_n(in_spatial_id.begin(), ConvDim, in_id.begin() + 2);
+                        Tacc tmp1 = fi(in(in_id));
+                        Tacc tmp2 = fo(out(out_n_id, wei_k_id, out_spatial_id_pack...));
+                        acc += tmp1 * tmp2;
+                    }
+                });
 
-                    acc += Tacc(in(in_id)) * Tacc(out(out_n_id, wei_k_id, out_spatial_id_pack...));
-                }
+                wei(wei_k_id, wei_c_id, wei_spatial_id_pack...) = static_cast<Twei>(acc);
             });
-
-            wei(wei_k_id, wei_c_id, wei_spatial_id_pack...) = acc;
         });
-    });
 }
 
-template <typename Tin, typename Twei, typename Tout, typename Range>
+template <typename Tin,
+          typename Twei,
+          typename Tout,
+          typename Range,
+          typename Tacc = double,
+          typename FI   = PassThru<Tin>,
+          typename FW   = PassThru<Twei>>
 void cpu_convolution_forward(std::size_t spatial_dim,
                              const tensor<Tin>& in,
                              const tensor<Twei>& wei,
@@ -358,30 +389,30 @@ void cpu_convolution_forward(std::size_t spatial_dim,
                              const Range& pads,
                              const Range& strides,
                              const Range& dilations,
-                             std::size_t group_count)
+                             std::size_t group_count,
+                             FI fi = {},
+                             FW fw = {})
 {
-    using acc_type = typename cpu_convolution_acc_type<Tin, Twei, Tout>::type;
-
     switch(spatial_dim)
     {
     case 1: {
-        cpu_convolution_forward_impl<1, acc_type>(
-            in, wei, out, pads, strides, dilations, group_count);
+        cpu_convolution_forward_impl<1, Tacc>(
+            in, wei, out, pads, strides, dilations, group_count, fi, fw);
         break;
     }
     case 2: {
-        cpu_convolution_forward_impl<2, acc_type>(
-            in, wei, out, pads, strides, dilations, group_count);
+        cpu_convolution_forward_impl<2, Tacc>(
+            in, wei, out, pads, strides, dilations, group_count, fi, fw);
         break;
     }
     case 3: {
-        cpu_convolution_forward_impl<3, acc_type>(
-            in, wei, out, pads, strides, dilations, group_count);
+        cpu_convolution_forward_impl<3, Tacc>(
+            in, wei, out, pads, strides, dilations, group_count, fi, fw);
         break;
     }
     case 4: {
-        cpu_convolution_forward_impl<4, acc_type>(
-            in, wei, out, pads, strides, dilations, group_count);
+        cpu_convolution_forward_impl<4, Tacc>(
+            in, wei, out, pads, strides, dilations, group_count, fi, fw);
         break;
     }
     default: {
@@ -390,7 +421,13 @@ void cpu_convolution_forward(std::size_t spatial_dim,
     }
 }
 
-template <typename Tin, typename Twei, typename Tout, typename Range>
+template <typename Tin,
+          typename Twei,
+          typename Tout,
+          typename Range,
+          typename Tacc = double,
+          typename FW   = PassThru<Twei>,
+          typename FO   = PassThru<Tout>>
 void cpu_convolution_backward_data(std::size_t spatial_dim,
                                    tensor<Tin>& in,
                                    const tensor<Twei>& wei,
@@ -398,30 +435,30 @@ void cpu_convolution_backward_data(std::size_t spatial_dim,
                                    const Range& pads,
                                    const Range& strides,
                                    const Range& dilations,
-                                   std::size_t group_count)
+                                   std::size_t group_count,
+                                   FW fw = {},
+                                   FO fo = {})
 {
-    using acc_type = typename cpu_convolution_acc_type<Tin, Twei, Tout>::type;
-
     switch(spatial_dim)
     {
     case 1: {
-        cpu_convolution_backward_data_impl<1, acc_type>(
-            in, wei, out, pads, strides, dilations, group_count);
+        cpu_convolution_backward_data_impl<1, Tacc>(
+            in, wei, out, pads, strides, dilations, group_count, fw, fo);
         break;
     }
     case 2: {
-        cpu_convolution_backward_data_impl<2, acc_type>(
-            in, wei, out, pads, strides, dilations, group_count);
+        cpu_convolution_backward_data_impl<2, Tacc>(
+            in, wei, out, pads, strides, dilations, group_count, fw, fo);
         break;
     }
     case 3: {
-        cpu_convolution_backward_data_impl<3, acc_type>(
-            in, wei, out, pads, strides, dilations, group_count);
+        cpu_convolution_backward_data_impl<3, Tacc>(
+            in, wei, out, pads, strides, dilations, group_count, fw, fo);
         break;
     }
     case 4: {
-        cpu_convolution_backward_data_impl<4, acc_type>(
-            in, wei, out, pads, strides, dilations, group_count);
+        cpu_convolution_backward_data_impl<4, Tacc>(
+            in, wei, out, pads, strides, dilations, group_count, fw, fo);
         break;
     }
     default: {
@@ -430,7 +467,13 @@ void cpu_convolution_backward_data(std::size_t spatial_dim,
     }
 }
 
-template <typename Tin, typename Twei, typename Tout, typename Range>
+template <typename Tin,
+          typename Twei,
+          typename Tout,
+          typename Range,
+          typename Tacc = double,
+          typename FI   = PassThru<Tin>,
+          typename FO   = PassThru<Tout>>
 void cpu_convolution_backward_weight(std::size_t spatial_dim,
                                      const tensor<Tin>& in,
                                      tensor<Twei>& wei,
@@ -438,30 +481,30 @@ void cpu_convolution_backward_weight(std::size_t spatial_dim,
                                      const Range& pads,
                                      const Range& strides,
                                      const Range& dilations,
-                                     std::size_t group_count)
+                                     std::size_t group_count,
+                                     FI fi = {},
+                                     FO fo = {})
 {
-    using acc_type = typename cpu_convolution_acc_type<Tin, Twei, Tout>::type;
-
     switch(spatial_dim)
     {
     case 1: {
-        cpu_convolution_backward_weight_impl<1, acc_type>(
-            in, wei, out, pads, strides, dilations, group_count);
+        cpu_convolution_backward_weight_impl<1, Tacc>(
+            in, wei, out, pads, strides, dilations, group_count, fi, fo);
         break;
     }
     case 2: {
-        cpu_convolution_backward_weight_impl<2, acc_type>(
-            in, wei, out, pads, strides, dilations, group_count);
+        cpu_convolution_backward_weight_impl<2, Tacc>(
+            in, wei, out, pads, strides, dilations, group_count, fi, fo);
         break;
     }
     case 3: {
-        cpu_convolution_backward_weight_impl<3, acc_type>(
-            in, wei, out, pads, strides, dilations, group_count);
+        cpu_convolution_backward_weight_impl<3, Tacc>(
+            in, wei, out, pads, strides, dilations, group_count, fi, fo);
         break;
     }
     case 4: {
-        cpu_convolution_backward_weight_impl<4, acc_type>(
-            in, wei, out, pads, strides, dilations, group_count);
+        cpu_convolution_backward_weight_impl<4, Tacc>(
+            in, wei, out, pads, strides, dilations, group_count, fi, fo);
         break;
     }
     default: {

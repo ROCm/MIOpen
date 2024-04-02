@@ -34,10 +34,13 @@
 
 #define WORKAROUND_ISSUE_309 1
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 PerformanceImplicitGemmBwdDataV1R1::PerformanceImplicitGemmBwdDataV1R1(int BlockSize_,
                                                                        int GemmMPerBlock_,
@@ -86,7 +89,7 @@ bool PerformanceImplicitGemmBwdDataV1R1::operator==(
 }
 
 std::tuple<int, bool>
-PerformanceImplicitGemmBwdDataV1R1::CalculateGridSize(const ConvolutionContext& ctx,
+PerformanceImplicitGemmBwdDataV1R1::CalculateGridSize(const ExecutionContext& ctx,
                                                       const ProblemDescription& problem) const
 {
     int GridSize = 0;
@@ -180,7 +183,7 @@ PerformanceImplicitGemmBwdDataV1R1::CalculateBlockGemmPerformanceParameters() co
 
 std::tuple<int, int, int, int, bool>
 PerformanceImplicitGemmBwdDataV1R1::CalculateGemmABlockCopyPerformanceParameters(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     int ClusterLengths_GemmK      = 0;
     int ClusterLengths_GemmM      = 0;
@@ -245,7 +248,7 @@ PerformanceImplicitGemmBwdDataV1R1::CalculateGemmABlockCopyPerformanceParameters
 
 std::tuple<int, int, int, int, bool>
 PerformanceImplicitGemmBwdDataV1R1::CalculateGemmBBlockCopyPerformanceParameters(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     int ClusterLengths_GemmK      = 0;
     int ClusterLengths_GemmN      = 0;
@@ -392,7 +395,7 @@ PerformanceImplicitGemmBwdDataV1R1::CalculateGemmCThreadCopyPerformanceParameter
 }
 
 std::tuple<std::size_t, bool> PerformanceImplicitGemmBwdDataV1R1::CalculateLdsNumberOfByte(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     std::size_t lds_size = 0;
 
@@ -450,7 +453,7 @@ bool PerformanceImplicitGemmBwdDataV1R1::IsValidValue() const
     // clang-format on
 }
 
-bool PerformanceImplicitGemmBwdDataV1R1::IsValid(const ConvolutionContext& ctx,
+bool PerformanceImplicitGemmBwdDataV1R1::IsValid(const ExecutionContext& ctx,
                                                  const ProblemDescription& problem) const
 {
     if(!IsValidValue())
@@ -506,7 +509,7 @@ bool PerformanceImplicitGemmBwdDataV1R1::IsValid(const ConvolutionContext& ctx,
     return (valid and lds_size <= get_lds_max_number_of_byte());
 }
 
-void PerformanceImplicitGemmBwdDataV1R1::HeuristicInit(const ConvolutionContext& ctx,
+void PerformanceImplicitGemmBwdDataV1R1::HeuristicInit(const ExecutionContext& ctx,
                                                        const ProblemDescription& problem)
 {
     PerformanceImplicitGemmBwdDataV1R1 config;
@@ -587,7 +590,7 @@ bool PerformanceImplicitGemmBwdDataV1R1::SetNextValue(const ProblemDescription&)
 }
 
 std::tuple<int, int, int>
-ConvHipImplicitGemmBwdDataV1R1::CalculateGemmSize(const ConvolutionContext& ctx,
+ConvHipImplicitGemmBwdDataV1R1::CalculateGemmSize(const ExecutionContext& ctx,
                                                   const ProblemDescription& problem)
 {
     const auto n  = ProblemInterpreter::GetBatchN(problem);
@@ -607,11 +610,13 @@ ConvHipImplicitGemmBwdDataV1R1::CalculateGemmSize(const ConvolutionContext& ctx,
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
 }
 
-size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const ConvolutionContext&,
+size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const ExecutionContext&,
                                                         const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
+    {
         return 0;
+    }
     else
     {
         // In case of fp16/bfp16, because there is no atomic add ISA,
@@ -627,27 +632,34 @@ size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const ConvolutionContext
     }
 }
 
-bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx,
+bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ExecutionContext& ctx,
                                                   const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1)))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.GetConv().attribute.deterministic)
         return false;
     if(!ctx.use_hip_kernels)
+        return false;
+    if(problem.HasNonPackedTensors())
+        return false;
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
     if(!problem.IsLayoutDefault())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(!problem.direction.IsBackwardData())
+    if(!problem.IsDirectionBackwardData())
         return false;
     if(!problem.Is2d() && !(problem.Is3d() && problem.IsFp32()))
         return false;
 
     if(!(problem.IsFp32() || problem.IsBfp16()))
+        return false;
+
+    if(problem.IsTensorsCasted())
         return false;
     if(problem.GetGroupCount() != 1)
         return false;
@@ -655,8 +667,10 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx,
         return false;
 #if WORKAROUND_ISSUE_309
     if(problem.IsBfp16())
-        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1{}))
+    {
+        if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1)))
             return false;
+    }
 #endif
 
     const auto k = ProblemInterpreter::GetOutputChannelK(problem);
@@ -673,14 +687,14 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx,
 }
 
 PerformanceImplicitGemmBwdDataV1R1
-ConvHipImplicitGemmBwdDataV1R1::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
+ConvHipImplicitGemmBwdDataV1R1::GetDefaultPerformanceConfig(const ExecutionContext& ctx,
                                                             const ProblemDescription& problem) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmBwdDataV1R1>(ctx, problem);
 }
 
 bool ConvHipImplicitGemmBwdDataV1R1::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmBwdDataV1R1& config) const
 {
@@ -689,7 +703,7 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmBwdDataV1R1
-ConvHipImplicitGemmBwdDataV1R1::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmBwdDataV1R1::Search(const ExecutionContext& ctx,
                                        const ProblemDescription& problem,
                                        const AnyInvokeParams& invoke_ctx) const
 {
@@ -697,7 +711,7 @@ ConvHipImplicitGemmBwdDataV1R1::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution
-ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ConvolutionContext& ctx,
+ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ExecutionContext& ctx,
                                             const ProblemDescription& problem,
                                             const PerformanceImplicitGemmBwdDataV1R1& config) const
 {
@@ -864,10 +878,11 @@ ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ConvolutionContext& ctx,
             std::to_string(GemmBBlockCopyDstDataPerWrite_GemmKPACK);
     }
 
-    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(problem);
+    result.invoker_factory = miopen::conv::MakeImplGemmDataInvokerFactory(problem);
     result.construction_params.push_back(construction_parameters);
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

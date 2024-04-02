@@ -26,14 +26,15 @@
 #ifndef GUARD_MIOPEN_HIPOC_KERNEL_HPP
 #define GUARD_MIOPEN_HIPOC_KERNEL_HPP
 
-#include <array>
-#include <cassert>
 #include <miopen/errors.hpp>
 #include <miopen/hipoc_program.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/op_kernel_args.hpp>
+
+#include <array>
+#include <cassert>
+#include <cstring>
 #include <vector>
-#include <memory.h>
 
 namespace miopen {
 
@@ -45,32 +46,22 @@ inline HipEventPtr make_hip_event()
     return HipEventPtr{result};
 }
 
-#if 1
+#if 1 // Keep around other storage techinques -- @pfultz2 27.03.2017
 
-#if 1
 template <class T, class U>
 struct KernelArgsPair
 {
-    static const int alignment    = sizeof(U);
-    static const int padding      = (alignment - (sizeof(T) % alignment)) % alignment;
-    static const int second_index = sizeof(T) + padding;
+    constexpr static auto alignU       = alignof(U);
+    constexpr static auto padding      = (alignU - (sizeof(T) % alignU)) % alignU;
+    constexpr static auto second_index = sizeof(T) + padding;
     KernelArgsPair(T x, U y)
     {
-
         new(buffer) T(x); // NOLINT (clang-analyzer-cplusplus.PlacementNew)
         new(buffer + second_index) U(y);
     }
-    char buffer[second_index + sizeof(U)] = {};
+
+    alignas(U) char buffer[second_index + sizeof(U)] = {};
 };
-#else
-template <class T, class U>
-struct KernelArgsPair
-{
-    KernelArgsPair(T x, U y) : first(x), second(y) {}
-    T first;
-    U second;
-};
-#endif
 
 template <class... Ts>
 struct KernelArgsPack;
@@ -197,9 +188,11 @@ struct HIPOCKernel
         kernel_module = name;
         auto status   = hipModuleGetFunction(&fun, program.GetModule(), kernel_module.c_str());
         if(hipSuccess != status)
+        {
             MIOPEN_THROW_HIP_STATUS(status,
                                     "Failed to get function: " + kernel_module + " from " +
                                         program.GetCodeObjectPathname().string());
+        }
     }
 
     HIPOCKernelInvoke Invoke(hipStream_t stream,

@@ -48,7 +48,7 @@ extern "C" miopenStatus_t miopenGetCTCLossDescriptor(miopenCTCLossDescriptor_t c
                                                      int* blank_label_id       = nullptr,
                                                      bool* apply_softmax_layer = nullptr)
 {
-    MIOPEN_LOG_FUNCTION(ctcLossDesc, dataType, blank_label_id, apply_softmax_layer);
+    MIOPEN_LOG_FUNCTION(ctcLossDesc);
     return miopen::try_([&] {
         miopen::deref(dataType) = miopen::deref(ctcLossDesc).dataType;
         if(blank_label_id != nullptr)
@@ -82,14 +82,8 @@ miopenGetCTCLossWorkspaceSize(miopenHandle_t handle,
                               const miopenCTCLossDescriptor_t ctcLossDesc,
                               size_t* workSpaceSize)
 {
-    MIOPEN_LOG_FUNCTION(probsDesc,
-                        gradientsDesc,
-                        labels,
-                        labelLengths,
-                        inputLengths,
-                        algo,
-                        ctcLossDesc,
-                        workSpaceSize);
+    MIOPEN_LOG_FUNCTION(
+        probsDesc, gradientsDesc, labels, labelLengths, inputLengths, algo, ctcLossDesc);
 
     return miopen::try_([&] {
         miopen::deref(workSpaceSize) = miopen::deref(ctcLossDesc)

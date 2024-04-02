@@ -30,7 +30,6 @@
 #include <miopen/handle.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/kernel.hpp>
-#include <miopen/conv/context.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/solver.hpp>
@@ -42,29 +41,29 @@ namespace conv {
 
 template <typename T>
 inline std::vector<OpKernelArg>
-ComputeDynamicIGemmForwardKernelArgs(const ProblemDescription& conv_problem, const T& cfg);
+ComputeDynamicIGemmForwardKernelArgs(const ProblemDescription& problem, const T& cfg);
 
 template <>
 inline std::vector<OpKernelArg>
-ComputeDynamicIGemmForwardKernelArgs<int>(const ProblemDescription& conv_problem, const int& cfg)
+ComputeDynamicIGemmForwardKernelArgs<int>(const ProblemDescription& problem, const int& cfg)
 {
     std::vector<OpKernelArg> opArgs;
     // clang-format off
-    int hi          = conv_problem.GetInHeight();
-    int wi          = conv_problem.GetInWidth();
-    int n           = conv_problem.GetInBatchSize();
-    int k           = conv_problem.GetOutChannels();
-    int c           = conv_problem.GetInChannels();
-    int ho          = conv_problem.GetOutHeight();
-    int wo          = conv_problem.GetOutWidth();
-    int stride_h    = conv_problem.GetKernelStrideH();
-    int stride_w    = conv_problem.GetKernelStrideW();
-    int dilation_h  = conv_problem.GetDilationH();
-    int dilation_w  = conv_problem.GetDilationW();
-    int pad_h       = conv_problem.GetPadH();
-    int pad_w       = conv_problem.GetPadW();
-    int y           = conv_problem.GetWeightsHeight();
-    int x           = conv_problem.GetWeightsWidth();
+    int hi          = problem.GetInHeight();
+    int wi          = problem.GetInWidth();
+    int n           = problem.GetInBatchSize();
+    int k           = problem.GetOutChannels();
+    int c           = problem.GetInChannels();
+    int ho          = problem.GetOutHeight();
+    int wo          = problem.GetOutWidth();
+    int stride_h    = problem.GetKernelStrideH();
+    int stride_w    = problem.GetKernelStrideW();
+    int dilation_h  = problem.GetDilationH();
+    int dilation_w  = problem.GetDilationW();
+    int pad_h       = problem.GetPadH();
+    int pad_w       = problem.GetPadW();
+    int y           = problem.GetWeightsHeight();
+    int x           = problem.GetWeightsWidth();
     int pack0       = cfg;
     // clang-format on
 
@@ -94,26 +93,26 @@ ComputeDynamicIGemmForwardKernelArgs<int>(const ProblemDescription& conv_problem
 template <>
 inline std::vector<OpKernelArg>
 ComputeDynamicIGemmForwardKernelArgs<solver::TunableImplicitGemmGTCDynamic_t>(
-    const ProblemDescription& conv_problem, const solver::TunableImplicitGemmGTCDynamic_t& cfg)
+    const ProblemDescription& problem, const solver::TunableImplicitGemmGTCDynamic_t& cfg)
 {
     std::vector<OpKernelArg> opArgs;
     // clang-format off
-    int hi          = conv_problem.GetInHeight();
-    int wi          = conv_problem.GetInWidth();
-    int n           = conv_problem.GetInBatchSize();
-    int k           = conv_problem.GetOutChannels();
-    int c           = conv_problem.GetInChannels();
-    int ho          = conv_problem.GetOutHeight();
-    int wo          = conv_problem.GetOutWidth();
-    int stride_h    = conv_problem.GetKernelStrideH();
-    int stride_w    = conv_problem.GetKernelStrideW();
-    int dilation_h  = conv_problem.GetDilationH();
-    int dilation_w  = conv_problem.GetDilationW();
-    int pad_h       = conv_problem.GetPadH();
-    int pad_w       = conv_problem.GetPadW();
-    int y           = conv_problem.GetWeightsHeight();
-    int x           = conv_problem.GetWeightsWidth();
-    int group       = conv_problem.GetGroupCount();
+    int hi          = problem.GetInHeight();
+    int wi          = problem.GetInWidth();
+    int n           = problem.GetInBatchSize();
+    int k           = problem.GetOutChannels();
+    int c           = problem.GetInChannels();
+    int ho          = problem.GetOutHeight();
+    int wo          = problem.GetOutWidth();
+    int stride_h    = problem.GetKernelStrideH();
+    int stride_w    = problem.GetKernelStrideW();
+    int dilation_h  = problem.GetDilationH();
+    int dilation_w  = problem.GetDilationW();
+    int pad_h       = problem.GetPadH();
+    int pad_w       = problem.GetPadW();
+    int y           = problem.GetWeightsHeight();
+    int x           = problem.GetWeightsWidth();
+    int group       = problem.GetGroupCount();
     int pack0       = 0;
     // clang-format on
 
@@ -186,10 +185,9 @@ ComputeDynamicIGemmForwardKernelArgs<solver::TunableImplicitGemmGTCDynamic_t>(
 
 template <typename T>
 static inline InvokerFactory
-MakeImplGemmDynamicForwardInvokerFactory(const miopen::ProblemDescription& problem, const T& cfg)
+MakeImplGemmDynamicForwardInvokerFactory(const ProblemDescription& problem, const T& cfg)
 {
-    const auto& conv_problem = problem.conv_problem;
-    auto opArgs              = ComputeDynamicIGemmForwardKernelArgs<T>(conv_problem, cfg);
+    auto opArgs = ComputeDynamicIGemmForwardKernelArgs<T>(problem, cfg);
     return [opArgs](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
@@ -205,34 +203,26 @@ MakeImplGemmDynamicForwardInvokerFactory(const miopen::ProblemDescription& probl
     };
 }
 
-InvokerFactory
-MakeImplGemmDynamicForward1x1InvokerFactory(const miopen::ProblemDescription& problem);
+InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ProblemDescription& problem);
 
-template <typename T = int>
-InvokerFactory
-MakeImplGemmDynamicBackwardDataInvokerFactory(const miopen::ProblemDescription& problem,
-                                              const T& cfg);
+InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescription& problem,
+                                                             int cfg);
 
-template <>
 InvokerFactory
-MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const miopen::ProblemDescription& problem,
-                                                   const int& cfg);
-
-template <>
-InvokerFactory
-MakeImplGemmDynamicBackwardDataInvokerFactory<solver::TunableImplicitGemmGTCDynamic_t>(
-    const miopen::ProblemDescription& problem, const solver::TunableImplicitGemmGTCDynamic_t& cfg);
+MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescription& problem,
+                                              const solver::TunableImplicitGemmGTCDynamic_t& cfg);
 
 InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
-    const ConvolutionContext& ctx,
-    const miopen::ProblemDescription& problem,
-    const solver::PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config);
+    const ExecutionContext& ctx,
+    const ProblemDescription& problem,
+    const solver::conv::PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config);
 InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
-    const ConvolutionContext& ctx,
-    const miopen::ProblemDescription& problem,
-    const solver::PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config);
+    const ExecutionContext& ctx,
+    const ProblemDescription& problem,
+    const solver::conv::PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config);
 InvokerFactory MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(
-    const miopen::ProblemDescription& problem,
-    const solver::PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config);
+    const ProblemDescription& problem,
+    const solver::conv::PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config);
+
 } // namespace conv
 } // namespace miopen

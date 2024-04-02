@@ -34,28 +34,35 @@
 
 #include <cstddef>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
-bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx,
+using ProblemDescription = miopen::conv::ProblemDescription;
+
+bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ExecutionContext& ctx,
                                               const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1)))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.GetConv().attribute.deterministic)
         return false;
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
     if(!ctx.use_hip_kernels)
         return false;
     if(!problem.Is2d())
+        return false;
+    if(problem.HasNonPackedTensors())
+        return false;
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
     if(!problem.IsFp32() && !problem.IsFp16() && !problem.IsBfp16())
         return false;
@@ -63,8 +70,10 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.IsLayoutDefault())
         return false;
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
-       problem.conv_problem.IsGfx90aFp16altRequired())
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" && problem.IsGfx90aFp16altRequired())
+        return false;
+
+    if(problem.IsTensorsCasted())
         return false;
 
     std::size_t n         = problem.GetBatchSize();
@@ -84,14 +93,18 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx,
            (c * y * x) % eMultiple == 0 && k % 16 == 0;
 }
 
-bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx,
+bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ExecutionContext& ctx,
                                               const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1)))
+        return false;
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
+        return false;
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
     if(!ctx.use_hip_kernels)
         return false;
@@ -103,20 +116,21 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.IsLayoutDefault())
         return false;
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
-       problem.conv_problem.IsGfx90aFp16altRequired())
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" && problem.IsGfx90aFp16altRequired())
+        return false;
+    if(problem.IsTensorsCasted())
         return false;
 
-    // retrieve dimension from ConvolutionContext
-    // remember: ConvolutionContext has swapped some dimensions for you!
+    // retrieve dimension from ProblemDescription
+    // remember: ProblemDescription has swapped some dimensions for you!
     // undo the swap to avoid confusion
-    const auto n  = problem.GetBatchSize();
-    const auto k  = problem.GetInChannels() / problem.GetGroupCount();  // unswap
-    const auto c  = problem.GetOutChannels() / problem.GetGroupCount(); // unswap
-    const auto y  = problem.GetWeightsHeight();
-    const auto x  = problem.GetWeightsWidth();
-    const auto ho = problem.GetInHeight(); // unswap
-    const auto wo = problem.GetInWidth();  // unswap
+    const int n  = problem.GetBatchSize();
+    const int k  = problem.GetInChannels() / problem.GetGroupCount();  // unswap
+    const int c  = problem.GetOutChannels() / problem.GetGroupCount(); // unswap
+    const int y  = problem.GetWeightsHeight();
+    const int x  = problem.GetWeightsWidth();
+    const int ho = problem.GetInHeight(); // unswap
+    const int wo = problem.GetInWidth();  // unswap
 
     // equivalent dimension for bwd-wrw
     std::size_t n_eqv     = c;
@@ -138,21 +152,21 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx,
 }
 
 PerformanceImplicitGemmV4R1
-ConvHipImplicitGemmV4R1Fwd::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
+ConvHipImplicitGemmV4R1Fwd::GetDefaultPerformanceConfig(const ExecutionContext& ctx,
                                                         const ProblemDescription& problem) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmV4R1>(ctx, problem);
 }
 
 PerformanceImplicitGemmV4R1
-ConvHipImplicitGemmV4R1WrW::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
+ConvHipImplicitGemmV4R1WrW::GetDefaultPerformanceConfig(const ExecutionContext& ctx,
                                                         const ProblemDescription& problem) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmV4R1>(ctx, problem);
 }
 
 bool ConvHipImplicitGemmV4R1Fwd::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmV4R1& config) const
 {
@@ -161,7 +175,7 @@ bool ConvHipImplicitGemmV4R1Fwd::IsValidPerformanceConfig(
 }
 
 bool ConvHipImplicitGemmV4R1WrW::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmV4R1& config) const
 {
@@ -170,14 +184,14 @@ bool ConvHipImplicitGemmV4R1WrW::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmV4R1
-ConvHipImplicitGemmV4R1Fwd::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmV4R1Fwd::Search(const ExecutionContext& ctx,
                                    const ProblemDescription& problem,
                                    const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 PerformanceImplicitGemmV4R1
-ConvHipImplicitGemmV4R1WrW::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmV4R1WrW::Search(const ExecutionContext& ctx,
                                    const ProblemDescription& problem,
                                    const AnyInvokeParams& invoke_ctx) const
 {
@@ -185,7 +199,7 @@ ConvHipImplicitGemmV4R1WrW::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution
-ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
+ConvHipImplicitGemmV4R1Fwd::GetSolution(const ExecutionContext& ctx,
                                         const ProblemDescription& problem,
                                         const PerformanceImplicitGemmV4R1& config) const
 {
@@ -196,15 +210,15 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
     const auto& N2 = config.GemmNPerThreadSubC;
 
     // retrieve dimension from ProblemDescription
-    const auto n               = problem.GetBatchSize();
-    const auto k               = problem.GetOutChannels();
-    const auto c               = problem.GetInChannels();
-    const auto hi              = problem.GetInHeight();
-    const auto wi              = problem.GetInWidth();
-    const auto ho              = problem.GetOutHeight();
-    const auto wo              = problem.GetOutWidth();
-    const auto y               = problem.GetWeightsHeight();
-    const auto x               = problem.GetWeightsWidth();
+    const int n                = problem.GetBatchSize();
+    const int k                = problem.GetOutChannels();
+    const int c                = problem.GetInChannels();
+    const int hi               = problem.GetInHeight();
+    const int wi               = problem.GetInWidth();
+    const int ho               = problem.GetOutHeight();
+    const int wo               = problem.GetOutWidth();
+    const int y                = problem.GetWeightsHeight();
+    const int x                = problem.GetWeightsWidth();
     const auto conv_stride_h   = problem.GetKernelStrideH();
     const auto conv_stride_w   = problem.GetKernelStrideW();
     const auto conv_dilation_h = problem.GetDilationH();
@@ -287,10 +301,14 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
         // Since C/EPack are not in contiguous memory along with Y*X, vector length
         // can' be more than Y*X
         if(KernelFilterHeightY(problem) * KernelFilterWidthX(problem) >= WeiBlockCopySubLengths_E)
+        {
             WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
+        }
         else
+        {
             WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(
                 static_cast<int>(KernelFilterHeightY(problem) * KernelFilterWidthX(problem)));
+        }
     }
 
     const auto& InBlockCopySubLengths_B  = b_per_block / config.InBlockCopyClusterLengths_B;
@@ -382,13 +400,13 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
     }
 
     result.construction_params.push_back(construction_parameters);
-    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(problem);
+    result.invoker_factory = miopen::conv::MakeImplGemmDataInvokerFactory(problem);
 
     return result;
 }
 
 ConvSolution
-ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
+ConvHipImplicitGemmV4R1WrW::GetSolution(const ExecutionContext& ctx,
                                         const ProblemDescription& problem,
                                         const PerformanceImplicitGemmV4R1& config) const
 {
@@ -401,15 +419,15 @@ ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
     // retrieve dimension from ProblemDescription
     // remember: ProblemDescription has swapped some dimensions for you!
     // undo the swap to avoid confusion
-    const auto n               = problem.GetBatchSize();
-    const auto k               = problem.GetInChannels();  // unswap
-    const auto c               = problem.GetOutChannels(); // unswap
-    const auto hi              = problem.GetOutHeight();   // unswap
-    const auto wi              = problem.GetOutWidth();    // unswap
-    const auto ho              = problem.GetInHeight();    // unswap
-    const auto wo              = problem.GetInWidth();     // unswap
-    const auto y               = problem.GetWeightsHeight();
-    const auto x               = problem.GetWeightsWidth();
+    const int n                = problem.GetBatchSize();
+    const int k                = problem.GetInChannels();  // unswap
+    const int c                = problem.GetOutChannels(); // unswap
+    const int hi               = problem.GetOutHeight();   // unswap
+    const int wi               = problem.GetOutWidth();    // unswap
+    const int ho               = problem.GetInHeight();    // unswap
+    const int wo               = problem.GetInWidth();     // unswap
+    const int y                = problem.GetWeightsHeight();
+    const int x                = problem.GetWeightsWidth();
     const auto conv_stride_h   = problem.GetKernelStrideH();
     const auto conv_stride_w   = problem.GetKernelStrideW();
     const auto conv_dilation_h = problem.GetDilationH();
@@ -591,7 +609,7 @@ ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+            const auto& invoke_params = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
             const auto& tensors       = invoke_params.tensors;
             handle.Run(kernels[0])(tensors.x, tensors.dy, tensors.dw);
         };
@@ -600,5 +618,6 @@ ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

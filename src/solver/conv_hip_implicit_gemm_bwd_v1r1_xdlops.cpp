@@ -31,10 +31,13 @@
 
 #include <cstddef>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 PerformanceImplicitGemmBwdV1R1Xdlops::PerformanceImplicitGemmBwdV1R1Xdlops()
     : PerformanceImplicitGemmBwdV1R1Xdlops::PerformanceImplicitGemmBwdV1R1Xdlops(
@@ -105,7 +108,7 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::SetNextValue(const ProblemDescription
     return true;
 }
 
-void PerformanceImplicitGemmBwdV1R1Xdlops::HeuristicInit(const ConvolutionContext& ctx,
+void PerformanceImplicitGemmBwdV1R1Xdlops::HeuristicInit(const ExecutionContext& ctx,
                                                          const ProblemDescription& problem)
 {
     PerformanceImplicitGemmBwdV1R1Xdlops tmp;
@@ -527,7 +530,7 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsReallyValid(const ProblemDescriptio
 // Return false if a performance config is known to be sub-optimal, comparing to other performance
 // config inside tuning range
 bool PerformanceImplicitGemmBwdV1R1Xdlops::IsFastToBeUsedForTuning(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     // somehow, 128x128 wave-wise GEMM tend to spill register
     // TODO revisit this when 128x128 wave-wise GEMM become efficient
@@ -659,7 +662,7 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsFastToBeUsedForTuning(
 // Return false, if you don't want to this to be included in tuning range used by generic search
 // A performance config may still be valid w.r.t algorithm correctness, even when IsValid() return
 // false
-bool PerformanceImplicitGemmBwdV1R1Xdlops::IsValid(const ConvolutionContext& ctx,
+bool PerformanceImplicitGemmBwdV1R1Xdlops::IsValid(const ExecutionContext& ctx,
                                                    const ProblemDescription& problem) const
 {
     return IsReallyValid(problem) && IsFastToBeUsedForTuning(ctx, problem);
@@ -667,7 +670,7 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsValid(const ConvolutionContext& ctx
 
 // Used by GenericSearch, not used by HeuristicInit
 bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsValidPerformanceConfig(
-    const ConvolutionContext&,
+    const ExecutionContext&,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmBwdV1R1Xdlops& config) const
 {
@@ -699,7 +702,7 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::CalculateGemmSize(const ProblemDescription
 
 PerformanceImplicitGemmBwdV1R1Xdlops
 ConvHipImplicitGemmBwdDataV1R1Xdlops::GetDefaultPerformanceConfig(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmBwdV1R1Xdlops>(ctx, problem);
 }
@@ -717,11 +720,13 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmBwdV1R1Xdlops::CalculateLds
 }
 
 std::size_t
-ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext&,
+ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ExecutionContext&,
                                                        const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
+    {
         return 0;
+    }
     else
     {
         const auto y          = ProblemInterpreter::GetFilterHeightY(problem);
@@ -750,20 +755,20 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext&
     }
 }
 
-bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext& ctx,
+bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ExecutionContext& ctx,
                                                         const ProblemDescription& problem) const
 {
 #if WORKAROUND_SWDEV_251757
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS{}))
+    if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS)))
         return false;
 #endif
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS)))
         return false;
 
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
 
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.GetConv().attribute.deterministic)
         return false;
 
     if(!IsComposableKernelSupportedHardware(ctx))
@@ -778,23 +783,30 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
 
-    if(!problem.direction.IsBackwardData())
+    if(!problem.IsDirectionBackwardData())
         return false;
 
     if(!problem.Is2d())
         return false;
 
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
-       problem.conv_problem.IsGfx90aFp16altRequired())
+    if(problem.HasNonPackedTensors())
+        return false;
+
+    if(!problem.AllTensorsDimsFitIntoInt())
+        return false;
+
+    if(problem.IsTensorsCasted())
+        return false;
+
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 
     if(!IsIndexRangeLargeEnough(problem))
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
+
     // gemm size
     int gemm_g       = -1;
     int gemm_m       = -1;
@@ -807,7 +819,7 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext
 }
 
 PerformanceImplicitGemmBwdV1R1Xdlops
-ConvHipImplicitGemmBwdDataV1R1Xdlops::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmBwdDataV1R1Xdlops::Search(const ExecutionContext& ctx,
                                              const ProblemDescription& problem,
                                              const AnyInvokeParams& invoke_ctx) const
 {
@@ -815,7 +827,7 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmBwdV1R1Xdlops& config) const
 {
@@ -918,15 +930,16 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
         std::string(" -DCK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N=") + std::to_string(GemmBBlockCopySrcDataPerRead_GemmN) +
         std::string(" -DCK_PARAM_DEPENDENT_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") + std::to_string(GemmBBlockCopyDstDataPerWrite_GemmKPack) +
         std::string(" -DCK_USE_AMD_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
-        std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
-        std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
+        std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(ENV(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM)) ? 1 : 0) +
+        std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE)) ? '1' : '0') +
         get_static_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
 
-    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(problem);
+    result.invoker_factory = miopen::conv::MakeImplGemmDataInvokerFactory(problem);
     result.construction_params.push_back(construction_parameters);
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

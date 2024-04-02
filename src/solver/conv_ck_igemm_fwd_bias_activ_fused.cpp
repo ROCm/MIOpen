@@ -37,7 +37,7 @@
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/tensor_operation/gpu/device/device_conv_fwd_bias_activation.hpp>
 #endif
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_ACTIV)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_ACTIV)
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 // Forward declare CK's function.
@@ -63,10 +63,13 @@ void add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(
 namespace miopen {
 namespace solver {
 namespace fusion {
+
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+namespace {
+
 struct CKArgs
 {
-    CKArgs(const ProblemDescription& problem)
+    CKArgs(const miopen::conv::ProblemDescription& problem)
     {
         N        = ProblemInterpreter::GetBatchN(problem);
         K        = ProblemInterpreter::GetOutputChannelK(problem);
@@ -98,8 +101,11 @@ struct CKArgs
     std::vector<int> rPadding;
 };
 
+} // namespace
+
 template <typename DataType>
-void PerformanceConfigConvCKIgemmFwdBiasActivFused::Init(const ProblemDescription& problem)
+void PerformanceConfigConvCKIgemmFwdBiasActivFused::Init(
+    const miopen::conv::ProblemDescription& problem)
 {
     const auto& args = CKArgs{problem};
     std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs;
@@ -138,7 +144,7 @@ void PerformanceConfigConvCKIgemmFwdBiasActivFused::Init(const ProblemDescriptio
 
 template <typename DataType>
 bool PerformanceConfigConvCKIgemmFwdBiasActivFused::CheckIsSupportCKArgs(
-    const ProblemDescription& problem) const
+    const miopen::conv::ProblemDescription& problem) const
 {
     const auto& args = CKArgs{problem};
     std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs;
@@ -178,7 +184,8 @@ bool PerformanceConfigConvCKIgemmFwdBiasActivFused::CheckIsSupportCKArgs(
 }
 
 template <typename DataType>
-bool ConvCKIgemmFwdBiasActivFused::CheckCKApplicability(const ProblemDescription& problem) const
+bool ConvCKIgemmFwdBiasActivFused::CheckCKApplicability(
+    const miopen::conv::ProblemDescription& problem) const
 {
     std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs;
     ck::tensor_operation::device::instance::
@@ -210,10 +217,12 @@ bool ConvCKIgemmFwdBiasActivFused::CheckCKApplicability(const ProblemDescription
     return false;
 }
 
+namespace {
+
 template <typename DataType>
 void RunCKSolution(const Handle& handle,
                    const AnyInvokeParams& primitive_parameters,
-                   const ProblemDescription& problem,
+                   const miopen::conv::ProblemDescription& problem,
                    const PerformanceConfigConvCKIgemmFwdBiasActivFused& config)
 {
     const auto& args = CKArgs{problem};
@@ -270,6 +279,8 @@ void RunCKSolution(const Handle& handle,
         handle.AccumKernelTime(elapsed_time);
     }
 }
+
+} // namespace
 #endif
 
 void PerformanceConfigConvCKIgemmFwdBiasActivFused::HeuristicInit(
@@ -278,14 +289,15 @@ void PerformanceConfigConvCKIgemmFwdBiasActivFused::HeuristicInit(
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = fdesc_problem;
 #else
-    const auto& conv_prob = fdesc_problem.GetConvProblem(0, conv::Direction::Forward).conv_problem;
-    switch(conv_prob.GetInDataType())
+    const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+    switch(conv_problem.GetInDataType())
     {
-    case miopenHalf: Init<ck::half_t>(conv_prob); break;
+    case miopenHalf: Init<ck::half_t>(conv_problem); break;
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8:
     case miopenFloat:
     case miopenInt32:
-    case miopenInt8x4:
     case miopenBFloat16:
     case miopenDouble:
     default: MIOPEN_THROW("Unsupported datatype");
@@ -331,14 +343,15 @@ bool PerformanceConfigConvCKIgemmFwdBiasActivFused::IsValid(
     return false;
 #else
     // Extract convolution problem from the fusion context.
-    const auto& problem = fdesc_problem.GetConvProblem(0, conv::Direction::Forward);
-    switch(problem.conv_problem.GetInDataType())
+    const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+    switch(conv_problem.GetInDataType())
     {
-    case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
+    case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(conv_problem);
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8:
     case miopenFloat:
     case miopenInt32:
-    case miopenInt8x4:
     case miopenBFloat16:
     case miopenDouble:
     default: MIOPEN_THROW("Unsupported datatype");
@@ -391,7 +404,7 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     {
         MIOPEN_THROW(miopenStatusInternalError, "desc.op_map.empty()");
     }
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_ACTIV{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_ACTIV)))
         return false;
     // check the sequence of prims
     if(desc.op_map.size() != 3)
@@ -405,27 +418,35 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     const auto& activ_op = dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[2]);
     if(activ_op.activMode != miopenActivationRELU)
         return false;
-    const auto& problem = fdesc_problem.GetConvProblem(0, conv::Direction::Forward);
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+
+    if(conv_problem.IsTensorsCasted())
         return false;
-    if(problem.conv_problem.GetInDataType() != problem.conv_problem.GetWeightsDataType() ||
-       problem.conv_problem.GetInDataType() != problem.conv_problem.GetOutDataType())
+    if(conv_problem.GetConv().attribute.deterministic)
         return false;
-    if(!problem.Is2d())
+    if(conv_problem.HasNonPackedTensors())
+        return false;
+    if(!conv_problem.AllTensorsDimsFitIntoInt())
+        return false;
+    if(conv_problem.HasMixedDataTypes())
+        return false;
+    if(!conv_problem.Is2d())
         return false;
     const std::string arch = ctx.GetStream().GetDeviceName();
-    if(arch != "gfx908" && arch != "gfx90a")
+    if(arch != "gfx908" && arch != "gfx90a" && arch != "gfx940" && arch != "gfx941" &&
+       arch != "gfx942")
         return false;
-    if(!problem.IsLayoutNHWC())
+    if(!conv_problem.IsLayoutNHWC())
         return false;
 
-    switch(problem.conv_problem.GetInDataType())
+    switch(conv_problem.GetInDataType())
     {
-    case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
+    case miopenHalf: return CheckCKApplicability<ck::half_t>(conv_problem);
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8:
     case miopenFloat:
     case miopenInt32:
-    case miopenInt8x4:
     case miopenBFloat16:
     case miopenDouble:
     default: MIOPEN_THROW("Unsupported datatype");
@@ -444,20 +465,21 @@ ConvSolution ConvCKIgemmFwdBiasActivFused::GetSolution(
     std::ignore = config;
     return {};
 #else
-    const auto& problem = fdesc_problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     ConvSolution result;
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         std::ignore = kernels;
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            switch(problem.conv_problem.GetInDataType())
+            switch(conv_problem.GetInDataType())
             {
             case miopenHalf:
-                RunCKSolution<ck::half_t>(handle, primitive_parameters, problem, config);
+                RunCKSolution<ck::half_t>(handle, primitive_parameters, conv_problem, config);
                 break;
+            case miopenFloat8:
+            case miopenBFloat8:
             case miopenInt8:
             case miopenFloat:
             case miopenInt32:
-            case miopenInt8x4:
             case miopenBFloat16:
             case miopenDouble:
             default: MIOPEN_THROW("Unsupported datatype");
