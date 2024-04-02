@@ -41,15 +41,20 @@ miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
 
         switch(descriptorType)
         {
-        case MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR:
-            outputDesciptor = new miopen::graphapi::BackendVariantPackDescriptor();
-            break;
-
+        /* This part is a common place of changes of about 25 PRs and merge conflicts arise heavily
+         * here. Turn off clang-format to keep each line unique to simplify resolving of conflicts.
+         *
+         * TODO: Turn on clang-format when active phase of development is finished.
+         */
+        // clang-format off
         case MIOPEN_BACKEND_TENSOR_DESCRIPTOR:
-            outputDesciptor = new miopen::graphapi::BackendTensorDescriptor();
-            break;
+            outputDesciptor = new miopen::graphapi::BackendTensorDescriptor(); break;
 
-        default: MIOPEN_THROW(miopenStatus_t::miopenStatusUnsupportedOp);
+        case MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR:
+            outputDesciptor = new miopen::graphapi::BackendVariantPackDescriptor(); break;
+
+        default: MIOPEN_THROW(miopenStatusUnsupportedOp);
+            // clang-format on
         }
     });
 }
@@ -123,6 +128,23 @@ extern "C" miopenStatus_t miopenBackendDestroyDescriptor(miopenBackendDescriptor
     return miopen::try_([&] { miopen_destroy_object(descriptor); }, false);
 }
 
+template <typename BackendDescriptorType>
+static void initializeBackendDescriptor(void* descriptor, std::size_t sizeInBytes)
+{
+    void* address = descriptor;
+    if(std::align(
+           alignof(BackendDescriptorType), sizeof(BackendDescriptorType), address, sizeInBytes) !=
+           nullptr &&
+       address == descriptor)
+    {
+        new(descriptor) BackendDescriptorType();
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
 extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t descriptor,
                                                   miopenBackendDescriptorType_t descriptorType,
                                                   size_t sizeInBytes)
@@ -135,35 +157,22 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
     }
 
     return miopen::try_([&] {
-        void* address = descriptor;
-
         switch(descriptorType)
         {
+        /* This part is a common place of changes of about 25 PRs and merge conflicts arise heavily
+         * here. Turn off clang-format to keep each line unique to simplify resolving of conflicts.
+         *
+         * TODO: Turn on clang-format when active phase of development is finished.
+         */
+        // clang-format off
         case MIOPEN_BACKEND_TENSOR_DESCRIPTOR:
-            if(std::align(alignof(miopen::graphapi::BackendTensorDescriptor),
-                          sizeof(miopen::graphapi::BackendTensorDescriptor),
-                          address,
-                          sizeInBytes) != nullptr &&
-               address == descriptor)
-            {
-                new(descriptor) miopen::graphapi::BackendTensorDescriptor();
-                break;
-            }
-            MIOPEN_THROW(miopenStatusBadParm);
+            initializeBackendDescriptor<miopen::graphapi::BackendTensorDescriptor>(descriptor, sizeInBytes); break;
 
         case MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR:
-            if(std::align(alignof(miopen::graphapi::BackendVariantPackDescriptor),
-                          sizeof(miopen::graphapi::BackendVariantPackDescriptor),
-                          address,
-                          sizeInBytes) != nullptr &&
-               address == descriptor)
-            {
-                new(descriptor) miopen::graphapi::BackendVariantPackDescriptor();
-                break;
-            }
-            MIOPEN_THROW(miopenStatusBadParm);
+                initializeBackendDescriptor<miopen::graphapi::BackendVariantPackDescriptor>(descriptor, sizeInBytes); break;
 
         default: MIOPEN_THROW(miopenStatusUnsupportedOp);
+            // clang-format on
         }
     });
 }
