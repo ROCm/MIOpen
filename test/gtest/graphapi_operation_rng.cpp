@@ -249,6 +249,187 @@ TEST_P(GraphApiOperationRngBuilder, MissingSetter)
     }
 }
 
+namespace {
+
+using miopen::graphapi::BackendRngDescriptor;
+using miopen::graphapi::GMockBackendTensorDescriptor;
+using miopen::graphapi::GTestDescriptorAttribute;
+using miopen::graphapi::GTestDescriptorSingleValueAttribute;
+using miopen::graphapi::GTestGraphApiExecute;
+
+class Seed
+{
+private:
+    std::variant<GTestDescriptorSingleValueAttribute<int64_t, char>,
+                 GTestDescriptorSingleValueAttribute<miopenBackendDescriptor_t, char>>
+        mAttribute;
+    GMockBackendTensorDescriptor mTensor;
+
+public:
+    Seed& operator=(ValidatedValue<std::variant<int64_t, Tensor*>>& testCaseSeed)
+    {
+        constexpr const char* textName              = "MIOPEN_ATTR_OPERATION_RNG_SEED";
+        constexpr miopenBackendAttributeName_t name = MIOPEN_ATTR_OPERATION_RNG_SEED;
+
+        if(testCaseSeed.value.index() == 0)
+        {
+            mAttribute =
+                GTestDescriptorSingleValueAttribute<int64_t, char>(testCaseSeed.valid,
+                                                                   textName,
+                                                                   name,
+                                                                   MIOPEN_TYPE_INT64,
+                                                                   MIOPEN_TYPE_CHAR,
+                                                                   2,
+                                                                   std::get<0>(testCaseSeed.value));
+        }
+        else
+        {
+            if(testCaseSeed.valid)
+            {
+                mTensor = *std::get<1>(testCaseSeed.value);
+            }
+            mAttribute = GTestDescriptorSingleValueAttribute<miopenBackendDescriptor_t, char>(
+                testCaseSeed.valid,
+                textName,
+                name,
+                MIOPEN_TYPE_BACKEND_DESCRIPTOR,
+                MIOPEN_TYPE_CHAR,
+                2,
+                &mTensor);
+        }
+
+        return *this;
+    }
+    GTestDescriptorAttribute* get()
+    {
+        if(mAttribute.index() == 0)
+        {
+            return &std::get<0>(mAttribute);
+        }
+        else
+        {
+            return &std::get<1>(mAttribute);
+        }
+    }
+};
+
+class GMockBackendRngDescriptor : public BackendRngDescriptor
+{
+public:
+    GMockBackendRngDescriptor& operator=(const ValidatedValue<Rng*>& testCaseRng)
+    {
+        if(!testCaseRng.valid)
+        {
+            return *this;
+        }
+
+        auto& theRng = *testCaseRng.value;
+
+        auto distr = theRng.getDistribution();
+        setAttribute(MIOPEN_ATTR_RNG_DISTRIBUTION, MIOPEN_TYPE_RNG_DISTRIBUTION, 1, &distr);
+
+        auto normalMean  = theRng.getNormalMean();
+        auto normalStdev = theRng.getNormalStdev();
+
+        auto uniformMin = theRng.getUniformMin();
+        auto uniformMax = theRng.getUniformMax();
+
+        auto bernoulliProb = theRng.getBernoulliProb();
+
+        switch(distr)
+        {
+        case MIOPEN_RNG_DISTRIBUTION_NORMAL:
+            setAttribute(MIOPEN_ATTR_RNG_NORMAL_DIST_MEAN, MIOPEN_TYPE_DOUBLE, 1, &normalMean);
+            setAttribute(MIOPEN_ATTR_RNG_NORMAL_DIST_STANDARD_DEVIATION,
+                         MIOPEN_TYPE_DOUBLE,
+                         1,
+                         &normalStdev);
+            break;
+
+        case MIOPEN_RNG_DISTRIBUTION_UNIFORM:
+            setAttribute(MIOPEN_ATTR_RNG_UNIFORM_DIST_MINIMUM, MIOPEN_TYPE_DOUBLE, 1, &uniformMin);
+            setAttribute(MIOPEN_ATTR_RNG_UNIFORM_DIST_MAXIMUM, MIOPEN_TYPE_DOUBLE, 1, &uniformMax);
+            break;
+
+        case MIOPEN_RNG_DISTRIBUTION_BERNOULLI:
+            setAttribute(
+                MIOPEN_ATTR_RNG_BERNOULLI_DIST_PROBABILITY, MIOPEN_TYPE_DOUBLE, 1, &bernoulliProb);
+            break;
+        }
+
+        finalize();
+
+        return *this;
+    }
+};
+
+} // namespace
+
+class GraphApiOperationRng : public ::testing::TestWithParam<DescriptorTuple>
+{
+protected:
+    GTestGraphApiExecute<GTestDescriptorAttribute*> execute;
+
+    // Pointers to these are stored in the object above
+    GTestDescriptorSingleValueAttribute<miopenBackendDescriptor_t, char> mRng;
+    GTestDescriptorSingleValueAttribute<miopenBackendDescriptor_t, char> mOutput;
+    Seed mSeed;
+    GTestDescriptorSingleValueAttribute<miopenBackendDescriptor_t, char> mOffset;
+
+    // Pointers to these are stored in the objects above
+    GMockBackendRngDescriptor mRngDescriptor;
+    GMockBackendTensorDescriptor mOutputDescriptor;
+    GMockBackendTensorDescriptor mOffsetDesctiptor;
+
+    void SetUp() override
+    {
+        auto [valid, rng, output, seed, offset] = GetParam();
+
+        try
+        {
+            mRngDescriptor    = rng;
+            mOutputDescriptor = output;
+            mSeed             = seed;
+            mOffsetDesctiptor = offset;
+        }
+        catch(const std::exception& e)
+        {
+            FAIL() << e.what();
+        }
+
+        mRng = {rng.valid,
+                "MIOPEN_ATTR_OPERATION_RNG_DESC",
+                MIOPEN_ATTR_OPERATION_RNG_DESC,
+                MIOPEN_TYPE_BACKEND_DESCRIPTOR,
+                MIOPEN_TYPE_CHAR,
+                2,
+                &mRngDescriptor};
+
+        mOutput = {output.valid,
+                   "MIOPEN_ATTR_OPERATION_RNG_YDESC",
+                   MIOPEN_ATTR_OPERATION_RNG_YDESC,
+                   MIOPEN_TYPE_BACKEND_DESCRIPTOR,
+                   MIOPEN_TYPE_CHAR,
+                   2,
+                   &mOutputDescriptor};
+
+        mOffset = {offset.valid,
+                   "MIOPEN_ATTR_OPERATION_RNG_OFFSET_DESC",
+                   MIOPEN_ATTR_OPERATION_RNG_OFFSET_DESC,
+                   MIOPEN_TYPE_BACKEND_DESCRIPTOR,
+                   MIOPEN_TYPE_CHAR,
+                   2,
+                   &mOffsetDesctiptor};
+
+        execute.descriptor.attrsValid = valid;
+        execute.descriptor.textName   = "MIOPEN_BACKEND_OPERATION_RNG_DESCRIPTOR";
+        execute.descriptor.type       = MIOPEN_BACKEND_OPERATION_RNG_DESCRIPTOR;
+        execute.descriptor.attributes = {&mRng, &mOutput, mSeed.get(), &mOffset};
+    }
+};
+
+TEST_P(GraphApiOperationRng, CFunctions) { execute(); }
+
 static Rng anRng(MIOPEN_RNG_DISTRIBUTION_BERNOULLI, 0, 0, 0, 0, 0.5);
 
 static std::array<ValidatedValue<Rng*>, 2> anyRngs{ValidatedValue<Rng*>{true, &anRng},
@@ -333,3 +514,14 @@ INSTANTIATE_TEST_SUITE_P(InvalidAtLeastRngs, GraphApiOperationRngBuilder, invali
 INSTANTIATE_TEST_SUITE_P(InvalidAtLeastOutputs, GraphApiOperationRngBuilder, invalidAtLeastOutputs);
 INSTANTIATE_TEST_SUITE_P(InvalidAtLeastSeeds, GraphApiOperationRngBuilder, invalidAtLeastSeeds);
 INSTANTIATE_TEST_SUITE_P(InvalidAtLeastOffsets, GraphApiOperationRngBuilder, invalidAtLeastOffsets);
+
+INSTANTIATE_TEST_SUITE_P(ValidAttributes, GraphApiOperationRng, validAttributes);
+INSTANTIATE_TEST_SUITE_P(InvalidAtLeastRngs, GraphApiOperationRng, invalidAtLeastRngs);
+INSTANTIATE_TEST_SUITE_P(InvalidAtLeastOutputs, GraphApiOperationRng, invalidAtLeastOutputs);
+INSTANTIATE_TEST_SUITE_P(InvalidAtLeastOffsets, GraphApiOperationRng, invalidAtLeastOffsets);
+
+/* This one won't work as intended because seed is an optional attribute with a default value
+ * and Graph API allows to finalize() if other attributes are valid.
+
+INSTANTIATE_TEST_SUITE_P(InvalidAtLeastSeeds, GraphApiOperationRng, invalidAtLeastSeeds);
+*/
