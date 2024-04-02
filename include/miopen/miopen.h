@@ -6340,42 +6340,52 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
 
 #ifdef MIOPEN_BETA_API
 // Adam APIs
-/** @addtogroup adam
+/** @addtogroup optimizer
  *
  *  @{
  */
-/*! @brief Execute a adam layer
+/*! @brief Execute single tensor Adam optimization.
  *
  * @param handle             MIOpen handle (input)
- * @param paramInDesc        Tensor descriptor for data input tensor param (input)
- * @param paramIn            Data tensor param (input)
- * @param gradInDesc         Tensor descriptor for data input tensor grad (input)
- * @param gradIn             Data tensor grad (input)
- * @param expAvgInDesc       Tensor descriptor for data input tensor exp avg (input)
- * @param expAvgIn           Data tensor exp avg (input)
- * @param expAvgSqInDesc     Tensor descriptor for data input tensor exp avg sqs (input)
- * @param expAvgSqIn         Data tensor exp avg sgs (input)
- * @param maxExpAvgSqInDesc  Tensor descriptor for data input tensor exp avg sqs (input)
- * @param maxExpAvgSqIn      Data tensor exp avg sgs (input)
- * @param step               Data tensor state step (input)
+ * @param paramInDesc        Tensor descriptor for the input parameter tensor (input)
+ * @param paramIn            Input parameter tensor (input)
+ * @param gradInDesc         Tensor descriptor for the input gradient tensor (input)
+ * @param gradIn             Input gradient tensor (input)
+ * @param expAvgInDesc       Tensor descriptor for the input exponential moving average tensor
+ *                           (input)
+ * @param expAvgIn           Input exponential moving average tensor (input)
+ * @param expAvgSqInDesc     Tensor descriptor for the input exponential moving average squared
+ *                           tensor (input)
+ * @param expAvgSqIn         Input exponential moving average squared tensor (input)
+ * @param maxExpAvgSqInDesc  Tensor descriptor for the input maximum exponential moving average
+ *                           squared tensor (input, optional)
+ * @param maxExpAvgSqIn      Input maximum exponential moving average squared tensor
+ *                           (input, optional)
+ * @param step               State step number (input)
  * @param lr                 Learning rate (input)
- * @param beta1              coefficients used for computing running averages of gradient and its
- * square
- * @param beta2              coefficients used for computing running averages of gradient and its
- * square
- * @param weight_decay       weight decay (input)
+ * @param beta1              Coefficient used for computing the first moment running average of
+ *                           gradient (input)
+ * @param beta2              Coefficient used for computing the second moment running average of
+ *                           gradient (input)
+ * @param weight_decay       Weight decay (input)
  * @param eps                Term added to the denominator to improve numerical stability (input)
- * @param amsgrad            ams grad
- * @param maximize           maximize the objective with respect to the params, instead of
- * minimizing
- * @param paramOutDesc       Tensor descriptor for data input tensor param (input)
- * @param paramOut           Data tensor param (output)
- * @param expAvgOutDesc      Tensor descriptor for data input tensor exp avg (input)
- * @param expAvgOut          Data tensor exp avg (output)
- * @param expAvgSqOutDesc    Tensor descriptor for data input tensor exp avg sqs (input)
- * @param expAvgSqOut        Data tensor exp avg sgs (output)
- * @param maxExpAvgSqOutDesc Tensor descriptor for data input tensor exp avg sqs (input)
- * @param maxExpAvgSqOut     Data tensor exp avg sgs (output)
+ * @param amsgrad            Flag indicating whether to use the AMSGrad variant of Adam (input)
+ * @param maximize           Flag indicating whether to maximize the objective with respect to the
+ *                           parameters (input)
+ * @param paramOutDesc       Tensor descriptor for the output parameter tensor for the next step
+ *                           (input)
+ * @param paramOut           Output parameter tensor for the next step (output)
+ * @param expAvgOutDesc      Tensor descriptor for the output exponential moving average tensor for
+ *                           the next step (input)
+ * @param expAvgOut          Output exponential moving average tensor for the next step (output)
+ * @param expAvgSqOutDesc    Tensor descriptor for the output exponential moving average squared
+ *                           tensor (input)
+ * @param expAvgSqOut        Output exponential moving average squared tensor for the next step
+ *                           (output)
+ * @param maxExpAvgSqOutDesc Tensor descriptor for the output maximum exponential moving average
+ *                           squared tensor (input, optional)
+ * @param maxExpAvgSqOut     Output maximum exponential moving average squared tensor for the next
+ *                           step (output, optional)
  * @return                   miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenAdam(miopenHandle_t handle,
@@ -6407,52 +6417,64 @@ MIOPEN_EXPORT miopenStatus_t miopenAdam(miopenHandle_t handle,
                                         void* maxExpAvgSqOut);
 
 /** @} */
-// CLOSEOUT ADAM DOXYGEN GROUP
+// CLOSEOUT OPTIMIZER DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
 // AmpAdam APIs
-/** @addtogroup amp_adam
+/** @addtogroup optimizer
  *
  *  @{
  */
-/*! @brief Execute a amp_adam layer
+/*! @brief Execute single tensor Adam optimization for the Automatic Mixed Precision package.
  *
  * @param handle             MIOpen handle (input)
- * @param paramInDesc        Tensor descriptor for data input tensor param (input)
- * @param paramIn            Data tensor param (input)
- * @param gradInDesc         Tensor descriptor for data input tensor grad (input)
- * @param gradIn             Data tensor grad (input)
- * @param expAvgInDesc       Tensor descriptor for data input tensor exp avg (input)
- * @param expAvgIn           Data tensor exp avg (input)
- * @param expAvgSqInDesc     Tensor descriptor for data input tensor exp avg sqs (input)
- * @param expAvgSqIn         Data tensor exp avg sgs (input)
- * @param maxExpAvgSqInDesc  Tensor descriptor for data input tensor exp avg sqs (input)
- * @param maxExpAvgSqIn      Data tensor exp avg sgs (input)
- * @param stepInDesc         Tensor descriptor for data input tensor state step (input)
- * @param stepIn             Data tensor state step (input/output)
- * @param gradScaleDesc      Tensor descriptor for data input tensor grad scale (input)
- * @param gradScale          Data tensor grad scale (input)
- * @param foundInfDesc       Tensor descriptor for data input tensor found inf (input)
- * @param foundInf           Data tensor found inf (input)
+ * @param paramInDesc        Tensor descriptor for the input parameter tensor (input)
+ * @param paramIn            Input parameter tensor (input)
+ * @param gradInDesc         Tensor descriptor for the input gradient tensor (input)
+ * @param gradIn             Input gradient tensor (input)
+ * @param expAvgInDesc       Tensor descriptor for the input exponential moving average tensor
+ *                           (input)
+ * @param expAvgIn           Input exponential moving average tensor (input)
+ * @param expAvgSqInDesc     Tensor descriptor for the input exponential moving average squared
+ *                           tensor (input)
+ * @param expAvgSqIn         Input exponential moving average squared tensor (input)
+ * @param maxExpAvgSqInDesc  Tensor descriptor for the input maximum exponential moving average
+ *                           squared tensor (input, optional)
+ * @param maxExpAvgSqIn      Input maximum exponential moving average squared tensor
+ *                           (input, optional)
+ * @param gradScaleDesc      Tensor descriptor for the input grad scale tensor (input, optional)
+ * @param gradScale          Input grad scale tensor (input, optional)
+ * @param foundInfDesc       Tensor descriptor for the input found inf tensor (input, optional)
+ * @param foundInf           Input found inf tensor (input, optional)
+ * @param stepInDesc         Tensor descriptor for the input state step tensor (input)
+ * @param stepIn             Input state step tensor (input)
  * @param lr                 Learning rate (input)
- * @param beta1              coefficients used for computing running averages of gradient and its
- * square
- * @param beta2              coefficients used for computing running averages of gradient and its
- * square
- * @param weight_decay       weight decay (input)
+ * @param beta1              Coefficient used for computing the first moment running average of
+ *                           gradient (input)
+ * @param beta2              Coefficient used for computing the second moment running average of
+ *                           gradient (input)
+ * @param weight_decay       Weight decay (input)
  * @param eps                Term added to the denominator to improve numerical stability (input)
- * @param amsgrad            ams grad
- * @param maximize           maximize the objective with respect to the params, instead of
- * minimizing
- * @param paramOutDesc       Tensor descriptor for data input tensor param (input)
- * @param paramOut           Data tensor param (output)
- * @param expAvgOutDesc      Tensor descriptor for data input tensor exp avg (input)
- * @param expAvgOut          Data tensor exp avg (output)
- * @param expAvgSqOutDesc    Tensor descriptor for data input tensor exp avg sqs (input)
- * @param expAvgSqOut        Data tensor exp avg sgs (output)
- * @param maxExpAvgSqOutDesc Tensor descriptor for data input tensor exp avg sqs (input)
- * @param maxExpAvgSqOut     Data tensor exp avg sgs (output)
+ * @param amsgrad            Flag indicating whether to use the AMSGrad variant of Adam (input)
+ * @param maximize           Flag indicating whether to maximize the objective with respect to the
+ *                           parameters (input)
+ * @param paramOutDesc       Tensor descriptor for the output parameter tensor for the next step
+ *                           (input)
+ * @param paramOut           Output parameter tensor for the next step (output)
+ * @param expAvgOutDesc      Tensor descriptor for the output exponential moving average tensor for
+ *                           the next step (input)
+ * @param expAvgOut          Output exponential moving average tensor for the next step (output)
+ * @param expAvgSqOutDesc    Tensor descriptor for the output exponential moving average squared
+ *                           tensor (input)
+ * @param expAvgSqOut        Output exponential moving average squared tensor for the next step
+ *                           (output)
+ * @param maxExpAvgSqOutDesc Tensor descriptor for the output maximum exponential moving average
+ *                           squared tensor (input, optional)
+ * @param maxExpAvgSqOut     Output maximum exponential moving average squared tensor for the next
+ *                           step (output, optional)
+ * @param stepOutDesc        Tensor descriptor for the output state step tensor (input, optional)
+ * @param stepOut            Output state step tensor (input, optional)
  * @return                   miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenAmpAdam(miopenHandle_t handle,
@@ -6491,7 +6513,7 @@ MIOPEN_EXPORT miopenStatus_t miopenAmpAdam(miopenHandle_t handle,
                                            void* stepOut);
 
 /** @} */
-// CLOSEOUT AMP_ADAM DOXYGEN GROUP
+// CLOSEOUT OPTIMIZER DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus
