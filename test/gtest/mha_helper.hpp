@@ -177,8 +177,7 @@ template <typename T>
 void AddMask4D_2D(tensor<T>& mat_A_val, const tensor<T>& mat_mask)
 {
     mat_A_val.par_for_each([&](size_t b_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
-        mat_A_val(b_id, h_id, sl_i_id, sl_j_id) =
-            mat_A_val(b_id, h_id, sl_i_id, sl_j_id) + mat_mask(sl_i_id, sl_j_id);
+        mat_A_val(b_id, h_id, sl_i_id, sl_j_id) += mat_mask(sl_i_id, sl_j_id);
     });
 }
 
@@ -190,10 +189,7 @@ void RowReductionMax(const tensor<T>& A_mat, tensor<T>& rrm_tensor)
         T max(A_mat(b_id, h_id, sl_id, sl0_id));
         for(size_t id = 0; id < sl_dim; ++id)
         {
-            if(A_mat(b_id, h_id, sl_id, id) > max)
-            {
-                max = A_mat(b_id, h_id, sl_id, id);
-            }
+            max = std::max(max, A_mat(b_id, h_id, sl_id, id));
         }
         rrm_tensor(b_id, h_id, sl_id, sl0_id) = max;
     });
