@@ -133,11 +133,6 @@ static Data_t AllocateTensor(Handle& handle,
     const auto element_size = get_data_size(descriptor.GetType());
     auto buffer             = handle.Create(descriptor.GetElementSpace() * element_size);
 
-    visit_float(descriptor.GetType(), [&](auto as_float) {
-        const auto zero = as_float(0.f);
-        SetTensor(handle, descriptor, buffer.get(), &zero);
-    });
-
     const auto allocated = buffer.get();
     owned.emplace_back(std::move(buffer));
     return allocated;
