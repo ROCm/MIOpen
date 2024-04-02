@@ -25,21 +25,9 @@
  *******************************************************************************/
 #include "tensor_holder.hpp"
 #include "conv_tensor_gen.hpp"
-#include <type_traits>
-#include <nlohmann/json.hpp>
 
-#include <miopen/miopen.h>
-#include <gtest/gtest.h>
-#include <miopen/layernorm.hpp>
-
-#include "tensor_holder.hpp"
-#include "tensor_util.hpp"
-#include "cpu_layernorm.hpp"
-#include "get_handle.hpp"
-#include "../driver/tensor_driver.hpp"
-#include "verify.hpp"
-#include <random>
 #include <hip_float8.hpp>
+#include <nlohmann/json.hpp>
 
 namespace test {
 namespace cpu {
@@ -74,15 +62,9 @@ float GetF8Scaling(float max_val)
 template <typename T>
 T FindMax4D(const tensor<T>& max_of_tensor)
 {
-    std::mutex mtx;
     T maxVal = max_of_tensor(0, 0, 0, 0); // Start with the first element as the maximum
-    max_of_tensor.par_for_each([&](size_t b_id, size_t n_id, size_t s_id, size_t dk_id) {
-        std::lock_guard<std::mutex> lock(mtx);
-        T tmp_val = max_of_tensor(b_id, n_id, s_id, dk_id);
-        if(tmp_val > maxVal)
-        {
-            maxVal = tmp_val;
-        }
+    max_of_tensor.for_each([&](size_t b_id, size_t n_id, size_t s_id, size_t dk_id) {
+        maxVal = std::max(maxVal, max_of_tensor(b_id, n_id, s_id, dk_id));
     });
     return maxVal;
 }
