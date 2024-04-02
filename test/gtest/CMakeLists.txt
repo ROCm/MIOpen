@@ -1,7 +1,3 @@
-include(googletest) #include googletest.cmake
-enable_testing()
-include(GoogleTest)
-
 find_package(GTest REQUIRED)
 find_package(rocblas)
 
