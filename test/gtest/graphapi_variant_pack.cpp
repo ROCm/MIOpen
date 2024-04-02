@@ -364,7 +364,7 @@ protected:
     }
 };
 
-TEST_P(GraphApiVariantPack, CFuncions) { execute(); }
+TEST_P(GraphApiVariantPack, CFunctions) { execute(); }
 
 static char mem[10][256];
 
