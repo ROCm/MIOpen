@@ -38,6 +38,8 @@
 #include "get_handle.hpp"
 #include "cba_find2.hpp"
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
+
 namespace cba_find2_infer {
 
 struct ConvBiasActivFind2InferTestFloat : ConvBiasActivInferFind2Test<float>
@@ -103,6 +105,8 @@ void RunTunableSolver(miopen::FusedProblem& problem,
     handle.Finish();
 }
 
+bool SkipTest() { return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)); }
+
 } // namespace cba_find2_infer
 using namespace cba_find2_infer;
 
@@ -136,6 +140,11 @@ TEST_P(ConvBiasActivFind2InferTestHalf, ConvCKIgemmFwdBiasActivFind2Fused)
 #if MIOPEN_BACKEND_HIP
 TEST_P(ConvBiasActivFind2InferTestFloatFusionFind, ConvBiasActivFind2Float_testFind)
 {
+    if(SkipTest())
+    {
+        test_skipped = true;
+        GTEST_SKIP() << "Fusion does not support xnack";
+    }
     miopen::solver::debug::TuningIterationScopedLimiter tuning_limit{5};
 
     std::vector<miopen::Solution> solutions;
