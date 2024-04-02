@@ -26,6 +26,8 @@
 #include <miopen/errors.hpp>
 #include <miopen/graphapi/convolution.hpp>
 #include <miopen/graphapi/graphapi.hpp>
+#include <miopen/graphapi/pointwise.hpp>
+#include <miopen/graphapi/rng.hpp>
 #include <miopen/graphapi/tensor.hpp>
 #include <miopen/logger.hpp>
 
@@ -44,21 +46,34 @@ miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
         case MIOPEN_BACKEND_CONVOLUTION_DESCRIPTOR:
             outputDesciptor = new miopen::graphapi::BackendConvolutionDescriptor();
             break;
+
         case MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR:
             outputDesciptor = new miopen::graphapi::BackendOperationConvolutionForwardDescriptor();
             break;
+
         case MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR:
             outputDesciptor =
                 new miopen::graphapi::BackendOperationConvolutionBackwardFilterDescriptor();
             break;
+
         case MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR:
             outputDesciptor =
                 new miopen::graphapi::BackendOperationConvolutionBackwardDataDescriptor();
             break;
+
+        case MIOPEN_BACKEND_POINTWISE_DESCRIPTOR:
+            outputDesciptor = new miopen::graphapi::BackendPointwiseDescriptor();
+            break;
+
+        case MIOPEN_BACKEND_RNG_DESCRIPTOR:
+            outputDesciptor = new miopen::graphapi::BackendRngDescriptor();
+            break;
+
         case MIOPEN_BACKEND_TENSOR_DESCRIPTOR:
             outputDesciptor = new miopen::graphapi::BackendTensorDescriptor();
             break;
-        default: MIOPEN_THROW(miopenStatus_t::miopenStatusUnsupportedOp);
+
+        default: MIOPEN_THROW(miopenStatusUnsupportedOp);
         }
     });
 }
@@ -159,7 +174,7 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
             }
             else
             {
-                MIOPEN_THROW(miopenStatus_t::miopenStatusUnsupportedOp);
+                MIOPEN_THROW(miopenStatusBadParm);
             }
             break;
         case MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR:
@@ -173,7 +188,7 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
             }
             else
             {
-                MIOPEN_THROW(miopenStatus_t::miopenStatusUnsupportedOp);
+                MIOPEN_THROW(miopenStatusBadParm);
             }
             break;
         case MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR:
@@ -189,7 +204,7 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
             }
             else
             {
-                MIOPEN_THROW(miopenStatus_t::miopenStatusUnsupportedOp);
+                MIOPEN_THROW(miopenStatusBadParm);
             }
             break;
         case MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR:
@@ -205,7 +220,35 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
             }
             else
             {
-                MIOPEN_THROW(miopenStatus_t::miopenStatusUnsupportedOp);
+                MIOPEN_THROW(miopenStatusBadParm);
+            }
+            break;
+        case MIOPEN_BACKEND_POINTWISE_DESCRIPTOR:
+            if(std::align(alignof(miopen::graphapi::BackendPointwiseDescriptor),
+                          sizeof(miopen::graphapi::BackendPointwiseDescriptor),
+                          address,
+                          sizeInBytes) != nullptr &&
+               address == descriptor)
+            {
+                new(descriptor) miopen::graphapi::BackendPointwiseDescriptor();
+            }
+            else
+            {
+                MIOPEN_THROW(miopenStatusBadParm);
+            }
+            break;
+        case MIOPEN_BACKEND_RNG_DESCRIPTOR:
+            if(std::align(alignof(miopen::graphapi::BackendRngDescriptor),
+                          sizeof(miopen::graphapi::BackendRngDescriptor),
+                          address,
+                          sizeInBytes) != nullptr &&
+               address == descriptor)
+            {
+                new(descriptor) miopen::graphapi::BackendRngDescriptor();
+            }
+            else
+            {
+                MIOPEN_THROW(miopenStatusBadParm);
             }
             break;
         case MIOPEN_BACKEND_TENSOR_DESCRIPTOR:
@@ -219,7 +262,7 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
             }
             else
             {
-                MIOPEN_THROW(miopenStatus_t::miopenStatusUnsupportedOp);
+                MIOPEN_THROW(miopenStatusBadParm);
             }
             break;
         default: MIOPEN_THROW(miopenStatusUnsupportedOp);
