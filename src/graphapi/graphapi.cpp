@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include <miopen/errors.hpp>
 #include <miopen/graphapi/graphapi.hpp>
+#include <miopen/graphapi/pointwise.hpp>
 #include <miopen/graphapi/rng.hpp>
 #include <miopen/graphapi/tensor.hpp>
 #include <miopen/logger.hpp>
@@ -41,6 +42,10 @@ miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
 
         switch(descriptorType)
         {
+        case MIOPEN_BACKEND_POINTWISE_DESCRIPTOR:
+            outputDesciptor = new miopen::graphapi::BackendPointwiseDescriptor();
+            break;
+
         case MIOPEN_BACKEND_RNG_DESCRIPTOR:
             outputDesciptor = new miopen::graphapi::BackendRngDescriptor();
             break;
@@ -139,6 +144,18 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
 
         switch(descriptorType)
         {
+        case MIOPEN_BACKEND_POINTWISE_DESCRIPTOR:
+            if(std::align(alignof(miopen::graphapi::BackendPointwiseDescriptor),
+                          sizeof(miopen::graphapi::BackendPointwiseDescriptor),
+                          address,
+                          sizeInBytes) != nullptr &&
+               address == descriptor)
+            {
+                new(descriptor) miopen::graphapi::BackendPointwiseDescriptor();
+                break;
+            }
+            MIOPEN_THROW(miopenStatusBadParm);
+
         case MIOPEN_BACKEND_RNG_DESCRIPTOR:
             if(std::align(alignof(miopen::graphapi::BackendRngDescriptor),
                           sizeof(miopen::graphapi::BackendRngDescriptor),
@@ -163,7 +180,7 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
             }
             MIOPEN_THROW(miopenStatusBadParm);
 
-        default: MIOPEN_THROW(miopenStatusUnsupportedOp);
+        default: MIOPEN_THROW(miopenStatusBadParm);
         }
     });
 }
