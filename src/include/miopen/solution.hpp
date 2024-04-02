@@ -113,6 +113,12 @@ private:
 
     void RunImpl(Handle& handle,
                  const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
+                 Data_t /*workspace*/,
+                 std::size_t /*workspace_size*/,
+                 const SoftmaxDescriptor& softmax_desc);
+
+    void RunImpl(Handle& handle,
+                 const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
                  Data_t workspace,
                  std::size_t workspace_size,
                  const FusedProblem& problem_);

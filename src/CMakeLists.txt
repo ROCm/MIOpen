@@ -122,6 +122,9 @@ set( MIOpen_Source
     fusion.cpp
     fusion/problem_description.cpp
     generic_search.cpp
+    graphapi/graphapi.cpp
+    graphapi/rng.cpp
+    graphapi/tensor.cpp
     groupnorm_api.cpp
     groupnorm/problem_description.cpp
     handle_api.cpp
@@ -806,6 +809,11 @@ endif()
 if(MIOPEN_USE_COMGR)
     list(APPEND PACKAGE_DEPENDS PACKAGE amd_comgr)
     target_internal_library(MIOpen amd_comgr)
+endif()
+
+if(MIOPEN_OFFLINE_COMPILER_PATHS_V2)
+    # Adding rocm-core library dependency for API getROCmInstallPath()
+    target_link_libraries(MIOpen PRIVATE rocm-core)
 endif()
 
 if(rocblas_FOUND)

@@ -346,6 +346,11 @@ MIOPEN_DECLARE_OBJECT(miopenDropoutDescriptor);
  */
 MIOPEN_DECLARE_OBJECT(miopenReduceTensorDescriptor);
 
+/*! @ingroup softmax
+ * @brief Creates the miopenSoftmaxDescriptor_t type
+ */
+MIOPEN_DECLARE_OBJECT(miopenSoftmaxDescriptor);
+
 /*! @ingroup tensor
  * @enum miopenDataType_t
  * MIOpen floating point datatypes. Both 32-bit and 16-bit floats are supported in MIOpen.
@@ -5313,7 +5318,12 @@ typedef enum
     miopenTensorBiasX        = 8,
     miopenTensorBiasY        = 9,
     miopenTensorBias         = 10,
+    miopenTensorSoftmaxX     = 11,
+    miopenTensorSoftmaxY     = 12,
+    miopenTensorSoftmaxDX    = 13,
+    miopenTensorSoftmaxDY    = 14,
 #endif
+
 } miopenTensorArgumentId_t;
 
 /*! @enum miopenTensorArgumentId_t
@@ -5335,6 +5345,48 @@ typedef enum
 MIOPEN_EXPORT miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
                                                      miopenConvolutionDescriptor_t operatorDesc,
                                                      miopenProblemDirection_t direction);
+
+/*! @brief Creates the Softmax descriptor object
+ *
+ * @param softmaxDesc Pointer to an softmax descriptor type
+ * @return            miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenCreateSoftmaxDescriptor(miopenSoftmaxDescriptor_t* softmaxDesc);
+
+/*! @brief Sets the softmax descriptor details
+ *
+ * Sets all of the descriptor details for the softmax layer
+ *
+ * @param softmaxDesc  Pointer to a softmax layer descriptor
+ * @param alpha        Softmax alpha parameter
+ * @param beta         Softmax beta parameter
+ * @param algorithm    Softmax algorithm
+ * @param mode         Softmax mode
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetSoftmaxDescriptor(miopenSoftmaxDescriptor_t softmaxDesc,
+                                                        float alpha,
+                                                        float beta,
+                                                        miopenSoftmaxAlgorithm_t algorithm,
+                                                        miopenSoftmaxMode_t mode);
+
+/*! @brief Gets the softmax layer descriptor details
+ *
+ * Retrieves all of the descriptor details for the softmax layer.
+ *
+ * @param softmaxDesc   Pointer to a softmax layer descriptor (input)
+ * @param alpha         Softmax alpha parameter (output)
+ * @param beta          Softmax beta parameter (output)
+ * @param algorithm     Softmax algorithm (output)
+ * @param mode          Softmax mode (output)
+ * @return              miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetSoftmaxDescriptor(const miopenSoftmaxDescriptor_t softmaxDesc,
+                                                        float* alpha,
+                                                        float* beta,
+                                                        miopenSoftmaxAlgorithm_t* algorithm,
+                                                        miopenSoftmaxMode_t* mode);
 
 /*! @brief Destroys a problem object.
  *
@@ -5596,6 +5648,18 @@ MIOPEN_EXPORT miopenStatus_t miopenFuseProblems(miopenProblem_t problem1, miopen
 MIOPEN_EXPORT miopenStatus_t miopenCreateBiasProblem(miopenProblem_t* problem,
                                                      miopenProblemDirection_t direction);
 
+/*! @brief Initializes a problem object describing a softmax operation.
+ *
+ * @param problem      Pointer to the problem to initialize
+ * @param operatorDesc Descriptor of the operator to be used
+ * @param direction    Direction of the operation
+ * @return             miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenCreateSoftmaxProblem(miopenProblem_t* problem,
+                                                        miopenSoftmaxDescriptor_t operatorDesc,
+                                                        miopenProblemDirection_t direction);
+
 #endif
 
 /** @} */
@@ -5729,6 +5793,550 @@ MIOPEN_EXPORT miopenStatus_t miopenGroupNormForward(miopenHandle_t handle,
 /** @} */
 // CLOSEOUT groupnorm DOXYGEN GROUP
 #endif
+
+#ifdef MIOPEN_BETA_API
+// Graph API
+/** @addtogroup GraphAPI
+ *
+ *  @{
+ */
+
+/*! @brief Descriptor type
+ *
+ * An enumerated type that indicates the type of backend descriptors. Users create a backend
+ * descriptor of a particular type by passing a value from this enumerate to the
+ * miopenBackendCreateDescriptor() function.
+ */
+typedef enum
+{
+    MIOPEN_BACKEND_CONVOLUTION_DESCRIPTOR,
+    MIOPEN_BACKEND_ENGINE_DESCRIPTOR,
+    MIOPEN_BACKEND_ENGINECFG_DESCRIPTOR,
+    MIOPEN_BACKEND_ENGINEHEUR_DESCRIPTOR,
+    MIOPEN_BACKEND_EXECUTION_PLAN_DESCRIPTOR,
+    MIOPEN_BACKEND_INTERMEDIATE_INFO_DESCRIPTOR,
+    MIOPEN_BACKEND_KNOB_CHOICE_DESCRIPTOR,
+    MIOPEN_BACKEND_KNOB_INFO_DESCRIPTOR,
+    MIOPEN_BACKEND_LAYOUT_INFO_DESCRIPTOR,
+    MIOPEN_BACKEND_MATMUL_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_CONCAT_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_GEN_STATS_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_MATMUL_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_NORM_BACKWARD_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_NORM_FORWARD_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_POINTWISE_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_REDUCTION_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_RESAMPLE_BWD_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_RESAMPLE_FWD_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_RNG_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_SIGNAL_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATIONGRAPH_DESCRIPTOR,
+    MIOPEN_BACKEND_POINTWISE_DESCRIPTOR,
+    MIOPEN_BACKEND_REDUCTION_DESCRIPTOR,
+    MIOPEN_BACKEND_RESAMPLE_DESCRIPTOR,
+    MIOPEN_BACKEND_RNG_DESCRIPTOR,
+    MIOPEN_BACKEND_TENSOR_DESCRIPTOR,
+    MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR,
+} miopenBackendDescriptorType_t;
+
+/*! @brief Backend Descriptor's Attribute
+ *
+ * An enumerated type that indicates the backend descriptor attributes
+ * that can be set or get using miopenBackendSetAttribute() and miopenBackendGetAttribute()
+ * functions. The backend descriptor to which an attribute belongs is
+ * identified by the prefix of the attribute name.
+ */
+typedef enum
+{
+    MIOPEN_ATTR_POINTWISE_MODE                  = 0,
+    MIOPEN_ATTR_POINTWISE_MATH_PREC             = 1,
+    MIOPEN_ATTR_POINTWISE_NAN_PROPAGATION       = 2,
+    MIOPEN_ATTR_POINTWISE_RELU_LOWER_CLIP       = 3,
+    MIOPEN_ATTR_POINTWISE_RELU_UPPER_CLIP       = 4,
+    MIOPEN_ATTR_POINTWISE_RELU_LOWER_CLIP_SLOPE = 5,
+    MIOPEN_ATTR_POINTWISE_ELU_ALPHA             = 6,
+    MIOPEN_ATTR_POINTWISE_SOFTPLUS_BETA         = 7,
+    MIOPEN_ATTR_POINTWISE_SWISH_BETA            = 8,
+    MIOPEN_ATTR_POINTWISE_AXIS                  = 9,
+
+    MIOPEN_ATTR_CONVOLUTION_COMP_TYPE      = 100,
+    MIOPEN_ATTR_CONVOLUTION_CONV_MODE      = 101,
+    MIOPEN_ATTR_CONVOLUTION_DILATIONS      = 102,
+    MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES = 103,
+    MIOPEN_ATTR_CONVOLUTION_POST_PADDINGS  = 104,
+    MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS   = 105,
+    MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS   = 106,
+
+    MIOPEN_ATTR_ENGINEHEUR_MODE            = 200,
+    MIOPEN_ATTR_ENGINEHEUR_OPERATION_GRAPH = 201,
+    MIOPEN_ATTR_ENGINEHEUR_RESULTS         = 202,
+    MIOPEN_ATTR_ENGINEHEUR_SM_COUNT_TARGET = 203,
+
+    MIOPEN_ATTR_ENGINECFG_ENGINE            = 300,
+    MIOPEN_ATTR_ENGINECFG_INTERMEDIATE_INFO = 301,
+    MIOPEN_ATTR_ENGINECFG_KNOB_CHOICES      = 302,
+
+    MIOPEN_ATTR_EXECUTION_PLAN_HANDLE                     = 400,
+    MIOPEN_ATTR_EXECUTION_PLAN_ENGINE_CONFIG              = 401,
+    MIOPEN_ATTR_EXECUTION_PLAN_WORKSPACE_SIZE             = 402,
+    MIOPEN_ATTR_EXECUTION_PLAN_COMPUTED_INTERMEDIATE_UIDS = 403,
+    MIOPEN_ATTR_EXECUTION_PLAN_RUN_ONLY_INTERMEDIATE_UIDS = 404,
+
+    MIOPEN_ATTR_INTERMEDIATE_INFO_UNIQUE_ID            = 500,
+    MIOPEN_ATTR_INTERMEDIATE_INFO_SIZE                 = 501,
+    MIOPEN_ATTR_INTERMEDIATE_INFO_DEPENDENT_DATA_UIDS  = 502,
+    MIOPEN_ATTR_INTERMEDIATE_INFO_DEPENDENT_ATTRIBUTES = 503,
+
+    MIOPEN_ATTR_KNOB_CHOICE_KNOB_TYPE  = 600,
+    MIOPEN_ATTR_KNOB_CHOICE_KNOB_VALUE = 601,
+
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_ALPHA        = 700,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_BETA         = 701,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_CONV_DESC    = 702,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_W            = 703,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_X            = 704,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_Y            = 705,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_ALPHA       = 706,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_BETA        = 707,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_CONV_DESC   = 708,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_W           = 709,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DX          = 710,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DY          = 711,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_ALPHA     = 712,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_BETA      = 713,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_CONV_DESC = 714,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DW        = 715,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_X         = 716,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DY        = 717,
+    MIOPEN_ATTR_OPERATION_POINTWISE_PW_DESCRIPTOR          = 750,
+    MIOPEN_ATTR_OPERATION_POINTWISE_XDESC                  = 751,
+    MIOPEN_ATTR_OPERATION_POINTWISE_BDESC                  = 752,
+    MIOPEN_ATTR_OPERATION_POINTWISE_YDESC                  = 753,
+    MIOPEN_ATTR_OPERATION_POINTWISE_ALPHA1                 = 754,
+    MIOPEN_ATTR_OPERATION_POINTWISE_ALPHA2                 = 755,
+    MIOPEN_ATTR_OPERATION_POINTWISE_DXDESC                 = 756,
+    MIOPEN_ATTR_OPERATION_POINTWISE_DYDESC                 = 757,
+    MIOPEN_ATTR_OPERATION_POINTWISE_TDESC                  = 758,
+
+    MIOPEN_ATTR_OPERATION_GENSTATS_MODE      = 770,
+    MIOPEN_ATTR_OPERATION_GENSTATS_MATH_PREC = 771,
+    MIOPEN_ATTR_OPERATION_GENSTATS_XDESC     = 772,
+    MIOPEN_ATTR_OPERATION_GENSTATS_SUMDESC   = 773,
+    MIOPEN_ATTR_OPERATION_GENSTATS_SQSUMDESC = 774,
+
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_STATS_MODE                = 780,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_MATH_PREC                 = 781,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_Y_SUM_DESC                = 782,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_Y_SQ_SUM_DESC             = 783,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_SCALE_DESC                = 784,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_BIAS_DESC                 = 785,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_PREV_RUNNING_MEAN_DESC    = 786,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_PREV_RUNNING_VAR_DESC     = 787,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_UPDATED_RUNNING_MEAN_DESC = 788,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_UPDATED_RUNNING_VAR_DESC  = 789,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_SAVED_MEAN_DESC           = 790,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_SAVED_INV_STD_DESC        = 791,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_EQ_SCALE_DESC             = 792,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_EQ_BIAS_DESC              = 793,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_ACCUM_COUNT_DESC          = 794,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_EPSILON_DESC              = 795,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_EXP_AVERATE_FACTOR_DESC   = 796,
+
+    MIOPEN_ATTR_OPERATIONGRAPH_HANDLE              = 800,
+    MIOPEN_ATTR_OPERATIONGRAPH_OPS                 = 801,
+    MIOPEN_ATTR_OPERATIONGRAPH_ENGINE_GLOBAL_COUNT = 802,
+
+    MIOPEN_ATTR_TENSOR_BYTE_ALIGNMENT       = 900,
+    MIOPEN_ATTR_TENSOR_DATA_TYPE            = 901,
+    MIOPEN_ATTR_TENSOR_DIMENSIONS           = 902,
+    MIOPEN_ATTR_TENSOR_STRIDES              = 903,
+    MIOPEN_ATTR_TENSOR_VECTOR_COUNT         = 904,
+    MIOPEN_ATTR_TENSOR_VECTORIZED_DIMENSION = 905,
+    MIOPEN_ATTR_TENSOR_UNIQUE_ID            = 906,
+    MIOPEN_ATTR_TENSOR_IS_VIRTUAL           = 907,
+    MIOPEN_ATTR_TENSOR_IS_BY_VALUE          = 908,
+    MIOPEN_ATTR_TENSOR_REORDERING_MODE      = 909,
+    MIOPEN_ATTR_TENSOR_RAGGED_OFFSET_DESC   = 910,
+
+    MIOPEN_ATTR_VARIANT_PACK_UNIQUE_IDS    = 1000,
+    MIOPEN_ATTR_VARIANT_PACK_DATA_POINTERS = 1001,
+    MIOPEN_ATTR_VARIANT_PACK_INTERMEDIATES = 1002,
+    MIOPEN_ATTR_VARIANT_PACK_WORKSPACE     = 1003,
+
+    MIOPEN_ATTR_LAYOUT_INFO_TENSOR_UID = 1100,
+    MIOPEN_ATTR_LAYOUT_INFO_TYPES      = 1101,
+
+    MIOPEN_ATTR_KNOB_INFO_TYPE          = 1200,
+    MIOPEN_ATTR_KNOB_INFO_MAXIMUM_VALUE = 1201,
+    MIOPEN_ATTR_KNOB_INFO_MINIMUM_VALUE = 1202,
+    MIOPEN_ATTR_KNOB_INFO_STRIDE        = 1203,
+
+    MIOPEN_ATTR_ENGINE_OPERATION_GRAPH = 1300,
+    MIOPEN_ATTR_ENGINE_GLOBAL_INDEX    = 1301,
+    MIOPEN_ATTR_ENGINE_KNOB_INFO       = 1302,
+    MIOPEN_ATTR_ENGINE_NUMERICAL_NOTE  = 1303,
+    MIOPEN_ATTR_ENGINE_LAYOUT_INFO     = 1304,
+    MIOPEN_ATTR_ENGINE_BEHAVIOR_NOTE   = 1305,
+    MIOPEN_ATTR_ENGINE_SM_COUNT_TARGET = 1306,
+
+    MIOPEN_ATTR_MATMUL_COMP_TYPE     = 1500,
+    MIOPEN_ATTR_MATMUL_PADDING_VALUE = 1501,
+
+    MIOPEN_ATTR_OPERATION_MATMUL_ADESC                           = 1520,
+    MIOPEN_ATTR_OPERATION_MATMUL_BDESC                           = 1521,
+    MIOPEN_ATTR_OPERATION_MATMUL_CDESC                           = 1522,
+    MIOPEN_ATTR_OPERATION_MATMUL_DESC                            = 1523,
+    MIOPEN_ATTR_OPERATION_MATMUL_IRREGULARLY_STRIDED_BATCH_COUNT = 1524,
+    MIOPEN_ATTR_OPERATION_MATMUL_GEMM_M_OVERRIDE_DESC            = 1525,
+    MIOPEN_ATTR_OPERATION_MATMUL_GEMM_N_OVERRIDE_DESC            = 1526,
+    MIOPEN_ATTR_OPERATION_MATMUL_GEMM_K_OVERRIDE_DESC            = 1527,
+
+    MIOPEN_ATTR_REDUCTION_OPERATOR  = 1600,
+    MIOPEN_ATTR_REDUCTION_COMP_TYPE = 1601,
+
+    MIOPEN_ATTR_OPERATION_REDUCTION_XDESC = 1610,
+    MIOPEN_ATTR_OPERATION_REDUCTION_YDESC = 1611,
+    MIOPEN_ATTR_OPERATION_REDUCTION_DESC  = 1612,
+
+    MIOPEN_ATTR_OPERATION_BN_BWD_WEIGHTS_MATH_PREC        = 1620,
+    MIOPEN_ATTR_OPERATION_BN_BWD_WEIGHTS_MEAN_DESC        = 1621,
+    MIOPEN_ATTR_OPERATION_BN_BWD_WEIGHTS_INVSTD_DESC      = 1622,
+    MIOPEN_ATTR_OPERATION_BN_BWD_WEIGHTS_BN_SCALE_DESC    = 1623,
+    MIOPEN_ATTR_OPERATION_BN_BWD_WEIGHTS_X_DESC           = 1624,
+    MIOPEN_ATTR_OPERATION_BN_BWD_WEIGHTS_DY_DESC          = 1625,
+    MIOPEN_ATTR_OPERATION_BN_BWD_WEIGHTS_DBN_SCALE_DESC   = 1626,
+    MIOPEN_ATTR_OPERATION_BN_BWD_WEIGHTS_DBN_BIAS_DESC    = 1627,
+    MIOPEN_ATTR_OPERATION_BN_BWD_WEIGHTS_EQ_DY_SCALE_DESC = 1628,
+    MIOPEN_ATTR_OPERATION_BN_BWD_WEIGHTS_EQ_X_SCALE_DESC  = 1629,
+    MIOPEN_ATTR_OPERATION_BN_BWD_WEIGHTS_EQ_BIAS          = 1630,
+
+    MIOPEN_ATTR_RESAMPLE_MODE            = 1700,
+    MIOPEN_ATTR_RESAMPLE_COMP_TYPE       = 1701,
+    MIOPEN_ATTR_RESAMPLE_SPATIAL_DIMS    = 1702,
+    MIOPEN_ATTR_RESAMPLE_POST_PADDINGS   = 1703,
+    MIOPEN_ATTR_RESAMPLE_PRE_PADDINGS    = 1704,
+    MIOPEN_ATTR_RESAMPLE_STRIDES         = 1705,
+    MIOPEN_ATTR_RESAMPLE_WINDOW_DIMS     = 1706,
+    MIOPEN_ATTR_RESAMPLE_NAN_PROPAGATION = 1707,
+    MIOPEN_ATTR_RESAMPLE_PADDING_MODE    = 1708,
+
+    MIOPEN_ATTR_OPERATION_RESAMPLE_FWD_XDESC   = 1710,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_FWD_YDESC   = 1711,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_FWD_IDXDESC = 1712,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_FWD_ALPHA   = 1713,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_FWD_BETA    = 1714,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_FWD_DESC    = 1716,
+
+    MIOPEN_ATTR_OPERATION_RESAMPLE_BWD_DXDESC  = 1720,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_BWD_DYDESC  = 1721,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_BWD_IDXDESC = 1722,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_BWD_ALPHA   = 1723,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_BWD_BETA    = 1724,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_BWD_DESC    = 1725,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_BWD_XDESC   = 1726,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_BWD_YDESC   = 1727,
+
+    MIOPEN_ATTR_OPERATION_CONCAT_AXIS          = 1800,
+    MIOPEN_ATTR_OPERATION_CONCAT_INPUT_DESCS   = 1801,
+    MIOPEN_ATTR_OPERATION_CONCAT_INPLACE_INDEX = 1802,
+    MIOPEN_ATTR_OPERATION_CONCAT_OUTPUT_DESC   = 1803,
+
+    MIOPEN_ATTR_OPERATION_SIGNAL_MODE     = 1900,
+    MIOPEN_ATTR_OPERATION_SIGNAL_FLAGDESC = 1901,
+    MIOPEN_ATTR_OPERATION_SIGNAL_VALUE    = 1902,
+    MIOPEN_ATTR_OPERATION_SIGNAL_XDESC    = 1903,
+    MIOPEN_ATTR_OPERATION_SIGNAL_YDESC    = 1904,
+
+    MIOPEN_ATTR_OPERATION_NORM_FWD_MODE                     = 2000,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_PHASE                    = 2001,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_XDESC                    = 2002,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_MEAN_DESC                = 2003,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_INV_VARIANCE_DESC        = 2004,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_SCALE_DESC               = 2005,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_BIAS_DESC                = 2006,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_EPSILON_DESC             = 2007,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_EXP_AVG_FACTOR_DESC      = 2008,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_INPUT_RUNNING_MEAN_DESC  = 2009,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_INPUT_RUNNING_VAR_DESC   = 2010,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_OUTPUT_RUNNING_MEAN_DESC = 2011,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_OUTPUT_RUNNING_VAR_DESC  = 2012,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_YDESC                    = 2013,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_PEER_STAT_DESCS          = 2014,
+
+    MIOPEN_ATTR_OPERATION_NORM_BWD_MODE              = 2100,
+    MIOPEN_ATTR_OPERATION_NORM_BWD_XDESC             = 2101,
+    MIOPEN_ATTR_OPERATION_NORM_BWD_MEAN_DESC         = 2102,
+    MIOPEN_ATTR_OPERATION_NORM_BWD_INV_VARIANCE_DESC = 2103,
+    MIOPEN_ATTR_OPERATION_NORM_BWD_DYDESC            = 2104,
+    MIOPEN_ATTR_OPERATION_NORM_BWD_SCALE_DESC        = 2105,
+    MIOPEN_ATTR_OPERATION_NORM_BWD_EPSILON_DESC      = 2106,
+    MIOPEN_ATTR_OPERATION_NORM_BWD_DSCALE_DESC       = 2107,
+    MIOPEN_ATTR_OPERATION_NORM_BWD_DBIAS_DESC        = 2108,
+    MIOPEN_ATTR_OPERATION_NORM_BWD_DXDESC            = 2109,
+    MIOPEN_ATTR_OPERATION_NORM_BWD_PEER_STAT_DESCS   = 2110,
+
+    MIOPEN_ATTR_OPERATION_RESHAPE_XDESC = 2200,
+    MIOPEN_ATTR_OPERATION_RESHAPE_YDESC = 2201,
+
+    MIOPEN_ATTR_RNG_DISTRIBUTION                   = 2300,
+    MIOPEN_ATTR_RNG_NORMAL_DIST_MEAN               = 2301,
+    MIOPEN_ATTR_RNG_NORMAL_DIST_STANDARD_DEVIATION = 2302,
+    MIOPEN_ATTR_RNG_UNIFORM_DIST_MAXIMUM           = 2303,
+    MIOPEN_ATTR_RNG_UNIFORM_DIST_MINIMUM           = 2304,
+    MIOPEN_ATTR_RNG_BERNOULLI_DIST_PROBABILITY     = 2305,
+
+    MIOPEN_ATTR_OPERATION_RNG_YDESC       = 2310,
+    MIOPEN_ATTR_OPERATION_RNG_SEED        = 2311,
+    MIOPEN_ATTR_OPERATION_RNG_DESC        = 2312,
+    MIOPEN_ATTR_OPERATION_RNG_OFFSET_DESC = 2313,
+
+} miopenBackendAttributeName_t;
+
+/*! @brief Data type of an attribute of a backend descriptor
+ *
+ * Specifies the data type of an attribute of a backend descriptor.
+ * It is used to specify the type of data pointed to by the
+ * void *arrayOfElements argument of miopenBackendSetAttribute()
+ * and miopenBackendGetAttribute()
+ */
+typedef enum
+{
+    MIOPEN_TYPE_HANDLE = 0,              /*!< miopenHandle_t */
+    MIOPEN_TYPE_DATA_TYPE,               /*!< miopenDataType_t */
+    MIOPEN_TYPE_BOOLEAN,                 /*!< bool */
+    MIOPEN_TYPE_INT64,                   /*!< int64_t */
+    MIOPEN_TYPE_FLOAT,                   /*!< float */
+    MIOPEN_TYPE_DOUBLE,                  /*!< double */
+    MIOPEN_TYPE_VOID_PTR,                /*!< void * */
+    MIOPEN_TYPE_CONVOLUTION_MODE,        /*!< miopenConvolutionMode_t */
+    MIOPEN_TYPE_HEUR_MODE,               /*!< miopenBackendHeurMode_t */
+    MIOPEN_TYPE_KNOB_TYPE,               /*!< miopenBackendKnobType_t */
+    MIOPEN_TYPE_NAN_PROPOGATION,         /*!< miopenNanPropagation_t */
+    MIOPEN_TYPE_NUMERICAL_NOTE,          /*!< miopenBackendNumericalNote_t */
+    MIOPEN_TYPE_LAYOUT_TYPE,             /*!< miopenBackendLayoutType_t */
+    MIOPEN_TYPE_ATTRIB_NAME,             /*!< miopenBackendAttributeName_t */
+    MIOPEN_TYPE_POINTWISE_MODE,          /*!< miopenPointwiseMode_t */
+    MIOPEN_TYPE_BACKEND_DESCRIPTOR,      /*!< miopenBackendDescriptor_t */
+    MIOPEN_TYPE_GENSTATS_MODE,           /*!< miopenGenStatsMode_t */
+    MIOPEN_TYPE_BN_FINALIZE_STATS_MODE,  /*!< miopenBnFinalizeStatsMode_t */
+    MIOPEN_TYPE_REDUCTION_OPERATOR_TYPE, /*!< miopenReduceTensorOp_t */
+    MIOPEN_TYPE_BEHAVIOR_NOTE,           /*!< miopenBackendBehaviorNote_t */
+    MIOPEN_TYPE_TENSOR_REORDERING_MODE,  /*!< miopenBackendTensorReordering_t */
+    MIOPEN_TYPE_RESAMPLE_MODE,           /*!< miopenResampleMode_t */
+    MIOPEN_TYPE_PADDING_MODE,            /*!< miopenPaddingMode_t */
+    MIOPEN_TYPE_INT32,                   /*!< int32_t */
+    MIOPEN_TYPE_CHAR,                    /*!< char */
+    MIOPEN_TYPE_SIGNAL_MODE,             /*!< miopenSignalMode_t */
+    MIOPEN_TYPE_FRACTION,                /*!< miopenFraction_t */
+    MIOPEN_TYPE_NORM_MODE,               /*!< miopenBackendNormMode_t */
+    MIOPEN_TYPE_NORM_FWD_PHASE,          /*!< miopenBackendNormFwdPhase_t */
+    MIOPEN_TYPE_RNG_DISTRIBUTION         /*!< miopenRngDistribution_t */
+} miopenBackendAttributeType_t;
+
+/*! @brief Distribution for random number generation
+ *
+ * An enumerated type to indicate the distribution to be used in the backend Rng (random number
+ * generator) operation.
+ */
+typedef enum
+{
+    MIOPEN_RNG_DISTRIBUTION_BERNOULLI,
+    MIOPEN_RNG_DISTRIBUTION_UNIFORM,
+    MIOPEN_RNG_DISTRIBUTION_NORMAL,
+} miopenRngDistribution_t;
+
+/*! @brief Backend descriptor
+ *
+ * A typedef void pointer to one of many opaque descriptor structures.
+ * The type of structure that it points to is determined by the argument when allocating the memory
+ * for the opaque structure using miopenBackendCreateDescriptor().
+ *
+ * Attributes of a descriptor can be set using miopenBackendSetAttribute(). After all required
+ * attributes of a descriptor are set, the descriptor can be finalized by miopenBackendFinalize().
+ * From a finalized descriptor, one can query its queryable attributes using
+ * miopenBackendGetAttribute(). Finally, the memory allocated for a descriptor can be freed using
+ * miopenBackendDestroyDescriptor().
+ */
+MIOPEN_DECLARE_OBJECT(miopenBackendDescriptor)
+
+/*! @brief Creates a backend descriptor
+ *
+ * Allocates memory for a given descriptorType at the location pointed
+ * by the descriptor
+ *
+ * @param [in]   descriptorType  One among the enumerated miopenBackendDescriptorType_t
+ * @param [out]  descriptor      Pointer to a descriptor
+ *
+ * @retval  miopenStatusSuccess        The creation was successful
+ * @retval  miopenStatusUnsupportedOp  Creating a descriptor of a given type is not supported
+ * @retval  miopenStatusAllocFailed    The memory allocation failed
+ * @retval  miopenStatusUnknownError   The error information was not gathered
+ */
+MIOPEN_EXPORT miopenStatus_t miopenBackendCreateDescriptor(
+    miopenBackendDescriptorType_t descriptorType, miopenBackendDescriptor_t* descriptor);
+
+/*! @brief Sets an attribute of a descriptor
+ *
+ * This function sets an attribute of a descriptor to values provided as a pointer.
+ * Returns miopenStatusUnsupportedOp if the descriptor is already
+ * successfully finalized using miopenBackendFinalize().
+ *
+ * @param  [in]  descriptor       Instance of miopenBackendDescriptor_t whose attribute is being set
+ * @param  [in]  attributeName    The name of the attribute being set on the descriptor
+ * @param  [in]  attributeType    The type of attribute
+ * @param  [in]  elementCount     Number of elements being set
+ * @param  [in]  arrayOfElements  The starting location for an array from where to read the values
+ *                                from. The elements of the array are expected to be of the datatype
+ *                                of the attributeType. The datatype of the attributeType is listed
+ *                                in the mapping table of miopenBackendAttributeType_t.
+ *
+ * @retval  miopenStatusSuccess         The attributeName was set to the descriptor
+ * @retval  miopenStatusNotInitialized  The backend descriptor pointed to by the descriptor is
+ *                                      already in the finalized state
+ * @retval  miopenStatusBadParm         The function is called with arguments that correspond to
+ *                                      invalid values. Some examples include:
+ *                                      * attributeName is not a settable attribute of descriptor.
+ *                                      * attributeType is incorrect for this attributeName.
+ *                                      * elemCount value is unexpected.
+ *                                      * arrayOfElements contains values invalid for the
+ *                                        attributeType.
+ * @retval  miopenStatusUnsupportedOp  The values to which the attributes are being set are not
+ *                                     supported by the current version
+ * @retval  miopenStatusUnknownError   The error information was not gathered
+ */
+MIOPEN_EXPORT miopenStatus_t miopenBackendSetAttribute(miopenBackendDescriptor_t descriptor,
+                                                       miopenBackendAttributeName_t attributeName,
+                                                       miopenBackendAttributeType_t attributeType,
+                                                       int64_t elementCount,
+                                                       void* arrayOfElements);
+
+/*! @brief Finalizes a backend descriptor
+ *
+ * Finalizes the memory pointed to by the descriptor. The type of finalization is done depending on
+ * the descriptorType argument with which the descriptor was created using
+ * miopenBackendCreateDescriptor() or initialized using miopenBackendInitialize().
+ *
+ * @param  [in]  descriptor  Instance of miopenBackendDescriptor_t to finalize
+ *
+ * @retval  miopenStatusSuccess        The descriptor was finalized successfully
+ * @retval  miopenStatusBadParm        Invalid descriptor attribute values or combination thereof is
+ *                                     encountered
+ * @retval  miopenStatusUnsupportedOp  Descriptor attribute values or combinations therefore not
+ *                                     supported by the current version
+ * @retval  miopenStatusInternalError  Some internal errors are encountered
+ * @retval  miopenStatusUnknownError   The error information was not gathered
+ */
+MIOPEN_EXPORT miopenStatus_t miopenBackendFinalize(miopenBackendDescriptor_t descriptor);
+
+/*! @brief Retrieves backend descriptor's attribute
+ *
+ * This function retrieves the values of an attribute of a descriptor. attributeName is the name of
+ * the attribute whose value is requested. attributeType is the type of attribute.
+ * requestsedElementCount is the number of elements to be potentially retrieved. The number of
+ * elements for the requested attribute is stored in elementCount. The retrieved values are stored
+ * in arrayOfElements. When the attribute is expected to have a single value, arrayOfElements can be
+ * pointer to the output value. This function will return miopenStatusNotInitialized if the
+ * descriptor has not been successfully finalized using miopenBackendFinalize()
+ *
+ * @param  [in]   descriptor             Instance of miopenBackendDescriptor_t whose attribute to
+ *                                       retrieve
+ * @param  [in]   attributeName          The name of the attribute being get from the descriptor
+ * @param  [in]   attributeType          The type of attribute
+ * @param  [in]   requestedElementCount  Number of elements to output to arrayOfElements
+ * @param  [out]  elementCount           Output pointer for the number of elements the descriptor
+ *                                       attribute has. Note that miopenBackendGetAttribute() will
+ *                                       only write the least of this and requestedElementCount
+ *                                       elements to arrayOfElements
+ * @param  [out]  arrayOfElements        Array of elements of the datatype of the attributeType. The
+ *                                       data type of the attributeType is listed in the mapping
+ *                                       table of miopenBackendAttributeType_t
+ *
+ * @retval  miopenStatusSuccess         The attributeName was retrieved from the descriptor
+ *                                      successfully
+ * @retval  miopenStatusBadParm         One or more invalid or inconsistent argument values were
+ *                                      encountered. Some examples include:
+ *                                      * attributeName is not a valid attribute for the descriptor.
+ *                                      * attributeType is not one of the valid types for the
+ *                                        attribute.
+ * @retval  miopenStatusNotInitialized  The descriptor has not been successfully finalized using
+ *                                      miopenBackendFinalize()
+ * @retval  miopenStatusUnknownError    The error information was not gathered
+ */
+MIOPEN_EXPORT miopenStatus_t miopenBackendGetAttribute(miopenBackendDescriptor_t descriptor,
+                                                       miopenBackendAttributeName_t attributeName,
+                                                       miopenBackendAttributeType_t attributeType,
+                                                       int64_t requestedElementCount,
+                                                       int64_t* elementCount,
+                                                       void* arrayOfElements);
+
+/*! @brief Executes a graph
+ *
+ * Executes the given Engine Configuration Plan on the VariantPack and the finalized ExecutionPlan
+ * on the data. The data and the working space are encapsulated in the VariantPack
+ *
+ * @param  [in]  handle         An instance of miopenHandle_t
+ * @param  [in]  executionPlan  Descriptor of the finalized ExecutionPlan
+ * @param  [in]  variantPack    Descriptor of the finalized VariantPack consisting of:
+ *                              * Data pointer for each non-virtual pointer of the operation set in
+ *                                the execution plan.
+ *                              * Pointer to user-allocated workspace in global memory at least as
+ *                              large as the size queried
+ *
+ * @retval  miopenStatusSuccess        The ExecutionPlan was executed successfully
+ * @retval  miopenStatusBadParm        An incorrect or inconsistent value is encountered. For
+ *                                     example, a required data pointer is invalid
+ * @retval  miopenStatusInternalError  Some internal errors were encountered
+ * @retval  miopenStatusUnknownError   The error information was not gathered
+ */
+MIOPEN_EXPORT miopenStatus_t miopenBackendExecute(miopenHandle_t handle,
+                                                  miopenBackendDescriptor_t executionPlan,
+                                                  miopenBackendDescriptor_t variantPack);
+
+/*! @brief Destroys an instance of miopenBackendDescriptor_t
+ *
+ * Destroys instances of miopenBackendDescriptor_t that were previously created using
+ * miopenBackendCreateDescriptor(). The value pointed by the descriptor will be undefined after the
+ * memory is free and done.
+ *
+ * **Undefined Behavior** if the descriptor was altered between the 'Create' and 'Destroy
+ * Descriptor'
+ *
+ * @param  [in]  descriptor  Instance of miopenBackendDescriptor_t previously created by
+ *                           miopenBackendCreateDescriptor()
+ *
+ * @retval  miopenStatusSuccess       The memory was destroyed successfully
+ * @retval  miopenStatusAllocFailed   The destruction of memory failed
+ * @retval  miopenStatusUnknownError  The error information was not gathered
+ */
+MIOPEN_EXPORT miopenStatus_t miopenBackendDestroyDescriptor(miopenBackendDescriptor_t descriptor);
+
+/*! @brief Repurposes an instance of miopenBackendDescriptor_t
+ *
+ * Repurposes a pre-allocated memory pointed to by a descriptor of size sizeInByte to a backend
+ * descriptor of type descriptorType. The finalized state of the descriptor is set to false.
+ *
+ * @param  [in]  descriptor      Instance of miopenBackendDescriptor_t to be initialized
+ * @param  [in]  descriptorType  Enumerated value for the type miopenBackendDescriptorType_t
+ * @param  [in]  sizeInBytes     Size of memory pointed to by descriptor
+ *
+ * @retval  miopenStatusSuccess       The memory was initialized successfully
+ * @retval  miopenStatusBadParm       An invalid or inconsistent argument value is encountered. Some
+ *                                    examples include:
+ *                                    * descriptor is a nullptr
+ *                                    * sizeInBytes is less than the size required by the descriptor
+ *                                      type
+ * @retval  miopenStatusUnknownError  The error information was not gathered
+ */
+MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t descriptor,
+                                                     miopenBackendDescriptorType_t descriptorType,
+                                                     size_t sizeInBytes);
+
+/** @} */
+// CLOSEOUT BackendAPI DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
 // Adam APIs
