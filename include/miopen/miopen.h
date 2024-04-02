@@ -6408,7 +6408,7 @@ MIOPEN_EXPORT miopenStatus_t miopenAdam(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT ADAM DOXYGEN GROUP
-#endif
+#endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
 // AmpAdam APIs
@@ -6492,7 +6492,7 @@ MIOPEN_EXPORT miopenStatus_t miopenAmpAdam(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT AMP_ADAM DOXYGEN GROUP
-#endif
+#endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus
 }
