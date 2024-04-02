@@ -43,37 +43,35 @@ miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
 
         switch(descriptorType)
         {
+        /* This part is a common place of changes of about 25 PRs and merge conflicts arise heavily
+         * here. Turn off clang-format to keep each line unique to simplify resolving of conflicts.
+         *
+         * TODO: Turn on clang-format when active phase of development is finished.
+         */
+        // clang-format off
         case MIOPEN_BACKEND_CONVOLUTION_DESCRIPTOR:
-            outputDesciptor = new miopen::graphapi::BackendConvolutionDescriptor();
-            break;
+            outputDesciptor = new miopen::graphapi::BackendConvolutionDescriptor(); break;
 
         case MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR:
-            outputDesciptor = new miopen::graphapi::BackendOperationConvolutionForwardDescriptor();
-            break;
+            outputDesciptor = new miopen::graphapi::BackendOperationConvolutionForwardDescriptor(); break;
 
         case MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR:
-            outputDesciptor =
-                new miopen::graphapi::BackendOperationConvolutionBackwardFilterDescriptor();
-            break;
+            outputDesciptor = new miopen::graphapi::BackendOperationConvolutionBackwardFilterDescriptor(); break;
 
         case MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR:
-            outputDesciptor =
-                new miopen::graphapi::BackendOperationConvolutionBackwardDataDescriptor();
-            break;
+            outputDesciptor = new miopen::graphapi::BackendOperationConvolutionBackwardDataDescriptor(); break;
 
         case MIOPEN_BACKEND_POINTWISE_DESCRIPTOR:
-            outputDesciptor = new miopen::graphapi::BackendPointwiseDescriptor();
-            break;
+            outputDesciptor = new miopen::graphapi::BackendPointwiseDescriptor(); break;
 
         case MIOPEN_BACKEND_RNG_DESCRIPTOR:
-            outputDesciptor = new miopen::graphapi::BackendRngDescriptor();
-            break;
+            outputDesciptor = new miopen::graphapi::BackendRngDescriptor(); break;
 
         case MIOPEN_BACKEND_TENSOR_DESCRIPTOR:
-            outputDesciptor = new miopen::graphapi::BackendTensorDescriptor();
-            break;
+            outputDesciptor = new miopen::graphapi::BackendTensorDescriptor(); break;
 
         default: MIOPEN_THROW(miopenStatusUnsupportedOp);
+            // clang-format on
         }
     });
 }
@@ -147,6 +145,23 @@ extern "C" miopenStatus_t miopenBackendDestroyDescriptor(miopenBackendDescriptor
     return miopen::try_([&] { miopen_destroy_object(descriptor); }, false);
 }
 
+template <typename BackendDescriptorType>
+static void initializeBackendDescriptor(void* descriptor, std::size_t sizeInBytes)
+{
+    void* address = descriptor;
+    if(std::align(
+           alignof(BackendDescriptorType), sizeof(BackendDescriptorType), address, sizeInBytes) !=
+           nullptr &&
+       address == descriptor)
+    {
+        new(descriptor) BackendDescriptorType();
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
 extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t descriptor,
                                                   miopenBackendDescriptorType_t descriptorType,
                                                   size_t sizeInBytes)
@@ -159,113 +174,37 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
     }
 
     return miopen::try_([&] {
-        void* address = descriptor;
-
         switch(descriptorType)
         {
+        /* This part is a common place of changes of about 25 PRs and merge conflicts arise heavily
+         * here. Turn off clang-format to keep each line unique to simplify resolving of conflicts.
+         *
+         * TODO: Turn on clang-format when active phase of development is finished.
+         */
+        // clang-format off
         case MIOPEN_BACKEND_CONVOLUTION_DESCRIPTOR:
-            if(std::align(alignof(miopen::graphapi::BackendConvolutionDescriptor),
-                          sizeof(miopen::graphapi::BackendConvolutionDescriptor),
-                          address,
-                          sizeInBytes) != nullptr &&
-               address == descriptor)
-            {
-                new(descriptor) miopen::graphapi::BackendConvolutionDescriptor();
-            }
-            else
-            {
-                MIOPEN_THROW(miopenStatusBadParm);
-            }
-            break;
+            initializeBackendDescriptor<miopen::graphapi::BackendConvolutionDescriptor>(descriptor, sizeInBytes); break;
+
         case MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR:
-            if(std::align(alignof(miopen::graphapi::BackendOperationConvolutionForwardDescriptor),
-                          sizeof(miopen::graphapi::BackendOperationConvolutionForwardDescriptor),
-                          address,
-                          sizeInBytes) != nullptr &&
-               address == descriptor)
-            {
-                new(descriptor) miopen::graphapi::BackendOperationConvolutionForwardDescriptor();
-            }
-            else
-            {
-                MIOPEN_THROW(miopenStatusBadParm);
-            }
-            break;
+            initializeBackendDescriptor<miopen::graphapi::BackendOperationConvolutionForwardDescriptor>(descriptor, sizeInBytes); break;
+
         case MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR:
-            if(std::align(
-                   alignof(miopen::graphapi::BackendOperationConvolutionBackwardFilterDescriptor),
-                   sizeof(miopen::graphapi::BackendOperationConvolutionBackwardFilterDescriptor),
-                   address,
-                   sizeInBytes) != nullptr &&
-               address == descriptor)
-            {
-                new(descriptor)
-                    miopen::graphapi::BackendOperationConvolutionBackwardFilterDescriptor();
-            }
-            else
-            {
-                MIOPEN_THROW(miopenStatusBadParm);
-            }
-            break;
+            initializeBackendDescriptor<miopen::graphapi::BackendOperationConvolutionBackwardFilterDescriptor>(descriptor, sizeInBytes); break;
+
         case MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR:
-            if(std::align(
-                   alignof(miopen::graphapi::BackendOperationConvolutionBackwardDataDescriptor),
-                   sizeof(miopen::graphapi::BackendOperationConvolutionBackwardDataDescriptor),
-                   address,
-                   sizeInBytes) != nullptr &&
-               address == descriptor)
-            {
-                new(descriptor)
-                    miopen::graphapi::BackendOperationConvolutionBackwardDataDescriptor();
-            }
-            else
-            {
-                MIOPEN_THROW(miopenStatusBadParm);
-            }
-            break;
+            initializeBackendDescriptor<miopen::graphapi::BackendOperationConvolutionBackwardDataDescriptor>(descriptor, sizeInBytes); break;
+
         case MIOPEN_BACKEND_POINTWISE_DESCRIPTOR:
-            if(std::align(alignof(miopen::graphapi::BackendPointwiseDescriptor),
-                          sizeof(miopen::graphapi::BackendPointwiseDescriptor),
-                          address,
-                          sizeInBytes) != nullptr &&
-               address == descriptor)
-            {
-                new(descriptor) miopen::graphapi::BackendPointwiseDescriptor();
-            }
-            else
-            {
-                MIOPEN_THROW(miopenStatusBadParm);
-            }
-            break;
+            initializeBackendDescriptor<miopen::graphapi::BackendPointwiseDescriptor>(descriptor, sizeInBytes); break;
+
         case MIOPEN_BACKEND_RNG_DESCRIPTOR:
-            if(std::align(alignof(miopen::graphapi::BackendRngDescriptor),
-                          sizeof(miopen::graphapi::BackendRngDescriptor),
-                          address,
-                          sizeInBytes) != nullptr &&
-               address == descriptor)
-            {
-                new(descriptor) miopen::graphapi::BackendRngDescriptor();
-            }
-            else
-            {
-                MIOPEN_THROW(miopenStatusBadParm);
-            }
-            break;
+            initializeBackendDescriptor<miopen::graphapi::BackendRngDescriptor>(descriptor, sizeInBytes); break;
+
         case MIOPEN_BACKEND_TENSOR_DESCRIPTOR:
-            if(std::align(alignof(miopen::graphapi::BackendTensorDescriptor),
-                          sizeof(miopen::graphapi::BackendTensorDescriptor),
-                          address,
-                          sizeInBytes) != nullptr &&
-               address == descriptor)
-            {
-                new(descriptor) miopen::graphapi::BackendTensorDescriptor();
-            }
-            else
-            {
-                MIOPEN_THROW(miopenStatusBadParm);
-            }
-            break;
+            initializeBackendDescriptor<miopen::graphapi::BackendTensorDescriptor>(descriptor, sizeInBytes); break;
+
         default: MIOPEN_THROW(miopenStatusUnsupportedOp);
+            // clang-format on
         }
     });
 }
