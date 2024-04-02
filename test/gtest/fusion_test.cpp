@@ -32,8 +32,6 @@
 
 #if MIOPEN_BACKEND_HIP
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
-
 template <typename T>
 class FusionSetArgTest : public ConvBiasActivInferTest<T>
 {
@@ -62,7 +60,7 @@ struct FusionSetArgTestFloat : FusionSetArgTest<float>
 {
 };
 
-bool SkipTest() { return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)); }
+bool SkipTest() { return get_handle_xnack(); }
 
 TEST_P(FusionSetArgTestFloat, TestSetArgApiCall)
 {

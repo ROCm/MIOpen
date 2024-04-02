@@ -66,6 +66,14 @@ using ExecutionContext       = miopen::ExecutionContext;
 using ConvProblemDescription = miopen::conv::ProblemDescription;
 using Direction              = miopen::conv::Direction;
 
+bool get_handle_xnack()
+{
+    auto& handle = get_handle();
+    auto is_xnack_b = handle.GetTargetProperties().Xnack();
+    bool is_xnack = (is_xnack_b) ? *is_xnack_b : false;
+    return is_xnack;
+}
+
 #if TEST_DIRECT_SUPPORTED_CONFIG_ONLY
 static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
                                                     const miopen::ConvolutionDescriptor convDesc,

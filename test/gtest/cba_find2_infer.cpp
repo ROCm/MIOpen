@@ -38,8 +38,6 @@
 #include "get_handle.hpp"
 #include "cba_find2.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
-
 namespace cba_find2_infer {
 
 struct ConvBiasActivFind2InferTestFloat : ConvBiasActivInferFind2Test<float>
@@ -105,7 +103,7 @@ void RunTunableSolver(miopen::FusedProblem& problem,
     handle.Finish();
 }
 
-bool SkipTest() { return miopen::IsEnabled(ENV(MIOPEN_TEST_GPU_XNACK_ENABLED)); }
+bool SkipTest() { return get_handle_xnack(); }
 
 } // namespace cba_find2_infer
 using namespace cba_find2_infer;
