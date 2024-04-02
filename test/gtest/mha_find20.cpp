@@ -48,7 +48,6 @@ struct TensorStruct
 {
     TensorStruct(bool isFloat = true) : isFloatTensor(isFloat) {}
 
-
     bool isFloatTensor;
     tensor<float> tensorFloat;
 
@@ -225,7 +224,7 @@ private:
 
     void Initialize()
     {
-        Mha_descriptor.SetParams(1.0f);
+        Mha_descriptor.SetParams(scale);
 
         EXPECT_EQUAL(miopenCreateMhaProblem(&problem, &Mha_descriptor, miopenProblemDirectionForward), miopenStatusSuccess);
             
@@ -260,34 +259,52 @@ private:
 
     void GetResultsWithoutFind20(Handle& handle, TensorStructMap& outputResultsMap, Workspace& workspace, uint64_t solver_id)
     {
-        // Get Problem object to use helper asMha() function. Downcast is used in order to reuse some code
-        ProblemContainer* pc = static_cast<ProblemContainer*>(problem);
+        const auto& mhaK = tensors[miopenTensorMhaK];
+        const auto& mhaQ = tensors[miopenTensorMhaQ];
+        const auto& mhaV = tensors[miopenTensorMhaV];
 
-        const Problem& problem_casted = boost::get<const Problem&>(pc->item);
-        const mha::ProblemDescription problem_description = problem_casted.AsMha();
+        const auto& mhaDescaleK = tensors[miopenTensorMhaDescaleK];
+        const auto& mhaDescaleQ = tensors[miopenTensorMhaDescaleQ];
+        const auto& mhaDescaleV = tensors[miopenTensorMhaDescaleV];
+        const auto& mhaDescaleS = tensors[miopenTensorMhaDescaleS];                
+
+        const auto& mhaScaleS = tensors[miopenTensorMhaScaleS];
+        const auto& mhaScaleO = tensors[miopenTensorMhaScaleO];                
+
+        const auto& mhadp = tensors[miopenTensorMhaDropoutProbability];
+        const auto& mhads = tensors[miopenTensorMhaDropoutSeed];                
+        const auto& mhado = tensors[miopenTensorMhaDropoutOffset];
+
+        mha::MhaInputDescsForward inputDescs = {mhaK->tensorFloat.desc, mhaQ->tensorFloat.desc, mhaV->tensorFloat.desc,
+                                                            mhaDescaleK->tensorFloat.desc, mhaDescaleQ->tensorFloat.desc, mhaDescaleV->tensorFloat.desc,
+                                                            mhaDescaleS->tensorFloat.desc, mhaScaleS->tensorFloat.desc, mhaScaleO->tensorFloat.desc, scale,
+                                                            mhadp->tensorFloat.desc, mhads->tensorFloat.desc, mhado->tensorFloat.desc,
+                                                            tensors[miopenTensorMhaO]->tensorFloat.desc, tensors[miopenTensorMhaAmaxO]->tensorFloat.desc, 
+                                                            tensors[miopenTensorMhaAmaxS]->tensorFloat.desc, tensors[miopenTensorMhaM]->tensorFloat.desc,
+                                                            tensors[miopenTensorMhaZInv]->tensorFloat.desc};
+
+        const mha::ProblemDescription problem_description = {inputDescs};
 
         const auto invoke_ctx = [&]() -> AnyInvokeParams {
             const mha::MhaInputDescsForward& inputDescsForward = problem_description.GetDescs();
 
-            mha::MhaDataForward dataForward = {tensors[miopenTensorMhaK]->gpuBuffer.get(),
-                                            tensors[miopenTensorMhaQ]->gpuBuffer.get(),
-                                            tensors[miopenTensorMhaV]->gpuBuffer.get(),
-                                            tensors[miopenTensorMhaDescaleK]->gpuBuffer.get(),
-                                            tensors[miopenTensorMhaDescaleQ]->gpuBuffer.get(),
-                                            tensors[miopenTensorMhaDescaleV]->gpuBuffer.get(),
-                                            tensors[miopenTensorMhaDescaleS]->gpuBuffer.get(),
-                                            tensors[miopenTensorMhaScaleS]->gpuBuffer.get(),
-                                            tensors[miopenTensorMhaScaleO]->gpuBuffer.get(),
-
-                                            tensors[miopenTensorMhaDropoutProbability]->gpuBuffer.get(),
-                                            tensors[miopenTensorMhaDropoutSeed]->gpuBuffer.get(),
-                                            tensors[miopenTensorMhaDropoutOffset]->gpuBuffer.get(),
-
-                                            outputResultsMap[miopenTensorMhaO]->gpuBuffer.get(),
-                                            outputResultsMap[miopenTensorMhaAmaxO]->gpuBuffer.get(),
-                                            outputResultsMap[miopenTensorMhaAmaxS]->gpuBuffer.get(),
-                                            outputResultsMap[miopenTensorMhaM]->gpuBuffer.get(),
-                                            outputResultsMap[miopenTensorMhaZInv]->gpuBuffer.get()};
+            mha::MhaDataForward dataForward = {mhaK->gpuBuffer.get(),
+                                                mhaQ->gpuBuffer.get(),
+                                                mhaV->gpuBuffer.get(),
+                                                mhaDescaleK->gpuBuffer.get(),
+                                                mhaDescaleQ->gpuBuffer.get(),
+                                                mhaDescaleV->gpuBuffer.get(),
+                                                mhaDescaleS->gpuBuffer.get(),
+                                                mhaScaleS->gpuBuffer.get(),
+                                                mhaScaleO->gpuBuffer.get(),
+                                                mhadp->gpuBuffer.get(),
+                                                mhads->gpuBuffer.get(),
+                                                mhado->gpuBuffer.get(),
+                                                outputResultsMap[miopenTensorMhaO]->gpuBuffer.get(),
+                                                outputResultsMap[miopenTensorMhaAmaxO]->gpuBuffer.get(),
+                                                outputResultsMap[miopenTensorMhaAmaxS]->gpuBuffer.get(),
+                                                outputResultsMap[miopenTensorMhaM]->gpuBuffer.get(),
+                                                outputResultsMap[miopenTensorMhaZInv]->gpuBuffer.get()};
 
             return mha::InvokeParams(inputDescsForward, dataForward, workspace.ptr(), workspace.size());
         }();
@@ -332,6 +349,8 @@ private:
     const unsigned int test_c = 4;
     const unsigned int test_h = 8;
     const unsigned int test_w = 16;
+
+    float scale = 1.0f;
 };
 
 TEST(TestMhaFind20, MhaForward)
