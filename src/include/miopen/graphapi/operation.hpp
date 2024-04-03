@@ -25,42 +25,30 @@
  *******************************************************************************/
 #pragma once
 
-#include <miopen/miopen.h>
-#include <miopen/object.hpp>
+#include <miopen/errors.hpp>
+#include <miopen/graphapi/tensor.hpp>
 
-#include <cstdint>
+#include <algorithm>
+#include <vector>
 
 namespace miopen {
 
 namespace graphapi {
 
-class OpNode;
-
-class BackendDescriptor : public miopenBackendDescriptor
+class OpNode
 {
 public:
-    virtual ~BackendDescriptor();
-    virtual void setAttribute(miopenBackendAttributeName_t attributeName,
-                              miopenBackendAttributeType_t attributeType,
-                              int64_t elementCount,
-                              void* arrayOfElements) = 0;
-    virtual void finalize()                          = 0;
-    virtual void getAttribute(miopenBackendAttributeName_t attributeName,
-                              miopenBackendAttributeType_t attributeType,
-                              int64_t requestedElementCount,
-                              int64_t* elementCount,
-                              void* arrayOfElements) = 0;
-    virtual void execute(miopenHandle_t handle, miopenBackendDescriptor_t variantPack);
-    virtual OpNode* getOperation();
+    virtual ~OpNode() = default;
 
-    bool isFinalized() const noexcept { return mFinalized; };
+    virtual std::vector<Tensor*> getInTensors() const = 0;
 
-protected:
-    bool mFinalized = false;
+    virtual std::vector<Tensor*> getOutTensors() const = 0;
+
+    /* TODO: The remaining part of the class is being
+     * developed separately. Needs merging after finished.
+     */
 };
 
 } // namespace graphapi
 
 } // namespace miopen
-
-MIOPEN_DEFINE_OBJECT(miopenBackendDescriptor, miopen::graphapi::BackendDescriptor)
