@@ -236,7 +236,6 @@ extern "C" miopenStatus_t miopenAmpAdam(miopenHandle_t handle,
         (maxExpAvgSqOutDesc != nullptr) ? &miopen::deref(maxExpAvgSqOutDesc) : nullptr;
     auto gradScaleDescPtr = (gradScaleDesc != nullptr) ? &miopen::deref(gradScaleDesc) : nullptr;
     auto foundInfDescPtr  = (foundInfDesc != nullptr) ? &miopen::deref(foundInfDesc) : nullptr;
-    auto stepOutDescPtr   = (stepOutDesc != nullptr) ? &miopen::deref(stepOutDesc) : nullptr;
 
     return miopen::try_([&] {
         miopen::Adam(miopen::deref(handle),
@@ -264,7 +263,7 @@ extern "C" miopenStatus_t miopenAmpAdam(miopenHandle_t handle,
                      DataCast(foundInf),
                      &miopen::deref(stepInDesc),
                      DataCast(stepIn),
-                     stepOutDescPtr,
+                     &miopen::deref(stepOutDesc),
                      DataCast(stepOut),
                      -1,
                      lr,

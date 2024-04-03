@@ -64,10 +64,15 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
             {"CTYPE", ptype_size > 4 ? "double" : "float"},
         };
 
+        constexpr size_t local_size = 256;
+        auto& handle                = context.GetStream();
+        auto numCu                  = handle.GetMaxComputeUnits();
+        auto grid_size              = numCu * 8 * local_size;
+
         auto kernel = KernelInfo{};
 
-        kernel.l_wk.push_back(1);
-        kernel.g_wk.push_back(1);
+        kernel.l_wk.push_back(local_size);
+        kernel.g_wk.push_back(grid_size);
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
@@ -76,7 +81,7 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
 
         result.construction_params.push_back(kernel);
 
-        if(problem.IsAmp() && problem.ExistStepOut())
+        if(problem.IsAmp())
         {
             auto kernel_update_step        = kernel;
             kernel_update_step.kernel_name = "AdamUpdateStep";
@@ -85,23 +90,15 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
         }
     }
 
-    constexpr size_t local_size = 256;
-    auto& handle                = context.GetStream();
-    auto numCu                  = handle.GetMaxComputeUnits();
-    auto max_gdim               = numCu * 8 * local_size;
-
     if(problem.IsAmp())
     {
-        result.invoker_factory = [max_gdim](const std::vector<Kernel>& kernels) {
+        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel_adam = handle_.Run(kernels[0]);
                 decltype(auto) kernel_step = handle_.Run(kernels[1]);
                 decltype(auto) params      = raw_params.CastTo<miopen::adam::InvokeParams>();
                 decltype(auto) numel       = params.paramDesc->GetElementSize();
                 auto elapsed               = 0.f;
-
-                kernel_adam.ldims = {local_size, 1, 1};
-                kernel_adam.gdims = {std::min(max_gdim, AlignUp(numel, local_size)), 1, 1};
 
                 kernel_adam(params.paramIn,
                             params.paramOut,
@@ -125,33 +122,27 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
                             params.maximize,
                             numel);
 
-                if(params.stepOut != nullptr)
+                if(handle_.IsProfilingEnabled())
+                    elapsed = handle_.GetKernelTime();
+
+                kernel_step(params.foundInf, params.stepIn, params.stepOut);
+
+                if(handle_.IsProfilingEnabled())
                 {
-                    if(handle_.IsProfilingEnabled())
-                        elapsed = handle_.GetKernelTime();
-
-                    kernel_step(params.foundInf, params.stepIn, params.stepOut);
-
-                    if(handle_.IsProfilingEnabled())
-                    {
-                        elapsed += handle_.GetKernelTime();
-                        handle_.ResetKernelTime();
-                        handle_.AccumKernelTime(elapsed);
-                    }
+                    elapsed += handle_.GetKernelTime();
+                    handle_.ResetKernelTime();
+                    handle_.AccumKernelTime(elapsed);
                 }
             };
         };
     }
     else
     {
-        result.invoker_factory = [max_gdim](const std::vector<Kernel>& kernels) {
+        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel = handle_.Run(kernels.front());
                 decltype(auto) params = raw_params.CastTo<miopen::adam::InvokeParams>();
                 decltype(auto) numel  = params.paramDesc->GetElementSize();
-
-                kernel.ldims = {local_size, 1, 1};
-                kernel.gdims = {std::min(max_gdim, AlignUp(numel, local_size)), 1, 1};
 
                 kernel(params.paramIn,
                        params.paramOut,

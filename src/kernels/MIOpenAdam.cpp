@@ -214,6 +214,10 @@ extern "C" __global__ void AmpAdamPacked(PTYPE* param_in,
 
 extern "C" __global__ void AdamUpdateStep(bool* found_inf, int* step_in, int* step_out)
 {
+    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    if(gid != 0)
+        return;
+
     if(found_inf && *found_inf)
         return;
 

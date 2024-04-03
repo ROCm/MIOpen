@@ -87,6 +87,10 @@ struct ProblemDescription : ProblemDescriptionBase
         if(gradScaleDesc != nullptr || foundInfDesc != nullptr)
             is_amp = true;
 
+        if(is_amp && (stepInDesc == nullptr || stepOutDesc == nullptr))
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "AmpAdam: In amp adam, State step tensor is required.");
+
         if(amsgrad && (maxExpAvgSqInDesc == nullptr || maxExpAvgSqOutDesc == nullptr))
         {
             MIOPEN_THROW(miopenStatusBadParm,
