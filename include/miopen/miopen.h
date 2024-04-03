@@ -6461,7 +6461,7 @@ MIOPEN_EXPORT miopenStatus_t miopenAdam(miopenHandle_t handle,
  * @param paramOutDesc        Tensor descriptor for the output parameter tensor (input)
  * @param paramOut            Output parameter tensor (output)
  * @param paramOutFloat16Desc Tensor descriptor for the output parameter tensor float16 (input)
- * @param paramOutFloat16      Output parameter tensor (output)
+ * @param paramOutFloat16     Output parameter tensor (output)
  * @param expAvgOutDesc       Tensor descriptor for the output exponential moving average tensor
  *                            (input)
  * @param expAvgOut           Output exponential moving average tensor (output)

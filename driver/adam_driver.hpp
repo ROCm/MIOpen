@@ -270,13 +270,13 @@ template <typename Tgpu, typename Tref, bool is_amp, typename Tgrad>
 int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward GroupNorm (Default=1)", "int");
-    inflags.AddTensorFlag("shape", 'S', "64x32x128", "params tensor shape (Default=64x32x128)");
+    inflags.AddTensorFlag("dims", 'd', "64x32x128", "params tensor dims (Default=64x32x128)");
 
     inflags.AddInputFlag("lr", 'l', "0.001", "learning rate (Default=0.001)", "float");
     inflags.AddInputFlag("beta1", '1', "0.9", "beta1 (Default=0.9)", "float");
     inflags.AddInputFlag("beta2", '2', "0.999", "beta2 (Default=0.999)", "float");
     inflags.AddInputFlag("eps", 'e', "0.00000001", "eps (Default=0.00000001)", "float");
-    inflags.AddInputFlag("weight_decay", 'd', "0", "weight decay (Default=0)", "float");
+    inflags.AddInputFlag("weight_decay", 'W', "0", "weight decay (Default=0)", "float");
     inflags.AddInputFlag("amsgrad", 'a', "0", "whether to use the AMSGrad (Default=0)", "int");
     inflags.AddInputFlag("maximize", 'm', "0", "whether to use the maximize (Default=0)", "int");
 
@@ -299,7 +299,7 @@ template <typename Tgpu, typename Tref, bool is_amp, typename Tgrad>
 std::vector<int> AdamDriver<Tgpu, Tref, is_amp, Tgrad>::GetInputTensorLengthsFromCmdLine()
 {
     std::vector<int> ret;
-    auto tensor = inflags.GetValueTensor("shape");
+    auto tensor = inflags.GetValueTensor("dims");
     if(!tensor.lengths.empty())
         return tensor.lengths;
     return ret;

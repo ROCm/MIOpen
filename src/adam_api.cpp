@@ -65,9 +65,8 @@ static void LogCmdAdam(const miopenTensorDescriptor_t paramDesc,
             batch_sz += "x";
         }
         batch_sz.pop_back();
-        ss << " --shape " << batch_sz << " --lr " << lr << " --beta1 " << beta1 << " --beta2 "
-           << beta2 << " --eps " << eps << " --weight_decay " << weight_decay << " --amsgrad "
-           << amsgrad << " --maximize " << maximize;
+        ss << " -d " << batch_sz << " -l " << lr << " -1 " << beta1 << " -2 " << beta2 << " -e "
+           << eps << " -W " << weight_decay << " -a " << amsgrad << " -m " << maximize;
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 }

@@ -113,7 +113,8 @@ struct ProblemDescription : ProblemDescriptionBase
             MIOPEN_THROW(miopenStatusBadParm, "Adam: bfloat16 type is not supported.");
         }
 
-        if((paramOutFloat16Desc != nullptr) && (paramOutFloat16Desc->GetType() != miopenHalf))
+        if(is_amp && (paramOutFloat16Desc != nullptr) &&
+           (paramOutFloat16Desc->GetType() != miopenHalf))
         {
             MIOPEN_THROW(miopenStatusBadParm, "Adam: Invalid type of param_out_float16.");
         }
@@ -123,7 +124,8 @@ struct ProblemDescription : ProblemDescriptionBase
            (expAvgOutDesc.GetElementSize() != numel) ||
            (expAvgSqInDesc.GetElementSize() != numel) ||
            (expAvgSqOutDesc.GetElementSize() != numel) ||
-           (paramOutFloat16Desc != nullptr && paramOutFloat16Desc->GetElementSize() != numel) ||
+           (is_amp && paramOutFloat16Desc != nullptr &&
+            paramOutFloat16Desc->GetElementSize() != numel) ||
            (maxExpAvgSqInDesc != nullptr && maxExpAvgSqInDesc->GetElementSize() != numel) ||
            (maxExpAvgSqOutDesc != nullptr && maxExpAvgSqOutDesc->GetElementSize() != numel))
         {
