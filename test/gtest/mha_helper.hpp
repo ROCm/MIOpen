@@ -103,10 +103,6 @@ template <typename T1, typename T2>
 void Dot_4D_4D_T(const tensor<T1>& A_mat, const tensor<T1>& B_mat, tensor<T2>& C_mat)
 {
     size_t k_val = A_mat.desc.GetLengths()[3];
-    if(k_val != B_mat.desc.GetLengths()[3])
-    {
-        std::cout << "jere\n";
-    }
     assert(k_val == B_mat.desc.GetLengths()[3]); // since transpose
 
     C_mat.par_for_each([&](size_t b_id, size_t h_id, size_t sl_id, size_t dk_id) {
@@ -124,10 +120,6 @@ template <typename T1, typename T2>
 void Dot_4D_T_4D(const tensor<T1>& A_mat, const tensor<T1>& B_mat, tensor<T2>& C_mat)
 {
     size_t k_val = A_mat.desc.GetLengths()[3];
-    if(k_val != B_mat.desc.GetLengths()[3])
-    {
-        std::cout << "jere\n";
-    }
     assert(k_val == B_mat.desc.GetLengths()[2]); // since transpose
 
     C_mat.par_for_each([&](size_t b_id, size_t h_id, size_t sl_id, size_t dk_id) {
