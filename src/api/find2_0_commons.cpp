@@ -300,7 +300,7 @@ inline std::ostream& operator<<(std::ostream& stream, const miopenTensorArgument
     case miopenTensorSoftmaxY: stream << "SoftmaxY"; break;
     case miopenTensorSoftmaxDX: stream << "SoftmaxDX"; break;
     case miopenTensorSoftmaxDY: stream << "SoftmaxDY"; break;
-
+    case miopenTensorArgumentIsScalar: stream << "ScalarArgument"; break;
     case miopenTensorArgumentIdInvalid: stream << "Invalid"; break;
     }
 
