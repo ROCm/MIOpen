@@ -102,7 +102,7 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
 
                 kernel_adam(params.paramIn,
                             params.paramOut,
-                            nullptr,
+                            params.paramOutFloat16,
                             params.gradIn,
                             params.expAvgIn,
                             params.expAvgOut,

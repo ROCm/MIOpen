@@ -50,9 +50,9 @@ inline __device__ void AdamInternal(T1* param_in,
                                     bool maximize,
                                     size_t gid)
 {
-    T2 param      = param_in[gid];
-    T2 exp_avg    = exp_avg_in[gid];
-    T2 exp_avg_sq = exp_avg_sq_in[gid];
+    T2 param      = static_cast<T2>(param_in[gid]);
+    T2 exp_avg    = static_cast<T2>(exp_avg_in[gid]);
+    T2 exp_avg_sq = static_cast<T2>(exp_avg_sq_in[gid]);
 
     __builtin_assume(exp_avg_sq >= 0 && exp_avg_sq <= 1);
     __builtin_assume(step >= 0);
@@ -73,10 +73,10 @@ inline __device__ void AdamInternal(T1* param_in,
     T2 denom;
     if(amsgrad)
     {
-        T2 max_exp_avg_sq = max_exp_avg_sq_in[gid];
+        T2 max_exp_avg_sq = static_cast<T2>(max_exp_avg_sq_in[gid]);
         __builtin_assume(max_exp_avg_sq >= 0 && max_exp_avg_sq <= 1);
         max_exp_avg_sq          = max(max_exp_avg_sq, exp_avg_sq);
-        max_exp_avg_sq_out[gid] = max_exp_avg_sq;
+        max_exp_avg_sq_out[gid] = static_cast<T1>(max_exp_avg_sq);
         denom                   = sqrt(max_exp_avg_sq) / sqrt(bias_correction2) + eps;
     }
     else
@@ -87,9 +87,9 @@ inline __device__ void AdamInternal(T1* param_in,
     T2 step_size = lr / bias_correction1;
     param        = param - step_size * exp_avg / denom;
 
-    param_out[gid]      = param;
-    exp_avg_out[gid]    = exp_avg;
-    exp_avg_sq_out[gid] = exp_avg_sq;
+    param_out[gid]      = static_cast<T1>(param);
+    exp_avg_out[gid]    = static_cast<T1>(exp_avg);
+    exp_avg_sq_out[gid] = static_cast<T1>(exp_avg_sq);
 }
 
 extern "C" __global__ void AdamPacked(PTYPE* param_in,
@@ -116,7 +116,7 @@ extern "C" __global__ void AdamPacked(PTYPE* param_in,
 
     for(; gid < input_size; gid += gsz)
     {
-        CTYPE grad = grad_in[gid];
+        CTYPE grad = static_cast<CTYPE>(grad_in[gid]);
 
         AdamInternal<PTYPE, CTYPE>(param_in,
                                    param_out,
@@ -185,7 +185,7 @@ extern "C" __global__ void AmpAdamPacked(PTYPE* param_in,
 
     for(; gid < input_size; gid += gsz)
     {
-        CTYPE grad = grad_in[gid];
+        CTYPE grad = static_cast<CTYPE>(grad_in[gid]);
         grad /= scale_factor;
 
         AdamInternal<PTYPE, CTYPE>(param_in,
@@ -208,13 +208,14 @@ extern "C" __global__ void AmpAdamPacked(PTYPE* param_in,
                                    gid);
 
         if(param_out_fp16)
-            param_out_fp16[gid] = (half)param_out[gid];
+            param_out_fp16[gid] = static_cast<half>(param_out[gid]);
     }
 }
 
 extern "C" __global__ void AdamUpdateStep(bool* found_inf, int* step_in, int* step_out)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+
     if(gid != 0)
         return;
 

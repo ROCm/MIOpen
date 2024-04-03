@@ -148,6 +148,12 @@ protected:
 
         if(is_amp)
         {
+            param_fp16 = tensor<half_float::half>{dims};
+            std::fill(param_fp16.begin(),
+                      param_fp16.end(),
+                      std::numeric_limits<half_float::half>::quiet_NaN());
+            param_fp16_dev = handle.Write(param_fp16.data);
+
             step[0]       = 0;
             grad_scale[0] = 65536;
             found_inf[0]  = 0;
@@ -196,6 +202,8 @@ protected:
                                       param_dev.get(),
                                       param.desc,
                                       param_dev.get(),
+                                      &param_fp16.desc,
+                                      param_fp16_dev.get(),
                                       grad.desc,
                                       grad_dev.get(),
                                       exp_avg.desc,
@@ -234,6 +242,8 @@ protected:
                                       param_dev.get(),
                                       param.desc,
                                       param_dev.get(),
+                                      nullptr,
+                                      nullptr,
                                       grad.desc,
                                       grad_dev.get(),
                                       exp_avg.desc,
@@ -269,6 +279,9 @@ protected:
         }
 
         param.data = handle.Read<Tp>(param_dev, param.data.size());
+
+        if(is_amp)
+            param_fp16.data = handle.Read<half_float::half>(param_fp16_dev, param_fp16.data.size());
     }
 
     void Verify()
@@ -279,10 +292,21 @@ protected:
         EXPECT_TRUE(miopen::range_distance(ref_param) == miopen::range_distance(param));
         EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance Error:" << error
                                             << ",  Thresholdx10: " << threshold * 10;
+
+        if(is_amp)
+        {
+            auto error_fp16 = miopen::rms_range(param, param_fp16);
+
+            EXPECT_TRUE(miopen::range_distance(param) == miopen::range_distance(param_fp16));
+            EXPECT_TRUE(error_fp16 < threshold * 1000)
+                << "Error output beyond tolerance Error:" << error_fp16
+                << ",  Thresholdx1000: " << threshold * 1000;
+        }
     }
     AdamTestCase adam_config;
 
     tensor<Tp> param;
+    tensor<half_float::half> param_fp16;
     tensor<Tp> ref_param;
     tensor<Tg> grad;
     tensor<Tp> exp_avg;
@@ -293,6 +317,7 @@ protected:
     tensor<int> grad_scale{1};
 
     miopen::Allocator::ManageDataPtr param_dev;
+    miopen::Allocator::ManageDataPtr param_fp16_dev;
     miopen::Allocator::ManageDataPtr grad_dev;
     miopen::Allocator::ManageDataPtr exp_avg_dev;
     miopen::Allocator::ManageDataPtr exp_avg_sq_dev;

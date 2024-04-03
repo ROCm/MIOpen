@@ -41,6 +41,7 @@ struct InvokeParams : public miopen::InvokeParams
 
     ConstData_t paramIn       = nullptr;
     Data_t paramOut           = nullptr;
+    Data_t paramOutFloat16    = nullptr;
     ConstData_t gradIn        = nullptr;
     ConstData_t expAvgIn      = nullptr;
     Data_t expAvgOut          = nullptr;

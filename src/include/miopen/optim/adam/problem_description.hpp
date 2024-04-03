@@ -43,6 +43,7 @@ struct ProblemDescription : ProblemDescriptionBase
 {
     ProblemDescription(const TensorDescriptor& paramInDesc_,
                        const TensorDescriptor& paramOutDesc_,
+                       const TensorDescriptor* paramOutFloat16Desc_,
                        const TensorDescriptor& gradInDesc_,
                        const TensorDescriptor& expAvgInDesc_,
                        const TensorDescriptor& expAvgOutDesc_,
@@ -69,6 +70,7 @@ struct ProblemDescription : ProblemDescriptionBase
           expAvgOutDesc(expAvgOutDesc_),
           expAvgSqInDesc(expAvgSqInDesc_),
           expAvgSqOutDesc(expAvgSqOutDesc_),
+          paramOutFloat16Desc(paramOutFloat16Desc_),
           maxExpAvgSqInDesc(maxExpAvgSqInDesc_),
           maxExpAvgSqOutDesc(maxExpAvgSqOutDesc_),
           gradScaleDesc(gradScaleDesc_),
@@ -112,12 +114,19 @@ struct ProblemDescription : ProblemDescriptionBase
             MIOPEN_THROW(miopenStatusBadParm, "Adam: bfloat16 type is not supported.");
         }
 
+        if((paramOutFloat16Desc != nullptr) && (paramOutFloat16Desc->GetType() != miopenHalf))
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Adam: Invalid type of param_out_float16.");
+        }
+
         auto numel = paramInDesc.GetElementSize();
-        if((paramOutDesc.GetElementSize() != numel) || (expAvgInDesc.GetElementSize() < numel) ||
-           (expAvgOutDesc.GetElementSize() < numel) || (expAvgSqInDesc.GetElementSize() < numel) ||
-           (expAvgSqOutDesc.GetElementSize() < numel) ||
-           (maxExpAvgSqInDesc != nullptr && maxExpAvgSqInDesc->GetElementSize() < numel) ||
-           (maxExpAvgSqOutDesc != nullptr && maxExpAvgSqOutDesc->GetElementSize() < numel))
+        if((paramOutDesc.GetElementSize() != numel) || (expAvgInDesc.GetElementSize() != numel) ||
+           (expAvgOutDesc.GetElementSize() != numel) ||
+           (expAvgSqInDesc.GetElementSize() != numel) ||
+           (expAvgSqOutDesc.GetElementSize() != numel) ||
+           (paramOutFloat16Desc != nullptr && paramOutFloat16Desc->GetElementSize() != numel) ||
+           (maxExpAvgSqInDesc != nullptr && maxExpAvgSqInDesc->GetElementSize() != numel) ||
+           (maxExpAvgSqOutDesc != nullptr && maxExpAvgSqOutDesc->GetElementSize() != numel))
         {
             MIOPEN_THROW(miopenStatusBadParm, "Adam: Tensor dimension lengths do not match.");
         }
@@ -145,12 +154,13 @@ private:
     TensorDescriptor expAvgOutDesc{};
     TensorDescriptor expAvgSqInDesc{};
     TensorDescriptor expAvgSqOutDesc{};
-    const TensorDescriptor* maxExpAvgSqInDesc  = nullptr;
-    const TensorDescriptor* maxExpAvgSqOutDesc = nullptr;
-    const TensorDescriptor* gradScaleDesc      = nullptr;
-    const TensorDescriptor* foundInfDesc       = nullptr;
-    const TensorDescriptor* stepInDesc         = nullptr;
-    const TensorDescriptor* stepOutDesc        = nullptr;
+    const TensorDescriptor* paramOutFloat16Desc = nullptr;
+    const TensorDescriptor* maxExpAvgSqInDesc   = nullptr;
+    const TensorDescriptor* maxExpAvgSqOutDesc  = nullptr;
+    const TensorDescriptor* gradScaleDesc       = nullptr;
+    const TensorDescriptor* foundInfDesc        = nullptr;
+    const TensorDescriptor* stepInDesc          = nullptr;
+    const TensorDescriptor* stepOutDesc         = nullptr;
 
     int32_t step        = 0;
     double lr           = 0.0;

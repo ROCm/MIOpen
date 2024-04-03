@@ -126,6 +126,8 @@ extern "C" miopenStatus_t miopenAdam(miopenHandle_t handle,
                      DataCast(paramIn),
                      miopen::deref(paramOutDesc),
                      DataCast(paramOut),
+                     nullptr,
+                     nullptr,
                      miopen::deref(gradInDesc),
                      DataCast(gradIn),
                      miopen::deref(expAvgInDesc),
@@ -185,6 +187,8 @@ extern "C" miopenStatus_t miopenAmpAdam(miopenHandle_t handle,
                                         const bool maximize,
                                         const miopenTensorDescriptor_t paramOutDesc,
                                         void* paramOut,
+                                        const miopenTensorDescriptor_t paramOutFloat16Desc,
+                                        void* paramOutFloat16,
                                         const miopenTensorDescriptor_t expAvgOutDesc,
                                         void* expAvgOut,
                                         const miopenTensorDescriptor_t expAvgSqOutDesc,
@@ -230,6 +234,8 @@ extern "C" miopenStatus_t miopenAmpAdam(miopenHandle_t handle,
                         stepOut);
 
     LogCmdAdam(paramInDesc);
+    auto paramOutFloat16DescPtr =
+        (paramOutFloat16Desc != nullptr) ? &miopen::deref(paramOutFloat16Desc) : nullptr;
     auto maxExpAvgSqInDescPtr =
         (maxExpAvgSqInDesc != nullptr) ? &miopen::deref(maxExpAvgSqInDesc) : nullptr;
     auto maxExpAvgSqOutDescPtr =
@@ -243,6 +249,8 @@ extern "C" miopenStatus_t miopenAmpAdam(miopenHandle_t handle,
                      DataCast(paramIn),
                      miopen::deref(paramOutDesc),
                      DataCast(paramOut),
+                     paramOutFloat16DescPtr,
+                     DataCast(paramOutFloat16),
                      miopen::deref(gradInDesc),
                      DataCast(gradIn),
                      miopen::deref(expAvgInDesc),

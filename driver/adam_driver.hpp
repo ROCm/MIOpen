@@ -443,6 +443,8 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::RunForwardGPU()
                           maximize,
                           paramDesc,
                           param_dev->GetMem(),
+                          nullptr,
+                          nullptr,
                           expAvgDesc,
                           exp_avg_dev->GetMem(),
                           expAvgSqDesc,

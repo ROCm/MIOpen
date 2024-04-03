@@ -40,6 +40,8 @@ miopenStatus_t Adam(Handle& handle,
                     ConstData_t paramIn,
                     const TensorDescriptor& paramOutDesc,
                     Data_t paramOut,
+                    const TensorDescriptor* paramOutFloat16Desc,
+                    Data_t paramOutFloat16,
                     const TensorDescriptor& gradInDesc,
                     ConstData_t gradIn,
                     const TensorDescriptor& expAvgInDesc,
@@ -73,6 +75,7 @@ miopenStatus_t Adam(Handle& handle,
 {
     const auto problem = adam::ProblemDescription{paramInDesc,
                                                   paramOutDesc,
+                                                  paramOutFloat16Desc,
                                                   gradInDesc,
                                                   expAvgInDesc,
                                                   expAvgOutDesc,
@@ -97,21 +100,22 @@ miopenStatus_t Adam(Handle& handle,
         auto tmp = adam::InvokeParams{};
         tmp.type = InvokeType::Run;
 
-        tmp.paramDesc      = &paramInDesc;
-        tmp.gradDesc       = &gradInDesc;
-        tmp.paramIn        = paramIn;
-        tmp.paramOut       = paramOut;
-        tmp.gradIn         = gradIn;
-        tmp.expAvgIn       = expAvgIn;
-        tmp.expAvgOut      = expAvgOut;
-        tmp.expAvgSqIn     = expAvgSqIn;
-        tmp.expAvgSqOut    = expAvgSqOut;
-        tmp.maxExpAvgSqIn  = maxExpAvgSqIn;
-        tmp.maxExpAvgSqOut = maxExpAvgSqOut;
-        tmp.gradScale      = gradScale;
-        tmp.foundInf       = foundInf;
-        tmp.stepIn         = stepIn;
-        tmp.stepOut        = stepOut;
+        tmp.paramDesc       = &paramInDesc;
+        tmp.gradDesc        = &gradInDesc;
+        tmp.paramIn         = paramIn;
+        tmp.paramOut        = paramOut;
+        tmp.paramOutFloat16 = paramOutFloat16;
+        tmp.gradIn          = gradIn;
+        tmp.expAvgIn        = expAvgIn;
+        tmp.expAvgOut       = expAvgOut;
+        tmp.expAvgSqIn      = expAvgSqIn;
+        tmp.expAvgSqOut     = expAvgSqOut;
+        tmp.maxExpAvgSqIn   = maxExpAvgSqIn;
+        tmp.maxExpAvgSqOut  = maxExpAvgSqOut;
+        tmp.gradScale       = gradScale;
+        tmp.foundInf        = foundInf;
+        tmp.stepIn          = stepIn;
+        tmp.stepOut         = stepOut;
 
         tmp.step         = step;
         tmp.lr           = lr;
