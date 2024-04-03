@@ -27,10 +27,8 @@
 #pragma once
 
 #include <miopen/problem_description_base.hpp>
-#include <miopen/activ.hpp>
 #include <miopen/tensor.hpp>
 
-#include <cassert>
 #include <string>
 
 namespace miopen {
@@ -135,7 +133,6 @@ struct ProblemDescription : ProblemDescriptionBase
 
     const TensorDescriptor& GetParamDesc() const { return paramInDesc; }
     const TensorDescriptor& GetGradDesc() const { return gradInDesc; }
-    bool ExistStepOut() const { return (stepOutDesc != nullptr); }
     bool IsAmp() const { return is_amp; }
     bool IsAllPacked() const
     {
