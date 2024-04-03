@@ -71,7 +71,8 @@ miopenStatus_t Adam(Handle& handle,
                     const float weight_decay,
                     const float eps,
                     const bool amsgrad,
-                    const bool maximize)
+                    const bool maximize,
+                    const bool is_amp)
 {
     const auto problem = adam::ProblemDescription{paramInDesc,
                                                   paramOutDesc,
@@ -94,7 +95,8 @@ miopenStatus_t Adam(Handle& handle,
                                                   weight_decay,
                                                   eps,
                                                   amsgrad,
-                                                  maximize};
+                                                  maximize,
+                                                  is_amp};
 
     const auto invoke_params = [&]() {
         auto tmp = adam::InvokeParams{};

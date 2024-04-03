@@ -233,7 +233,8 @@ protected:
                                       weight_decay,
                                       eps,
                                       amsgrad,
-                                      maximize);
+                                      maximize,
+                                      is_amp);
             }
             else
             {
@@ -273,7 +274,8 @@ protected:
                                       weight_decay,
                                       eps,
                                       amsgrad,
-                                      maximize);
+                                      maximize,
+                                      is_amp);
             }
             EXPECT_EQ(status, miopenStatusSuccess);
         }

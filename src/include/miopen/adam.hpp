@@ -69,7 +69,8 @@ miopenStatus_t Adam(Handle& handle,
                     float weight_decay,
                     float eps,
                     bool amsgrad,
-                    bool maximize);
+                    bool maximize,
+                    bool is_amp);
 
 } // namespace miopen
 #endif // _MIOPEN_ADAM_HPP_

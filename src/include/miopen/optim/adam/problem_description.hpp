@@ -62,7 +62,8 @@ struct ProblemDescription : ProblemDescriptionBase
                        double weight_decay_,
                        double eps_,
                        bool amsgrad_,
-                       bool maximize_)
+                       bool maximize_,
+                       bool is_amp_)
         : paramInDesc(paramInDesc_),
           paramOutDesc(paramOutDesc_),
           gradInDesc(gradInDesc_),
@@ -84,11 +85,9 @@ struct ProblemDescription : ProblemDescriptionBase
           weight_decay(weight_decay_),
           eps(eps_),
           amsgrad(amsgrad_),
-          maximize(maximize_)
+          maximize(maximize_),
+          is_amp(is_amp_)
     {
-        if(gradScaleDesc != nullptr || foundInfDesc != nullptr)
-            is_amp = true;
-
         if(is_amp && (stepInDesc == nullptr || stepOutDesc == nullptr))
             MIOPEN_THROW(miopenStatusBadParm,
                          "AmpAdam: In amp adam, State step tensor is required.");

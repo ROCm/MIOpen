@@ -29,19 +29,32 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
-static void LogCmdAdam(const miopenTensorDescriptor_t paramDesc)
+static void LogCmdAdam(const miopenTensorDescriptor_t paramDesc,
+                       const float lr,
+                       const float beta1,
+                       const float beta2,
+                       const float weight_decay,
+                       const float eps,
+                       const bool amsgrad,
+                       const bool maximize,
+                       const bool is_amp)
 {
     if(miopen::IsLoggingCmd())
     {
         std::stringstream ss;
         auto dtype = miopen::deref(paramDesc).GetType();
-        if(dtype == miopenFloat)
+        if(is_amp)
+        {
+            ss << "ampadam";
+        }
+        else
         {
             ss << "adam";
         }
-        else if(dtype == miopenBFloat16)
+
+        if(dtype == miopenHalf)
         {
-            ss << "adamf16";
+            ss << "f16";
         }
 
         std::string batch_sz;
@@ -49,11 +62,12 @@ static void LogCmdAdam(const miopenTensorDescriptor_t paramDesc)
         for(auto dim : dims)
         {
             batch_sz += std::to_string(dim);
-            batch_sz += ",";
+            batch_sz += "x";
         }
         batch_sz.pop_back();
-        ss << " -dims " << batch_sz;
-
+        ss << " --shape " << batch_sz << " --lr " << lr << " --beta1 " << beta1 << " --beta2 "
+           << beta2 << " --eps " << eps << " --weight_decay " << weight_decay << " --amsgrad "
+           << amsgrad << " --maximize " << maximize;
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 }
@@ -86,6 +100,7 @@ extern "C" miopenStatus_t miopenAdam(miopenHandle_t handle,
                                      const miopenTensorDescriptor_t maxExpAvgSqOutDesc,
                                      void* maxExpAvgSqOut)
 {
+    constexpr bool is_amp = false;
     MIOPEN_LOG_FUNCTION(handle,
                         paramInDesc,
                         paramIn,
@@ -114,7 +129,8 @@ extern "C" miopenStatus_t miopenAdam(miopenHandle_t handle,
                         maxExpAvgSqOutDesc,
                         maxExpAvgSqOut);
 
-    LogCmdAdam(paramInDesc);
+    LogCmdAdam(paramInDesc, lr, beta1, beta2, weight_decay, eps, amsgrad, maximize, is_amp);
+
     auto maxExpAvgSqInDescPtr =
         (maxExpAvgSqInDesc != nullptr) ? &miopen::deref(maxExpAvgSqInDesc) : nullptr;
     auto maxExpAvgSqOutDescPtr =
@@ -157,7 +173,8 @@ extern "C" miopenStatus_t miopenAdam(miopenHandle_t handle,
                      weight_decay,
                      eps,
                      amsgrad,
-                     maximize);
+                     maximize,
+                     is_amp);
     });
 }
 
@@ -198,6 +215,7 @@ extern "C" miopenStatus_t miopenAmpAdam(miopenHandle_t handle,
                                         const miopenTensorDescriptor_t stepOutDesc,
                                         void* stepOut)
 {
+    constexpr bool is_amp = true;
     MIOPEN_LOG_FUNCTION(handle,
                         paramInDesc,
                         paramIn,
@@ -233,7 +251,8 @@ extern "C" miopenStatus_t miopenAmpAdam(miopenHandle_t handle,
                         stepOutDesc,
                         stepOut);
 
-    LogCmdAdam(paramInDesc);
+    LogCmdAdam(paramInDesc, lr, beta1, beta2, weight_decay, eps, amsgrad, maximize, is_amp);
+
     auto paramOutFloat16DescPtr =
         (paramOutFloat16Desc != nullptr) ? &miopen::deref(paramOutFloat16Desc) : nullptr;
     auto maxExpAvgSqInDescPtr =
@@ -280,6 +299,7 @@ extern "C" miopenStatus_t miopenAmpAdam(miopenHandle_t handle,
                      weight_decay,
                      eps,
                      amsgrad,
-                     maximize);
+                     maximize,
+                     is_amp);
     });
 }
