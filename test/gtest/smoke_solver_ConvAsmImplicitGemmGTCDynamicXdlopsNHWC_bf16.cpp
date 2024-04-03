@@ -30,7 +30,6 @@
 
 #include "../conv2d.hpp"
 
-
 namespace {
 
 auto GetTestCases()

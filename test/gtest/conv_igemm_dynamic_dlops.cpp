@@ -145,11 +145,7 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest()
-{
-    return get_handle_xnack() ||
-           miopen::IsDisabled(ENV(MIOPEN_TEST_ALL));
-}
+bool SkipTest() { return get_handle_xnack() || miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)); }
 
 bool IsTestSupportedForDevice()
 {

@@ -28,8 +28,8 @@
 
 bool get_handle_xnack()
 {
-    auto& handle = get_handle();
+    auto& handle    = get_handle();
     auto is_xnack_b = handle.GetTargetProperties().Xnack();
-    bool is_xnack = (is_xnack_b) ? *is_xnack_b : false;
+    bool is_xnack   = (is_xnack_b) ? *is_xnack_b : false;
     return is_xnack;
 }
