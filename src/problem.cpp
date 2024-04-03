@@ -180,7 +180,7 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
             [&](const ActivationDescriptor& /*op_desc*/) -> std::vector<Solution> {
                 MIOPEN_THROW(miopenStatusNotImplemented);
             },
-            [&](const MHADescriptor& op_desc) {
+            [&](const MhaDescriptor& op_desc) {
                 return FindSolutionsImpl(handle, options, max_solutions, buffers, op_desc);
             },
             [&](const BiasDescriptor& /*op_desc*/) -> std::vector<Solution> {
@@ -282,37 +282,37 @@ activ::ProblemDescription Problem::AsActivation() const
     }
 }
 
-mha::ProblemDescription Problem::AsMHA() const
+mha::ProblemDescription Problem::AsMha() const
 {
-    const auto& mha_desc = boost::get<MHADescriptor>(operator_descriptor);
+    const auto& mha_desc = boost::get<MhaDescriptor>(operator_descriptor);
 
     if(GetDirection() == miopenProblemDirectionBackward)
     {
-        MIOPEN_THROW(miopenStatusNotImplemented, "MHA Backward is not currently implemented!");
+        MIOPEN_THROW(miopenStatusNotImplemented, "Mha Backward is not currently implemented!");
     }
 
-    mha::MHAInputDescsForward mhaInputDescsForward = {
-        GetTensorDescriptorChecked(miopenTensorMHAK, "miopenTensorMHAK"),
-        GetTensorDescriptorChecked(miopenTensorMHAQ, "miopenTensorMHAQ"),
-        GetTensorDescriptorChecked(miopenTensorMHAV, "miopenTensorMHAV"),
-        GetTensorDescriptorChecked(miopenTensorMHADescaleK, "miopenTensorMHADescaleK"),
-        GetTensorDescriptorChecked(miopenTensorMHADescaleQ, "miopenTensorMHADescaleQ"),
-        GetTensorDescriptorChecked(miopenTensorMHADescaleV, "miopenTensorMHADescaleV"),
-        GetTensorDescriptorChecked(miopenTensorMHADescaleS, "miopenTensorMHADescaleS"),
-        GetTensorDescriptorChecked(miopenTensorMHAScaleS, "miopenTensorMHAScaleS"),
-        GetTensorDescriptorChecked(miopenTensorMHAScaleO, "miopenTensorMHAScaleO"),
+    mha::MhaInputDescsForward mhaInputDescsForward = {
+        GetTensorDescriptorChecked(miopenTensorMhaK, "miopenTensorMhaK"),
+        GetTensorDescriptorChecked(miopenTensorMhaQ, "miopenTensorMhaQ"),
+        GetTensorDescriptorChecked(miopenTensorMhaV, "miopenTensorMhaV"),
+        GetTensorDescriptorChecked(miopenTensorMhaDescaleK, "miopenTensorMhaDescaleK"),
+        GetTensorDescriptorChecked(miopenTensorMhaDescaleQ, "miopenTensorMhaDescaleQ"),
+        GetTensorDescriptorChecked(miopenTensorMhaDescaleV, "miopenTensorMhaDescaleV"),
+        GetTensorDescriptorChecked(miopenTensorMhaDescaleS, "miopenTensorMhaDescaleS"),
+        GetTensorDescriptorChecked(miopenTensorMhaScaleS, "miopenTensorMhaScaleS"),
+        GetTensorDescriptorChecked(miopenTensorMhaScaleO, "miopenTensorMhaScaleO"),
 
         mha_desc.GetScale(),
-        GetTensorDescriptorChecked(miopenTensorMHADropoutProbability,
-                                   "miopenTensorMHADropoutProbability"),
-        GetTensorDescriptorChecked(miopenTensorMHADropoutSeed, "miopenTensorMHADropoutSeed"),
-        GetTensorDescriptorChecked(miopenTensorMHADropoutOffset, "miopenTensorMHADropoutOffset"),
+        GetTensorDescriptorChecked(miopenTensorMhaDropoutProbability,
+                                   "miopenTensorMhaDropoutProbability"),
+        GetTensorDescriptorChecked(miopenTensorMhaDropoutSeed, "miopenTensorMhaDropoutSeed"),
+        GetTensorDescriptorChecked(miopenTensorMhaDropoutOffset, "miopenTensorMhaDropoutOffset"),
 
-        GetTensorDescriptorChecked(miopenTensorMHAO, "miopenTensorMHAO"),
-        GetTensorDescriptorChecked(miopenTensorMHAAmaxO, "miopenTensorMHAAmaxO"),
-        GetTensorDescriptorChecked(miopenTensorMHAAmaxS, "miopenTensorMHAAmaxS"),
-        GetTensorDescriptorChecked(miopenTensorMHAM, "miopenTensorMHAM"),
-        GetTensorDescriptorChecked(miopenTensorMHAZInv, "miopenTensorMHAZInv"),
+        GetTensorDescriptorChecked(miopenTensorMhaO, "miopenTensorMhaO"),
+        GetTensorDescriptorChecked(miopenTensorMhaAmaxO, "miopenTensorMhaAmaxO"),
+        GetTensorDescriptorChecked(miopenTensorMhaAmaxS, "miopenTensorMhaAmaxS"),
+        GetTensorDescriptorChecked(miopenTensorMhaM, "miopenTensorMhaM"),
+        GetTensorDescriptorChecked(miopenTensorMhaZInv, "miopenTensorMhaZInv"),
     };
 
     return {mhaInputDescsForward};
@@ -559,19 +559,19 @@ Problem::FindSolutionsImpl(Handle& handle,
                            [[maybe_unused]] const FindOptions& options,
                            std::size_t max_solutions,
                            [[maybe_unused]] const Buffers& buffers,
-                           [[maybe_unused]] const MHADescriptor& mha_desc) const
+                           [[maybe_unused]] const MhaDescriptor& mha_desc) const
 {
     auto ret = std::vector<Solution>{};
 
     auto ctx = ExecutionContext{&handle};
 
-    const mha::ProblemDescription problem_description = AsMHA();
+    const mha::ProblemDescription problem_description = AsMha();
 
-    const auto algo = AlgorithmName{"MHA"};
+    const auto algo = AlgorithmName{"Mha"};
 
-    static solver::mha::MHA mhaSolver;
+    static solver::mha::Mha mhaSolver;
 
-    std::vector<solver::mha::MHASolver*> solvers;
+    std::vector<solver::mha::MhaSolver*> solvers;
 
     solvers.push_back(&mhaSolver);
 
@@ -634,7 +634,7 @@ void Problem::LogDriverCommand() const
         boost::hof::match([&](const ConvolutionDescriptor& op_desc) { LogDriverCommand(op_desc); },
                           [&](const ActivationDescriptor& op_desc) { LogDriverCommand(op_desc); },
                           [&](const BiasDescriptor&) {},
-                          [&](const MHADescriptor&) {},
+                          [&](const MhaDescriptor&) {},
                           [&](const SoftmaxDescriptor&) {});
 
     boost::apply_visitor(log_function, operator_descriptor);
@@ -756,7 +756,7 @@ void Problem::CalculateOutput()
                 RegisterTensorDescriptor(GetOutputId(), GetInput());
             },
 
-            [&](const MHADescriptor&) { RegisterTensorDescriptor(GetOutputId(), GetInput()); },
+            [&](const MhaDescriptor&) { RegisterTensorDescriptor(GetOutputId(), GetInput()); },
             [&](const SoftmaxDescriptor&) { RegisterTensorDescriptor(GetOutputId(), GetInput()); },
             [&](const BiasDescriptor&) { RegisterTensorDescriptor(GetOutputId(), GetInput()); }),
         operator_descriptor);
@@ -768,7 +768,7 @@ miopenTensorArgumentId_t Problem::GetInputId() const
         boost::hof::match([](const ConvolutionDescriptor&) { return miopenTensorConvolutionX; },
                           [](const ActivationDescriptor&) { return miopenTensorActivationX; },
                           [](const BiasDescriptor&) { return miopenTensorBiasX; },
-                          [](const MHADescriptor&) { return miopenTensorMHAK; },
+                          [](const MhaDescriptor&) { return miopenTensorMhaK; },
                           [](const SoftmaxDescriptor&) { return miopenTensorSoftmaxX; }),
         operator_descriptor);
 }
@@ -779,7 +779,7 @@ miopenTensorArgumentId_t Problem::GetOutputId() const
         boost::hof::match([](const ConvolutionDescriptor&) { return miopenTensorConvolutionY; },
                           [](const ActivationDescriptor&) { return miopenTensorActivationY; },
                           [](const BiasDescriptor&) { return miopenTensorBiasY; },
-                          [](const MHADescriptor&) { return miopenTensorMHAO; },
+                          [](const MhaDescriptor&) { return miopenTensorMhaO; },
                           [](const SoftmaxDescriptor&) { return miopenTensorSoftmaxY; }),
         operator_descriptor);
 }
@@ -866,10 +866,10 @@ void FusedProblem::AddProblemToPlan(FusionPlanDescriptor& plan, const Problem& p
                 plan.AddOp(std::make_shared<BiasFusionOpDescriptor>(
                     problem.GetTensorDescriptorChecked(miopenTensorBias, "miopenTensorBias")));
             },
-            [&](const MHADescriptor&) {
+            [&](const MhaDescriptor&) {
                 // Not implemented
                 assert(false);
-                MIOPEN_THROW(miopenStatusNotImplemented, "MHA is not implemented for FusedProblem");
+                MIOPEN_THROW(miopenStatusNotImplemented, "Mha is not implemented for FusedProblem");
             },
             [&](const SoftmaxDescriptor&) {
                 // Not implemented
@@ -941,11 +941,11 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
                         std::make_unique<miopen::fusion::BiasOpInvokeParam>(bias_ptr));
                 },
 
-                [&](const MHADescriptor&) {
+                [&](const MhaDescriptor&) {
                     // Not implemented
                     assert(false);
                     MIOPEN_THROW(miopenStatusNotImplemented,
-                                 "MHA is not implemented for FusedProblem");
+                                 "Mha is not implemented for FusedProblem");
                 },
                 [&](const SoftmaxDescriptor&) {
                     // Not implemented

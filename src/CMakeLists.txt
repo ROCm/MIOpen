@@ -122,6 +122,7 @@ set( MIOpen_Source
     fusion/problem_description.cpp
     generic_search.cpp
     graphapi/graphapi.cpp
+    graphapi/pointwise.cpp
     graphapi/rng.cpp
     graphapi/tensor.cpp
     groupnorm_api.cpp
@@ -135,9 +136,9 @@ set( MIOpen_Source
     load_file.cpp
     lock_file.cpp
     logger.cpp
-    mha/problem_description.cpp
-    mha/mha_descriptor.cpp
     lrn_api.cpp
+    mha/mha_descriptor.cpp
+    mha/problem_description.cpp
     op_args.cpp
     operator.cpp
     performance_config.cpp
@@ -411,9 +412,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/inst_wrappers.inc
         kernels/miopen_cstdint.hpp
         kernels/miopen_limits.hpp
+        kernels/miopen_rocrand.hpp
         kernels/miopen_type_traits.hpp
         kernels/miopen_utility.hpp
-        kernels/miopen_rocrand.hpp
         kernels/neuron.inc
         kernels/rocm_version.inc
         kernels/stride_array.hpp
@@ -790,7 +791,7 @@ elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     target_link_libraries( MIOpen PRIVATE hip::device )
     target_link_libraries( MIOpen INTERFACE hip::host )
     if(MIOPEN_USE_HIPRTC)
-        if(WIN32) 
+        if(WIN32)
             target_link_libraries( MIOpen PRIVATE hiprtc::hiprtc )
         else()
             target_link_libraries( MIOpen PRIVATE hiprtc)

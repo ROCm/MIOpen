@@ -27,29 +27,28 @@
 #define MIOPEN_MHADESCRIPTOR_HPP_
 
 #include <miopen/common.hpp>
+#include <miopen/mha/mha.hpp>
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
 #include <nlohmann/json_fwd.hpp>
-
-#include "mha.hpp"
 
 namespace miopen {
 
 struct Handle;
 struct TensorDescriptor;
 
-struct MHADescriptor : miopenMHADescriptor
+struct MhaDescriptor : miopenMhaDescriptor
 {
-    MHADescriptor() {}
+    MhaDescriptor() {}
 
     void SetParams(float scale_) { scale = scale_; }
 
     float GetScale() const { return scale; }
 
-    friend std::ostream& operator<<(std::ostream& stream, const MHADescriptor& x);
+    friend std::ostream& operator<<(std::ostream& stream, const MhaDescriptor& x);
 
-    friend void to_json(nlohmann::json& json, const MHADescriptor& descriptor);
-    friend void from_json(const nlohmann::json& json, MHADescriptor& descriptor);
+    friend void to_json(nlohmann::json& json, const MhaDescriptor& descriptor);
+    friend void from_json(const nlohmann::json& json, MhaDescriptor& descriptor);
 
 private:
     float scale;
@@ -57,6 +56,6 @@ private:
 
 } // namespace miopen
 
-MIOPEN_DEFINE_OBJECT(miopenMHADescriptor, miopen::MHADescriptor);
+MIOPEN_DEFINE_OBJECT(miopenMhaDescriptor, miopen::MhaDescriptor);
 
 #endif // MIOPEN_MHADESCRIPTOR_HPP_

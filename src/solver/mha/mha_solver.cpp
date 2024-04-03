@@ -106,7 +106,7 @@ MultiBufferWorkspaceTraits SplitBufferToWorkspace(const std::vector<size_t>& len
 }
 } // namespace
 
-bool MHA::IsApplicable([[maybe_unused]] const ExecutionContext& context,
+bool Mha::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                        const miopen::mha::ProblemDescription& problem) const
 {
     auto [N, H, S, D] = miopen::tien<4>(problem.GetDescs().kDesc.GetLengths());
@@ -119,13 +119,13 @@ bool MHA::IsApplicable([[maybe_unused]] const ExecutionContext& context,
            MIOPEN_USE_GEMM;
 }
 
-std::size_t MHA::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
+std::size_t Mha::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
                                   const miopen::mha::ProblemDescription& problem) const
 {
     return SplitBufferToWorkspace(problem.GetDescs().kDesc.GetLengths()).GetSize();
 }
 
-ConvSolution MHA::GetSolution(const ExecutionContext& context,
+ConvSolution Mha::GetSolution(const ExecutionContext& context,
                               const miopen::mha::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
@@ -297,7 +297,7 @@ ConvSolution MHA::GetSolution(const ExecutionContext& context,
     return result;
 }
 
-bool MHA::MayNeedWorkspace() const { return true; }
+bool Mha::MayNeedWorkspace() const { return true; }
 
 } // namespace mha
 
