@@ -25,7 +25,7 @@
  *******************************************************************************/
 #pragma once
 
-#include <miopen/graphapi/graphapi_tensor.hpp>
+#include <miopen/graphapi/tensor.hpp>
 
 #include <algorithm>
 #include <unordered_map>
