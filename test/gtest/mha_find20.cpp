@@ -54,7 +54,7 @@ struct TensorStruct
     Allocator::ManageDataPtr gpuBuffer;
 
     // TODO Unsued for now
-    //tensor<unit64_t> tensorUint64;
+    // tensor<unit64_t> tensorUint64;
 };
 
 typedef std::shared_ptr<TensorStruct> TensorStructPtr;
@@ -65,7 +65,7 @@ class MhaFind20Test
 {
 public:
     MhaFind20Test(bool forward) : problem(nullptr), isForward(forward) { Initialize(); }
-  
+
     std::vector<miopenSolution_t> TestFindSolutions(Handle& handle)
     {
         std::cerr << "Testing miopenFindSolutions..." << std::endl;
@@ -113,10 +113,10 @@ public:
 
         auto arguments = std::make_unique<miopenTensorArgument_t[]>(numTensors);
 
-        std::vector<miopenTensorDescriptor_t>  descVector(numTensors);
+        std::vector<miopenTensorDescriptor_t> descVector(numTensors);
 
         int i = 0;
-        for (const auto& it : tensors)
+        for(const auto& it : tensors)
         {
             descVector[i] = &it.second->tensorFloat.desc;
 
@@ -129,8 +129,11 @@ public:
             ++i;
         }
 
-        std::vector<miopenTensorArgumentId_t> output_ids = 
-                                            {miopenTensorMhaO, miopenTensorMhaAmaxO, miopenTensorMhaAmaxS, miopenTensorMhaM, miopenTensorMhaZInv};
+        std::vector<miopenTensorArgumentId_t> output_ids = {miopenTensorMhaO,
+                                                            miopenTensorMhaAmaxO,
+                                                            miopenTensorMhaAmaxS,
+                                                            miopenTensorMhaM,
+                                                            miopenTensorMhaZInv};
 
         std::size_t workspace_size = 0;
         uint64_t solver_id;
@@ -138,42 +141,48 @@ public:
         Workspace workspace;
 
         for(const auto& solution : solutions)
-        {    
+        {
             miopenGetSolutionWorkspaceSize(solution, &workspace_size);
             miopenGetSolutionSolverId(solution, &solver_id);
 
             workspace.resize(workspace_size);
 
             std::cerr << "Run a solution." << std::endl;
-            EXPECT_EQUAL(
-                miopenRunSolution(&handle, solution, numTensors, arguments.get(), workspace.ptr(), workspace.size()),
-                miopenStatusSuccess);
+            EXPECT_EQUAL(miopenRunSolution(&handle,
+                                           solution,
+                                           numTensors,
+                                           arguments.get(),
+                                           workspace.ptr(),
+                                           workspace.size()),
+                         miopenStatusSuccess);
 
             std::cerr << "Solution executed." << std::endl;
 
             TensorStructMap outputTensorResults;
 
-            // reading results from find 2.0 call and preparing structures for non find 2.0 outputs to compare with
-            for (const auto& id : output_ids)
+            // reading results from find 2.0 call and preparing structures for non find 2.0 outputs
+            // to compare with
+            for(const auto& id : output_ids)
             {
                 const TensorStructPtr& tensorStructPtr = tensors[id];
-                tensorStructPtr->tensorFloat.data = handle.Read<float>(tensorStructPtr->gpuBuffer, tensorStructPtr->tensorFloat.data.size());
+                tensorStructPtr->tensorFloat.data      = handle.Read<float>(
+                    tensorStructPtr->gpuBuffer, tensorStructPtr->tensorFloat.data.size());
 
                 TensorStructPtr& ptr = outputTensorResults[id];
-                
-                ptr = TensorStructPtr (new TensorStruct());
+
+                ptr              = TensorStructPtr(new TensorStruct());
                 ptr->tensorFloat = tensorStructPtr->tensorFloat;
-                ptr->gpuBuffer = handle.Write(ptr->tensorFloat.data);
+                ptr->gpuBuffer   = handle.Write(ptr->tensorFloat.data);
             }
 
             std::cerr << "Run via solver infrastructure directly." << std::endl;
             GetResultsWithoutFind20(handle, outputTensorResults, workspace, solver_id);
             std::cerr << "Run via solver infrastructure executed!" << std::endl;
 
-            for (const auto& id : output_ids)
+            for(const auto& id : output_ids)
             {
-                double error           = miopen::rms_range(outputTensorResults[id]->tensorFloat.data, 
-                                                            tensors[id]->tensorFloat.data);
+                double error = miopen::rms_range(outputTensorResults[id]->tensorFloat.data,
+                                                 tensors[id]->tensorFloat.data);
                 const double tolerance = 1e-3;
 
                 EXPECT_TRUE(std::isfinite(error) && error <= tolerance)
@@ -194,40 +203,42 @@ public:
     void Finalize() { EXPECT_EQUAL(miopenDestroyProblem(problem), miopenStatusSuccess); }
 
 private:
-    bool IsDropoutTensorId(miopenTensorArgumentId_t id) const 
+    bool IsDropoutTensorId(miopenTensorArgumentId_t id) const
     {
-        return id == miopenTensorMhaDropoutProbability ||
-                id == miopenTensorMhaDropoutSeed ||
-                id == miopenTensorMhaDropoutOffset;
+        return id == miopenTensorMhaDropoutProbability || id == miopenTensorMhaDropoutSeed ||
+               id == miopenTensorMhaDropoutOffset;
     }
 
-    void CreateTensor(miopenTensorArgumentId_t id, 
-                        unsigned int n = 1,
-                        unsigned int c = 1,
-                        unsigned int h = 1,
-                        unsigned int w = 1,
-                        bool generate = true)
+    void CreateTensor(miopenTensorArgumentId_t id,
+                      unsigned int n = 1,
+                      unsigned int c = 1,
+                      unsigned int h = 1,
+                      unsigned int w = 1,
+                      bool generate  = true)
     {
         // TODO Unused for now
         bool floatFlag = !IsDropoutTensorId(id);
-        tensors[id] = TensorStructPtr(new TensorStruct(floatFlag));
+        tensors[id]    = TensorStructPtr(new TensorStruct(floatFlag));
 
         tensors[id]->tensorFloat = tensor<float>{test_n, test_c, test_h, test_w};
 
-        if (generate)
+        if(generate)
         {
             tensors[id]->tensorFloat.generate(tensor_elem_gen_integer{17});
         }
 
-        EXPECT_EQUAL(miopenSetProblemTensorDescriptor(problem, id, &tensors[id]->tensorFloat.desc), miopenStatusSuccess);
+        EXPECT_EQUAL(miopenSetProblemTensorDescriptor(problem, id, &tensors[id]->tensorFloat.desc),
+                     miopenStatusSuccess);
     }
 
     void Initialize()
     {
         Mha_descriptor.SetParams(scale);
 
-        EXPECT_EQUAL(miopenCreateMhaProblem(&problem, &Mha_descriptor, miopenProblemDirectionForward), miopenStatusSuccess);
-            
+        EXPECT_EQUAL(
+            miopenCreateMhaProblem(&problem, &Mha_descriptor, miopenProblemDirectionForward),
+            miopenStatusSuccess);
+
         if(isForward)
         {
             CreateTensor(miopenTensorMhaK, test_n, test_c, test_h, test_w);
@@ -249,7 +260,7 @@ private:
             CreateTensor(miopenTensorMhaAmaxO, 1, 1, 1, 1, false);
             CreateTensor(miopenTensorMhaAmaxS, 1, 1, 1, 1, false);
             CreateTensor(miopenTensorMhaM, test_n, test_c, test_h, 1, false);
-            CreateTensor(miopenTensorMhaZInv, test_n, test_c, test_h, 1, false);             
+            CreateTensor(miopenTensorMhaZInv, test_n, test_c, test_h, 1, false);
         }
         else
         {
@@ -257,7 +268,10 @@ private:
         }
     }
 
-    void GetResultsWithoutFind20(Handle& handle, TensorStructMap& outputResultsMap, Workspace& workspace, uint64_t solver_id)
+    void GetResultsWithoutFind20(Handle& handle,
+                                 TensorStructMap& outputResultsMap,
+                                 Workspace& workspace,
+                                 uint64_t solver_id)
     {
         const auto& mhaK = tensors[miopenTensorMhaK];
         const auto& mhaQ = tensors[miopenTensorMhaQ];
@@ -266,47 +280,60 @@ private:
         const auto& mhaDescaleK = tensors[miopenTensorMhaDescaleK];
         const auto& mhaDescaleQ = tensors[miopenTensorMhaDescaleQ];
         const auto& mhaDescaleV = tensors[miopenTensorMhaDescaleV];
-        const auto& mhaDescaleS = tensors[miopenTensorMhaDescaleS];                
+        const auto& mhaDescaleS = tensors[miopenTensorMhaDescaleS];
 
         const auto& mhaScaleS = tensors[miopenTensorMhaScaleS];
-        const auto& mhaScaleO = tensors[miopenTensorMhaScaleO];                
+        const auto& mhaScaleO = tensors[miopenTensorMhaScaleO];
 
         const auto& mhadp = tensors[miopenTensorMhaDropoutProbability];
-        const auto& mhads = tensors[miopenTensorMhaDropoutSeed];                
+        const auto& mhads = tensors[miopenTensorMhaDropoutSeed];
         const auto& mhado = tensors[miopenTensorMhaDropoutOffset];
 
-        mha::MhaInputDescsForward inputDescs = {mhaK->tensorFloat.desc, mhaQ->tensorFloat.desc, mhaV->tensorFloat.desc,
-                                                            mhaDescaleK->tensorFloat.desc, mhaDescaleQ->tensorFloat.desc, mhaDescaleV->tensorFloat.desc,
-                                                            mhaDescaleS->tensorFloat.desc, mhaScaleS->tensorFloat.desc, mhaScaleO->tensorFloat.desc, scale,
-                                                            mhadp->tensorFloat.desc, mhads->tensorFloat.desc, mhado->tensorFloat.desc,
-                                                            tensors[miopenTensorMhaO]->tensorFloat.desc, tensors[miopenTensorMhaAmaxO]->tensorFloat.desc, 
-                                                            tensors[miopenTensorMhaAmaxS]->tensorFloat.desc, tensors[miopenTensorMhaM]->tensorFloat.desc,
-                                                            tensors[miopenTensorMhaZInv]->tensorFloat.desc};
+        mha::MhaInputDescsForward inputDescs = {mhaK->tensorFloat.desc,
+                                                mhaQ->tensorFloat.desc,
+                                                mhaV->tensorFloat.desc,
+                                                mhaDescaleK->tensorFloat.desc,
+                                                mhaDescaleQ->tensorFloat.desc,
+                                                mhaDescaleV->tensorFloat.desc,
+                                                mhaDescaleS->tensorFloat.desc,
+                                                mhaScaleS->tensorFloat.desc,
+                                                mhaScaleO->tensorFloat.desc,
+                                                scale,
+                                                mhadp->tensorFloat.desc,
+                                                mhads->tensorFloat.desc,
+                                                mhado->tensorFloat.desc,
+                                                tensors[miopenTensorMhaO]->tensorFloat.desc,
+                                                tensors[miopenTensorMhaAmaxO]->tensorFloat.desc,
+                                                tensors[miopenTensorMhaAmaxS]->tensorFloat.desc,
+                                                tensors[miopenTensorMhaM]->tensorFloat.desc,
+                                                tensors[miopenTensorMhaZInv]->tensorFloat.desc};
 
         const mha::ProblemDescription problem_description = {inputDescs};
 
         const auto invoke_ctx = [&]() -> AnyInvokeParams {
             const mha::MhaInputDescsForward& inputDescsForward = problem_description.GetDescs();
 
-            mha::MhaDataForward dataForward = {mhaK->gpuBuffer.get(),
-                                                mhaQ->gpuBuffer.get(),
-                                                mhaV->gpuBuffer.get(),
-                                                mhaDescaleK->gpuBuffer.get(),
-                                                mhaDescaleQ->gpuBuffer.get(),
-                                                mhaDescaleV->gpuBuffer.get(),
-                                                mhaDescaleS->gpuBuffer.get(),
-                                                mhaScaleS->gpuBuffer.get(),
-                                                mhaScaleO->gpuBuffer.get(),
-                                                mhadp->gpuBuffer.get(),
-                                                mhads->gpuBuffer.get(),
-                                                mhado->gpuBuffer.get(),
-                                                outputResultsMap[miopenTensorMhaO]->gpuBuffer.get(),
-                                                outputResultsMap[miopenTensorMhaAmaxO]->gpuBuffer.get(),
-                                                outputResultsMap[miopenTensorMhaAmaxS]->gpuBuffer.get(),
-                                                outputResultsMap[miopenTensorMhaM]->gpuBuffer.get(),
-                                                outputResultsMap[miopenTensorMhaZInv]->gpuBuffer.get()};
+            mha::MhaDataForward dataForward = {
+                mhaK->gpuBuffer.get(),
+                mhaQ->gpuBuffer.get(),
+                mhaV->gpuBuffer.get(),
+                mhaDescaleK->gpuBuffer.get(),
+                mhaDescaleQ->gpuBuffer.get(),
+                mhaDescaleV->gpuBuffer.get(),
+                mhaDescaleS->gpuBuffer.get(),
+                mhaScaleS->gpuBuffer.get(),
+                mhaScaleO->gpuBuffer.get(),
+                mhadp->gpuBuffer.get(),
+                mhads->gpuBuffer.get(),
+                mhado->gpuBuffer.get(),
+                outputResultsMap[miopenTensorMhaO]->gpuBuffer.get(),
+                outputResultsMap[miopenTensorMhaAmaxO]->gpuBuffer.get(),
+                outputResultsMap[miopenTensorMhaAmaxS]->gpuBuffer.get(),
+                outputResultsMap[miopenTensorMhaM]->gpuBuffer.get(),
+                outputResultsMap[miopenTensorMhaZInv]->gpuBuffer.get()};
 
-            return mha::InvokeParams(inputDescsForward, dataForward, workspace.ptr(), workspace.size());
+            return mha::InvokeParams(
+                inputDescsForward, dataForward, workspace.ptr(), workspace.size());
         }();
 
         const auto net_cfg       = problem_description.MakeNetworkConfig();
@@ -324,17 +351,18 @@ private:
 
             const auto Mha_solution = Mha.GetSolution(ctx, problem_description);
 
-            decltype(auto) invoker =
-                handle.PrepareInvoker(*Mha_solution.invoker_factory, Mha_solution.construction_params);
+            decltype(auto) invoker = handle.PrepareInvoker(*Mha_solution.invoker_factory,
+                                                           Mha_solution.construction_params);
             handle.RegisterInvoker(invoker, net_cfg, solver::Id(solver_id).ToString());
             invoker(handle, invoke_ctx);
         }
 
-        for (const auto& it : outputResultsMap)
+        for(const auto& it : outputResultsMap)
         {
-            it.second->tensorFloat.data = handle.Read<float>(it.second->gpuBuffer, it.second->tensorFloat.data.size());
+            it.second->tensorFloat.data =
+                handle.Read<float>(it.second->gpuBuffer, it.second->tensorFloat.data.size());
         }
-    }    
+    }
 
 private:
     TensorStructMap tensors;
