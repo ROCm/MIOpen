@@ -252,7 +252,7 @@ void Solution::RunImpl(Handle& handle,
                        const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
                        Data_t workspace,
                        std::size_t workspace_size,
-                       const MhaDescriptor& mha_desc)
+                       [[maybe_unused]] const MhaDescriptor& mha_desc)
 {
     const Problem& problem_casted = boost::get<const Problem&>(problem.item);
 

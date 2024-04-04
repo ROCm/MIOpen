@@ -203,7 +203,7 @@ public:
     void Finalize() { EXPECT_EQUAL(miopenDestroyProblem(problem), miopenStatusSuccess); }
 
 private:
-    bool IsFloatTensorId(miopenTensorArgumentId_t id) const
+    bool IsInt64TensorId(miopenTensorArgumentId_t id) const
     {
         return id == miopenTensorMhaDropoutSeed || id == miopenTensorMhaDropoutOffset;
     }
@@ -211,31 +211,38 @@ private:
     enum class GenerateType
     {
         DontGenerate,
-        Generate1Always,
+        Generate_1_Always,
+        Generate_0_Always,
         GenerateRandom
     };
 
     void CreateTensor(miopenTensorArgumentId_t id,
-                      GenerateType generateType = GenerateType::Generate1Always,
+                      GenerateType generateType = GenerateType::Generate_1_Always,
                       unsigned int n            = 1,
                       unsigned int h            = 1,
                       unsigned int s            = 1,
                       unsigned int d            = 1)
     {
         // TODO Unused for now
-        bool floatFlag = !IsFloatTensorId(id);
+        bool floatFlag = !IsInt64TensorId(id);
         tensors[id]    = std::make_unique<TensorStruct>(floatFlag);
 
         tensors[id]->tensorFloat = tensor<float>{n, h, s, d};
 
         switch(generateType)
         {
-        case GenerateType::Generate1Always:
+        case GenerateType::Generate_0_Always:
+            tensors[id]->tensorFloat.generate([](auto n_, auto h_, auto s_, auto d_) { return 0; });
+            break;
+
+        case GenerateType::Generate_1_Always:
             tensors[id]->tensorFloat.generate([](auto n_, auto h_, auto s_, auto d_) { return 1; });
             break;
+
         case GenerateType::GenerateRandom:
             tensors[id]->tensorFloat.generate(tensor_elem_gen_integer{17});
             break;
+
         default: break;
         }
 
@@ -267,7 +274,7 @@ private:
             CreateTensor(miopenTensorMhaScaleS);
             CreateTensor(miopenTensorMhaScaleO);
 
-            CreateTensor(miopenTensorMhaDropoutProbability, GenerateType::GenerateRandom);
+            CreateTensor(miopenTensorMhaDropoutProbability, GenerateType::Generate_0_Always);
             CreateTensor(miopenTensorMhaDropoutSeed, GenerateType::GenerateRandom);
             CreateTensor(miopenTensorMhaDropoutOffset, GenerateType::GenerateRandom);
 
