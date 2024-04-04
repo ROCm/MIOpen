@@ -36,7 +36,7 @@ gr::Tensor makeDummyTensor(std::string_view name)
 {
     assert(name.size() <= sizeof(int64_t));
     int64_t id = 0;
-    std::copy(name.begin(), name.end(), reinterpret_cast<char*>(&id));
+    std::copy_n(name.begin(), sizeof(id), reinterpret_cast<char*>(&id));
 
     return gr::TensorBuilder{}
         .setDataType(miopenFloat)
