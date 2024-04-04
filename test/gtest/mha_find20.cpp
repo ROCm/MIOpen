@@ -57,7 +57,7 @@ struct TensorStruct
     // tensor<unit64_t> tensorUint64;
 };
 
-typedef std::shared_ptr<TensorStruct> TensorStructPtr;
+typedef std::unique_ptr<TensorStruct> TensorStructPtr;
 
 typedef std::map<miopenTensorArgumentId_t, TensorStructPtr> TensorStructMap;
 
@@ -109,7 +109,7 @@ public:
     {
         std::cerr << "Testing a forward solution..." << std::endl;
 
-        const unsigned int numTensors = tensors.size();
+        const size_t numTensors = tensors.size();
 
         auto arguments = std::make_unique<miopenTensorArgument_t[]>(numTensors);
 
@@ -170,7 +170,7 @@ public:
 
                 TensorStructPtr& ptr = outputTensorResults[id];
 
-                ptr              = TensorStructPtr(new TensorStruct());
+                ptr              = std::make_unique<TensorStruct>();
                 ptr->tensorFloat = tensorStructPtr->tensorFloat;
                 ptr->gpuBuffer   = handle.Write(ptr->tensorFloat.data);
             }
@@ -185,8 +185,8 @@ public:
                                                  tensors[id]->tensorFloat.data);
                 const double tolerance = 1e-3;
 
-                EXPECT_TRUE(std::isfinite(error) && error <= tolerance)
-                    << "Outputs do not match each other. Error:" << error;
+                EXPECT_TRUE(std::isfinite(error));
+                EXPECT_LE(error, tolerance);
             }
         }
 
@@ -203,28 +203,40 @@ public:
     void Finalize() { EXPECT_EQUAL(miopenDestroyProblem(problem), miopenStatusSuccess); }
 
 private:
-    bool IsDropoutTensorId(miopenTensorArgumentId_t id) const
+    bool IsFloatTensorId(miopenTensorArgumentId_t id) const
     {
-        return id == miopenTensorMhaDropoutProbability || id == miopenTensorMhaDropoutSeed ||
-               id == miopenTensorMhaDropoutOffset;
+        return id == miopenTensorMhaDropoutSeed || id == miopenTensorMhaDropoutOffset;
     }
 
+    enum class GenerateType
+    {
+        DontGenerate,
+        Generate1Always,
+        GenerateRandom
+    };
+
     void CreateTensor(miopenTensorArgumentId_t id,
-                      unsigned int n = 1,
-                      unsigned int c = 1,
-                      unsigned int h = 1,
-                      unsigned int w = 1,
-                      bool generate  = true)
+                      GenerateType generateType = GenerateType::Generate1Always,
+                      unsigned int n            = 1,
+                      unsigned int h            = 1,
+                      unsigned int s            = 1,
+                      unsigned int d            = 1)
     {
         // TODO Unused for now
-        bool floatFlag = !IsDropoutTensorId(id);
-        tensors[id]    = TensorStructPtr(new TensorStruct(floatFlag));
+        bool floatFlag = !IsFloatTensorId(id);
+        tensors[id]    = std::make_unique<TensorStruct>(floatFlag);
 
-        tensors[id]->tensorFloat = tensor<float>{test_n, test_c, test_h, test_w};
+        tensors[id]->tensorFloat = tensor<float>{n, h, s, d};
 
-        if(generate)
+        switch(generateType)
         {
+        case GenerateType::Generate1Always:
+            tensors[id]->tensorFloat.generate([](auto n_, auto h_, auto s_, auto d_) { return 1; });
+            break;
+        case GenerateType::GenerateRandom:
             tensors[id]->tensorFloat.generate(tensor_elem_gen_integer{17});
+            break;
+        default: break;
         }
 
         EXPECT_EQUAL(miopenSetProblemTensorDescriptor(problem, id, &tensors[id]->tensorFloat.desc),
@@ -241,9 +253,12 @@ private:
 
         if(isForward)
         {
-            CreateTensor(miopenTensorMhaK, test_n, test_c, test_h, test_w);
-            CreateTensor(miopenTensorMhaQ, test_n, test_c, test_h, test_w);
-            CreateTensor(miopenTensorMhaV, test_n, test_c, test_h, test_w);
+            CreateTensor(
+                miopenTensorMhaK, GenerateType::GenerateRandom, test_n, test_h, test_s, test_d);
+            CreateTensor(
+                miopenTensorMhaQ, GenerateType::GenerateRandom, test_n, test_h, test_s, test_d);
+            CreateTensor(
+                miopenTensorMhaV, GenerateType::GenerateRandom, test_n, test_h, test_s, test_d);
 
             CreateTensor(miopenTensorMhaDescaleK);
             CreateTensor(miopenTensorMhaDescaleQ);
@@ -252,15 +267,17 @@ private:
             CreateTensor(miopenTensorMhaScaleS);
             CreateTensor(miopenTensorMhaScaleO);
 
-            CreateTensor(miopenTensorMhaDropoutProbability);
-            CreateTensor(miopenTensorMhaDropoutSeed);
-            CreateTensor(miopenTensorMhaDropoutOffset);
+            CreateTensor(miopenTensorMhaDropoutProbability, GenerateType::GenerateRandom);
+            CreateTensor(miopenTensorMhaDropoutSeed, GenerateType::GenerateRandom);
+            CreateTensor(miopenTensorMhaDropoutOffset, GenerateType::GenerateRandom);
 
-            CreateTensor(miopenTensorMhaO, test_n, test_c, test_h, test_w);
-            CreateTensor(miopenTensorMhaAmaxO, 1, 1, 1, 1, false);
-            CreateTensor(miopenTensorMhaAmaxS, 1, 1, 1, 1, false);
-            CreateTensor(miopenTensorMhaM, test_n, test_c, test_h, 1, false);
-            CreateTensor(miopenTensorMhaZInv, test_n, test_c, test_h, 1, false);
+            CreateTensor(
+                miopenTensorMhaO, GenerateType::DontGenerate, test_n, test_h, test_s, test_d);
+            CreateTensor(miopenTensorMhaAmaxO, GenerateType::DontGenerate);
+            CreateTensor(miopenTensorMhaAmaxS, GenerateType::DontGenerate);
+            CreateTensor(miopenTensorMhaM, GenerateType::DontGenerate, test_n, test_h, test_s, 1);
+            CreateTensor(
+                miopenTensorMhaZInv, GenerateType::DontGenerate, test_n, test_h, test_s, 1);
         }
         else
         {
@@ -374,9 +391,9 @@ private:
     bool isForward;
 
     const unsigned int test_n = 2;
-    const unsigned int test_c = 4;
-    const unsigned int test_h = 8;
-    const unsigned int test_w = 16;
+    const unsigned int test_h = 4;
+    const unsigned int test_s = 8;
+    const unsigned int test_d = 16;
 
     float scale = 1.0f;
 };
