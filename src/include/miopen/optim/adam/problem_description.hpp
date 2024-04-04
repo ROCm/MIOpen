@@ -97,18 +97,19 @@ struct ProblemDescription : ProblemDescriptionBase
         }
 
         auto dtype = paramInDesc.GetType();
-        if((paramOutDesc.GetType() != dtype) || (expAvgInDesc.GetType() != dtype) ||
-           (expAvgOutDesc.GetType() != dtype) || (expAvgSqInDesc.GetType() != dtype) ||
-           (expAvgSqOutDesc.GetType() != dtype) ||
-           (maxExpAvgSqInDesc != nullptr && maxExpAvgSqInDesc->GetType() != dtype) ||
-           (maxExpAvgSqOutDesc != nullptr && maxExpAvgSqOutDesc->GetType() != dtype))
-        {
-            MIOPEN_THROW(miopenStatusBadParm, "Adam: Tensor types do not match.");
-        }
 
         if((dtype == miopenBFloat16) || (gradInDesc.GetType() == miopenBFloat16))
         {
             MIOPEN_THROW(miopenStatusBadParm, "Adam: bfloat16 type is not supported.");
+        }
+
+        if((paramOutDesc.GetType() != dtype) || (!is_amp && gradInDesc.GetType() != dtype) ||
+           (expAvgInDesc.GetType() != dtype) || (expAvgOutDesc.GetType() != dtype) ||
+           (expAvgSqInDesc.GetType() != dtype) || (expAvgSqOutDesc.GetType() != dtype) ||
+           (maxExpAvgSqInDesc != nullptr && maxExpAvgSqInDesc->GetType() != dtype) ||
+           (maxExpAvgSqOutDesc != nullptr && maxExpAvgSqOutDesc->GetType() != dtype))
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Adam: Tensor types do not match.");
         }
 
         if(is_amp && (paramOutFloat16Desc != nullptr) &&
@@ -118,8 +119,8 @@ struct ProblemDescription : ProblemDescriptionBase
         }
 
         auto numel = paramInDesc.GetElementSize();
-        if((paramOutDesc.GetElementSize() != numel) || (expAvgInDesc.GetElementSize() != numel) ||
-           (expAvgOutDesc.GetElementSize() != numel) ||
+        if((paramOutDesc.GetElementSize() != numel) || (gradInDesc.GetElementSize() != numel) ||
+           (expAvgInDesc.GetElementSize() != numel) || (expAvgOutDesc.GetElementSize() != numel) ||
            (expAvgSqInDesc.GetElementSize() != numel) ||
            (expAvgSqOutDesc.GetElementSize() != numel) ||
            (is_amp && paramOutFloat16Desc != nullptr &&

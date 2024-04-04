@@ -344,10 +344,8 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < param_sz; i++)
     {
-        param[i]      = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-        grad[i]       = prng::gen_A_to_B<Tgrad>(static_cast<Tgrad>(0.0), static_cast<Tgrad>(1.0));
-        exp_avg[i]    = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-        exp_avg_sq[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        param[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        grad[i]  = prng::gen_A_to_B<Tgrad>(static_cast<Tgrad>(0.0), static_cast<Tgrad>(1.0));
 
         if(is_amp)
         {
@@ -359,10 +357,8 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::AllocateBuffersAndCopy()
             }
         }
 
-        param_host[i]      = param[i];
-        grad_host[i]       = grad[i];
-        exp_avg_host[i]    = exp_avg[i];
-        exp_avg_sq_host[i] = exp_avg_sq[i];
+        param_host[i] = param[i];
+        grad_host[i]  = grad[i];
     }
 
     if(param_dev->ToGPU(GetStream(), param.data()) != 0)

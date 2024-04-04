@@ -123,6 +123,7 @@ protected:
         auto&& handle  = get_handle();
         adam_config    = GetParam();
         auto gen_value = [](auto...) { return prng::gen_descreet_unsigned<Tp>(1e-2, 100); };
+        auto gen_zero  = [](auto...) { return 0; };
         auto dims      = adam_config.GetInput();
 
         lr           = adam_config.lr;
@@ -133,18 +134,22 @@ protected:
         amsgrad      = adam_config.amsgrad;
         maximize     = adam_config.maximize;
 
-        param          = tensor<Tp>{dims}.generate(gen_value);
-        grad           = tensor<Tg>{dims}.generate(gen_value);
-        exp_avg        = tensor<Tp>{dims}.generate(gen_value);
-        exp_avg_sq     = tensor<Tp>{dims}.generate(gen_value);
-        max_exp_avg_sq = tensor<Tp>{dims}.generate(gen_value);
-        ref_param      = tensor<Tp>{param};
+        param      = tensor<Tp>{dims}.generate(gen_value);
+        grad       = tensor<Tg>{dims}.generate(gen_value);
+        exp_avg    = tensor<Tp>{dims}.generate(gen_zero);
+        exp_avg_sq = tensor<Tp>{dims}.generate(gen_zero);
+        ref_param  = tensor<Tp>{param};
 
-        param_dev          = handle.Write(param.data);
-        grad_dev           = handle.Write(grad.data);
-        exp_avg_dev        = handle.Write(exp_avg.data);
-        exp_avg_sq_dev     = handle.Write(exp_avg_sq.data);
-        max_exp_avg_sq_dev = handle.Write(max_exp_avg_sq.data);
+        param_dev      = handle.Write(param.data);
+        grad_dev       = handle.Write(grad.data);
+        exp_avg_dev    = handle.Write(exp_avg.data);
+        exp_avg_sq_dev = handle.Write(exp_avg_sq.data);
+
+        if(amsgrad)
+        {
+            max_exp_avg_sq     = tensor<Tp>{dims}.generate(gen_zero);
+            max_exp_avg_sq_dev = handle.Write(max_exp_avg_sq.data);
+        }
 
         if(is_amp)
         {
@@ -211,9 +216,9 @@ protected:
                                        exp_avg_sq.desc,
                                        exp_avg_sq_dev.get(),
                                        amsgrad ? &max_exp_avg_sq.desc : nullptr,
-                                       amsgrad ? max_exp_avg_sq_dev.get() : nullptr,
+                                       max_exp_avg_sq_dev.get(),
                                        amsgrad ? &max_exp_avg_sq.desc : nullptr,
-                                       amsgrad ? max_exp_avg_sq_dev.get() : nullptr,
+                                       max_exp_avg_sq_dev.get(),
                                        &grad_scale.desc,
                                        grad_scale_dev.get(),
                                        &found_inf.desc,
