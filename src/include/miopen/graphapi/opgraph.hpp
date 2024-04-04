@@ -28,7 +28,6 @@
 #include <miopen/graphapi/tensor.hpp>
 
 #include <algorithm>
-#include <unordered_map>
 #include <vector>
 
 #include <cassert>

@@ -27,7 +27,7 @@
 
 #include <miopen/miopen.h>
 
-#include <miopen/graphapi/opgraph.h>
+#include <miopen/graphapi/opgraph.hpp>
 
 namespace gr = miopen::graphapi;
 

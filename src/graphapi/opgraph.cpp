@@ -24,7 +24,9 @@
  *
  *******************************************************************************/
 
-#include <miopen/graphapi/opgraph.h>
+#include <miopen/graphapi/opgraph.hpp>
+
+#include <unordered_map>
 
 namespace miopen {
 namespace graphapi {
