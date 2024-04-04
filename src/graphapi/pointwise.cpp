@@ -50,7 +50,7 @@ void BackendPointwiseDescriptor::setAttribute(miopenBackendAttributeName_t attri
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
 
-    using Setter = PointwiseBuilder& (PointwiseBuilder::*)(double value);
+    using Setter = PointwiseBuilder& (PointwiseBuilder::*)(Pointwise::FpAttribute value);
 
     auto setFloatOrDouble = [=](Setter setter) {
         if(attributeType == MIOPEN_TYPE_FLOAT && elementCount == 1)
@@ -157,18 +157,18 @@ void BackendPointwiseDescriptor::getAttribute(miopenBackendAttributeName_t attri
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
 
-    using Getter = double (Pointwise::*)() const;
+    using Getter = Pointwise::FpAttribute (Pointwise::*)() const;
 
     auto getFloatOrDouble = [=](Getter getter) {
         if(attributeType == MIOPEN_TYPE_FLOAT && requestedElementCount == 1)
         {
             *elementCount                         = 1;
-            *static_cast<float*>(arrayOfElements) = (mPointwise.*getter)();
+            *static_cast<float*>(arrayOfElements) = std::get<float>((mPointwise.*getter)());
         }
         else if(attributeType == MIOPEN_TYPE_DOUBLE && requestedElementCount == 1)
         {
             *elementCount                          = 1;
-            *static_cast<double*>(arrayOfElements) = (mPointwise.*getter)();
+            *static_cast<double*>(arrayOfElements) = std::get<double>((mPointwise.*getter)());
         }
         else
         {

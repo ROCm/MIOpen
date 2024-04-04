@@ -30,6 +30,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <variant>
 #include <vector>
 
 namespace miopen {
@@ -38,13 +39,16 @@ namespace graphapi {
 
 class Pointwise
 {
+public:
+    using FpAttribute = std::variant<float, double>;
+
 private:
-    double mReluLowerClip      = 0.0;
-    double mReluUpperClip      = std::numeric_limits<double>::max();
-    double mReluLowerClipSlope = 0.0;
-    double mEluAlpha           = 1.0;
-    double mSoftPlusBeta       = 1.0;
-    int64_t mAxis              = -1;
+    FpAttribute mReluLowerClip      = 0.0f;
+    FpAttribute mReluUpperClip      = std::numeric_limits<float>::max();
+    FpAttribute mReluLowerClipSlope = 0.0f;
+    FpAttribute mEluAlpha           = 1.0f;
+    FpAttribute mSoftPlusBeta       = 1.0f;
+    int64_t mAxis                   = -1;
     miopenPointwiseMode_t mMode;
     miopenDataType_t mMathPrecision;
     miopenNanPropagation_t mNanPropagation = MIOPEN_NOT_PROPAGATE_NAN;
@@ -54,11 +58,11 @@ public:
     Pointwise(miopenPointwiseMode_t mode,
               miopenDataType_t mathPrecision,
               miopenNanPropagation_t nanPropagation = MIOPEN_NOT_PROPAGATE_NAN,
-              double reluLowerClip                  = 0.0,
-              double reluUpperClip                  = std::numeric_limits<double>::max(),
-              double reluLowerClipSlope             = 0.0,
-              double eluAlpha                       = 1.0,
-              double softPlusBeta                   = 1.0,
+              FpAttribute reluLowerClip             = 0.0f,
+              FpAttribute reluUpperClip             = std::numeric_limits<float>::max(),
+              FpAttribute reluLowerClipSlope        = 0.0f,
+              FpAttribute eluAlpha                  = 1.0f,
+              FpAttribute softPlusBeta              = 1.0f,
               int64_t axis                          = -1)
         : mReluLowerClip(reluLowerClip),
           mReluUpperClip(reluUpperClip),
@@ -75,11 +79,11 @@ public:
     miopenPointwiseMode_t getMode() const noexcept { return mMode; }
     miopenDataType_t getMathPrecision() const noexcept { return mMathPrecision; }
     miopenNanPropagation_t getNanPropagation() const noexcept { return mNanPropagation; }
-    double getReluLowerClip() const noexcept { return mReluLowerClip; }
-    double getReluUpperClip() const noexcept { return mReluUpperClip; }
-    double getReluLowerClipSlope() const noexcept { return mReluLowerClipSlope; }
-    double getEluAlpha() const noexcept { return mEluAlpha; }
-    double getSoftPlusBeta() const noexcept { return mSoftPlusBeta; }
+    FpAttribute getReluLowerClip() const noexcept { return mReluLowerClip; }
+    FpAttribute getReluUpperClip() const noexcept { return mReluUpperClip; }
+    FpAttribute getReluLowerClipSlope() const noexcept { return mReluLowerClipSlope; }
+    FpAttribute getEluAlpha() const noexcept { return mEluAlpha; }
+    FpAttribute getSoftPlusBeta() const noexcept { return mSoftPlusBeta; }
     int64_t getAxis() const noexcept { return mAxis; }
 
 private:
@@ -111,27 +115,27 @@ public:
         mPointwise.mNanPropagation = nanPropagation;
         return *this;
     }
-    PointwiseBuilder& setReluLowerClip(double reluLowerClip) noexcept
+    PointwiseBuilder& setReluLowerClip(Pointwise::FpAttribute reluLowerClip) noexcept
     {
         mPointwise.mReluLowerClip = reluLowerClip;
         return *this;
     }
-    PointwiseBuilder& setReluUpperClip(double reluUpperClip) noexcept
+    PointwiseBuilder& setReluUpperClip(Pointwise::FpAttribute reluUpperClip) noexcept
     {
         mPointwise.mReluUpperClip = reluUpperClip;
         return *this;
     }
-    PointwiseBuilder& setReluLowerClipSlope(double reluLowerClipSlope) noexcept
+    PointwiseBuilder& setReluLowerClipSlope(Pointwise::FpAttribute reluLowerClipSlope) noexcept
     {
         mPointwise.mReluLowerClipSlope = reluLowerClipSlope;
         return *this;
     }
-    PointwiseBuilder& setEluAlpha(double eluAlpha) noexcept
+    PointwiseBuilder& setEluAlpha(Pointwise::FpAttribute eluAlpha) noexcept
     {
         mPointwise.mEluAlpha = eluAlpha;
         return *this;
     }
-    PointwiseBuilder& setSoftPlusBeta(double softPlusBeta) noexcept
+    PointwiseBuilder& setSoftPlusBeta(Pointwise::FpAttribute softPlusBeta) noexcept
     {
         mPointwise.mSoftPlusBeta = softPlusBeta;
         return *this;
