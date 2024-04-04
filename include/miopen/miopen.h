@@ -5348,6 +5348,7 @@ typedef enum
     miopenTensorSoftmaxDY    = 31,
 #endif
 
+    miopenTensorArgumentIsScalar = 1U << 31,
 } miopenTensorArgumentId_t;
 
 /*! @enum miopenTensorArgumentId_t
@@ -5563,7 +5564,7 @@ MIOPEN_EXPORT miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
                                                  size_t* numSolutions,
                                                  size_t maxSolutions);
 
-/*! @brief Values of a tensor argument for the miopenRunSolution function.
+/*! @brief Values of a tensor or scalar argument for the miopenRunSolution function.
  */
 struct miopenTensorArgument_t
 {
@@ -5576,7 +5577,8 @@ struct miopenTensorArgument_t
      * is no way to tell from the API. Intended for the future use.
      */
     miopenTensorDescriptor_t* descriptor;
-    /* @brief Pointer to the device memory buffer to use for the operation.
+    /* @brief Pointer to the device memory buffer to use for the operation or to the host memory if
+     * the value is scalar.
      */
     void* buffer;
 };
@@ -6209,102 +6211,173 @@ typedef enum
  */
 typedef enum
 {
-    MIOPEN_POINTWISE_ADD,        /*!< A pointwise addition between two tensors is computed. */
-    MIOPEN_POINTWISE_ADD_SQUARE, /*!< A pointwise addition between the first tensor and the square
-                                    of the second tensor is computed. */
-    MIOPEN_POINTWISE_DIV, /*!< A pointwise true division of the first tensor by second tensor is
-                             computed. */
-    MIOPEN_POINTWISE_MAX, /*!< A pointwise maximum is taken between two tensors. */
-    MIOPEN_POINTWISE_MIN, /*!< A pointwise minimum is taken between two tensors. */
-    MIOPEN_POINTWISE_MOD, /*!< A pointwise floating-point remainder of the first tensor’s division
-                             by the second tensor is computed. */
-    MIOPEN_POINTWISE_MUL, /*!< A pointwise multiplication between two tensors is computed. */
-    MIOPEN_POINTWISE_POW, /*!< A pointwise value from the first tensor to the power of the second
-                             tensor is computed. */
-    MIOPEN_POINTWISE_SUB, /*!< A pointwise subtraction between two tensors is computed. */
-    MIOPEN_POINTWISE_ABS, /*!< A pointwise absolute value of the input tensor is computed. */
-    MIOPEN_POINTWISE_CEIL, /*!< A pointwise ceiling of the input tensor is computed. */
-    MIOPEN_POINTWISE_COS,  /*!< A pointwise trigonometric cosine of the input tensor is computed. */
-    MIOPEN_POINTWISE_EXP,  /*!< A pointwise exponential of the input tensor is computed. */
-    MIOPEN_POINTWISE_FLOOR, /*!< A pointwise floor of the input tensor is computed. */
-    MIOPEN_POINTWISE_LOG,   /*!< A pointwise natural logarithm of the input tensor is computed. */
-    MIOPEN_POINTWISE_NEG,   /*!< A pointwise numerical negative of the input tensor is computed. */
-    MIOPEN_POINTWISE_RSQRT, /*!< A pointwise reciprocal of the square root of the input tensor is
-                               computed. */
-    MIOPEN_POINTWISE_SIN,   /*!< A pointwise trigonometric sine of the input tensor is computed. */
-    MIOPEN_POINTWISE_SQRT,  /*!< A pointwise square root of the input tensor is computed. */
-    MIOPEN_POINTWISE_TAN, /*!< A pointwise trigonometric tangent of the input tensor is computed. */
-    MIOPEN_POINTWISE_ERF, /*!< A pointwise Error Function is computed. */
-    MIOPEN_POINTWISE_IDENTITY, /*!< No computation is performed. As with other pointwise modes, this
-                                  mode provides implicit conversions by specifying the data type of
-                                  the input tensor as one type, and the data type of the output
-                                  tensor as another. */
-    MIOPEN_POINTWISE_RELU_FWD, /*!< A pointwise rectified linear activation function of the input
-                                  tensor is computed. */
-    MIOPEN_POINTWISE_TANH_FWD, /*!< A pointwise tanh activation function of the input tensor is
-                                  computed. */
-    MIOPEN_POINTWISE_SIGMOID_FWD, /*!< A pointwise sigmoid activation function of the input tensor
-                                     is computed. */
-    MIOPEN_POINTWISE_ELU_FWD,  /*!< A pointwise Exponential Linear Unit activation function of the
-                                  input tensor is computed. */
-    MIOPEN_POINTWISE_GELU_FWD, /*!< A pointwise Gaussian Error Linear Unit activation function of
-                                  the input tensor is computed. */
-    MIOPEN_POINTWISE_SOFTPLUS_FWD, /*!< A pointwise softplus activation function of the input tensor
-                                      is computed. */
-    MIOPEN_POINTWISE_SWISH_FWD,    /*!< A pointwise swish activation function of the input tensor is
-                                      computed. */
-    MIOPEN_POINTWISE_GELU_APPROX_TANH_FWD, /*!< A pointwise tanh approximation of the Gaussian Error
-                                              Linear Unit activation function of the input tensor is
-                                              computed. The tanh GELU approximation is computed as
-                                              \f$0.5x\left( 1+\tanh\left[ \sqrt{2/\pi}\left(
-                                              x+0.044715x^{3} \right) \right] \right)\f$ */
-    MIOPEN_POINTWISE_RELU_BWD, /*!< A pointwise first derivative of rectified linear activation of
-                                  the input tensor is computed. */
-    MIOPEN_POINTWISE_TANH_BWD, /*!< A pointwise first derivative of tanh activation of the input
-                                  tensor is computed. */
-    MIOPEN_POINTWISE_SIGMOID_BWD,  /*!< A pointwise first derivative of sigmoid activation of the
-                                      input tensor is computed. */
-    MIOPEN_POINTWISE_ELU_BWD,      /*!< A pointwise first derivative of Exponential Linear Unit
-                                      activation of the input tensor is computed. */
-    MIOPEN_POINTWISE_GELU_BWD,     /*!< A pointwise first derivative of Gaussian Error Linear Unit
-                                      activation of the input tensor is computed. */
-    MIOPEN_POINTWISE_SOFTPLUS_BWD, /*!< A pointwise first derivative of softplus activation of the
-                                      input tensor is computed. */
-    MIOPEN_POINTWISE_SWISH_BWD, /*!< A pointwise first derivative of swish activation of the input
-                                   tensor is computed. */
-    MIOPEN_POINTWISE_GELU_APPROX_TANH_BWD, /*!< A pointwise first derivative of the tanh
-                                              approximation of the Gaussian Error Linear Unit
-                                              activation of the input tensor is computed. This is
-                                              computed as \f$0.5\left( 1+\tanh\left( b\left(
-                                              x+cx^{3} \right) \right)+bxsech^{2}\left( b\left(
-                                              cx^{3}+x \right) \right)\left( 3cx^{2}+1 \right)dy
-                                              \right)\f$ where \f$b\f$ is \f$\sqrt{2/\pi}\f$ and
-                                              \f$c\f$ is \f$0.044715\f$ */
-    MIOPEN_POINTWISE_CMP_EQ,  /*!< A pointwise truth value of the first tensor equal to the second
-                                 tensor is computed. */
-    MIOPEN_POINTWISE_CMP_NEQ, /*!< A pointwise truth value of the first tensor not equal to the
-                                 second tensor is computed. */
-    MIOPEN_POINTWISE_CMP_GT,  /*!< A pointwise truth value of the first tensor greater than the
-                                 second tensor is computed. */
-    MIOPEN_POINTWISE_CMP_GE,  /*!< A pointwise truth value of the first tensor greater than equal to
-                                 the second tensor is computed. */
-    MIOPEN_POINTWISE_CMP_LT,  /*!< A pointwise truth value of the first tensor less than the second
-                                 tensor is computed. */
-    MIOPEN_POINTWISE_CMP_LE, /*!< A pointwise truth value of the first tensor less than equal to the
-                                second tensor is computed. */
-    MIOPEN_POINTWISE_LOGICAL_AND, /*!< A pointwise truth value of the first tensor logical AND
-                                     second tensor is computed. */
-    MIOPEN_POINTWISE_LOGICAL_OR,  /*!< A pointwise truth value of the first tensor logical OR second
-                                     tensor is computed. */
-    MIOPEN_POINTWISE_LOGICAL_NOT, /*!< A pointwise truth value of input tensors logical NOT is
-                                     computed. */
-    MIOPEN_POINTWISE_GEN_INDEX, /*!< A pointwise index value of the input tensor is generated along
-                                   a given axis. */
-    MIOPEN_POINTWISE_BINARY_SELECT, /*!< A pointwise value is selected amongst two input tensors
-                                       based on a given predicate tensor. */
-    MIOPEN_POINTWISE_RECIPROCAL     /*!< A pointwise reciprocal of the input tensor is computed. In
-                                       other words, for every element x in the input tensor, 1/x is
-                                       computed. */
+    /*! A pointwise addition between two tensors is computed.*/
+    MIOPEN_POINTWISE_ADD,
+
+    /*! A pointwise addition between the first tensor and the square of the second tensor is
+       computed. */
+    MIOPEN_POINTWISE_ADD_SQUARE,
+
+    /*! A pointwise true division of the first tensor by second tensor is computed. */
+    MIOPEN_POINTWISE_DIV,
+
+    /*! A pointwise maximum is taken between two tensors. */
+    MIOPEN_POINTWISE_MAX,
+
+    /*! A pointwise minimum is taken between two tensors. */
+    MIOPEN_POINTWISE_MIN,
+
+    /*! A pointwise floating-point remainder of the first tensor’s division by the second tensor is
+       computed. */
+    MIOPEN_POINTWISE_MOD,
+
+    /*! A pointwise multiplication between two tensors is computed. */
+    MIOPEN_POINTWISE_MUL,
+
+    /*! A pointwise value from the first tensor to the power of the second tensor is computed. */
+    MIOPEN_POINTWISE_POW,
+
+    /*! A pointwise subtraction between two tensors is computed. */
+    MIOPEN_POINTWISE_SUB,
+
+    /*! A pointwise absolute value of the input tensor is computed. */
+    MIOPEN_POINTWISE_ABS,
+
+    /*! A pointwise ceiling of the input tensor is computed. */
+    MIOPEN_POINTWISE_CEIL,
+
+    /*! A pointwise trigonometric cosine of the input tensor is computed. */
+    MIOPEN_POINTWISE_COS,
+
+    /*! A pointwise exponential of the input tensor is computed. */
+    MIOPEN_POINTWISE_EXP,
+
+    /*! A pointwise floor of the input tensor is computed. */
+    MIOPEN_POINTWISE_FLOOR,
+
+    /*! A pointwise natural logarithm of the input tensor is computed. */
+    MIOPEN_POINTWISE_LOG,
+
+    /*! A pointwise numerical negative of the input tensor is computed. */
+    MIOPEN_POINTWISE_NEG,
+
+    /*! A pointwise reciprocal of the square root of the input tensor is computed. */
+    MIOPEN_POINTWISE_RSQRT,
+
+    /*! A pointwise trigonometric sine of the input tensor is computed. */
+    MIOPEN_POINTWISE_SIN,
+
+    /*! A pointwise square root of the input tensor is computed. */
+    MIOPEN_POINTWISE_SQRT,
+
+    /*! A pointwise trigonometric tangent of the input tensor is computed. */
+    MIOPEN_POINTWISE_TAN,
+
+    /*! A pointwise Error Function is computed. */
+    MIOPEN_POINTWISE_ERF,
+
+    /*! No computation is performed. As with other pointwise modes, this mode provides implicit
+       conversions by specifying the data type of the input tensor as one type, and the data type of
+       the output tensor as another. */
+    MIOPEN_POINTWISE_IDENTITY,
+
+    /*! A pointwise rectified linear activation function of the input tensor is computed. */
+    MIOPEN_POINTWISE_RELU_FWD,
+
+    /*! A pointwise tanh activation function of the input tensor is computed. */
+    MIOPEN_POINTWISE_TANH_FWD,
+
+    /*! A pointwise sigmoid activation function of the input tensor is computed. */
+    MIOPEN_POINTWISE_SIGMOID_FWD,
+
+    /*! A pointwise Exponential Linear Unit activation function of the input tensor is computed. */
+    MIOPEN_POINTWISE_ELU_FWD,
+
+    /*! A pointwise Gaussian Error Linear Unit activation function of the input tensor is computed.
+     */
+    MIOPEN_POINTWISE_GELU_FWD,
+
+    /*! A pointwise softplus activation function of the input tensor is computed. */
+    MIOPEN_POINTWISE_SOFTPLUS_FWD,
+
+    /*! A pointwise swish activation function of the input tensor is computed. */
+    MIOPEN_POINTWISE_SWISH_FWD,
+
+    /*! A pointwise tanh approximation of the Gaussian Error Linear Unit activation function of the
+       input tensor is computed. The tanh GELU approximation is computed as \f$0.5x\left(
+       1+\tanh\left[ \sqrt{2/\pi}\left( x+0.044715x^{3} \right) \right] \right)\f$ */
+    MIOPEN_POINTWISE_GELU_APPROX_TANH_FWD,
+
+    /*! A pointwise first derivative of rectified linear activation of the input tensor is computed.
+     */
+    MIOPEN_POINTWISE_RELU_BWD,
+
+    /*! A pointwise first derivative of tanh activation of the input tensor is computed. */
+    MIOPEN_POINTWISE_TANH_BWD,
+
+    /*! A pointwise first derivative of sigmoid activation of the input tensor is computed. */
+    MIOPEN_POINTWISE_SIGMOID_BWD,
+
+    /*! A pointwise first derivative of Exponential Linear Unit activation of the input tensor is
+       computed. */
+    MIOPEN_POINTWISE_ELU_BWD,
+
+    /*! A pointwise first derivative of Gaussian Error Linear Unit activation of the input tensor is
+       computed. */
+    MIOPEN_POINTWISE_GELU_BWD,
+
+    /*! A pointwise first derivative of softplus activation of the input tensor is computed. */
+    MIOPEN_POINTWISE_SOFTPLUS_BWD,
+
+    /*! A pointwise first derivative of swish activation of the input tensor is computed. */
+    MIOPEN_POINTWISE_SWISH_BWD,
+
+    /*! A pointwise first derivative of the tanh approximation of the Gaussian Error Linear Unit
+       activation of the input tensor is computed. This is computed as \f$0.5\left( 1+\tanh\left(
+       b\left( x+cx^{3} \right) \right)+bxsech^{2}\left( b\left( cx^{3}+x \right) \right)\left(
+       3cx^{2}+1 \right)dy \right)\f$ where \f$b\f$ is \f$\sqrt{2/\pi}\f$ and \f$c\f$ is
+       \f$0.044715\f$ */
+    MIOPEN_POINTWISE_GELU_APPROX_TANH_BWD,
+
+    /*! A pointwise truth value of the first tensor equal to the second tensor is computed. */
+    MIOPEN_POINTWISE_CMP_EQ,
+
+    /*! A pointwise truth value of the first tensor not equal to the second tensor is computed. */
+    MIOPEN_POINTWISE_CMP_NEQ,
+
+    /*! A pointwise truth value of the first tensor greater than the second tensor is computed. */
+    MIOPEN_POINTWISE_CMP_GT,
+
+    /*! A pointwise truth value of the first tensor greater than equal to the second tensor is
+       computed. */
+    MIOPEN_POINTWISE_CMP_GE,
+
+    /*! A pointwise truth value of the first tensor less than the second tensor is computed. */
+    MIOPEN_POINTWISE_CMP_LT,
+
+    /*! A pointwise truth value of the first tensor less than equal to the second tensor is
+       computed. */
+    MIOPEN_POINTWISE_CMP_LE,
+
+    /*! A pointwise truth value of the first tensor logical AND second tensor is computed. */
+    MIOPEN_POINTWISE_LOGICAL_AND,
+
+    /*! A pointwise truth value of the first tensor logical OR second tensor is computed. */
+    MIOPEN_POINTWISE_LOGICAL_OR,
+
+    /*! A pointwise truth value of input tensors logical NOT is computed. */
+    MIOPEN_POINTWISE_LOGICAL_NOT,
+
+    /*! A pointwise index value of the input tensor is generated along a given axis. */
+    MIOPEN_POINTWISE_GEN_INDEX,
+
+    /*! A pointwise value is selected amongst two input tensors based on a given predicate tensor.
+     */
+    MIOPEN_POINTWISE_BINARY_SELECT,
+
+    /*! A pointwise reciprocal of the input tensor is computed. In other words, for every element x
+       in the input tensor, 1/x is computed. */
+    MIOPEN_POINTWISE_RECIPROCAL
 } miopenPointwiseMode_t;
 
 /*! @brief Distribution for random number generation
