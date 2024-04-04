@@ -41,7 +41,7 @@ struct HIPOCProgramImpl
     HIPOCProgramImpl(){};
     HIPOCProgramImpl(const std::string& program_name, const fs::path& filespec);
 
-    HIPOCProgramImpl(const std::string& program_name, const std::string& blob);
+    HIPOCProgramImpl(const std::string& program_name, const std::vector<char>& blob);
 
     HIPOCProgramImpl(const std::string& program_name,
                      std::string params,
