@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,29 +23,32 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#pragma once
 
 #include <miopen/errors.hpp>
-#include <miopen/load_file.hpp>
-#include <fstream>
-#include <ios>
-#include <iterator>
+#include <miopen/graphapi/tensor.hpp>
+
+#include <algorithm>
 #include <vector>
 
 namespace miopen {
 
-std::vector<char> LoadFile(const fs::path& path)
+namespace graphapi {
+
+class OpNode
 {
-    std::error_code error_code;
-    const auto size = fs::file_size(path, error_code);
-    if(error_code)
-        MIOPEN_THROW(path.string() + ": " + error_code.message());
-    std::ifstream in(path, std::ios::binary);
-    if(!in.is_open())
-        MIOPEN_THROW(path.string() + ": file opening error");
-    std::vector<char> v(size);
-    if(in.read(v.data(), v.size()).fail())
-        MIOPEN_THROW(path.string() + ": file reading error");
-    return v;
-}
+public:
+    virtual ~OpNode() = default;
+
+    virtual std::vector<Tensor*> getInTensors() const = 0;
+
+    virtual std::vector<Tensor*> getOutTensors() const = 0;
+
+    /* TODO: The remaining part of the class is being
+     * developed separately. Needs merging after finished.
+     */
+};
+
+} // namespace graphapi
 
 } // namespace miopen
