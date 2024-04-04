@@ -91,9 +91,13 @@ InvokerFactory MakeGcnAsmWinoV40InvokerFactory(const WinoShaderArgsV40& args,
             if(coop_launch)
             {
                 // Sync buffer that has to be zeroed before each shader dispatch
+#if MIOPEN_BACKEND_HIP
                 auto status = hipMemsetAsync(sync_addr, 0, sync_buffer_size, handle.GetStream());
                 if(status != hipSuccess)
                     MIOPEN_THROW_HIP_STATUS(status, "hipMemsetAsync() failed");
+#else
+#error "Unsupported backend"
+#endif
             }
 
             // clang-format off
