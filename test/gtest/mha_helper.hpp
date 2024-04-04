@@ -62,8 +62,9 @@ float GetF8Scaling(float max_val)
 template <typename T>
 T FindMax4D(const tensor<T>& max_of_tensor)
 {
-    T maxVal = max_of_tensor[0]; // Start with the first element as the maximum
-    max_of_tensor.for_each([&](auto... id) { maxVal = std::max(maxVal, max_of_tensor(id...)); });
+    T maxVal = std::abs(max_of_tensor[0]); // Start with the first element as the maximum
+    max_of_tensor.for_each(
+        [&](auto... id) { maxVal = std::max(maxVal, std::abs(max_of_tensor(id...))); });
     return maxVal;
 }
 
