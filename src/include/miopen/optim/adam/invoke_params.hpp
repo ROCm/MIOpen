@@ -54,7 +54,7 @@ struct InvokeParams : public miopen::InvokeParams
     ConstData_t stepIn        = nullptr;
     Data_t stepOut            = nullptr;
 
-    int step           = 0;
+    uint32_t step      = 0;
     float lr           = 0.0;
     float beta1        = 0.0;
     float beta2        = 0.0;

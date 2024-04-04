@@ -53,7 +53,7 @@ struct ProblemDescription : ProblemDescriptionBase
                        const TensorDescriptor* foundInfDesc_,
                        const TensorDescriptor* stepInDesc_,
                        const TensorDescriptor* stepOutDesc_,
-                       int32_t step_,
+                       uint32_t step_,
                        double lr_,
                        double beta1_,
                        double beta2_,
@@ -161,7 +161,7 @@ private:
     const TensorDescriptor* stepInDesc          = nullptr;
     const TensorDescriptor* stepOutDesc         = nullptr;
 
-    int32_t step        = 0;
+    uint32_t step       = 0;
     double lr           = 0.0;
     double beta1        = 0.0;
     double beta2        = 0.0;

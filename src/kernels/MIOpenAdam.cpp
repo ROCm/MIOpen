@@ -45,7 +45,7 @@ inline __device__ void AdamInternal(T1* param_in,
                                     T2 beta2,
                                     T2 weight_decay,
                                     T2 eps,
-                                    int step,
+                                    uint32_t step,
                                     bool amsgrad,
                                     bool maximize,
                                     size_t gid)
@@ -55,7 +55,6 @@ inline __device__ void AdamInternal(T1* param_in,
     T2 exp_avg_sq = static_cast<T2>(exp_avg_sq_in[gid]);
 
     __builtin_assume(exp_avg_sq >= 0 && exp_avg_sq <= 1);
-    __builtin_assume(step >= 0);
     __builtin_assume(beta1 >= 0);
     __builtin_assume(beta2 >= 0);
 
@@ -106,7 +105,7 @@ extern "C" __global__ void AdamPacked(PTYPE* param_in,
                                       float beta2,
                                       float weight_decay,
                                       float eps,
-                                      int step,
+                                      uint32_t step,
                                       bool amsgrad,
                                       bool maximize,
                                       size_t input_size)
@@ -171,7 +170,7 @@ extern "C" __global__ void AmpAdamPacked(PTYPE* param_in,
         return;
 
     CTYPE scale_factor = (grad_scale) ? static_cast<CTYPE>(*grad_scale) : 1.0f;
-    int step_val       = *step + 1;
+    uint32_t step_val  = static_cast<uint32_t>(*step) + 1;
 
     for(; gid < input_size; gid += gsz)
     {

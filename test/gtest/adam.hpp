@@ -196,7 +196,7 @@ protected:
                          found_inf[0],
                          step_count);
 
-        for(int i = 1; i <= step_count; i++)
+        for(uint32_t i = 1; i <= step_count; i++)
         {
             auto status = miopen::Adam(handle,
                                        param.desc,
