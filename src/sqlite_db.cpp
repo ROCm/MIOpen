@@ -349,12 +349,13 @@ std::string SQLite::Statement::ColumnText(int idx)
         reinterpret_cast<const char*>(sqlite3_column_text(pImpl->ptrStmt.get(), idx)), bytes};
 }
 
-std::string SQLite::Statement::ColumnBlob(int idx)
+std::vector<char> SQLite::Statement::ColumnBlob(int idx)
 {
-    auto ptr = sqlite3_column_blob(pImpl->ptrStmt.get(), idx);
+    auto ptr = static_cast<const char*>(sqlite3_column_blob(pImpl->ptrStmt.get(), idx));
     auto sz  = sqlite3_column_bytes(pImpl->ptrStmt.get(), idx);
-    return std::string{reinterpret_cast<const char*>(ptr), static_cast<size_t>(sz)};
+    return {ptr, ptr + sz};
 }
+
 int64_t SQLite::Statement::ColumnInt64(int idx)
 {
     return sqlite3_column_int64(pImpl->ptrStmt.get(), idx);
@@ -366,7 +367,8 @@ int SQLite::Statement::BindText(int idx, const std::string& txt)
         pImpl->ptrStmt.get(), idx, txt.data(), txt.size(), SQLITE_TRANSIENT); // NOLINT
     return 0;
 }
-int SQLite::Statement::BindBlob(int idx, const std::string& blob)
+
+int SQLite::Statement::BindBlob(int idx, const std::vector<char>& blob)
 {
     sqlite3_bind_blob(
         pImpl->ptrStmt.get(), idx, blob.data(), blob.size(), SQLITE_TRANSIENT); // NOLINT
