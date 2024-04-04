@@ -187,6 +187,8 @@ void HIPOCKernelInvoke::run_cooperative(void** kern_args) const
         if(status != hipSuccess)
             MIOPEN_THROW_HIP_STATUS(status, "hipEventRecord() failed");
     }
+#else
+#error "Doesn't work without workaround"
 #endif // WORKAROUND_SWDEV_448157
 
     if(callback)
