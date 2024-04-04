@@ -23,10 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "m_reduce.hpp"
 #include "reduce_driver.hpp"
+#include "registry_driver_maker.hpp"
 
-Driver* makeDriverReduce(const std::string& base_arg)
+static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "reduce")
         return new ReduceDriver<float, float>();
@@ -36,3 +36,5 @@ Driver* makeDriverReduce(const std::string& base_arg)
         return new ReduceDriver<double, double>();
     return nullptr;
 }
+
+REGISTER_DRIVER_MAKER(makeDriver);

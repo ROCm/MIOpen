@@ -24,9 +24,9 @@
  *
  *******************************************************************************/
 #include "cat_driver.hpp"
-#include "m_cat.hpp"
+#include "registry_driver_maker.hpp"
 
-Driver* makeDriverCat(const std::string& base_arg)
+static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "cat")
         return new CatDriver<float>();
@@ -36,3 +36,5 @@ Driver* makeDriverCat(const std::string& base_arg)
         return new CatDriver<bfloat16>();
     return nullptr;
 }
+
+REGISTER_DRIVER_MAKER(makeDriver);

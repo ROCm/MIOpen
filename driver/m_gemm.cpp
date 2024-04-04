@@ -24,11 +24,11 @@
  *
  *******************************************************************************/
 #include "gemm_driver.hpp"
-#include "m_gemm.hpp"
+#include "registry_driver_maker.hpp"
 
 #include <miopen/config.h>
 
-Driver* makeDriverGemm(const std::string& base_arg)
+static Driver* makeDriver(const std::string& base_arg)
 {
 #if MIOPEN_USE_GEMM
     if(base_arg == "gemm")
@@ -38,3 +38,5 @@ Driver* makeDriverGemm(const std::string& base_arg)
 #endif
     return nullptr;
 }
+
+REGISTER_DRIVER_MAKER(makeDriver);

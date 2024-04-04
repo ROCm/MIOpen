@@ -24,9 +24,9 @@
  *
  *******************************************************************************/
 #include "activ_driver.hpp"
-#include "m_activ.hpp"
+#include "registry_driver_maker.hpp"
 
-Driver* makeDriverActiv(const std::string& base_arg)
+static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "activ")
         return new ActivationDriver<float, double>();
@@ -34,3 +34,5 @@ Driver* makeDriverActiv(const std::string& base_arg)
         return new ActivationDriver<float16, double>();
     return nullptr;
 }
+
+REGISTER_DRIVER_MAKER(makeDriver);

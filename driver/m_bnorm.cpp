@@ -24,9 +24,9 @@
  *
  *******************************************************************************/
 #include "bn_driver.hpp"
-#include "m_bnorm.hpp"
+#include "registry_driver_maker.hpp"
 
-Driver* makeDriverBnorm(const std::string& base_arg)
+static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "bnorm")
         return new BatchNormDriver<float, double>();
@@ -34,3 +34,5 @@ Driver* makeDriverBnorm(const std::string& base_arg)
         return new BatchNormDriver<float16, double, float>();
     return nullptr;
 }
+
+REGISTER_DRIVER_MAKER(makeDriver);

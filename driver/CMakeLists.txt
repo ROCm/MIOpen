@@ -52,6 +52,7 @@ add_executable(MIOpenDriver
     m_sum.cpp
     m_tensorop.cpp
     main.cpp
+    registry_driver_maker.cpp
     rocrand_wrapper.cpp)
 if(WIN32)
     # Refer to https://en.cppreference.com/w/cpp/language/types for details.

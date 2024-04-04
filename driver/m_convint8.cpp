@@ -24,11 +24,13 @@
  *
  *******************************************************************************/
 #include "conv_driver.hpp"
-#include "m_conv.hpp"
+#include "registry_driver_maker.hpp"
 
-Driver* makeDriverConvint8(const std::string& base_arg)
+static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "convint8")
         return new ConvDriver<int8_t, int32_t>();
     return nullptr;
 }
+
+REGISTER_DRIVER_MAKER(makeDriver);

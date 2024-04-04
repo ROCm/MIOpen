@@ -24,9 +24,9 @@
  *
  *******************************************************************************/
 #include "groupnorm_driver.hpp"
-#include "m_groupnorm.hpp"
+#include "registry_driver_maker.hpp"
 
-Driver* makeDriverGroupnorm(const std::string& base_arg)
+static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "groupnorm")
         return new GroupNormDriver<float, double>();
@@ -36,3 +36,5 @@ Driver* makeDriverGroupnorm(const std::string& base_arg)
         return new GroupNormDriver<bfloat16, double>();
     return nullptr;
 }
+
+REGISTER_DRIVER_MAKER(makeDriver);

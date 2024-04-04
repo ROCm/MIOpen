@@ -24,11 +24,11 @@
  *
  *******************************************************************************/
 #include "ctc_driver.hpp"
-#include "m_rnn.hpp"
+#include "registry_driver_maker.hpp"
 #include "rnn_driver.hpp"
 #include "rnn_seq_driver.hpp"
 
-Driver* makeDriverRnn(const std::string& base_arg)
+static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "rnn_seq")
         return new RNNSeqDriver<float, double>();
@@ -42,3 +42,5 @@ Driver* makeDriverRnn(const std::string& base_arg)
         return new CTCDriver<float>();
     return nullptr;
 }
+
+REGISTER_DRIVER_MAKER(makeDriver);

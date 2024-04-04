@@ -24,9 +24,9 @@
  *
  *******************************************************************************/
 #include "lrn_driver.hpp"
-#include "m_lrn.hpp"
+#include "registry_driver_maker.hpp"
 
-Driver* makeDriverLrn(const std::string& base_arg)
+static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "lrn")
         return new LRNDriver<float, double>();
@@ -34,3 +34,5 @@ Driver* makeDriverLrn(const std::string& base_arg)
         return new LRNDriver<float16, double>();
     return nullptr;
 }
+
+REGISTER_DRIVER_MAKER(makeDriver);

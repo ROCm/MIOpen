@@ -23,10 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "m_pool.hpp"
 #include "pool_driver.hpp"
+#include "registry_driver_maker.hpp"
 
-Driver* makeDriverPool(const std::string& base_arg)
+static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "pool")
         return new PoolDriver<float, double>();
@@ -34,3 +34,5 @@ Driver* makeDriverPool(const std::string& base_arg)
         return new PoolDriver<float16, double>();
     return nullptr;
 }
+
+REGISTER_DRIVER_MAKER(makeDriver);

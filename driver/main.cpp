@@ -24,23 +24,7 @@
  *
  *******************************************************************************/
 #include "driver.hpp"
-#include "m_activ.hpp"
-#include "m_argmax.hpp"
-#include "m_bnorm.hpp"
-#include "m_cat.hpp"
-#include "m_conv.hpp"
-#include "m_dropout.hpp"
-#include "m_fusion.hpp"
-#include "m_gemm.hpp"
-#include "m_groupnorm.hpp"
-#include "m_layernorm.hpp"
-#include "m_lrn.hpp"
-#include "m_pool.hpp"
-#include "m_reduce.hpp"
-#include "m_rnn.hpp"
-#include "m_softmax.hpp"
-#include "m_sum.hpp"
-#include "m_tensorop.hpp"
+#include "registry_driver_maker.hpp"
 
 #include <miopen/config.h>
 #include <miopen/stringutils.hpp>
@@ -68,49 +52,13 @@ int main(int argc, char* argv[])
         std::cout << " " << argv[i];
     std::cout << std::endl;
 
-    Driver* drv = makeDriverConv(base_arg);
-    if(drv == nullptr)
-        drv = makeDriverConvfp16(base_arg);
-    if(drv == nullptr)
-        drv = makeDriverConvbfp16(base_arg);
-    if(drv == nullptr)
-        drv = makeDriverConvint8(base_arg);
-    if(drv == nullptr)
-        drv = makeDriverConvfp8(base_arg);
-    if(drv == nullptr)
-        drv = makeDriverConvbfp8(base_arg);
-    if(drv == nullptr)
-        drv = makeDriverFusion(base_arg);
-    if(drv == nullptr)
-        drv = makeDriverPool(base_arg);
-    if(drv == nullptr)
-        drv = makeDriverLrn(base_arg);
-    if(drv == nullptr)
-        drv = makeDriverActiv(base_arg);
-    if(drv == nullptr)
-        drv = makeDriverSoftmax(base_arg);
-    if(drv == nullptr)
-        drv = makeDriverGemm(base_arg);
-    if(drv == nullptr)
-        drv = makeDriverBnorm(base_arg);
-    if(drv == nullptr)
-        drv = makeDriverRnn(base_arg);
-    if(drv == nullptr)
-        drv = makeDriverDropout(base_arg);
-    if(drv == nullptr)
-        drv = makeDriverGroupnorm(base_arg);
-    if(drv == nullptr)
-        drv = makeDriverTensorop(base_arg);
-    if(drv == nullptr)
-        drv = makeDriverReduce(base_arg);
-    if(drv == nullptr)
-        drv = makeDriverLayernorm(base_arg);
-    if(drv == nullptr)
-        drv = makeDriverSum(base_arg);
-    if(drv == nullptr)
-        drv = makeDriverArgmax(base_arg);
-    if(drv == nullptr)
-        drv = makeDriverCat(base_arg);
+    Driver* drv = nullptr;
+    for(auto f : rdm::GetRegistry())
+    {
+        drv = f(base_arg);
+        if(drv != nullptr)
+            break;
+    }
     if(drv == nullptr)
     {
         printf("Incorrect BaseArg\n");

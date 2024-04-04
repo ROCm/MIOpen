@@ -24,11 +24,13 @@
  *
  *******************************************************************************/
 #include "conv_driver.hpp"
-#include "m_conv.hpp"
+#include "registry_driver_maker.hpp"
 
-Driver* makeDriverConvfp16(const std::string& base_arg)
+static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "convfp16")
         return new ConvDriver<float16, float>();
     return nullptr;
 }
+
+REGISTER_DRIVER_MAKER(makeDriver);

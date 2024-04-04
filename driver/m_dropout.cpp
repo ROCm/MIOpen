@@ -24,9 +24,9 @@
  *
  *******************************************************************************/
 #include "dropout_driver.hpp"
-#include "m_dropout.hpp"
+#include "registry_driver_maker.hpp"
 
-Driver* makeDriverDropout(const std::string& base_arg)
+static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "dropout")
         return new DropoutDriver<float, float>();
@@ -34,3 +34,5 @@ Driver* makeDriverDropout(const std::string& base_arg)
         return new DropoutDriver<float16, float>();
     return nullptr;
 }
+
+REGISTER_DRIVER_MAKER(makeDriver);

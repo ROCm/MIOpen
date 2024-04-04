@@ -23,10 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "m_softmax.hpp"
+#include "registry_driver_maker.hpp"
 #include "softmax_driver.hpp"
 
-Driver* makeDriverSoftmax(const std::string& base_arg)
+static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "softmax")
         return new SoftmaxDriver<float, double>();
@@ -34,3 +34,5 @@ Driver* makeDriverSoftmax(const std::string& base_arg)
         return new SoftmaxDriver<float16, double>();
     return nullptr;
 }
+
+REGISTER_DRIVER_MAKER(makeDriver);

@@ -23,10 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "m_sum.hpp"
+#include "registry_driver_maker.hpp"
 #include "sum_driver.hpp"
 
-Driver* makeDriverSum(const std::string& base_arg)
+static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "sum")
         return new SumDriver<float, float>();
@@ -36,3 +36,5 @@ Driver* makeDriverSum(const std::string& base_arg)
         return new SumDriver<bfloat16, float>();
     return nullptr;
 }
+
+REGISTER_DRIVER_MAKER(makeDriver);

@@ -23,10 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "m_tensorop.hpp"
+#include "registry_driver_maker.hpp"
 #include "tensorop_driver.hpp"
 
-Driver* makeDriverTensorop(const std::string& base_arg)
+static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "tensorop")
         return new TensorOpDriver<float, float>();
@@ -34,3 +34,5 @@ Driver* makeDriverTensorop(const std::string& base_arg)
         return new TensorOpDriver<float16, float>();
     return nullptr;
 }
+
+REGISTER_DRIVER_MAKER(makeDriver);

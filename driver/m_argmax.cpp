@@ -24,9 +24,9 @@
  *
  *******************************************************************************/
 #include "argmax_driver.hpp"
-#include "m_argmax.hpp"
+#include "registry_driver_maker.hpp"
 
-Driver* makeDriverArgmax(const std::string& base_arg)
+static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "argmax")
         return new ArgmaxDriver<float, float>();
@@ -36,3 +36,5 @@ Driver* makeDriverArgmax(const std::string& base_arg)
         return new ArgmaxDriver<bfloat16, float>();
     return nullptr;
 }
+
+REGISTER_DRIVER_MAKER(makeDriver);

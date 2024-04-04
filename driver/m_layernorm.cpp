@@ -24,9 +24,9 @@
  *
  *******************************************************************************/
 #include "layernorm_driver.hpp"
-#include "m_layernorm.hpp"
+#include "registry_driver_maker.hpp"
 
-Driver* makeDriverLayernorm(const std::string& base_arg)
+static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "layernorm")
         return new LayerNormDriver<float, float>();
@@ -36,3 +36,5 @@ Driver* makeDriverLayernorm(const std::string& base_arg)
         return new LayerNormDriver<bfloat16, float>();
     return nullptr;
 }
+
+REGISTER_DRIVER_MAKER(makeDriver);

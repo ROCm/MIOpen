@@ -24,9 +24,9 @@
  *
  *******************************************************************************/
 #include "CBAInferFusion_driver.hpp"
-#include "m_fusion.hpp"
+#include "registry_driver_maker.hpp"
 
-Driver* makeDriverFusion(const std::string& base_arg)
+static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "CBAInfer")
         return new CBAInferFusionDriver<float, double>();
@@ -34,3 +34,5 @@ Driver* makeDriverFusion(const std::string& base_arg)
         return new CBAInferFusionDriver<float16, double>();
     return nullptr;
 }
+
+REGISTER_DRIVER_MAKER(makeDriver);
