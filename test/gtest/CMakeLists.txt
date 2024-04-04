@@ -4,6 +4,7 @@ find_package(rocblas)
 set(SOURCES
     log.cpp
     platform.cpp
+    conv_common.cpp
     )
 
 if(MIOPEN_BACKEND_OPENCL)
