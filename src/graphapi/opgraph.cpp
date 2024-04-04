@@ -31,12 +31,13 @@ namespace graphapi {
 
 OpNode::~OpNode() = default;
 
-OpGraph OpGraphBuilder::build()
+OpGraph OpGraphBuilder::build() &&
 {
 
     OpGraph graph;
 
     // key = tensor ptr, value = vec. of dest nodes
+    /// \todo might eventually move this state to the graph class during build()
     std::unordered_map<Tensor*, EdgeInfo> e_map;
 
     for(OpNode* n : mNodes)
@@ -45,7 +46,7 @@ OpGraph OpGraphBuilder::build()
         for(Tensor* i : n->getInTensors())
         {
             auto [iter, _ignore] =
-                e_map.emplace(i, EdgeInfo{}); // add empty EdgeInfo if not present
+                e_map.try_emplace(i, EdgeInfo{}); // add empty EdgeInfo if not present
 
             iter->second.mDests.emplace_back(n);
         }
@@ -53,14 +54,14 @@ OpGraph OpGraphBuilder::build()
         for(Tensor* o : n->getOutTensors())
         {
             auto [iter, _ignore] =
-                e_map.emplace(o, EdgeInfo{}); // add empty EdgeInfo if not present
+                e_map.try_emplace(o, EdgeInfo{}); // add empty EdgeInfo if not present
 
             assert(iter->second.mSrc == nullptr);
             iter->second.mSrc = n;
         }
     }
 
-    graph.addNodes(std::move(mNodes));
+    graph.initNodes(std::move(mNodes));
 
     for(const auto& [tens_ptr, edge_info] : e_map)
     {
@@ -88,8 +89,7 @@ OpGraph OpGraphBuilder::build()
         }
         else if(edge_info.mDests.empty())
         {
-            // tens_ptr is a non-virtual output tensor
-            assert(!tens_ptr->isVirtual());
+            // tens_ptr is an output tensor (virtual or non-virtual)
             assert(edge_info.mSrc != nullptr);
             graph.addEdgeToSink(edge_info.mSrc, tens_ptr);
         }

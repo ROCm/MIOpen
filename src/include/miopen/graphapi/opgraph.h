@@ -67,18 +67,22 @@ protected:
 
     virtual std::vector<Tensor*> getOutTensors() const = 0;
 
-    const auto& iterateInEdges() const { return mInEdges; }
+    const auto& getInEdges() const { return mInEdges; }
 
-    const auto& iterateOutEdges() const { return mOutEdges; }
+    const auto& getOutEdges() const { return mOutEdges; }
 
     bool hasInEdge(OpNode* src, Tensor* tens_ptr) const
     {
+        assert(src);
+        assert(tens_ptr);
         Edge e{src, tens_ptr};
         return internal::contains(mInEdges, e);
     }
 
     bool hasOutEdge(OpNode* dst, Tensor* tens_ptr) const
     {
+        assert(dst);
+        assert(tens_ptr);
         Edge e{dst, tens_ptr};
         return internal::contains(mOutEdges, e);
     }
@@ -86,6 +90,7 @@ protected:
     void addOutEdge(OpNode* dst, Tensor* tens_ptr)
     {
         assert(dst);
+        assert(tens_ptr);
         if(!hasOutEdge(dst, tens_ptr))
         {
             mOutEdges.emplace_back(dst, tens_ptr);
@@ -95,6 +100,7 @@ protected:
     void addInEdge(OpNode* src, Tensor* tens_ptr)
     {
         assert(src);
+        assert(tens_ptr);
         if(!hasInEdge(src, tens_ptr))
         {
             mInEdges.emplace_back(src, tens_ptr);
@@ -173,7 +179,7 @@ public:
 private:
     friend class OpGraphBuilder;
 
-    void addNodes(std::vector<OpNode*>&& nodes) { mNodes = std::move(nodes); }
+    void initNodes(std::vector<OpNode*>&& nodes) { mNodes = std::move(nodes); }
 
     void addEdge(OpNode* src, Tensor* tens_ptr, OpNode* dst)
     {
@@ -216,7 +222,8 @@ public:
         std::vector<OpNode*> mDests{};
     };
 
-    OpGraph build();
+    // r-value method that consumes *this
+    OpGraph build() &&;
 };
 
 } // end namespace graphapi
