@@ -53,7 +53,7 @@
 #define XORWOW_JUMP_LOG2_DEV 1
 #define XORWOW_SEQUENCE_JUMP_LOG2 67
 
-static unsigned int xorwow_next(prngStates* cur_state)
+inline unsigned int xorwow_next(prngStates* cur_state)
 {
 
     const unsigned int t = cur_state->x ^ (cur_state->x >> 2);
@@ -136,7 +136,7 @@ inline void mat_pow(unsigned int* matrixP, const unsigned int* matrix, unsigned 
 }
 
 // Generate matrix one-step advanced
-static void skipahead_one_step(unsigned int* matrix)
+inline void skipahead_one_step(unsigned int* matrix)
 {
     xorwowStates init_state;
 
@@ -162,7 +162,7 @@ static void skipahead_one_step(unsigned int* matrix)
 }
 
 // Generate (2^67)-step-ahead matrices
-static void generate_skipahead_matrices(unsigned int* matrix, bool is_skip_seq, bool is_device)
+inline void generate_skipahead_matrices(unsigned int* matrix, bool is_skip_seq, bool is_device)
 {
     unsigned int matrixA[XORWOW_PRECALC_MATRICES_SZ];
     unsigned int matrixB[XORWOW_PRECALC_MATRICES_SZ];
@@ -190,7 +190,7 @@ static void generate_skipahead_matrices(unsigned int* matrix, bool is_skip_seq, 
 }
 
 // write macros in file
-static void write_macro(std::ofstream& os, bool is_device)
+inline void write_macro(std::ofstream& os, bool is_device)
 {
     os << "#define XORWOW_DIM " << XORWOW_DIM << std::endl;
     os << "#define XORWOW_BITS " << XORWOW_BITS << std::endl;
@@ -205,7 +205,7 @@ static void write_macro(std::ofstream& os, bool is_device)
 }
 
 // write matrices in file
-static void
+inline void
 write_mat(std::ofstream& os, const std::string name, unsigned int* matrix, bool is_device)
 {
     os << "static " << (is_device ? "__constant " : "const ") << "unsigned int " << name
@@ -225,7 +225,7 @@ write_mat(std::ofstream& os, const std::string name, unsigned int* matrix, bool 
 }
 
 // generate header files with precalculated skip-ahead matrices
-[[maybe_unused]] static void generate_skipahead_file()
+inline void generate_skipahead_file()
 {
     static unsigned int skipahead_matrices[XORWOW_PRECALC_MATRICES_NUM][XORWOW_PRECALC_MATRICES_SZ];
     static unsigned int skipahead_matrices_sequence[XORWOW_PRECALC_MATRICES_NUM]
