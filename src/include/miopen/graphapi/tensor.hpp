@@ -37,6 +37,13 @@ namespace graphapi {
 
 class Tensor
 {
+private:
+    std::vector<int64_t> mDimensions;
+    std::vector<int64_t> mStrides;
+    int64_t mId                = 0;
+    miopenDataType_t mDataType = miopenFloat;
+    bool mVirtual              = false;
+
 public:
     Tensor() noexcept         = default;
     Tensor(const Tensor&)     = default;
@@ -80,17 +87,21 @@ public:
     const std::vector<int64_t>& getStrides() const noexcept { return mStrides; }
     int64_t getId() const noexcept { return mId; }
     bool isVirtual() const noexcept { return mVirtual; }
+};
 
+class TensorBuilder
+{
 private:
     std::vector<int64_t> mDimensions;
     std::vector<int64_t> mStrides;
     int64_t mId                = 0;
     miopenDataType_t mDataType = miopenFloat;
     bool mVirtual              = false;
-};
+    bool mUniqueIdSet          = false;
+    bool mDataTypeSet          = false;
+    bool mDimensionsSet        = false;
+    bool mStridesSet           = false;
 
-class TensorBuilder
-{
 public:
     TensorBuilder& setDataType(miopenDataType_t dataType) &;
     TensorBuilder& setDim(const std::vector<int64_t>& dimensions) &;
@@ -125,21 +136,14 @@ public:
 
     Tensor build() const&;
     Tensor build() &&;
-
-private:
-    std::vector<int64_t> mDimensions;
-    std::vector<int64_t> mStrides;
-    int64_t mId                = 0;
-    miopenDataType_t mDataType = miopenFloat;
-    bool mVirtual              = false;
-    bool mUniqueIdSet          = false;
-    bool mDataTypeSet          = false;
-    bool mDimensionsSet        = false;
-    bool mStridesSet           = false;
 };
 
 class BackendTensorDescriptor : public BackendDescriptor
 {
+private:
+    TensorBuilder mBuilder;
+    Tensor mDescriptor;
+
 public:
     BackendTensorDescriptor() = default;
     virtual ~BackendTensorDescriptor() override;
@@ -156,10 +160,6 @@ public:
 
     const Tensor* getTensor() const { return &mDescriptor; }
     Tensor* getTensor() { return &mDescriptor; }
-
-private:
-    TensorBuilder mBuilder;
-    Tensor mDescriptor;
 };
 
 } // namespace graphapi

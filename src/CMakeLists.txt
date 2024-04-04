@@ -121,6 +121,7 @@ set( MIOpen_Source
     fusion.cpp
     fusion/problem_description.cpp
     generic_search.cpp
+    graphapi/convolution.cpp
     graphapi/graphapi.cpp
     graphapi/opgraph.cpp
     graphapi/pointwise.cpp
