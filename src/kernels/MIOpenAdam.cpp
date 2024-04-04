@@ -109,7 +109,7 @@ extern "C" __global__ void AdamPacked(PTYPE* param_in,
                                       int step,
                                       bool amsgrad,
                                       bool maximize,
-                                      long input_size)
+                                      size_t input_size)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
     size_t gsz = gridDim.x * blockDim.x;
@@ -159,29 +159,19 @@ extern "C" __global__ void AmpAdamPacked(PTYPE* param_in,
                                          float eps,
                                          bool amsgrad,
                                          bool maximize,
-                                         long input_size)
+                                         size_t input_size)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
     size_t gsz = gridDim.x * blockDim.x;
-    size_t lid = threadIdx.x;
 
     if(gid >= input_size)
         return;
 
-    __shared__ int step_val;
-    __shared__ bool skip;
-    __shared__ float scale_factor;
-
-    if(lid == 0)
-    {
-        skip         = (found_inf) ? *found_inf : false;
-        scale_factor = (grad_scale) ? *grad_scale : 1.0f;
-        step_val     = *step + 1;
-    }
-    __syncthreads();
-
-    if(skip)
+    if(found_inf && *found_inf)
         return;
+
+    CTYPE scale_factor = (grad_scale) ? static_cast<CTYPE>(*grad_scale) : 1.0f;
+    int step_val       = *step + 1;
 
     for(; gid < input_size; gid += gsz)
     {

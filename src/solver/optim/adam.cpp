@@ -67,7 +67,7 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
         constexpr size_t local_size = 256;
         auto& handle                = context.GetStream();
         auto numCu                  = handle.GetMaxComputeUnits();
-        auto grid_size              = numCu * 8 * local_size;
+        auto grid_size              = numCu * 4 * local_size;
 
         auto kernel = KernelInfo{};
 
