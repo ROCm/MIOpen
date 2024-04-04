@@ -29,28 +29,28 @@ find_package(Threads REQUIRED)
 add_executable(MIOpenDriver 
     InputFlags.cpp
     conv_common.cpp
-    m_activ.cpp
-    m_argmax.cpp
-    m_bnorm.cpp
-    m_cat.cpp
-    m_conv.cpp
-    m_convbfp16.cpp
-    m_convbfp8.cpp
-    m_convfp16.cpp
-    m_convfp8.cpp
-    m_convint8.cpp
-    m_dropout.cpp
-    m_fusion.cpp
-    m_gemm.cpp
-    m_groupnorm.cpp
-    m_layernorm.cpp
-    m_lrn.cpp
-    m_pool.cpp
-    m_reduce.cpp
-    m_rnn.cpp
-    m_softmax.cpp
-    m_sum.cpp
-    m_tensorop.cpp
+    dm_activ.cpp
+    dm_argmax.cpp
+    dm_bnorm.cpp
+    dm_cat.cpp
+    dm_conv.cpp
+    dm_convbfp16.cpp
+    dm_convbfp8.cpp
+    dm_convfp16.cpp
+    dm_convfp8.cpp
+    dm_convint8.cpp
+    dm_dropout.cpp
+    dm_fusion.cpp
+    dm_gemm.cpp
+    dm_groupnorm.cpp
+    dm_layernorm.cpp
+    dm_lrn.cpp
+    dm_pool.cpp
+    dm_reduce.cpp
+    dm_rnn.cpp
+    dm_softmax.cpp
+    dm_sum.cpp
+    dm_tensorop.cpp
     main.cpp
     registry_driver_maker.cpp
     rocrand_wrapper.cpp)
