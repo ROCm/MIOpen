@@ -62,10 +62,8 @@ float GetF8Scaling(float max_val)
 template <typename T>
 T FindMax4D(const tensor<T>& max_of_tensor)
 {
-    T maxVal = max_of_tensor(0, 0, 0, 0); // Start with the first element as the maximum
-    max_of_tensor.for_each([&](size_t b_id, size_t n_id, size_t s_id, size_t dk_id) {
-        maxVal = std::max(maxVal, max_of_tensor(b_id, n_id, s_id, dk_id));
-    });
+    T maxVal = max_of_tensor[0]; // Start with the first element as the maximum
+    max_of_tensor.for_each([&](auto... id) { maxVal = std::max(maxVal, max_of_tensor(id...)); });
     return maxVal;
 }
 
@@ -192,39 +190,21 @@ void ScaleMult(const tensor<T1>& tensor_val,
                const T2& scale_factor,
                tensor<T3>& tensor_scale_factor)
 {
-    tensor_scale_factor.par_for_each([&](size_t b_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
-        tensor_scale_factor(b_id, h_id, sl_i_id, sl_j_id) =
-            T3(tensor_val(b_id, h_id, sl_i_id, sl_j_id) * scale_factor);
-    });
-}
-
-template <typename T1, typename T2, typename T3>
-void ScaleMult3d(const tensor<T1>& tensor_val,
-                 const T2& scale_factor,
-                 tensor<T3>& tensor_scale_factor)
-{
-    tensor_scale_factor.par_for_each([&](size_t b_id, size_t sl_i_id, size_t sl_j_id) {
-        tensor_scale_factor(b_id, sl_i_id, sl_j_id) =
-            T3(tensor_val(b_id, sl_i_id, sl_j_id) * scale_factor);
-    });
+    tensor_scale_factor.par_for_each(
+        [&](auto... id) { tensor_scale_factor(id...) = T3(tensor_val(id...) * scale_factor); });
 }
 
 template <class T>
 void PointWiseExp(const tensor<T>& tensor_val, tensor<T>& tensor_exp_val)
 {
-    tensor_exp_val.par_for_each([&](size_t b_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
-        tensor_exp_val(b_id, h_id, sl_i_id, sl_j_id) =
-            T(std::exp(tensor_val(b_id, h_id, sl_i_id, sl_j_id)));
-    });
+    tensor_exp_val.par_for_each(
+        [&](auto... id) { tensor_exp_val(id...) = T(std::exp(tensor_val(id...))); });
 }
 
 template <class T>
 void PointWiseMultiply(const tensor<T>& tensor_a, const tensor<T>& tensor_b, tensor<T>& tensor_c)
 {
-    tensor_c.par_for_each([&](size_t b_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
-        tensor_c(b_id, h_id, sl_i_id, sl_j_id) =
-            tensor_a(b_id, h_id, sl_i_id, sl_j_id) * tensor_b(b_id, h_id, sl_i_id, sl_j_id);
-    });
+    tensor_c.par_for_each([&](auto... id) { tensor_c(id...) = tensor_a(id...) * tensor_b(id...); });
 }
 
 template <typename T>
@@ -291,13 +271,12 @@ void DropOut(tensor<T>& q_dot_k_transpose, const double& drop_out_rate)
 {
     tensor<T> rand_dis(q_dot_k_transpose.desc.GetLengths());
     rand_dis.generate(GenData<T>{});
-    q_dot_k_transpose.par_for_each(
-        [&](size_t b_id, size_t sc_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
-            if(rand_dis(b_id, sc_id, h_id, sl_i_id, sl_j_id) < drop_out_rate)
-            {
-                q_dot_k_transpose(b_id, sc_id, h_id, sl_i_id, sl_j_id) = T(0);
-            }
-        });
+    q_dot_k_transpose.par_for_each([&](auto... id) {
+        if(rand_dis(id...) < drop_out_rate)
+        {
+            q_dot_k_transpose(id...) = T(0);
+        }
+    });
 }
 
 template <class T, class U>
@@ -359,7 +338,7 @@ void MultiHeadAttentionfp8(const tensor<T>& q_val,
                            tensor<T>& multi_head_attention_fp8)
 {
     auto inputLengths = q_val.desc.GetLengths();
-    inputLengths[3] = inputLengths[2]; //NHSD converting to NHSS
+    inputLengths[3]   = inputLengths[2]; // NHSD converting to NHSS
     tensor<float> q_dot_k_fp8_stored_in_fp32_tensor(inputLengths);
     tensor<float> softmax(inputLengths);
 
@@ -369,7 +348,9 @@ void MultiHeadAttentionfp8(const tensor<T>& q_val,
     Dot_4D_4D_T(q_val, k_val, q_dot_k_fp8_stored_in_fp32_tensor);
 
     // bring it back to fp32 so that we can do the softmax
-    ScaleMult(q_dot_k_fp8_stored_in_fp32_tensor, q_descale * k_descale, q_dot_k_fp8_stored_in_fp32_tensor);
+    ScaleMult(q_dot_k_fp8_stored_in_fp32_tensor,
+              q_descale * k_descale,
+              q_dot_k_fp8_stored_in_fp32_tensor);
 
     SoftMax(q_dot_k_fp8_stored_in_fp32_tensor, softmax, attn_max, Z_sum);
 
@@ -377,7 +358,7 @@ void MultiHeadAttentionfp8(const tensor<T>& q_val,
     // DropOut(q_dot_k_transpose, cpu_mha_test_case.drop_out_rate);
 
     // Get scaling for softmax
-    aMax_S  = FindMax4D(softmax);
+    aMax_S = FindMax4D(softmax);
 
     tensor<T> softmax_fp8(softmax.desc.GetLengths());
     // get fp8 version of Softmax(Q.dot(K_transpose)) and V
@@ -389,7 +370,7 @@ void MultiHeadAttentionfp8(const tensor<T>& q_val,
 
     // bring it back to fp32
     ScaleMult(atten_heads_fp32, s_descale * v_descale, atten_heads_fp32);
-    aMax_O  = FindMax4D(atten_heads_fp32);
+    aMax_O = FindMax4D(atten_heads_fp32);
 
     // scale to fp8 version
     ScaleMult(atten_heads_fp32, o_scale, multi_head_attention_fp8);
@@ -411,7 +392,7 @@ void MultiHeadAttentionf32(const tensor<T>& q_val,
     Dot_4D_4D_T(q_val, k_val, q_dot_k_transpose);
 
     SoftMax(q_dot_k_transpose, softmax, attn_max, Z_sum);
-    aMax_S  = FindMax4D(softmax);
+    aMax_S = FindMax4D(softmax);
 
     // // drop out
     // // DropOut(softmax, cpu_mha_test_case.drop_out_rate);
@@ -422,7 +403,7 @@ void MultiHeadAttentionf32(const tensor<T>& q_val,
 
     // O = (Q.dot(Kt)).dot(V)
     Dot_4D_4D(softmax, v_val, multi_head_attention);
-    aMax_O  = FindMax4D(multi_head_attention);
+    aMax_O = FindMax4D(multi_head_attention);
 }
 
 template <typename T>

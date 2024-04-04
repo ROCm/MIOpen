@@ -111,7 +111,7 @@ protected:
                                   aMax_O,
                                   multi_head_attention);
             Concat(multi_head_attention, final_transformed_attention);
-            ScaleMult3d(final_transformed_attention, o_descale, concatinated_attention);
+            ScaleMult(final_transformed_attention, o_descale, concatinated_attention);
         }
 
         Dot_3D_2D_T(
