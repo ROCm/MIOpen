@@ -45,6 +45,12 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 using namespace miopen;
 
+bool CheckFloatArg(std::string_view arg)
+{
+    const std::string& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    return tmp.empty() || tmp == arg;
+}
+
 struct TensorStruct
 {
     template <typename T>
@@ -74,7 +80,7 @@ struct TestCase
 
 std::vector<TestCase> GetSmokeTestCases()
 {
-    if(miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float")
+    if(CheckFloatArg("--float"))
     {
         return {{9, 8, 8, 8},
                 {1, 2, 4, 5},
@@ -97,8 +103,8 @@ std::vector<TestCase> GetSmokeTestCases()
 
 std::vector<TestCase> GetFullTestCases()
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-       (miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float"))
+    if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) || miopen::IsEnabled(ENV(MIOPEN_TEST_ALL))) &&
+       CheckFloatArg("--float"))
     {
         return {{3, 15, 2047, 15},
                 {2049, 17, 7, 7},
