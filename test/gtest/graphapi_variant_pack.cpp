@@ -48,38 +48,38 @@ using GraphApiVariantPackTuple =
 class GraphApiVariantPackBuilder : public testing::TestWithParam<GraphApiVariantPackTuple>
 {
 protected:
-    bool attrsValid;
-    ValidatedVector<int64_t> tensorIds;
-    ValidatedVector<void*> dataPointers;
-    ValidatedValue<void*> workspace;
+    bool mAttrsValid;
+    ValidatedVector<int64_t> mTensorIds;
+    ValidatedVector<void*> mDataPointers;
+    ValidatedValue<void*> mWorkspace;
 
-    void SetUp() override { std::tie(attrsValid, tensorIds, dataPointers, workspace) = GetParam(); }
+    void SetUp() override { std::tie(mAttrsValid, mTensorIds, mDataPointers, mWorkspace) = GetParam(); }
     miopen::graphapi::VariantPack buildByLValue()
     {
         miopen::graphapi::VariantPackBuilder builder;
-        return builder.setTensorIds(tensorIds.values)
-            .setDataPointers(dataPointers.values)
-            .setWorkspace(workspace.value)
+        return builder.setTensorIds(mTensorIds.values)
+            .setDataPointers(mDataPointers.values)
+            .setWorkspace(mWorkspace.value)
             .build();
     }
     miopen::graphapi::VariantPack buildByRValue()
     {
         return miopen::graphapi::VariantPackBuilder()
-            .setTensorIds(tensorIds.values)
-            .setDataPointers(dataPointers.values)
-            .setWorkspace(workspace.value)
+            .setTensorIds(mTensorIds.values)
+            .setDataPointers(mDataPointers.values)
+            .setWorkspace(mWorkspace.value)
             .build();
     }
     void setIdsByRValue(bool passAttrByRValue)
     {
         if(passAttrByRValue)
         {
-            auto attr = tensorIds.values;
+            auto attr = mTensorIds.values;
             miopen::graphapi::VariantPackBuilder().setTensorIds(std::move(attr));
         }
         else
         {
-            miopen::graphapi::VariantPackBuilder().setTensorIds(tensorIds.values);
+            miopen::graphapi::VariantPackBuilder().setTensorIds(mTensorIds.values);
         }
     }
     void setIdsByLValue(bool passAttrByRValue)
@@ -87,24 +87,24 @@ protected:
         miopen::graphapi::VariantPackBuilder builder;
         if(passAttrByRValue)
         {
-            auto attr = tensorIds.values;
+            auto attr = mTensorIds.values;
             builder.setTensorIds(std::move(attr));
         }
         else
         {
-            builder.setTensorIds(tensorIds.values);
+            builder.setTensorIds(mTensorIds.values);
         }
     }
     void setPointersByRValue(bool passAttrByRValue)
     {
         if(passAttrByRValue)
         {
-            auto attr = dataPointers.values;
+            auto attr = mDataPointers.values;
             miopen::graphapi::VariantPackBuilder().setDataPointers(std::move(attr));
         }
         else
         {
-            miopen::graphapi::VariantPackBuilder().setDataPointers(dataPointers.values);
+            miopen::graphapi::VariantPackBuilder().setDataPointers(mDataPointers.values);
         }
     }
     void setPointersByLValue(bool passAttrByRValue)
@@ -112,31 +112,31 @@ protected:
         miopen::graphapi::VariantPackBuilder builder;
         if(passAttrByRValue)
         {
-            auto attr = dataPointers.values;
+            auto attr = mDataPointers.values;
             builder.setDataPointers(std::move(attr));
         }
         else
         {
-            builder.setDataPointers(dataPointers.values);
+            builder.setDataPointers(mDataPointers.values);
         }
     }
     void setWorkspace(bool byRValue)
     {
         if(byRValue)
         {
-            miopen::graphapi::VariantPackBuilder().setWorkspace(workspace.value);
+            miopen::graphapi::VariantPackBuilder().setWorkspace(mWorkspace.value);
         }
         else
         {
             miopen::graphapi::VariantPackBuilder builder;
-            builder.setWorkspace(workspace.value);
+            builder.setWorkspace(mWorkspace.value);
         }
     }
 };
 
 TEST_P(GraphApiVariantPackBuilder, ValidateAttributes)
 {
-    if(attrsValid)
+    if(mAttrsValid)
     {
         EXPECT_NO_THROW({ buildByRValue(); }) << "R-value builder failed on valid attributes";
         EXPECT_NO_THROW({ buildByLValue(); }) << "L-value builder failed on valid attribures";
@@ -148,7 +148,7 @@ TEST_P(GraphApiVariantPackBuilder, ValidateAttributes)
         EXPECT_ANY_THROW({ buildByLValue(); })
             << "L-value builder failed to detect invalid attributes";
     }
-    if(tensorIds.valid)
+    if(mTensorIds.valid)
     {
         EXPECT_NO_THROW({ setIdsByRValue(false); })
             << "VariantPackBuilder::setTensorIds(const std::vector<int64_t>&)&& failed on valid "
@@ -178,7 +178,7 @@ TEST_P(GraphApiVariantPackBuilder, ValidateAttributes)
             << "VariantPackBuilder::setTensorIds(std::vector<int64_t>&&)& failed on invalid "
                "attribute";
     }
-    if(dataPointers.valid)
+    if(mDataPointers.valid)
     {
         EXPECT_NO_THROW({ setPointersByRValue(false); })
             << "VariantPackBuilder::setDataPointers(const std::vector<void*>&)&& failed on valid "
@@ -208,7 +208,7 @@ TEST_P(GraphApiVariantPackBuilder, ValidateAttributes)
             << "VariantPackBuilder::setDataPointers(std::vector<void*>&&)& failed on invalid "
                "attribute";
     }
-    if(workspace.valid)
+    if(mWorkspace.valid)
     {
         EXPECT_NO_THROW({ setWorkspace(true); })
             << "VariantPackBuilder::setWorkspace(void*)&& failed on valid attribute";
@@ -228,40 +228,40 @@ TEST_P(GraphApiVariantPackBuilder, MissingSetter)
 {
     EXPECT_ANY_THROW({
         miopen::graphapi::VariantPackBuilder()
-            .setDataPointers(dataPointers.values)
-            .setWorkspace(workspace.value)
+            .setDataPointers(mDataPointers.values)
+            .setWorkspace(mWorkspace.value)
             .build();
     }) << "R-value builder validated attributes despite missing setTensorIds() call";
     EXPECT_ANY_THROW({
         miopen::graphapi::VariantPackBuilder()
-            .setTensorIds(tensorIds.values)
-            .setWorkspace(workspace.value)
+            .setTensorIds(mTensorIds.values)
+            .setWorkspace(mWorkspace.value)
             .build();
     }) << "R-value builder validated attributes despite missing setDataPointers() call";
     EXPECT_ANY_THROW({
         miopen::graphapi::VariantPackBuilder()
-            .setTensorIds(tensorIds.values)
-            .setDataPointers(dataPointers.values)
+            .setTensorIds(mTensorIds.values)
+            .setDataPointers(mDataPointers.values)
             .build();
     }) << "R-value builder validated attributes despite missing setWorkspace() call";
     EXPECT_ANY_THROW({
         miopen::graphapi::VariantPackBuilder builder;
-        builder.setDataPointers(dataPointers.values).setWorkspace(workspace.value).build();
+        builder.setDataPointers(mDataPointers.values).setWorkspace(mWorkspace.value).build();
     }) << "L-value builder validated attributes despite missing setTensorIds() call";
     EXPECT_ANY_THROW({
         miopen::graphapi::VariantPackBuilder builder;
-        builder.setTensorIds(tensorIds.values).setWorkspace(workspace.value).build();
+        builder.setTensorIds(mTensorIds.values).setWorkspace(mWorkspace.value).build();
     }) << "L-value builder validated attributes despite missing setDataPointers() call";
     EXPECT_ANY_THROW({
         miopen::graphapi::VariantPackBuilder builder;
-        builder.setTensorIds(tensorIds.values).setDataPointers(dataPointers.values).build();
+        builder.setTensorIds(mTensorIds.values).setDataPointers(mDataPointers.values).build();
     }) << "L-value builder validated attributes despite missing setWorkspace() call";
 }
 
 TEST_P(GraphApiVariantPackBuilder, RetrieveAttributes)
 {
     miopen::graphapi::VariantPack vPack;
-    if(attrsValid)
+    if(mAttrsValid)
     {
         ASSERT_NO_THROW({ vPack = buildByRValue(); }) << "Builder failed on valid attributes";
     }
@@ -273,15 +273,15 @@ TEST_P(GraphApiVariantPackBuilder, RetrieveAttributes)
     }
 
     auto idsAndPointersCorrect =
-        std::inner_product(tensorIds.values.cbegin(),
-                           tensorIds.values.cend(),
-                           dataPointers.values.cbegin(),
+        std::inner_product(mTensorIds.values.cbegin(),
+                           mTensorIds.values.cend(),
+                           mDataPointers.values.cbegin(),
                            true,
                            std::logical_and<>(),
                            [&vPack](auto id, auto ptr) { return vPack.getDataPointer(id) == ptr; });
     EXPECT_TRUE(idsAndPointersCorrect)
         << "Tensor ids or data pointers are set or retrieved incorrectly";
-    EXPECT_EQ(vPack.getWorkspace(), workspace.value) << "Workspace is set or retrieved incorrectly";
+    EXPECT_EQ(vPack.getWorkspace(), mWorkspace.value) << "Workspace is set or retrieved incorrectly";
 }
 
 namespace {
@@ -344,27 +344,27 @@ public:
 
 class GraphApiVariantPack : public testing::TestWithParam<GraphApiVariantPackTuple>
 {
-protected:
-    // to be used in the test
-    GTestGraphApiExecute<GTestDescriptorAttribute*> execute;
-
-    // descriptor above contains pointer to these:
+private:
+    // Pointers to these are used in mExecute object below
     TensorIds mTensorIds;
     DataPointers mDataPointers;
     Workspace mWorkspace;
+
+protected:
+    GTestGraphApiExecute<GTestDescriptorAttribute*> mExecute;
 
     void SetUp() override
     {
         bool valid                                             = false;
         std::tie(valid, mTensorIds, mDataPointers, mWorkspace) = GetParam();
-        execute.descriptor = {"MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR",
+        mExecute.descriptor = {"MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR",
                               MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR,
                               valid,
                               {&mTensorIds, &mDataPointers, &mWorkspace}};
     }
 };
 
-TEST_P(GraphApiVariantPack, CFunctions) { execute(); }
+TEST_P(GraphApiVariantPack, CFunctions) { mExecute(); }
 
 static char mem[10][256];
 
