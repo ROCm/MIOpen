@@ -151,10 +151,10 @@ fs::path GetCacheFile(const std::string& device, const std::string& name, const 
 }
 
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
-std::string LoadBinary(const TargetProperties& target,
-                       const size_t num_cu,
-                       const std::string& name,
-                       const std::string& args)
+std::vector<char> LoadBinary(const TargetProperties& target,
+                             const size_t num_cu,
+                             const std::string& name,
+                             const std::string& args)
 {
     if(miopen::IsCacheDisabled())
         return {};
@@ -162,14 +162,14 @@ std::string LoadBinary(const TargetProperties& target,
     auto db = GetDb(target, num_cu);
 
     const auto filename = make_object_file_name(name).string();
-    const KernelConfig cfg{filename, args, ""};
+    const KernelConfig cfg{filename, args, {}};
 
     MIOPEN_LOG_I2("Loading binary for: " << filename << "; args: " << args);
     auto record = db.FindRecord(cfg);
     if(record)
     {
         MIOPEN_LOG_I2("Successfully loaded binary for: " << filename << "; args: " << args);
-        return record.get();
+        return *record;
     }
     else
     {
@@ -178,7 +178,7 @@ std::string LoadBinary(const TargetProperties& target,
     }
 }
 
-void SaveBinary(const std::string& hsaco,
+void SaveBinary(const std::vector<char>& hsaco,
                 const TargetProperties& target,
                 const std::size_t num_cu,
                 const std::string& name,
