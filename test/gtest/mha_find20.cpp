@@ -335,8 +335,6 @@ private:
         const mha::ProblemDescription problem_description = {inputDescs};
 
         const auto invoke_ctx = [&]() -> AnyInvokeParams {
-            const mha::MhaInputDescsForward& inputDescsForward = problem_description.GetDescs();
-
             mha::MhaDataForward dataForward = {
                 mhaK->gpuBuffer.get(),
                 mhaQ->gpuBuffer.get(),
@@ -356,8 +354,7 @@ private:
                 outputResultsMap[miopenTensorMhaM]->gpuBuffer.get(),
                 outputResultsMap[miopenTensorMhaZInv]->gpuBuffer.get()};
 
-            return mha::InvokeParams(
-                inputDescsForward, dataForward, workspace.ptr(), workspace.size());
+            return mha::InvokeParams(dataForward, workspace.ptr(), workspace.size());
         }();
 
         const auto net_cfg       = problem_description.MakeNetworkConfig();

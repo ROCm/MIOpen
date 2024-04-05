@@ -299,8 +299,6 @@ void Solution::RunImpl(Handle& handle,
             auto m     = get_input_checked(miopenTensorMhaM, "miopenTensorMhaM");
             auto zInv  = get_input_checked(miopenTensorMhaZInv, "miopenTensorMhaZInv");
 
-            const mha::MhaInputDescsForward& inputDescsForward = problem_description.GetDescs();
-
             mha::MhaDataForward dataForward = {k.buffer,
                                                q.buffer,
                                                v.buffer,
@@ -319,7 +317,7 @@ void Solution::RunImpl(Handle& handle,
                                                m.buffer,
                                                zInv.buffer};
 
-            return mha::InvokeParams(inputDescsForward, dataForward, workspace, workspace_size);
+            return mha::InvokeParams(dataForward, workspace, workspace_size);
         }
         case miopenProblemDirectionBackward: {
             MIOPEN_THROW(miopenStatusNotImplemented);
