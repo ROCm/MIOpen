@@ -75,17 +75,17 @@ protected:
         }
         else
         {
-            float q_scale = GetF8Scaling(FindMax4D(q_val));
-            float k_scale = GetF8Scaling(FindMax4D(k_val));
-            float v_scale = GetF8Scaling(FindMax4D(v_val));
+            float q_scale   = GetF8Scaling(FindMax4D(q_val));
+            float k_scale   = GetF8Scaling(FindMax4D(k_val));
+            float v_scale   = GetF8Scaling(FindMax4D(v_val));
             float q_descale = 1.f / q_scale;
             float k_descale = 1.f / k_scale;
             float v_descale = 1.f / v_scale;
 
-            float s_scale = 1.f;
+            float s_scale   = 1.f;
             float s_descale = 1.f / s_scale;
 
-            float o_scale = 1.f;
+            float o_scale   = 1.f;
             float o_descale = 1.f / o_scale;
 
             tensor<float8> q_val_fp8(q_val.desc.GetLengths());
