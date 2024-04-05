@@ -53,7 +53,10 @@ protected:
     ValidatedVector<void*> mDataPointers;
     ValidatedValue<void*> mWorkspace;
 
-    void SetUp() override { std::tie(mAttrsValid, mTensorIds, mDataPointers, mWorkspace) = GetParam(); }
+    void SetUp() override
+    {
+        std::tie(mAttrsValid, mTensorIds, mDataPointers, mWorkspace) = GetParam();
+    }
     miopen::graphapi::VariantPack buildByLValue()
     {
         miopen::graphapi::VariantPackBuilder builder;
@@ -281,7 +284,8 @@ TEST_P(GraphApiVariantPackBuilder, RetrieveAttributes)
                            [&vPack](auto id, auto ptr) { return vPack.getDataPointer(id) == ptr; });
     EXPECT_TRUE(idsAndPointersCorrect)
         << "Tensor ids or data pointers are set or retrieved incorrectly";
-    EXPECT_EQ(vPack.getWorkspace(), mWorkspace.value) << "Workspace is set or retrieved incorrectly";
+    EXPECT_EQ(vPack.getWorkspace(), mWorkspace.value)
+        << "Workspace is set or retrieved incorrectly";
 }
 
 namespace {
@@ -358,9 +362,9 @@ protected:
         bool valid                                             = false;
         std::tie(valid, mTensorIds, mDataPointers, mWorkspace) = GetParam();
         mExecute.descriptor = {"MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR",
-                              MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR,
-                              valid,
-                              {&mTensorIds, &mDataPointers, &mWorkspace}};
+                               MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR,
+                               valid,
+                               {&mTensorIds, &mDataPointers, &mWorkspace}};
     }
 };
 
