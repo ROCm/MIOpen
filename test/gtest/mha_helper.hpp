@@ -52,7 +52,7 @@ struct CPUMHATestCase
     }
 };
 
-float GetF8Scaling(float max_val)
+inline constexpr float GetF8Scaling(float max_val)
 {
     constexpr float fp8_E4M3_max = 240.0f;
 
