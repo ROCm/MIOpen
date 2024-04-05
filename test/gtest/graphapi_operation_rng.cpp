@@ -71,41 +71,41 @@ using DescriptorTuple = std::tuple<bool,
 class GraphApiOperationRngBuilder : public testing::TestWithParam<DescriptorTuple>
 {
 protected:
-    bool attrsValid;
-    ValidatedValue<Rng*> rng;
-    ValidatedValue<Tensor*> output;
-    ValidatedValue<std::variant<int64_t, Tensor*>> seed;
-    ValidatedValue<Tensor*> offset;
+    bool mAttrsValid;
+    ValidatedValue<Rng*> mRng;
+    ValidatedValue<Tensor*> mOutput;
+    ValidatedValue<std::variant<int64_t, Tensor*>> mSeed;
+    ValidatedValue<Tensor*> mOffset;
 
-    void SetUp() override { std::tie(attrsValid, rng, output, seed, offset) = GetParam(); }
+    void SetUp() override { std::tie(mAttrsValid, mRng, mOutput, mSeed, mOffset) = GetParam(); }
 
     OperationRng buildWithDefaultSeed()
     {
         return OperationRngBuilder()
-            .setRng(rng.value)
-            .setOutput(output.value)
-            .setOffset(offset.value)
+            .setRng(mRng.value)
+            .setOutput(mOutput.value)
+            .setOffset(mOffset.value)
             .build();
     }
 
     OperationRng build()
     {
-        if(seed.value.index() == 0)
+        if(mSeed.value.index() == 0)
         {
             return OperationRngBuilder()
-                .setRng(rng.value)
-                .setOutput(output.value)
-                .setSeed(std::get<0>(seed.value))
-                .setOffset(offset.value)
+                .setRng(mRng.value)
+                .setOutput(mOutput.value)
+                .setSeed(std::get<0>(mSeed.value))
+                .setOffset(mOffset.value)
                 .build();
         }
         else
         {
             return OperationRngBuilder()
-                .setRng(rng.value)
-                .setOutput(output.value)
-                .setSeed(std::get<1>(seed.value))
-                .setOffset(offset.value)
+                .setRng(mRng.value)
+                .setOutput(mOutput.value)
+                .setSeed(std::get<1>(mSeed.value))
+                .setOffset(mOffset.value)
                 .build();
         }
     }
@@ -113,7 +113,7 @@ protected:
 
 TEST_P(GraphApiOperationRngBuilder, ValidateAttributes)
 {
-    if(attrsValid)
+    if(mAttrsValid)
     {
         EXPECT_NO_THROW({ build(); }) << "Builder failed on valid attributes";
         EXPECT_NO_THROW({ buildWithDefaultSeed(); })
@@ -122,70 +122,70 @@ TEST_P(GraphApiOperationRngBuilder, ValidateAttributes)
     else
     {
         EXPECT_ANY_THROW({ build(); }) << "Builder failed to detect invalid attributes";
-        if(!rng.valid || !output.valid || !offset.valid)
+        if(!mRng.valid || !mOutput.valid || !mOffset.valid)
         {
             EXPECT_ANY_THROW({ buildWithDefaultSeed(); })
                 << "Builder failed to detect invalid attributes with default seed";
         }
     }
 
-    if(rng.valid)
+    if(mRng.valid)
     {
-        EXPECT_NO_THROW({ OperationRngBuilder().setRng(rng.value); })
+        EXPECT_NO_THROW({ OperationRngBuilder().setRng(mRng.value); })
             << "OperationRngBuilder::setRng failed with a valid attribute";
     }
     else
     {
-        EXPECT_ANY_THROW({ OperationRngBuilder().setRng(rng.value); })
+        EXPECT_ANY_THROW({ OperationRngBuilder().setRng(mRng.value); })
             << "OperationRngBuilder::setRng failed with an invalid attribute";
     }
 
-    if(output.valid)
+    if(mOutput.valid)
     {
-        EXPECT_NO_THROW({ OperationRngBuilder().setOutput(output.value); })
+        EXPECT_NO_THROW({ OperationRngBuilder().setOutput(mOutput.value); })
             << "OperationRngBuilder::setOutput failed with a valid attribute";
     }
     else
     {
-        EXPECT_ANY_THROW({ OperationRngBuilder().setOutput(output.value); })
+        EXPECT_ANY_THROW({ OperationRngBuilder().setOutput(mOutput.value); })
             << "OperationRngBuilder::setOutput failed with an invalid attribute";
     }
 
-    if(seed.valid)
+    if(mSeed.valid)
     {
-        if(seed.value.index() == 0)
+        if(mSeed.value.index() == 0)
         {
-            EXPECT_NO_THROW({ OperationRngBuilder().setSeed(std::get<0>(seed.value)); })
+            EXPECT_NO_THROW({ OperationRngBuilder().setSeed(std::get<0>(mSeed.value)); })
                 << "OperationRngBuilder::setSeed(int64_t) failed with a valid attribute";
         }
         else
         {
-            EXPECT_NO_THROW({ OperationRngBuilder().setSeed(std::get<1>(seed.value)); })
+            EXPECT_NO_THROW({ OperationRngBuilder().setSeed(std::get<1>(mSeed.value)); })
                 << "OperationRngBuilder::setSeed(Tensor*) failed with a valid attribute";
         }
     }
     else
     {
-        if(seed.value.index() == 0)
+        if(mSeed.value.index() == 0)
         {
-            EXPECT_ANY_THROW({ OperationRngBuilder().setSeed(std::get<0>(seed.value)); })
+            EXPECT_ANY_THROW({ OperationRngBuilder().setSeed(std::get<0>(mSeed.value)); })
                 << "OperationRngBuilder::setSeed(int64_t) failed with an invalid attribute";
         }
         else
         {
-            EXPECT_ANY_THROW({ OperationRngBuilder().setSeed(std::get<1>(seed.value)); })
+            EXPECT_ANY_THROW({ OperationRngBuilder().setSeed(std::get<1>(mSeed.value)); })
                 << "OperationRngBuilder::setSeed(Tensor*) failed with an invalid attribute";
         }
     }
 
-    if(offset.valid)
+    if(mOffset.valid)
     {
-        EXPECT_NO_THROW({ OperationRngBuilder().setOffset(offset.value); })
+        EXPECT_NO_THROW({ OperationRngBuilder().setOffset(mOffset.value); })
             << "OperationRngBuilder::setOffset failed with a valid attribute";
     }
     else
     {
-        EXPECT_ANY_THROW({ OperationRngBuilder().setOffset(offset.value); })
+        EXPECT_ANY_THROW({ OperationRngBuilder().setOffset(mOffset.value); })
             << "OperationRngBuilder::setOffset failed with an invalid attribute";
     }
 }
@@ -193,33 +193,33 @@ TEST_P(GraphApiOperationRngBuilder, ValidateAttributes)
 TEST_P(GraphApiOperationRngBuilder, MissingSetter)
 {
     EXPECT_ANY_THROW({
-        OperationRngBuilder().setOutput(output.value).setOffset(offset.value).build();
+        OperationRngBuilder().setOutput(mOutput.value).setOffset(mOffset.value).build();
     }) << "Builder with default seed failed to detect missing setRng() call";
-    EXPECT_ANY_THROW({ OperationRngBuilder().setRng(rng.value).setOffset(offset.value).build(); })
+    EXPECT_ANY_THROW({ OperationRngBuilder().setRng(mRng.value).setOffset(mOffset.value).build(); })
         << "Builder with default seed failed to detect missing setOutput() call";
-    EXPECT_ANY_THROW({ OperationRngBuilder().setRng(rng.value).setOutput(output.value).build(); })
+    EXPECT_ANY_THROW({ OperationRngBuilder().setRng(mRng.value).setOutput(mOutput.value).build(); })
         << "Builder with default seed failed to detect missing setOffset() call";
-    if(seed.value.index() == 0)
+    if(mSeed.value.index() == 0)
     {
         EXPECT_ANY_THROW({
             OperationRngBuilder()
-                .setSeed(std::get<0>(seed.value))
-                .setOutput(output.value)
-                .setOffset(offset.value)
+                .setSeed(std::get<0>(mSeed.value))
+                .setOutput(mOutput.value)
+                .setOffset(mOffset.value)
                 .build();
         }) << "Builder failed to detect missing setRng() call";
         EXPECT_ANY_THROW({
             OperationRngBuilder()
-                .setRng(rng.value)
-                .setSeed(std::get<0>(seed.value))
-                .setOffset(offset.value)
+                .setRng(mRng.value)
+                .setSeed(std::get<0>(mSeed.value))
+                .setOffset(mOffset.value)
                 .build();
         }) << "Builder failed to detect missing setOutput() call";
         EXPECT_ANY_THROW({
             OperationRngBuilder()
-                .setRng(rng.value)
-                .setSeed(std::get<0>(seed.value))
-                .setOutput(output.value)
+                .setRng(mRng.value)
+                .setSeed(std::get<0>(mSeed.value))
+                .setOutput(mOutput.value)
                 .build();
         }) << "Builder failed to detect missing setOffset() call";
     }
@@ -227,23 +227,23 @@ TEST_P(GraphApiOperationRngBuilder, MissingSetter)
     {
         EXPECT_ANY_THROW({
             OperationRngBuilder()
-                .setSeed(std::get<1>(seed.value))
-                .setOutput(output.value)
-                .setOffset(offset.value)
+                .setSeed(std::get<1>(mSeed.value))
+                .setOutput(mOutput.value)
+                .setOffset(mOffset.value)
                 .build();
         }) << "Builder failed to detect missing setRng() call";
         EXPECT_ANY_THROW({
             OperationRngBuilder()
-                .setRng(rng.value)
-                .setSeed(std::get<1>(seed.value))
-                .setOffset(offset.value)
+                .setRng(mRng.value)
+                .setSeed(std::get<1>(mSeed.value))
+                .setOffset(mOffset.value)
                 .build();
         }) << "Builder failed to detect missing setOutput() call";
         EXPECT_ANY_THROW({
             OperationRngBuilder()
-                .setRng(rng.value)
-                .setSeed(std::get<1>(seed.value))
-                .setOutput(output.value)
+                .setRng(mRng.value)
+                .setSeed(std::get<1>(mSeed.value))
+                .setOutput(mOutput.value)
                 .build();
         }) << "Builder failed to detect missing setOffset() call";
     }
@@ -367,19 +367,20 @@ public:
 
 class GraphApiOperationRng : public ::testing::TestWithParam<DescriptorTuple>
 {
-protected:
-    GTestGraphApiExecute<GTestDescriptorAttribute*> execute;
+private:
+    // Pointers to these are stored in the objects below
+    GMockBackendRngDescriptor mRngDescriptor;
+    GMockBackendTensorDescriptor mOutputDescriptor;
+    GMockBackendTensorDescriptor mOffsetDesctiptor;
 
-    // Pointers to these are stored in the object above
+    // Pointers to these are stored in mExecute object below
     GTestDescriptorSingleValueAttribute<miopenBackendDescriptor_t, char> mRng;
     GTestDescriptorSingleValueAttribute<miopenBackendDescriptor_t, char> mOutput;
     Seed mSeed;
     GTestDescriptorSingleValueAttribute<miopenBackendDescriptor_t, char> mOffset;
 
-    // Pointers to these are stored in the objects above
-    GMockBackendRngDescriptor mRngDescriptor;
-    GMockBackendTensorDescriptor mOutputDescriptor;
-    GMockBackendTensorDescriptor mOffsetDesctiptor;
+protected:
+    GTestGraphApiExecute<GTestDescriptorAttribute*> mExecute;
 
     void SetUp() override
     {
@@ -421,14 +422,14 @@ protected:
                    2,
                    &mOffsetDesctiptor};
 
-        execute.descriptor.attrsValid = valid;
-        execute.descriptor.textName   = "MIOPEN_BACKEND_OPERATION_RNG_DESCRIPTOR";
-        execute.descriptor.type       = MIOPEN_BACKEND_OPERATION_RNG_DESCRIPTOR;
-        execute.descriptor.attributes = {&mRng, &mOutput, mSeed.get(), &mOffset};
+        mExecute.descriptor.attrsValid = valid;
+        mExecute.descriptor.textName   = "MIOPEN_BACKEND_OPERATION_RNG_DESCRIPTOR";
+        mExecute.descriptor.type       = MIOPEN_BACKEND_OPERATION_RNG_DESCRIPTOR;
+        mExecute.descriptor.attributes = {&mRng, &mOutput, mSeed.get(), &mOffset};
     }
 };
 
-TEST_P(GraphApiOperationRng, CFunctions) { execute(); }
+TEST_P(GraphApiOperationRng, CFunctions) { mExecute(); }
 
 static Rng anRng(MIOPEN_RNG_DISTRIBUTION_BERNOULLI, 0, 0, 0, 0, 0.5);
 
