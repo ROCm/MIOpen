@@ -202,11 +202,11 @@ protected:
         mExecute.descriptor.attrsValid = valid;
 
         mExecute.descriptor.attributes = {&mDistribution,
-                                         &mNormalMean,
-                                         &mNormalStdev,
-                                         &mUniformMin,
-                                         &mUniformMax,
-                                         &mBernoulliProb};
+                                          &mNormalMean,
+                                          &mNormalStdev,
+                                          &mUniformMin,
+                                          &mUniformMax,
+                                          &mBernoulliProb};
     }
 };
 
