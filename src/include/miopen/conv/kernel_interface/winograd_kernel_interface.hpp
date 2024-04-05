@@ -56,13 +56,13 @@ inline WinoShaderFlagsV40 operator|(WinoShaderFlagsV40 lhs, WinoShaderFlagsV40 r
     return static_cast<WinoShaderFlagsV40>(static_cast<T>(lhs) | static_cast<T>(rhs));
 }
 
-inline WinoShaderFlagsV40 operator|=(WinoShaderFlagsV40 lhs, WinoShaderFlagsV40 rhs)
+inline WinoShaderFlagsV40 operator|=(WinoShaderFlagsV40& lhs, WinoShaderFlagsV40 rhs)
 {
     lhs = lhs | rhs;
     return lhs;
 }
 
-inline std::ostream& operator<<(std::ostream& s, const WinoShaderFlagsV40& flags)
+inline std::ostream& operator<<(std::ostream& s, WinoShaderFlagsV40 flags)
 {
     using T = std::underlying_type_t<WinoShaderFlagsV40>;
     s << "0x" << std::hex << static_cast<T>(flags) << std::dec;
@@ -121,10 +121,10 @@ struct WinoShaderArgsV40
     WinoShaderActivationModeV40_t activation_mode; // activation mode
 
     // Other shader parameters
-    uint32_t n_groups;        // number of shader groups
-    WinoShaderFlagsV40 flags; // shader flags
-    uint8_t sync_limit;       // maximum number of sync attempts
-    uint8_t sync_period;      // synchronization period
+    uint32_t n_groups;          // number of shader groups
+    WinoShaderFlagsV40 flags64; // shader flags
+    uint8_t sync_limit;         // maximum number of sync attempts
+    uint8_t sync_period;        // synchronization period
 
     bool SetConvParams(const ProblemDescription& problem);
     void SetStrides(const ProblemDescription& problem);

@@ -217,7 +217,7 @@ void WinoShaderArgsV40::SetShaderParams(uint32_t n_groups_,
                                         uint8_t sync_period_) noexcept
 {
     n_groups    = n_groups_;
-    flags       = flags_;
+    flags64     = flags_;
     sync_limit  = sync_limit_;
     sync_period = sync_period_;
 }

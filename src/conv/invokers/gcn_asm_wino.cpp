@@ -83,7 +83,7 @@ InvokerFactory MakeGcnAsmWinoV40InvokerFactory(const WinoShaderArgsV40& args,
                 << " f_R_stride=" << args.f_R_stride << " f_G_stride=" << args.f_G_stride
                 << " o_N_stride=" << args.o_N_stride << " o_K_stride=" << args.o_K_stride
                 << " o_H_stride=" << args.o_H_stride << " o_G_stride=" << args.o_G_stride
-                << " n_groups=" << args.n_groups << " flags=" << args.flags
+                << " n_groups=" << args.n_groups << " flags64=" << args.flags64
                 << " sync_limit=" << static_cast<unsigned>(args.sync_limit)
                 << " sync_period=" << static_cast<unsigned>(args.sync_period));
             // clang-format on
@@ -108,7 +108,7 @@ InvokerFactory MakeGcnAsmWinoV40InvokerFactory(const WinoShaderArgsV40& args,
                 args.W,                   // uint32_t,    input width
                 args.K,                   // uint32_t,    number of output channels in each filter group
                 args.n_groups,            // uint32_t,    number of shader groups
-                args.flags,               // uint64_t,    shader flags
+                args.flags64,             // uint64_t,    shader flags
                 data_addr,                // uint64_t,    address of input tensor
                 filter_addr,              // uint64_t,    address of filter tensor
                 output_addr,              // uint64_t,    address of output tensor
