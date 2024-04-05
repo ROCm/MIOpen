@@ -31,6 +31,9 @@
 #include <miopen/activ.hpp>
 #include <miopen/allocator.hpp>
 #include <miopen/convolution.hpp>
+#include <miopen/mha/mha_descriptor.hpp>
+#include <miopen/mha/problem_description.hpp>
+#include <miopen/softmax.hpp>
 #include <miopen/object.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/tensor.hpp>
@@ -59,6 +62,10 @@ namespace conv {
 struct ProblemDescription;
 } // namespace conv
 
+namespace softmax {
+struct ProblemDescription;
+} // namespace softmax
+
 struct BiasDescriptor
 {
 };
@@ -73,8 +80,12 @@ struct BatchnormDescriptor
 };
 
 // The order of types is important for deserialization and should be preserved between releases.
-using OperatorDescriptor = boost::
-    variant<ConvolutionDescriptor, ActivationDescriptor, BiasDescriptor, BatchnormDescriptor>;
+using OperatorDescriptor = boost::variant<ConvolutionDescriptor,
+                                          ActivationDescriptor,
+                                          BiasDescriptor,
+                                          SoftmaxDescriptor,
+                                          MhaDescriptor,
+                                          BatchnormDescriptor>;
 
 struct Problem
 {
@@ -108,6 +119,8 @@ struct Problem
 
     conv::ProblemDescription AsConvolution() const;
     activ::ProblemDescription AsActivation() const;
+    mha::ProblemDescription AsMha() const;
+    softmax::ProblemDescription AsSoftmax() const;
 
     [[nodiscard]] miopenTensorArgumentId_t GetInputId() const;
     [[nodiscard]] miopenTensorArgumentId_t GetOutputId() const;
@@ -152,11 +165,11 @@ struct Problem
     friend void from_json(const nlohmann::json& j, Problem& problem);
 
 private:
+    using Buffers = std::unordered_map<miopenTensorArgumentId_t, Data_t>;
+
     miopenProblemDirection_t direction = miopenProblemDirectionForward;
     std::unordered_map<miopenTensorArgumentId_t, TensorDescriptor> tensor_descriptors;
     OperatorDescriptor operator_descriptor;
-
-    using Buffers = std::unordered_map<miopenTensorArgumentId_t, Data_t>;
 
     std::vector<Solution> FindSolutionsImpl(Handle& handle,
                                             const FindOptions& options,
@@ -164,9 +177,23 @@ private:
                                             const Buffers& buffers,
                                             const ConvolutionDescriptor& conv_desc) const;
 
+    std::vector<Solution> FindSolutionsImpl(Handle& handle,
+                                            const FindOptions& options,
+                                            std::size_t max_solutions,
+                                            const Buffers& buffers,
+                                            const MhaDescriptor& mha_desc) const;
+
+    std::vector<Solution> FindSolutionsImpl(Handle& handle,
+                                            const FindOptions& options,
+                                            std::size_t max_solutions,
+                                            const Buffers& buffers,
+                                            const SoftmaxDescriptor& softmax_desc) const;
+
     void LogDriverCommand(const ConvolutionDescriptor& conv_desc) const;
     void LogDriverCommand(const ActivationDescriptor& descriptor) const;
     void LogDriverCommand(const BiasDescriptor& descriptor) const;
+    void LogDriverCommand(const MhaDescriptor& descriptor) const;
+    void LogDriverCommand(const SoftmaxDescriptor& descriptor) const;
     void LogDriverCommand(const BatchnormDescriptor& descriptor) const;
 };
 

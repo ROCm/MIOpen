@@ -31,6 +31,13 @@
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 
+#include <miopen/mha/invoke_params.hpp>
+#include <miopen/mha/problem_description.hpp>
+#include <miopen/mha/solvers.hpp>
+#include <miopen/softmax/invoke_params.hpp>
+#include <miopen/softmax/problem_description.hpp>
+#include <miopen/softmax/solvers.hpp>
+
 #include <nlohmann/json.hpp>
 
 #include <boost/hof/match.hpp>
@@ -70,11 +77,17 @@ void Solution::Run(Handle& handle,
                         [&](const ConvolutionDescriptor& op_desc) {
                             RunImpl(handle, inputs, workspace, workspace_size, op_desc);
                         },
+                        [&](const SoftmaxDescriptor& op_desc) {
+                            RunImpl(handle, inputs, workspace, workspace_size, op_desc);
+                        },
                         [&](const ActivationDescriptor& /*op_desc*/) {
                             MIOPEN_THROW(miopenStatusNotImplemented);
                         },
                         [&](const BiasDescriptor& /*op_desc*/) {
                             MIOPEN_THROW(miopenStatusNotImplemented);
+                        },
+                        [&](const MhaDescriptor& op_desc) {
+                            RunImpl(handle, inputs, workspace, workspace_size, op_desc);
                         },
                         [&](const BatchnormDescriptor& /*op_desc*/) {
                             MIOPEN_THROW(miopenStatusNotImplemented);
@@ -122,8 +135,11 @@ void Solution::LogDriverCommand(const BatchnormDescriptor& desc) const
 void Solution::LogDriverCommand(const Problem& problem_) const
 {
     boost::apply_visitor(
-        boost::hof::match([&](const BiasDescriptor&) { /* \todo: think on how to log bias */ },
-                          [&](const auto& op_desc) { LogDriverCommand(op_desc); }),
+        boost::hof::match(
+            [&](const BiasDescriptor&) { /* \todo: think on how to log bias */ },
+            [&](const MhaDescriptor&) { /* \todo: think on how to log mha */ },
+            [&](const SoftmaxDescriptor&) { /* \todo: think on how to log softmax */ },
+            [&](const auto& op_desc) { LogDriverCommand(op_desc); }),
         problem_.GetOperatorDescriptor());
 }
 
@@ -239,6 +255,213 @@ void Solution::RunImpl(Handle& handle,
     handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
     invoker(handle, invoke_ctx);
     checkNumericsOutput_();
+}
+
+void Solution::RunImpl(Handle& handle,
+                       const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
+                       Data_t workspace,
+                       std::size_t workspace_size,
+                       const MhaDescriptor& mha_desc)
+{
+    const Problem& problem_casted = boost::get<const Problem&>(problem.item);
+
+    const auto get_input_checked = [&](auto name, const std::string& name_str) {
+        const auto& found = inputs.find(name);
+        if(found == inputs.end())
+        {
+            MIOPEN_THROW(miopenStatusInvalidValue,
+                         "Problem is missing " + name_str + " tensor descriptor.");
+        }
+        auto ret = found->second;
+        if(!ret.descriptor.has_value())
+            ret.descriptor = problem_casted.GetTensorDescriptorChecked(name, name_str);
+        return ret;
+    };
+
+    const mha::ProblemDescription problem_description = problem_casted.AsMha();
+
+    const auto invoke_ctx = [&]() -> AnyInvokeParams {
+        switch(problem_casted.GetDirection())
+        {
+        case miopenProblemDirectionForward: {
+            auto k = get_input_checked(miopenTensorMhaK, "miopenTensorMhaK");
+            auto q = get_input_checked(miopenTensorMhaQ, "miopenTensorMhaQ");
+            auto v = get_input_checked(miopenTensorMhaV, "miopenTensorMhaV");
+
+            auto descaleK = get_input_checked(miopenTensorMhaDescaleK, "miopenTensorMhaDescaleK");
+            auto descaleQ = get_input_checked(miopenTensorMhaDescaleQ, "miopenTensorMhaDescaleQ");
+            auto descaleV = get_input_checked(miopenTensorMhaDescaleV, "miopenTensorMhaDescaleV");
+            auto descaleS = get_input_checked(miopenTensorMhaDescaleS, "miopenTensorMhaDescaleS");
+            auto scaleS   = get_input_checked(miopenTensorMhaScaleS, "miopenTensorMhaScaleS");
+            auto scaleO   = get_input_checked(miopenTensorMhaScaleO, "miopenTensorMhaScaleO");
+
+            auto dropoutProbability = get_input_checked(miopenTensorMhaDropoutProbability,
+                                                        "miopenTensorMhaDropoutProbability");
+            auto dropoutSeed =
+                get_input_checked(miopenTensorMhaDropoutSeed, "miopenTensorMhaDropoutSeed");
+            auto dropoutOffset =
+                get_input_checked(miopenTensorMhaDropoutOffset, "miopenTensorMhaDropoutOffset");
+
+            auto o     = get_input_checked(miopenTensorMhaO, "miopenTensorMhaO");
+            auto amaxO = get_input_checked(miopenTensorMhaAmaxO, "miopenTensorMhaAmaxO");
+            auto amaxS = get_input_checked(miopenTensorMhaAmaxS, "miopenTensorMhaAmaxS");
+            auto m     = get_input_checked(miopenTensorMhaM, "miopenTensorMhaM");
+            auto zInv  = get_input_checked(miopenTensorMhaZInv, "miopenTensorMhaZInv");
+
+            mha::MhaInputDescsForward inputDescsForward = {*k.descriptor,
+                                                           *q.descriptor,
+                                                           *v.descriptor,
+                                                           *descaleK.descriptor,
+                                                           *descaleQ.descriptor,
+                                                           *descaleV.descriptor,
+                                                           *descaleS.descriptor,
+                                                           *scaleS.descriptor,
+                                                           *scaleO.descriptor,
+
+                                                           mha_desc.GetScale(),
+                                                           *dropoutProbability.descriptor,
+                                                           *dropoutSeed.descriptor,
+                                                           *dropoutOffset.descriptor,
+
+                                                           *o.descriptor,
+                                                           *amaxO.descriptor,
+                                                           *amaxS.descriptor,
+                                                           *m.descriptor,
+                                                           *zInv.descriptor};
+
+            mha::MhaDataForward dataForward = {k.buffer,
+                                               q.buffer,
+                                               v.buffer,
+                                               descaleK.buffer,
+                                               descaleQ.buffer,
+                                               descaleV.buffer,
+                                               descaleS.buffer,
+                                               scaleS.buffer,
+                                               scaleO.buffer,
+                                               dropoutProbability.buffer,
+                                               dropoutSeed.buffer,
+                                               dropoutOffset.buffer,
+                                               o.buffer,
+                                               amaxO.buffer,
+                                               amaxS.buffer,
+                                               m.buffer,
+                                               zInv.buffer};
+
+            return mha::InvokeParams(inputDescsForward, dataForward, workspace, workspace_size);
+        }
+        case miopenProblemDirectionBackward: {
+            MIOPEN_THROW(miopenStatusNotImplemented);
+        }
+
+        default: MIOPEN_THROW(miopenStatusNotImplemented);
+        }
+    }();
+
+    const auto net_cfg       = problem_description.MakeNetworkConfig();
+    const auto found_invoker = handle.GetInvoker(net_cfg, GetSolver());
+
+    if(found_invoker)
+    {
+        (*found_invoker)(handle, invoke_ctx);
+    }
+    else
+    {
+        auto ctx = ExecutionContext{&handle};
+
+        static solver::mha::Mha mha;
+
+        const auto mha_solution = mha.GetSolution(ctx, problem_description);
+
+        decltype(auto) invoker =
+            handle.PrepareInvoker(*mha_solution.invoker_factory, mha_solution.construction_params);
+        handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
+        invoker(handle, invoke_ctx);
+    }
+}
+
+void Solution::RunImpl(Handle& handle,
+                       const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
+                       Data_t /*workspace*/,
+                       std::size_t /*workspace_size*/,
+                       const SoftmaxDescriptor& softmax_desc)
+{
+
+    const auto& problem_casted = boost::get<const Problem&>(problem.item);
+
+    const auto get_input_checked = [&](auto name, const std::string& name_str) {
+        const auto& found = inputs.find(name);
+        if(found == inputs.end())
+        {
+            MIOPEN_THROW(miopenStatusInvalidValue,
+                         "Problem is missing " + name_str + " tensor descriptor.");
+        }
+        auto ret = found->second;
+        if(!ret.descriptor.has_value())
+            ret.descriptor = problem_casted.GetTensorDescriptorChecked(name, name_str);
+        return ret;
+    };
+
+    const softmax::ProblemDescription problem_description = problem_casted.AsSoftmax();
+
+    float alpha                        = softmax_desc.GetAlpha();
+    float beta                         = softmax_desc.GetBeta();
+    miopenSoftmaxAlgorithm_t algorithm = softmax_desc.GetAlgorithm();
+    miopenSoftmaxMode_t mode           = softmax_desc.GetMode();
+
+    const auto invoke_ctx = [&]() -> AnyInvokeParams {
+        switch(problem_casted.GetDirection())
+        {
+        case miopenProblemDirectionForward: {
+            auto x = get_input_checked(miopenTensorSoftmaxX, "miopenTensorSoftmaxX");
+            auto y = get_input_checked(miopenTensorSoftmaxY, "miopenTensorSoftmaxY");
+
+            return softmax::InvokeParams(
+                &alpha, &beta, *x.descriptor, x.buffer, *y.descriptor, y.buffer, algorithm, mode);
+        }
+        case miopenProblemDirectionBackward: {
+            auto y  = get_input_checked(miopenTensorSoftmaxY, "miopenTensorSoftmaxY");
+            auto dy = get_input_checked(miopenTensorSoftmaxDY, "miopenTensorSoftmaxDY");
+            auto dx = get_input_checked(miopenTensorSoftmaxDX, "miopenTensorSoftmaxDX");
+
+            return softmax::InvokeParams(&alpha,
+                                         &beta,
+                                         *y.descriptor,
+                                         y.buffer,
+                                         *dy.descriptor,
+                                         dy.buffer,
+                                         *dx.descriptor,
+                                         dx.buffer,
+                                         algorithm,
+                                         mode);
+        }
+
+        default: MIOPEN_THROW(miopenStatusNotImplemented);
+        }
+    }();
+
+    const auto net_cfg       = problem_description.MakeNetworkConfig();
+    const auto found_invoker = handle.GetInvoker(net_cfg, GetSolver());
+
+    if(found_invoker)
+    {
+        (*found_invoker)(handle, invoke_ctx);
+    }
+    else
+    {
+        auto ctx = ExecutionContext{&handle};
+
+        solver::softmax::Softmax regularSoftmax;
+        solver::softmax::AttnSoftmax attnSoftmax;
+
+        const auto softmax_solution = GetSolver().ToString() == regularSoftmax.SolverDbId()
+                                          ? regularSoftmax.GetSolution(ctx, problem_description)
+                                          : attnSoftmax.GetSolution(ctx, problem_description);
+
+        decltype(auto) invoker = handle.PrepareInvoker(*softmax_solution.invoker_factory,
+                                                       softmax_solution.construction_params);
+        handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
+        invoker(handle, invoke_ctx);
+    }
 }
 
 void Solution::RunImpl(Handle& handle,
