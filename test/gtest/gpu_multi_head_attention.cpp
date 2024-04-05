@@ -175,11 +175,13 @@ protected:
         std::tie(v_val, v_scale, v_descale) = GenScaledTensor(n, h, s, d);
         InitTensor(miopenTensorMhaV, std::move(v_val));
 
-        s_scale   = 1.f;
-        s_descale = 1.f / s_scale;
+        s_scale = 1.f;
+        // clang-tidy complains about the same expression on both sides of "/": 1.f / 1.f
+        s_descale = 1.f; // / s_scale;
 
-        o_scale   = 1.f;
-        o_descale = 1.f / o_scale;
+        o_scale = 1.f;
+        // clang-tidy complains about the same expression on both sides of "/": 1.f / 1.f
+        o_descale = 1.f; // / o_scale;
 
         InitTensor(miopenTensorMhaDescaleQ,
                    tensor<float>{1, 1, 1, 1}.generate([this](auto...) { return q_descale; }));
