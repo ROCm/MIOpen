@@ -187,6 +187,7 @@ using TestCaseType = std::tuple<miopenPointwiseMode_t,
                                 bool,
                                 bool,
                                 bool,
+                                bool,
                                 int64_t>;
 
 void PrintTo(const TestCaseType& v, std::ostream* os)
@@ -198,7 +199,8 @@ void PrintTo(const TestCaseType& v, std::ostream* os)
         << ", relu_lower_clip_slope: " << (std::get<5>(v) ? "double" : "float")
         << ", elu_alpha: " << (std::get<6>(v) ? "double" : "float")
         << ", softplus_beta: " << (std::get<7>(v) ? "double" : "float")
-        << ", axis: " << std::get<8>(v);
+        << ", swish_beta: " << (std::get<8>(v) ? "double" : "float")
+        << ", axis: " << std::get<9>(v);
 }
 
 class GraphApiPointwise : public testing::TestWithParam<TestCaseType>
@@ -214,6 +216,7 @@ protected:
     DoubleOrFloatAttribute mReluLowerClipSlope;
     DoubleOrFloatAttribute mEluAlpha;
     DoubleOrFloatAttribute mSoftPlusBeta;
+    DoubleOrFloatAttribute mSwishBeta;
     Axis mAxis;
 
     void SetUp() override
@@ -225,7 +228,8 @@ protected:
               isReluUpperClipDouble,
               isReluLowerClipSlopeDouble,
               isEluAlphaDouble,
-              IsSoftPlusBetaDouble,
+              isSoftPlusBetaDouble,
+              isSwishBetaDouble,
               axis] = GetParam();
 
         mMode           = {mode};
@@ -248,9 +252,13 @@ protected:
         mEluAlpha.set(
             isEluAlphaDouble, "MIOPEN_ATTR_POINTWISE_ELU_ALPHA", MIOPEN_ATTR_POINTWISE_ELU_ALPHA);
 
-        mSoftPlusBeta.set(IsSoftPlusBetaDouble,
+        mSoftPlusBeta.set(isSoftPlusBetaDouble,
                           "MIOPEN_ATTR_POINTWISE_SOFTPLUS_BETA",
                           MIOPEN_ATTR_POINTWISE_SOFTPLUS_BETA);
+
+        mSwishBeta.set(isSwishBetaDouble,
+                       "MIOPEN_ATTR_POINTWISE_SWISH_BETA",
+                       MIOPEN_ATTR_POINTWISE_SWISH_BETA);
 
         execute.descriptor.attributes = {&mMode,
                                          &mPrecision,
@@ -260,6 +268,7 @@ protected:
                                          mReluLowerClipSlope.get(),
                                          mEluAlpha.get(),
                                          mSoftPlusBeta.get(),
+                                         mSwishBeta.get(),
                                          &mAxis};
 
         execute.descriptor.attrsValid = true;
@@ -276,6 +285,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Combine(testing::Values(MIOPEN_POINTWISE_ADD, MIOPEN_POINTWISE_MUL),
                      testing::Values(miopenFloat, miopenHalf),
                      testing::Values(MIOPEN_NOT_PROPAGATE_NAN, MIOPEN_PROPAGATE_NAN),
+                     testing::Values(true, false),
                      testing::Values(true, false),
                      testing::Values(true, false),
                      testing::Values(true, false),

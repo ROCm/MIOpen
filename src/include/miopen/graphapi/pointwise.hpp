@@ -48,6 +48,7 @@ private:
     FpAttribute mReluLowerClipSlope = 0.0f;
     FpAttribute mEluAlpha           = 1.0f;
     FpAttribute mSoftPlusBeta       = 1.0f;
+    FpAttribute mSwishBeta          = 1.0f;
     int64_t mAxis                   = -1;
     miopenPointwiseMode_t mMode;
     miopenDataType_t mMathPrecision;
@@ -63,12 +64,14 @@ public:
               FpAttribute reluLowerClipSlope        = 0.0f,
               FpAttribute eluAlpha                  = 1.0f,
               FpAttribute softPlusBeta              = 1.0f,
-              int64_t axis                          = -1)
+              FpAttribute swishBeta                 = 1.0f,
+              int64_t axis                          = -1) noexcept
         : mReluLowerClip(reluLowerClip),
           mReluUpperClip(reluUpperClip),
           mReluLowerClipSlope(reluLowerClipSlope),
           mEluAlpha(eluAlpha),
           mSoftPlusBeta(softPlusBeta),
+          mSwishBeta(swishBeta),
           mAxis(axis),
           mMode(mode),
           mMathPrecision(mathPrecision),
@@ -84,6 +87,7 @@ public:
     FpAttribute getReluLowerClipSlope() const noexcept { return mReluLowerClipSlope; }
     FpAttribute getEluAlpha() const noexcept { return mEluAlpha; }
     FpAttribute getSoftPlusBeta() const noexcept { return mSoftPlusBeta; }
+    FpAttribute getSwishBeta() const noexcept { return mSwishBeta; }
     int64_t getAxis() const noexcept { return mAxis; }
 
 private:
@@ -138,6 +142,11 @@ public:
     PointwiseBuilder& setSoftPlusBeta(Pointwise::FpAttribute softPlusBeta) noexcept
     {
         mPointwise.mSoftPlusBeta = softPlusBeta;
+        return *this;
+    }
+    PointwiseBuilder& setSwishBeta(Pointwise::FpAttribute swishBeta) noexcept
+    {
+        mPointwise.mSwishBeta = swishBeta;
         return *this;
     }
     PointwiseBuilder& setAxis(int64_t axis) noexcept

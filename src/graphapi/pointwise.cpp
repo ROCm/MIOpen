@@ -120,6 +120,8 @@ void BackendPointwiseDescriptor::setAttribute(miopenBackendAttributeName_t attri
         setFloatOrDouble(&PointwiseBuilder::setSoftPlusBeta);
         break;
 
+    case MIOPEN_ATTR_POINTWISE_SWISH_BETA: setFloatOrDouble(&PointwiseBuilder::setSwishBeta); break;
+
     case MIOPEN_ATTR_POINTWISE_AXIS:
         if(attributeType == MIOPEN_TYPE_INT64 && elementCount == 1)
         {
@@ -229,6 +231,8 @@ void BackendPointwiseDescriptor::getAttribute(miopenBackendAttributeName_t attri
     case MIOPEN_ATTR_POINTWISE_ELU_ALPHA: getFloatOrDouble(&Pointwise::getEluAlpha); break;
 
     case MIOPEN_ATTR_POINTWISE_SOFTPLUS_BETA: getFloatOrDouble(&Pointwise::getSoftPlusBeta); break;
+
+    case MIOPEN_ATTR_POINTWISE_SWISH_BETA: getFloatOrDouble(&Pointwise::getSwishBeta); break;
 
     case MIOPEN_ATTR_POINTWISE_AXIS:
         if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount == 1)
