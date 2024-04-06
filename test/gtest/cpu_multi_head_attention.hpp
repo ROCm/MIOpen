@@ -82,11 +82,13 @@ protected:
             float k_descale = 1.f / k_scale;
             float v_descale = 1.f / v_scale;
 
-            float s_scale   = 1.f;
-            float s_descale = 1.f / s_scale;
+            float s_scale = 1.f;
+            // clang-tidy complains about the same expression on both sides of "/": 1.f / 1.f
+            float s_descale = 1.f; // / s_scale;
 
-            float o_scale   = 1.f;
-            float o_descale = 1.f / o_scale;
+            float o_scale = 1.f;
+            // clang-tidy complains about the same expression on both sides of "/": 1.f / 1.f
+            float o_descale = 1.f; // / o_scale;
 
             tensor<float8> q_val_fp8(q_val.desc.GetLengths());
             tensor<float8> k_val_fp8(k_val.desc.GetLengths());
