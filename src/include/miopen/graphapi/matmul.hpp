@@ -23,39 +23,64 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
-
-#include <miopen/miopen.h>
-#include <miopen/object.hpp>
-
-#include <cstdint>
+#include <miopen/graphapi/graphapi.hpp>
 
 namespace miopen {
-
 namespace graphapi {
 
-class BackendDescriptor : public miopenBackendDescriptor
+class Matmul
 {
+private:
+    miopenDataType_t mCompType;
+
 public:
-    virtual ~BackendDescriptor();
+    Matmul() = default;
+    Matmul(miopenDataType_t computeType) : mCompType(computeType) {}
+    miopenDataType_t getComputeType() { return mCompType; }
+
+private:
+    friend class MatmulBuilder;
+};
+
+class MatmulBuilder
+{
+
+private:
+    Matmul mMatmul;
+    bool mComputeTypeSet = false;
+
+public:
+    MatmulBuilder& setComputeType(miopenDataType_t computeType)
+    {
+        mMatmul.mCompType = computeType;
+        mComputeTypeSet   = true;
+        return *this;
+    }
+
+    Matmul build() const;
+};
+
+class BackendMatmulDescriptor : public BackendDescriptor
+{
+private:
+    MatmulBuilder mBuilder;
+    Matmul mMatmul;
+
+public:
     virtual void setAttribute(miopenBackendAttributeName_t attributeName,
                               miopenBackendAttributeType_t attributeType,
                               int64_t elementCount,
-                              void* arrayOfElements) = 0;
-    virtual void finalize()                          = 0;
+                              void* arrayOfElements) override;
+    virtual void finalize() override;
     virtual void getAttribute(miopenBackendAttributeName_t attributeName,
                               miopenBackendAttributeType_t attributeType,
                               int64_t requestedElementCount,
                               int64_t* elementCount,
-                              void* arrayOfElements) = 0;
-    virtual void execute(miopenHandle_t handle, miopenBackendDescriptor_t variantPack);
+                              void* arrayOfElements) override;
 
-    bool isFinalized() const noexcept { return mFinalized; };
-
-protected:
-    bool mFinalized = false;
+    const Matmul* getMatmul() const noexcept { return &mMatmul; }
+    Matmul* getMatmul() noexcept { return &mMatmul; }
 };
+
 } // namespace graphapi
 } // namespace miopen
-
-MIOPEN_DEFINE_OBJECT(miopenBackendDescriptor, miopen::graphapi::BackendDescriptor)

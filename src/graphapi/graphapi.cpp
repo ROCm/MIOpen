@@ -29,6 +29,7 @@
 #include <miopen/graphapi/rng.hpp>
 #include <miopen/graphapi/tensor.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/graphapi/matmul.hpp>
 
 #include <memory>
 
@@ -52,6 +53,10 @@ miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
 
         case MIOPEN_BACKEND_TENSOR_DESCRIPTOR:
             outputDesciptor = new miopen::graphapi::BackendTensorDescriptor();
+            break;
+
+        case MIOPEN_BACKEND_MATMUL_DESCRIPTOR:
+            outputDesciptor = new miopen::graphapi::BackendMatmulDescriptor();
             break;
 
         default: MIOPEN_THROW(miopenStatus_t::miopenStatusUnsupportedOp);
@@ -176,6 +181,17 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
                address == descriptor)
             {
                 new(descriptor) miopen::graphapi::BackendTensorDescriptor();
+                break;
+            }
+            MIOPEN_THROW(miopenStatusBadParm);
+
+        case MIOPEN_BACKEND_MATMUL_DESCRIPTOR:
+            if(std::align(alignof(miopen::graphapi::BackendMatmulDescriptor),
+                          sizeof(miopen::graphapi::BackendMatmulDescriptor),
+                          address,
+                          sizeInBytes) != descriptor)
+            {
+                new(descriptor) miopen::graphapi::BackendMatmulDescriptor();
                 break;
             }
             MIOPEN_THROW(miopenStatusBadParm);
