@@ -26,7 +26,9 @@
 
 #pragma once
 
+#include <half/half.hpp>
 #include <miopen/graphapi/graphapi.hpp>
+#include <miopen/graphapi/operation.hpp>
 
 #include <cstdint>
 #include <limits>
@@ -178,6 +180,97 @@ public:
 
     const Pointwise* getPointwise() const { return &mPointwise; }
     Pointwise* getPointwise() { return &mPointwise; }
+};
+
+class OperationPointwise : public OpNode
+{
+public:
+    using Alpha = std::variant<float, half_float::half>;
+    struct BackwardTag
+    {
+    };
+
+private:
+    Pointwise* mPointwise = nullptr;
+    Tensor* mX            = nullptr;
+    Tensor* mB            = nullptr;
+    Tensor* mY            = nullptr;
+    Tensor* mT            = nullptr;
+    Tensor* mDx           = nullptr;
+    Tensor* mDy           = nullptr;
+    Alpha mAlpha1         = 1.0f;
+    Alpha mAlpha2         = 1.0f;
+
+    friend class OperationPointwiseBuilder;
+
+public:
+    OperationPointwise() noexcept = default;
+    OperationPointwise(Pointwise* pointwise, Tensor* x, Tensor* y, Alpha alpha1 = 1.0f)
+        : mPointwise(pointwise), mX(x), mY(y), mAlpha1(alpha1)
+    {
+    }
+    OperationPointwise(Pointwise* pointwise,
+                       Tensor* x,
+                       Tensor* b,
+                       Tensor* y,
+                       Alpha alpha1 = 1.0f,
+                       Alpha alpha2 = 1.0f) noexcept
+        : mPointwise(pointwise), mX(x), mB(b), mY(y), mAlpha1(alpha1), mAlpha2(alpha2)
+    {
+    }
+    OperationPointwise(Pointwise* pointwise,
+                       Tensor* x,
+                       Tensor* b,
+                       Tensor* y,
+                       Tensor* t,
+                       Alpha alpha1 = 1.0f,
+                       Alpha alpha2 = 1.0f) noexcept
+        : mPointwise(pointwise), mX(x), mB(b), mY(y), mT(t), mAlpha1(alpha1), mAlpha2(alpha2)
+    {
+    }
+    OperationPointwise(BackwardTag,
+                       Pointwise* pointwise,
+                       Tensor* y,
+                       Tensor* dY,
+                       Tensor* dX,
+                       Alpha alpha1 = 1.0f,
+                       Alpha alpha2 = 1.0f) noexcept
+        : mPointwise(pointwise), mY(y), mDx(dX), mDy(dY), mAlpha1(alpha1), mAlpha2(alpha2)
+    {
+    }
+
+    Pointwise* getPointwise() const noexcept { return mPointwise; }
+    Tensor* getX() const noexcept { return mX; }
+    Tensor* getB() const noexcept { return mB; }
+    Tensor* getY() const noexcept { return mY; }
+    Tensor* getT() const noexcept { return mT; }
+    Tensor* getDx() const noexcept { return mDx; }
+    Tensor* getDy() const noexcept { return mDy; }
+    Alpha getAlpha1() const noexcept { return mAlpha1; }
+    Alpha getAlpha2() const noexcept { return mAlpha2; }
+
+    std::vector<Tensor*> getInTensors() const override;
+    std::vector<Tensor*> getOutTensors() const override;
+};
+
+class OperationPointwiseBuilder
+{
+private:
+    OperationPointwise mOperationPointwise;
+    bool mAlpha2Set = false;
+
+public:
+    OperationPointwiseBuilder& setPointwise(Pointwise* pointwise);
+    OperationPointwiseBuilder& setX(Tensor* x);
+    OperationPointwiseBuilder& setB(Tensor* b);
+    OperationPointwiseBuilder& setY(Tensor* y);
+    OperationPointwiseBuilder& setT(Tensor* t);
+    OperationPointwiseBuilder& setDx(Tensor* dX);
+    OperationPointwiseBuilder& setDy(Tensor* dY);
+    OperationPointwiseBuilder& setAlpha1(OperationPointwise::Alpha alpha1);
+    OperationPointwiseBuilder& setAlpha2(OperationPointwise::Alpha alpha2);
+
+    OperationPointwise build();
 };
 
 } // namespace graphapi
