@@ -205,9 +205,7 @@ void PrintTo(const TestCaseType& v, std::ostream* os)
 
 class GraphApiPointwise : public testing::TestWithParam<TestCaseType>
 {
-protected:
-    GTestGraphApiExecute<GTestDescriptorAttribute*> execute;
-
+private:
     Mode mMode;
     Precision mPrecision;
     NanPropagation mNanPropagation;
@@ -218,6 +216,9 @@ protected:
     DoubleOrFloatAttribute mSoftPlusBeta;
     DoubleOrFloatAttribute mSwishBeta;
     Axis mAxis;
+
+protected:
+    GTestGraphApiExecute<GTestDescriptorAttribute*> mExecute;
 
     void SetUp() override
     {
@@ -260,27 +261,27 @@ protected:
                        "MIOPEN_ATTR_POINTWISE_SWISH_BETA",
                        MIOPEN_ATTR_POINTWISE_SWISH_BETA);
 
-        execute.descriptor.attributes = {&mMode,
-                                         &mPrecision,
-                                         &mNanPropagation,
-                                         mReluLowerClip.get(),
-                                         mReluUpperClip.get(),
-                                         mReluLowerClipSlope.get(),
-                                         mEluAlpha.get(),
-                                         mSoftPlusBeta.get(),
-                                         mSwishBeta.get(),
-                                         &mAxis};
+        mExecute.descriptor.attributes = {&mMode,
+                                          &mPrecision,
+                                          &mNanPropagation,
+                                          mReluLowerClip.get(),
+                                          mReluUpperClip.get(),
+                                          mReluLowerClipSlope.get(),
+                                          mEluAlpha.get(),
+                                          mSoftPlusBeta.get(),
+                                          mSwishBeta.get(),
+                                          &mAxis};
 
-        execute.descriptor.attrsValid = true;
-        execute.descriptor.textName   = "MIOPEN_BACKEND_POINTWISE_DESCRIPTOR";
-        execute.descriptor.type       = MIOPEN_BACKEND_POINTWISE_DESCRIPTOR;
+        mExecute.descriptor.attrsValid = true;
+        mExecute.descriptor.textName   = "MIOPEN_BACKEND_POINTWISE_DESCRIPTOR";
+        mExecute.descriptor.type       = MIOPEN_BACKEND_POINTWISE_DESCRIPTOR;
     }
 };
 
-TEST_P(GraphApiPointwise, CFuncions) { execute(); }
+TEST_P(GraphApiPointwise, CFunctions) { mExecute(); }
 
 INSTANTIATE_TEST_SUITE_P(
-    CFuncionsTest,
+    ValidAttributes,
     GraphApiPointwise,
     testing::Combine(testing::Values(MIOPEN_POINTWISE_ADD, MIOPEN_POINTWISE_MUL),
                      testing::Values(miopenFloat, miopenHalf),
