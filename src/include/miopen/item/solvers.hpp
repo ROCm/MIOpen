@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,28 +23,35 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_TEST_RANDOM_HPP
-#define GUARD_MIOPEN_TEST_RANDOM_HPP
+#pragma once
 
-#include "../driver/random.hpp"
+#include <miopen/item/problem_description.hpp>
+#include <miopen/solver.hpp>
+#include <utility>
 
-namespace prng {
-template <typename T>
-inline T gen_descreet_uniform_sign(double scale, int32_t range)
+namespace miopen {
+
+namespace solver {
+
+namespace item {
+
+using ItemSolver = NonTunableSolverBase<ExecutionContext, miopen::item::ProblemDescription>;
+
+struct GetitemForward final : ItemSolver
 {
-    return static_cast<T>(scale * prng::gen_A_to_B(-range + 1, range));
-}
+    const std::string& SolverDbId() const override { return GetSolverDbId<GetitemForward>(); }
 
-template <typename T>
-inline T gen_descreet_unsigned(double scale, int32_t range)
-{
-    return static_cast<T>(scale * static_cast<double>(gen_0_to_B(range)));
-}
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::item::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::item::ProblemDescription& problem) const override;
+    std::size_t GetWorkspaceSize(const ExecutionContext& context,
+                                 const miopen::item::ProblemDescription& problem) const override;
+    bool MayNeedWorkspace() const override { return true; }
+};
 
-template <typename T>
-inline T gen_unsigned(int32_t range)
-{
-    return static_cast<T>(gen_0_to_B(range));
-}
-} // namespace prng
-#endif // GUARD_MIOPEN_TEST_RANDOM_HPP
+} // namespace item
+
+} // namespace solver
+
+} // namespace miopen

@@ -6333,29 +6333,67 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
  *
  *  @{
  */
+/*! @brief Helper function to query the minimum workspace size required by the getitem call
+ *
+ * @param handle                  MIOpen Handle (input)
+ * @param indexCount              Number of input tensor indexs (input)
+ * @param indexDescs              Tensor descriptor of input tensor indexs (input)
+ * @param dimCount                Number of dimensions (input)
+ * @param dims                    Dimensions (input)
+ * @param sizeInBytes             Pointer to data to return the minimum workspace size
+ * @return                        miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetGetItemWorkspaceSize(miopenHandle_t handle,
+                              const miopenTensorDescriptor_t dyDesc,
+                              const int32_t indexCount,
+                              const miopenTensorDescriptor_t* indexDescs,
+                              const int32_t dimCount,
+                              const int32_t* dims,
+                              size_t* sizeInBytes);
+
 /*! @brief Execute a getitem backward layer
  *
- * @param handle         MIOpen handle (input)
- * @param xCount         Number of input tensor x (input)
- * @param xDescs         Tensor descriptor of input tensor x (input)
- * @param xs             Source data tensor x (input)
- * @param yDesc          Tensor descriptor of output tensor y (input)
- * @param y              Data tensor y (output)
- * @param dim            Concatenation dimension (input)
- * @return               miopenStatus_t
+ * @param handle                  MIOpen handle (input)
+ * @param workspace               Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes    Size in bytes of the allocated workspace data (input)
+ * @param dyDesc                  Tensor descriptor of input tensor dy (input)
+ * @param dy                      Source data tensor dyy (input)
+ * @param xDesc                   Tensor descriptor of input tensor x (input)
+ * @param x                       Source data tensor x (input)
+ * @param indexCount              Number of input tensor indexs (input)
+ * @param indexDescs              Tensor descriptor of input tensor indexs (input)
+ * @param indexs                  Source data tensor indexs (input)
+ * @param yDesc                   Tensor descriptor of output tensor y (input)
+ * @param y                       Data tensor y (input)
+ * @param dxDesc                  Tensor descriptor of output tensor dx (input)
+ * @param dx                      Data tensor dx (output)
+ * @param dimCount                Number of dimensions (input)
+ * @param dims                    Dimensions (input)
+ * @param sliceCount              Number of slices (input)
+ * @param slices                  Slices (input)
+ * @param offset                  Offset of output tensor dx (input)
+ * @return                        miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t miopenGetitemBackwardForward(miopenHandle_t handle,
-                                                          const miopenTensorDescriptor_t dyDesc,
-                                                          const void* dy,
-                                                          const miopenTensorDescriptor_t xDesc,
-                                                          const void* x,
-                                                          const miopenTensorDescriptor_t* indexDesc,
-                                                          const void* const* index,
-                                                          const miopenTensorDescriptor_t yDesc,
-                                                          const void* y,
-                                                          const miopenTensorDescriptor_t dxDesc,
-                                                          void* dx,
-                                                          const int32_t dim);
+MIOPEN_EXPORT miopenStatus_t miopenGetitemBackward(miopenHandle_t handle,
+                                                   void* workspace,
+                                                   size_t workspaceSizeInBytes,
+                                                   const miopenTensorDescriptor_t dyDesc,
+                                                   const void* dy,
+                                                   const miopenTensorDescriptor_t xDesc,
+                                                   const void* x,
+                                                   const int32_t indexCount,
+                                                   const miopenTensorDescriptor_t* indexDescs,
+                                                   const void* const* indexs,
+                                                   const miopenTensorDescriptor_t yDesc,
+                                                   const void* y,
+                                                   const miopenTensorDescriptor_t dxDesc,
+                                                   void* dx,
+                                                   const int32_t dimCount,
+                                                   const int32_t* dims,
+                                                   const int32_t sliceCount,
+                                                   const int32_t* slices,
+                                                   const int32_t offset);
 
 /** @} */
 // CLOSEOUT GETITEM DOXYGEN GROUP

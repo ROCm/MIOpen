@@ -292,6 +292,63 @@ TensorParameters InputFlags::GetValueTensor(const std::string& long_name) const
 
     MIOPEN_THROW("Too many tensor descriptor parameters.");
 }
+
+std::vector<int> InputFlags::GetValueVectorInt(const std::string& long_name) const
+{
+    const auto& input = MapInputs.at(FindShortName(long_name));
+
+    auto ret        = std::vector<int>{};
+    const auto strs = miopen::SplitDelim(input.value.c_str(), ',');
+
+    for(auto&& str : strs)
+    {
+        auto elem = int{};
+        auto ss   = std::istringstream{str};
+        ss >> elem;
+
+        if(ss.bad() || ss.fail())
+            MIOPEN_THROW("Invalid tensor component " + str + " in " + input.value.c_str() + ".");
+
+        ret.push_back(elem);
+    }
+
+    return ret;
+}
+
+std::vector<std::vector<int>> InputFlags::GetValue2dVectorInt(const std::string& long_name) const
+{
+    const auto& input     = MapInputs.at(FindShortName(long_name));
+    const auto components = miopen::SplitDelim(input.value.c_str(), ',');
+    auto output           = std::vector<std::vector<int>>{};
+
+    if(components.size() < 1)
+        return {};
+
+    auto parse = [](auto line) {
+        auto ret        = std::vector<int>{};
+        const auto strs = miopen::SplitDelim(line, 'x');
+        for(auto&& str : strs)
+        {
+            auto elem = int{};
+            auto ss   = std::istringstream{str};
+            ss >> elem;
+
+            if(ss.bad() || ss.fail())
+                MIOPEN_THROW("Invalid tensor component " + str + " in " + line + ".");
+
+            ret.push_back(elem);
+        }
+        return ret;
+    };
+
+    for(auto&& component : components)
+    {
+        output.push_back(parse(component));
+    }
+
+    return output;
+}
+
 void InputFlags::SetValue(const std::string& long_name, const std::string& new_value)
 {
     char short_name                = FindShortName(long_name);
