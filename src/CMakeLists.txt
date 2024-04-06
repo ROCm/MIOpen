@@ -124,6 +124,7 @@ set( MIOpen_Source
     graphapi/convolution.cpp
     graphapi/graphapi.cpp
     graphapi/pointwise.cpp
+    graphapi/reduction.cpp
     graphapi/rng.cpp
     graphapi/tensor.cpp
     groupnorm_api.cpp
