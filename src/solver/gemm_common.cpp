@@ -57,17 +57,17 @@ std::size_t MaxMemAllocSz(Handle& h,
                           bool double_limit_for_fp32)
 {
     const auto m = h.GetMaxMemoryAllocSize();
-    auto limit   = std::numeric_limits<std::size_t>::max();
-
 #if WORKAROUND_MLOPEN_ISSUE_1430
-    limit = static_cast<std::size_t>(7287183769);
+    auto limit = static_cast<std::size_t>(7287183769);
     if(!miopen::IsDisabled(ENV(MIOPEN_WORKAROUND_ISSUE_2789)))
     {
         if(problem.IsFp32() && double_limit_for_fp32)
             limit *= 2;
     }
-#endif
     return std::min(m, limit);
+#else
+    return m;
+#endif
 }
 
 bool IsAnyBufferBf16(const TensorDescriptor& xDesc,
