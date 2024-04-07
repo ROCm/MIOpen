@@ -39,7 +39,9 @@ namespace solver {
 namespace conv {
 namespace gemm {
 
-std::size_t MaxMemAllocSz(Handle& h, const miopen::conv::ProblemDescription& problem);
+std::size_t MaxMemAllocSz(Handle& h,
+                          const miopen::conv::ProblemDescription& problem,
+                          bool double_limit_for_fp32 = false);
 
 constexpr bool IsBf16Supported = MIOPEN_USE_ROCBLAS;
 constexpr bool IsFp16Supported = MIOPEN_USE_ROCBLAS;

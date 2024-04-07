@@ -614,10 +614,10 @@ size_t GemmBwdRest::GetWorkspaceSize(const ExecutionContext& context,
                                            std::multiplies<std::size_t>()) *
                            GetTypeSize(dyDesc.GetType()) * conv.group_count;
 
-    if(gemm_size > gemm::MaxMemAllocSz(handle, problem))
+    if(gemm_size > gemm::MaxMemAllocSz(handle, problem, true))
     {
         MIOPEN_LOG_I2("GemmBwdRest: " << gemm_size << " > "
-                                      << gemm::MaxMemAllocSz(handle, problem));
+                                      << gemm::MaxMemAllocSz(handle, problem, true));
         return 0;
     }
     return gemm_size;

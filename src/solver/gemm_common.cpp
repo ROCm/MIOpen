@@ -30,48 +30,43 @@
 #include <algorithm>
 #include <limits>
 
-// Vega20 fails to access GPU memory larger than the
-// return value of GetMaxMemoryAllocSize() of Vega10.
+// Workaround for MLOpen issue 1430. Vega20 fails to access GPU memory
+// larger than the return value of GetMaxMemoryAllocSize() of Vega10.
+// Due to historical reasons, this W/A is applied to all targets.
+// We are going to keep it as is until the new GEMM backend
+// is used instead of rocBLAS. See also issue #2809.
 #define WORKAROUND_MLOPEN_ISSUE_1430 1
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_WORKAROUND_ISSUE_2808)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_WORKAROUND_ISSUE_2809)
+// Double the limit for FP32, for GemmFwdRest and GemmBwdRest solvers only.
+// See issues #2789 and #2808.
+//
+// IMPORTANT: The limit can only be increased for the "rest-of" kind GEMM solvers,
+// since there are dependencies between the applicability of GEMM solvers.
+// For example, expanding the applicability of GemmFwd1x1_0_1 will result
+// in narrowing the applicability of GemmFwdRest. This side effect will
+// lead to errors unless the databases are re-tuned.
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_WORKAROUND_ISSUE_2789)
 
 namespace miopen {
 namespace solver {
 namespace conv {
 namespace gemm {
 
-std::size_t MaxMemAllocSz(Handle& h, const miopen::conv::ProblemDescription& problem)
+std::size_t MaxMemAllocSz(Handle& h,
+                          const miopen::conv::ProblemDescription& problem,
+                          bool double_limit_for_fp32)
 {
-    constexpr auto wa_2808_16bit_limit    = static_cast<std::size_t>(7287183769);
-    constexpr auto wa_2808_other_limit    = wa_2808_16bit_limit * 2;
-    constexpr auto wa_2809_fp32_wrw_limit = wa_2808_16bit_limit;
-
     const auto m = h.GetMaxMemoryAllocSize();
     auto limit   = std::numeric_limits<std::size_t>::max();
 
 #if WORKAROUND_MLOPEN_ISSUE_1430
-    const auto device = h.GetTargetProperties().Name();
-    if(device == "gfx906" || device == "gfx900")
+    limit = static_cast<std::size_t>(7287183769);
+    if(!miopen::IsDisabled(ENV(MIOPEN_WORKAROUND_ISSUE_2789)))
     {
-        // Workaround for MLOpen issue 1430. Vega20 fails to access GPU memory
-        // larger than the return value of GetMaxMemoryAllocSize() of Vega10.
-        limit = std::min(limit, static_cast<std::size_t>(7287183769));
+        if(problem.IsFp32() && double_limit_for_fp32)
+            limit *= 2;
     }
 #endif
-    if(!miopen::IsDisabled(ENV(MIOPEN_WORKAROUND_ISSUE_2808)))
-    {
-        if(problem.IsFp16() || problem.IsBfp16())
-            limit = std::min(limit, wa_2808_16bit_limit);
-        else
-            limit = std::min(limit, wa_2808_other_limit);
-    }
-    if(!miopen::IsDisabled(ENV(MIOPEN_WORKAROUND_ISSUE_2809)))
-    {
-        if(problem.IsFp32() && problem.IsDirectionBackwardWrW())
-            limit = std::min(limit, wa_2809_fp32_wrw_limit);
-    }
     return std::min(m, limit);
 }
 

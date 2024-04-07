@@ -955,9 +955,10 @@ size_t GemmFwdRest::GetWorkspaceSize(const ExecutionContext& context,
 
     const auto ws_sz = (wDesc.GetType() == miopenInt8 ? 2 * workspace_size : workspace_size);
 
-    if(ws_sz > gemm::MaxMemAllocSz(handle, problem))
+    if(ws_sz > gemm::MaxMemAllocSz(handle, problem, true))
     {
-        MIOPEN_LOG_I2("GemmFwdRest: " << ws_sz << " > " << gemm::MaxMemAllocSz(handle, problem));
+        MIOPEN_LOG_I2("GemmFwdRest: " << ws_sz << " > "
+                                      << gemm::MaxMemAllocSz(handle, problem, true));
         return 0;
     }
     return ws_sz;
