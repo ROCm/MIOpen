@@ -273,6 +273,37 @@ public:
     OperationPointwise build();
 };
 
+class BackendOperationPointwiseDescriptor : public BackendDescriptor
+{
+private:
+    OperationPointwiseBuilder mBuilder;
+    OperationPointwise mOperationPointwise;
+
+    miopenBackendDescriptor_t mPointwiseDescriptor = nullptr;
+    miopenBackendDescriptor_t mXDescriptor         = nullptr;
+    miopenBackendDescriptor_t mBDescriptor         = nullptr;
+    miopenBackendDescriptor_t mYDescriptor         = nullptr;
+    miopenBackendDescriptor_t mTDescriptor         = nullptr;
+    miopenBackendDescriptor_t mDxDescriptor        = nullptr;
+    miopenBackendDescriptor_t mDyDescriptor        = nullptr;
+
+public:
+    void setAttribute(miopenBackendAttributeName_t attributeName,
+                      miopenBackendAttributeType_t attributeType,
+                      int64_t elementCount,
+                      void* arrayOfElements) override;
+    void finalize() override;
+    void getAttribute(miopenBackendAttributeName_t attributeName,
+                      miopenBackendAttributeType_t attributeType,
+                      int64_t requestedElementCount,
+                      int64_t* elementCount,
+                      void* arrayOfElements) override;
+    OpNode* getOperation() override;
+
+    const OperationPointwise* getOperationPointwise() const { return &mOperationPointwise; }
+    OperationPointwise* getOperationPointwise() { return &mOperationPointwise; }
+};
+
 } // namespace graphapi
 
 } // namespace miopen

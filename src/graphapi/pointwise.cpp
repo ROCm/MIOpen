@@ -662,6 +662,190 @@ OperationPointwise OperationPointwiseBuilder::build()
     return mOperationPointwise;
 }
 
+void BackendOperationPointwiseDescriptor::setAttribute(miopenBackendAttributeName_t attributeName,
+                                                       miopenBackendAttributeType_t attributeType,
+                                                       int64_t elementCount,
+                                                       void* arrayOfElements)
+{
+    if(mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+
+    using TensorSetter = OperationPointwiseBuilder& (OperationPointwiseBuilder::*)(Tensor * tensor);
+
+    auto callTensorSetter = [=](TensorSetter setter, miopenBackendDescriptor_t& outApiDescriptor) {
+        if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && elementCount == 1)
+        {
+            miopenBackendDescriptor_t apiDescriptor =
+                deref(static_cast<miopenBackendDescriptor_t*>(arrayOfElements));
+            BackendDescriptor& backendDescriptor = deref(apiDescriptor);
+
+            if(!backendDescriptor.isFinalized())
+            {
+                MIOPEN_THROW(miopenStatusBadParm);
+            }
+
+            BackendTensorDescriptor& tensorDescriptor =
+                dynamic_cast<BackendTensorDescriptor&>(backendDescriptor);
+            (mBuilder.*setter)(tensorDescriptor.getTensor());
+            outApiDescriptor = apiDescriptor;
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+    };
+
+    using FloatSetter =
+        OperationPointwiseBuilder& (OperationPointwiseBuilder::*)(OperationPointwise::Alpha alpha);
+
+    auto callFloatSetter = [=](FloatSetter setter) {
+        if(attributeType == MIOPEN_TYPE_FLOAT && elementCount == 1)
+        {
+            (mBuilder.*setter)(*static_cast<float*>(arrayOfElements));
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+    };
+
+    switch(attributeName)
+    {
+    case MIOPEN_ATTR_OPERATION_POINTWISE_PW_DESCRIPTOR:
+        if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && elementCount == 1)
+        {
+            miopenBackendDescriptor_t apiDescriptor =
+                deref(static_cast<miopenBackendDescriptor_t*>(arrayOfElements));
+            BackendDescriptor& backendDescriptor = deref(apiDescriptor);
+
+            if(!backendDescriptor.isFinalized())
+            {
+                MIOPEN_THROW(miopenStatusBadParm);
+            }
+
+            BackendPointwiseDescriptor& pointwiseDescriptor =
+                dynamic_cast<BackendPointwiseDescriptor&>(backendDescriptor);
+            mBuilder.setPointwise(pointwiseDescriptor.getPointwise());
+            mPointwiseDescriptor = apiDescriptor;
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+        break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_XDESC:
+        callTensorSetter(&OperationPointwiseBuilder::setX, mXDescriptor);
+        break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_BDESC:
+        callTensorSetter(&OperationPointwiseBuilder::setB, mBDescriptor);
+        break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_YDESC:
+        callTensorSetter(&OperationPointwiseBuilder::setY, mYDescriptor);
+        break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_TDESC:
+        callTensorSetter(&OperationPointwiseBuilder::setT, mTDescriptor);
+        break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_DXDESC:
+        callTensorSetter(&OperationPointwiseBuilder::setDx, mDxDescriptor);
+        break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_DYDESC:
+        callTensorSetter(&OperationPointwiseBuilder::setDy, mDyDescriptor);
+        break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_ALPHA1:
+        callFloatSetter(&OperationPointwiseBuilder::setAlpha1);
+        break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_ALPHA2:
+        callFloatSetter(&OperationPointwiseBuilder::setAlpha2);
+        break;
+
+    default: MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
+void BackendOperationPointwiseDescriptor::finalize()
+{
+    if(mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+
+    mOperationPointwise = mBuilder.build();
+    mFinalized          = true;
+}
+
+void BackendOperationPointwiseDescriptor::getAttribute(miopenBackendAttributeName_t attributeName,
+                                                       miopenBackendAttributeType_t attributeType,
+                                                       int64_t requestedElementCount,
+                                                       int64_t* elementCount,
+                                                       void* arrayOfElements)
+{
+    if(!mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+
+    auto storeDescriptor = [=](miopenBackendDescriptor_t descriptor) {
+        if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && requestedElementCount == 1)
+        {
+            *elementCount                                             = 1;
+            *static_cast<miopenBackendDescriptor_t*>(arrayOfElements) = descriptor;
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+    };
+
+    auto storeFloat = [=](OperationPointwise::Alpha alpha) {
+        if(attributeType == MIOPEN_TYPE_FLOAT && requestedElementCount == 1 && alpha.index() == 0)
+        {
+            *elementCount                         = 1;
+            *static_cast<float*>(arrayOfElements) = std::get<float>(alpha);
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+    };
+
+    switch(attributeName)
+    {
+    case MIOPEN_ATTR_OPERATION_POINTWISE_PW_DESCRIPTOR:
+        storeDescriptor(mPointwiseDescriptor);
+        break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_XDESC: storeDescriptor(mXDescriptor); break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_BDESC: storeDescriptor(mBDescriptor); break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_YDESC: storeDescriptor(mYDescriptor); break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_TDESC: storeDescriptor(mTDescriptor); break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_DXDESC: storeDescriptor(mDxDescriptor); break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_DYDESC: storeDescriptor(mDyDescriptor); break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_ALPHA1: storeFloat(mOperationPointwise.getAlpha1()); break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_ALPHA2: storeFloat(mOperationPointwise.getAlpha2()); break;
+
+    default: MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
+OpNode* BackendOperationPointwiseDescriptor::getOperation() { return &mOperationPointwise; }
+
 } // namespace graphapi
 
 } // namespace miopen
