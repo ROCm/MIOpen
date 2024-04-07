@@ -27,6 +27,8 @@
 #include <miopen/errors.hpp>
 #include <miopen/graphapi/reduction.hpp>
 
+#include <algorithm>
+
 namespace miopen {
 
 namespace graphapi {
@@ -131,6 +133,65 @@ void BackendReductionDescriptor::getAttribute(miopenBackendAttributeName_t attri
         break;
 
     default: MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
+std::vector<Tensor*> OperationReduction::getInTensors() const { return {mX}; }
+
+std::vector<Tensor*> OperationReduction::getOutTensors() const { return {mY}; }
+
+namespace {
+
+template <typename Ptr>
+void assignPtr(Ptr src, Ptr& dst)
+{
+    if(src != nullptr)
+    {
+        dst = src;
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
+} // namespace
+
+OperationReductionBuilder& OperationReductionBuilder::setReduction(Reduction* reduction)
+{
+    assignPtr(reduction, mOperationReduction.mReduction);
+    return *this;
+}
+
+OperationReductionBuilder& OperationReductionBuilder::setX(Tensor* x)
+{
+    assignPtr(x, mOperationReduction.mX);
+    return *this;
+}
+
+OperationReductionBuilder& OperationReductionBuilder::setY(Tensor* y)
+{
+    assignPtr(y, mOperationReduction.mY);
+    return *this;
+}
+
+OperationReduction OperationReductionBuilder::build()
+{
+    if(mOperationReduction.mReduction != nullptr && mOperationReduction.mX != nullptr &&
+       mOperationReduction.mY != nullptr &&
+       std::equal(mOperationReduction.mX->getDimensions().cbegin(),
+                  mOperationReduction.mX->getDimensions().cend(),
+                  mOperationReduction.mY->getDimensions().cbegin(),
+                  mOperationReduction.mY->getDimensions().cend(),
+                  [](auto inputDim, auto outputDim) {
+                      return outputDim == 1 || outputDim == inputDim || outputDim % inputDim == 0;
+                  }))
+    {
+        return mOperationReduction;
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
     }
 }
 
