@@ -25,16 +25,18 @@
  *******************************************************************************/
 
 #include <miopen/binary_cache.hpp>
+#include <miopen/bz2.hpp>
 #include <miopen/kern_db.hpp>
 #include <miopen/temp_file.hpp>
-
+#include <algorithm>
+#include <vector>
 #include "test.hpp"
 #include "random.hpp"
 
 #include <gtest/gtest.h>
 
 #if MIOPEN_ENABLE_SQLITE
-std::string random_string(size_t length)
+std::vector<char> random_bytes(size_t length)
 {
     auto randchar = []() -> char {
         const char charset[] = "0123456789"
@@ -43,20 +45,20 @@ std::string random_string(size_t length)
         const size_t max_index = (sizeof(charset) - 1);
         return charset[prng::gen_0_to_B(max_index)];
     };
-    std::string str(length, 0);
-    std::generate_n(str.begin(), length, randchar);
-    return str;
+    std::vector<char> v(length, 0);
+    std::generate_n(v.begin(), length, randchar);
+    return v;
 }
 
 TEST(TestCache, check_bz2_compress)
 {
-    std::string to_compress;
+    std::vector<char> to_compress;
     bool success = false;
-    std::string cmprsd;
+    std::vector<char> cmprsd;
 
     EXPECT_TRUE(throws([&]() { cmprsd = miopen::compress(to_compress, &success); }));
 
-    to_compress = random_string(4096);
+    to_compress = random_bytes(4096);
     // if the following throws the test will fail
     cmprsd = miopen::compress(to_compress, nullptr);
     ASSERT_TRUE(!(cmprsd.empty()));
@@ -67,32 +69,32 @@ TEST(TestCache, check_bz2_compress)
 
 TEST(TestCache, check_bz2_decompress)
 {
-    std::string empty_string;
+    std::vector<char> empty;
 
-    std::string decompressed_str;
+    std::vector<char> decompressed;
 
-    EXPECT_TRUE(throws([&]() { decompressed_str = miopen::decompress(empty_string, 0); }));
+    EXPECT_TRUE(throws([&]() { decompressed = miopen::decompress(empty, 0); }));
 
-    auto orig_str = random_string(4096);
+    auto original = random_bytes(4096);
     bool success  = false;
-    std::string compressed_str;
-    compressed_str = miopen::compress(orig_str, &success);
+    std::vector<char> compressed;
+    compressed = miopen::compress(original, &success);
     ASSERT_TRUE(success);
 
-    decompressed_str = miopen::decompress(compressed_str, orig_str.size());
-    ASSERT_TRUE(decompressed_str == orig_str);
+    decompressed = miopen::decompress(compressed, original.size());
+    ASSERT_TRUE(decompressed == original);
 
-    EXPECT_TRUE(throws([&]() { decompressed_str = miopen::decompress(compressed_str, 10); }));
+    EXPECT_TRUE(throws([&]() { decompressed = miopen::decompress(compressed, 10); }));
 
-    ASSERT_TRUE(decompressed_str == miopen::decompress(compressed_str, orig_str.size() + 10));
+    ASSERT_TRUE(decompressed == miopen::decompress(compressed, original.size() + 10));
 }
 
 TEST(TestCache, check_kern_db)
 {
     miopen::KernelConfig cfg0;
     cfg0.kernel_name = "kernel1";
-    cfg0.kernel_args = random_string(512);
-    cfg0.kernel_blob = random_string(8192);
+    cfg0.kernel_args = {random_bytes(512).data(), 512};
+    cfg0.kernel_blob = random_bytes(8192);
 
     miopen::KernDb empty_db(miopen::DbKinds::KernelDb, "", false);
     EXPECT_TRUE(empty_db.RemoveRecordUnsafe(cfg0)); // for empty file, remove should succeed
@@ -117,14 +119,11 @@ TEST(TestCache, check_kern_db)
             miopen::DbKinds::KernelDb,
             std::string(temp_file),
             false,
-            [](std::string str, bool* success) {
-                std::ignore = str;
-                *success    = false;
-                return "";
+            [](const std::vector<char>&, bool* success) {
+                *success = false;
+                return std::vector<char>{};
             },
-            [](std::string str, unsigned int sz) -> std::string {
-                std::ignore = str;
-                std::ignore = sz;
+            [](const std::vector<char>&, unsigned int) -> std::vector<char> {
                 throw;
             }); // error compressing
         // Even if compression fails, it should still work
