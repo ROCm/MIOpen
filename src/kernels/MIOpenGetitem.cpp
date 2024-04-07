@@ -30,56 +30,132 @@
 
 #include "miopen_cstdint.hpp"
 #include "float_types.h"
+#include "tensor_view.h"
 
-template <typename TI, typename TO>
-__device__ void getitembwd(const TI* __restrict__ dy,
-                           const TI* __restrict__ x,
-                           const TI* __restrict__ rstd,
-                           TO* __restrict__ dw,
-                           uint64_t outer_size,
-                           uint64_t inner_size)
+template <typename IDX, typename E>
+__device__ void getitembuildindices(const IDX* __restrict__ index,
+                                    IDX* __restrict__ element_index,
+                                    E* __restrict__ error,
+                                    int32_t index_dim,
+                                    int32_t indexCount,
+                                    int32_t dim_size,
+                                    tensor_view_5d_t index_tv,
+                                    uint64_t dim_offset,
+                                    uint64_t dim_info_offset)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
-    FLOAT_ACCUM sum = static_cast<FLOAT_ACCUM>(0);
-    for(uint64_t i = 0; i < outer_size; ++i)
+    uint64_t NCDHW[5];
+    GET_NCDHW(NCDHW[0], NCDHW[1], NCDHW[2], NCDHW[3], NCDHW[4], gid, index_tv);
+
+    if(NCDHW[0] >= index_tv.size[0])
+        return;
+
+    uint64_t idx      = TV5D_IDX(index_tv, NCDHW[0], NCDHW[1], NCDHW[2], NCDHW[3], NCDHW[4]);
+    IDX getitem_index = index[idx];
+
+    if(getitem_index >= 0 && getitem_index < dim_size)
     {
-        uint64_t input_idx = i * inner_size + gid;
-
-        FLOAT_ACCUM prstd = CVT_FLOAT2ACCUM(rstd[i]);
-        FLOAT_ACCUM pdy   = dy ? CVT_FLOAT2ACCUM(dy[input_idx]) : 0;
-
-        sum += pdy * CVT_FLOAT2ACCUM(x[input_idx]) * prstd;
+        element_index[(gid * indexCount) + dim_offset] = getitem_index;
+    }
+    else if(getitem_index >= -dim_size && getitem_index < 0)
+    {
+        element_index[(gid * indexCount) + dim_offset] = getitem_index + dim_size;
+    }
+    else
+    {
+        error[dim_offset] = -1;
     }
 
-    if(dw)
+    if(gid == 0)
     {
-        dw[gid] = CVT_ACCUM2FLOAT(sum);
+        element_index[dim_info_offset + dim_offset] = index_dim;
     }
 }
 
-extern "C" __global__ void GetitemBwd(const INPUT_TYPE* __restrict__ dy,
-                                      const INPUT_TYPE* __restrict__ x,
-                                      const INPUT_TYPE* __restrict__ rstd,
-                                      OUTPUT_TYPE* __restrict__ dw,
-                                      uint64_t outer_size,
-                                      uint64_t inner_size)
+template <typename TI, typename IDX, typename TO>
+__device__ void getitembwd(const TI* __restrict__ dy,
+                           IDX* __restrict__ element_index,
+                           const TO* __restrict__ dx,
+                           uint64_t start_dim,
+                           uint64_t indexCount,
+                           tensor_view_5d_t dy_tv,
+                           tensor_view_5d_t dx_tv,
+                           ,
+                           uint64_t dim_info_offset uint64_t dim0_offset)
 {
-    // instantiate the kernel
-    getitembwd<INPUT_TYPE, OUTPUT_TYPE>(dy, x, rstd, dw, outer_size, inner_size);
+    const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
+
+    uint64_t NCDHW[5];
+
+    GET_NCDHW(NCDHW[0], NCDHW[1], NCDHW[2], NCDHW[3], NCDHW[4], gid, dy_tv);
+
+    if(NCDHW[0] >= dy_tv.size[0])
+        return;
+
+    uint64_t idx[5];
+    for(uint32_t i = 0; i < 5; ++i)
+    {
+        idx[i] = NCDHW[i];
+    }
+
+    if(indexCount > 0)
+    {
+        uint64_t dim_cursor = NCDHW[start_dim];
+        uint64_t i          = start_dim;
+        uint64_t j          = 0;
+
+        for(; i < start_dim + indexCount; ++i, ++j)
+        {
+            uint64_t dim_idx = element_index[dim_info_offset + j];
+            idx[dim_idx]     = element_index[(dim_cursor * indexCount) + j];
+        }
+
+        i          = element_index[dim_info_offset + indexCount - 1] + 1;
+        dim_cursor = start_dim + 1;
+        for(; i < 5; ++i, ++dim_cursor)
+        {
+            idx[i] = NCDHW[dim_cursor];
+        }
+    }
+
+    atomicAdd(&TV_5D_AT(dx, idx[0] + dim0_offset, idx[1], idx[2], idx[3], idx[4]),
+              TV_5D_AT(dy, NCDHW[0] + dim0_offset, NCDHW[1], NCDHW[2], NCDHW[3], NCDHW[4]));
 }
 
 extern "C" __global__ void GetItemBuildIndices(const INDEX_TYPE* __restrict__ index,
                                                INDEX_TYPE* __restrict__ element_index,
-                                               INDEX_TYPE* __restrict__ error,
+                                               ERROR_TYPE* __restrict__ error,
                                                inte32_t index_dim,
-                                               inte32_t num_indices,
+                                               inte32_t indexCount,
                                                inte32_t dim_size,
                                                tensor_view_5d_t index_tv,
                                                uint64_t dim_offset,
-                                               uint64_t dim_info_offset,
-                                               uint64_t error_offset)
+                                               uint64_t dim_info_offset)
 {
     // instantiate the kernel
-    getitembwd<INPUT_TYPE, OUTPUT_TYPE>(dy, x, rstd, dw, outer_size, inner_size);
+    getitembuildindices<INDEX_TYPE, ERROR_TYPE>(index,
+                                                element_index,
+                                                _error,
+                                                index_dim,
+                                                num_indices,
+                                                dim_size,
+                                                index_tv,
+                                                dim_offset,
+                                                dim_info_offset);
+}
+
+extern "C" __global__ void GetitemBwd(const INPUT_TYPE* __restrict__ dy,
+                                      INDEX_TYPE* __restrict__ element_index,
+                                      const OUTPUT_TYPE* __restrict__ dx,
+                                      uint64_t start_dim,
+                                      uint64_t indexCount,
+                                      tensor_view_5d_t dy_tv,
+                                      tensor_view_5d_t dx_tv,
+                                      ,
+                                      uint64_t dim_info_offset uint64_t dim0_offset)
+{
+    // instantiate the kernel
+    getitembwd<INPUT_TYPE, INDEX_TYPE, OUTPUT_TYPE>(
+        dy, element_index, dx, start_dim, indexCount, dy_tv, dx_tv, dim_info_offset, dim0_offset);
 }

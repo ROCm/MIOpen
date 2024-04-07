@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,10 +34,9 @@ static void LogCmdGetitem(const miopenTensorDescriptor_t dyDesc,
                           const miopenTensorDescriptor_t* indexDescs,
                           const miopenTensorDescriptor_t dxDesc,
                           int32_t dimCount,
-                          int32_t* dims,
-                          int32_t,
-                          sliceCount,
-                          inte32_t* slices,
+                          const int32_t* dims,
+                          int32_t sliceCount,
+                          const int32_t* slices,
                           int32_t offset,
                           bool is_fwd)
 {
@@ -58,55 +57,55 @@ static void LogCmdGetitem(const miopenTensorDescriptor_t dyDesc,
             ss << "getitemf16";
         }
 
-        std::string dy_sz;
-        auto dims = miopen::deref(dyDesc).GetLengths();
-        for(auto dim : dims)
+        std::string dy_s;
+        auto dy_dims = miopen::deref(dyDesc).GetLengths();
+        for(auto dy_dim : dy_dims)
         {
-            dy_sz += std::to_string(dim);
-            dy_sz += ",";
+            dy_s += std::to_string(dy_dim);
+            dy_s += ",";
         }
-        dy_sz.pop_back();
-        ss << " -doutput " << dy_sz;
+        dy_s.pop_back();
+        ss << " -doutput " << dy_s;
 
-        for(int i = 0; i < indexDescs.size(); i++)
+        for(int i = 0; i < indexCount; i++)
         {
             std::string index_s;
-            auto dims = miopen::deref(indexDescs[i]).GetLengths();
-            for(auto dim : dims)
+            auto index_dims = miopen::deref(indexDescs[i]).GetLengths();
+            for(auto index_dim : index_dims)
             {
-                index_s += std::to_string(dim);
+                index_s += std::to_string(index_dim);
                 index_s += ",";
             }
             index_s.pop_back();
-            ss << " -index" << i + 1 < < < < index_s;
+            ss << " -index" << i + 1 << " " << index_s;
         }
 
-        std::string dx_sz;
-        auto dims = miopen::deref(dxDesc).GetLengths();
-        for(auto dim : dims)
+        std::string dx_s;
+        auto dx_dims = miopen::deref(dxDesc).GetLengths();
+        for(auto dx_dim : dx_dims)
         {
-            dx_sz += std::to_string(dim);
-            dx_sz += ",";
+            dx_s += std::to_string(dx_dim);
+            dx_s += ",";
         }
-        dx_sz.pop_back();
-        ss << " -dx " << dx_sz;
+        dx_s.pop_back();
+        ss << " -dx " << dx_s;
 
-        ss << " -dims " std::string dims_s;
+        std::string dims_s;
         for(int i = 0; i < dimCount; i++)
         {
             dims_s += std::to_string(dims[i]);
             dims_s += ",";
         }
-        dim_s.pop_back();
-        ss << " -dim" << dims_s;
+        dims_s.pop_back();
+        ss << " -dims" << dims_s;
 
-        ss << " -slices " std::string slices_s;
+        std::string slices_s;
         for(int i = 0; i < sliceCount; i++)
         {
             slices_s += std::to_string(slices[i]);
             slices_s += ",";
         }
-        slice_s.pop_back();
+        slices_s.pop_back();
         ss << " -slice" << slices_s;
 
         ss << " -offset" << offset;
@@ -117,14 +116,11 @@ static void LogCmdGetitem(const miopenTensorDescriptor_t dyDesc,
 }
 
 extern "C" miopenStatus_t miopenGetGetitemWorkspaceSize(miopenHandle_t handle,
-                                                        const int32_t indexCount,
+                                                        int32_t indexCount,
                                                         const miopenTensorDescriptor_t* indexDescs,
-                                                        const void* const* indexs,
-                                                        const int32_t dimCount,
-                                                        const int32_t* dims,
                                                         size_t* sizeInBytes)
 {
-    MIOPEN_LOG_FUNCTION(handle, indexCount, indexDescs, indexs, dimCount, dims);
+    MIOPEN_LOG_FUNCTION(handle, indexCount, indexDescs);
 
     return miopen::try_([&] {
         std::vector<ConstData_t> indexCast;
@@ -133,38 +129,36 @@ extern "C" miopenStatus_t miopenGetGetitemWorkspaceSize(miopenHandle_t handle,
                        indexDescs + indexCount,
                        std::back_inserter(indexDescsCast),
                        [](const auto& indexDesc) { return &miopen::deref(indexDesc); });
-        std::transform(indexs,
-                       indexs + indexCount,
-                       std::back_inserter(indexCast),
-                       [](const void* index) { return DataCast(index); });
-        miopen::deref(sizeInBytes) = miopen::GetSumWorkspaceSize(miopen::deref(handle),
-                                                                 indexCount,
-                                                                 indexDescsCast.data(),
-                                                                 indexCast.data(),
-                                                                 dimCount,
-                                                                 miopen::deref(dims));
+        miopen::deref(sizeInBytes) = miopen::GetGetitemWorkspaceSize(
+            miopen::deref(handle), indexCount, indexDescsCast.data());
     });
 };
 
 extern "C" miopenStatus_t miopenGetitemBackward(miopenHandle_t handle,
+                                                void* workspace,
+                                                size_t workspaceSizeInBytes,
                                                 const miopenTensorDescriptor_t dyDesc,
                                                 const void* dy,
                                                 const miopenTensorDescriptor_t xDesc,
                                                 const void* x,
-                                                const int32_t indexCount,
+                                                int32_t indexCount,
                                                 const miopenTensorDescriptor_t* indexDescs,
                                                 const void* const* indexs,
                                                 const miopenTensorDescriptor_t yDesc,
                                                 const void* y,
                                                 const miopenTensorDescriptor_t dxDesc,
                                                 void* dx,
-                                                const int32_t dimCount,
+                                                const miopenTensorDescriptor_t errorDesc,
+                                                void* error,
+                                                int32_t dimCount,
                                                 const int32_t* dims,
-                                                const int32_t sliceCount,
+                                                int32_t sliceCount,
                                                 const int32_t* slices,
-                                                const int32_t offset)
+                                                int32_t offset)
 {
     MIOPEN_LOG_FUNCTION(handle,
+                        workspace,
+                        workspaceSizeInBytes,
                         dyDesc,
                         dy,
                         xDesc,
@@ -176,14 +170,18 @@ extern "C" miopenStatus_t miopenGetitemBackward(miopenHandle_t handle,
                         y,
                         dxDesc,
                         dx,
+                        errorDesc,
+                        error,
                         dimCount,
                         dims,
                         sliceCount,
                         slices,
                         offset);
-    LogCmdGetitem(xDescs, xCount, true);
+
+    LogCmdGetitem(
+        dyDesc, indexCount, indexDescs, dxDesc, dimCount, dims, sliceCount, slices, offset, true);
     return miopen::try_([&] {
-        std::vector<ConstData_t> indexCast;
+        std::vector<ConstData_t> indexsCast;
         std::vector<miopen::TensorDescriptor*> indexDescsCast;
         std::transform(indexDescs,
                        indexDescs + indexCount,
@@ -191,25 +189,29 @@ extern "C" miopenStatus_t miopenGetitemBackward(miopenHandle_t handle,
                        [](const auto& indexDesc) { return &miopen::deref(indexDesc); });
         std::transform(indexs,
                        indexs + indexCount,
-                       std::back_inserter(indexCast),
+                       std::back_inserter(indexsCast),
                        [](const void* index) { return DataCast(index); });
 
         miopen::GetitemBackward(miopen::deref(handle),
+                                DataCast(workspace),
+                                workspaceSizeInBytes,
                                 miopen::deref(dyDesc),
                                 DataCast(dy),
                                 miopen::deref(xDesc),
                                 DataCast(x),
                                 indexCount,
                                 indexDescsCast.data(),
-                                indexCast.data(),
+                                indexsCast.data(),
                                 miopen::deref(yDesc),
                                 DataCast(y),
                                 miopen::deref(dxDesc),
                                 DataCast(dx),
+                                miopen::deref(errorDesc),
+                                DataCast(error),
                                 dimCount,
-                                miopen::deref(dims),
+                                dims,
                                 sliceCount,
-                                miopen::deref(slices),
+                                slices,
                                 offset);
     });
 }

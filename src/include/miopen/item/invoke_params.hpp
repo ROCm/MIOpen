@@ -35,7 +35,9 @@ namespace item {
 struct GetitemInvokeParams : public miopen::InvokeParams
 {
 
-    GetitemInvokeParams(const TensorDescriptor& dyDesc_,
+    GetitemInvokeParams(Data_t workspace_,
+                        std::size_t workspace_size_,
+                        const TensorDescriptor& dyDesc_,
                         ConstData_t dy_,
                         const TensorDescriptor& xDesc_,
                         ConstData_t x_,
@@ -46,17 +48,28 @@ struct GetitemInvokeParams : public miopen::InvokeParams
                         ConstData_t y_,
                         const TensorDescriptor& dxDesc_,
                         Data_t dx_,
+                        const TensorDescriptor& errorDesc_,
+                        Data_t error_,
                         int32_t dimCount_,
-                        int32_t dims_,
+                        const int32_t* dims_,
                         int32_t sliceCount_,
-                        int32_t slices_,
+                        const int32_t* slices_,
                         int32_t offset_)
-        : dyDesc(dyDesc_),
+        : workspace(workspace_),
+          workspace_size(workspace_size_),
+          dyDesc(dyDesc_),
+          dy(dy_),
+          xDesc(xDesc_),
+          x(x_),
+          indexCount(indexCount_),
           indexDescs(indexDescs_),
           indexs(indexs_),
-          xDesc(xDesc_),
           yDesc(yDesc_),
+          y(y_),
           dxDesc(dxDesc_),
+          dx(dx_),
+          errorDesc(errorDesc_),
+          error(error_),
           dimCount(dimCount_),
           dims(dims_),
           sliceCount(sliceCount_),
@@ -65,25 +78,27 @@ struct GetitemInvokeParams : public miopen::InvokeParams
     {
     }
 
-    const TensorDescriptor* dyDesc            = nullptr;
-    const TensorDescriptor* xDesc             = nullptr;
-    int32_t indexCount                        = 0;
-    const TensorDescriptor* const* indexDescs = nullptr;
-    const TensorDescriptor* yDesc             = nullptr;
-    const TensorDescriptor* dxDesc            = nullptr;
-
-    ConstData_t dy             = nullptr;
-    ConstData_t x              = nullptr;
-    ConstData_t* indexs        = nullptr;
-    ConstData_t y              = nullptr;
-    Data_t dx                  = nullptr;
     Data_t workspace           = nullptr;
     std::size_t workspace_size = 0;
-    int32_t dimCount           = 0;
-    int32_t* dims              = nullptr;
-    int32_t sliceCount         = 0;
-    int32_t* slices            = nullptr;
-    int32_t offset             = 0;
+    const TensorDescriptor dyDesc{};
+    ConstData_t dy = nullptr;
+    const TensorDescriptor xDesc{};
+    ConstData_t x                             = nullptr;
+    int32_t indexCount                        = 0;
+    const TensorDescriptor* const* indexDescs = nullptr;
+    ConstData_t* indexs                       = nullptr;
+    const TensorDescriptor yDesc{};
+    ConstData_t y = nullptr;
+    const TensorDescriptor dxDesc{};
+    Data_t dx = nullptr;
+    const TensorDescriptor errorDesc{};
+    Data_t error = nullptr;
+
+    int32_t dimCount      = 0;
+    const int32_t* dims   = nullptr;
+    int32_t sliceCount    = 0;
+    const int32_t* slices = nullptr;
+    int32_t offset        = 0;
 
     std::size_t GetWorkspaceSize() const { return workspace_size; }
     Data_t GetWorkspace() const { return workspace; }

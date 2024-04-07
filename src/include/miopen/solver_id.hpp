@@ -51,6 +51,7 @@ enum class Primitive
     Batchnorm,
     Bias,
     Fusion,
+    Item,
     Pooling,
     Normalization,
     Reduce,

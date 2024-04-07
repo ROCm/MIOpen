@@ -6338,18 +6338,13 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
  * @param handle                  MIOpen Handle (input)
  * @param indexCount              Number of input tensor indexs (input)
  * @param indexDescs              Tensor descriptor of input tensor indexs (input)
- * @param dimCount                Number of dimensions (input)
- * @param dims                    Dimensions (input)
  * @param sizeInBytes             Pointer to data to return the minimum workspace size
  * @return                        miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
 miopenGetGetItemWorkspaceSize(miopenHandle_t handle,
-                              const miopenTensorDescriptor_t dyDesc,
                               const int32_t indexCount,
                               const miopenTensorDescriptor_t* indexDescs,
-                              const int32_t dimCount,
-                              const int32_t* dims,
                               size_t* sizeInBytes);
 
 /*! @brief Execute a getitem backward layer
@@ -6382,18 +6377,20 @@ MIOPEN_EXPORT miopenStatus_t miopenGetitemBackward(miopenHandle_t handle,
                                                    const void* dy,
                                                    const miopenTensorDescriptor_t xDesc,
                                                    const void* x,
-                                                   const int32_t indexCount,
+                                                   int32_t indexCount,
                                                    const miopenTensorDescriptor_t* indexDescs,
                                                    const void* const* indexs,
                                                    const miopenTensorDescriptor_t yDesc,
                                                    const void* y,
                                                    const miopenTensorDescriptor_t dxDesc,
                                                    void* dx,
-                                                   const int32_t dimCount,
+                                                   const miopenTensorDescriptor_t errorDesc,
+                                                   void* error,
+                                                   int32_t dimCount,
                                                    const int32_t* dims,
-                                                   const int32_t sliceCount,
+                                                   int32_t sliceCount,
                                                    const int32_t* slices,
-                                                   const int32_t offset);
+                                                   int32_t offset);
 
 /** @} */
 // CLOSEOUT GETITEM DOXYGEN GROUP

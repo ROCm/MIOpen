@@ -50,8 +50,8 @@ typedef struct
 
 tensor_view_5d_t get_inner_expanded_tv(const miopenTensorDescriptor_t Desc)
 {
-    auto dims    = miopen::deref(indexDesc).GetLengths();
-    auto strides = miopen::deref(indexDesc).GetStrides();
+    auto dims    = miopen::deref(Desc).GetLengths();
+    auto strides = miopen::deref(Desc).GetStrides();
 
     tensor_view_5d_t tv_5d;
     for(size_t i = 0; i < strides.size(); ++i)
@@ -74,17 +74,19 @@ int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
                                   std::vector<miopenTensorDescriptor_t> indexDescs,
                                   miopenTensorDescriptor_t yDesc,
                                   miopenTensorDescriptor_t dxDesc,
+                                  miopenTensorDescriptor_t errorDesc,
                                   Tgpu* dy,
                                   Tgpu* x,
                                   Tgpu* y,
                                   std::vector<int32_t*> indexs,
                                   Tcheck* dxhost,
+                                  Tcheck* errorhost,
                                   std::vector<int32_t> dims,
                                   std::vector<std::vector<int32_t>> slices,
                                   int32_t offset)
 {
-    auto dy_dims   = miopen::deref(dyDesc).GetLengths();
-    auto dystrides = miopen::deref(dyDesc).GetStrides();
+    auto dy_dims    = miopen::deref(dyDesc).GetLengths();
+    auto dy_strides = miopen::deref(dyDesc).GetStrides();
     auto dy_numel = std::accumulate(dy_dims.begin(), dy_dims.end(), 1L, std::multiplies<int64_t>());
     auto dx_dims  = miopen::deref(dxDesc).GetLengths();
     auto dx_strides = miopen::deref(dxDesc).GetStrides();
@@ -107,11 +109,10 @@ int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
     for(int j = 0; j < indexs_len; j++)
     {
         auto dim_size = output_dims[j];
-        int32_t error;
 
         for(size_t o = 0; o < index_numel; o++)
         {
-            size_t getitem_index = indexs[o];
+            int32_t getitem_index = indexs[j][o];
 
             if(getitem_index >= 0 && getitem_index < dim_size)
             {
@@ -123,7 +124,7 @@ int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
             }
             else
             {
-                error = -1;
+                errorhost[j] = -1;
             }
 
             if(o == 0)
@@ -196,7 +197,7 @@ int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
                       dx_strides[2] * (NCDHW[2]) + dx_strides[1] * (NCDHW[1]) +
                       dx_strides[0] * (NCDHW[0]);
 
-        dx[dx_idx] += dy[dy_idx];
+        dxhost[dx_idx] += dy[dy_idx];
     }
 }
 
@@ -210,6 +211,7 @@ public:
         miopenCreateTensorDescriptor(&xDesc);
         miopenCreateTensorDescriptor(&yDesc);
         miopenCreateTensorDescriptor(&dxDesc);
+        miopenCreateTensorDescriptor(&errorDesc);
 
         data_type = miopen_type<Tgpu>{};
     }
@@ -242,6 +244,7 @@ public:
             miopenDestroyTensorDescriptor(indexDesc);
         }
         miopenDestroyTensorDescriptor(dxDesc);
+        miopenDestroyTensorDescriptor(errorDesc);
     }
 
 private:
@@ -254,12 +257,14 @@ private:
     miopenTensorDescriptor_t yDesc;
     std::vector<miopenTensorDescriptor_t> indexDescs;
     miopenTensorDescriptor_t dxDesc;
+    miopenTensorDescriptor_t errorDesc;
 
     std::unique_ptr<GPUMem> dy_dev;
     std::unique_ptr<GPUMem> x_dev;
     std::unique_ptr<GPUMem> y_dev;
     std::vector<std::unique_ptr<GPUMem>> index_devs;
     std::unique_ptr<GPUMem> dx_dev;
+    std::unique_ptr<GPUMem> error_dev;
     std::unique_ptr<GPUMem> workspace_dev;
 
     std::vector<Tgpu> dy;
@@ -267,7 +272,9 @@ private:
     std::vector<Tgpu> y;
     std::vector<std::vector<int32_t>> indexs;
     std::vector<Tgpu> dx;
+    std::vector<Tgpu> error;
     std::vector<Tref> dxhost;
+    std::vector<Tref> errorhost;
 
     size_t ws_sizeInBytes;
 
@@ -350,6 +357,11 @@ int GetitemDriver<Tgpu, Tref>::GetandSetData()
     if(SetTensorNd(dxDesc, dxTensorParam.lengths, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing dinput tensor: " + inflags.GetValueStr("dinput") + ".");
 
+    std::vector<int32_t> error_length;
+    error_length.push_back(indexCountParam);
+    if(SetTensorNd(errorDesc, error_length, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error making error tensor: " + inflags.GetValueStr("indexcount") + ".");
+
     return 0;
 }
 
@@ -386,17 +398,14 @@ int GetitemDriver<Tgpu, Tref>::AddCmdLineArgs()
 template <typename Tgpu, typename Tref>
 int GetitemDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
-    size_t dy_sz = GetTensorSize(dyDesc);
-    size_t x_sz  = GetTensorSize(xDesc);
-    size_t y_sz  = GetTensorSize(yDesc);
-    size_t dx_sz = GetTensorSize(dxDesc);
+    size_t dy_sz    = GetTensorSize(dyDesc);
+    size_t x_sz     = GetTensorSize(xDesc);
+    size_t y_sz     = GetTensorSize(yDesc);
+    size_t dx_sz    = GetTensorSize(dxDesc);
+    size_t error_sz = GetTensorSize(errorDesc);
 
-    miopenGetGetItemWorkspaceSize(GetHandle(),
-                                  indexDescs.size(),
-                                  indexDescs.data(),
-                                  dims.size(),
-                                  dims.data(),
-                                  &ws_sizeInBytes);
+    miopenGetGetItemWorkspaceSize(
+        GetHandle(), indexDescs.size(), indexDescs.data(), &ws_sizeInBytes);
     if(ws_sizeInBytes == static_cast<size_t>(-1))
         return miopenStatusAllocFailed;
 
@@ -406,13 +415,16 @@ int GetitemDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     x_dev         = std::unique_ptr<GPUMem>(new GPUMem(ctx, x_sz, sizeof(Tgpu)));
     y_dev         = std::unique_ptr<GPUMem>(new GPUMem(ctx, y_sz, sizeof(Tgpu)));
     dx_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, dx_sz, sizeof(Tgpu)));
+    error_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, error_sz, sizeof(Tgpu)));
     workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sizeInBytes, sizeof(std::byte)));
 
-    dy     = std::vector<Tgpu>(dy_sz, static_cast<Tgpu>(0));
-    x      = std::vector<Tgpu>(x_sz, static_cast<Tgpu>(0));
-    y      = std::vector<Tgpu>(y_sz, static_cast<Tgpu>(0));
-    dx     = std::vector<Tgpu>(dy_sz, static_cast<Tgpu>(0));
-    dxhost = std::vector<Tref>(dx_sz, static_cast<Tref>(0));
+    dy        = std::vector<Tgpu>(dy_sz, static_cast<Tgpu>(0));
+    x         = std::vector<Tgpu>(x_sz, static_cast<Tgpu>(0));
+    y         = std::vector<Tgpu>(y_sz, static_cast<Tgpu>(0));
+    dx        = std::vector<Tgpu>(dx_sz, static_cast<Tgpu>(0));
+    error     = std::vector<Tgpu>(error_sz, static_cast<Tgpu>(0));
+    dxhost    = std::vector<Tref>(dx_sz, static_cast<Tref>(0));
+    errorhost = std::vector<Tref>(error_sz, static_cast<Tref>(0));
 
     for(int32_t i = 0; i < dy_sz; i++)
     {
@@ -490,6 +502,8 @@ int GetitemDriver<Tgpu, Tref>::RunBackwardGPU()
                               y_dev->GetMem(),
                               dxDesc,
                               dx_dev->GetMem(),
+                              errorDesc,
+                              error_dev->GetMem(),
                               dims.size(),
                               dims.data(),
                               slices.size(),
@@ -519,6 +533,10 @@ int GetitemDriver<Tgpu, Tref>::RunBackwardGPU()
     if(dx_dev->FromGPU(GetStream(), dx.data()) != 0)
         std::cerr << "Error copying (dx_dev) from GPU, size: " << dx_dev->GetSize() << std::endl;
 
+    if(error_dev->FromGPU(GetStream(), error.data()) != 0)
+        std::cerr << "Error copying (error_dev) from GPU, size: " << error_dev->GetSize()
+                  << std::endl;
+
     return miopenStatusSuccess;
 }
 
@@ -530,11 +548,13 @@ int GetitemDriver<Tgpu, Tref>::RunBackwardCPU()
                                           indexDescs,
                                           yDesc,
                                           dxDesc,
+                                          errorDesc,
                                           dy.data(),
                                           x.data(),
                                           y.data(),
                                           indexs_ptr,
                                           dxhost.data(),
+                                          errorhost.data(),
                                           dims,
                                           slices,
                                           offset,
@@ -568,17 +588,29 @@ int GetitemDriver<Tgpu, Tref>::VerifyBackward()
     RunBackwardCPU();
     const Tref tolerance = GetTolerance();
 
-    auto error = miopen::rms_range(dxhost, dx);
+    auto error_dx = miopen::rms_range(dxhost, dx);
 
-    if(!std::isfinite(error) || error > tolerance)
+    if(!std::isfinite(error_dx) || error_dx > tolerance)
     {
-        std::cout << "Backward Getitem FAILED: " << error << " > " << tolerance << std::endl;
+        std::cout << "Backward Getitem FAILED: " << error_dx << " > " << tolerance << std::endl;
         return EC_VerifyBwd;
     }
     else
     {
-        std::cout << "Backward Getitem Verifies OK on CPU reference (" << error << " < "
+        std::cout << "Backward Getitem Verifies OK on CPU reference (" << error_dx << " < "
                   << tolerance << ')' << std::endl;
+    }
+
+    auto error_error = miopen::rms_range(errorhost, error);
+
+    if(!std::isfinite(error_error) || std::abs(static_cast<float>(error_error)) != 0.0f)
+    {
+        std::cout << "Backward Getitem FAILED: Result does not equal" << std::endl;
+        return EC_VerifyBwd;
+    }
+    else
+    {
+        std::cout << "Backward Getitem Verifies OK on CPU and GPU (err=" << error << ")\n";
     }
 
     return miopenStatusSuccess;

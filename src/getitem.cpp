@@ -29,7 +29,7 @@
 #include <miopen/check_numerics.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/datatype.hpp>
-#include <miopen/item/getitem_invoke_params.hpp>
+#include <miopen/item/invoke_params.hpp>
 #include <miopen/item/solvers.hpp>
 #include <miopen/find_solution.hpp>
 
@@ -37,12 +37,10 @@ namespace miopen {
 
 std::size_t GetGetitemWorkspaceSize(Handle& handle,
                                     int32_t indexCount,
-                                    const TensorDescriptor* const* indexDescs,
-                                    int32_t dimCount,
-                                    int32_t* dims)
+                                    const TensorDescriptor* const* indexDescs)
 {
     auto ctx           = ExecutionContext{&handle};
-    const auto problem = item::ProblemDescription{indexCount, indexDescs, dimCount, dims};
+    const auto problem = item::ProblemDescription{indexCount, indexDescs};
 
     const auto algo    = AlgorithmName{"GetitemBackward"};
     const auto solvers = solver::SolverContainer<solver::item::GetitemBackward>{};
@@ -52,48 +50,54 @@ std::size_t GetGetitemWorkspaceSize(Handle& handle,
     return pair_size_vector.empty() ? static_cast<size_t>(-1) : pair_size_vector.front().second;
 }
 
-miopenStatus_t GetitemForward(Handle& handle,
-                              const TensorDescriptor& dyDesc,
-                              ConstData_t dy,
-                              const TensorDescriptor& xDesc,
-                              ConstData_t x,
-                              int32_t indexCount,
-                              const TensorDescriptor* const* indexDescs,
-                              ConstData_t* indexs,
-                              const TensorDescriptor& yDesc,
-                              ConstData_t y,
-                              const TensorDescriptor& dxDesc,
-                              Data_t dx,
-                              int32_t dimCount,
-                              int32_t* dims,
-                              int32_t sliceCount,
-                              int32_t* slices,
-                              int32_t offset)
+miopenStatus_t GetitemBackward(Handle& handle,
+                               Data_t workspace,
+                               size_t workspaceSizeInBytes,
+                               const TensorDescriptor& dyDesc,
+                               ConstData_t dy,
+                               const TensorDescriptor& xDesc,
+                               ConstData_t x,
+                               int32_t indexCount,
+                               const TensorDescriptor* const* indexDescs,
+                               ConstData_t* indexs,
+                               const TensorDescriptor& yDesc,
+                               ConstData_t y,
+                               const TensorDescriptor& dxDesc,
+                               Data_t dx,
+                               const TensorDescriptor& errorDesc,
+                               Data_t error,
+                               int32_t dimCount,
+                               const int32_t* dims,
+                               int32_t sliceCount,
+                               const int32_t* slices,
+                               int32_t offset)
 {
-    const auto problem       = item::ProblemDescription{dyDesc,
+    const auto problem = item::ProblemDescription{dyDesc,
                                                   xDesc,
                                                   indexCount,
                                                   indexDescs,
                                                   yDesc,
                                                   dxDesc,
+                                                  errorDesc,
                                                   dimCount,
                                                   dims,
                                                   sliceCount,
                                                   slices,
                                                   offset};
-    const auto invoke_params = item::GetitemInvokeParams{dyDesc,
-                                                         xDesc,
-                                                         indexCount,
-                                                         indexDescs,
-                                                         yDesc,
-                                                         dxDesc,
-                                                         dimCount,
-                                                         dims,
-                                                         sliceCount,
-                                                         slices,
-                                                         offset};
-    const auto algo          = AlgorithmName{"GetitemBackward"};
-    const auto solvers       = solver::SolverContainer<solver::item::GetitemBackward>{};
+
+    const auto invoke_params = item::GetitemInvokeParams{workspace,  workspaceSizeInBytes,
+                                                         dyDesc,     dy,
+                                                         xDesc,      x,
+                                                         indexCount, indexDescs,
+                                                         indexs,     yDesc,
+                                                         y,          dxDesc,
+                                                         dx,         errorDesc,
+                                                         error,      dimCount,
+                                                         dims,       sliceCount,
+                                                         slices,     offset};
+
+    const auto algo    = AlgorithmName{"GetitemBackward"};
+    const auto solvers = solver::SolverContainer<solver::item::GetitemBackward>{};
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
     return miopenStatusSuccess;

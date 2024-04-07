@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,33 +25,38 @@
  *******************************************************************************/
 #pragma once
 
-#include <miopen/item/problem_description.hpp>
-#include <miopen/solver.hpp>
-#include <utility>
+#include <miopen/item/solvers.hpp>
 
 namespace miopen {
-
 namespace solver {
-
 namespace item {
 
-using ItemSolver = NonTunableSolverBase<ExecutionContext, miopen::item::ProblemDescription>;
-
-struct GetitemBackward final : ItemSolver
+typedef struct
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<GetitemBackward>(); }
+    size_t size[5];
+    size_t stride[5];
+} tensor_view_5d_t;
 
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::item::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::item::ProblemDescription& problem) const override;
-    std::size_t GetWorkspaceSize(const ExecutionContext& context,
-                                 const miopen::item::ProblemDescription& problem) const override;
-    bool MayNeedWorkspace() const override { return true; }
-};
+tensor_view_5d_t get_inner_expanded_tv(const TensorDescriptor Desc)
+{
+    auto dims    = Desc.GetLengths();
+    auto strides = Desc.GetStrides();
+
+    tensor_view_5d_t tv_5d;
+    for(size_t i = 0; i < strides.size(); ++i)
+    {
+        tv_5d.stride[i] = strides[i];
+        tv_5d.size[i]   = dims[i];
+    }
+    auto rest = strides.size();
+    for(size_t j = rest; j < 5; ++j)
+    {
+        tv_5d.stride[j] = (rest == 0 ? 1 : strides[rest - 1]);
+        tv_5d.size[j]   = 1;
+    }
+    return tv_5d;
+}
 
 } // namespace item
-
 } // namespace solver
-
 } // namespace miopen

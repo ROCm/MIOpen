@@ -43,7 +43,7 @@ size_t XGridSize(std::vector<size_t> ydims)
 {
     auto output_numel =
         std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
-    return AlignUp(output_numel, LOCAL_SIZE);
+    return AlignUp(output_numel, static_cast<size_t>(LOCAL_SIZE));
 }
 
 /// \todo https://github.com/ROCm/MIOpen/pull/2583#discussion_r1437054128

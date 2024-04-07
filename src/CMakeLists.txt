@@ -121,6 +121,7 @@ set( MIOpen_Source
     fusion.cpp
     fusion/problem_description.cpp
     generic_search.cpp
+    getitem_api.cpp
     graphapi/graphapi.cpp
     graphapi/graphapi_tensor.cpp
     groupnorm_api.cpp
@@ -253,6 +254,7 @@ set( MIOpen_Source
     solver/gemm_bwd.cpp
     solver/gemm_wrw.cpp
     solver/groupnorm/forward_groupnorm.cpp
+    solver/item/backward_getitem.cpp
     solver/layernorm/forward_layernorm.cpp
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
@@ -412,6 +414,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/neuron.inc
         kernels/rocm_version.inc
         kernels/stride_array.hpp
+        kernels/tensor_view.h
         kernels/utilities.inc
         kernels/workaround_issue_1431.hpp
         kernels/xform_bidirect_winograd_code.inc
@@ -446,6 +449,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirBatchNormActiv.cl
         kernels/MIOpenConvDirGenFwd.cl
         kernels/MIOpenGroupNorm.cpp
+        kernels/MIOpenGetitem.cpp
         kernels/MIOpenLayerNorm.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
@@ -570,6 +574,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         argmax.cpp
         cat.cpp
         groupnorm.cpp
+        getitem.cpp
         kernel_cache.cpp
         layer_norm.cpp
         lrn.cpp
