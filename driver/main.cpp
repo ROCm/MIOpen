@@ -267,11 +267,11 @@ int main(int argc, char* argv[])
     }
     else if(base_arg == "getitemfp16")
     {
-        drv = new GetitemDriver<float16, float>();
+        drv = new GetitemDriver<float16, float16>();
     }
     else if(base_arg == "getitembfp16")
     {
-        drv = new GetitemDriver<bfloat16, float>();
+        drv = new GetitemDriver<bfloat16, bfloat16>();
     }
     else
     {

@@ -33,8 +33,8 @@ namespace item {
 
 typedef struct
 {
-    size_t size[5];
     size_t stride[5];
+    size_t size[5];
 } tensor_view_5d_t;
 
 tensor_view_5d_t get_inner_expanded_tv(const TensorDescriptor Desc)

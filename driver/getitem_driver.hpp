@@ -43,7 +43,7 @@
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
 
-tensor_view_5d_t get_inner_expanded_tv(const TensorDescriptor Desc)
+tensor_view_5d_t get_inner_expanded_tv(const miopen::TensorDescriptor Desc)
 {
     auto dims    = Desc.GetLengths();
     auto strides = Desc.GetStrides();
@@ -93,9 +93,9 @@ int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
                                   Tgpu* dy,
                                   Tgpu* x,
                                   Tgpu* y,
-                                  int32_t* indexs,
+                                  int32_t** indexs,
                                   Tcheck* dxhost,
-                                  Tcheck* errorhost,
+                                  int32_t* errorhost,
                                   int32_t dimCount,
                                   int32_t* dims,
                                   int32_t sliceCount,
@@ -104,12 +104,13 @@ int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
 {
     auto dy_dims    = miopen::deref(dyDesc).GetLengths();
     auto dy_strides = miopen::deref(dyDesc).GetStrides();
-    auto dy_numel = std::accumulate(dy_dims.begin(), dy_dims.end(), 1L, std::multiplies<int64_t>());
-    auto dx_dims  = miopen::deref(dxDesc).GetLengths();
+    auto dy_numel =
+        std::accumulate(dy_dims.begin(), dy_dims.end(), 1ULL, std::multiplies<int64_t>());
+    auto dx_dims    = miopen::deref(dxDesc).GetLengths();
     auto index_dims = miopen::deref(indexDescs[0]).GetLengths();
     auto index_numel =
-        std::accumulate(index_dims.begin(), index_dims.end(), 1L, std::multiplies<int64_t>());
-    auto element_index = std::vector<int32_t>(indexCount * index_numel);
+        std::accumulate(index_dims.begin(), index_dims.end(), 1ULL, std::multiplies<int64_t>());
+    auto element_index = std::vector<int32_t>(indexCount * index_numel + indexCount);
 
     std::vector<int32_t> output_dims;
     for(int32_t i = 0; i < dimCount; i++)
@@ -129,7 +130,8 @@ int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
     // Get element index form indexs
     for(size_t j = 0; j < indexCount; j++)
     {
-        auto dim_size = output_dims[j];
+        auto index_dim = dims[j];
+        auto dim_size  = output_dims[j];
 
         for(size_t o = 0; o < index_numel; o++)
         {
@@ -150,7 +152,7 @@ int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
 
             if(o == 0)
             {
-                element_index[dim_info_offset + j] = dim_size;
+                element_index[dim_info_offset + j] = index_dim;
             }
         }
     }
@@ -186,8 +188,8 @@ int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
             }
         }
 
-        dxhost[TV_5D_AT(dxhost_tv, idx[0] + offset, idx[1], idx[2], idx[3], idx[4])] +=
-            dy[dy_tv, NCDHW[0] + offset, NCDHW[1], NCDHW[2], NCDHW[3], NCDHW[4]];
+        dxhost[TV5D_IDX(dxhost_tv, idx[0] + offset, idx[1], idx[2], idx[3], idx[4])] +=
+            dy[TV5D_IDX(dy_tv, NCDHW[0] + offset, NCDHW[1], NCDHW[2], NCDHW[3], NCDHW[4])];
     }
 
     return ret;
@@ -264,15 +266,14 @@ private:
     std::vector<Tgpu> y;
     std::vector<std::vector<int32_t>> indexs;
     std::vector<Tgpu> dx;
-    std::vector<Tgpu> error;
+    std::vector<int32_t> error;
+    std::vector<int32_t> workspace;
     std::vector<Tref> dxhost;
-    std::vector<Tref> errorhost;
+    std::vector<int32_t> errorhost;
 
     size_t ws_sizeInBytes;
 
-    int32_t dimCount;
     std::vector<int32_t> dims;
-    int32_t sliceCount;
     std::vector<std::vector<int32_t>> slices;
     std::vector<int32_t> slices_flat;
     int32_t offset;
@@ -302,8 +303,8 @@ int GetitemDriver<Tgpu, Tref>::GetandSetData()
     auto yTensorParam    = inflags.GetValueTensor("output");
     auto dxTensorParam   = inflags.GetValueTensor("dinput");
     auto indexCountParam = inflags.GetValueInt("indexcount");
-    dimCount             = inflags.GetValueInt("dimcount");
-    sliceCount           = inflags.GetValueInt("slicecount");
+    auto dimCountParam   = inflags.GetValueInt("dimcount");
+    auto sliceCountParam = inflags.GetValueInt("slicecount");
     offset               = inflags.GetValueInt("offset");
 
     auto indexTensorLengths = inflags.GetValue2dVectorInt("indexs");
@@ -311,7 +312,7 @@ int GetitemDriver<Tgpu, Tref>::GetandSetData()
         MIOPEN_THROW("Error parsing indexs tensor: " + inflags.GetValueStr("indexs") + ".");
 
     dims = inflags.GetValueVectorInt("dims");
-    if(dims.size() != dimCount)
+    if(dims.size() != dimCountParam)
         MIOPEN_THROW("Error parsing dims tensor: " + inflags.GetValueStr("dims") + ".");
 
     for(auto dim : dims)
@@ -320,7 +321,7 @@ int GetitemDriver<Tgpu, Tref>::GetandSetData()
     }
 
     slices = inflags.GetValue2dVectorInt("slices");
-    if(slices.size() != sliceCount)
+    if(slices.size() != sliceCountParam)
         MIOPEN_THROW("Error parsing slices: " + inflags.GetValueStr("slices") + ".");
 
     for(auto slice : slices)
@@ -354,7 +355,7 @@ int GetitemDriver<Tgpu, Tref>::GetandSetData()
 
     std::vector<int32_t> error_length;
     error_length.push_back(indexCountParam);
-    if(SetTensorNd(errorDesc, error_length, data_type) != miopenStatusSuccess)
+    if(SetTensorNd(errorDesc, error_length, miopen_type<int32_t>{}) != miopenStatusSuccess)
         MIOPEN_THROW("Error making error tensor: " + inflags.GetValueStr("indexcount") + ".");
 
     return 0;
@@ -364,11 +365,11 @@ template <typename Tgpu, typename Tref>
 int GetitemDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "0", "Run only Forward Getitem (Default=0)", "int");
-    inflags.AddTensorFlag("doutput", 'O', "4x4", "doutput tensor descriptor");
-    inflags.AddTensorFlag("input", 'X', "4x4", "input tensor descriptor");
-    inflags.AddTensorFlag("output", 'Y', "4x4", "output tensor descriptor");
-    inflags.AddTensorFlag("indexs", 'D', "4", "indexs tensor descriptor");
-    inflags.AddTensorFlag("dinput", 'N', "4x4", "dinput tensor descriptor");
+    inflags.AddTensorFlag("doutput", 'O', "128x128", "doutput tensor descriptor");
+    inflags.AddTensorFlag("input", 'X', "128x128", "input tensor descriptor");
+    inflags.AddTensorFlag("output", 'Y', "128x128", "output tensor descriptor");
+    inflags.AddTensorFlag("indexs", 'D', "128", "indexs tensor descriptor");
+    inflags.AddTensorFlag("dinput", 'N', "128x128", "dinput tensor descriptor");
 
     inflags.AddInputFlag("indexcount", '1', "1", "the number of indexs tensor(Default=1)", "int");
     inflags.AddInputFlag("dimcount", '2', "1", "The dimensions(Default=1)", "int");
@@ -411,30 +412,47 @@ int GetitemDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     x_dev         = std::unique_ptr<GPUMem>(new GPUMem(ctx, x_sz, sizeof(Tgpu)));
     y_dev         = std::unique_ptr<GPUMem>(new GPUMem(ctx, y_sz, sizeof(Tgpu)));
     dx_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, dx_sz, sizeof(Tgpu)));
-    error_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, error_sz, sizeof(Tgpu)));
+    error_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, error_sz, sizeof(int32_t)));
     workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sizeInBytes, sizeof(std::byte)));
 
     dy        = std::vector<Tgpu>(dy_sz, static_cast<Tgpu>(0));
     x         = std::vector<Tgpu>(x_sz, static_cast<Tgpu>(0));
     y         = std::vector<Tgpu>(y_sz, static_cast<Tgpu>(0));
     dx        = std::vector<Tgpu>(dx_sz, static_cast<Tgpu>(0));
-    error     = std::vector<Tgpu>(error_sz, static_cast<Tgpu>(0));
+    error     = std::vector<int32_t>(error_sz, static_cast<int32_t>(0));
+    workspace = std::vector<int32_t>(ws_sizeInBytes / sizeof(int32_t), static_cast<int32_t>(0));
     dxhost    = std::vector<Tref>(dx_sz, static_cast<Tref>(0));
-    errorhost = std::vector<Tref>(error_sz, static_cast<Tref>(0));
+    errorhost = std::vector<int32_t>(error_sz, static_cast<int32_t>(0));
 
     for(int32_t i = 0; i < dy_sz; i++)
     {
-        dy[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(1.0));
+        dy[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-0.01), static_cast<Tgpu>(0.01));
     }
 
     for(int32_t i = 0; i < x_sz; i++)
     {
-        x[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(1.0));
+        x[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-0.01), static_cast<Tgpu>(0.01));
     }
 
     for(int32_t i = 0; i < y_sz; i++)
     {
-        y[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(1.0));
+        y[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-0.01), static_cast<Tgpu>(0.01));
+    }
+
+    for(int32_t i = 0; i < error_sz; i++)
+    {
+        errorhost[i] = 1;
+    }
+
+    for(int32_t i = 0; i < ws_sizeInBytes / sizeof(int32_t); i++)
+    {
+        workspace[i] = 0;
+    }
+
+    for(int32_t i = 0; i < dx_sz; i++)
+    {
+        dx[i]     = 0;
+        dxhost[i] = 0;
     }
 
     for(int32_t i = 0; i < indexDescs.size(); i++)
@@ -464,6 +482,13 @@ int GetitemDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     if(y_dev->ToGPU(GetStream(), y.data()) != 0)
         std::cerr << "Error copying (y) to GPU, size: " << y_dev->GetSize() << std::endl;
 
+    if(workspace_dev->ToGPU(GetStream(), workspace.data()) != 0)
+        std::cerr << "Error copying (workspace) to GPU, size: " << workspace_dev->GetSize()
+                  << std::endl;
+
+    if(error_dev->ToGPU(GetStream(), errorhost.data()) != 0)
+        std::cerr << "Error copying (error) to GPU, size: " << error_dev->GetSize() << std::endl;
+
     return miopenStatusSuccess;
 }
 
@@ -484,6 +509,10 @@ int GetitemDriver<Tgpu, Tref>::RunBackwardGPU()
 
     for(int32_t i = 0; i < inflags.GetValueInt("iter"); i++)
     {
+
+        if(dx_dev->ToGPU(GetStream(), dx.data()) != 0)
+            std::cerr << "Error copying (dx) to GPU, size: " << dx_dev->GetSize() << std::endl;
+
         miopenGetitemBackward(GetHandle(),
                               workspace_dev->GetMem(),
                               ws_sizeInBytes,
@@ -566,11 +595,14 @@ Tref GetitemDriver<Tgpu, Tref>::GetTolerance()
 {
     // Computation error of fp16 is ~2^13 (=8192) bigger than
     // the one of fp32 because mantissa is shorter by 13 bits.
-    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
+    auto tolerance =
+        std::is_same<Tgpu, float>::value ? static_cast<Tref>(1.5e-6) : static_cast<Tref>(8.2e-3);
 
     // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+    // If there is an atomic operation on the GPU kernel, a large error occurs depending on the
+    // calculation order, so it is multiplied by 10 times.
     if(std::is_same<Tgpu, bfloat16>::value)
-        tolerance *= 8.0;
+        tolerance *= static_cast<Tref>(80.0);
     return tolerance;
 }
 
@@ -587,12 +619,6 @@ int GetitemDriver<Tgpu, Tref>::VerifyBackward()
     const Tref tolerance = GetTolerance();
 
     auto error_dx = miopen::rms_range(dxhost, dx);
-    printf("dxhost\n");
-    for(auto temp : dxhost)
-        printf("%lf\n", temp);
-    printf("dx\n");
-    for(auto temp : dx)
-        printf("%lf\n", temp);
 
     if(!std::isfinite(error_dx) || error_dx > tolerance)
     {

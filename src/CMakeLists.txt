@@ -405,6 +405,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_sizes.inc
         kernels/float_types.h
         kernels/gpr_alloc.inc
+        kernels/hip_atomic.hpp
         kernels/hip_f8_impl.hpp
         kernels/hip_float8.hpp
         kernels/inst_wrappers.inc

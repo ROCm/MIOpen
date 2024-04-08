@@ -84,7 +84,7 @@ struct ProblemDescription : ProblemDescriptionBase
     }
     const TensorDescriptor& GetYDesc() const { return yDesc; }
     const TensorDescriptor& GetDXDesc() const { return dxDesc; }
-    const TensorDescriptor& GetErrorDesc() const { return dxDesc; }
+    const TensorDescriptor& GetErrorDesc() const { return errorDesc; }
     int32_t GetDimCount() const { return dimCount; }
     int32_t GetDim(int i) const
     {

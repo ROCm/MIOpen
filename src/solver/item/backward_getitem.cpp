@@ -166,11 +166,12 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& context,
                 output_dims.push_back(dx_dims[dims[i]]);
             }
 
-            auto indexCount      = params.indexCount;
-            auto index_dims      = params.indexDescs[0]->GetLengths();
-            auto sliceCount      = params.sliceCount;
-            auto slices          = params.slices;
-            auto dim_info_offset = indexCount > 0 ? indexCount * index_dims[0] : 0;
+            auto indexCount = params.indexCount;
+            auto index_dims = params.indexDescs[0]->GetLengths();
+            auto sliceCount = params.sliceCount;
+            auto slices     = params.slices;
+            auto dim_info_offset =
+                indexCount > 0 ? indexCount * static_cast<int32_t>(index_dims[0]) : 0;
 
             auto dy_tv = get_inner_expanded_tv(params.dyDesc);
             auto dx_tv = get_inner_expanded_tv(params.dxDesc);
@@ -250,8 +251,8 @@ std::size_t GetitemBackward::GetWorkspaceSize(const ExecutionContext& context,
         auto index_dims = problem.GetIndexDesc(0).GetLengths();
         auto index_numel =
             std::accumulate(index_dims.begin(), index_dims.end(), 1L, std::multiplies<int64_t>());
-        return indexCount * index_numel * get_data_size(problem.GetIndexDesc(0).GetType()) +
-               sizeof(int32_t);
+        return (indexCount * index_numel + problem.GetIndexCount()) *
+               get_data_size(problem.GetIndexDesc(0).GetType());
     }
 
     return 0;
