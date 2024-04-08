@@ -30,6 +30,7 @@
 #include <miopen/graphapi/reduction.hpp>
 #include <miopen/graphapi/rng.hpp>
 #include <miopen/graphapi/tensor.hpp>
+#include <miopen/graphapi/variant_pack.hpp>
 #include <miopen/logger.hpp>
 
 #include <memory>
@@ -73,6 +74,9 @@ miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
 
         case MIOPEN_BACKEND_TENSOR_DESCRIPTOR:
             outputDesciptor = new miopen::graphapi::BackendTensorDescriptor(); break;
+
+        case MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR:
+            outputDesciptor = new miopen::graphapi::BackendVariantPackDescriptor(); break;
 
         default: MIOPEN_THROW(miopenStatusUnsupportedOp);
             // clang-format on
@@ -209,6 +213,9 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
 
         case MIOPEN_BACKEND_TENSOR_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendTensorDescriptor>(descriptor, sizeInBytes); break;
+
+        case MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR:
+                initializeBackendDescriptor<miopen::graphapi::BackendVariantPackDescriptor>(descriptor, sizeInBytes); break;
 
         default: MIOPEN_THROW(miopenStatusUnsupportedOp);
             // clang-format on
