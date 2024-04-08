@@ -29,23 +29,20 @@
 #include "InputFlags.hpp"
 #include "driver.hpp"
 #include "mloNeuronHost.hpp"
+#include "random.hpp"
 #include "tensor_driver.hpp"
-#include <algorithm>
-#include <cstdlib>
-#include <cfloat>
-#include <memory>
+#include "timer.hpp"
+#include "util_driver.hpp"
+
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+
+#include <algorithm>
+#include <cfloat>
+#include <cstdlib>
+#include <memory>
 #include <numeric>
 #include <vector>
-#include "random.hpp"
-#include "timer.hpp"
-
-#ifdef MIOPEN_BACKEND_HIP
-#ifndef CL_SUCCESS
-#define CL_SUCCESS 0
-#endif
-#endif
 
 template <typename Tgpu, typename Tref>
 class ActivationDriver : public Driver
@@ -198,12 +195,10 @@ int ActivationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     size_t in_sz  = GetTensorSpace(inputTensor);
     size_t out_sz = GetTensorSpace(outputTensor);
-#if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
 
+    DEFINE_CONTEXT(ctx);
+#if MIOPEN_BACKEND_OPENCL
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
 #endif
     in_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
     out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
@@ -282,18 +277,14 @@ int ActivationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         dout[i] = prng::gen_A_to_B(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
     }
 
-#if MIOPEN_BACKEND_OPENCL
-    cl_int status;
-#elif MIOPEN_BACKEND_HIP
-    int status;
-#endif
+    status_t status;
     status = in_dev->ToGPU(q, in.data());
     status |= out_dev->ToGPU(q, out.data());
 
     status = din_dev->ToGPU(q, din.data());
     status |= dout_dev->ToGPU(q, dout.data());
 
-    if(status != CL_SUCCESS)
+    if(status != STATUS_SUCCESS)
         printf("Error copying data to GPU\n");
 
     return miopenStatusSuccess;

@@ -3,54 +3,13 @@
 
 #define ADNN_MM_TRANSPOSE 1
 
-#include <cmath>
-#include <cassert>
-#include <algorithm>
 #include "dropout_gpu_emulator.hpp"
 
-int sumvc(std::vector<int>& x)
-{
-    int sum = 0;
-    for(int i = 0; i < x.size(); i++)
-    {
-        sum += x[i];
-    }
-    return sum;
-}
+#include <../test/rnn_util.hpp>
 
-template <typename T>
-T activfunc(T x, int actvf)
-{
-    T alpha = static_cast<T>(1), beta0 = static_cast<T>(0), beta1 = static_cast<T>(1);
-    if(actvf == 0)
-    {
-        //        float y = 0;
-        //        return std::max(x, y);
-        return (x > 0) ? x : x * beta0;
-    }
-    else if(actvf == 2)
-    {
-        return 1 / (1 + exp(-x));
-    }
-
-    //    return tanh(x);
-    return alpha * tanh(beta1 * x);
-}
-
-template <typename T>
-T dervactivfunc(T x, int actvf)
-{
-    if(actvf == 0)
-    {
-        return (x > 0 ? 1 : 0);
-    }
-    else if(actvf == 2)
-    {
-        return exp(-x) / (1 + exp(-x)) / (1 + exp(-x));
-    }
-
-    return 1 / cosh(x) / cosh(x);
-}
+#include <algorithm>
+#include <cassert>
+#include <cmath>
 
 template <typename Tgpu, typename Tref>
 void RunRNNForwardGEMMCPUVerify(miopenHandle_t handle,

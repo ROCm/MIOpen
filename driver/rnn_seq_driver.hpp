@@ -25,37 +25,38 @@
  *******************************************************************************/
 #pragma once
 
-#include <algorithm>
-#include <cstdlib>
-#include <cstring>
-#include <cfloat>
-#include <fstream>
-#include <memory>
-#include <initializer_list>
-#include <numeric>
-#include <sstream>
-#include <vector>
-#include <array>
-
-#include <miopen/errors.hpp>
-#include <miopen/logger.hpp>
-#include <miopen/tensor_ops.hpp>
-#include <miopen/miopen.h>
-#include <miopen/rnn.hpp>
-#include <miopen/tensor.hpp>
-#include <miopen/env.hpp>
-#include <../test/verify.hpp>
-//#include <../test/rnn_util.hpp>
-
 #include "InputFlags.hpp"
-#include "rnn_verify_gemm.hpp"
-#include "lstm_verify_gemm.hpp"
-#include "gru_verify_gemm.hpp"
 #include "driver.hpp"
+#include "gru_verify_gemm.hpp"
+#include "lstm_verify_gemm.hpp"
+#include "random.hpp"
+#include "rnn_verify_gemm.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "util_driver.hpp"
-#include "random.hpp"
+#include "util_file.hpp"
+
+#include <../test/verify.hpp>
+
+#include <miopen/env.hpp>
+#include <miopen/errors.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/miopen.h>
+#include <miopen/rnn.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/tensor_ops.hpp>
+
+#include <algorithm>
+#include <array>
+#include <cfloat>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <initializer_list>
+#include <memory>
+#include <numeric>
+#include <sstream>
+#include <vector>
 
 std::vector<size_t> get_default_time_strides(int vec_size, const std::vector<int>& seq_array)
 {
@@ -716,12 +717,9 @@ int RNNSeqDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
         miopenDropoutGetStatesSize(GetHandle(), &statesSizeInBytes);
         size_t states_size = statesSizeInBytes / sizeof(prngStates);
 
+        DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-        cl_context ctx;
-
         clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-        uint32_t ctx = 0;
 #endif
 
         dropout_states_dev =
