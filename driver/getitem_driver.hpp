@@ -105,6 +105,8 @@ int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
     int32_t dim_info_offset = indexs_len * index_dims[0];
     auto start_dim          = dims[0];
 
+    int32_t ret = 0;
+
     // Get element index form indexs
     for(int j = 0; j < indexs_len; j++)
     {
@@ -199,6 +201,8 @@ int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
 
         dxhost[dx_idx] += dy[dy_idx];
     }
+
+    return ret;
 }
 
 template <typename Tgpu, typename Tref>
@@ -369,11 +373,11 @@ template <typename Tgpu, typename Tref>
 int GetitemDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Getitem (Default=1)", "int");
-    inflags.AddTensorFlag("doutput", 'O', "100x3x32x32", "doutput tensor descriptor");
-    inflags.AddTensorFlag("input", 'X', "100x3x32x32", "input tensor descriptor");
-    inflags.AddTensorFlag("output", 'Y', "100x3x32x32", "output tensor descriptor");
-    inflags.AddTensorFlag("indexs", 'D', "100x3x32x32", "indexs tensor descriptor");
-    inflags.AddTensorFlag("dinput", 'N', "100x3x32x32", "dinput tensor descriptor");
+    inflags.AddTensorFlag("doutput", 'O', "128x128", "doutput tensor descriptor");
+    inflags.AddTensorFlag("input", 'X', "128x128", "input tensor descriptor");
+    inflags.AddTensorFlag("output", 'Y', "128x128", "output tensor descriptor");
+    inflags.AddTensorFlag("indexs", 'D', "128", "indexs tensor descriptor");
+    inflags.AddTensorFlag("dinput", 'N', "128x128", "dinput tensor descriptor");
 
     inflags.AddInputFlag("dimcount", '1', "1", "The dimensions(Default=1)", "int");
     inflags.AddInputFlag("dims", '2', "0", "The dimensions(Default=0)", "vector<int>");
@@ -404,7 +408,7 @@ int GetitemDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     size_t dx_sz    = GetTensorSize(dxDesc);
     size_t error_sz = GetTensorSize(errorDesc);
 
-    miopenGetGetItemWorkspaceSize(
+    miopenGetGetitemWorkspaceSize(
         GetHandle(), indexDescs.size(), indexDescs.data(), &ws_sizeInBytes);
     if(ws_sizeInBytes == static_cast<size_t>(-1))
         return miopenStatusAllocFailed;
@@ -557,8 +561,7 @@ int GetitemDriver<Tgpu, Tref>::RunBackwardCPU()
                                           errorhost.data(),
                                           dims,
                                           slices,
-                                          offset,
-                                          output_dims);
+                                          offset);
 
     return miopenStatusSuccess;
 }

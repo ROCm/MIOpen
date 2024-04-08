@@ -6342,8 +6342,8 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
  * @return                        miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
-miopenGetGetItemWorkspaceSize(miopenHandle_t handle,
-                              const int32_t indexCount,
+miopenGetGetitemWorkspaceSize(miopenHandle_t handle,
+                              int32_t indexCount,
                               const miopenTensorDescriptor_t* indexDescs,
                               size_t* sizeInBytes);
 

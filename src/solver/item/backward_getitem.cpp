@@ -59,9 +59,7 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& context,
     auto error_dtype  = miopen::GetDataType(problem.GetErrorDesc().GetType());
     auto output_dtype = miopen::GetDataType(problem.GetDXDesc().GetType());
     auto dy_dims      = problem.GetDYDesc().GetLengths();
-    auto dy_strides   = problem.GetDYDesc().GetStrides();
     auto dx_dims      = problem.GetDXDesc().GetLengths();
-    auto dx_strides   = problem.GetDXDesc().GetStrides();
     auto indexCount   = problem.GetIndexCount();
     auto dimCount     = problem.GetDimCount();
 
@@ -69,12 +67,12 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& context,
         std::accumulate(dy_dims.begin(), dy_dims.end(), 1ULL, std::multiplies<size_t>());
 
     std::vector<int32_t> output_dims;
-    for(int i = 0; i < dimCount; i++)
+    for(int32_t i = 0; i < dimCount; i++)
     {
         output_dims.push_back(dx_dims[problem.GetDim(i)]);
     }
 
-    for(int i = 0; i < indexCount; i++)
+    for(int32_t i = 0; i < indexCount; i++)
     {
         auto index_dims = problem.GetIndexDesc(i).GetLengths();
         auto index_numel =
@@ -163,23 +161,27 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& context,
             auto dimCount = params.dimCount;
 
             std::vector<int32_t> output_dims;
-            for(int i = 0; i < dimCount; i++)
+            for(int32_t i = 0; i < dimCount; i++)
             {
                 output_dims.push_back(dx_dims[dims[i]]);
             }
 
             auto indexCount      = params.indexCount;
             auto index_dims      = params.indexDescs[0]->GetLengths();
+            auto sliceCount      = params.sliceCount;
+            auto slices          = params.slices;
             auto dim_info_offset = indexCount > 0 ? indexCount * index_dims[0] : 0;
 
             auto dy_tv = get_inner_expanded_tv(params.dyDesc);
             auto dx_tv = get_inner_expanded_tv(params.dxDesc);
 
+            slice_tv(dx_tv, sliceCount, slices);
+
             auto elapsed = 0.f;
             HipEventPtr start;
             HipEventPtr stop;
 
-            for(int i = 0; i < indexCount; i++)
+            for(int32_t i = 0; i < indexCount; i++)
             {
                 decltype(auto) build_index_kernel = handle_.Run(kernels[i]);
 

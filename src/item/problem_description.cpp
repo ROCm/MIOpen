@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,59 +23,44 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
 
-#include <miopen/item/solvers.hpp>
+#include <miopen/item/problem_description.hpp>
+#include <miopen/datatype.hpp>
+#include <miopen/names.hpp>
+
+#include <sstream>
 
 namespace miopen {
-namespace solver {
+
 namespace item {
 
-typedef struct
+NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    size_t size[5];
-    size_t stride[5];
-} tensor_view_5d_t;
+    auto dx_dims         = dxDesc.GetLengths();
+    auto index_dims      = indexDescs[0].GetLengths();
+    auto dtype           = yDesc.GetType();
+    auto dim_info_offset = indexCount > 0 ? indexCount * index_dims[0] : 0;
+    auto start_dim       = dims[0];
 
-tensor_view_5d_t get_inner_expanded_tv(const TensorDescriptor Desc)
-{
-    auto dims    = Desc.GetLengths();
-    auto strides = Desc.GetStrides();
-
-    tensor_view_5d_t tv_5d;
-    for(size_t i = 0; i < strides.size(); ++i)
+    std::vector<int32_t> output_dims;
+    for(int32_t i = 0; i < dimCount; i++)
     {
-        tv_5d.stride[i] = strides[i];
-        tv_5d.size[i]   = dims[i];
+        output_dims.push_back(dx_dims[dims[i]]);
     }
-    auto rest = strides.size();
-    for(size_t j = rest; j < 5; ++j)
-    {
-        tv_5d.stride[j] = (rest == 0 ? 1 : strides[rest - 1]);
-        tv_5d.size[j]   = 1;
-    }
-    return tv_5d;
-}
+    std::ostringstream ss;
 
-void slice_tv(tensor_view_5d_t& tv_5d, int32_t sliceCount, const int32_t* slices)
-{
-    for(int32_t i = 0; i < sliceCount; i++)
-    {
-        int32_t dim   = slices[4 * i + 0];
-        int32_t start = slices[4 * i + 1];
-        int32_t end   = slices[4 * i + 2];
-        int32_t step  = slices[4 * i + 3];
+    ss << "dtype" << dtype;
+    ss << "indexCount" << indexCount;
+    ss << "offset" << offset;
+    ss << "dim_info_offset" << dim_info_offset;
+    ss << "index_dims" for(int32_t i = 0; i < dim_count; i++) ss << dims[i] << "_";
+    ss << "slices" for(int32_t i = 0; i < slice_count; i++) ss << slices[i] << "_";
+    ss << "output_dims" for(auto output_dim : output_dims) ss << output_dim << "_";
+    ss << "start_dim" << start_dim;
 
-        if(end > static_cast<int32_t>(tv_5d.size[dim]))
-            end = tv_5d.size[dim];
-
-        auto len = end - start;
-
-        tv_5d.size[dim] = (len + step - 1) / step;
-        tv_5d.stride[dim] *= step;
-    }
+    return NetworkConfig{ss.str()};
 }
 
 } // namespace item
-} // namespace solver
+
 } // namespace miopen
