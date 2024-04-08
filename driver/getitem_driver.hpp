@@ -98,14 +98,12 @@ int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
                                   int32_t* slices,
                                   int32_t offset)
 {
-    auto dy_dims    = miopen::deref(dyDesc).GetLengths();
-    auto dy_strides = miopen::deref(dyDesc).GetStrides();
-    auto dy_numel =
-        std::accumulate(dy_dims.begin(), dy_dims.end(), 1ULL, std::multiplies<int64_t>());
-    auto dx_dims    = miopen::deref(dxDesc).GetLengths();
+    auto dy_dims  = miopen::deref(dyDesc).GetLengths();
+    auto dy_numel = std::accumulate(dy_dims.begin(), dy_dims.end(), 1L, std::multiplies<int64_t>());
+    auto dx_dims  = miopen::deref(dxDesc).GetLengths();
     auto index_dims = miopen::deref(indexDescs[0]).GetLengths();
     auto index_numel =
-        std::accumulate(index_dims.begin(), index_dims.end(), 1ULL, std::multiplies<int64_t>());
+        std::accumulate(index_dims.begin(), index_dims.end(), 1L, std::multiplies<int64_t>());
     auto element_index = std::vector<int32_t>(indexCount * index_numel + indexCount);
 
     std::vector<int32_t> output_dims;
@@ -423,9 +421,11 @@ int GetitemDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         auto& index    = indexs.back();
         auto index_dev = index_devs.back().get();
 
-        index[i] = prng::gen_A_to_B<int32_t>(static_cast<int32_t>(0),
-                                             static_cast<int32_t>(output_dims[i]));
-
+        for(int j = 0; j < index_sz; j++)
+        {
+            index[j] = prng::gen_A_to_B<int32_t>(static_cast<int32_t>(0),
+                                                 static_cast<int32_t>(output_dims[i]));
+        }
         if(index_dev->ToGPU(GetStream(), index.data()) != 0)
             std::cerr << "Error copying (index) to GPU, size: " << index_dev->GetSize()
                       << std::endl;

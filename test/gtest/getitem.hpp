@@ -28,144 +28,153 @@
 #include "get_handle.hpp"
 #include "random.hpp"
 #include "tensor_holder.hpp"
+#include "tensor_view.hpp"
 #include "verify.hpp"
 #include <gtest/gtest.h>
 #include <miopen/getitem.hpp>
 #include <miopen/miopen.h>
 
+tensor_view_5d_t get_inner_expanded_tv(const miopen::TensorDescriptor Desc)
+{
+    auto dims    = Desc.GetLengths();
+    auto strides = Desc.GetStrides();
+
+    tensor_view_5d_t tv_5d;
+    for(size_t i = 0; i < strides.size(); ++i)
+    {
+        tv_5d.stride[i] = strides[i];
+        tv_5d.size[i]   = dims[i];
+    }
+    auto rest = strides.size();
+    for(size_t j = rest; j < 5; ++j)
+    {
+        tv_5d.stride[j] = (rest == 0 ? 1 : strides[rest - 1]);
+        tv_5d.size[j]   = 1;
+    }
+    return tv_5d;
+}
+
+void slice_tv(tensor_view_5d_t& tv_5d, int32_t sliceCount, const int32_t* slices)
+{
+    for(int32_t i = 0; i < sliceCount; i++)
+    {
+        int32_t dim   = slices[4 * i + 0];
+        int32_t start = slices[4 * i + 1];
+        int32_t end   = slices[4 * i + 2];
+        int32_t step  = slices[4 * i + 3];
+
+        if(end > static_cast<int32_t>(tv_5d.size[dim]))
+            end = tv_5d.size[dim];
+
+        auto len = end - start;
+
+        tv_5d.size[dim] = (len + step - 1) / step;
+        tv_5d.stride[dim] *= step;
+    }
+}
+
 template <class T>
 void cpu_getitem_backward(tensor<T> dy,
-                          tensor<T> x,
+                          int32_t indexCount,
                           std::vector<tensor<int32_t>> indexs,
-                          tensor<T> y,
                           tensor<T>& ref_dx,
-                          std::vector<int32_t> dims,
-                          std::vector<std::vector<int32_t>> slices,
+                          tensor<int32_t>& ref_error,
+                          int32_t dimCount,
+                          int32_t* dims,
+                          int32_t sliceCount,
+                          int32_t* slices,
                           int32_t offset)
 {
-    auto;
-
-    auto dy_dims   = dy.desc.GetLengths();
-    auto dystrides = dy.desc.GetStrides();
+    auto dy_dims  = dy.desc.GetLengths();
     auto dy_numel = std::accumulate(dy_dims.begin(), dy_dims.end(), 1L, std::multiplies<int64_t>());
     auto dx_dims  = ref_dx.desc.GetLengths();
-    auto dx_strides = ref_dx.desc.GetStrides();
     auto index_dims = indexs[0].desc.GetLengths();
     auto index_numel =
         std::accumulate(index_dims.begin(), index_dims.end(), 1L, std::multiplies<int64_t>());
-    auto indexs_len    = indexs.size();
-    auto element_index = std::vector<int32_t>(indexs_len * index_numel);
+    auto element_index = std::vector<int32_t>(indexCount * index_numel + indexCount);
 
     std::vector<int32_t> output_dims;
-    for(auto dim : dims)
+    for(int32_t i = 0; i < dimCount; i++)
     {
-        output_dims.push_back(dxlengths[dim]);
+        output_dims.push_back(dx_dims[dims[i]]);
     }
 
-    int32_t dim_info_offset = indexs_len * index_dims[0];
-    auto start_dim          = dims[0];
+    auto dim_info_offset = indexCount > 0 ? indexCount * index_dims[0] : 0;
+    auto start_dim       = dims[0];
+
+    auto dy_tv     = get_inner_expanded_tv(dy.desc);
+    auto ref_dx_tv = get_inner_expanded_tv(ref_dx.desc);
+    slice_tv(ref_dx_tv, sliceCount, slices);
 
     // Get element index form indexs
-
-    for(int j = 0; j < indexs_len; j++)
+    for(int j = 0; j < indexCount; j++)
     {
-        auto dim_size = output_dims[j];
-        int32_t error;
+        auto index_dim = dims[j];
+        auto dim_size  = output_dims[j];
+
         par_ford(index_numel)([&](int32_t o) {
-            size_t getitem_index = indexs[o];
+            int32_t getitem_index = indexs[j][o];
 
             if(getitem_index >= 0 && getitem_index < dim_size)
             {
-                element_index[(o * indexs_len) + j] = getitem_index;
+                element_index[(o * indexCount) + j] = getitem_index;
             }
             else if(getitem_index >= -dim_size && getitem_index < 0)
             {
-                element_index[(o * indexs_len) + j] = getitem_index + dim_size;
+                element_index[(o * indexCount) + j] = getitem_index + dim_size;
             }
             else
             {
-                error = -1;
+                ref_error[j] = -1;
             }
 
             if(o == 0)
             {
-                element_index[dim_info_offset + j] = dim_size;
+                element_index[dim_info_offset + j] = index_dim;
             }
         });
     }
 
-    // Apply slice to dx
-    for(auto slice : slices)
-    {
-        int32_t dim   = slice[0];
-        int32_t start = slice[1];
-        int32_t end   = slice[2];
-        int32_t step  = slice[3];
-
-        if(end > static_cast<int32_t>(dx_dims[dim]))
-            end = dx_dims[dim];
-
-        auto len = end - start;
-
-        dx_dims[dim] = (len + step - 1) / step;
-        dx_strides[dim] *= step;
-    }
-
     // GetItem
     par_ford(dy_numel)([&](int32_t o) {
-        tensor_view_5d_t tv_5d = get_inner_expanded_tv(dyDesc);
-        size_t NCDHW[5], NCDHW2[5];
-        size_t ncdh = (o) / tv_5d.size[4];
-        NCDHW[4]    = (o) % tv_5d.size[4];
-        size_t ncd  = ncdh / tv_5d.size[3];
-        NCDHW[3]    = ncdh % tv_5d.size[3];
-        size_t nc   = ncd / tv_5d.size[2];
-        NCDHW[2]    = ncd % tv_5d.size[2];
-        NCDHW[0]    = nc / tv_5d.size[1];
-        NCDHW[1]    = nc % tv_5d.size[1];
+        size_t NCDHW[5], idx[5];
+        GET_NCDHW(NCDHW[0], NCDHW[1], NCDHW[2], NCDHW[3], NCDHW[4], o, dy_tv);
 
         for(int i = 0; i < 5; i++)
         {
-            NCDHW2[i] = NCDHW[i];
+            idx[i] = NCDHW[i];
         }
 
-        if(indexs_len > 0)
+        if(indexCount > 0)
         {
             size_t dim_cursor = NCDHW[start_dim];
             size_t i          = start_dim;
             size_t j          = 0;
 
-            for(; i < start_dim + indexs_len; ++i, ++j)
+            for(; i < start_dim + indexCount; ++i, ++j)
             {
-                size_t dim_idx  = element_index[dim_info_offset + j];
-                NCDHW2[dim_idx] = element_index[(dim_cursor * indexs_len) + j];
+                size_t dim_idx = element_index[dim_info_offset + j];
+                idx[dim_idx]   = element_index[(dim_cursor * indexCount) + j];
             }
 
-            i          = element_index[dim_info_offset + indexs_len - 1] + 1;
+            i          = element_index[dim_info_offset + indexCount - 1] + 1;
             dim_cursor = start_dim + 1;
             for(; i < 5; ++i, ++dim_cursor)
             {
-                NCDHW2[i] = NCDHW[dim_cursor];
+                idx[i] = NCDHW[dim_cursor];
             }
         }
 
-        auto dy_idx = dy_strides[4] * (NCDHW2[4]) + dy_strides[3] * (NCDHW2[3]) +
-                      dy_strides[2] * (NCDHW2[2]) + dy_strides[1] * (NCDHW2[1]) +
-                      dy_strides[0] * (NCDHW2[0]);
-        auto dx_idx = dx_strides[4] * (NCDHW[4]) + dx_strides[3] * (NCDHW[3]) +
-                      dx_strides[2] * (NCDHW[2]) + dx_strides[1] * (NCDHW[1]) +
-                      dx_strides[0] * (NCDHW[0]);
-
-        dx[dx_idx] += dy[dy_idx];
+        ref_dx[TV5D_IDX(ref_dx_tv, idx[0] + offset, idx[1], idx[2], idx[3], idx[4])] +=
+            dy[TV5D_IDX(dy_tv, NCDHW[0] + offset, NCDHW[1], NCDHW[2], NCDHW[3], NCDHW[4])];
     });
 }
 
 struct GetitemTestCase
 {
     std::vector<int32_t> dy;
-    std::vector<int32_t> x;
     std::vector<std::vector<int32_t>> indexs;
-    std::vector<int32_t> y;
+    std::vector<int32_t> dx;
     std::vector<int32_t> dims;
     std::vector<std::vector<int32_t>> slices;
     int32_t offset;
@@ -173,90 +182,82 @@ struct GetitemTestCase
     friend std::ostream& operator<<(std::ostream& os, const GetitemTestCase& tc)
     {
 
-        os << " dy:" auto dy = tc.dy;
-        os << dy[0];
-        for(int32_t i = 1; i < dy.size(); i++)
+        os << " dy:";
+        auto dy_s = tc.dy;
+        os << dy_s[0];
+        for(int32_t i = 1; i < dy_s.size(); i++)
         {
-            os << "x" << dy[i];
+            os << "x" << dy_s[i];
         }
 
-        os << " x:" auto x = tc.x;
-        os << x[0];
-        for(int32_t i = 1; i < x.size(); i++)
+        os << " indexs:";
+        for(int32_t i = 0; i < tc.indexs.size(); i++)
         {
-            os << "x" << x[i];
-        }
-
-        os << " indexs:" for(int32_t i = 0; i < tc.indexs.size(); i++)
-        {
-            auto index = tc.indexs[i];
+            auto index_s = tc.indexs[i];
             if(i != 0)
                 os << ",";
-            os << index[0];
-            for(int32_t j = 1; j < index.size(); j++)
+            os << index_s[0];
+            for(int32_t j = 1; j < index_s.size(); j++)
             {
-                os << "x" << index[j];
+                os << "index" << index_s[j];
             }
         }
 
-        os << " y:" auto y = tc.y;
-        os << y[0];
-        for(int32_t i = 1; i < y.size(); i++)
+        os << " dx:";
+        auto dx_s = tc.dx;
+        os << dx_s[0];
+        for(int32_t i = 1; i < dx_s.size(); i++)
         {
-            os << "x" << y[i];
+            os << "x" << dx_s[i];
         }
 
-        os << " dx:" auto dx = tc.dx;
-        os << dx[0];
-        for(int32_t i = 1; i < dx.size(); i++)
+        os << " dims:";
+        auto dims_s = tc.dims;
+        os << dims_s[0];
+        for(int32_t i = 1; i < dims_s.size(); i++)
         {
-            os << "x" << dx[i];
+            os << "," << dims_s[i];
         }
 
-        os << " dims:" auto dims = tc.dims;
-        os << dims[0];
-        for(int32_t i = 1; i < dims.size(); i++)
+        os << " slices:";
+        for(int32_t i = 0; i < tc.slices.size(); i++)
         {
-            os << "," << dims[i];
-        }
-
-        os << " slices:" for(int32_t i = 0; i < tc.slices.size(); i++)
-        {
-            auto slice = tc.slices[i];
+            auto slice_s = tc.slices[i];
             if(i != 0)
                 os << ",";
-            os << slice[0];
-            for(int32_t j = 1; j < slice.size(); j++)
+            os << slice_s[0];
+            for(int32_t j = 1; j < slice_s.size(); j++)
             {
-                os << "x" << slice[j];
+                os << "slice" << slice_s[j];
             }
         }
 
-        os << " offset:" << offset;
+        os << " offset:" << tc.offset;
 
         return os;
     }
 
-    std::vector<size_t> GetDy() { return dy; }
+    std::vector<int32_t> GetDy() { return dy; }
 
-    std::vector<size_t> GetX() { return x; }
+    std::vector<std::vector<int32_t>> GetIndexs() { return indexs; }
 
-    std::vector<std::vector<size_t>> GetIndexs() { return indexs; }
+    std::vector<int32_t> GetDx() { return dx; }
 
-    std::vector<size_t> GetY() { return y; }
+    std::vector<int32_t> GetDims() { return dims; }
 
-    std::vector<size_t> GetDx() { return dx; }
-
-    std::vector<size_t> GetDims() { return dims; }
-
-    std::vector<std::vector<size_t>> GetSlices() { return slices; }
+    std::vector<std::vector<int32_t>> GetSlices() { return slices; }
 };
 
 std::vector<GetitemTestCase> GetitemTestConfigs()
-{ // dy x indexs y dims slices offset
+{ // dy indexs dx dims slices offset
     // clang-format off
     return {
-        { {}, {}, {{}}, {{}},  {{0}},  {{}}, 0}
+        { {128, 128}, {{128}},  {128, 128},   {0}, {}, 0}, //llama2
+        { {16, 4},    {{16}},   {3234, 4},    {0}, {}, 0}, //ssdlite
+        { {149, 128}, {{1490}}, {1490, 1128}, {0}, {}, 0}, //llama2_7b
+        { {10, 128},  {{10}},   {160, 128},   {0}, {}, 0},
+        { {4260, 4},  {{4300}}, {4300, 4},    {0}, {}, 0}, //fasterrcnn
+        { {4260},     {{4300}}, {4300},       {0}, {}, 0}  //maskrcnn
       };
     // clang-format on
 }
@@ -284,14 +285,12 @@ protected:
         }
 
         auto dy_dim     = getitem_config.GetDy();
-        auto x_dim      = getitem_config.GetX();
         auto indexs_dim = getitem_config.GetIndexs();
-        auto y_dim      = getitem_config.GetY();
         auto dx_dim     = getitem_config.GetDx();
+        std::vector<int32_t> error_dim;
+        error_dim.push_back(indexs_dim.size());
 
         dy = tensor<T>{dy_dim}.generate(gen_value);
-        x  = tensor<T>{x_dim}.generate(gen_value);
-        y  = tensor<T>{y_dim}.generate(gen_value);
 
         auto output_dims = std::vector<int32_t>{};
         for(auto dim : dims)
@@ -301,19 +300,39 @@ protected:
 
         for(int32_t i = 0; i < indexs_dim.size(); i++)
         {
-            auto gen_value_int = [](auto...) { return prng::gen_0_to_B<int32_t>(output_dims[i]); };
-            indexs.push_back(tensor<int32_t>{indexs_dim[i]}.generate(gen_value_int));
+            auto index       = tensor<int32_t>{indexs_dim[i]};
+            auto index_dims  = index.desc.GetLengths();
+            auto index_numel = std::accumulate(
+                index_dims.begin(), index_dims.end(), 1L, std::multiplies<int64_t>());
+            for(int32_t j = 0; j < index_numel; j++)
+            {
+                index[j] = prng::gen_0_to_B<int32_t>(output_dims[i]);
+            }
+            indexs.push_back(index);
         }
 
         dx = tensor<T>{dx_dim};
-        std::fill(dx.begin(), dx.end(), std::numeric_limits<T>::quiet_NaN());
+        std::fill(dx.begin(), dx.end(), static_cast<T>(0));
+
+        error = tensor<int32_t>{error_dim};
+        std::fill(error.begin(), error.end(), static_cast<int32_t>(0));
+
+        ref_error = tensor<int32_t>{error_dim};
+        std::fill(ref_error.begin(), ref_error.end(), static_cast<int32_t>(0));
 
         ref_dx = tensor<T>{dx_dim};
-        std::fill(ref_dx.begin(), ref_dx.end(), std::numeric_limits<T>::quiet_NaN());
+        std::fill(ref_dx.begin(), ref_dx.end(), static_cast<T>(0));
+
+        std::vector<miopen::TensorDescriptor*> indexDescs;
+
+        std::transform(indexs.begin(),
+                       indexs.end(),
+                       std::back_inserter(indexDescs),
+                       [](auto& index) { return &index.desc; });
 
         std::vector<size_t> workspace_dims;
-        ws_sizeInBytes = miopen::GetGetItemWorkspaceSize(
-            handle, indexDescs.size(), indexDescs.data(), dims.size(), dims.data());
+        ws_sizeInBytes =
+            miopen::GetGetitemWorkspaceSize(handle, indexDescs.size(), indexDescs.data());
         if(ws_sizeInBytes == static_cast<size_t>(-1))
             GTEST_SKIP();
 
@@ -326,20 +345,28 @@ protected:
         }
 
         dy_dev = handle.Write(dy.data);
-        x_dev  = handle.Write(x.data);
-        y_dev  = handle.Write(y.data);
 
         std::transform(indexs.begin(),
                        indexs.end(),
                        std::back_inserter(indexs_dev),
                        [&](auto& index) { return handle.Write(index.data); });
 
-        dx_dev = handle.Write(dx.data);
+        dx_dev    = handle.Write(dx.data);
+        error_dev = handle.Write(error.data);
     }
     void RunTest()
     {
         auto&& handle = get_handle();
-        cpu_getitem_backward<T>(dy, x, indexs, y, ref_dx, dims, slices, offset);
+        cpu_getitem_backward<T>(dy,
+                                indexs.size(),
+                                indexs,
+                                ref_dx,
+                                ref_error,
+                                dims.size(),
+                                dims.data(),
+                                slices.size(),
+                                slices_flat.data(),
+                                offset);
 
         std::vector<miopen::TensorDescriptor*> indexDescs;
         std::vector<ConstData_t> indexData;
@@ -358,14 +385,13 @@ protected:
                                                         ws_sizeInBytes,
                                                         dy.desc,
                                                         dy_dev.get(),
-                                                        x.desc,
-                                                        x_dev.get(),
-                                                        indexDescs.size() indexDescs.data(),
-                                                        indexData.get(),
-                                                        y.desc,
-                                                        y_dev.get(),
+                                                        indexDescs.size(),
+                                                        indexDescs.data(),
+                                                        indexData.data(),
                                                         dx.desc,
                                                         dx_dev.get(),
+                                                        error.desc,
+                                                        error_dev.get(),
                                                         dims.size(),
                                                         dims.data(),
                                                         slices.size(),
@@ -374,7 +400,8 @@ protected:
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
-        dx.data = handle.Read<T>(dx_dev, dx.data.size());
+        dx.data    = handle.Read<T>(dx_dev, dx.data.size());
+        error.data = handle.Read<int32_t>(error_dev, error.data.size());
     }
 
     void Verify()
@@ -387,31 +414,37 @@ protected:
         auto threshold = std::is_same<T, float>::value ? 1.5e-5 : 8.2e-2;
 
         // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+        // If there is an atomic operation on the GPU kernel, a large error occurs depending on the
+        // calculation order, so it is multiplied by 10 times.
         if(std::is_same<T, bfloat16>::value)
-            threshold *= 8.0;
+            threshold *= 80.0;
 
-        auto error = miopen::rms_range(ref_dx, dx);
+        auto error_dx = miopen::rms_range(ref_dx, dx);
         EXPECT_TRUE(miopen::range_distance(ref_dx) == miopen::range_distance(dx));
-        EXPECT_TRUE(error < threshold)
-            << "Error dx beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        EXPECT_TRUE(error_dx < threshold)
+            << "Error dx beyond tolerance Error:" << error_dx << ",  Threshold: " << threshold;
+
+        auto error_error = miopen::rms_range(ref_error, error);
+        EXPECT_TRUE(miopen::range_distance(ref_error) == miopen::range_distance(error));
+        EXPECT_TRUE(std::abs(static_cast<float>(error_error)) == 0.0f)
+            << "Error dx beyond tolerance Error:" << error_error << ",  Threshold: " << threshold;
     }
     GetitemTestCase getitem_config;
 
     tensor<T> dy;
-    tensor<T> x;
     std::vector<tensor<int32_t>> indexs;
-    tensor<T> y;
     tensor<T> dx;
     tensor<T> workspace;
+    tensor<int32_t> error;
 
     tensor<T> ref_dx;
+    tensor<int32_t> ref_error;
 
     miopen::Allocator::ManageDataPtr dy_dev;
-    miopen::Allocator::ManageDataPtr x_dev;
     std::vector<miopen::Allocator::ManageDataPtr> indexs_dev;
-    miopen::Allocator::ManageDataPtr y_dev;
     miopen::Allocator::ManageDataPtr dx_dev;
     miopen::Allocator::ManageDataPtr workspace_dev;
+    miopen::Allocator::ManageDataPtr error_dev;
 
     size_t ws_sizeInBytes;
 
