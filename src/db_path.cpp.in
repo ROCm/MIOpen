@@ -50,7 +50,7 @@ fs::path GetLibPath()
     if(dladdr(reinterpret_cast<void*>(miopenCreate), &info) != 0)
     {
         path = fs::canonical(fs::path{info.dli_fname});
-        MIOPEN_LOG_I2(std::string("Lib Path: ") + path.string());
+        MIOPEN_LOG_I2("Lib Path: " << path);
         if(path.empty())
             return path;
 
