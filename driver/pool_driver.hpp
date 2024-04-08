@@ -28,19 +28,24 @@
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
+#include "mloConvHost.hpp"
 #include "mloPoolingHost.hpp"
+#include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
+#include "util_driver.hpp"
+#include "util_file.hpp"
+
+#include <miopen/miopen.h>
+#include <miopen/pooling.hpp>
+#include <miopen/tensor.hpp>
+
 #include <algorithm>
 #include <cstdlib>
 #include <float.h>
 #include <memory>
-#include <miopen/miopen.h>
-#include <miopen/tensor.hpp>
-#include <miopen/pooling.hpp>
 #include <numeric>
 #include <vector>
-#include "random.hpp"
 
 template <typename T>
 void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems);
@@ -372,12 +377,9 @@ int PoolDriver_impl<Tgpu, Tref, Index>::AllocateBuffersAndCopy()
         workSpaceSize /
         sizeof(Index); // work space is used by mask_dev and mask which are of type Index
 
+    DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
-
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
 #endif
     in_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
     out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
@@ -420,18 +422,14 @@ int PoolDriver_impl<Tgpu, Tref, Index>::AllocateBuffersAndCopy()
             dumpBufferToFile<Tgpu>((dump_root + "/dump_dout.bin").c_str(), dout.data(), out_sz);
     }
 
-#if MIOPEN_BACKEND_OPENCL
-    cl_int status;
-#elif MIOPEN_BACKEND_HIP
-    int status;
-#endif
+    status_t status;
     status = in_dev->ToGPU(q, in.data());
     status |= out_dev->ToGPU(q, out.data());
 
     status = din_dev->ToGPU(q, din.data());
     status |= dout_dev->ToGPU(q, dout.data());
 
-    if(status != CL_SUCCESS)
+    if(status != STATUS_SUCCESS)
         printf("Error copying data to GPU\n");
 
     return miopenStatusSuccess;
