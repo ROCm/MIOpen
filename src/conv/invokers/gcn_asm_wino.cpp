@@ -62,11 +62,14 @@ InvokerFactory MakeGcnAsmWinoV40InvokerFactory(const WinoShaderArgsV40& args,
             }
 
             uint64_t bias_addr = 0;
+            uint64_t acc_addr = 0;
 
             uint64_t d_offset = 0;
             uint64_t f_offset = 0;
             uint64_t o_offset = 0;
+
             uint64_t b_offset = 0;
+            uint64_t a_offset = 0;
 
             // clang-format off
             MIOPEN_LOG_I2(" N=" << args.N << " C=" << args.C << " H=" << args.H << " W=" << args.W
@@ -147,7 +150,9 @@ InvokerFactory MakeGcnAsmWinoV40InvokerFactory(const WinoShaderArgsV40& args,
                 args.sync_period,         // uint8_t,     synchronization period
                 static_cast<uint8_t>(0),  // uint8_t,     reserved
                 static_cast<uint32_t>(0), // uint32_t,    reserved
-                sync_addr);               // uint64_t,    address of sync buffer
+                sync_addr,                // uint64_t,    address of sync buffer
+                acc_addr,                 // uint64_t,    address of accumulation buffer
+                a_offset);                // uint64_t,    byte offset for buffer referenced by acc_addr
             // clang-format on
         };
     };

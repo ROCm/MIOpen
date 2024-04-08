@@ -23,13 +23,13 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.include "Conv_Winograd_Fury_v2_3_0_metadata.inc"
+.include "Conv_Winograd_Fury_v2_4_1_metadata.inc"
 
 .if (.amdgcn.gfx_generation_number == 11)
     .if ((.amdgcn.gfx_generation_minor == 0 && (.amdgcn.gfx_generation_stepping == 0 || .amdgcn.gfx_generation_stepping == 1)) || (.amdgcn.gfx_generation_minor == 5 && .amdgcn.gfx_generation_stepping == 1))
         // gfx1100, gfx1101, gfx1151
         KERNEL_PROLOG _1536vgprs_fp16_fp16acc_f2x3_c32_stride1
-        .include "Conv_Winograd_Fury_v2_3_0_gfx11_1536vgprs_fp16_fp16acc_f2x3_c32_stride1.inc"
+        .include "Conv_Winograd_Fury_v2_4_1_gfx11_1536vgprs_fp16_fp16acc_f2x3_c32_stride1.inc"
         KERNEL_EPILOG _1536vgprs_fp16_fp16acc_f2x3_c32_stride1
     .else
         // gfx1102, gfx1103, gfx1150

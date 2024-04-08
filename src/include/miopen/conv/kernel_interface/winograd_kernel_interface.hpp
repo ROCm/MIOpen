@@ -38,6 +38,7 @@ enum class WinoShaderFlagsV40 : uint64_t
     F_FLIP_K_C                   = 1ULL << 2, // Deprecated
     F_DENORMS_RND_ENABLE         = 1ULL << 3,
     F_MALL_READ_CACHE_ENABLE     = 1ULL << 4,
+    F_ACC_PRE_ACTIVATION_MODE    = 1ULL << 5,
     F_ADDR_INDIRECT              = 1ULL << 6,
     F_BIAS                       = 1ULL << 7,
     F_LEAKY_RELU                 = 1ULL << 8, // Deprecated

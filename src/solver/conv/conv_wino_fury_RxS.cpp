@@ -323,7 +323,7 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
     }
 
     // Kernel name & file
-    const std::string kernel_version = "_v2_3_0";
+    const std::string kernel_version = "_v2_4_1";
     std::string kernel_name          = "miopenSp3AsmConvFury" + kernel_version;
     std::string kernel_file          = "Conv_Winograd_Fury" + kernel_version;
 

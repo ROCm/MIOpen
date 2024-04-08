@@ -43,7 +43,7 @@ amdhsa.kernels:
     .vgpr_count: \wc // Unused in the kernel descriptor
     .group_segment_fixed_size: 65536
     .private_segment_fixed_size: 0
-    .kernarg_segment_size: 216
+    .kernarg_segment_size: 232
     .kernarg_segment_align: 8
     .reqd_workgroup_size: [ \wg_x, 1, 1 ]
     .max_flat_workgroup_size: \wg_x
@@ -114,6 +114,9 @@ amdhsa.kernels:
 //    - { .size: 4, .offset: 204, .value_kind: hidden_none } // BUG: SWDEV-454110
     - { .size: 4, .offset: 204, .value_kind: by_value }
     - { .size: 8, .offset: 208, .value_kind: global_buffer, .name: sync_addr, .address_space: global, .is_const: false }
+
+    - { .size: 8, .offset: 216, .value_kind: global_buffer, .name: acc_addr, .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 224, .value_kind: by_value, .name: a_offset }
 ...
 .end_amdgpu_metadata
 .endm // METADATA
@@ -174,11 +177,11 @@ METADATA_WRAPPER sgpr_cnt, 0, workgroup_size_x, <\kernel_name>
 .endm
 
 .macro PROLOG_KERNEL_DESCRIPTOR_WRAPPER machine_version:req, kernel_name_postfix:req
-    PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConvFury_v2_3_0_gfx\machine_version\()\kernel_name_postfix
+    PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConvFury_v2_4_1_gfx\machine_version\()\kernel_name_postfix
 .endm
 
 .macro EPILOG_KERNEL_DESCRIPTOR_WRAPPER machine_version:req, kernel_name_postfix:req
-    EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConvFury_v2_3_0_gfx\machine_version\()\kernel_name_postfix
+    EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConvFury_v2_4_1_gfx\machine_version\()\kernel_name_postfix
 .endm
 
 .macro KERNEL_PROLOG kernel_name_postfix:req
