@@ -82,7 +82,7 @@ __device__ void getitembwd(const TI* __restrict__ dy,
                            tensor_view_5d_t dy_tv,
                            tensor_view_5d_t dx_tv,
                            uint64_t dim_info_offset,
-                           uint64_t dim0_offset)
+                           uint64_t offset)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -119,8 +119,8 @@ __device__ void getitembwd(const TI* __restrict__ dy,
         }
     }
 
-    atomicAdd(&TV_5D_AT(dx, idx[0] + dim0_offset, idx[1], idx[2], idx[3], idx[4]),
-              TV_5D_AT(dy, NCDHW[0] + dim0_offset, NCDHW[1], NCDHW[2], NCDHW[3], NCDHW[4]));
+    atomicAdd(&TV_5D_AT(dx, idx[0] + offset, idx[1], idx[2], idx[3], idx[4]),
+              TV_5D_AT(dy, NCDHW[0] + offset, NCDHW[1], NCDHW[2], NCDHW[3], NCDHW[4]));
 }
 
 extern "C" __global__ void GetItemBuildIndices(const INDEX_TYPE* __restrict__ index,
@@ -153,9 +153,9 @@ extern "C" __global__ void GetitemBwd(const INPUT_TYPE* __restrict__ dy,
                                       tensor_view_5d_t dy_tv,
                                       tensor_view_5d_t dx_tv,
                                       uint64_t dim_info_offset,
-                                      uint64_t dim0_offset)
+                                      uint64_t offset)
 {
     // instantiate the kernel
     getitembwd<INPUT_TYPE, INDEX_TYPE, OUTPUT_TYPE>(
-        dy, element_index, dx, start_dim, indexCount, dy_tv, dx_tv, dim_info_offset, dim0_offset);
+        dy, element_index, dx, start_dim, indexCount, dy_tv, dx_tv, dim_info_offset, offset);
 }

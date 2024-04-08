@@ -38,20 +38,15 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <numeric>
+#include "tensor_view.h"
 #include <vector>
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
 
-typedef struct
+tensor_view_5d_t get_inner_expanded_tv(const TensorDescriptor Desc)
 {
-    size_t size[5];
-    size_t stride[5];
-} tensor_view_5d_t;
-
-tensor_view_5d_t get_inner_expanded_tv(const miopenTensorDescriptor_t Desc)
-{
-    auto dims    = miopen::deref(Desc).GetLengths();
-    auto strides = miopen::deref(Desc).GetStrides();
+    auto dims    = Desc.GetLengths();
+    auto strides = Desc.GetStrides();
 
     tensor_view_5d_t tv_5d;
     for(size_t i = 0; i < strides.size(); ++i)
@@ -68,47 +63,71 @@ tensor_view_5d_t get_inner_expanded_tv(const miopenTensorDescriptor_t Desc)
     return tv_5d;
 }
 
+void slice_tv(tensor_view_5d_t& tv_5d, int32_t sliceCount, const int32_t* slices)
+{
+    for(int32_t i = 0; i < sliceCount; i++)
+    {
+        int32_t dim   = slices[4 * i + 0];
+        int32_t start = slices[4 * i + 1];
+        int32_t end   = slices[4 * i + 2];
+        int32_t step  = slices[4 * i + 3];
+
+        if(end > static_cast<int32_t>(tv_5d.size[dim]))
+            end = tv_5d.size[dim];
+
+        auto len = end - start;
+
+        tv_5d.size[dim] = (len + step - 1) / step;
+        tv_5d.stride[dim] *= step;
+    }
+}
+
 template <typename Tgpu, typename Tcheck>
 int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
                                   miopenTensorDescriptor_t xDesc,
-                                  std::vector<miopenTensorDescriptor_t> indexDescs,
+                                  int32_t indexCount,
+                                  miopenTensorDescriptor_t* indexDescs,
                                   miopenTensorDescriptor_t yDesc,
                                   miopenTensorDescriptor_t dxDesc,
                                   miopenTensorDescriptor_t errorDesc,
                                   Tgpu* dy,
                                   Tgpu* x,
                                   Tgpu* y,
-                                  std::vector<int32_t*> indexs,
+                                  int32_t* indexs,
                                   Tcheck* dxhost,
                                   Tcheck* errorhost,
-                                  std::vector<int32_t> dims,
-                                  std::vector<std::vector<int32_t>> slices,
+                                  int32_t dimCount,
+                                  int32_t* dims,
+                                  int32_t sliceCount,
+                                  int32_t* slices,
                                   int32_t offset)
 {
     auto dy_dims    = miopen::deref(dyDesc).GetLengths();
     auto dy_strides = miopen::deref(dyDesc).GetStrides();
     auto dy_numel = std::accumulate(dy_dims.begin(), dy_dims.end(), 1L, std::multiplies<int64_t>());
     auto dx_dims  = miopen::deref(dxDesc).GetLengths();
-    auto dx_strides = miopen::deref(dxDesc).GetStrides();
     auto index_dims = miopen::deref(indexDescs[0]).GetLengths();
     auto index_numel =
         std::accumulate(index_dims.begin(), index_dims.end(), 1L, std::multiplies<int64_t>());
-    auto indexs_len    = indexDescs.size();
-    auto element_index = std::vector<int32_t>(indexs_len * index_numel);
+    auto element_index = std::vector<int32_t>(indexCount * index_numel);
 
     std::vector<int32_t> output_dims;
-    for(auto dim : dims)
+    for(int32_t i = 0; i < dimCount; i++)
     {
-        output_dims.push_back(dx_dims[dim]);
+        output_dims.push_back(dx_dims[dims[i]]);
     }
 
-    int32_t dim_info_offset = indexs_len * index_dims[0];
-    auto start_dim          = dims[0];
+    auto dim_info_offset = indexCount > 0 ? indexCount * index_dims[0] : 0;
+    auto start_dim       = dims[0];
+
+    auto dy_tv     = get_inner_expanded_tv(miopen::deref(dyDesc));
+    auto dxhost_tv = get_inner_expanded_tv(miopen::deref(dxDesc));
+    slice_tv(dxhost_tv, sliceCount, slices);
 
     int32_t ret = 0;
 
     // Get element index form indexs
-    for(int j = 0; j < indexs_len; j++)
+    for(size_t j = 0; j < indexCount; j++)
     {
         auto dim_size = output_dims[j];
 
@@ -118,11 +137,11 @@ int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
 
             if(getitem_index >= 0 && getitem_index < dim_size)
             {
-                element_index[(o * indexs_len) + j] = getitem_index;
+                element_index[(o * indexCount) + j] = getitem_index;
             }
             else if(getitem_index >= -dim_size && getitem_index < 0)
             {
-                element_index[(o * indexs_len) + j] = getitem_index + dim_size;
+                element_index[(o * indexCount) + j] = getitem_index + dim_size;
             }
             else
             {
@@ -136,70 +155,39 @@ int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
         }
     }
 
-    // Apply slice to dx
-    for(auto slice : slices)
-    {
-        int32_t dim   = slice[0];
-        int32_t start = slice[1];
-        int32_t end   = slice[2];
-        int32_t step  = slice[3];
-
-        if(end > static_cast<int32_t>(dx_dims[dim]))
-            end = dx_dims[dim];
-
-        auto len = end - start;
-
-        dx_dims[dim] = (len + step - 1) / step;
-        dx_strides[dim] *= step;
-    }
-
     // GetItem
     for(size_t o = 0; o < dy_numel; o++)
     {
-        tensor_view_5d_t tv_5d = get_inner_expanded_tv(dyDesc);
-        size_t NCDHW[5], NCDHW2[5];
-        size_t ncdh = (o) / tv_5d.size[4];
-        NCDHW[4]    = (o) % tv_5d.size[4];
-        size_t ncd  = ncdh / tv_5d.size[3];
-        NCDHW[3]    = ncdh % tv_5d.size[3];
-        size_t nc   = ncd / tv_5d.size[2];
-        NCDHW[2]    = ncd % tv_5d.size[2];
-        NCDHW[0]    = nc / tv_5d.size[1];
-        NCDHW[1]    = nc % tv_5d.size[1];
+        size_t NCDHW[5], idx[5];
+        GET_NCDHW(NCDHW[0], NCDHW[1], NCDHW[2], NCDHW[3], NCDHW[4], o, dy_tv);
 
         for(int i = 0; i < 5; i++)
         {
-            NCDHW2[i] = NCDHW[i];
+            idx[i] = NCDHW[i];
         }
 
-        if(indexs_len > 0)
+        if(indexCount > 0)
         {
             size_t dim_cursor = NCDHW[start_dim];
             size_t i          = start_dim;
             size_t j          = 0;
 
-            for(; i < start_dim + indexs_len; ++i, ++j)
+            for(; i < start_dim + indexCount; ++i, ++j)
             {
-                size_t dim_idx  = element_index[dim_info_offset + j];
-                NCDHW2[dim_idx] = element_index[(dim_cursor * indexs_len) + j];
+                size_t dim_idx = element_index[dim_info_offset + j];
+                idx[dim_idx]   = element_index[(dim_cursor * indexCount) + j];
             }
 
-            i          = element_index[dim_info_offset + indexs_len - 1] + 1;
+            i          = element_index[dim_info_offset + indexCount - 1] + 1;
             dim_cursor = start_dim + 1;
             for(; i < 5; ++i, ++dim_cursor)
             {
-                NCDHW2[i] = NCDHW[dim_cursor];
+                idx[i] = NCDHW[dim_cursor];
             }
         }
 
-        auto dy_idx = dy_strides[4] * (NCDHW2[4]) + dy_strides[3] * (NCDHW2[3]) +
-                      dy_strides[2] * (NCDHW2[2]) + dy_strides[1] * (NCDHW2[1]) +
-                      dy_strides[0] * (NCDHW2[0]);
-        auto dx_idx = dx_strides[4] * (NCDHW[4]) + dx_strides[3] * (NCDHW[3]) +
-                      dx_strides[2] * (NCDHW[2]) + dx_strides[1] * (NCDHW[1]) +
-                      dx_strides[0] * (NCDHW[0]);
-
-        dxhost[dx_idx] += dy[dy_idx];
+        dxhost[TV_5D_AT(dxhost_tv, idx[0] + offset, idx[1], idx[2], idx[3], idx[4])] +=
+            dy[dy_tv, NCDHW[0] + offset, NCDHW[1], NCDHW[2], NCDHW[3], NCDHW[4]];
     }
 
     return ret;
@@ -282,7 +270,9 @@ private:
 
     size_t ws_sizeInBytes;
 
+    int32_t dimCount;
     std::vector<int32_t> dims;
+    int32_t sliceCount;
     std::vector<std::vector<int32_t>> slices;
     std::vector<int32_t> slices_flat;
     int32_t offset;
@@ -312,15 +302,16 @@ int GetitemDriver<Tgpu, Tref>::GetandSetData()
     auto yTensorParam    = inflags.GetValueTensor("output");
     auto dxTensorParam   = inflags.GetValueTensor("dinput");
     auto indexCountParam = inflags.GetValueInt("indexcount");
-    auto dimCountParam   = inflags.GetValueInt("dimcount");
-    auto sliceCountParam = inflags.GetValueInt("slicecount");
+    dimCount             = inflags.GetValueInt("dimcount");
+    sliceCount           = inflags.GetValueInt("slicecount");
+    offset               = inflags.GetValueInt("offset");
 
     auto indexTensorLengths = inflags.GetValue2dVectorInt("indexs");
     if(indexTensorLengths.size() != indexCountParam)
         MIOPEN_THROW("Error parsing indexs tensor: " + inflags.GetValueStr("indexs") + ".");
 
     dims = inflags.GetValueVectorInt("dims");
-    if(dims.size() != dimCountParam)
+    if(dims.size() != dimCount)
         MIOPEN_THROW("Error parsing dims tensor: " + inflags.GetValueStr("dims") + ".");
 
     for(auto dim : dims)
@@ -329,7 +320,7 @@ int GetitemDriver<Tgpu, Tref>::GetandSetData()
     }
 
     slices = inflags.GetValue2dVectorInt("slices");
-    if(slices.size() != sliceCountParam)
+    if(slices.size() != sliceCount)
         MIOPEN_THROW("Error parsing slices: " + inflags.GetValueStr("slices") + ".");
 
     for(auto slice : slices)
@@ -373,11 +364,11 @@ template <typename Tgpu, typename Tref>
 int GetitemDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "0", "Run only Forward Getitem (Default=0)", "int");
-    inflags.AddTensorFlag("doutput", 'O', "8x8", "doutput tensor descriptor");
-    inflags.AddTensorFlag("input", 'X', "8x8", "input tensor descriptor");
-    inflags.AddTensorFlag("output", 'Y', "8x8", "output tensor descriptor");
-    inflags.AddTensorFlag("indexs", 'D', "8", "indexs tensor descriptor");
-    inflags.AddTensorFlag("dinput", 'N', "8x8", "dinput tensor descriptor");
+    inflags.AddTensorFlag("doutput", 'O', "4x4", "doutput tensor descriptor");
+    inflags.AddTensorFlag("input", 'X', "4x4", "input tensor descriptor");
+    inflags.AddTensorFlag("output", 'Y', "4x4", "output tensor descriptor");
+    inflags.AddTensorFlag("indexs", 'D', "4", "indexs tensor descriptor");
+    inflags.AddTensorFlag("dinput", 'N', "4x4", "dinput tensor descriptor");
 
     inflags.AddInputFlag("indexcount", '1', "1", "the number of indexs tensor(Default=1)", "int");
     inflags.AddInputFlag("dimcount", '2', "1", "The dimensions(Default=1)", "int");
@@ -550,18 +541,21 @@ int GetitemDriver<Tgpu, Tref>::RunBackwardCPU()
 {
     mloGetitemBackwardRunHost<Tgpu, Tref>(dyDesc,
                                           xDesc,
-                                          indexDescs,
+                                          indexDescs.size(),
+                                          indexDescs.data(),
                                           yDesc,
                                           dxDesc,
                                           errorDesc,
                                           dy.data(),
                                           x.data(),
                                           y.data(),
-                                          indexs_ptr,
+                                          indexs_ptr.data(),
                                           dxhost.data(),
                                           errorhost.data(),
-                                          dims,
-                                          slices,
+                                          dims.size(),
+                                          dims.data(),
+                                          slices.size(),
+                                          slices_flat.data(),
                                           offset);
 
     return miopenStatusSuccess;
@@ -593,6 +587,12 @@ int GetitemDriver<Tgpu, Tref>::VerifyBackward()
     const Tref tolerance = GetTolerance();
 
     auto error_dx = miopen::rms_range(dxhost, dx);
+    printf("dxhost\n");
+    for(auto temp : dxhost)
+        printf("%lf\n", temp);
+    printf("dx\n");
+    for(auto temp : dx)
+        printf("%lf\n", temp);
 
     if(!std::isfinite(error_dx) || error_dx > tolerance)
     {
