@@ -138,5 +138,5 @@ TEST(TestCache, check_kern_db)
 TEST(TestCache, check_cache_file)
 {
     auto p = miopen::GetCacheFile("gfx", "base", "args");
-    EXPECT_TRUE(p.filename().string() == "base.o");
+    EXPECT_TRUE(p.filename() == "base.o");
 }
