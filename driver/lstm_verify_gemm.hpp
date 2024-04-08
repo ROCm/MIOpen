@@ -3,10 +3,14 @@
 
 #define ADNN_MM_TRANSPOSE 1
 
-#include <math.h>
-#include <cassert>
-#include <algorithm>
 #include "dropout_gpu_emulator.hpp"
+#include "mloConvHost.hpp" // ADNN_mm_cpu
+
+#include <../test/rnn_util.hpp>
+
+#include <algorithm>
+#include <cassert>
+#include <math.h>
 
 template <typename Tgpu, typename Tref>
 void RunLSTMForwardGEMMCPUVerify(miopenHandle_t handle,

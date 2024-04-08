@@ -28,6 +28,7 @@
 
 #include <miopen/common.hpp>
 #include <miopen/convolution.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/miopen.h>
 
 namespace miopen {
