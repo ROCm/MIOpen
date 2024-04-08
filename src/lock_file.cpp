@@ -52,7 +52,7 @@ std::string LockFilePath(const fs::path& filename_)
             fs::permissions(directory, fs::perms::all);
         }
         const auto hash = md5(filename_.parent_path().string());
-        const auto file = directory / (hash + "_" + filename_.filename().string() + ".lock");
+        const auto file = directory / (hash + "_" + filename_.filename() + ".lock");
 
         return file.string();
     }

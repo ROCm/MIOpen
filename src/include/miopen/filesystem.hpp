@@ -27,6 +27,9 @@
 #ifndef GUARD_MIOPEN_FILESYSTEM_HPP_
 #define GUARD_MIOPEN_FILESYSTEM_HPP_
 
+#include <string>
+#include <string_view>
+
 #if defined(CPPCHECK)
 #define MIOPEN_HAS_FILESYSTEM 1
 #define MIOPEN_HAS_FILESYSTEM_TS 1
@@ -75,6 +78,16 @@ namespace fs = ::std::experimental::filesystem;
 
 } // namespace miopen
 
+inline std::string operator+(const std::string_view s, const miopen::fs::path& path)
+{
+    return path.string().insert(0, s);
+}
+
+inline std::string operator+(const miopen::fs::path& path, const std::string_view s)
+{
+    return path.string().append(s);
+}
+
 #if MIOPEN_HAS_FILESYSTEM_TS
 #ifdef __linux__
 #include <linux/limits.h>
@@ -95,5 +108,43 @@ namespace miopen {
 inline fs::path weakly_canonical(const fs::path& path) { return fs::weakly_canonical(path); }
 } // namespace miopen
 #endif
+
+namespace miopen {
+
+#ifdef _WIN32
+constexpr std::string_view executable_postfix{".exe"};
+constexpr std::string_view library_prefix{""};
+constexpr std::string_view dynamic_library_postfix{".dll"};
+constexpr std::string_view static_library_postfix{".lib"};
+constexpr std::string_view object_file_postfix{".obj"};
+#else
+constexpr std::string_view executable_postfix{""};
+constexpr std::string_view library_prefix{"lib"};
+constexpr std::string_view dynamic_library_postfix{".so"};
+constexpr std::string_view static_library_postfix{".a"};
+constexpr std::string_view object_file_postfix{".o"};
+#endif
+
+inline fs::path make_executable_name(const fs::path& path)
+{
+    return path.parent_path() / (path.filename() + executable_postfix);
+}
+
+inline fs::path make_dynamic_library_name(const fs::path& path)
+{
+    return path.parent_path() / (library_prefix + path.filename() + dynamic_library_postfix);
+}
+
+inline fs::path make_object_file_name(const fs::path& path)
+{
+    return path.parent_path() / (path.filename() + object_file_postfix);
+}
+
+inline fs::path make_static_library_name(const fs::path& path)
+{
+    return path.parent_path() / (library_prefix + path.filename() + static_library_postfix);
+}
+
+} // namespace miopen
 
 #endif // GUARD_MIOPEN_FILESYSTEM_HPP_

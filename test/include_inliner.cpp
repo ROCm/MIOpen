@@ -39,7 +39,7 @@ namespace tests {
 
 static int Child(std::string_view cmd, const fs::path& path)
 {
-    return miopen::Process{cmd}("-source " + path.string());
+    return miopen::Process{cmd}("-source " + path);
 }
 
 class InlinerTest
@@ -48,7 +48,8 @@ public:
     void Run(const fs::path& exe_path) const
     {
         const TmpDir test_srcs{"test_include_inliner"};
-        const auto addkernels      = (exe_path.parent_path() / "addkernels").string();
+        const auto addkernels =
+            miopen::make_executable_name(exe_path.parent_path() / "addkernels").string();
         const auto header_filename = "header.h";
         const auto asm_src         = test_srcs.path / "valid.s";
         const auto valid_src       = test_srcs.path / "valid.cl";

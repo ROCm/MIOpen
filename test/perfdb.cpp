@@ -1086,7 +1086,7 @@ public:
                 if(full_set())
                     args += " --all";
 
-                MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", exe_path().string() + " " + args);
+                MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", exe_path() + " " + args);
                 children.emplace_back(exe_path(), args);
             }
             // clang-format on

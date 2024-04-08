@@ -95,10 +95,11 @@ class SQLite::impl
         if(is_system)
         {
 
-            const auto& it_p = miopen_data().find(filepath.filename().string() + ".o");
+            const auto& it_p =
+                miopen_data().find(make_object_file_name(filepath.filename()).string());
             if(it_p == miopen_data().end())
             {
-                MIOPEN_LOG_I("Unknown database: " + filepath.string() + " in internal file cache");
+                MIOPEN_LOG_I("Unknown database: " << filepath << " in internal file cache");
                 return SQLITE_ERROR;
             }
             const auto& p    = it_p->second;
@@ -459,7 +460,7 @@ SQLitePerfDb::SQLitePerfDb(DbKinds db_kind, const std::string& filename_, bool i
         }
         if(!CheckTableColumns("perf_db", {"solver", "config", "params"}))
         {
-            MIOPEN_LOG_W("Invalid fields in table: perf_db disabling access to " + filename);
+            MIOPEN_LOG_W("Invalid fields in table: perf_db disabling access to " << filename);
             dbInvalid = true;
         }
     }
