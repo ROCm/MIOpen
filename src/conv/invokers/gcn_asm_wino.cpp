@@ -35,8 +35,8 @@ namespace miopen {
 namespace conv {
 
 InvokerFactory MakeGcnAsmWinoV2InvokerFactory(const WinoShaderArgsV2& args,
-                                               Direction direction,
-                                               std::size_t sync_buffer_size)
+                                              Direction direction,
+                                              std::size_t sync_buffer_size)
 {
     const bool is_backWrW  = (direction == Direction::BackwardWeights);
     const bool coop_launch = (args.sync_period != 0);

@@ -35,8 +35,8 @@ namespace conv {
 enum class Direction;
 
 InvokerFactory MakeGcnAsmWinoV2InvokerFactory(const WinoShaderArgsV2& args,
-                                               Direction direction,
-                                               std::size_t sync_buffer_size);
+                                              Direction direction,
+                                              std::size_t sync_buffer_size);
 
 } // namespace conv
 } // namespace miopen

@@ -117,15 +117,15 @@ struct WinoShaderArgsV2
     uint32_t o_G_stride; // stride in number of elements of the G dimension of the output buffer
 
     // Fused activation parameters
-    float alpha;                                   // activation parameter alpha
-    float beta;                                    // activation parameter beta
+    float alpha;                                  // activation parameter alpha
+    float beta;                                   // activation parameter beta
     WinoShaderActivationModeV2_t activation_mode; // activation mode
 
     // Other shader parameters
-    uint32_t n_groups;          // number of shader groups
+    uint32_t n_groups;         // number of shader groups
     WinoShaderFlagsV2 flags64; // shader flags
-    uint8_t sync_limit;         // maximum number of sync attempts
-    uint8_t sync_period;        // synchronization period
+    uint8_t sync_limit;        // maximum number of sync attempts
+    uint8_t sync_period;       // synchronization period
 
     bool SetConvParams(const ProblemDescription& problem);
     void SetStrides(const ProblemDescription& problem);

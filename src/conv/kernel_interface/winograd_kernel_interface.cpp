@@ -202,8 +202,8 @@ void WinoShaderArgsV2::SetStrides(const ProblemDescription& problem)
 }
 
 void WinoShaderArgsV2::SetActivParams(WinoShaderActivationModeV2_t mode,
-                                       float alpha_,
-                                       float beta_) noexcept
+                                      float alpha_,
+                                      float beta_) noexcept
 {
     // Fused activation parameters
     activation_mode = mode;
@@ -212,9 +212,9 @@ void WinoShaderArgsV2::SetActivParams(WinoShaderActivationModeV2_t mode,
 }
 
 void WinoShaderArgsV2::SetShaderParams(uint32_t n_groups_,
-                                        WinoShaderFlagsV2 flags_,
-                                        uint8_t sync_limit_,
-                                        uint8_t sync_period_) noexcept
+                                       WinoShaderFlagsV2 flags_,
+                                       uint8_t sync_limit_,
+                                       uint8_t sync_period_) noexcept
 {
     n_groups    = n_groups_;
     flags64     = flags_;
