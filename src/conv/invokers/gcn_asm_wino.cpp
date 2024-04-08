@@ -62,7 +62,7 @@ InvokerFactory MakeGcnAsmWinoV40InvokerFactory(const WinoShaderArgsV40& args,
             }
 
             uint64_t bias_addr = 0;
-            uint64_t acc_addr = 0;
+            uint64_t acc_addr  = 0;
 
             uint64_t d_offset = 0;
             uint64_t f_offset = 0;
