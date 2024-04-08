@@ -596,13 +596,13 @@ Tref GetitemDriver<Tgpu, Tref>::GetTolerance()
     // Computation error of fp16 is ~2^13 (=8192) bigger than
     // the one of fp32 because mantissa is shorter by 13 bits.
     auto tolerance =
-        std::is_same<Tgpu, float>::value ? static_cast<Tref>(1.5e-6) : static_cast<Tref>(8.2e-3);
+        std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
 
     // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
     // If there is an atomic operation on the GPU kernel, a large error occurs depending on the
     // calculation order, so it is multiplied by 10 times.
     if(std::is_same<Tgpu, bfloat16>::value)
-        tolerance *= static_cast<Tref>(80.0);
+        tolerance *= 80.0;
     return tolerance;
 }
 
