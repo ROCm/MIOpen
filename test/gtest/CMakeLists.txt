@@ -4,6 +4,7 @@ find_package(rocblas)
 set(SOURCES
     log.cpp
     platform.cpp
+    conv_common.cpp
     )
 
 if(MIOPEN_BACKEND_OPENCL)
@@ -68,7 +69,8 @@ else()
   if( NOT ENABLE_ASAN_PACKAGING )
     install(TARGETS miopen_gtest
         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-        DESTINATION ${CMAKE_INSTALL_BINDIR})
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
+        COMPONENT client)
   endif()
 endif()
 
