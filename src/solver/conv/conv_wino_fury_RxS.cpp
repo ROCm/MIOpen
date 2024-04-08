@@ -48,10 +48,10 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
-using ProblemDescription            = miopen::conv::ProblemDescription;
-using WinoShaderArgsV40             = miopen::conv::WinoShaderArgsV40;
-using WinoShaderActivationModeV40_t = miopen::conv::WinoShaderActivationModeV40_t;
-using WinoShaderFlagsV40            = miopen::conv::WinoShaderFlagsV40;
+using ProblemDescription           = miopen::conv::ProblemDescription;
+using WinoShaderArgsV2             = miopen::conv::WinoShaderArgsV2;
+using WinoShaderActivationModeV2_t = miopen::conv::WinoShaderActivationModeV2_t;
+using WinoShaderFlagsV2            = miopen::conv::WinoShaderFlagsV2;
 
 namespace {
 
@@ -77,7 +77,7 @@ uint32_t GetNGroups(uint64_t cu_count)
     return std::min(cu_count, max_n_groups);
 }
 
-bool IsShaderConstraintsMetV2(const WinoShaderArgsV40& args, uint32_t n_groups)
+bool IsShaderConstraintsMetV2(const WinoShaderArgsV2& args, uint32_t n_groups)
 {
     // Current limitations:
     // clang-format off
@@ -98,7 +98,7 @@ bool IsShaderConstraintsMetV2(const WinoShaderArgsV40& args, uint32_t n_groups)
     // clang-format on
 }
 
-bool IsShaderConstraintsMet(const WinoShaderArgsV40& args, uint32_t n_groups)
+bool IsShaderConstraintsMet(const WinoShaderArgsV2& args, uint32_t n_groups)
 {
     return IsShaderConstraintsMetV2(args, n_groups);
 }
@@ -125,7 +125,7 @@ class ShaderModel
 
 public:
     ShaderModel(const ExecutionContext& ctx,
-                const WinoShaderArgsV40& args,
+                const WinoShaderArgsV2& args,
                 uint32_t cu_cnt,
                 uint32_t n_grp,
                 bool reduced_vgpr_mem)
@@ -250,7 +250,7 @@ bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext&
     if(!(problem.GetDilationH() == 1 && problem.GetDilationW() == 1))
         return false;
 
-    WinoShaderArgsV40 args;
+    WinoShaderArgsV2 args;
     if(!args.SetConvParams(problem))
         return false;
 
@@ -298,7 +298,7 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
 
     constexpr size_t wg_size = 384;
 
-    WinoShaderArgsV40 args;
+    WinoShaderArgsV2 args;
     // Main convolution parameters
     if(!args.SetConvParams(problem))
     {
@@ -381,14 +381,14 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
     args.SetStrides(problem);
 
     // Fused activation parameters
-    args.SetActivParams(WinoShaderActivationModeV40_t::IDENTITY, 0.0f, 0.0f);
+    args.SetActivParams(WinoShaderActivationModeV2_t::IDENTITY, 0.0f, 0.0f);
 
     // Other shader parameters
-    auto flags = WinoShaderFlagsV40::F_NKCHR_STRIDES | WinoShaderFlagsV40::F_TENSOR_OFFSETS |
-                 WinoShaderFlagsV40::F_USE_ACTIVATION_MODE |
-                 WinoShaderFlagsV40::F_USE_EXTENDED_FLAGS_64;
+    auto flags = WinoShaderFlagsV2::F_NKCHR_STRIDES | WinoShaderFlagsV2::F_TENSOR_OFFSETS |
+                 WinoShaderFlagsV2::F_USE_ACTIVATION_MODE |
+                 WinoShaderFlagsV2::F_USE_EXTENDED_FLAGS_64;
     if(problem.IsDirectionBackwardData())
-        flags |= WinoShaderFlagsV40::F_REVERSE_R | WinoShaderFlagsV40::F_REVERSE_S;
+        flags |= WinoShaderFlagsV2::F_REVERSE_R | WinoShaderFlagsV2::F_REVERSE_S;
 
     uint8_t sync_limit  = 0;
     uint8_t sync_period = 0;
@@ -402,7 +402,7 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
     // Solution
     ConvSolution result;
     result.construction_params.push_back(kernel);
-    result.invoker_factory = miopen::conv::MakeGcnAsmWinoV40InvokerFactory(
+    result.invoker_factory = miopen::conv::MakeGcnAsmWinoV2InvokerFactory(
         args, problem.GetDirection(), coop_launch ? sync_buffer_size : 0);
     result.workspace_sz = GetWorkspaceSize(ctx, problem);
 

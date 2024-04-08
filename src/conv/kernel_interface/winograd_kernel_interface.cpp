@@ -62,7 +62,7 @@ bool AssignAndCheck(Tdst& dst_v, Tsrc src_v) noexcept
 
 } // namespace
 
-bool WinoShaderArgsV40::SetConvParams(const ProblemDescription& problem)
+bool WinoShaderArgsV2::SetConvParams(const ProblemDescription& problem)
 {
     if(!problem.Is2d())
         return false;
@@ -154,7 +154,7 @@ bool WinoShaderArgsV40::SetConvParams(const ProblemDescription& problem)
     return true;
 }
 
-void WinoShaderArgsV40::SetStrides(const ProblemDescription& problem)
+void WinoShaderArgsV2::SetStrides(const ProblemDescription& problem)
 {
     MemLayout_t d_layout, o_layout, f_layout;
 
@@ -201,7 +201,7 @@ void WinoShaderArgsV40::SetStrides(const ProblemDescription& problem)
     o_G_stride = o_strides.g;
 }
 
-void WinoShaderArgsV40::SetActivParams(WinoShaderActivationModeV40_t mode,
+void WinoShaderArgsV2::SetActivParams(WinoShaderActivationModeV2_t mode,
                                        float alpha_,
                                        float beta_) noexcept
 {
@@ -211,8 +211,8 @@ void WinoShaderArgsV40::SetActivParams(WinoShaderActivationModeV40_t mode,
     beta            = beta_;
 }
 
-void WinoShaderArgsV40::SetShaderParams(uint32_t n_groups_,
-                                        WinoShaderFlagsV40 flags_,
+void WinoShaderArgsV2::SetShaderParams(uint32_t n_groups_,
+                                        WinoShaderFlagsV2 flags_,
                                         uint8_t sync_limit_,
                                         uint8_t sync_period_) noexcept
 {

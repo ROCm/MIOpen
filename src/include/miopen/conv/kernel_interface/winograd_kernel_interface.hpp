@@ -31,7 +31,7 @@ namespace conv {
 
 struct ProblemDescription;
 
-enum class WinoShaderFlagsV40 : uint64_t
+enum class WinoShaderFlagsV2 : uint64_t
 {
     F_REVERSE_R                  = 1ULL << 0,
     F_REVERSE_S                  = 1ULL << 1,
@@ -51,26 +51,26 @@ enum class WinoShaderFlagsV40 : uint64_t
     F_USE_EXTENDED_FLAGS_64      = 1ULL << 15,
 };
 
-inline WinoShaderFlagsV40 operator|(WinoShaderFlagsV40 lhs, WinoShaderFlagsV40 rhs)
+inline WinoShaderFlagsV2 operator|(WinoShaderFlagsV2 lhs, WinoShaderFlagsV2 rhs)
 {
-    using T = std::underlying_type_t<WinoShaderFlagsV40>;
-    return static_cast<WinoShaderFlagsV40>(static_cast<T>(lhs) | static_cast<T>(rhs));
+    using T = std::underlying_type_t<WinoShaderFlagsV2>;
+    return static_cast<WinoShaderFlagsV2>(static_cast<T>(lhs) | static_cast<T>(rhs));
 }
 
-inline WinoShaderFlagsV40 operator|=(WinoShaderFlagsV40& lhs, WinoShaderFlagsV40 rhs)
+inline WinoShaderFlagsV2 operator|=(WinoShaderFlagsV2& lhs, WinoShaderFlagsV2 rhs)
 {
     lhs = lhs | rhs;
     return lhs;
 }
 
-inline std::ostream& operator<<(std::ostream& s, WinoShaderFlagsV40 flags)
+inline std::ostream& operator<<(std::ostream& s, WinoShaderFlagsV2 flags)
 {
-    using T = std::underlying_type_t<WinoShaderFlagsV40>;
+    using T = std::underlying_type_t<WinoShaderFlagsV2>;
     s << "0x" << std::hex << static_cast<T>(flags) << std::dec;
     return s;
 }
 
-enum class WinoShaderActivationModeV40_t : uint8_t
+enum class WinoShaderActivationModeV2_t : uint8_t
 {
     IDENTITY    = 0, // no activation, alpha and beta are ignored
     LEAKY_RELU  = 1, // ReLU, beta field is ignored
@@ -78,13 +78,13 @@ enum class WinoShaderActivationModeV40_t : uint8_t
     SCALED_TANH = 3, // parametric tanh function
 };
 
-inline std::ostream& operator<<(std::ostream& s, const WinoShaderActivationModeV40_t& mode)
+inline std::ostream& operator<<(std::ostream& s, const WinoShaderActivationModeV2_t& mode)
 {
     s << static_cast<unsigned>(mode);
     return s;
 }
 
-struct WinoShaderArgsV40
+struct WinoShaderArgsV2
 {
     // Main convolution parameters
     uint32_t N;     // batch size
@@ -119,19 +119,19 @@ struct WinoShaderArgsV40
     // Fused activation parameters
     float alpha;                                   // activation parameter alpha
     float beta;                                    // activation parameter beta
-    WinoShaderActivationModeV40_t activation_mode; // activation mode
+    WinoShaderActivationModeV2_t activation_mode; // activation mode
 
     // Other shader parameters
     uint32_t n_groups;          // number of shader groups
-    WinoShaderFlagsV40 flags64; // shader flags
+    WinoShaderFlagsV2 flags64; // shader flags
     uint8_t sync_limit;         // maximum number of sync attempts
     uint8_t sync_period;        // synchronization period
 
     bool SetConvParams(const ProblemDescription& problem);
     void SetStrides(const ProblemDescription& problem);
-    void SetActivParams(WinoShaderActivationModeV40_t mode, float alpha, float beta) noexcept;
+    void SetActivParams(WinoShaderActivationModeV2_t mode, float alpha, float beta) noexcept;
     void SetShaderParams(uint32_t n_groups,
-                         WinoShaderFlagsV40 flags,
+                         WinoShaderFlagsV2 flags,
                          uint8_t sync_limit,
                          uint8_t sync_period) noexcept;
 };
