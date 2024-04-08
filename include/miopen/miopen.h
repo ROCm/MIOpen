@@ -6354,13 +6354,9 @@ miopenGetGetitemWorkspaceSize(miopenHandle_t handle,
  * @param workspaceSizeInBytes    Size in bytes of the allocated workspace data (input)
  * @param dyDesc                  Tensor descriptor of input tensor dy (input)
  * @param dy                      Source data tensor dyy (input)
- * @param xDesc                   Tensor descriptor of input tensor x (input)
- * @param x                       Source data tensor x (input)
  * @param indexCount              Number of input tensor indexs (input)
  * @param indexDescs              Tensor descriptor of input tensor indexs (input)
  * @param indexs                  Source data tensor indexs (input)
- * @param yDesc                   Tensor descriptor of output tensor y (input)
- * @param y                       Data tensor y (input)
  * @param dxDesc                  Tensor descriptor of output tensor dx (input)
  * @param dx                      Data tensor dx (output)
  * @param dimCount                Number of dimensions (input)
@@ -6375,13 +6371,9 @@ MIOPEN_EXPORT miopenStatus_t miopenGetitemBackward(miopenHandle_t handle,
                                                    size_t workspaceSizeInBytes,
                                                    const miopenTensorDescriptor_t dyDesc,
                                                    const void* dy,
-                                                   const miopenTensorDescriptor_t xDesc,
-                                                   const void* x,
                                                    int32_t indexCount,
                                                    const miopenTensorDescriptor_t* indexDescs,
                                                    const void* const* indexs,
-                                                   const miopenTensorDescriptor_t yDesc,
-                                                   const void* y,
                                                    const miopenTensorDescriptor_t dxDesc,
                                                    void* dx,
                                                    const miopenTensorDescriptor_t errorDesc,

@@ -38,7 +38,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
     auto dx_dims         = dxDesc.GetLengths();
     auto index_dims      = (*indexDescs)[0].GetLengths();
-    auto dtype           = yDesc.GetType();
+    auto dtype           = dyDesc.GetType();
     auto dim_info_offset = indexCount > 0 ? indexCount * index_dims[0] : 0;
     auto start_dim       = dims[0];
 

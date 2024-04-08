@@ -91,9 +91,6 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& context,
         kernel.kernel_name = "GetItemBuildIndices";
 
         const auto build_params = KernelBuildParameters{
-            // {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-            // {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-            // {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"INDEX_TYPE", index_dtype},
             {"ERROR_TYPE", error_dtype},

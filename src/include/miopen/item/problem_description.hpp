@@ -40,10 +40,8 @@ namespace item {
 struct ProblemDescription : ProblemDescriptionBase
 {
     ProblemDescription(const TensorDescriptor& dyDesc_,
-                       const TensorDescriptor& xDesc_,
                        int32_t indexCount_,
                        const TensorDescriptor* const* indexDescs_,
-                       const TensorDescriptor& yDesc_,
                        const TensorDescriptor& dxDesc_,
                        const TensorDescriptor& errorDesc_,
                        int32_t dimCount_,
@@ -52,10 +50,8 @@ struct ProblemDescription : ProblemDescriptionBase
                        const int32_t* slices_,
                        int32_t offset_)
         : dyDesc(dyDesc_),
-          xDesc(xDesc_),
           indexCount(indexCount_),
           indexDescs(indexDescs_),
-          yDesc(yDesc_),
           dxDesc(dxDesc_),
           errorDesc(errorDesc_),
           dimCount(dimCount_),
@@ -72,7 +68,6 @@ struct ProblemDescription : ProblemDescriptionBase
     }
 
     const TensorDescriptor& GetDYDesc() const { return dyDesc; }
-    const TensorDescriptor& GetXDesc() const { return xDesc; }
     int32_t GetIndexCount() const { return indexCount; }
     const TensorDescriptor& GetIndexDesc(int i) const
     {
@@ -82,7 +77,6 @@ struct ProblemDescription : ProblemDescriptionBase
         }
         return (*indexDescs)[i];
     }
-    const TensorDescriptor& GetYDesc() const { return yDesc; }
     const TensorDescriptor& GetDXDesc() const { return dxDesc; }
     const TensorDescriptor& GetErrorDesc() const { return errorDesc; }
     int32_t GetDimCount() const { return dimCount; }
@@ -122,10 +116,8 @@ struct ProblemDescription : ProblemDescriptionBase
 
 private:
     TensorDescriptor dyDesc{};
-    TensorDescriptor xDesc{};
     int32_t indexCount                        = 0;
     const TensorDescriptor* const* indexDescs = nullptr;
-    TensorDescriptor yDesc{};
     TensorDescriptor dxDesc{};
     TensorDescriptor errorDesc{};
 

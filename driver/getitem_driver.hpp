@@ -84,15 +84,11 @@ void slice_tv(tensor_view_5d_t& tv_5d, int32_t sliceCount, const int32_t* slices
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
-                                  miopenTensorDescriptor_t xDesc,
                                   int32_t indexCount,
                                   miopenTensorDescriptor_t* indexDescs,
-                                  miopenTensorDescriptor_t yDesc,
                                   miopenTensorDescriptor_t dxDesc,
                                   miopenTensorDescriptor_t errorDesc,
                                   Tgpu* dy,
-                                  Tgpu* x,
-                                  Tgpu* y,
                                   int32_t** indexs,
                                   Tcheck* dxhost,
                                   int32_t* errorhost,
@@ -202,8 +198,6 @@ public:
     GetitemDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&dyDesc);
-        miopenCreateTensorDescriptor(&xDesc);
-        miopenCreateTensorDescriptor(&yDesc);
         miopenCreateTensorDescriptor(&dxDesc);
         miopenCreateTensorDescriptor(&errorDesc);
 
@@ -231,8 +225,6 @@ public:
     ~GetitemDriver() override
     {
         miopenDestroyTensorDescriptor(dyDesc);
-        miopenDestroyTensorDescriptor(xDesc);
-        miopenDestroyTensorDescriptor(yDesc);
         for(auto indexDesc : indexDescs)
         {
             miopenDestroyTensorDescriptor(indexDesc);
@@ -247,23 +239,17 @@ private:
     int forw;
 
     miopenTensorDescriptor_t dyDesc;
-    miopenTensorDescriptor_t xDesc;
-    miopenTensorDescriptor_t yDesc;
     std::vector<miopenTensorDescriptor_t> indexDescs;
     miopenTensorDescriptor_t dxDesc;
     miopenTensorDescriptor_t errorDesc;
 
     std::unique_ptr<GPUMem> dy_dev;
-    std::unique_ptr<GPUMem> x_dev;
-    std::unique_ptr<GPUMem> y_dev;
     std::vector<std::unique_ptr<GPUMem>> index_devs;
     std::unique_ptr<GPUMem> dx_dev;
     std::unique_ptr<GPUMem> error_dev;
     std::unique_ptr<GPUMem> workspace_dev;
 
     std::vector<Tgpu> dy;
-    std::vector<Tgpu> x;
-    std::vector<Tgpu> y;
     std::vector<std::vector<int32_t>> indexs;
     std::vector<Tgpu> dx;
     std::vector<int32_t> error;
@@ -299,8 +285,6 @@ template <typename Tgpu, typename Tref>
 int GetitemDriver<Tgpu, Tref>::GetandSetData()
 {
     auto dyTensorParam   = inflags.GetValueTensor("doutput");
-    auto xTensorParam    = inflags.GetValueTensor("input");
-    auto yTensorParam    = inflags.GetValueTensor("output");
     auto dxTensorParam   = inflags.GetValueTensor("dinput");
     auto indexCountParam = inflags.GetValueInt("indexcount");
     auto dimCountParam   = inflags.GetValueInt("dimcount");
@@ -335,12 +319,6 @@ int GetitemDriver<Tgpu, Tref>::GetandSetData()
     if(SetTensorNd(dyDesc, dyTensorParam.lengths, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing doutput tensor: " + inflags.GetValueStr("doutput") + ".");
 
-    if(SetTensorNd(xDesc, xTensorParam.lengths, data_type) != miopenStatusSuccess)
-        MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input") + ".");
-
-    if(SetTensorNd(yDesc, yTensorParam.lengths, data_type) != miopenStatusSuccess)
-        MIOPEN_THROW("Error parsing output tensor: " + inflags.GetValueStr("output") + ".");
-
     for(auto indexTensorLength : indexTensorLengths)
     {
         miopenTensorDescriptor_t indexDesc;
@@ -366,8 +344,6 @@ int GetitemDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "0", "Run only Forward Getitem (Default=0)", "int");
     inflags.AddTensorFlag("doutput", 'O', "128x128", "doutput tensor descriptor");
-    inflags.AddTensorFlag("input", 'X', "128x128", "input tensor descriptor");
-    inflags.AddTensorFlag("output", 'Y', "128x128", "output tensor descriptor");
     inflags.AddTensorFlag("indexs", 'D', "128", "indexs tensor descriptor");
     inflags.AddTensorFlag("dinput", 'N', "128x128", "dinput tensor descriptor");
 
@@ -396,8 +372,6 @@ template <typename Tgpu, typename Tref>
 int GetitemDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
     size_t dy_sz    = GetTensorSize(dyDesc);
-    size_t x_sz     = GetTensorSize(xDesc);
-    size_t y_sz     = GetTensorSize(yDesc);
     size_t dx_sz    = GetTensorSize(dxDesc);
     size_t error_sz = GetTensorSize(errorDesc);
 
@@ -409,15 +383,11 @@ int GetitemDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     uint32_t ctx = 0;
 
     dy_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, dy_sz, sizeof(Tgpu)));
-    x_dev         = std::unique_ptr<GPUMem>(new GPUMem(ctx, x_sz, sizeof(Tgpu)));
-    y_dev         = std::unique_ptr<GPUMem>(new GPUMem(ctx, y_sz, sizeof(Tgpu)));
     dx_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, dx_sz, sizeof(Tgpu)));
     error_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, error_sz, sizeof(int32_t)));
     workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sizeInBytes, sizeof(std::byte)));
 
     dy        = std::vector<Tgpu>(dy_sz, static_cast<Tgpu>(0));
-    x         = std::vector<Tgpu>(x_sz, static_cast<Tgpu>(0));
-    y         = std::vector<Tgpu>(y_sz, static_cast<Tgpu>(0));
     dx        = std::vector<Tgpu>(dx_sz, static_cast<Tgpu>(0));
     error     = std::vector<int32_t>(error_sz, static_cast<int32_t>(0));
     workspace = std::vector<int32_t>(ws_sizeInBytes / sizeof(int32_t), static_cast<int32_t>(0));
@@ -427,16 +397,6 @@ int GetitemDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     for(int32_t i = 0; i < dy_sz; i++)
     {
         dy[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-0.01), static_cast<Tgpu>(0.01));
-    }
-
-    for(int32_t i = 0; i < x_sz; i++)
-    {
-        x[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-0.01), static_cast<Tgpu>(0.01));
-    }
-
-    for(int32_t i = 0; i < y_sz; i++)
-    {
-        y[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-0.01), static_cast<Tgpu>(0.01));
     }
 
     for(int32_t i = 0; i < error_sz; i++)
@@ -476,12 +436,6 @@ int GetitemDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     if(dy_dev->ToGPU(GetStream(), dy.data()) != 0)
         std::cerr << "Error copying (dy) to GPU, size: " << dy_dev->GetSize() << std::endl;
 
-    if(x_dev->ToGPU(GetStream(), x.data()) != 0)
-        std::cerr << "Error copying (x) to GPU, size: " << x_dev->GetSize() << std::endl;
-
-    if(y_dev->ToGPU(GetStream(), y.data()) != 0)
-        std::cerr << "Error copying (y) to GPU, size: " << y_dev->GetSize() << std::endl;
-
     if(workspace_dev->ToGPU(GetStream(), workspace.data()) != 0)
         std::cerr << "Error copying (workspace) to GPU, size: " << workspace_dev->GetSize()
                   << std::endl;
@@ -518,13 +472,9 @@ int GetitemDriver<Tgpu, Tref>::RunBackwardGPU()
                               ws_sizeInBytes,
                               dyDesc,
                               dy_dev->GetMem(),
-                              xDesc,
-                              x_dev->GetMem(),
                               indexDescs.size(),
                               indexDescs.data(),
                               index_devs_ptr.data(),
-                              yDesc,
-                              y_dev->GetMem(),
                               dxDesc,
                               dx_dev->GetMem(),
                               errorDesc,
@@ -569,15 +519,11 @@ template <typename Tgpu, typename Tref>
 int GetitemDriver<Tgpu, Tref>::RunBackwardCPU()
 {
     mloGetitemBackwardRunHost<Tgpu, Tref>(dyDesc,
-                                          xDesc,
                                           indexDescs.size(),
                                           indexDescs.data(),
-                                          yDesc,
                                           dxDesc,
                                           errorDesc,
                                           dy.data(),
-                                          x.data(),
-                                          y.data(),
                                           indexs_ptr.data(),
                                           dxhost.data(),
                                           errorhost.data(),
