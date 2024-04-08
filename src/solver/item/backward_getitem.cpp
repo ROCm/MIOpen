@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -40,9 +40,27 @@ namespace solver {
 
 namespace item {
 
+bool IsLargeIndex(const miopen::item::ProblemDescription& problem)
+{
+    auto dy_dims = problem.GetDYDesc().GetLengths();
+    auto dx_dims = problem.GetDXDesc().GetLengths();
+
+    for(int32_t i = 0; i < problem.GetDimCount(); i++)
+    {
+        if(dy_dims[problem.GetDim(i)] / dx_dims[problem.GetDim(i)] > 400)
+            return false;
+    }
+
+    return true;
+}
+
 bool GetitemBackward::IsApplicable(const ExecutionContext& context,
                                    const miopen::item::ProblemDescription& problem) const
 {
+    if(!problem.IsSameType())
+        return false;
+    if(!IsLargeIndex(problem))
+        return false;
     if(!problem.IsSameType())
         return false;
     return true;

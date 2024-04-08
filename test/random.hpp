@@ -40,11 +40,5 @@ inline T gen_descreet_unsigned(double scale, int32_t range)
 {
     return static_cast<T>(scale * static_cast<double>(gen_0_to_B(range)));
 }
-
-template <typename T>
-inline T gen_unsigned(int32_t range)
-{
-    return static_cast<T>(gen_0_to_B(range));
-}
 } // namespace prng
 #endif // GUARD_MIOPEN_TEST_RANDOM_HPP
