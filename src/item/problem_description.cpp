@@ -37,7 +37,7 @@ namespace item {
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
     auto dx_dims         = dxDesc.GetLengths();
-    auto index_dims      = indexDescs[0].GetLengths();
+    auto index_dims      = (*indexDescs)[0].GetLengths();
     auto dtype           = yDesc.GetType();
     auto dim_info_offset = indexCount > 0 ? indexCount * index_dims[0] : 0;
     auto start_dim       = dims[0];
@@ -53,9 +53,15 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     ss << "indexCount" << indexCount;
     ss << "offset" << offset;
     ss << "dim_info_offset" << dim_info_offset;
-    ss << "index_dims" for(int32_t i = 0; i < dim_count; i++) ss << dims[i] << "_";
-    ss << "slices" for(int32_t i = 0; i < slice_count; i++) ss << slices[i] << "_";
-    ss << "output_dims" for(auto output_dim : output_dims) ss << output_dim << "_";
+    ss << "index_dims";
+    for(int32_t i = 0; i < dimCount; i++)
+        ss << dims[i] << "_";
+    ss << "slices";
+    for(int32_t i = 0; i < sliceCount; i++)
+        ss << slices[i] << "_";
+    ss << "output_dims";
+    for(auto output_dim : output_dims)
+        ss << output_dim << "_";
     ss << "start_dim" << start_dim;
 
     return NetworkConfig{ss.str()};

@@ -372,23 +372,24 @@ int GetitemDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int GetitemDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Getitem (Default=1)", "int");
-    inflags.AddTensorFlag("doutput", 'O', "128x128", "doutput tensor descriptor");
-    inflags.AddTensorFlag("input", 'X', "128x128", "input tensor descriptor");
-    inflags.AddTensorFlag("output", 'Y', "128x128", "output tensor descriptor");
-    inflags.AddTensorFlag("indexs", 'D', "128", "indexs tensor descriptor");
-    inflags.AddTensorFlag("dinput", 'N', "128x128", "dinput tensor descriptor");
+    inflags.AddInputFlag("forw", 'F', "0", "Run only Forward Getitem (Default=0)", "int");
+    inflags.AddTensorFlag("doutput", 'O', "8x8", "doutput tensor descriptor");
+    inflags.AddTensorFlag("input", 'X', "8x8", "input tensor descriptor");
+    inflags.AddTensorFlag("output", 'Y', "8x8", "output tensor descriptor");
+    inflags.AddTensorFlag("indexs", 'D', "8", "indexs tensor descriptor");
+    inflags.AddTensorFlag("dinput", 'N', "8x8", "dinput tensor descriptor");
 
-    inflags.AddInputFlag("dimcount", '1', "1", "The dimensions(Default=1)", "int");
-    inflags.AddInputFlag("dims", '2', "0", "The dimensions(Default=0)", "vector<int>");
-    inflags.AddInputFlag("slicecount", '3', "0", "The number of slices(Default=0)", "int");
+    inflags.AddInputFlag("indexcount", '1', "1", "the number of indexs tensor(Default=1)", "int");
+    inflags.AddInputFlag("dimcount", '2', "1", "The dimensions(Default=1)", "int");
+    inflags.AddInputFlag("dims", '3', "0", "The dimensions(Default=0)", "vector<int>");
+    inflags.AddInputFlag("slicecount", '4', "0", "The number of slices(Default=0)", "int");
     inflags.AddInputFlag("slices",
-                         '4',
+                         '5',
                          "",
                          "The slices(Default=\'\'"
                          ")",
                          "vector<vector<int>>");
-    inflags.AddInputFlag("offset", '5', "0", "The offset of output(Default=0)", "int");
+    inflags.AddInputFlag("offset", '6', "0", "The offset of output(Default=0)", "int");
 
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");

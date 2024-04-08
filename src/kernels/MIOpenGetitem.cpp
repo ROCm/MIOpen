@@ -76,13 +76,13 @@ __device__ void getitembuildindices(const IDX* __restrict__ index,
 template <typename TI, typename IDX, typename TO>
 __device__ void getitembwd(const TI* __restrict__ dy,
                            IDX* __restrict__ element_index,
-                           const TO* __restrict__ dx,
+                           TO* __restrict__ dx,
                            uint64_t start_dim,
                            uint64_t indexCount,
                            tensor_view_5d_t dy_tv,
                            tensor_view_5d_t dx_tv,
-                           ,
-                           uint64_t dim_info_offset uint64_t dim0_offset)
+                           uint64_t dim_info_offset,
+                           uint64_t dim0_offset)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -126,9 +126,9 @@ __device__ void getitembwd(const TI* __restrict__ dy,
 extern "C" __global__ void GetItemBuildIndices(const INDEX_TYPE* __restrict__ index,
                                                INDEX_TYPE* __restrict__ element_index,
                                                ERROR_TYPE* __restrict__ error,
-                                               inte32_t index_dim,
-                                               inte32_t indexCount,
-                                               inte32_t dim_size,
+                                               int32_t index_dim,
+                                               int32_t indexCount,
+                                               int32_t dim_size,
                                                tensor_view_5d_t index_tv,
                                                uint64_t dim_offset,
                                                uint64_t dim_info_offset)
@@ -136,9 +136,9 @@ extern "C" __global__ void GetItemBuildIndices(const INDEX_TYPE* __restrict__ in
     // instantiate the kernel
     getitembuildindices<INDEX_TYPE, ERROR_TYPE>(index,
                                                 element_index,
-                                                _error,
+                                                error,
                                                 index_dim,
-                                                num_indices,
+                                                indexCount,
                                                 dim_size,
                                                 index_tv,
                                                 dim_offset,
@@ -147,13 +147,13 @@ extern "C" __global__ void GetItemBuildIndices(const INDEX_TYPE* __restrict__ in
 
 extern "C" __global__ void GetitemBwd(const INPUT_TYPE* __restrict__ dy,
                                       INDEX_TYPE* __restrict__ element_index,
-                                      const OUTPUT_TYPE* __restrict__ dx,
+                                      OUTPUT_TYPE* __restrict__ dx,
                                       uint64_t start_dim,
                                       uint64_t indexCount,
                                       tensor_view_5d_t dy_tv,
                                       tensor_view_5d_t dx_tv,
-                                      ,
-                                      uint64_t dim_info_offset uint64_t dim0_offset)
+                                      uint64_t dim_info_offset,
+                                      uint64_t dim0_offset)
 {
     // instantiate the kernel
     getitembwd<INPUT_TYPE, INDEX_TYPE, OUTPUT_TYPE>(

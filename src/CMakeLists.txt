@@ -128,6 +128,7 @@ set( MIOpen_Source
     groupnorm/problem_description.cpp
     handle_api.cpp
     invoker_cache.cpp
+    item/problem_description.cpp
     kernel_build_params.cpp
     kernel_warnings.cpp
     layernorm_api.cpp
