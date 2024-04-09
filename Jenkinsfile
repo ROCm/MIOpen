@@ -669,19 +669,6 @@ pipeline {
                         buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets)
                     }
                 }
-                stage('Fp32 Hip Debug gfx90a') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX90A }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("gfx90a") }
-                    steps{
-                        buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets)
-                    }
-                }
                 stage('Fp32 Hip Debug gfx94X') {
                     when {
                         beforeAgent true
