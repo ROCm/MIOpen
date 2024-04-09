@@ -6583,12 +6583,12 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
-// AmpAdam APIs
+// FusedAdam APIs
 /** @addtogroup optimizer
  *
  *  @{
  */
-/*! @brief Execute single tensor Adam optimization for the Automatic Mixed Precision package.
+/*! @brief Execute single tensor Fused Adam optimization.
  *
  * @param handle              MIOpen handle (input)
  * @param paramDesc           Tensor descriptor for the input parameter tensor (input)
