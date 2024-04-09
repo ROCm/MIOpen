@@ -630,7 +630,7 @@ pipeline {
                 expression { params.BUILD_SMOKE_FP32 && params.DATATYPE_FP32 }
             }
             parallel{
-                stage('Fp32 Hip AnyGPU') {
+                stage('Fp32 Hip gfx90a') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX90A }
@@ -643,7 +643,7 @@ pipeline {
                         buildHipClangJobAndReboot(make_targets: Smoke_targets)
                     }
                 }
-                stage('Fp32 Hip Debug AnyGPU') {
+                stage('Fp32 Hip Debug gfx90a') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX90A }
@@ -702,7 +702,7 @@ pipeline {
                 expression { params.BUILD_SMOKE_AUX1 && params.DATATYPE_FP32 }
             }
             parallel{
-                stage('Fp32 Hip Debug NOCOMGR AnyGPU') {
+                stage('Fp32 Hip Debug NOCOMGR gfx90a') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX90A }
@@ -719,7 +719,7 @@ pipeline {
                         buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOCOMGR_flags, build_cmd: NOCOMGR_build_cmd, test_flags: ' --verbose ')
                     }
                 }
-                stage('Fp32 Hip Debug NOMLIR AnyGPU') {
+                stage('Fp32 Hip Debug NOMLIR gfx90a') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX90A }
@@ -736,7 +736,7 @@ pipeline {
                         buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOMLIR_flags, build_cmd: NOMLIR_build_cmd, test_flags: ' --verbose ')
                     }
                 }
-                stage('Fp32 Hip Debug NOCK AnyGPU Build-Only') {
+                stage('Fp32 Hip Debug NOCK gfx90a Build-Only') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX90A }
@@ -765,7 +765,7 @@ pipeline {
                         buildHipClangJobAndReboot( build_type: 'debug', setup_flags: Embedded_flags, build_env: extra_log_env, test_flags: ' --verbose ')
                     }
                 }
-                stage('Fp32 Hip Static AnyGPU') {
+                stage('Fp32 Hip Static gfx90a') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX90A }
@@ -778,7 +778,7 @@ pipeline {
                         buildHipClangJobAndReboot( setup_flags: "-DBUILD_SHARED_LIBS=Off", mlir_build: 'OFF')
                     }
                 }
-                stage('Fp32 Hip Normal-Find AnyGPU') {
+                stage('Fp32 Hip Normal-Find gfx90a') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX90A }
@@ -795,7 +795,7 @@ pipeline {
                         buildHipClangJobAndReboot(make_targets: make_targets, execute_cmd: execute_cmd, find_mode: "Normal")
                     }
                 }
-                stage('Fp32 Hip Fast-Find AnyGPU') {
+                stage('Fp32 Hip Fast-Find gfx90a') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX90A }
@@ -812,7 +812,7 @@ pipeline {
                         buildHipClangJobAndReboot( make_targets: make_targets, execute_cmd: execute_cmd)
                     }
                 }
-                stage('Fp32 Hip AnyGPU') {
+                stage('Fp32 Hip gfx90a') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX90A }
