@@ -29,6 +29,8 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
+#define DESC_PTR(desc, default_ptr) (((desc) != nullptr) ? &miopen::deref(desc) : (default_ptr))
+
 static void LogCmdAdam(const miopenTensorDescriptor_t paramDesc,
                        const float lr,
                        const float beta1,
@@ -37,6 +39,7 @@ static void LogCmdAdam(const miopenTensorDescriptor_t paramDesc,
                        const float eps,
                        const bool amsgrad,
                        const bool maximize,
+                       const bool adamw,
                        const bool is_amp)
 {
     if(miopen::IsLoggingCmd())
@@ -51,10 +54,14 @@ static void LogCmdAdam(const miopenTensorDescriptor_t paramDesc,
         {
             ss << "adam";
         }
+        if(adamw)
+        {
+            ss << "w";
+        }
 
         if(dtype == miopenHalf)
         {
-            ss << "f16";
+            ss << "fp16";
         }
 
         std::string batch_sz;
@@ -71,167 +78,63 @@ static void LogCmdAdam(const miopenTensorDescriptor_t paramDesc,
     }
 }
 
-extern "C" miopenStatus_t miopenAdam(miopenHandle_t handle,
-                                     const miopenTensorDescriptor_t paramInDesc,
-                                     const void* paramIn,
-                                     const miopenTensorDescriptor_t gradInDesc,
-                                     const void* gradIn,
-                                     const miopenTensorDescriptor_t expAvgInDesc,
-                                     const void* expAvgIn,
-                                     const miopenTensorDescriptor_t expAvgSqInDesc,
-                                     const void* expAvgSqIn,
-                                     const miopenTensorDescriptor_t maxExpAvgSqInDesc,
-                                     const void* maxExpAvgSqIn,
-                                     const uint32_t step,
-                                     const float lr,
-                                     const float beta1,
-                                     const float beta2,
-                                     const float weight_decay,
-                                     const float eps,
-                                     const bool amsgrad,
-                                     const bool maximize,
-                                     const miopenTensorDescriptor_t paramOutDesc,
-                                     void* paramOut,
-                                     const miopenTensorDescriptor_t expAvgOutDesc,
-                                     void* expAvgOut,
-                                     const miopenTensorDescriptor_t expAvgSqOutDesc,
-                                     void* expAvgSqOut,
-                                     const miopenTensorDescriptor_t maxExpAvgSqOutDesc,
-                                     void* maxExpAvgSqOut)
+extern "C" miopenStatus_t miopenFusedAdam(miopenHandle_t handle,
+                                          const miopenTensorDescriptor_t paramDesc,
+                                          void* param,
+                                          const miopenTensorDescriptor_t gradDesc,
+                                          const void* grad,
+                                          const miopenTensorDescriptor_t expAvgDesc,
+                                          void* expAvg,
+                                          const miopenTensorDescriptor_t expAvgSqDesc,
+                                          void* expAvgSq,
+                                          const miopenTensorDescriptor_t maxExpAvgSqDesc,
+                                          void* maxExpAvgSq,
+                                          const miopenTensorDescriptor_t stateStepDesc,
+                                          void* stateStep,
+                                          const unsigned int state_step,
+                                          const float lr,
+                                          const float beta1,
+                                          const float beta2,
+                                          const float weight_decay,
+                                          const float eps,
+                                          const bool amsgrad,
+                                          const bool maximize,
+                                          const bool adamw,
+                                          const miopenTensorDescriptor_t gradScaleDesc,
+                                          const void* gradScale,
+                                          const miopenTensorDescriptor_t foundInfDesc,
+                                          const void* foundInf,
+                                          const miopenTensorDescriptor_t paramOutDesc,
+                                          void* paramOut,
+                                          const miopenTensorDescriptor_t paramOutFloat16Desc,
+                                          void* paramOutFloat16,
+                                          const miopenTensorDescriptor_t expAvgOutDesc,
+                                          void* expAvgOut,
+                                          const miopenTensorDescriptor_t expAvgSqOutDesc,
+                                          void* expAvgSqOut,
+                                          const miopenTensorDescriptor_t maxExpAvgSqOutDesc,
+                                          void* maxExpAvgSqOut,
+                                          const miopenTensorDescriptor_t stateStepOutDesc,
+                                          void* stateStepOut)
 {
-    constexpr bool is_amp = false;
     MIOPEN_LOG_FUNCTION(handle,
-                        paramInDesc,
-                        paramIn,
-                        gradInDesc,
-                        gradIn,
-                        expAvgInDesc,
-                        expAvgIn,
-                        expAvgSqInDesc,
-                        expAvgSqIn,
-                        maxExpAvgSqInDesc,
-                        maxExpAvgSqIn,
-                        step,
-                        lr,
-                        beta1,
-                        beta2,
-                        weight_decay,
-                        eps,
-                        amsgrad,
-                        maximize,
-                        paramOutDesc,
-                        paramOut,
-                        expAvgOutDesc,
-                        expAvgOut,
-                        expAvgSqOutDesc,
-                        expAvgSqOut,
-                        maxExpAvgSqOutDesc,
-                        maxExpAvgSqOut);
-
-    LogCmdAdam(paramInDesc, lr, beta1, beta2, weight_decay, eps, amsgrad, maximize, is_amp);
-
-    auto maxExpAvgSqInDescPtr =
-        (maxExpAvgSqInDesc != nullptr) ? &miopen::deref(maxExpAvgSqInDesc) : nullptr;
-    auto maxExpAvgSqOutDescPtr =
-        (maxExpAvgSqOutDesc != nullptr) ? &miopen::deref(maxExpAvgSqOutDesc) : nullptr;
-
-    return miopen::try_([&] {
-        miopen::Adam(miopen::deref(handle),
-                     miopen::deref(paramInDesc),
-                     DataCast(paramIn),
-                     miopen::deref(paramOutDesc),
-                     DataCast(paramOut),
-                     nullptr,
-                     nullptr,
-                     miopen::deref(gradInDesc),
-                     DataCast(gradIn),
-                     miopen::deref(expAvgInDesc),
-                     DataCast(expAvgIn),
-                     miopen::deref(expAvgOutDesc),
-                     DataCast(expAvgOut),
-                     miopen::deref(expAvgSqInDesc),
-                     DataCast(expAvgSqIn),
-                     miopen::deref(expAvgSqOutDesc),
-                     DataCast(expAvgSqOut),
-                     maxExpAvgSqInDescPtr,
-                     DataCast(maxExpAvgSqIn),
-                     maxExpAvgSqOutDescPtr,
-                     DataCast(maxExpAvgSqOut),
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     step,
-                     lr,
-                     beta1,
-                     beta2,
-                     weight_decay,
-                     eps,
-                     amsgrad,
-                     maximize,
-                     is_amp);
-    });
-}
-
-extern "C" miopenStatus_t miopenAmpAdam(miopenHandle_t handle,
-                                        const miopenTensorDescriptor_t paramInDesc,
-                                        const void* paramIn,
-                                        const miopenTensorDescriptor_t gradInDesc,
-                                        const void* gradIn,
-                                        const miopenTensorDescriptor_t expAvgInDesc,
-                                        const void* expAvgIn,
-                                        const miopenTensorDescriptor_t expAvgSqInDesc,
-                                        const void* expAvgSqIn,
-                                        const miopenTensorDescriptor_t maxExpAvgSqInDesc,
-                                        const void* maxExpAvgSqIn,
-                                        const miopenTensorDescriptor_t gradScaleDesc,
-                                        const void* gradScale,
-                                        const miopenTensorDescriptor_t foundInfDesc,
-                                        const void* foundInf,
-                                        const miopenTensorDescriptor_t stepInDesc,
-                                        const void* stepIn,
-                                        const float lr,
-                                        const float beta1,
-                                        const float beta2,
-                                        const float weight_decay,
-                                        const float eps,
-                                        const bool amsgrad,
-                                        const bool maximize,
-                                        const miopenTensorDescriptor_t paramOutDesc,
-                                        void* paramOut,
-                                        const miopenTensorDescriptor_t paramOutFloat16Desc,
-                                        void* paramOutFloat16,
-                                        const miopenTensorDescriptor_t expAvgOutDesc,
-                                        void* expAvgOut,
-                                        const miopenTensorDescriptor_t expAvgSqOutDesc,
-                                        void* expAvgSqOut,
-                                        const miopenTensorDescriptor_t maxExpAvgSqOutDesc,
-                                        void* maxExpAvgSqOut,
-                                        const miopenTensorDescriptor_t stepOutDesc,
-                                        void* stepOut)
-{
-    constexpr bool is_amp = true;
-    MIOPEN_LOG_FUNCTION(handle,
-                        paramInDesc,
-                        paramIn,
-                        gradInDesc,
-                        gradIn,
-                        expAvgInDesc,
-                        expAvgIn,
-                        expAvgSqInDesc,
-                        expAvgSqIn,
-                        maxExpAvgSqInDesc,
-                        maxExpAvgSqIn,
+                        paramDesc,
+                        param,
+                        gradDesc,
+                        grad,
+                        expAvgDesc,
+                        expAvg,
+                        expAvgSqDesc,
+                        expAvgSq,
+                        maxExpAvgSqDesc,
+                        maxExpAvgSq,
                         gradScaleDesc,
                         gradScale,
                         foundInfDesc,
                         foundInf,
-                        stepInDesc,
-                        stepIn,
+                        stateStepDesc,
+                        stateStep,
+                        state_step,
                         lr,
                         beta1,
                         beta2,
@@ -239,6 +142,7 @@ extern "C" miopenStatus_t miopenAmpAdam(miopenHandle_t handle,
                         eps,
                         amsgrad,
                         maximize,
+                        adamw,
                         paramOutDesc,
                         paramOut,
                         expAvgOutDesc,
@@ -247,51 +151,58 @@ extern "C" miopenStatus_t miopenAmpAdam(miopenHandle_t handle,
                         expAvgSqOut,
                         maxExpAvgSqOutDesc,
                         maxExpAvgSqOut,
-                        stepOutDesc,
-                        stepOut);
+                        stateStepOutDesc,
+                        stateStepOut);
 
-    LogCmdAdam(paramInDesc, lr, beta1, beta2, weight_decay, eps, amsgrad, maximize, is_amp);
+    bool is_amp = (foundInfDesc != nullptr || gradScaleDesc != nullptr);
 
-    auto paramOutFloat16DescPtr =
-        (paramOutFloat16Desc != nullptr) ? &miopen::deref(paramOutFloat16Desc) : nullptr;
-    auto maxExpAvgSqInDescPtr =
-        (maxExpAvgSqInDesc != nullptr) ? &miopen::deref(maxExpAvgSqInDesc) : nullptr;
-    auto maxExpAvgSqOutDescPtr =
-        (maxExpAvgSqOutDesc != nullptr) ? &miopen::deref(maxExpAvgSqOutDesc) : nullptr;
-    auto gradScaleDescPtr = (gradScaleDesc != nullptr) ? &miopen::deref(gradScaleDesc) : nullptr;
-    auto foundInfDescPtr  = (foundInfDesc != nullptr) ? &miopen::deref(foundInfDesc) : nullptr;
+    LogCmdAdam(paramDesc, lr, beta1, beta2, weight_decay, eps, amsgrad, maximize, adamw, is_amp);
+
+    auto maxExpAvgSqDescPtr    = DESC_PTR(maxExpAvgSqDesc, nullptr);
+    auto maxExpAvgSqOutDescPtr = DESC_PTR(maxExpAvgSqOutDesc, maxExpAvgSqDescPtr);
+    auto stateStepDescPtr      = DESC_PTR(stateStepDesc, nullptr);
+    auto stateStepOutDescPtr   = DESC_PTR(stateStepOutDesc, stateStepDescPtr);
+
+    if(paramOutDesc == nullptr)
+        paramOut = param;
+    if(expAvgOutDesc == nullptr)
+        expAvgOut = expAvg;
+    if(expAvgSqOutDesc == nullptr)
+        expAvgSqOut = expAvgSq;
+    if(maxExpAvgSqOutDesc == nullptr)
+        maxExpAvgSqOut = maxExpAvgSq;
 
     return miopen::try_([&] {
         miopen::Adam(miopen::deref(handle),
-                     miopen::deref(paramInDesc),
-                     DataCast(paramIn),
-                     miopen::deref(paramOutDesc),
+                     &miopen::deref(paramDesc),
+                     DataCast(param),
+                     DESC_PTR(paramOutDesc, &miopen::deref(paramDesc)),
                      DataCast(paramOut),
-                     paramOutFloat16DescPtr,
+                     DESC_PTR(paramOutFloat16Desc, nullptr),
                      DataCast(paramOutFloat16),
-                     miopen::deref(gradInDesc),
-                     DataCast(gradIn),
-                     miopen::deref(expAvgInDesc),
-                     DataCast(expAvgIn),
-                     miopen::deref(expAvgOutDesc),
+                     &miopen::deref(gradDesc),
+                     DataCast(grad),
+                     &miopen::deref(expAvgDesc),
+                     DataCast(expAvg),
+                     DESC_PTR(expAvgOutDesc, &miopen::deref(expAvgDesc)),
                      DataCast(expAvgOut),
-                     miopen::deref(expAvgSqInDesc),
-                     DataCast(expAvgSqIn),
-                     miopen::deref(expAvgSqOutDesc),
+                     &miopen::deref(expAvgSqDesc),
+                     DataCast(expAvgSq),
+                     DESC_PTR(expAvgSqOutDesc, &miopen::deref(expAvgSqDesc)),
                      DataCast(expAvgSqOut),
-                     maxExpAvgSqInDescPtr,
-                     DataCast(maxExpAvgSqIn),
+                     maxExpAvgSqDescPtr,
+                     DataCast(maxExpAvgSq),
                      maxExpAvgSqOutDescPtr,
                      DataCast(maxExpAvgSqOut),
-                     gradScaleDescPtr,
+                     DESC_PTR(gradScaleDesc, nullptr),
                      DataCast(gradScale),
-                     foundInfDescPtr,
+                     DESC_PTR(foundInfDesc, nullptr),
                      DataCast(foundInf),
-                     &miopen::deref(stepInDesc),
-                     DataCast(stepIn),
-                     &miopen::deref(stepOutDesc),
-                     DataCast(stepOut),
-                     0,
+                     stateStepDescPtr,
+                     DataCast(stateStep),
+                     stateStepOutDescPtr,
+                     DataCast(stateStepOut),
+                     state_step,
                      lr,
                      beta1,
                      beta2,
@@ -299,6 +210,7 @@ extern "C" miopenStatus_t miopenAmpAdam(miopenHandle_t handle,
                      eps,
                      amsgrad,
                      maximize,
+                     adamw,
                      is_amp);
     });
 }

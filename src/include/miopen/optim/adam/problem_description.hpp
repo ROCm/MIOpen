@@ -39,14 +39,14 @@ namespace adam {
 
 struct ProblemDescription : ProblemDescriptionBase
 {
-    ProblemDescription(const TensorDescriptor& paramInDesc_,
-                       const TensorDescriptor& paramOutDesc_,
+    ProblemDescription(const TensorDescriptor* paramInDesc_,
+                       const TensorDescriptor* paramOutDesc_,
                        const TensorDescriptor* paramOutFloat16Desc_,
-                       const TensorDescriptor& gradInDesc_,
-                       const TensorDescriptor& expAvgInDesc_,
-                       const TensorDescriptor& expAvgOutDesc_,
-                       const TensorDescriptor& expAvgSqInDesc_,
-                       const TensorDescriptor& expAvgSqOutDesc_,
+                       const TensorDescriptor* gradInDesc_,
+                       const TensorDescriptor* expAvgInDesc_,
+                       const TensorDescriptor* expAvgOutDesc_,
+                       const TensorDescriptor* expAvgSqInDesc_,
+                       const TensorDescriptor* expAvgSqOutDesc_,
                        const TensorDescriptor* maxExpAvgSqInDesc_,
                        const TensorDescriptor* maxExpAvgSqOutDesc_,
                        const TensorDescriptor* gradScaleDesc_,
@@ -61,6 +61,7 @@ struct ProblemDescription : ProblemDescriptionBase
                        double eps_,
                        bool amsgrad_,
                        bool maximize_,
+                       bool adamw_,
                        bool is_amp_)
         : paramInDesc(paramInDesc_),
           paramOutDesc(paramOutDesc_),
@@ -84,28 +85,25 @@ struct ProblemDescription : ProblemDescriptionBase
           eps(eps_),
           amsgrad(amsgrad_),
           maximize(maximize_),
+          adamw(adamw_),
           is_amp(is_amp_)
     {
-        if(is_amp && (stepInDesc == nullptr || stepOutDesc == nullptr))
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "AmpAdam: In amp adam, State step tensor is required.");
-
         if(amsgrad && (maxExpAvgSqInDesc == nullptr || maxExpAvgSqOutDesc == nullptr))
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "Adam: In the amsgrad, the max_exp_avg_sq tensor is required.");
         }
 
-        auto dtype = paramInDesc.GetType();
+        auto dtype = paramInDesc->GetType();
 
-        if((dtype == miopenBFloat16) || (gradInDesc.GetType() == miopenBFloat16))
+        if((dtype == miopenBFloat16) || (gradInDesc->GetType() == miopenBFloat16))
         {
             MIOPEN_THROW(miopenStatusBadParm, "Adam: bfloat16 type is not supported.");
         }
 
-        if((paramOutDesc.GetType() != dtype) || (!is_amp && gradInDesc.GetType() != dtype) ||
-           (expAvgInDesc.GetType() != dtype) || (expAvgOutDesc.GetType() != dtype) ||
-           (expAvgSqInDesc.GetType() != dtype) || (expAvgSqOutDesc.GetType() != dtype) ||
+        if((paramOutDesc->GetType() != dtype) || (!is_amp && gradInDesc->GetType() != dtype) ||
+           (expAvgInDesc->GetType() != dtype) || (expAvgOutDesc->GetType() != dtype) ||
+           (expAvgSqInDesc->GetType() != dtype) || (expAvgSqOutDesc->GetType() != dtype) ||
            (maxExpAvgSqInDesc != nullptr && maxExpAvgSqInDesc->GetType() != dtype) ||
            (maxExpAvgSqOutDesc != nullptr && maxExpAvgSqOutDesc->GetType() != dtype))
         {
@@ -118,11 +116,12 @@ struct ProblemDescription : ProblemDescriptionBase
             MIOPEN_THROW(miopenStatusBadParm, "Adam: Invalid type of param_out_float16.");
         }
 
-        auto numel = paramInDesc.GetElementSize();
-        if((paramOutDesc.GetElementSize() != numel) || (gradInDesc.GetElementSize() != numel) ||
-           (expAvgInDesc.GetElementSize() != numel) || (expAvgOutDesc.GetElementSize() != numel) ||
-           (expAvgSqInDesc.GetElementSize() != numel) ||
-           (expAvgSqOutDesc.GetElementSize() != numel) ||
+        auto numel = paramInDesc->GetElementSize();
+        if((paramOutDesc->GetElementSize() != numel) || (gradInDesc->GetElementSize() != numel) ||
+           (expAvgInDesc->GetElementSize() != numel) ||
+           (expAvgOutDesc->GetElementSize() != numel) ||
+           (expAvgSqInDesc->GetElementSize() != numel) ||
+           (expAvgSqOutDesc->GetElementSize() != numel) ||
            (is_amp && paramOutFloat16Desc != nullptr &&
             paramOutFloat16Desc->GetElementSize() != numel) ||
            (maxExpAvgSqInDesc != nullptr && maxExpAvgSqInDesc->GetElementSize() != numel) ||
@@ -132,13 +131,15 @@ struct ProblemDescription : ProblemDescriptionBase
         }
     }
 
-    const TensorDescriptor& GetParamDesc() const { return paramInDesc; }
-    const TensorDescriptor& GetGradDesc() const { return gradInDesc; }
+    const TensorDescriptor& GetParamDesc() const { return *paramInDesc; }
+    const TensorDescriptor& GetGradDesc() const { return *gradInDesc; }
     bool IsAmp() const { return is_amp; }
+    bool IsAdamW() const { return adamw; }
+    bool IsStepHost() const { return (stepInDesc == nullptr); }
     bool IsAllPacked() const
     {
-        if(!(paramInDesc.IsPacked() && gradInDesc.IsPacked() && expAvgInDesc.IsPacked() &&
-             expAvgSqInDesc.IsPacked()))
+        if(!(paramInDesc->IsPacked() && gradInDesc->IsPacked() && expAvgInDesc->IsPacked() &&
+             expAvgSqInDesc->IsPacked()))
             return false;
         return true;
     }
@@ -146,13 +147,13 @@ struct ProblemDescription : ProblemDescriptionBase
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
-    TensorDescriptor paramInDesc{};
-    TensorDescriptor paramOutDesc{};
-    TensorDescriptor gradInDesc{};
-    TensorDescriptor expAvgInDesc{};
-    TensorDescriptor expAvgOutDesc{};
-    TensorDescriptor expAvgSqInDesc{};
-    TensorDescriptor expAvgSqOutDesc{};
+    const TensorDescriptor* paramInDesc         = nullptr;
+    const TensorDescriptor* paramOutDesc        = nullptr;
+    const TensorDescriptor* gradInDesc          = nullptr;
+    const TensorDescriptor* expAvgInDesc        = nullptr;
+    const TensorDescriptor* expAvgOutDesc       = nullptr;
+    const TensorDescriptor* expAvgSqInDesc      = nullptr;
+    const TensorDescriptor* expAvgSqOutDesc     = nullptr;
     const TensorDescriptor* paramOutFloat16Desc = nullptr;
     const TensorDescriptor* maxExpAvgSqInDesc   = nullptr;
     const TensorDescriptor* maxExpAvgSqOutDesc  = nullptr;
@@ -169,6 +170,7 @@ private:
     double eps          = 0.0;
     bool amsgrad        = false;
     bool maximize       = false;
+    bool adamw          = false;
     bool is_amp         = false;
 
     NetworkConfig MakeForwardNetworkConfig() const;

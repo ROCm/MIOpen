@@ -196,24 +196,26 @@ protected:
                          found_inf[0],
                          step_count);
 
+        auto step_desc_ptr = is_amp ? &step.desc : nullptr;
+
         for(uint32_t i = 1; i <= step_count; i++)
         {
             auto status = miopen::Adam(handle,
-                                       param.desc,
+                                       &param.desc,
                                        param_dev.get(),
-                                       param.desc,
+                                       &param.desc,
                                        param_dev.get(),
                                        &param_fp16.desc,
                                        param_fp16_dev.get(),
-                                       grad.desc,
+                                       &grad.desc,
                                        grad_dev.get(),
-                                       exp_avg.desc,
+                                       &exp_avg.desc,
                                        exp_avg_dev.get(),
-                                       exp_avg.desc,
+                                       &exp_avg.desc,
                                        exp_avg_dev.get(),
-                                       exp_avg_sq.desc,
+                                       &exp_avg_sq.desc,
                                        exp_avg_sq_dev.get(),
-                                       exp_avg_sq.desc,
+                                       &exp_avg_sq.desc,
                                        exp_avg_sq_dev.get(),
                                        amsgrad ? &max_exp_avg_sq.desc : nullptr,
                                        max_exp_avg_sq_dev.get(),
@@ -223,9 +225,9 @@ protected:
                                        grad_scale_dev.get(),
                                        &found_inf.desc,
                                        found_inf_dev.get(),
-                                       &step.desc,
+                                       step_desc_ptr,
                                        step_dev.get(),
-                                       &step.desc,
+                                       step_desc_ptr,
                                        step_dev.get(),
                                        i,
                                        lr,
@@ -235,6 +237,7 @@ protected:
                                        eps,
                                        amsgrad,
                                        maximize,
+                                       false, // adamw
                                        is_amp);
 
             EXPECT_EQ(status, miopenStatusSuccess);

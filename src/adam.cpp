@@ -36,33 +36,33 @@
 namespace miopen {
 
 miopenStatus_t Adam(Handle& handle,
-                    const TensorDescriptor& paramInDesc,
+                    const TensorDescriptor* paramInDesc,
                     ConstData_t paramIn,
-                    const TensorDescriptor& paramOutDesc,
+                    const TensorDescriptor* paramOutDesc,
                     Data_t paramOut,
                     const TensorDescriptor* paramOutFloat16Desc,
                     Data_t paramOutFloat16,
-                    const TensorDescriptor& gradInDesc,
+                    const TensorDescriptor* gradInDesc,
                     ConstData_t gradIn,
-                    const TensorDescriptor& expAvgInDesc,
+                    const TensorDescriptor* expAvgInDesc,
                     ConstData_t expAvgIn,
-                    const TensorDescriptor& expAvgOutDesc,
+                    const TensorDescriptor* expAvgOutDesc,
                     Data_t expAvgOut,
-                    const TensorDescriptor& expAvgSqInDesc,
+                    const TensorDescriptor* expAvgSqInDesc,
                     ConstData_t expAvgSqIn,
-                    const TensorDescriptor& expAvgSqOutDesc,
+                    const TensorDescriptor* expAvgSqOutDesc,
                     Data_t expAvgSqOut,
-                    const TensorDescriptor* maxExpAvgSqInDescPtr,
+                    const TensorDescriptor* maxExpAvgSqInDesc,
                     ConstData_t maxExpAvgSqIn,
-                    const TensorDescriptor* maxExpAvgSqOutDescPtr,
+                    const TensorDescriptor* maxExpAvgSqOutDesc,
                     Data_t maxExpAvgSqOut,
-                    const TensorDescriptor* gradScaleDescPtr,
+                    const TensorDescriptor* gradScaleDesc,
                     ConstData_t gradScale,
-                    const TensorDescriptor* foundInfDescPtr,
+                    const TensorDescriptor* foundInfDesc,
                     ConstData_t foundInf,
-                    const TensorDescriptor* stepInDescPtr,
+                    const TensorDescriptor* stepInDesc,
                     ConstData_t stepIn,
-                    const TensorDescriptor* stepOutDescPtr,
+                    const TensorDescriptor* stepOutDesc,
                     Data_t stepOut,
                     const uint32_t step,
                     const float lr,
@@ -72,6 +72,7 @@ miopenStatus_t Adam(Handle& handle,
                     const float eps,
                     const bool amsgrad,
                     const bool maximize,
+                    const bool adamw,
                     const bool is_amp)
 {
     const auto problem = adam::ProblemDescription{paramInDesc,
@@ -82,12 +83,12 @@ miopenStatus_t Adam(Handle& handle,
                                                   expAvgOutDesc,
                                                   expAvgSqInDesc,
                                                   expAvgSqOutDesc,
-                                                  maxExpAvgSqInDescPtr,
-                                                  maxExpAvgSqOutDescPtr,
-                                                  gradScaleDescPtr,
-                                                  foundInfDescPtr,
-                                                  stepInDescPtr,
-                                                  stepOutDescPtr,
+                                                  maxExpAvgSqInDesc,
+                                                  maxExpAvgSqOutDesc,
+                                                  gradScaleDesc,
+                                                  foundInfDesc,
+                                                  stepInDesc,
+                                                  stepOutDesc,
                                                   step,
                                                   lr,
                                                   beta1,
@@ -96,14 +97,15 @@ miopenStatus_t Adam(Handle& handle,
                                                   eps,
                                                   amsgrad,
                                                   maximize,
+                                                  adamw,
                                                   is_amp};
 
     const auto invoke_params = [&]() {
         auto tmp = adam::InvokeParams{};
         tmp.type = InvokeType::Run;
 
-        tmp.paramDesc       = &paramInDesc;
-        tmp.gradDesc        = &gradInDesc;
+        tmp.paramDesc       = paramInDesc;
+        tmp.gradDesc        = gradInDesc;
         tmp.paramIn         = paramIn;
         tmp.paramOut        = paramOut;
         tmp.paramOutFloat16 = paramOutFloat16;
@@ -127,6 +129,7 @@ miopenStatus_t Adam(Handle& handle,
         tmp.eps          = eps;
         tmp.amsgrad      = amsgrad;
         tmp.maximize     = maximize;
+        tmp.adamw        = adamw;
 
         return tmp;
     }();

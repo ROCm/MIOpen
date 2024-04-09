@@ -175,7 +175,8 @@ extern "C" __global__ void AmpAdamPacked(PTYPE* param_in,
     for(; gid < input_size; gid += gsz)
     {
         CTYPE grad = static_cast<CTYPE>(grad_in[gid]);
-        grad /= scale_factor;
+        if(grad_scale)
+            grad /= scale_factor;
 
         AdamInternal<PTYPE, CTYPE>(param_in,
                                    param_out,
@@ -192,6 +193,69 @@ extern "C" __global__ void AmpAdamPacked(PTYPE* param_in,
                                    weight_decay,
                                    eps,
                                    step_val,
+                                   amsgrad,
+                                   maximize,
+                                   gid);
+
+        if(param_out_fp16)
+            param_out_fp16[gid] = static_cast<half>(param_out[gid]);
+    }
+}
+
+extern "C" __global__ void ApexAmpAdamPacked(PTYPE* param_in,
+                                             PTYPE* param_out,
+                                             half* param_out_fp16,
+                                             GTYPE* grad_in,
+                                             PTYPE* exp_avg_in,
+                                             PTYPE* exp_avg_out,
+                                             PTYPE* exp_avg_sq_in,
+                                             PTYPE* exp_avg_sq_out,
+                                             PTYPE* max_exp_avg_sq_in,
+                                             PTYPE* max_exp_avg_sq_out,
+                                             int32_t* grad_scale,
+                                             bool* found_inf,
+                                             int step,
+                                             float lr,
+                                             float beta1,
+                                             float beta2,
+                                             float weight_decay,
+                                             float eps,
+                                             bool amsgrad,
+                                             bool maximize,
+                                             size_t input_size)
+{
+    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t gsz = gridDim.x * blockDim.x;
+
+    if(gid >= input_size)
+        return;
+
+    if(found_inf && *found_inf)
+        return;
+
+    CTYPE scale_factor = (grad_scale) ? static_cast<CTYPE>(*grad_scale) : 1.0f;
+
+    for(; gid < input_size; gid += gsz)
+    {
+        CTYPE grad = static_cast<CTYPE>(grad_in[gid]);
+        if(grad_scale)
+            grad /= scale_factor;
+
+        AdamInternal<PTYPE, CTYPE>(param_in,
+                                   param_out,
+                                   exp_avg_in,
+                                   exp_avg_out,
+                                   exp_avg_sq_in,
+                                   exp_avg_sq_out,
+                                   max_exp_avg_sq_in,
+                                   max_exp_avg_sq_out,
+                                   grad,
+                                   lr,
+                                   beta1,
+                                   beta2,
+                                   weight_decay,
+                                   eps,
+                                   step,
                                    amsgrad,
                                    maximize,
                                    gid);

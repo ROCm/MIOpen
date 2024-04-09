@@ -206,7 +206,6 @@ private:
     bool amsgrad   = false;
     bool maximize  = false;
     bool found_inf = false;
-    int32_t step   = 0;
     int grad_scale = 1;
     int iter       = 0;
 
@@ -384,6 +383,7 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::AllocateBuffersAndCopy()
 
     if(is_amp)
     {
+        int step = 0;
         if(step_dev->ToGPU(GetStream(), &step) != 0)
             std::cerr << "Error copying (step) to GPU, size: " << step_dev->GetSize() << std::endl;
 
@@ -405,82 +405,41 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::RunForwardGPU()
     float kernel_first_time = 0;
 
     void* max_exp_avg_sq_ptr = amsgrad ? max_exp_avg_sq_dev->GetMem() : nullptr;
+    void* grad_scale_ptr     = is_amp ? scale_dev->GetMem() : nullptr;
+    void* found_inf_ptr      = is_amp ? found_inf_dev->GetMem() : nullptr;
+    void* state_step_ptr     = is_amp ? step_dev->GetMem() : nullptr;
 
     Timer t;
     START_TIME
 
     for(int i = 0; i < iter; i++)
     {
-        if(is_amp)
-        {
-            miopenAmpAdam(GetHandle(),
-                          paramDesc,
-                          param_dev->GetMem(),
-                          gradDesc,
-                          grad_dev->GetMem(),
-                          expAvgDesc,
-                          exp_avg_dev->GetMem(),
-                          expAvgSqDesc,
-                          exp_avg_sq_dev->GetMem(),
-                          maxExpAvgSqDesc,
-                          max_exp_avg_sq_ptr,
-                          gradScaleDesc,
-                          scale_dev->GetMem(),
-                          foundInfDesc,
-                          found_inf_dev->GetMem(),
-                          stepDesc,
-                          step_dev->GetMem(),
-                          lr,
-                          beta1,
-                          beta2,
-                          weight_decay,
-                          eps,
-                          amsgrad,
-                          maximize,
-                          paramDesc,
-                          param_dev->GetMem(),
-                          nullptr,
-                          nullptr,
-                          expAvgDesc,
-                          exp_avg_dev->GetMem(),
-                          expAvgSqDesc,
-                          exp_avg_sq_dev->GetMem(),
-                          maxExpAvgSqDesc,
-                          max_exp_avg_sq_ptr,
-                          stepDesc,
-                          step_dev->GetMem());
-        }
-        else
-        {
-            step++;
-            miopenAdam(GetHandle(),
-                       paramDesc,
-                       param_dev->GetMem(),
-                       gradDesc,
-                       grad_dev->GetMem(),
-                       expAvgDesc,
-                       exp_avg_dev->GetMem(),
-                       expAvgSqDesc,
-                       exp_avg_sq_dev->GetMem(),
-                       maxExpAvgSqDesc,
-                       max_exp_avg_sq_ptr,
-                       step,
-                       lr,
-                       beta1,
-                       beta2,
-                       weight_decay,
-                       eps,
-                       amsgrad,
-                       maximize,
-                       paramDesc,
-                       param_dev->GetMem(),
-                       expAvgDesc,
-                       exp_avg_dev->GetMem(),
-                       expAvgSqDesc,
-                       exp_avg_sq_dev->GetMem(),
-                       maxExpAvgSqDesc,
-                       max_exp_avg_sq_ptr);
-        }
+        miopenFusedAdam(GetHandle(),
+                        paramDesc,
+                        param_dev->GetMem(),
+                        gradDesc,
+                        grad_dev->GetMem(),
+                        expAvgDesc,
+                        exp_avg_dev->GetMem(),
+                        expAvgSqDesc,
+                        exp_avg_sq_dev->GetMem(),
+                        maxExpAvgSqDesc,
+                        max_exp_avg_sq_ptr,
+                        stepDesc,
+                        state_step_ptr,
+                        i + 1,
+                        lr,
+                        beta1,
+                        beta2,
+                        weight_decay,
+                        eps,
+                        amsgrad,
+                        maximize,
+                        false, // adamw
+                        gradScaleDesc,
+                        grad_scale_ptr,
+                        foundInfDesc,
+                        found_inf_ptr);
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
