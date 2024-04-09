@@ -109,20 +109,22 @@ MultiBufferWorkspaceTraits SplitBufferToWorkspace(const std::vector<size_t>& len
 bool Mha::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                        const miopen::mha::ProblemDescription& problem) const
 {
-    auto [N, H, S, D] = miopen::tien<4>(problem.GetDescs().kDesc.GetLengths());
+    const miopen::mha::MhaInputDescsForward& descsForward = problem.GetDescsForward();
+
+    auto [N, H, S, D] = miopen::tien<4>(descsForward.kDesc.GetLengths());
 
     return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_NAIVE)) && //
            S <= std::numeric_limits<uint32_t>::max() &&         //
-           problem.GetDescs().kDesc.IsPacked() &&               //
-           problem.GetDescs().qDesc.IsPacked() &&               //
-           problem.GetDescs().vDesc.IsPacked() &&               //
+           descsForward.kDesc.IsPacked() &&               //
+           descsForward.qDesc.IsPacked() &&               //
+           descsForward.vDesc.IsPacked() &&               //
            MIOPEN_USE_GEMM;
 }
 
 std::size_t Mha::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
                                   const miopen::mha::ProblemDescription& problem) const
 {
-    return SplitBufferToWorkspace(problem.GetDescs().kDesc.GetLengths()).GetSize();
+    return SplitBufferToWorkspace(problem.GetDescsForward().kDesc.GetLengths()).GetSize();
 }
 
 ConvSolution Mha::GetSolution(const ExecutionContext& context,
@@ -130,7 +132,7 @@ ConvSolution Mha::GetSolution(const ExecutionContext& context,
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto [N, H, S, D] = miopen::tien<4>(problem.GetDescs().kDesc.GetLengths());
+    auto [N, H, S, D] = miopen::tien<4>(problem.GetDescsForward().kDesc.GetLengths());
     uint32_t seq_len  = S;
     uint64_t nhs      = N * H * S;
     uint64_t nhsd     = N * H * S * D;
@@ -186,9 +188,9 @@ ConvSolution Mha::GetSolution(const ExecutionContext& context,
                            S * D,
                            S * D,
                            S * S,
-                           problem.GetDescs().scale,
+                           problem.GetDescsForward().scale,
                            0.0f,
-                           problem.GetDescs().kDesc.GetType(),
+                           problem.GetDescsForward().kDesc.GetType(),
                            true);
 
     GemmDescriptor SV_desc(false,
@@ -206,7 +208,7 @@ ConvSolution Mha::GetSolution(const ExecutionContext& context,
                            S * D,
                            1.0f,
                            0.0f,
-                           problem.GetDescs().vDesc.GetType(),
+                           problem.GetDescsForward().vDesc.GetType(),
                            true);
 #endif
 

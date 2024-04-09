@@ -44,8 +44,16 @@ struct ProblemDescription : ProblemDescriptionBase
     {
     }
 
+    // softmax backward constructor
+    ProblemDescription(const MhaInputDescsBackward& descs)
+        : isForward(false), mhaInputDescsBackward(descs)
+    {
+    }
+
+
     bool IsForward() const { return isForward; }
-    const MhaInputDescsForward& GetDescs() const { return mhaInputDescsForward; }
+    const MhaInputDescsForward& GetDescsForward() const { return mhaInputDescsForward; }
+    const MhaInputDescsBackward& GetDescsBackward() const { return mhaInputDescsBackward; }
 
     NetworkConfig MakeNetworkConfig() const override;
 
@@ -53,6 +61,7 @@ private:
     const bool isForward;
 
     MhaInputDescsForward mhaInputDescsForward;
+    MhaInputDescsBackward mhaInputDescsBackward;
 };
 
 } // namespace mha
