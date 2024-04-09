@@ -171,6 +171,8 @@ extern "C" miopenStatus_t miopenFusedAdam(miopenHandle_t handle,
         expAvgSqOut = expAvgSq;
     if(maxExpAvgSqOutDesc == nullptr)
         maxExpAvgSqOut = maxExpAvgSq;
+    if(stateStepOutDesc == nullptr)
+        stateStepOut = stateStep;
 
     return miopen::try_([&] {
         miopen::Adam(miopen::deref(handle),

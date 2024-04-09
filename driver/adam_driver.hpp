@@ -48,13 +48,13 @@
 #define MLO_ADAMHOST_H_
 
 template <typename Tref>
-void mloAdamRunHost(int32_t iter,
-                    miopenTensorDescriptor_t paramDesc,
-                    Tref* param,
-                    Tref* grad,
-                    Tref* exp_avg,
-                    Tref* exp_avg_sq,
-                    Tref* max_exp_avg_sq,
+void mloAdamRunHost(miopenTensorDescriptor_t paramDesc,
+                    Tref* params,
+                    Tref* grads,
+                    Tref* exp_avgs,
+                    Tref* exp_avg_sqs,
+                    Tref* max_exp_avg_sqs,
+                    int32_t step,
                     float lr,
                     float beta1,
                     float beta2,
@@ -72,38 +72,43 @@ void mloAdamRunHost(int32_t iter,
     size_t numel = miopen::deref(paramDesc).GetElementSize();
     for(int i = 0; i < numel; i++)
     {
-        for(int step = 1; step <= iter; step++)
+        Tref exp_avg    = exp_avgs[i];
+        Tref exp_avg_sq = exp_avg_sqs[i];
+
+        Tref param = params[i];
+        Tref grad  = grads[i];
+        if(maximize)
+            grad *= -1;
+        if(is_amp)
+            grad /= grad_scale;
+
+        float bias_correction1 = 1 - pow(beta1, step);
+        float bias_correction2 = 1 - pow(beta2, step);
+
+        if(weight_decay != 0)
+            grad += param * weight_decay;
+
+        exp_avg    = exp_avg * beta1 + grad * (1 - beta1);
+        exp_avg_sq = exp_avg_sq * beta2 + grad * grad * (1 - beta2);
+
+        float denom;
+        if(amsgrad)
         {
-            Tref grad_tmp = grad[i];
-            if(maximize)
-                grad_tmp *= -1;
-            if(is_amp)
-                grad_tmp /= grad_scale;
-
-            float bias_correction1 = 1 - pow(beta1, step);
-            float bias_correction2 = 1 - pow(beta2, step);
-
-            if(weight_decay != 0)
-                grad_tmp += param[i] * weight_decay;
-
-            exp_avg[i]    = exp_avg[i] * beta1 + grad_tmp * (1 - beta1);
-            exp_avg_sq[i] = exp_avg_sq[i] * beta2 + grad_tmp * grad_tmp * (1 - beta2);
-
-            float denom;
-            if(amsgrad)
+            Tref max_exp_avg_sq = max_exp_avg_sqs[i];
+            if(exp_avg_sq > max_exp_avg_sq)
             {
-                if(exp_avg_sq[i] > max_exp_avg_sq[i])
-                    max_exp_avg_sq[i] = exp_avg_sq[i];
-
-                denom = sqrt(max_exp_avg_sq[i]) / sqrt(bias_correction2) + eps;
-            }
-            else
-            {
-                denom = sqrt(exp_avg_sq[i]) / sqrt(bias_correction2) + eps;
+                max_exp_avg_sq     = exp_avg_sq;
+                max_exp_avg_sqs[i] = max_exp_avg_sq;
             }
 
-            param[i] -= (lr / bias_correction1) * exp_avg[i] / denom;
+            denom = sqrt(max_exp_avg_sq) / sqrt(bias_correction2) + eps;
         }
+        else
+        {
+            denom = sqrt(exp_avg_sq) / sqrt(bias_correction2) + eps;
+        }
+
+        params[i] = param - (lr / bias_correction1) * exp_avg / denom;
     }
 }
 
@@ -119,6 +124,8 @@ public:
         miopenCreateTensorDescriptor(&gradDesc);
         miopenCreateTensorDescriptor(&expAvgDesc);
         miopenCreateTensorDescriptor(&expAvgSqDesc);
+        miopenCreateTensorDescriptor(&paramOutDesc);
+        miopenCreateTensorDescriptor(&dummyOutDesc);
         if(is_amp)
         {
             miopenCreateTensorDescriptor(&stepDesc);
@@ -153,6 +160,8 @@ public:
         miopenDestroyTensorDescriptor(gradDesc);
         miopenDestroyTensorDescriptor(expAvgDesc);
         miopenDestroyTensorDescriptor(expAvgSqDesc);
+        miopenDestroyTensorDescriptor(paramOutDesc);
+        miopenDestroyTensorDescriptor(dummyOutDesc);
         if(maxExpAvgSqDesc)
             miopenDestroyTensorDescriptor(maxExpAvgSqDesc);
         if(stepDesc)
@@ -176,8 +185,12 @@ private:
     miopenTensorDescriptor_t stepDesc        = nullptr;
     miopenTensorDescriptor_t gradScaleDesc   = nullptr;
     miopenTensorDescriptor_t foundInfDesc    = nullptr;
+    miopenTensorDescriptor_t paramOutDesc    = nullptr;
+    miopenTensorDescriptor_t dummyOutDesc    = nullptr;
 
     std::unique_ptr<GPUMem> param_dev;
+    std::unique_ptr<GPUMem> param_out_dev;
+    std::unique_ptr<GPUMem> dummy_out_dev;
     std::unique_ptr<GPUMem> grad_dev;
     std::unique_ptr<GPUMem> exp_avg_dev;
     std::unique_ptr<GPUMem> exp_avg_sq_dev;
@@ -245,9 +258,11 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::GetandSetData()
 
     std::vector<int> one_size = {1};
     SetTensorNd(paramDesc, param_len, data_type);
+    SetTensorNd(paramOutDesc, param_len, data_type);
     SetTensorNd(gradDesc, param_len, grad_type);
     SetTensorNd(expAvgDesc, param_len, data_type);
     SetTensorNd(expAvgSqDesc, param_len, data_type);
+    SetTensorNd(dummyOutDesc, param_len, data_type);
 
     if(amsgrad)
     {
@@ -314,6 +329,8 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::AllocateBuffersAndCopy()
     grad_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, param_sz, sizeof(Tgrad)));
     exp_avg_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, param_sz, sizeof(Tgpu)));
     exp_avg_sq_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, param_sz, sizeof(Tgpu)));
+    param_out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, param_sz, sizeof(Tgpu)));
+    dummy_out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, param_sz, sizeof(Tgpu)));
 
     if(amsgrad)
         max_exp_avg_sq_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, param_sz, sizeof(Tgpu)));
@@ -343,21 +360,31 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < param_sz; i++)
     {
-        param[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-        grad[i]  = prng::gen_A_to_B<Tgrad>(static_cast<Tgrad>(0.0), static_cast<Tgrad>(1.0));
+        param[i]        = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        grad[i]         = prng::gen_A_to_B<Tgrad>(static_cast<Tgrad>(0.0), static_cast<Tgrad>(0.1));
+        exp_avg[i]      = prng::gen_A_to_B<Tgrad>(static_cast<Tgrad>(0), static_cast<Tgrad>(0.1));
+        exp_avg_sq[i]   = prng::gen_A_to_B<Tgrad>(static_cast<Tgrad>(0), static_cast<Tgrad>(0.1));
+        param_host[i]   = param[i];
+        exp_avg_host[i] = exp_avg[i];
+        exp_avg_sq_host[i] = exp_avg_sq[i];
+
+        if(amsgrad)
+        {
+            max_exp_avg_sq[i] =
+                prng::gen_A_to_B<Tgrad>(static_cast<Tgrad>(0.5), static_cast<Tgrad>(1.0));
+            max_exp_avg_sq_host[i] = max_exp_avg_sq[i];
+        }
 
         if(is_amp)
         {
             grad[i] *= grad_scale;
-            if(!found_inf && std::isnan(grad[i]))
+            if(!found_inf && (std::isnan(grad[i]) || std::isinf(grad[i])))
             {
                 std::cerr << "Error init (grad), idx: " << i << ", value: " << grad[i] << std::endl;
                 found_inf = true;
             }
         }
-
-        param_host[i] = param[i];
-        grad_host[i]  = grad[i];
+        grad_host[i] = grad[i];
     }
 
     if(param_dev->ToGPU(GetStream(), param.data()) != 0)
@@ -439,7 +466,17 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::RunForwardGPU()
                         gradScaleDesc,
                         grad_scale_ptr,
                         foundInfDesc,
-                        found_inf_ptr);
+                        found_inf_ptr,
+                        paramOutDesc,
+                        param_out_dev->GetMem(),
+                        nullptr,
+                        nullptr,
+                        dummyOutDesc,
+                        dummy_out_dev->GetMem(),
+                        dummyOutDesc,
+                        dummy_out_dev->GetMem(),
+                        dummyOutDesc,
+                        dummy_out_dev->GetMem());
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -459,7 +496,7 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::RunForwardGPU()
         printf("GPU Kernel Time Forward Adam Elapsed: %f ms\n", kernel_average_time);
     }
 
-    if(param_dev->FromGPU(GetStream(), param.data()) != 0)
+    if(param_out_dev->FromGPU(GetStream(), param.data()) != 0)
         std::cerr << "Error copying (param_dev) from GPU, size: " << param_dev->GetSize()
                   << std::endl;
 
@@ -469,13 +506,13 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::RunForwardGPU()
 template <typename Tgpu, typename Tref, bool is_amp, typename Tgrad>
 int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::RunForwardCPU()
 {
-    mloAdamRunHost<Tref>(iter,
-                         paramDesc,
+    mloAdamRunHost<Tref>(paramDesc,
                          param_host.data(),
                          grad_host.data(),
                          exp_avg_host.data(),
                          exp_avg_sq_host.data(),
                          max_exp_avg_sq_host.data(),
+                         iter,
                          lr,
                          beta1,
                          beta2,
