@@ -26,18 +26,25 @@
 #ifndef GUARD_MIOPEN_GEMM_DRIVER_HPP
 #define GUARD_MIOPEN_GEMM_DRIVER_HPP
 
+#include <miopen/config.h>
+
 #if MIOPEN_USE_GEMM
 #include "InputFlags.hpp"
 #include "driver.hpp"
+#include "random.hpp"
+#include "util_driver.hpp"
+
+#include <../test/verify.hpp>
+
+#include <miopen/gemm_v2.hpp>
+#include <miopen/miopen.h>
+
 #include <algorithm>
 #include <cstdlib>
 #include <float.h>
 #include <memory>
-#include <miopen/miopen.h>
-#include <miopen/gemm_v2.hpp>
 #include <numeric>
 #include <vector>
-#include "random.hpp"
 
 #define GEMM_DRIVER_DEBUG 0
 
@@ -236,12 +243,10 @@ int GemmDriver<T>::AllocateBuffersAndCopy()
     size_t a_sz = gemm_desc.m * gemm_desc.k + (gemm_desc.batch_count - 1) * gemm_desc.strideA;
     size_t b_sz = gemm_desc.k * gemm_desc.n + (gemm_desc.batch_count - 1) * gemm_desc.strideB;
     size_t c_sz = gemm_desc.m * gemm_desc.n + (gemm_desc.batch_count - 1) * gemm_desc.strideC;
-#if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
 
+    DEFINE_CONTEXT(ctx);
+#if MIOPEN_BACKEND_OPENCL
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx      = 0;
 #endif
     a_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, a_sz, sizeof(T)));
     b_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, b_sz, sizeof(T)));
@@ -274,16 +279,12 @@ int GemmDriver<T>::AllocateBuffersAndCopy()
         b[i] = prng::gen_A_to_B(static_cast<T>(-0.5), static_cast<T>(0.5));
 #endif
     }
-#if MIOPEN_BACKEND_OPENCL
-    cl_int status;
-#elif MIOPEN_BACKEND_HIP
-    int status;
-#endif
+    status_t status;
     status = a_dev->ToGPU(q, a.data());
     status |= b_dev->ToGPU(q, b.data());
     status |= c_dev->ToGPU(q, c.data());
 
-    if(status != CL_SUCCESS)
+    if(status != STATUS_SUCCESS)
         printf("Error copying data to GPU\n");
 
     return miopenStatusSuccess;

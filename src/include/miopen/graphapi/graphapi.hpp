@@ -34,6 +34,8 @@ namespace miopen {
 
 namespace graphapi {
 
+class OpNode;
+
 class BackendDescriptor : public miopenBackendDescriptor
 {
 public:
@@ -49,6 +51,7 @@ public:
                               int64_t* elementCount,
                               void* arrayOfElements) = 0;
     virtual void execute(miopenHandle_t handle, miopenBackendDescriptor_t variantPack);
+    virtual OpNode* getOperation();
 
     bool isFinalized() const noexcept { return mFinalized; };
 

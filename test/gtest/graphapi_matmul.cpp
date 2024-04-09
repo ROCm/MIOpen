@@ -32,14 +32,10 @@
 
 TEST(GraphApiMatmulBuilder, Attributes)
 {
-    EXPECT_ANY_THROW({
-        miopen::graphapi::MatmulBuilder().build();
-    }) << "Builder produced Matmul despite missing setComputeType call";
-    EXPECT_NO_THROW({
-        miopen::graphapi::MatmulBuilder()
-            .setComputeType(miopenDouble)
-            .build();
-    }) << "Builder failed to produce Matmul with valid attributes";
+    EXPECT_ANY_THROW({ miopen::graphapi::MatmulBuilder().build(); })
+        << "Builder produced Matmul despite missing setComputeType call";
+    EXPECT_NO_THROW({ miopen::graphapi::MatmulBuilder().setComputeType(miopenDouble).build(); })
+        << "Builder failed to produce Matmul with valid attributes";
 }
 
 namespace {
@@ -67,10 +63,7 @@ public:
 };
 } // namespace
 
-void PrintTo(const miopenDataType_t& v, std::ostream* os)
-{
-    *os << "compute type: " << v;
-}
+void PrintTo(const miopenDataType_t& v, std::ostream* os) { *os << "compute type: " << v; }
 
 class GraphApiMatMul : public testing::TestWithParam<miopenDataType_t>
 {
@@ -78,11 +71,11 @@ protected:
     GTestGraphApiExecute<GTestDescriptorAttribute*> execute;
 
     ComputeType computeType;
-    
+
     void SetUp() override
     {
-        auto compType = GetParam();
-        computeType           = compType;
+        auto compType                 = GetParam();
+        computeType                   = compType;
         execute.descriptor.attributes = {&computeType};
         execute.descriptor.attrsValid = true;
         execute.descriptor.textName   = "MIOPEN_BACKEND_MATMUL_DESCRIPTOR";
@@ -92,8 +85,4 @@ protected:
 
 TEST_P(GraphApiMatMul, CFuncions) { execute(); }
 
-INSTANTIATE_TEST_SUITE_P(
-    CFuncionsTest,
-    GraphApiMatMul,
-    testing::Values(miopenFloat, miopenDouble));
-
+INSTANTIATE_TEST_SUITE_P(CFuncionsTest, GraphApiMatMul, testing::Values(miopenFloat, miopenDouble));
