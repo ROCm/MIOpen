@@ -121,10 +121,13 @@ set( MIOpen_Source
     fusion.cpp
     fusion/problem_description.cpp
     generic_search.cpp
+    graphapi/convolution.cpp
     graphapi/graphapi.cpp
     graphapi/pointwise.cpp
+    graphapi/reduction.cpp
     graphapi/rng.cpp
     graphapi/tensor.cpp
+    graphapi/variant_pack.cpp
     groupnorm_api.cpp
     groupnorm/problem_description.cpp
     handle_api.cpp
@@ -791,7 +794,7 @@ elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     target_link_libraries( MIOpen PRIVATE hip::device )
     target_link_libraries( MIOpen INTERFACE hip::host )
     if(MIOPEN_USE_HIPRTC)
-        if(WIN32) 
+        if(WIN32)
             target_link_libraries( MIOpen PRIVATE hiprtc::hiprtc )
         else()
             target_link_libraries( MIOpen PRIVATE hiprtc)
