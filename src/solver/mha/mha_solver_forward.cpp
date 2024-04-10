@@ -39,7 +39,7 @@
 
 #include "../../kernels/miopen_rocrand.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ATTN_NAIVE)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ATTN_NAIVE_FWD)
 
 namespace miopen {
 
@@ -113,11 +113,13 @@ bool MhaForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
 
     auto [N, H, S, D] = miopen::tien<4>(descsForward.kDesc.GetLengths());
 
-    return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_NAIVE)) && //
-           S <= std::numeric_limits<uint32_t>::max() &&         //
-           descsForward.kDesc.IsPacked() &&                     //
-           descsForward.qDesc.IsPacked() &&                     //
-           descsForward.vDesc.IsPacked() &&                     //
+    return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_NAIVE_FWD)) && //
+           problem.IsForward() &&                                   //
+           S <= std::numeric_limits<uint32_t>::max() &&             //
+           descsForward.kDesc.IsPacked() &&                         //
+           descsForward.qDesc.IsPacked() &&                         //
+           descsForward.vDesc.IsPacked() &&                         //
+           descsForward.oDesc.IsPacked() &&                         //
            MIOPEN_USE_GEMM;
 }
 
@@ -139,7 +141,7 @@ ConvSolution MhaForward::GetSolution(const ExecutionContext& context,
 
     auto warpSize = context.GetStream().GetWavefrontWidth();
 
-    size_t local_threads  = std::clamp<uint32_t>(nextPow2(seq_len), warpSize, 256);
+    size_t local_threads  = std::clamp<uint32_t>(nextPow2(S), warpSize, 256);
     size_t global_threads = nhs * local_threads;
 
     auto softmax_kernel = KernelInfo{};
