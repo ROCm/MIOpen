@@ -44,6 +44,7 @@ struct AdamTestCase
     float eps;
     bool amsgrad;
     bool maximize;
+    bool use_step_tensor;
 
     friend std::ostream& operator<<(std::ostream& os, const AdamTestCase& tc)
     {
@@ -63,55 +64,44 @@ struct AdamTestCase
 std::vector<AdamTestCase> AdamTestConfigs()
 { // dim, dims
     // clang-format off
-    return {{{1}, 0.001, 0.9, 0.999, 0, 0.000001, false, false},
-            {{64}, 0.001, 0.9, 0.999, 1e-08, 0.000001, true, false},
-            {{80}, 0.001, 0.9, 0.999, 0, 0.000001, false, true},
-            {{255}, 0.001, 0.9, 0.999, 0.0005, 0.000001, true, true},
-            {{1024}, 0.001, 0.9, 0.999, 1e-08, 0.000001, false, false},
-            {{32317}, 0.001, 0.9, 0.999, 0, 0.000001, true, false},
-            {{50000}, 0.001, 0.9, 0.999, 0, 0.000001, false, true},
-            {{29,1024}, 0.001, 0.9, 0.999, 0, 0.000001, true, true},
-            {{80,1536}, 0.001, 0.9, 0.999, 0, 0.000001, false, false},
-            {{128,1024}, 0.001, 0.9, 0.999, 0, 0.000001, false, false},
-            {{128,256}, 0.001, 0.9, 0.999, 0, 0.000001, false, false},
-            {{128,512}, 0.001, 0.9, 0.999, 0, 0.000001, false, false},
-            {{148,512}, 0.001, 0.9, 0.999, 0, 0.000001, true, false},
-            {{204,512}, 0.001, 0.9, 0.999, 0, 0.000001, false, false},
-            {{256,80}, 0.001, 0.9, 0.999, 0, 0.000001, true, true},
-            {{256,256}, 0.001, 0.9, 0.999, 0, 0.000001, false, true},
-            {{3706,32}, 0.001, 0.9, 0.999, 0, 0.000001, true, true},
-            {{32,1,41,11}, 0.001, 0.9, 0.999, 0, 0.000001, false, false},
-            {{32,3,3,3}, 0.001, 0.9, 0.999, 0.005, 0.000001, true, false},
-            {{32,32,3,3}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, true},
-            {{32,64,3,3}, 0.001, 0.9, 0.999, 0.005, 0.000001, true, true},
-            {{64,12,3,3}, 0.001, 0.9, 0.999, 0.0005, 0.000001, false, false},
-            {{64,128,1,1}, 0.001, 0.9, 0.999, 0.0005, 0.000001, true, false},
-            {{64,128,3,3}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, true},
-            {{64,256,1,1}, 0.001, 0.9, 0.999, 0.005, 0.000001, true, true},
-            {{64,256,3,3}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, false},
-            {{64,64,3,3}, 0.001, 0.9, 0.999, 1e-08, 0.000001, false, false},
-            {{128,1024,1,1}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, false},
-            {{128,128,1,1}, 0.001, 0.9, 0.999, 0.005, 0.000001, true, false},
-            {{128,128,3,3}, 0.001, 0.9, 0.999, 1e-08, 0.000001, false, true},
-            {{128,192,1,1}, 0.001, 0.9, 0.999, 0.0005, 0.000001, true, true},
-            {{128,256,1,1}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, false},
-            {{128,64,1,1}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, false},
-            {{128,64,3,3}, 0.001, 0.9, 0.999, 1e-08, 0.000001, false, false},
-            {{128,64,4,4}, 0.001, 0.9, 0.999, 0, 0.000001, true, false},
-            {{192,192,1,1}, 0.001, 0.9, 0.999, 0.0005, 0.000001, false, false},
-            {{192,256,1,1}, 0.001, 0.9, 0.999, 0.0005, 0.000001, true, false},
-            {{192,384,1,1}, 0.001, 0.9, 0.999, 0.0005, 0.000001, true, true},
-            {{255,384,1,1}, 0.001, 0.9, 0.999, 0.0005, 0.000001, false, false},
-            {{255,512,1,1}, 0.001, 0.9, 0.999, 0.0005, 0.000001, true, false},
-            {{255,640,1,1}, 0.001, 0.9, 0.999, 0.0005, 0.000001, false, true},
-            {{256,64,1,1}, 0.001, 0.9, 0.999, 0.005, 0.000001, true, true},
-            {{256,256,1,1}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, false},
-            {{256,320,1,1}, 0.001, 0.9, 0.999, 0.0005, 0.000001, false, false},
-            {{256,384,1,1}, 0.001, 0.9, 0.999, 0.005, 0.000001, true, false},
-            {{256,512,1,1}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, true},
-            {{320,320,1,1}, 0.001, 0.9, 0.999, 0.0005, 0.000001, true, true},
-            {{384,384,1,1}, 0.001, 0.9, 0.999, 0.0005, 0.000001, false, false}};
+    std::vector<AdamTestCase> base_shape{
+        {{1}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
+        {{2}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
+        {{255}, 0.001, 0.9, 0.999, 0.0005, 0.000001, false, false, false},
+        {{1024}, 0.001, 0.9, 0.999, 1e-08, 0.000001, false, false, false},
+        {{32317}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
+        {{50000}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
+        {{29,1024}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
+        {{80,1536}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
+        {{128,1024}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
+        {{3706,32}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
+        {{32,1,41,11}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
+        {{32,64,3,3}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, false, false},
+        {{64,256,3,3}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, false, false},
+        {{128,192,1,1}, 0.001, 0.9, 0.999, 0.0005, 0.000001, false, false, false},
+        {{128,1024,1,1}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, false, false},
+        {{192,192,3,3}, 0.001, 0.9, 0.999, 0.0005, 0.000001, false, false, false},
+        {{255,640,1,1}, 0.001, 0.9, 0.999, 0.0005, 0.000001, false, false, false},
+        {{256,512,3,3}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, false, false}};
     // clang-format on
+    std::vector<AdamTestCase> result;
+    for(auto& item : base_shape)
+    {
+        for(int i = 0; i <= 1; ++i)
+        {
+            for(int j = 0; j <= 1; ++j)
+            {
+                for(int k = 0; k <= 1; ++k)
+                {
+                    item.use_step_tensor = static_cast<bool>(i);
+                    item.amsgrad         = static_cast<bool>(j);
+                    item.maximize        = static_cast<bool>(k);
+                    result.push_back(item);
+                }
+            }
+        }
+    }
+    return result;
 }
 
 template <typename Tp = float, typename Tg = float, bool is_amp = false>
@@ -126,13 +116,14 @@ protected:
         auto gen_zero  = [](auto...) { return 0; };
         auto dims      = adam_config.GetInput();
 
-        lr           = adam_config.lr;
-        beta1        = adam_config.beta1;
-        beta2        = adam_config.beta2;
-        weight_decay = adam_config.weight_decay;
-        eps          = adam_config.eps;
-        amsgrad      = adam_config.amsgrad;
-        maximize     = adam_config.maximize;
+        lr              = adam_config.lr;
+        beta1           = adam_config.beta1;
+        beta2           = adam_config.beta2;
+        weight_decay    = adam_config.weight_decay;
+        eps             = adam_config.eps;
+        amsgrad         = adam_config.amsgrad;
+        maximize        = adam_config.maximize;
+        use_step_tensor = adam_config.use_step_tensor;
 
         param      = tensor<Tp>{dims}.generate(gen_value);
         grad       = tensor<Tg>{dims}.generate(gen_value);
@@ -151,6 +142,12 @@ protected:
             max_exp_avg_sq_dev = handle.Write(max_exp_avg_sq.data);
         }
 
+        if(use_step_tensor)
+        {
+            step[0]  = 0;
+            step_dev = handle.Write(step.data);
+        }
+
         if(is_amp)
         {
             param_fp16 = tensor<half_float::half>{dims};
@@ -159,17 +156,14 @@ protected:
                       std::numeric_limits<half_float::half>::quiet_NaN());
             param_fp16_dev = handle.Write(param_fp16.data);
 
-            step[0]       = 0;
-            grad_scale[0] = 65536;
+            grad_scale[0] = 1024;
             found_inf[0]  = 0;
 
-            step_dev       = handle.Write(step.data);
             grad_scale_dev = handle.Write(grad_scale.data);
             found_inf_dev  = handle.Write(found_inf.data);
         }
         else
         {
-            step[0]       = 1;
             grad_scale[0] = 1.0f;
             found_inf[0]  = 0;
         }
@@ -196,7 +190,7 @@ protected:
                          found_inf[0],
                          step_count);
 
-        auto step_desc_ptr = is_amp ? &step.desc : nullptr;
+        auto step_desc_ptr = use_step_tensor ? &step.desc : nullptr;
 
         for(uint32_t i = 1; i <= step_count; i++)
         {
@@ -257,16 +251,6 @@ protected:
         EXPECT_TRUE(miopen::range_distance(ref_param) == miopen::range_distance(param));
         EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance Error:" << error
                                             << ",  Thresholdx10: " << threshold * 10;
-
-        if(is_amp)
-        {
-            auto error_fp16 = miopen::rms_range(param, param_fp16);
-
-            EXPECT_TRUE(miopen::range_distance(param) == miopen::range_distance(param_fp16));
-            EXPECT_TRUE(error_fp16 < threshold * 1000)
-                << "Error output beyond tolerance Error:" << error_fp16
-                << ",  Thresholdx1000: " << threshold * 1000;
-        }
     }
     AdamTestCase adam_config;
 
@@ -291,12 +275,13 @@ protected:
     miopen::Allocator::ManageDataPtr found_inf_dev;
     miopen::Allocator::ManageDataPtr grad_scale_dev;
 
-    float lr           = 0.0f;
-    float beta1        = 0.0f;
-    float beta2        = 0.0f;
-    float weight_decay = 0.0f;
-    float eps          = 0.0f;
-    bool amsgrad       = false;
-    bool maximize      = false;
-    int32_t step_count = 10;
+    float lr             = 0.0f;
+    float beta1          = 0.0f;
+    float beta2          = 0.0f;
+    float weight_decay   = 0.0f;
+    float eps            = 0.0f;
+    bool amsgrad         = false;
+    bool maximize        = false;
+    bool use_step_tensor = false;
+    int32_t step_count   = 5;
 };

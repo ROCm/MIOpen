@@ -88,7 +88,7 @@ ConvSolution Adam::GetSolution([[maybe_unused]] const ExecutionContext& context,
 
         result.construction_params.push_back(kernel);
 
-        if(problem.IsAmp())
+        if(!problem.IsStepHost())
         {
             auto kernel_update_step        = kernel;
             kernel_update_step.kernel_name = "AdamUpdateStep";
