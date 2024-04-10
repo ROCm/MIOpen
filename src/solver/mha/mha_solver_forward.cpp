@@ -37,6 +37,11 @@
 #include <vector>
 #include <tuple>
 
+// disable __device__ qualifiers
+#ifdef FQUALIFIERS
+#error rocrand FQUALIFIERS defined externally, probably one of rocrand device header included prior to this
+#endif
+#define FQUALIFIERS inline
 #include "../../kernels/miopen_rocrand.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ATTN_NAIVE_FWD)
@@ -79,40 +84,29 @@ constexpr uint32_t nextPow2(uint32_t v)
     }
 }
 
-MultiBufferWorkspaceTraits
-SplitBufferToWorkspace(size_t S, size_t D, size_t NHS, size_t global_threads)
+MultiBufferWorkspaceTraits SplitBufferToWorkspace(size_t S, size_t D, size_t NHS)
 {
     // the first MatMul (N*H*S*D) * (N*H*S*D)T = (N*H*S*S)
     // the second MatMul (N*H*S*S) * (N*H*S*D) = (N*H*S*D)
     return MultiBufferWorkspaceTraits{
-        NHS * std::max(S, D) * get_data_size(miopenFloat),    // first and second matmuls tensor
-        NHS * S * get_data_size(miopenFloat),                 // first matmul tensor
-        global_threads * sizeof(miopen::prng::xorwow_state)}; // random state
+        NHS * std::max(S, D) * get_data_size(miopenFloat), // first and second matmuls tensor
+        NHS * S * get_data_size(miopenFloat)};             // first matmul tensor
 }
 
 MultiBufferWorkspaceTraits SplitBufferToWorkspace(const std::vector<size_t>& lengths)
 {
     const auto [N, H, S, D] = miopen::tien<4>(lengths);
-    const auto NHS          = N * H * S;
-
-    size_t local_threads  = std::clamp<size_t>(nextPow2(S), warpSize, 256);
-    size_t global_threads = NHS * local_threads;
-    if(S <= warpSize)
-    {
-        global_threads = Ceil(global_threads, local_threads / warpSize);
-    }
-
-    return SplitBufferToWorkspace(S, D, NHS, global_threads);
+    return SplitBufferToWorkspace(S, D, N * H * S);
 }
 } // namespace
 
 bool MhaForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                               const miopen::mha::ProblemDescription& problem) const
 {
-    if (!problem.IsForward())
+    if(!problem.IsForward())
     {
         return false;
-    }    
+    }
 
     const miopen::mha::MhaInputDescsForward& descsForward = problem.GetDescsForward();
 
@@ -164,8 +158,7 @@ ConvSolution MhaForward::GetSolution(const ExecutionContext& context,
     softmax_kernel.g_wk = {global_threads, 1, 1};
     result.construction_params.push_back(softmax_kernel);
 
-    auto getBuffPart = [ws = SplitBufferToWorkspace(S, D, nhs, global_threads)](void* buffer,
-                                                                                size_t part_idx) {
+    auto getBuffPart = [ws = SplitBufferToWorkspace(S, D, nhs)](void* buffer, size_t part_idx) {
         return static_cast<void*>(static_cast<std::byte*>(buffer) + ws.GetOffset(part_idx));
     };
 
@@ -241,7 +234,6 @@ ConvSolution MhaForward::GetSolution(const ExecutionContext& context,
 
             void* fp32_ws = getBuffPart(params.GetWorkspace(), 0);
             void* fp8_ws  = getBuffPart(params.GetWorkspace(), 1);
-            void* prng_ws = getBuffPart(params.GetWorkspace(), 2);
 
 #if MIOPEN_USE_GEMM
             CallGemmStridedBatched(handle_,
@@ -263,7 +255,8 @@ ConvSolution MhaForward::GetSolution(const ExecutionContext& context,
                            params.GetData().descaleQData,
                            params.GetData().descaleKData,
                            params.GetData().scaleSData,
-                           prng_ws,
+                           params.GetData().dropoutSeedData,
+                           params.GetData().dropoutOffsetData,
                            params.GetData().dropoutProbabilityData,
                            seq_len,
                            nhs);

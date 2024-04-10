@@ -37,6 +37,11 @@
 #include <vector>
 #include <tuple>
 
+// disable __device__ qualifiers
+#ifdef FQUALIFIERS
+#error rocrand FQUALIFIERS defined externally, probably one of rocrand device header included prior to this
+#endif
+#define FQUALIFIERS inline
 #include "../../kernels/miopen_rocrand.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ATTN_NAIVE_BWD)
@@ -79,34 +84,23 @@ constexpr uint32_t nextPow2(uint32_t v)
     }
 }
 
-MultiBufferWorkspaceTraits
-SplitBufferToWorkspace(size_t S, size_t D, size_t NHS, size_t global_threads)
+MultiBufferWorkspaceTraits SplitBufferToWorkspace(size_t S, size_t D, size_t NHS)
 {
     // the first MatMuls (N*H*S*D) * (N*H*S*D)T = (N*H*S*S)
     // the second MatMuls (N*H*S*S)[T] * (N*H*S*D) = (N*H*S*D)
     // dOxO row reduction (N*H*S*1)
-    return MultiBufferWorkspaceTraits{
-        NHS * S * get_data_size(miopenFloat),                 // first matmuls
-        NHS * S * get_data_size(miopenFloat),                 // first matmuls
-        NHS * std::max(S, D) * get_data_size(miopenFloat),    // reduction and second matmul
-        NHS * D * get_data_size(miopenFloat),                 // second matmuls
-        NHS * D * get_data_size(miopenFloat),                 // second matmuls
-        global_threads * sizeof(miopen::prng::xorwow_state)}; // random state
+    return MultiBufferWorkspaceTraits{NHS * S * get_data_size(miopenFloat), // first matmuls
+                                      NHS * S * get_data_size(miopenFloat), // first matmuls
+                                      NHS * std::max(S, D) *
+                                          get_data_size(miopenFloat), // reduction and second matmul
+                                      NHS * D * get_data_size(miopenFloat),  // second matmuls
+                                      NHS * D * get_data_size(miopenFloat)}; // second matmuls
 }
 
 MultiBufferWorkspaceTraits SplitBufferToWorkspace(const std::vector<size_t>& lengths)
 {
     const auto [N, H, S, D] = miopen::tien<4>(lengths);
-    const auto NHS          = N * H * S;
-
-    size_t local_threads  = std::clamp<size_t>(nextPow2(S), warpSize, 256);
-    size_t global_threads = NHS * local_threads;
-    if(S <= warpSize)
-    {
-        global_threads = Ceil(global_threads, local_threads / warpSize);
-    }
-
-    return SplitBufferToWorkspace(S, D, NHS, global_threads);
+    return SplitBufferToWorkspace(S, D, N * H * S);
 }
 
 miopen::HipEventPtr make_hip_fast_event()
@@ -192,8 +186,7 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
     bwd_attention_kernel.g_wk = {global_threads, 1, 1};
     result.construction_params.push_back(bwd_attention_kernel);
 
-    auto getBuffPart = [ws = SplitBufferToWorkspace(S, D, nhs, global_threads)](void* buffer,
-                                                                                size_t part_idx) {
+    auto getBuffPart = [ws = SplitBufferToWorkspace(S, D, nhs)](void* buffer, size_t part_idx) {
         return static_cast<void*>(static_cast<std::byte*>(buffer) + ws.GetOffset(part_idx));
     };
 
@@ -306,7 +299,6 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
             void* fp32_dOxO_ws = getBuffPart(params.GetWorkspace(), 2);
             void* fp32_dSxK_ws = getBuffPart(params.GetWorkspace(), 3);
             void* fp32_dSxQ_ws = getBuffPart(params.GetWorkspace(), 4);
-            void* prng_ws      = getBuffPart(params.GetWorkspace(), 5);
 
             decltype(auto) dOxO_reduction_kernel = handle_.Run(kernels[0]);
             dOxO_reduction_kernel(params.GetDataBackward().doData,
@@ -373,7 +365,8 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
                                  params.GetDataBackward().descaleVData,
                                  params.GetDataBackward().scaleSData,
                                  params.GetDataBackward().scaleDSData,
-                                 prng_ws,
+                                 params.GetDataBackward().dropoutSeedData,
+                                 params.GetDataBackward().dropoutOffsetData,
                                  params.GetDataBackward().dropoutProbabilityData,
                                  scale,
                                  seq_len,
