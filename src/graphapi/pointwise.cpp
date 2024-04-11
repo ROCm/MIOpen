@@ -420,62 +420,45 @@ std::vector<Tensor*> OperationPointwise::getOutTensors() const
     }
 }
 
-namespace {
-
-template <typename Ptr>
-void assignPtr(Ptr src, Ptr& dst)
-{
-    if(src != nullptr)
-    {
-        dst = src;
-    }
-    else
-    {
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
-}
-
-} // namespace
-
 OperationPointwiseBuilder& OperationPointwiseBuilder::setPointwise(Pointwise* pointwise)
 {
-    assignPtr(pointwise, mOperationPointwise.mPointwise);
+    mOperationPointwise.mPointwise = checkPtr(pointwise);
     return *this;
 }
 
 OperationPointwiseBuilder& OperationPointwiseBuilder::setX(Tensor* x)
 {
-    assignPtr(x, mOperationPointwise.mX);
+    mOperationPointwise.mX = checkPtr(x);
     return *this;
 }
 
 OperationPointwiseBuilder& OperationPointwiseBuilder::setB(Tensor* b)
 {
-    assignPtr(b, mOperationPointwise.mB);
+    mOperationPointwise.mB = checkPtr(b);
     return *this;
 }
 
 OperationPointwiseBuilder& OperationPointwiseBuilder::setY(Tensor* y)
 {
-    assignPtr(y, mOperationPointwise.mY);
+    mOperationPointwise.mY = checkPtr(y);
     return *this;
 }
 
 OperationPointwiseBuilder& OperationPointwiseBuilder::setT(Tensor* t)
 {
-    assignPtr(t, mOperationPointwise.mT);
+    mOperationPointwise.mT = checkPtr(t);
     return *this;
 }
 
 OperationPointwiseBuilder& OperationPointwiseBuilder::setDx(Tensor* dX)
 {
-    assignPtr(dX, mOperationPointwise.mDx);
+    mOperationPointwise.mDx = checkPtr(dX);
     return *this;
 }
 
 OperationPointwiseBuilder& OperationPointwiseBuilder::setDy(Tensor* dY)
 {
-    assignPtr(dY, mOperationPointwise.mDy);
+    mOperationPointwise.mDy = checkPtr(dY);
     return *this;
 }
 
