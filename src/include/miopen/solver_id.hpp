@@ -56,6 +56,7 @@ enum class Primitive
     Normalization,
     Reduce,
     Cat,
+    Mha,
     Softmax
 };
 
