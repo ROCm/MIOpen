@@ -1,0 +1,9 @@
+
+.cache/
+.devcontainer/
+.vscode/
+
+install_dir/
+build/
+
+.clangd
