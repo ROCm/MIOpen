@@ -28,43 +28,48 @@
 
 #include "InputFlags.hpp"
 #include "conv_verify.hpp"
+#include "conv_common.hpp"
 #include "driver.hpp"
-#include "rocrand_wrapper.hpp"
 #include "mloConvHost.hpp"
+#include "random.hpp"
+#include "rocrand_wrapper.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "util_driver.hpp"
+#include "util_file.hpp"
+
+#include <miopen/algorithm.hpp>
+#include <miopen/conv_algo_name.hpp>
+#include <miopen/convolution.hpp>
+#include <miopen/env.hpp>
+#include <miopen/execution_context.hpp>
+#include <miopen/find_controls.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/miopen.h>
+#include <miopen/miopen_internal.h>
+#include <miopen/solver.hpp>
+#include <miopen/tensor.hpp>
+
+#include <../test/cpu_bias.hpp>
+#include <../test/cpu_conv.hpp>
+#include <../test/serialize.hpp>
+#include <../test/tensor_holder.hpp>
+#include <../test/verify.hpp>
+
+#include <boost/optional.hpp>
+#include <boost/optional/optional_io.hpp>
+#include <boost/range/adaptors.hpp>
+
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <float.h>
 #include <fstream>
 #include <memory>
-#include <miopen/miopen.h>
-#include <miopen/miopen_internal.h>
-#include <miopen/tensor.hpp>
-#include <miopen/env.hpp>
-#include <miopen/algorithm.hpp>
-#include <miopen/conv_algo_name.hpp>
-#include <miopen/logger.hpp>
-#include <miopen/convolution.hpp>
-#include <miopen/solver.hpp>
-#include <miopen/find_controls.hpp>
-#include <miopen/execution_context.hpp>
-#include "random.hpp"
 #include <numeric>
 #include <sstream>
-#include <vector>
 #include <type_traits>
-#include <boost/range/adaptors.hpp>
-#include <boost/optional/optional_io.hpp>
-#include <../test/verify.hpp>
-#include <../test/serialize.hpp>
-#include <../test/tensor_holder.hpp>
-#include <../test/cpu_conv.hpp>
-#include <../test/cpu_bias.hpp>
-
-#include <boost/optional.hpp>
+#include <vector>
 
 // Declare hidden function for MIGraphX to smoke test it.
 extern "C" MIOPEN_EXPORT miopenStatus_t
@@ -79,20 +84,6 @@ MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DRIVER_SUBNORM_PERCENTAGE)
 // Support in the library discontinued, but left in the driver
 // for reference in the future.
 #define miopenInt8x4 (static_cast<miopenDataType_t>(4))
-
-#if MIOPEN_BACKEND_OPENCL
-#define STATUS_SUCCESS CL_SUCCESS
-typedef cl_int status_t;
-typedef cl_context context_t;
-#define DEFINE_CONTEXT(name) context_t name
-typedef cl_command_queue stream;
-#else // MIOPEN_BACKEND_HIP
-#define STATUS_SUCCESS 0
-typedef int status_t;
-typedef uint32_t context_t;
-#define DEFINE_CONTEXT(name) context_t name = 0
-typedef hipStream_t stream;
-#endif
 
 struct AutoMiopenWarmupMode
 {
@@ -146,27 +137,6 @@ private:
     bool quiet_prev;
 };
 
-template <typename T>
-void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems)
-{
-    if(data == nullptr)
-    {
-        printf("Ignored ouput file %s - no host buffer to dump data from (nullptr)\n", fileName);
-        return;
-    }
-    std::ofstream outFile(fileName, std::ios::binary);
-    if(outFile)
-    {
-        outFile.write(reinterpret_cast<char*>(data), dataNumItems * sizeof(T));
-        outFile.close();
-        printf("Wrote output to file %s\n", fileName);
-    }
-    else
-    {
-        printf("Could not open file %s for writing\n", fileName);
-    }
-}
-
 static inline miopenDataType_t DataTypeFromShortString(const std::string& type)
 {
     static const std::unordered_map<std::string, miopenDataType_t> conv_map = {
@@ -184,29 +154,6 @@ static inline miopenDataType_t DataTypeFromShortString(const std::string& type)
     else
     {
         MIOPEN_THROW("Invalid compute/cast type short hand supplied");
-    }
-}
-
-template <typename T>
-bool readBufferFromFile(T* data, size_t dataNumItems, const char* fileName)
-{
-    if(data == nullptr)
-    {
-        printf("Ignored input file %s - no host buffer to copy data into (nullptr)\n", fileName);
-        return false;
-    }
-    std::ifstream infile(fileName, std::ios::binary);
-    if(infile)
-    {
-        infile.read(reinterpret_cast<char*>(data), dataNumItems * sizeof(T));
-        infile.close();
-        printf("Read data from input file %s\n", fileName);
-        return true;
-    }
-    else
-    {
-        printf("Could not open file %s for reading\n", fileName);
-        return false;
     }
 }
 
@@ -1360,28 +1307,7 @@ std::vector<int> ConvDriver<Tgpu, Tref>::GetOutputTensorLengths()
     return out_lens;
 }
 
-namespace detail {
-
-template <typename T>
-T RanGenWeights()
-{
-    return prng::gen_A_to_B(static_cast<T>(-0.5), static_cast<T>(0.5));
-}
-
-// Shift FP16 distribution towards positive numbers,
-// otherwise Winograd FP16 validation fails.
-template <>
-float16 RanGenWeights()
-{
-    return prng::gen_A_to_B(static_cast<float16>(-1.0 / 3.0), static_cast<float16>(0.5));
-}
-
-// int8 has it's own range
-template <>
-int8_t RanGenWeights()
-{
-    return prng::gen_A_to_B(static_cast<int8_t>(-1), static_cast<int8_t>(1));
-}
+namespace {
 
 template <typename T>
 void RanGenSubnormBuffer(T* buf, size_t size, int percentage)
@@ -1398,33 +1324,7 @@ void RanGenSubnormBuffer(T* buf, size_t size, int percentage)
     });
 }
 
-template <>
-float8 RanGenWeights()
-{
-    const auto tmp =
-        prng::gen_0_to_B(1.0) > 0.5 ? static_cast<float>(0.0) : static_cast<float>(1.0);
-    // 1 in 2 chance of number being positive
-    const float sign =
-        (prng::gen_0_to_B(1.0) > 0.5) ? static_cast<float>(-1) : static_cast<float>(1);
-    const auto tmp2 = static_cast<float>(std::numeric_limits<float8>::epsilon()) *
-                      static_cast<float>(2) * sign * static_cast<float>(tmp);
-    return static_cast<float8>(tmp2);
-}
-
-template <>
-bfloat8 RanGenWeights()
-{
-    const auto tmp =
-        prng::gen_0_to_B(1.0) > 0.5 ? static_cast<float>(0.0) : static_cast<float>(1.0);
-    // 1 in 2 chance of number being positive
-    const float sign =
-        (prng::gen_0_to_B(1.0) > 0.5) ? static_cast<float>(-1) : static_cast<float>(1);
-    const auto tmp2 = static_cast<float>(std::numeric_limits<float8>::epsilon()) *
-                      static_cast<float>(2) * sign * static_cast<float>(tmp);
-    return static_cast<bfloat8>(tmp2);
-}
-
-} // namespace detail
+} // namespace
 
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
@@ -1685,7 +1585,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
         if(is_wrw)
             if(!is_gpualloc)
-                detail::RanGenSubnormBuffer<Tgpu>(dout.GetVectorData(), out_sz, subnorm_percentage);
+                RanGenSubnormBuffer<Tgpu>(dout.GetVectorData(), out_sz, subnorm_percentage);
 
         if(inflags.GetValueInt("bias") != 0)
         {
@@ -1731,13 +1631,13 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     if(!weiRead)
     {
-        auto gen = [&]() -> auto { return Data_scale * detail::RanGenWeights<Tgpu>(); };
+        auto gen = [&]() -> auto { return Data_scale * conv::RanGenWeights<Tgpu>(); };
         wei.InitHostData(wei_sz, is_fwd || is_bwd, gen);
     }
 
     if(is_fwd || is_bwd)
         if(!is_gpualloc)
-            detail::RanGenSubnormBuffer<Tgpu>(wei.GetVectorData(), wei_sz, subnorm_percentage);
+            RanGenSubnormBuffer<Tgpu>(wei.GetVectorData(), wei_sz, subnorm_percentage);
 
     if(inflags.GetValueInt("dump_output"))
     {

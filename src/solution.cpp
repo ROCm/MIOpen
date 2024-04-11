@@ -261,7 +261,7 @@ void Solution::RunImpl(Handle& handle,
                        const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
                        Data_t workspace,
                        std::size_t workspace_size,
-                       const MhaDescriptor& mha_desc)
+                       [[maybe_unused]] const MhaDescriptor& mha_desc)
 {
     const Problem& problem_casted = boost::get<const Problem&>(problem.item);
 
@@ -308,27 +308,6 @@ void Solution::RunImpl(Handle& handle,
             auto m     = get_input_checked(miopenTensorMhaM, "miopenTensorMhaM");
             auto zInv  = get_input_checked(miopenTensorMhaZInv, "miopenTensorMhaZInv");
 
-            mha::MhaInputDescsForward inputDescsForward = {*k.descriptor,
-                                                           *q.descriptor,
-                                                           *v.descriptor,
-                                                           *descaleK.descriptor,
-                                                           *descaleQ.descriptor,
-                                                           *descaleV.descriptor,
-                                                           *descaleS.descriptor,
-                                                           *scaleS.descriptor,
-                                                           *scaleO.descriptor,
-
-                                                           mha_desc.GetScale(),
-                                                           *dropoutProbability.descriptor,
-                                                           *dropoutSeed.descriptor,
-                                                           *dropoutOffset.descriptor,
-
-                                                           *o.descriptor,
-                                                           *amaxO.descriptor,
-                                                           *amaxS.descriptor,
-                                                           *m.descriptor,
-                                                           *zInv.descriptor};
-
             mha::MhaDataForward dataForward = {k.buffer,
                                                q.buffer,
                                                v.buffer,
@@ -347,7 +326,7 @@ void Solution::RunImpl(Handle& handle,
                                                m.buffer,
                                                zInv.buffer};
 
-            return mha::InvokeParams(inputDescsForward, dataForward, workspace, workspace_size);
+            return mha::InvokeParams(dataForward, workspace, workspace_size);
         }
         case miopenProblemDirectionBackward: {
             MIOPEN_THROW(miopenStatusNotImplemented);
