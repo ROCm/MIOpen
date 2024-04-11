@@ -4,7 +4,6 @@
 MIOPEN_DEFAULT_BACKEND="HIP"
 MIOPEN_BACKEND="$MIOPEN_DEFAULT_BACKEND"
 MIOPEN_EMBED_BUILD="Off"  # Default is Off
-MIOPEN_TEST_ALL="OFF"  # Assuming MIOPEN_TEST_ALL is initially set to OFF
 
 # Check if MIOPEN_BACKEND is overwritten by external flag
 if [ -n "$1" ]; then
@@ -14,11 +13,6 @@ fi
 # Check if MIOPEN_EMBED_BUILD is overwritten by external flag
 if [ -n "$2" ]; then
     MIOPEN_EMBED_BUILD="$2"
-fi
-
-# Check if MIOPEN_TEST_ALL is overwritten by external flag
-if [ -n "$3" ]; then
-    MIOPEN_TEST_ALL="$3"
 fi
 
 # Define set_var_to_condition macro
@@ -38,20 +32,43 @@ else
     MIOPEN_BUILD_DRIVER_DEFAULT=false
 fi
 
+# Function to compare environment variable to multiple possibilities
+# Usage: compare_env_variable <variable_name> <value1> <value2> ... <valueN>
+compare_env_variable() {
+    variable_name=$1
+    shift
+    expected_values=("$@")
+    
+    # Get the value of the environment variable
+    actual_value="${!variable_name}"
+    
+    # Check if the actual value matches any of the expected values
+    for expected_value in "${expected_values[@]}"; do
+        if [[ "${actual_value}" == "${expected_value}" ]]; then
+            echo "true"
+            return 0  # Return true
+        fi
+    done
+    
+    # If none of the expected values match, return false
+    echo "false"
+    return 1
+}
+
 # Determine input args based on options
-if [ "$MIOPEN_TEST_HALF" = "ON" ]; then
+if [ "$(compare_env_variable "MIOPEN_TEST_HALF" "1" "on" "On" "ON")" = true ]; then
     MIOPEN_TEST_FLOAT_ARG=--half
     MIOPENDRIVER_MODE_CONV=convfp16
     MIOPENDRIVER_MODE_POOL=poolfp16
     MIOPENDRIVER_MODE_BN=bnormfp16
     MIOPENDRIVER_MODE_GEMM=gemmfp16
-elif [ "$MIOPEN_TEST_INT8" = "ON" ]; then
+elif [ "$(compare_env_variable "MIOPEN_TEST_INT8" "1" "on" "On" "ON")" = true ]; then
     MIOPEN_TEST_FLOAT_ARG=--int8
     MIOPENDRIVER_MODE_CONV=convint8
     MIOPENDRIVER_MODE_POOL=NOT_SUPPORTED
     MIOPENDRIVER_MODE_BN=NOT_SUPPORTED
     MIOPENDRIVER_MODE_GEMM=NOT_SUPPORTED
-elif [ "$MIOPEN_TEST_BFLOAT16" = "ON" ]; then
+elif [ "$(compare_env_variable "MIOPEN_TEST_BFLOAT16" "1" "on" "On" "ON")" = true ]; then
     MIOPEN_TEST_FLOAT_ARG=--bfloat16
     MIOPENDRIVER_MODE_CONV=convbfp16
     MIOPENDRIVER_MODE_POOL=NOT_SUPPORTED
@@ -110,8 +127,8 @@ gpu_detection
 # Locate MIOpenDriver binary
 MIOpenDriver_path="/MIOpen/build/bin/MIOpenDriver"  # Change this to the actual path
 
-if [ "$MIOPEN_TEST_WITH_MIOPENDRIVER" = true ]; then
-    if [ "$MIOPEN_TEST_ALL" = true ]; then
+if [ "$(compare_env_variable "MIOPEN_TEST_WITH_MIOPENDRIVER" "true" "True" "on" "On" "ON")" = true ]; then
+    if [ "$(compare_env_variable "MIOPEN_TEST_ALL" "1" "true" "True" "on" "On" "ON")" = true ]; then
         #test_miopendriver_regression_issue_1576, FLOAT_DISABLED HALF_ENABLED
         if [ "$MIOPEN_TEST_FLOAT_ARG" = "--half" ]; then    
             echo "Running test_miopendriver_regression_issue_1576"
@@ -144,8 +161,9 @@ if [ "$MIOPEN_TEST_WITH_MIOPENDRIVER" = true ]; then
         fi
 
         #test_miopendriver_regression_float_half_gfx10, HALF_ENABLED
-        if [ [ "$MIOPEN_TEST_FLOAT_ARG" = "--half" ] || [ "$MIOPEN_TEST_FLOAT_ARG" = "--float" ] ] && \ 
-        [ "$MIOPEN_TEST_GFX103X" = true ]; then
+        if [[ ( "$MIOPEN_TEST_FLOAT_ARG" = "--half" || "$MIOPEN_TEST_FLOAT_ARG" = "--float" ) && \
+            "$MIOPEN_TEST_GFX103X" = true ]]; then
+        
             echo "Running test_miopendriver_regression_float_half_gfx10"
             # Regression test for:
             #   [Navi21] Fixing Batchnorm backward precision issues by adjusting workgroup size (SWDEV-292187, SWDEV-319919)
@@ -155,8 +173,8 @@ if [ "$MIOPEN_TEST_WITH_MIOPENDRIVER" = true ]; then
         fi
 
         #test_miopendriver_regression_big_tensor 
-        if [ "$MIOPEN_TEST_FLOAT_ARG" = "--float" ] && \ 
-        [ [ "$MIOPEN_TEST_GFX90A" = true ] || [ "$MIOPEN_TEST_GFX94X" = true ] || [ "$MIOPEN_TEST_GFX103X" = true ] ]; then
+        if [ "$MIOPEN_TEST_FLOAT_ARG" = "--float" ] && \
+        { [ "$MIOPEN_TEST_GFX90A" = true ] || [ "$MIOPEN_TEST_GFX94X" = true ] || [ "$MIOPEN_TEST_GFX103X" = true ]; }; then
             echo "Running test_miopendriver_regression_big_tensor"
             # Regression test for https://github.com/ROCm/MIOpen/issues/1661
             # Issue #1697: this is large test which has to run in serial and not enabled on gfx900/gfx906
@@ -164,8 +182,8 @@ if [ "$MIOPEN_TEST_WITH_MIOPENDRIVER" = true ]; then
         fi
 
         #test_miopendriver_regression_half_gfx9 
-        if [ "$MIOPEN_TEST_FLOAT_ARG" = "--half" ] && \ 
-        [ [ "$MIOPEN_TEST_GFX90A" = true ] || [ "$MIOPEN_TEST_GFX94X" = true ] ]; then
+        if [ "$MIOPEN_TEST_FLOAT_ARG" = "--float" ] && \
+        { [ "$MIOPEN_TEST_GFX90A" = true ] || [ "$MIOPEN_TEST_GFX94X" = true ]; }; then
             echo "Running test_miopendriver_regression_half_gfx9"
             # Regression test for:
             #   [SWDEV-375617] Fix 3d convolution Host API bug
@@ -174,8 +192,8 @@ if [ "$MIOPEN_TEST_WITH_MIOPENDRIVER" = true ]; then
         fi
 
         #test_miopendriver_conv2d_trans 
-        if [ [ "$MIOPEN_TEST_FLOAT_ARG" = "--half" ] || [ "$MIOPEN_TEST_FLOAT_ARG" = "--bf16" ]|| [ "$MIOPEN_TEST_FLOAT_ARG" = "--float" ] ] && \ 
-        [ "$MIOPEN_TEST_GFX900" != true ]; then
+        if [[ ( "$MIOPEN_TEST_FLOAT_ARG" = "--half" || "$MIOPEN_TEST_FLOAT_ARG" = "--bf16" || "$MIOPEN_TEST_FLOAT_ARG" = "--float" ) && \
+            "$MIOPEN_TEST_GFX900" != true ]]; then
             echo "Running test_miopendriver_conv2d_trans"
             # Why we have to use the driver:
             #   The transposed convolutions are paritally implemented in the convolution_api layer,
@@ -191,16 +209,16 @@ if [ "$MIOPEN_TEST_WITH_MIOPENDRIVER" = true ]; then
             $MIOpenDriver_path $MIOPENDRIVER_MODE_CONV -m trans -x 7 -y 7 -W 224 -H 224 -c 3 -n 16 -k 64 -p 3 -q 3 -u 2 -v 2 -l 1 -j 1 -g 1 -F 0 -V 1
         fi
     else #"$MIOPEN_TEST_ALL" != true
-        #test_miopendriver_regression_issue_2047  
-        if [ [ "$MIOPEN_TEST_FLOAT_ARG" = "--half" ] || [ "$MIOPEN_TEST_FLOAT_ARG" = "--bf16" ] || [ "$MIOPEN_TEST_FLOAT_ARG" = "--float" ] ] && \ 
-        [ "$MIOPEN_TEST_GFX900" != true ]; then
+        #test_miopendriver_regression_issue_2047
+        if [[ ( "$MIOPEN_TEST_FLOAT_ARG" = "--half" || "$MIOPEN_TEST_FLOAT_ARG" = "--bf16" || "$MIOPEN_TEST_FLOAT_ARG" = "--float" ) && \
+            "$MIOPEN_TEST_GFX900" != true ]]; then
             echo "Running test_miopendriver_regression_issue_2047"
             # Regression test for: MIOpenIm3d2Col stuck with ROCm update, https://github.com/ROCm/MIOpen/issues/2047
             export MIOPEN_FIND_MODE=normal
             export MIOPEN_DEBUG_FIND_ONLY_SOLVER=GemmFwdRest
-            $MIOpenDriver_path $MIOPENDRIVER_MODE_CONV -n 1 -c 1 --in_d 2 -H 1 -W 2 -k 2 --fil_d 2 -y 1 -x 2 \ 
-                                                    --pad_d 0 -p 0 -q 0 --conv_stride_d 1 -u 1 -v 1 --dilation_d 1 -l 1 -j 1 \ 
-                                                    --spatial_dim 3 -m conv -g 1 -F 1 -i 1 -t 1 -w 1
+            $MIOpenDriver_path $MIOPENDRIVER_MODE_CONV -n 1 -c 1 --in_d 2 -H 1 -W 2 -k 2 --fil_d 2 -y 1 -x 2 \
+                                                        --pad_d 0 -p 0 -q 0 --conv_stride_d 1 -u 1 -v 1 \
+                                                        --dilation_d 1 -l 1 -j 1 --spatial_dim 3 -m conv -g 1 -F 1 -i 1 -t 1 -w 1
             unset MIOPEN_FIND_MODE
             unset MIOPEN_DEBUG_FIND_ONLY_SOLVER
         fi
