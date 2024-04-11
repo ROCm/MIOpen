@@ -23,17 +23,17 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "argmax_driver.hpp"
+#include "reduceextreme_driver.hpp"
 #include "registry_driver_maker.hpp"
 
 static Driver* makeDriver(const std::string& base_arg)
 {
-    if(base_arg == "argmax")
-        return new ArgmaxDriver<float, float>();
-    if(base_arg == "argmaxfp16")
-        return new ArgmaxDriver<float16, float>();
-    if(base_arg == "argmaxbfp16")
-        return new ArgmaxDriver<bfloat16, float>();
+    if(base_arg == "reduceextreme")
+        return new ReduceExtremeDriver<float, float>();
+    if(base_arg == "reduceextremefp16")
+        return new ReduceExtremeDriver<float16, float>();
+    if(base_arg == "reduceextremebfp16")
+        return new ReduceExtremeDriver<bfloat16, float>();
     return nullptr;
 }
 
