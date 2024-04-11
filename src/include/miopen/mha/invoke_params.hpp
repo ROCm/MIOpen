@@ -40,13 +40,20 @@ struct InvokeParams : public miopen::InvokeParams
     {
     }
 
+    InvokeParams(const MhaDataBackward& dataBackward, Data_t ws, std::size_t wsSize)
+        : mhaDataBackward(dataBackward), workSpace(ws), workSpaceSize(wsSize)
+    {
+    }
+
     const MhaDataForward& GetData() const { return mhaDataForward; }
+    const MhaDataBackward& GetDataBackward() const { return mhaDataBackward; }
 
     std::size_t GetWorkspaceSize() const { return workSpaceSize; }
     Data_t GetWorkspace() const { return workSpace; }
 
 private:
-    const MhaDataForward mhaDataForward;
+    MhaDataForward mhaDataForward;
+    MhaDataBackward mhaDataBackward;
     const Data_t workSpace;
     const std::size_t workSpaceSize;
 };

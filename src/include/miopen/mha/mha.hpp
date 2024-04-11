@@ -83,11 +83,11 @@ struct MhaInputDescsBackward
     TensorDescriptor descaleQDesc;
     TensorDescriptor descaleVDesc;
     TensorDescriptor descaleSDesc;
-    TensorDescriptor scaleSDesc;
- 
     TensorDescriptor descaleODesc;
     TensorDescriptor descaleDODesc;
     TensorDescriptor descaleDSDesc;
+
+    TensorDescriptor scaleSDesc;    
     TensorDescriptor scaleDSDesc;
     TensorDescriptor scaleDQDesc;
     TensorDescriptor scaleDKDesc;
