@@ -60,10 +60,19 @@ struct FusionSetArgTestFloat : FusionSetArgTest<float>
 {
 };
 
+bool SkipTest() { return get_handle_xnack(); }
+
 TEST_P(FusionSetArgTestFloat, TestSetArgApiCall)
 {
     // Original fusion_plan/args execution happens in cba_infer.cpp
     // Original is checked independently and not sequentially, prior to FusionTestSetArgTest.
+
+    if(SkipTest())
+    {
+        test_skipped = true;
+        GTEST_SKIP() << "Fusion does not support xnack";
+    }
+
     using cba_float = cba<float>;
 
     auto&& handle = get_handle();

@@ -26,23 +26,28 @@
 #pragma once
 
 #include "InputFlags.hpp"
-#include "driver.hpp"
-#include "timer.hpp"
-#include "random.hpp"
 #include "ctc_verify.hpp"
+#include "driver.hpp"
+#include "random.hpp"
+#include "timer.hpp"
+#include "util_driver.hpp"
+#include "util_file.hpp"
+
+#include <miopen/env.hpp>
+#include <miopen/miopen.h>
+
 #include <../test/verify.hpp>
+
 #include <algorithm>
+#include <array>
+#include <cfloat>
 #include <cstdlib>
 #include <cstring>
-#include <cfloat>
 #include <fstream>
 #include <memory>
-#include <miopen/miopen.h>
-#include <miopen/env.hpp>
 #include <numeric>
 #include <sstream>
 #include <vector>
-#include <array>
 
 template <typename Tgpu, typename Tref = Tgpu>
 class CTCDriver : public Driver
@@ -282,12 +287,9 @@ int CTCDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                                      ctc_algo,
                                      &workSpaceSizeCPU);
 
+    DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
-
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
 #endif
 
     probs_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, probs_sz, sizeof(Tgpu)));
@@ -330,19 +332,13 @@ int CTCDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         dumpBufferToFile("dump_inputLengths.bin", inputLengths.data(), batch_size);
     }
 
-#if MIOPEN_BACKEND_OPENCL
-    cl_int status;
-#elif MIOPEN_BACKEND_HIP
-#define CL_SUCCESS 0
-    int status;
-#endif
-
+    status_t status;
     status = probs_dev->ToGPU(q, probs.data());
     status |= losses_dev->ToGPU(q, losses.data());
     status |= gradients_dev->ToGPU(q, gradients.data());
     status |= workspace_dev->ToGPU(q, workspace.data());
 
-    if(status != CL_SUCCESS)
+    if(status != STATUS_SUCCESS)
         printf("Error copying data to GPU\n");
 
     return miopenStatusSuccess;
