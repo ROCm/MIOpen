@@ -41,10 +41,10 @@
 /* input(input): [N, C, D1, D2], target(target): [N, D1, D2],
  * weight(weight): [C], output(output): [N, D1, D2] */
 /* Each thread computes one output: output[n0][n1][n2] */
-extern "C" __global__ void NLLLossUnreducedForward4dContiguous(const FLOAT_ACCUM* __restrict__ input, 
-                                                               const FLOAT_ACCUM* __restrict__ target, 
-                                                               const FLOAT_ACCUM* weight,
-                                                               FLOAT_ACCUM* __restrict__ output, 
+extern "C" __global__ void NLLLossUnreducedForward4dContiguous(const FLOAT* __restrict__ input, 
+                                                               const FLOAT* __restrict__ target, 
+                                                               const FLOAT* weight,
+                                                               FLOAT* __restrict__ output, 
                                                                long ignore_index, 
                                                                size_t N_total,
                                                                size_t C,
@@ -64,15 +64,15 @@ extern "C" __global__ void NLLLossUnreducedForward4dContiguous(const FLOAT_ACCUM
     long t = static_cast<long>(target[gid]);
     // t: Class index
     if (t < 0 || t == ignore_index || t >= C)  {
-        output[gid] = 0;
+        output[gid] = static_cast<FLOAT>(0.0);
         return;
     }
 
-    FLOAT_ACCUM w = weight != nullptr ? weight[t] : 1.0f;
+    FLOAT w = weight != nullptr ? weight[t] : static_cast<FLOAT>(1.0);
 
     // fix this
-    // FLOAT_ACCUM input_value = input[NWH[0]][t][NWH[1]][NWH[2]];
-    FLOAT_ACCUM input_value = input[(NWH[0] * C + t) * D1 * D2 + NWH[1] * D2 + NWH[2]];
+    // FLOAT input_value = input[N][t][D1][D2];
+    FLOAT input_value = input[(NWH[0] * C + t) * D1 * D2 + NWH[1] * D2 + NWH[2]];
 
-    output[gid] = -1.0f * w * input_value;
+    output[gid] = static_cast<FLOAT>(-1.0) * w * input_value;
 }

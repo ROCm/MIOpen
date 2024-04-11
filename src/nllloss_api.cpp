@@ -30,6 +30,39 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
+static void LogCmdNLLLoss(const miopenTensorDescriptor_t xDesc, bool is_fwd)
+{
+    if(miopen::IsLoggingCmd())
+    {
+        std::stringstream ss;
+        auto dtype = miopen::deref(xDesc).GetType();
+        if(dtype == miopenHalf)
+        {
+            ss << "nlllossfp16";
+        }
+        else if(dtype == miopenFloat)
+        {
+            ss << "nlllossfp32";
+        }
+        else if(dtype == miopenBFloat16)
+        {
+            ss << "nlllossbfp16";
+        }
+
+        int32_t size = {0};
+        miopenGetTensorDescriptorSize(xDesc, &size);
+        ss << " -N " << miopen::deref(xDesc).GetLengths()[0];
+        ss << " -C " << miopen::deref(xDesc).GetLengths()[1] 
+            << " -d " << miopen::deref(xDesc).GetLengths()[2] 
+            << " -D " << miopen::deref(xDesc).GetLengths()[3]; 
+        
+        ss << " -F " << ((is_fwd) ? "1" : "2");
+
+        MIOPEN_LOG_DRIVER_CMD(ss.str());
+    }
+}
+
+
 extern "C" miopenStatus_t miopenNLLLossForward(miopenHandle_t handle,
                                                 const miopenTensorDescriptor_t inputDesc,
                                                 const void* input,
@@ -53,6 +86,7 @@ extern "C" miopenStatus_t miopenNLLLossForward(miopenHandle_t handle,
         output, 
         ignore_index);
 
+    LogCmdNLLLoss(inputDesc, true);
     // LogCmdNLLLossForward(inputDesc, targetDesc, weightDesc, outputDesc, ignore_index, N, C);
     return miopen::try_([&] {
         miopen::NLLLossForward(
