@@ -298,8 +298,7 @@ mha::ProblemDescription Problem::AsMha() const
 
     if(GetDirection() == miopenProblemDirectionForward)
     {
-        mha::MhaInputDescsForward mhaInputDescsForward = 
-        {
+        mha::MhaInputDescsForward mhaInputDescsForward = {
             GetTensorDescriptorChecked(miopenTensorMhaK, "miopenTensorMhaK"),
             GetTensorDescriptorChecked(miopenTensorMhaQ, "miopenTensorMhaQ"),
             GetTensorDescriptorChecked(miopenTensorMhaV, "miopenTensorMhaV"),
@@ -311,23 +310,22 @@ mha::ProblemDescription Problem::AsMha() const
             GetTensorDescriptorChecked(miopenTensorMhaScaleO, "miopenTensorMhaScaleO"),
             mha_desc.GetScale(),
             GetTensorDescriptorChecked(miopenTensorMhaDropoutProbability,
-                                    "miopenTensorMhaDropoutProbability"),
+                                       "miopenTensorMhaDropoutProbability"),
             GetTensorDescriptorChecked(miopenTensorMhaDropoutSeed, "miopenTensorMhaDropoutSeed"),
-            GetTensorDescriptorChecked(miopenTensorMhaDropoutOffset, "miopenTensorMhaDropoutOffset"),
+            GetTensorDescriptorChecked(miopenTensorMhaDropoutOffset,
+                                       "miopenTensorMhaDropoutOffset"),
 
             GetTensorDescriptorChecked(miopenTensorMhaO, "miopenTensorMhaO"),
             GetTensorDescriptorChecked(miopenTensorMhaAmaxO, "miopenTensorMhaAmaxO"),
             GetTensorDescriptorChecked(miopenTensorMhaAmaxS, "miopenTensorMhaAmaxS"),
             GetTensorDescriptorChecked(miopenTensorMhaM, "miopenTensorMhaM"),
-            GetTensorDescriptorChecked(miopenTensorMhaZInv, "miopenTensorMhaZInv")
-        };
+            GetTensorDescriptorChecked(miopenTensorMhaZInv, "miopenTensorMhaZInv")};
 
         return {mhaInputDescsForward};
     }
     else
     {
-        mha::MhaInputDescsBackward mhaInputDescsBackward = 
-        {
+        mha::MhaInputDescsBackward mhaInputDescsBackward = {
             GetTensorDescriptorChecked(miopenTensorMhaK, "miopenTensorMhaK"),
             GetTensorDescriptorChecked(miopenTensorMhaQ, "miopenTensorMhaQ"),
             GetTensorDescriptorChecked(miopenTensorMhaV, "miopenTensorMhaV"),
@@ -349,9 +347,10 @@ mha::ProblemDescription Problem::AsMha() const
             GetTensorDescriptorChecked(miopenTensorMhaScaleDV, "miopenTensorMhaScaleDV"),
             mha_desc.GetScale(),
             GetTensorDescriptorChecked(miopenTensorMhaDropoutProbability,
-                                    "miopenTensorMhaDropoutProbability"),
+                                       "miopenTensorMhaDropoutProbability"),
             GetTensorDescriptorChecked(miopenTensorMhaDropoutSeed, "miopenTensorMhaDropoutSeed"),
-            GetTensorDescriptorChecked(miopenTensorMhaDropoutOffset, "miopenTensorMhaDropoutOffset"),
+            GetTensorDescriptorChecked(miopenTensorMhaDropoutOffset,
+                                       "miopenTensorMhaDropoutOffset"),
 
             GetTensorDescriptorChecked(miopenTensorMhaDQ, "miopenTensorMhaDQ"),
             GetTensorDescriptorChecked(miopenTensorMhaDK, "miopenTensorMhaDK"),
@@ -360,8 +359,7 @@ mha::ProblemDescription Problem::AsMha() const
             GetTensorDescriptorChecked(miopenTensorMhaAmaxDQ, "miopenTensorMhaAmaxDQ"),
             GetTensorDescriptorChecked(miopenTensorMhaAmaxDK, "miopenTensorMhaAmaxDK"),
             GetTensorDescriptorChecked(miopenTensorMhaAmaxDV, "miopenTensorMhaAmaxDV"),
-            GetTensorDescriptorChecked(miopenTensorMhaAmaxDS, "miopenTensorMhaAmaxDS")
-        };
+            GetTensorDescriptorChecked(miopenTensorMhaAmaxDS, "miopenTensorMhaAmaxDS")};
 
         return {mhaInputDescsBackward};
     }

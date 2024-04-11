@@ -66,18 +66,18 @@ struct MhaInputDescsForward
 
 struct MhaInputDescsBackward
 {
-   // input tensors
+    // input tensors
     TensorDescriptor kDesc;
     TensorDescriptor qDesc;
     TensorDescriptor vDesc;
- 
+
     TensorDescriptor oDesc;
     TensorDescriptor doDesc;
- 
+
     // input tensors from fwd pass
     TensorDescriptor mDesc;
     TensorDescriptor zInvDesc;
- 
+
     // input scaling tensors
     TensorDescriptor descaleKDesc;
     TensorDescriptor descaleQDesc;
@@ -87,7 +87,7 @@ struct MhaInputDescsBackward
     TensorDescriptor descaleDODesc;
     TensorDescriptor descaleDSDesc;
 
-    TensorDescriptor scaleSDesc;    
+    TensorDescriptor scaleSDesc;
     TensorDescriptor scaleDSDesc;
     TensorDescriptor scaleDQDesc;
     TensorDescriptor scaleDKDesc;
@@ -95,11 +95,11 @@ struct MhaInputDescsBackward
 
     // input scalars
     float scale;
- 
+
     TensorDescriptor dropoutProbabilityDesc;
     TensorDescriptor dropoutSeedDesc;
     TensorDescriptor dropoutOffsetDesc;
- 
+
     // output tensors
     TensorDescriptor dqDesc;
     TensorDescriptor dkDesc;
@@ -145,21 +145,21 @@ struct MhaDataBackward
     ConstData_t kData;
     ConstData_t qData;
     ConstData_t vData;
- 
+
     ConstData_t oData;
     ConstData_t doData;
- 
+
     // input tensors from fwd pass
     ConstData_t mData;
     ConstData_t zInvData;
- 
+
     // input scaling tensors
     ConstData_t descaleKData;
     ConstData_t descaleQData;
     ConstData_t descaleVData;
     ConstData_t descaleSData;
     ConstData_t scaleSData;
- 
+
     ConstData_t descaleOData;
     ConstData_t descaleDOData;
     ConstData_t descaleDSData;
@@ -167,11 +167,11 @@ struct MhaDataBackward
     ConstData_t scaleDQData;
     ConstData_t scaleDKData;
     ConstData_t scaleDVData;
- 
+
     ConstData_t dropoutProbabilityData;
     ConstData_t dropoutSeedData;
     ConstData_t dropoutOffsetData;
- 
+
     // output tensors
     Data_t dqData;
     Data_t dkData;

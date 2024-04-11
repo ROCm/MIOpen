@@ -50,7 +50,6 @@ struct ProblemDescription : ProblemDescriptionBase
     {
     }
 
-
     bool IsForward() const { return isForward; }
     const MhaInputDescsForward& GetDescsForward() const { return mhaInputDescsForward; }
     const MhaInputDescsBackward& GetDescsBackward() const { return mhaInputDescsBackward; }

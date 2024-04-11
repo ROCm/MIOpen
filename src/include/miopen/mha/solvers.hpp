@@ -71,7 +71,6 @@ struct MhaBackward final : MhaSolver
     bool MayNeedWorkspace() const override;
 };
 
-
 } // namespace mha
 
 } // namespace solver

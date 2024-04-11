@@ -115,9 +115,9 @@ bool Mha::IsApplicable([[maybe_unused]] const ExecutionContext& context,
 
     return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_NAIVE)) && //
            S <= std::numeric_limits<uint32_t>::max() &&         //
-           descsForward.kDesc.IsPacked() &&               //
-           descsForward.qDesc.IsPacked() &&               //
-           descsForward.vDesc.IsPacked() &&               //
+           descsForward.kDesc.IsPacked() &&                     //
+           descsForward.qDesc.IsPacked() &&                     //
+           descsForward.vDesc.IsPacked() &&                     //
            MIOPEN_USE_GEMM;
 }
 

@@ -45,34 +45,30 @@ namespace solver {
 
 namespace mha {
 
-
 bool MhaBackward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
-                       const miopen::mha::ProblemDescription& problem) const
+                               const miopen::mha::ProblemDescription& problem) const
 {
-    if (problem.IsForward())
-	{
-		return false;
-	}
+    if(problem.IsForward())
+    {
+        return false;
+    }
 }
 
 std::size_t MhaBackward::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
-                                  const miopen::mha::ProblemDescription& problem) const
+                                          const miopen::mha::ProblemDescription& problem) const
 {
     return 0;
 }
 
 ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
-                              const miopen::mha::ProblemDescription& problem) const
+                                      const miopen::mha::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
     return result;
 }
 
-bool MhaBackward::MayNeedWorkspace() const 
-{ 
-    return true; 
-}
+bool MhaBackward::MayNeedWorkspace() const { return true; }
 
 } // namespace mha
 
