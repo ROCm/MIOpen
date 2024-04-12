@@ -86,7 +86,7 @@ public:
     const std::vector<int64_t>& getDimensions() const noexcept { return mDimensions; }
     const std::vector<int64_t>& getStrides() const noexcept { return mStrides; }
     int64_t getId() const noexcept { return mId; }
-    bool getVirtual() const noexcept { return mVirtual; }
+    bool isVirtual() const noexcept { return mVirtual; }
 };
 
 class TensorBuilder
