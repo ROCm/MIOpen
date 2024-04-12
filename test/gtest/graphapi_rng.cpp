@@ -52,38 +52,38 @@ using miopen::graphapi::RngBuilder;
 class GraphApiRngBuilder : public testing::TestWithParam<DescriptorTuple>
 {
 protected:
-    bool attrsValid;
+    bool mAttrsValid;
     miopenRngDistribution_t distribution;
-    double normalMean;
-    ValidatedValue<double> normalStdev;
-    double uniformMin;
-    double uniformMax;
-    ValidatedValue<double> bernoulliProb;
+    double mNormalMean;
+    ValidatedValue<double> mNormalStdev;
+    double mUniformMin;
+    double mUniformMax;
+    ValidatedValue<double> mBernoulliProb;
 
     void SetUp() override
     {
-        std::tie(attrsValid,
+        std::tie(mAttrsValid,
                  distribution,
-                 normalMean,
-                 normalStdev,
-                 uniformMin,
-                 uniformMax,
-                 bernoulliProb) = GetParam();
+                 mNormalMean,
+                 mNormalStdev,
+                 mUniformMin,
+                 mUniformMax,
+                 mBernoulliProb) = GetParam();
     }
 };
 
 TEST_P(GraphApiRngBuilder, ValidateAttributes)
 {
-    if(attrsValid && normalStdev.valid && bernoulliProb.valid)
+    if(mAttrsValid && mNormalStdev.valid && mBernoulliProb.valid)
     {
         EXPECT_NO_THROW({
             RngBuilder()
                 .setDistribution(distribution)
-                .setNormalMean(normalMean)
-                .setNormalStdev(normalStdev.value)
-                .setUniformMin(uniformMin)
-                .setUniformMax(uniformMax)
-                .setBernoulliProb(bernoulliProb.value)
+                .setNormalMean(mNormalMean)
+                .setNormalStdev(mNormalStdev.value)
+                .setUniformMin(mUniformMin)
+                .setUniformMax(mUniformMax)
+                .setBernoulliProb(mBernoulliProb.value)
                 .build();
         }) << "Builder failed on valid attributes";
     }
@@ -92,32 +92,32 @@ TEST_P(GraphApiRngBuilder, ValidateAttributes)
         EXPECT_ANY_THROW({
             RngBuilder()
                 .setDistribution(distribution)
-                .setNormalMean(normalMean)
-                .setNormalStdev(normalStdev.value)
-                .setUniformMin(uniformMin)
-                .setUniformMax(uniformMax)
-                .setBernoulliProb(bernoulliProb.value)
+                .setNormalMean(mNormalMean)
+                .setNormalStdev(mNormalStdev.value)
+                .setUniformMin(mUniformMin)
+                .setUniformMax(mUniformMax)
+                .setBernoulliProb(mBernoulliProb.value)
                 .build();
         }) << "Buider failed to detect invalid attributes";
     }
-    if(normalStdev.valid)
+    if(mNormalStdev.valid)
     {
-        EXPECT_NO_THROW({ RngBuilder().setNormalStdev(normalStdev.value); })
+        EXPECT_NO_THROW({ RngBuilder().setNormalStdev(mNormalStdev.value); })
             << "RngBuilder::setNormalStdev(double) failed on valid attribute";
     }
     else
     {
-        EXPECT_ANY_THROW({ RngBuilder().setNormalStdev(normalStdev.value); })
+        EXPECT_ANY_THROW({ RngBuilder().setNormalStdev(mNormalStdev.value); })
             << "RngBuilder::setNormalStdev(double) failed on invalid attribute";
     }
-    if(bernoulliProb.valid)
+    if(mBernoulliProb.valid)
     {
-        EXPECT_NO_THROW({ RngBuilder().setBernoulliProb(bernoulliProb.value); })
+        EXPECT_NO_THROW({ RngBuilder().setBernoulliProb(mBernoulliProb.value); })
             << "RngBuilder::setBernoulliProb(double) failed on valid attribute";
     }
     else
     {
-        EXPECT_ANY_THROW({ RngBuilder().setBernoulliProb(bernoulliProb.value); })
+        EXPECT_ANY_THROW({ RngBuilder().setBernoulliProb(mBernoulliProb.value); })
             << "RngBuilder::setBernoulliProb(double) failed on invalid attribute";
     }
 }
@@ -132,16 +132,17 @@ using miopen::graphapi::GTestGraphApiExecute;
 
 class GraphApiRng : public testing::TestWithParam<DescriptorTuple>
 {
-protected:
-    GTestGraphApiExecute<GTestDescriptorAttribute*> execute;
-
-    // Pointers to these are used in execute object above
+private:
+    // Pointers to these are used in mExecute object below
     GTestDescriptorSingleValueAttribute<miopenRngDistribution_t, char> mDistribution;
     GTestDescriptorSingleValueAttribute<double, char> mNormalMean;
     GTestDescriptorSingleValueAttribute<double, char> mNormalStdev;
     GTestDescriptorSingleValueAttribute<double, char> mUniformMin;
     GTestDescriptorSingleValueAttribute<double, char> mUniformMax;
     GTestDescriptorSingleValueAttribute<double, char> mBernoulliProb;
+
+protected:
+    GTestGraphApiExecute<GTestDescriptorAttribute*> mExecute;
 
     void SetUp() override
     {
@@ -196,20 +197,20 @@ protected:
                           2,
                           bernoulliProb.value};
 
-        execute.descriptor.textName   = "MIOPEN_BACKEND_RNG_DESCRIPTOR";
-        execute.descriptor.type       = MIOPEN_BACKEND_RNG_DESCRIPTOR;
-        execute.descriptor.attrsValid = valid;
+        mExecute.descriptor.textName   = "MIOPEN_BACKEND_RNG_DESCRIPTOR";
+        mExecute.descriptor.type       = MIOPEN_BACKEND_RNG_DESCRIPTOR;
+        mExecute.descriptor.attrsValid = valid;
 
-        execute.descriptor.attributes = {&mDistribution,
-                                         &mNormalMean,
-                                         &mNormalStdev,
-                                         &mUniformMin,
-                                         &mUniformMax,
-                                         &mBernoulliProb};
+        mExecute.descriptor.attributes = {&mDistribution,
+                                          &mNormalMean,
+                                          &mNormalStdev,
+                                          &mUniformMin,
+                                          &mUniformMax,
+                                          &mBernoulliProb};
     }
 };
 
-TEST_P(GraphApiRng, CFunctions) { execute(); }
+TEST_P(GraphApiRng, CFunctions) { mExecute(); }
 
 static auto validAttributesNormal =
     testing::Combine(testing::Values(true),
