@@ -52,6 +52,8 @@ bool MhaBackward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
     {
         return false;
     }
+
+    return true;
 }
 
 std::size_t MhaBackward::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,

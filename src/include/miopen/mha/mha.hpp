@@ -158,11 +158,10 @@ struct MhaDataBackward
     ConstData_t descaleQData;
     ConstData_t descaleVData;
     ConstData_t descaleSData;
-    ConstData_t scaleSData;
-
     ConstData_t descaleOData;
     ConstData_t descaleDOData;
     ConstData_t descaleDSData;
+    ConstData_t scaleSData;    
     ConstData_t scaleDSData;
     ConstData_t scaleDQData;
     ConstData_t scaleDKData;

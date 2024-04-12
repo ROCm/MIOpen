@@ -264,7 +264,7 @@ set( MIOpen_Source
     solver/layernorm/forward_layernorm.cpp
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
-    solver/mha/mha_solver.cpp
+    solver/mha/mha_solver_forward.cpp
     solver/mha/mha_solver_backward.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
