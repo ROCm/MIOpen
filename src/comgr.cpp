@@ -970,8 +970,6 @@ void BuildAsm(const std::string& name,
         SetIsaName(action, target);
         action.SetLogging(true);
         auto optAsm = miopen::SplitSpaceSeparated(options);
-        if(target.Xnack() && !*target.Xnack())
-            optAsm.emplace_back("-mno-xnack");
         compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
         action.SetOptionList(optAsm);
 
