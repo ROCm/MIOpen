@@ -252,6 +252,214 @@ void BackendPointwiseDescriptor::getAttribute(miopenBackendAttributeName_t attri
     }
 }
 
+const std::string& OperationPointwise::signName() const
+{
+    switch(mPointwise->getMode())
+    {
+    case MIOPEN_POINTWISE_ADD: {
+        static const std::string name = "OP_POINTWISE:ADD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_ADD_SQUARE: {
+        static const std::string name = "OP_POINTWISE:ADD_SQUARE";
+        return name;
+    }
+    case MIOPEN_POINTWISE_DIV: {
+        static const std::string name = "OP_POINTWISE:DIV";
+        return name;
+    }
+    case MIOPEN_POINTWISE_MAX: {
+        static const std::string name = "OP_POINTWISE:MAX";
+        return name;
+    }
+    case MIOPEN_POINTWISE_MIN: {
+        static const std::string name = "OP_POINTWISE:MIN";
+        return name;
+    }
+    case MIOPEN_POINTWISE_MOD: {
+        static const std::string name = "OP_POINTWISE:MOD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_MUL: {
+        static const std::string name = "OP_POINTWISE:MUL";
+        return name;
+    }
+    case MIOPEN_POINTWISE_POW: {
+        static const std::string name = "OP_POINTWISE:POW";
+        return name;
+    }
+    case MIOPEN_POINTWISE_SUB: {
+        static const std::string name = "OP_POINTWISE:SUB";
+        return name;
+    }
+    case MIOPEN_POINTWISE_ABS: {
+        static const std::string name = "OP_POINTWISE:ABS";
+        return name;
+    }
+    case MIOPEN_POINTWISE_CEIL: {
+        static const std::string name = "OP_POINTWISE:CEIL";
+        return name;
+    }
+    case MIOPEN_POINTWISE_COS: {
+        static const std::string name = "OP_POINTWISE:COS";
+        return name;
+    }
+    case MIOPEN_POINTWISE_EXP: {
+        static const std::string name = "OP_POINTWISE:EXP";
+        return name;
+    }
+    case MIOPEN_POINTWISE_FLOOR: {
+        static const std::string name = "OP_POINTWISE:FLOOR";
+        return name;
+    }
+    case MIOPEN_POINTWISE_LOG: {
+        static const std::string name = "OP_POINTWISE:LOG";
+        return name;
+    }
+    case MIOPEN_POINTWISE_NEG: {
+        static const std::string name = "OP_POINTWISE:NEG";
+        return name;
+    }
+    case MIOPEN_POINTWISE_RSQRT: {
+        static const std::string name = "OP_POINTWISE:RSQRT";
+        return name;
+    }
+    case MIOPEN_POINTWISE_SIN: {
+        static const std::string name = "OP_POINTWISE:SIN";
+        return name;
+    }
+    case MIOPEN_POINTWISE_SQRT: {
+        static const std::string name = "OP_POINTWISE:SQRT";
+        return name;
+    }
+    case MIOPEN_POINTWISE_TAN: {
+        static const std::string name = "OP_POINTWISE:TAN";
+        return name;
+    }
+    case MIOPEN_POINTWISE_ERF: {
+        static const std::string name = "OP_POINTWISE:ERF";
+        return name;
+    }
+    case MIOPEN_POINTWISE_IDENTITY: {
+        static const std::string name = "OP_POINTWISE:IDENTITY";
+        return name;
+    }
+    case MIOPEN_POINTWISE_RELU_FWD: {
+        static const std::string name = "OP_POINTWISE:RELU_FWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_TANH_FWD: {
+        static const std::string name = "OP_POINTWISE:TANH_FWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_SIGMOID_FWD: {
+        static const std::string name = "OP_POINTWISE:SIGMOID_FWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_ELU_FWD: {
+        static const std::string name = "OP_POINTWISE:ELU_FWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_GELU_FWD: {
+        static const std::string name = "OP_POINTWISE:GELU_FWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_SOFTPLUS_FWD: {
+        static const std::string name = "OP_POINTWISE:SOFTPLUS_FWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_SWISH_FWD: {
+        static const std::string name = "OP_POINTWISE:SWISH_FWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_GELU_APPROX_TANH_FWD: {
+        static const std::string name = "OP_POINTWISE:APPROX_TANH_FWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_RELU_BWD: {
+        static const std::string name = "OP_POINTWISE:RELU_BWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_TANH_BWD: {
+        static const std::string name = "OP_POINTWISE:TANH_BWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_SIGMOID_BWD: {
+        static const std::string name = "OP_POINTWISE:SIGMOID_BWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_ELU_BWD: {
+        static const std::string name = "OP_POINTWISE:ELU_BWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_GELU_BWD: {
+        static const std::string name = "OP_POINTWISE:GELU_BWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_SOFTPLUS_BWD: {
+        static const std::string name = "OP_POINTWISE:SOFTPLUS_BWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_SWISH_BWD: {
+        static const std::string name = "OP_POINTWISE:SWISH_BWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_GELU_APPROX_TANH_BWD: {
+        static const std::string name = "OP_POINTWISE:APPROX_TANH_BWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_CMP_EQ: {
+        static const std::string name = "OP_POINTWISE:CMP_EQ";
+        return name;
+    }
+    case MIOPEN_POINTWISE_CMP_NEQ: {
+        static const std::string name = "OP_POINTWISE:CMP_NEQ";
+        return name;
+    }
+    case MIOPEN_POINTWISE_CMP_GT: {
+        static const std::string name = "OP_POINTWISE:CMP_GT";
+        return name;
+    }
+    case MIOPEN_POINTWISE_CMP_GE: {
+        static const std::string name = "OP_POINTWISE:CMP_GE";
+        return name;
+    }
+    case MIOPEN_POINTWISE_CMP_LT: {
+        static const std::string name = "OP_POINTWISE:CMP_LT";
+        return name;
+    }
+    case MIOPEN_POINTWISE_CMP_LE: {
+        static const std::string name = "OP_POINTWISE:CMP_LE";
+        return name;
+    }
+    case MIOPEN_POINTWISE_LOGICAL_AND: {
+        static const std::string name = "OP_POINTWISE:LOGICAL_AND";
+        return name;
+    }
+    case MIOPEN_POINTWISE_LOGICAL_OR: {
+        static const std::string name = "OP_POINTWISE:LOGICAL_OR";
+        return name;
+    }
+    case MIOPEN_POINTWISE_LOGICAL_NOT: {
+        static const std::string name = "OP_POINTWISE:LOGICAL_NOT";
+        return name;
+    }
+    case MIOPEN_POINTWISE_GEN_INDEX: {
+        static const std::string name = "OP_POINTWISE:GEN_INDEX";
+        return name;
+    }
+    case MIOPEN_POINTWISE_BINARY_SELECT: {
+        static const std::string name = "OP_POINTWISE:BINARY_SELECT";
+        return name;
+    }
+    case MIOPEN_POINTWISE_RECIPROCAL: {
+        static const std::string name = "OP_POINTWISE:RECIPROCAL";
+        return name;
+    }
+    default: MIOPEN_THROW(miopenStatusNotImplemented);
+    }
+}
+
 std::vector<Tensor*> OperationPointwise::getInTensors() const
 {
     switch(mPointwise->getMode())

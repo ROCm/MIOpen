@@ -28,7 +28,7 @@
 
 #include <half/half.hpp>
 #include <miopen/graphapi/graphapi.hpp>
-#include <miopen/graphapi/operation.hpp>
+#include <miopen/graphapi/opgraph.hpp>
 
 #include <cstdint>
 #include <limits>
@@ -249,6 +249,7 @@ public:
     Alpha getAlpha1() const noexcept { return mAlpha1; }
     Alpha getAlpha2() const noexcept { return mAlpha2; }
 
+    const std::string& signName() const override;
     std::vector<Tensor*> getInTensors() const override;
     std::vector<Tensor*> getOutTensors() const override;
 };

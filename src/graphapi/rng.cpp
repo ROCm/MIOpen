@@ -194,6 +194,12 @@ void BackendRngDescriptor::getAttribute(miopenBackendAttributeName_t attributeNa
     }
 }
 
+const std::string& OperationRng::signName() const
+{
+    static const std::string name = "OP_RNG";
+    return name;
+}
+
 std::vector<Tensor*> OperationRng::getInTensors() const
 {
     if(mSeed.index() == 0)
