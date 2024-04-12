@@ -140,38 +140,21 @@ std::vector<Tensor*> OperationReduction::getInTensors() const { return {mX}; }
 
 std::vector<Tensor*> OperationReduction::getOutTensors() const { return {mY}; }
 
-namespace {
-
-template <typename Ptr>
-void assignPtr(Ptr src, Ptr& dst)
-{
-    if(src != nullptr)
-    {
-        dst = src;
-    }
-    else
-    {
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
-}
-
-} // namespace
-
 OperationReductionBuilder& OperationReductionBuilder::setReduction(Reduction* reduction)
 {
-    assignPtr(reduction, mOperationReduction.mReduction);
+    mOperationReduction.mReduction = checkPtr(reduction);
     return *this;
 }
 
 OperationReductionBuilder& OperationReductionBuilder::setX(Tensor* x)
 {
-    assignPtr(x, mOperationReduction.mX);
+    mOperationReduction.mX = checkPtr(x);
     return *this;
 }
 
 OperationReductionBuilder& OperationReductionBuilder::setY(Tensor* y)
 {
-    assignPtr(y, mOperationReduction.mY);
+    mOperationReduction.mY = checkPtr(y);
     return *this;
 }
 
@@ -194,6 +177,126 @@ OperationReduction OperationReductionBuilder::build()
         MIOPEN_THROW(miopenStatusBadParm);
     }
 }
+
+void BackendOperationReductionDescriptor::setAttribute(miopenBackendAttributeName_t attributeName,
+                                                       miopenBackendAttributeType_t attributeType,
+                                                       int64_t elementCount,
+                                                       void* arrayOfElements)
+{
+    if(mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+
+    using Setter = OperationReductionBuilder& (OperationReductionBuilder::*)(Tensor * tensor);
+
+    auto callSetter = [=](Setter setter, miopenBackendDescriptor_t& outDescriptor) {
+        if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && elementCount == 1)
+        {
+            miopenBackendDescriptor_t apiDescriptor =
+                deref(static_cast<miopenBackendDescriptor_t*>(arrayOfElements));
+            BackendDescriptor& backendDescriptor = deref(apiDescriptor);
+
+            if(!backendDescriptor.isFinalized())
+            {
+                MIOPEN_THROW(miopenStatusBadParm);
+            }
+
+            BackendTensorDescriptor& tensorDescriptor =
+                dynamic_cast<BackendTensorDescriptor&>(backendDescriptor);
+            (mBuilder.*setter)(tensorDescriptor.getTensor());
+            outDescriptor = apiDescriptor;
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+    };
+
+    switch(attributeName)
+    {
+    case MIOPEN_ATTR_OPERATION_REDUCTION_DESC:
+        if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && elementCount == 1)
+        {
+            miopenBackendDescriptor_t apiDescriptor =
+                deref(static_cast<miopenBackendDescriptor_t*>(arrayOfElements));
+            BackendDescriptor& backendDescriptor = deref(apiDescriptor);
+
+            if(!backendDescriptor.isFinalized())
+            {
+                MIOPEN_THROW(miopenStatusBadParm);
+            }
+
+            BackendReductionDescriptor& reductionDescriptor =
+                dynamic_cast<BackendReductionDescriptor&>(backendDescriptor);
+            mBuilder.setReduction(reductionDescriptor.getReduction());
+            mReductionDescriptor = apiDescriptor;
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+        break;
+
+    case MIOPEN_ATTR_OPERATION_REDUCTION_XDESC:
+        callSetter(&OperationReductionBuilder::setX, mXDescriptor);
+        break;
+
+    case MIOPEN_ATTR_OPERATION_REDUCTION_YDESC:
+        callSetter(&OperationReductionBuilder::setY, mYDescriptor);
+        break;
+
+    default: MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
+void BackendOperationReductionDescriptor::finalize()
+{
+    if(mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+
+    mOperationReduction = mBuilder.build();
+    mFinalized          = true;
+}
+
+void BackendOperationReductionDescriptor::getAttribute(miopenBackendAttributeName_t attributeName,
+                                                       miopenBackendAttributeType_t attributeType,
+                                                       int64_t requestedElementCount,
+                                                       int64_t* elementCount,
+                                                       void* arrayOfElements)
+{
+    if(!mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+
+    auto storeDescriptor = [=](miopenBackendDescriptor_t descriptor) {
+        if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && requestedElementCount == 1)
+        {
+            *elementCount                                             = 1;
+            *static_cast<miopenBackendDescriptor_t*>(arrayOfElements) = descriptor;
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+    };
+
+    switch(attributeName)
+    {
+    case MIOPEN_ATTR_OPERATION_REDUCTION_DESC: storeDescriptor(mReductionDescriptor); break;
+
+    case MIOPEN_ATTR_OPERATION_REDUCTION_XDESC: storeDescriptor(mXDescriptor); break;
+
+    case MIOPEN_ATTR_OPERATION_REDUCTION_YDESC: storeDescriptor(mYDescriptor); break;
+
+    default: MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
+OpNode* BackendOperationReductionDescriptor::getOperation() { return &mOperationReduction; }
 
 } // namespace graphapi
 
