@@ -387,7 +387,13 @@ if(MIOPEN_USE_MLIR)
     endif()
 endif()
 
-set(MIOPEN_PACKAGE_REQS "hip-rocclr")
+# Update HIP Runtime Package Dependency
+if(ENABLE_ASAN_PACKAGING)
+  set(DEPENDS_HIP_RUNTIME "hip-runtime-amd-asan" )
+else()
+  set(DEPENDS_HIP_RUNTIME "hip-runtime-amd" )
+endif()
+set(MIOPEN_PACKAGE_REQS "${DEPENDS_HIP_RUNTIME}")
 
 # Online assembler
 find_program(MIOPEN_AMDGCN_ASSEMBLER
