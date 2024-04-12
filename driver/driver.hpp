@@ -40,6 +40,7 @@
 #include <cstdlib>
 #include <cfloat>
 #include <memory>
+#include <miopen/logger.hpp>
 #include <miopen/miopen.h>
 #include <miopen/bfloat16.hpp>
 using half         = half_float::half;
@@ -108,25 +109,51 @@ struct GPUMem
     GPUMem(){};
     GPUMem(uint32_t ctx, size_t psz, size_t pdata_sz) : _ctx(ctx), sz(psz), data_sz(pdata_sz)
     {
-        hipMalloc(static_cast<void**>(&buf), data_sz * sz);
+        auto status = hipMalloc(static_cast<void**>(&buf), GetSize());
+        if(status != hipSuccess)
+            MIOPEN_THROW_HIP_STATUS(status,
+                                    "[MIOpenDriver] hipMalloc " + std::to_string(GetSize()));
+        MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Info2,
+                          "MIOpenDriver",
+                          "hipMalloc " << GetSize() << " at " << buf << " Ok");
     }
 
     int ToGPU(hipStream_t q, void* p)
     {
         _q = q;
-        return static_cast<int>(hipMemcpy(buf, p, data_sz * sz, hipMemcpyHostToDevice));
+        return static_cast<int>(hipMemcpy(buf, p, GetSize(), hipMemcpyHostToDevice));
     }
     int FromGPU(hipStream_t q, void* p)
     {
         hipDeviceSynchronize();
         _q = q;
-        return static_cast<int>(hipMemcpy(p, buf, data_sz * sz, hipMemcpyDeviceToHost));
+        return static_cast<int>(hipMemcpy(p, buf, GetSize(), hipMemcpyDeviceToHost));
     }
 
     void* GetMem() { return buf; }
     size_t GetSize() { return sz * data_sz; }
 
-    ~GPUMem() { hipFree(buf); }
+    ~GPUMem()
+    {
+        size_t size = 0;
+        auto status = hipMemPtrGetInfo(buf, &size);
+        if(status != hipSuccess)
+            MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Warning,
+                              "MIOpenDriver",
+                              "hipMemPtrGetInfo at " << buf << ' '
+                                                     << miopen::HIPErrorMessage(status, ""));
+        status = hipFree(buf);
+        if(status != hipSuccess)
+            MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Error,
+                              "MIOpenDriver",
+                              "hipFree " << size << " at " << buf << ' '
+                                         << miopen::HIPErrorMessage(status, ""));
+        else
+            MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Info2,
+                              "MIOpenDriver",
+                              "hipFree " << size << " at " << buf << " Ok");
+    }
+
     hipStream_t _q; // Place holder for opencl context
     uint32_t _ctx;
     void* buf;
