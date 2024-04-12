@@ -26,22 +26,27 @@
 #ifndef GUARD_MIOPEN_BN_DRIVER_HPP
 #define GUARD_MIOPEN_BN_DRIVER_HPP
 
-#include "../test/verify.hpp"
 #include "InputFlags.hpp"
 #include "driver.hpp"
 #include "miopen_BatchNormHost.hpp"
+#include "random.hpp"
+#include "tensor_driver.hpp"
 #include "timer.hpp"
+#include "util_driver.hpp"
+
+#include "../test/verify.hpp"
+
+#include <miopen/handle.hpp>
+#include <miopen/miopen.h>
+#include <miopen/tensor.hpp>
+
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <float.h>
 #include <memory>
-#include <miopen/miopen.h>
-#include <miopen/handle.hpp>
-#include <miopen/tensor.hpp>
 #include <numeric>
 #include <vector>
-#include "random.hpp"
 
 #define MIO_BN_DEBUG 0
 #define MIO_BN_MAX_DEBUGLOOP 65536
@@ -52,12 +57,6 @@
 #define ERRTOL_FP16 0.5e-3
 #define RMSTOL_FP32 1e-4
 #define RMSTOL_FP16 0.5e-3
-
-#ifdef MIOPEN_BACKEND_HIP
-#ifndef CL_SUCCESS
-#define CL_SUCCESS 0
-#endif
-#endif
 
 #define MIO_DRIVER_BN_REFERENCE_COMPUTE_3D_AS_2D 1 // Resolves issue #1974
 
@@ -403,13 +402,10 @@ template <typename Tgpu, typename Tref, typename Tmix>
 int BatchNormDriver<Tgpu, Tref, Tmix>::createSaveBuffers()
 {
 
+    status_t status = STATUS_SUCCESS;
+    DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-    cl_int status = CL_SUCCESS;
-    cl_context ctx;
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    int status   = 0;
-    uint32_t ctx = 0;
 #endif
 
     size_t sb_sz = GetTensorSize(biasScaleTensor);
@@ -459,7 +455,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::createSaveBuffers()
         saveInvVariance_dev = nullptr;
     }
 
-    if(status != CL_SUCCESS)
+    if(status != STATUS_SUCCESS)
         printf("Error copying data to GPU\n");
 
     return miopenStatusSuccess;
@@ -468,14 +464,10 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::createSaveBuffers()
 template <typename Tgpu, typename Tref, typename Tmix>
 int BatchNormDriver<Tgpu, Tref, Tmix>::createRunningBuffers()
 {
-
+    status_t status = STATUS_SUCCESS;
+    DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-    cl_int status = CL_SUCCESS;
-    cl_context ctx;
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    int status   = 0;
-    uint32_t ctx = 0;
 #endif
     size_t sb_sz = GetTensorSize(biasScaleTensor);
 
@@ -524,7 +516,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::createRunningBuffers()
         runningMean_dev     = nullptr;
         runningVariance_dev = nullptr;
     }
-    if(status != CL_SUCCESS)
+    if(status != STATUS_SUCCESS)
         printf("Error copying data to GPU\n");
 
     return miopenStatusSuccess;
@@ -533,14 +525,10 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::createRunningBuffers()
 template <typename Tgpu, typename Tref, typename Tmix>
 int BatchNormDriver<Tgpu, Tref, Tmix>::AllocateBuffersAndCopy()
 {
-
+    status_t status = STATUS_SUCCESS;
+    DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-    cl_int status = CL_SUCCESS;
-    cl_context ctx;
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    int status   = 0;
-    uint32_t ctx = 0;
 #endif
 
     size_t in_sz = GetTensorSize(inputTensor);
@@ -645,7 +633,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::AllocateBuffersAndCopy()
         status |= createSaveBuffers();
     }
 
-    if(status != CL_SUCCESS)
+    if(status != STATUS_SUCCESS)
         printf("Fatal: Error copying data to GPU\nExiting...\n\n");
 
     return miopenStatusSuccess;
