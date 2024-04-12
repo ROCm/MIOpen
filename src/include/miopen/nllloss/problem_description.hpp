@@ -84,7 +84,7 @@ struct ProblemDescription : ProblemDescriptionBase
             return false;
 #endif
         }
-        return true;
+        return true; 
     }
     
     bool IsSameType() const
