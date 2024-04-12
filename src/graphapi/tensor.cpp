@@ -291,7 +291,7 @@ void BackendTensorDescriptor::getAttribute(miopenBackendAttributeName_t attribut
     case MIOPEN_ATTR_TENSOR_IS_VIRTUAL:
         if(attributeType == MIOPEN_TYPE_BOOLEAN && requestedElementCount == 1)
         {
-            *static_cast<bool*>(arrayOfElements) = mDescriptor.getVirtual();
+            *static_cast<bool*>(arrayOfElements) = mDescriptor.isVirtual();
             *elementCount                        = 1;
             return;
         }
