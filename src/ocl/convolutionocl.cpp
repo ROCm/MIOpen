@@ -51,6 +51,8 @@
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
 
+#include <miopen/driver_arguments.hpp>
+
 #include <cassert>
 #include <functional>
 #include <type_traits>
@@ -1034,6 +1036,30 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
                                                          std::size_t workSpaceSize,
                                                          solver::Id solver_id) const
 {
+    std::atomic<uint32_t> conv_counter(0);
+    // Two Parts:
+    // Append the driver command to a ref file
+    // Dump out all the tensors with a conv_counter prefix
+
+    const auto dy_sz = dyDesc.GetNumBytes();
+    std::vector<char> dy_host(dy_sz);
+    handle.ReadTo(dy_host.data(), dy, dy_sz);
+    // write the vector to a file
+    std::string base_filename = "conv" + std::to_string(conv_counter);
+    std::string dy_file_name = base_filename + "_dy.bin";
+    std::ofstream dy_file(dy_file_name);
+    std::ostream_iterator<char> dy_file_it(dy_file);
+    std::copy(std::begin(dy_host), std::end(dy_host), dy_file_it);
+
+    // repeat for w
+    const auto w_sz = wDesc.GetNumBytes();
+    std::vector<char> w_host(w_sz);
+    handle.ReadTo(w_host.data(), w, w_sz);
+    std::string w_file_name = base_filename + "_w.bin";
+    std::ofstream w_file(w_file_name);
+    std::ostream_iterator<char> w_file_it(w_file);
+    std::copy(std::begin(w_host), std::end(w_host), w_file_it);
+
     MIOPEN_LOG_I("solver_id = " << solver_id.ToString() << ", workspace = " << workSpaceSize);
     ValidateWorkspace(workSpace, workSpaceSize);
     auto tensors = ConvBwdTensors{dyDesc, dy, wDesc, w, dxDesc, dx};
@@ -1056,6 +1082,17 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
             tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetBwd()};
         invoker(handle, invoke_ctx);
     });
+    // after the convolution
+    // write the output tensor to disk 
+    handle.Finish(); // so that the convolution kernel is done executing 
+    // dump the driver command to a file to correlate with the conv_counter
+    std::ofstream conv_ref("conv_ref.txt", std::ios::app); // make sure that the mode is correct
+    std::string line;
+    // perhaps later add the find problem key as well.
+    line = "MIOpenDriver " + miopen::debug::ConvArgsForMIOpenDriver(dxDesc, wDesc, *this, dyDesc, miopenProblemDirection_t::miopenProblemDirectionForward, uint64_t{0}, true) 
+        + " --dout_data " + base_filename + "_dy.bin " + " --weights " + base_filename + "_w.bin";
+    conv_ref << line <<"\n";
+    conv_counter++;  
 }
 
 // ConvolutionBackwardWeightsGetWorkSpaceSize
