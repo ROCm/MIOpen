@@ -25,6 +25,8 @@
  *******************************************************************************/
 #include <miopen/graphapi/graphapi.hpp>
 
+#include <miopen/graphapi/tensor.hpp>
+
 namespace miopen {
 namespace graphapi {
 
@@ -81,6 +83,95 @@ public:
     const Matmul* getMatmul() const noexcept { return &mMatmul; }
     Matmul* getMatmul() noexcept { return &mMatmul; }
 };
+
+Class OperationMatmul {
+    private:
+    BackendTensorDescriptor mA;
+    BackendTensorDescriptor mB;
+    BackendTensorDescriptor mC;
+    int64_t mBatchCount = 1;
+    BackendTensorDescriptor mGemmMOverride;
+    BackendTensorDescriptor mGemmNOverride;
+    BackendTensorDescriptor mGemmKOverride;
+    BackendMatmulDescriptor mMatmul;
+    public:
+    OperationMatmul() = default;
+    BackendTensorDescriptor getA() { return mA};
+    BackendTensorDescriptor getB() { return mB};
+    BackendTensorDescriptor getC() { return mC};
+    int64_t getBatchCount() { return mBatchCount};
+    BackendTensorDescriptor getMOverride() { return mGemmMOverride};
+    BackendTensorDescriptor getNOverride() { return mGemmNOverride};
+    BackendTensorDescriptor getKOverride() { return mGemmKOverride};
+    BackendMatmulDescriptor getMatmul() { return mMatmul};
+    private:
+    friend class BackendOperationMatmulBuilder;
+}
+
+class BackendOperationMatmulBuilder {
+    private:
+    bool mMatmulSet = false;
+    bool mASet = false;
+    bool mBSet = false;
+    bool mCSet = false;
+    OperationMatmul mMatmul;
+    public:
+    BackendOperationMatmulBuilder &setA(BackendTensorDescriptor A) {
+       mMatmul.mA = A;
+       mASet = true;
+       return *this;
+    };
+    BackendOperationMatmulBuilder &setB(BackendTensorDescriptor B) {
+       mMatmul.mB = B;
+       mBSet = false;
+       return *this;
+    };
+    BackendOperationMatmulBuilder &setC(BackendTensorDescriptor C) {
+       mMatmul.mC = C;
+       mCSet = false;
+       return *this;
+    };
+    BackendOperationMatmulBuilder &setBatchCount(int64_t count) {
+       mMatmul.mBatchCount = count;
+       return *this;
+    };
+    BackendTensorDescriptor &setGemmMOverride(BackendTensorDescriptor overrideTensor) {
+        mMatmul.mGemmMOverride = overrideTensor;
+        return *this;
+    };
+    BackendTensorDescriptor &setGemmNOverride(BackendTensorDescriptor overrideTensor) {
+        mMatmul.mGemmNOverride = overrideTensor;
+        return *this;
+    };
+    BackendTensorDescriptor &setGemmKOverride(BackendTensorDescriptor overrideTensor) {
+        mMatmul.mGemmKOverride = overrideTensor;
+        return *this;
+    };
+    BackendTensorDescriptor &setMatmulDescriptor(BackendMatmulDescriptor matmul) {
+        mMatmul = matmul;
+        mMatmulSet = true;
+        return *this;
+    }
+    OperationMatmul build();
+}
+
+class BackendOperationMatmul : public BackendDescriptor
+{
+    private:
+    BackendOperationMatmulBuilder mBuilder;
+    OperationMatmul mMatmul;
+    public:
+    virtual void setAttribute(miopenBackendAttributeName_t attributeName,
+                              miopenBackendAttributeType_t attributeType,
+                              int64_t elementCount,
+                              void* arrayOfElements) override;
+    virtual void finalize() override;
+    virtual void getAttribute(miopenBackendAttributeName_t attributeName,
+                              miopenBackendAttributeType_t attributeType,
+                              int64_t requestedElementCount,
+                              int64_t* elementCount,
+                              void* arrayOfElements) override;
+}
 
 } // namespace graphapi
 } // namespace miopen
