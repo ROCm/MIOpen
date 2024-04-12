@@ -60,6 +60,9 @@
 /// More info at https://github.com/ROCm/MIOpen/issues/1257.
 #define WORKAROUND_ISSUE_1257 (HIP_PACKAGE_VERSION_FLAT >= 4003021331ULL)
 
+/// https://github.com/ROCm/ROCm-CompilerSupport/issues/67 about unused -nogpulib.
+#define WORKAROUND_ROCMCOMPILERSUPPORT_ISSUE_67 1
+
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_LOG_CALLS)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)
 
@@ -971,6 +974,9 @@ void BuildAsm(const std::string& name,
         action.SetLogging(true);
         auto optAsm = miopen::SplitSpaceSeparated(options);
         compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
+#if WORKAROUND_ROCMCOMPILERSUPPORT_ISSUE_67
+        optAsm.push_back("--rocm-path=.");
+#endif
         action.SetOptionList(optAsm);
 
         const Dataset relocatable;
