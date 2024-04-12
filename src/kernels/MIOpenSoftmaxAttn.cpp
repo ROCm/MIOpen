@@ -37,13 +37,12 @@
 #endif
 
 namespace {
-constexpr float max_op(float a, float b) { return a > b ? a : b; };
 constexpr float plus_op(float a, float b) { return a + b; };
 
-/// atomically calcutates maximum of non-negative ordered values
-/// it produces wrong results for negatve values or nans
-/// but it is a final amax reducton step and we expect only non-negative ordered values
-__device__ float atomicMaxOfAbsolutValues(float* addr, float value)
+/// Atomically calculates maximum of non-negative ordered values.
+/// Produces wrong results for negatve values or nans,
+/// but it is a final amax reducton step and we expect only non-negative ordered values.
+__device__ float atomicMaxOfNonNegative(float* addr, float value)
 {
     // ordered non-negatve and even infinity values can be compared as integers
     // NOLINTBEGIN
@@ -112,6 +111,8 @@ template <uint32_t NumWarps, typename Op>
 __device__ float
 reductionBlock(float local_val, Op op, uint32_t lid, uint32_t laneId, uint32_t warpId)
 {
+    static_assert(NumWarps <= warpSize);
+    static_assert((NumWarps & (NumWarps - 1)) == 0, "NumWarps must be a power of 2");
     __shared__ float reduction_tmp[NumWarps];
 
     float reduced_val = reductionFullWarp<warpSize>(local_val, laneId, op);
@@ -186,7 +187,7 @@ extern "C" __global__ void SoftMaxWarp(const float* in,
         float local_val =
             (laneId < seq_len) ? (*line) * descaler : std::numeric_limits<float>::lowest();
 
-        float r_max = reductionFullWarp<warpSize>(local_val, laneId, max_op);
+        float r_max = reductionFullWarp<warpSize>(local_val, laneId, fmaxf);
 
         local_val = (laneId < seq_len) ? expf(local_val - r_max) : 0;
 
@@ -194,10 +195,10 @@ extern "C" __global__ void SoftMaxWarp(const float* in,
 
         local_val *= r_sum;
 
-        // it is supposed to be maximum of absolut values
-        // but after the exponent it is already non-negative
-        // so just a maximum can be used
-        r_Amax = max_op(r_Amax, local_val);
+        // It is supposed to be maximum of absolute values,
+        // however we do not need abs() because expf() above produces
+        // non-negative value. Plain max() is enough.
+        r_Amax = fmaxf(r_Amax, local_val);
 
         if(laneId < seq_len)
         {
@@ -215,10 +216,10 @@ extern "C" __global__ void SoftMaxWarp(const float* in,
 
     if(Amax)
     {
-        r_Amax = reductionBlock<NumWarps>(r_Amax, max_op, lid, laneId, warpId);
+        r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf, lid, laneId, warpId);
         if(lid == 0)
         {
-            atomicMaxOfAbsolutValues(Amax, r_Amax);
+            atomicMaxOfNonNegative(Amax, r_Amax);
         }
     }
 
@@ -262,7 +263,7 @@ extern "C" __global__ void SoftMaxBlock(const float* in,
 
         float local_val =
             (lid < seq_len) ? (*line) * descaler : std::numeric_limits<float>::lowest();
-        float r_max = reductionBlock<NumWarps>(local_val, max_op, lid, laneId, warpId);
+        float r_max = reductionBlock<NumWarps>(local_val, fmaxf, lid, laneId, warpId);
 
         local_val = (lid < seq_len) ? expf(local_val - r_max) : 0;
 
@@ -270,10 +271,10 @@ extern "C" __global__ void SoftMaxBlock(const float* in,
 
         local_val *= r_sum;
 
-        // it is supposed to be maximum of absolut values
-        // but after the exponent it is already non-negative
-        // so just a maximum can be used
-        r_Amax = max_op(r_Amax, local_val);
+        // It is supposed to be maximum of absolute values,
+        // however we do not need abs() because expf() above produces
+        // non-negative value. Plain max() is enough.
+        r_Amax = fmaxf(r_Amax, local_val);
 
         if(lid < seq_len)
         {
@@ -291,10 +292,10 @@ extern "C" __global__ void SoftMaxBlock(const float* in,
 
     if(Amax)
     {
-        r_Amax = reductionBlock<NumWarps>(r_Amax, max_op, lid, laneId, warpId);
+        r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf, lid, laneId, warpId);
         if(lid == 0)
         {
-            atomicMaxOfAbsolutValues(Amax, r_Amax);
+            atomicMaxOfNonNegative(Amax, r_Amax);
         }
     }
 
@@ -340,7 +341,7 @@ extern "C" __global__ void SoftMaxCommon(const float* in,
             line,
             std::numeric_limits<float>::lowest(),
             seq_len,
-            max_op,
+            fmaxf,
             [descaler](float x) { return x * descaler; },
             lid,
             laneId,
@@ -360,10 +361,10 @@ extern "C" __global__ void SoftMaxCommon(const float* in,
         {
             float local_val = expf(line[loop_lid] * descaler - r_max) * r_sum;
 
-            // it is supposed to be maximum of absolut values
-            // but after the exponent it is already non-negative
-            // so just a maximum can be used
-            r_Amax = max_op(r_Amax, local_val);
+            // It is supposed to be maximum of absolute values,
+            // however we do not need abs() because expf() above produces
+            // non-negative value. Plain max() is enough.
+            r_Amax = fmaxf(r_Amax, local_val);
 
             res[loop_lid] = (dropout > 0.0f && miopen::prng::xorwow_uniform(&rng) < dropout)
                                 ? 0.0f
@@ -379,10 +380,10 @@ extern "C" __global__ void SoftMaxCommon(const float* in,
 
     if(Amax)
     {
-        r_Amax = reductionBlock<NumWarps>(r_Amax, max_op, lid, laneId, warpId);
+        r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf, lid, laneId, warpId);
         if(lid == 0)
         {
-            atomicMaxOfAbsolutValues(Amax, r_Amax);
+            atomicMaxOfNonNegative(Amax, r_Amax);
         }
     }
 
@@ -408,7 +409,7 @@ extern "C" __global__ void ScaleReduce(const float* __restrict__ in,
 
     auto in_ptr    = in + gid;
     auto out_ptr   = out + gid;
-    const auto end = in_ptr + nhsd;
+    const auto end = in + nhsd;
 
     float r_Amax = 0;
 
@@ -416,7 +417,7 @@ extern "C" __global__ void ScaleReduce(const float* __restrict__ in,
     {
         const auto res = *in_ptr * descaler;
 
-        r_Amax = max_op(r_Amax, fabsf(res));
+        r_Amax = fmaxf(r_Amax, fabsf(res));
 
         *out_ptr = res * scaler;
 
@@ -429,9 +430,9 @@ extern "C" __global__ void ScaleReduce(const float* __restrict__ in,
     const uint32_t laneId       = lid % warpSize;
     const uint32_t warpId       = lid / warpSize;
 
-    r_Amax = reductionBlock<NumWarps>(r_Amax, max_op, lid, laneId, warpId);
+    r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf, lid, laneId, warpId);
     if(lid == 0)
     {
-        atomicMaxOfAbsolutValues(Amax, r_Amax);
+        atomicMaxOfNonNegative(Amax, r_Amax);
     }
 }

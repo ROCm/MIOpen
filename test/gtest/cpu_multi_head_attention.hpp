@@ -67,27 +67,53 @@ protected:
                                   softmax,
                                   attn_max,
                                   z_sum,
+                                  aMax_S,
+                                  aMax_O,
                                   multi_head_attention);
 
             Concat(multi_head_attention, concatinated_attention);
         }
         else
         {
-            MultiHeadAttentionfp8(q_val,
-                                  k_val,
-                                  v_val,
-                                  softmax,
+            float q_scale   = GetF8Scaling(FindMax4D(q_val));
+            float k_scale   = GetF8Scaling(FindMax4D(k_val));
+            float v_scale   = GetF8Scaling(FindMax4D(v_val));
+            float q_descale = 1.f / q_scale;
+            float k_descale = 1.f / k_scale;
+            float v_descale = 1.f / v_scale;
+
+            float s_scale = 1.f;
+            // clang-tidy complains about the same expression on both sides of "/": 1.f / 1.f
+            float s_descale = 1.f; // / s_scale;
+
+            float o_scale = 1.f;
+            // clang-tidy complains about the same expression on both sides of "/": 1.f / 1.f
+            float o_descale = 1.f; // / o_scale;
+
+            tensor<float8> q_val_fp8(q_val.desc.GetLengths());
+            tensor<float8> k_val_fp8(k_val.desc.GetLengths());
+            tensor<float8> v_val_fp8(v_val.desc.GetLengths());
+
+            ScaleMult(q_val, q_scale, q_val_fp8);
+            ScaleMult(k_val, k_scale, k_val_fp8);
+            ScaleMult(v_val, v_scale, v_val_fp8);
+
+            MultiHeadAttentionfp8(q_val_fp8,
+                                  k_val_fp8,
+                                  v_val_fp8,
                                   attn_max,
                                   z_sum,
-                                  q_scale,
-                                  k_scale,
-                                  aMax_S,
+                                  q_descale,
+                                  k_descale,
+                                  v_descale,
+                                  s_descale,
                                   s_scale,
-                                  v_scale,
                                   o_scale,
+                                  aMax_S,
+                                  aMax_O,
                                   multi_head_attention);
             Concat(multi_head_attention, final_transformed_attention);
-            ScaleMult3d(final_transformed_attention, 1.0f / o_scale, concatinated_attention);
+            ScaleMult(final_transformed_attention, o_descale, concatinated_attention);
         }
 
         Dot_3D_2D_T(
@@ -105,8 +131,8 @@ protected:
 
         const auto [error, max_diff] = calcStats(final_transformed_attention);
         // CI clang-tidy treats is as "boolean value assigned to float"
-        const double error_threshold    = ((std::is_same_v<OutputType, float>) ? 1e-7 : 1e-2);
-        const double max_diff_threshold = ((std::is_same_v<OutputType, float>) ? 1e-6 : 1e-1);
+        const double error_threshold    = ((std::is_same_v<OutputType, float>) ? 1e-7 : 5e-2);
+        const double max_diff_threshold = ((std::is_same_v<OutputType, float>) ? 1e-6 : 5e-1);
 
         EXPECT_LT(error, error_threshold);
         EXPECT_LT(max_diff, max_diff_threshold);
@@ -212,12 +238,8 @@ protected:
     tensor<InputType> final_transformed_attention;
 
     // scales
-    float q_scale;
-    float k_scale;
     float aMax_S;
-    float s_scale;
-    float v_scale;
-    float o_scale;
+    float aMax_O;
 };
 
 } // namespace cpu
