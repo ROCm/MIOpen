@@ -2923,7 +2923,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float
             "stats: name, n, c, do, ho, wo, z, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
             "GB/s, timeMs\n");
         printf("stats: %s%dx%dx%du%d, %u, %u, %u, %u, %u, %u, %u, %u, %u,  %zu, %zu, %zu, %.0f, "
-               "%.0f, %f\n ",
+               "%.0f, %f\n",
                "bwdw-conv",
                wei_d,
                wei_h,
