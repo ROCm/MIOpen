@@ -160,7 +160,7 @@ ConvSolution Mha::GetSolution(const ExecutionContext& context,
         return static_cast<void*>(static_cast<std::byte*>(buffer) + ws.GetOffset(part_idx));
     };
 
-    local_threads  = RoundUpToMultiple<uint64_t>(std::min<uint64_t>(nhsd, 256), 32);
+    local_threads  = std::clamp<uint32_t>(nextPow2(nhsd), warpSize, 256);
     global_threads = RoundUpToMultiple(nhsd, local_threads);
 
     auto scale_reduce_kernel = KernelInfo{};
@@ -210,89 +210,88 @@ ConvSolution Mha::GetSolution(const ExecutionContext& context,
                            true);
 #endif
 
-    result.invoker_factory =
-        [QK_desc, SV_desc, seq_len, nhs, nhsd, getBuffPart](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-                decltype(auto) params = raw_params.CastTo<miopen::mha::InvokeParams>();
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+            decltype(auto) params = raw_params.CastTo<miopen::mha::InvokeParams>();
 
-                HipEventPtr start    = nullptr;
-                HipEventPtr stop     = nullptr;
-                const bool profiling = handle_.IsProfilingEnabled();
+            HipEventPtr start    = nullptr;
+            HipEventPtr stop     = nullptr;
+            const bool profiling = handle_.IsProfilingEnabled();
 
-                if(profiling)
-                {
-                    start = make_hip_event();
-                    stop  = make_hip_event();
-                    handle_.EnableProfiling(false);
-                    hipEventRecord(start.get(), handle_.GetStream());
-                }
+            if(profiling)
+            {
+                start = make_hip_event();
+                stop  = make_hip_event();
+                handle_.EnableProfiling(false);
+                hipEventRecord(start.get(), handle_.GetStream());
+            }
 
-                // zero amax output data to use atomics
-                hipMemsetAsync(params.GetData().amaxSData, 0, sizeof(float), handle_.GetStream());
-                hipMemsetAsync(params.GetData().amaxOData, 0, sizeof(float), handle_.GetStream());
+            // zero amax output data to use atomics
+            hipMemsetAsync(params.GetData().amaxSData, 0, sizeof(float), handle_.GetStream());
+            hipMemsetAsync(params.GetData().amaxOData, 0, sizeof(float), handle_.GetStream());
 
-                void* fp32_ws = getBuffPart(params.GetWorkspace(), 0);
-                void* fp8_ws  = getBuffPart(params.GetWorkspace(), 1);
-                void* prng_ws = getBuffPart(params.GetWorkspace(), 2);
-
-#if MIOPEN_USE_GEMM
-                CallGemmStridedBatched(handle_,
-                                       QK_desc,
-                                       params.GetData().qData,
-                                       0,
-                                       params.GetData().kData,
-                                       0,
-                                       fp32_ws,
-                                       0,
-                                       GemmBackend_t::rocblas);
-#endif
-                decltype(auto) softmax_kernel = handle_.Run(kernels.front());
-                softmax_kernel(fp32_ws,
-                               fp8_ws,
-                               params.GetData().mData,
-                               params.GetData().zInvData,
-                               params.GetData().amaxSData,
-                               params.GetData().descaleQData,
-                               params.GetData().descaleKData,
-                               params.GetData().scaleSData,
-                               prng_ws,
-                               params.GetData().dropoutProbabilityData,
-                               seq_len,
-                               nhs);
+            void* fp32_ws = getBuffPart(params.GetWorkspace(), 0);
+            void* fp8_ws  = getBuffPart(params.GetWorkspace(), 1);
+            void* prng_ws = getBuffPart(params.GetWorkspace(), 2);
 
 #if MIOPEN_USE_GEMM
-                CallGemmStridedBatched(handle_,
-                                       SV_desc,
-                                       fp8_ws,
-                                       0,
-                                       params.GetData().vData,
-                                       0,
-                                       fp32_ws,
-                                       0,
-                                       GemmBackend_t::rocblas);
+            CallGemmStridedBatched(handle_,
+                                   QK_desc,
+                                   params.GetData().qData,
+                                   0,
+                                   params.GetData().kData,
+                                   0,
+                                   fp32_ws,
+                                   0,
+                                   GemmBackend_t::rocblas);
+#endif
+            decltype(auto) softmax_kernel = handle_.Run(kernels.front());
+            softmax_kernel(fp32_ws,
+                           fp8_ws,
+                           params.GetData().mData,
+                           params.GetData().zInvData,
+                           params.GetData().amaxSData,
+                           params.GetData().descaleQData,
+                           params.GetData().descaleKData,
+                           params.GetData().scaleSData,
+                           prng_ws,
+                           params.GetData().dropoutProbabilityData,
+                           seq_len,
+                           nhs);
+
+#if MIOPEN_USE_GEMM
+            CallGemmStridedBatched(handle_,
+                                   SV_desc,
+                                   fp8_ws,
+                                   0,
+                                   params.GetData().vData,
+                                   0,
+                                   fp32_ws,
+                                   0,
+                                   GemmBackend_t::rocblas);
 #endif
 
-                decltype(auto) scale_reduce_kernel = handle_.Run(kernels.back());
-                scale_reduce_kernel(fp32_ws,
-                                    params.GetData().oData,
-                                    params.GetData().amaxOData,
-                                    params.GetData().descaleSData,
-                                    params.GetData().descaleVData,
-                                    params.GetData().scaleOData,
-                                    nhsd);
+            decltype(auto) scale_reduce_kernel = handle_.Run(kernels.back());
+            scale_reduce_kernel(fp32_ws,
+                                params.GetData().oData,
+                                params.GetData().amaxOData,
+                                params.GetData().descaleSData,
+                                params.GetData().descaleVData,
+                                params.GetData().scaleOData,
+                                nhsd);
 
-                if(profiling)
-                {
-                    hipEventRecord(stop.get(), handle_.GetStream());
-                    handle_.EnableProfiling(true);
-                    hipEventSynchronize(stop.get());
-                    float mS = 0;
-                    hipEventElapsedTime(&mS, start.get(), stop.get());
-                    handle_.ResetKernelTime();
-                    handle_.AccumKernelTime(mS);
-                }
-            };
+            if(profiling)
+            {
+                hipEventRecord(stop.get(), handle_.GetStream());
+                handle_.EnableProfiling(true);
+                hipEventSynchronize(stop.get());
+                float mS = 0;
+                hipEventElapsedTime(&mS, start.get(), stop.get());
+                handle_.ResetKernelTime();
+                handle_.AccumKernelTime(mS);
+            }
         };
+    };
 
     return result;
 }

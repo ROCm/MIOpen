@@ -63,6 +63,9 @@ miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
         case MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR:
             outputDesciptor = new miopen::graphapi::BackendOperationConvolutionBackwardDataDescriptor(); break;
 
+        case MIOPEN_BACKEND_OPERATION_RNG_DESCRIPTOR:
+            outputDesciptor = new miopen::graphapi::BackendOperationRngDescriptor(); break;
+
         case MIOPEN_BACKEND_POINTWISE_DESCRIPTOR:
             outputDesciptor = new miopen::graphapi::BackendPointwiseDescriptor(); break;
 
@@ -201,6 +204,9 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
 
         case MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendOperationConvolutionBackwardDataDescriptor>(descriptor, sizeInBytes); break;
+
+        case MIOPEN_BACKEND_OPERATION_RNG_DESCRIPTOR:
+            initializeBackendDescriptor<miopen::graphapi::BackendOperationRngDescriptor>(descriptor, sizeInBytes); break;
 
         case MIOPEN_BACKEND_POINTWISE_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendPointwiseDescriptor>(descriptor, sizeInBytes); break;
