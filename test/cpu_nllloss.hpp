@@ -30,10 +30,10 @@
 
 template <class T>
 void cpu_nllloss_forward_4d(tensor<T> input, 
-                            tensor<T> target, 
+                            tensor<int> target, 
                             tensor<T> weight,
                             tensor<T>& output,
-                            long ignore_index)
+                            int ignore_index)
 {
     auto dims = input.desc.GetLengths();
     size_t N = dims[0];

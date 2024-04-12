@@ -41,7 +41,7 @@ struct NLLLossTestCase
     size_t D1=0;
     size_t D2=0;
     bool weight_mode=false;
-    long ignore_index=-1;
+    int ignore_index=-1;
 
     std::vector<size_t> input = {N, C, D1, D2};
     friend std::ostream& operator<<(std::ostream& os, const NLLLossTestCase& tc)
@@ -56,11 +56,11 @@ struct NLLLossTestCase
 inline std::vector<NLLLossTestCase> NLLLossTestConfigs()
 { // dim, dims
     // clang-format off
-    return {{8, 1 ,6,5,false,-1},
-            {1, 2, 2, 2, false, -1},
-            {2,10,128,128, false, -1},
+    return {{1, 2, 2, 2, false, -100},
+            {2,10,128,128, false, 255},
             {8, 12, 256, 256, true, -1},
-            {8, 16, 512, 512, true, 10}};
+            {8, 16, 512, 512, true, 10},
+            {16, 21,512,512,false, 255}};
     // clang-format on
 }
 
@@ -106,7 +106,7 @@ protected:
         
         input = tensor<T>{in_dim}.generate(gen_input_value);
 
-        target = tensor<T>{target_dim}.generate(gen_target_value);
+        target = tensor<int>{target_dim}.generate(gen_target_value);
 
         if (!weight_mode)
             weight = tensor<T>{weight_dim}.generate(gen_weight_one);
@@ -156,13 +156,13 @@ protected:
     NLLLossTestCase nllloss_config;
 
     tensor<T> input;
-    tensor<T> target;
+    tensor<int> target;
     tensor<T> weight;
     tensor<T> output;
     tensor<T> ref_output;
 
     bool weight_mode;
-    long ignore_index;
+    int ignore_index;
 
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr target_dev;

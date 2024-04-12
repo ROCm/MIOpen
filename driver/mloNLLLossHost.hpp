@@ -33,10 +33,10 @@
 template <typename Tgpu, typename Tcheck>
 int32_t mloNLLLossForwardRunHost(miopenTensorDescriptor_t inputDesc,
                                 Tgpu* input,
-                                Tgpu* target,
+                                int* target,
                                 Tgpu* weight,
                                 Tcheck* outputhost,
-                                long ignore_index)
+                                int ignore_index)
 {
     auto dims = miopen::deref(inputDesc).GetLengths();
 
@@ -52,18 +52,20 @@ int32_t mloNLLLossForwardRunHost(miopenTensorDescriptor_t inputDesc,
             for (size_t d2 = 0; d2 < D2; d2++)
             {
                 size_t target_index = n * D1 * D2 + d1 * D2 + d2;
-                long t = static_cast<long>(target[target_index]);
+                int t = target[target_index];
                 size_t input_index = (n * C + t) * D1 * D2 + d1 * D2 + d2;
                 size_t weight_index = t;
                 size_t output_index = target_index;
 
                 if (t < 0 || t == ignore_index || t >= C)
                 {
-                    outputhost[output_index] = static_cast<Tcheck>(0.0);
+                    outputhost[output_index] = static_cast<Tcheck>(0);
                 }
                 else
                 {
-                    outputhost[output_index] = static_cast<Tcheck>(-1.0f) * weight[weight_index] * input[input_index];
+                    outputhost[output_index] = static_cast<Tcheck>(-1) 
+                                             * static_cast<Tcheck>(weight[weight_index]) 
+                                             * static_cast<Tcheck>(input[input_index]);
                 }
             }
         }

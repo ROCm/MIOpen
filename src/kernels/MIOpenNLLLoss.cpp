@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cstddef>
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_runtime.h>
 #endif
@@ -42,16 +41,16 @@
  * weight(weight): [C], output(output): [N, D1, D2] */
 /* Each thread computes one output: output[n0][n1][n2] */
 extern "C" __global__ void NLLLossUnreducedForward4dContiguous(const FLOAT* __restrict__ input, 
-                                                               const FLOAT* __restrict__ target, 
+                                                               const int* __restrict__ target, 
                                                                const FLOAT* weight,
                                                                FLOAT* __restrict__ output, 
-                                                               long ignore_index, 
+                                                               int ignore_index, 
                                                                size_t N_total,
                                                                size_t C,
                                                                size_t D1,
                                                                size_t D2)
 {
-    size_t gid = threadIdx.x + blockIdx.x * blockDim.x;
+    uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
     
     if (gid >= N_total) return;
 
@@ -61,18 +60,18 @@ extern "C" __global__ void NLLLossUnreducedForward4dContiguous(const FLOAT* __re
     NWH[1] = nc % D1;
     NWH[0] = nc / D1;
 
-    long t = static_cast<long>(target[gid]);
+    int t = target[gid];
     // t: Class index
     if (t < 0 || t == ignore_index || t >= C)  {
-        output[gid] = static_cast<FLOAT>(0.0);
+        output[gid] = static_cast<FLOAT>(0);
         return;
     }
 
-    FLOAT w = weight != nullptr ? weight[t] : static_cast<FLOAT>(1.0);
+    FLOAT_ACCUM w = weight != nullptr ? CVT_FLOAT2ACCUM(weight[t]) : CVT_FP32_2ACCUM(1.0f);
 
-    // fix this
     // FLOAT input_value = input[N][t][D1][D2];
-    FLOAT input_value = input[(NWH[0] * C + t) * D1 * D2 + NWH[1] * D2 + NWH[2]];
+    FLOAT_ACCUM input_value = CVT_FLOAT2ACCUM(input[(NWH[0] * C + t) * D1 * D2 + NWH[1] * D2 + NWH[2]]);
 
-    output[gid] = static_cast<FLOAT>(-1.0) * w * input_value;
+    FLOAT_ACCUM val = CVT_FP32_2ACCUM(-1.0f) * w * input_value;
+    output[gid] = CVT_ACCUM2FLOAT(val);
 }

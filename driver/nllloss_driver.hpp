@@ -85,6 +85,8 @@ public:
 private:
     InputFlags inflags;
 
+    int forw;
+    
     miopenTensorDescriptor_t inputDesc;
     miopenTensorDescriptor_t targetDesc;
     miopenTensorDescriptor_t weightDesc;
@@ -96,7 +98,7 @@ private:
     std::unique_ptr<GPUMem> out_dev;
 
     std::vector<Tgpu> in;
-    std::vector<Tgpu> target;
+    std::vector<int> target;
     std::vector<Tgpu> weight;
     std::vector<Tgpu> out;
     std::vector<Tref> out_host;
@@ -105,7 +107,7 @@ private:
     size_t C;
     size_t D1;
     size_t D2;
-    long ignore_index;
+    int ignore_index;
 };
 
 template <typename Tgpu, typename Tref>
@@ -127,7 +129,7 @@ int NLLLossDriver<Tgpu, Tref>::GetandSetData()
     C = inflags.GetValueInt("numclasses");
     D1 = inflags.GetValueInt("D1");
     D2 = inflags.GetValueInt("D2");
-    ignore_index = static_cast<long>(inflags.GetValueInt("ignore_index"));
+    ignore_index = static_cast<int>(inflags.GetValueInt("ignore_index"));
 
     if (N<=0 || C<=0 || D1<=0 || D2<=0)
     {
@@ -177,12 +179,12 @@ int NLLLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     uint32_t ctx = 0;
 
     in_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-    target_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, target_sz, sizeof(Tgpu)));
+    target_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, target_sz, sizeof(int)));
     weight_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, weight_sz, sizeof(Tgpu)));
     out_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
     in     = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-    target = std::vector<Tgpu>(target_sz, static_cast<Tgpu>(0));
+    target = std::vector<int>(target_sz, static_cast<int>(0));
     weight = std::vector<Tgpu>(weight_sz, static_cast<Tgpu>(0));
     out    = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
     out_host = std::vector<Tref>(out_sz, static_cast<Tref>(0));
@@ -197,7 +199,7 @@ int NLLLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for (int i = 0; i < target_sz; i++)
     {
-        target[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0), static_cast<Tgpu>(C-1));
+        target[i] = prng::gen_A_to_B<int>(static_cast<int>(0), static_cast<int>(C-1));
     }
     status |= target_dev->ToGPU(q, target.data());
 
