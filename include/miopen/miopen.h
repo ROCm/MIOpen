@@ -6605,8 +6605,8 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
 MIOPEN_EXPORT miopenStatus_t miopenGLUForward(miopenHandle_t handle,
                                               const miopenTensorDescriptor_t inputDesc,
                                               const miopenTensorDescriptor_t inputSplitDesc,
-                                              const void* a,
-                                              const void* b,
+                                              void* a,
+                                              void* b,
                                               const int32_t dim,
                                               const miopenTensorDescriptor_t outputDesc,
                                               void* output);

@@ -30,7 +30,7 @@
 
 #include "float_types.h"
 
-float sigmoid(float x) { return 1.0f / (1.0f + exp(-x)); }
+__device__ float sigmoid(float x) { return 1.0f / (1.0f + exp(-x)); }
 
 extern "C" __global__ void GLUFwdContiguous(const FLOAT* __restrict__ a,
                                             const FLOAT* __restrict__ b,
