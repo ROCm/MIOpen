@@ -42,7 +42,7 @@ static void LogCmdNLLLoss(const miopenTensorDescriptor_t xDesc, bool is_fwd)
         }
         else if(dtype == miopenFloat)
         {
-            ss << "nlllossfp32";
+            ss << "nllloss";
         }
         else if(dtype == miopenBFloat16)
         {
@@ -72,7 +72,7 @@ extern "C" miopenStatus_t miopenNLLLossForward(miopenHandle_t handle,
                                                 const void* weight,
                                                 const miopenTensorDescriptor_t outputDesc,
                                                 void* output,
-                                                long ignore_index)
+                                                int ignore_index)
 {
     MIOPEN_LOG_FUNCTION(
         handle,
@@ -87,7 +87,6 @@ extern "C" miopenStatus_t miopenNLLLossForward(miopenHandle_t handle,
         ignore_index);
 
     LogCmdNLLLoss(inputDesc, true);
-    // LogCmdNLLLossForward(inputDesc, targetDesc, weightDesc, outputDesc, ignore_index, N, C);
     return miopen::try_([&] {
         miopen::NLLLossForward(
             miopen::deref(handle),

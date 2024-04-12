@@ -48,6 +48,12 @@ namespace nllloss {
 bool NLLLossForward::IsApplicable(const ExecutionContext&,
                                   const miopen::nllloss::ProblemDescription& problem) const
 {
+    if(!problem.IsSameType())
+        return false;
+    if(!problem.IsAllPacked())
+        return false;
+    if(!problem.IsRightDim())
+        return false;
     return true;
 }
 

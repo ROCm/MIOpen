@@ -46,7 +46,7 @@ struct InvokeParams : public miopen::InvokeParams
     ConstData_t weight = nullptr;
     Data_t output = nullptr;
 
-    long ignore_index = -1;
+    int ignore_index = -1;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }

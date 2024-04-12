@@ -29,7 +29,6 @@
 #include <miopen/problem_description_base.hpp>
 #include <miopen/activ.hpp>
 #include <miopen/tensor.hpp>
-
 #include <cassert>
 #include <string>
 
@@ -45,29 +44,82 @@ struct ProblemDescription : ProblemDescriptionBase
                        const TensorDescriptor& targetDesc_,
                        const TensorDescriptor& weightDesc_,
                        const TensorDescriptor& outputDesc_,
-                       long ignore_index_)
+                       int ignore_index_)
         : inputDesc(inputDesc_),
           targetDesc(targetDesc_),
           weightDesc(weightDesc_),
           outputDesc(outputDesc_),
           ignore_index(ignore_index_),
           N_total(outputDesc_.GetElementSize()),
+          N(inputDesc_.GetLengths()[0]),
           C(inputDesc_.GetLengths()[1]),
           D1(inputDesc_.GetLengths()[2]), 
           D2(inputDesc_.GetLengths()[3])
     {
-        
     }
 
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
     const TensorDescriptor& GetTargetDesc() const { return targetDesc; }
     const TensorDescriptor& GetWeightDesc() const { return weightDesc; }
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
-    long GetIgnoreIndex() const { return ignore_index; }
-    long GetNtotal() const { return N_total; }
-    long GetC() const { return C; }
-    long GetD1() const { return D1; }
-    long GetD2() const { return D2; }
+    int GetIgnoreIndex() const { return ignore_index; }
+    size_t GetNtotal() const { return N_total; }
+    size_t GetC() const { return C; }
+    size_t GetD1() const { return D1; }
+    size_t GetD2() const { return D2; }
+
+    /* input(input): [N, C, D1, D2], target(target): [N, D1, D2],
+    * weight(weight): [C], output(output): [N, D1, D2] */
+    bool IsRightDim() const
+    { 
+        if (outputDesc.GetLengths()[0] != N || outputDesc.GetLengths()[1] != D1 || outputDesc.GetLengths()[2] != D2 ||
+            targetDesc.GetLengths()[0] != N || targetDesc.GetLengths()[1] != D1 || targetDesc.GetLengths()[2] != D2 ||
+            weightDesc.GetLengths()[0] != C)
+        {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+            MIOPEN_THROW(
+                miopenStatusBadParm,
+                "NLLLoss: Tensors dimension do not match.");
+#else
+            return false;
+#endif
+        }
+        return true;
+    }
+    
+    bool IsSameType() const
+    {
+        if(inputDesc.GetType() != outputDesc.GetType())
+        {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+            MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Tensor types of Input and Output do not match.");
+#else
+            return false;
+#endif
+        }
+        if(outputDesc.GetType() != weightDesc.GetType())
+        {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+            MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Tensor types of Output and Weight do not match.");
+#else
+            return false;
+#endif
+        }
+        return true;
+    }
+
+    bool IsAllPacked() const
+    {
+        if(!(inputDesc.IsPacked() && targetDesc.IsPacked() && weightDesc.IsPacked() && outputDesc.IsPacked()))
+        {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+            MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Unpacked tensors not supported.");
+#else
+            return false;
+#endif
+        }
+        return true;
+    }
 
     NetworkConfig MakeNetworkConfig() const override;
 
@@ -77,11 +129,12 @@ private:
     TensorDescriptor weightDesc;
     TensorDescriptor outputDesc;
     
-    long ignore_index;
-    long N_total;
-    long C;
-    long D1;
-    long D2;
+    int ignore_index;
+    size_t N_total;
+    size_t N;
+    size_t C;
+    size_t D1;
+    size_t D2;
 
     NetworkConfig MakeForwardNetworkConfig() const;
 };

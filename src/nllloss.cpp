@@ -42,7 +42,7 @@ miopenStatus_t NLLLossForward(Handle& handle,
                               ConstData_t weight,
                               const TensorDescriptor& outputDesc,
                               Data_t output,
-                              long ignore_index)
+                              int ignore_index)
 {
     const auto problem = nllloss::ProblemDescription{
         inputDesc, targetDesc, weightDesc, outputDesc, ignore_index};

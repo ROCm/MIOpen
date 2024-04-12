@@ -43,7 +43,7 @@ miopenStatus_t NLLLossForward(Handle& handle,
                               ConstData_t weight,
                               const TensorDescriptor& outputDesc,
                               Data_t output,
-                              long ignore_index);
+                              int ignore_index);
 
 } // namespace miopen
 #endif // _MIOPEN_NLLLOSS_HPP_
