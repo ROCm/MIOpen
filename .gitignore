@@ -7,3 +7,4 @@ install_dir/
 build/
 
 .clangd
+.gitignore
