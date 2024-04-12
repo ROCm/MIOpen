@@ -120,6 +120,9 @@ set( MIOpen_Source
     fused_api.cpp
     fusion.cpp
     fusion/problem_description.cpp
+    glu.cpp
+    glu_api.cpp
+    glu/problem_description.cpp
     generic_search.cpp
     graphapi/convolution.cpp
     graphapi/graphapi.cpp
@@ -271,6 +274,7 @@ set( MIOpen_Source
     solver/reduce/forward_sum.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
+    solver/glu/forward_glu.cpp
     subbuffers.cpp
     sum_api.cpp
     target_properties.cpp
@@ -468,6 +472,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenSoftmaxAttn.cpp
         kernels/MIOpenSum.cpp
+        kernels/MIOpenGLU.cpp
         kernels/MIOpenUtilKernels3.cl
         kernels/MIOpenUtilKernels4.cl
         kernels/MIOpenUtilKernels5.cl
