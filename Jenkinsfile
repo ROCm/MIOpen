@@ -56,7 +56,9 @@ def cmake_build(Map conf=[:]){
     {
         make_targets = 'install ' + make_targets
         setup_args = " -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=${miopen_install_path}" + setup_args
-    } else{
+    } else if(package_build == true) {
+        setup_args = ' -DBUILD_DEV=Off' + setup_args
+    } else {
         setup_args = ' -DBUILD_DEV=On' + setup_args
     }
 
@@ -482,6 +484,10 @@ pipeline {
             defaultValue: false,
             description: "")
         booleanParam(
+            name: "TARGET_NAVI32",
+            defaultValue: false,
+            description: "")
+        booleanParam(
             name: "DATATYPE_NA",
             defaultValue: true,
             description: "")
@@ -819,6 +825,19 @@ pipeline {
                         buildHipClangJobAndReboot()
                     }
                 }
+                stage('Fp32 Hip SqlitePerfdb gfx90a') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX90A }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        buildHipClangJobAndReboot(make_targets: Smoke_targets, setup_flags: "-DMIOPEN_USE_SQLITE_PERF_DB=On")
+                    }
+                }
             }
         }
         stage("Smoke Fp16/Bf16/Int8") {
@@ -1045,6 +1064,19 @@ pipeline {
                         buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_cmd: Navi21_build_cmd)
                     }
                 }
+                stage('Fp16 Hip All gfx1101') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_NAVI32 && params.DATATYPE_FP16 }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("navi32") }
+                    steps{
+                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags)
+                    }
+                }
                 stage('Fp32 Hip All gfx908') {
                     when {
                         beforeAgent true
@@ -1131,6 +1163,19 @@ pipeline {
                     agent{ label rocmnode("navi21") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Full_test, build_cmd: Navi21_build_cmd, build_install: "true")
+                    }
+                }
+                stage('Fp32 Hip All Install gfx1101') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_NAVI32 && params.DATATYPE_FP32 }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("navi32") }
+                    steps{
+                        buildHipClangJobAndReboot(setup_flags: Full_test, build_install: "true")
                     }
                 }
                 stage('Fp16 Hip All Install gfx908') {

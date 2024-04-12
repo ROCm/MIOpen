@@ -39,6 +39,72 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_VERBOSE)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_HIP_DUMP)
 
+#if MIOPEN_OFFLINE_COMPILER_PATHS_V2
+
+// Include rocm-core header for get ROCm Install Path Method
+#include <rocm-core/rocm_getpath.h>
+
+// Flags to hold Relative Directory Path
+// for each Compiler Flags from ROCM Install Path
+// This flag Paths are expected to be deprecated/modified
+// in upcoming MAJOR Releases.
+#define MIOPEN_CLANG_REL_PATH "llvm/bin/clang"
+#define MIOPEN_OCL_REL_PATH "bin/clang"
+#define MIOPEN_CPPCLANG_REL_PATH "llvm/bin/clang++"
+#define MIOPEN_OFFLOADBUNDLER_REL_PATH "llvm/bin/clang-offload-bundler"
+
+// Function to generate the MIOPEN Compiler Path Value using
+// ROCm Base Install Path fetched using getROCmInstallPath()
+// This approach depends on the getROCmInstallPath() provided by rocm-core
+// This flag Paths are expected to be deprecated/modified in upcoming MAJOR Releases.
+static std::string generateCompilerPathValue(const char* relativePath)
+{
+    char* rocmPath   = nullptr;
+    unsigned int len = 0;
+    std::string compilerPathValue;
+    if(nullptr != relativePath)
+    {
+        PathErrors_t ret = getROCmInstallPath(&rocmPath, &len);
+        if(PathSuccess == ret)
+        {
+            compilerPathValue = std::string(rocmPath) + std::string(relativePath);
+            // Free rocmPath memory returned (allocated by getROCmInstallPath())
+            free(rocmPath);
+        }
+    }
+    return compilerPathValue;
+}
+
+// API to get MIOPEN AMD GCN Assembler Path Values.
+const char* getAMDGCNAssemblerPath()
+{
+    static const std::string path = generateCompilerPathValue(MIOPEN_CLANG_REL_PATH);
+    return path.c_str();
+}
+
+// API to get MIOPEN OpenCL Compiler Path Values.
+const char* getOpenCLCompilerPath()
+{
+    static const std::string path = generateCompilerPathValue(MIOPEN_OCL_REL_PATH);
+    return path.c_str();
+}
+
+// API to get MIOPEN HIP Compiler Path Values.
+const char* getHIPCompilerPath()
+{
+    static const std::string path = generateCompilerPathValue(MIOPEN_CPPCLANG_REL_PATH);
+    return path.c_str();
+}
+
+// API to get MIOPEN Compiler Offload Bundler bin Path Values.
+const char* getOffloadBundlerBinPath()
+{
+    static const std::string path = generateCompilerPathValue(MIOPEN_OFFLOADBUNDLER_REL_PATH);
+    return path.c_str();
+}
+
+#endif // MIOPEN_OFFLINE_COMPILER_PATHS_V2
+
 namespace miopen {
 
 static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
@@ -112,13 +178,13 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
         std::string(" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
 
     params += " ";
-    auto bin_file = tmp_dir->path / (filename + ".o");
+    auto bin_file = make_object_file_name(tmp_dir.get() / filename);
 
     // compile
     {
         const std::string redirector = testing_mode ? " 1>/dev/null 2>&1" : "";
         const std::string cmd        = env + std::string(" ") + MIOPEN_HIP_COMPILER;
-        const std::string args       = params + filename + " -o " + bin_file.string() + redirector;
+        const std::string args       = params + filename + " -o " + bin_file + redirector;
         tmp_dir->Execute(cmd, args);
         if(!fs::exists(bin_file))
             MIOPEN_THROW("Failed cmd: '" + cmd + "', args: '" + args + '\'');
@@ -129,9 +195,8 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     tmp_dir->Execute(MIOPEN_OFFLOADBUNDLER_BIN,
                      "--type=o "
                      "--targets=hipv4-amdgcn-amd-amdhsa-" +
-                         (std::string{'-'} + lots.device + lots.xnack) +
-                         " --inputs=" + bin_file.string() + " --outputs=" + bin_file.string() +
-                         ".hsaco --unbundle");
+                         (std::string{'-'} + lots.device + lots.xnack) + " --inputs=" + bin_file +
+                         " --outputs=" + bin_file + ".hsaco --unbundle");
 
     auto hsaco = std::find_if(fs::directory_iterator{tmp_dir->path}, {}, [](auto entry) {
         return (entry.path().extension() == ".hsaco");
@@ -139,7 +204,7 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 
     if(hsaco == fs::directory_iterator{})
     {
-        MIOPEN_LOG_E("failed to find *.hsaco in " << hsaco->path().string());
+        MIOPEN_LOG_E("failed to find *.hsaco in " << hsaco->path());
     }
     return hsaco->path();
 #endif
@@ -160,14 +225,6 @@ fs::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
         params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
     return HipBuildImpl(tmp_dir, filename, src, params, target, false);
-}
-
-void bin_file_to_str(const fs::path& file, std::string& buf)
-{
-    std::ifstream bin_file_ptr(file.string().c_str(), std::ios::binary);
-    std::ostringstream bin_file_strm;
-    bin_file_strm << bin_file_ptr.rdbuf();
-    buf = bin_file_strm.str();
 }
 
 } // namespace miopen

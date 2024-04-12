@@ -143,6 +143,9 @@ list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/ll
 option(ENABLE_HIP_WORKAROUNDS Off)
 set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
 
+set_var_to_condition(MIOPEN_OFFLINE_COMPILER_PATHS_V2_DEFAULT FALSE)
+option(MIOPEN_OFFLINE_COMPILER_PATHS_V2 "Use rocm-core to find offline GPU compiler" ${MIOPEN_OFFLINE_COMPILER_PATHS_V2_DEFAULT})
+message( STATUS "MIOPEN_OFFLINE_COMPILER_PATHS_V2: ${MIOPEN_OFFLINE_COMPILER_PATHS_V2}" )
 
 # Embedded Build Configuration
 set(MIOPEN_EMBED_DB "" CACHE STRING "Semi-colon separated list of architecture to embed on-disk DBs in the binary. Example gfx906_60;gfx900_56")
@@ -160,10 +163,8 @@ option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD
 if(MIOPEN_EMBED_BUILD)
     set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build as a shared library" FORCE)
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." Off)
-    option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" Off)
 else()
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
-    option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" On)
 endif()
 
 if(MIOPEN_EMBED_BUILD)
@@ -180,6 +181,10 @@ set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
 set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
     OpenCL HIP HIPOC HIPNOGPU)
+
+set_var_to_condition(MIOPEN_BUILD_DRIVER_DEFAULT (NOT MIOPEN_EMBED_BUILD) AND (NOT (MIOPEN_BACKEND STREQUAL "HIPNOGPU")))
+option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver (and use it in tests)" ${MIOPEN_BUILD_DRIVER_DEFAULT})
+message(STATUS "MIOPEN_BUILD_DRIVER: ${MIOPEN_BUILD_DRIVER}" )
 
 # OpenCL 1.2
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
@@ -212,15 +217,6 @@ endif()
 # HIP is always required
 find_package(hip REQUIRED PATHS /opt/rocm)
 message(STATUS "Build with HIP ${hip_VERSION}")
-target_flags(HIP_COMPILER_FLAGS hip::device)
-# Remove cuda arch flags
-string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
-string(REGEX REPLACE --offload-arch=[a-z0-9:+-]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
-# Skip library paths since hip will incorrectly treat it as a source file
-string(APPEND HIP_COMPILER_FLAGS " ")
-foreach(_unused RANGE 2)
-    string(REGEX REPLACE " /[^ ]+\\.(a|so) " " " HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
-endforeach()
 
 # Override HIP version in config.h, if necessary.
 # The variables set by find_package() can't be overwritten,
@@ -258,8 +254,40 @@ set(MIOPEN_hip_VERSION ${MIOPEN_hip_VERSION_MAJOR}.${MIOPEN_hip_VERSION_MINOR}.$
 set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT (MIOPEN_USE_COMGR AND (MIOPEN_hip_VERSION VERSION_GREATER_EQUAL 5)))
 option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MIOPEN_USE_HIPRTC_DEFAULT})
 
-# WORKAROUND_SWDEV_413293 - do not use on Windows. Compiler error message: unknown command line option
-if(NOT WIN32 AND MIOPEN_hip_VERSION VERSION_GREATER_EQUAL 5.7.23302)
+# Do not append system include directories to HIP compiler flags when HIPRTC is used
+set_var_to_condition(MIOPEN_HIP_COMPILER_USE_SYSTEM_INCLUDE_DIRECTORIES_DEFAULT
+              (NOT (MIOPEN_USE_HIPRTC AND (MIOPEN_hip_VERSION VERSION_GREATER_EQUAL 6.1.40091))))
+option(MIOPEN_HIP_COMPILER_USE_SYSTEM_INCLUDE_DIRECTORIES "Append include directories to compiler flags"
+       ${MIOPEN_HIP_COMPILER_USE_SYSTEM_INCLUDE_DIRECTORIES_DEFAULT})
+
+target_flags(HIP_COMPILER_FLAGS hip::device)
+# Remove cuda arch flags
+string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+string(REGEX REPLACE --offload-arch=[a-z0-9:+-]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+# Skip library paths since hip will incorrectly treat it as a source file
+string(APPEND HIP_COMPILER_FLAGS " ")
+foreach(_unused RANGE 2)
+    string(REGEX REPLACE " /[^ ]+\\.(a|so) " " " HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+endforeach()
+
+# WORKAROUND_SWDEV_413293
+# Assume that any HIP kernel can be launched with non-uniform block size; otherwise
+# the "Failed to launch kernel: invalid argument" error may happen at run time.
+# References: SWDEV-413293 and https://reviews.llvm.org/D155213 effective HIP_FLAT_VERSION 500723302 on Linux.
+# This may lead to perf drops in the future therefore https://github.com/ROCm/MIOpen/issues/2708 is opened.
+if(HAS_HIP)
+    # HIP version is unreliable on Windows and on Fedora, so we use compiler flag detection,
+    # if this is possible. See issue 2734 and PR 2719.
+    check_cxx_compiler_flag("-x hip -fno-offload-uniform-block" MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK)
+else()
+    # CXX compiler is not HIP compiler, let's analyze HIP version.
+    set(MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK Off)
+    if(${MIOPEN_hip_VERSION_FLAT} GREATER_EQUAL 500723302)
+        set(MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK On)
+    endif()
+    message(STATUS "MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK: ${MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK}")
+endif()
+if(MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK)
     string(APPEND HIP_COMPILER_FLAGS " -fno-offload-uniform-block ")
 endif()
 
@@ -281,7 +309,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
     endif()
     set(MIOPEN_BACKEND_HIP 1)
 
-    find_program(HIP_OC_COMPILER clang
+    find_program(HIP_OC_COMPILER amdclang
         PATH_SUFFIXES bin
         PATHS
             /opt/rocm
@@ -359,7 +387,13 @@ if(MIOPEN_USE_MLIR)
     endif()
 endif()
 
-set(MIOPEN_PACKAGE_REQS "hip-rocclr")
+# Update HIP Runtime Package Dependency
+if(ENABLE_ASAN_PACKAGING)
+  set(DEPENDS_HIP_RUNTIME "hip-runtime-amd-asan" )
+else()
+  set(DEPENDS_HIP_RUNTIME "hip-runtime-amd" )
+endif()
+set(MIOPEN_PACKAGE_REQS "${DEPENDS_HIP_RUNTIME}")
 
 # Online assembler
 find_program(MIOPEN_AMDGCN_ASSEMBLER
@@ -393,6 +427,10 @@ endif()
 
 option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)
 set(BOOST_COMPONENTS filesystem)
+if(MIOPEN_BUILD_DRIVER)
+    # boost core is a header only component that can't be found by find_package
+    # list(APPEND BOOST_COMPONENTS core)
+endif()
 add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
@@ -411,7 +449,7 @@ else()
     set( MIOPEN_INSTALL_DIR miopen)
     set( DATA_INSTALL_DIR ${CMAKE_INSTALL_DATADIR}/${MIOPEN_INSTALL_DIR} )
     set( DATABASE_INSTALL_DIR ${DATA_INSTALL_DIR}/db )
-endif()    
+endif()
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
     find_package(frugally-deep CONFIG REQUIRED)
@@ -466,6 +504,17 @@ if(MIOPEN_USE_ROCBLAS)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocblas")
 endif()
 
+if(MIOPEN_OFFLINE_COMPILER_PATHS_V2)
+    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocm-core")
+endif()
+
+if(MIOPEN_BUILD_DRIVER)
+    # PR #2785 MIOpenDriver to use rocrand to init buffers
+    find_package(rocrand REQUIRED)
+    message(STATUS "rocrand_VERSION=${rocrand_VERSION}")
+    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocrand")
+endif()
+
 if(MIOPEN_BACKEND STREQUAL "HIP")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}")
     set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}")
@@ -490,13 +539,34 @@ file(MAKE_DIRECTORY ${KERNELS_BINARY_DIR})
 
 add_custom_target(generate_kernels ALL)
 
+set(MIOPEN_USE_SQLITE_PERFDB Off CACHE BOOL "Use sqlite perfdb instead of text-based.")
+if(MIOPEN_USE_SQLITE_PERFDB)
+    set(PERFDB_SUFFIX "")
+else()
+    set(PERFDB_SUFFIX ".txt")
+endif()
+
 function(unpack_db db_bzip2_file)
     get_filename_component(__fname ${db_bzip2_file} NAME_WLE)
     add_custom_command(OUTPUT ${KERNELS_BINARY_DIR}/${__fname}
                        COMMAND ${UNZIPPER} -k ${db_bzip2_file} > ${KERNELS_BINARY_DIR}/${__fname})
     string(REPLACE "." "_" __tname ${__fname})
     add_custom_target(generate_${__tname} ALL DEPENDS ${KERNELS_BINARY_DIR}/${__fname})
-    add_dependencies(generate_kernels generate_${__tname})
+
+    get_filename_component(__extension ${__fname} LAST_EXT)
+
+    if(NOT MIOPEN_USE_SQLITE_PERFDB AND __extension STREQUAL ".db")
+        add_custom_command(OUTPUT ${KERNELS_BINARY_DIR}/${__fname}.txt
+                           DEPENDS sqlite2txt generate_${__tname}
+                           COMMAND $<TARGET_FILE:sqlite2txt> ${KERNELS_BINARY_DIR}/${__fname} ${KERNELS_BINARY_DIR}/${__fname}.txt
+        )
+        add_custom_target(generate_${__tname}_txt ALL DEPENDS ${KERNELS_BINARY_DIR}/${__fname}.txt)
+        add_dependencies(generate_kernels generate_${__tname}_txt)
+        set(__fname ${__fname}.txt)
+    else()
+        add_dependencies(generate_kernels generate_${__tname})
+    endif()
+    set(__fname ${__fname} PARENT_SCOPE)
 endfunction()
 
 file(GLOB PERF_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/*.db.bz2")
@@ -504,7 +574,6 @@ file(GLOB FIND_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/*.fdb.txt.
 
 foreach(DB_BZIP_FILE ${PERF_DB_BZIP_FILES} ${FIND_DB_BZIP_FILES})
     unpack_db(${DB_BZIP_FILE})
-    get_filename_component(__fname ${DB_BZIP_FILE} NAME_WLE)
     if(MIOPEN_EMBED_DB STREQUAL "" AND NOT MIOPEN_DISABLE_SYSDB AND NOT ENABLE_ASAN_PACKAGING)
         install(FILES ${KERNELS_BINARY_DIR}/${__fname}
                 DESTINATION ${DATABASE_INSTALL_DIR})
@@ -560,6 +629,10 @@ else()
 endif()
 
 # End KDB package creation
+
+if(NOT MIOPEN_TEST_DISCRETE)
+list(APPEND CPACK_COMPONENTS_ALL client)
+endif()
 
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}
@@ -668,10 +741,11 @@ enable_cppcheck(
         constVariablePointer
         useStlAlgorithm
         uselessOverride
-        unusedScopedObject   
+        unusedScopedObject
     FORCE
     SOURCES
         addkernels/
+        tools/sqlite2txt/
         # driver/
         include/
         src/
@@ -690,6 +764,9 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
+if(NOT MIOPEN_USE_SQLITE_PERFDB)
+    add_subdirectory(tools/sqlite2txt)
+endif()
 add_subdirectory(addkernels)
 add_subdirectory(src)
 if(MIOPEN_BUILD_DRIVER)
