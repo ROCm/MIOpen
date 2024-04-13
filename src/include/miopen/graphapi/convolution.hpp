@@ -26,7 +26,7 @@
 #pragma once
 
 #include <miopen/graphapi/graphapi.hpp>
-#include <miopen/graphapi/operation.hpp>
+#include <miopen/graphapi/opgraph.hpp>
 #include <miopen/graphapi/tensor.hpp>
 
 #include <cstdint>
@@ -291,6 +291,11 @@ public:
         : OperationConvolution(convolution, x, w, y, alpha, beta)
     {
     }
+    virtual const std::string& signName() const override
+    {
+        static const std::string name = "OP_CONVOLUTION_FORWARD";
+        return name;
+    }
     virtual std::vector<Tensor*> getInTensors() const override { return {getX(), getW()}; }
     virtual std::vector<Tensor*> getOutTensors() const override { return {getY()}; }
 };
@@ -479,6 +484,11 @@ public:
         : OperationConvolution(convolution, x, w, y, alpha, beta)
     {
     }
+    virtual const std::string& signName() const override
+    {
+        static const std::string name = "OP_CONVOLUTION_BACKWARD_DATA";
+        return name;
+    }
     virtual std::vector<Tensor*> getInTensors() const override { return {getW(), getY()}; }
     virtual std::vector<Tensor*> getOutTensors() const override { return {getX()}; }
 };
@@ -565,6 +575,11 @@ public:
                                        double beta) noexcept
         : OperationConvolution(convolution, x, w, y, alpha, beta)
     {
+    }
+    virtual const std::string& signName() const override
+    {
+        static const std::string name = "OP_CONVOLUTION_BACKWARD_FILTER";
+        return name;
     }
     virtual std::vector<Tensor*> getInTensors() const override { return {getX(), getY()}; }
     virtual std::vector<Tensor*> getOutTensors() const override { return {getW()}; }
