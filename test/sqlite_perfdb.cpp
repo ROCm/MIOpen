@@ -938,7 +938,7 @@ public:
                 if(full_set())
                     args += " --all";
 
-                std::cout << exe_path().string() + " " + args << std::endl;
+                std::cout << exe_path() << " " << args << std::endl;
                 children.emplace_back(exe_path(), args);
             }
             // clang-format on

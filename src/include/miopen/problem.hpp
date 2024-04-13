@@ -31,6 +31,8 @@
 #include <miopen/activ.hpp>
 #include <miopen/allocator.hpp>
 #include <miopen/convolution.hpp>
+#include <miopen/mha/mha_descriptor.hpp>
+#include <miopen/mha/problem_description.hpp>
 #include <miopen/softmax.hpp>
 #include <miopen/object.hpp>
 #include <miopen/solver_id.hpp>
@@ -69,8 +71,11 @@ struct BiasDescriptor
 };
 
 // The order of types is important for deserialization and should be preserved between releases.
-using OperatorDescriptor =
-    boost::variant<ConvolutionDescriptor, ActivationDescriptor, BiasDescriptor, SoftmaxDescriptor>;
+using OperatorDescriptor = boost::variant<ConvolutionDescriptor,
+                                          ActivationDescriptor,
+                                          BiasDescriptor,
+                                          SoftmaxDescriptor,
+                                          MhaDescriptor>;
 
 struct Problem
 {
@@ -104,6 +109,7 @@ struct Problem
 
     conv::ProblemDescription AsConvolution() const;
     activ::ProblemDescription AsActivation() const;
+    mha::ProblemDescription AsMha() const;
     softmax::ProblemDescription AsSoftmax() const;
 
     [[nodiscard]] miopenTensorArgumentId_t GetInputId() const;
@@ -149,17 +155,23 @@ struct Problem
     friend void from_json(const nlohmann::json& j, Problem& problem);
 
 private:
+    using Buffers = std::unordered_map<miopenTensorArgumentId_t, Data_t>;
+
     miopenProblemDirection_t direction = miopenProblemDirectionForward;
     std::unordered_map<miopenTensorArgumentId_t, TensorDescriptor> tensor_descriptors;
     OperatorDescriptor operator_descriptor;
-
-    using Buffers = std::unordered_map<miopenTensorArgumentId_t, Data_t>;
 
     std::vector<Solution> FindSolutionsImpl(Handle& handle,
                                             const FindOptions& options,
                                             std::size_t max_solutions,
                                             const Buffers& buffers,
                                             const ConvolutionDescriptor& conv_desc) const;
+
+    std::vector<Solution> FindSolutionsImpl(Handle& handle,
+                                            const FindOptions& options,
+                                            std::size_t max_solutions,
+                                            const Buffers& buffers,
+                                            const MhaDescriptor& mha_desc) const;
 
     std::vector<Solution> FindSolutionsImpl(Handle& handle,
                                             const FindOptions& options,
