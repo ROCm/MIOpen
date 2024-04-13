@@ -36,6 +36,8 @@ class OpNode
 public:
     virtual ~OpNode() = default;
 
+    virtual const std::string& signName() const = 0;
+
     virtual std::vector<Tensor*> getInTensors() const = 0;
 
     virtual std::vector<Tensor*> getOutTensors() const = 0;
