@@ -136,6 +136,46 @@ void BackendReductionDescriptor::getAttribute(miopenBackendAttributeName_t attri
     }
 }
 
+const std::string& OperationReduction::signName() const
+{
+    switch(mReduction->getReductionOperator())
+    {
+    case MIOPEN_REDUCE_TENSOR_ADD: {
+        static const std::string name = "OP_REDUCTION:ADD";
+        return name;
+    }
+    case MIOPEN_REDUCE_TENSOR_MUL: {
+        static const std::string name = "OP_REDUCTION:MUK";
+        return name;
+    }
+    case MIOPEN_REDUCE_TENSOR_MIN: {
+        static const std::string name = "OP_REDUCTION:MIN";
+        return name;
+    }
+    case MIOPEN_REDUCE_TENSOR_MAX: {
+        static const std::string name = "OP_REDUCTION:MAX";
+        return name;
+    }
+    case MIOPEN_REDUCE_TENSOR_AMAX: {
+        static const std::string name = "OP_REDUCTION:AMAX";
+        return name;
+    }
+    case MIOPEN_REDUCE_TENSOR_AVG: {
+        static const std::string name = "OP_REDUCTION:AVG";
+        return name;
+    }
+    case MIOPEN_REDUCE_TENSOR_NORM1: {
+        static const std::string name = "OP_REDUCTION:NORM1";
+        return name;
+    }
+    case MIOPEN_REDUCE_TENSOR_NORM2: {
+        static const std::string name = "OP_REDUCTION:NORM2";
+        return name;
+    }
+    default: MIOPEN_THROW(miopenStatusNotImplemented);
+    }
+}
+
 std::vector<Tensor*> OperationReduction::getInTensors() const { return {mX}; }
 
 std::vector<Tensor*> OperationReduction::getOutTensors() const { return {mY}; }

@@ -252,6 +252,214 @@ void BackendPointwiseDescriptor::getAttribute(miopenBackendAttributeName_t attri
     }
 }
 
+const std::string& OperationPointwise::signName() const
+{
+    switch(mPointwise->getMode())
+    {
+    case MIOPEN_POINTWISE_ADD: {
+        static const std::string name = "OP_POINTWISE:ADD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_ADD_SQUARE: {
+        static const std::string name = "OP_POINTWISE:ADD_SQUARE";
+        return name;
+    }
+    case MIOPEN_POINTWISE_DIV: {
+        static const std::string name = "OP_POINTWISE:DIV";
+        return name;
+    }
+    case MIOPEN_POINTWISE_MAX: {
+        static const std::string name = "OP_POINTWISE:MAX";
+        return name;
+    }
+    case MIOPEN_POINTWISE_MIN: {
+        static const std::string name = "OP_POINTWISE:MIN";
+        return name;
+    }
+    case MIOPEN_POINTWISE_MOD: {
+        static const std::string name = "OP_POINTWISE:MOD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_MUL: {
+        static const std::string name = "OP_POINTWISE:MUL";
+        return name;
+    }
+    case MIOPEN_POINTWISE_POW: {
+        static const std::string name = "OP_POINTWISE:POW";
+        return name;
+    }
+    case MIOPEN_POINTWISE_SUB: {
+        static const std::string name = "OP_POINTWISE:SUB";
+        return name;
+    }
+    case MIOPEN_POINTWISE_ABS: {
+        static const std::string name = "OP_POINTWISE:ABS";
+        return name;
+    }
+    case MIOPEN_POINTWISE_CEIL: {
+        static const std::string name = "OP_POINTWISE:CEIL";
+        return name;
+    }
+    case MIOPEN_POINTWISE_COS: {
+        static const std::string name = "OP_POINTWISE:COS";
+        return name;
+    }
+    case MIOPEN_POINTWISE_EXP: {
+        static const std::string name = "OP_POINTWISE:EXP";
+        return name;
+    }
+    case MIOPEN_POINTWISE_FLOOR: {
+        static const std::string name = "OP_POINTWISE:FLOOR";
+        return name;
+    }
+    case MIOPEN_POINTWISE_LOG: {
+        static const std::string name = "OP_POINTWISE:LOG";
+        return name;
+    }
+    case MIOPEN_POINTWISE_NEG: {
+        static const std::string name = "OP_POINTWISE:NEG";
+        return name;
+    }
+    case MIOPEN_POINTWISE_RSQRT: {
+        static const std::string name = "OP_POINTWISE:RSQRT";
+        return name;
+    }
+    case MIOPEN_POINTWISE_SIN: {
+        static const std::string name = "OP_POINTWISE:SIN";
+        return name;
+    }
+    case MIOPEN_POINTWISE_SQRT: {
+        static const std::string name = "OP_POINTWISE:SQRT";
+        return name;
+    }
+    case MIOPEN_POINTWISE_TAN: {
+        static const std::string name = "OP_POINTWISE:TAN";
+        return name;
+    }
+    case MIOPEN_POINTWISE_ERF: {
+        static const std::string name = "OP_POINTWISE:ERF";
+        return name;
+    }
+    case MIOPEN_POINTWISE_IDENTITY: {
+        static const std::string name = "OP_POINTWISE:IDENTITY";
+        return name;
+    }
+    case MIOPEN_POINTWISE_RELU_FWD: {
+        static const std::string name = "OP_POINTWISE:RELU_FWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_TANH_FWD: {
+        static const std::string name = "OP_POINTWISE:TANH_FWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_SIGMOID_FWD: {
+        static const std::string name = "OP_POINTWISE:SIGMOID_FWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_ELU_FWD: {
+        static const std::string name = "OP_POINTWISE:ELU_FWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_GELU_FWD: {
+        static const std::string name = "OP_POINTWISE:GELU_FWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_SOFTPLUS_FWD: {
+        static const std::string name = "OP_POINTWISE:SOFTPLUS_FWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_SWISH_FWD: {
+        static const std::string name = "OP_POINTWISE:SWISH_FWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_GELU_APPROX_TANH_FWD: {
+        static const std::string name = "OP_POINTWISE:APPROX_TANH_FWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_RELU_BWD: {
+        static const std::string name = "OP_POINTWISE:RELU_BWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_TANH_BWD: {
+        static const std::string name = "OP_POINTWISE:TANH_BWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_SIGMOID_BWD: {
+        static const std::string name = "OP_POINTWISE:SIGMOID_BWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_ELU_BWD: {
+        static const std::string name = "OP_POINTWISE:ELU_BWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_GELU_BWD: {
+        static const std::string name = "OP_POINTWISE:GELU_BWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_SOFTPLUS_BWD: {
+        static const std::string name = "OP_POINTWISE:SOFTPLUS_BWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_SWISH_BWD: {
+        static const std::string name = "OP_POINTWISE:SWISH_BWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_GELU_APPROX_TANH_BWD: {
+        static const std::string name = "OP_POINTWISE:APPROX_TANH_BWD";
+        return name;
+    }
+    case MIOPEN_POINTWISE_CMP_EQ: {
+        static const std::string name = "OP_POINTWISE:CMP_EQ";
+        return name;
+    }
+    case MIOPEN_POINTWISE_CMP_NEQ: {
+        static const std::string name = "OP_POINTWISE:CMP_NEQ";
+        return name;
+    }
+    case MIOPEN_POINTWISE_CMP_GT: {
+        static const std::string name = "OP_POINTWISE:CMP_GT";
+        return name;
+    }
+    case MIOPEN_POINTWISE_CMP_GE: {
+        static const std::string name = "OP_POINTWISE:CMP_GE";
+        return name;
+    }
+    case MIOPEN_POINTWISE_CMP_LT: {
+        static const std::string name = "OP_POINTWISE:CMP_LT";
+        return name;
+    }
+    case MIOPEN_POINTWISE_CMP_LE: {
+        static const std::string name = "OP_POINTWISE:CMP_LE";
+        return name;
+    }
+    case MIOPEN_POINTWISE_LOGICAL_AND: {
+        static const std::string name = "OP_POINTWISE:LOGICAL_AND";
+        return name;
+    }
+    case MIOPEN_POINTWISE_LOGICAL_OR: {
+        static const std::string name = "OP_POINTWISE:LOGICAL_OR";
+        return name;
+    }
+    case MIOPEN_POINTWISE_LOGICAL_NOT: {
+        static const std::string name = "OP_POINTWISE:LOGICAL_NOT";
+        return name;
+    }
+    case MIOPEN_POINTWISE_GEN_INDEX: {
+        static const std::string name = "OP_POINTWISE:GEN_INDEX";
+        return name;
+    }
+    case MIOPEN_POINTWISE_BINARY_SELECT: {
+        static const std::string name = "OP_POINTWISE:BINARY_SELECT";
+        return name;
+    }
+    case MIOPEN_POINTWISE_RECIPROCAL: {
+        static const std::string name = "OP_POINTWISE:RECIPROCAL";
+        return name;
+    }
+    default: MIOPEN_THROW(miopenStatusNotImplemented);
+    }
+}
+
 std::vector<Tensor*> OperationPointwise::getInTensors() const
 {
     switch(mPointwise->getMode())
@@ -420,62 +628,45 @@ std::vector<Tensor*> OperationPointwise::getOutTensors() const
     }
 }
 
-namespace {
-
-template <typename Ptr>
-void assignPtr(Ptr src, Ptr& dst)
-{
-    if(src != nullptr)
-    {
-        dst = src;
-    }
-    else
-    {
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
-}
-
-} // namespace
-
 OperationPointwiseBuilder& OperationPointwiseBuilder::setPointwise(Pointwise* pointwise)
 {
-    assignPtr(pointwise, mOperationPointwise.mPointwise);
+    mOperationPointwise.mPointwise = checkPtr(pointwise);
     return *this;
 }
 
 OperationPointwiseBuilder& OperationPointwiseBuilder::setX(Tensor* x)
 {
-    assignPtr(x, mOperationPointwise.mX);
+    mOperationPointwise.mX = checkPtr(x);
     return *this;
 }
 
 OperationPointwiseBuilder& OperationPointwiseBuilder::setB(Tensor* b)
 {
-    assignPtr(b, mOperationPointwise.mB);
+    mOperationPointwise.mB = checkPtr(b);
     return *this;
 }
 
 OperationPointwiseBuilder& OperationPointwiseBuilder::setY(Tensor* y)
 {
-    assignPtr(y, mOperationPointwise.mY);
+    mOperationPointwise.mY = checkPtr(y);
     return *this;
 }
 
 OperationPointwiseBuilder& OperationPointwiseBuilder::setT(Tensor* t)
 {
-    assignPtr(t, mOperationPointwise.mT);
+    mOperationPointwise.mT = checkPtr(t);
     return *this;
 }
 
 OperationPointwiseBuilder& OperationPointwiseBuilder::setDx(Tensor* dX)
 {
-    assignPtr(dX, mOperationPointwise.mDx);
+    mOperationPointwise.mDx = checkPtr(dX);
     return *this;
 }
 
 OperationPointwiseBuilder& OperationPointwiseBuilder::setDy(Tensor* dY)
 {
-    assignPtr(dY, mOperationPointwise.mDy);
+    mOperationPointwise.mDy = checkPtr(dY);
     return *this;
 }
 
@@ -661,6 +852,190 @@ OperationPointwise OperationPointwiseBuilder::build()
 
     return mOperationPointwise;
 }
+
+void BackendOperationPointwiseDescriptor::setAttribute(miopenBackendAttributeName_t attributeName,
+                                                       miopenBackendAttributeType_t attributeType,
+                                                       int64_t elementCount,
+                                                       void* arrayOfElements)
+{
+    if(mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+
+    using TensorSetter = OperationPointwiseBuilder& (OperationPointwiseBuilder::*)(Tensor * tensor);
+
+    auto callTensorSetter = [=](TensorSetter setter, miopenBackendDescriptor_t& outApiDescriptor) {
+        if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && elementCount == 1)
+        {
+            miopenBackendDescriptor_t apiDescriptor =
+                deref(static_cast<miopenBackendDescriptor_t*>(arrayOfElements));
+            BackendDescriptor& backendDescriptor = deref(apiDescriptor);
+
+            if(!backendDescriptor.isFinalized())
+            {
+                MIOPEN_THROW(miopenStatusBadParm);
+            }
+
+            BackendTensorDescriptor& tensorDescriptor =
+                dynamic_cast<BackendTensorDescriptor&>(backendDescriptor);
+            (mBuilder.*setter)(tensorDescriptor.getTensor());
+            outApiDescriptor = apiDescriptor;
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+    };
+
+    using FloatSetter =
+        OperationPointwiseBuilder& (OperationPointwiseBuilder::*)(OperationPointwise::Alpha alpha);
+
+    auto callFloatSetter = [=](FloatSetter setter) {
+        if(attributeType == MIOPEN_TYPE_FLOAT && elementCount == 1)
+        {
+            (mBuilder.*setter)(*static_cast<float*>(arrayOfElements));
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+    };
+
+    switch(attributeName)
+    {
+    case MIOPEN_ATTR_OPERATION_POINTWISE_PW_DESCRIPTOR:
+        if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && elementCount == 1)
+        {
+            miopenBackendDescriptor_t apiDescriptor =
+                deref(static_cast<miopenBackendDescriptor_t*>(arrayOfElements));
+            BackendDescriptor& backendDescriptor = deref(apiDescriptor);
+
+            if(!backendDescriptor.isFinalized())
+            {
+                MIOPEN_THROW(miopenStatusBadParm);
+            }
+
+            BackendPointwiseDescriptor& pointwiseDescriptor =
+                dynamic_cast<BackendPointwiseDescriptor&>(backendDescriptor);
+            mBuilder.setPointwise(pointwiseDescriptor.getPointwise());
+            mPointwiseDescriptor = apiDescriptor;
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+        break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_XDESC:
+        callTensorSetter(&OperationPointwiseBuilder::setX, mXDescriptor);
+        break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_BDESC:
+        callTensorSetter(&OperationPointwiseBuilder::setB, mBDescriptor);
+        break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_YDESC:
+        callTensorSetter(&OperationPointwiseBuilder::setY, mYDescriptor);
+        break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_TDESC:
+        callTensorSetter(&OperationPointwiseBuilder::setT, mTDescriptor);
+        break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_DXDESC:
+        callTensorSetter(&OperationPointwiseBuilder::setDx, mDxDescriptor);
+        break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_DYDESC:
+        callTensorSetter(&OperationPointwiseBuilder::setDy, mDyDescriptor);
+        break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_ALPHA1:
+        callFloatSetter(&OperationPointwiseBuilder::setAlpha1);
+        break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_ALPHA2:
+        callFloatSetter(&OperationPointwiseBuilder::setAlpha2);
+        break;
+
+    default: MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
+void BackendOperationPointwiseDescriptor::finalize()
+{
+    if(mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+
+    mOperationPointwise = mBuilder.build();
+    mFinalized          = true;
+}
+
+void BackendOperationPointwiseDescriptor::getAttribute(miopenBackendAttributeName_t attributeName,
+                                                       miopenBackendAttributeType_t attributeType,
+                                                       int64_t requestedElementCount,
+                                                       int64_t* elementCount,
+                                                       void* arrayOfElements)
+{
+    if(!mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+
+    auto storeDescriptor = [=](miopenBackendDescriptor_t descriptor) {
+        if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && requestedElementCount == 1)
+        {
+            *elementCount                                             = 1;
+            *static_cast<miopenBackendDescriptor_t*>(arrayOfElements) = descriptor;
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+    };
+
+    auto storeFloat = [=](OperationPointwise::Alpha alpha) {
+        if(attributeType == MIOPEN_TYPE_FLOAT && requestedElementCount == 1 && alpha.index() == 0)
+        {
+            *elementCount                         = 1;
+            *static_cast<float*>(arrayOfElements) = std::get<float>(alpha);
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+    };
+
+    switch(attributeName)
+    {
+    case MIOPEN_ATTR_OPERATION_POINTWISE_PW_DESCRIPTOR:
+        storeDescriptor(mPointwiseDescriptor);
+        break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_XDESC: storeDescriptor(mXDescriptor); break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_BDESC: storeDescriptor(mBDescriptor); break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_YDESC: storeDescriptor(mYDescriptor); break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_TDESC: storeDescriptor(mTDescriptor); break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_DXDESC: storeDescriptor(mDxDescriptor); break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_DYDESC: storeDescriptor(mDyDescriptor); break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_ALPHA1: storeFloat(mOperationPointwise.getAlpha1()); break;
+
+    case MIOPEN_ATTR_OPERATION_POINTWISE_ALPHA2: storeFloat(mOperationPointwise.getAlpha2()); break;
+
+    default: MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
+OpNode* BackendOperationPointwiseDescriptor::getOperation() { return &mOperationPointwise; }
 
 } // namespace graphapi
 
