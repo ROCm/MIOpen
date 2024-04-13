@@ -32,6 +32,7 @@
 #include <miopen/graphapi/tensor.hpp>
 #include <miopen/graphapi/variant_pack.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/graphapi/matmul.hpp>
 
 #include <memory>
 
@@ -83,6 +84,10 @@ miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
 
         case MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR:
             outputDesciptor = new miopen::graphapi::BackendVariantPackDescriptor(); break;
+
+        case MIOPEN_BACKEND_MATMUL_DESCRIPTOR:
+            outputDesciptor = new miopen::graphapi::BackendMatmulDescriptor();
+            break;
 
         default: MIOPEN_THROW(miopenStatusUnsupportedOp);
             // clang-format on
@@ -225,6 +230,9 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
 
         case MIOPEN_BACKEND_TENSOR_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendTensorDescriptor>(descriptor, sizeInBytes); break;
+
+        case MIOPEN_BACKEND_MATMUL_DESCRIPTOR:
+	    initializeBackendDescriptor<miopen::graphapi::BackendMatmulDescriptor>(descriptor, sizeInBytes); break;
 
         case MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR:
                 initializeBackendDescriptor<miopen::graphapi::BackendVariantPackDescriptor>(descriptor, sizeInBytes); break;
