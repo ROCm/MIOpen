@@ -132,7 +132,6 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     src += "\nint main() {}\n";
     WriteFile(src, tmp_dir->path / filename);
 
-    // cppcheck-suppress unreadVariable
     const LcOptionTargetStrings lots(target);
 
     auto env = std::string("");
