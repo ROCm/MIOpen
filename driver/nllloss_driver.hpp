@@ -23,25 +23,33 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/miopen.h>
 #ifndef GUARD_MIOPEN_NLLLOSS_DRIVER_HPP
 #define GUARD_MIOPEN_NLLLOSS_DRIVER_HPP
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
 #include "mloNLLLossHost.hpp"
+#include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
+#include "util_driver.hpp"
+
 #include <../test/verify.hpp>
+
+#include <miopen/env.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/miopen.h>
+#include <miopen/tensor.hpp>
+
 #include <algorithm>
+#include <cassert>
+#include <cmath>
 #include <cstdlib>
 #include <cfloat>
 #include <memory>
-#include <miopen/tensor.hpp>
 #include <numeric>
 #include <vector>
 #include <../test/tensor_holder.hpp>
-#include "random.hpp"
 
 template <typename Tgpu, typename Tref>
 class NLLLossDriver : public Driver
