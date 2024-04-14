@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CPU_SUM_HPP
-#define GUARD_CPU_SUM_HPP
+#ifndef GUARD_CPU_PAD_REFLECTION_HPP
+#define GUARD_CPU_PAD_REFLECTION_HPP
 
 #include "tensor_holder.hpp"
 

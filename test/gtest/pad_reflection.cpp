@@ -46,10 +46,10 @@ struct PadReflectionTestFloat : PadReflectionTest<float>
 {
 };
 
-} // namespace sum_duong
+} // namespace pad_reflection
 using namespace pad_reflection;
 
-TEST_P(PadReflectionTestFloat, SumDuongTestFw)
+TEST_P(PadReflectionTestFloat, PadReflectionFw)
 {
     if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
     {
@@ -62,4 +62,4 @@ TEST_P(PadReflectionTestFloat, SumDuongTestFw)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SumDuongTestSet, PadReflectionTestFloat, testing::ValuesIn(PadReflectionTestFloatConfigs()));
+INSTANTIATE_TEST_SUITE_P(PadReflectionTestSet, PadReflectionTestFloat, testing::ValuesIn(PadReflectionTestFloatConfigs()));

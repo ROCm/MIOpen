@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_SUM_HPP_
-#define MIOPEN_SUM_HPP_
+#ifndef MIOPEN_PAD_REFLECTION_HPP_
+#define MIOPEN_PAD_REFLECTION_HPP_
 
 #include <miopen/common.hpp>
 
@@ -42,4 +42,4 @@ miopenStatus_t PadReflection(Handle& handle,
                                );
 
 } // namespace miopen
-#endif // _MIOPEN_SUM_HPP_
+#endif // MIOPEN_PAD_REFLECTION_HPP_
