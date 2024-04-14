@@ -5795,6 +5795,33 @@ MIOPEN_EXPORT miopenStatus_t miopenSumForward(miopenHandle_t handle,
 
 #ifdef MIOPEN_BETA_API
 
+
+/*! @brief Execute a sum forward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param nanPropagation           Nan number propagation mode (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param xDesc                    Tensor descriptor for data input tensor x (input)
+ * @param x                        Data tensor x (input)
+ * @param dim                      Dimensions to sum. (input)
+ * @param yDesc                    Tensor descriptor for output data tensor y (input)
+ * @param y                        Data tensor y (output)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenPadReflection(miopenHandle_t handle,
+                                              const miopenTensorDescriptor_t xDesc,
+                                              const void* x,
+                                              const miopenTensorDescriptor_t yDesc,
+                                              void* y,
+                                              const int * padding);
+
+/** @} */
+// CLOSEOUT SUM DOXYGEN GROUP
+#endif
+
+#ifdef MIOPEN_BETA_API
+
 /*! @ingroup argmax
  * @brief Find the index of the maximum value of a tensor across dimensions.
  *
