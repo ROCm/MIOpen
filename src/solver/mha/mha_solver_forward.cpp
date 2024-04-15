@@ -107,7 +107,7 @@ MultiBufferWorkspaceTraits SplitBufferToWorkspace(const std::vector<size_t>& len
 } // namespace
 
 bool MhaForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
-                       const miopen::mha::ProblemDescription& problem) const
+                              const miopen::mha::ProblemDescription& problem) const
 {
     const miopen::mha::MhaInputDescsForward& descsForward = problem.GetDescsForward();
 
@@ -122,13 +122,13 @@ bool MhaForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
 }
 
 std::size_t MhaForward::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
-                                  const miopen::mha::ProblemDescription& problem) const
+                                         const miopen::mha::ProblemDescription& problem) const
 {
     return SplitBufferToWorkspace(problem.GetDescsForward().kDesc.GetLengths()).GetSize();
 }
 
 ConvSolution MhaForward::GetSolution(const ExecutionContext& context,
-                              const miopen::mha::ProblemDescription& problem) const
+                                     const miopen::mha::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 

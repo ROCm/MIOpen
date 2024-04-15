@@ -291,71 +291,88 @@ mha::ProblemDescription Problem::AsMha() const
 {
     const auto& mha_desc = boost::get<MhaDescriptor>(operator_descriptor);
 
-    if(GetDirection() == miopenProblemDirectionBackward)
-    {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Mha Backward is not currently implemented!");
-    }
+    float scale = mha_desc.GetScale();
+
+    const auto& kDesc = GetTensorDescriptorChecked(miopenTensorMhaK, "miopenTensorMhaK");
+    const auto& qDesc = GetTensorDescriptorChecked(miopenTensorMhaQ, "miopenTensorMhaQ");
+    const auto& vDesc = GetTensorDescriptorChecked(miopenTensorMhaV, "miopenTensorMhaV");
+
+    const auto& descaleKDesc =
+        GetTensorDescriptorChecked(miopenTensorMhaDescaleK, "miopenTensorMhaDescaleK");
+    const auto& descaleQDesc =
+        GetTensorDescriptorChecked(miopenTensorMhaDescaleQ, "miopenTensorMhaDescaleQ");
+    const auto& descaleVDesc =
+        GetTensorDescriptorChecked(miopenTensorMhaDescaleV, "miopenTensorMhaDescaleV");
+    const auto& descaleSDesc =
+        GetTensorDescriptorChecked(miopenTensorMhaDescaleS, "miopenTensorMhaDescaleS");
+
+    const auto& scaleSDesc =
+        GetTensorDescriptorChecked(miopenTensorMhaScaleS, "miopenTensorMhaScaleS");
+
+    const auto& dpDesc = GetTensorDescriptorChecked(miopenTensorMhaDropoutProbability,
+                                                    "miopenTensorMhaDropoutProbability");
+    const auto& dsDesc =
+        GetTensorDescriptorChecked(miopenTensorMhaDropoutSeed, "miopenTensorMhaDropoutSeed");
+    const auto& doffDesc =
+        GetTensorDescriptorChecked(miopenTensorMhaDropoutOffset, "miopenTensorMhaDropoutOffset");
+
+    const auto& oDesc    = GetTensorDescriptorChecked(miopenTensorMhaO, "miopenTensorMhaO");
+    const auto& mDesc    = GetTensorDescriptorChecked(miopenTensorMhaM, "miopenTensorMhaM");
+    const auto& zInvDesc = GetTensorDescriptorChecked(miopenTensorMhaZInv, "miopenTensorMhaZInv");
 
     if(GetDirection() == miopenProblemDirectionForward)
     {
         mha::MhaInputDescsForward mhaInputDescsForward = {
-            GetTensorDescriptorChecked(miopenTensorMhaK, "miopenTensorMhaK"),
-            GetTensorDescriptorChecked(miopenTensorMhaQ, "miopenTensorMhaQ"),
-            GetTensorDescriptorChecked(miopenTensorMhaV, "miopenTensorMhaV"),
-            GetTensorDescriptorChecked(miopenTensorMhaDescaleK, "miopenTensorMhaDescaleK"),
-            GetTensorDescriptorChecked(miopenTensorMhaDescaleQ, "miopenTensorMhaDescaleQ"),
-            GetTensorDescriptorChecked(miopenTensorMhaDescaleV, "miopenTensorMhaDescaleV"),
-            GetTensorDescriptorChecked(miopenTensorMhaDescaleS, "miopenTensorMhaDescaleS"),
-            GetTensorDescriptorChecked(miopenTensorMhaScaleS, "miopenTensorMhaScaleS"),
+            kDesc,
+            qDesc,
+            vDesc,
+            descaleKDesc,
+            descaleQDesc,
+            descaleVDesc,
+            descaleSDesc,
+            scaleSDesc,
             GetTensorDescriptorChecked(miopenTensorMhaScaleO, "miopenTensorMhaScaleO"),
-            mha_desc.GetScale(),
-            GetTensorDescriptorChecked(miopenTensorMhaDropoutProbability,
-                                       "miopenTensorMhaDropoutProbability"),
-            GetTensorDescriptorChecked(miopenTensorMhaDropoutSeed, "miopenTensorMhaDropoutSeed"),
-            GetTensorDescriptorChecked(miopenTensorMhaDropoutOffset,
-                                       "miopenTensorMhaDropoutOffset"),
-
-            GetTensorDescriptorChecked(miopenTensorMhaO, "miopenTensorMhaO"),
+            scale,
+            dpDesc,
+            dsDesc,
+            doffDesc,
+            oDesc,
             GetTensorDescriptorChecked(miopenTensorMhaAmaxO, "miopenTensorMhaAmaxO"),
             GetTensorDescriptorChecked(miopenTensorMhaAmaxS, "miopenTensorMhaAmaxS"),
-            GetTensorDescriptorChecked(miopenTensorMhaM, "miopenTensorMhaM"),
-            GetTensorDescriptorChecked(miopenTensorMhaZInv, "miopenTensorMhaZInv")};
+            mDesc,
+            zInvDesc};
 
         return {mhaInputDescsForward};
     }
     else
     {
         mha::MhaInputDescsBackward mhaInputDescsBackward = {
-            GetTensorDescriptorChecked(miopenTensorMhaK, "miopenTensorMhaK"),
-            GetTensorDescriptorChecked(miopenTensorMhaQ, "miopenTensorMhaQ"),
-            GetTensorDescriptorChecked(miopenTensorMhaV, "miopenTensorMhaV"),
-            GetTensorDescriptorChecked(miopenTensorMhaO, "miopenTensorMhaO"),
+            kDesc,
+            qDesc,
+            vDesc,
+            oDesc,
             GetTensorDescriptorChecked(miopenTensorMhaDO, "miopenTensorMhaDO"),
-            GetTensorDescriptorChecked(miopenTensorMhaM, "miopenTensorMhaM"),
-            GetTensorDescriptorChecked(miopenTensorMhaZInv, "miopenTensorMhaZInv"),
-            GetTensorDescriptorChecked(miopenTensorMhaDescaleK, "miopenTensorMhaDescaleK"),
-            GetTensorDescriptorChecked(miopenTensorMhaDescaleQ, "miopenTensorMhaDescaleQ"),
-            GetTensorDescriptorChecked(miopenTensorMhaDescaleV, "miopenTensorMhaDescaleV"),
-            GetTensorDescriptorChecked(miopenTensorMhaDescaleS, "miopenTensorMhaDescaleS"),
+            mDesc,
+            zInvDesc,
+            descaleKDesc,
+            descaleQDesc,
+            descaleVDesc,
+            descaleSDesc,
             GetTensorDescriptorChecked(miopenTensorMhaDescaleO, "miopenTensorMhaDescaleO"),
             GetTensorDescriptorChecked(miopenTensorMhaDescaleDO, "miopenTensorMhaDescaleDO"),
             GetTensorDescriptorChecked(miopenTensorMhaDescaleDS, "miopenTensorMhaDescaleDS"),
-            GetTensorDescriptorChecked(miopenTensorMhaScaleS, "miopenTensorMhaScaleS"),
+            scaleSDesc,
             GetTensorDescriptorChecked(miopenTensorMhaScaleDS, "miopenTensorMhaScaleDS"),
             GetTensorDescriptorChecked(miopenTensorMhaScaleDQ, "miopenTensorMhaScaleDQ"),
             GetTensorDescriptorChecked(miopenTensorMhaScaleDK, "miopenTensorMhaScaleDK"),
             GetTensorDescriptorChecked(miopenTensorMhaScaleDV, "miopenTensorMhaScaleDV"),
-            mha_desc.GetScale(),
-            GetTensorDescriptorChecked(miopenTensorMhaDropoutProbability,
-                                       "miopenTensorMhaDropoutProbability"),
-            GetTensorDescriptorChecked(miopenTensorMhaDropoutSeed, "miopenTensorMhaDropoutSeed"),
-            GetTensorDescriptorChecked(miopenTensorMhaDropoutOffset,
-                                       "miopenTensorMhaDropoutOffset"),
-
+            scale,
+            dpDesc,
+            dsDesc,
+            doffDesc,
             GetTensorDescriptorChecked(miopenTensorMhaDQ, "miopenTensorMhaDQ"),
             GetTensorDescriptorChecked(miopenTensorMhaDK, "miopenTensorMhaDK"),
             GetTensorDescriptorChecked(miopenTensorMhaDV, "miopenTensorMhaDV"),
-
             GetTensorDescriptorChecked(miopenTensorMhaAmaxDQ, "miopenTensorMhaAmaxDQ"),
             GetTensorDescriptorChecked(miopenTensorMhaAmaxDK, "miopenTensorMhaAmaxDK"),
             GetTensorDescriptorChecked(miopenTensorMhaAmaxDV, "miopenTensorMhaAmaxDV"),

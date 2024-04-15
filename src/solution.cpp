@@ -382,8 +382,8 @@ void Solution::RunImpl(Handle& handle,
         static solver::mha::MhaBackward mhaBackward;
 
         const auto mha_solution = GetSolver().ToString() == mhaForward.SolverDbId()
-                                          ? mhaForward.GetSolution(ctx, problem_description)
-                                          : mhaBackward.GetSolution(ctx, problem_description);
+                                      ? mhaForward.GetSolution(ctx, problem_description)
+                                      : mhaBackward.GetSolution(ctx, problem_description);
 
         decltype(auto) invoker =
             handle.PrepareInvoker(*mha_solution.invoker_factory, mha_solution.construction_params);
