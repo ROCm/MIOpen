@@ -216,7 +216,6 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::InitHeuristicKernelIDs()
         if(valid_kernels[i].find("DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle") !=
            std::string::npos)
         {
-            std::cout << valid_kernels[i] << std::endl;
             heuristic_indexes.push_back(i);
             heuristic_kernels.push_back(GetKernelAsTokens(valid_kernels[i]));
         }

@@ -656,7 +656,7 @@ bool ModelSetParams(const std::string& arch,
             {
                 output_token_index =
                     token; // index with largest value that is valid = predicted index
-                std::cout << "token: " << token << " value: " << value << std::endl;
+                // std::cout << "token: " << token << " value: " << value << std::endl;
                 break;
             }
         }
