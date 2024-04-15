@@ -194,6 +194,12 @@ void BackendRngDescriptor::getAttribute(miopenBackendAttributeName_t attributeNa
     }
 }
 
+const std::string& OperationRng::signName() const
+{
+    static const std::string name = "OP_RNG";
+    return name;
+}
+
 std::vector<Tensor*> OperationRng::getInTensors() const
 {
     if(mSeed.index() == 0)
@@ -210,28 +216,14 @@ std::vector<Tensor*> OperationRng::getOutTensors() const { return {mOutput}; }
 
 OperationRngBuilder& OperationRngBuilder::setRng(Rng* rng)
 {
-    if(rng != nullptr)
-    {
-        mOperationRng.mRng = rng;
-        return *this;
-    }
-    else
-    {
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
+    mOperationRng.mRng = checkPtr(rng);
+    return *this;
 }
 
 OperationRngBuilder& OperationRngBuilder::setOutput(Tensor* output)
 {
-    if(output != nullptr)
-    {
-        mOperationRng.mOutput = output;
-        return *this;
-    }
-    else
-    {
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
+    mOperationRng.mOutput = checkPtr(output);
+    return *this;
 }
 
 OperationRngBuilder& OperationRngBuilder::setSeed(int64_t seed) noexcept
