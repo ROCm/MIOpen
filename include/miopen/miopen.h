@@ -69,6 +69,7 @@
  * @defgroup argmax
  * @defgroup groupnorm
  * @defgroup cat
+ * @defgroup padreflection
  *
  */
 
@@ -5795,9 +5796,12 @@ MIOPEN_EXPORT miopenStatus_t miopenSumForward(miopenHandle_t handle,
 #endif
 
 #ifdef MIOPEN_BETA_API
-
-
-/*! @brief Execute a sum forward layer
+// Padreflection APIs
+/** @addtogroup padreflection
+ *
+ *  @{
+ */
+/*! @brief Add padding by the reflection of the tensor
  *
  * @param handle                   MIOpen handle (input)
  * @param nanPropagation           Nan number propagation mode (input)
@@ -5818,7 +5822,7 @@ MIOPEN_EXPORT miopenStatus_t miopenPadReflection(miopenHandle_t handle,
                                               const std::vector<size_t> padding);
 
 /** @} */
-// CLOSEOUT SUM DOXYGEN GROUP
+// CLOSEOUT PAD REFLECTION DOXYGEN GROUP
 #endif
 
 #ifdef MIOPEN_BETA_API

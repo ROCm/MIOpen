@@ -144,6 +144,8 @@ set( MIOpen_Source
     mha/problem_description.cpp
     op_args.cpp
     operator.cpp
+    pad_reflection/problem_description.cpp
+    pad_reflection_api.cpp
     performance_config.cpp
     pooling/problem_description.cpp
     pooling_api.cpp
@@ -154,7 +156,6 @@ set( MIOpen_Source
     reducetensor.cpp
     reducetensor_api.cpp
     reduce/problem_description.cpp
-    pad_reflection/problem_description.cpp
     rnn.cpp
     rnn_api.cpp
     rnn/rnn_util.cpp
@@ -265,6 +266,7 @@ set( MIOpen_Source
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
     solver/mha/mha_solver.cpp
+    solver/pad_reflection/pad_reflection.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
@@ -272,12 +274,10 @@ set( MIOpen_Source
     solver/pooling/backwardNd.cpp
     solver/reduce/forward_argmax.cpp
     solver/reduce/forward_sum.cpp
-    solver/pad_reflection/pad_reflection.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
     subbuffers.cpp
     sum_api.cpp
-    pad_reflection_api.cpp
     target_properties.cpp
     temp_file.cpp
     tensor.cpp
@@ -604,11 +604,11 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         hip/hip_build_utils.cpp
         hip/batched_transpose_sol.cpp
         hip/general_tensor_reorder_sol.cpp
+        pad_reflection.cpp
         pooling.cpp
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
         sum.cpp
-        pad_reflection.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )
 
