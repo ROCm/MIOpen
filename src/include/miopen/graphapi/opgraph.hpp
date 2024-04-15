@@ -175,8 +175,8 @@ class OpGraph
     // NOTE: mSrcNode and mSinkNode need to reside on the heap because the graph may move
     // to a new memory location after building, while the nodes maintain address
     // of SourceOpNode and SinkOpNode in their in and out edge lists
-    std::unique_ptr<SourceOpNode> mSrcNode = std::unique_ptr<SourceOpNode>(new SourceOpNode());
-    std::unique_ptr<SinkOpNode> mSinkNode  = std::unique_ptr<SinkOpNode>(new SinkOpNode());
+    std::unique_ptr<SourceOpNode> mSrcNode = std::make_unique<SourceOpNode>();
+    std::unique_ptr<SinkOpNode> mSinkNode  = std::make_unique<SinkOpNode>();
     std::vector<OpNode*> mNodes{};
 
 public:

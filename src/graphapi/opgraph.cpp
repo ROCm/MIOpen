@@ -102,7 +102,7 @@ VecOfPaths OpGraph::getAllPaths() const
     VecOfPaths all_paths;
 
     std::deque<Path> paths_to_explore;
-    paths_to_explore.emplace_back(Path{const_cast<SourceOpNode*>(mSrcNode.get())});
+    paths_to_explore.emplace_back(Path{mSrcNode.get()});
 
     while(!paths_to_explore.empty())
     {
