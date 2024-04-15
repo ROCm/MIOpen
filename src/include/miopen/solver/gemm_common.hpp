@@ -24,41 +24,40 @@
  *
  *******************************************************************************/
 #pragma once
+#ifndef GUARD_MIOPEN_SOLVER_GEMM_COMMON_HPP
+#define GUARD_MIOPEN_SOLVER_GEMM_COMMON_HPP
 
-#include <miopen/miopen.h>
-#include <miopen/object.hpp>
+#include <miopen/config.h>
+#include <miopen/conv/problem_description.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/tensor.hpp>
 
-#include <cstdint>
+#include <cstddef>
 
 namespace miopen {
+namespace solver {
+namespace conv {
+namespace gemm {
 
-namespace graphapi {
+std::size_t MaxMemAllocSz(Handle& h,
+                          const miopen::conv::ProblemDescription& problem,
+                          bool double_limit_for_fp32 = false);
 
-class OpNode;
+constexpr bool IsBf16Supported = MIOPEN_USE_ROCBLAS;
+constexpr bool IsFp16Supported = MIOPEN_USE_ROCBLAS;
 
-class BackendDescriptor : public miopenBackendDescriptor
-{
-public:
-    virtual ~BackendDescriptor();
-    virtual void setAttribute(miopenBackendAttributeName_t attributeName,
-                              miopenBackendAttributeType_t attributeType,
-                              int64_t elementCount,
-                              void* arrayOfElements) = 0;
-    virtual void finalize()                          = 0;
-    virtual void getAttribute(miopenBackendAttributeName_t attributeName,
-                              miopenBackendAttributeType_t attributeType,
-                              int64_t requestedElementCount,
-                              int64_t* elementCount,
-                              void* arrayOfElements) = 0;
-    virtual void execute(miopenHandle_t handle, miopenBackendDescriptor_t variantPack);
-    virtual OpNode* getOperation();
+bool IsAnyBufferBf16(const TensorDescriptor& xDesc,
+                     const TensorDescriptor& yDesc,
+                     const TensorDescriptor& wDesc);
+bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
+                     const TensorDescriptor& yDesc,
+                     const TensorDescriptor& wDesc);
 
-    bool isFinalized() const noexcept { return mFinalized; };
+double SlowdownFactor(int n_oper, double oper_factor, double multiple_oper_factor);
 
-protected:
-    bool mFinalized = false;
-};
-} // namespace graphapi
+} // namespace gemm
+} // namespace conv
+} // namespace solver
 } // namespace miopen
 
-MIOPEN_DEFINE_OBJECT(miopenBackendDescriptor, miopen::graphapi::BackendDescriptor)
+#endif // GUARD_MIOPEN_SOLVER_GEMM_COMMON_HPP

@@ -25,11 +25,7 @@
  *******************************************************************************/
 #pragma once
 
-#include <miopen/errors.hpp>
 #include <miopen/graphapi/tensor.hpp>
-
-#include <algorithm>
-#include <vector>
 
 namespace miopen {
 
@@ -39,6 +35,8 @@ class OpNode
 {
 public:
     virtual ~OpNode() = default;
+
+    virtual const std::string& signName() const = 0;
 
     virtual std::vector<Tensor*> getInTensors() const = 0;
 

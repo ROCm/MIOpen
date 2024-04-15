@@ -37,11 +37,20 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
     std::ostringstream ss;
 
-    ss << "mhafwd-";
+    ss << "mha";
 
     if(isForward)
     {
-        // TODO Implement
+        ss << "fwd-";
+        for(auto s : mhaInputDescsForward.oDesc.GetLengths())
+        {
+            ss << s << "x";
+        }
+        for(auto s : mhaInputDescsForward.oDesc.GetStrides())
+        {
+            ss << s << "x";
+        }
+        ss << mhaInputDescsForward.oDesc.GetType();
     }
 
     return NetworkConfig{ss.str()};
