@@ -31,20 +31,19 @@
 #include <miopen/tensor_ops.hpp>
 
 extern "C" miopenStatus_t miopenGLUForward(miopenHandle_t handle,
-                                            const miopenTensorDescriptor_t inputDesc,
-                                            const miopenTensorDescriptor_t inputSplitDesc,
-                                            void* a,
-                                            void* b,
-                                            const int32_t dim,
-                                            const miopenTensorDescriptor_t outputDesc,
-                                            void* output)
+                                           const miopenTensorDescriptor_t inputDesc,
+                                           const miopenTensorDescriptor_t inputSplitDesc,
+                                           void* a,
+                                           void* b,
+                                           const int32_t dim,
+                                           const miopenTensorDescriptor_t outputDesc,
+                                           void* output)
 {
-    MIOPEN_LOG_FUNCTION(
-        handle, inputDesc, inputSplitDesc, a, b, dim, outputDesc, output);
+    MIOPEN_LOG_FUNCTION(handle, inputDesc, inputSplitDesc, a, b, dim, outputDesc, output);
 
     return miopen::try_([&] {
         miopen::GLUForward(miopen::deref(handle),
-                miopen::deref(inputDesc),
+                           miopen::deref(inputDesc),
                            miopen::deref(inputSplitDesc),
                            DataCast(a),
                            DataCast(b),

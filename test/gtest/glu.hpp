@@ -110,7 +110,7 @@ protected:
         glu_config     = GetParam();
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
-        dim            = glu_config.dim;
+        dim = glu_config.dim;
 
         auto in_dims = glu_config.GetInput();
 
@@ -123,16 +123,20 @@ protected:
             if(i != dim)
             {
                 out_dims.push_back(in_dims[i]);
-            } else {
+            }
+            else
+            {
                 out_dims.push_back(in_dims[i] / 2);
             }
         }
 
         inputFirstHalf = tensor<T>{out_dims};
-        std::fill(inputFirstHalf.begin(), inputFirstHalf.end(), std::numeric_limits<T>::quiet_NaN());
+        std::fill(
+            inputFirstHalf.begin(), inputFirstHalf.end(), std::numeric_limits<T>::quiet_NaN());
 
         inputSecondHalf = tensor<T>{out_dims};
-        std::fill(inputSecondHalf.begin(), inputSecondHalf.end(), std::numeric_limits<T>::quiet_NaN());
+        std::fill(
+            inputSecondHalf.begin(), inputSecondHalf.end(), std::numeric_limits<T>::quiet_NaN());
 
         output = tensor<T>{out_dims};
         std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
@@ -140,45 +144,41 @@ protected:
         ref_output = tensor<T>{out_dims};
         std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<T>::quiet_NaN());
 
-        //printf("before split\n");
         splitInput();
-
-        //printf("In ssetup\n");
 
         inputFirstHalf_dev  = handle.Write(inputFirstHalf.data);
         inputSecondHalf_dev = handle.Write(inputSecondHalf.data);
-        output_dev = handle.Write(output.data);
-
+        output_dev          = handle.Write(output.data);
     }
 
-    void splitInput() {
-        auto input_dims = input.desc.GetLengths();
+    void splitInput()
+    {
+        auto input_dims  = input.desc.GetLengths();
         auto output_dims = output.desc.GetLengths();
 
-        auto splitDim_size = input_dims[dim];
+        auto splitDim_size   = input_dims[dim];
         auto splitedDim_size = output_dims[dim];
-        auto output_numel = std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
+        auto output_numel =
+            std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
 
         auto inner_size = 1ULL;
-        for (int32_t i = dim + 1; i < input_dims.size(); i++) {
+        for(int32_t i = dim + 1; i < input_dims.size(); i++)
+        {
             inner_size *= input_dims[i];
         }
 
-        // split in vector to 2 parts
-        for (size_t o = 0; o < output_numel; o++) 
+        for(size_t o = 0; o < output_numel; o++)
         {
-            //size_t outerIdx = (o / inner_size / splitedDim_size);
-            //size_t splitDimIdx = (o % (inner_size * splitedDim_size)) / inner_size;
-            size_t innerIdx = o % inner_size;
+            size_t innerIdx       = o % inner_size;
             size_t splittedDimIdx = ((o - innerIdx) / inner_size) % splitedDim_size;
-            size_t outerIdx = (o - innerIdx - splittedDimIdx * inner_size) / (inner_size * splitedDim_size);
-            size_t inputIdx1 = outerIdx * splitDim_size * inner_size + splittedDimIdx * inner_size + innerIdx;
-            size_t inputIdx2 = outerIdx * splitDim_size * inner_size + (splittedDimIdx + splitedDim_size) * inner_size + innerIdx;
-            //std::cout << "o = " << o << " inputIdx1 = " << inputIdx1 << " inputIdx2 = " << inputIdx2 << std::endl;
-            //std::cout << "outerIdx = " << outerIdx << " splittedDimIdx = " << splittedDimIdx << "innerIdx = " << innerIdx << std::endl;
-            inputFirstHalf[o] = input[inputIdx1];
+            size_t outerIdx =
+                (o - innerIdx - splittedDimIdx * inner_size) / (inner_size * splitedDim_size);
+            size_t inputIdx1 =
+                outerIdx * splitDim_size * inner_size + splittedDimIdx * inner_size + innerIdx;
+            size_t inputIdx2 = outerIdx * splitDim_size * inner_size +
+                               (splittedDimIdx + splitedDim_size) * inner_size + innerIdx;
+            inputFirstHalf[o]  = input[inputIdx1];
             inputSecondHalf[o] = input[inputIdx2];
-
         }
     }
 
@@ -186,7 +186,7 @@ protected:
     {
         auto&& handle = get_handle();
 
-        cpu_glu_forward<T>(inputFirstHalf, inputSecondHalf, ref_output, dim);
+        cpu_glu_forward<T>(inputFirstHalf, inputSecondHalf, ref_output);
         miopenStatus_t status;
 
         status = miopen::GLUForward(handle,

@@ -52,7 +52,11 @@ struct ProblemDescription : ProblemDescriptionBase
                        const TensorDescriptor& inputSplitDesc_,
                        const TensorDescriptor& outputDesc_,
                        int32_t dim_)
-        : direction(Direction::Forward), inputDesc(inputDesc_), inputSplitDesc(inputSplitDesc_), outputDesc(outputDesc_), dim(dim_)
+        : direction(Direction::Forward),
+          inputDesc(inputDesc_),
+          inputSplitDesc(inputSplitDesc_),
+          outputDesc(outputDesc_),
+          dim(dim_)
     {
         if(inputDesc.GetLengths().size() != outputDesc.GetLengths().size())
         {
@@ -90,12 +94,17 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         for(int32_t i = 0; i < inputDesc.GetLengths().size(); i++)
         {
-            if (i == dim) {
-                if (inputDesc.GetLengths()[i] / 2 != outputDesc.GetLengths()[i]) {
+            if(i == dim)
+            {
+                if(inputDesc.GetLengths()[i] / 2 != outputDesc.GetLengths()[i])
+                {
                     return false;
                 }
-            } else {
-                if (inputDesc.GetLengths()[i] != outputDesc.GetLengths()[i]) {
+            }
+            else
+            {
+                if(inputDesc.GetLengths()[i] != outputDesc.GetLengths()[i])
+                {
                     return false;
                 }
             }
@@ -138,7 +147,7 @@ private:
     TensorDescriptor inputDesc;
     TensorDescriptor inputSplitDesc;
     TensorDescriptor outputDesc;
-    
+
     int32_t dim;
 };
 

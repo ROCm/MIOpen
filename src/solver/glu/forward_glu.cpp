@@ -66,30 +66,29 @@ ConvSolution GLUForward::GetSolution(const ExecutionContext& context,
     auto result = ConvSolution{miopenStatusSuccess};
 
     {
-        auto dtype = problem.GetInputDesc().GetType();
-        auto inputDims = problem.GetInputDesc().GetLengths();
+        auto dtype      = problem.GetInputDesc().GetType();
+        auto inputDims  = problem.GetInputDesc().GetLengths();
         auto outputDims = problem.GetOutputDesc().GetLengths();
         auto output_numel =
-                    std::accumulate(outputDims.begin(), outputDims.end(), 1ULL, std::multiplies<size_t>());
+            std::accumulate(outputDims.begin(), outputDims.end(), 1ULL, std::multiplies<size_t>());
 
         size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize = AlignUp(output_numel, xlocalsize);
+        size_t xgridsize  = AlignUp(output_numel, xlocalsize);
         size_t ylocalsize = 1;
-        size_t ygridsize = 1;
+        size_t ygridsize  = 1;
         size_t zlocalsize = 1;
-        size_t zgridsize = 1;
+        size_t zgridsize  = 1;
 
         auto kernel = KernelInfo{};
 
         kernel.kernel_file = "MIOpenGLU.cpp";
         kernel.kernel_name = "GLUFwdContiguous";
 
-        const auto build_params = KernelBuildParameters{
-            {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-            {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-            {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
-            {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)}
-        };
+        const auto build_params =
+            KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+                                  {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+                                  {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
+                                  {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
@@ -108,13 +107,10 @@ ConvSolution GLUForward::GetSolution(const ExecutionContext& context,
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::glu::InvokeParams>();
-            auto outputDims = params.outputDesc->GetLengths();
-            auto output_numel =
-                std::accumulate(outputDims.begin(), outputDims.end(), 1ULL, std::multiplies<size_t>());
-            kernel(params.xFirstHalf,
-                    params.xSecondHalf,
-                   params.y,
-                   output_numel);
+            auto outputDims       = params.outputDesc->GetLengths();
+            auto output_numel     = std::accumulate(
+                outputDims.begin(), outputDims.end(), 1ULL, std::multiplies<size_t>());
+            kernel(params.xFirstHalf, params.xSecondHalf, params.y, output_numel);
         };
     };
 

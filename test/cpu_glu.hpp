@@ -29,24 +29,23 @@
 #include "tensor_holder.hpp"
 
 template <typename T>
-T sigmoid(T x) { return 1.0f / (1.0f + exp(-x)); }
+T sigmoid(T x)
+{
+    return 1.0f / (1.0f + exp(-x));
+}
 
 template <class T>
-void cpu_glu_forward(tensor<T> inputFirstHalf,
-                    tensor<T> inputSecondHalf,
-                     tensor<T>& ref_output,
-                     int32_t dim)
+void cpu_glu_forward(tensor<T> inputFirstHalf, tensor<T> inputSecondHalf, tensor<T>& ref_output)
 {
-    auto input_dims  = inputFirstHalf.desc.GetLengths();
     auto output_dims = ref_output.desc.GetLengths();
 
     auto output_numel =
         std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
 
     par_ford(output_numel)([&](size_t o) {
-        T valA = inputFirstHalf[o];
-        T valB = inputSecondHalf[o];
-        T val = valA * sigmoid(valB);
+        T valA        = inputFirstHalf[o];
+        T valB        = inputSecondHalf[o];
+        T val         = valA * sigmoid(valB);
         ref_output[o] = val;
     });
 }

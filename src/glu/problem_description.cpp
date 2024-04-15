@@ -35,13 +35,15 @@ namespace glu {
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    auto inputlength = inputDesc.GetLengths();
+    auto inputlength  = inputDesc.GetLengths();
     auto outputlength = outputDesc.GetLengths();
 
-    auto splitdim_size  = inputlength[dim];
-    auto output_numel = std::accumulate(
-        outputlength.begin(), outputlength.end(), static_cast<size_t>(1), std::multiplies<size_t>());
-    auto dtype = inputDesc.GetType();
+    auto splitdim_size = inputlength[dim];
+    auto output_numel  = std::accumulate(outputlength.begin(),
+                                        outputlength.end(),
+                                        static_cast<size_t>(1),
+                                        std::multiplies<size_t>());
+    auto dtype         = inputDesc.GetType();
 
     std::ostringstream ss;
 
