@@ -48,16 +48,11 @@ template <typename Tcheck>
 Tcheck sigmoid(Tcheck x) { return 1.0f / (1.0f + exp(-x)); }
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloGLUForwardRunHost(miopenTensorDescriptor_t inputDesc,
-                            miopenTensorDescriptor_t inputSplitDesc,
-                             miopenTensorDescriptor_t outputDesc,
+int32_t mloGLUForwardRunHost(miopenTensorDescriptor_t outputDesc,
                              Tgpu* input_first_half,
                              Tgpu* input_second_half,
-                             Tcheck* outputHost,
-                             int32_t dim)
+                             Tcheck* outputHost)
 {
-    auto input_dims = miopen::deref(inputDesc).GetLengths();
-    auto input_split_dims = miopen::deref(inputSplitDesc).GetLengths();
     auto output_dims = miopen::deref(outputDesc).GetLengths();
 
     auto output_numel = std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
@@ -86,7 +81,7 @@ public:
         miopenCreateTensorDescriptor(&inputTensorSplit);
         miopenCreateTensorDescriptor(&outputTensor);
 
-        data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
+        data_type = miopen_type<Tgpu>{};
     }
 
     int AddCmdLineArgs() override;
@@ -112,6 +107,7 @@ public:
     ~GLUDriver() override
     {
         miopenDestroyTensorDescriptor(outputTensor);
+        miopenDestroyTensorDescriptor(inputTensorSplit);
         miopenDestroyTensorDescriptor(inputTensor);
     }
 
@@ -122,7 +118,6 @@ private:
     miopenTensorDescriptor_t inputTensorSplit;
     miopenTensorDescriptor_t outputTensor;
 
-    std::unique_ptr<GPUMem> in_dev;
     std::unique_ptr<GPUMem> in_dev_first_half;
     std::unique_ptr<GPUMem> in_dev_second_half;
     std::unique_ptr<GPUMem> out_dev;
@@ -264,17 +259,18 @@ int GLUDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
 
     size_t in_sz  = GetTensorSpace(inputTensor);
+    size_t in_split_sz = GetTensorSpace(inputTensorSplit);
     size_t out_sz = GetTensorSpace(outputTensor);
 
     uint32_t ctx = 0;
 
-    in_dev_first_half  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-    in_dev_second_half = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+    in_dev_first_half  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_split_sz, sizeof(Tgpu)));
+    in_dev_second_half = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_split_sz, sizeof(Tgpu)));
     out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
     in      = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-    in_first_half = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    in_second_half = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    in_first_half = std::vector<Tgpu>(in_split_sz, static_cast<Tgpu>(0));
+    in_second_half = std::vector<Tgpu>(in_split_sz, static_cast<Tgpu>(0));
     out     = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
     outhost = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
@@ -347,7 +343,7 @@ template <typename Tgpu, typename Tref>
 int GLUDriver<Tgpu, Tref>::RunForwardCPU()
 {
     mloGLUForwardRunHost<Tgpu, Tref>
-        (inputTensor, inputTensorSplit, outputTensor, in_first_half.data(), in_second_half.data(), outhost.data(), dim);
+        (outputTensor, in_first_half.data(), in_second_half.data(), outhost.data());
 
     return miopenStatusSuccess;
 }

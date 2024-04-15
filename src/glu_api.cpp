@@ -30,58 +30,6 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
-static void LogCmdGLU(const miopenTensorDescriptor_t xDesc,
-                      bool is_fwd)
-{
-    if(miopen::IsLoggingCmd())
-    {
-        std::stringstream ss;
-        auto dtype = miopen::deref(xDesc).GetType();
-        if(dtype == miopenHalf)
-        {
-            ss << "glufp16";
-        }
-        else if(dtype == miopenFloat)
-        {
-            ss << "glufp32";
-        }
-        else if(dtype == miopenBFloat16)
-        {
-            ss << "glubfp16";
-        }
-
-        int32_t size = {0};
-        miopenGetTensorDescriptorSize(xDesc, &size);
-        ss << " -n " << miopen::deref(xDesc).GetLengths()[0];
-        if(size == 5)
-        {
-            ss << " -c " << miopen::deref(xDesc).GetLengths()[1] << " -D "
-               << miopen::deref(xDesc).GetLengths()[2] << " -H "
-               << miopen::deref(xDesc).GetLengths()[3] << " -W "
-               << miopen::deref(xDesc).GetLengths()[4];
-        }
-        else if(size == 4)
-        {
-            ss << " -c " << miopen::deref(xDesc).GetLengths()[1] << " -H "
-               << miopen::deref(xDesc).GetLengths()[2] << " -W "
-               << miopen::deref(xDesc).GetLengths()[3];
-        }
-        else if(size == 3)
-        {
-            ss << " -c " << miopen::deref(xDesc).GetLengths()[1] << " -W "
-               << miopen::deref(xDesc).GetLengths()[2];
-        }
-        else if(size == 2)
-        {
-            ss << " -c " << miopen::deref(xDesc).GetLengths()[1];
-        }
-
-        ss << " -F " << ((is_fwd) ? "1" : "2");
-
-        MIOPEN_LOG_DRIVER_CMD(ss.str());
-    }
-}
-
 extern "C" miopenStatus_t miopenGLUForward(miopenHandle_t handle,
                                             const miopenTensorDescriptor_t inputDesc,
                                             const miopenTensorDescriptor_t inputSplitDesc,
@@ -94,7 +42,6 @@ extern "C" miopenStatus_t miopenGLUForward(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(
         handle, inputDesc, inputSplitDesc, a, b, dim, outputDesc, output);
 
-    //LogCmdGLU(inputDesc, true);
     return miopen::try_([&] {
         miopen::GLUForward(miopen::deref(handle),
                            miopen::deref(inputDesc),

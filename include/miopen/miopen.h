@@ -6585,7 +6585,7 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
 #ifdef MIOPEN_BETA_API
 
 // GLU APIs
-/** @addtogroup activation
+/** @addtogroup glu
  *
  *  @{
  */
@@ -6597,7 +6597,7 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
  * @param inputSplitDesc           Tensor descriptor for splitted data input tensor x (input)
  * @param a                        First half input data tensor  (input)
  * @param b                        Second half input data tensor (input)
- * @param dim                      Dimensions to sum. (input)
+ * @param dim                      Dimensions to split. (input)
  * @param outputDesc               Tensor descriptor for output data tensor y (input)
  * @param output                   Data tensor y (output)
  * @return                         miopenStatus_t

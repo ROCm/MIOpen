@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cstdio>
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
@@ -31,7 +30,7 @@
 
 #include "float_types.h"
 
-__device__ float sigmoid(float x) { return 1.0f / (1.0f + exp(-x)); }
+__device__ FLOAT_ACCUM sigmoid(FLOAT_ACCUM x) { return 1.0f / (1.0f + exp(-x)); }
 
 extern "C" __global__ void GLUFwdContiguous(const FLOAT* __restrict__ a,
                                             const FLOAT* __restrict__ b,
@@ -39,27 +38,10 @@ extern "C" __global__ void GLUFwdContiguous(const FLOAT* __restrict__ a,
                                             long N)
 {
     const size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
-    //printf("gid = %ld n = %ld\n", gid, N);
     if (gid >= N) return;
 
-    float val = CVT_FLOAT2ACCUM(a[gid]) * sigmoid(CVT_FLOAT2ACCUM(b[gid]));
-    //printf("output[%ld] = %f\n", gid, val);
-
-    output[gid] = CVT_FLOAT2ACCUM(val);
+    FLOAT_ACCUM val1 = CVT_FLOAT2ACCUM(a[gid]);
+    FLOAT_ACCUM val2 = sigmoid(CVT_FLOAT2ACCUM(b[gid]));
+    FLOAT_ACCUM val = val1 * val2;
+    output[gid] = CVT_ACCUM2FLOAT(val);
 }
-
-/*
-extern "C" __global__ void GLUFwdContiguous(const FLOAT* __restrict__ input,
-                                            FLOAT* __restrict__ output,
-                                            long N)
-{
-    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
-    size_t input_first = (gid / inner_size);
-    size_t input_second = ();
-    if (gid >= N) return;
-
-    float val = CVT_FLOAT2ACCUM(input[input_first]) * sigmoid(CVT_FLOAT2ACCUM(input[input_second]));
-
-    output[gid] = CVT_FLOAT2ACCUM(val);
-}
-*/

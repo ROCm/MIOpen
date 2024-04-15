@@ -263,6 +263,12 @@ int main(int argc, char* argv[])
     } else if(base_arg == "glu")
     {
         drv = new GLUDriver<float, float>();
+    } else if(base_arg == "glufp16")
+    {
+        drv = new GLUDriver<float16, float>();
+    } else if(base_arg == "glubfp16")
+    {
+        drv = new GLUDriver<bfloat16, float>();
     }
     else
     {

@@ -42,21 +42,11 @@ namespace solver {
 
 namespace glu {
 
-size_t get_reqd_work_item_cnt(const ExecutionContext& context)
-{
-    // At least 4 WGs per one CU
-    return static_cast<size_t>(LOCAL_SIZE * context.GetStream().GetMaxComputeUnits() * 4);
-}
-
-size_t get_reqd_work_item_cnt(const Handle& handle)
-{
-    // At least 4 WGs per one CU
-    return static_cast<size_t>(LOCAL_SIZE * handle.GetMaxComputeUnits() * 4);
-}
-
 bool GLUForward::IsApplicable(const ExecutionContext& context,
                               const miopen::glu::ProblemDescription& problem) const
 {
+    std::ignore = context;
+
     if(!problem.IsSameType())
         return false;
     if(!problem.IsRightDim())
@@ -84,7 +74,6 @@ ConvSolution GLUForward::GetSolution(const ExecutionContext& context,
 
         size_t xlocalsize = LOCAL_SIZE;
         size_t xgridsize = AlignUp(output_numel, xlocalsize);
-        // (output_numel + xlocalsize - 1) / xlocalsize;
         size_t ylocalsize = 1;
         size_t ygridsize = 1;
         size_t zlocalsize = 1;
@@ -99,7 +88,7 @@ ConvSolution GLUForward::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
             {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
             {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
-            {"MIOPEN_USE_BF16", static_cast<int>(dtype == miopenBFloat16)}
+            {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)}
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
