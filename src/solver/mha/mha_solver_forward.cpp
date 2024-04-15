@@ -109,6 +109,11 @@ MultiBufferWorkspaceTraits SplitBufferToWorkspace(const std::vector<size_t>& len
 bool MhaForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                               const miopen::mha::ProblemDescription& problem) const
 {
+    if (!problem.IsForward())
+    {
+        return false;
+    }    
+
     const miopen::mha::MhaInputDescsForward& descsForward = problem.GetDescsForward();
 
     auto [N, H, S, D] = miopen::tien<4>(descsForward.kDesc.GetLengths());

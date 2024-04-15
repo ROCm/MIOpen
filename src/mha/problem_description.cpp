@@ -52,6 +52,10 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
         }
         ss << mhaInputDescsForward.oDesc.GetType();
     }
+    else
+    {
+        ss << "bwd-";
+    }
 
     return NetworkConfig{ss.str()};
 }

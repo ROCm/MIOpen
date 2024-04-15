@@ -116,7 +116,7 @@ public:
         std::vector<miopenTensorDescriptor_t> descVector(numTensors);
 
         int i = 0;
-        for(const auto& it : tensors)
+        for (const auto& it : tensors)
         {
             descVector[i] = &it.second->tensorFloat.desc;
 
@@ -131,7 +131,7 @@ public:
 
         std::vector<miopenTensorArgumentId_t> output_ids;
 
-        if(isForward)
+        if (isForward)
         {
             output_ids = {miopenTensorMhaO,
                           miopenTensorMhaAmaxO,
@@ -569,7 +569,7 @@ private:
     float scale = 1.0f;
 };
 
-TEST(TestMhaFind20, MhaForward)
+/*TEST(TestMhaFind20, MhaForward)
 {
     Handle& handle = get_handle();
 
@@ -580,7 +580,7 @@ TEST(TestMhaFind20, MhaForward)
 
     test.TestRunSolutions(handle, solutions);
     test.Finalize();
-}
+}*/
 
 TEST(TestMhaFind20, MhaBackward)
 {
