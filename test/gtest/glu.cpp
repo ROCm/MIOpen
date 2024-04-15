@@ -42,7 +42,7 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct GLUTestFloat :GLUTest<float>
+struct GLUTestFloat : GLUTest<float>
 {
 };
 

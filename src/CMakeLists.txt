@@ -127,8 +127,10 @@ set( MIOpen_Source
     graphapi/convolution.cpp
     graphapi/graphapi.cpp
     graphapi/pointwise.cpp
+    graphapi/reduction.cpp
     graphapi/rng.cpp
     graphapi/tensor.cpp
+    graphapi/variant_pack.cpp
     groupnorm_api.cpp
     groupnorm/problem_description.cpp
     handle_api.cpp
@@ -260,6 +262,7 @@ set( MIOpen_Source
     solver/gemm.cpp
     solver/gemm_bwd.cpp
     solver/gemm_wrw.cpp
+    solver/glu/forward_glu.cpp
     solver/groupnorm/forward_groupnorm.cpp
     solver/layernorm/forward_layernorm.cpp
     solver/layernorm/forward_layernorm2d_ck.cpp
@@ -274,7 +277,6 @@ set( MIOpen_Source
     solver/reduce/forward_sum.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
-    solver/glu/forward_glu.cpp
     subbuffers.cpp
     sum_api.cpp
     target_properties.cpp
@@ -456,6 +458,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirUni.cl
         kernels/MIOpenConvDirBatchNormActiv.cl
         kernels/MIOpenConvDirGenFwd.cl
+        kernels/MIOpenGLU.cpp
         kernels/MIOpenGroupNorm.cpp
         kernels/MIOpenLayerNorm.cpp
         kernels/MIOpenLRNBwd.cl
@@ -472,7 +475,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenSoftmaxAttn.cpp
         kernels/MIOpenSum.cpp
-        kernels/MIOpenGLU.cpp
         kernels/MIOpenUtilKernels3.cl
         kernels/MIOpenUtilKernels4.cl
         kernels/MIOpenUtilKernels5.cl
@@ -797,7 +799,7 @@ elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     target_link_libraries( MIOpen PRIVATE hip::device )
     target_link_libraries( MIOpen INTERFACE hip::host )
     if(MIOPEN_USE_HIPRTC)
-        if(WIN32) 
+        if(WIN32)
             target_link_libraries( MIOpen PRIVATE hiprtc::hiprtc )
         else()
             target_link_libraries( MIOpen PRIVATE hiprtc)
