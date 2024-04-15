@@ -64,6 +64,8 @@ NLLLossForward::GetSolution(const ExecutionContext& context,
     std::ignore = context;
 
     auto result = ConvSolution{miopenStatusSuccess};
+    auto input_dtype  = miopen::GetDataType(problem.GetInputDesc().GetType());
+    auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
 
     {
         auto dtype = problem.GetInputDesc().GetType();
@@ -87,6 +89,8 @@ NLLLossForward::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
             {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+            {"INPUT_TYPE", input_dtype},
+            {"OUTPUT_TYPE", output_dtype},
             {"LOCAL_SIZE", LOCAL_SIZE},
         };
 

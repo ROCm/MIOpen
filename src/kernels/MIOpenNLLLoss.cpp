@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
+#include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
 #endif
 
@@ -40,15 +41,16 @@
 /* input(input): [N, C, D1, D2], target(target): [N, D1, D2],
  * weight(weight): [C], output(output): [N, D1, D2] */
 /* Each thread computes one output: output[n0][n1][n2] */
-extern "C" __global__ void NLLLossUnreducedForward4dContiguous(const FLOAT* __restrict__ input, 
-                                                               const int* __restrict__ target, 
-                                                               const FLOAT* weight,
-                                                               FLOAT* __restrict__ output, 
-                                                               int ignore_index, 
-                                                               size_t N_total,
-                                                               size_t C,
-                                                               size_t D1,
-                                                               size_t D2)
+template <typename TI, typename TO>
+__device__ void nlllossUnreducedForward4dContiguous(const TI* __restrict__ input, 
+                                                    const int* __restrict__ target, 
+                                                    const TI* weight,
+                                                    TO* __restrict__ output, 
+                                                    int ignore_index, 
+                                                    size_t N_total,
+                                                    size_t C,
+                                                    size_t D1,
+                                                    size_t D2)
 {
     uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
     
@@ -63,7 +65,7 @@ extern "C" __global__ void NLLLossUnreducedForward4dContiguous(const FLOAT* __re
     int t = target[gid];
     // t: Class index
     if (t < 0 || t == ignore_index || t >= C)  {
-        output[gid] = static_cast<FLOAT>(0);
+        output[gid] = static_cast<TO>(0);
         return;
     }
 
@@ -74,4 +76,17 @@ extern "C" __global__ void NLLLossUnreducedForward4dContiguous(const FLOAT* __re
 
     FLOAT_ACCUM val = CVT_FP32_2ACCUM(-1.0f) * w * input_value;
     output[gid] = CVT_ACCUM2FLOAT(val);
+}
+
+extern "C" __global__ void NLLLossUnreducedForward4dContiguous(const INPUT_TYPE* __restrict__ input, 
+                                                               const int* __restrict__ target, 
+                                                               const INPUT_TYPE* weight,
+                                                               OUTPUT_TYPE* __restrict__ output, 
+                                                               int ignore_index, 
+                                                               size_t N_total,
+                                                               size_t C,
+                                                               size_t D1,
+                                                               size_t D2)
+{
+    nlllossUnreducedForward4dContiguous<INPUT_TYPE, OUTPUT_TYPE>(input, target, weight, output, ignore_index, N_total, C, D1, D2);
 }
