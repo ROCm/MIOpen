@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -52,52 +52,49 @@ static void LogCmdNLLLoss(const miopenTensorDescriptor_t xDesc, bool is_fwd)
         int32_t size = {0};
         miopenGetTensorDescriptorSize(xDesc, &size);
         ss << " -N " << miopen::deref(xDesc).GetLengths()[0];
-        ss << " -C " << miopen::deref(xDesc).GetLengths()[1] 
-            << " -d " << miopen::deref(xDesc).GetLengths()[2] 
-            << " -D " << miopen::deref(xDesc).GetLengths()[3]; 
-        
+        ss << " -C " << miopen::deref(xDesc).GetLengths()[1] << " -d "
+           << miopen::deref(xDesc).GetLengths()[2] << " -D "
+           << miopen::deref(xDesc).GetLengths()[3];
+
         ss << " -F " << ((is_fwd) ? "1" : "2");
 
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 }
 
-
 extern "C" miopenStatus_t miopenNLLLossForward(miopenHandle_t handle,
-                                                const miopenTensorDescriptor_t inputDesc,
-                                                const void* input,
-                                                const miopenTensorDescriptor_t targetDesc,
-                                                const void* target,
-                                                const miopenTensorDescriptor_t weightDesc,
-                                                const void* weight,
-                                                const miopenTensorDescriptor_t outputDesc,
-                                                void* output,
-                                                int ignore_index)
+                                               const miopenTensorDescriptor_t inputDesc,
+                                               const void* input,
+                                               const miopenTensorDescriptor_t targetDesc,
+                                               const void* target,
+                                               const miopenTensorDescriptor_t weightDesc,
+                                               const void* weight,
+                                               const miopenTensorDescriptor_t outputDesc,
+                                               void* output,
+                                               int ignore_index)
 {
-    MIOPEN_LOG_FUNCTION(
-        handle,
-        inputDesc, 
-        input, 
-        targetDesc, 
-        target, 
-        weightDesc, 
-        weight, 
-        outputDesc, 
-        output, 
-        ignore_index);
+    MIOPEN_LOG_FUNCTION(handle,
+                        inputDesc,
+                        input,
+                        targetDesc,
+                        target,
+                        weightDesc,
+                        weight,
+                        outputDesc,
+                        output,
+                        ignore_index);
 
     LogCmdNLLLoss(inputDesc, true);
     return miopen::try_([&] {
-        miopen::NLLLossForward(
-            miopen::deref(handle),
-            miopen::deref(inputDesc),
-            DataCast(input),
-            miopen::deref(targetDesc),
-            DataCast(target),
-            miopen::deref(weightDesc),
-            DataCast(weight),
-            miopen::deref(outputDesc),
-            DataCast(output),
-            ignore_index);
+        miopen::NLLLossForward(miopen::deref(handle),
+                               miopen::deref(inputDesc),
+                               DataCast(input),
+                               miopen::deref(targetDesc),
+                               DataCast(target),
+                               miopen::deref(weightDesc),
+                               DataCast(weight),
+                               miopen::deref(outputDesc),
+                               DataCast(output),
+                               ignore_index);
     });
 }
