@@ -58,6 +58,7 @@ inline std::vector<NLLLossTestCase> NLLLossTestConfigs()
     // clang-format off
     return {{1, 2, 2, 2, false, -100},
             {2,10,128,128, false, 255},
+            {5,13,17,11,true, 5},
             {8, 12, 256, 256, true, -1},
             {8, 16, 512, 512, true, 10},
             {16, 21,512,512,false, 255}};

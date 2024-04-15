@@ -6592,16 +6592,15 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
 /*! @brief Execute a nllloss forward layer
  *
  * @param handle         MIOpen handle (input)
- * @param inputDesc      Tensor descriptor for data input tensor x (input)
- * @param input          Data tensor x (input)
+ * @param inputDesc      Tensor descriptor for data input tensor input (input)
+ * @param input          Data tensor input (input)
  * @param targetDesc     Tensor descriptor for data input tensor target (input)
  * @param target         Data tensor target (input)
  * @param weightDesc     Tensor descriptor for data input tensor weight (input)
  * @param weight         Data tensor weight (input)
  * @param outputDesc     Tensor descriptor for output data tensor y (input)
  * @param output         Data tensor y (output)
- * @param ignore_index   Index to ignore (input)
- * @param N              Number of elements in the output 
+ * @param ignore_index   Class index to ignore (input)
  * @return               miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenNLLLossForward(miopenHandle_t handle,
