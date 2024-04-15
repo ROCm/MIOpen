@@ -28,6 +28,7 @@
 #include <gtest/gtest.h>
 
 #include <miopen/miopen.h>
+#include <miopen/errors.hpp>
 #include <miopen/graphapi/opgraph.hpp>
 
 #include <unordered_map>
@@ -38,8 +39,8 @@ namespace gr = miopen::graphapi;
 
 inline gr::Tensor makeDummyTensor(std::string_view name)
 {
-    assert(name.size() <= sizeof(int64_t));
     int64_t id = 0;
+    MIOPEN_THROW_IF(name.size() > sizeof(id), "tensor name exceeds 8 chars");
     std::copy_n(name.begin(), std::min(sizeof(id), name.size()), reinterpret_cast<char*>(&id));
 
     return gr::TensorBuilder{}
