@@ -534,7 +534,7 @@ Metadata::Metadata(const std::string& arch, const std::string& solver)
 {
     const nlohmann::json metadata =
         common::LoadJSON(GetSystemDbPath() + "/" + arch + "_" + solver + "_metadata.ktn.model");
-    num_tuning_params = metadata["num_tuning_params"].get<std::size_t>();
+    num_tuning_params = metadata["num_tuning_params"].get<std::unordered_map<std::string, std::size_t>>();
     tuning_decodings =
         metadata["decodings"]["tunings"].get<std::unordered_map<std::string, std::string>>();
 }
@@ -606,6 +606,7 @@ std::shared_ptr<Model> GetModel(const std::string& arch, const std::string& solv
 
 bool ModelSetParams(const std::string& arch,
                     const std::string& solver,
+                    miopen::conv::Direction direction,
                     const std::vector<float>& features,
                     bool transform_features,
                     std::function<bool(std::size_t, std::string)> validator)
@@ -618,7 +619,22 @@ bool ModelSetParams(const std::string& arch,
         dim = features.size();
     fdeep::tensors context = model->Encode(features, dim, transform_features);
     float decoder_input    = 0.0;
-    for(std::size_t i = 0; i < model->metadata.num_tuning_params; ++i)
+    std::string dir;
+    switch (direction) {
+        case miopen::conv::Direction::Forward:
+            dir = "fwd";
+            break;
+        case miopen::conv::Direction::BackwardData:
+            dir = "bwd";
+            break;
+        case miopen::conv::Direction::BackwardWeights:
+            dir = "wrw";
+            break;
+        default:
+            return false;
+    }
+    std::size_t num_tuning_params =  model->metadata.num_tuning_params[dir];
+    for(std::size_t i = 0; i < num_tuning_params; ++i)
     {
         fdeep::tensors decoder_output = model->Decode(decoder_input, context);
 
@@ -640,6 +656,7 @@ bool ModelSetParams(const std::string& arch,
             {
                 output_token_index =
                     token; // index with largest value that is valid = predicted index
+                std::cout << "token: " << token << " value: " << value << std::endl;
                 break;
             }
         }
