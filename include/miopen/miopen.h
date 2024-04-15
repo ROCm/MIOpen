@@ -26,6 +26,7 @@
 #ifndef MIOPEN_GUARD_MIOPEN_H_
 #define MIOPEN_GUARD_MIOPEN_H_
 
+#include <vector>
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wextern-c-compat"
@@ -5814,7 +5815,7 @@ MIOPEN_EXPORT miopenStatus_t miopenPadReflection(miopenHandle_t handle,
                                               const void* x,
                                               const miopenTensorDescriptor_t yDesc,
                                               void* y,
-                                              const int * padding);
+                                              const std::vector<size_t> padding);
 
 /** @} */
 // CLOSEOUT SUM DOXYGEN GROUP

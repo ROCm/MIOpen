@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,23 +23,18 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_PAD_REFLECTION_HPP_
-#define MIOPEN_PAD_REFLECTION_HPP_
+#include "registry_driver_maker.hpp"
+#include "pad_reflection_driver.hpp"
 
-#include <miopen/common.hpp>
+static Driver* makeDriver(const std::string& base_arg)
+{
+    if(base_arg == "padreflection")
+        return new PadReflectionDriver<float, float>();
+    if(base_arg == "padreflectionfp16")
+        return new PadReflectionDriver<float16, float>();
+    if(base_arg == "padreflectionbfp16")
+        return new PadReflectionDriver<bfloat16, float>();
+    return nullptr;
+}
 
-namespace miopen {
-
-struct Handle;
-struct TensorDescriptor;
-
-miopenStatus_t PadReflection(Handle& handle,
-                               const TensorDescriptor& xDesc,
-                               ConstData_t x,
-                               const TensorDescriptor& yDesc,
-                               Data_t y,
-                               const std::vector<size_t> padding
-                               );
-
-} // namespace miopen
-#endif // MIOPEN_PAD_REFLECTION_HPP_
+REGISTER_DRIVER_MAKER(makeDriver);

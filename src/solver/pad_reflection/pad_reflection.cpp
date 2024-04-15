@@ -52,42 +52,42 @@ PadReflection::GetSolution(const ExecutionContext& context,
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto dtype = problem.GetXDesc().GetType();
-    auto xdims = problem.GetXDesc().GetLengths();
-    auto ydims = problem.GetYDesc().GetLengths();
+    auto input_dtype  = miopen::GetDataType(problem.GetXDesc().GetType());
+    auto output_dtype = miopen::GetDataType(problem.GetYDesc().GetType());
+    auto xdims        = problem.GetXDesc().GetLengths();
+    auto ydims        = problem.GetYDesc().GetLengths();
 
-    auto kernel = KernelInfo{};
+    {
+        auto kernel = KernelInfo{};
 
-    kernel.kernel_file = "MIOpenPadReflection.cpp";
-    kernel.kernel_name = "PadReflection2dFwdContiguous";
-    auto output_numel =
-        std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
+        kernel.kernel_file = "MIOpenPadReflection.cpp";
+        kernel.kernel_name = "PadReflection2dFwdContiguous";
+        auto output_numel =
+            std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
 
-    const auto build_params = KernelBuildParameters{
-        {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
-        {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
-        {"MIOPEN_USE_FP64", static_cast<int32_t>(dtype == miopenDouble)},
-        {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
-    };
+        const auto build_params = KernelBuildParameters{
+            {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
+            {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
+        };
 
-    kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
+        kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
-    size_t xlocalsize = LOCAL_SIZE;
-    size_t xgridsize  = AlignUp(output_numel, xlocalsize);
-    size_t ylocalsize = 1;
-    size_t ygridsize  = 1;
-    size_t zlocalsize = 1;
-    size_t zgridsize  = 1;
-    kernel.l_wk.push_back(xlocalsize);
-    kernel.l_wk.push_back(ylocalsize);
-    kernel.l_wk.push_back(zlocalsize);
+        size_t xlocalsize = LOCAL_SIZE;
+        size_t xgridsize  = AlignUp(output_numel, xlocalsize);
+        size_t ylocalsize = 1;
+        size_t ygridsize  = 1;
+        size_t zlocalsize = 1;
+        size_t zgridsize  = 1;
+        kernel.l_wk.push_back(xlocalsize);
+        kernel.l_wk.push_back(ylocalsize);
+        kernel.l_wk.push_back(zlocalsize);
 
-    kernel.g_wk.push_back(xgridsize);
-    kernel.g_wk.push_back(ygridsize);
-    kernel.g_wk.push_back(zgridsize);
+        kernel.g_wk.push_back(xgridsize);
+        kernel.g_wk.push_back(ygridsize);
+        kernel.g_wk.push_back(zgridsize);
 
-    result.construction_params.push_back(kernel);
-
+        result.construction_params.push_back(kernel);
+    }
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels[0]);
@@ -101,45 +101,9 @@ PadReflection::GetSolution(const ExecutionContext& context,
             auto output_size =
                 std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
 
-            // const size_t* xdims_data;
-            // const size_t* ydims_data;
-            // const size_t* xstrides_data;
-
-            // hipMalloc(&xdims_data, sizeof(size_t) * xdims.size());
-            // hipMalloc(&ydims_data, sizeof(size_t) * ydims.size());
-            // hipMalloc(&xstrides_data, sizeof(size_t) * xstrides.size());
-
-            // hipMemcpy((void*)xdims_data,
-            //           xdims.data(),
-            //           sizeof(size_t) * xdims.size(),
-            //           hipMemcpyHostToDevice);
-            // hipMemcpy((void*)ydims_data,
-            //           ydims.data(),
-            //           sizeof(size_t) * ydims.size(),
-            //           hipMemcpyHostToDevice);
-            // hipMemcpy((void*)xstrides_data,
-            //           xstrides.data(),
-            //           sizeof(size_t) * xstrides.size(),
-            //           hipMemcpyHostToDevice);
-
-            // long padding_l = params.padding[0];
-            // long padding_t = params.padding[2];
-            // kernel(params.x,
-            //        params.y,
-            //        output_size,
-            //        padding_l,
-            //        padding_t,
-            //        xdims_data,
-            //        ydims_data,
-            //        xstrides_data);
-
-            // hipFree((void*)xdims_data);
-            // hipFree((void*)ydims_data);
-            // hipFree((void*)xstrides_data);
-
-
-            long padding_l        = params.padding[0];
-            long padding_t        = params.padding[2];
+            auto padding   = params.padding;
+            long padding_l = (*padding)[0];
+            long padding_t = (*padding)[2];
             size_t in_H           = xdims[2];
             size_t in_W           = xdims[3];
             size_t output_size_1  = ydims[1];

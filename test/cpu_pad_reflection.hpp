@@ -31,11 +31,11 @@
 template <class T>
 void cpu_pad_reflection(tensor<T> input_tensor,
                      tensor<T>& ref_output_tensor,
-                     const int * padding_gpu
+                     const std::vector<size_t> padding
                      )
 {
-    long padding_l = padding_gpu[0];
-    long padding_t = padding_gpu[2];
+    long padding_l = padding[0];
+    long padding_t = padding[2];
     auto input_dims  = input_tensor.desc.GetLengths();
     auto output_dims = ref_output_tensor.desc.GetLengths();
     auto input = input_tensor.data.data();

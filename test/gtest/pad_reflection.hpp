@@ -77,8 +77,12 @@ struct PadReflectionCase
         }
     }
 
-    int * GetPadding() {
-        return padding;
+    std::vector<size_t> GetPadding() {
+        std::vector<size_t> paddingVector;
+        for (int i = 0; i < 4; ++i) {
+            paddingVector.push_back(static_cast<size_t>(padding[i]));
+        }
+        return paddingVector;
     }
 };
 
@@ -149,16 +153,16 @@ protected:
 
         cpu_pad_reflection<T>(input, ref_output, padding);
         miopenStatus_t status;
-        const int * padding_gpu;
-        hipMalloc(&padding_gpu, sizeof(int) * 4);
-        hipMemcpy((void*)padding_gpu, padding, sizeof(int) * 4, hipMemcpyHostToDevice);
+        // const int * padding_gpu;
+        // hipMalloc(&padding_gpu, sizeof(int) * 4);
+        // hipMemcpy((void*)padding_gpu, padding, sizeof(int) * 4, hipMemcpyHostToDevice);
 
         status = miopen::PadReflection(handle,
                                     input.desc,
                                     input_dev.get(),
                                     output.desc,
                                     output_dev.get(),
-                                    padding_gpu
+                                    padding
                                     );
 
         EXPECT_EQ(status, miopenStatusSuccess);

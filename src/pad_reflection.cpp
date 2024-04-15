@@ -40,10 +40,10 @@ miopenStatus_t PadReflection(Handle& handle,
                           ConstData_t x,
                           const TensorDescriptor& yDesc,
                           Data_t y,
-                          const int* padding
+                          const std::vector<size_t> padding
                           )
 {
-    const auto problem = pad_reflection::ProblemDescription{xDesc, yDesc};
+    const auto problem = pad_reflection::ProblemDescription{xDesc, yDesc, padding};
 
     const auto invoke_params = [&]() {
         auto tmp           = pad_reflection::InvokeParams{};
@@ -52,7 +52,7 @@ miopenStatus_t PadReflection(Handle& handle,
         tmp.yDesc          = &yDesc;
         tmp.x              = x;
         tmp.y              = y;
-        tmp.padding        = padding;
+        tmp.padding        = &padding;
         return tmp;
     }();
 

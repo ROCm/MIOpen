@@ -40,13 +40,16 @@ namespace pad_reflection {
 struct ProblemDescription : ProblemDescriptionBase
 {
     ProblemDescription(const TensorDescriptor& xDesc_,
-                       const TensorDescriptor& yDesc_)
-        : xDesc(xDesc_), yDesc(yDesc_)
+                       const TensorDescriptor& yDesc_,
+                       const std::vector<size_t> padding_
+                       )
+        : xDesc(xDesc_), yDesc(yDesc_), padding(padding_)
     {
     }
 
     const TensorDescriptor& GetXDesc() const { return xDesc; }
     const TensorDescriptor& GetYDesc() const { return yDesc; }
+    const std::vector<size_t>& GetPadding() const { return padding; }
 
     
     bool IsSameType() const
@@ -82,6 +85,7 @@ struct ProblemDescription : ProblemDescriptionBase
 private:
     TensorDescriptor xDesc;
     TensorDescriptor yDesc;
+    std::vector<size_t> padding;
 };
 
 } // namespace pad_reflection

@@ -31,116 +31,98 @@
 
 #include "float_types.h"
 
-// extern "C" __global__ void PadReflection2dFwdContiguous(const FLOAT* __restrict__ input,
-//                                             FLOAT* __restrict__ output,
-//                                             uint64_t output_size,
-//                                             long padding_l, long padding_t,
-//                                             const size_t * input_tv_size,
-//                                             const size_t * output_tv_size,
-//                                             const size_t * input_tv_stride
-//                                             )
-// {
-//     const size_t gid = threadIdx.x + blockIdx.x * blockDim.x;
-//     if(gid >= output_size)
-//         return;
-
-//     // gid to output n, c, h, w
-//     size_t in_H = input_tv_size[2];
-//     size_t in_W = input_tv_size[3];
-
-//     long n, c, h, w;
-//     // GET_NCHW(n, c, h, w, gid, output);
-//     ulong nch = (gid) / output_tv_size[3];
-//     w = (gid) % output_tv_size[3];        
-//     ulong nc = nch / output_tv_size[2];   
-//     h = nch % output_tv_size[2];          
-//     n = nc / output_tv_size[1];           
-//     c = nc % output_tv_size[1];
-
-//     long in_start_x = max(0L, -padding_l);
-//     long in_start_y = max(0L, -padding_t);
-//     long out_start_x = max(0L, padding_l);
-//     long out_start_y = max(0L, padding_t);
-
-//     if (w < padding_l) { 
-//         w = padding_l * 2 - w;
-//     } else if (padding_l <= w && w < in_W + padding_l) {
-//         w = w;
-//     } else {
-//         w = (in_W + padding_l - 1) * 2 - w;
-//     }
-//     w = w - out_start_x + in_start_x;
-
-//     if (h < padding_t) {
-//         h = padding_t * 2 - h;
-//     } else if (padding_t <= h && h < in_H + padding_t) {
-//         h = h;
-//     } else {
-//         h = (in_H + padding_t - 1) * 2 - h;
-//     }
-//     h = h - out_start_y + in_start_y;
-
-//     output[gid] = input[(input_tv_stride[3] * (w)) + 
-//                         (input_tv_stride[2] * (h)) + 
-//                         (input_tv_stride[1] * (c)) + 
-//                         (input_tv_stride[0] * (n)) + 
-//                         0];
-// }
-
-extern "C" __global__ void PadReflection2dFwdContiguous(const FLOAT* __restrict__ input,
-                                            FLOAT* __restrict__ output,
-                                            uint64_t output_size,
-                                            long padding_l, long padding_t,
-                                            const size_t in_H,
-                                            const size_t in_W,
-                                            const size_t output_size_1,
-                                            const size_t output_size_2,
-                                            const size_t output_size_3,
-                                            const size_t input_stride_0,
-                                            const size_t input_stride_1,
-                                            const size_t input_stride_2,
-                                            const size_t input_stride_3
-                                            )
+template <typename TI, typename TO>
+__device__ void padReflection2dFwdContiguous(const TI* __restrict__ input,
+                                             TO* __restrict__ output,
+                                             uint64_t output_size,
+                                             long padding_l,
+                                             long padding_t,
+                                             const size_t in_H,
+                                             const size_t in_W,
+                                             const size_t output_size_1,
+                                             const size_t output_size_2,
+                                             const size_t output_size_3,
+                                             const size_t input_stride_0,
+                                             const size_t input_stride_1,
+                                             const size_t input_stride_2,
+                                             const size_t input_stride_3)
 {
     const size_t gid = threadIdx.x + blockIdx.x * blockDim.x;
     if(gid >= output_size)
         return;
 
     long n, c, h, w;
-    // GET_NCHW(n, c, h, w, gid, output);
     ulong nch = (gid) / output_size_3;
-    w = (gid) % output_size_3;        
-    ulong nc = nch / output_size_2;   
-    h = nch % output_size_2;          
-    n = nc / output_size_1;           
-    c = nc % output_size_1;
+    w         = (gid) % output_size_3;
+    ulong nc  = nch / output_size_2;
+    h         = nch % output_size_2;
+    n         = nc / output_size_1;
+    c         = nc % output_size_1;
 
-    long in_start_x = max(0L, -padding_l);
-    long in_start_y = max(0L, -padding_t);
+    long in_start_x  = max(0L, -padding_l);
+    long in_start_y  = max(0L, -padding_t);
     long out_start_x = max(0L, padding_l);
     long out_start_y = max(0L, padding_t);
 
-    if (w < padding_l) { 
+    if(w < padding_l)
+    {
         w = padding_l * 2 - w;
-    } else if (padding_l <= w && w < in_W + padding_l) {
+    }
+    else if(padding_l <= w && w < in_W + padding_l)
+    {
         w = w;
-    } else {
+    }
+    else
+    {
         w = (in_W + padding_l - 1) * 2 - w;
     }
     w = w - out_start_x + in_start_x;
 
-    if (h < padding_t) {
+    if(h < padding_t)
+    {
         h = padding_t * 2 - h;
-    } else if (padding_t <= h && h < in_H + padding_t) {
+    }
+    else if(padding_t <= h && h < in_H + padding_t)
+    {
         h = h;
-    } else {
+    }
+    else
+    {
         h = (in_H + padding_t - 1) * 2 - h;
     }
     h = h - out_start_y + in_start_y;
 
-    output[gid] = input[(input_stride_3 * (w)) + 
-                        (input_stride_2 * (h)) + 
-                        (input_stride_1 * (c)) + 
-                        (input_stride_0 * (n)) + 
-                        0];
+    output[gid] = input[(input_stride_3 * (w)) + (input_stride_2 * (h)) + (input_stride_1 * (c)) +
+                        (input_stride_0 * (n)) + 0];
+}
+
+extern "C" __global__ void PadReflection2dFwdContiguous(const INPUT_TYPE* __restrict__ input,
+                                                        OUTPUT_TYPE* __restrict__ output,
+                                                        uint64_t output_size,
+                                                        long padding_l,
+                                                        long padding_t,
+                                                        const size_t in_H,
+                                                        const size_t in_W,
+                                                        const size_t output_size_1,
+                                                        const size_t output_size_2,
+                                                        const size_t output_size_3,
+                                                        const size_t input_stride_0,
+                                                        const size_t input_stride_1,
+                                                        const size_t input_stride_2,
+                                                        const size_t input_stride_3)
+{
+    padReflection2dFwdContiguous<INPUT_TYPE, OUTPUT_TYPE>(input,
+                                                          output,
+                                                          output_size,
+                                                          padding_l,
+                                                          padding_t,
+                                                          in_H,
+                                                          in_W,
+                                                          output_size_1,
+                                                          output_size_2,
+                                                          output_size_3,
+                                                          input_stride_0,
+                                                          input_stride_1,
+                                                          input_stride_2,
+                                                          input_stride_3);
 }

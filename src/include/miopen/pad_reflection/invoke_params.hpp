@@ -42,7 +42,7 @@ struct InvokeParams : public miopen::InvokeParams
     ConstData_t x                            = nullptr;
     Data_t y                                 = nullptr;
 
-    const int* padding = nullptr;
+    const std::vector<size_t>* padding = nullptr;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
