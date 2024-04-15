@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,10 +27,6 @@
 #define MLO_NLLLOSSHOST_H_
 
 #include <miopen/tensor.hpp>
-
-////////////////////////////////////////////////////////////
-//
-///////////////////////////////////////////////////////////
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloNLLLossForwardRunHost(miopenTensorDescriptor_t inputDesc,
