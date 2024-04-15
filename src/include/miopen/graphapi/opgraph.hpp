@@ -215,20 +215,20 @@ public:
 
     std::vector<std::string> getNodeNames() const
     {
-        std::vector<std::string> names;
-        for(OpNode* n : mNodes)
+        std::vector<std::string> names(mNodes.size());
+        for(size_t i = 0; i < mNodes.size(); ++i)
         {
-            names.emplace_back(n->signName());
+            names[i] = mNodes[i]->signName();
         }
         return names;
     }
 
     std::vector<std::pair<size_t, size_t>> getInOutDegrees() const
     {
-        std::vector<std::pair<size_t, size_t>> ret;
-        for(OpNode* n : mNodes)
+        std::vector<std::pair<size_t, size_t>> ret(mNodes.size());
+        for(size_t i = 0; i < mNodes.size(); ++i)
         {
-            ret.emplace_back(n->getInDegree(), n->getOutDegree());
+            ret[i] = {mNodes[i]->getInDegree(), mNodes[i]->getOutDegree()};
         }
         return ret;
     }
