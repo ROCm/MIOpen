@@ -44,7 +44,7 @@ extern "C" miopenStatus_t miopenGLUForward(miopenHandle_t handle,
 
     return miopen::try_([&] {
         miopen::GLUForward(miopen::deref(handle),
-                           miopen::deref(inputDesc),
+                miopen::deref(inputDesc),
                            miopen::deref(inputSplitDesc),
                            DataCast(a),
                            DataCast(b),
