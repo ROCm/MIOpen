@@ -39,15 +39,15 @@ static void LogCmdGLU(const miopenTensorDescriptor_t xDesc,
         auto dtype = miopen::deref(xDesc).GetType();
         if(dtype == miopenHalf)
         {
-            ss << "sumfp16";
+            ss << "glufp16";
         }
         else if(dtype == miopenFloat)
         {
-            ss << "sumfp32";
+            ss << "glufp32";
         }
         else if(dtype == miopenBFloat16)
         {
-            ss << "sumbfp16";
+            ss << "glubfp16";
         }
 
         int32_t size = {0};
@@ -94,7 +94,7 @@ extern "C" miopenStatus_t miopenGLUForward(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(
         handle, inputDesc, inputSplitDesc, a, b, dim, outputDesc, output);
 
-    LogCmdGLU(inputDesc, true);
+    //LogCmdGLU(inputDesc, true);
     return miopen::try_([&] {
         miopen::GLUForward(miopen::deref(handle),
                            miopen::deref(inputDesc),

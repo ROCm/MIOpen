@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <cstdio>
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
@@ -37,10 +38,12 @@ extern "C" __global__ void GLUFwdContiguous(const FLOAT* __restrict__ a,
                                             FLOAT* __restrict__ output,
                                             long N)
 {
-    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    const size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    //printf("gid = %ld n = %ld\n", gid, N);
     if (gid >= N) return;
 
     float val = CVT_FLOAT2ACCUM(a[gid]) * sigmoid(CVT_FLOAT2ACCUM(b[gid]));
+    //printf("output[%ld] = %f\n", gid, val);
 
     output[gid] = CVT_FLOAT2ACCUM(val);
 }

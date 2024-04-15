@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include "miopen/kernel_info.hpp"
+#include "miopen/mlo_internal.hpp"
 #include <cstddef>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
@@ -83,6 +84,7 @@ ConvSolution GLUForward::GetSolution(const ExecutionContext& context,
 
         size_t xlocalsize = LOCAL_SIZE;
         size_t xgridsize = AlignUp(output_numel, xlocalsize);
+        // (output_numel + xlocalsize - 1) / xlocalsize;
         size_t ylocalsize = 1;
         size_t ygridsize = 1;
         size_t zlocalsize = 1;

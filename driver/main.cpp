@@ -31,6 +31,7 @@
 #include "conv_driver.hpp"
 #include "CBAInferFusion_driver.hpp"
 #include "driver.hpp"
+#include "glu_driver.hpp"
 #include "groupnorm_driver.hpp"
 #include "gemm_driver.hpp"
 #include "lrn_driver.hpp"
@@ -259,6 +260,9 @@ int main(int argc, char* argv[])
     else if(base_arg == "catbfp16")
     {
         drv = new CatDriver<bfloat16>();
+    } else if(base_arg == "glu")
+    {
+        drv = new GLUDriver<float, float>();
     }
     else
     {
@@ -273,6 +277,7 @@ int main(int argc, char* argv[])
         std::cout << "ParseCmdLineArgs() FAILED, rc = " << rc << std::endl;
         return rc;
     }
+
     drv->GetandSetData();
     rc = drv->AllocateBuffersAndCopy();
     if(rc != 0)
