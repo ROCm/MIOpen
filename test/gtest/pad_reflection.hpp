@@ -77,9 +77,11 @@ struct PadReflectionCase
         }
     }
 
-    std::vector<size_t> GetPadding() {
+    std::vector<size_t> GetPadding()
+    {
         std::vector<size_t> paddingVector;
-        for (int i = 0; i < 4; ++i) {
+        for(int i = 0; i < 4; ++i)
+        {
             paddingVector.push_back(static_cast<size_t>(padding[i]));
         }
         return paddingVector;
@@ -107,24 +109,27 @@ struct PadReflectionTest : public ::testing::TestWithParam<PadReflectionCase>
 protected:
     void SetUp() override
     {
-        auto&& handle  = get_handle();
-        pad_reflection_config     = GetParam();
+        auto&& handle         = get_handle();
+        pad_reflection_config = GetParam();
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
         auto in_dims = pad_reflection_config.GetInput();
         auto padding = pad_reflection_config.GetPadding();
-        input = tensor<T>{in_dims}.generate(gen_value);
+        input        = tensor<T>{in_dims}.generate(gen_value);
         std::vector<size_t> out_dims;
 
         for(int i = 0; i < in_dims.size(); i++)
         {
             if(i == 2)
             {
-                out_dims.push_back(in_dims[i]  + 2*padding[2]);
-            } else if (i == 3) {
-                out_dims.push_back(in_dims[i]  + 2*padding[0]);
-            } 
-            else {
+                out_dims.push_back(in_dims[i] + 2 * padding[2]);
+            }
+            else if(i == 3)
+            {
+                out_dims.push_back(in_dims[i] + 2 * padding[0]);
+            }
+            else
+            {
                 out_dims.push_back(in_dims[i]);
             }
         }
@@ -141,18 +146,13 @@ protected:
     void RunTest()
     {
         auto&& handle = get_handle();
-        auto padding = pad_reflection_config.GetPadding();
+        auto padding  = pad_reflection_config.GetPadding();
 
         cpu_pad_reflection<T>(input, ref_output, padding);
         miopenStatus_t status;
 
-        status = miopen::PadReflection(handle,
-                                    input.desc,
-                                    input_dev.get(),
-                                    output.desc,
-                                    output_dev.get(),
-                                    padding
-                                    );
+        status = miopen::PadReflection(
+            handle, input.desc, input_dev.get(), output.desc, output_dev.get(), padding);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -175,5 +175,4 @@ protected:
 
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr output_dev;
-
 };

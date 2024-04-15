@@ -39,8 +39,8 @@ struct InvokeParams : public miopen::InvokeParams
     const TensorDescriptor* xDesc = nullptr;
     const TensorDescriptor* yDesc = nullptr;
 
-    ConstData_t x                            = nullptr;
-    Data_t y                                 = nullptr;
+    ConstData_t x = nullptr;
+    Data_t y      = nullptr;
 
     const std::vector<size_t>* padding = nullptr;
     std::size_t GetWorkspaceSize() const { return 0; }

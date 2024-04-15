@@ -31,23 +31,20 @@
 #include <miopen/tensor_ops.hpp>
 
 extern "C" miopenStatus_t miopenPadReflection(miopenHandle_t handle,
-                                                const miopenTensorDescriptor_t xDesc,
-                                                const void* x,
-                                                const miopenTensorDescriptor_t yDesc,
-                                                void* y,
-                                                const std::vector<size_t> padding
-                                                )
+                                              const miopenTensorDescriptor_t xDesc,
+                                              const void* x,
+                                              const miopenTensorDescriptor_t yDesc,
+                                              void* y,
+                                              const std::vector<size_t> padding)
 {
-    MIOPEN_LOG_FUNCTION(
-        handle, xDesc, x, yDesc, y, padding);
+    MIOPEN_LOG_FUNCTION(handle, xDesc, x, yDesc, y, padding);
 
     return miopen::try_([&] {
         miopen::PadReflection(miopen::deref(handle),
-                           miopen::deref(xDesc),
-                           DataCast(x),
-                           miopen::deref(yDesc),
-                           DataCast(y),
-                           padding
-                           );
+                              miopen::deref(xDesc),
+                              DataCast(x),
+                              miopen::deref(yDesc),
+                              DataCast(y),
+                              padding);
     });
 }

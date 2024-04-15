@@ -57,51 +57,58 @@ void mloPadReflectionRunHost(miopenTensorDescriptor_t inputDesc,
     auto output_numel =
         std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
 
-    long padding_l = padding[0];
-    long padding_t = padding[2];
-    auto input_strides =  miopen::deref(inputDesc).GetStrides();
-    size_t in_H = input_dims[2];
-    size_t in_W = input_dims[3];
+    long padding_l     = padding[0];
+    long padding_t     = padding[2];
+    auto input_strides = miopen::deref(inputDesc).GetStrides();
+    size_t in_H        = input_dims[2];
+    size_t in_W        = input_dims[3];
 
     for(size_t gid = 0; gid < output_numel; gid++)
     {
         long n, c, h, w;
         // GET_NCHW(n, c, h, w, gid, output);
         ulong nch = (gid) / output_dims[3];
-        w = (gid) % output_dims[3];        
-        ulong nc = nch / output_dims[2];   
-        h = nch % output_dims[2];          
-        n = nc / output_dims[1];           
-        c = nc % output_dims[1];
+        w         = (gid) % output_dims[3];
+        ulong nc  = nch / output_dims[2];
+        h         = nch % output_dims[2];
+        n         = nc / output_dims[1];
+        c         = nc % output_dims[1];
 
-        long in_start_x = max(0L, -padding_l);
-        long in_start_y = max(0L, -padding_t);
+        long in_start_x  = max(0L, -padding_l);
+        long in_start_y  = max(0L, -padding_t);
         long out_start_x = max(0L, padding_l);
         long out_start_y = max(0L, padding_t);
 
-        if (w < padding_l) { 
+        if(w < padding_l)
+        {
             w = padding_l * 2 - w;
-        } else if (padding_l <= w && w < in_W + padding_l) {
+        }
+        else if(padding_l <= w && w < in_W + padding_l)
+        {
             w = w;
-        } else {
+        }
+        else
+        {
             w = (in_W + padding_l - 1) * 2 - w;
         }
         w = w - out_start_x + in_start_x;
 
-        if (h < padding_t) {
+        if(h < padding_t)
+        {
             h = padding_t * 2 - h;
-        } else if (padding_t <= h && h < in_H + padding_t) {
+        }
+        else if(padding_t <= h && h < in_H + padding_t)
+        {
             h = h;
-        } else {
+        }
+        else
+        {
             h = (in_H + padding_t - 1) * 2 - h;
         }
         h = h - out_start_y + in_start_y;
 
-        outputhost[gid] = input[(input_strides[3] * (w)) + 
-                        (input_strides[2] * (h)) + 
-                        (input_strides[1] * (c)) + 
-                        (input_strides[0] * (n)) + 
-                        0];
+        outputhost[gid] = input[(input_strides[3] * (w)) + (input_strides[2] * (h)) +
+                                (input_strides[1] * (c)) + (input_strides[0] * (n)) + 0];
     }
 }
 #endif
@@ -177,7 +184,8 @@ int PadReflectionDriver<Tgpu, Tref>::GetandSetData()
     std::string padding_str = inflags.GetValueStr("padding");
     std::stringstream ss(padding_str);
     std::string token;
-    while (std::getline(ss, token, ',')) {
+    while(std::getline(ss, token, ','))
+    {
         padding.push_back(std::stoul(token));
     }
 
@@ -188,17 +196,18 @@ int PadReflectionDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> out_len;
     for(int i = 0; i < in_len.size(); i++)
     {
-        //If H
+        // If H
         if(i == 2)
         {
-            out_len.push_back(in_len[i] + 2*padding[2]);
+            out_len.push_back(in_len[i] + 2 * padding[2]);
         }
-        //If W
+        // If W
         else if(i == 3)
         {
-            out_len.push_back(in_len[i] + 2*padding[0]);
+            out_len.push_back(in_len[i] + 2 * padding[0]);
         }
-        else {
+        else
+        {
             out_len.push_back(in_len[i]);
         }
     }
@@ -276,8 +285,8 @@ int PadReflectionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     uint32_t ctx = 0;
 
-    in_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-    out_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+    in_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
     in      = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
     out     = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
@@ -308,12 +317,8 @@ int PadReflectionDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenPadReflection(GetHandle(),
-                         inputDesc,
-                         in_dev->GetMem(),
-                         outputDesc,
-                         out_dev->GetMem(),
-                         padding);
+        miopenPadReflection(
+            GetHandle(), inputDesc, in_dev->GetMem(), outputDesc, out_dev->GetMem(), padding);
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -332,7 +337,8 @@ int PadReflectionDriver<Tgpu, Tref>::RunForwardGPU()
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        std::cout << "GPU Kernel Time Forward Pad Reflection Elapsed: " << kernel_average_time << " ms\n";
+        std::cout << "GPU Kernel Time Forward Pad Reflection Elapsed: " << kernel_average_time
+                  << " ms\n";
     }
 
     if(out_dev->FromGPU(GetStream(), out.data()) != 0)
@@ -344,8 +350,7 @@ int PadReflectionDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int PadReflectionDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloPadReflectionRunHost<Tgpu, Tref>(
-        inputDesc, outputDesc, in.data(), outhost.data(), padding);
+    mloPadReflectionRunHost<Tgpu, Tref>(inputDesc, outputDesc, in.data(), outhost.data(), padding);
 
     return miopenStatusSuccess;
 }

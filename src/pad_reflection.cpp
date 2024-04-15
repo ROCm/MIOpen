@@ -36,23 +36,22 @@
 namespace miopen {
 
 miopenStatus_t PadReflection(Handle& handle,
-                          const TensorDescriptor& xDesc,
-                          ConstData_t x,
-                          const TensorDescriptor& yDesc,
-                          Data_t y,
-                          const std::vector<size_t> padding
-                          )
+                             const TensorDescriptor& xDesc,
+                             ConstData_t x,
+                             const TensorDescriptor& yDesc,
+                             Data_t y,
+                             const std::vector<size_t> padding)
 {
     const auto problem = pad_reflection::ProblemDescription{xDesc, yDesc, padding};
 
     const auto invoke_params = [&]() {
-        auto tmp           = pad_reflection::InvokeParams{};
-        tmp.type           = InvokeType::Run;
-        tmp.xDesc          = &xDesc;
-        tmp.yDesc          = &yDesc;
-        tmp.x              = x;
-        tmp.y              = y;
-        tmp.padding        = &padding;
+        auto tmp    = pad_reflection::InvokeParams{};
+        tmp.type    = InvokeType::Run;
+        tmp.xDesc   = &xDesc;
+        tmp.yDesc   = &yDesc;
+        tmp.x       = x;
+        tmp.y       = y;
+        tmp.padding = &padding;
         return tmp;
     }();
 

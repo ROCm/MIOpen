@@ -44,7 +44,6 @@ std::string GetFloatArg()
 
 struct PadReflectionTestFloat : PadReflectionTest<float>
 {
-    
 };
 
 } // namespace pad_reflection
@@ -63,4 +62,6 @@ TEST_P(PadReflectionTestFloat, PadReflectionFw)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(PadReflectionTestSet, PadReflectionTestFloat, testing::ValuesIn(PadReflectionTestFloatConfigs()));
+INSTANTIATE_TEST_SUITE_P(PadReflectionTestSet,
+                         PadReflectionTestFloat,
+                         testing::ValuesIn(PadReflectionTestFloatConfigs()));
