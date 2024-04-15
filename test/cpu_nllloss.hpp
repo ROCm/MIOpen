@@ -29,37 +29,38 @@
 #include "tensor_holder.hpp"
 
 template <class T>
-void cpu_nllloss_forward_4d(tensor<T> input, 
-                            tensor<int> target, 
+void cpu_nllloss_forward_4d(tensor<T> input,
+                            tensor<int32_t> target,
                             tensor<T> weight,
                             tensor<T>& output,
-                            int ignore_index)
+                            int32_t ignore_index)
 {
     auto dims = input.desc.GetLengths();
-    size_t N = dims[0];
-    size_t C = dims[1];
+    size_t N  = dims[0];
+    size_t C  = dims[1];
     size_t D1 = dims[2];
     size_t D2 = dims[3];
 
-    for (size_t n = 0; n < N; n++)
+    for(size_t n = 0; n < N; n++)
     {
-        for (size_t d1 = 0; d1 < D1; d1++)
+        for(size_t d1 = 0; d1 < D1; d1++)
         {
-            for (size_t d2 = 0; d2 < D2; d2++)
+            for(size_t d2 = 0; d2 < D2; d2++)
             {
                 size_t target_index = n * D1 * D2 + d1 * D2 + d2;
-                int t = target[target_index];
-                size_t input_index = (n * C + t) * D1 * D2 + d1 * D2 + d2;
+                int32_t t           = target[target_index];
+                size_t input_index  = (n * C + t) * D1 * D2 + d1 * D2 + d2;
                 size_t weight_index = t;
                 size_t output_index = target_index;
 
-                if (t < 0 || t == ignore_index || t >= C)
+                if(t < 0 || t == ignore_index || t >= C)
                 {
-                    output[output_index] = 0;
+                    output[output_index] = static_cast<T>(0);
                 }
                 else
                 {
-                    output[output_index] = -1.0f * weight[weight_index] * input[input_index];
+                    output[output_index] =
+                        static_cast<T>(-1.0f) * weight[weight_index] * input[input_index];
                 }
             }
         }

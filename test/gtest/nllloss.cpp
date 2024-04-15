@@ -46,20 +46,58 @@ struct NLLLossTestFloat : NLLLossTest<float>
 {
 };
 
-}  // namespace nllloss
+struct NLLLossTestHalf : NLLLossTest<half_float::half>
+{
+};
+
+struct NLLLossTestBFloat16 : NLLLossTest<bfloat16>
+{
+};
+
+} // namespace nllloss
 using namespace nllloss;
 
 TEST_P(NLLLossTestFloat, NLLLossTestFw)
 {
-    // if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
-    // {
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) || (GetFloatArg() == "--float"))
+    {
         RunTest();
         Verify();
-    // }
-    // else
-    // {
-        // GTEST_SKIP();
-    // }
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(NLLLossTestHalf, NLLLossTestFw)
+{
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) || (GetFloatArg() == "--half"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(NLLLossTestBFloat16, NLLLossTestFw)
+{
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) || (GetFloatArg() == "--bfloat16"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
 };
 
 INSTANTIATE_TEST_SUITE_P(NLLLossTestSet, NLLLossTestFloat, testing::ValuesIn(NLLLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(NLLLossTestSet, NLLLossTestHalf, testing::ValuesIn(NLLLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
+                         NLLLossTestBFloat16,
+                         testing::ValuesIn(NLLLossTestConfigs()));

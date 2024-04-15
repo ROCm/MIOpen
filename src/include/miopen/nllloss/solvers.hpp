@@ -42,12 +42,13 @@ namespace nllloss {
 using NormalizationSolver =
     NonTunableSolverBase<ExecutionContext, miopen::nllloss::ProblemDescription>;
 
-struct NLLLossForward final : NormalizationSolver {
+struct NLLLossForward final : NormalizationSolver
+{
     const std::string& SolverDbId() const override { return GetSolverDbId<NLLLossForward>(); }
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::nllloss::ProblemDescription& problem) const override;
-    
+
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::nllloss::ProblemDescription& problem) const override;
 };

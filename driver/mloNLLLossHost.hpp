@@ -30,40 +30,40 @@
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloNLLLossForwardRunHost(miopenTensorDescriptor_t inputDesc,
-                                Tgpu* input,
-                                int* target,
-                                Tgpu* weight,
-                                Tcheck* outputhost,
-                                int ignore_index)
+                                 Tgpu* input,
+                                 int32_t* target,
+                                 Tgpu* weight,
+                                 Tcheck* outputhost,
+                                 int32_t ignore_index)
 {
     auto dims = miopen::deref(inputDesc).GetLengths();
 
-    size_t N = dims[0];
-    size_t C = dims[1];
+    size_t N  = dims[0];
+    size_t C  = dims[1];
     size_t D1 = dims[2];
     size_t D2 = dims[3];
 
-    for (size_t n = 0; n < N; n++)
+    for(size_t n = 0; n < N; n++)
     {
-        for (size_t d1 = 0; d1 < D1; d1++)
+        for(size_t d1 = 0; d1 < D1; d1++)
         {
-            for (size_t d2 = 0; d2 < D2; d2++)
+            for(size_t d2 = 0; d2 < D2; d2++)
             {
                 size_t target_index = n * D1 * D2 + d1 * D2 + d2;
-                int t = target[target_index];
-                size_t input_index = (n * C + t) * D1 * D2 + d1 * D2 + d2;
+                int32_t t           = target[target_index];
+                size_t input_index  = (n * C + t) * D1 * D2 + d1 * D2 + d2;
                 size_t weight_index = t;
                 size_t output_index = target_index;
 
-                if (t < 0 || t == ignore_index || t >= C)
+                if(t < 0 || t == ignore_index || t >= C)
                 {
                     outputhost[output_index] = static_cast<Tcheck>(0);
                 }
                 else
                 {
-                    outputhost[output_index] = static_cast<Tcheck>(-1) 
-                                             * static_cast<Tcheck>(weight[weight_index]) 
-                                             * static_cast<Tcheck>(input[input_index]);
+                    outputhost[output_index] = static_cast<Tcheck>(-1) *
+                                               static_cast<Tcheck>(weight[weight_index]) *
+                                               static_cast<Tcheck>(input[input_index]);
                 }
             }
         }

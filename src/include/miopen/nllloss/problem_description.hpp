@@ -53,7 +53,7 @@ struct ProblemDescription : ProblemDescriptionBase
           N_total(outputDesc_.GetElementSize()),
           N(inputDesc_.GetLengths()[0]),
           C(inputDesc_.GetLengths()[1]),
-          D1(inputDesc_.GetLengths()[2]), 
+          D1(inputDesc_.GetLengths()[2]),
           D2(inputDesc_.GetLengths()[3])
     {
     }
@@ -69,30 +69,30 @@ struct ProblemDescription : ProblemDescriptionBase
     size_t GetD2() const { return D2; }
 
     /* input(input): [N, C, D1, D2], target(target): [N, D1, D2],
-    * weight(weight): [C], output(output): [N, D1, D2] */
+     * weight(weight): [C], output(output): [N, D1, D2] */
     bool IsRightDim() const
-    { 
-        if (outputDesc.GetLengths()[0] != N || outputDesc.GetLengths()[1] != D1 || outputDesc.GetLengths()[2] != D2 ||
-            targetDesc.GetLengths()[0] != N || targetDesc.GetLengths()[1] != D1 || targetDesc.GetLengths()[2] != D2 ||
-            weightDesc.GetLengths()[0] != C)
+    {
+        if(outputDesc.GetLengths()[0] != N || outputDesc.GetLengths()[1] != D1 ||
+           outputDesc.GetLengths()[2] != D2 || targetDesc.GetLengths()[0] != N ||
+           targetDesc.GetLengths()[1] != D1 || targetDesc.GetLengths()[2] != D2 ||
+           weightDesc.GetLengths()[0] != C)
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(
-                miopenStatusBadParm,
-                "NLLLoss: Tensors dimension do not match.");
+            MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Tensors dimension do not match.");
 #else
             return false;
 #endif
         }
         return true;
     }
-    
+
     bool IsSameType() const
     {
         if(inputDesc.GetType() != outputDesc.GetType())
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Tensor types of Input and Output do not match.");
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "NLLLoss: Tensor types of Input and Output do not match.");
 #else
             return false;
 #endif
@@ -100,7 +100,8 @@ struct ProblemDescription : ProblemDescriptionBase
         if(outputDesc.GetType() != weightDesc.GetType())
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Tensor types of Output and Weight do not match.");
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "NLLLoss: Tensor types of Output and Weight do not match.");
 #else
             return false;
 #endif
@@ -110,7 +111,8 @@ struct ProblemDescription : ProblemDescriptionBase
 
     bool IsAllPacked() const
     {
-        if(!(inputDesc.IsPacked() && targetDesc.IsPacked() && weightDesc.IsPacked() && outputDesc.IsPacked()))
+        if(!(inputDesc.IsPacked() && targetDesc.IsPacked() && weightDesc.IsPacked() &&
+             outputDesc.IsPacked()))
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Unpacked tensors not supported.");
@@ -128,7 +130,7 @@ private:
     TensorDescriptor targetDesc;
     TensorDescriptor weightDesc;
     TensorDescriptor outputDesc;
-    
+
     int ignore_index;
     size_t N_total;
     size_t N;

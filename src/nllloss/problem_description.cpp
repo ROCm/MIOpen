@@ -35,9 +35,9 @@ namespace nllloss {
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    auto dims           = inputDesc.GetLengths();
-    size_t numel        = outputDesc.GetElementSize();
-    size_t num_batches  = dims[0];
+    auto dims          = inputDesc.GetLengths();
+    size_t numel       = outputDesc.GetElementSize();
+    size_t num_batches = dims[0];
     size_t num_classes = dims[1];
 
     auto dtype = inputDesc.GetType();

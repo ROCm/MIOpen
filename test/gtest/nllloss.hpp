@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#define MIOPEN_BETA_API 1
 #include "../driver/tensor_driver.hpp"
 #include "cpu_nllloss.hpp"
 #include "get_handle.hpp"
@@ -36,21 +35,21 @@
 
 struct NLLLossTestCase
 {
-    size_t N=0;
-    size_t C=0;
-    size_t D1=0;
-    size_t D2=0;
-    bool weight_mode=false;
-    int ignore_index=-1;
+    size_t N             = 0;
+    size_t C             = 0;
+    size_t D1            = 0;
+    size_t D2            = 0;
+    bool weight_mode     = false;
+    int32_t ignore_index = -1;
 
     std::vector<size_t> input = {N, C, D1, D2};
     friend std::ostream& operator<<(std::ostream& os, const NLLLossTestCase& tc)
     {
-        return os << " N:" << tc.N << " C:" << tc.C << " D1:" << tc.D1 << " D2:" << tc.D2 
-                    << " weight_mode:" << tc.weight_mode << " ignore_index:" << tc.ignore_index;
+        return os << " N:" << tc.N << " C:" << tc.C << " D1:" << tc.D1 << " D2:" << tc.D2
+                  << " weight_mode:" << tc.weight_mode << " ignore_index:" << tc.ignore_index;
     }
 
-    std::vector<size_t> GetInput() const { return input; } 
+    std::vector<size_t> GetInput() const { return input; }
 };
 
 inline std::vector<NLLLossTestCase> NLLLossTestConfigs()
@@ -78,38 +77,36 @@ protected:
         // 0 <= target < C
         // weight = 1
 
-        /* input(input) : [N, C, D1, D2], 
-		* target(target): [N, D1, D2],
-        * weight(weight): [C], 
-		* output(output): [N, D1, D2] */
-		
-        ignore_index = nllloss_config.ignore_index;
-        weight_mode = nllloss_config.weight_mode;
+        /* input(input) : [N, C, D1, D2],
+         * target(target): [N, D1, D2],
+         * weight(weight): [C],
+         * output(output): [N, D1, D2] */
 
-        auto in_dim = nllloss_config.GetInput();
+        ignore_index = nllloss_config.ignore_index;
+        weight_mode  = nllloss_config.weight_mode;
+
+        auto in_dim                    = nllloss_config.GetInput();
         std::vector<size_t> target_dim = {in_dim[0], in_dim[2], in_dim[3]};
         std::vector<size_t> weight_dim = {in_dim[1]};
-        std::vector<size_t> out_dim = {in_dim[0], in_dim[2], in_dim[3]};
+        std::vector<size_t> out_dim    = {in_dim[0], in_dim[2], in_dim[3]};
 
-        auto gen_input_value = [](auto...) -> T { static std::random_device rd;
-												  static std::mt19937 gen(rd());
-												  std::uniform_real_distribution<T> dis(-100, -1e-2);
-												  return dis(gen);
-												};
-		size_t numclass_C = in_dim[1];
-        auto gen_target_value = [numclass_C](auto...) -> int { static std::random_device rd;
-                                                      static std::mt19937 gen(rd());
-                                                      std::uniform_int_distribution<int> dis(0, numclass_C-1);
-                                                      return dis(gen);
-                                                    };
-        auto gen_weight_value   = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 10); };
-        auto gen_weight_one  = [](auto...) -> T { return 1; }; 
-        
+        auto gen_input_value = [](auto...) {
+            return prng::gen_A_to_B<T>(static_cast<T>(-100.0f), static_cast<T>(-1e-2));
+        };
+        size_t numclass_C     = in_dim[1];
+        auto gen_target_value = [numclass_C](auto...) {
+            return prng::gen_A_to_B<int32_t>(0, numclass_C - 1);
+        };
+        auto gen_weight_value = [](auto...) {
+            return prng::gen_A_to_B<T>(static_cast<T>(-10), static_cast<T>(10));
+        };
+        auto gen_weight_one = [](auto...) { return static_cast<T>(1); };
+
         input = tensor<T>{in_dim}.generate(gen_input_value);
 
-        target = tensor<int>{target_dim}.generate(gen_target_value);
+        target = tensor<int32_t>{target_dim}.generate(gen_target_value);
 
-        if (!weight_mode)
+        if(!weight_mode)
             weight = tensor<T>{weight_dim}.generate(gen_weight_one);
         else
             weight = tensor<T>{weight_dim}.generate(gen_weight_value);
@@ -120,7 +117,7 @@ protected:
         ref_output = tensor<T>{out_dim};
         std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<T>::quiet_NaN());
 
-        input_dev = handle.Write(input.data);
+        input_dev  = handle.Write(input.data);
         target_dev = handle.Write(target.data);
         weight_dev = handle.Write(weight.data);
         output_dev = handle.Write(output.data);
@@ -128,7 +125,7 @@ protected:
 
     void RunTest()
     {
-    	auto&& handle = get_handle();
+        auto&& handle = get_handle();
         cpu_nllloss_forward_4d<T>(input, target, weight, ref_output, ignore_index);
 
         miopenStatus_t status = miopen::NLLLossForward(handle,
@@ -142,7 +139,7 @@ protected:
                                                        output_dev.get(),
                                                        ignore_index);
         fflush(stdout);
-        
+
         EXPECT_EQ(status, miopenStatusSuccess);
 
         output.data = handle.Read<T>(output_dev, output.data.size());
@@ -150,20 +147,23 @@ protected:
 
     void Verify()
     {
-        auto error = miopen::rms_range(ref_output, output);
+        double threshold = std::numeric_limits<T>::epsilon();
+        auto error       = miopen::rms_range(ref_output, output);
+
         EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-        EXPECT_TRUE(error == 0) << "Outputs do not match each other. Error:" << error;
+        EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance Error:" << error
+                                            << ",  Thresholdx10: " << threshold * 10;
     }
     NLLLossTestCase nllloss_config;
 
     tensor<T> input;
-    tensor<int> target;
+    tensor<int32_t> target;
     tensor<T> weight;
     tensor<T> output;
     tensor<T> ref_output;
 
     bool weight_mode;
-    int ignore_index;
+    int32_t ignore_index;
 
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr target_dev;

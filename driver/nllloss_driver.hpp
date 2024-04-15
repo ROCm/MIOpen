@@ -64,7 +64,7 @@ public:
 
         data_type = miopen_type<Tgpu>{};
     }
-    
+
     int AddCmdLineArgs() override;
     int ParseCmdLineArgs(int argc, char* argv[]) override;
     InputFlags& GetInputFlags() override { return inflags; }
@@ -88,12 +88,12 @@ public:
         miopenDestroyTensorDescriptor(weightDesc);
         miopenDestroyTensorDescriptor(outputDesc);
     }
-    
+
 private:
     InputFlags inflags;
 
     int forw;
-    
+
     miopenTensorDescriptor_t inputDesc;
     miopenTensorDescriptor_t targetDesc;
     miopenTensorDescriptor_t weightDesc;
@@ -132,21 +132,21 @@ int NLLLossDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int NLLLossDriver<Tgpu, Tref>::GetandSetData()
 {
-    N = inflags.GetValueInt("batchsize");
-    C = inflags.GetValueInt("numclasses");
-    D1 = inflags.GetValueInt("D1");
-    D2 = inflags.GetValueInt("D2");
+    N            = inflags.GetValueInt("batchsize");
+    C            = inflags.GetValueInt("numclasses");
+    D1           = inflags.GetValueInt("D1");
+    D2           = inflags.GetValueInt("D2");
     ignore_index = static_cast<int>(inflags.GetValueInt("ignore_index"));
 
-    if (N<=0 || C<=0 || D1<=0 || D2<=0)
+    if(N <= 0 || C <= 0 || D1 <= 0 || D2 <= 0)
     {
         MIOPEN_THROW("Error Input Tensor Lengths");
     }
 
-    std::vector<int> in_len = {N, C, D1, D2};
+    std::vector<int> in_len     = {N, C, D1, D2};
     std::vector<int> target_len = {N, D1, D2};
     std::vector<int> weight_len = {C};
-    std::vector<int> out_len = {N, D1, D2};
+    std::vector<int> out_len    = {N, D1, D2};
 
     SetTensorNd(inputDesc, in_len, data_type);
     SetTensorNd(targetDesc, target_len, data_type);
@@ -159,16 +159,16 @@ int NLLLossDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int NLLLossDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("forw",         'F', "1",  "Run only Forward NLLLoss (Default=1)", "int");
-    inflags.AddInputFlag("batchsize",    'N', "1",  "Batch size", "int");
-    inflags.AddInputFlag("numclasses",   'C', "2",  "Number of classes", "int");
-    inflags.AddInputFlag("D1",           'd', "1",  "Size D1", "int");
-    inflags.AddInputFlag("D2",           'D', "1",  "Size D2", "int");
+    inflags.AddInputFlag("forw", 'F', "1", "Run only Forward NLLLoss (Default=1)", "int");
+    inflags.AddInputFlag("batchsize", 'N', "5", "Batch size", "int");
+    inflags.AddInputFlag("numclasses", 'C', "10", "Number of classes", "int");
+    inflags.AddInputFlag("D1", 'd', "17", "Size D1", "int");
+    inflags.AddInputFlag("D2", 'D', "19", "Size D2", "int");
     inflags.AddInputFlag("ignore_index", 'g', "-1", "Ignore index", "int");
 
-    inflags.AddInputFlag("iter",   'i', "10", "Number of Iterations (Default=10)", "int");
-    inflags.AddInputFlag("verify", 'V', "1",  "Verify (Default=1)", "int");
-    inflags.AddInputFlag("time",   't', "1",  "Time (Default=0)", "int");
+    inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
+    inflags.AddInputFlag("verify", 'V', "1", "Verify (Default=1)", "int");
+    inflags.AddInputFlag("time", 't', "1", "Time (Default=0)", "int");
     inflags.AddInputFlag(
         "wall", 'w', "1", "Wall-clock Time, Requires time == 1 (Default=0)", "int");
 
@@ -178,10 +178,10 @@ int NLLLossDriver<Tgpu, Tref>::AddCmdLineArgs()
 template <typename Tgpu, typename Tref>
 int NLLLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
-    size_t in_sz = GetTensorSize(inputDesc);
+    size_t in_sz     = GetTensorSize(inputDesc);
     size_t target_sz = GetTensorSize(targetDesc);
     size_t weight_sz = GetTensorSize(weightDesc);
-    size_t out_sz = GetTensorSize(outputDesc);
+    size_t out_sz    = GetTensorSize(outputDesc);
 
     uint32_t ctx = 0;
 
@@ -190,27 +190,27 @@ int NLLLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     weight_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, weight_sz, sizeof(Tgpu)));
     out_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
-    in     = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-    target = std::vector<int>(target_sz, static_cast<int>(0));
-    weight = std::vector<Tgpu>(weight_sz, static_cast<Tgpu>(0));
-    out    = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    in       = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    target   = std::vector<int>(target_sz, static_cast<int>(0));
+    weight   = std::vector<Tgpu>(weight_sz, static_cast<Tgpu>(1));
+    out      = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
     out_host = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
     int status;
 
-    for (int i = 0; i < in_sz; i++)
+    for(int i = 0; i < in_sz; i++)
     {
         in[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-10.0), static_cast<Tgpu>(-(1e-2)));
     }
     status = in_dev->ToGPU(q, in.data());
 
-    for (int i = 0; i < target_sz; i++)
+    for(int i = 0; i < target_sz; i++)
     {
-        target[i] = prng::gen_A_to_B<int>(static_cast<int>(0), static_cast<int>(C-1));
+        target[i] = prng::gen_A_to_B<int>(static_cast<int>(0), static_cast<int>(C - 1));
     }
     status |= target_dev->ToGPU(q, target.data());
 
-    for (int i = 0; i < weight_sz; i++)
+    for(int i = 0; i < weight_sz; i++)
     {
         weight[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-10.0), static_cast<Tgpu>(10.0));
     }
@@ -273,12 +273,8 @@ int NLLLossDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int NLLLossDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloNLLLossForwardRunHost<Tgpu, Tref>(inputDesc,
-                                         in.data(),
-                                         target.data(),
-                                         weight.data(),
-                                         out_host.data(),
-                                         ignore_index);
+    mloNLLLossForwardRunHost<Tgpu, Tref>(
+        inputDesc, in.data(), target.data(), weight.data(), out_host.data(), ignore_index);
 
     return miopenStatusSuccess;
 }
@@ -292,23 +288,14 @@ int NLLLossDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 Tref NLLLossDriver<Tgpu, Tref>::GetTolerance()
 {
-    if(data_type == miopenHalf)
-    {
-        return 1e-3;
-    }
-    else if(data_type == miopenFloat)
-    {
-        return 5e-5;
-    }
-    else if(data_type == miopenDouble)
-    {
-        return 1e-10;
-    }
-    else if(data_type == miopenBFloat16)
-    {
-        return 5e-3;
-    }
-    return 0;
+    // Computation error of fp16 is ~2^13 (=8192) bigger than
+    // the one of fp32 because mantissa is shorter by 13 bits.
+    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
+
+    // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+    if(std::is_same<Tgpu, bfloat16>::value)
+        tolerance *= 8.0;
+    return tolerance;
 }
 
 template <typename Tgpu, typename Tref>

@@ -44,7 +44,7 @@ namespace miopen {
 namespace solver {
 
 namespace nllloss {
-    
+
 bool NLLLossForward::IsApplicable(const ExecutionContext&,
                                   const miopen::nllloss::ProblemDescription& problem) const
 {
@@ -57,27 +57,26 @@ bool NLLLossForward::IsApplicable(const ExecutionContext&,
     return true;
 }
 
-ConvSolution
-NLLLossForward::GetSolution(const ExecutionContext& context,
-                            const miopen::nllloss::ProblemDescription& problem) const
+ConvSolution NLLLossForward::GetSolution(const ExecutionContext& context,
+                                         const miopen::nllloss::ProblemDescription& problem) const
 {
     std::ignore = context;
 
-    auto result = ConvSolution{miopenStatusSuccess};
+    auto result       = ConvSolution{miopenStatusSuccess};
     auto input_dtype  = miopen::GetDataType(problem.GetInputDesc().GetType());
     auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
 
     {
-        auto dtype = problem.GetInputDesc().GetType();
+        auto dtype   = problem.GetInputDesc().GetType();
         long N_total = problem.GetNtotal();
 
         size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize = N_total;
-        
+        size_t xgridsize  = N_total + LOCAL_SIZE - 1;
+
         size_t ylocalsize = 1;
-        size_t ygridsize = 1;
+        size_t ygridsize  = 1;
         size_t zlocalsize = 1;
-        size_t zgridsize = 1;
+        size_t zgridsize  = 1;
 
         auto kernel = KernelInfo{};
 
@@ -113,14 +112,20 @@ NLLLossForward::GetSolution(const ExecutionContext& context,
             decltype(auto) params = raw_params.CastTo<miopen::nllloss::InvokeParams>();
 
             size_t N_total = params.outputDesc->GetElementSize();
-            auto dims = params.inputDesc->GetLengths();
-            size_t C = dims[1];
-            size_t D1 = dims[2];
-            size_t D2 = dims[3];
+            auto dims      = params.inputDesc->GetLengths();
+            size_t C       = dims[1];
+            size_t D1      = dims[2];
+            size_t D2      = dims[3];
 
-            kernel(params.input, params.target, params.weight, params.output, 
-                   params.ignore_index, 
-                   N_total, C, D1, D2);
+            kernel(params.input,
+                   params.target,
+                   params.weight,
+                   params.output,
+                   params.ignore_index,
+                   N_total,
+                   C,
+                   D1,
+                   D2);
         };
     };
 

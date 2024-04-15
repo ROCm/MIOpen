@@ -130,8 +130,6 @@ set( MIOpen_Source
     graphapi/variant_pack.cpp
     groupnorm_api.cpp
     groupnorm/problem_description.cpp
-    nllloss_api.cpp
-    nllloss/problem_description.cpp
     handle_api.cpp
     invoker_cache.cpp
     kernel_build_params.cpp
@@ -144,6 +142,8 @@ set( MIOpen_Source
     lrn_api.cpp
     mha/mha_descriptor.cpp
     mha/problem_description.cpp
+    nllloss_api.cpp
+    nllloss/problem_description.cpp
     op_args.cpp
     operator.cpp
     performance_config.cpp
@@ -262,11 +262,11 @@ set( MIOpen_Source
     solver/gemm_bwd.cpp
     solver/gemm_wrw.cpp
     solver/groupnorm/forward_groupnorm.cpp
-    solver/nllloss/forward_nllloss.cpp
     solver/layernorm/forward_layernorm.cpp
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
     solver/mha/mha_solver.cpp
+    solver/nllloss/forward_nllloss.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
@@ -458,11 +458,11 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirBatchNormActiv.cl
         kernels/MIOpenConvDirGenFwd.cl
         kernels/MIOpenGroupNorm.cpp
-        kernels/MIOpenNLLLoss.cpp
         kernels/MIOpenLayerNorm.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
         kernels/MIOpenNeuron.cl
+        kernels/MIOpenNLLLoss.cpp
         kernels/MIOpenPooling.cl
         kernels/MIOpenPoolingBwd.cl
         kernels/MIOpenPoolingBwdND.cl
@@ -583,11 +583,11 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         argmax.cpp
         cat.cpp
         groupnorm.cpp
-        nllloss.cpp
         kernel_cache.cpp
         layer_norm.cpp
         lrn.cpp
         mlo_dir_conv.cpp
+        nllloss.cpp
         exec_utils.cpp
         ocl/activ_ocl.cpp
         ocl/batchnormocl.cpp

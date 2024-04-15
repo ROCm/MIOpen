@@ -42,25 +42,25 @@ miopenStatus_t NLLLossForward(Handle& handle,
                               ConstData_t weight,
                               const TensorDescriptor& outputDesc,
                               Data_t output,
-                              int ignore_index)
+                              int32_t ignore_index)
 {
-    const auto problem = nllloss::ProblemDescription{
-        inputDesc, targetDesc, weightDesc, outputDesc, ignore_index};
+    const auto problem =
+        nllloss::ProblemDescription{inputDesc, targetDesc, weightDesc, outputDesc, ignore_index};
 
     const auto invoke_params = [&]() {
-        auto tmp = nllloss::InvokeParams{};
-        tmp.inputDesc = &inputDesc;
+        auto tmp       = nllloss::InvokeParams{};
+        tmp.inputDesc  = &inputDesc;
         tmp.outputDesc = &outputDesc;
 
-        tmp.input     = input;
-        tmp.target    = target;
-        tmp.weight    = weight;
-        tmp.output    = output;
+        tmp.input        = input;
+        tmp.target       = target;
+        tmp.weight       = weight;
+        tmp.output       = output;
         tmp.ignore_index = ignore_index;
         return tmp;
-    }(); 
+    }();
 
-    const auto algo = AlgorithmName{"NLLLossForward"};
+    const auto algo    = AlgorithmName{"NLLLossForward"};
     const auto solvers = solver::SolverContainer<solver::nllloss::NLLLossForward>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
