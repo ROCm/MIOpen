@@ -25,7 +25,6 @@
  *******************************************************************************/
 
 #include "../driver/tensor_driver.hpp"
-#include "cpu_layernorm.hpp"
 #include "get_handle.hpp"
 #include "random.hpp"
 #include "tensor_holder.hpp"
@@ -33,6 +32,58 @@
 #include <gtest/gtest.h>
 #include <miopen/layernorm.hpp>
 #include <miopen/miopen.h>
+
+template <class T>
+void cpu_layernorm_forward(tensor<T> input,
+                           tensor<T> weight,
+                           tensor<T> bias,
+                           tensor<T>& ref_output,
+                           tensor<T>& ref_mean,
+                           tensor<T>& ref_rstd,
+                           float eps,
+                           int32_t dim,
+                           miopenNormMode_t mode)
+{
+    auto dims         = input.desc.GetLengths();
+    size_t outer_size = 1;
+    size_t inner_size = 1;
+    size_t i          = 0;
+    for(; i < dim; i++)
+    {
+        outer_size *= dims[i];
+    }
+
+    for(; i < dims.size(); i++)
+    {
+        inner_size *= dims[i];
+    }
+
+    par_ford(outer_size)([&](int32_t o) {
+        float mean_v = 0;
+        float var_v  = 0;
+
+        ford(inner_size)([&](int32_t i) {
+            float tmp = static_cast<float>(input[o * inner_size + i]);
+            mean_v += tmp;
+            var_v += tmp * tmp;
+        });
+
+        mean_v       = mean_v / inner_size;
+        var_v        = var_v / inner_size - mean_v * mean_v;
+        float rstd_v = 1 / sqrt(var_v + eps);
+
+        ref_mean[o] = static_cast<T>(mean_v);
+        ref_rstd[o] = static_cast<T>(rstd_v);
+
+        ford(inner_size)([&](int32_t i) {
+            float weight_v                 = mode ? static_cast<float>(weight[i]) : 1;
+            float bias_v                   = mode ? static_cast<float>(bias[i]) : 0;
+            ref_output[o * inner_size + i] = static_cast<T>(
+                (static_cast<float>(input[o * inner_size + i]) - mean_v) * rstd_v * weight_v +
+                bias_v);
+        });
+    });
+}
 
 struct LayerNormTestCase
 {
