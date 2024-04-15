@@ -29,11 +29,42 @@ TEST(GraphMatchingAPI, DiamondGraphMatch)
 {
     using namespace graphapi_opgraph_tests;
 
-    DiamondGraphHolder dgh1{};
+    auto dg1 = makeDiamondGraph();
 
-    ASSERT_TRUE(gr::isIsomorphic(dgh1.graph, dgh1.graph));
+    ASSERT_TRUE(gr::isIsomorphic(dg1->graph(), dg1->graph()));
 
-    DiamondGraphHolder dgh2{};
+    {
+        // create identical copy
+        auto dg2 = makeDiamondGraph();
 
-    ASSERT_TRUE(gr::isIsomorphic(dgh1.graph, dgh2.graph));
+        ASSERT_TRUE(gr::isIsomorphic(dg1->graph(), dg2->graph()));
+    }
+
+    {
+        // create a mirror copy
+        auto dg3 = DummyOpGraphGenerator::Make({{"top", {"t_in"}, {"t_a", "t_b"}},
+                                                {"left", {"t_b"}, {"t_d"}},
+                                                {"right", {"t_a"}, {"t_c"}},
+                                                {"bottom", {"t_c", "t_d"}, {"t_out"}}});
+
+        ASSERT_TRUE(gr::isIsomorphic(dg1->graph(), dg3->graph()));
+    }
+
+    {
+        // remove one of the edges to bottom
+        auto dg4 = DummyOpGraphGenerator::Make({{"top", {"t_in"}, {"t_a", "t_b"}},
+                                                {"left", {"t_b"}, {"t_d"}},
+                                                {"right", {"t_a"}, {"t_c"}},
+                                                {"bottom", {"t_c"}, {"t_out"}}});
+        ASSERT_FALSE(gr::isIsomorphic(dg1->graph(), dg4->graph()));
+    }
+
+    {
+        // remove one of the edges out of top
+        auto dg5 = DummyOpGraphGenerator::Make({{"top", {"t_in"}, {"t_a"}},
+                                                {"left", {"t_b"}, {"t_d"}},
+                                                {"right", {"t_a"}, {"t_c"}},
+                                                {"bottom", {"t_c", "t_d"}, {"t_out"}}});
+        ASSERT_FALSE(gr::isIsomorphic(dg1->graph(), dg5->graph()));
+    }
 }

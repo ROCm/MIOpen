@@ -48,20 +48,40 @@ TEST(GraphAPI, BuildDiamond)
      *       v
      */
 
-    DiamondGraphHolder d{};
+    auto t_in  = makeDummyTensor("t_in");
+    auto t_out = makeDummyTensor("t_out");
 
-    ASSERT_TRUE(d.graph.hasNode(&d.top));
-    ASSERT_TRUE(d.graph.hasNode(&d.left));
-    ASSERT_TRUE(d.graph.hasNode(&d.right));
-    ASSERT_TRUE(d.graph.hasNode(&d.bottom));
+    auto t_a = makeDummyTensor("t_a");
+    auto t_b = makeDummyTensor("t_b");
+    auto t_c = makeDummyTensor("t_c");
+    auto t_d = makeDummyTensor("t_d");
 
-    ASSERT_TRUE(d.graph.hasEdge(&d.top, &d.t_a, &d.left));
-    ASSERT_TRUE(d.graph.hasEdge(&d.top, &d.t_b, &d.right));
-    ASSERT_TRUE(d.graph.hasEdge(&d.left, &d.t_c, &d.bottom));
-    ASSERT_TRUE(d.graph.hasEdge(&d.right, &d.t_d, &d.bottom));
+    gr::OpGraphBuilder graph_builder;
 
-    ASSERT_TRUE(d.graph.numNodes() == 4);
-    ASSERT_TRUE(d.graph.numEdges() == 4);
-    ASSERT_TRUE(d.graph.hasEdgeToSink(&d.bottom, &d.t_out));
-    ASSERT_TRUE(d.graph.hasEdgeFromSource(&d.top, &d.t_in));
+    DummyNode top{"top", {&t_in}, {&t_a, &t_b}};
+    DummyNode left{"left", {&t_a}, {&t_c}};
+    DummyNode right{"right", {&t_b}, {&t_d}};
+    DummyNode bottom{"bottom", {&t_c, &t_d}, {&t_out}};
+
+    graph_builder.addNode(&top);
+    graph_builder.addNode(&left);
+    graph_builder.addNode(&right);
+    graph_builder.addNode(&bottom);
+
+    gr::OpGraph graph = std::move(graph_builder).build();
+
+    ASSERT_TRUE(graph.hasNode(&top));
+    ASSERT_TRUE(graph.hasNode(&left));
+    ASSERT_TRUE(graph.hasNode(&right));
+    ASSERT_TRUE(graph.hasNode(&bottom));
+
+    ASSERT_TRUE(graph.hasEdge(&top, &t_a, &left));
+    ASSERT_TRUE(graph.hasEdge(&top, &t_b, &right));
+    ASSERT_TRUE(graph.hasEdge(&left, &t_c, &bottom));
+    ASSERT_TRUE(graph.hasEdge(&right, &t_d, &bottom));
+
+    ASSERT_TRUE(graph.numNodes() == 4);
+    ASSERT_TRUE(graph.numEdges() == 4);
+    ASSERT_TRUE(graph.hasEdgeToSink(&bottom, &t_out));
+    ASSERT_TRUE(graph.hasEdgeFromSource(&top, &t_in));
 }
