@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include <miopen/errors.hpp>
 #include <miopen/graphapi/opgraph.hpp>
 
 #include <unordered_map>
@@ -67,6 +68,8 @@ OpGraph OpGraphBuilder::build() &&
 
     for(const auto& [tens_ptr, edge_info] : e_map)
     {
+        MIOPEN_THROW_IF(edge_info.mSrc == nullptr && edge_info.mDests.empty(),
+                        "Invalid state with null src node and empty dest nodes");
 
         if(edge_info.mSrc != nullptr && !edge_info.mDests.empty())
         {
@@ -77,13 +80,6 @@ OpGraph OpGraphBuilder::build() &&
         }
         else if(edge_info.mSrc == nullptr)
         {
-
-            // tens_ptr is a non-virtual input tensor
-            assert(!tens_ptr->isVirtual()); // tensor pointer can't be virtual
-            assert(!edge_info.mDests.empty());
-
-            // NOTE(Amber): we may take out this step if we decide not to add a source
-            // and sink in the graph
             for(const auto& d : edge_info.mDests)
             {
                 graph.addEdgeFromSrc(d, tens_ptr);
@@ -91,14 +87,7 @@ OpGraph OpGraphBuilder::build() &&
         }
         else if(edge_info.mDests.empty())
         {
-            // tens_ptr is an output tensor (virtual or non-virtual)
-            assert(edge_info.mSrc != nullptr);
             graph.addEdgeToSink(edge_info.mSrc, tens_ptr);
-        }
-        else
-        {
-            // both can't be true at the same time
-            assert(!(edge_info.mSrc == nullptr && edge_info.mDests.empty()));
         }
     }
 
