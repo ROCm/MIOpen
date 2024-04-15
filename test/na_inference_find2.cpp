@@ -43,7 +43,7 @@ using ptr_FusionPlanDesc = MIOPEN_MANAGE_PTR(miopenFusionPlanDescriptor_t, miope
 using ptr_FusionPlanArgs = MIOPEN_MANAGE_PTR(miopenOperatorArgs_t, miopenDestroyOperatorArgs);
 using ptr_ActivationDesc = MIOPEN_MANAGE_PTR(miopenActivationDescriptor_t,
                                              miopenDestroyActivationDescriptor);
-                                             
+
 using ManagedFindOptions = std::unique_ptr<std::remove_pointer_t<miopenFindOptions_t>,
                                            miopenStatus_t (*)(miopenFindOptions_t)>;
 
@@ -347,7 +347,7 @@ struct na_fusion_driver : test_driver
         }
 
         using ManagedProblem = std::unique_ptr<std::remove_pointer_t<miopenProblem_t>,
-                                            miopenStatus_t (*)(miopenProblem_t)>;
+                                               miopenStatus_t (*)(miopenProblem_t)>;
 
         const auto problem = [&]() {
             miopenProblem_t problem;
@@ -364,23 +364,15 @@ struct na_fusion_driver : test_driver
             AddAndFuse(problem, [&](auto activation) {
                 miopenCreateActivationProblem(
                     activation, ptr_activdesc.get(), miopenProblemDirectionInference);
-                miopenSetProblemTensorDescriptor(
-                    *activation, miopenTensorActivationX, &input.desc);
-                miopenSetProblemTensorDescriptor(
-                    *activation, miopenTensorActivationY, &input.desc);
+                miopenSetProblemTensorDescriptor(*activation, miopenTensorActivationX, &input.desc);
+                miopenSetProblemTensorDescriptor(*activation, miopenTensorActivationY, &input.desc);
             });
 
             return ManagedProblem{problem, &miopenDestroyProblem};
         }();
 
-        verify(verify_inference_batchnorm_activ<T, PREC_TYPE>{problem.get(),
-                                                                input,
-                                                                ptr_activdesc.get(),
-                                                                scale,
-                                                                shift,
-                                                                estMean,
-                                                                estVariance,
-                                                                bnmode});
+        verify(verify_inference_batchnorm_activ<T, PREC_TYPE>{
+            problem.get(), input, ptr_activdesc.get(), scale, shift, estMean, estVariance, bnmode});
     }
 };
 
