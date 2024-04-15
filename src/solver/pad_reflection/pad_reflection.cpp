@@ -40,8 +40,9 @@ namespace solver {
 
 namespace pad_reflection {
 
-bool PadReflection::IsApplicable([[maybe_unused]] const ExecutionContext& context,
-                                 [[maybe_unused]] const miopen::pad_reflection::ProblemDescription& problem) const
+bool PadReflection::IsApplicable(
+    [[maybe_unused]] const ExecutionContext& context,
+    [[maybe_unused]] const miopen::pad_reflection::ProblemDescription& problem) const
 {
     if(!problem.IsSameType())
         return false;
@@ -50,16 +51,16 @@ bool PadReflection::IsApplicable([[maybe_unused]] const ExecutionContext& contex
     return true;
 }
 
-std::size_t
-PadReflection::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
-                                [[maybe_unused]] const miopen::pad_reflection::ProblemDescription& problem) const
+std::size_t PadReflection::GetWorkspaceSize(
+    [[maybe_unused]] const ExecutionContext& context,
+    [[maybe_unused]] const miopen::pad_reflection::ProblemDescription& problem) const
 {
     return 0;
 }
 
-ConvSolution
-PadReflection::GetSolution([[maybe_unused]] const ExecutionContext& context,
-                           [[maybe_unused]] const miopen::pad_reflection::ProblemDescription& problem) const
+ConvSolution PadReflection::GetSolution(
+    [[maybe_unused]] const ExecutionContext& context,
+    [[maybe_unused]] const miopen::pad_reflection::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -112,9 +113,9 @@ PadReflection::GetSolution([[maybe_unused]] const ExecutionContext& context,
             auto output_size =
                 std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
 
-            auto padding   = params.padding;
-            long padding_l = (*padding)[0];
-            long padding_t = (*padding)[2];
+            auto padding          = params.padding;
+            long padding_l        = (*padding)[0];
+            long padding_t        = (*padding)[2];
             size_t in_H           = xdims[2];
             size_t in_W           = xdims[3];
             size_t output_size_1  = ydims[1];

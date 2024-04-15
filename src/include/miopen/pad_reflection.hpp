@@ -34,12 +34,11 @@ struct Handle;
 struct TensorDescriptor;
 
 miopenStatus_t PadReflection(Handle& handle,
-                               const TensorDescriptor& xDesc,
-                               ConstData_t x,
-                               const TensorDescriptor& yDesc,
-                               Data_t y,
-                               std::vector<size_t> padding
-                               );
+                             const TensorDescriptor& xDesc,
+                             ConstData_t x,
+                             const TensorDescriptor& yDesc,
+                             Data_t y,
+                             std::vector<size_t> padding);
 
 } // namespace miopen
 #endif // MIOPEN_PAD_REFLECTION_HPP_

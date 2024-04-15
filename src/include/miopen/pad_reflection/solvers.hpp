@@ -35,7 +35,8 @@ namespace solver {
 
 namespace pad_reflection {
 
-using PadReflectionSolver = NonTunableSolverBase<ExecutionContext, miopen::pad_reflection::ProblemDescription>;
+using PadReflectionSolver =
+    NonTunableSolverBase<ExecutionContext, miopen::pad_reflection::ProblemDescription>;
 
 struct PadReflection final : PadReflectionSolver
 {
@@ -44,11 +45,13 @@ struct PadReflection final : PadReflectionSolver
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::pad_reflection::ProblemDescription& problem) const override;
 
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::pad_reflection::ProblemDescription& problem) const override;
-                             
-    std::size_t GetWorkspaceSize(const ExecutionContext& context,
-                                 const miopen::pad_reflection::ProblemDescription& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::pad_reflection::ProblemDescription& problem) const override;
+
+    std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::pad_reflection::ProblemDescription& problem) const override;
 
     bool MayNeedWorkspace() const override { return false; }
 };

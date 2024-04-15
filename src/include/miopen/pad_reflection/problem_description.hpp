@@ -41,8 +41,7 @@ struct ProblemDescription : ProblemDescriptionBase
 {
     ProblemDescription(const TensorDescriptor& xDesc_,
                        const TensorDescriptor& yDesc_,
-                       const std::vector<size_t> padding_
-                       )
+                       const std::vector<size_t> padding_)
         : xDesc(xDesc_), yDesc(yDesc_), padding(padding_)
     {
     }
@@ -51,7 +50,6 @@ struct ProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetYDesc() const { return yDesc; }
     const std::vector<size_t>& GetPadding() const { return padding; }
 
-    
     bool IsSameType() const
     {
         if(xDesc.GetType() != yDesc.GetType())
