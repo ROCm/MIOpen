@@ -70,7 +70,6 @@ __device__ void padReflection2dFwdContiguous(const TI* __restrict__ input,
     }
     else if(padding_l <= w && w < in_W + padding_l)
     {
-        w = w;
     }
     else
     {
@@ -84,7 +83,6 @@ __device__ void padReflection2dFwdContiguous(const TI* __restrict__ input,
     }
     else if(padding_t <= h && h < in_H + padding_t)
     {
-        h = h;
     }
     else
     {

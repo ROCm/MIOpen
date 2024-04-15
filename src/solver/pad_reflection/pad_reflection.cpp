@@ -40,15 +40,26 @@ namespace solver {
 
 namespace pad_reflection {
 
-bool PadReflection::IsApplicable(const ExecutionContext& context,
-                                 const miopen::pad_reflection::ProblemDescription& problem) const
+bool PadReflection::IsApplicable([[maybe_unused]] const ExecutionContext& context,
+                                 [[maybe_unused]] const miopen::pad_reflection::ProblemDescription& problem) const
 {
+    if(!problem.IsSameType())
+        return false;
+    if(!problem.IsAllPacked())
+        return false;
     return true;
 }
 
+std::size_t
+PadReflection::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
+                                [[maybe_unused]] const miopen::pad_reflection::ProblemDescription& problem) const
+{
+    return 0;
+}
+
 ConvSolution
-PadReflection::GetSolution(const ExecutionContext& context,
-                           const miopen::pad_reflection::ProblemDescription& problem) const
+PadReflection::GetSolution([[maybe_unused]] const ExecutionContext& context,
+                           [[maybe_unused]] const miopen::pad_reflection::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 

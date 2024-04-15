@@ -43,9 +43,14 @@ struct PadReflection final : PadReflectionSolver
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::pad_reflection::ProblemDescription& problem) const override;
+
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::pad_reflection::ProblemDescription& problem) const override;
-    bool MayNeedWorkspace() const override { return true; }
+                             
+    std::size_t GetWorkspaceSize(const ExecutionContext& context,
+                                 const miopen::pad_reflection::ProblemDescription& problem) const override;
+
+    bool MayNeedWorkspace() const override { return false; }
 };
 
 } // namespace pad_reflection

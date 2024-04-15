@@ -66,7 +66,6 @@ void cpu_pad_reflection(tensor<T> input_tensor,
         if (w < padding_l) { 
             w = padding_l * 2 - w;
         } else if (padding_l <= w && w < in_W + padding_l) {
-            w = w;
         } else {
             w = (in_W + padding_l - 1) * 2 - w;
         }
@@ -75,7 +74,6 @@ void cpu_pad_reflection(tensor<T> input_tensor,
         if (h < padding_t) {
             h = padding_t * 2 - h;
         } else if (padding_t <= h && h < in_H + padding_t) {
-            h = h;
         } else {
             h = (in_H + padding_t - 1) * 2 - h;
         }

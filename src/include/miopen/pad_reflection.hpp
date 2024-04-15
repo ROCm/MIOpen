@@ -38,7 +38,7 @@ miopenStatus_t PadReflection(Handle& handle,
                                ConstData_t x,
                                const TensorDescriptor& yDesc,
                                Data_t y,
-                               const std::vector<size_t> padding
+                               std::vector<size_t> padding
                                );
 
 } // namespace miopen
