@@ -23,39 +23,41 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#pragma once
+#ifndef GUARD_MIOPEN_SOLVER_GEMM_COMMON_HPP
+#define GUARD_MIOPEN_SOLVER_GEMM_COMMON_HPP
 
-#include <miopen/mha/problem_description.hpp>
-#include <miopen/names.hpp>
+#include <miopen/config.h>
+#include <miopen/conv/problem_description.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/tensor.hpp>
 
-#include <sstream>
+#include <cstddef>
 
 namespace miopen {
+namespace solver {
+namespace conv {
+namespace gemm {
 
-namespace mha {
+std::size_t MaxMemAllocSz(Handle& h,
+                          const miopen::conv::ProblemDescription& problem,
+                          bool double_limit_for_fp32 = false);
 
-NetworkConfig ProblemDescription::MakeNetworkConfig() const
-{
-    std::ostringstream ss;
+constexpr bool IsBf16Supported = MIOPEN_USE_ROCBLAS;
+constexpr bool IsFp16Supported = MIOPEN_USE_ROCBLAS;
 
-    ss << "mha";
+bool IsAnyBufferBf16(const TensorDescriptor& xDesc,
+                     const TensorDescriptor& yDesc,
+                     const TensorDescriptor& wDesc);
+bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
+                     const TensorDescriptor& yDesc,
+                     const TensorDescriptor& wDesc);
 
-    if(isForward)
-    {
-        ss << "fwd-";
-        for(auto s : mhaInputDescsForward.oDesc.GetLengths())
-        {
-            ss << s << "x";
-        }
-        for(auto s : mhaInputDescsForward.oDesc.GetStrides())
-        {
-            ss << s << "x";
-        }
-        ss << mhaInputDescsForward.oDesc.GetType();
-    }
+double SlowdownFactor(int n_oper, double oper_factor, double multiple_oper_factor);
 
-    return NetworkConfig{ss.str()};
-}
-
-} // namespace mha
-
+} // namespace gemm
+} // namespace conv
+} // namespace solver
 } // namespace miopen
+
+#endif // GUARD_MIOPEN_SOLVER_GEMM_COMMON_HPP

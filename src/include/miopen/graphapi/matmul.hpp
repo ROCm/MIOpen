@@ -84,6 +84,7 @@ public:
     Matmul* getMatmul() noexcept { return &mMatmul; }
 };
 
+<<<<<<< HEAD
 Class OperationMatmul {
     private:
     BackendTensorDescriptor mA;
