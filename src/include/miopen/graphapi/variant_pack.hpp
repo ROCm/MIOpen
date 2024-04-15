@@ -28,11 +28,11 @@
 
 #include <miopen/algorithm.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/graphapi/graphapi.hpp>
 
 #include <cassert>
 #include <cstdint>
 #include <set>
-#include <tuple>
 #include <vector>
 
 namespace miopen {
@@ -57,6 +57,11 @@ bool noRepetitions(const Range& r)
 
 class VariantPack
 {
+private:
+    std::vector<int64_t> mTensorIds;
+    std::vector<void*> mDataPointers;
+    void* mWorkspace = nullptr;
+
 public:
     VariantPack() noexcept              = default;
     VariantPack(const VariantPack&)     = default;
@@ -89,14 +94,16 @@ public:
 
 private:
     friend class VariantPackBuilder;
-
-    std::vector<int64_t> mTensorIds;
-    std::vector<void*> mDataPointers;
-    void* mWorkspace = nullptr;
+    friend class BackendVariantPackDescriptor;
 };
 
 class VariantPackBuilder
 {
+private:
+    VariantPack mVariantPack;
+    bool mTensorIdsSet    = false;
+    bool mDataPointersSet = false;
+
 public:
     VariantPackBuilder& setTensorIds(const std::vector<int64_t>& tensorIds) &
     {
@@ -198,10 +205,28 @@ private:
                          mVariantPack.mDataPointers.cend(),
                          mVariantPack.mWorkspace) == mVariantPack.mDataPointers.cend();
     }
+};
 
+class BackendVariantPackDescriptor : public BackendDescriptor
+{
+private:
+    VariantPackBuilder mBuilder;
     VariantPack mVariantPack;
-    bool mTensorIdsSet    = false;
-    bool mDataPointersSet = false;
+
+public:
+    void virtual setAttribute(miopenBackendAttributeName_t attributeName,
+                              miopenBackendAttributeType_t attributeType,
+                              int64_t elementCount,
+                              void* arrayOfElements) override;
+    void virtual finalize() override;
+    void virtual getAttribute(miopenBackendAttributeName_t attributeName,
+                              miopenBackendAttributeType_t attributeType,
+                              int64_t requestedElementCount,
+                              int64_t* elementCount,
+                              void* arrayOfElements) override;
+
+    const VariantPack* getVariantPack() const { return &mVariantPack; }
+    VariantPack* getVariantPack() { return &mVariantPack; }
 };
 
 } // namespace graphapi
