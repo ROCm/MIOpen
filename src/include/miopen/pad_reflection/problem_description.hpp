@@ -45,7 +45,6 @@ struct ProblemDescription : ProblemDescriptionBase
         : xDesc(xDesc_), yDesc(yDesc_), padding(padding_)
     {
     }
-
     const TensorDescriptor& GetXDesc() const { return xDesc; }
     const TensorDescriptor& GetYDesc() const { return yDesc; }
     const std::vector<size_t>& GetPadding() const { return padding; }

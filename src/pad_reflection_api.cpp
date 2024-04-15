@@ -30,7 +30,6 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
-
 extern "C" miopenStatus_t miopenPadReflection(miopenHandle_t handle,
                                                 const miopenTensorDescriptor_t xDesc,
                                                 const void* x,

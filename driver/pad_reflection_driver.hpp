@@ -54,7 +54,6 @@ void mloPadReflectionRunHost(miopenTensorDescriptor_t inputDesc,
 {
     auto input_dims  = miopen::deref(inputDesc).GetLengths();
     auto output_dims = miopen::deref(outputDesc).GetLengths();
-
     auto output_numel =
         std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
 
@@ -187,7 +186,6 @@ int PadReflectionDriver<Tgpu, Tref>::GetandSetData()
     SetTensorNd(inputDesc, in_len, data_type);
 
     std::vector<int> out_len;
-
     for(int i = 0; i < in_len.size(); i++)
     {
         //If H

@@ -44,6 +44,7 @@ std::string GetFloatArg()
 
 struct PadReflectionTestFloat : PadReflectionTest<float>
 {
+    
 };
 
 } // namespace pad_reflection

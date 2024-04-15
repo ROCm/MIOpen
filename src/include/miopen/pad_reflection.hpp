@@ -39,6 +39,5 @@ miopenStatus_t PadReflection(Handle& handle,
                              const TensorDescriptor& yDesc,
                              Data_t y,
                              std::vector<size_t> padding);
-
 } // namespace miopen
 #endif // MIOPEN_PAD_REFLECTION_HPP_

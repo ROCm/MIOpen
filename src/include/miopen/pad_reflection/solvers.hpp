@@ -48,7 +48,6 @@ struct PadReflection final : PadReflectionSolver
     ConvSolution
     GetSolution(const ExecutionContext& context,
                 const miopen::pad_reflection::ProblemDescription& problem) const override;
-
     std::size_t
     GetWorkspaceSize(const ExecutionContext& context,
                      const miopen::pad_reflection::ProblemDescription& problem) const override;

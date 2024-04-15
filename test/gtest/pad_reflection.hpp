@@ -87,17 +87,9 @@ struct PadReflectionCase
 };
 
 std::vector<PadReflectionCase> PadReflectionTestFloatConfigs()
-{ // n c d h w dim nanPropagation
+{ // n c d h w padding
     // clang-format off
     return {
-        // { 8,    120,  0,  0,   1},  //bart
-        // { 8,    120,  0,  0,   1},
-        // { 8,    1023, 0,  0,   1},  //gpt_neo
-        // { 8,    1024, 0,  0,   768},
-        // { 8,    1023, 0,  0,   1},
-        // { 8,    1024, 0,  0,   768},
-        // { 16,   1024, 0,  0,   768},  //gpt2
-        // { 16,   1024, 0,  0,   768},
         { 1,   1,    0,  3, 3, {2, 2, 2, 2}},
         { 48,   8,    0,  512, 512, {1, 1, 1, 1}},
         { 48,   8,    0,  512, 512, {1, 1, 3, 3}},
@@ -153,9 +145,6 @@ protected:
 
         cpu_pad_reflection<T>(input, ref_output, padding);
         miopenStatus_t status;
-        // const int * padding_gpu;
-        // hipMalloc(&padding_gpu, sizeof(int) * 4);
-        // hipMemcpy((void*)padding_gpu, padding, sizeof(int) * 4, hipMemcpyHostToDevice);
 
         status = miopen::PadReflection(handle,
                                     input.desc,

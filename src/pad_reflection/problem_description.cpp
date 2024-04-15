@@ -46,7 +46,6 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
     ss << "dtype" << dtype;
     ss << "output_size" << output_size;
-
     return NetworkConfig{ss.str()};
 }
 

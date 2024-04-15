@@ -58,7 +58,6 @@ miopenStatus_t PadReflection(Handle& handle,
 
     const auto algo    = AlgorithmName{"PadReflection"};
     const auto solvers = solver::SolverContainer<solver::pad_reflection::PadReflection>{};
-
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
     return miopenStatusSuccess;
