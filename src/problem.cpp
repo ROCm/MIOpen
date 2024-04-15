@@ -1060,7 +1060,7 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
                     MIOPEN_THROW(miopenStatusNotImplemented,
                                  "Softmax is not implemented for FusedProblem");
                 },
-                [&](const BatchnormDescriptor& descriptor) {
+                [&](const BatchnormDescriptor& /*descriptor*/) {
                     /// \todo: fix this to pass actual values
                     switch(problem.GetDirection())
                     {
