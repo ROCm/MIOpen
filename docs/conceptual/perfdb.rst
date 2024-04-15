@@ -28,8 +28,7 @@ a specific configuration. The auto-tune process may take a long time, but once o
 found, they're stored in the User PerfDb. MIOpen then automatically reads and uses these parameter
 values.
 
-By default, System PerfDb resides within MIOpen's install location, while User PerfDb resides in your
-home directory. See :ref:` setting up locations <setting-up-locations>` for more information.
+By default, System PerfDb resides within MIOpen's install location, while User PerfDb resides in your home directory. See :ref:`setting up locations <setting-up-locations>` for more information.
 
 System PerfDb is not modified during MIOpen installation.
 
