@@ -30,6 +30,8 @@
 #include <miopen/any_solver.hpp>
 #include <miopen/conv/problem_description.hpp>
 #include <miopen/convolution.hpp>
+#include <miopen/mha/problem_description.hpp>
+#include <miopen/mha/solvers.hpp>
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/softmax/problem_description.hpp>
 #include <miopen/softmax/solvers.hpp>
@@ -118,6 +120,7 @@ void VisitType(int id, Args... args)
 static Data_t AllocateTensor(Handle& handle,
                              const FindOptions& options,
                              std::vector<Allocator::ManageDataPtr>& owned,
+                             std::vector<std::uint64_t>& owned_scalars,
                              miopenTensorArgumentId_t id,
                              const TensorDescriptor& descriptor)
 {
@@ -125,6 +128,9 @@ static Data_t AllocateTensor(Handle& handle,
 
     if(preallocated != options.preallocated_tensors.end())
         return preallocated->second;
+
+    if((id & miopenTensorArgumentIsScalar) == miopenTensorArgumentIsScalar)
+        return &owned_scalars.emplace_back(0);
 
     const auto element_size = get_data_size(descriptor.GetType());
     auto buffer             = handle.Create(descriptor.GetElementSpace() * element_size);
@@ -157,9 +163,10 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
 {
     auto owned_buffers = std::vector<Allocator::ManageDataPtr>{};
     auto buffers       = std::unordered_map<miopenTensorArgumentId_t, Data_t>{};
+    auto owned_scalars = std::vector<std::uint64_t>{};
 
     const auto allocate = [&](auto id, auto&& descriptor) {
-        auto buffer = AllocateTensor(handle, options, owned_buffers, id, descriptor);
+        auto buffer = AllocateTensor(handle, options, owned_buffers, owned_scalars, id, descriptor);
         buffers.emplace(id, buffer);
         return buffer;
     };
@@ -177,6 +184,9 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
             },
             [&](const ActivationDescriptor& /*op_desc*/) -> std::vector<Solution> {
                 MIOPEN_THROW(miopenStatusNotImplemented);
+            },
+            [&](const MhaDescriptor& op_desc) {
+                return FindSolutionsImpl(handle, options, max_solutions, buffers, op_desc);
             },
             [&](const BiasDescriptor& /*op_desc*/) -> std::vector<Solution> {
                 MIOPEN_THROW(miopenStatusNotImplemented);
@@ -275,6 +285,42 @@ activ::ProblemDescription Problem::AsActivation() const
 
         return {activ_desc, x_desc, y_desc, dx_desc, dy_desc};
     }
+}
+
+mha::ProblemDescription Problem::AsMha() const
+{
+    const auto& mha_desc = boost::get<MhaDescriptor>(operator_descriptor);
+
+    if(GetDirection() == miopenProblemDirectionBackward)
+    {
+        MIOPEN_THROW(miopenStatusNotImplemented, "Mha Backward is not currently implemented!");
+    }
+
+    mha::MhaInputDescsForward mhaInputDescsForward = {
+        GetTensorDescriptorChecked(miopenTensorMhaK, "miopenTensorMhaK"),
+        GetTensorDescriptorChecked(miopenTensorMhaQ, "miopenTensorMhaQ"),
+        GetTensorDescriptorChecked(miopenTensorMhaV, "miopenTensorMhaV"),
+        GetTensorDescriptorChecked(miopenTensorMhaDescaleK, "miopenTensorMhaDescaleK"),
+        GetTensorDescriptorChecked(miopenTensorMhaDescaleQ, "miopenTensorMhaDescaleQ"),
+        GetTensorDescriptorChecked(miopenTensorMhaDescaleV, "miopenTensorMhaDescaleV"),
+        GetTensorDescriptorChecked(miopenTensorMhaDescaleS, "miopenTensorMhaDescaleS"),
+        GetTensorDescriptorChecked(miopenTensorMhaScaleS, "miopenTensorMhaScaleS"),
+        GetTensorDescriptorChecked(miopenTensorMhaScaleO, "miopenTensorMhaScaleO"),
+
+        mha_desc.GetScale(),
+        GetTensorDescriptorChecked(miopenTensorMhaDropoutProbability,
+                                   "miopenTensorMhaDropoutProbability"),
+        GetTensorDescriptorChecked(miopenTensorMhaDropoutSeed, "miopenTensorMhaDropoutSeed"),
+        GetTensorDescriptorChecked(miopenTensorMhaDropoutOffset, "miopenTensorMhaDropoutOffset"),
+
+        GetTensorDescriptorChecked(miopenTensorMhaO, "miopenTensorMhaO"),
+        GetTensorDescriptorChecked(miopenTensorMhaAmaxO, "miopenTensorMhaAmaxO"),
+        GetTensorDescriptorChecked(miopenTensorMhaAmaxS, "miopenTensorMhaAmaxS"),
+        GetTensorDescriptorChecked(miopenTensorMhaM, "miopenTensorMhaM"),
+        GetTensorDescriptorChecked(miopenTensorMhaZInv, "miopenTensorMhaZInv"),
+    };
+
+    return {mhaInputDescsForward};
 }
 
 softmax::ProblemDescription Problem::AsSoftmax() const
@@ -513,6 +559,60 @@ Problem::FindSolutionsImpl(Handle& handle,
     return ret;
 }
 
+std::vector<Solution>
+Problem::FindSolutionsImpl(Handle& handle,
+                           [[maybe_unused]] const FindOptions& options,
+                           std::size_t max_solutions,
+                           [[maybe_unused]] const Buffers& buffers,
+                           [[maybe_unused]] const MhaDescriptor& mha_desc) const
+{
+    auto ret = std::vector<Solution>{};
+
+    auto ctx = ExecutionContext{&handle};
+
+    const mha::ProblemDescription problem_description = AsMha();
+
+    const auto algo = AlgorithmName{"Mha"};
+
+    static solver::mha::Mha mhaSolver;
+
+    std::vector<solver::mha::MhaSolver*> solvers;
+
+    solvers.push_back(&mhaSolver);
+
+    for(auto solver : solvers)
+    {
+        if(!solver->IsApplicable(ctx, problem_description))
+        {
+            MIOPEN_LOG_I2(solver->SolverDbId() << ": Not applicable");
+            continue;
+        }
+
+        auto solution = Solution();
+
+        /// \todo time measurement could be done later. For now we set less time for attention
+        /// softmax and slightly bigger for regular
+        solution.SetTime(1.0f);
+
+        solution.SetWorkspaceSize(solver->GetWorkspaceSize(ctx, problem_description));
+        solution.SetSolver(solver->SolverDbId());
+        solution.SetProblem({*this});
+
+        MIOPEN_LOG_I("Found solution: " << solution.GetSolver().ToString() << " , "
+                                        << solution.GetWorkspaceSize() << ", "
+                                        << solution.GetTime());
+
+        ret.emplace_back(std::move(solution));
+
+        if(ret.size() >= max_solutions)
+        {
+            break;
+        }
+    }
+
+    return ret;
+}
+
 void Problem::ValidateGroupCount(const TensorDescriptor& xDesc,
                                  const TensorDescriptor& wDesc,
                                  const ConvolutionDescriptor& conv)
@@ -539,6 +639,7 @@ void Problem::LogDriverCommand() const
         boost::hof::match([&](const ConvolutionDescriptor& op_desc) { LogDriverCommand(op_desc); },
                           [&](const ActivationDescriptor& op_desc) { LogDriverCommand(op_desc); },
                           [&](const BiasDescriptor&) {},
+                          [&](const MhaDescriptor&) {},
                           [&](const SoftmaxDescriptor&) {});
 
     boost::apply_visitor(log_function, operator_descriptor);
@@ -659,6 +760,8 @@ void Problem::CalculateOutput()
             [&](const ActivationDescriptor&) {
                 RegisterTensorDescriptor(GetOutputId(), GetInput());
             },
+
+            [&](const MhaDescriptor&) { RegisterTensorDescriptor(GetOutputId(), GetInput()); },
             [&](const SoftmaxDescriptor&) { RegisterTensorDescriptor(GetOutputId(), GetInput()); },
             [&](const BiasDescriptor&) { RegisterTensorDescriptor(GetOutputId(), GetInput()); }),
         operator_descriptor);
@@ -670,6 +773,7 @@ miopenTensorArgumentId_t Problem::GetInputId() const
         boost::hof::match([](const ConvolutionDescriptor&) { return miopenTensorConvolutionX; },
                           [](const ActivationDescriptor&) { return miopenTensorActivationX; },
                           [](const BiasDescriptor&) { return miopenTensorBiasX; },
+                          [](const MhaDescriptor&) { return miopenTensorMhaK; },
                           [](const SoftmaxDescriptor&) { return miopenTensorSoftmaxX; }),
         operator_descriptor);
 }
@@ -680,6 +784,7 @@ miopenTensorArgumentId_t Problem::GetOutputId() const
         boost::hof::match([](const ConvolutionDescriptor&) { return miopenTensorConvolutionY; },
                           [](const ActivationDescriptor&) { return miopenTensorActivationY; },
                           [](const BiasDescriptor&) { return miopenTensorBiasY; },
+                          [](const MhaDescriptor&) { return miopenTensorMhaO; },
                           [](const SoftmaxDescriptor&) { return miopenTensorSoftmaxY; }),
         operator_descriptor);
 }
@@ -709,10 +814,11 @@ std::vector<Solution> FusedProblem::FindSolutions(Handle& handle,
     const auto find1_solutions = [&]() {
         OperatorArgs params;
         auto owned_buffers = std::vector<Allocator::ManageDataPtr>{};
+        auto owned_scalars = std::vector<std::uint64_t>{};
 
         const auto make_invoke_params = [&]() {
             auto buffer_allocator = [&](auto id, auto&& desc) {
-                return AllocateTensor(handle, options, owned_buffers, id, desc);
+                return AllocateTensor(handle, options, owned_buffers, owned_scalars, id, desc);
             };
 
             return MakeInvokeParams(buffer_allocator, params);
@@ -766,6 +872,11 @@ void FusedProblem::AddProblemToPlan(FusionPlanDescriptor& plan, const Problem& p
                 plan.AddOp(std::make_shared<BiasFusionOpDescriptor>(
                     problem.GetTensorDescriptorChecked(miopenTensorBias, "miopenTensorBias")));
             },
+            [&](const MhaDescriptor&) {
+                // Not implemented
+                assert(false);
+                MIOPEN_THROW(miopenStatusNotImplemented, "Mha is not implemented for FusedProblem");
+            },
             [&](const SoftmaxDescriptor&) {
                 // Not implemented
                 assert(false);
@@ -785,10 +896,22 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
     auto& out_desc = problems.back().GetOutput();
 
     const auto get_buffer = [&](auto id, auto&& descriptor) {
+        if(const auto found = buffers.find(id); found != buffers.end())
+            return found->second;
         auto buffer = buffer_getter(id, descriptor);
         buffers.emplace(id, buffer);
         return buffer;
     };
+
+    // This is not used right now, but there is a PR using it already and it is an example on how to
+    // get a scalar.
+    const auto get_scalar = [&](auto id, auto type_marker) {
+        // This is hacky because we lack separate way to pass them through API
+        return *reinterpret_cast<std::decay_t<decltype(type_marker)>*>(
+            get_buffer(id, TensorDescriptor()));
+    };
+
+    std::ignore = get_scalar;
 
     bool gfx90aaltimpl = false;
     auto in            = get_buffer(GetInputId(), in_desc);
@@ -834,6 +957,13 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
                     const auto bias_ptr = buffers.at(miopenTensorBias);
                     operator_args.params.emplace_back(
                         std::make_unique<miopen::fusion::BiasOpInvokeParam>(bias_ptr));
+                },
+
+                [&](const MhaDescriptor&) {
+                    // Not implemented
+                    assert(false);
+                    MIOPEN_THROW(miopenStatusNotImplemented,
+                                 "Mha is not implemented for FusedProblem");
                 },
                 [&](const SoftmaxDescriptor&) {
                     // Not implemented

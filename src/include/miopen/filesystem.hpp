@@ -145,6 +145,6 @@ inline fs::path make_static_library_name(const fs::path& path)
     return path.parent_path() / (library_prefix + path.filename() + static_library_postfix);
 }
 
-}
+} // namespace miopen
 
 #endif // GUARD_MIOPEN_FILESYSTEM_HPP_

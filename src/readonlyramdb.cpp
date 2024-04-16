@@ -140,7 +140,7 @@ void ReadonlyRamDb::Prefetch(bool warn_if_unreadable)
             const auto& it_p = miopen_data().find(make_object_file_name(filepath.filename()));
             if(it_p == miopen_data().end())
                 MIOPEN_THROW(miopenStatusInternalError,
-                             "Unknown database: " + filepath.filename().string() +
+                             "Unknown database: " + filepath.filename() +
                                  " in internal filesystem");
 
             const auto& p = it_p->second;

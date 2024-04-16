@@ -147,7 +147,8 @@ fs::path FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle, const std::st
                 std::copy(fs::directory_iterator(root_path), fs::directory_iterator(), std::back_inserter(contents));
                 for(auto const& filepath : contents)
                 {
-                    if(fs::is_regular_file(filepath) && filepath.extension() == path_suffix + ".fdb.txt")
+                    if(fs::is_regular_file(filepath) &&
+                       filepath.extension() == path_suffix + ".fdb.txt")
                         all_files.push_back(filepath);
                 }
 

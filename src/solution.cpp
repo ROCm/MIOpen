@@ -31,6 +31,9 @@
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 
+#include <miopen/mha/invoke_params.hpp>
+#include <miopen/mha/problem_description.hpp>
+#include <miopen/mha/solvers.hpp>
 #include <miopen/softmax/invoke_params.hpp>
 #include <miopen/softmax/problem_description.hpp>
 #include <miopen/softmax/solvers.hpp>
@@ -82,6 +85,9 @@ void Solution::Run(Handle& handle,
                         },
                         [&](const BiasDescriptor& /*op_desc*/) {
                             MIOPEN_THROW(miopenStatusNotImplemented);
+                        },
+                        [&](const MhaDescriptor& op_desc) {
+                            RunImpl(handle, inputs, workspace, workspace_size, op_desc);
                         }),
                     problem_.GetOperatorDescriptor());
             },
@@ -122,6 +128,7 @@ void Solution::LogDriverCommand(const Problem& problem_) const
     boost::apply_visitor(
         boost::hof::match(
             [&](const BiasDescriptor&) { /* \todo: think on how to log bias */ },
+            [&](const MhaDescriptor&) { /* \todo: think on how to log mha */ },
             [&](const SoftmaxDescriptor&) { /* \todo: think on how to log softmax */ },
             [&](const auto& op_desc) { LogDriverCommand(op_desc); }),
         problem_.GetOperatorDescriptor());
@@ -239,6 +246,107 @@ void Solution::RunImpl(Handle& handle,
     handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
     invoker(handle, invoke_ctx);
     checkNumericsOutput_();
+}
+
+void Solution::RunImpl(Handle& handle,
+                       const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
+                       Data_t workspace,
+                       std::size_t workspace_size,
+                       [[maybe_unused]] const MhaDescriptor& mha_desc)
+{
+    const Problem& problem_casted = boost::get<const Problem&>(problem.item);
+
+    const auto get_input_checked = [&](auto name, const std::string& name_str) {
+        const auto& found = inputs.find(name);
+        if(found == inputs.end())
+        {
+            MIOPEN_THROW(miopenStatusInvalidValue,
+                         "Problem is missing " + name_str + " tensor descriptor.");
+        }
+        auto ret = found->second;
+        if(!ret.descriptor.has_value())
+            ret.descriptor = problem_casted.GetTensorDescriptorChecked(name, name_str);
+        return ret;
+    };
+
+    const mha::ProblemDescription problem_description = problem_casted.AsMha();
+
+    const auto invoke_ctx = [&]() -> AnyInvokeParams {
+        switch(problem_casted.GetDirection())
+        {
+        case miopenProblemDirectionForward: {
+            auto k = get_input_checked(miopenTensorMhaK, "miopenTensorMhaK");
+            auto q = get_input_checked(miopenTensorMhaQ, "miopenTensorMhaQ");
+            auto v = get_input_checked(miopenTensorMhaV, "miopenTensorMhaV");
+
+            auto descaleK = get_input_checked(miopenTensorMhaDescaleK, "miopenTensorMhaDescaleK");
+            auto descaleQ = get_input_checked(miopenTensorMhaDescaleQ, "miopenTensorMhaDescaleQ");
+            auto descaleV = get_input_checked(miopenTensorMhaDescaleV, "miopenTensorMhaDescaleV");
+            auto descaleS = get_input_checked(miopenTensorMhaDescaleS, "miopenTensorMhaDescaleS");
+            auto scaleS   = get_input_checked(miopenTensorMhaScaleS, "miopenTensorMhaScaleS");
+            auto scaleO   = get_input_checked(miopenTensorMhaScaleO, "miopenTensorMhaScaleO");
+
+            auto dropoutProbability = get_input_checked(miopenTensorMhaDropoutProbability,
+                                                        "miopenTensorMhaDropoutProbability");
+            auto dropoutSeed =
+                get_input_checked(miopenTensorMhaDropoutSeed, "miopenTensorMhaDropoutSeed");
+            auto dropoutOffset =
+                get_input_checked(miopenTensorMhaDropoutOffset, "miopenTensorMhaDropoutOffset");
+
+            auto o     = get_input_checked(miopenTensorMhaO, "miopenTensorMhaO");
+            auto amaxO = get_input_checked(miopenTensorMhaAmaxO, "miopenTensorMhaAmaxO");
+            auto amaxS = get_input_checked(miopenTensorMhaAmaxS, "miopenTensorMhaAmaxS");
+            auto m     = get_input_checked(miopenTensorMhaM, "miopenTensorMhaM");
+            auto zInv  = get_input_checked(miopenTensorMhaZInv, "miopenTensorMhaZInv");
+
+            mha::MhaDataForward dataForward = {k.buffer,
+                                               q.buffer,
+                                               v.buffer,
+                                               descaleK.buffer,
+                                               descaleQ.buffer,
+                                               descaleV.buffer,
+                                               descaleS.buffer,
+                                               scaleS.buffer,
+                                               scaleO.buffer,
+                                               dropoutProbability.buffer,
+                                               dropoutSeed.buffer,
+                                               dropoutOffset.buffer,
+                                               o.buffer,
+                                               amaxO.buffer,
+                                               amaxS.buffer,
+                                               m.buffer,
+                                               zInv.buffer};
+
+            return mha::InvokeParams(dataForward, workspace, workspace_size);
+        }
+        case miopenProblemDirectionBackward: {
+            MIOPEN_THROW(miopenStatusNotImplemented);
+        }
+
+        default: MIOPEN_THROW(miopenStatusNotImplemented);
+        }
+    }();
+
+    const auto net_cfg       = problem_description.MakeNetworkConfig();
+    const auto found_invoker = handle.GetInvoker(net_cfg, GetSolver());
+
+    if(found_invoker)
+    {
+        (*found_invoker)(handle, invoke_ctx);
+    }
+    else
+    {
+        auto ctx = ExecutionContext{&handle};
+
+        static solver::mha::Mha mha;
+
+        const auto mha_solution = mha.GetSolution(ctx, problem_description);
+
+        decltype(auto) invoker =
+            handle.PrepareInvoker(*mha_solution.invoker_factory, mha_solution.construction_params);
+        handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
+        invoker(handle, invoke_ctx);
+    }
 }
 
 void Solution::RunImpl(Handle& handle,
