@@ -68,6 +68,7 @@
  * @defgroup argmax
  * @defgroup groupnorm
  * @defgroup cat
+ * @defgroup glu
  *
  */
 
