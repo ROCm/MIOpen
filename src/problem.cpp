@@ -823,8 +823,8 @@ miopenTensorArgumentId_t Problem::GetInputId() const
                                                                   : miopenTensorBiasY;
             },
             [&](const BatchnormDescriptor&) {
-                return direction == miopenProblemDirectionForward ? miopenTensorBatchnormX
-                                                                  : miopenTensorBatchnormDY;
+                return direction == miopenProblemDirectionBackward ? miopenTensorBatchnormDY
+                                                                   : miopenTensorBatchnormX;
             },
             [](const MhaDescriptor&) { return miopenTensorMhaK; },
             [](const SoftmaxDescriptor&) { return miopenTensorSoftmaxX; }),
@@ -848,8 +848,8 @@ miopenTensorArgumentId_t Problem::GetOutputId() const
                                                                   : miopenTensorBiasX;
             },
             [&](const BatchnormDescriptor&) {
-                return direction == miopenProblemDirectionForward ? miopenTensorBatchnormY
-                                                                  : miopenTensorBatchnormDX;
+                return direction == miopenProblemDirectionBackward ? miopenTensorBatchnormDX
+                                                                   : miopenTensorBatchnormY;
             },
             [](const MhaDescriptor&) { return miopenTensorMhaO; },
             [](const SoftmaxDescriptor&) { return miopenTensorSoftmaxY; }),
@@ -962,8 +962,8 @@ void FusedProblem::AddProblemToPlan(FusionPlanDescriptor& plan, const Problem& p
                         std::make_shared<BatchNormBwdTrainFusionOpDescriptor>(descriptor.mode));
                     break;
                 case miopenProblemDirectionInference: {
-                    auto smv = problem.GetTensorDescriptorChecked(miopenTensorBatchnormSavedMean,
-                                                                  "miopenTensorBatchnormSavedMean");
+                    auto smv = problem.GetTensorDescriptorChecked(
+                        miopenTensorBatchnormEstimatedMean, "miopenTensorBatchnormEstimatedMean");
                     plan.AddOp(std::make_shared<BatchNormInferenceFusionOpDescriptor>(
                         descriptor.mode, smv));
                     break;

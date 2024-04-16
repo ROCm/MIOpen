@@ -356,14 +356,14 @@ struct na_fusion_driver : test_driver
             // clang-format off
             miopenSetProblemTensorDescriptor(problem, miopenTensorBatchnormX, &input.desc);
             miopenSetProblemTensorDescriptor(problem, miopenTensorBatchnormScale, &scale.desc);
+            miopenSetProblemTensorDescriptor(problem, miopenTensorBatchnormBias, &shift.desc);
             miopenSetProblemTensorDescriptor(problem, miopenTensorBatchnormEstimatedMean, &derivedBnDesc);
             miopenSetProblemTensorDescriptor(problem, miopenTensorBatchnormEstimatedVariance, &derivedBnDesc);
-            miopenSetProblemTensorDescriptor(problem, miopenTensorBatchnormBias, &shift.desc);
             // clang-format on
 
             AddAndFuse(problem, [&](auto activation) {
                 miopenCreateActivationProblem(
-                    activation, ptr_activdesc.get(), miopenProblemDirectionInference);
+                    activation, ptr_activdesc.get(), miopenProblemDirectionForward);
                 miopenSetProblemTensorDescriptor(*activation, miopenTensorActivationX, &input.desc);
                 miopenSetProblemTensorDescriptor(*activation, miopenTensorActivationY, &input.desc);
             });
