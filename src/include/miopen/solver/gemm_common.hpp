@@ -24,31 +24,40 @@
  *
  *******************************************************************************/
 #pragma once
+#ifndef GUARD_MIOPEN_SOLVER_GEMM_COMMON_HPP
+#define GUARD_MIOPEN_SOLVER_GEMM_COMMON_HPP
 
-#include <miopen/errors.hpp>
-#include <miopen/graphapi/tensor.hpp>
+#include <miopen/config.h>
+#include <miopen/conv/problem_description.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/tensor.hpp>
 
-#include <algorithm>
-#include <vector>
+#include <cstddef>
 
 namespace miopen {
+namespace solver {
+namespace conv {
+namespace gemm {
 
-namespace graphapi {
+std::size_t MaxMemAllocSz(Handle& h,
+                          const miopen::conv::ProblemDescription& problem,
+                          bool double_limit_for_fp32 = false);
 
-class OpNode
-{
-public:
-    virtual ~OpNode() = default;
+constexpr bool IsBf16Supported = MIOPEN_USE_ROCBLAS;
+constexpr bool IsFp16Supported = MIOPEN_USE_ROCBLAS;
 
-    virtual std::vector<Tensor*> getInTensors() const = 0;
+bool IsAnyBufferBf16(const TensorDescriptor& xDesc,
+                     const TensorDescriptor& yDesc,
+                     const TensorDescriptor& wDesc);
+bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
+                     const TensorDescriptor& yDesc,
+                     const TensorDescriptor& wDesc);
 
-    virtual std::vector<Tensor*> getOutTensors() const = 0;
+double SlowdownFactor(int n_oper, double oper_factor, double multiple_oper_factor);
 
-    /* TODO: The remaining part of the class is being
-     * developed separately. Needs merging after finished.
-     */
-};
-
-} // namespace graphapi
-
+} // namespace gemm
+} // namespace conv
+} // namespace solver
 } // namespace miopen
+
+#endif // GUARD_MIOPEN_SOLVER_GEMM_COMMON_HPP
