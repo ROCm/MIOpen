@@ -294,7 +294,6 @@ protected:
     tensor<InputType> dK_val;
     tensor<InputType> dV_val;
     tensor<InputType> dO_val;
-    tensor<InputType> o_val;
 
     tensor<InputType> concatinated_dO_val;
     tensor<InputType> concatinated_dV_val;
