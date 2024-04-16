@@ -157,7 +157,7 @@ protected:
             auto val_full = tensor<float>{nhsd...}.generate(
                 [bias](auto...) { return prng::gen_A_to_B(-2.5f + bias, 2.5f + bias); });
             auto val_scaled = tensor<float>{nhsd...};
-            float scale     = test::cpu::GetF8Scaling(test::cpu::FindMax4D(val_full));
+            float scale     = test::cpu::GetF8Scaling(test::cpu::AbsoluteMax(val_full));
             float descale   = 1.f / scale;
             test::cpu::ScaleMult(val_full, scale, val_scaled);
             return std::tuple{val_scaled, scale, descale};
