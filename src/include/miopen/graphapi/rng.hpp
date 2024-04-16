@@ -27,7 +27,7 @@
 
 #include <miopen/miopen.h>
 #include <miopen/graphapi/graphapi.hpp>
-#include <miopen/graphapi/operation.hpp>
+#include <miopen/graphapi/opgraph.hpp>
 #include <miopen/graphapi/tensor.hpp>
 
 #include <cstdint>
@@ -158,6 +158,7 @@ public:
     std::variant<int64_t, Tensor*> getSeed() const noexcept { return mSeed; }
     Tensor* getOffset() const noexcept { return mOffset; }
 
+    virtual const std::string& signName() const override;
     virtual std::vector<Tensor*> getInTensors() const override;
     virtual std::vector<Tensor*> getOutTensors() const override;
 };
