@@ -89,6 +89,22 @@ miopenStatus_t miopenCreateBiasProblem(miopenProblem_t* problem, miopenProblemDi
     });
 }
 
+miopenStatus_t miopenCreateMhaProblem(miopenProblem_t* problem,
+                                      miopenMhaDescriptor_t operatorDesc,
+                                      miopenProblemDirection_t direction)
+{
+    MIOPEN_LOG_FUNCTION(problem, direction);
+    return MakeProblem(problem, operatorDesc, direction);
+}
+
+miopenStatus_t miopenCreateSoftmaxProblem(miopenProblem_t* problem,
+                                          miopenSoftmaxDescriptor_t operatorDesc,
+                                          miopenProblemDirection_t direction)
+{
+    MIOPEN_LOG_FUNCTION(problem, direction);
+    return MakeProblem(problem, operatorDesc, direction);
+}
+
 miopenStatus_t miopenFuseProblems(miopenProblem_t problem1, miopenProblem_t problem2)
 {
     MIOPEN_LOG_FUNCTION(problem1, problem2);
@@ -263,6 +279,28 @@ inline std::ostream& operator<<(std::ostream& stream, const miopenTensorArgument
     case miopenTensorBias: stream << "Bias"; break;
     case miopenTensorBiasX: stream << "BiasX"; break;
     case miopenTensorBiasY: stream << "BiasY"; break;
+    case miopenTensorMhaK: stream << "MhaK"; break;
+    case miopenTensorMhaQ: stream << "MhaQ"; break;
+    case miopenTensorMhaV: stream << "MhaV"; break;
+    case miopenTensorMhaDescaleK: stream << "MhaDescaleK"; break;
+    case miopenTensorMhaDescaleQ: stream << "DescaleQ"; break;
+    case miopenTensorMhaDescaleV: stream << "DescaleV"; break;
+    case miopenTensorMhaDescaleS: stream << "MhaDescaleS"; break;
+    case miopenTensorMhaScaleS: stream << "MhaScaleS"; break;
+    case miopenTensorMhaScaleO: stream << "MhaScaleO"; break;
+    case miopenTensorMhaDropoutProbability: stream << "MhaDropoutProbability"; break;
+    case miopenTensorMhaDropoutSeed: stream << "MhaDropoutSeed"; break;
+    case miopenTensorMhaDropoutOffset: stream << "MhaDropoutOffset"; break;
+    case miopenTensorMhaO: stream << "MhaO"; break;
+    case miopenTensorMhaAmaxO: stream << "MhaAmaxO"; break;
+    case miopenTensorMhaAmaxS: stream << "MhaAmaxS"; break;
+    case miopenTensorMhaM: stream << "MhaM"; break;
+    case miopenTensorMhaZInv: stream << "MhaZInv"; break;
+    case miopenTensorSoftmaxX: stream << "SoftmaxX"; break;
+    case miopenTensorSoftmaxY: stream << "SoftmaxY"; break;
+    case miopenTensorSoftmaxDX: stream << "SoftmaxDX"; break;
+    case miopenTensorSoftmaxDY: stream << "SoftmaxDY"; break;
+    case miopenTensorArgumentIsScalar: stream << "ScalarArgument"; break;
     case miopenTensorArgumentIdInvalid: stream << "Invalid"; break;
     }
 

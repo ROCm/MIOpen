@@ -25,21 +25,9 @@
  *******************************************************************************/
 #include "tensor_holder.hpp"
 #include "conv_tensor_gen.hpp"
-#include <type_traits>
-#include <nlohmann/json.hpp>
 
-#include <miopen/miopen.h>
-#include <gtest/gtest.h>
-#include <miopen/layernorm.hpp>
-
-#include "tensor_holder.hpp"
-#include "tensor_util.hpp"
-#include "cpu_layernorm.hpp"
-#include "get_handle.hpp"
-#include "../driver/tensor_driver.hpp"
-#include "verify.hpp"
-#include <random>
 #include <hip_float8.hpp>
+#include <nlohmann/json.hpp>
 
 namespace test {
 namespace cpu {
@@ -64,26 +52,19 @@ struct CPUMHATestCase
     }
 };
 
-double GetF8Scaling(double max_val)
+inline constexpr float GetF8Scaling(float max_val)
 {
-    const double fp8_E4M3_max = 240.0f;
+    constexpr float fp8_E4M3_max = 240.0f;
 
     return fp8_E4M3_max / max_val;
 }
 
 template <typename T>
-T FindMax4D(const tensor<T>& max_of_tensor)
+T AbsoluteMax(const tensor<T>& max_of_tensor)
 {
-    std::mutex mtx;
-    T maxVal = max_of_tensor(0, 0, 0, 0); // Start with the first element as the maximum
-    max_of_tensor.par_for_each([&](size_t b_id, size_t n_id, size_t s_id, size_t dk_id) {
-        std::lock_guard<std::mutex> lock(mtx);
-        T tmp_val = max_of_tensor(b_id, n_id, s_id, dk_id);
-        if(tmp_val > maxVal)
-        {
-            maxVal = tmp_val;
-        }
-    });
+    T maxVal = std::abs(max_of_tensor[0]); // Start with the first element as the maximum
+    max_of_tensor.for_each(
+        [&](auto... id) { maxVal = std::max(maxVal, std::abs(max_of_tensor(id...))); });
     return maxVal;
 }
 
@@ -187,8 +168,7 @@ template <typename T>
 void AddMask4D_2D(tensor<T>& mat_A_val, const tensor<T>& mat_mask)
 {
     mat_A_val.par_for_each([&](size_t b_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
-        mat_A_val(b_id, h_id, sl_i_id, sl_j_id) =
-            mat_A_val(b_id, h_id, sl_i_id, sl_j_id) + mat_mask(sl_i_id, sl_j_id);
+        mat_A_val(b_id, h_id, sl_i_id, sl_j_id) += mat_mask(sl_i_id, sl_j_id);
     });
 }
 
@@ -200,10 +180,7 @@ void RowReductionMax(const tensor<T>& A_mat, tensor<T>& rrm_tensor)
         T max(A_mat(b_id, h_id, sl_id, sl0_id));
         for(size_t id = 0; id < sl_dim; ++id)
         {
-            if(A_mat(b_id, h_id, sl_id, id) > max)
-            {
-                max = A_mat(b_id, h_id, sl_id, id);
-            }
+            max = std::max(max, A_mat(b_id, h_id, sl_id, id));
         }
         rrm_tensor(b_id, h_id, sl_id, sl0_id) = max;
     });
@@ -214,28 +191,21 @@ void ScaleMult(const tensor<T1>& tensor_val,
                const T2& scale_factor,
                tensor<T3>& tensor_scale_factor)
 {
-    tensor_scale_factor.par_for_each([&](size_t b_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
-        tensor_scale_factor(b_id, h_id, sl_i_id, sl_j_id) =
-            T3(tensor_val(b_id, h_id, sl_i_id, sl_j_id) * scale_factor);
-    });
+    tensor_scale_factor.par_for_each(
+        [&](auto... id) { tensor_scale_factor(id...) = T3(tensor_val(id...) * scale_factor); });
 }
 
 template <class T>
 void PointWiseExp(const tensor<T>& tensor_val, tensor<T>& tensor_exp_val)
 {
-    tensor_exp_val.par_for_each([&](size_t b_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
-        tensor_exp_val(b_id, h_id, sl_i_id, sl_j_id) =
-            T(std::exp(tensor_val(b_id, h_id, sl_i_id, sl_j_id)));
-    });
+    tensor_exp_val.par_for_each(
+        [&](auto... id) { tensor_exp_val(id...) = T(std::exp(tensor_val(id...))); });
 }
 
 template <class T>
 void PointWiseMultiply(const tensor<T>& tensor_a, const tensor<T>& tensor_b, tensor<T>& tensor_c)
 {
-    tensor_c.par_for_each([&](size_t b_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
-        tensor_c(b_id, h_id, sl_i_id, sl_j_id) =
-            tensor_a(b_id, h_id, sl_i_id, sl_j_id) * tensor_b(b_id, h_id, sl_i_id, sl_j_id);
-    });
+    tensor_c.par_for_each([&](auto... id) { tensor_c(id...) = tensor_a(id...) * tensor_b(id...); });
 }
 
 template <typename T>
@@ -263,11 +233,25 @@ void BroadCastAdd(const tensor<T>& tensor_val1,
 }
 
 template <class T>
-void BroadCastDiv(const tensor<T>& tensor_val, const tensor<T>& z_sum, tensor<T>& tensor_div_z_sum)
+void BroadCastMul(const tensor<T>& tensor_val, const tensor<T>& z_sum, tensor<T>& tensor_div_z_sum)
 {
     tensor_div_z_sum.par_for_each([&](size_t b_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
         tensor_div_z_sum(b_id, h_id, sl_i_id, sl_j_id) =
-            tensor_val(b_id, h_id, sl_i_id, sl_j_id) / z_sum(b_id, h_id, sl_i_id, 0);
+            tensor_val(b_id, h_id, sl_i_id, sl_j_id) * z_sum(b_id, h_id, sl_i_id, 0);
+    });
+}
+
+template <class T>
+void RowReductionReciprocalSum(const tensor<T>& A_mat, tensor<T>& rrsum_tensor)
+{
+    size_t sl_dim = A_mat.desc.GetLengths()[3];
+    rrsum_tensor.par_for_each([&](size_t b_id, size_t h_id, size_t sl_id, size_t sl0_id) {
+        double sum(0);
+        for(size_t id = 0; id < sl_dim; ++id)
+        {
+            sum += A_mat(b_id, h_id, sl_id, id);
+        }
+        rrsum_tensor(b_id, h_id, sl_id, sl0_id) = static_cast<T>(1) / sum;
     });
 }
 
@@ -302,17 +286,16 @@ void DropOut(tensor<T>& q_dot_k_transpose, const double& drop_out_rate)
 {
     tensor<T> rand_dis(q_dot_k_transpose.desc.GetLengths());
     rand_dis.generate(GenData<T>{});
-    q_dot_k_transpose.par_for_each(
-        [&](size_t b_id, size_t sc_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
-            if(rand_dis(b_id, sc_id, h_id, sl_i_id, sl_j_id) < drop_out_rate)
-            {
-                q_dot_k_transpose(b_id, sc_id, h_id, sl_i_id, sl_j_id) = T(0);
-            }
-        });
+    q_dot_k_transpose.par_for_each([&](auto... id) {
+        if(rand_dis(id...) < drop_out_rate)
+        {
+            q_dot_k_transpose(id...) = T(0);
+        }
+    });
 }
 
-template <class T>
-void Concat(const tensor<T>& A_mat, tensor<T>& B_mat)
+template <class T, class U>
+void Concat(const tensor<T>& A_mat, tensor<U>& B_mat)
 {
     const auto& dims = A_mat.desc.GetLengths();
     size_t d_k       = dims[3];
@@ -344,85 +327,68 @@ void SoftMax(const tensor<T>& q_dot_k_transpose,
     // Compute the exponential of each element
     // exp(row_max)
     auto exp_q_dot_k_transpose_sub_attn_max = q_dot_k_transpose_sub_attn_max;
-    PointWiseExp(q_dot_k_transpose, exp_q_dot_k_transpose_sub_attn_max);
+    PointWiseExp(q_dot_k_transpose_sub_attn_max, exp_q_dot_k_transpose_sub_attn_max);
 
-    // z_sum aka attn_norm = sum(exp((q_dot_k_transpose - attn_max)))
-    RowReductionSum(exp_q_dot_k_transpose_sub_attn_max, z_sum);
+    // z_sum aka attn_norm = 1 / sum(exp((q_dot_k_transpose - attn_max)))
+    RowReductionReciprocalSum(exp_q_dot_k_transpose_sub_attn_max, z_sum);
 
-    // softmax = exp((q_dot_k_transpose - attn_max)) / z_sum
-    BroadCastDiv(exp_q_dot_k_transpose_sub_attn_max, z_sum, softmax);
+    // softmax = exp((q_dot_k_transpose - attn_max)) * z_sum
+    BroadCastMul(exp_q_dot_k_transpose_sub_attn_max, z_sum, softmax);
 }
 
-template <typename T>
+template <typename T = float8>
 void MultiHeadAttentionfp8(const tensor<T>& q_val,
                            const tensor<T>& k_val,
                            const tensor<T>& v_val,
-                           const tensor<T>& q_dot_k_transpose,
-                           const tensor<T>& attn_max,
-                           double& q_scale,
-                           double& k_scale,
-                           double& aMax_S,
-                           double& s_scale,
-                           double& v_scale,
-                           double& scale_O,
-                           tensor<float8>& multi_head_attention_fp8)
+                           tensor<float>& attn_max,
+                           tensor<float>& Z_sum,
+                           float q_descale,
+                           float k_descale,
+                           float v_descale,
+                           float s_descale,
+                           float s_scale,
+                           float o_scale,
+                           float& aMax_S,
+                           float& aMax_O,
+                           tensor<T>& multi_head_attention_fp8)
 {
-    tensor<float8> q_val_fp8(q_val.desc.GetLengths());
-    tensor<float8> k_val_fp8(k_val.desc.GetLengths());
-    tensor<T> q_dot_k_fp8_stored_in_fp32_tensor(q_dot_k_transpose.desc.GetLengths());
-
-    q_scale = GetF8Scaling(FindMax4D(q_val)); // (max fp8 can represent)/(max val in q_val)
-    k_scale = GetF8Scaling(FindMax4D(k_val)); // (max fp8 can represent)/(max val in k_val)
-    // scale fp32 vals to get fp8 version of Q and V
-    ScaleMult(q_val, q_scale, q_val_fp8);
-    ScaleMult(k_val, k_scale, k_val_fp8);
+    auto inputLengths = q_val.desc.GetLengths();
+    inputLengths[3]   = inputLengths[2]; // NHSD converting to NHSS
+    tensor<float> q_dot_k_fp8_stored_in_fp32_tensor(inputLengths);
+    tensor<float> softmax(inputLengths);
 
     // The FP8 Matrix Multiplicatin happens here.
     // The results are tored in fp32 tensor.
     // 1) fp8 matrix multiplication
-    Dot_4D_4D_T(q_val_fp8, k_val_fp8, q_dot_k_fp8_stored_in_fp32_tensor);
+    Dot_4D_4D_T(q_val, k_val, q_dot_k_fp8_stored_in_fp32_tensor);
 
     // bring it back to fp32 so that we can do the softmax
-    ScaleMult(q_dot_k_fp8_stored_in_fp32_tensor, 1.0 / q_scale, q_dot_k_fp8_stored_in_fp32_tensor);
-    ScaleMult(q_dot_k_fp8_stored_in_fp32_tensor, 1.0 / k_scale, q_dot_k_fp8_stored_in_fp32_tensor);
+    ScaleMult(q_dot_k_fp8_stored_in_fp32_tensor,
+              q_descale * k_descale,
+              q_dot_k_fp8_stored_in_fp32_tensor);
 
-    tensor<T> internal_low_precision_softmax(q_dot_k_transpose.desc.GetLengths());
-    tensor<T> internal_low_precision_attn_max(attn_max.desc.GetLengths());
-    tensor<T> internal_low_precision_Z_sum(attn_max.desc.GetLengths());
-
-    SoftMax(q_dot_k_fp8_stored_in_fp32_tensor,
-            internal_low_precision_softmax,
-            internal_low_precision_attn_max,
-            internal_low_precision_Z_sum /*attn_norm*/);
+    SoftMax(q_dot_k_fp8_stored_in_fp32_tensor, softmax, attn_max, Z_sum);
 
     // drop out
     // DropOut(q_dot_k_transpose, cpu_mha_test_case.drop_out_rate);
 
     // Get scaling for softmax
-    aMax_S  = FindMax4D(internal_low_precision_softmax);
-    s_scale = GetF8Scaling(aMax_S);
-    // Get scaling of V
-    v_scale = GetF8Scaling(FindMax4D(v_val));
+    aMax_S = AbsoluteMax(softmax);
 
-    tensor<float8> softmax_fp8(q_dot_k_transpose.desc.GetLengths());
-    tensor<float8> v_val_fp8(v_val.desc.GetLengths());
-
+    tensor<T> softmax_fp8(softmax.desc.GetLengths());
     // get fp8 version of Softmax(Q.dot(K_transpose)) and V
-    ScaleMult(internal_low_precision_softmax, s_scale, softmax_fp8);
-    ScaleMult(v_val, v_scale, v_val_fp8);
+    ScaleMult(softmax, s_scale, softmax_fp8);
 
-    tensor<T> atten_heads_fp32(multi_head_attention_fp8.desc.GetLengths());
-
+    tensor<float> atten_heads_fp32(multi_head_attention_fp8.desc.GetLengths());
     // 2) fp8 matrix multiplication
-    Dot_4D_4D(softmax_fp8, v_val_fp8, atten_heads_fp32);
+    Dot_4D_4D(softmax_fp8, v_val, atten_heads_fp32);
 
     // bring it back to fp32
-    ScaleMult(atten_heads_fp32, 1.0 / s_scale, atten_heads_fp32);
-    ScaleMult(atten_heads_fp32, 1.0 / v_scale, atten_heads_fp32);
-    scale_O = GetF8Scaling(FindMax4D(atten_heads_fp32));
+    ScaleMult(atten_heads_fp32, s_descale * v_descale, atten_heads_fp32);
+    aMax_O = AbsoluteMax(atten_heads_fp32);
 
     // scale to fp8 version
-    ScaleMult(atten_heads_fp32, scale_O, multi_head_attention_fp8);
+    ScaleMult(atten_heads_fp32, o_scale, multi_head_attention_fp8);
 }
 
 template <typename T>
@@ -433,12 +399,15 @@ void MultiHeadAttentionf32(const tensor<T>& q_val,
                            tensor<T>& softmax,
                            tensor<T>& attn_max,
                            tensor<T>& Z_sum,
+                           float& aMax_S,
+                           float& aMax_O,
                            tensor<T>& multi_head_attention)
 {
 
     Dot_4D_4D_T(q_val, k_val, q_dot_k_transpose);
 
-    SoftMax(q_dot_k_transpose, softmax, attn_max, Z_sum /*attn_norm*/);
+    SoftMax(q_dot_k_transpose, softmax, attn_max, Z_sum);
+    aMax_S = AbsoluteMax(softmax);
 
     // // drop out
     // // DropOut(softmax, cpu_mha_test_case.drop_out_rate);
@@ -449,6 +418,7 @@ void MultiHeadAttentionf32(const tensor<T>& q_val,
 
     // O = (Q.dot(Kt)).dot(V)
     Dot_4D_4D(softmax, v_val, multi_head_attention);
+    aMax_O = AbsoluteMax(multi_head_attention);
 }
 
 template <typename T>
@@ -488,34 +458,34 @@ void MultiHeadAttentionBackwardDataf32(const tensor<T>& q_val,
     Dot_4D_T_4D(bwd_intermediate, q_val, dK_val);
 }
 
-// give type and key I will give you data
 template <typename T>
-void ExtractDataFromJson(const std::string& json_attention_golden_data,
-                         tensor<T>& attention_golden,
-                         const std::string& key = "tensor")
+tensor<float> ExtractGoldenDataFromJson(std::string_view json_attention_data,
+                                        const tensor<T>& tensor_val)
 {
-    auto jsonTensor = nlohmann::json::parse(json_attention_golden_data);
-    std::vector<float> flatTensor;
-    for(const auto& row : jsonTensor[key])
+    auto jsonTensor = nlohmann::json::parse(json_attention_data);
+    // Check if the "tensor" key exists and is an array
+    EXPECT_TRUE(jsonTensor.contains("tensor") && jsonTensor["tensor"].is_array())
+        << "Malformed ref data: 'tensor' key not found or is not an array";
+
+    // Extract the 2D array and flatten it
+    tensor<float> res(tensor_val.desc);
+    res.data.clear(); // tensor constructed with .resize(), but we need push_back
+    for(const auto& row : jsonTensor["tensor"])
     {
-        if(!row.is_array())
-        {
-            std::cerr << "Expected a row to be an array, but found a different type" << std::endl;
-            exit(1);
-        }
+        EXPECT_TRUE(row.is_array())
+            << "Malformed ref data: expected a row to be an array, but found a different type";
         for(const auto& val : row)
         {
-            // Ensure each value is a number before adding it to the flatTensor
-            if(!val.is_number())
-            {
-                std::cerr << "Expected a value to be a number, but found a different type"
-                          << std::endl;
-                exit(1);
-            }
-            flatTensor.push_back(val.get<float>());
+            EXPECT_TRUE(val.is_number()) << "Malformed ref data: expected a value to be a "
+                                            "number, but found a different type";
+            res.data.emplace_back(val.get<float>());
         }
     }
-    attention_golden.data = flatTensor;
+
+    EXPECT_EQ(res.data.size(), tensor_val.data.size())
+        << "Malformed ref data: reference tensor has different size";
+
+    return res;
 }
 
 } // namespace cpu

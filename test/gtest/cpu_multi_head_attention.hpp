@@ -27,9 +27,30 @@
 
 #include "mha_helper.hpp"
 #include "attention_golden.hpp"
+#include "verify.hpp"
 
 namespace test {
 namespace cpu {
+
+template <typename InputType, typename OutputType>
+void check(const std::string_view& json_data,
+           const tensor<InputType>& computed_tensor,
+           const double& ethreshold  = 1e-7,
+           const double& mdthreshold = 1e-6)
+{
+    auto calcStats = [ref_tensor_val = ExtractGoldenDataFromJson(json_data, computed_tensor)](
+                         const auto& tensor_val) {
+        return std::tuple{miopen::rms_range(ref_tensor_val, tensor_val),
+                          miopen::max_diff(ref_tensor_val, tensor_val)};
+    };
+
+    const auto [error, max_diff] = calcStats(computed_tensor);
+    // CI clang-tidy treats is as "boolean value assigned to float"
+    const double error_threshold    = ((std::is_same_v<OutputType, float>) ? ethreshold : 5e-2);
+    const double max_diff_threshold = ((std::is_same_v<OutputType, float>) ? mdthreshold : 5e-1);
+    EXPECT_LT(error, error_threshold);
+    EXPECT_LT(max_diff, max_diff_threshold);
+}
 
 std::vector<CPUMHATestCase> CPUMHAConfigs()
 {
@@ -39,18 +60,7 @@ std::vector<CPUMHATestCase> CPUMHAConfigs()
     // clang-format on
 }
 
-template <typename T>
-void check(const std::string& json_data, tensor<T>& computed_tensor, const double& threshold)
-{
-    tensor<T> golden_tensor(computed_tensor.desc.GetLengths());
-
-    ExtractDataFromJson(json_data, golden_tensor);
-    double error = miopen::rms_range(golden_tensor, computed_tensor);
-    EXPECT_TRUE(error < threshold)
-        << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
-}
-
-template <typename T = float>
+template <typename InputType, typename OutputType>
 struct CPUMHATest : public ::testing::TestWithParam<CPUMHATestCase>
 {
 protected:
@@ -65,54 +75,102 @@ protected:
         Dot_3D_3D_T(word_position, k_weights, k_val);
         Dot_3D_3D_T(word_position, v_weights, v_val);
 
-        double sqr_dk = std::sqrt(q_val.desc.GetLengths()[3]);
-        ScaleMult(q_val, 1.0 / sqr_dk, q_val);
+        float sqr_dk = std::sqrt(q_val.desc.GetLengths()[3]);
+        ScaleMult(q_val, 1.0f / sqr_dk, q_val);
 
-        MultiHeadAttentionf32(
-            q_val, k_val, v_val, q_dot_k_transpose, softmax, attn_max, z_sum, multi_head_attention);
-        Concat(multi_head_attention, concatinated_attention);
+        if constexpr(std::is_same_v<OutputType, float>)
+        {
+            MultiHeadAttentionf32(q_val,
+                                  k_val,
+                                  v_val,
+                                  q_dot_k_transpose,
+                                  softmax,
+                                  attn_max,
+                                  z_sum,
+                                  aMax_S,
+                                  aMax_O,
+                                  multi_head_attention);
+
+            Concat(multi_head_attention, concatinated_attention);
+        }
+        else
+        {
+            float q_scale   = GetF8Scaling(AbsoluteMax(q_val));
+            float k_scale   = GetF8Scaling(AbsoluteMax(k_val));
+            float v_scale   = GetF8Scaling(AbsoluteMax(v_val));
+            float q_descale = 1.f / q_scale;
+            float k_descale = 1.f / k_scale;
+            float v_descale = 1.f / v_scale;
+
+            float s_scale = 1.f;
+            // clang-tidy complains about the same expression on both sides of "/": 1.f / 1.f
+            float s_descale = 1.f; // / s_scale;
+
+            float o_scale = 1.f;
+            // clang-tidy complains about the same expression on both sides of "/": 1.f / 1.f
+            float o_descale = 1.f; // / o_scale;
+
+            tensor<float8> q_val_fp8(q_val.desc.GetLengths());
+            tensor<float8> k_val_fp8(k_val.desc.GetLengths());
+            tensor<float8> v_val_fp8(v_val.desc.GetLengths());
+
+            ScaleMult(q_val, q_scale, q_val_fp8);
+            ScaleMult(k_val, k_scale, k_val_fp8);
+            ScaleMult(v_val, v_scale, v_val_fp8);
+
+            MultiHeadAttentionfp8(q_val_fp8,
+                                  k_val_fp8,
+                                  v_val_fp8,
+                                  attn_max,
+                                  z_sum,
+                                  q_descale,
+                                  k_descale,
+                                  v_descale,
+                                  s_descale,
+                                  s_scale,
+                                  o_scale,
+                                  aMax_S,
+                                  aMax_O,
+                                  multi_head_attention);
+            Concat(multi_head_attention, final_transformed_attention);
+            ScaleMult(final_transformed_attention, o_descale, concatinated_attention);
+        }
+
         Dot_3D_2D_T(
             concatinated_attention, final_linear_transform_weights, final_transformed_attention);
 
-        MultiHeadAttentionfp8(q_val,
-                              k_val,
-                              v_val,
-                              q_dot_k_transpose,
-                              attn_max,
-                              q_scale,
-                              k_scale,
-                              aMax_S,
-                              s_scale,
-                              v_scale,
-                              scale_O,
-                              multi_head_attention_fp8);
-        Concat(multi_head_attention_fp8, concatinated_attention_fp8);
+        if constexpr(std::is_same_v<OutputType, float>)
+        {
+            // backward
+            MultiHeadAttentionBackwardDataf32<float>(q_val,
+                                                     k_val,
+                                                     v_val,
+                                                     multi_head_attention, // o_val
+                                                     dO_val,
+                                                     q_dot_k_transpose,
+                                                     softmax,
+                                                     attn_max,
+                                                     z_sum,
+                                                     dQ_val,
+                                                     dK_val,
+                                                     dV_val);
 
-        MultiHeadAttentionBackwardDataf32(q_val,
-                                          k_val,
-                                          v_val,
-                                          multi_head_attention, // o_val
-                                          dO_val,
-                                          q_dot_k_transpose,
-                                          softmax,
-                                          attn_max,
-                                          z_sum,
-                                          dQ_val,
-                                          dK_val,
-                                          dV_val);
-        Concat(dV_val, concatinated_dV_val);
-        Concat(dQ_val, concatinated_dQ_val);
-        Concat(dK_val, concatinated_dK_val);
+            Concat(dO_val, concatinated_dO_val);
+            Concat(dV_val, concatinated_dV_val);
+            Concat(dQ_val, concatinated_dQ_val);
+            Concat(dK_val, concatinated_dK_val);
+        }
     }
 
     void TearDown() override
     {
-
-        check(json_str_fwd, final_transformed_attention, 1e-5);
-        check(json_str_dV, concatinated_dV_val, 1e-2);
-        check(json_str_dQ, concatinated_dQ_val, 1e-2);
-        check(json_str_dK, concatinated_dK_val, 1e-2);
-        // output_tensor_to_screen(golden_tensor, "attention golden", 5);
+        check<InputType, OutputType>(json_attention_fwd_golden_data, final_transformed_attention);
+        if constexpr(std::is_same_v<OutputType, float>)
+        {
+            check<InputType, OutputType>(json_str_dV, concatinated_dV_val, 1e-5, 1e-4);
+            check<InputType, OutputType>(json_str_dQ, concatinated_dQ_val, 1e-5, 1e-4);
+            check<InputType, OutputType>(json_str_dK, concatinated_dK_val, 1e-5, 1e-4);
+        }
     }
 
     void init()
@@ -124,74 +182,71 @@ protected:
         //     cpu_mha_test_case.sequence_length}};
         // SetupMask(mask);
 
-        word_position = tensor<T>{std::vector<int>{cpu_mha_test_case.batch_size,
-                                                   cpu_mha_test_case.sequence_length,
-                                                   cpu_mha_test_case.problem_dimension}};
+        word_position = tensor<InputType>{std::vector<int>{cpu_mha_test_case.batch_size,
+                                                           cpu_mha_test_case.sequence_length,
+                                                           cpu_mha_test_case.problem_dimension}};
 
         // since Pytorch's Y = X*W_tranpose
         // cpu_mha_test_case.num_heads, cpu_mha_test_case.problem_dimension, d_k
         //          need to change the dimension to
         // cpu_mha_test_case.num_heads, d_k, cpu_mha_test_case.problem_dimension
 
-        q_weights = tensor<T>(std::vector<int>{
-            cpu_mha_test_case.num_heads, d_k, cpu_mha_test_case.problem_dimension});
+        q_weights = tensor<InputType>(std::vector<int>{cpu_mha_test_case.num_heads,           //
+                                                       d_k,                                   //
+                                                       cpu_mha_test_case.problem_dimension}); //
         k_weights = q_weights;
         v_weights = q_weights;
 
-        q_val = tensor<T>{cpu_mha_test_case.batch_size,
-                          cpu_mha_test_case.num_heads,
-                          cpu_mha_test_case.sequence_length,
-                          d_k};
+        q_val = tensor<InputType>{cpu_mha_test_case.batch_size,
+                                  cpu_mha_test_case.num_heads,
+                                  cpu_mha_test_case.sequence_length,
+                                  d_k};
         k_val = q_val;
         v_val = q_val;
 
-        multi_head_attention           = tensor<T>{cpu_mha_test_case.batch_size,
-                                         cpu_mha_test_case.num_heads,
-                                         cpu_mha_test_case.sequence_length,
-                                         d_k};
-        final_linear_transform_weights = tensor<T>(std::vector<int>{
-            cpu_mha_test_case.problem_dimension, cpu_mha_test_case.problem_dimension});
+        multi_head_attention = tensor<OutputType>{cpu_mha_test_case.batch_size,
+                                                  cpu_mha_test_case.num_heads,
+                                                  cpu_mha_test_case.sequence_length,
+                                                  d_k};
 
-        concatinated_attention      = tensor<T>{std::vector<int>{
+        final_linear_transform_weights =
+            tensor<InputType>(std::vector<int>{cpu_mha_test_case.problem_dimension,   //
+                                               cpu_mha_test_case.problem_dimension}); //
+
+        concatinated_attention      = tensor<InputType>{std::vector<int>{
             cpu_mha_test_case.batch_size,
             cpu_mha_test_case.sequence_length,
             cpu_mha_test_case.problem_dimension}}; // cpu_mha_test_case.num_heads*d_k
         final_transformed_attention = concatinated_attention;
 
-        concatinated_attention_fp8 =
-            tensor<float8>{std::vector<int>{cpu_mha_test_case.batch_size,
-                                            cpu_mha_test_case.sequence_length,
-                                            cpu_mha_test_case.problem_dimension}};
-        multi_head_attention_fp8 = tensor<float8>{cpu_mha_test_case.batch_size,
-                                                  cpu_mha_test_case.num_heads,
-                                                  cpu_mha_test_case.sequence_length,
-                                                  d_k};
-
-        q_dot_k_transpose = tensor<T>{cpu_mha_test_case.batch_size,
-                                      cpu_mha_test_case.num_heads,
-                                      cpu_mha_test_case.sequence_length,
-                                      cpu_mha_test_case.sequence_length};
+        q_dot_k_transpose = tensor<float>{cpu_mha_test_case.batch_size,
+                                          cpu_mha_test_case.num_heads,
+                                          cpu_mha_test_case.sequence_length,
+                                          cpu_mha_test_case.sequence_length};
         softmax           = q_dot_k_transpose;
         // reduce row max
-        attn_max = tensor<T>{cpu_mha_test_case.batch_size,
-                             cpu_mha_test_case.num_heads,
-                             cpu_mha_test_case.sequence_length,
-                             1};
+        attn_max = tensor<float>{cpu_mha_test_case.batch_size,
+                                 cpu_mha_test_case.num_heads,
+                                 cpu_mha_test_case.sequence_length,
+                                 1};
         z_sum    = attn_max;
 
-        word_position.generate(GenData<T>{});
-        q_weights.generate(GenData<T>{});
-        k_weights.generate(GenData<T>{});
-        v_weights.generate(GenData<T>{});
+        word_position = ExtractGoldenDataFromJson(json_attention_word_position, word_position);
+        q_weights     = ExtractGoldenDataFromJson(json_attention_q_weights, q_weights);
+        k_weights     = ExtractGoldenDataFromJson(json_attention_k_weights, k_weights);
+        v_weights     = ExtractGoldenDataFromJson(json_attention_v_weights, v_weights);
 
-        final_linear_transform_weights.generate(GenData<T>{});
+        final_linear_transform_weights = ExtractGoldenDataFromJson(
+            json_attention_fwd_final_linear_transform_weights, final_linear_transform_weights);
 
         // backward
         dO_val = v_val;
         dQ_val = dO_val;
         dK_val = dO_val;
         dV_val = dO_val;
-        dO_val.generate(GenData<T>{});
+        // the derivative of loss (delta loss)
+        dO_val              = ExtractGoldenDataFromJson(json_dO_val, dO_val);
+        concatinated_dO_val = concatinated_attention;
         concatinated_dV_val = concatinated_attention;
         concatinated_dQ_val = concatinated_attention;
         concatinated_dK_val = concatinated_attention;
@@ -201,56 +256,50 @@ protected:
     CPUMHATestCase cpu_mha_test_case;
 
     // input
-    tensor<T> word_position;
+    tensor<InputType> word_position;
 
     size_t d_k;
 
     // weights
-    tensor<T> q_weights;
-    tensor<T> k_weights;
-    tensor<T> v_weights;
+    tensor<InputType> q_weights;
+    tensor<InputType> k_weights;
+    tensor<InputType> v_weights;
     // This for the final linear transformation
     // of the attention.
-    tensor<T> final_linear_transform_weights;
+    tensor<InputType> final_linear_transform_weights;
 
     // QKV vectors
-    tensor<T> q_val;
-    tensor<T> k_val;
-    tensor<T> v_val;
+    tensor<InputType> q_val;
+    tensor<InputType> k_val;
+    tensor<InputType> v_val;
 
     // softmax
-    tensor<T> q_dot_k_transpose;
-    tensor<T> attn_max;
-    tensor<T> z_sum;
-    tensor<T> softmax;
+    tensor<float> q_dot_k_transpose;
+    tensor<float> attn_max;
+    tensor<float> z_sum;
+    tensor<float> softmax;
 
     // attention
-    tensor<T> multi_head_attention;
-    tensor<float8> multi_head_attention_fp8;
+    tensor<OutputType> multi_head_attention;
 
-    tensor<T> concatinated_attention;
-    tensor<float8> concatinated_attention_fp8;
-
-    tensor<T> final_transformed_attention;
+    tensor<InputType> concatinated_attention;
+    tensor<InputType> final_transformed_attention;
 
     // scales
-    double q_scale;
-    double k_scale;
-    double aMax_S;
-    double s_scale;
-    double v_scale;
-    double scale_O;
+    float aMax_S;
+    float aMax_O;
 
     // backward
-    tensor<T> dQ_val;
-    tensor<T> dK_val;
-    tensor<T> dV_val;
-    tensor<T> dO_val;
-    tensor<T> o_val;
+    tensor<InputType> dQ_val;
+    tensor<InputType> dK_val;
+    tensor<InputType> dV_val;
+    tensor<InputType> dO_val;
+    tensor<InputType> o_val;
 
-    tensor<T> concatinated_dV_val;
-    tensor<T> concatinated_dQ_val;
-    tensor<T> concatinated_dK_val;
+    tensor<InputType> concatinated_dO_val;
+    tensor<InputType> concatinated_dV_val;
+    tensor<InputType> concatinated_dQ_val;
+    tensor<InputType> concatinated_dK_val;
 };
 
 } // namespace cpu
