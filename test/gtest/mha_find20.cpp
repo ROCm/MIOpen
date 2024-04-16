@@ -293,8 +293,6 @@ private:
         CreateTensor(miopenTensorMhaDropoutSeed, GenerateType::GenerateRandom);
         CreateTensor(miopenTensorMhaDropoutOffset, GenerateType::GenerateRandom);
 
-        CreateTensor(miopenTensorMhaO, GenerateType::DontGenerate, test_n, test_h, test_s, test_d);
-
         CreateTensor(miopenTensorMhaM, GenerateType::DontGenerate, test_n, test_h, test_s, 1);
         CreateTensor(miopenTensorMhaZInv, GenerateType::DontGenerate, test_n, test_h, test_s, 1);
 
@@ -302,11 +300,14 @@ private:
         {
             CreateTensor(miopenTensorMhaScaleO);
 
+            CreateTensor(miopenTensorMhaO, GenerateType::DontGenerate, test_n, test_h, test_s, test_d);
             CreateTensor(miopenTensorMhaAmaxO, GenerateType::DontGenerate);
             CreateTensor(miopenTensorMhaAmaxS, GenerateType::DontGenerate);
         }
         else
         {
+            CreateTensor(miopenTensorMhaO, GenerateType::GenerateRandom, test_n, test_h, test_s, test_d);            
+
             CreateTensor(
                 miopenTensorMhaDO, GenerateType::GenerateRandom, test_n, test_h, test_s, test_d);
             CreateTensor(miopenTensorMhaDescaleO, GenerateType::GenerateRandom);
@@ -569,7 +570,7 @@ private:
     float scale = 1.0f;
 };
 
-/*TEST(TestMhaFind20, MhaForward)
+TEST(TestMhaFind20, MhaForward)
 {
     Handle& handle = get_handle();
 
@@ -580,7 +581,7 @@ private:
 
     test.TestRunSolutions(handle, solutions);
     test.Finalize();
-}*/
+}
 
 TEST(TestMhaFind20, MhaBackward)
 {
