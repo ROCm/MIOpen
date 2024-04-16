@@ -42,7 +42,7 @@ struct ProblemDescription : ProblemDescriptionBase
     ProblemDescription(const TensorDescriptor& xDesc_,
                        const TensorDescriptor& yDesc_,
                        const size_t num_padding_)
-        : xDesc(xDesc_), yDesc(yDesc_), num_padding(num_padding_) 
+        : xDesc(xDesc_), yDesc(yDesc_), num_padding(num_padding_)
     {
     }
     const TensorDescriptor& GetXDesc() const { return xDesc; }
@@ -75,19 +75,19 @@ struct ProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    
     bool IsRightNumPadding() const
     {
         if(!(num_padding == 1 || num_padding == 4))
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm, "Pad Reflection: Padding input needs to have 1 or 4 elements only.");
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "Pad Reflection: Padding input needs to have 1 or 4 elements only.");
 #else
             return false;
 #endif
         }
         return true;
-    } 
+    }
 
     NetworkConfig MakeNetworkConfig() const override;
 

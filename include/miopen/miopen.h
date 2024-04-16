@@ -5814,12 +5814,12 @@ MIOPEN_EXPORT miopenStatus_t miopenSumForward(miopenHandle_t handle,
  * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenPadReflection(miopenHandle_t handle,
-                                              const miopenTensorDescriptor_t xDesc,
-                                              const void* x,
-                                              const miopenTensorDescriptor_t yDesc,
-                                              void* y,
-                                              const size_t * padding,
-                                              const size_t num_padding);
+                                                 const miopenTensorDescriptor_t xDesc,
+                                                 const void* x,
+                                                 const miopenTensorDescriptor_t yDesc,
+                                                 void* y,
+                                                 const size_t* padding,
+                                                 const size_t num_padding);
 
 /** @} */
 // CLOSEOUT PAD REFLECTION DOXYGEN GROUP

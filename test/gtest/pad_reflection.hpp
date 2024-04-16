@@ -45,7 +45,8 @@ struct PadReflectionCase
     friend std::ostream& operator<<(std::ostream& os, const PadReflectionCase& tc)
     {
         return os << " N:" << tc.N << " C:" << tc.C << " D:" << tc.D << " H:" << tc.H
-                  << " W:" << tc.W << " Padding:" << tc.padding[0] << " " << tc.padding[1] << " " << tc.padding[2] << " " << tc.padding[3];
+                  << " W:" << tc.W << " Padding:" << tc.padding[0] << " " << tc.padding[1] << " "
+                  << tc.padding[2] << " " << tc.padding[3];
     }
 
     std::vector<size_t> GetInput()
@@ -151,8 +152,13 @@ protected:
         cpu_pad_reflection<T>(input, ref_output, padding);
         miopenStatus_t status;
 
-        status = miopen::PadReflection(
-            handle, input.desc, input_dev.get(), output.desc, output_dev.get(), padding.data(), padding.size());
+        status = miopen::PadReflection(handle,
+                                       input.desc,
+                                       input_dev.get(),
+                                       output.desc,
+                                       output_dev.get(),
+                                       padding.data(),
+                                       padding.size());
 
         EXPECT_EQ(status, miopenStatusSuccess);
 

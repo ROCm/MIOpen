@@ -35,7 +35,7 @@ extern "C" miopenStatus_t miopenPadReflection(miopenHandle_t handle,
                                               const void* x,
                                               const miopenTensorDescriptor_t yDesc,
                                               void* y,
-                                              const size_t * padding,
+                                              const size_t* padding,
                                               const size_t num_padding)
 {
     MIOPEN_LOG_FUNCTION(handle, xDesc, x, yDesc, y, padding);

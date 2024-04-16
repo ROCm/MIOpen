@@ -187,7 +187,8 @@ int PadReflectionDriver<Tgpu, Tref>::GetandSetData()
         padding.push_back(std::stoul(token));
     }
 
-    if (!(padding.size() == 1 or padding.size() == 4)) {
+    if(!(padding.size() == 1 or padding.size() == 4))
+    {
         std::cerr << "Error Padding Lengths\n" << std::endl;
     }
 
@@ -319,8 +320,13 @@ int PadReflectionDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenPadReflection(
-            GetHandle(), inputDesc, in_dev->GetMem(), outputDesc, out_dev->GetMem(), padding.data(), padding.size());
+        miopenPadReflection(GetHandle(),
+                            inputDesc,
+                            in_dev->GetMem(),
+                            outputDesc,
+                            out_dev->GetMem(),
+                            padding.data(),
+                            padding.size());
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
