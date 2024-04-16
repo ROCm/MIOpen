@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include <miopen/algorithm.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/graphapi/rng.hpp>
 
@@ -192,6 +193,238 @@ void BackendRngDescriptor::getAttribute(miopenBackendAttributeName_t attributeNa
     default: MIOPEN_THROW(miopenStatusBadParm);
     }
 }
+
+const std::string& OperationRng::signName() const
+{
+    static const std::string name = "OP_RNG";
+    return name;
+}
+
+std::vector<Tensor*> OperationRng::getInTensors() const
+{
+    if(mSeed.index() == 0)
+    {
+        return {mOffset};
+    }
+    else
+    {
+        return {std::get<Tensor*>(mSeed), mOffset};
+    }
+}
+
+std::vector<Tensor*> OperationRng::getOutTensors() const { return {mOutput}; }
+
+OperationRngBuilder& OperationRngBuilder::setRng(Rng* rng)
+{
+    mOperationRng.mRng = checkPtr(rng);
+    return *this;
+}
+
+OperationRngBuilder& OperationRngBuilder::setOutput(Tensor* output)
+{
+    mOperationRng.mOutput = checkPtr(output);
+    return *this;
+}
+
+OperationRngBuilder& OperationRngBuilder::setSeed(int64_t seed) noexcept
+{
+    mOperationRng.mSeed = seed;
+    return *this;
+}
+
+OperationRngBuilder& OperationRngBuilder::setSeed(Tensor* seed)
+{
+    bool valid = seed != nullptr;
+
+    valid = valid && miopen::all_of(seed->getDimensions(), [](auto v) { return v == 1; }) &&
+            miopen::all_of(seed->getStrides(), [](auto v) { return v == 1; });
+
+    if(valid)
+    {
+        mOperationRng.mSeed = seed;
+        return *this;
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
+OperationRngBuilder& OperationRngBuilder::setOffset(Tensor* offset)
+{
+    bool valid = offset != nullptr;
+
+    valid = valid && miopen::all_of(offset->getDimensions(), [](auto v) { return v == 1; }) &&
+            miopen::all_of(offset->getStrides(), [](auto v) { return v == 1; });
+
+    if(valid)
+    {
+        mOperationRng.mOffset = offset;
+        return *this;
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
+OperationRng OperationRngBuilder::build()
+{
+    if(mOperationRng.mRng == nullptr || mOperationRng.mOutput == nullptr ||
+       mOperationRng.mOffset == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    return mOperationRng;
+}
+
+void BackendOperationRngDescriptor::setAttribute(miopenBackendAttributeName_t attributeName,
+                                                 miopenBackendAttributeType_t attributeType,
+                                                 int64_t elementCount,
+                                                 void* arrayOfElements)
+{
+    if(mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+
+    using TensorSetter = OperationRngBuilder& (OperationRngBuilder::*)(Tensor*);
+
+    auto callTensorSetter = [=](TensorSetter setter, miopenBackendDescriptor_t& outApiDescriptor) {
+        if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && elementCount == 1)
+        {
+            miopenBackendDescriptor_t apiDescriptor =
+                deref(static_cast<miopenBackendDescriptor_t*>(arrayOfElements));
+            BackendDescriptor& backendDescriptor = deref(apiDescriptor);
+
+            if(!backendDescriptor.isFinalized())
+            {
+                MIOPEN_THROW(miopenStatusBadParm);
+            }
+
+            BackendTensorDescriptor& tensorDescriptor =
+                dynamic_cast<BackendTensorDescriptor&>(backendDescriptor);
+            (mBuilder.*setter)(tensorDescriptor.getTensor());
+            outApiDescriptor = apiDescriptor;
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+    };
+
+    switch(attributeName)
+    {
+    case MIOPEN_ATTR_OPERATION_RNG_DESC:
+        if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && elementCount == 1)
+        {
+            miopenBackendDescriptor_t apiDescriptor =
+                deref(static_cast<miopenBackendDescriptor_t*>(arrayOfElements));
+            BackendDescriptor& backendDescriptor = deref(apiDescriptor);
+
+            if(!backendDescriptor.isFinalized())
+            {
+                MIOPEN_THROW(miopenStatusBadParm);
+            }
+
+            BackendRngDescriptor& rngDescriptor =
+                dynamic_cast<BackendRngDescriptor&>(backendDescriptor);
+            mBuilder.setRng(rngDescriptor.getRng());
+            mRngDescriptor = apiDescriptor;
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+        break;
+
+    case MIOPEN_ATTR_OPERATION_RNG_YDESC:
+        callTensorSetter(&OperationRngBuilder::setOutput, mOutputDescriptor);
+        break;
+
+    case MIOPEN_ATTR_OPERATION_RNG_SEED:
+        if(attributeType == MIOPEN_TYPE_INT64 && elementCount == 1)
+        {
+            mBuilder.setSeed(*static_cast<int64_t*>(arrayOfElements));
+        }
+        else
+        {
+            callTensorSetter(&OperationRngBuilder::setSeed, mSeedDescriptor);
+        }
+        break;
+
+    case MIOPEN_ATTR_OPERATION_RNG_OFFSET_DESC:
+        callTensorSetter(&OperationRngBuilder::setOffset, mOffsetDescriptor);
+        break;
+
+    default: MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
+void BackendOperationRngDescriptor::finalize()
+{
+    if(mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+
+    mOperationRng = mBuilder.build();
+    mFinalized    = true;
+}
+
+void BackendOperationRngDescriptor::getAttribute(miopenBackendAttributeName_t attributeName,
+                                                 miopenBackendAttributeType_t attributeType,
+                                                 int64_t requestedElementCount,
+                                                 int64_t* elementCount,
+                                                 void* arrayOfElements)
+{
+    if(!mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+
+    auto retrieveDescriptor = [=](miopenBackendDescriptor_t source) {
+        if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && requestedElementCount == 1)
+        {
+            *elementCount                                             = 1;
+            *static_cast<miopenBackendDescriptor_t*>(arrayOfElements) = source;
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+    };
+
+    switch(attributeName)
+    {
+    case MIOPEN_ATTR_OPERATION_RNG_DESC: retrieveDescriptor(mRngDescriptor); break;
+
+    case MIOPEN_ATTR_OPERATION_RNG_YDESC: retrieveDescriptor(mOutputDescriptor); break;
+
+    case MIOPEN_ATTR_OPERATION_RNG_SEED:
+        if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount == 1)
+        {
+            *elementCount                           = 1;
+            *static_cast<int64_t*>(arrayOfElements) = std::get<int64_t>(mOperationRng.getSeed());
+        }
+        else if(mOperationRng.getSeed().index() == 1)
+        {
+            retrieveDescriptor(mSeedDescriptor);
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+        break;
+
+    case MIOPEN_ATTR_OPERATION_RNG_OFFSET_DESC: retrieveDescriptor(mOffsetDescriptor); break;
+
+    default: MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
+OpNode* BackendOperationRngDescriptor::getOperation() { return &mOperationRng; }
 
 } // namespace graphapi
 
