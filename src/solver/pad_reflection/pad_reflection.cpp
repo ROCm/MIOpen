@@ -40,9 +40,8 @@ namespace solver {
 
 namespace pad_reflection {
 
-bool PadReflection::IsApplicable(
-    [[maybe_unused]] const ExecutionContext& context,
-    const miopen::pad_reflection::ProblemDescription& problem) const
+bool PadReflection::IsApplicable([[maybe_unused]] const ExecutionContext& context,
+                                 const miopen::pad_reflection::ProblemDescription& problem) const
 {
     if(!problem.IsSameType())
         return false;
@@ -53,9 +52,9 @@ bool PadReflection::IsApplicable(
     return true;
 }
 
-ConvSolution PadReflection::GetSolution(
-    [[maybe_unused]] const ExecutionContext& context,
-    const miopen::pad_reflection::ProblemDescription& problem) const
+ConvSolution
+PadReflection::GetSolution([[maybe_unused]] const ExecutionContext& context,
+                           const miopen::pad_reflection::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
