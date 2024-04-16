@@ -32,7 +32,7 @@
 
 __device__ FLOAT_ACCUM sigmoid(FLOAT_ACCUM x) { return 1.0f / (1.0f + exp(-x)); }
 
-extern "C" __global__ void GLUFwdContiguous(const FLOAT* __restrict__ inputFirstHalf,
+extern "C" __global__ void GLUFwdContiguous( const FLOAT* __restrict__ inputFirstHalf,
                                             const FLOAT* __restrict__ inputSecondHalf,
                                             FLOAT* __restrict__ output,
                                             long N)

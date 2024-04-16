@@ -30,7 +30,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
-extern "C" miopenStatus_t miopenGLUForward(miopenHandle_t handle,
+extern "C" miopenStatus_t miopenGLUForward( miopenHandle_t handle,
                                            const miopenTensorDescriptor_t inputDesc,
                                            const miopenTensorDescriptor_t inputSplitDesc,
                                            void* inputFirstHalf,

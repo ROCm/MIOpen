@@ -33,7 +33,7 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-miopenStatus_t GLUForward(Handle& handle,
+miopenStatus_t GLUForward( Handle& handle,
                           const TensorDescriptor& inputDesc,
                           const TensorDescriptor& inputSplitDesc,
                           Data_t inputFirstHalf,
