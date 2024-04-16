@@ -5820,7 +5820,7 @@ MIOPEN_EXPORT miopenStatus_t miopenPadReflection(miopenHandle_t handle,
                                                  const size_t num_padding);
 
 /** @} */
-// CLOSEOUT PAD REFLECTION DOXYGEN GROUP
+// CLOSEOUT padreflection DOXYGEN GROUP
 #endif
 
 #ifdef MIOPEN_BETA_API
