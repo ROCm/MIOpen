@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -46,6 +46,14 @@ struct PadReflectionTestFloat : PadReflectionTest<float>
 {
 };
 
+struct PadReflectionTestHalf : PadReflectionTest<half_float::half>
+{
+};
+
+struct PadReflectionTestBF16 : PadReflectionTest<bfloat16>
+{
+};
+
 } // namespace pad_reflection
 using namespace pad_reflection;
 
@@ -62,6 +70,40 @@ TEST_P(PadReflectionTestFloat, PadReflectionFw)
     }
 };
 
+TEST_P(PadReflectionTestHalf, PadReflectionFw)
+{
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(PadReflectionTestBF16, PadReflectionFw)
+{
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
 INSTANTIATE_TEST_SUITE_P(PadReflectionTestSet,
                          PadReflectionTestFloat,
+                         testing::ValuesIn(PadReflectionTestFloatConfigs()));
+
+INSTANTIATE_TEST_SUITE_P(PadReflectionTestSet,
+                         PadReflectionTestHalf,
+                         testing::ValuesIn(PadReflectionTestFloatConfigs()));
+
+INSTANTIATE_TEST_SUITE_P(PadReflectionTestSet,
+                         PadReflectionTestBF16,
                          testing::ValuesIn(PadReflectionTestFloatConfigs()));

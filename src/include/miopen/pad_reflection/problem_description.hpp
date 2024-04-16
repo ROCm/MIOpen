@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -41,13 +41,13 @@ struct ProblemDescription : ProblemDescriptionBase
 {
     ProblemDescription(const TensorDescriptor& xDesc_,
                        const TensorDescriptor& yDesc_,
-                       const std::vector<size_t> padding_)
-        : xDesc(xDesc_), yDesc(yDesc_), padding(padding_)
+                       const size_t num_padding_)
+        : xDesc(xDesc_), yDesc(yDesc_), num_padding(num_padding_) 
     {
     }
     const TensorDescriptor& GetXDesc() const { return xDesc; }
     const TensorDescriptor& GetYDesc() const { return yDesc; }
-    const std::vector<size_t>& GetPadding() const { return padding; }
+    size_t GetNumPadding() const { return num_padding; }
 
     bool IsSameType() const
     {
@@ -75,12 +75,26 @@ struct ProblemDescription : ProblemDescriptionBase
         return true;
     }
 
+    
+    bool IsRightNumPadding() const
+    {
+        if(!(num_padding == 1 || num_padding == 4))
+        {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+            MIOPEN_THROW(miopenStatusBadParm, "Pad Reflection: Padding input needs to have 1 or 4 elements only.");
+#else
+            return false;
+#endif
+        }
+        return true;
+    } 
+
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
     TensorDescriptor xDesc;
     TensorDescriptor yDesc;
-    std::vector<size_t> padding;
+    size_t num_padding;
 };
 
 } // namespace pad_reflection

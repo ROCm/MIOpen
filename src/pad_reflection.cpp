@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -40,9 +40,10 @@ miopenStatus_t PadReflection(Handle& handle,
                              ConstData_t x,
                              const TensorDescriptor& yDesc,
                              Data_t y,
-                             const std::vector<size_t> padding)
+                             const size_t * padding,
+                             const size_t num_padding)
 {
-    const auto problem = pad_reflection::ProblemDescription{xDesc, yDesc, padding};
+    const auto problem = pad_reflection::ProblemDescription{xDesc, yDesc, num_padding};
 
     const auto invoke_params = [&]() {
         auto tmp    = pad_reflection::InvokeParams{};
@@ -51,7 +52,8 @@ miopenStatus_t PadReflection(Handle& handle,
         tmp.yDesc   = &yDesc;
         tmp.x       = x;
         tmp.y       = y;
-        tmp.padding = &padding;
+        tmp.padding = padding;
+        tmp.num_padding = num_padding;
         return tmp;
     }();
 

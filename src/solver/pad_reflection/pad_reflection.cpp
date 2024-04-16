@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -48,14 +48,9 @@ bool PadReflection::IsApplicable(
         return false;
     if(!problem.IsAllPacked())
         return false;
+    if(!problem.IsRightNumPadding())
+        return false;
     return true;
-}
-
-std::size_t PadReflection::GetWorkspaceSize(
-    [[maybe_unused]] const ExecutionContext& context,
-    [[maybe_unused]] const miopen::pad_reflection::ProblemDescription& problem) const
-{
-    return 0;
 }
 
 ConvSolution PadReflection::GetSolution(
@@ -113,9 +108,21 @@ ConvSolution PadReflection::GetSolution(
             auto output_size =
                 std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
 
-            auto padding          = params.padding;
-            long padding_l        = (*padding)[0];
-            long padding_t        = (*padding)[2];
+            auto padding     = params.padding;
+            auto num_padding = params.num_padding;
+            long padding_l, padding_t;
+            if(num_padding == 1)
+            {
+                padding_l = padding[0];
+                padding_t = padding[0];
+            }
+            else if(num_padding == 4)
+            {
+                padding_l = padding[0];
+                padding_t = padding[2];
+            }
+            // long padding_l        = (*padding)[0];
+            // long padding_t        = (*padding)[2];
             size_t in_H           = xdims[2];
             size_t in_W           = xdims[3];
             size_t output_size_1  = ydims[1];

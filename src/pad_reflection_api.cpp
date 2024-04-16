@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,8 @@ extern "C" miopenStatus_t miopenPadReflection(miopenHandle_t handle,
                                               const void* x,
                                               const miopenTensorDescriptor_t yDesc,
                                               void* y,
-                                              const std::vector<size_t> padding)
+                                              const size_t * padding,
+                                              const size_t num_padding)
 {
     MIOPEN_LOG_FUNCTION(handle, xDesc, x, yDesc, y, padding);
 
@@ -45,6 +46,7 @@ extern "C" miopenStatus_t miopenPadReflection(miopenHandle_t handle,
                               DataCast(x),
                               miopen::deref(yDesc),
                               DataCast(y),
-                              padding);
+                              padding,
+                              num_padding);
     });
 }

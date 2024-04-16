@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,6 +38,7 @@ miopenStatus_t PadReflection(Handle& handle,
                              ConstData_t x,
                              const TensorDescriptor& yDesc,
                              Data_t y,
-                             std::vector<size_t> padding);
+                             const size_t * padding,
+                             const size_t num_padding);
 } // namespace miopen
 #endif // MIOPEN_PAD_REFLECTION_HPP_

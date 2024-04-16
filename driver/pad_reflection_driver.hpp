@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -85,7 +85,6 @@ void mloPadReflectionRunHost(miopenTensorDescriptor_t inputDesc,
         }
         else if(padding_l <= w && w < in_W + padding_l)
         {
-            w = w;
         }
         else
         {
@@ -99,7 +98,6 @@ void mloPadReflectionRunHost(miopenTensorDescriptor_t inputDesc,
         }
         else if(padding_t <= h && h < in_H + padding_t)
         {
-            h = h;
         }
         else
         {
@@ -189,6 +187,10 @@ int PadReflectionDriver<Tgpu, Tref>::GetandSetData()
         padding.push_back(std::stoul(token));
     }
 
+    if (!(padding.size() == 1 or padding.size() == 4)) {
+        std::cerr << "Error Padding Lengths\n" << std::endl;
+    }
+
     std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
 
     SetTensorNd(inputDesc, in_len, data_type);
@@ -230,7 +232,7 @@ int PadReflectionDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
 
-    inflags.AddInputFlag("padding", 'P', "1,1,1,1", "Padding array (Default=1,1,1,1)", "str");
+    inflags.AddInputFlag("padding", 'P', "1,1,1,1", "Padding array (Default=1 or 1,1,1,1)", "str");
 
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
@@ -318,7 +320,7 @@ int PadReflectionDriver<Tgpu, Tref>::RunForwardGPU()
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
         miopenPadReflection(
-            GetHandle(), inputDesc, in_dev->GetMem(), outputDesc, out_dev->GetMem(), padding);
+            GetHandle(), inputDesc, in_dev->GetMem(), outputDesc, out_dev->GetMem(), padding.data(), padding.size());
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -374,7 +376,7 @@ int PadReflectionDriver<Tgpu, Tref>::VerifyForward()
     const Tref tolerance = GetTolerance();
     auto error           = miopen::rms_range(outhost, out);
 
-    if(!std::isfinite(error) || error > 0)
+    if(std::abs(static_cast<float>(error)) != 0.0f)
     {
         std::cout << "Pad Reflection FAILED: " << error << " > " << tolerance << std::endl;
         return EC_VerifyFwd;

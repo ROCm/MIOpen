@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -41,11 +41,11 @@ struct PadReflectionCase
     size_t D;
     size_t H;
     size_t W;
-    int padding[4];
+    size_t padding[4];
     friend std::ostream& operator<<(std::ostream& os, const PadReflectionCase& tc)
     {
         return os << " N:" << tc.N << " C:" << tc.C << " D:" << tc.D << " H:" << tc.H
-                  << " W:" << tc.W;
+                  << " W:" << tc.W << " Padding:" << tc.padding[0] << " " << tc.padding[1] << " " << tc.padding[2] << " " << tc.padding[3];
     }
 
     std::vector<size_t> GetInput()
@@ -82,7 +82,7 @@ struct PadReflectionCase
         std::vector<size_t> paddingVector;
         for(int i = 0; i < 4; ++i)
         {
-            paddingVector.push_back(static_cast<size_t>(padding[i]));
+            paddingVector.push_back(padding[i]);
         }
         return paddingVector;
     }
@@ -92,11 +92,11 @@ std::vector<PadReflectionCase> PadReflectionTestFloatConfigs()
 { // n c d h w padding
     // clang-format off
     return {
-        { 1,   1,    0,  3, 3, {2, 2, 2, 2}},
-        { 48,   8,    0,  512, 512, {1, 1, 1, 1}},
+        { 1,   1,    0,  3, 3, {2}},
+        { 48,   8,    0,  512, 512, {1}},
         { 48,   8,    0,  512, 512, {1, 1, 3, 3}},
         { 48,   8,    0,  512, 512, {0, 0, 2, 2}},
-        { 16, 311,    0,  98,  512, {1, 1, 1, 1}},
+        { 16, 311,    0,  98,  512, {1}},
         { 16, 311,    0,  98,  512, {1, 1, 3, 3}},
         { 16, 311,    0,  98,  512, {0, 0, 2, 2}},
       };
@@ -152,7 +152,7 @@ protected:
         miopenStatus_t status;
 
         status = miopen::PadReflection(
-            handle, input.desc, input_dev.get(), output.desc, output_dev.get(), padding);
+            handle, input.desc, input_dev.get(), output.desc, output_dev.get(), padding.data(), padding.size());
 
         EXPECT_EQ(status, miopenStatusSuccess);
 

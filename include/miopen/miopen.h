@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,6 @@
 #ifndef MIOPEN_GUARD_MIOPEN_H_
 #define MIOPEN_GUARD_MIOPEN_H_
 
-#include <vector>
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wextern-c-compat"
@@ -5819,7 +5818,8 @@ MIOPEN_EXPORT miopenStatus_t miopenPadReflection(miopenHandle_t handle,
                                               const void* x,
                                               const miopenTensorDescriptor_t yDesc,
                                               void* y,
-                                              const std::vector<size_t> padding);
+                                              const size_t * padding,
+                                              const size_t num_padding);
 
 /** @} */
 // CLOSEOUT PAD REFLECTION DOXYGEN GROUP
