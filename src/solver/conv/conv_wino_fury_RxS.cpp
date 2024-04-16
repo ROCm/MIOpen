@@ -243,8 +243,6 @@ bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext&
     if(!StartsWith(dev_name, "gfx11"))
         return false;
 
-    if(problem.GetInLayout() != "NCHW")
-        return false;
     if(!(problem.GetKernelStrideH() == 1 && problem.GetKernelStrideW() == 1))
         return false;
     if(!(problem.GetDilationH() == 1 && problem.GetDilationW() == 1))
