@@ -32,8 +32,8 @@
 
 __device__ FLOAT_ACCUM sigmoid(FLOAT_ACCUM x) { return 1.0f / (1.0f + exp(-x)); }
 
-extern "C" __global__ void GLUFwdContiguous(const FLOAT* __restrict__ a,
-                                            const FLOAT* __restrict__ b,
+extern "C" __global__ void GLUFwdContiguous(const FLOAT* __restrict__ inputFirstHalf,
+                                            const FLOAT* __restrict__ inputSecondHalf,
                                             FLOAT* __restrict__ output,
                                             long N)
 {
@@ -41,8 +41,8 @@ extern "C" __global__ void GLUFwdContiguous(const FLOAT* __restrict__ a,
     if(gid >= N)
         return;
 
-    FLOAT_ACCUM val1 = CVT_FLOAT2ACCUM(a[gid]);
-    FLOAT_ACCUM val2 = sigmoid(CVT_FLOAT2ACCUM(b[gid]));
+    FLOAT_ACCUM val1 = CVT_FLOAT2ACCUM(inputFirstHalf[gid]);
+    FLOAT_ACCUM val2 = sigmoid(CVT_FLOAT2ACCUM(inputSecondHalf[gid]));
     FLOAT_ACCUM val  = val1 * val2;
     output[gid]      = CVT_ACCUM2FLOAT(val);
 }

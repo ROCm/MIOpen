@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,8 +36,8 @@ struct TensorDescriptor;
 miopenStatus_t GLUForward(Handle& handle,
                           const TensorDescriptor& inputDesc,
                           const TensorDescriptor& inputSplitDesc,
-                          Data_t a,
-                          Data_t b,
+                          Data_t inputFirstHalf,
+                          Data_t inputSecondHalf,
                           int32_t dim,
                           const TensorDescriptor& outputDesc,
                           Data_t output);

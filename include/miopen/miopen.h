@@ -6596,18 +6596,18 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
  * @param handle                   MIOpen handle (input)
  * @param inputDesc                Tensor descriptor for data input tensor x (input)
  * @param inputSplitDesc           Tensor descriptor for splitted data input tensor x (input)
- * @param a                        First half input data tensor  (input)
- * @param b                        Second half input data tensor (input)
+ * @param inputFirstHalf           First half input data tensor  (input)
+ * @param inputSecondHalf          Second half input data tensor (input)
  * @param dim                      Dimensions to split. (input)
  * @param outputDesc               Tensor descriptor for output data tensor y (input)
- * @param output                   Data tensor y (output)
+ * @param output                   Output data tensor (output)
  * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGLUForward(miopenHandle_t handle,
                                               const miopenTensorDescriptor_t inputDesc,
                                               const miopenTensorDescriptor_t inputSplitDesc,
-                                              void* a,
-                                              void* b,
+                                              void* inputFirstHalf,
+                                              void* inputSecondHalf,
                                               const int32_t dim,
                                               const miopenTensorDescriptor_t outputDesc,
                                               void* output);

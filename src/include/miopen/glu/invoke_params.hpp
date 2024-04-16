@@ -41,11 +41,11 @@ struct InvokeParams : public miopen::InvokeParams
     const TensorDescriptor* inputSplitDesc = nullptr;
     const TensorDescriptor* outputDesc     = nullptr;
 
-    ConstData_t x      = nullptr;
-    Data_t xSecondHalf = nullptr;
-    Data_t xFirstHalf  = nullptr;
-    Data_t y           = nullptr;
-    int32_t dim        = 0;
+    ConstData_t input      = nullptr;
+    Data_t inputFirstHalf  = nullptr;
+    Data_t inputSecondHalf = nullptr;
+    Data_t output          = nullptr;
+    int32_t dim            = 0;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
