@@ -111,11 +111,11 @@ bool Mha::IsApplicable([[maybe_unused]] const ExecutionContext& context,
 {
     auto [N, H, S, D] = miopen::tien<4>(problem.GetDescs().kDesc.GetLengths());
 
-    return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_NAIVE)) && //
-           S <= std::numeric_limits<uint32_t>::max() &&         //
-           problem.GetDescs().kDesc.IsPacked() &&               //
-           problem.GetDescs().qDesc.IsPacked() &&               //
-           problem.GetDescs().vDesc.IsPacked() &&               //
+    return !env::disabled(MIOPEN_DEBUG_ATTN_NAIVE) &&   //
+           S <= std::numeric_limits<uint32_t>::max() && //
+           problem.GetDescs().kDesc.IsPacked() &&       //
+           problem.GetDescs().qDesc.IsPacked() &&       //
+           problem.GetDescs().vDesc.IsPacked() &&       //
            MIOPEN_USE_GEMM;
 }
 
