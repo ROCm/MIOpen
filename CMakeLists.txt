@@ -125,7 +125,8 @@ endif()
 ############################################################
 # OPTION - MIOpen Backend
 # - OpenCL
-# - HIP
+# - HI
+message("HAS_HIP == " ${HAS_HIP})
 check_cxx_compiler_flag("--cuda-host-only -x hip" HAS_HIP)
 if(HAS_HIP)
     set(MIOPEN_DEFAULT_BACKEND "HIP")
@@ -282,6 +283,7 @@ if(HAS_HIP)
 else()
     # CXX compiler is not HIP compiler, let's analyze HIP version.
     set(MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK Off)
+    message(MIOPEN_hip_VERSION_FLAT="${MIOPEN_hip_VERSION_FLAT}")
     if(${MIOPEN_hip_VERSION_FLAT} GREATER_EQUAL 500723302)
         set(MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK On)
     endif()

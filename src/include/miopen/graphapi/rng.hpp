@@ -115,7 +115,6 @@ class BackendRngDescriptor : public BackendDescriptor
 private:
     RngBuilder mBuilder;
     Rng mRng;
-
 public:
     virtual void setAttribute(miopenBackendAttributeName_t attributeName,
                               miopenBackendAttributeType_t attributeType,

@@ -26,6 +26,7 @@
 #include <miopen/graphapi/graphapi.hpp>
 
 #include <miopen/graphapi/tensor.hpp>
+#include <miopen/graphapi/opgraph.hpp>
 
 namespace miopen {
 namespace graphapi {
@@ -84,84 +85,130 @@ public:
     Matmul* getMatmul() noexcept { return &mMatmul; }
 };
 
-<<<<<<< HEAD
-Class OperationMatmul {
-    private:
-    BackendTensorDescriptor mA;
-    BackendTensorDescriptor mB;
-    BackendTensorDescriptor mC;
+class OperationMatmul : public OpNode
+{
+private:
+    Tensor* mA;
+    Tensor* mB;
+    Tensor* mC;
     int64_t mBatchCount = 1;
-    BackendTensorDescriptor mGemmMOverride;
-    BackendTensorDescriptor mGemmNOverride;
-    BackendTensorDescriptor mGemmKOverride;
-    BackendMatmulDescriptor mMatmul;
-    public:
-    OperationMatmul() = default;
-    BackendTensorDescriptor getA() { return mA};
-    BackendTensorDescriptor getB() { return mB};
-    BackendTensorDescriptor getC() { return mC};
-    int64_t getBatchCount() { return mBatchCount};
-    BackendTensorDescriptor getMOverride() { return mGemmMOverride};
-    BackendTensorDescriptor getNOverride() { return mGemmNOverride};
-    BackendTensorDescriptor getKOverride() { return mGemmKOverride};
-    BackendMatmulDescriptor getMatmul() { return mMatmul};
-    private:
-    friend class BackendOperationMatmulBuilder;
-}
+    Tensor* mGemmMOverride;
+    Tensor* mGemmNOverride;
+    Tensor* mGemmKOverride;
+    Matmul* mMatmul;
 
-class BackendOperationMatmulBuilder {
-    private:
-    bool mMatmulSet = false;
-    bool mASet = false;
-    bool mBSet = false;
-    bool mCSet = false;
-    OperationMatmul mMatmul;
-    public:
-    BackendOperationMatmulBuilder &setA(BackendTensorDescriptor A) {
-       mMatmul.mA = A;
-       mASet = true;
-       return *this;
-    };
-    BackendOperationMatmulBuilder &setB(BackendTensorDescriptor B) {
-       mMatmul.mB = B;
-       mBSet = false;
-       return *this;
-    };
-    BackendOperationMatmulBuilder &setC(BackendTensorDescriptor C) {
-       mMatmul.mC = C;
-       mCSet = false;
-       return *this;
-    };
-    BackendOperationMatmulBuilder &setBatchCount(int64_t count) {
-       mMatmul.mBatchCount = count;
-       return *this;
-    };
-    BackendTensorDescriptor &setGemmMOverride(BackendTensorDescriptor overrideTensor) {
-        mMatmul.mGemmMOverride = overrideTensor;
+public:
+    OperationMatmul(Tensor* A,
+                    Tensor* B,
+                    Tensor* C,
+                    int batchCount,
+                    Tensor* MOverride,
+                    Tensor* NOverride,
+                    Tensor* KOverride,
+                    Matmul* matmul) noexcept
+        : mA(A),
+          mB(B),
+          mC(C),
+          mBatchCount(batchCount),
+          mGemmMOverride(MOverride),
+          mGemmNOverride(NOverride),
+          mGemmKOverride(KOverride),
+          mMatmul(matmul)
+    {
+    }
+
+    OperationMatmul() = default;
+    Tensor* getA() const { return mA; }
+    Tensor* getB() const { return mB; }
+    Tensor* getC() const { return mC; }
+    int64_t getBatchCount() const { return mBatchCount; }
+    Tensor* getMOverride() { return mGemmMOverride; }
+    Tensor* getNOverride() { return mGemmNOverride; }
+    Tensor* getKOverride() { return mGemmKOverride; }
+    Matmul* getMatmul() { return mMatmul; }
+    virtual std::vector<Tensor*> getInTensors() const override { return {getA(), getB()}; }
+    virtual std::vector<Tensor*> getOutTensors() const override { return {getC()}; }
+    virtual const std::string& signName() const override
+    {
+        static const std::string name = "OP_MATMUL";
+        return name;
+    }
+
+private:
+    friend class OperationMatmulBuilder;
+};
+
+class OperationMatmulBuilder
+{
+private:
+    OperationMatmul mOperationMatmul;
+    bool aSet      = false;
+    bool bSet      = false;
+    bool cSet      = false;
+    bool matmulSet = false;
+
+public:
+    OperationMatmulBuilder& setA(Tensor* A)
+    {
+        mOperationMatmul.mA = checkPtr(A);
+        aSet                = true;
         return *this;
     };
-    BackendTensorDescriptor &setGemmNOverride(BackendTensorDescriptor overrideTensor) {
-        mMatmul.mGemmNOverride = overrideTensor;
+    OperationMatmulBuilder& setB(Tensor* B)
+    {
+        mOperationMatmul.mB = checkPtr(B);
+        bSet                = true;
         return *this;
     };
-    BackendTensorDescriptor &setGemmKOverride(BackendTensorDescriptor overrideTensor) {
-        mMatmul.mGemmKOverride = overrideTensor;
+    OperationMatmulBuilder& setC(Tensor* C)
+    {
+        mOperationMatmul.mC = checkPtr(C);
+        cSet                = true;
         return *this;
     };
-    BackendTensorDescriptor &setMatmulDescriptor(BackendMatmulDescriptor matmul) {
-        mMatmul = matmul;
-        mMatmulSet = true;
+    OperationMatmulBuilder& setBatchCount(int64_t count)
+    {
+        mOperationMatmul.mBatchCount = count;
+        return *this;
+    };
+    OperationMatmulBuilder& setGemmMOverride(Tensor* overrideTensor)
+    {
+        mOperationMatmul.mGemmMOverride = checkPtr(overrideTensor);
+        return *this;
+    };
+    OperationMatmulBuilder& setGemmNOverride(Tensor* overrideTensor)
+    {
+        mOperationMatmul.mGemmNOverride = checkPtr(overrideTensor);
+        return *this;
+    };
+    OperationMatmulBuilder& setGemmKOverride(Tensor* overrideTensor)
+    {
+        mOperationMatmul.mGemmKOverride = checkPtr(overrideTensor);
+        return *this;
+    };
+    OperationMatmulBuilder& setMatmulDescriptor(Matmul* mMatmul)
+    {
+        mOperationMatmul.mMatmul = checkPtr(mMatmul);
+        matmulSet                = true;
         return *this;
     }
     OperationMatmul build();
-}
+};
 
-class BackendOperationMatmul : public BackendDescriptor
+class BackendOperationMatmulDescriptor : public BackendDescriptor
 {
-    private:
-    BackendOperationMatmulBuilder mBuilder;
+private:
+    OperationMatmulBuilder mBuilder;
     OperationMatmul mMatmul;
-    public:
+    miopenBackendDescriptor_t mA               = nullptr;
+    miopenBackendDescriptor_t mB               = nullptr;
+    miopenBackendDescriptor_t mC               = nullptr;
+    miopenBackendDescriptor_t mGemmMOverride   = nullptr;
+    miopenBackendDescriptor_t mGemmNOverride   = nullptr;
+    miopenBackendDescriptor_t mGemmKOverride   = nullptr;
+    miopenBackendDescriptor_t mMatmuDescriptor = nullptr;
+
+public:
     virtual void setAttribute(miopenBackendAttributeName_t attributeName,
                               miopenBackendAttributeType_t attributeType,
                               int64_t elementCount,
@@ -172,7 +219,7 @@ class BackendOperationMatmul : public BackendDescriptor
                               int64_t requestedElementCount,
                               int64_t* elementCount,
                               void* arrayOfElements) override;
-}
+};
 
 } // namespace graphapi
 } // namespace miopen
