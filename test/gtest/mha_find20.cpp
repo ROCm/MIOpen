@@ -443,9 +443,9 @@ private:
         const auto& mhaScaleS = tensors[miopenTensorMhaScaleS];
 
         const auto& mhaScaleDS = tensors[miopenTensorMhaScaleDS];
-        const auto& mhaScaleDQ = tensors[miopenTensorMhaScaleDS];
-        const auto& mhaScaleDK = tensors[miopenTensorMhaScaleDS];
-        const auto& mhaScaleDV = tensors[miopenTensorMhaScaleDS];
+        const auto& mhaScaleDQ = tensors[miopenTensorMhaScaleDQ];
+        const auto& mhaScaleDK = tensors[miopenTensorMhaScaleDK];
+        const auto& mhaScaleDV = tensors[miopenTensorMhaScaleDV];
 
         const auto& mhadp = tensors[miopenTensorMhaDropoutProbability];
         const auto& mhads = tensors[miopenTensorMhaDropoutSeed];
