@@ -203,9 +203,21 @@ protected:
         output.data = handle.Read<T>(output_dev, output.data.size());
     }
 
+    double GetTolerance()
+    {
+        // Computation error of fp16 is ~2^13 (=8192) bigger than
+        // the one of fp32 because mantissa is shorter by 13 bits.
+        double tolerance = std::is_same<T, float>::value ? 1.5e-6 : 8.2e-3;
+
+        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+        if(std::is_same<T, bfloat16>::value)
+            tolerance *= 8.0;
+        return tolerance;
+    }
+
     void Verify()
     {
-        double threshold = std::numeric_limits<T>::epsilon();
+        double threshold = GetTolerance();
         auto error       = miopen::rms_range(ref_output, output);
 
         EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
