@@ -26,6 +26,7 @@
 
 #include "glu.hpp"
 #include <miopen/env.hpp>
+using float16 = half_float::half;
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
@@ -46,6 +47,14 @@ struct GLUTestFloat : GLUTest<float>
 {
 };
 
+struct GLUTestFP16 : GLUTest<float16>
+{
+};
+
+struct GLUTestBFP16 : GLUTest<bfloat16>
+{
+};
+
 } // namespace glu
 using namespace glu;
 
@@ -62,4 +71,32 @@ TEST_P(GLUTestFloat, GLUTestFw)
     }
 };
 
+TEST_P(GLUTestFP16, GLUTestFw)
+{
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--fp16"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(GLUTestBFP16, GLUTestFw)
+{
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfp16"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+}
+
 INSTANTIATE_TEST_SUITE_P(GLUTestSet, GLUTestFloat, testing::ValuesIn(GLUTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(GLUTestSet, GLUTestFP16, testing::ValuesIn(GLUTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(GLUTestSet, GLUTestBFP16, testing::ValuesIn(GLUTestConfigs()));

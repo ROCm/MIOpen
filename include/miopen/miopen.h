@@ -6603,7 +6603,7 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
  * @param output                   Output data tensor (output)
  * @return                         miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t miopenGLUForward( miopenHandle_t handle,
+MIOPEN_EXPORT miopenStatus_t miopenGLUForward(miopenHandle_t handle,
                                               const miopenTensorDescriptor_t inputDesc,
                                               const miopenTensorDescriptor_t inputSplitDesc,
                                               void* inputFirstHalf,

@@ -99,7 +99,7 @@ std::vector<GLUTestCase> GLUTestConfigs()
     // clang-format on
 }
 
-template <typename T = float>
+template <typename T>
 struct GLUTest : public ::testing::TestWithParam<GLUTestCase>
 {
 protected:

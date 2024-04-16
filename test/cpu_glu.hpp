@@ -31,7 +31,7 @@
 template <typename T>
 T sigmoid(T x)
 {
-    return 1.0f / (1.0f + exp(-x));
+    return static_cast<T>(1.0f / (1.0f + exp(-x)));
 }
 
 template <class T>

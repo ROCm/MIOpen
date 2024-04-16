@@ -41,7 +41,7 @@ struct InvokeParams : public miopen::InvokeParams
     const TensorDescriptor* inputSplitDesc = nullptr;
     const TensorDescriptor* outputDesc     = nullptr;
 
-    ConstData_t input      =  nullptr;
+    ConstData_t input      = nullptr;
     Data_t inputFirstHalf  = nullptr;
     Data_t inputSecondHalf = nullptr;
     Data_t output          = nullptr;
