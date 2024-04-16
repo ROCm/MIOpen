@@ -59,7 +59,7 @@ using namespace nllloss;
 
 TEST_P(NLLLossTestFloat, NLLLossTestFw)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) || (GetFloatArg() == "--float"))
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
     {
         RunTest();
         Verify();
@@ -72,7 +72,7 @@ TEST_P(NLLLossTestFloat, NLLLossTestFw)
 
 TEST_P(NLLLossTestHalf, NLLLossTestFw)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) || (GetFloatArg() == "--half"))
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
     {
         RunTest();
         Verify();
@@ -85,7 +85,7 @@ TEST_P(NLLLossTestHalf, NLLLossTestFw)
 
 TEST_P(NLLLossTestBFloat16, NLLLossTestFw)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) || (GetFloatArg() == "--bfloat16"))
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))
     {
         RunTest();
         Verify();

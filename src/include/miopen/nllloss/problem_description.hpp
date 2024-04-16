@@ -88,20 +88,11 @@ struct ProblemDescription : ProblemDescriptionBase
 
     bool IsSameType() const
     {
-        if(inputDesc.GetType() != outputDesc.GetType())
+        if(inputDesc.GetType() != weightDesc.GetType())
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm,
-                         "NLLLoss: Tensor types of Input and Output do not match.");
-#else
-            return false;
-#endif
-        }
-        if(outputDesc.GetType() != weightDesc.GetType())
-        {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "NLLLoss: Tensor types of Output and Weight do not match.");
+                         "NLLLoss: Tensor types of Input and Weight do not match.");
 #else
             return false;
 #endif
