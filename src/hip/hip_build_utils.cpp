@@ -178,13 +178,13 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
         std::string(" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
 
     params += " ";
-    auto bin_file = tmp_dir->path / (filename + ".o");
+    auto bin_file = make_object_file_name(tmp_dir.get() / filename);
 
     // compile
     {
         const std::string redirector = testing_mode ? " 1>/dev/null 2>&1" : "";
         const std::string cmd        = env + std::string(" ") + MIOPEN_HIP_COMPILER;
-        const std::string args       = params + filename + " -o " + bin_file.string() + redirector;
+        const std::string args       = params + filename + " -o " + bin_file + redirector;
         tmp_dir->Execute(cmd, args);
         if(!fs::exists(bin_file))
             MIOPEN_THROW("Failed cmd: '" + cmd + "', args: '" + args + '\'');
@@ -195,9 +195,8 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     tmp_dir->Execute(MIOPEN_OFFLOADBUNDLER_BIN,
                      "--type=o "
                      "--targets=hipv4-amdgcn-amd-amdhsa-" +
-                         (std::string{'-'} + lots.device + lots.xnack) +
-                         " --inputs=" + bin_file.string() + " --outputs=" + bin_file.string() +
-                         ".hsaco --unbundle");
+                         (std::string{'-'} + lots.device + lots.xnack) + " --inputs=" + bin_file +
+                         " --outputs=" + bin_file + ".hsaco --unbundle");
 
     auto hsaco = std::find_if(fs::directory_iterator{tmp_dir->path}, {}, [](auto entry) {
         return (entry.path().extension() == ".hsaco");
@@ -205,7 +204,7 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 
     if(hsaco == fs::directory_iterator{})
     {
-        MIOPEN_LOG_E("failed to find *.hsaco in " << hsaco->path().string());
+        MIOPEN_LOG_E("failed to find *.hsaco in " << hsaco->path());
     }
     return hsaco->path();
 #endif
@@ -226,14 +225,6 @@ fs::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
         params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
     return HipBuildImpl(tmp_dir, filename, src, params, target, false);
-}
-
-void bin_file_to_str(const fs::path& file, std::string& buf)
-{
-    std::ifstream bin_file_ptr(file.string().c_str(), std::ios::binary);
-    std::ostringstream bin_file_strm;
-    bin_file_strm << bin_file_ptr.rdbuf();
-    buf = bin_file_strm.str();
 }
 
 } // namespace miopen

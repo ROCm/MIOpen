@@ -26,7 +26,34 @@
 
 find_package(Threads REQUIRED)
 
-add_executable(MIOpenDriver main.cpp InputFlags.cpp rocrand_wrapper.cpp)
+add_executable(MIOpenDriver 
+    InputFlags.cpp
+    conv_common.cpp
+    dm_activ.cpp
+    dm_argmax.cpp
+    dm_bnorm.cpp
+    dm_cat.cpp
+    dm_conv.cpp
+    dm_convbfp16.cpp
+    dm_convbfp8.cpp
+    dm_convfp16.cpp
+    dm_convfp8.cpp
+    dm_convint8.cpp
+    dm_dropout.cpp
+    dm_fusion.cpp
+    dm_gemm.cpp
+    dm_groupnorm.cpp
+    dm_layernorm.cpp
+    dm_lrn.cpp
+    dm_pool.cpp
+    dm_reduce.cpp
+    dm_rnn.cpp
+    dm_softmax.cpp
+    dm_sum.cpp
+    dm_tensorop.cpp
+    main.cpp
+    registry_driver_maker.cpp
+    rocrand_wrapper.cpp)
 if(WIN32)
     # Refer to https://en.cppreference.com/w/cpp/language/types for details.
     target_compile_options(MIOpenDriver PRIVATE $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:Clang>:-U__LP64__>>)

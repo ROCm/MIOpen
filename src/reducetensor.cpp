@@ -37,6 +37,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <memory>
 #include <algorithm>
 #include <cmath>
 #include <ostream>
@@ -520,6 +521,10 @@ ReduceTensorDescriptor::ReduceTensorDescriptor(miopenReduceTensorOp_t reduceTens
         MIOPEN_THROW("Only int32 type is supported for ReduceTensor indices.");
 };
 
+// This is WS requirement of the dynamic reduction.
+// We must enforce it especially when reduction is used internally.
+constexpr std::size_t workspaceAlignRequirementBytes = 64;
+
 // return the size of the workspace in bytes, so that the workspace buffer can be prepared by the
 // user
 std::size_t ReduceTensorDescriptor::GetWorkspaceSize(const Handle& handle,
@@ -568,7 +573,7 @@ std::size_t ReduceTensorDescriptor::GetWorkspaceSize(const Handle& handle,
     std::size_t wsSizeInBytes =
         !need_indices ? workspace_size * detail::GetDataTypeSize(inDesc.GetType())
                       : workspace_size * (detail::GetDataTypeSize(inDesc.GetType()) + sizeof(int)) +
-                            64 + sizeof(int);
+                            64 + sizeof(int) + workspaceAlignRequirementBytes;
 
     // dynamic reduction use one additional page for storing tensor descriptors
     if(!env::disabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION))
@@ -1029,6 +1034,14 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
         std::string network_config_1 = network_config + "_1_P" + std::to_string(reduceImpl) +
                                        std::to_string(static_cast<int>(use_padding.first)) +
                                        std::to_string(static_cast<int>(use_padding.second));
+
+        if(nullptr == std::align(workspaceAlignRequirementBytes,
+                                 ws_sizeInBytes - workspaceAlignRequirementBytes,
+                                 workspace,
+                                 workspaceSizeInBytes))
+        {
+            MIOPEN_THROW(miopenStatusInternalError, "Alignment failed. There is not enough space.");
+        }
 
         if(!reduceAllDims)
         {

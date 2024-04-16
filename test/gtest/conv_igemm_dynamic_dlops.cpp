@@ -31,7 +31,6 @@
 #include "../conv2d.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
 namespace {
 
@@ -145,10 +144,7 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest()
-{
-    return env::enabled(MIOPEN_TEST_GPU_XNACK_ENABLED) || env::disabled(MIOPEN_TEST_ALL);
-}
+bool SkipTest() { return get_handle_xnack() || env::disabled(MIOPEN_TEST_ALL); }
 
 bool IsTestSupportedForDevice()
 {

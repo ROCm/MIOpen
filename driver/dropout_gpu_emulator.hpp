@@ -46,9 +46,12 @@
 
 #define ROCRAND_2POW32_INV (2.3283064e-10f)
 
-float uniform_distribution_emu(size_t v) { return ROCRAND_2POW32_INV + (v * ROCRAND_2POW32_INV); }
+static float uniform_distribution_emu(size_t v)
+{
+    return ROCRAND_2POW32_INV + (v * ROCRAND_2POW32_INV);
+}
 
-void xorwow_skipahead_emu(
+static void xorwow_skipahead_emu(
     unsigned long long skp,
     prngStates* state,
     const unsigned int skipahead_mat[XORWOW_PRECALC_MATRICES_NUM][XORWOW_PRECALC_MATRICES_SZ])
@@ -97,10 +100,10 @@ void xorwow_skipahead_emu(
     std::copy(std::begin(xor_vec), std::end(xor_vec), p);
 }
 
-void xorwow_lite_init_emu(prngStates* cur_state,
-                          const unsigned long long seed,
-                          const unsigned long long subsequence,
-                          const unsigned long long offset)
+static void xorwow_lite_init_emu(prngStates* cur_state,
+                                 const unsigned long long seed,
+                                 const unsigned long long subsequence,
+                                 const unsigned long long offset)
 {
     cur_state->x = 123456789;
     cur_state->y = 362436069;
@@ -128,8 +131,8 @@ void xorwow_lite_init_emu(prngStates* cur_state,
     cur_state->d += static_cast<unsigned int>(offset) * 362437;
 }
 
-void InitKernelStateEmulator(std::vector<prngStates>& states,
-                             const miopenDropoutDescriptor_t dropoutDesc)
+static void InitKernelStateEmulator(std::vector<prngStates>& states,
+                                    const miopenDropoutDescriptor_t dropoutDesc)
 {
     size_t states_num = miopen::deref(dropoutDesc).stateSizeInBytes / sizeof(prngStates);
     size_t wk_grp_num = std::min(size_t(MAX_PRNG_STATE / 256), (states_num + 255) / 256);

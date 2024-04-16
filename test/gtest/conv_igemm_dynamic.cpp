@@ -31,7 +31,6 @@
 #include "../conv2d.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
 namespace conv_igemm_dynamic {
 
@@ -108,7 +107,7 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest() { return env::enabled(MIOPEN_TEST_GPU_XNACK_ENABLED); }
+bool SkipTest() { return get_handle_xnack(); }
 
 class Conv2dFloatDynamic : public FloatTestCase<std::vector<TestCase>>
 {

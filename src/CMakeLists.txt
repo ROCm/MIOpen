@@ -122,8 +122,15 @@ set( MIOpen_Source
     fusion.cpp
     fusion/problem_description.cpp
     generic_search.cpp
+    graphapi/convolution.cpp
     graphapi/graphapi.cpp
-    graphapi/graphapi_tensor.cpp
+    graphapi/opgraph.cpp
+    graphapi/matmul.cpp
+    graphapi/pointwise.cpp
+    graphapi/reduction.cpp
+    graphapi/rng.cpp
+    graphapi/tensor.cpp
+    graphapi/variant_pack.cpp
     groupnorm_api.cpp
     groupnorm/problem_description.cpp
     handle_api.cpp
@@ -136,6 +143,8 @@ set( MIOpen_Source
     lock_file.cpp
     logger.cpp
     lrn_api.cpp
+    mha/mha_descriptor.cpp
+    mha/problem_description.cpp
     op_args.cpp
     operator.cpp
     performance_config.cpp
@@ -252,11 +261,13 @@ set( MIOpen_Source
     solver/fft.cpp
     solver/gemm.cpp
     solver/gemm_bwd.cpp
+    solver/gemm_common.cpp
     solver/gemm_wrw.cpp
     solver/groupnorm/forward_groupnorm.cpp
     solver/layernorm/forward_layernorm.cpp
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
+    solver/mha/mha_solver.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
@@ -408,6 +419,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/inst_wrappers.inc
         kernels/miopen_cstdint.hpp
         kernels/miopen_limits.hpp
+        kernels/miopen_rocrand.hpp
         kernels/miopen_type_traits.hpp
         kernels/miopen_utility.hpp
         kernels/neuron.inc
@@ -786,7 +798,7 @@ elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     target_link_libraries( MIOpen PRIVATE hip::device )
     target_link_libraries( MIOpen INTERFACE hip::host )
     if(MIOPEN_USE_HIPRTC)
-        if(WIN32) 
+        if(WIN32)
             target_link_libraries( MIOpen PRIVATE hiprtc::hiprtc )
         else()
             target_link_libraries( MIOpen PRIVATE hiprtc)

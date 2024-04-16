@@ -49,7 +49,7 @@ gitdb==4.0.11
     # via gitpython
 gitpython==3.1.42
     # via rocm-docs-core
-idna==3.6
+idna==3.7
     # via requests
 imagesize==1.4.1
     # via sphinx
@@ -118,7 +118,7 @@ requests==2.31.0
     # via
     #   pygithub
     #   sphinx
-rocm-docs-core[api-reference]==0.37.0
+rocm-docs-core[api-reference]==0.38.1
     # via -r requirements.in
 smmap==5.0.1
     # via gitdb
