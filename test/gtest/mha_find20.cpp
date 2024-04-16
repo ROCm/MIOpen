@@ -293,9 +293,6 @@ private:
         CreateTensor(miopenTensorMhaDropoutSeed, GenerateType::GenerateRandom);
         CreateTensor(miopenTensorMhaDropoutOffset, GenerateType::GenerateRandom);
 
-        CreateTensor(miopenTensorMhaM, GenerateType::DontGenerate, test_n, test_h, test_s, 1);
-        CreateTensor(miopenTensorMhaZInv, GenerateType::DontGenerate, test_n, test_h, test_s, 1);
-
         if(isForward)
         {
             CreateTensor(miopenTensorMhaScaleO);
@@ -303,6 +300,8 @@ private:
             CreateTensor(miopenTensorMhaO, GenerateType::DontGenerate, test_n, test_h, test_s, test_d);
             CreateTensor(miopenTensorMhaAmaxO, GenerateType::DontGenerate);
             CreateTensor(miopenTensorMhaAmaxS, GenerateType::DontGenerate);
+            CreateTensor(miopenTensorMhaM, GenerateType::DontGenerate, test_n, test_h, test_s, 1);
+            CreateTensor(miopenTensorMhaZInv, GenerateType::DontGenerate, test_n, test_h, test_s, 1);
         }
         else
         {
@@ -310,6 +309,10 @@ private:
 
             CreateTensor(
                 miopenTensorMhaDO, GenerateType::GenerateRandom, test_n, test_h, test_s, test_d);
+
+            CreateTensor(miopenTensorMhaM, GenerateType::GenerateRandom, test_n, test_h, test_s, 1);
+            CreateTensor(miopenTensorMhaZInv, GenerateType::GenerateRandom, test_n, test_h, test_s, 1);
+
             CreateTensor(miopenTensorMhaDescaleO, GenerateType::GenerateRandom);
             CreateTensor(miopenTensorMhaDescaleDO, GenerateType::GenerateRandom);
             CreateTensor(miopenTensorMhaDescaleDS, GenerateType::GenerateRandom);
