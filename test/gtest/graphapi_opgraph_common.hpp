@@ -136,7 +136,7 @@ public:
     const auto& graph() const { return mGraph; }
 };
 
-std::unique_ptr<DummyOpGraphGenerator> makeDiamondGraph()
+inline std::unique_ptr<DummyOpGraphGenerator> makeDiamondGraph()
 {
     /*
      *       |
