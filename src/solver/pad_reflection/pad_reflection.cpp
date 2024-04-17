@@ -120,8 +120,6 @@ PadReflection::GetSolution([[maybe_unused]] const ExecutionContext& context,
                 padding_l = padding[0];
                 padding_t = padding[2];
             }
-            // long padding_l        = (*padding)[0];
-            // long padding_t        = (*padding)[2];
             size_t in_H           = xdims[2];
             size_t in_W           = xdims[3];
             size_t output_size_1  = ydims[1];
