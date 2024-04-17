@@ -6616,8 +6616,6 @@ MIOPEN_EXPORT miopenStatus_t miopenNLLLossForward(miopenHandle_t handle,
 // CLOSEOUT nllloss DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
-
-
 #ifdef __cplusplus
 }
 #endif
