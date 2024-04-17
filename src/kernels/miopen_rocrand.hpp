@@ -34,6 +34,7 @@
 
 #if WORKAROUND_IGNORE_ROCRAND_INCLUDES == 1
 // disable math.h from rocrand (it conflicts with hiptrc)
+// NOLINTNEXTLINE
 #define _GLIBCXX_MATH_H 1
 #endif
 
