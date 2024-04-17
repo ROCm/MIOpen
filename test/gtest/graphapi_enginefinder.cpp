@@ -99,6 +99,7 @@ public:
 };
 
 using miopen::graphapi::GTestDescriptorAttribute;
+using miopen::graphapi::GTestDescriptorSingleValueAttribute;
 using miopen::graphapi::GTestDescriptorVectorAttribute;
 using miopen::graphapi::GTestGraphApiExecute;
 
@@ -106,6 +107,19 @@ using miopen::graphapi::GTestGraphApiExecute;
 
 TEST(GraphApiOperationGraphDescriptor, CFunctions)
 {
+    miopenHandle_t handle = nullptr;
+    auto status           = miopenCreate(&handle);
+    ASSERT_EQ(status, miopenStatusSuccess) << "Handle wasn't obtained, cannot continue";
+
+    GTestDescriptorSingleValueAttribute<miopenHandle_t, char> handleAttribute{
+        true,
+        "MIOPEN_ATTR_OPERATIONGRAPH_HANDLE",
+        MIOPEN_ATTR_OPERATIONGRAPH_HANDLE,
+        MIOPEN_TYPE_HANDLE,
+        MIOPEN_TYPE_CHAR,
+        0,
+        handle};
+
     GMockBackendOperationDescriptor goodNode(true);
 
     GTestDescriptorVectorAttribute<miopenBackendDescriptor_t, char> goodOp{
@@ -122,14 +136,17 @@ TEST(GraphApiOperationGraphDescriptor, CFunctions)
         {"MIOPEN_BACKEND_OPERATIONGRAPH_DESCRIPTOR",
          MIOPEN_BACKEND_OPERATIONGRAPH_DESCRIPTOR,
          true,
-         {&goodOp}}};
+         {&handleAttribute, &goodOp}}};
 
+    execute();
+
+    execute.descriptor.attributes = {&handleAttribute, &goodOp, &goodOp};
     execute();
 
     GMockBackendOperationDescriptor badNode(false);
 
     GTestDescriptorVectorAttribute<miopenBackendDescriptor_t, char> badOp{
-        true,
+        false,
         "MIOPEN_ATTR_OPERATIONGRAPH_OPS",
         MIOPEN_ATTR_OPERATIONGRAPH_OPS,
         MIOPEN_TYPE_BACKEND_DESCRIPTOR,
@@ -139,27 +156,24 @@ TEST(GraphApiOperationGraphDescriptor, CFunctions)
     ;
 
     execute.descriptor.attrsValid = false;
-    execute.descriptor.attributes = {&badOp};
 
+    execute.descriptor.attributes = {&handleAttribute};
     execute();
 
-    execute.descriptor.attributes = {&goodOp, &goodOp};
-
+    execute.descriptor.attributes = {&goodOp};
     execute();
 
-    GMockBackendOperationDescriptor anotherGoodNode(true);
-
-    GTestDescriptorVectorAttribute<miopenBackendDescriptor_t, char> anotherGoodOp{
-        true,
-        "MIOPEN_ATTR_OPERATIONGRAPH_OPS",
-        MIOPEN_ATTR_OPERATIONGRAPH_OPS,
-        MIOPEN_TYPE_BACKEND_DESCRIPTOR,
-        MIOPEN_TYPE_CHAR,
-        -1,
-        {&anotherGoodNode}};
-    ;
-
-    execute.descriptor.attributes = {&goodOp, &anotherGoodOp};
-
+    execute.descriptor.attributes = {&handleAttribute, &badOp};
     execute();
+
+    badOp = {false,
+             "MIOPEN_ATTR_OPERATIONGRAPH_OPS",
+             MIOPEN_ATTR_OPERATIONGRAPH_OPS,
+             MIOPEN_TYPE_BACKEND_DESCRIPTOR,
+             MIOPEN_TYPE_CHAR,
+             -1,
+             {&goodNode, &goodNode}};
+    execute();
+
+    miopenDestroy(handle);
 }

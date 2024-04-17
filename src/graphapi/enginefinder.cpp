@@ -98,6 +98,11 @@ void miopen::graphapi::BackendOperationGraphDescriptor::finalize()
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
 
+    if(mHandle == nullptr || mOps.empty())
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
     mOpGraph = std::move(mOpGraphBuilder).build();
 
     // TODO: Find solutions for the operation graph
