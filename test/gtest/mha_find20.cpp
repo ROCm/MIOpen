@@ -309,7 +309,8 @@ private:
         }
         else
         {
-            CreateTensor( miopenTensorMhaQ, GenerateType::Generate_0_Always, test_n, test_h, test_s, test_d);
+            CreateTensor(
+                miopenTensorMhaQ, GenerateType::Generate_0_Always, test_n, test_h, test_s, test_d);
 
             CreateTensor(
                 miopenTensorMhaO, GenerateType::GenerateRandom, test_n, test_h, test_s, test_d);
@@ -317,7 +318,8 @@ private:
             CreateTensor(
                 miopenTensorMhaDO, GenerateType::GenerateRandom, test_n, test_h, test_s, test_d);
 
-            CreateTensor(miopenTensorMhaM, GenerateType::Generate_0_Always, test_n, test_h, test_s, 1);
+            CreateTensor(
+                miopenTensorMhaM, GenerateType::Generate_0_Always, test_n, test_h, test_s, 1);
             CreateTensor(
                 miopenTensorMhaZInv, GenerateType::Generate_1_Always, test_n, test_h, test_s, 1);
 
@@ -567,7 +569,7 @@ private:
 private:
     TensorStructMap tensors;
 
-    MhaDescriptor Mha_descriptor;
+    MhaDescriptor mha_descriptor;
 
     miopenProblem_t problem;
 
