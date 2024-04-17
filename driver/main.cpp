@@ -72,7 +72,6 @@ int main(int argc, char* argv[])
         std::cout << "ParseCmdLineArgs() FAILED, rc = " << rc << std::endl;
         return rc;
     }
-
     drv->GetandSetData();
     rc = drv->AllocateBuffersAndCopy();
     if(rc != 0)

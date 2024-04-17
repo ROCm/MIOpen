@@ -6594,12 +6594,12 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
 /*! @brief Execute a GLU forward contiguous layer
  *
  * @param handle                   MIOpen handle (input)
- * @param inputDesc                Tensor descriptor for data input tensor x (input)
- * @param inputSplitDesc           Tensor descriptor for splitted data input tensor x (input)
+ * @param inputDesc                Tensor descriptor for data input tensor (input)
+ * @param inputSplitDesc           Tensor descriptor for splitted data input tensor (input)
  * @param inputFirstHalf           First half input data tensor  (input)
  * @param inputSecondHalf          Second half input data tensor (input)
- * @param dim                      Dimensions to split. (input)
- * @param outputDesc               Tensor descriptor for output data tensor y (input)
+ * @param dim                      Dimension to split (input)
+ * @param outputDesc               Tensor descriptor for output data tensor (input)
  * @param output                   Output data tensor (output)
  * @return                         miopenStatus_t
  */

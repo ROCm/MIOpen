@@ -67,6 +67,8 @@ ConvSolution GLUForward::GetSolution(const ExecutionContext& context,
 
     {
         auto dtype      = problem.GetInputDesc().GetType();
+        auto input_dtype = miopen::GetDataType(problem.GetInputDesc().GetType());
+        auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
         auto inputDims  = problem.GetInputDesc().GetLengths();
         auto outputDims = problem.GetOutputDesc().GetLengths();
         auto output_numel =
@@ -88,7 +90,10 @@ ConvSolution GLUForward::GetSolution(const ExecutionContext& context,
             KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
                                   {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
                                   {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
-                                  {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)}};
+                                  {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+                                  {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
+                                  {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype}
+                                  };
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 

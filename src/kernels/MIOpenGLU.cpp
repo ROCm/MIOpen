@@ -32,10 +32,11 @@
 
 __device__ FLOAT_ACCUM sigmoid(FLOAT_ACCUM x) { return 1.0f / (1.0f + exp(-x)); }
 
-extern "C" __global__ void GLUFwdContiguous(const FLOAT* __restrict__ inputFirstHalf,
-                                            const FLOAT* __restrict__ inputSecondHalf,
-                                            FLOAT* __restrict__ output,
-                                            long N)
+template <typename TI, typename TO>
+__device__ void GLUFwdCOntiguousKernel(const TI* __restrict__ inputFirstHalf,
+                                       const TI* __restrict__ inputSecondHalf,
+                                       TO* __restrict__ output,
+                                       long N)
 {
     const size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
     if(gid >= N)
@@ -45,4 +46,12 @@ extern "C" __global__ void GLUFwdContiguous(const FLOAT* __restrict__ inputFirst
     FLOAT_ACCUM val2 = sigmoid(CVT_FLOAT2ACCUM(inputSecondHalf[gid]));
     FLOAT_ACCUM val  = val1 * val2;
     output[gid]      = CVT_ACCUM2FLOAT(val);
+}
+
+extern "C" __global__ void GLUFwdContiguous(const INPUT_TYPE* __restrict__ inputFirstHalf,
+                                            const INPUT_TYPE* __restrict__ inputSecondHalf,
+                                            OUTPUT_TYPE* __restrict__ output,
+                                            long N)
+{
+    GLUFwdCOntiguousKernel<INPUT_TYPE, OUTPUT_TYPE>(inputFirstHalf, inputSecondHalf, output, N);
 }

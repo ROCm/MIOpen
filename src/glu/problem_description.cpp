@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/datatype.hpp"
 #include <miopen/glu/problem_description.hpp>
 #include <miopen/names.hpp>
 
@@ -44,10 +45,14 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
                                         static_cast<size_t>(1),
                                         std::multiplies<size_t>());
     auto dtype         = inputDesc.GetType();
+    auto input_dtype   = miopen::GetDataType(inputDesc.GetType());
+    auto output_dtype = miopen::GetDataType(outputDesc.GetType());
 
     std::ostringstream ss;
 
     ss << "dtype" << dtype;
+    ss << "input_dtype" << input_dtype;
+    ss << "output_dtype" << output_dtype;
     ss << "dim" << dim;
     ss << "splitDim_size" << splitdim_size;
     ss << "output_numel" << output_numel;
