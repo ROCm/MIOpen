@@ -34,6 +34,7 @@
 #include "timer.hpp"
 #include "util_driver.hpp"
 
+#include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
 
 #include <miopen/env.hpp>
@@ -49,7 +50,6 @@
 #include <memory>
 #include <numeric>
 #include <vector>
-#include <../test/tensor_holder.hpp>
 
 template <typename Tgpu, typename Tref>
 class NLLLossDriver : public Driver

@@ -45,13 +45,13 @@ add_executable(MIOpenDriver
     dm_groupnorm.cpp
     dm_layernorm.cpp
     dm_lrn.cpp
+    dm_nllloss.cpp
     dm_pool.cpp
     dm_reduce.cpp
     dm_rnn.cpp
     dm_softmax.cpp
     dm_sum.cpp
     dm_tensorop.cpp
-    dm_nllloss.cpp
     main.cpp
     registry_driver_maker.cpp
     rocrand_wrapper.cpp)
