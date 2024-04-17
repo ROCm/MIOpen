@@ -40,7 +40,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     ss << "mha";
 
     auto print_strides = [&ss](const TensorDescriptor& desc) {
-        for(auto d : desc.GetStrides())
+        for(const auto& d : desc.GetStrides())
         {
             ss << d << "x";
         }
