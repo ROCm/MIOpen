@@ -67,11 +67,12 @@ ConvSolution NLLLossForward::GetSolution(const ExecutionContext& context,
     auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
 
     {
-        auto dtype   = problem.GetInputDesc().GetType();
+        auto dtype     = problem.GetInputDesc().GetType();
         size_t N_total = problem.GetNtotal();
 
         size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize  = (N_total + LOCAL_SIZE - 1) / LOCAL_SIZE  * LOCAL_SIZE;
+        // size_t xgridsize  = (N_total + LOCAL_SIZE - 1) / LOCAL_SIZE * LOCAL_SIZE;
+        size_t xgridsize = AlignUp(N_total, xlocalsize);
 
         size_t ylocalsize = 1;
         size_t ygridsize  = 1;
