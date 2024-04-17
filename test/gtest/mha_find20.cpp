@@ -267,10 +267,10 @@ private:
 
     void Initialize()
     {
-        Mha_descriptor.SetParams(scale);
+        mha_descriptor.SetParams(scale);
 
         EXPECT_EQUAL(miopenCreateMhaProblem(&problem,
-                                            &Mha_descriptor,
+                                            &mha_descriptor,
                                             isForward ? miopenProblemDirectionForward
                                                       : miopenProblemDirectionBackward),
                      miopenStatusSuccess);
