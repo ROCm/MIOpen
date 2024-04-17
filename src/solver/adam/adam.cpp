@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,12 +24,12 @@
  *
  *******************************************************************************/
 
-#include <miopen/optim/adam/solvers.hpp>
+#include <miopen/adam/solvers.hpp>
 
 #include <miopen/adam.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
-#include <miopen/optim/adam/invoke_params.hpp>
+#include <miopen/adam/invoke_params.hpp>
 #include <miopen/target_properties.hpp>
 
 namespace miopen {
@@ -43,6 +43,8 @@ bool Adam::IsApplicable([[maybe_unused]] const ExecutionContext& context,
 {
     if(!problem.IsAllPacked())
         return false;
+    if(!problem.IsAdamW())
+        return false;
     return true;
 }
 
@@ -55,10 +57,9 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
 
     {
         auto param_dtype = miopen::GetDataType(problem.GetParamDesc().GetType());
-        auto grad_dtype  = problem.IsAmp() //
-            ? miopen::GetDataType(problem.GetGradDesc().GetType()) //
-            : float; // unused dummy
-        auto ptype_size  = miopen::get_data_size(problem.GetParamDesc().GetType());
+        auto grad_dtype =
+            problem.IsAmp() ? miopen::GetDataType(problem.GetGradDesc().GetType()) : param_dtype;
+        auto ptype_size = miopen::get_data_size(problem.GetParamDesc().GetType());
 
         const auto build_params = KernelBuildParameters{
             {"PTYPE", param_dtype},
@@ -213,7 +214,7 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
     return result;
 }
 
-} // namespace adam
+} // Namespace adam
 
 } // namespace solver
 

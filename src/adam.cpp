@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,8 +29,8 @@
 #include <miopen/find_solution.hpp>
 #include <miopen/float_equal.hpp>
 #include <miopen/kernel_cache.hpp>
-#include <miopen/optim/adam/invoke_params.hpp>
-#include <miopen/optim/adam/solvers.hpp>
+#include <miopen/adam/invoke_params.hpp>
+#include <miopen/adam/solvers.hpp>
 #include <miopen/tensor.hpp>
 
 namespace miopen {

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,38 +26,47 @@
 
 #pragma once
 
-#include <miopen/optim/adam/problem_description.hpp>
-#include <miopen/solver.hpp>
-
-#include <utility>
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
-
-namespace solver {
-
 namespace adam {
 
-using AdamSolver = NonTunableSolverBase<ExecutionContext, miopen::adam::ProblemDescription>;
-
-struct Adam final : AdamSolver
+struct InvokeParams : public miopen::InvokeParams
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<Adam>(); }
+    InvokeParams() = default;
 
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::adam::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::adam::ProblemDescription& problem) const override;
-    std::size_t GetWorkspaceSize(
-        [[maybe_unused]] const ExecutionContext& context,
-        [[maybe_unused]] const miopen::adam::ProblemDescription& problem) const override
-    {
-        return 0;
-    }
-    bool MayNeedWorkspace() const override { return false; }
+    const TensorDescriptor* paramDesc = nullptr;
+    const TensorDescriptor* gradDesc  = nullptr;
+
+    ConstData_t paramIn       = nullptr;
+    Data_t paramOut           = nullptr;
+    Data_t paramOutFloat16    = nullptr;
+    ConstData_t gradIn        = nullptr;
+    ConstData_t expAvgIn      = nullptr;
+    Data_t expAvgOut          = nullptr;
+    ConstData_t expAvgSqIn    = nullptr;
+    Data_t expAvgSqOut        = nullptr;
+    ConstData_t maxExpAvgSqIn = nullptr;
+    Data_t maxExpAvgSqOut     = nullptr;
+    ConstData_t gradScale     = nullptr;
+    ConstData_t foundInf      = nullptr;
+    ConstData_t stepIn        = nullptr;
+    Data_t stepOut            = nullptr;
+
+    uint32_t step      = 0;
+    float lr           = 0.0;
+    float beta1        = 0.0;
+    float beta2        = 0.0;
+    float weight_decay = 0.0;
+    float eps          = 0.0;
+    bool amsgrad       = false;
+    bool maximize      = false;
+    bool adamw         = false;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
 };
 
 } // namespace adam
-
-} // namespace solver
-
 } // namespace miopen

@@ -85,6 +85,7 @@ endfunction()
 set( MIOpen_Source
     activ/problem_description.cpp
     activ_api.cpp
+    adam/problem_description.cpp
     adam_api.cpp
     api/find2_0_commons.cpp
     argmax_api.cpp
@@ -145,7 +146,6 @@ set( MIOpen_Source
     mha/problem_description.cpp
     op_args.cpp
     operator.cpp
-    optim/adam/problem_description.cpp
     performance_config.cpp
     pooling/problem_description.cpp
     pooling_api.cpp
@@ -169,6 +169,7 @@ set( MIOpen_Source
     solver/activ/bwd_1.cpp
     solver/activ/fwd_0.cpp
     solver/activ/fwd_1.cpp
+    solver/adam/adam.cpp
     solver/batchnorm/backward_ck.cpp
     solver/batchnorm/backward_per_activation.cpp
     solver/batchnorm/backward_per_activation_fused.cpp
@@ -266,7 +267,6 @@ set( MIOpen_Source
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
     solver/mha/mha_solver.cpp
-    solver/optim/adam.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
