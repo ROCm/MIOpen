@@ -116,7 +116,7 @@ public:
         std::vector<miopenTensorDescriptor_t> descVector(numTensors);
 
         int i = 0;
-        for (const auto& it : tensors)
+        for(const auto& it : tensors)
         {
             descVector[i] = &it.second->tensorFloat.desc;
 
@@ -131,7 +131,7 @@ public:
 
         std::vector<miopenTensorArgumentId_t> output_ids;
 
-        if (isForward)
+        if(isForward)
         {
             output_ids = {miopenTensorMhaO,
                           miopenTensorMhaAmaxO,
@@ -207,8 +207,8 @@ public:
                                                  tensors[id]->tensorFloat.data);
                 const double tolerance = 1e-3;
 
-                EXPECT_TRUE(std::isfinite(error));
-                EXPECT_LE(error, tolerance);
+                EXPECT_TRUE(std::isfinite(error)) << "Tensor id: " << id;
+                EXPECT_LE(error, tolerance) << "Tensor id: " << id;
             }
         }
 
@@ -277,8 +277,7 @@ private:
 
         CreateTensor(
             miopenTensorMhaK, GenerateType::GenerateRandom, test_n, test_h, test_s, test_d);
-        CreateTensor(
-            miopenTensorMhaQ, GenerateType::GenerateRandom, test_n, test_h, test_s, test_d);
+
         CreateTensor(
             miopenTensorMhaV, GenerateType::GenerateRandom, test_n, test_h, test_s, test_d);
 
@@ -295,23 +294,32 @@ private:
 
         if(isForward)
         {
+            CreateTensor(
+                miopenTensorMhaQ, GenerateType::GenerateRandom, test_n, test_h, test_s, test_d);
+
             CreateTensor(miopenTensorMhaScaleO);
 
-            CreateTensor(miopenTensorMhaO, GenerateType::DontGenerate, test_n, test_h, test_s, test_d);
+            CreateTensor(
+                miopenTensorMhaO, GenerateType::DontGenerate, test_n, test_h, test_s, test_d);
             CreateTensor(miopenTensorMhaAmaxO, GenerateType::DontGenerate);
             CreateTensor(miopenTensorMhaAmaxS, GenerateType::DontGenerate);
             CreateTensor(miopenTensorMhaM, GenerateType::DontGenerate, test_n, test_h, test_s, 1);
-            CreateTensor(miopenTensorMhaZInv, GenerateType::DontGenerate, test_n, test_h, test_s, 1);
+            CreateTensor(
+                miopenTensorMhaZInv, GenerateType::DontGenerate, test_n, test_h, test_s, 1);
         }
         else
         {
-            CreateTensor(miopenTensorMhaO, GenerateType::GenerateRandom, test_n, test_h, test_s, test_d);            
+            CreateTensor( miopenTensorMhaQ, GenerateType::Generate_0_Always, test_n, test_h, test_s, test_d);
+
+            CreateTensor(
+                miopenTensorMhaO, GenerateType::GenerateRandom, test_n, test_h, test_s, test_d);
 
             CreateTensor(
                 miopenTensorMhaDO, GenerateType::GenerateRandom, test_n, test_h, test_s, test_d);
 
-            CreateTensor(miopenTensorMhaM, GenerateType::GenerateRandom, test_n, test_h, test_s, 1);
-            CreateTensor(miopenTensorMhaZInv, GenerateType::GenerateRandom, test_n, test_h, test_s, 1);
+            CreateTensor(miopenTensorMhaM, GenerateType::Generate_0_Always, test_n, test_h, test_s, 1);
+            CreateTensor(
+                miopenTensorMhaZInv, GenerateType::Generate_1_Always, test_n, test_h, test_s, 1);
 
             CreateTensor(miopenTensorMhaDescaleO, GenerateType::GenerateRandom);
             CreateTensor(miopenTensorMhaDescaleDO, GenerateType::GenerateRandom);
@@ -325,8 +333,8 @@ private:
                 miopenTensorMhaDQ, GenerateType::DontGenerate, test_n, test_h, test_s, test_d);
             CreateTensor(
                 miopenTensorMhaDK, GenerateType::DontGenerate, test_n, test_h, test_s, test_d);
-            CreateTensor(miopenTensorMhaDV, GenerateType::DontGenerate), test_n, test_h, test_s,
-                test_d;
+            CreateTensor(
+                miopenTensorMhaDV, GenerateType::DontGenerate, test_n, test_h, test_s, test_d);
             CreateTensor(miopenTensorMhaAmaxDQ, GenerateType::DontGenerate);
             CreateTensor(miopenTensorMhaAmaxDK, GenerateType::DontGenerate);
             CreateTensor(miopenTensorMhaAmaxDV, GenerateType::DontGenerate);

@@ -39,6 +39,13 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
     ss << "mha";
 
+    auto print_strides = [&ss](const TensorDescriptor& desc) {
+        for(auto d : desc.GetStrides())
+        {
+            ss << d << "x";
+        }
+    };
+
     if(isForward)
     {
         ss << "fwd-";
@@ -46,15 +53,36 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
         {
             ss << s << "x";
         }
-        for(auto s : mhaInputDescsForward.oDesc.GetStrides())
-        {
-            ss << s << "x";
-        }
+
+        print_strides(mhaInputDescsForward.kDesc);
+        print_strides(mhaInputDescsForward.qDesc);
+        print_strides(mhaInputDescsForward.vDesc);
+        print_strides(mhaInputDescsForward.oDesc);
+        print_strides(mhaInputDescsForward.mDesc);
+        print_strides(mhaInputDescsForward.zInvDesc);
+
         ss << mhaInputDescsForward.oDesc.GetType();
     }
     else
     {
         ss << "bwd-";
+
+        for(auto s : mhaInputDescsBackward.oDesc.GetLengths())
+        {
+            ss << s << "x";
+        }
+        print_strides(mhaInputDescsBackward.kDesc);
+        print_strides(mhaInputDescsBackward.qDesc);
+        print_strides(mhaInputDescsBackward.vDesc);
+        print_strides(mhaInputDescsBackward.oDesc);
+        print_strides(mhaInputDescsBackward.doDesc);
+        print_strides(mhaInputDescsBackward.mDesc);
+        print_strides(mhaInputDescsBackward.zInvDesc);
+        print_strides(mhaInputDescsBackward.dqDesc);
+        print_strides(mhaInputDescsBackward.dkDesc);
+        print_strides(mhaInputDescsBackward.dvDesc);
+
+        ss << mhaInputDescsBackward.oDesc.GetType();
     }
 
     return NetworkConfig{ss.str()};
