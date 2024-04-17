@@ -64,11 +64,6 @@ OpGraph OpGraphBuilder::build() &&
         }
     }
 
-    if(e_map.empty())
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "Empty graphs are not allowed in graph API");
-    }
-
     graph.initNodes(std::move(mNodes));
 
     for(const auto& [tens_ptr, edge_info] : e_map)
