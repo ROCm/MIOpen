@@ -35,8 +35,8 @@ template <typename TI, typename TO>
 __device__ void padReflection2dFwdContiguous(const TI* __restrict__ input,
                                              TO* __restrict__ output,
                                              uint64_t output_size,
-                                             long padding_l,
-                                             long padding_t,
+                                             long padding_left,
+                                             long padding_top,
                                              const size_t in_H,
                                              const size_t in_W,
                                              const size_t output_size_1,
@@ -59,34 +59,34 @@ __device__ void padReflection2dFwdContiguous(const TI* __restrict__ input,
     n         = nc / output_size_1;
     c         = nc % output_size_1;
 
-    long in_start_x  = max(0L, -padding_l);
-    long in_start_y  = max(0L, -padding_t);
-    long out_start_x = max(0L, padding_l);
-    long out_start_y = max(0L, padding_t);
+    long in_start_x  = max(0L, -padding_left);
+    long in_start_y  = max(0L, -padding_top);
+    long out_start_x = max(0L, padding_left);
+    long out_start_y = max(0L, padding_top);
 
-    if(w < padding_l)
+    if(w < padding_left)
     {
-        w = padding_l * 2 - w;
+        w = padding_left * 2 - w;
     }
-    else if(padding_l <= w && w < in_W + padding_l)
+    else if(padding_left <= w && w < in_W + padding_left)
     {
     }
     else
     {
-        w = (in_W + padding_l - 1) * 2 - w;
+        w = (in_W + padding_left - 1) * 2 - w;
     }
     w = w - out_start_x + in_start_x;
 
-    if(h < padding_t)
+    if(h < padding_top)
     {
-        h = padding_t * 2 - h;
+        h = padding_top * 2 - h;
     }
-    else if(padding_t <= h && h < in_H + padding_t)
+    else if(padding_top <= h && h < in_H + padding_top)
     {
     }
     else
     {
-        h = (in_H + padding_t - 1) * 2 - h;
+        h = (in_H + padding_top - 1) * 2 - h;
     }
     h = h - out_start_y + in_start_y;
 
@@ -97,8 +97,8 @@ __device__ void padReflection2dFwdContiguous(const TI* __restrict__ input,
 extern "C" __global__ void PadReflection2dFwdContiguous(const INPUT_TYPE* __restrict__ input,
                                                         OUTPUT_TYPE* __restrict__ output,
                                                         uint64_t output_size,
-                                                        long padding_l,
-                                                        long padding_t,
+                                                        long padding_left,
+                                                        long padding_top,
                                                         const size_t in_H,
                                                         const size_t in_W,
                                                         const size_t output_size_1,
@@ -112,8 +112,8 @@ extern "C" __global__ void PadReflection2dFwdContiguous(const INPUT_TYPE* __rest
     padReflection2dFwdContiguous<INPUT_TYPE, OUTPUT_TYPE>(input,
                                                           output,
                                                           output_size,
-                                                          padding_l,
-                                                          padding_t,
+                                                          padding_left,
+                                                          padding_top,
                                                           in_H,
                                                           in_W,
                                                           output_size_1,
