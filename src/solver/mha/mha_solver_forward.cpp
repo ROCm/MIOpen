@@ -65,8 +65,11 @@ constexpr S RoundUpToMultiple(T val, T mul)
     return Ceil(val, mul) * mul;
 }
 
-constexpr uint32_t nextPow2(uint32_t v)
+template <typename T>
+constexpr T nextPow2(T v)
 {
+    static_assert(std::is_integral_v<T>);
+
     if(v == 1)
     {
         return (v << 1);
@@ -77,8 +80,12 @@ constexpr uint32_t nextPow2(uint32_t v)
         v |= v >> 1;
         v |= v >> 2;
         v |= v >> 4;
-        v |= v >> 8;
-        v |= v >> 16;
+        if constexpr(sizeof(T) > 1)
+            v |= v >> 8;
+        if constexpr(sizeof(T) > 2)
+            v |= v >> 16;
+        if constexpr(sizeof(T) > 4)
+            v |= v >> 32;
         v++;
         return v;
     }
@@ -112,14 +119,16 @@ bool MhaForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
 
     auto [N, H, S, D] = miopen::tien<4>(descsForward.kDesc.GetLengths());
 
-    return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_NAIVE_FWD)) && //
-           problem.IsForward() &&                                   //
-           S <= std::numeric_limits<uint32_t>::max() &&             //
-           descsForward.kDesc.IsPacked() &&                         //
-           descsForward.qDesc.IsPacked() &&                         //
-           descsForward.vDesc.IsPacked() &&                         //
-           descsForward.oDesc.IsPacked() &&                         //
-           MIOPEN_USE_GEMM;
+    return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_NAIVE_FWD)) //
+           && problem.IsForward()                                //
+           && S <= std::numeric_limits<uint32_t>::max()          //
+           && descsForward.kDesc.IsPacked()                      //
+           && descsForward.qDesc.IsPacked()                      //
+           && descsForward.vDesc.IsPacked()                      //
+           && descsForward.oDesc.IsPacked()                      //
+           && descsForward.mDesc.IsPacked()                      //
+           && descsForward.zInvDesc.IsPacked()                   //
+           && MIOPEN_USE_GEMM;
 }
 
 std::size_t MhaForward::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
@@ -134,13 +143,13 @@ ConvSolution MhaForward::GetSolution(const ExecutionContext& context,
     auto result = ConvSolution{miopenStatusSuccess};
 
     auto [N, H, S, D] = miopen::tien<4>(problem.GetDescsForward().kDesc.GetLengths());
-    uint32_t seq_len  = S;
+    uint32_t seq_len  = static_cast<uint32_t>(S);
     uint64_t nhs      = N * H * S;
     uint64_t nhsd     = N * H * S * D;
 
     auto warpSize = context.GetStream().GetWavefrontWidth();
 
-    size_t local_threads  = std::clamp<uint32_t>(nextPow2(S), warpSize, 256);
+    size_t local_threads  = std::clamp(nextPow2(S), warpSize, static_cast<size_t>(256));
     size_t global_threads = nhs * local_threads;
 
     auto softmax_kernel = KernelInfo{};
@@ -162,7 +171,7 @@ ConvSolution MhaForward::GetSolution(const ExecutionContext& context,
         return static_cast<void*>(static_cast<std::byte*>(buffer) + ws.GetOffset(part_idx));
     };
 
-    local_threads  = std::clamp<uint32_t>(nextPow2(nhsd), warpSize, 256);
+    local_threads  = std::clamp(nextPow2(nhsd), warpSize, static_cast<size_t>(256));
     global_threads = RoundUpToMultiple(nhsd, local_threads);
 
     auto scale_reduce_kernel = KernelInfo{};

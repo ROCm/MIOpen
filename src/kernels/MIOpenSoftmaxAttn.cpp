@@ -38,7 +38,7 @@ constexpr float plus_op(float a, float b) { return a + b; };
 /// Atomically calculates maximum of non-negative ordered values.
 /// Produces wrong results for negatve values or nans,
 /// but it is a final amax reducton step and we expect only non-negative ordered values.
-__device__ float atomicMaxOfNonNegative(float* addr, float value)
+__forceinline__ __device__ float atomicMaxOfNonNegative(float* addr, float value)
 {
     // ordered non-negatve and even infinity values can be compared as integers
     // NOLINTBEGIN
@@ -48,7 +48,7 @@ __device__ float atomicMaxOfNonNegative(float* addr, float value)
 }
 
 template <uint32_t WARP_SIZE, typename Op, uint32_t SWIZZLE_SIZE = WARP_SIZE>
-__device__ float reductionFullWarp(float reduced_val, uint32_t laneId, Op op)
+__forceinline__ __device__ float reductionFullWarp(float reduced_val, uint32_t laneId, Op op)
 {
     static_assert(WARP_SIZE != 0, "WARP_SIZEmust not be 0");
     static_assert((SWIZZLE_SIZE & (SWIZZLE_SIZE - 1)) == 0,
@@ -104,7 +104,7 @@ __device__ float reductionFullWarp(float reduced_val, uint32_t laneId, Op op)
 };
 
 template <uint32_t NumWarps, typename Op>
-__device__ float
+__forceinline__ __device__ float
 reductionBlock(float local_val, Op op, uint32_t lid, uint32_t laneId, uint32_t warpId)
 {
     static_assert(NumWarps <= warpSize);
@@ -130,14 +130,14 @@ reductionBlock(float local_val, Op op, uint32_t lid, uint32_t laneId, uint32_t w
 };
 
 template <uint32_t NumWarps, typename ReductionOp, typename ElementOp>
-__device__ float reductionCommon(const float* __restrict__ line,
-                                 const float init_value,
-                                 const uint32_t seq_len,
-                                 ReductionOp&& op,
-                                 ElementOp&& eop,
-                                 uint32_t lid,
-                                 uint32_t laneId,
-                                 uint32_t warpId)
+__forceinline__ __device__ float reductionCommon(const float* __restrict__ line,
+                                                 const float init_value,
+                                                 const uint32_t seq_len,
+                                                 ReductionOp&& op,
+                                                 ElementOp&& eop,
+                                                 uint32_t lid,
+                                                 uint32_t laneId,
+                                                 uint32_t warpId)
 {
     float reduced_val = (lid < seq_len) ? eop(line[lid]) : init_value;
 
@@ -147,26 +147,28 @@ __device__ float reductionCommon(const float* __restrict__ line,
     return reductionBlock<NumWarps>(reduced_val, op, lid, laneId, warpId);
 };
 
-__device__ bool doDropout(float dropout, rocrand_device::xorwow_engine* state)
+__forceinline__ __device__ bool doDropout(float dropout, rocrand_device::xorwow_engine* state)
 {
     return (dropout > 0.0f && prng::xorwow_uniform(state) < dropout);
 }
 } // namespace
 
-extern "C" __global__ void SoftMaxWarp(const float* in,
-                                       float* out,
-                                       float* __restrict__ M,
-                                       float* __restrict__ Z,
-                                       float* __restrict__ Amax,
-                                       const float* __restrict__ descale_Q,
-                                       const float* __restrict__ descale_K,
-                                       const float* __restrict__ scale_S,
-                                       const uint64_t* __restrict__ seed,
-                                       const uint64_t* __restrict__ offset,
-                                       const float* __restrict__ dropout_P,
-                                       uint32_t seq_len,
-                                       uint64_t nhs)
+extern "C" __global__ void __launch_bounds__(THREADS)
+    SoftMaxWarp(const float* in,
+                float* out,
+                float* __restrict__ M,
+                float* __restrict__ Z,
+                float* __restrict__ Amax,
+                const float* __restrict__ descale_Q,
+                const float* __restrict__ descale_K,
+                const float* __restrict__ scale_S,
+                const uint64_t* __restrict__ seed,
+                const uint64_t* __restrict__ offset,
+                const float* __restrict__ dropout_P,
+                uint32_t seq_len,
+                uint64_t nhs)
 {
+    static_assert(THREADS % warpSize == 0);
     constexpr uint32_t NumWarps = THREADS / warpSize;
     const uint32_t lid          = threadIdx.x;
     const uint32_t laneId       = lid % warpSize;
@@ -174,7 +176,7 @@ extern "C" __global__ void SoftMaxWarp(const float* in,
     const float descaler        = (descale_Q ? *descale_Q : 1.0f) * (descale_K ? *descale_K : 1.0f);
     const float dropout         = (dropout_P && seed && offset) ? (*dropout_P) : 0.0f;
     const float scaler          = (scale_S ? *scale_S : 1.0f) / (1.0f - dropout);
-    const bool save_stats       = M && Z && laneId == 0;
+    const bool save_stats       = M && Z && (laneId == 0);
 
     rocrand_state_xorwow rng;
     if(dropout > 0.0f)
@@ -228,20 +230,22 @@ extern "C" __global__ void SoftMaxWarp(const float* in,
     }
 }
 
-extern "C" __global__ void SoftMaxBlock(const float* in,
-                                        float* out,
-                                        float* __restrict__ M,
-                                        float* __restrict__ Z,
-                                        float* __restrict__ Amax,
-                                        const float* __restrict__ descale_Q,
-                                        const float* __restrict__ descale_K,
-                                        const float* __restrict__ scale_S,
-                                        const uint64_t* __restrict__ seed,
-                                        const uint64_t* __restrict__ offset,
-                                        const float* __restrict__ dropout_P,
-                                        uint32_t seq_len,
-                                        uint64_t nhs)
+extern "C" __global__ void __launch_bounds__(THREADS)
+    SoftMaxBlock(const float* in,
+                 float* out,
+                 float* __restrict__ M,
+                 float* __restrict__ Z,
+                 float* __restrict__ Amax,
+                 const float* __restrict__ descale_Q,
+                 const float* __restrict__ descale_K,
+                 const float* __restrict__ scale_S,
+                 const uint64_t* __restrict__ seed,
+                 const uint64_t* __restrict__ offset,
+                 const float* __restrict__ dropout_P,
+                 uint32_t seq_len,
+                 uint64_t nhs)
 {
+    static_assert(THREADS % warpSize == 0);
     constexpr uint32_t NumWarps = THREADS / warpSize;
     const uint32_t lid          = threadIdx.x;
     const uint32_t laneId       = lid % warpSize;
@@ -249,7 +253,7 @@ extern "C" __global__ void SoftMaxBlock(const float* in,
     const float descaler        = (descale_Q ? *descale_Q : 1.0f) * (descale_K ? *descale_K : 1.0f);
     const float dropout         = (dropout_P && seed && offset) ? (*dropout_P) : 0.0f;
     const float scaler          = (scale_S ? *scale_S : 1.0f) / (1.0f - dropout);
-    const bool save_stats       = M && Z && lid == 0;
+    const bool save_stats       = M && Z && (lid == 0);
 
     rocrand_state_xorwow rng;
     if(dropout > 0.0f)
@@ -302,20 +306,22 @@ extern "C" __global__ void SoftMaxBlock(const float* in,
     }
 }
 
-extern "C" __global__ void SoftMaxCommon(const float* in,
-                                         float* out,
-                                         float* __restrict__ M,
-                                         float* __restrict__ Z,
-                                         float* __restrict__ Amax,
-                                         const float* __restrict__ descale_Q,
-                                         const float* __restrict__ descale_K,
-                                         const float* __restrict__ scale_S,
-                                         const uint64_t* __restrict__ seed,
-                                         const uint64_t* __restrict__ offset,
-                                         const float* __restrict__ dropout_P,
-                                         uint32_t seq_len,
-                                         uint64_t nhs)
+extern "C" __global__ void __launch_bounds__(THREADS)
+    SoftMaxCommon(const float* in,
+                  float* out,
+                  float* __restrict__ M,
+                  float* __restrict__ Z,
+                  float* __restrict__ Amax,
+                  const float* __restrict__ descale_Q,
+                  const float* __restrict__ descale_K,
+                  const float* __restrict__ scale_S,
+                  const uint64_t* __restrict__ seed,
+                  const uint64_t* __restrict__ offset,
+                  const float* __restrict__ dropout_P,
+                  uint32_t seq_len,
+                  uint64_t nhs)
 {
+    static_assert(THREADS % warpSize == 0);
     constexpr uint32_t NumWarps = THREADS / warpSize;
     const uint32_t lid          = threadIdx.x;
     const uint32_t laneId       = lid % warpSize;
@@ -323,7 +329,7 @@ extern "C" __global__ void SoftMaxCommon(const float* in,
     const float descaler        = (descale_Q ? *descale_Q : 1.0f) * (descale_K ? *descale_K : 1.0f);
     const float dropout         = (dropout_P && seed && offset) ? (*dropout_P) : 0.0f;
     const float scaler          = (scale_S ? *scale_S : 1.0f) / (1.0f - dropout);
-    const bool save_stats       = M && Z && lid == 0;
+    const bool save_stats       = M && Z && (lid == 0);
 
     rocrand_state_xorwow rng;
     if(dropout > 0.0f)
@@ -388,13 +394,14 @@ extern "C" __global__ void SoftMaxCommon(const float* in,
     }
 }
 
-extern "C" __global__ void ScaleReduce(const float* __restrict__ in,
-                                       float* __restrict__ out,
-                                       float* __restrict__ Amax,
-                                       const float* __restrict__ descale_S,
-                                       const float* __restrict__ descale_V,
-                                       const float* __restrict__ scale_O,
-                                       uint64_t nhsd)
+extern "C" __global__ void __launch_bounds__(THREADS)
+    ScaleReduce(const float* __restrict__ in,
+                float* __restrict__ out,
+                float* __restrict__ Amax,
+                const float* __restrict__ descale_S,
+                const float* __restrict__ descale_V,
+                const float* __restrict__ scale_O,
+                uint64_t nhsd)
 {
     const float descaler = (*descale_S) * (*descale_V);
     const float scaler   = (*scale_O);
@@ -432,15 +439,17 @@ extern "C" __global__ void ScaleReduce(const float* __restrict__ in,
     }
 }
 
-extern "C" __global__ void ScaleRowReduceWarp(const float* __restrict__ dO,
-                                              const float* __restrict__ O,
-                                              float* __restrict__ out,
-                                              const float* __restrict__ descale_dO,
-                                              const float* __restrict__ descale_O,
-                                              const float* __restrict__ dropout_P,
-                                              uint32_t d,
-                                              uint64_t nhs)
+extern "C" __global__ void __launch_bounds__(THREADS)
+    ScaleRowReduceWarp(const float* __restrict__ dO,
+                       const float* __restrict__ O,
+                       float* __restrict__ out,
+                       const float* __restrict__ descale_dO,
+                       const float* __restrict__ descale_O,
+                       const float* __restrict__ dropout_P,
+                       uint32_t d,
+                       uint64_t nhs)
 {
+    static_assert(THREADS % warpSize == 0);
     constexpr uint32_t NumWarps = THREADS / warpSize;
     const uint32_t lid          = threadIdx.x;
     const uint32_t laneId       = lid % warpSize;
@@ -467,15 +476,17 @@ extern "C" __global__ void ScaleRowReduceWarp(const float* __restrict__ dO,
     }
 }
 
-extern "C" __global__ void ScaleRowReduceBlock(const float* __restrict__ dO,
-                                               const float* __restrict__ O,
-                                               float* __restrict__ out,
-                                               const float* __restrict__ descale_dO,
-                                               const float* __restrict__ descale_O,
-                                               const float* __restrict__ dropout_P,
-                                               uint32_t d,
-                                               uint64_t nhs)
+extern "C" __global__ void __launch_bounds__(THREADS)
+    ScaleRowReduceBlock(const float* __restrict__ dO,
+                        const float* __restrict__ O,
+                        float* __restrict__ out,
+                        const float* __restrict__ descale_dO,
+                        const float* __restrict__ descale_O,
+                        const float* __restrict__ dropout_P,
+                        uint32_t d,
+                        uint64_t nhs)
 {
+    static_assert(THREADS % warpSize == 0);
     constexpr uint32_t NumWarps = THREADS / warpSize;
     const uint32_t lid          = threadIdx.x;
     const uint32_t laneId       = lid % warpSize;
@@ -502,15 +513,17 @@ extern "C" __global__ void ScaleRowReduceBlock(const float* __restrict__ dO,
     }
 }
 
-extern "C" __global__ void ScaleRowReduceCommon(const float* __restrict__ dO,
-                                                const float* __restrict__ O,
-                                                float* __restrict__ out,
-                                                const float* __restrict__ descale_dO,
-                                                const float* __restrict__ descale_O,
-                                                const float* __restrict__ dropout_P,
-                                                uint32_t d,
-                                                uint64_t nhs)
+extern "C" __global__ void __launch_bounds__(THREADS)
+    ScaleRowReduceCommon(const float* __restrict__ dO,
+                         const float* __restrict__ O,
+                         float* __restrict__ out,
+                         const float* __restrict__ descale_dO,
+                         const float* __restrict__ descale_O,
+                         const float* __restrict__ dropout_P,
+                         uint32_t d,
+                         uint64_t nhs)
 {
+    static_assert(THREADS % warpSize == 0);
     constexpr uint32_t NumWarps = THREADS / warpSize;
     const uint32_t lid          = threadIdx.x;
     const uint32_t laneId       = lid % warpSize;
@@ -536,25 +549,27 @@ extern "C" __global__ void ScaleRowReduceCommon(const float* __restrict__ dO,
     }
 }
 
-extern "C" __global__ void BwdAttentionWarp(float* __restrict__ QxK_S,
-                                            float* __restrict__ dOxV_dS,
-                                            const float* __restrict__ M,
-                                            const float* __restrict__ Zinv,
-                                            const float* __restrict__ dOxO,
-                                            float* __restrict__ Amax,
-                                            const float* __restrict__ descale_Q,
-                                            const float* __restrict__ descale_K,
-                                            const float* __restrict__ descale_dO,
-                                            const float* __restrict__ descale_V,
-                                            const float* __restrict__ scale_S,
-                                            const float* __restrict__ scale_dS,
-                                            const uint64_t* __restrict__ seed,
-                                            const uint64_t* __restrict__ offset,
-                                            const float* __restrict__ dropout_P,
-                                            float scale,
-                                            uint32_t seq_len,
-                                            uint64_t nhs)
+extern "C" __global__ void __launch_bounds__(THREADS)
+    BwdAttentionWarp(float* __restrict__ QxK_S,
+                     float* __restrict__ dOxV_dS,
+                     const float* __restrict__ M,
+                     const float* __restrict__ Zinv,
+                     const float* __restrict__ dOxO,
+                     float* __restrict__ Amax,
+                     const float* __restrict__ descale_Q,
+                     const float* __restrict__ descale_K,
+                     const float* __restrict__ descale_dO,
+                     const float* __restrict__ descale_V,
+                     const float* __restrict__ scale_S,
+                     const float* __restrict__ scale_dS,
+                     const uint64_t* __restrict__ seed,
+                     const uint64_t* __restrict__ offset,
+                     const float* __restrict__ dropout_P,
+                     float scale,
+                     uint32_t seq_len,
+                     uint64_t nhs)
 {
+    static_assert(THREADS % warpSize == 0);
     constexpr uint32_t NumWarps = THREADS / warpSize;
     const uint32_t lid          = threadIdx.x;
     const uint32_t laneId       = lid % warpSize;
@@ -608,25 +623,27 @@ extern "C" __global__ void BwdAttentionWarp(float* __restrict__ QxK_S,
     }
 }
 
-extern "C" __global__ void BwdAttentionBlock(float* __restrict__ QxK_S,
-                                             float* __restrict__ dOxV_dS,
-                                             const float* __restrict__ M,
-                                             const float* __restrict__ Zinv,
-                                             const float* __restrict__ dOxO,
-                                             float* __restrict__ Amax,
-                                             const float* __restrict__ descale_Q,
-                                             const float* __restrict__ descale_K,
-                                             const float* __restrict__ descale_dO,
-                                             const float* __restrict__ descale_V,
-                                             const float* __restrict__ scale_S,
-                                             const float* __restrict__ scale_dS,
-                                             const uint64_t* __restrict__ seed,
-                                             const uint64_t* __restrict__ offset,
-                                             const float* __restrict__ dropout_P,
-                                             float scale,
-                                             uint32_t seq_len,
-                                             uint64_t nhs)
+extern "C" __global__ void __launch_bounds__(THREADS)
+    BwdAttentionBlock(float* __restrict__ QxK_S,
+                      float* __restrict__ dOxV_dS,
+                      const float* __restrict__ M,
+                      const float* __restrict__ Zinv,
+                      const float* __restrict__ dOxO,
+                      float* __restrict__ Amax,
+                      const float* __restrict__ descale_Q,
+                      const float* __restrict__ descale_K,
+                      const float* __restrict__ descale_dO,
+                      const float* __restrict__ descale_V,
+                      const float* __restrict__ scale_S,
+                      const float* __restrict__ scale_dS,
+                      const uint64_t* __restrict__ seed,
+                      const uint64_t* __restrict__ offset,
+                      const float* __restrict__ dropout_P,
+                      float scale,
+                      uint32_t seq_len,
+                      uint64_t nhs)
 {
+    static_assert(THREADS % warpSize == 0);
     constexpr uint32_t NumWarps = THREADS / warpSize;
     const uint32_t lid          = threadIdx.x;
     const uint32_t laneId       = lid % warpSize;
@@ -679,25 +696,27 @@ extern "C" __global__ void BwdAttentionBlock(float* __restrict__ QxK_S,
     }
 }
 
-extern "C" __global__ void BwdAttentionCommon(float* __restrict__ QxK_S,
-                                              float* __restrict__ dOxV_dS,
-                                              const float* __restrict__ M,
-                                              const float* __restrict__ Zinv,
-                                              const float* __restrict__ dOxO,
-                                              float* __restrict__ Amax,
-                                              const float* __restrict__ descale_Q,
-                                              const float* __restrict__ descale_K,
-                                              const float* __restrict__ descale_dO,
-                                              const float* __restrict__ descale_V,
-                                              const float* __restrict__ scale_S,
-                                              const float* __restrict__ scale_dS,
-                                              const uint64_t* __restrict__ seed,
-                                              const uint64_t* __restrict__ offset,
-                                              const float* __restrict__ dropout_P,
-                                              float scale,
-                                              uint32_t seq_len,
-                                              uint64_t nhs)
+extern "C" __global__ void __launch_bounds__(THREADS)
+    BwdAttentionCommon(float* __restrict__ QxK_S,
+                       float* __restrict__ dOxV_dS,
+                       const float* __restrict__ M,
+                       const float* __restrict__ Zinv,
+                       const float* __restrict__ dOxO,
+                       float* __restrict__ Amax,
+                       const float* __restrict__ descale_Q,
+                       const float* __restrict__ descale_K,
+                       const float* __restrict__ descale_dO,
+                       const float* __restrict__ descale_V,
+                       const float* __restrict__ scale_S,
+                       const float* __restrict__ scale_dS,
+                       const uint64_t* __restrict__ seed,
+                       const uint64_t* __restrict__ offset,
+                       const float* __restrict__ dropout_P,
+                       float scale,
+                       uint32_t seq_len,
+                       uint64_t nhs)
 {
+    static_assert(THREADS % warpSize == 0);
     constexpr uint32_t NumWarps = THREADS / warpSize;
     const uint32_t lid          = threadIdx.x;
     const uint32_t laneId       = lid % warpSize;

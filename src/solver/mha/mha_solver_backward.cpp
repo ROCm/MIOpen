@@ -65,8 +65,11 @@ constexpr S RoundUpToMultiple(T val, T mul)
     return Ceil(val, mul) * mul;
 }
 
-constexpr uint32_t nextPow2(uint32_t v)
+template <typename T>
+constexpr T nextPow2(T v)
 {
+    static_assert(std::is_integral_v<T>);
+
     if(v == 1)
     {
         return (v << 1);
@@ -77,8 +80,12 @@ constexpr uint32_t nextPow2(uint32_t v)
         v |= v >> 1;
         v |= v >> 2;
         v |= v >> 4;
-        v |= v >> 8;
-        v |= v >> 16;
+        if constexpr(sizeof(T) > 1)
+            v |= v >> 8;
+        if constexpr(sizeof(T) > 2)
+            v |= v >> 16;
+        if constexpr(sizeof(T) > 4)
+            v |= v >> 32;
         v++;
         return v;
     }
@@ -114,20 +121,25 @@ miopen::HipEventPtr make_hip_fast_event()
 bool MhaBackward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                                const miopen::mha::ProblemDescription& problem) const
 {
-    const miopen::mha::MhaInputDescsBackward& descsForward = problem.GetDescsBackward();
+    const miopen::mha::MhaInputDescsBackward& descsBackward = problem.GetDescsBackward();
 
-    auto [N, H, S, D] = miopen::tien<4>(descsForward.kDesc.GetLengths());
+    auto [N, H, S, D] = miopen::tien<4>(descsBackward.kDesc.GetLengths());
 
-    return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_NAIVE_BWD)) && //
-           !problem.IsForward() &&                                  //
-           S <= std::numeric_limits<uint32_t>::max() &&             //
-           D <= std::numeric_limits<uint32_t>::max() &&             //
-           descsForward.kDesc.IsPacked() &&                         //
-           descsForward.qDesc.IsPacked() &&                         //
-           descsForward.vDesc.IsPacked() &&                         //
-           descsForward.oDesc.IsPacked() &&                         //
-           descsForward.doDesc.IsPacked() &&                        //
-           MIOPEN_USE_GEMM;
+    return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_NAIVE_BWD)) //
+           && !problem.IsForward()                               //
+           && S <= std::numeric_limits<uint32_t>::max()          //
+           && D <= std::numeric_limits<uint32_t>::max()          //
+           && descsBackward.kDesc.IsPacked()                     //
+           && descsBackward.qDesc.IsPacked()                     //
+           && descsBackward.vDesc.IsPacked()                     //
+           && descsBackward.oDesc.IsPacked()                     //
+           && descsBackward.doDesc.IsPacked()                    //
+           && descsBackward.mDesc.IsPacked()                     //
+           && descsBackward.zInvDesc.IsPacked()                  //
+           && descsBackward.dkDesc.IsPacked()                    //
+           && descsBackward.dqDesc.IsPacked()                    //
+           && descsBackward.dvDesc.IsPacked()                    //
+           && MIOPEN_USE_GEMM;
 }
 
 std::size_t MhaBackward::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
@@ -142,15 +154,15 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
     auto result = ConvSolution{miopenStatusSuccess};
 
     auto [N, H, S, D] = miopen::tien<4>(problem.GetDescsBackward().kDesc.GetLengths());
-    uint32_t emb_dim  = D;
-    uint32_t seq_len  = S;
+    uint32_t emb_dim  = static_cast<uint32_t>(D);
+    uint32_t seq_len  = static_cast<uint32_t>(S);
     uint64_t nhs      = N * H * S;
     uint64_t nhsd     = N * H * S * D;
     float scale       = problem.GetDescsBackward().scale; // just to capture it into lambda
 
     auto warpSize = context.GetStream().GetWavefrontWidth();
 
-    size_t local_threads  = std::clamp<uint32_t>(nextPow2(D), warpSize, 256);
+    size_t local_threads  = std::clamp(nextPow2(D), warpSize, static_cast<size_t>(256));
     size_t global_threads = nhs * local_threads;
 
     auto dOxO_reduction_kernel = KernelInfo{};
@@ -168,7 +180,7 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
     dOxO_reduction_kernel.g_wk = {global_threads, 1, 1};
     result.construction_params.push_back(dOxO_reduction_kernel);
 
-    local_threads  = std::clamp<uint32_t>(nextPow2(S), warpSize, 256);
+    local_threads  = std::clamp(nextPow2(S), warpSize, static_cast<size_t>(256));
     global_threads = nhs * local_threads;
 
     auto bwd_attention_kernel = KernelInfo{};
@@ -190,7 +202,7 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
         return static_cast<void*>(static_cast<std::byte*>(buffer) + ws.GetOffset(part_idx));
     };
 
-    local_threads  = std::clamp<uint32_t>(nextPow2(nhsd), warpSize, 256);
+    local_threads  = std::clamp(nextPow2(nhsd), warpSize, static_cast<size_t>(256));
     global_threads = RoundUpToMultiple(nhsd, local_threads);
 
     auto scale_reduce_kernel = KernelInfo{};
