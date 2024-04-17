@@ -43,7 +43,7 @@ private:
     std::vector<miopenBackendDescriptor_t> mOps; // to return them in getAttribute
     OpGraphBuilder mOpGraphBuilder;
     OpGraph mOpGraph;
-    std::vector<void*> mSolutions; // TODO: Design what to store here
+    std::vector<miopenSolution_t> mSolutions;
 
 public:
     void setAttribute(miopenBackendAttributeName_t attributeName,
@@ -57,7 +57,7 @@ public:
                       int64_t* elementCount,
                       void* arrayOfElements) override;
 
-    const std::vector<void*>& getSolutions() const { return mSolutions; }
+    const std::vector<miopenSolution_t>& getSolutions() const { return mSolutions; }
 };
 
 } // namespace graphapi
