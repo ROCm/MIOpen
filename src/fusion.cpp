@@ -45,11 +45,7 @@
 #include <ios>
 #include <algorithm>
 #include <string>
-#if !defined(_WIN32)
 #include <half/half.hpp>
-#else
-#include <half.hpp>
-#endif
 
 #define MIOPEN_CHECK(x)          \
     if(x != miopenStatusSuccess) \
