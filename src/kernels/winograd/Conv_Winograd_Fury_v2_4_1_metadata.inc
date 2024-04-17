@@ -63,7 +63,6 @@ amdhsa.kernels:
     - { .size: 8, .offset:  32, .value_kind: global_buffer, .name: data_addr,   .address_space: global, .is_const: true }
     - { .size: 8, .offset:  40, .value_kind: global_buffer, .name: filter_addr, .address_space: global, .is_const: true }
     - { .size: 8, .offset:  48, .value_kind: global_buffer, .name: output_addr, .address_space: global, .is_const: false }
-//    - { .size: 8, .offset:  56, .value_kind: hidden_none } // BUG: SWDEV-454110
     - { .size: 8, .offset:  56, .value_kind: by_value }
 
     - { .size: 4, .offset:  64, .value_kind: by_value, .name: R }
@@ -85,19 +84,16 @@ amdhsa.kernels:
     - { .size: 4, .offset: 136, .value_kind: by_value, .name: d_N_stride }
     - { .size: 4, .offset: 140, .value_kind: by_value, .name: d_C_stride }
     - { .size: 4, .offset: 144, .value_kind: by_value, .name: d_H_stride }
-//    - { .size: 4, .offset: 148, .value_kind: hidden_none } // BUG: SWDEV-454110
     - { .size: 4, .offset: 148, .value_kind: by_value }
 
     - { .size: 4, .offset: 152, .value_kind: by_value, .name: f_K_stride }
     - { .size: 4, .offset: 156, .value_kind: by_value, .name: f_C_stride }
     - { .size: 4, .offset: 160, .value_kind: by_value, .name: f_R_stride }
-//    - { .size: 4, .offset: 164, .value_kind: hidden_none } // BUG: SWDEV-454110
     - { .size: 4, .offset: 164, .value_kind: by_value }
 
     - { .size: 4, .offset: 168, .value_kind: by_value, .name: o_N_stride }
     - { .size: 4, .offset: 172, .value_kind: by_value, .name: o_K_stride }
     - { .size: 4, .offset: 176, .value_kind: by_value, .name: o_H_stride }
-//    - { .size: 4, .offset: 180, .value_kind: hidden_none } // BUG: SWDEV-454110
     - { .size: 4, .offset: 180, .value_kind: by_value }
 
     - { .size: 4, .offset: 184, .value_kind: by_value, .name: G }
@@ -108,10 +104,8 @@ amdhsa.kernels:
     - { .size: 1, .offset: 200, .value_kind: by_value, .name: activation_mode }
     - { .size: 1, .offset: 201, .value_kind: by_value, .name: sync_limit }
     - { .size: 1, .offset: 202, .value_kind: by_value, .name: sync_period }
-//    - { .size: 1, .offset: 203, .value_kind: hidden_none } // BUG: SWDEV-454110
     - { .size: 1, .offset: 203, .value_kind: by_value }
 
-//    - { .size: 4, .offset: 204, .value_kind: hidden_none } // BUG: SWDEV-454110
     - { .size: 4, .offset: 204, .value_kind: by_value }
     - { .size: 8, .offset: 208, .value_kind: global_buffer, .name: sync_addr, .address_space: global, .is_const: false }
 
