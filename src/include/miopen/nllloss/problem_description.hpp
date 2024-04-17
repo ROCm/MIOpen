@@ -68,8 +68,6 @@ struct ProblemDescription : ProblemDescriptionBase
     size_t GetD1() const { return D1; }
     size_t GetD2() const { return D2; }
 
-    /* input(input): [N, C, D1, D2], target(target): [N, D1, D2],
-     * weight(weight): [C], output(output): [N, D1, D2] */
     bool IsRightDim() const
     {
         if(outputDesc.GetLengths()[0] != N || outputDesc.GetLengths()[1] != D1 ||

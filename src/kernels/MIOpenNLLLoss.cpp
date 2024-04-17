@@ -30,9 +30,6 @@
 
 #include "float_types.h"
 
-/* input(input): [N, C, D1, D2], target(target): [N, D1, D2],
- * weight(weight): [C], output(output): [N, D1, D2] */
-/* Each thread computes one output: output[n0][n1][n2] */
 template <typename TI, typename TO>
 __device__ void nlllossUnreducedForward4dContiguous(const TI* __restrict__ input,
                                                     const int32_t* __restrict__ target,

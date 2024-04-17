@@ -73,15 +73,6 @@ protected:
         auto&& handle  = get_handle();
         nllloss_config = GetParam();
 
-        // input < 0
-        // 0 <= target < C
-        // weight = 1
-
-        /* input(input) : [N, C, D1, D2],
-         * target(target): [N, D1, D2],
-         * weight(weight): [C],
-         * output(output): [N, D1, D2] */
-
         ignore_index = nllloss_config.ignore_index;
         weight_mode  = nllloss_config.weight_mode;
 
