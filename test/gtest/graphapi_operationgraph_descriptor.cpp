@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include <miopen/graphapi/enginefinder.hpp>
+#include <miopen/graphapi/operationgraph_descriptor.hpp>
 
 #include <memory>
 #include <string>

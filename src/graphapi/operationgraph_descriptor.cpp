@@ -25,7 +25,7 @@
  *******************************************************************************/
 
 #include <miopen/errors.hpp>
-#include <miopen/graphapi/enginefinder.hpp>
+#include <miopen/graphapi/operationgraph_descriptor.hpp>
 
 #include <algorithm>
 
