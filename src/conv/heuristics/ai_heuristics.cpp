@@ -617,6 +617,7 @@ bool ModelSetParams(const std::string& arch,
         dim = std::sqrt(features.size());
     else
         dim = features.size();
+    auto start = std::chrono::high_resolution_clock::now();
     fdeep::tensors context = model->Encode(features, dim, transform_features);
     float decoder_input    = 0.0;
     std::string dir;
@@ -650,19 +651,27 @@ bool ModelSetParams(const std::string& arch,
             // convert index to token value
             std::string value = model->metadata.tuning_decodings[std::to_string(token)];
             pq.pop();
-            if(value == "-1")
+	    if(value == "-1")
+	    {
+		auto stop = std::chrono::high_resolution_clock::now();
+		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+		std::cout << "Model ran for " << duration.count() << " micro-seconds" << std::endl;
+		std::cout << "KTN COULD NOT PREDICT A KERNEL" << std::endl;
                 return false;
+	    }
             if(validator(i, value))
             {
                 output_token_index =
                     token; // index with largest value that is valid = predicted index
-                // std::cout << "token: " << token << " value: " << value << std::endl;
                 break;
             }
         }
         decoder_input = float(output_token_index);
         context       = {decoder_output.begin() + 1, decoder_output.end()};
     }
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    std::cout << "Model ran for " << duration.count() << " micro-seconds" << std::endl;
     return true;
 }
 

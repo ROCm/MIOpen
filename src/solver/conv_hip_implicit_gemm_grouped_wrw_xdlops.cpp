@@ -240,24 +240,25 @@ void PerformanceConfigHipImplicitGemmGroupWrwXdlops::InitHeuristicKernelIDs()
         {
             heuristic_indexes.push_back(i);
             heuristic_kernels.push_back(GetKernelAsTokens(valid_kernels[i]));
-        }
+		}
     }
 }
 
 bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::ModelApplyToken(int idx, std::string value)
 {
-    std::vector<int> new_heuristic_indexes;
-    new_heuristic_indexes.reserve(heuristic_indexes.size());
-   if(idx == 13)
-        idx += 1; // skip 
+    if(idx == 13)
+        idx += 1; // skip
+
     auto eraseBegin = std::remove_if(
-        heuristic_indexes.begin(), heuristic_indexes.end(), [&](int heuristic_index) {
-            return heuristic_kernels[heuristic_index][idx] != value;
-        });
+    heuristic_indexes.begin(), heuristic_indexes.end(), [&](int heuristic_index) {
+    return heuristic_kernels[heuristic_index][idx] != value;
+    });
 
-    heuristic_indexes.erase(eraseBegin, heuristic_indexes.end());
-
-    return !heuristic_indexes.empty();
+    if(eraseBegin != heuristic_indexes.begin()){
+        heuristic_indexes.erase(eraseBegin, heuristic_indexes.end());
+        return true;
+    }
+    return false;
 }
 
 static std::vector<float> GetFeatures(const ProblemDescription& problem, std::size_t num_cu)
@@ -328,7 +329,6 @@ void PerformanceConfigHipImplicitGemmGroupWrwXdlops::HeuristicInit(
     // these seem redundant
     index     = 0;
     kernel_id = "";
-
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
     if(IsModelApplicable(ctx, problem))

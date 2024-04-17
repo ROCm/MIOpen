@@ -224,19 +224,20 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::InitHeuristicKernelIDs()
 
 bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::ModelApplyToken(int idx, std::string value)
 {
-    std::vector<int> new_heuristic_indexes;
-    new_heuristic_indexes.reserve(heuristic_indexes.size());
     //if(arch == "gfx90a")
     //  if(idx >= 5)
     //      idx += 2; // skip MPerXDL and NPerXDL as they are constant
+
     auto eraseBegin = std::remove_if(
-        heuristic_indexes.begin(), heuristic_indexes.end(), [&](int heuristic_index) {
-            return heuristic_kernels[heuristic_index][idx] != value;
-        });
+    heuristic_indexes.begin(), heuristic_indexes.end(), [&](int heuristic_index) {
+    return heuristic_kernels[heuristic_index][idx] != value;
+    });
 
-    heuristic_indexes.erase(eraseBegin, heuristic_indexes.end());
-
-    return !heuristic_indexes.empty();
+    if(eraseBegin != heuristic_indexes.begin()){
+        heuristic_indexes.erase(eraseBegin, heuristic_indexes.end());
+        return true;
+    }
+    return false;
 }
 
 static std::vector<float> GetFeatures(const ProblemDescription& problem, std::size_t num_cu, const std::string& arch)
