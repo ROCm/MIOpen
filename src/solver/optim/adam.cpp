@@ -55,7 +55,9 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
 
     {
         auto param_dtype = miopen::GetDataType(problem.GetParamDesc().GetType());
-        auto grad_dtype  = miopen::GetDataType(problem.GetGradDesc().GetType());
+        auto grad_dtype  = problem.IsAmp() //
+            ? miopen::GetDataType(problem.GetGradDesc().GetType()) //
+            : float; // unused dummy
         auto ptype_size  = miopen::get_data_size(problem.GetParamDesc().GetType());
 
         const auto build_params = KernelBuildParameters{
