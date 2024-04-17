@@ -40,14 +40,18 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     size_t num_batches = dims[0];
     size_t num_classes = dims[1];
 
-    auto dtype = inputDesc.GetType();
+    auto input_dtype = inputDesc.GetType();
+    auto output_dtype = outputDesc.GetType();
 
     std::ostringstream ss;
 
-    ss << "dtype" << dtype;
+    ss << "input_dtype" << input_dtype;
+    ss << "output_dtype" << output_dtype;
     ss << "numel" << numel;
     ss << "num_batches" << num_batches;
     ss << "num_classes" << num_classes;
+    ss << "D1" << dims[2];
+    ss << "D2" << dims[3];
 
     return NetworkConfig{ss.str()};
 }
