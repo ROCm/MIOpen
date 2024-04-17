@@ -39,11 +39,7 @@
 #include <miopen/bfloat16.hpp>
 
 #include <cstdint>
-#if !defined(_WIN32)
 #include <half/half.hpp>
-#else
-#include <half.hpp>
-#endif
 using half         = half_float::half;
 using hip_bfloat16 = bfloat16;
 #include <hip_float8.hpp>

@@ -29,11 +29,7 @@
 
 #include <miopen/rank.hpp>
 #include <miopen/each_args.hpp>
-#if !defined(_WIN32)
 #include <half/half.hpp>
-#else
-#include <half.hpp>
-#endif
 #include <fstream>
 #include <string>
 #include <tuple>

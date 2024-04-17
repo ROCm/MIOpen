@@ -37,11 +37,7 @@
 
 #include <functional>
 #include <deque>
-#if !defined(_WIN32)
 #include <half/half.hpp>
-#else
-#include <half.hpp>
-#endif
 #include <type_traits>
 #include <miopen/filesystem.hpp>
 #include <miopen/functional.hpp>
