@@ -56,7 +56,6 @@ __device__ void nlllossUnreducedForward4dContiguous(const TI* __restrict__ input
     NWH[0]    = nc / D1;
 
     int32_t t = target[gid];
-    // t: Class index
     if(t < 0 || t == ignore_index || t >= C)
     {
         output[gid] = static_cast<TO>(0);
@@ -65,7 +64,6 @@ __device__ void nlllossUnreducedForward4dContiguous(const TI* __restrict__ input
 
     FLOAT_ACCUM w = weight != nullptr ? CVT_FLOAT2ACCUM(weight[t]) : CVT_FP32_2ACCUM(1.0f);
 
-    // FLOAT input_value = input[N][t][D1][D2];
     uint32_t input_offset   = (NWH[0] * C + t) * D1 * D2 + NWH[1] * D2 + NWH[2];
     FLOAT_ACCUM input_value = CVT_FLOAT2ACCUM(input[input_offset]);
 
