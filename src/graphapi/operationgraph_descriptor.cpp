@@ -29,11 +29,19 @@
 
 #include <algorithm>
 
-void miopen::graphapi::BackendOperationGraphDescriptor::setAttribute(
-    miopenBackendAttributeName_t attributeName,
-    miopenBackendAttributeType_t attributeType,
-    int64_t elementCount,
-    void* arrayOfElements)
+namespace miopen {
+
+namespace graphapi {
+
+BackendOperationGraphDescriptor::~BackendOperationGraphDescriptor()
+{
+    std::for_each(mSolutions.begin(), mSolutions.end(), miopenDestroySolution);
+}
+
+void BackendOperationGraphDescriptor::setAttribute(miopenBackendAttributeName_t attributeName,
+                                                   miopenBackendAttributeType_t attributeType,
+                                                   int64_t elementCount,
+                                                   void* arrayOfElements)
 {
     if(mFinalized)
     {
@@ -91,7 +99,7 @@ void miopen::graphapi::BackendOperationGraphDescriptor::setAttribute(
     }
 }
 
-void miopen::graphapi::BackendOperationGraphDescriptor::finalize()
+void BackendOperationGraphDescriptor::finalize()
 {
     if(mFinalized)
     {
@@ -110,12 +118,11 @@ void miopen::graphapi::BackendOperationGraphDescriptor::finalize()
     mFinalized = true;
 }
 
-void miopen::graphapi::BackendOperationGraphDescriptor::getAttribute(
-    miopenBackendAttributeName_t attributeName,
-    miopenBackendAttributeType_t attributeType,
-    int64_t requestedElementCount,
-    int64_t* elementCount,
-    void* arrayOfElements)
+void BackendOperationGraphDescriptor::getAttribute(miopenBackendAttributeName_t attributeName,
+                                                   miopenBackendAttributeType_t attributeType,
+                                                   int64_t requestedElementCount,
+                                                   int64_t* elementCount,
+                                                   void* arrayOfElements)
 {
     if(!mFinalized)
     {
@@ -165,3 +172,7 @@ void miopen::graphapi::BackendOperationGraphDescriptor::getAttribute(
     default: MIOPEN_THROW(miopenStatusBadParm);
     }
 }
+
+} // namespace graphapi
+
+} // namespace miopen

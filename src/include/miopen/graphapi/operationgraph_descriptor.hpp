@@ -46,6 +46,7 @@ private:
     std::vector<miopenSolution_t> mSolutions;
 
 public:
+    ~BackendOperationGraphDescriptor() override;
     void setAttribute(miopenBackendAttributeName_t attributeName,
                       miopenBackendAttributeType_t attributeType,
                       int64_t elementCount,
