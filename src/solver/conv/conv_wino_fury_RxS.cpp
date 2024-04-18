@@ -42,8 +42,6 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F3X2)
 #define IS2X3 (Winodata == 2 && Winofilter == 3)
 #define IS3X2 (Winodata == 3 && Winofilter == 2)
 
-constexpr std::size_t sync_buffer_size = 2048; // 2K
-
 namespace miopen {
 namespace solver {
 namespace conv {
@@ -54,6 +52,8 @@ using WinoShaderActivationModeV2_t = miopen::conv::WinoShaderActivationModeV2_t;
 using WinoShaderFlagsV2            = miopen::conv::WinoShaderFlagsV2;
 
 namespace {
+
+constexpr std::size_t sync_buffer_size = 2048; // 2K
 
 // Template is used to catch -Wshift-count-overflow
 template <uint32_t exp>
