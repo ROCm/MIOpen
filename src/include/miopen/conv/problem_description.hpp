@@ -202,10 +202,7 @@ struct ProblemDescription : ProblemDescriptionBase
     }
     std::size_t GetInElementSize() const { return GetTypeSize(GetInDataType()); }
 
-    std::size_t GetInSize() const
-    {
-        return in.GetNumBytes();
-    }
+    std::size_t GetInSize() const { return in.GetNumBytes(); }
 
     // Out getters
     miopenDataType_t GetOutDataType() const { return out.GetType(); }
@@ -234,10 +231,7 @@ struct ProblemDescription : ProblemDescriptionBase
     }
     std::size_t GetOutElementSize() const { return GetTypeSize(GetOutDataType()); }
 
-    std::size_t GetOutSize() const
-    {
-        return out.GetNumBytes();
-    }
+    std::size_t GetOutSize() const { return out.GetNumBytes(); }
 
     // Weights getters
     miopenDataType_t GetWeightsDataType() const { return weights.GetType(); }
@@ -277,10 +271,7 @@ struct ProblemDescription : ProblemDescriptionBase
     }
     std::size_t GetWeightsElementSize() const { return GetTypeSize(GetWeightsDataType()); }
 
-    std::size_t GetWeightsSize() const
-    {
-        return weights.GetNumBytes();
-    }
+    std::size_t GetWeightsSize() const { return weights.GetNumBytes(); }
 
     const TensorDescriptor& GetIn() const { return in; }
     const TensorDescriptor& GetWeights() const { return weights; }
