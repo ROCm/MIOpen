@@ -138,6 +138,94 @@ extern "C" __global__ void AdamPacked(PTYPE* param_in,
     }
 }
 
+template <typename T1, typename T2, typename T3>
+inline __device__ void AmpAdamInternal(T1* param_in,
+                                       T1* param_out,
+                                       half* param_out_fp16,
+                                       T3* grad_in,
+                                       T1* exp_avg_in,
+                                       T1* exp_avg_out,
+                                       T1* exp_avg_sq_in,
+                                       T1* exp_avg_sq_out,
+                                       T1* max_exp_avg_sq_in,
+                                       T1* max_exp_avg_sq_out,
+                                       int32_t* grad_scale,
+                                       T2 lr,
+                                       T2 beta1,
+                                       T2 beta2,
+                                       T2 weight_decay,
+                                       T2 eps,
+                                       uint32_t step,
+                                       bool amsgrad,
+                                       bool maximize,
+                                       size_t input_size)
+{
+    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t gsz = gridDim.x * blockDim.x;
+
+    CTYPE scale_factor = (grad_scale) ? static_cast<CTYPE>(*grad_scale) : 1.0f;
+
+    for(; gid < input_size; gid += gsz)
+    {
+        CTYPE grad = static_cast<CTYPE>(grad_in[gid]);
+        if(grad_scale)
+            grad /= scale_factor;
+
+        AdamInternal<T1, T2>(param_in,
+                             param_out,
+                             exp_avg_in,
+                             exp_avg_out,
+                             exp_avg_sq_in,
+                             exp_avg_sq_out,
+                             max_exp_avg_sq_in,
+                             max_exp_avg_sq_out,
+                             grad,
+                             lr,
+                             beta1,
+                             beta2,
+                             weight_decay,
+                             eps,
+                             step,
+                             amsgrad,
+                             maximize,
+                             gid);
+
+        if(param_out_fp16)
+            param_out_fp16[gid] = static_cast<half>(param_out[gid]);
+    }
+}
+
+template <typename T1>
+inline __device__ void AmpAdamSetOutputFromInput(T1* param_in,
+                                                 T1* param_out,
+                                                 half* param_out_fp16,
+                                                 T1* exp_avg_in,
+                                                 T1* exp_avg_out,
+                                                 T1* exp_avg_sq_in,
+                                                 T1* exp_avg_sq_out,
+                                                 T1* max_exp_avg_sq_in,
+                                                 T1* max_exp_avg_sq_out,
+                                                 bool amsgrad,
+                                                 size_t input_size)
+{
+    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t gsz = gridDim.x * blockDim.x;
+
+    for(; gid < input_size; gid += gsz)
+    {
+        if(param_in != param_out)
+            param_out[gid] = param_in[gid];
+        if(param_out_fp16)
+            param_out_fp16[gid] = static_cast<half>(param_in[gid]);
+        if(exp_avg_in != exp_avg_out)
+            exp_avg_out[gid] = exp_avg_in[gid];
+        if(exp_avg_sq_in != exp_avg_sq_out)
+            exp_avg_sq_out[gid] = exp_avg_sq_in[gid];
+        if(amsgrad && max_exp_avg_sq_in != max_exp_avg_sq_out)
+            max_exp_avg_sq_out[gid] = max_exp_avg_sq_in[gid];
+    }
+}
+
 extern "C" __global__ void AmpAdamPackedWithStep(PTYPE* param_in,
                                                  PTYPE* param_out,
                                                  half* param_out_fp16,
@@ -161,44 +249,48 @@ extern "C" __global__ void AmpAdamPackedWithStep(PTYPE* param_in,
                                                  size_t input_size)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
-    size_t gsz = gridDim.x * blockDim.x;
 
     if(gid >= input_size)
         return;
 
-    if(found_inf && *found_inf)
-        return;
-
-    CTYPE scale_factor = (grad_scale) ? static_cast<CTYPE>(*grad_scale) : 1.0f;
-    uint32_t step_val  = static_cast<uint32_t>(*step) + 1;
-
-    for(; gid < input_size; gid += gsz)
+    if(found_inf == nullptr || *found_inf == false)
     {
-        CTYPE grad = static_cast<CTYPE>(grad_in[gid]);
-        if(grad_scale)
-            grad /= scale_factor;
+        uint32_t step_val = static_cast<uint32_t>(*step) + 1;
 
-        AdamInternal<PTYPE, CTYPE>(param_in,
-                                   param_out,
-                                   exp_avg_in,
-                                   exp_avg_out,
-                                   exp_avg_sq_in,
-                                   exp_avg_sq_out,
-                                   max_exp_avg_sq_in,
-                                   max_exp_avg_sq_out,
-                                   grad,
-                                   lr,
-                                   beta1,
-                                   beta2,
-                                   weight_decay,
-                                   eps,
-                                   step_val,
-                                   amsgrad,
-                                   maximize,
-                                   gid);
-
-        if(param_out_fp16)
-            param_out_fp16[gid] = static_cast<half>(param_out[gid]);
+        AmpAdamInternal<PTYPE, CTYPE, GTYPE>(param_in,
+                                             param_out,
+                                             param_out_fp16,
+                                             grad_in,
+                                             exp_avg_in,
+                                             exp_avg_out,
+                                             exp_avg_sq_in,
+                                             exp_avg_sq_out,
+                                             max_exp_avg_sq_in,
+                                             max_exp_avg_sq_out,
+                                             grad_scale,
+                                             lr,
+                                             beta1,
+                                             beta2,
+                                             weight_decay,
+                                             eps,
+                                             step_val,
+                                             amsgrad,
+                                             maximize,
+                                             input_size);
+    }
+    else
+    {
+        AmpAdamSetOutputFromInput<PTYPE>(param_in,
+                                         param_out,
+                                         param_out_fp16,
+                                         exp_avg_in,
+                                         exp_avg_out,
+                                         exp_avg_sq_in,
+                                         exp_avg_sq_out,
+                                         max_exp_avg_sq_in,
+                                         max_exp_avg_sq_out,
+                                         amsgrad,
+                                         input_size);
     }
 }
 
@@ -225,43 +317,46 @@ extern "C" __global__ void AmpAdamPacked(PTYPE* param_in,
                                          size_t input_size)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
-    size_t gsz = gridDim.x * blockDim.x;
 
     if(gid >= input_size)
         return;
 
-    if(found_inf && *found_inf)
-        return;
-
-    CTYPE scale_factor = (grad_scale) ? static_cast<CTYPE>(*grad_scale) : 1.0f;
-
-    for(; gid < input_size; gid += gsz)
+    if(found_inf == nullptr || *found_inf == false)
     {
-        CTYPE grad = static_cast<CTYPE>(grad_in[gid]);
-        if(grad_scale)
-            grad /= scale_factor;
-
-        AdamInternal<PTYPE, CTYPE>(param_in,
-                                   param_out,
-                                   exp_avg_in,
-                                   exp_avg_out,
-                                   exp_avg_sq_in,
-                                   exp_avg_sq_out,
-                                   max_exp_avg_sq_in,
-                                   max_exp_avg_sq_out,
-                                   grad,
-                                   lr,
-                                   beta1,
-                                   beta2,
-                                   weight_decay,
-                                   eps,
-                                   step,
-                                   amsgrad,
-                                   maximize,
-                                   gid);
-
-        if(param_out_fp16)
-            param_out_fp16[gid] = static_cast<half>(param_out[gid]);
+        AmpAdamInternal<PTYPE, CTYPE, GTYPE>(param_in,
+                                             param_out,
+                                             param_out_fp16,
+                                             grad_in,
+                                             exp_avg_in,
+                                             exp_avg_out,
+                                             exp_avg_sq_in,
+                                             exp_avg_sq_out,
+                                             max_exp_avg_sq_in,
+                                             max_exp_avg_sq_out,
+                                             grad_scale,
+                                             lr,
+                                             beta1,
+                                             beta2,
+                                             weight_decay,
+                                             eps,
+                                             step,
+                                             amsgrad,
+                                             maximize,
+                                             input_size);
+    }
+    else
+    {
+        AmpAdamSetOutputFromInput<PTYPE>(param_in,
+                                         param_out,
+                                         param_out_fp16,
+                                         exp_avg_in,
+                                         exp_avg_out,
+                                         exp_avg_sq_in,
+                                         exp_avg_sq_out,
+                                         max_exp_avg_sq_in,
+                                         max_exp_avg_sq_out,
+                                         amsgrad,
+                                         input_size);
     }
 }
 
