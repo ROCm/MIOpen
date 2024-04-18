@@ -235,12 +235,11 @@ void PerformanceConfigHipImplicitGemmGroupWrwXdlops::InitHeuristicKernelIDs()
 {
     for(int i = 0; i < valid_kernels.size(); i++)
     {
-        if(valid_kernels[i].find("DeviceGroupedConvBwdWeight_Xdl_CShuffle") !=
-           std::string::npos)
+        if(valid_kernels[i].find("DeviceGroupedConvBwdWeight_Xdl_CShuffle") != std::string::npos)
         {
             heuristic_indexes.push_back(i);
             heuristic_kernels.push_back(GetKernelAsTokens(valid_kernels[i]));
-		}
+        }
     }
 }
 
@@ -250,11 +249,12 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::ModelApplyToken(int idx, st
         idx += 1; // skip
 
     auto eraseBegin = std::remove_if(
-    heuristic_indexes.begin(), heuristic_indexes.end(), [&](int heuristic_index) {
-    return heuristic_kernels[heuristic_index][idx] != value;
-    });
+        heuristic_indexes.begin(), heuristic_indexes.end(), [&](int heuristic_index) {
+            return heuristic_kernels[heuristic_index][idx] != value;
+        });
 
-    if(eraseBegin != heuristic_indexes.begin()){
+    if(eraseBegin != heuristic_indexes.begin())
+    {
         heuristic_indexes.erase(eraseBegin, heuristic_indexes.end());
         return true;
     }
@@ -263,18 +263,18 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::ModelApplyToken(int idx, st
 
 static std::vector<float> GetFeatures(const ProblemDescription& problem, std::size_t num_cu)
 {
-std::size_t n = 18;
+    std::size_t n = 18;
     std::vector<float> features(n * n, 0.0f);
-    features[0]                   = 1.0;
-    features[n + 1] = problem.GetOutChannels();
-    features[2 * n + 2] = problem.GetOutHeight();
-    features[3 * n + 3] = problem.GetOutWidth();
-    features[4 * n + 4] = problem.GetInChannels();
-    features[5 * n + 5] = problem.GetInHeight();
-    features[6 * n + 6] = problem.GetInWidth();
-    features[7 * n + 7] = problem.GetWeightsHeight();
-    features[8 * n + 8] = problem.GetWeightsWidth();
-    features[9 * n + 9] = problem.GetPadH();
+    features[0]           = 1.0;
+    features[n + 1]       = problem.GetOutChannels();
+    features[2 * n + 2]   = problem.GetOutHeight();
+    features[3 * n + 3]   = problem.GetOutWidth();
+    features[4 * n + 4]   = problem.GetInChannels();
+    features[5 * n + 5]   = problem.GetInHeight();
+    features[6 * n + 6]   = problem.GetInWidth();
+    features[7 * n + 7]   = problem.GetWeightsHeight();
+    features[8 * n + 8]   = problem.GetWeightsWidth();
+    features[9 * n + 9]   = problem.GetPadH();
     features[10 * n + 10] = problem.GetPadW();
     features[11 * n + 11] = problem.GetKernelStrideH();
     features[12 * n + 12] = problem.GetKernelStrideW();
@@ -296,9 +296,10 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::RunParameterPredictionModel
     static const std::string& arch  = ctx.GetStream().GetDeviceName();
     static const std::string solver = "ConvHipIgemmGroupXdlops";
     std::vector<float> features     = GetFeatures(problem, ctx.GetStream().GetMaxComputeUnits());
-    if(ai::tuning::ModelSetParams(arch, solver, problem.GetDirection(), features, true, [&](int idx, std::string value) {
-           return this->ModelApplyToken(idx, value);
-       }))
+    if(ai::tuning::ModelSetParams(
+           arch, solver, problem.GetDirection(), features, true, [&](int idx, std::string value) {
+               return this->ModelApplyToken(idx, value);
+           }))
     {
         index     = heuristic_indexes[0];
         kernel_id = valid_kernels[index];
@@ -361,7 +362,7 @@ void PerformanceConfigHipImplicitGemmGroupWrwXdlops::HeuristicInit(
 
 bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::SetNextValue(const ProblemDescription& problem)
 {
- #if MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_USE_COMPOSABLEKERNEL
     if(valid_kernels.empty())
     {
         switch(problem.GetInDataType())

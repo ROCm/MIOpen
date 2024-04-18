@@ -191,11 +191,11 @@ INSTANTIATE_TEST_SUITE_P(ConvHipIgemmGroupFwdXdlopsParameterPredictionModelTest,
                          KernelTuningNetTestConvHipIgemmGroupFwdXdlops,
                          testing::ValuesIn(GetConvHipIgemmGroupFwdXdlopsTestCases()));
 
-INSTANTIATE_TEST_SUITE_P(ConvHipIgemmGroupFwdXdlopsParameterPredictionModelTest,
+INSTANTIATE_TEST_SUITE_P(ConvHipIgemmGroupBwdXdlopsParameterPredictionModelTest,
                          KernelTuningNetTestConvHipIgemmGroupBwdXdlops,
                          testing::ValuesIn(GetConvHipIgemmGroupBwdXdlopsTestCases()));
 
-INSTANTIATE_TEST_SUITE_P(ConvHipIgemmGroupFwdXdlopsParameterPredictionModelTest,
+INSTANTIATE_TEST_SUITE_P(ConvHipIgemmGroupWrwXdlopsParameterPredictionModelTest,
                          KernelTuningNetTestConvHipIgemmGroupWrwXdlops,
                          testing::ValuesIn(GetConvHipIgemmGroupWrwXdlopsTestCases()));
 

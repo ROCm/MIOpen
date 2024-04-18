@@ -415,9 +415,10 @@ bool PerformanceConfigConvAsm1x1U::RunParameterPredictionModel(const ExecutionCo
     static const std::string& arch  = ctx.GetStream().GetDeviceName();
     static const std::string solver = "ConvAsm1x1U";
     std::vector<float> features     = TransformFeatures(problem, n);
-    if(ai::tuning::ModelSetParams(arch, solver, problem.GetDirection(), features, true, [&](int idx, std::string value) {
-           return this->ModelApplyToken(idx, value, problem);
-       }))
+    if(ai::tuning::ModelSetParams(
+           arch, solver, problem.GetDirection(), features, true, [&](int idx, std::string value) {
+               return this->ModelApplyToken(idx, value, problem);
+           }))
     {
         MIOPEN_LOG_I("Params set by AI: " << ToString());
         return true;

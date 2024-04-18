@@ -222,29 +222,35 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::InitHeuristicKernelIDs()
     }
 }
 
-bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::ModelApplyToken(int idx, std::string value, const std::string& arch)
+bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::ModelApplyToken(int idx,
+                                                                     std::string value,
+                                                                     const std::string& arch)
 {
-    if(arch == "gfx90a"){
+    if(arch == "gfx90a")
+    {
         if(idx >= 5)
         {
-             idx += 2;// skip MPerXDL and NPerXDL as they are constant
+            idx += 2; // skip MPerXDL and NPerXDL as they are constant
         }
-    } 
+    }
     auto eraseBegin = std::remove_if(
-    heuristic_indexes.begin(), heuristic_indexes.end(), [&](int heuristic_index) {
-    return heuristic_kernels[heuristic_index][idx] != value;
-    });
+        heuristic_indexes.begin(), heuristic_indexes.end(), [&](int heuristic_index) {
+            return heuristic_kernels[heuristic_index][idx] != value;
+        });
 
-    if(eraseBegin != heuristic_indexes.begin()){
+    if(eraseBegin != heuristic_indexes.begin())
+    {
         heuristic_indexes.erase(eraseBegin, heuristic_indexes.end());
         return true;
     }
     return false;
 }
 
-static std::vector<float> GetFeatures(const ProblemDescription& problem, std::size_t num_cu, const std::string& arch)
+static std::vector<float>
+GetFeatures(const ProblemDescription& problem, std::size_t num_cu, const std::string& arch)
 {
-    if(arch == "gfx90a"){
+    if(arch == "gfx90a")
+    {
         std::size_t n = 18;
         std::vector<float> features(n, 0.0f);
         features[0]  = problem.GetInDataType() == miopenFloat ? 2 : 1;
@@ -264,20 +270,21 @@ static std::vector<float> GetFeatures(const ProblemDescription& problem, std::si
         features[14] = problem.GetDilationW();
         features[15] = problem.GetBatchSize();
         features[16] = problem.GetGroupCount();
+        features[17] = num_cu;
         return features;
     }
     std::size_t n = 18;
     std::vector<float> features(n * n, 0.0f);
-    features[0]                   = 2.0;
-    features[n + 1] = problem.GetInChannels();
-    features[2 * n + 2] = problem.GetInHeight();
-    features[3 * n + 3] = problem.GetInWidth();
-    features[4 * n + 4] = problem.GetOutChannels();
-    features[5 * n + 5] = problem.GetOutHeight();
-    features[6 * n + 6] = problem.GetOutWidth();
-    features[7 * n + 7] = problem.GetWeightsHeight();
-    features[8 * n + 8] = problem.GetWeightsWidth();
-    features[9 * n + 9] = problem.GetPadH();
+    features[0]           = 2.0;
+    features[n + 1]       = problem.GetInChannels();
+    features[2 * n + 2]   = problem.GetInHeight();
+    features[3 * n + 3]   = problem.GetInWidth();
+    features[4 * n + 4]   = problem.GetOutChannels();
+    features[5 * n + 5]   = problem.GetOutHeight();
+    features[6 * n + 6]   = problem.GetOutWidth();
+    features[7 * n + 7]   = problem.GetWeightsHeight();
+    features[8 * n + 8]   = problem.GetWeightsWidth();
+    features[9 * n + 9]   = problem.GetPadH();
     features[10 * n + 10] = problem.GetPadW();
     features[11 * n + 11] = problem.GetKernelStrideH();
     features[12 * n + 12] = problem.GetKernelStrideW();
@@ -296,13 +303,19 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::RunParameterPredictionModel
     valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<DataType>, CKArgs>(
         problem); // filter valid_kernel ID's
     InitHeuristicKernelIDs();
-    static const std::string& arch  = ctx.GetStream().GetDeviceName();
-    static const std::string solver = (arch == "gfx90a") ? "ConvHipIgemmGroupFwdXdlops" : "ConvHipIgemmGroupXdlops";
-    std::vector<float> features     = GetFeatures(problem, ctx.GetStream().GetMaxComputeUnits(), arch);
-    bool encode = (arch == "gfx90a") ? false : true;
-    if(ai::tuning::ModelSetParams(arch, solver, problem.GetDirection(), features, encode, [&](int idx, const std::string& value) {
-           return this->ModelApplyToken(idx, value, arch);
-       }))
+    static const std::string& arch = ctx.GetStream().GetDeviceName();
+    static const std::string solver =
+        (arch == "gfx90a") ? "ConvHipIgemmGroupFwdXdlops" : "ConvHipIgemmGroupXdlops";
+    std::vector<float> features = GetFeatures(problem, ctx.GetStream().GetMaxComputeUnits(), arch);
+    bool transform              = (arch == "gfx90a") ? false : true;
+    if(ai::tuning::ModelSetParams(arch,
+                                  solver,
+                                  problem.GetDirection(),
+                                  features,
+                                  transform,
+                                  [&](int idx, const std::string& value) {
+                                      return this->ModelApplyToken(idx, value, arch);
+                                  }))
     {
         index     = heuristic_indexes[0];
         kernel_id = valid_kernels[index];

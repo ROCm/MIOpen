@@ -534,7 +534,8 @@ Metadata::Metadata(const std::string& arch, const std::string& solver)
 {
     const nlohmann::json metadata =
         common::LoadJSON(GetSystemDbPath() + "/" + arch + "_" + solver + "_metadata.ktn.model");
-    num_tuning_params = metadata["num_tuning_params"].get<std::unordered_map<std::string, std::size_t>>();
+    num_tuning_params =
+        metadata["num_tuning_params"].get<std::unordered_map<std::string, std::size_t>>();
     tuning_decodings =
         metadata["decodings"]["tunings"].get<std::unordered_map<std::string, std::string>>();
 }
@@ -611,31 +612,24 @@ bool ModelSetParams(const std::string& arch,
                     bool transform_features,
                     std::function<bool(std::size_t, std::string)> validator)
 {
-    std::cout << "SOLVERNAME: " << solver << std::endl;
     auto model = GetModel(arch, solver);
     int dim    = 0;
     if(transform_features)
         dim = std::sqrt(features.size());
     else
         dim = features.size();
-    auto start = std::chrono::high_resolution_clock::now();
+    auto start             = std::chrono::high_resolution_clock::now();
     fdeep::tensors context = model->Encode(features, dim, transform_features);
     float decoder_input    = 0.0;
     std::string dir;
-    switch (direction) {
-        case miopen::conv::Direction::Forward:
-            dir = "fwd";
-            break;
-        case miopen::conv::Direction::BackwardData:
-            dir = "bwd";
-            break;
-        case miopen::conv::Direction::BackwardWeights:
-            dir = "wrw";
-            break;
-        default:
-            return false;
+    switch(direction)
+    {
+    case miopen::conv::Direction::Forward: dir = "fwd"; break;
+    case miopen::conv::Direction::BackwardData: dir = "bwd"; break;
+    case miopen::conv::Direction::BackwardWeights: dir = "wrw"; break;
+    default: return false;
     }
-    std::size_t num_tuning_params =  model->metadata.num_tuning_params[dir];
+    std::size_t num_tuning_params = model->metadata.num_tuning_params[dir];
     for(std::size_t i = 0; i < num_tuning_params; ++i)
     {
         fdeep::tensors decoder_output = model->Decode(decoder_input, context);
@@ -652,27 +646,26 @@ bool ModelSetParams(const std::string& arch,
             // convert index to token value
             std::string value = model->metadata.tuning_decodings[std::to_string(token)];
             pq.pop();
-	    if(value == "-1")
-	    {
-            auto stop = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-            MIOPEN_LOG_I2("Model ran for " << duration.count() << " micro-seconds");
+            if(value == "-1")
+            {
+                auto stop     = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+                MIOPEN_LOG_I2("Model ran for " << duration.count() << " micro-seconds");
                 return false;
-	    }
+            }
             if(validator(i, value))
             {
                 output_token_index =
                     token; // index with largest value that is valid = predicted index
-                std::cout << "token , value: " << token << ", " << value << std::endl;
                 break;
             }
         }
         decoder_input = float(output_token_index);
         context       = {decoder_output.begin() + 1, decoder_output.end()};
     }
-    auto stop = std::chrono::high_resolution_clock::now();
+    auto stop     = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    std::cout << "Model ran for " << duration.count() << " micro-seconds" << std::endl;
+    MIOPEN_LOG_I2("Model ran for " << duration.count() << " micro-seconds");
     return true;
 }
 

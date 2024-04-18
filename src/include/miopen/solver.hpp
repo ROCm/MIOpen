@@ -4800,7 +4800,7 @@ struct PerformanceConfigHipImplicitGemmGroupBwdXdlops
         : PerformanceConfigHipImplicitGemmGroupBwdXdlops(0, "")
     {
     }
-    
+
     void HeuristicInit(const ExecutionContext&, const miopen::conv::ProblemDescription&);
     bool SetNextValue(const miopen::conv::ProblemDescription&);
     bool IsValidValue() const;
@@ -4812,6 +4812,7 @@ struct PerformanceConfigHipImplicitGemmGroupBwdXdlops
     bool operator==(const PerformanceConfigHipImplicitGemmGroupBwdXdlops& other) const;
     bool IsModelApplicable(const ExecutionContext& ctx,
                            const miopen::conv::ProblemDescription& problem) const;
+
 private:
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
     std::vector<int> heuristic_indexes;
@@ -4896,7 +4897,8 @@ struct PerformanceConfigHipImplicitGemmGroupWrwXdlops
     bool IsValid(const miopen::conv::ProblemDescription&) const;
     bool operator==(const PerformanceConfigHipImplicitGemmGroupWrwXdlops& other) const;
     bool IsModelApplicable(const ExecutionContext& ctx,
-                        const miopen::conv::ProblemDescription& problem) const;
+                           const miopen::conv::ProblemDescription& problem) const;
+
 private:
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
     std::vector<int> heuristic_indexes;
