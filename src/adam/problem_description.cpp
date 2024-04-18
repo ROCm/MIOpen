@@ -37,12 +37,16 @@ namespace adam {
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
     auto dtype    = paramInDesc.GetType();
-    auto kernel   = IsAmp() ? "AmpAdam" : "Adam";
+    auto kernel   = IsAmp() ? "ampadam" : "adam";
     auto step_ind = ExistStepTensor() ? "device" : "host";
 
     std::ostringstream ss;
 
-    ss << kernel << (IsAdamW() ? "W" : "");
+    ss << kernel;
+    if(IsAdamW())
+        ss << "w";
+    if(IsAllPacked())
+        ss << "packed";
     ss << "step" << step_ind;
     ss << "dtype" << dtype;
     if(IsAmp())
