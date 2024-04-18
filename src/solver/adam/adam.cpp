@@ -27,9 +27,9 @@
 #include <miopen/adam/solvers.hpp>
 
 #include <miopen/adam.hpp>
+#include <miopen/adam/invoke_params.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
-#include <miopen/adam/invoke_params.hpp>
 #include <miopen/target_properties.hpp>
 
 namespace miopen {

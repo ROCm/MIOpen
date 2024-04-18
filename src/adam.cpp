@@ -24,13 +24,13 @@
  *
  *******************************************************************************/
 #include <miopen/adam.hpp>
+#include <miopen/adam/invoke_params.hpp>
+#include <miopen/adam/solvers.hpp>
 #include <miopen/check_numerics.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/find_solution.hpp>
 #include <miopen/float_equal.hpp>
 #include <miopen/kernel_cache.hpp>
-#include <miopen/adam/invoke_params.hpp>
-#include <miopen/adam/solvers.hpp>
 #include <miopen/tensor.hpp>
 
 namespace miopen {
