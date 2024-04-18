@@ -295,6 +295,7 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
             HipEventPtr start    = nullptr;
             HipEventPtr stop     = nullptr;
             const bool profiling = handle_.IsProfilingEnabled();
+            const auto& dataBwd  = params.GetDataBackward();
 
             handle_.ReserveExtraStreamsInPool(2);
 
@@ -306,80 +307,76 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
                 hipEventRecord(start.get(), handle_.GetStream());
             }
 
-            void* fp32_QxK_ws  = getBuffPart(params.GetWorkspace(), 0);
-            void* fp32_dOxV_ws = getBuffPart(params.GetWorkspace(), 1);
-            void* fp32_dOxO_ws = getBuffPart(params.GetWorkspace(), 2);
-            void* fp32_dSxK_ws = getBuffPart(params.GetWorkspace(), 3);
-            void* fp32_dSxQ_ws = getBuffPart(params.GetWorkspace(), 4);
+            void* fp32_QxK_S_ws     = getBuffPart(params.GetWorkspace(), 0);
+            void* fp32_dOxV_dS_ws   = getBuffPart(params.GetWorkspace(), 1);
+            void* fp32_dOxO_SxdO_ws = getBuffPart(params.GetWorkspace(), 2);
+            void* fp32_dSxK_ws      = getBuffPart(params.GetWorkspace(), 3);
+            void* fp32_dSxQ_ws      = getBuffPart(params.GetWorkspace(), 4);
 
             decltype(auto) dOxO_reduction_kernel = handle_.Run(kernels[0]);
-            dOxO_reduction_kernel(params.GetDataBackward().doData,
-                                  params.GetDataBackward().oData,
-                                  fp32_dOxO_ws,
-                                  params.GetDataBackward().descaleDOData,
-                                  params.GetDataBackward().descaleOData,
-                                  params.GetDataBackward().dropoutProbabilityData,
+            dOxO_reduction_kernel(dataBwd.doData,
+                                  dataBwd.oData,
+                                  fp32_dOxO_SxdO_ws,
+                                  dataBwd.descaleDOData,
+                                  dataBwd.descaleOData,
+                                  dataBwd.dropoutProbabilityData,
                                   emb_dim,
                                   nhs);
-            hipMemsetAsync(
-                params.GetDataBackward().amaxDSData, 0, sizeof(float), handle_.GetStream());
-            hipMemsetAsync(
-                params.GetDataBackward().amaxDVData, 0, sizeof(float), handle_.GetStream());
+            hipMemsetAsync(dataBwd.amaxDSData, 0, sizeof(float), handle_.GetStream());
+            hipMemsetAsync(dataBwd.amaxDVData, 0, sizeof(float), handle_.GetStream());
 
             const miopen::HipEventPtr event_QxK = make_hip_fast_event();
             handle_.SetStreamFromPool(1);
 #if MIOPEN_USE_GEMM
             CallGemmStridedBatched(handle_,
                                    QK_desc,
-                                   params.GetDataBackward().qData,
+                                   dataBwd.qData,
                                    0,
-                                   params.GetDataBackward().kData,
+                                   dataBwd.kData,
                                    0,
-                                   fp32_QxK_ws,
+                                   fp32_QxK_S_ws,
                                    0,
                                    GemmBackend_t::rocblas);
 #endif
             hipEventRecord(event_QxK.get(), handle_.GetStream());
-            hipMemsetAsync(
-                params.GetDataBackward().amaxDQData, 0, sizeof(float), handle_.GetStream());
+            hipMemsetAsync(dataBwd.amaxDQData, 0, sizeof(float), handle_.GetStream());
 
             const miopen::HipEventPtr event_dOxV = make_hip_fast_event();
             handle_.SetStreamFromPool(2);
 #if MIOPEN_USE_GEMM
             CallGemmStridedBatched(handle_,
                                    dOV_desc,
-                                   params.GetDataBackward().doData,
+                                   dataBwd.doData,
                                    0,
-                                   params.GetDataBackward().vData,
+                                   dataBwd.vData,
                                    0,
-                                   fp32_dOxV_ws,
+                                   fp32_dOxV_dS_ws,
                                    0,
                                    GemmBackend_t::rocblas);
 #endif
             hipEventRecord(event_dOxV.get(), handle_.GetStream());
-            hipMemsetAsync(
-                params.GetDataBackward().amaxDKData, 0, sizeof(float), handle_.GetStream());
+            hipMemsetAsync(dataBwd.amaxDKData, 0, sizeof(float), handle_.GetStream());
 
             handle_.SetStreamFromPool(0);
             hipStreamWaitEvent(handle_.GetStream(), event_QxK.get(), 0);
             hipStreamWaitEvent(handle_.GetStream(), event_dOxV.get(), 0);
 
             decltype(auto) bwd_attention_kernel = handle_.Run(kernels[1]);
-            bwd_attention_kernel(fp32_QxK_ws,
-                                 fp32_dOxV_ws,
-                                 params.GetDataBackward().mData,
-                                 params.GetDataBackward().zInvData,
-                                 fp32_dOxO_ws,
-                                 params.GetDataBackward().amaxDSData,
-                                 params.GetDataBackward().descaleQData,
-                                 params.GetDataBackward().descaleKData,
-                                 params.GetDataBackward().descaleOData,
-                                 params.GetDataBackward().descaleVData,
-                                 params.GetDataBackward().scaleSData,
-                                 params.GetDataBackward().scaleDSData,
-                                 params.GetDataBackward().dropoutSeedData,
-                                 params.GetDataBackward().dropoutOffsetData,
-                                 params.GetDataBackward().dropoutProbabilityData,
+            bwd_attention_kernel(fp32_QxK_S_ws,
+                                 fp32_dOxV_dS_ws,
+                                 dataBwd.mData,
+                                 dataBwd.zInvData,
+                                 fp32_dOxO_SxdO_ws,
+                                 dataBwd.amaxDSData,
+                                 dataBwd.descaleQData,
+                                 dataBwd.descaleKData,
+                                 dataBwd.descaleOData,
+                                 dataBwd.descaleVData,
+                                 dataBwd.scaleSData,
+                                 dataBwd.scaleDSData,
+                                 dataBwd.dropoutSeedData,
+                                 dataBwd.dropoutOffsetData,
+                                 dataBwd.dropoutProbabilityData,
                                  scale,
                                  seq_len,
                                  nhs);
@@ -387,9 +384,9 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
 #if MIOPEN_USE_GEMM
             CallGemmStridedBatched(handle_,
                                    xK_desc,
-                                   fp32_dOxV_ws,
+                                   fp32_dOxV_dS_ws,
                                    0,
-                                   params.GetDataBackward().kData,
+                                   dataBwd.kData,
                                    0,
                                    fp32_dSxK_ws,
                                    0,
@@ -401,9 +398,9 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
 #if MIOPEN_USE_GEMM
             CallGemmStridedBatched(handle_,
                                    xQdO_desc,
-                                   fp32_dOxV_ws,
+                                   fp32_dOxV_dS_ws,
                                    0,
-                                   params.GetDataBackward().qData,
+                                   dataBwd.qData,
                                    0,
                                    fp32_dSxQ_ws,
                                    0,
@@ -417,11 +414,11 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
             handle_.SetStreamFromPool(1);
             hipStreamWaitEvent(handle_.GetStream(), event_bwd1.get(), 0);
             scale_reduce_kernel(fp32_dSxK_ws,
-                                params.GetDataBackward().dqData,
-                                params.GetDataBackward().amaxDQData,
-                                params.GetDataBackward().descaleDSData,
-                                params.GetDataBackward().descaleKData,
-                                params.GetDataBackward().scaleDQData,
+                                dataBwd.dqData,
+                                dataBwd.amaxDQData,
+                                dataBwd.descaleDSData,
+                                dataBwd.descaleKData,
+                                dataBwd.scaleDQData,
                                 nhsd);
             const miopen::HipEventPtr event_bwd3 = make_hip_fast_event();
             hipEventRecord(event_bwd3.get(), handle_.GetStream());
@@ -429,11 +426,11 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
             handle_.SetStreamFromPool(2);
             hipStreamWaitEvent(handle_.GetStream(), event_bwd2.get(), 0);
             scale_reduce_kernel(fp32_dSxQ_ws,
-                                params.GetDataBackward().dkData,
-                                params.GetDataBackward().amaxDKData,
-                                params.GetDataBackward().descaleDSData,
-                                params.GetDataBackward().descaleQData,
-                                params.GetDataBackward().scaleDKData,
+                                dataBwd.dkData,
+                                dataBwd.amaxDKData,
+                                dataBwd.descaleDSData,
+                                dataBwd.descaleQData,
+                                dataBwd.scaleDKData,
                                 nhsd);
             const miopen::HipEventPtr event_bwd4 = make_hip_fast_event();
             hipEventRecord(event_bwd4.get(), handle_.GetStream());
@@ -442,21 +439,21 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
 #if MIOPEN_USE_GEMM
             CallGemmStridedBatched(handle_,
                                    xQdO_desc,
-                                   fp32_QxK_ws,
+                                   fp32_QxK_S_ws,
                                    0,
-                                   params.GetDataBackward().doData,
+                                   dataBwd.doData,
                                    0,
-                                   fp32_dOxO_ws,
+                                   fp32_dOxO_SxdO_ws,
                                    0,
                                    GemmBackend_t::rocblas);
 #endif
 
-            scale_reduce_kernel(fp32_dOxO_ws,
-                                params.GetDataBackward().dvData,
-                                params.GetDataBackward().amaxDVData,
-                                params.GetDataBackward().descaleSData,
-                                params.GetDataBackward().descaleDOData,
-                                params.GetDataBackward().scaleDVData,
+            scale_reduce_kernel(fp32_dOxO_SxdO_ws,
+                                dataBwd.dvData,
+                                dataBwd.amaxDVData,
+                                dataBwd.descaleSData,
+                                dataBwd.descaleDOData,
+                                dataBwd.scaleDVData,
                                 nhsd);
 
             hipStreamWaitEvent(handle_.GetStream(), event_bwd3.get(), 0);

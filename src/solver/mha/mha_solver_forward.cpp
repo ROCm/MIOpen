@@ -228,6 +228,7 @@ ConvSolution MhaForward::GetSolution(const ExecutionContext& context,
             HipEventPtr start    = nullptr;
             HipEventPtr stop     = nullptr;
             const bool profiling = handle_.IsProfilingEnabled();
+            const auto& dataFwd  = params.GetData();
 
             if(profiling)
             {
@@ -238,8 +239,8 @@ ConvSolution MhaForward::GetSolution(const ExecutionContext& context,
             }
 
             // zero amax output data to use atomics
-            hipMemsetAsync(params.GetData().amaxSData, 0, sizeof(float), handle_.GetStream());
-            hipMemsetAsync(params.GetData().amaxOData, 0, sizeof(float), handle_.GetStream());
+            hipMemsetAsync(dataFwd.amaxSData, 0, sizeof(float), handle_.GetStream());
+            hipMemsetAsync(dataFwd.amaxOData, 0, sizeof(float), handle_.GetStream());
 
             void* fp32_ws = getBuffPart(params.GetWorkspace(), 0);
             void* fp8_ws  = getBuffPart(params.GetWorkspace(), 1);
@@ -247,9 +248,9 @@ ConvSolution MhaForward::GetSolution(const ExecutionContext& context,
 #if MIOPEN_USE_GEMM
             CallGemmStridedBatched(handle_,
                                    QK_desc,
-                                   params.GetData().qData,
+                                   dataFwd.qData,
                                    0,
-                                   params.GetData().kData,
+                                   dataFwd.kData,
                                    0,
                                    fp32_ws,
                                    0,
@@ -258,37 +259,30 @@ ConvSolution MhaForward::GetSolution(const ExecutionContext& context,
             decltype(auto) softmax_kernel = handle_.Run(kernels.front());
             softmax_kernel(fp32_ws,
                            fp8_ws,
-                           params.GetData().mData,
-                           params.GetData().zInvData,
-                           params.GetData().amaxSData,
-                           params.GetData().descaleQData,
-                           params.GetData().descaleKData,
-                           params.GetData().scaleSData,
-                           params.GetData().dropoutSeedData,
-                           params.GetData().dropoutOffsetData,
-                           params.GetData().dropoutProbabilityData,
+                           dataFwd.mData,
+                           dataFwd.zInvData,
+                           dataFwd.amaxSData,
+                           dataFwd.descaleQData,
+                           dataFwd.descaleKData,
+                           dataFwd.scaleSData,
+                           dataFwd.dropoutSeedData,
+                           dataFwd.dropoutOffsetData,
+                           dataFwd.dropoutProbabilityData,
                            seq_len,
                            nhs);
 
 #if MIOPEN_USE_GEMM
-            CallGemmStridedBatched(handle_,
-                                   SV_desc,
-                                   fp8_ws,
-                                   0,
-                                   params.GetData().vData,
-                                   0,
-                                   fp32_ws,
-                                   0,
-                                   GemmBackend_t::rocblas);
+            CallGemmStridedBatched(
+                handle_, SV_desc, fp8_ws, 0, dataFwd.vData, 0, fp32_ws, 0, GemmBackend_t::rocblas);
 #endif
 
             decltype(auto) scale_reduce_kernel = handle_.Run(kernels.back());
             scale_reduce_kernel(fp32_ws,
-                                params.GetData().oData,
-                                params.GetData().amaxOData,
-                                params.GetData().descaleSData,
-                                params.GetData().descaleVData,
-                                params.GetData().scaleOData,
+                                dataFwd.oData,
+                                dataFwd.amaxOData,
+                                dataFwd.descaleSData,
+                                dataFwd.descaleVData,
+                                dataFwd.scaleOData,
                                 nhsd);
 
             if(profiling)
