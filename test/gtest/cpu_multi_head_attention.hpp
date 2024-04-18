@@ -174,19 +174,20 @@ protected:
                                              multi_head_attention, // O_val_fp8
                                              dO_val_fp8,
                                              softmax,
-                                             s_scale,
-                                             dV_scale,
-                                             dQ_scale,
-                                             dK_scale,
                                              q_descale,
                                              k_descale,
                                              v_descale,
+                                             dQ_scale,
+                                             dK_scale,
+                                             dV_scale,
+                                             s_scale,
                                              s_descale,
                                              o_descale,
                                              dO_descale,
                                              aMax_dS,
-                                             aMax_dK,
                                              aMax_dQ,
+                                             aMax_dK,
+                                             aMax_dV,
                                              dQ_val,
                                              dK_val,
                                              dV_val);
@@ -335,6 +336,7 @@ protected:
     float aMax_dS;
     float aMax_dK;
     float aMax_dQ;
+    float aMax_dV;
     tensor<InputType> dO_val;
 
     tensor<OutputType> dQ_val;

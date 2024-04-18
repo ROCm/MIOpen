@@ -472,19 +472,20 @@ void MultiHeadAttentionBackwardDataf8(const tensor<T>& q_val,
                                       const tensor<T>& O_val, // attention (O)
                                       const tensor<T>& dO_val,
                                       const tensor<float>& softmax_fp32,
-                                      float s_scale,
-                                      float dV_scale,
-                                      float dQ_scale,
-                                      float dK_scale,
                                       float q_descale,
                                       float k_descale,
                                       float v_descale,
+                                      float dQ_scale,
+                                      float dK_scale,
+                                      float dV_scale,
+                                      float s_scale,
                                       float s_descale,
                                       float O_descale,
                                       float dO_descale,
                                       float& aMax_dS,
-                                      float& aMax_dK,
                                       float& aMax_dQ,
+                                      float& aMax_dK,
+                                      float& aMax_dV,
                                       tensor<T>& dQ_val,
                                       tensor<T>& dK_val,
                                       tensor<T>& dV_val)
@@ -500,6 +501,8 @@ void MultiHeadAttentionBackwardDataf8(const tensor<T>& q_val,
 
     tensor<float> softmax_dO_fp32(dV_val.desc.GetLengths());
     ScaleMult(softmax_dot_dO_fp8, s_descale * dO_descale, softmax_dO_fp32);
+
+    aMax_dV = AbsoluteMax(softmax_dO_fp32);
 
     ScaleMult(softmax_dO_fp32, dV_scale, dV_val);
 

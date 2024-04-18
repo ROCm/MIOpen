@@ -215,8 +215,8 @@ protected:
         }
 
         tensor<float> q_dot_k_transpose{n, h, s, s};
-        tensor<float> softmax{n, h, s, s};
 
+        softmax_ref  = tensor<float>{n, h, s, s};
         oDesc_ref    = tensor<float>{n, h, s, d};
         mDesc_ref    = tensor<float>{n, h, s, 1};
         zInvDesc_ref = tensor<float>{n, h, s, 1};
@@ -225,6 +225,7 @@ protected:
             std::get<tensor<float>>(tensors[miopenTensorMhaQ]->m_cpu_tensor),
             std::get<tensor<float>>(tensors[miopenTensorMhaK]->m_cpu_tensor),
             std::get<tensor<float>>(tensors[miopenTensorMhaV]->m_cpu_tensor),
+            softmax_ref,
             mDesc_ref,
             zInvDesc_ref,
             q_descale,
@@ -245,6 +246,7 @@ protected:
     std::vector<miopenTensorArgument_t> args;
 
     // ref data
+    tensor<float> softmax_ref;
     tensor<float> oDesc_ref;
     tensor<float> mDesc_ref;
     tensor<float> zInvDesc_ref;
