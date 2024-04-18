@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
+#pragma once
+
+#include <gtest/gtest.h>
 
 #include <miopen/handle.hpp>
 #include <miopen/miopen.h>
@@ -48,6 +52,11 @@ template <>
 struct miopen_type<uint16_t> : std::integral_constant<miopenDataType_t, miopenHalf>
 {
 };
+
+#define EXPECT_CL_SUCCESS(x)    EXPECT_EQ((x), CL_SUCCESS)
+#define EXPECT_HIP_SUCCESS(x)   EXPECT_EQ((x), hipSuccess)
+
+namespace nwch_nchw {
 
 template <typename T>
 void cpu_nchw2nhwc(T* dst, T* src, uint64_t N, uint64_t C, uint64_t H, uint64_t W)
@@ -246,22 +255,14 @@ bool compare_equal<float>(float r1, float r2)
 }
 
 template <typename T>
-bool verify_tensor(tensor<T>& t_gpu, tensor<T>& t_cpu)
+void verify_tensor(tensor<T>& t_gpu, tensor<T>& t_cpu)
 {
-    if(t_gpu.data.size() != t_cpu.data.size())
-    {
-        MIOPEN_LOG_E("size not equal, should not happen");
-        return false;
-    }
-    auto idx          = miopen::mismatch_idx(t_gpu.data, t_cpu.data, compare_equal<T>);
-    bool valid_result = idx >= miopen::range_distance(t_cpu);
+    EXPECT_EQ(t_gpu.data.size(), t_cpu.data.size()) << " tensor sizes not equal, should not happen";
+    if (t_gpu.data.size() != t_cpu.data.size()) return;
 
-    if(!valid_result)
-    {
-        std::cout << "diff at:" << idx << ", gpu:" << t_gpu[idx] << ", cpu:" << t_cpu[idx]
-                  << std::endl;
-    }
-    return valid_result;
+    auto idx          = miopen::mismatch_idx(t_gpu.data, t_cpu.data, compare_equal<T>);
+
+    EXPECT_GE(idx, miopen::range_distance(t_cpu)) << "diff at:" << idx << ", gpu:" << t_gpu[idx] << ", cpu:" << t_cpu[idx];
 }
 
 struct transpose_base
@@ -378,6 +379,7 @@ struct transpose_test : transpose_base
             tensor<T> t_src(tensor_len, tensor_strides);
             tensor<T> t_dst(tensor_len, tensor_strides);
             tensor<T> t_dst_gpu(tensor_len, tensor_strides);
+
             rand_tensor_integer(t_src);
 #if MIOPEN_BACKEND_OPENCL
             cl_context cl_ctx;
@@ -396,15 +398,15 @@ struct transpose_test : transpose_base
                                            0,
                                            nullptr,
                                            nullptr);
-            EXPECT(status == CL_SUCCESS);
+
+            EXPECT_CL_SUCCESS(status);
 #elif MIOPEN_BACKEND_HIP
             void* src_dev;
             void* dst_dev;
-            EXPECT(hipMalloc(&src_dev, sizeof(T) * tensor_sz) == hipSuccess);
-            EXPECT(hipMalloc(&dst_dev, sizeof(T) * tensor_sz) == hipSuccess);
-            EXPECT(hipMemcpy(
-                       src_dev, t_src.data.data(), sizeof(T) * tensor_sz, hipMemcpyHostToDevice) ==
-                   hipSuccess);
+            EXPECT_HIP_SUCCESS(hipMalloc(&src_dev, sizeof(T) * tensor_sz));
+            EXPECT_HIP_SUCCESS(hipMalloc(&dst_dev, sizeof(T) * tensor_sz));
+            EXPECT_HIP_SUCCESS(hipMemcpy(
+                       src_dev, t_src.data.data(), sizeof(T) * tensor_sz, hipMemcpyHostToDevice));
 #endif
 
             const auto invoke_param = transpose_invoke_param{
@@ -443,9 +445,6 @@ struct transpose_test : transpose_base
             // run gpu
             invoker(miopen::deref(this->handle), invoke_param);
 
-            // run cpu
-            cpu_transpose<T, TRANSPOSE_SOL>::run(t_dst.data.data(), t_src.data.data(), n, c, h, w);
-
 #if MIOPEN_BACKEND_OPENCL
             status = clEnqueueReadBuffer(q,
                                          dst_dev,
@@ -456,24 +455,25 @@ struct transpose_test : transpose_base
                                          0,
                                          nullptr,
                                          nullptr);
-            EXPECT(status == CL_SUCCESS);
+            EXPECT_CL_SUCCESS(status);
 #elif MIOPEN_BACKEND_HIP
-            EXPECT(hipMemcpy(t_dst_gpu.data.data(),
+            EXPECT_HIP_SUCCESS(hipMemcpy(t_dst_gpu.data.data(),
                              dst_dev,
                              sizeof(T) * tensor_sz,
-                             hipMemcpyDeviceToHost) == hipSuccess);
+                             hipMemcpyDeviceToHost));
 #endif
 
-            // we expect excact match, since use integer
-            bool valid_result = verify_tensor(t_dst_gpu, t_dst);
+//            std::cout << "Running CPU xpose: " << n << " " << c << " " << h << " " << w << std::endl;
+            // run cpu
+            cpu_transpose<T, TRANSPOSE_SOL>::run(t_dst.data.data(), t_src.data.data(), n, c, h, w);
 
-            std::cout << "[" << transpose_str<TRANSPOSE_SOL>::get() << ", b" << (sizeof(T) * 8)
+            // we expect exact match, since use integer
+            verify_tensor(t_dst_gpu, t_dst);
+
+/*             std::cout << "[" << transpose_str<TRANSPOSE_SOL>::get() << ", b" << (sizeof(T) * 8)
                       << " ] "
-                      << "n:" << n << ", c:" << c << ", h:" << h << ", w:" << w
-                      << ", valid:" << valid_result << std::endl;
-
-            EXPECT(valid_result == true);
-
+                      << "n:" << n << ", c:" << c << ", h:" << h << ", w:" << w << std::endl;
+ */
 #if MIOPEN_BACKEND_OPENCL
             clReleaseMemObject(src_dev);
             clReleaseMemObject(dst_dev);
@@ -518,11 +518,10 @@ struct transpose_3d_test : public transpose_base
             auto tensor_sz = t_src.data.size();
             void* src_dev;
             void* dst_dev;
-            EXPECT(hipMalloc(&src_dev, sizeof(T) * tensor_sz) == hipSuccess);
-            EXPECT(hipMalloc(&dst_dev, sizeof(T) * tensor_sz) == hipSuccess);
-            EXPECT(hipMemcpy(
-                       src_dev, t_src.data.data(), sizeof(T) * tensor_sz, hipMemcpyHostToDevice) ==
-                   hipSuccess);
+            EXPECT_HIP_SUCCESS(hipMalloc(&src_dev, sizeof(T) * tensor_sz));
+            EXPECT_HIP_SUCCESS(hipMalloc(&dst_dev, sizeof(T) * tensor_sz));
+            EXPECT_HIP_SUCCESS(hipMemcpy(
+                       src_dev, t_src.data.data(), sizeof(T) * tensor_sz, hipMemcpyHostToDevice));
 
             const auto invoke_param = transpose_invoke_param{
                 DataCast(static_cast<const void*>(src_dev)), DataCast(dst_dev)};
@@ -561,41 +560,48 @@ struct transpose_3d_test : public transpose_base
             // run gpu
             invoker(miopen::deref(this->handle), invoke_param);
 
-            EXPECT(hipMemcpy(t_gpu_2d.data.data(),
+            EXPECT_HIP_SUCCESS(hipMemcpy(t_gpu_2d.data.data(),
                              dst_dev,
                              sizeof(T) * tensor_sz,
-                             hipMemcpyDeviceToHost) == hipSuccess);
+                             hipMemcpyDeviceToHost));
 
             cpu_nchw2nhwc(t_cpu_2d.data.data(), t_src.data.data(), n, c, d * h, w);
 
             cpu_ncdhw2ndhwc(t_dst_ref.data.data(), t_src.data.data(), n, c, d, h, w);
 
-            bool valid_result = verify_tensor(t_dst_ref, t_cpu_2d);
-            EXPECT(valid_result == true);
-
-            valid_result = verify_tensor(t_dst_ref, t_gpu_2d);
-
-            std::cout << "["
-                      << ", b" << (sizeof(T) * 8) << " ] "
-                      << "n:" << n << ", c:" << c << ", h:" << h << ", w:" << w
-                      << ", valid:" << valid_result << std::endl;
-
-            EXPECT(valid_result == true);
+            verify_tensor(t_dst_ref, t_cpu_2d);
+            verify_tensor(t_dst_ref, t_gpu_2d);
         };
 
         iterate_transpose_3d(run_transpose);
     };
 };
 
-int main()
+template<class T, class X>
+struct TransposeTest : public ::testing::Test
 {
-    run_test<transpose_test<float, miopen::TransposeSolutionDefault2Nhwc>>();
-    run_test<transpose_test<uint16_t, miopen::TransposeSolutionDefault2Nhwc>>();
-    run_test<transpose_test<uint8_t, miopen::TransposeSolutionDefault2Nhwc>>();
+protected:
+    void SetUp() override {
 
-    run_test<transpose_test<float, miopen::TransposeSolutionNhwc2Default>>();
-    run_test<transpose_test<uint16_t, miopen::TransposeSolutionNhwc2Default>>();
-    run_test<transpose_test<uint8_t, miopen::TransposeSolutionNhwc2Default>>();
+    }
 
-    run_test<transpose_3d_test<float>>();
+    void RunTest() {
+        run_test<transpose_test<T, X>>();
+    }
+};
+
+#define DEFINE_DEFAULT_TO_NHWC_TEST(type)               \
+struct TransposeTest_D_TO_NHWC_##type : TransposeTest<type, miopen::TransposeSolutionDefault2Nhwc> {};   \
+                                                        \
+TEST_F(TransposeTest_D_TO_NHWC_##type, default) {       \
+    RunTest();                                          \
 }
+
+#define DEFINE_NHWC_TO_DEFAULT_TEST(type)               \
+struct TransposeTest_NHWC_TO_D_##type : TransposeTest<type, miopen::TransposeSolutionNhwc2Default> {};   \
+                                                        \
+TEST_F(TransposeTest_NHWC_TO_D_##type, default) {       \
+    RunTest();                                          \
+}
+
+} // namespace
