@@ -53,8 +53,8 @@ struct miopen_type<uint16_t> : std::integral_constant<miopenDataType_t, miopenHa
 {
 };
 
-#define ASSERT_CL_SUCCESS(x)    ASSERT_EQ((x), CL_SUCCESS)
-#define ASSERT_HIP_SUCCESS(x)   ASSERT_EQ((x), hipSuccess)
+#define ASSERT_CL_SUCCESS(x) ASSERT_EQ((x), CL_SUCCESS)
+#define ASSERT_HIP_SUCCESS(x) ASSERT_EQ((x), hipSuccess)
 
 namespace nwch_nchw {
 
@@ -258,11 +258,13 @@ template <typename T>
 void verify_tensor(tensor<T>& t_gpu, tensor<T>& t_cpu)
 {
     ASSERT_EQ(t_gpu.data.size(), t_cpu.data.size()) << " tensor sizes not equal, should not happen";
-    if (t_gpu.data.size() != t_cpu.data.size()) return;
+    if(t_gpu.data.size() != t_cpu.data.size())
+        return;
 
     auto idx = miopen::mismatch_idx(t_gpu.data, t_cpu.data, compare_equal<T>);
 
-    EXPECT_GE(idx, miopen::range_distance(t_cpu)) << "diff at:" << idx << ", gpu:" << t_gpu[idx] << ", cpu:" << t_cpu[idx];
+    EXPECT_GE(idx, miopen::range_distance(t_cpu))
+        << "diff at:" << idx << ", gpu:" << t_gpu[idx] << ", cpu:" << t_cpu[idx];
 }
 
 struct transpose_base
@@ -406,7 +408,7 @@ struct transpose_test : transpose_base
             ASSERT_HIP_SUCCESS(hipMalloc(&src_dev, sizeof(T) * tensor_sz));
             ASSERT_HIP_SUCCESS(hipMalloc(&dst_dev, sizeof(T) * tensor_sz));
             ASSERT_HIP_SUCCESS(hipMemcpy(
-                       src_dev, t_src.data.data(), sizeof(T) * tensor_sz, hipMemcpyHostToDevice));
+                src_dev, t_src.data.data(), sizeof(T) * tensor_sz, hipMemcpyHostToDevice));
 #endif
 
             const auto invoke_param = transpose_invoke_param{
@@ -457,10 +459,8 @@ struct transpose_test : transpose_base
                                          nullptr);
             ASSERT_CL_SUCCESS(status);
 #elif MIOPEN_BACKEND_HIP
-            ASSERT_HIP_SUCCESS(hipMemcpy(t_dst_gpu.data.data(),
-                             dst_dev,
-                             sizeof(T) * tensor_sz,
-                             hipMemcpyDeviceToHost));
+            ASSERT_HIP_SUCCESS(hipMemcpy(
+                t_dst_gpu.data.data(), dst_dev, sizeof(T) * tensor_sz, hipMemcpyDeviceToHost));
 #endif
 
             // run cpu
@@ -516,7 +516,7 @@ struct transpose_3d_test : public transpose_base
             ASSERT_HIP_SUCCESS(hipMalloc(&src_dev, sizeof(T) * tensor_sz));
             ASSERT_HIP_SUCCESS(hipMalloc(&dst_dev, sizeof(T) * tensor_sz));
             ASSERT_HIP_SUCCESS(hipMemcpy(
-                       src_dev, t_src.data.data(), sizeof(T) * tensor_sz, hipMemcpyHostToDevice));
+                src_dev, t_src.data.data(), sizeof(T) * tensor_sz, hipMemcpyHostToDevice));
 
             const auto invoke_param = transpose_invoke_param{
                 DataCast(static_cast<const void*>(src_dev)), DataCast(dst_dev)};
@@ -554,10 +554,8 @@ struct transpose_3d_test : public transpose_base
             // run gpu
             invoker(miopen::deref(this->handle), invoke_param);
 
-            ASSERT_HIP_SUCCESS(hipMemcpy(t_gpu_2d.data.data(),
-                             dst_dev,
-                             sizeof(T) * tensor_sz,
-                             hipMemcpyDeviceToHost));
+            ASSERT_HIP_SUCCESS(hipMemcpy(
+                t_gpu_2d.data.data(), dst_dev, sizeof(T) * tensor_sz, hipMemcpyDeviceToHost));
 
             cpu_nchw2nhwc(t_cpu_2d.data.data(), t_src.data.data(), n, c, d * h, w);
 
@@ -571,31 +569,29 @@ struct transpose_3d_test : public transpose_base
     };
 };
 
-template<class T, class X>
+template <class T, class X>
 struct TransposeTest : public ::testing::Test
 {
 protected:
-    void SetUp() override {
+    void SetUp() override {}
 
-    }
-
-    void RunTest() {
-        run_test<transpose_test<T, X>>();
-    }
+    void RunTest() { run_test<transpose_test<T, X>>(); }
 };
 
-#define DEFINE_DEFAULT_TO_NHWC_TEST(type)               \
-struct TransposeTest_D_TO_NHWC_##type : TransposeTest<type, miopen::TransposeSolutionDefault2Nhwc> {};   \
-                                                        \
-TEST_F(TransposeTest_D_TO_NHWC_##type, default) {       \
-    RunTest();                                          \
-}
+#define DEFINE_DEFAULT_TO_NHWC_TEST(type)                            \
+    struct TransposeTest_D_TO_NHWC_##type                            \
+        : TransposeTest<type, miopen::TransposeSolutionDefault2Nhwc> \
+    {                                                                \
+    };                                                               \
+                                                                     \
+    TEST_F(TransposeTest_D_TO_NHWC_##type, default) { RunTest(); }
 
-#define DEFINE_NHWC_TO_DEFAULT_TEST(type)               \
-struct TransposeTest_NHWC_TO_D_##type : TransposeTest<type, miopen::TransposeSolutionNhwc2Default> {};   \
-                                                        \
-TEST_F(TransposeTest_NHWC_TO_D_##type, default) {       \
-    RunTest();                                          \
-}
+#define DEFINE_NHWC_TO_DEFAULT_TEST(type)                            \
+    struct TransposeTest_NHWC_TO_D_##type                            \
+        : TransposeTest<type, miopen::TransposeSolutionNhwc2Default> \
+    {                                                                \
+    };                                                               \
+                                                                     \
+    TEST_F(TransposeTest_NHWC_TO_D_##type, default) { RunTest(); }
 
-} // namespace
+} // namespace nwch_nchw
