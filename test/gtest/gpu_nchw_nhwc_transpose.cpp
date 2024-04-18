@@ -26,11 +26,6 @@
 
 #include "gpu_nchw_nhwc_transpose.hpp"
 
-namespace nwch_nchw {
-
-} // namespace nwch_nchw
-using namespace nwch_nchw;
-
 DEFINE_DEFAULT_TO_NHWC_TEST(float);
 DEFINE_DEFAULT_TO_NHWC_TEST(uint16_t);
 DEFINE_DEFAULT_TO_NHWC_TEST(uint8_t);

@@ -463,17 +463,12 @@ struct transpose_test : transpose_base
                              hipMemcpyDeviceToHost));
 #endif
 
-//            std::cout << "Running CPU xpose: " << n << " " << c << " " << h << " " << w << std::endl;
             // run cpu
             cpu_transpose<T, TRANSPOSE_SOL>::run(t_dst.data.data(), t_src.data.data(), n, c, h, w);
 
             // we expect exact match, since use integer
             verify_tensor(t_dst_gpu, t_dst);
 
-/*             std::cout << "[" << transpose_str<TRANSPOSE_SOL>::get() << ", b" << (sizeof(T) * 8)
-                      << " ] "
-                      << "n:" << n << ", c:" << c << ", h:" << h << ", w:" << w << std::endl;
- */
 #if MIOPEN_BACKEND_OPENCL
             clReleaseMemObject(src_dev);
             clReleaseMemObject(dst_dev);
@@ -528,7 +523,6 @@ struct transpose_3d_test : public transpose_base
 
             miopen::ExecutionContext ctx;
             ctx.SetStream(&miopen::deref(this->handle));
-            // ctx.SetupFloats();
 
             using TRANSPOSE_SOL = miopen::TransposeSolutionDefault2Nhwc;
             TRANSPOSE_SOL transpose_sol(ctx, to_miopen_data_type<T>::get(), n, c, d * h, w);
