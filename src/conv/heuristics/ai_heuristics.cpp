@@ -611,6 +611,7 @@ bool ModelSetParams(const std::string& arch,
                     bool transform_features,
                     std::function<bool(std::size_t, std::string)> validator)
 {
+    std::cout << "SOLVERNAME: " << solver << std::endl;
     auto model = GetModel(arch, solver);
     int dim    = 0;
     if(transform_features)
@@ -653,16 +654,16 @@ bool ModelSetParams(const std::string& arch,
             pq.pop();
 	    if(value == "-1")
 	    {
-		auto stop = std::chrono::high_resolution_clock::now();
-		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-		std::cout << "Model ran for " << duration.count() << " micro-seconds" << std::endl;
-		std::cout << "KTN COULD NOT PREDICT A KERNEL" << std::endl;
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+            MIOPEN_LOG_I2("Model ran for " << duration.count() << " micro-seconds");
                 return false;
 	    }
             if(validator(i, value))
             {
                 output_token_index =
                     token; // index with largest value that is valid = predicted index
+                std::cout << "token , value: " << token << ", " << value << std::endl;
                 break;
             }
         }
