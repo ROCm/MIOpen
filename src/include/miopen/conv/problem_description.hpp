@@ -204,8 +204,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
     std::size_t GetInSize() const
     {
-        return GetInBatchSize() * GetInChannels() * GetInDepth() * GetInHeight() * GetInWidth() *
-               GetInElementSize();
+        return in.GetNumBytes();
     }
 
     // Out getters
@@ -237,8 +236,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
     std::size_t GetOutSize() const
     {
-        return GetOutBatchSize() * GetOutChannels() * GetOutDepth() * GetOutHeight() *
-               GetOutWidth() * GetOutElementSize();
+        return out.GetNumBytes();
     }
 
     // Weights getters
@@ -281,8 +279,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
     std::size_t GetWeightsSize() const
     {
-        return GetInChannels() * GetOutChannels() * GetWeightsDepth() * GetWeightsHeight() *
-               GetWeightsWidth() * GetWeightsElementSize();
+        return weights.GetNumBytes();
     }
 
     const TensorDescriptor& GetIn() const { return in; }
