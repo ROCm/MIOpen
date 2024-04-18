@@ -49,7 +49,8 @@ bool& rordb_embed_fs_override()
 }
 } // namespace debug
 
-ReadonlyRamDb& ReadonlyRamDb::GetCached(DbKinds db_kind_, const fs::path& path, bool warn_if_unreadable)
+ReadonlyRamDb&
+ReadonlyRamDb::GetCached(DbKinds db_kind_, const fs::path& path, bool warn_if_unreadable)
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;

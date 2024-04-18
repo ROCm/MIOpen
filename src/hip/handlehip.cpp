@@ -517,13 +517,14 @@ Program Handle::LoadProgram(const fs::path& program_name,
     if(hsaco.empty())
     {
         CompileTimer ct;
-        auto p = HIPOCProgram{program_name.string(), params, this->GetTargetProperties(), kernel_src};
+        auto p =
+            HIPOCProgram{program_name.string(), params, this->GetTargetProperties(), kernel_src};
         ct.Log("Kernel", program_name.string());
 
 // Save to cache
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
         miopen::SaveBinary(p.IsCodeObjectInMemory() ? p.GetCodeObjectBlob()
-                               : miopen::LoadFile(p.GetCodeObjectPathname()),
+                                                    : miopen::LoadFile(p.GetCodeObjectPathname()),
                            this->GetTargetProperties(),
                            this->GetMaxComputeUnits(),
                            program_name,
@@ -550,9 +551,7 @@ bool Handle::HasProgram(const fs::path& program_name, const std::string& params)
     return this->impl->cache.HasProgram(program_name, params);
 }
 
-void Handle::AddProgram(Program prog,
-                        const fs::path& program_name,
-                        const std::string& params) const
+void Handle::AddProgram(Program prog, const fs::path& program_name, const std::string& params) const
 {
     this->impl->cache.AddProgram(prog, program_name, params);
 }

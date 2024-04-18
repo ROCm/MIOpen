@@ -172,7 +172,8 @@ Program Handle::LoadProgram(const fs::path& program_name,
         params += " -mcpu=" + this->GetTargetProperties().Name();
     }
 
-    auto hsaco = miopen::LoadBinary(GetTargetProperties(), GetMaxComputeUnits(), program_name, params);
+    auto hsaco =
+        miopen::LoadBinary(GetTargetProperties(), GetMaxComputeUnits(), program_name, params);
     auto pgmImpl     = std::make_shared<HIPOCProgramImpl>();
     pgmImpl->program = program_name;
     pgmImpl->target  = this->GetTargetProperties();
@@ -186,9 +187,8 @@ Program Handle::LoadProgram(const fs::path& program_name,
 
 // Save to cache
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
-        miopen::SaveBinary(p.IsCodeObjectInMemory()
-                               ? p.GetCodeObjectBlob()
-                               : miopen::LoadFile(p.GetCodeObjectPathname()),
+        miopen::SaveBinary(p.IsCodeObjectInMemory() ? p.GetCodeObjectBlob()
+                                                    : miopen::LoadFile(p.GetCodeObjectPathname()),
                            this->GetTargetProperties(),
                            this->GetMaxComputeUnits(),
                            program_name,

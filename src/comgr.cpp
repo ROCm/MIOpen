@@ -1096,8 +1096,9 @@ static hiprtc_program_ptr CreateProgram(std::string_view src,
     hiprtcProgram prog = nullptr;
     hiprtcResult status;
     HIPRTC_CALL_INFO_NOSTATUSDEF(
-        hiprtcCreateProgram(&prog, src.data(), name.string().c_str(), numHeaders, headers,
-            includeNames), name);
+        hiprtcCreateProgram(
+            &prog, src.data(), name.string().c_str(), numHeaders, headers, includeNames),
+        name);
     hiprtc_program_ptr p{prog}; // To destroy prog even if hiprtcCreateProgram() failed.
     if(status != HIPRTC_SUCCESS)
     {
@@ -1157,11 +1158,8 @@ public:
             include_names.push_back(inc_name);
             include_texts.push_back(inc_text);
         }
-        prog = CreateProgram(src_text,
-                             src_name,
-                             include_texts.size(),
-                             include_texts.data(),
-                             include_names.data());
+        prog = CreateProgram(
+            src_text, src_name, include_texts.size(), include_texts.data(), include_names.data());
     }
 
     void Compile(const std::vector<std::string>& options)

@@ -207,11 +207,14 @@ struct ExecutionContext
                     int closest_cu = std::numeric_limits<int>::max();
                     fs::path best_path;
                     std::vector<fs::path> contents;
-                    std::copy(fs::directory_iterator(pdb_path), fs::directory_iterator(), std::back_inserter(contents));
+                    std::copy(fs::directory_iterator(pdb_path),
+                              fs::directory_iterator(),
+                              std::back_inserter(contents));
                     for(auto const& filepath : contents)
                     {
                         const auto fname = filepath.stem().string();
-                        if(fs::is_regular_file(filepath) && filepath.extension() == ext &&  fname.rfind(db_id, 0) == 0)
+                        if(fs::is_regular_file(filepath) && filepath.extension() == ext &&
+                           fname.rfind(db_id, 0) == 0)
                         {
                             MIOPEN_LOG_I2("Checking perf db file: " << fname);
                             const auto pos = fname.find('_');
@@ -274,9 +277,9 @@ struct ExecutionContext
             return "";
         const auto filename = GetStream().GetDbBasename() +
 #if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
-            "_" + SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER + ".udb";
+                              "_" + SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER + ".udb";
 #else
-            "." + GetUserDbSuffix() + ".udb.txt";
+                              "." + GetUserDbSuffix() + ".udb.txt";
 #endif
         return udb / filename;
     }

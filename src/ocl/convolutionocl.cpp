@@ -350,8 +350,7 @@ void DumpTensorToFileFromDevice(const miopen::Handle& handle,
         return;
     }
 
-    fs::path path = filename.has_parent_path() ?
-              filename : fs::current_path() / filename;
+    fs::path path = filename.has_parent_path() ? filename : fs::current_path() / filename;
 
     if(!fs::is_directory(path.parent_path()))
     {

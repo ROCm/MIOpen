@@ -38,9 +38,9 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto fwd = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), "ConvMlirIgemmFwdXdlops"}};
+    const auto fwd =
+        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
+                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), "ConvMlirIgemmFwdXdlops"}};
 
     const std::string flags_fwd = " --verbose --disable-backward-data --disable-backward-weights";
     const std::string layout    = " --in_layout NHWC --fil_layout NHWC --out_layout NHWC";

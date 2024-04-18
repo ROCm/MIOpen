@@ -37,12 +37,11 @@ namespace conv_igemm_dynamic_xdlops {
 
 auto GetTestCases()
 {
-    const auto env_xdlops =
-        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
-                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                             "ConvAsmImplicitGemmGTCDynamicBwdXdlops;"
-                             "ConvAsmImplicitGemmGTCDynamicFwdXdlops;"
-                             "ConvAsmImplicitGemmGTCDynamicWrwXdlops"}};
+    const auto env_xdlops = std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
+                                       std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
+                                                 "ConvAsmImplicitGemmGTCDynamicBwdXdlops;"
+                                                 "ConvAsmImplicitGemmGTCDynamicFwdXdlops;"
+                                                 "ConvAsmImplicitGemmGTCDynamicWrwXdlops"}};
 
     const std::string cmd_v       = " test_conv2d --verbose";
     const std::string dis_bk_data = " --disable-backward-data";

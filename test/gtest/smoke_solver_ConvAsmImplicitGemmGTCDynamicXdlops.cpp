@@ -34,12 +34,11 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto env =
-        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
-                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                             "ConvAsmImplicitGemmGTCDynamicFwdXdlops;"
-                             "ConvAsmImplicitGemmGTCDynamicBwdXdlops;"
-                             "ConvAsmImplicitGemmGTCDynamicWrwXdlops"}};
+    const auto env = std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
+                                std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
+                                          "ConvAsmImplicitGemmGTCDynamicFwdXdlops;"
+                                          "ConvAsmImplicitGemmGTCDynamicBwdXdlops;"
+                                          "ConvAsmImplicitGemmGTCDynamicWrwXdlops"}};
 
     const std::string vf = " --verbose --disable-backward-data --disable-backward-weights";
     const std::string vb = " --verbose --disable-forward --disable-backward-weights";

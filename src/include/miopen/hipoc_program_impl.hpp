@@ -62,7 +62,9 @@ struct HIPOCProgramImpl
     void
     BuildCodeObjectInFile(std::string& params, const std::string& src, const fs::path& filename);
 #else
-    void BuildCodeObjectInMemory(const std::string& params, const std::string& src, const fs::path& filename);
+    void BuildCodeObjectInMemory(const std::string& params,
+                                 const std::string& src,
+                                 const fs::path& filename);
 #endif
 
     void BuildCodeObject(std::string params, const std::string& kernel_src);

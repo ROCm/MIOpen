@@ -52,16 +52,13 @@ static inline std::string GetKernelNameType(std::size_t type_size)
     MIOPEN_THROW("data type not supported");
 }
 
-static inline fs::path GetKernelFileName(std::size_t data_size,
-                                            const GeneralReorderParam* kparam)
+static inline fs::path GetKernelFileName(std::size_t data_size, const GeneralReorderParam* kparam)
 {
     if(kparam == nullptr)
         MIOPEN_THROW("Memory access fault, kparam is a nullptr");
 
-    return "general_tensor_reorder_" +
-           std::to_string(kparam->tile_x) + "x" +
-           std::to_string(kparam->tile_y) + "_" +
-           GetKernelNameType(data_size) + ".cpp";
+    return "general_tensor_reorder_" + std::to_string(kparam->tile_x) + "x" +
+           std::to_string(kparam->tile_y) + "_" + GetKernelNameType(data_size) + ".cpp";
 }
 
 static inline std::string GetKernelName(std::size_t data_size,

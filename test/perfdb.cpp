@@ -233,9 +233,9 @@ protected:
         return data;
     }
 
-
-    void ResetDb() {
-        tmp = TmpDir{};
+    void ResetDb()
+    {
+        tmp       = TmpDir{};
         temp_file = (tmp / "test.db").string();
     }
 
@@ -713,8 +713,8 @@ private:
         {
             const auto out_path =
                 *thread_logs_root() / ("thread-" + std::to_string(id) + "_" + log_postfix + ".log");
-            const auto err_path = *thread_logs_root() / ("thread-" + std::to_string(id) + "_" +
-                                  log_postfix + "-err.log");
+            const auto err_path = *thread_logs_root() /
+                                  ("thread-" + std::to_string(id) + "_" + log_postfix + "-err.log");
 
             fs::remove(out_path);
             fs::remove(err_path);
@@ -890,7 +890,8 @@ public:
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test threads...");
         threads.reserve(DBMultiThreadedTestWork::threads_count);
-        const auto c = [this]() MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, temp_file, false));
+        const auto c = [this]()
+            MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, temp_file, false));
 
         {
             std::unique_lock<std::mutex> lock(mutex);
@@ -933,7 +934,8 @@ public:
         std::vector<std::thread> threads;
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
-        const auto c = [this]() MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, temp_file, false));
+        const auto c = [this]()
+            MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, temp_file, false));
         DBMultiThreadedTestWork::FillForReading(c);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test threads...");
@@ -1013,7 +1015,8 @@ public:
 
         fs::remove(lock_file_path);
 
-        const auto c = [this]() MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, temp_file, false));
+        const auto c = [this]()
+            MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, temp_file, false));
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Validating results...");
         DBMultiThreadedTestWork::ValidateCommonPart(c);
@@ -1057,7 +1060,8 @@ public:
         const auto lock_file_path = LockFilePath(temp_file);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
-        const auto c = [this]() MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, temp_file, false));
+        const auto c = [this]()
+            MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, temp_file, false));
         DBMultiThreadedTestWork::FillForReading(c);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test processes...");
@@ -1346,8 +1350,9 @@ public:
         std::vector<std::thread> threads;
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
-        const auto c        = [this]() {
-            return MultiFileDb<ReadonlyRamDb, RamDb, true>(DbKinds::PerfDb, temp_file, user_db_path);
+        const auto c = [this]() {
+            return MultiFileDb<ReadonlyRamDb, RamDb, true>(
+                DbKinds::PerfDb, temp_file, user_db_path);
         };
         ResetDb();
         DBMultiThreadedTestWork::FillForReading(c);
@@ -1395,7 +1400,8 @@ public:
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test threads...");
         threads.reserve(DBMultiThreadedTestWork::threads_count);
         const auto c = [this]() {
-            return MultiFileDb<ReadonlyRamDb, RamDb, true>(DbKinds::PerfDb, temp_file, user_db_path);
+            return MultiFileDb<ReadonlyRamDb, RamDb, true>(
+                DbKinds::PerfDb, temp_file, user_db_path);
         };
 
         {

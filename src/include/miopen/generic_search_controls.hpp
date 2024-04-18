@@ -31,8 +31,9 @@
 #include <limits>
 
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX,
-                       std::numeric_limits<std::size_t>::max())
-MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_TUNING_TIME_MS_MAX,
+                              std::numeric_limits<std::size_t>::max())
+MIOPEN_DECLARE_ENV_VAR_UINT64(
+    MIOPEN_TUNING_TIME_MS_MAX,
     std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::hours{2}).count())
 
 #if MIOPEN_USE_COMGR

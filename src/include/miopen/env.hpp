@@ -67,15 +67,9 @@ struct EnvVar<unsigned long long>
         return use_default ? default_value_ : std::nullopt;
     }
 
-    bool isSet() const
-    {
-        return getEnvironmentVariable(name_).has_value();
-    }
+    bool isSet() const { return getEnvironmentVariable(name_).has_value(); }
 
-    void unset() const
-    {
-        unsetEnvironmentVariable(name_);
-    }
+    void unset() const { unsetEnvironmentVariable(name_); }
 
     void updateValue(unsigned long long value) const
     {
@@ -111,17 +105,18 @@ struct EnvVar<bool>
             return true;
 
         std::string value_env_str{};
-        std::transform(value->begin(), value->end(), value_env_str.begin(),
-                       [](int ch) { return std::tolower(ch); });
+        std::transform(value->begin(), value->end(), value_env_str.begin(), [](int ch) {
+            return std::tolower(ch);
+        });
 
-        if(value_env_str == "disable" || value_env_str == "disabled" ||
-            value_env_str == "no" || value_env_str == "off" || value_env_str == "false")
+        if(value_env_str == "disable" || value_env_str == "disabled" || value_env_str == "no" ||
+           value_env_str == "off" || value_env_str == "false")
         {
             return false;
         }
 
-        if(value_env_str == "enable" || value_env_str == "enabled" ||
-           value_env_str == "yes" || value_env_str == "on" || value_env_str == "true")
+        if(value_env_str == "enable" || value_env_str == "enabled" || value_env_str == "yes" ||
+           value_env_str == "on" || value_env_str == "true")
         {
             return true;
         }
@@ -129,20 +124,11 @@ struct EnvVar<bool>
         MIOPEN_THROW(miopenStatusInvalidValue, "Invalid value for env variable");
     }
 
-    bool isSet() const
-    {
-        return getEnvironmentVariable(name_).has_value();
-    }
+    bool isSet() const { return getEnvironmentVariable(name_).has_value(); }
 
-    void unset() const
-    {
-        unsetEnvironmentVariable(name_);
-    }
+    void unset() const { unsetEnvironmentVariable(name_); }
 
-    void updateValue(bool value) const
-    {
-        setEnvironmentVariable(name_, value ? "1" : "0");
-    }
+    void updateValue(bool value) const { setEnvironmentVariable(name_, value ? "1" : "0"); }
 
 private:
     std::string_view name_;
@@ -163,20 +149,12 @@ struct EnvVar<std::string>
         return value ? value : use_default ? default_value_ : std::nullopt;
     }
 
-    bool isSet() const
-    {
-        return getEnvironmentVariable(name_).has_value();
-    }
+    bool isSet() const { return getEnvironmentVariable(name_).has_value(); }
 
-    void unset() const
-    {
-        unsetEnvironmentVariable(name_);
-    }
+    void unset() const { unsetEnvironmentVariable(name_); }
 
-    void updateValue(std::string_view value) const
-    {
-        setEnvironmentVariable(name_, value);
-    }
+    void updateValue(std::string_view value) const { setEnvironmentVariable(name_, value); }
+
 private:
     std::string_view name_;
     std::optional<std::string> default_value_;
@@ -202,14 +180,12 @@ private:
     };                                                                             \
     }
 
-#define MIOPEN_DECLARE_ENV_VAR_BOOL(name, ...) \
-    MIOPEN_DECLARE_ENV_VAR(name, bool, __VA_ARGS__)
+#define MIOPEN_DECLARE_ENV_VAR_BOOL(name, ...) MIOPEN_DECLARE_ENV_VAR(name, bool, __VA_ARGS__)
 
 #define MIOPEN_DECLARE_ENV_VAR_UINT64(name, ...) \
     MIOPEN_DECLARE_ENV_VAR(name, unsigned long long, __VA_ARGS__)
 
-#define MIOPEN_DECLARE_ENV_VAR_STR(name, ...) \
-    MIOPEN_DECLARE_ENV_VAR(name, std::string, __VA_ARGS__)
+#define MIOPEN_DECLARE_ENV_VAR_STR(name, ...) MIOPEN_DECLARE_ENV_VAR(name, std::string, __VA_ARGS__)
 
 #define ENV(name) \
     miopen::env::name {}
@@ -267,8 +243,8 @@ using _rm_cvref = std::remove_cv_t<std::remove_reference_t<T>>;
 
 /// updates the value of an environment variable
 template <typename EnvVar, typename ValueType>
-std::enable_if_t<
-    std::is_integral_v<_rm_cvref<typename EnvVar::value_type>> && std::is_integral_v<ValueType>>
+std::enable_if_t<std::is_integral_v<_rm_cvref<typename EnvVar::value_type>> &&
+                 std::is_integral_v<ValueType>>
 UpdateEnvVar(EnvVar, const ValueType& value)
 {
     EnvVar::Ref().updateValue(value);

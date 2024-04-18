@@ -37,13 +37,13 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto igemm_bwd = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), "ConvMlirIgemmBwd"}};
+    const auto igemm_bwd =
+        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
+                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), "ConvMlirIgemmBwd"}};
 
-    const auto igemm_wrw = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), "ConvMlirIgemmWrW"}};
+    const auto igemm_wrw =
+        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
+                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), "ConvMlirIgemmWrW"}};
 
     const std::string flags_bwd     = " --verbose --disable-forward --disable-backward-weights";
     const std::string flags_wrw     = " --verbose --disable-forward --disable-backward-data";

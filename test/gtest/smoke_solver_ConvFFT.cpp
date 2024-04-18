@@ -34,9 +34,8 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto env =
-        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
-                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), "fft"}};
+    const auto env = std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
+                                std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), "fft"}};
 
     const std::string vf = " --verbose --disable-backward-data --disable-backward-weights";
     const std::string vb = " --verbose --disable-forward --disable-backward-weights";

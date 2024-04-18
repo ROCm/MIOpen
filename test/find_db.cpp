@@ -90,7 +90,7 @@ struct FindDbTest : test_driver
         y_dev = handle.Write(y.data);
 
         const TmpDir tmp;
-        auto temp_file = (tmp / "miopen.test.find_db").string();
+        auto temp_file                         = (tmp / "miopen.test.find_db").string();
         debug::testing_find_db_path_override() = temp_file;
         TestRordbEmbedFsOverrideLock rordb_embed_fs_override;
 

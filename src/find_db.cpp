@@ -144,7 +144,9 @@ fs::path FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle, const std::st
                 MIOPEN_LOG_I2("Iterating over find db directory " << root_path);
                 std::vector<fs::path> all_files;
                 std::vector<fs::path> contents;
-                std::copy(fs::directory_iterator(root_path), fs::directory_iterator(), std::back_inserter(contents));
+                std::copy(fs::directory_iterator(root_path),
+                          fs::directory_iterator(),
+                          std::back_inserter(contents));
                 for(auto const& filepath : contents)
                 {
                     if(fs::is_regular_file(filepath) &&
@@ -216,7 +218,7 @@ fs::path FindDbRecord_t<TDb>::GetUserPath(Handle& handle, const std::string& pat
 {
 #if !MIOPEN_DISABLE_USERDB
     return GetUserDbPath() / (handle.GetDbBasename() + '.' + GetUserDbSuffix() +
-            (path_suffix.empty() ? "" : '.' + path_suffix) + ".ufdb.txt");
+                              (path_suffix.empty() ? "" : '.' + path_suffix) + ".ufdb.txt");
 #else
     std::ignore = handle;
     std::ignore = path_suffix;

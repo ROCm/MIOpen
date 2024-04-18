@@ -35,12 +35,12 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto env = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_ENFORCE), "SEARCH_DB_UPDATE"},
-        std::pair{ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX), 5},
-        std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), 0},
-        std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), "ConvBinWinogradRxSf2x3"}};
+    const auto env =
+        std::tuple{std::pair{ENV(MIOPEN_FIND_ENFORCE), "SEARCH_DB_UPDATE"},
+                   std::pair{ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX), 5},
+                   std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), 0},
+                   std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
+                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), "ConvBinWinogradRxSf2x3"}};
 
     return std::vector{
         // clang-format off

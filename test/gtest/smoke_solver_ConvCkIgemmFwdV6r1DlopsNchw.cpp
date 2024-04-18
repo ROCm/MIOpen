@@ -38,13 +38,13 @@ auto GetTestCases()
     // MIOPEN_DEBUG_TUNING_ITERATIONS_MAX is set to 2 because kernels are very slow to build.
     // MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW is explicitly enabled due to the kernel is
     // disabled by default via #2306
-    const auto env_fwd = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_ENFORCE), "SEARCH_DB_UPDATE"},
-        std::pair{ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX), 2},
-        std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), 0},
-        std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), "ConvCkIgemmFwdV6r1DlopsNchw"},
-        std::pair{ENV(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW), true}};
+    const auto env_fwd =
+        std::tuple{std::pair{ENV(MIOPEN_FIND_ENFORCE), "SEARCH_DB_UPDATE"},
+                   std::pair{ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX), 2},
+                   std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), 0},
+                   std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
+                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), "ConvCkIgemmFwdV6r1DlopsNchw"},
+                   std::pair{ENV(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW), true}};
 
     const std::string vf = " --verbose --disable-backward-data --disable-backward-weights";
 

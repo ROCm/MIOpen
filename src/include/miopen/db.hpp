@@ -261,13 +261,15 @@ public:
 
 private:
     template <class TDb, class TRet = decltype(TDb::GetCached(DbKinds::FindDb, "", true))>
-    static TRet GetDbInstance(rank<1>, DbKinds db_kind, const fs::path& path, bool warn_if_unreadable)
+    static TRet
+    GetDbInstance(rank<1>, DbKinds db_kind, const fs::path& path, bool warn_if_unreadable)
     {
         return TDb::GetCached(db_kind, path, warn_if_unreadable);
     };
 
     template <class TDb>
-    static TDb GetDbInstance(rank<0>, DbKinds db_kind, const fs::path& path, bool warn_if_unreadable)
+    static TDb
+    GetDbInstance(rank<0>, DbKinds db_kind, const fs::path& path, bool warn_if_unreadable)
     {
         return {db_kind, path, warn_if_unreadable};
     };

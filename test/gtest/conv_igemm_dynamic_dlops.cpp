@@ -36,9 +36,9 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto env_fwd =
-        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
-                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), "ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC"}};
+    const auto env_fwd = std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
+                                    std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
+                                              "ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC"}};
 
     const std::string v           = " --verbose";
     const std::string dis_bk_data = " --disable-backward-data";

@@ -733,7 +733,7 @@ void CheckFDBEntry(size_t thread_index,
                     {
                         bool found                  = false;
                         std::string compile_options = kern.comp_options;
-                        auto program_file           = miopen::make_object_file_name(kern.kernel_file);
+                        auto program_file = miopen::make_object_file_name(kern.kernel_file);
                         if(kern.kernel_file.extension() != ".mlir")
                         {
                             auto& handle = ctx.GetStream();

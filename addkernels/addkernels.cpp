@@ -208,7 +208,7 @@ int main(int argc, char* argv[])
         PrintHelp();
         return 2;
     }
-    
+
     // Prerequisites: the configuration to establish with command line options
     //                before running the algorithm.
 
@@ -224,7 +224,7 @@ int main(int argc, char* argv[])
     bool mark_includes   = false;
 
     // Step 1: parse command line options to establish configuration
-    
+
     int i = 0;
     while(++i < argc)
     {
@@ -294,7 +294,7 @@ int main(int argc, char* argv[])
     }
 
     ss << "#endif\n";
-    
+
     if(guard.length() > 0)
     {
         ss << "#endif\n";
@@ -316,6 +316,6 @@ int main(int argc, char* argv[])
         }
         file.write(sourceCode.data(), sourceCode.length());
     }
-    
+
     return 0;
 }

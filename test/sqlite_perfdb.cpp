@@ -243,10 +243,7 @@ std::ostream& operator<<(std::ostream& s, const SolverData& td)
 class DbTest
 {
 public:
-    DbTest()
-        : temp_file{tmp / "perf.db"}, db_inst{DbKinds::PerfDb, temp_file, false}
-    {
-    }
+    DbTest() : temp_file{tmp / "perf.db"}, db_inst{DbKinds::PerfDb, temp_file, false} {}
 
     virtual ~DbTest() {}
 
@@ -1191,7 +1188,8 @@ public:
 
         std::cout << "Initializing test data..." << std::endl;
         const auto c = [this]() {
-            return MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>(DbKinds::PerfDb, temp_file, user_db_path);
+            return MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>(
+                DbKinds::PerfDb, temp_file, user_db_path);
         };
         ResetDb();
         DBMultiThreadedTestWork::FillForReading(c);
@@ -1236,7 +1234,8 @@ public:
         std::cout << "Launching test threads..." << std::endl;
         threads.reserve(DBMultiThreadedTestWork::threads_count);
         const auto c = [this]() {
-            return MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>(DbKinds::PerfDb, temp_file, user_db_path);
+            return MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>(
+                DbKinds::PerfDb, temp_file, user_db_path);
         };
 
         {
