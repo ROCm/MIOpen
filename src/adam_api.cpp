@@ -76,7 +76,7 @@ static void LogCmdAdam(const miopenTensorDescriptor_t paramDesc,
     }
 }
 
-#define DESC_PTR(desc) (((desc) != nullptr) ? miopen::deref(desc) : emptyDesc)
+#define CHECK_DESC_EXIST(desc) (((desc) != nullptr) ? miopen::deref(desc) : dummyDesc)
 
 extern "C" miopenStatus_t miopenFusedAdam(miopenHandle_t handle,
                                           const miopenTensorDescriptor_t paramDesc,
@@ -132,7 +132,7 @@ extern "C" miopenStatus_t miopenFusedAdam(miopenHandle_t handle,
                         foundInfDesc,
                         foundInf);
 
-    const miopen::TensorDescriptor emptyDesc;
+    const miopen::TensorDescriptor dummyDesc;
     bool is_amp = (foundInfDesc != nullptr || gradScaleDesc != nullptr);
 
     LogCmdAdam(paramDesc, lr, beta1, beta2, weight_decay, eps, amsgrad, maximize, adamw, is_amp);
@@ -143,7 +143,7 @@ extern "C" miopenStatus_t miopenFusedAdam(miopenHandle_t handle,
                      DataCast(param),
                      miopen::deref(paramDesc),
                      DataCast(param),
-                     emptyDesc,
+                     dummyDesc,
                      nullptr,
                      miopen::deref(gradDesc),
                      DataCast(grad),
@@ -155,17 +155,17 @@ extern "C" miopenStatus_t miopenFusedAdam(miopenHandle_t handle,
                      DataCast(expAvgSq),
                      miopen::deref(expAvgSqDesc),
                      DataCast(expAvgSq),
-                     DESC_PTR(maxExpAvgSqDesc),
+                     CHECK_DESC_EXIST(maxExpAvgSqDesc),
                      DataCast(maxExpAvgSq),
-                     DESC_PTR(maxExpAvgSqDesc),
+                     CHECK_DESC_EXIST(maxExpAvgSqDesc),
                      DataCast(maxExpAvgSq),
-                     DESC_PTR(gradScaleDesc),
+                     CHECK_DESC_EXIST(gradScaleDesc),
                      DataCast(gradScale),
-                     DESC_PTR(foundInfDesc),
+                     CHECK_DESC_EXIST(foundInfDesc),
                      DataCast(foundInf),
-                     DESC_PTR(stateStepDesc),
+                     CHECK_DESC_EXIST(stateStepDesc),
                      DataCast(stateStep),
-                     DESC_PTR(stateStepDesc),
+                     CHECK_DESC_EXIST(stateStepDesc),
                      DataCast(stateStep),
                      state_step,
                      lr,
@@ -257,7 +257,7 @@ miopenFusedAdamWithOutput(miopenHandle_t handle,
                         foundInfDesc,
                         foundInf);
 
-    const miopen::TensorDescriptor emptyDesc;
+    const miopen::TensorDescriptor dummyDesc;
     bool is_amp = (foundInfDesc != nullptr || gradScaleDesc != nullptr);
 
     LogCmdAdam(paramInDesc, lr, beta1, beta2, weight_decay, eps, amsgrad, maximize, adamw, is_amp);
@@ -268,7 +268,7 @@ miopenFusedAdamWithOutput(miopenHandle_t handle,
                      DataCast(paramIn),
                      miopen::deref(paramOutDesc),
                      DataCast(paramOut),
-                     DESC_PTR(paramOutFloat16Desc),
+                     CHECK_DESC_EXIST(paramOutFloat16Desc),
                      DataCast(paramOutFloat16),
                      miopen::deref(gradInDesc),
                      DataCast(gradIn),
@@ -280,17 +280,17 @@ miopenFusedAdamWithOutput(miopenHandle_t handle,
                      DataCast(expAvgSqIn),
                      miopen::deref(expAvgSqOutDesc),
                      DataCast(expAvgSqOut),
-                     DESC_PTR(maxExpAvgSqInDesc),
+                     CHECK_DESC_EXIST(maxExpAvgSqInDesc),
                      DataCast(maxExpAvgSqIn),
-                     DESC_PTR(maxExpAvgSqOutDesc),
+                     CHECK_DESC_EXIST(maxExpAvgSqOutDesc),
                      DataCast(maxExpAvgSqOut),
-                     DESC_PTR(gradScaleDesc),
+                     CHECK_DESC_EXIST(gradScaleDesc),
                      DataCast(gradScale),
-                     DESC_PTR(foundInfDesc),
+                     CHECK_DESC_EXIST(foundInfDesc),
                      DataCast(foundInf),
-                     DESC_PTR(stateStepInDesc),
+                     CHECK_DESC_EXIST(stateStepInDesc),
                      DataCast(stateStepIn),
-                     DESC_PTR(stateStepOutDesc),
+                     CHECK_DESC_EXIST(stateStepOutDesc),
                      DataCast(stateStepOut),
                      state_step,
                      lr,
