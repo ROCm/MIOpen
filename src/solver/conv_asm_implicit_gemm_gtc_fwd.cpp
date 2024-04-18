@@ -1504,7 +1504,7 @@ FindImplicitGemmGtcDynamicFwdKernel(const ProblemDescription& problem)
 bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ExecutionContext& ctx,
                                                           const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS)))
+    if(env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS))
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
@@ -1545,7 +1545,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ExecutionContext
     if((problem.GetWeightsHeight() == 1) && (problem.GetWeightsWidth() == 1) &&
        (problem.GetInChannels() % 8 != 0))
     {
-        if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS)))
+        if(!env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS))
             return false;
     }
 #endif

@@ -160,11 +160,11 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     params += MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
 
 #if MIOPEN_BUILD_DEV
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_HIP_VERBOSE)))
+    if(env::enabled(MIOPEN_DEBUG_HIP_VERBOSE))
     {
         params += " -v";
     }
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_HIP_DUMP)))
+    if(env::enabled(MIOPEN_DEBUG_HIP_DUMP))
     {
         params += " -gline-tables-only";
         params += " -save-temps";
@@ -174,7 +174,7 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     // hip version
     params += " -DHIP_PACKAGE_VERSION_FLAT=" + std::to_string(HIP_PACKAGE_VERSION_FLAT) + " ";
 
-    auto bin_file = make_object_file_name(tmp / filename);
+    auto bin_file = make_object_file_name(tmp_dir.get() / filename);
 
     // compile
     {

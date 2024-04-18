@@ -180,10 +180,10 @@ bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext&
     if(!problem.AllTensorsDimsFitIntoInt())
         return false;
 
-    if(is2x3() && miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F2X3)))
+    if(is2x3() && env::disabled(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F2X3))
         return false;
 
-    if(is3x2() && miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F3X2)))
+    if(is3x2() && env::disabled(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F3X2))
         return false;
 
     if(!ctx.use_asm_kernels)

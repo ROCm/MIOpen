@@ -35,14 +35,14 @@ namespace {
 auto GetTestCases()
 {
     const auto env_2x3 =
-        std::tuple{std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), 0},
-                   std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
-                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), "ConvBinWinogradRxSf2x3g1"}};
+        std::tuple{std::pair{MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
+                   std::pair{MIOPEN_FIND_MODE, "normal"},
+                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvBinWinogradRxSf2x3g1"}};
 
     const auto env_3x2 =
-        std::tuple{std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), 0},
-                   std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
-                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), "ConvBinWinogradRxSf3x2"}};
+        std::tuple{std::pair{MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
+                   std::pair{MIOPEN_FIND_MODE, "normal"},
+                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvBinWinogradRxSf3x2"}};
 
     const std::string vf = " --verbose --disable-backward-data --disable-backward-weights";
     const std::string vb = " --verbose --disable-forward --disable-backward-weights";

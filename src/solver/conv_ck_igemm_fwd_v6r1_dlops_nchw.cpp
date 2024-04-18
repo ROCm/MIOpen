@@ -90,9 +90,9 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ExecutionContext& ctx,
                                                const ProblemDescription& problem) const
 {
 #if WORKAROUND_SWDEV_411729
-    if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW)))
+    if(!env::enabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW))
 #else
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW)))
+    if(env::disabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW))
 #endif
     {
         return false;

@@ -222,10 +222,8 @@ private:
 };
 } // namespace miopen
 
-int main(int argc, const char* argv[])
-{
-    miopen::setEnvironmentVariable("MIOPEN_LOG_LEVEL", "6");
-    miopen::setEnvironmentVariable("MIOPEN_COMPILE_PARALLEL_LEVEL", "1");
-    miopen::setEnvironmentVariable("MIOPEN_ENABLE_LOGGING_ELAPSED_TIME", "1");
-    test_drive<miopen::FindDbTest>(argc, argv);
-}
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_ENABLE_LOGGING_ELAPSED_TIME, true, true)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_LOG_LEVEL, 6, true)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_COMPILE_PARALLEL_LEVEL, 1, true)
+
+int main(int argc, const char* argv[]) { test_drive<miopen::FindDbTest>(argc, argv); }

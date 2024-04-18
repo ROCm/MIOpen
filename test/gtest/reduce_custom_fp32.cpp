@@ -44,7 +44,7 @@ std::vector<std::string> GetArgs(const std::string& param)
 std::vector<std::string> GetTestCases(void)
 {
     const std::string& cmd       = "test_reduce_test ";
-    const std::string& float_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    const std::string& float_arg = env::value(MIOPEN_TEST_FLOAT_ARG);
 
     // clang-format off
     return std::vector<std::string>{
@@ -68,8 +68,7 @@ bool IsTestSupportedForDevice()
 
 void Run2dDriver(void)
 {
-    if(!(IsTestSupportedForDevice() &&
-         miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float"))
+    if(!(IsTestSupportedForDevice() && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
     {
         GTEST_SKIP();
     }

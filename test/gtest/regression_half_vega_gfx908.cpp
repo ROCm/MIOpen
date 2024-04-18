@@ -34,9 +34,8 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto env =
-        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
-                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), "ConvOclDirectFwd1x1"}};
+    const auto env = std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                                std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvOclDirectFwd1x1"}};
 
     const std::string v =
         " --verbose --disable-backward-data --disable-backward-weights "

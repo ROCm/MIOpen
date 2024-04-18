@@ -40,7 +40,7 @@
 #include <Windows.h>
 #endif
 
-namespace miopen {
+namespace miopen::env::detail {
 
 void setEnvironmentVariable(std::string_view name, std::string_view value)
 {
@@ -53,7 +53,7 @@ void setEnvironmentVariable(std::string_view name, std::string_view value)
         MIOPEN_THROW("Setting environment variable failed: " + std::string{name});
 }
 
-void unsetEnvironmentVariable(std::string_view name)
+void clearEnvironmentVariable(std::string_view name)
 {
 #ifdef _WIN32
     if(SetEnvironmentVariable(name.data(), nullptr) == FALSE)
@@ -83,4 +83,4 @@ std::optional<std::string> getEnvironmentVariable(std::string_view name)
 #endif
 }
 
-} // namespace miopen
+} // namespace miopen::env::detail

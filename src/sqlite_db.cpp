@@ -98,7 +98,7 @@ class SQLite::impl
             const auto& it_p = miopen_data().find(make_object_file_name(filepath.filename()));
             if(it_p == miopen_data().end())
             {
-                MIOPEN_LOG_I("Unknown database: " + filepath + " in internal file cache");
+                MIOPEN_LOG_I("Unknown database: " << filepath << " in internal file cache");
                 return SQLITE_ERROR;
             }
             const auto& p    = it_p->second;

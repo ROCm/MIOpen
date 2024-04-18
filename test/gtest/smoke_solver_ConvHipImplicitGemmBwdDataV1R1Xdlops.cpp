@@ -38,12 +38,12 @@ auto GetTestCases()
     // However we still want to check that solver is not broken and therefore use
     // MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS=1 to enable it.
     const auto env_bwd = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_ENFORCE), "SEARCH_DB_UPDATE"},
-        std::pair{ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX), 5},
-        std::pair{ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS), true},
-        std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), 0},
-        std::pair{ENV(MIOPEN_FIND_MODE), "normal"},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), "ConvHipImplicitGemmBwdDataV1R1Xdlops"}};
+        std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
+        std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+        std::pair{MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS, true},
+        std::pair{MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
+        std::pair{MIOPEN_FIND_MODE, "normal"},
+        std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmBwdDataV1R1Xdlops"}};
 
     const std::string vb = " --verbose --disable-forward --disable-backward-weights";
 

@@ -1358,12 +1358,12 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     size_t in_sz  = GetTensorSize(inputTensor);
     size_t wei_sz = GetTensorSize(weightTensor);
     size_t out_sz = GetTensorSize(outputTensor);
-    auto subnorm_percentage = miopen::Value(ENV(MIOPEN_DRIVER_SUBNORM_PERCENTAGE));
+    auto subnorm_percentage = env::value(MIOPEN_DRIVER_SUBNORM_PERCENTAGE);
     if(subnorm_percentage != 0)
         std::cout << "MIOPEN_DRIVER_SUBNORM_PERCENTAGE = " << subnorm_percentage << std::endl;
 
     // Workaround: Pad buffers allocations to be a multiple of 2M
-    if(miopen::IsEnabled(ENV(MIOPEN_DRIVER_PAD_BUFFERS_2M)))
+    if(env::enabled(MIOPEN_DRIVER_PAD_BUFFERS_2M))
     {
         // PadBufferSize(in_sz, sizeof(Tgpu));
         PadBufferSize(wei_sz, sizeof(Tgpu));
@@ -1386,7 +1386,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             size_t warmup_in_sz  = GetTensorSize(warmupInputTensor);
             size_t warmup_wei_sz = GetTensorSize(warmupWeightTensor);
             size_t warmup_out_sz = GetTensorSize(warmupOutputTensor);
-            if(miopen::IsEnabled(ENV(MIOPEN_DRIVER_PAD_BUFFERS_2M)))
+            if(env::enabled(MIOPEN_DRIVER_PAD_BUFFERS_2M))
             {
                 PadBufferSize(warmup_wei_sz, sizeof(warmup_Tgpu));
                 PadBufferSize(warmup_out_sz, sizeof(warmup_Tgpu));
@@ -1698,7 +1698,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 template <typename Tgpu, typename Tref>
 bool ConvDriver<Tgpu, Tref>::UseGPUReference()
 {
-    if(!miopen::IsDisabled(ENV(MIOPEN_DRIVER_USE_GPU_REFERENCE)))
+    if(!env::disabled(MIOPEN_DRIVER_USE_GPU_REFERENCE))
     {
         if((miopen_type<Tref>{} == miopenFloat &&
             (miopen_type<Tgpu>{} == miopenFloat || miopen_type<Tgpu>{} == miopenHalf ||

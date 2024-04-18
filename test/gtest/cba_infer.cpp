@@ -37,6 +37,8 @@
 #include "get_handle.hpp"
 #include "cba.hpp"
 
+namespace env = miopen::env;
+
 namespace cba_infer {
 
 struct ConvBiasActivInferTestFloat : ConvBiasActivInferTest<float>
@@ -139,10 +141,12 @@ TEST_P(ConvBiasActivInferTestHalf, ConvCKIgemmFwdBiasActivFused)
 }
 
 #if MIOPEN_BACKEND_HIP
+
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE", true);
+
 TEST_P(ConvBiasActivInferTestFloatFusionCompileStep, ConvBiasActivAsm1x1UFloat_testCompile)
 {
-    miopen::setEnvironmentVariable("MIOPEN_FIND_ENFORCE", "SEARCH_DB_UPDATE");
-    miopen::setEnvironmentVariable("MIOPEN_DEBUG_TUNING_ITERATIONS_MAX", "5");
+    env::update(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5);
     fusePlanDesc.Compile(get_handle());
     const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
         params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);

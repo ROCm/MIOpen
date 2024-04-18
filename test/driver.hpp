@@ -50,6 +50,8 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 
+namespace env = miopen::env;
+
 template <class U, class T>
 constexpr std::is_same<T, U> is_same(const T&)
 {
@@ -147,7 +149,7 @@ struct test_driver
 
     static std::string compute_cache_path()
     {
-        auto s = miopen::GetStringEnv(ENV(MIOPEN_VERIFY_CACHE_PATH));
+        auto s = env::value(MIOPEN_VERIFY_CACHE_PATH);
         if(s.empty())
             return "~/.cache/miopen/tests";
         else

@@ -86,6 +86,12 @@
 
 MIOPEN_DECLARE_ENV_VAR_STR(HOME)
 
+#ifdef _WIN32
+MIOPEN_DECLARE_ENV_VAR_STR(USERPROFILE, miopen::fs::temp_directory_path().string())
+MIOPEN_DECLARE_ENV_VAR_STR(HOMEPATH, miopen::fs::temp_directory_path().string())
+MIOPEN_DECLARE_ENV_VAR_STR(HOMEDRIVE)
+#endif
+
 namespace miopen {
 
 #ifdef __linux__
@@ -177,7 +183,7 @@ bool IsNetworkedFilesystem(const fs::path& path_)
 namespace {
 std::string GetHomeDir()
 {
-    const auto p = GetStringEnv(ENV(HOME));
+    const auto p = env::value(HOME);
     if(!(p.empty() || p == std::string("/")))
     {
         return p;
@@ -199,25 +205,19 @@ fs::path ExpandUser(const fs::path& path)
 #else
 
 namespace {
-std::optional<std::pair<std::string::size_type, std::string>>
-ReplaceVariable(std::string_view path, std::string_view name, std::size_t offset = 0)
+std::optional<std::pair<std::string::size_type, std::string>> ReplaceVariable(
+    std::string_view path, const env::detail::EnvVar<std::string>& t, std::size_t offset = 0)
 {
-    std::vector<std::string> variables{
-        "$" + std::string{name}, "$env:" + std::string{name}, "%" + std::string{name} + "%"};
+    std::vector<std::string> variables{"$" + std::string{t.name()},
+                                       "$env:" + std::string{t.name()},
+                                       "%" + std::string{t.name()} + "%"};
     for(auto& variable : variables)
     {
         auto pos{path.find(variable, offset)};
         if(pos != std::string::npos)
         {
             std::string result{path};
-            auto value{getEnvironmentVariable(name)};
-            if(!value)
-            {
-                // TODO: log warning message that the name used
-                //       does not correspond to an environment variable.
-                value = fs::temp_directory_path().string();
-            }
-            result.replace(pos, variable.length(), *value);
+            result.replace(pos, variable.length(), t.value<std::string>());
             return {{pos, result}};
         }
     }
@@ -227,16 +227,16 @@ ReplaceVariable(std::string_view path, std::string_view name, std::size_t offset
 
 fs::path ExpandUser(const fs::path& path)
 {
-    auto result{ReplaceVariable(path.string(), "USERPROFILE")};
+    auto result{ReplaceVariable(path.string(), USERPROFILE)};
     if(!result)
     {
-        result = ReplaceVariable(path.string(), "HOME");
+        result = ReplaceVariable(path.string(), HOME);
         if(!result)
         {
-            result = ReplaceVariable(path.string(), "HOMEDRIVE");
+            result = ReplaceVariable(path.string(), HOMEDRIVE);
             if(result)
             {
-                result = ReplaceVariable(std::get<1>(*result), "HOMEPATH", std::get<0>(*result));
+                result = ReplaceVariable(result->second, HOMEPATH, result->first);
                 // TODO: if (not result): log warning message that
                 //       HOMEDRIVE and HOMEPATH work in conjunction, respectively.
             }

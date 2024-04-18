@@ -38,10 +38,9 @@ namespace conv3d_test {
 static bool IsTestRunWith(const char* float_arg)
 {
     assert(float_arg != nullptr);
-    if(!miopen::IsSet(ENV(MIOPEN_TEST_ALL)))
+    if(!MIOPEN_TEST_ALL)
         return true; // standalone run
-    return miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-           miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == float_arg;
+    return env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == float_arg;
 }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)

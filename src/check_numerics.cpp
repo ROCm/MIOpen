@@ -37,7 +37,7 @@ namespace miopen {
 
 bool CheckNumericsEnabled(const int bitMask)
 {
-    return (miopen::Value(ENV(MIOPEN_CHECK_NUMERICS)) & bitMask) != 0;
+    return (env::value(MIOPEN_CHECK_NUMERICS) & bitMask) != 0;
 }
 
 // Must keep this structure synchronized with one in MIOpenCheckNumerics
@@ -139,8 +139,7 @@ bool checkNumericsImpl(
 // Returns: 1 if abnormal value (inf or nan) detected in specified data, 0 otherwise
 bool checkNumericsInput(const Handle& handle, const TensorDescriptor& dDesc, ConstData_t data)
 {
-    return checkNumericsImpl(
-        handle, static_cast<int>(miopen::Value(ENV(MIOPEN_CHECK_NUMERICS))), dDesc, data, true);
+    return checkNumericsImpl(handle, env::value(MIOPEN_CHECK_NUMERICS), dDesc, data, true);
 }
 
 // Synchronizes to wait for kernel to finish, then checks data for output:
@@ -148,9 +147,7 @@ bool checkNumericsInput(const Handle& handle, const TensorDescriptor& dDesc, Con
 bool checkNumericsOutput(const Handle& handle, const TensorDescriptor& dDesc, ConstData_t data)
 {
     handle.Finish();
-
-    return checkNumericsImpl(
-        handle, static_cast<int>(miopen::Value(ENV(MIOPEN_CHECK_NUMERICS))), dDesc, data, false);
+    return checkNumericsImpl(handle, env::value(MIOPEN_CHECK_NUMERICS), dDesc, data, false);
 }
 
 } // namespace miopen

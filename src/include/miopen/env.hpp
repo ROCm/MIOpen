@@ -26,6 +26,7 @@
 #ifndef GUARD_MIOPEN_ENV_HPP
 #define GUARD_MIOPEN_ENV_HPP
 
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <optional>
@@ -35,150 +36,141 @@
 
 #include <miopen/errors.hpp>
 
-namespace miopen {
+namespace miopen::env {
+
+namespace detail {
 
 std::optional<std::string> getEnvironmentVariable(std::string_view name);
 void setEnvironmentVariable(std::string_view name, std::string_view value);
-void unsetEnvironmentVariable(std::string_view name);
-
-namespace internal {
+void clearEnvironmentVariable(std::string_view name);
 
 template <typename T>
+using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
+
+template <typename T, typename U>
+inline constexpr bool is_same_v = std::is_same_v<remove_cvref_t<T>, U>;
+
+template <typename T,
+          std::enable_if_t<is_same_v<T, bool> || is_same_v<T, std::string> ||
+                               is_same_v<T, std::string_view> || is_same_v<T, unsigned long long>,
+                           bool> = true>
 struct EnvVar
 {
-    static_assert(false, "data type not supported");
-};
+    using value_type = T;
 
-template <>
-struct EnvVar<unsigned long long>
-{
-    explicit EnvVar(std::string_view name, unsigned long long default_value = 0)
-        : name_{name}, default_value_{default_value}
+    explicit EnvVar(std::string_view name, T default_value = {}, bool create_if_missing = false)
+        : name_{name}, default_value_{std::forward<T>(default_value)}
     {
-    }
-
-    std::optional<unsigned long long> getValue(bool use_default = true) const
-    {
-        auto value = getEnvironmentVariable(name_);
-        if(value.has_value())
-        {
-            return std::strtoull(value->c_str(), nullptr, 0);
-        }
-        return use_default ? default_value_ : std::nullopt;
-    }
-
-    bool isSet() const { return getEnvironmentVariable(name_).has_value(); }
-
-    void unset() const { unsetEnvironmentVariable(name_); }
-
-    void updateValue(unsigned long long value) const
-    {
-        setEnvironmentVariable(name_, std::to_string(value));
-    }
-
-private:
-    std::string_view name_;
-    std::optional<unsigned long long> default_value_;
-};
-
-template <>
-struct EnvVar<bool>
-{
-    explicit EnvVar(std::string_view name, bool default_value = false)
-        : name_{name}, default_value_{default_value}
-    {
-    }
-
-    template <bool use_default = true>
-    std::optional<bool> getValue() const
-    {
-        auto value = getEnvironmentVariable(name_);
+        auto value = getEnvironmentVariable(name);
         if(!value.has_value())
         {
-            return use_default ? default_value_ : std::nullopt;
+            if(create_if_missing)
+                update(default_value);
         }
-
-        if(value == "0")
-            return false;
-
-        if(value == "1")
-            return true;
-
-        std::string value_env_str{};
-        std::transform(value->begin(), value->end(), value_env_str.begin(), [](int ch) {
-            return std::tolower(ch);
-        });
-
-        if(value_env_str == "disable" || value_env_str == "disabled" || value_env_str == "no" ||
-           value_env_str == "off" || value_env_str == "false")
+        else
         {
-            return false;
-        }
+            if constexpr(is_same_v<T, unsigned long long>)
+            {
+                value_ = std::strtoull(value->c_str(), nullptr, 0);
+            }
+            if constexpr(is_same_v<T, bool>)
+            {
+                if(value == "0")
+                {
+                    value_ = false;
+                }
+                else if(value == "1")
+                {
+                    value_ = true;
+                }
+                else
+                {
+                    std::string value_env_str{};
+                    std::transform(value->begin(), value->end(), value_env_str.begin(), [](int ch) {
+                        return std::tolower(ch);
+                    });
 
-        if(value_env_str == "enable" || value_env_str == "enabled" || value_env_str == "yes" ||
-           value_env_str == "on" || value_env_str == "true")
-        {
-            return true;
+                    if(value_env_str == "disable" || value_env_str == "disabled" ||
+                       value_env_str == "no" || value_env_str == "off" || value_env_str == "false")
+                    {
+                        value_ = false;
+                    }
+                    else if(value_env_str == "enable" || value_env_str == "enabled" ||
+                            value_env_str == "yes" || value_env_str == "on" ||
+                            value_env_str == "true")
+                    {
+                        value_ = true;
+                    }
+                    else
+                    {
+                        MIOPEN_THROW(miopenStatusInvalidValue,
+                                     "Invalid value for env variable (value='" + value.value() +
+                                         "')");
+                    }
+                }
+            }
+            if constexpr(is_same_v<T, std::string> || is_same_v<T, std::string_view>)
+            {
+                value_ = value.value();
+            }
         }
-
-        MIOPEN_THROW(miopenStatusInvalidValue, "Invalid value for env variable");
     }
 
-    bool isSet() const { return getEnvironmentVariable(name_).has_value(); }
+    template <typename U>
+    U value(std::optional<U> alternate_value = std::nullopt) const
+    {
+        return static_cast<U>(
+            value_.value_or(alternate_value.value_or(static_cast<U>(default_value_))));
+    }
+    void clear()
+    {
+        clearEnvironmentVariable(name_);
+        value_.reset();
+    }
 
-    void unset() const { unsetEnvironmentVariable(name_); }
+    bool exist() const { return value_.has_value(); }
 
-    void updateValue(bool value) const { setEnvironmentVariable(name_, value ? "1" : "0"); }
+    template <typename U>
+    void update(U value)
+    {
+        if constexpr(is_same_v<U, std::string> || is_same_v<U, std::string_view>)
+        {
+            setEnvironmentVariable(name_, value);
+        }
+        if constexpr(is_same_v<U, bool>)
+        {
+            setEnvironmentVariable(name_, value ? "1" : "0");
+        }
+        if constexpr(std::is_integral_v<remove_cvref_t<U>> && !is_same_v<U, bool>)
+        {
+            setEnvironmentVariable(name_, std::to_string(value));
+        }
+        value_ = value;
+    }
+    std::string_view name() const { return name_; }
 
 private:
     std::string_view name_;
-    std::optional<bool> default_value_;
+    T default_value_;
+    std::optional<T> value_{std::nullopt};
 };
 
-template <>
-struct EnvVar<std::string>
-{
-    explicit EnvVar(std::string_view name, std::string_view default_value = "")
-        : name_{name}, default_value_{default_value}
-    {
-    }
+} // end namespace detail
 
-    std::optional<std::string> getValue(bool use_default = true) const
-    {
-        auto value = getEnvironmentVariable(name_);
-        return value ? value : use_default ? default_value_ : std::nullopt;
-    }
-
-    bool isSet() const { return getEnvironmentVariable(name_).has_value(); }
-
-    void unset() const { unsetEnvironmentVariable(name_); }
-
-    void updateValue(std::string_view value) const { setEnvironmentVariable(name_, value); }
-
-private:
-    std::string_view name_;
-    std::optional<std::string> default_value_;
-};
-
-} // end namespace internal
-
-// static inside function hides the variable and provides
-// thread-safety/locking
-// Used in global namespace
-#define MIOPEN_DECLARE_ENV_VAR(name, type, ...)                                    \
-    namespace miopen::env {                                                        \
-    struct name                                                                    \
+#define MIOPEN_DECLARE_ENV_VAR(_name, _type, ...)                                  \
+    [[maybe_unused]] static const struct __struct_##_name                          \
     {                                                                              \
-        static_assert(std::is_same_v<name, ::miopen::env::name>,                   \
+        static_assert(std::is_same_v<__struct_##_name, ::__struct_##_name>,        \
                       "MIOPEN_DECLARE_ENV* must be used in the global namespace"); \
-        using value_type = type;                                                   \
-        static const miopen::internal::EnvVar<type>& Ref()                         \
+        using value_type = _type;                                                  \
+        static ::miopen::env::detail::EnvVar<_type>& ref()                         \
         {                                                                          \
-            static miopen::internal::EnvVar<type> var{#name, __VA_ARGS__};         \
+            static ::miopen::env::detail::EnvVar<_type> var{#_name, __VA_ARGS__};  \
             return var;                                                            \
         }                                                                          \
-    };                                                                             \
-    }
+        operator ::miopen::env::detail::EnvVar<_type>&() const { return ref(); }   \
+        operator bool() const { return ref().exist(); }                            \
+    } _name;
 
 #define MIOPEN_DECLARE_ENV_VAR_BOOL(name, ...) MIOPEN_DECLARE_ENV_VAR(name, bool, __VA_ARGS__)
 
@@ -187,75 +179,40 @@ private:
 
 #define MIOPEN_DECLARE_ENV_VAR_STR(name, ...) MIOPEN_DECLARE_ENV_VAR(name, std::string, __VA_ARGS__)
 
-#define ENV(name) \
-    miopen::env::name {}
+inline bool disabled(const detail::EnvVar<bool>& t) { return !t.template value<bool>(true); }
 
-/// \todo the following functions should be renamed to either include the word Env
-/// or put inside a namespace 'env'. Right now we have a function named Value()
-/// that returns env var value as only 64-bit ints
+inline bool enabled(const detail::EnvVar<bool>& t) { return t.template value<bool>(); }
 
-template <class EnvVar>
-inline std::string GetStringEnv(EnvVar)
+template <typename T, typename U = typename T::value_type>
+inline U value(T t)
 {
-    static_assert(std::is_same_v<typename EnvVar::value_type, std::string>);
-    return *EnvVar::Ref().getValue();
+    return std::forward<T>(t).ref().template value<U>();
 }
 
-template <class EnvVar>
-inline bool IsEnabled(EnvVar)
+template <typename T, typename U = typename T::value_type>
+inline U value_or(T t, U k)
 {
-    static_assert(std::is_same_v<typename EnvVar::value_type, bool>);
-    return EnvVar::Ref().template getValue<false>().value_or(false);
-}
-
-template <class EnvVar>
-inline bool IsDisabled(EnvVar)
-{
-    static_assert(std::is_same_v<typename EnvVar::value_type, bool>);
-    // The original code had a bug here, and unfortunately, the bug is being utilized in the rest
-    // of the code. Initially, it was "!EnvVar::Ref().IsUnset() && !EnvVar::Ref().GetValue()".
-    // The sentence means the variable is ENABLED even if it is not set in the environment block!!!
-    // Hence, 'false' is here and not 'true' to accommodate this bug, so algorithms are not broken.
-    return EnvVar::Ref().template getValue<false>().value_or(false);
-}
-
-template <class EnvVar>
-inline unsigned long long Value(EnvVar)
-{
-    static_assert(std::is_same_v<typename EnvVar::value_type, unsigned long long>);
-    return *EnvVar::Ref().getValue();
-}
-
-template <class EnvVar>
-inline bool IsSet(EnvVar)
-{
-    return EnvVar::Ref().isSet();
-}
-
-template <class EnvVar>
-void Unset(EnvVar)
-{
-    EnvVar::Ref().unset();
+    return std::forward<T>(t).ref().template value<U>(std::forward<U>(k));
 }
 
 template <typename T>
-using _rm_cvref = std::remove_cv_t<std::remove_reference_t<T>>;
-
-/// updates the value of an environment variable
-template <typename EnvVar, typename ValueType>
-std::enable_if_t<std::is_integral_v<_rm_cvref<typename EnvVar::value_type>> &&
-                 std::is_integral_v<ValueType>>
-UpdateEnvVar(EnvVar, const ValueType& value)
+inline std::string name(T t)
 {
-    EnvVar::Ref().updateValue(value);
+    return std::string{std::forward<T>(t).ref().name()};
 }
 
-template <typename EnvVar>
-void UpdateEnvVar(EnvVar, std::string_view value)
+template <typename T>
+void clear(T t)
 {
-    EnvVar::Ref().updateValue(value);
+    std::forward<T>(t).ref().clear();
 }
 
-} // namespace miopen
+template <typename T, typename U = typename T::value_type>
+inline void update(T t, U k)
+{
+    std::forward<T>(t).ref().template update<U>(std::forward<U>(k));
+}
 
-#endif
+} // namespace miopen::env
+
+#endif // GUARD_MIOPEN_ENV_HPP
