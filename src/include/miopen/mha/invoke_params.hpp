@@ -36,15 +36,17 @@ namespace mha {
 struct InvokeParams : public miopen::InvokeParams
 {
     InvokeParams(const MhaDataForward& dataForward, Data_t ws, std::size_t wsSize)
-        : workSpace(ws), workSpaceSize(wsSize)
+        : mhaDataForwardPtr(std::make_shared<MhaDataForward>(dataForward)),
+          workSpace(ws),
+          workSpaceSize(wsSize)
     {
-        mhaDataForwardPtr = std::make_shared<MhaDataForward>(dataForward);
     }
 
     InvokeParams(const MhaDataBackward& dataBackward, Data_t ws, std::size_t wsSize)
-        : workSpace(ws), workSpaceSize(wsSize)
+        : mhaDataBackwardPtr(std::make_shared<MhaDataBackward>(dataBackward)),
+          workSpace(ws),
+          workSpaceSize(wsSize)
     {
-        mhaDataBackwardPtr = std::make_shared<MhaDataBackward>(dataBackward);
     }
 
     const MhaDataForward& GetDataForward() const

@@ -39,15 +39,15 @@ namespace mha {
 struct ProblemDescription : ProblemDescriptionBase
 {
     // softmax forward constructor
-    ProblemDescription(const MhaInputDescsForward& descs) : isForward(true)
+    ProblemDescription(const MhaInputDescsForward& descs)
+        : isForward(true), mhaInputDescsForwardPtr(std::make_shared<MhaInputDescsForward>(descs))
     {
-        mhaInputDescsForwardPtr = std::make_shared<MhaInputDescsForward>(descs);
     }
 
     // softmax backward constructor
-    ProblemDescription(const MhaInputDescsBackward& descs) : isForward(false)
+    ProblemDescription(const MhaInputDescsBackward& descs)
+        : isForward(false), mhaInputDescsBackwardPtr(std::make_shared<MhaInputDescsBackward>(descs))
     {
-        mhaInputDescsBackwardPtr = std::make_shared<MhaInputDescsBackward>(descs);
     }
 
     bool IsForward() const { return isForward; }

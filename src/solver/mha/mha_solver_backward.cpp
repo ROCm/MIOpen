@@ -61,7 +61,7 @@ constexpr S RoundUpToMultiple(T val, T mul)
 template <typename T>
 constexpr T nextPow2(T v)
 {
-    static_assert(std::is_integral_v<T>);
+    static_assert(std::is_unsigned_v<T>);
 
     if(v == 1)
     {
