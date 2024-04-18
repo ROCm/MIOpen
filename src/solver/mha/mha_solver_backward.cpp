@@ -37,13 +37,6 @@
 #include <vector>
 #include <tuple>
 
-// disable __device__ qualifiers
-#ifdef FQUALIFIERS
-#error rocrand FQUALIFIERS defined externally, probably one of rocrand device header included prior to this
-#endif
-#define FQUALIFIERS inline
-#include "../../kernels/miopen_rocrand.hpp"
-
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ATTN_NAIVE_BWD)
 
 namespace miopen {
