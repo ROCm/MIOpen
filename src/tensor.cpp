@@ -333,13 +333,11 @@ const std::vector<std::size_t>& TensorDescriptor::GetStrides() const { return st
 
 int TensorDescriptor::GetSize() const
 {
-    assert(lens.size() == strides.size());
     return lens.size();
 }
 
 std::size_t TensorDescriptor::GetElementSize() const
 {
-    assert(lens.size() == strides.size());
     return std::accumulate(lens.begin(), lens.end(), vector_length, std::multiplies<std::size_t>());
 }
 
