@@ -36,24 +36,50 @@ namespace mha {
 struct InvokeParams : public miopen::InvokeParams
 {
     InvokeParams(const MhaDataForward& dataForward, Data_t ws, std::size_t wsSize)
-        : mhaDataForward(dataForward), workSpace(ws), workSpaceSize(wsSize)
+        : workSpace(ws), workSpaceSize(wsSize)
     {
+        mhaDataForwardPtr = std::make_shared<MhaDataForward>(dataForward);
     }
 
     InvokeParams(const MhaDataBackward& dataBackward, Data_t ws, std::size_t wsSize)
-        : mhaDataBackward(dataBackward), workSpace(ws), workSpaceSize(wsSize)
+        : workSpace(ws), workSpaceSize(wsSize)
     {
+        mhaDataBackwardPtr = std::make_shared<MhaDataBackward>(dataBackward);
     }
 
-    const MhaDataForward& GetData() const { return mhaDataForward; }
-    const MhaDataBackward& GetDataBackward() const { return mhaDataBackward; }
+    const MhaDataForward& GetDataForward() const
+    {
+        assert(mhaDataForwardPtr);
+
+        if(mhaDataForwardPtr == nullptr)
+        {
+            MIOPEN_THROW("Mha InvokeParams GetDataForward() failed: InvokeParams was initialized "
+                         "with a backward direction ctor");
+        }
+
+        return *mhaDataForwardPtr;
+    }
+
+    const MhaDataBackward& GetDataBackward() const
+    {
+        assert(mhaDataBackwardPtr);
+
+        if(mhaDataBackwardPtr == nullptr)
+        {
+            MIOPEN_THROW("Mha InvokeParams GetDataBackward() failed: InvokeParams was initialized "
+                         "with a forward direction ctor");
+        }
+
+        return *mhaDataBackwardPtr;
+    }
 
     std::size_t GetWorkspaceSize() const { return workSpaceSize; }
     Data_t GetWorkspace() const { return workSpace; }
 
 private:
-    MhaDataForward mhaDataForward;
-    MhaDataBackward mhaDataBackward;
+    std::shared_ptr<MhaDataForward> mhaDataForwardPtr;
+    std::shared_ptr<MhaDataBackward> mhaDataBackwardPtr;
+
     const Data_t workSpace;
     const std::size_t workSpaceSize;
 };

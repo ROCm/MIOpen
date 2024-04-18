@@ -103,6 +103,7 @@ MultiBufferWorkspaceTraits SplitBufferToWorkspace(const std::vector<size_t>& len
 bool MhaForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                               const miopen::mha::ProblemDescription& problem) const
 {
+    // It's important to have this check before problem.GetDescsForward() call
     if(!problem.IsForward())
     {
         return false;
@@ -113,7 +114,6 @@ bool MhaForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
     auto [N, H, S, D] = miopen::tien<4>(descsForward.kDesc.GetLengths());
 
     return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_NAIVE_FWD)) //
-           && problem.IsForward()                                //
            && S <= std::numeric_limits<uint32_t>::max()          //
            && descsForward.kDesc.IsPacked()                      //
            && descsForward.qDesc.IsPacked()                      //
@@ -221,7 +221,7 @@ ConvSolution MhaForward::GetSolution(const ExecutionContext& context,
             HipEventPtr start    = nullptr;
             HipEventPtr stop     = nullptr;
             const bool profiling = handle_.IsProfilingEnabled();
-            const auto& dataFwd  = params.GetData();
+            const auto& dataFwd  = params.GetDataForward();
 
             if(profiling)
             {

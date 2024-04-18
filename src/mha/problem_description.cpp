@@ -49,40 +49,40 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     if(isForward)
     {
         ss << "fwd-";
-        for(auto s : mhaInputDescsForward.oDesc.GetLengths())
+        for(auto s : mhaInputDescsForwardPtr->oDesc.GetLengths())
         {
             ss << s << "x";
         }
 
-        print_strides(mhaInputDescsForward.kDesc);
-        print_strides(mhaInputDescsForward.qDesc);
-        print_strides(mhaInputDescsForward.vDesc);
-        print_strides(mhaInputDescsForward.oDesc);
-        print_strides(mhaInputDescsForward.mDesc);
-        print_strides(mhaInputDescsForward.zInvDesc);
+        print_strides(mhaInputDescsForwardPtr->kDesc);
+        print_strides(mhaInputDescsForwardPtr->qDesc);
+        print_strides(mhaInputDescsForwardPtr->vDesc);
+        print_strides(mhaInputDescsForwardPtr->oDesc);
+        print_strides(mhaInputDescsForwardPtr->mDesc);
+        print_strides(mhaInputDescsForwardPtr->zInvDesc);
 
-        ss << mhaInputDescsForward.oDesc.GetType();
+        ss << mhaInputDescsForwardPtr->oDesc.GetType();
     }
     else
     {
         ss << "bwd-";
 
-        for(auto s : mhaInputDescsBackward.oDesc.GetLengths())
+        for(auto s : mhaInputDescsBackwardPtr->oDesc.GetLengths())
         {
             ss << s << "x";
         }
-        print_strides(mhaInputDescsBackward.kDesc);
-        print_strides(mhaInputDescsBackward.qDesc);
-        print_strides(mhaInputDescsBackward.vDesc);
-        print_strides(mhaInputDescsBackward.oDesc);
-        print_strides(mhaInputDescsBackward.doDesc);
-        print_strides(mhaInputDescsBackward.mDesc);
-        print_strides(mhaInputDescsBackward.zInvDesc);
-        print_strides(mhaInputDescsBackward.dqDesc);
-        print_strides(mhaInputDescsBackward.dkDesc);
-        print_strides(mhaInputDescsBackward.dvDesc);
+        print_strides(mhaInputDescsBackwardPtr->kDesc);
+        print_strides(mhaInputDescsBackwardPtr->qDesc);
+        print_strides(mhaInputDescsBackwardPtr->vDesc);
+        print_strides(mhaInputDescsBackwardPtr->oDesc);
+        print_strides(mhaInputDescsBackwardPtr->doDesc);
+        print_strides(mhaInputDescsBackwardPtr->mDesc);
+        print_strides(mhaInputDescsBackwardPtr->zInvDesc);
+        print_strides(mhaInputDescsBackwardPtr->dqDesc);
+        print_strides(mhaInputDescsBackwardPtr->dkDesc);
+        print_strides(mhaInputDescsBackwardPtr->dvDesc);
 
-        ss << mhaInputDescsBackward.oDesc.GetType();
+        ss << mhaInputDescsBackwardPtr->oDesc.GetType();
     }
 
     return NetworkConfig{ss.str()};

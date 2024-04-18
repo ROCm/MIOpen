@@ -114,12 +114,17 @@ miopen::HipEventPtr make_hip_fast_event()
 bool MhaBackward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                                const miopen::mha::ProblemDescription& problem) const
 {
+    // It's important to have this check before problem.GetDescsBackward() call
+    if(problem.IsForward())
+    {
+        return false;
+    }
+
     const miopen::mha::MhaInputDescsBackward& descsBackward = problem.GetDescsBackward();
 
     auto [N, H, S, D] = miopen::tien<4>(descsBackward.kDesc.GetLengths());
 
     return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_NAIVE_BWD)) //
-           && !problem.IsForward()                               //
            && S <= std::numeric_limits<uint32_t>::max()          //
            && D <= std::numeric_limits<uint32_t>::max()          //
            && descsBackward.kDesc.IsPacked()                     //

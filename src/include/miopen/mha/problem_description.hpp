@@ -39,28 +39,51 @@ namespace mha {
 struct ProblemDescription : ProblemDescriptionBase
 {
     // softmax forward constructor
-    ProblemDescription(const MhaInputDescsForward& descs)
-        : isForward(true), mhaInputDescsForward(descs)
+    ProblemDescription(const MhaInputDescsForward& descs) : isForward(true)
     {
+        mhaInputDescsForwardPtr = std::make_shared<MhaInputDescsForward>(descs);
     }
 
     // softmax backward constructor
-    ProblemDescription(const MhaInputDescsBackward& descs)
-        : isForward(false), mhaInputDescsBackward(descs)
+    ProblemDescription(const MhaInputDescsBackward& descs) : isForward(false)
     {
+        mhaInputDescsBackwardPtr = std::make_shared<MhaInputDescsBackward>(descs);
     }
 
     bool IsForward() const { return isForward; }
-    const MhaInputDescsForward& GetDescsForward() const { return mhaInputDescsForward; }
-    const MhaInputDescsBackward& GetDescsBackward() const { return mhaInputDescsBackward; }
+    const MhaInputDescsForward& GetDescsForward() const
+    {
+        assert(mhaInputDescsForwardPtr && isForward);
+
+        if(mhaInputDescsForwardPtr == nullptr)
+        {
+            MIOPEN_THROW("Mha ProblemDescription GetDescsForward() failed: PD was initialized with "
+                         "a backward direction ctor");
+        }
+
+        return *mhaInputDescsForwardPtr;
+    }
+
+    const MhaInputDescsBackward& GetDescsBackward() const
+    {
+        assert(mhaInputDescsBackwardPtr && !isForward);
+
+        if(mhaInputDescsBackwardPtr == nullptr)
+        {
+            MIOPEN_THROW("Mha ProblemDescription GetDescsBackward() failed: PD was initialized "
+                         "with a forward direction ctor");
+        }
+
+        return *mhaInputDescsBackwardPtr;
+    }
 
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
     const bool isForward;
 
-    MhaInputDescsForward mhaInputDescsForward;
-    MhaInputDescsBackward mhaInputDescsBackward;
+    std::shared_ptr<MhaInputDescsForward> mhaInputDescsForwardPtr;
+    std::shared_ptr<MhaInputDescsBackward> mhaInputDescsBackwardPtr;
 };
 
 } // namespace mha
