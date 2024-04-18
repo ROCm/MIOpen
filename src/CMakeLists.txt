@@ -125,6 +125,8 @@ set( MIOpen_Source
     generic_search.cpp
     graphapi/convolution.cpp
     graphapi/graphapi.cpp
+    graphapi/opgraph.cpp
+    graphapi/matmul.cpp
     graphapi/pointwise.cpp
     graphapi/reduction.cpp
     graphapi/rng.cpp
@@ -261,6 +263,7 @@ set( MIOpen_Source
     solver/fft.cpp
     solver/gemm.cpp
     solver/gemm_bwd.cpp
+    solver/gemm_common.cpp
     solver/gemm_wrw.cpp
     solver/groupnorm/forward_groupnorm.cpp
     solver/layernorm/forward_layernorm.cpp
