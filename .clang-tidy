@@ -71,6 +71,9 @@
 #   -modernize-type-traits
 #   -performance-avoid-endl
 #
+# TODO Code Quality WORKAROUND environemnt variables (#2837)
+#   -ctuOneDefinitionRuleViolation
+
 Checks: >-
   *,
   -abseil-*,
@@ -186,6 +189,7 @@ Checks: >-
   -readability-simplify-boolean-expr,
   -readability-suspicious-call-argument,
   -readability-uppercase-literal-suffix,
+  -ctuOneDefinitionRuleViolation
 
 CheckOptions:
   - key: google-readability-braces-around-statements.ShortStatementLines
