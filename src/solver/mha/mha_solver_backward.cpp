@@ -292,6 +292,17 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
 
             handle_.ReserveExtraStreamsInPool(2);
 
+            auto recordSyncEvent = [&handle_]() {
+                auto event = make_hip_fast_event();
+                hipEventRecord(event.get(), handle_.GetStream());
+                return event;
+            };
+
+            auto waitSyncEvent = [&handle_](HipEventPtr&& event) {
+                auto tmp_for_deletion(std::move(event));
+                hipStreamWaitEvent(handle_.GetStream(), tmp_for_deletion.get(), 0);
+            };
+
             if(profiling)
             {
                 start = make_hip_event();
@@ -318,27 +329,25 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
             hipMemsetAsync(dataBwd.amaxDSData, 0, sizeof(float), handle_.GetStream());
             hipMemsetAsync(dataBwd.amaxDVData, 0, sizeof(float), handle_.GetStream());
 
-            const miopen::HipEventPtr event_QxK = make_hip_fast_event();
             handle_.SetStreamFromPool(1);
 #if MIOPEN_USE_GEMM
             CallGemmStridedBatched(
                 handle_, QK_desc, dataBwd.qData, 0, dataBwd.kData, 0, fp32_QxK_S_ws, 0);
 #endif
-            hipEventRecord(event_QxK.get(), handle_.GetStream());
+            HipEventPtr event_QxK = recordSyncEvent();
             hipMemsetAsync(dataBwd.amaxDQData, 0, sizeof(float), handle_.GetStream());
 
-            const miopen::HipEventPtr event_dOxV = make_hip_fast_event();
             handle_.SetStreamFromPool(2);
 #if MIOPEN_USE_GEMM
             CallGemmStridedBatched(
                 handle_, dOV_desc, dataBwd.doData, 0, dataBwd.vData, 0, fp32_dOxV_dS_ws, 0);
 #endif
-            hipEventRecord(event_dOxV.get(), handle_.GetStream());
+            HipEventPtr event_dOxV = recordSyncEvent();
             hipMemsetAsync(dataBwd.amaxDKData, 0, sizeof(float), handle_.GetStream());
 
             handle_.SetStreamFromPool(0);
-            hipStreamWaitEvent(handle_.GetStream(), event_QxK.get(), 0);
-            hipStreamWaitEvent(handle_.GetStream(), event_dOxV.get(), 0);
+            waitSyncEvent(std::move(event_QxK));
+            waitSyncEvent(std::move(event_dOxV));
 
             decltype(auto) bwd_attention_kernel = handle_.Run(kernels[1]);
             bwd_attention_kernel(fp32_QxK_S_ws,
@@ -364,20 +373,18 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
             CallGemmStridedBatched(
                 handle_, xK_desc, fp32_dOxV_dS_ws, 0, dataBwd.kData, 0, fp32_dSxK_ws, 0);
 #endif
-            const miopen::HipEventPtr event_bwd1 = make_hip_fast_event();
-            hipEventRecord(event_bwd1.get(), handle_.GetStream());
+            HipEventPtr event_bwd1 = recordSyncEvent();
 
 #if MIOPEN_USE_GEMM
             CallGemmStridedBatched(
                 handle_, xQdO_desc, fp32_dOxV_dS_ws, 0, dataBwd.qData, 0, fp32_dSxQ_ws, 0);
 #endif
-            const miopen::HipEventPtr event_bwd2 = make_hip_fast_event();
-            hipEventRecord(event_bwd2.get(), handle_.GetStream());
+            HipEventPtr event_bwd2 = recordSyncEvent();
 
             decltype(auto) scale_reduce_kernel = handle_.Run(kernels[2]);
 
             handle_.SetStreamFromPool(1);
-            hipStreamWaitEvent(handle_.GetStream(), event_bwd1.get(), 0);
+            waitSyncEvent(std::move(event_bwd1));
             scale_reduce_kernel(fp32_dSxK_ws,
                                 dataBwd.dqData,
                                 dataBwd.amaxDQData,
@@ -385,11 +392,10 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
                                 dataBwd.descaleKData,
                                 dataBwd.scaleDQData,
                                 nhsd);
-            const miopen::HipEventPtr event_bwd3 = make_hip_fast_event();
-            hipEventRecord(event_bwd3.get(), handle_.GetStream());
+            HipEventPtr event_bwd3 = recordSyncEvent();
 
             handle_.SetStreamFromPool(2);
-            hipStreamWaitEvent(handle_.GetStream(), event_bwd2.get(), 0);
+            waitSyncEvent(std::move(event_bwd2));
             scale_reduce_kernel(fp32_dSxQ_ws,
                                 dataBwd.dkData,
                                 dataBwd.amaxDKData,
@@ -397,8 +403,7 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
                                 dataBwd.descaleQData,
                                 dataBwd.scaleDKData,
                                 nhsd);
-            const miopen::HipEventPtr event_bwd4 = make_hip_fast_event();
-            hipEventRecord(event_bwd4.get(), handle_.GetStream());
+            HipEventPtr event_bwd4 = recordSyncEvent();
 
             handle_.SetStreamFromPool(0);
 #if MIOPEN_USE_GEMM
@@ -414,8 +419,8 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
                                 dataBwd.scaleDVData,
                                 nhsd);
 
-            hipStreamWaitEvent(handle_.GetStream(), event_bwd3.get(), 0);
-            hipStreamWaitEvent(handle_.GetStream(), event_bwd4.get(), 0);
+            waitSyncEvent(std::move(event_bwd3));
+            waitSyncEvent(std::move(event_bwd4));
 
             if(profiling)
             {
