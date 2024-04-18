@@ -88,7 +88,6 @@ struct ProblemDescription : ProblemDescriptionBase
           adamw(adamw_),
           is_amp(is_amp_)
     {
-        printf("ProblemDescription\n");
         if(amsgrad && (maxExpAvgSqInDesc == nullptr || maxExpAvgSqOutDesc == nullptr))
         {
             MIOPEN_THROW(miopenStatusBadParm,

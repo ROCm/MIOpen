@@ -43,12 +43,10 @@ bool Adam::IsApplicable([[maybe_unused]] const ExecutionContext& context,
 {
     if(!problem.IsAllPacked())
         return false;
-    if(!problem.IsAdamW())
+    if(problem.IsAdamW())
         return false;
     return true;
 }
-
-inline size_t AlignUp(size_t num, size_t align) { return (num + align - 1) / align * align; }
 
 ConvSolution Adam::GetSolution(const ExecutionContext& context,
                                const miopen::adam::ProblemDescription& problem) const
