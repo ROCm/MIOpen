@@ -68,6 +68,7 @@
  * @defgroup argmax
  * @defgroup groupnorm
  * @defgroup cat
+ * @defgroup SGD
  *
  */
 
@@ -6596,41 +6597,63 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
  * gradients. Fused Adam optimization efficiently combines multiple operations into a single kernel,
  * reducing memory access overhead and improving performance.
  *
- * @example
+ * @code
  * // Execute Adam
- * miopenFusedAdam(handle, paramDesc, param, gradDesc, grad, expAvgDesc, expAvg, expAvgSqDesc,
+ * miopenFusedAdam(handle,
+ *                 paramDesc,
+ *                 param,
+ *                 gradDesc,
+ *                 grad,
+ *                 expAvgDesc,
+ *                 expAvg,
+ *                 expAvgSqDesc,
  *                 expAvgSq,
- *                 NULL, NULL,  // Unused maxExpAvgSqDesc because amsgrad is false
- *                 NULL, NULL,  // Unused stateStep Tensor because use step integer argument
- *                 step, lr, beta1, beta2, weight_decay, eps,
- *                 false,       // amsgrad
- *                 false,       // maximize
- *                 false,       // adamw
- *                 NULL, NULL,  // Unused gradScale Tensor because not amp
- *                 NULL, NULL); // Unused foundInf Tensor because not amp
- *
- * // Execute Adam with amsgrad set to true
- * miopenFusedAdam(handle, paramDesc, param, gradDesc, grad, expAvgDesc, expAvg, expAvgSqDesc,
- *                 expAvgSq, maxExpAvgSqDesc, maxExpAvgSq,
- *                 NULL, NULL,  // Unused stateStep Tensor because use step integer argument
- *                 step, lr, beta1, beta2, weight_decay, eps,
- *                 true,        // amsgrad
- *                 false,       // maximize
- *                 false,       // adamw
- *                 NULL, NULL,  // Unused gradScale Tensor because not amp
- *                 NULL, NULL); // Unused foundInf Tensor because not amp
+ *                 NULL,     // Unused maxExpAvgSqDesc because amsgrad is false
+ *                 NULL,
+ *                 NULL,     // Unused stateStep Tensor because use step integer argument
+ *                 NULL,
+ *                 step,
+ *                 lr,
+ *                 beta1,
+ *                 beta2,
+ *                 weight_decay,
+ *                 eps,
+ *                 false,    // amsgrad
+ *                 false,    // maximize
+ *                 false,    // adamw
+ *                 NULL,     // Unused gradScale Tensor because not amp
+ *                 NULL,
+ *                 NULL,     // Unused foundInf Tensor because not amp
+ *                 NULL);
  *
  * // Execute AMP Adam
- * miopenFusedAdam(handle, paramDesc, param, gradDesc, grad, expAvgDesc, expAvg, expAvgSqDesc,
+ * miopenFusedAdam(handle,
+ *                 paramDesc,
+ *                 param,
+ *                 gradDesc,
+ *                 grad,
+ *                 expAvgDesc,
+ *                 expAvg,
+ *                 expAvgSqDesc,
  *                 expAvgSq,
- *                 NULL, NULL,  // Unused maxExpAvgSqDesc because amsgrad is false
- *                 stateStepDesc, stateStep,
- *                 -1,          // Ignore step value because stateStep Tensor is used
- *                 lr, beta1, beta2, weight_decay, eps,
- *                 false,       // amsgrad
- *                 false,       // maximize
- *                 false,       // adamw
- *                 gradScaleDesc, gradScale, foundInfDesc, foundInf);
+ *                 NULL,     // Unused maxExpAvgSqDesc because amsgrad is false
+ *                 NULL,
+ *                 stateStepDesc,
+ *                 stateStep,
+ *                 -1,       // Ignore step value because stateStep Tensor is used
+ *                 lr,
+ *                 beta1,
+ *                 beta2,
+ *                 weight_decay,
+ *                 eps,
+ *                 false,    // amsgrad
+ *                 false,    // maximize
+ *                 false,    // adamw
+ *                 gradScaleDesc,
+ *                 gradScale,
+ *                 foundInfDesc,
+ *                 foundInf);
+ * @endcode
  *
  * @param handle              MIOpen handle (input)
  * @param paramDesc           Tensor descriptor for the input parameter tensor (input)
@@ -6701,41 +6724,88 @@ MIOPEN_EXPORT miopenStatus_t miopenFusedAdam(miopenHandle_t handle,
  * This function is equivalent to miopenFusedAdam but receives the result in a separate output
  * tensor.
  *
- * @example
+ * @code
  * // Execute Adam
- * miopenFusedAdam(handle, paramDesc, param, gradDesc, grad, expAvgDesc, expAvg, expAvgSqDesc,
- *                 expAvgSq,
- *                 NULL, NULL,  // Unused maxExpAvgSqDesc because amsgrad is false
- *                 NULL, NULL,  // Unused stateStep Tensor because use step integer argument
- *                 step, lr, beta1, beta2, weight_decay, eps,
+ * miopenFusedAdam(handle,
+ *                 paramInDesc,
+ *                 paramIn,
+ *                 paramOutDesc,
+ *                 paramOut,
+ *                 NULL,        // Unused paramOutFloat16 tensor because is not amp
+ *                 NULL,
+ *                 gradInDesc,
+ *                 gradIn,
+ *                 expAvgInDesc,
+ *                 expAvgIn,
+ *                 expAvgOutDesc,
+ *                 expAvgOut,
+ *                 expAvgInSqDesc,
+ *                 expAvgSqIn,
+ *                 expAvgSqOutDesc,
+ *                 expAvgSqOut,
+ *                 NULL,        // Unused maxExpAvgSqIn tensor because amsgrad is false
+ *                 NULL,
+ *                 NULL,        // Unused maxExpAvgSqOut tensor because amsgrad is false
+ *                 NULL,
+ *                 NULL,        // Unused stateStepIn tensor because use step integer argument
+ *                 NULL,
+ *                 NULL,        // Unused stateStepOut tensor because use step integer argument
+ *                 NULL,
+ *                 step,
+ *                 lr,
+ *                 beta1,
+ *                 beta2,
+ *                 weight_decay,
+ *                 eps,
  *                 false,       // amsgrad
  *                 false,       // maximize
  *                 false,       // adamw
- *                 NULL, NULL,  // Unused gradScale Tensor because not amp
- *                 NULL, NULL); // Unused foundInf Tensor because not amp
+ *                 NULL,        // Unused gradScale Tensor because not amp
+ *                 NULL,
+ *                 NULL,        // Unused foundInf Tensor because not amp
+ *                 NULL);
  *
- * // Execute Adam with amsgrad set to true
- * miopenFusedAdam(handle, paramDesc, param, gradDesc, grad, expAvgDesc, expAvg, expAvgSqDesc,
- *                 expAvgSq, maxExpAvgSqDesc, maxExpAvgSq,
- *                 NULL, NULL,  // Unused stateStep Tensor because use step integer argument
- *                 step, lr, beta1, beta2, weight_decay, eps,
- *                 true,        // amsgrad
- *                 false,       // maximize
- *                 false,       // adamw
- *                 NULL, NULL,  // Unused gradScale Tensor because not amp
- *                 NULL, NULL); // Unused foundInf Tensor because not amp
- *
- * // Execute AMP Adam
- * miopenFusedAdam(handle, paramDesc, param, gradDesc, grad, expAvgDesc, expAvg, expAvgSqDesc,
- *                 expAvgSq,
- *                 NULL, NULL,  // Unused maxExpAvgSqDesc because amsgrad is false
- *                 stateStepDesc, stateStep,
- *                 -1,          // Ignore step value because stateStep Tensor is used
- *                 lr, beta1, beta2, weight_decay, eps,
- *                 false,       // amsgrad
- *                 false,       // maximize
- *                 false,       // adamw
- *                 gradScaleDesc, gradScale, foundInfDesc, foundInf);
+ * // Execute Amp Adam
+ * miopenFusedAdam(handle,
+ *                 paramInDesc,
+ *                 paramIn,
+ *                 paramOutDesc,
+ *                 paramOut,
+ *                 paramOutFloat16Desc,  // paramOutFloat16 tensor is optional in amp
+ *                 paramOutFloat16,
+ *                 gradInDesc,
+ *                 gradIn,
+ *                 expAvgInDesc,
+ *                 expAvgIn,
+ *                 expAvgOutDesc,
+ *                 expAvgOut,
+ *                 expAvgInSqDesc,
+ *                 expAvgSqIn,
+ *                 expAvgSqIn,
+ *                 expAvgSqOutDesc,
+ *                 expAvgSqOut,
+ *                 NULL,                 // Unused maxExpAvgSqIn tensor because amsgrad is false
+ *                 NULL,
+ *                 NULL,                 // Unused maxExpAvgSqOut tensor because amsgrad is false
+ *                 NULL,
+ *                 stateStepInDesc,
+ *                 stateStepIn,
+ *                 stateStepOutDesc,
+ *                 stateStepOut
+ *                 -1,                   // Ignore step value because stateStep Tensor is used
+ *                 lr,
+ *                 beta1,
+ *                 beta2,
+ *                 weight_decay,
+ *                 eps,
+ *                 false,                // amsgrad
+ *                 false,                // maximize
+ *                 false,                // adamw
+ *                 gradScaleDesc,
+ *                 gradScale,
+ *                 foundInfDesc,
+ *                 foundInf);
+ * @endcode
  *
  * @param handle              MIOpen handle (input)
  * @param paramInDesc         Tensor descriptor for the input parameter tensor (input)
@@ -6799,8 +6869,8 @@ miopenFusedAdamWithOutput(miopenHandle_t handle,
                           void* paramOut,
                           const miopenTensorDescriptor_t paramOutFloat16Desc,
                           void* paramOutFloat16,
-                          const miopenTensorDescriptor_t gradDesc,
-                          const void* grad,
+                          const miopenTensorDescriptor_t gradInDesc,
+                          const void* gradIn,
                           const miopenTensorDescriptor_t expAvgInDesc,
                           void* expAvgIn,
                           const miopenTensorDescriptor_t expAvgOutDesc,
