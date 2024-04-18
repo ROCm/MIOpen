@@ -278,6 +278,12 @@ TEST_P(Test_Fwd_Mha, Test_float)
 {
     Handle& handle = get_handle();
 
+    auto [n, h, s, d, drop] = GetParam();
+    if((drop > 0.0f) && (s % handle.GetWavefrontWidth() != 0))
+    {
+        GTEST_SKIP() << "CPU Dropout currently supprorts only fully occupied warps";
+    }
+
     std::vector<miopenSolution_t> solutions(16);
     std::size_t found;
 
