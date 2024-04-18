@@ -340,6 +340,7 @@ template <typename T = float8>
 void MultiHeadAttentionfp8(const tensor<T>& q_val,
                            const tensor<T>& k_val,
                            const tensor<T>& v_val,
+                           tensor<float>& softmax,
                            tensor<float>& attn_max,
                            tensor<float>& Z_sum,
                            float q_descale,
@@ -355,7 +356,6 @@ void MultiHeadAttentionfp8(const tensor<T>& q_val,
     auto inputLengths = q_val.desc.GetLengths();
     inputLengths[3]   = inputLengths[2]; // NHSD converting to NHSS
     tensor<float> q_dot_k_fp8_stored_in_fp32_tensor(inputLengths);
-    tensor<float> softmax(inputLengths);
 
     // The FP8 Matrix Multiplicatin happens here.
     // The results are tored in fp32 tensor.
@@ -425,37 +425,143 @@ template <typename T>
 void MultiHeadAttentionBackwardDataf32(const tensor<T>& q_val,
                                        const tensor<T>& k_val,
                                        const tensor<T>& v_val,
-                                       const tensor<T>& o_val, // attention
+                                       const tensor<T>& O_val, // attention (O)
                                        const tensor<T>& dO_val,
-                                       const tensor<T>& q_dot_k_transpose,
                                        const tensor<T>& softmax,
-                                       const tensor<T>& attn_max,
-                                       const tensor<T>& z_sum,
+                                       const tensor<float>& attn_max,
+                                       const tensor<float>& z_sum,
                                        tensor<T>& dQ_val,
                                        tensor<T>& dK_val,
                                        tensor<T>& dV_val)
 {
-    tensor<T> dO_dot_V_tranpsoe_val(q_dot_k_transpose.desc.GetLengths());
-    tensor<T> bwd_intermediate(q_dot_k_transpose.desc.GetLengths());
-    tensor<T> dO_pointwiseMul_o_val(dO_val.desc.GetLengths());
-    tensor<T> dO_pointwiseMul_o_val_rrsum(
-        {o_val.desc.GetLengths()[0], o_val.desc.GetLengths()[1], o_val.desc.GetLengths()[2], 1});
+
+    auto inputLengths = q_val.desc.GetLengths();
+    inputLengths[3]   = inputLengths[2]; // NHSD converting to NHSS
+
+    tensor<T> dO_dot_V_tranpsoe_val(inputLengths);
+    tensor<T> bwd_intermediate(inputLengths);
+    tensor<T> dO_pointwiseMul_O(dO_val.desc.GetLengths());
+    inputLengths[3] = 1; // NHSD converting to NHS1 for row reduction tensor
+    tensor<T> dO_pointwiseMul_O_rrsum(inputLengths);
+
+    // softmax_T.dO
+
+    // 1) fp8 matrix multiplication
+    Dot_4D_T_4D(softmax, dO_val, dV_val);
 
     // dO x V
     Dot_4D_4D_T(dO_val, v_val, dO_dot_V_tranpsoe_val);
 
-    PointWiseMultiply(dO_val, o_val, dO_pointwiseMul_o_val);
-    RowReductionSum(dO_pointwiseMul_o_val, dO_pointwiseMul_o_val_rrsum);
-    BroadCastSub(dO_dot_V_tranpsoe_val, dO_pointwiseMul_o_val_rrsum, bwd_intermediate);
-    PointWiseMultiply(bwd_intermediate, softmax, bwd_intermediate);
+    // dO . O
+    PointWiseMultiply(dO_val, O_val, dO_pointwiseMul_O);
 
-    Dot_4D_T_4D(softmax, dO_val, dV_val);
-    // dO x O
+    RowReductionSum(dO_pointwiseMul_O, dO_pointwiseMul_O_rrsum);
+    BroadCastSub(dO_dot_V_tranpsoe_val, dO_pointwiseMul_O_rrsum, bwd_intermediate);
+    PointWiseMultiply(bwd_intermediate, softmax, bwd_intermediate);
 
     // both dk and dQ
     // finally
     Dot_4D_4D(bwd_intermediate, k_val, dQ_val);
     Dot_4D_T_4D(bwd_intermediate, q_val, dK_val);
+}
+
+template <typename T = float8>
+void MultiHeadAttentionBackwardDataf8(const tensor<T>& q_val,
+                                      const tensor<T>& k_val,
+                                      const tensor<T>& v_val,
+                                      const tensor<T>& O_val, // attention (O)
+                                      const tensor<T>& dO_val,
+                                      const tensor<float>& softmax_fp32,
+                                      float s_scale,
+                                      float dV_scale,
+                                      float dQ_scale,
+                                      float dK_scale,
+                                      float q_descale,
+                                      float k_descale,
+                                      float v_descale,
+                                      float s_descale,
+                                      float O_descale,
+                                      float dO_descale,
+                                      float& aMax_dS,
+                                      float& aMax_dK,
+                                      float& aMax_dQ,
+                                      tensor<T>& dQ_val,
+                                      tensor<T>& dK_val,
+                                      tensor<T>& dV_val)
+{
+
+    // Calculate dV_val = softmax_T x dO
+
+    tensor<T> softmax_fp8(softmax_fp32.desc.GetLengths());
+    tensor<T> softmax_dot_dO_fp8(dV_val.desc.GetLengths());
+    ScaleMult(softmax_fp32, s_scale, softmax_fp8);
+    // fp8 matrix multiplication
+    Dot_4D_T_4D(softmax_fp8, dO_val, softmax_dot_dO_fp8);
+
+    tensor<float> softmax_dO_fp32(dV_val.desc.GetLengths());
+    ScaleMult(softmax_dot_dO_fp8, s_descale * dO_descale, softmax_dO_fp32);
+
+    ScaleMult(softmax_dO_fp32, dV_scale, dV_val);
+
+    auto inputLengths = q_val.desc.GetLengths();
+    inputLengths[3]   = inputLengths[2]; // NHSD converting to NHSS
+
+    // Calculate dQ_val and dK_val
+    // dO x V
+    tensor<T> dO_dot_V_tranpose_val(inputLengths);
+    tensor<float> dO_dot_V_tranpose_val_fp32(inputLengths);
+    // fp8 matrix multiplication
+    Dot_4D_4D_T(dO_val, v_val, dO_dot_V_tranpose_val);
+    // Descale dO, Descale V
+    ScaleMult(dO_dot_V_tranpose_val, dO_descale * v_descale, dO_dot_V_tranpose_val_fp32);
+
+    // dO . O
+    auto o_valLengths = O_val.desc.GetLengths();
+    o_valLengths[3]   = 1; // NHSD converting to NHS1 for row reduction tensor
+    tensor<float> dO_pointwiseMul_O_rrsum_fp32(o_valLengths);
+
+    tensor<float> o_val_fp32(O_val.desc.GetLengths());
+    tensor<float> dO_val_fp32(dO_val.desc.GetLengths());
+    // Descale dO
+    ScaleMult(O_val, O_descale, o_val_fp32);
+    // Descale O
+    ScaleMult(dO_val, dO_descale, dO_val_fp32);
+    tensor<float> dO_pointwiseMul_O_fp32(dO_val.desc.GetLengths());
+    PointWiseMultiply(dO_val_fp32, o_val_fp32, dO_pointwiseMul_O_fp32);
+    RowReductionSum(dO_pointwiseMul_O_fp32, dO_pointwiseMul_O_rrsum_fp32);
+
+    // Bias Substraction
+
+    tensor<float> bias_sub_fp32(inputLengths);
+    BroadCastSub(dO_dot_V_tranpose_val_fp32, dO_pointwiseMul_O_rrsum_fp32, bias_sub_fp32);
+
+    tensor<float> bias_sub_fp32_pm_softmax(inputLengths);
+    tensor<T> bias_sub_fp8_pm_softmax(inputLengths);
+    PointWiseMultiply(bias_sub_fp32, softmax_fp32, bias_sub_fp32_pm_softmax);
+    // AMax_dS
+    aMax_dS = AbsoluteMax(bias_sub_fp32_pm_softmax);
+
+    float ds_scale   = GetF8Scaling(aMax_dS);
+    float ds_descale = 1.f / s_scale;
+    // s_scale to convert to fp8
+    ScaleMult(bias_sub_fp32_pm_softmax, ds_scale, bias_sub_fp8_pm_softmax);
+
+    // fp8 matrix multiplication
+    Dot_4D_4D(bias_sub_fp8_pm_softmax, k_val, dQ_val);
+    // fp8 matrix multiplication
+    Dot_4D_T_4D(bias_sub_fp8_pm_softmax, q_val, dK_val);
+
+    tensor<float> dQ_val_fp32(dQ_val.desc.GetLengths());
+    tensor<float> dK_val_fp32(dK_val.desc.GetLengths());
+    // bring it back to fp32
+    ScaleMult(dQ_val, ds_descale * q_descale, dQ_val_fp32);
+    ScaleMult(dK_val, ds_descale * k_descale, dK_val_fp32);
+
+    aMax_dQ = AbsoluteMax(dQ_val_fp32);
+    aMax_dK = AbsoluteMax(dK_val_fp32);
+
+    ScaleMult(dQ_val_fp32, dQ_scale, dQ_val);
+    ScaleMult(dK_val_fp32, dK_scale, dK_val);
 }
 
 template <typename T>

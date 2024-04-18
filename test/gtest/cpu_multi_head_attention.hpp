@@ -80,6 +80,7 @@ protected:
 
         if constexpr(std::is_same_v<OutputType, float>)
         {
+            // forward
             MultiHeadAttentionf32(q_val,
                                   k_val,
                                   v_val,
@@ -92,6 +93,24 @@ protected:
                                   multi_head_attention);
 
             Concat(multi_head_attention, concatinated_attention);
+
+            // backward
+            MultiHeadAttentionBackwardDataf32<float>(q_val,
+                                                     k_val,
+                                                     v_val,
+                                                     multi_head_attention, // o_val
+                                                     dO_val,
+                                                     softmax,
+                                                     attn_max,
+                                                     z_sum,
+                                                     dQ_val,
+                                                     dK_val,
+                                                     dV_val);
+
+            Concat(dO_val, concatinated_dO_val);
+            Concat(dV_val, concatinated_dV_val);
+            Concat(dQ_val, concatinated_dQ_val);
+            Concat(dK_val, concatinated_dK_val);
         }
         else
         {
@@ -107,20 +126,23 @@ protected:
             float s_descale = 1.f; // / s_scale;
 
             float o_scale = 1.f;
+
             // clang-tidy complains about the same expression on both sides of "/": 1.f / 1.f
             float o_descale = 1.f; // / o_scale;
 
-            tensor<float8> q_val_fp8(q_val.desc.GetLengths());
-            tensor<float8> k_val_fp8(k_val.desc.GetLengths());
-            tensor<float8> v_val_fp8(v_val.desc.GetLengths());
+            tensor<OutputType> q_val_fp8(q_val.desc.GetLengths());
+            tensor<OutputType> k_val_fp8(k_val.desc.GetLengths());
+            tensor<OutputType> v_val_fp8(v_val.desc.GetLengths());
 
             ScaleMult(q_val, q_scale, q_val_fp8);
             ScaleMult(k_val, k_scale, k_val_fp8);
             ScaleMult(v_val, v_scale, v_val_fp8);
 
+            // forward
             MultiHeadAttentionfp8(q_val_fp8,
                                   k_val_fp8,
                                   v_val_fp8,
+                                  softmax, // fp32
                                   attn_max,
                                   z_sum,
                                   q_descale,
@@ -134,32 +156,44 @@ protected:
                                   multi_head_attention);
             Concat(multi_head_attention, final_transformed_attention);
             ScaleMult(final_transformed_attention, o_descale, concatinated_attention);
+
+            // backward
+            float dO_scale   = GetF8Scaling(AbsoluteMax(dO_val));
+            float dO_descale = 1.f / dO_scale;
+
+            float dV_scale = 1.f;
+            float dK_scale = 1.f;
+            float dQ_scale = 1.f;
+
+            tensor<OutputType> dO_val_fp8(dO_val.desc.GetLengths());
+
+            ScaleMult(dO_val, dO_scale, dO_val_fp8);
+            MultiHeadAttentionBackwardDataf8(q_val_fp8,
+                                             k_val_fp8,
+                                             v_val_fp8,
+                                             multi_head_attention, // O_val_fp8
+                                             dO_val_fp8,
+                                             softmax,
+                                             s_scale,
+                                             dV_scale,
+                                             dQ_scale,
+                                             dK_scale,
+                                             q_descale,
+                                             k_descale,
+                                             v_descale,
+                                             s_descale,
+                                             o_descale,
+                                             dO_descale,
+                                             aMax_dS,
+                                             aMax_dK,
+                                             aMax_dQ,
+                                             dQ_val,
+                                             dK_val,
+                                             dV_val);
         }
 
         Dot_3D_2D_T(
             concatinated_attention, final_linear_transform_weights, final_transformed_attention);
-
-        if constexpr(std::is_same_v<OutputType, float>)
-        {
-            // backward
-            MultiHeadAttentionBackwardDataf32<float>(q_val,
-                                                     k_val,
-                                                     v_val,
-                                                     multi_head_attention, // o_val
-                                                     dO_val,
-                                                     q_dot_k_transpose,
-                                                     softmax,
-                                                     attn_max,
-                                                     z_sum,
-                                                     dQ_val,
-                                                     dK_val,
-                                                     dV_val);
-
-            Concat(dO_val, concatinated_dO_val);
-            Concat(dV_val, concatinated_dV_val);
-            Concat(dQ_val, concatinated_dQ_val);
-            Concat(dK_val, concatinated_dK_val);
-        }
     }
 
     void TearDown() override
@@ -219,16 +253,19 @@ protected:
             cpu_mha_test_case.problem_dimension}}; // cpu_mha_test_case.num_heads*d_k
         final_transformed_attention = concatinated_attention;
 
-        q_dot_k_transpose = tensor<float>{cpu_mha_test_case.batch_size,
-                                          cpu_mha_test_case.num_heads,
-                                          cpu_mha_test_case.sequence_length,
-                                          cpu_mha_test_case.sequence_length};
-        softmax           = q_dot_k_transpose;
+        q_dot_k_transpose = tensor<OutputType>{cpu_mha_test_case.batch_size,
+                                               cpu_mha_test_case.num_heads,
+                                               cpu_mha_test_case.sequence_length,
+                                               cpu_mha_test_case.sequence_length};
+        softmax           = tensor<InputType>{cpu_mha_test_case.batch_size,
+                                    cpu_mha_test_case.num_heads,
+                                    cpu_mha_test_case.sequence_length,
+                                    cpu_mha_test_case.sequence_length};
         // reduce row max
-        attn_max = tensor<float>{cpu_mha_test_case.batch_size,
-                                 cpu_mha_test_case.num_heads,
-                                 cpu_mha_test_case.sequence_length,
-                                 1};
+        attn_max = tensor<InputType>{cpu_mha_test_case.batch_size,
+                                     cpu_mha_test_case.num_heads,
+                                     cpu_mha_test_case.sequence_length,
+                                     1};
         z_sum    = attn_max;
 
         word_position = ExtractGoldenDataFromJson(json_attention_word_position, word_position);
@@ -241,9 +278,13 @@ protected:
 
         // backward
         dO_val = v_val;
-        dQ_val = dO_val;
-        dK_val = dO_val;
-        dV_val = dO_val;
+
+        dQ_val = tensor<OutputType>{cpu_mha_test_case.batch_size,
+                                    cpu_mha_test_case.num_heads,
+                                    cpu_mha_test_case.sequence_length,
+                                    d_k};
+        dK_val = dQ_val;
+        dV_val = dQ_val;
         // the derivative of loss (delta loss)
         dO_val              = ExtractGoldenDataFromJson(json_dO_val, dO_val);
         concatinated_dO_val = concatinated_attention;
@@ -274,10 +315,10 @@ protected:
     tensor<InputType> v_val;
 
     // softmax
-    tensor<float> q_dot_k_transpose;
-    tensor<float> attn_max;
-    tensor<float> z_sum;
-    tensor<float> softmax;
+    tensor<OutputType> q_dot_k_transpose;
+    tensor<InputType> softmax;
+    tensor<InputType> attn_max;
+    tensor<InputType> z_sum;
 
     // attention
     tensor<OutputType> multi_head_attention;
@@ -290,10 +331,15 @@ protected:
     float aMax_O;
 
     // backward
-    tensor<InputType> dQ_val;
-    tensor<InputType> dK_val;
-    tensor<InputType> dV_val;
+
+    float aMax_dS;
+    float aMax_dK;
+    float aMax_dQ;
     tensor<InputType> dO_val;
+
+    tensor<OutputType> dQ_val;
+    tensor<OutputType> dK_val;
+    tensor<OutputType> dV_val;
 
     tensor<InputType> concatinated_dO_val;
     tensor<InputType> concatinated_dV_val;
