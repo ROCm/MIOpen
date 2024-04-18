@@ -328,15 +328,8 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
             const miopen::HipEventPtr event_QxK = make_hip_fast_event();
             handle_.SetStreamFromPool(1);
 #if MIOPEN_USE_GEMM
-            CallGemmStridedBatched(handle_,
-                                   QK_desc,
-                                   dataBwd.qData,
-                                   0,
-                                   dataBwd.kData,
-                                   0,
-                                   fp32_QxK_S_ws,
-                                   0,
-                                   GemmBackend_t::rocblas);
+            CallGemmStridedBatched(
+                handle_, QK_desc, dataBwd.qData, 0, dataBwd.kData, 0, fp32_QxK_S_ws, 0);
 #endif
             hipEventRecord(event_QxK.get(), handle_.GetStream());
             hipMemsetAsync(dataBwd.amaxDQData, 0, sizeof(float), handle_.GetStream());
@@ -344,15 +337,8 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
             const miopen::HipEventPtr event_dOxV = make_hip_fast_event();
             handle_.SetStreamFromPool(2);
 #if MIOPEN_USE_GEMM
-            CallGemmStridedBatched(handle_,
-                                   dOV_desc,
-                                   dataBwd.doData,
-                                   0,
-                                   dataBwd.vData,
-                                   0,
-                                   fp32_dOxV_dS_ws,
-                                   0,
-                                   GemmBackend_t::rocblas);
+            CallGemmStridedBatched(
+                handle_, dOV_desc, dataBwd.doData, 0, dataBwd.vData, 0, fp32_dOxV_dS_ws, 0);
 #endif
             hipEventRecord(event_dOxV.get(), handle_.GetStream());
             hipMemsetAsync(dataBwd.amaxDKData, 0, sizeof(float), handle_.GetStream());
@@ -382,29 +368,15 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
                                  nhs);
 
 #if MIOPEN_USE_GEMM
-            CallGemmStridedBatched(handle_,
-                                   xK_desc,
-                                   fp32_dOxV_dS_ws,
-                                   0,
-                                   dataBwd.kData,
-                                   0,
-                                   fp32_dSxK_ws,
-                                   0,
-                                   GemmBackend_t::rocblas);
+            CallGemmStridedBatched(
+                handle_, xK_desc, fp32_dOxV_dS_ws, 0, dataBwd.kData, 0, fp32_dSxK_ws, 0);
 #endif
             const miopen::HipEventPtr event_bwd1 = make_hip_fast_event();
             hipEventRecord(event_bwd1.get(), handle_.GetStream());
 
 #if MIOPEN_USE_GEMM
-            CallGemmStridedBatched(handle_,
-                                   xQdO_desc,
-                                   fp32_dOxV_dS_ws,
-                                   0,
-                                   dataBwd.qData,
-                                   0,
-                                   fp32_dSxQ_ws,
-                                   0,
-                                   GemmBackend_t::rocblas);
+            CallGemmStridedBatched(
+                handle_, xQdO_desc, fp32_dOxV_dS_ws, 0, dataBwd.qData, 0, fp32_dSxQ_ws, 0);
 #endif
             const miopen::HipEventPtr event_bwd2 = make_hip_fast_event();
             hipEventRecord(event_bwd2.get(), handle_.GetStream());
@@ -437,15 +409,8 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
 
             handle_.SetStreamFromPool(0);
 #if MIOPEN_USE_GEMM
-            CallGemmStridedBatched(handle_,
-                                   xQdO_desc,
-                                   fp32_QxK_S_ws,
-                                   0,
-                                   dataBwd.doData,
-                                   0,
-                                   fp32_dOxO_SxdO_ws,
-                                   0,
-                                   GemmBackend_t::rocblas);
+            CallGemmStridedBatched(
+                handle_, xQdO_desc, fp32_QxK_S_ws, 0, dataBwd.doData, 0, fp32_dOxO_SxdO_ws, 0);
 #endif
 
             scale_reduce_kernel(fp32_dOxO_SxdO_ws,

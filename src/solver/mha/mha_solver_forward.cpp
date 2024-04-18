@@ -246,15 +246,8 @@ ConvSolution MhaForward::GetSolution(const ExecutionContext& context,
             void* fp8_ws  = getBuffPart(params.GetWorkspace(), 1);
 
 #if MIOPEN_USE_GEMM
-            CallGemmStridedBatched(handle_,
-                                   QK_desc,
-                                   dataFwd.qData,
-                                   0,
-                                   dataFwd.kData,
-                                   0,
-                                   fp32_ws,
-                                   0,
-                                   GemmBackend_t::rocblas);
+            CallGemmStridedBatched(
+                handle_, QK_desc, dataFwd.qData, 0, dataFwd.kData, 0, fp32_ws, 0);
 #endif
             decltype(auto) softmax_kernel = handle_.Run(kernels.front());
             softmax_kernel(fp32_ws,
@@ -272,8 +265,7 @@ ConvSolution MhaForward::GetSolution(const ExecutionContext& context,
                            nhs);
 
 #if MIOPEN_USE_GEMM
-            CallGemmStridedBatched(
-                handle_, SV_desc, fp8_ws, 0, dataFwd.vData, 0, fp32_ws, 0, GemmBackend_t::rocblas);
+            CallGemmStridedBatched(handle_, SV_desc, fp8_ws, 0, dataFwd.vData, 0, fp32_ws, 0);
 #endif
 
             decltype(auto) scale_reduce_kernel = handle_.Run(kernels.back());
