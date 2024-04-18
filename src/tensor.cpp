@@ -333,7 +333,7 @@ const std::vector<std::size_t>& TensorDescriptor::GetStrides() const { return st
 
 unsigned TensorDescriptor::GetNumDims() const { return lens.size(); }
 
-// This name is misleading, all the usages shold be replaced with GetNumDims()
+// This name is misleading, all the usages should be replaced with GetNumDims()
 int TensorDescriptor::GetSize() const { return GetNumDims(); }
 
 std::size_t TensorDescriptor::GetElementSize() const
