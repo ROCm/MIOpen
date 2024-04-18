@@ -171,6 +171,7 @@ protected:
 
     void RunTest()
     {
+        const miopen::TensorDescriptor emptyDesc;
         auto&& handle = get_handle();
 
         cpu_adam<Tp, Tg>(ref_param,
@@ -190,38 +191,36 @@ protected:
                          found_inf[0],
                          step_count);
 
-        auto step_desc_ptr = use_step_tensor ? &step.desc : nullptr;
-
         for(uint32_t i = 1; i <= step_count; i++)
         {
             auto status = miopen::Adam(handle,
-                                       &param.desc,
+                                       param.desc,
                                        param_dev.get(),
-                                       &param.desc,
+                                       param.desc,
                                        param_dev.get(),
-                                       &param_fp16.desc,
+                                       param_fp16.desc,
                                        param_fp16_dev.get(),
-                                       &grad.desc,
+                                       grad.desc,
                                        grad_dev.get(),
-                                       &exp_avg.desc,
+                                       exp_avg.desc,
                                        exp_avg_dev.get(),
-                                       &exp_avg.desc,
+                                       exp_avg.desc,
                                        exp_avg_dev.get(),
-                                       &exp_avg_sq.desc,
+                                       exp_avg_sq.desc,
                                        exp_avg_sq_dev.get(),
-                                       &exp_avg_sq.desc,
+                                       exp_avg_sq.desc,
                                        exp_avg_sq_dev.get(),
-                                       amsgrad ? &max_exp_avg_sq.desc : nullptr,
+                                       max_exp_avg_sq.desc,
                                        max_exp_avg_sq_dev.get(),
-                                       amsgrad ? &max_exp_avg_sq.desc : nullptr,
+                                       max_exp_avg_sq.desc,
                                        max_exp_avg_sq_dev.get(),
-                                       &grad_scale.desc,
+                                       grad_scale.desc,
                                        grad_scale_dev.get(),
-                                       &found_inf.desc,
+                                       found_inf.desc,
                                        found_inf_dev.get(),
-                                       step_desc_ptr,
+                                       use_step_tensor ? step.desc : emptyDesc,
                                        step_dev.get(),
-                                       step_desc_ptr,
+                                       use_step_tensor ? step.desc : emptyDesc,
                                        step_dev.get(),
                                        i,
                                        lr,
@@ -252,6 +251,7 @@ protected:
         EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance Error:" << error
                                             << ",  Thresholdx10: " << threshold * 10;
     }
+
     AdamTestCase adam_config;
 
     tensor<Tp> param;

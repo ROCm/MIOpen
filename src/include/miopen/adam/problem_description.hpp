@@ -39,20 +39,20 @@ namespace adam {
 
 struct ProblemDescription : ProblemDescriptionBase
 {
-    ProblemDescription(const TensorDescriptor* paramInDesc_,
-                       const TensorDescriptor* paramOutDesc_,
-                       const TensorDescriptor* paramOutFloat16Desc_,
-                       const TensorDescriptor* gradInDesc_,
-                       const TensorDescriptor* expAvgInDesc_,
-                       const TensorDescriptor* expAvgOutDesc_,
-                       const TensorDescriptor* expAvgSqInDesc_,
-                       const TensorDescriptor* expAvgSqOutDesc_,
-                       const TensorDescriptor* maxExpAvgSqInDesc_,
-                       const TensorDescriptor* maxExpAvgSqOutDesc_,
-                       const TensorDescriptor* gradScaleDesc_,
-                       const TensorDescriptor* foundInfDesc_,
-                       const TensorDescriptor* stepInDesc_,
-                       const TensorDescriptor* stepOutDesc_,
+    ProblemDescription(const TensorDescriptor& paramInDesc_,
+                       const TensorDescriptor& paramOutDesc_,
+                       const TensorDescriptor& paramOutFloat16Desc_,
+                       const TensorDescriptor& gradInDesc_,
+                       const TensorDescriptor& expAvgInDesc_,
+                       const TensorDescriptor& expAvgOutDesc_,
+                       const TensorDescriptor& expAvgSqInDesc_,
+                       const TensorDescriptor& expAvgSqOutDesc_,
+                       const TensorDescriptor& maxExpAvgSqInDesc_,
+                       const TensorDescriptor& maxExpAvgSqOutDesc_,
+                       const TensorDescriptor& gradScaleDesc_,
+                       const TensorDescriptor& foundInfDesc_,
+                       const TensorDescriptor& stepInDesc_,
+                       const TensorDescriptor& stepOutDesc_,
                        uint32_t step_,
                        double lr_,
                        double beta1_,
@@ -88,58 +88,60 @@ struct ProblemDescription : ProblemDescriptionBase
           adamw(adamw_),
           is_amp(is_amp_)
     {
-        if(amsgrad && (maxExpAvgSqInDesc == nullptr || maxExpAvgSqOutDesc == nullptr))
+        if(amsgrad &&
+           (maxExpAvgSqInDesc.GetLengths().empty() || maxExpAvgSqOutDesc.GetLengths().empty()))
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "Adam: In the amsgrad, the max_exp_avg_sq tensor is required.");
         }
 
-        auto dtype = paramInDesc->GetType();
+        auto dtype = paramInDesc.GetType();
 
-        if((dtype == miopenBFloat16) || (gradInDesc->GetType() == miopenBFloat16))
+        if((dtype == miopenBFloat16) || (gradInDesc.GetType() == miopenBFloat16))
         {
             MIOPEN_THROW(miopenStatusBadParm, "Adam: bfloat16 type is not supported.");
         }
 
-        if((paramOutDesc->GetType() != dtype) || (!is_amp && gradInDesc->GetType() != dtype) ||
-           (expAvgInDesc->GetType() != dtype) || (expAvgOutDesc->GetType() != dtype) ||
-           (expAvgSqInDesc->GetType() != dtype) || (expAvgSqOutDesc->GetType() != dtype) ||
-           (maxExpAvgSqInDesc != nullptr && maxExpAvgSqInDesc->GetType() != dtype) ||
-           (maxExpAvgSqOutDesc != nullptr && maxExpAvgSqOutDesc->GetType() != dtype))
+        if((paramOutDesc.GetType() != dtype) || (!is_amp && gradInDesc.GetType() != dtype) ||
+           (expAvgInDesc.GetType() != dtype) || (expAvgOutDesc.GetType() != dtype) ||
+           (expAvgSqInDesc.GetType() != dtype) || (expAvgSqOutDesc.GetType() != dtype) ||
+           (!maxExpAvgSqInDesc.GetLengths().empty() && maxExpAvgSqInDesc.GetType() != dtype) ||
+           (!maxExpAvgSqOutDesc.GetLengths().empty() && maxExpAvgSqOutDesc.GetType() != dtype))
         {
             MIOPEN_THROW(miopenStatusBadParm, "Adam: Tensor types do not match.");
         }
 
-        if(is_amp && (paramOutFloat16Desc != nullptr) &&
-           (paramOutFloat16Desc->GetType() != miopenHalf))
+        if(is_amp && !paramOutFloat16Desc.GetLengths().empty() &&
+           (paramOutFloat16Desc.GetType() != miopenHalf))
         {
             MIOPEN_THROW(miopenStatusBadParm, "Adam: Invalid type of param_out_float16.");
         }
 
-        auto numel = paramInDesc->GetElementSize();
-        if((paramOutDesc->GetElementSize() != numel) || (gradInDesc->GetElementSize() != numel) ||
-           (expAvgInDesc->GetElementSize() != numel) ||
-           (expAvgOutDesc->GetElementSize() != numel) ||
-           (expAvgSqInDesc->GetElementSize() != numel) ||
-           (expAvgSqOutDesc->GetElementSize() != numel) ||
-           (is_amp && paramOutFloat16Desc != nullptr &&
-            paramOutFloat16Desc->GetElementSize() != numel) ||
-           (maxExpAvgSqInDesc != nullptr && maxExpAvgSqInDesc->GetElementSize() != numel) ||
-           (maxExpAvgSqOutDesc != nullptr && maxExpAvgSqOutDesc->GetElementSize() != numel))
+        auto numel = paramInDesc.GetElementSize();
+        if((paramOutDesc.GetElementSize() != numel) || (gradInDesc.GetElementSize() != numel) ||
+           (expAvgInDesc.GetElementSize() != numel) || (expAvgOutDesc.GetElementSize() != numel) ||
+           (expAvgSqInDesc.GetElementSize() != numel) ||
+           (expAvgSqOutDesc.GetElementSize() != numel) ||
+           (is_amp && !paramOutFloat16Desc.GetLengths().empty() &&
+            paramOutFloat16Desc.GetElementSize() != numel) ||
+           (!maxExpAvgSqInDesc.GetLengths().empty() &&
+            maxExpAvgSqInDesc.GetElementSize() != numel) ||
+           (!maxExpAvgSqOutDesc.GetLengths().empty() &&
+            maxExpAvgSqOutDesc.GetElementSize() != numel))
         {
             MIOPEN_THROW(miopenStatusBadParm, "Adam: Tensor dimension lengths do not match.");
         }
     }
 
-    const TensorDescriptor& GetParamDesc() const { return *paramInDesc; }
-    const TensorDescriptor& GetGradDesc() const { return *gradInDesc; }
+    const TensorDescriptor& GetParamDesc() const { return paramInDesc; }
+    const TensorDescriptor& GetGradDesc() const { return gradInDesc; }
+    bool ExistStepTensor() const { return !stepInDesc.GetLengths().empty(); }
     bool IsAmp() const { return is_amp; }
     bool IsAdamW() const { return adamw; }
-    bool IsStepHost() const { return (stepInDesc == nullptr); }
     bool IsAllPacked() const
     {
-        if(!(paramInDesc->IsPacked() && gradInDesc->IsPacked() && expAvgInDesc->IsPacked() &&
-             expAvgSqInDesc->IsPacked()))
+        if(!(paramInDesc.IsPacked() && gradInDesc.IsPacked() && expAvgInDesc.IsPacked() &&
+             expAvgSqInDesc.IsPacked()))
             return false;
         return true;
     }
@@ -147,20 +149,20 @@ struct ProblemDescription : ProblemDescriptionBase
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
-    const TensorDescriptor* paramInDesc         = nullptr;
-    const TensorDescriptor* paramOutDesc        = nullptr;
-    const TensorDescriptor* gradInDesc          = nullptr;
-    const TensorDescriptor* expAvgInDesc        = nullptr;
-    const TensorDescriptor* expAvgOutDesc       = nullptr;
-    const TensorDescriptor* expAvgSqInDesc      = nullptr;
-    const TensorDescriptor* expAvgSqOutDesc     = nullptr;
-    const TensorDescriptor* paramOutFloat16Desc = nullptr;
-    const TensorDescriptor* maxExpAvgSqInDesc   = nullptr;
-    const TensorDescriptor* maxExpAvgSqOutDesc  = nullptr;
-    const TensorDescriptor* gradScaleDesc       = nullptr;
-    const TensorDescriptor* foundInfDesc        = nullptr;
-    const TensorDescriptor* stepInDesc          = nullptr;
-    const TensorDescriptor* stepOutDesc         = nullptr;
+    TensorDescriptor paramInDesc;
+    TensorDescriptor paramOutDesc;
+    TensorDescriptor gradInDesc;
+    TensorDescriptor expAvgInDesc;
+    TensorDescriptor expAvgOutDesc;
+    TensorDescriptor expAvgSqInDesc;
+    TensorDescriptor expAvgSqOutDesc;
+    TensorDescriptor paramOutFloat16Desc;
+    TensorDescriptor maxExpAvgSqInDesc;
+    TensorDescriptor maxExpAvgSqOutDesc;
+    TensorDescriptor gradScaleDesc;
+    TensorDescriptor foundInfDesc;
+    TensorDescriptor stepInDesc;
+    TensorDescriptor stepOutDesc;
 
     uint32_t step       = 0;
     double lr           = 0.0;

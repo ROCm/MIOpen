@@ -29,8 +29,6 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
-#define DESC_PTR(desc, default_ptr) (((desc) != nullptr) ? &miopen::deref(desc) : (default_ptr))
-
 static void LogCmdAdam(const miopenTensorDescriptor_t paramDesc,
                        const float lr,
                        const float beta1,
@@ -77,6 +75,8 @@ static void LogCmdAdam(const miopenTensorDescriptor_t paramDesc,
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 }
+
+#define DESC_PTR(desc) (((desc) != nullptr) ? miopen::deref(desc) : emptyDesc)
 
 extern "C" miopenStatus_t miopenFusedAdam(miopenHandle_t handle,
                                           const miopenTensorDescriptor_t paramDesc,
@@ -132,39 +132,40 @@ extern "C" miopenStatus_t miopenFusedAdam(miopenHandle_t handle,
                         foundInfDesc,
                         foundInf);
 
+    const miopen::TensorDescriptor emptyDesc;
     bool is_amp = (foundInfDesc != nullptr || gradScaleDesc != nullptr);
 
     LogCmdAdam(paramDesc, lr, beta1, beta2, weight_decay, eps, amsgrad, maximize, adamw, is_amp);
 
     return miopen::try_([&] {
         miopen::Adam(miopen::deref(handle),
-                     &miopen::deref(paramDesc),
+                     miopen::deref(paramDesc),
                      DataCast(param),
-                     &miopen::deref(paramDesc),
+                     miopen::deref(paramDesc),
                      DataCast(param),
+                     emptyDesc,
                      nullptr,
-                     nullptr,
-                     &miopen::deref(gradDesc),
+                     miopen::deref(gradDesc),
                      DataCast(grad),
-                     &miopen::deref(expAvgDesc),
+                     miopen::deref(expAvgDesc),
                      DataCast(expAvg),
-                     &miopen::deref(expAvgDesc),
+                     miopen::deref(expAvgDesc),
                      DataCast(expAvg),
-                     &miopen::deref(expAvgSqDesc),
+                     miopen::deref(expAvgSqDesc),
                      DataCast(expAvgSq),
-                     &miopen::deref(expAvgSqDesc),
+                     miopen::deref(expAvgSqDesc),
                      DataCast(expAvgSq),
-                     DESC_PTR(maxExpAvgSqDesc, nullptr),
+                     DESC_PTR(maxExpAvgSqDesc),
                      DataCast(maxExpAvgSq),
-                     DESC_PTR(maxExpAvgSqDesc, nullptr),
+                     DESC_PTR(maxExpAvgSqDesc),
                      DataCast(maxExpAvgSq),
-                     DESC_PTR(gradScaleDesc, nullptr),
+                     DESC_PTR(gradScaleDesc),
                      DataCast(gradScale),
-                     DESC_PTR(foundInfDesc, nullptr),
+                     DESC_PTR(foundInfDesc),
                      DataCast(foundInf),
-                     DESC_PTR(stateStepDesc, nullptr),
+                     DESC_PTR(stateStepDesc),
                      DataCast(stateStep),
-                     DESC_PTR(stateStepDesc, nullptr),
+                     DESC_PTR(stateStepDesc),
                      DataCast(stateStep),
                      state_step,
                      lr,
@@ -256,39 +257,40 @@ miopenFusedAdamWithOutput(miopenHandle_t handle,
                         foundInfDesc,
                         foundInf);
 
+    const miopen::TensorDescriptor emptyDesc;
     bool is_amp = (foundInfDesc != nullptr || gradScaleDesc != nullptr);
 
     LogCmdAdam(paramInDesc, lr, beta1, beta2, weight_decay, eps, amsgrad, maximize, adamw, is_amp);
 
     return miopen::try_([&] {
         miopen::Adam(miopen::deref(handle),
-                     &miopen::deref(paramInDesc),
+                     miopen::deref(paramInDesc),
                      DataCast(paramIn),
-                     &miopen::deref(paramOutDesc),
+                     miopen::deref(paramOutDesc),
                      DataCast(paramOut),
-                     DESC_PTR(paramOutFloat16Desc, nullptr),
+                     DESC_PTR(paramOutFloat16Desc),
                      DataCast(paramOutFloat16),
-                     &miopen::deref(gradInDesc),
+                     miopen::deref(gradInDesc),
                      DataCast(gradIn),
-                     &miopen::deref(expAvgInDesc),
+                     miopen::deref(expAvgInDesc),
                      DataCast(expAvgIn),
-                     &miopen::deref(expAvgOutDesc),
+                     miopen::deref(expAvgOutDesc),
                      DataCast(expAvgOut),
-                     &miopen::deref(expAvgSqInDesc),
+                     miopen::deref(expAvgSqInDesc),
                      DataCast(expAvgSqIn),
-                     &miopen::deref(expAvgSqOutDesc),
+                     miopen::deref(expAvgSqOutDesc),
                      DataCast(expAvgSqOut),
-                     DESC_PTR(maxExpAvgSqInDesc, nullptr),
+                     DESC_PTR(maxExpAvgSqInDesc),
                      DataCast(maxExpAvgSqIn),
-                     DESC_PTR(maxExpAvgSqOutDesc, nullptr),
+                     DESC_PTR(maxExpAvgSqOutDesc),
                      DataCast(maxExpAvgSqOut),
-                     DESC_PTR(gradScaleDesc, nullptr),
+                     DESC_PTR(gradScaleDesc),
                      DataCast(gradScale),
-                     DESC_PTR(foundInfDesc, nullptr),
+                     DESC_PTR(foundInfDesc),
                      DataCast(foundInf),
-                     DESC_PTR(stateStepInDesc, nullptr),
+                     DESC_PTR(stateStepInDesc),
                      DataCast(stateStepIn),
-                     DESC_PTR(stateStepOutDesc, nullptr),
+                     DESC_PTR(stateStepOutDesc),
                      DataCast(stateStepOut),
                      state_step,
                      lr,

@@ -78,18 +78,18 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
         kernel.kernel_file = "MIOpenAdam.cpp";
-        if(problem.IsStepHost())
+        if(problem.ExistStepTensor())
         {
-            kernel.kernel_name = problem.IsAmp() ? "AmpAdamPacked" : "AdamPacked";
+            kernel.kernel_name = "AmpAdamPackedWithStep";
         }
         else
         {
-            kernel.kernel_name = "AmpAdamPackedWithStep";
+            kernel.kernel_name = problem.IsAmp() ? "AmpAdamPacked" : "AdamPacked";
         }
 
         result.construction_params.push_back(kernel);
 
-        if(!problem.IsStepHost())
+        if(problem.ExistStepTensor())
         {
             auto kernel_update_step        = kernel;
             kernel_update_step.kernel_name = "AdamUpdateStep";
@@ -98,7 +98,53 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
         }
     }
 
-    if(problem.IsStepHost())
+    if(problem.ExistStepTensor())
+    {
+        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+                decltype(auto) kernel_adam = handle_.Run(kernels[0]);
+                decltype(auto) kernel_step = handle_.Run(kernels[1]);
+                decltype(auto) params      = raw_params.CastTo<miopen::adam::InvokeParams>();
+                decltype(auto) numel       = params.paramDesc->GetElementSize();
+                auto elapsed               = 0.f;
+
+                kernel_adam(params.paramIn,
+                            params.paramOut,
+                            params.paramOutFloat16,
+                            params.gradIn,
+                            params.expAvgIn,
+                            params.expAvgOut,
+                            params.expAvgSqIn,
+                            params.expAvgSqOut,
+                            params.maxExpAvgSqIn,
+                            params.maxExpAvgSqOut,
+                            params.gradScale,
+                            params.foundInf,
+                            params.stepIn,
+                            params.lr,
+                            params.beta1,
+                            params.beta2,
+                            params.weight_decay,
+                            params.eps,
+                            params.amsgrad,
+                            params.maximize,
+                            numel);
+
+                if(handle_.IsProfilingEnabled())
+                    elapsed = handle_.GetKernelTime();
+
+                kernel_step(params.foundInf, params.stepIn, params.stepOut);
+
+                if(handle_.IsProfilingEnabled())
+                {
+                    elapsed += handle_.GetKernelTime();
+                    handle_.ResetKernelTime();
+                    handle_.AccumKernelTime(elapsed);
+                }
+            };
+        };
+    }
+    else
     {
         if(problem.IsAmp())
         {
@@ -161,52 +207,6 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
                 };
             };
         }
-    }
-    else
-    {
-        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-                decltype(auto) kernel_adam = handle_.Run(kernels[0]);
-                decltype(auto) kernel_step = handle_.Run(kernels[1]);
-                decltype(auto) params      = raw_params.CastTo<miopen::adam::InvokeParams>();
-                decltype(auto) numel       = params.paramDesc->GetElementSize();
-                auto elapsed               = 0.f;
-
-                kernel_adam(params.paramIn,
-                            params.paramOut,
-                            params.paramOutFloat16,
-                            params.gradIn,
-                            params.expAvgIn,
-                            params.expAvgOut,
-                            params.expAvgSqIn,
-                            params.expAvgSqOut,
-                            params.maxExpAvgSqIn,
-                            params.maxExpAvgSqOut,
-                            params.gradScale,
-                            params.foundInf,
-                            params.stepIn,
-                            params.lr,
-                            params.beta1,
-                            params.beta2,
-                            params.weight_decay,
-                            params.eps,
-                            params.amsgrad,
-                            params.maximize,
-                            numel);
-
-                if(handle_.IsProfilingEnabled())
-                    elapsed = handle_.GetKernelTime();
-
-                kernel_step(params.foundInf, params.stepIn, params.stepOut);
-
-                if(handle_.IsProfilingEnabled())
-                {
-                    elapsed += handle_.GetKernelTime();
-                    handle_.ResetKernelTime();
-                    handle_.AccumKernelTime(elapsed);
-                }
-            };
-        };
     }
 
     return result;

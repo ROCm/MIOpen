@@ -36,33 +36,33 @@
 namespace miopen {
 
 miopenStatus_t Adam(Handle& handle,
-                    const TensorDescriptor* paramInDesc,
+                    const TensorDescriptor& paramInDesc,
                     ConstData_t paramIn,
-                    const TensorDescriptor* paramOutDesc,
+                    const TensorDescriptor& paramOutDesc,
                     Data_t paramOut,
-                    const TensorDescriptor* paramOutFloat16Desc,
+                    const TensorDescriptor& paramOutFloat16Desc,
                     Data_t paramOutFloat16,
-                    const TensorDescriptor* gradInDesc,
+                    const TensorDescriptor& gradInDesc,
                     ConstData_t gradIn,
-                    const TensorDescriptor* expAvgInDesc,
+                    const TensorDescriptor& expAvgInDesc,
                     ConstData_t expAvgIn,
-                    const TensorDescriptor* expAvgOutDesc,
+                    const TensorDescriptor& expAvgOutDesc,
                     Data_t expAvgOut,
-                    const TensorDescriptor* expAvgSqInDesc,
+                    const TensorDescriptor& expAvgSqInDesc,
                     ConstData_t expAvgSqIn,
-                    const TensorDescriptor* expAvgSqOutDesc,
+                    const TensorDescriptor& expAvgSqOutDesc,
                     Data_t expAvgSqOut,
-                    const TensorDescriptor* maxExpAvgSqInDesc,
+                    const TensorDescriptor& maxExpAvgSqInDesc,
                     ConstData_t maxExpAvgSqIn,
-                    const TensorDescriptor* maxExpAvgSqOutDesc,
+                    const TensorDescriptor& maxExpAvgSqOutDesc,
                     Data_t maxExpAvgSqOut,
-                    const TensorDescriptor* gradScaleDesc,
+                    const TensorDescriptor& gradScaleDesc,
                     ConstData_t gradScale,
-                    const TensorDescriptor* foundInfDesc,
+                    const TensorDescriptor& foundInfDesc,
                     ConstData_t foundInf,
-                    const TensorDescriptor* stepInDesc,
+                    const TensorDescriptor& stepInDesc,
                     ConstData_t stepIn,
-                    const TensorDescriptor* stepOutDesc,
+                    const TensorDescriptor& stepOutDesc,
                     Data_t stepOut,
                     const uint32_t step,
                     const float lr,
@@ -104,8 +104,8 @@ miopenStatus_t Adam(Handle& handle,
         auto tmp = adam::InvokeParams{};
         tmp.type = InvokeType::Run;
 
-        tmp.paramDesc       = paramInDesc;
-        tmp.gradDesc        = gradInDesc;
+        tmp.paramDesc       = &paramInDesc;
+        tmp.gradDesc        = &gradInDesc;
         tmp.paramIn         = paramIn;
         tmp.paramOut        = paramOut;
         tmp.paramOutFloat16 = paramOutFloat16;

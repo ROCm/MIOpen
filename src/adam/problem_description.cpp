@@ -36,9 +36,9 @@ namespace adam {
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    auto dtype    = paramInDesc->GetType();
+    auto dtype    = paramInDesc.GetType();
     auto kernel   = IsAmp() ? "AmpAdam" : "Adam";
-    auto step_ind = IsStepHost() ? "host" : "device";
+    auto step_ind = ExistStepTensor() ? "device" : "host";
 
     std::ostringstream ss;
 
@@ -47,7 +47,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     ss << "dtype" << dtype;
     if(IsAmp())
     {
-        auto grad_dtype = gradInDesc->GetType();
+        auto grad_dtype = gradInDesc.GetType();
         ss << "grad_dtype" << grad_dtype;
     }
 
