@@ -24,6 +24,10 @@
  *
  *******************************************************************************/
 
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
+#include <hip/hip_runtime.h>
+#endif
+
 #include "miopen_cstdint.hpp"
 #include "miopen_limits.hpp"
 #include "miopen_rocrand.hpp"

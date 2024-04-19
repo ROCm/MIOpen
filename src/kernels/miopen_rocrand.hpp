@@ -27,10 +27,11 @@
 
 #include "miopen_limits.hpp"
 #include "miopen_cstdint.hpp"
-#include <hip/hip_runtime.h>
 
-#ifndef WORKAROUND_IGNORE_ROCRAND_INCLUDES
+#ifdef __HIPCC_RTC__
 #define WORKAROUND_IGNORE_ROCRAND_INCLUDES 1
+#else
+#define WORKAROUND_IGNORE_ROCRAND_INCLUDES 0
 #endif
 
 #if WORKAROUND_IGNORE_ROCRAND_INCLUDES == 1

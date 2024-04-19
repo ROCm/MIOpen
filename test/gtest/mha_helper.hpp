@@ -34,7 +34,6 @@
 #error rocrand FQUALIFIERS defined externally, probably one of rocrand device header included prior to this
 #endif
 #define FQUALIFIERS inline
-#define WORKAROUND_IGNORE_ROCRAND_INCLUDES 0
 #include <miopen_rocrand.hpp>
 
 namespace test {
