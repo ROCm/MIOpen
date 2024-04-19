@@ -68,7 +68,7 @@
  * @defgroup argmax
  * @defgroup groupnorm
  * @defgroup cat
- * @defgroup padreflection
+ * @defgroup pad
  *
  */
 
@@ -5796,7 +5796,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSumForward(miopenHandle_t handle,
 
 #ifdef MIOPEN_BETA_API
 // Padreflection APIs
-/** @addtogroup padreflection
+/** @addtogroup pad
  *
  *  @{
  */
@@ -5820,7 +5820,7 @@ MIOPEN_EXPORT miopenStatus_t miopenPadReflection(miopenHandle_t handle,
                                                  const size_t num_padding);
 
 /** @} */
-// CLOSEOUT padreflection DOXYGEN GROUP
+// CLOSEOUT pad DOXYGEN GROUP
 #endif
 
 #ifdef MIOPEN_BETA_API
