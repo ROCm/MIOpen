@@ -261,7 +261,7 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::ModelApplyToken(int idx, st
     return false;
 }
 
-static std::vector<float> GetFeatures(const ProblemDescription& problem, std::size_t num_cu)
+static std::vector<float> GetFeatures(const ProblemDescription& problem)
 {
     std::size_t n = 18;
     std::vector<float> features(n * n, 0.0f);
@@ -295,7 +295,7 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::RunParameterPredictionModel
     InitHeuristicKernelIDs();
     static const std::string& arch  = ctx.GetStream().GetDeviceName();
     static const std::string solver = "ConvHipIgemmGroupXdlops";
-    std::vector<float> features     = GetFeatures(problem, ctx.GetStream().GetMaxComputeUnits());
+    std::vector<float> features     = GetFeatures(problem);
     if(ai::tuning::ModelSetParams(
            arch, solver, problem.GetDirection(), features, true, [&](int idx, std::string value) {
                return this->ModelApplyToken(idx, value);
