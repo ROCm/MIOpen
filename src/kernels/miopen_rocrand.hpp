@@ -27,6 +27,7 @@
 
 #include "miopen_limits.hpp"
 #include "miopen_cstdint.hpp"
+#include <hip/hip_runtime.h>
 
 #ifndef WORKAROUND_IGNORE_ROCRAND_INCLUDES
 #define WORKAROUND_IGNORE_ROCRAND_INCLUDES 1

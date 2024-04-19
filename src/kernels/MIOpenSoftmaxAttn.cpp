@@ -34,6 +34,7 @@
 
 namespace {
 constexpr float plus_op(float a, float b) { return a + b; };
+constexpr float fmaxf_op(float a, float b) { return fmaxf(a, b); };
 
 /// Atomically calculates maximum of non-negative ordered values.
 /// Produces wrong results for negatve values or nans,
@@ -195,7 +196,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
         float local_val =
             (laneId < seq_len) ? (*line) * descaler : std::numeric_limits<float>::lowest();
 
-        float r_max = reductionFullWarp<warpSize>(local_val, laneId, fmaxf);
+        float r_max = reductionFullWarp<warpSize>(local_val, laneId, fmaxf_op);
 
         local_val = (laneId < seq_len) ? expf(local_val - r_max) : 0;
 
@@ -206,7 +207,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
         // It is supposed to be maximum of absolute values,
         // however we do not need abs() because expf() above produces
         // non-negative value. Plain max() is enough.
-        r_Amax = fmaxf(r_Amax, local_val);
+        r_Amax = fmaxf_op(r_Amax, local_val);
 
         if(laneId < seq_len)
         {
@@ -222,7 +223,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
     if(Amax)
     {
-        r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf, lid, laneId, warpId);
+        r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf_op, lid, laneId, warpId);
         if(lid == 0)
         {
             atomicMaxOfNonNegative(Amax, r_Amax);
@@ -271,7 +272,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
         float local_val =
             (lid < seq_len) ? (*line) * descaler : std::numeric_limits<float>::lowest();
-        float r_max = reductionBlock<NumWarps>(local_val, fmaxf, lid, laneId, warpId);
+        float r_max = reductionBlock<NumWarps>(local_val, fmaxf_op, lid, laneId, warpId);
 
         local_val = (lid < seq_len) ? expf(local_val - r_max) : 0;
 
@@ -282,7 +283,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
         // It is supposed to be maximum of absolute values,
         // however we do not need abs() because expf() above produces
         // non-negative value. Plain max() is enough.
-        r_Amax = fmaxf(r_Amax, local_val);
+        r_Amax = fmaxf_op(r_Amax, local_val);
 
         if(lid < seq_len)
         {
@@ -298,7 +299,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
     if(Amax)
     {
-        r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf, lid, laneId, warpId);
+        r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf_op, lid, laneId, warpId);
         if(lid == 0)
         {
             atomicMaxOfNonNegative(Amax, r_Amax);
@@ -349,7 +350,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
             line,
             std::numeric_limits<float>::lowest(),
             seq_len,
-            fmaxf,
+            fmaxf_op,
             [descaler](float x) { return x * descaler; },
             lid,
             laneId,
@@ -372,7 +373,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
             // It is supposed to be maximum of absolute values,
             // however we do not need abs() because expf() above produces
             // non-negative value. Plain max() is enough.
-            r_Amax = fmaxf(r_Amax, local_val);
+            r_Amax = fmaxf_op(r_Amax, local_val);
 
             res[loop_lid] = doDropout(dropout, &rng) ? 0.0f : local_val * scaler;
         }
@@ -386,7 +387,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
     if(Amax)
     {
-        r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf, lid, laneId, warpId);
+        r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf_op, lid, laneId, warpId);
         if(lid == 0)
         {
             atomicMaxOfNonNegative(Amax, r_Amax);
@@ -419,7 +420,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
     {
         const auto res = *in_ptr * descaler;
 
-        r_Amax = fmaxf(r_Amax, fabsf(res));
+        r_Amax = fmaxf_op(r_Amax, fabsf(res));
 
         *out_ptr = res * scaler;
 
@@ -432,7 +433,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
     const uint32_t laneId       = lid % warpSize;
     const uint32_t warpId       = lid / warpSize;
 
-    r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf, lid, laneId, warpId);
+    r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf_op, lid, laneId, warpId);
     if(lid == 0)
     {
         atomicMaxOfNonNegative(Amax, r_Amax);
@@ -613,10 +614,10 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
         dOxV_dS[idx] = dOxV_val * scaler_dS;
 
-        r_Amax = fmaxf(r_Amax, fabsf(dOxV_val));
+        r_Amax = fmaxf_op(r_Amax, fabsf(dOxV_val));
     }
 
-    r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf, lid, laneId, warpId);
+    r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf_op, lid, laneId, warpId);
     if(lid == 0)
     {
         atomicMaxOfNonNegative(Amax, r_Amax);
@@ -686,10 +687,10 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
         dOxV_dS[idx] = dOxV_val * scaler_dS;
 
-        r_Amax = fmaxf(r_Amax, fabsf(dOxV_val));
+        r_Amax = fmaxf_op(r_Amax, fabsf(dOxV_val));
     }
 
-    r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf, lid, laneId, warpId);
+    r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf_op, lid, laneId, warpId);
     if(lid == 0)
     {
         atomicMaxOfNonNegative(Amax, r_Amax);
@@ -764,11 +765,11 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
             dOxV_dS_ptr[loop_lid] = dOxV_val * scaler_dS;
 
-            r_Amax = fmaxf(r_Amax, fabsf(dOxV_val));
+            r_Amax = fmaxf_op(r_Amax, fabsf(dOxV_val));
         }
     }
 
-    r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf, lid, laneId, warpId);
+    r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf_op, lid, laneId, warpId);
     if(lid == 0)
     {
         atomicMaxOfNonNegative(Amax, r_Amax);

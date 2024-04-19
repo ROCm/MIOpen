@@ -145,9 +145,14 @@ ConvSolution MhaForward::GetSolution(const ExecutionContext& context,
     size_t local_threads  = std::clamp(nextPow2(S), warpSize, static_cast<size_t>(256));
     size_t global_threads = nhs * local_threads;
 
-    auto softmax_kernel = KernelInfo{};
-    softmax_kernel.comp_options =
-        KernelBuildParameters{{"THREADS", local_threads}}.GenerateFor(kbp::HIP{});
+    constexpr int WORKAROUND_IGNORE_ROCRAND_INCLUDES =
+        ((MIOPEN_USE_HIPRTC) == 1 || (MIOPEN_USE_COMGR) == 1);
+
+    auto softmax_kernel         = KernelInfo{};
+    softmax_kernel.comp_options = KernelBuildParameters{{"THREADS", local_threads},
+                                                        {"WORKAROUND_IGNORE_ROCRAND_INCLUDES",
+                                                         WORKAROUND_IGNORE_ROCRAND_INCLUDES}}
+                                      .GenerateFor(kbp::HIP{});
     softmax_kernel.kernel_file = "MIOpenSoftmaxAttn.cpp";
     softmax_kernel.kernel_name = S > local_threads ? "SoftMaxCommon"
                                  : S > warpSize    ? "SoftMaxBlock"
@@ -167,9 +172,11 @@ ConvSolution MhaForward::GetSolution(const ExecutionContext& context,
     local_threads  = std::clamp(nextPow2(nhsd), warpSize, static_cast<size_t>(256));
     global_threads = RoundUpToMultiple(nhsd, local_threads);
 
-    auto scale_reduce_kernel = KernelInfo{};
-    scale_reduce_kernel.comp_options =
-        KernelBuildParameters{{"THREADS", local_threads}}.GenerateFor(kbp::HIP{});
+    auto scale_reduce_kernel         = KernelInfo{};
+    scale_reduce_kernel.comp_options = KernelBuildParameters{{"THREADS", local_threads},
+                                                             {"WORKAROUND_IGNORE_ROCRAND_INCLUDES",
+                                                              WORKAROUND_IGNORE_ROCRAND_INCLUDES}}
+                                           .GenerateFor(kbp::HIP{});
     scale_reduce_kernel.kernel_file = "MIOpenSoftmaxAttn.cpp";
     scale_reduce_kernel.kernel_name = "ScaleReduce";
     scale_reduce_kernel.l_wk        = {local_threads, 1, 1};
