@@ -45,7 +45,9 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
                Data_t output,
                const miopen::ConvolutionDescriptor& convDesc,
                const NonPackTestCase& conv_config,
-               bool& test_skipped)
+               bool& test_skipped,
+               ConstData_t alpha,
+               ConstData_t beta)
 {
     auto&& handle = get_handle();
 
@@ -55,7 +57,7 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
         miopen::ConvFwdTensors{inputDesc, input, wDesc, weight, outputDesc, output};
 
     const auto problem = miopen::conv::ProblemDescription{
-        inputDesc, wDesc, outputDesc, convDesc, miopen::conv::Direction::Forward};
+        inputDesc, wDesc, outputDesc, convDesc, miopen::conv::Direction::Forward, 0, alpha, beta};
     auto ctx = miopen::ExecutionContext{};
 
     ctx.SetStream(&handle);
@@ -67,7 +69,8 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
                      << "ConvHipImplicitGemm3DGroupFwdXdlops Not Applicable for this problem"
                      << conv_config;
     }
-    const auto invoke_params = miopen::conv::DataInvokeParams{tensors, nullptr, 0, false};
+    const auto invoke_params =
+        miopen::conv::DataInvokeParams{tensors, nullptr, 0, false, alpha, beta};
 
     ASSERT_TRUE(solv.IsApplicable(ctx, problem));
     auto sol = solv.GetSolution(ctx, problem, solv.GetDefaultPerformanceConfig(ctx, problem));
@@ -80,15 +83,18 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
 
 TEST_P(ConvNonpackFwdSolverTest3DHalf, CKNonPackConvFwd3D)
 {
-    SolverFwd<miopen::solver::conv::ConvHipImplicitGemm3DGroupFwdXdlops>(input.desc,
-                                                                         in_dev.get(),
-                                                                         weights.desc,
-                                                                         wei_dev.get(),
-                                                                         output.desc,
-                                                                         out_dev.get(),
-                                                                         conv_desc,
-                                                                         conv_config,
-                                                                         test_skipped);
+    SolverFwd<miopen::solver::conv::ConvHipImplicitGemm3DGroupFwdXdlops>(
+        input.desc,
+        in_dev.get(),
+        weights.desc,
+        wei_dev.get(),
+        output.desc,
+        out_dev.get(),
+        conv_desc,
+        conv_config,
+        test_skipped,
+        static_cast<ConstData_t>(&alpha_val),
+        static_cast<ConstData_t>(&beta_val));
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
