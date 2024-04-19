@@ -19,7 +19,7 @@ struct TmpDir
     operator const fs::path&() const { return path; }
     operator std::string() const { return path.string(); }
 
-    int Execute(std::string_view cmd, std::string_view args) const;
+    int Execute(std::string_view cmd, std::string_view args, std::string_view envs = "") const;
 
     ~TmpDir();
 };

@@ -30,6 +30,7 @@
 #include <miopen/exec_utils.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
+#include <miopen/stringutils.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/target_properties.hpp>
 #include <boost/optional.hpp>
@@ -114,7 +115,6 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
                              const TargetProperties& target,
                              const bool testing_mode)
 {
-#ifdef __linux__
     // Write out the include files
     // Let's assume includes are overkill for feature tests & optimize'em out.
     if(!testing_mode)
@@ -174,20 +174,20 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #endif
 
     // hip version
-    params +=
-        std::string(" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
-
-    params += " ";
+    params += " -DHIP_PACKAGE_VERSION_FLAT=" MIOPEN_STRINGIZE(HIP_PACKAGE_VERSION_FLAT) " ";
     auto bin_file = make_object_file_name(tmp_dir.get() / filename);
 
     // compile
     {
-        const std::string redirector = testing_mode ? " 1>/dev/null 2>&1" : "";
-        const std::string cmd        = env + std::string(" ") + MIOPEN_HIP_COMPILER;
-        const std::string args       = params + filename + " -o " + bin_file + redirector;
-        tmp_dir->Execute(cmd, args);
+        std::string args = params + filename + " -o " + bin_file;
+#ifndef _WIN32
+        // Windows uses WIN32 API to execute a subprocess. None command shell is spawned.
+        if(testing_mode)
+            args += " 1>/dev/null 2>&1";
+#endif
+        tmp_dir->Execute(MIOPEN_HIP_COMPILER, args, env);
         if(!fs::exists(bin_file))
-            MIOPEN_THROW("Failed cmd: '" + cmd + "', args: '" + args + '\'');
+            MIOPEN_THROW("Failed cmd: '" MIOPEN_HIP_COMPILER "', args: '" + args + '\'');
     }
 
 #if defined(MIOPEN_OFFLOADBUNDLER_BIN) && !MIOPEN_BACKEND_HIP
@@ -207,12 +207,8 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
         MIOPEN_LOG_E("failed to find *.hsaco in " << hsaco->path());
     }
     return hsaco->path();
-#endif
-    return bin_file;
 #else
-    (void)filename;
-    (void)params;
-    MIOPEN_THROW("HIP kernels are only supported in Linux");
+    return bin_file;
 #endif
 }
 
