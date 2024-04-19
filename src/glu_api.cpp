@@ -32,18 +32,14 @@
 
 extern "C" miopenStatus_t miopenGLUForward(miopenHandle_t handle,
                                            const miopenTensorDescriptor_t inputDesc,
-                                           const miopenTensorDescriptor_t inputSplitDesc,
-                                           void* inputFirstHalf,
-                                           void* inputSecondHalf,
+                                           void* input,
                                            const int32_t dim,
                                            const miopenTensorDescriptor_t outputDesc,
                                            void* output)
 {
     MIOPEN_LOG_FUNCTION(handle,
                         inputDesc,
-                        inputSplitDesc,
-                        inputFirstHalf,
-                        inputSecondHalf,
+                        input,
                         dim,
                         outputDesc,
                         output);
@@ -51,9 +47,7 @@ extern "C" miopenStatus_t miopenGLUForward(miopenHandle_t handle,
     return miopen::try_([&] {
         miopen::GLUForward(miopen::deref(handle),
                            miopen::deref(inputDesc),
-                           miopen::deref(inputSplitDesc),
-                           DataCast(inputFirstHalf),
-                           DataCast(inputSecondHalf),
+                           DataCast(input),
                            dim,
                            miopen::deref(outputDesc),
                            DataCast(output));

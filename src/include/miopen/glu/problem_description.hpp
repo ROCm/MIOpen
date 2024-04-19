@@ -49,12 +49,10 @@ struct ProblemDescription : ProblemDescriptionBase
 {
     // Forward constructor
     ProblemDescription(const TensorDescriptor& inputDesc_,
-                       const TensorDescriptor& inputSplitDesc_,
                        const TensorDescriptor& outputDesc_,
                        int32_t dim_)
         : direction(Direction::Forward),
           inputDesc(inputDesc_),
-          inputSplitDesc(inputSplitDesc_),
           outputDesc(outputDesc_),
           dim(dim_)
     {
@@ -73,7 +71,6 @@ struct ProblemDescription : ProblemDescriptionBase
 
     Direction GetDirection() const { return direction; }
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
-    const TensorDescriptor& GetInputSplitDesc() const { return inputSplitDesc; }
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
     int32_t GetDim() const { return dim; }
 
@@ -82,7 +79,7 @@ struct ProblemDescription : ProblemDescriptionBase
         if(inputDesc.GetType() != outputDesc.GetType())
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm, "Reduce: Tensor types do not match.");
+            MIOPEN_THROW(miopenStatusBadParm, "GLU: Tensor types do not match.");
 #else
             return false;
 #endif
@@ -145,7 +142,6 @@ struct ProblemDescription : ProblemDescriptionBase
 private:
     Direction direction;
     TensorDescriptor inputDesc;
-    TensorDescriptor inputSplitDesc;
     TensorDescriptor outputDesc;
 
     int32_t dim;

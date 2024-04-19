@@ -37,23 +37,19 @@ namespace miopen {
 
 miopenStatus_t GLUForward(Handle& handle,
                           const TensorDescriptor& inputDesc,
-                          const TensorDescriptor& inputSplitDesc,
-                          Data_t inputFirstHalf,
-                          Data_t inputSecondHalf,
+                          Data_t input,
                           int32_t dim,
                           const TensorDescriptor& outputDesc,
                           Data_t output)
 {
-    const auto problem = glu::ProblemDescription{inputDesc, inputSplitDesc, outputDesc, dim};
+    const auto problem = glu::ProblemDescription{inputDesc, outputDesc, dim};
 
     const auto invoke_params = [&]() {
         auto tmp            = glu::InvokeParams{};
         tmp.type            = InvokeType::Run;
         tmp.inputDesc       = &inputDesc;
-        tmp.inputSplitDesc  = &inputSplitDesc;
         tmp.outputDesc      = &outputDesc;
-        tmp.inputFirstHalf  = inputFirstHalf;
-        tmp.inputSecondHalf = inputSecondHalf;
+        tmp.input           = input;
         tmp.output          = output;
         tmp.dim             = dim;
         return tmp;

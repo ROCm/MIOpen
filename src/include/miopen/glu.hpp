@@ -35,9 +35,7 @@ struct TensorDescriptor;
 
 miopenStatus_t GLUForward(Handle& handle,
                           const TensorDescriptor& inputDesc,
-                          const TensorDescriptor& inputSplitDesc,
-                          Data_t inputFirstHalf,
-                          Data_t inputSecondHalf,
+                          Data_t input,
                           int32_t dim,
                           const TensorDescriptor& outputDesc,
                           Data_t output);
