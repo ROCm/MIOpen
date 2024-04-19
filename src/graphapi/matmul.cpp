@@ -26,6 +26,7 @@
 
 #include <miopen/errors.hpp>
 #include <miopen/graphapi/matmul.hpp>
+#include <iostream>
 
 namespace miopen {
 namespace graphapi {
@@ -104,13 +105,69 @@ void BackendMatmulDescriptor::getAttribute(miopenBackendAttributeName_t attribut
     }
 }
 
+OperationMatmulBuilder& OperationMatmulBuilder::setA(Tensor* A)
+{
+    mOperationMatmul.mA = checkPtr(A);
+    if(mOperationMatmul.mA->getDimensions().size() < 2)
+        MIOPEN_THROW(miopenStatusBadParm);
+    aSet = true;
+    return *this;
+};
+OperationMatmulBuilder& OperationMatmulBuilder::setB(Tensor* B)
+{
+    mOperationMatmul.mB = checkPtr(B);
+    if(mOperationMatmul.mB->getDimensions().size() < 2)
+        MIOPEN_THROW(miopenStatusBadParm);
+    bSet = true;
+    return *this;
+};
+OperationMatmulBuilder& OperationMatmulBuilder::setC(Tensor* C)
+{
+    mOperationMatmul.mC = checkPtr(C);
+    if(mOperationMatmul.mC->getDimensions().size() < 2)
+        MIOPEN_THROW(miopenStatusBadParm);
+    cSet = true;
+    return *this;
+};
+OperationMatmulBuilder& OperationMatmulBuilder::setBatchCount(int64_t count)
+{
+    mOperationMatmul.mBatchCount = count;
+    return *this;
+};
+OperationMatmulBuilder& OperationMatmulBuilder::setGemmMOverride(Tensor* overrideTensor)
+{
+    mOperationMatmul.mGemmMOverride = checkPtr(overrideTensor);
+    return *this;
+};
+OperationMatmulBuilder& OperationMatmulBuilder::setGemmNOverride(Tensor* overrideTensor)
+{
+    mOperationMatmul.mGemmNOverride = checkPtr(overrideTensor);
+    return *this;
+};
+OperationMatmulBuilder& OperationMatmulBuilder::setGemmKOverride(Tensor* overrideTensor)
+{
+    mOperationMatmul.mGemmKOverride = checkPtr(overrideTensor);
+    return *this;
+};
+OperationMatmulBuilder& OperationMatmulBuilder::setMatmulDescriptor(Matmul* mMatmul)
+{
+    mOperationMatmul.mMatmul = checkPtr(mMatmul);
+    matmulSet                = true;
+    return *this;
+}
+
 OperationMatmul OperationMatmulBuilder::build()
 {
     if(!aSet || !bSet || !cSet || !matmulSet)
         MIOPEN_THROW(miopenStatusBadParm);
 
-    if(!(mOperationMatmul.mA->getDimensions().size() == mOperationMatmul.mB->getDimensions().size() == mOperationMatmul.mC->getDimensions().size()))
+    int aDimensionsCount = mOperationMatmul.mA->getDimensions().size();
+    int bDimensionsCount = mOperationMatmul.mB->getDimensions().size();
+    int cDimensionsCount = mOperationMatmul.mC->getDimensions().size();
+
+    if(aDimensionsCount != bDimensionsCount || bDimensionsCount != cDimensionsCount)
         MIOPEN_THROW(miopenStatusBadParm);
+
     int Am = mOperationMatmul.mA->getDimensions().end()[-2];
     int An = mOperationMatmul.mA->getDimensions().end()[-1];
 
@@ -119,7 +176,7 @@ OperationMatmul OperationMatmulBuilder::build()
 
     int Cm = mOperationMatmul.mB->getDimensions().end()[-2];
     int Ck = mOperationMatmul.mB->getDimensions().end()[-1];
-    
+
     if(Am != Cm || An != Bn || Bk != Ck)
         MIOPEN_THROW(miopenStatusBadParm);
 

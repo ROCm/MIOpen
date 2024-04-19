@@ -353,23 +353,31 @@ static Tensor mOverride(miopenFloat, {10, 100, 100}, {100 * 100, 100, 1}, 1, fal
 static Tensor nOverride(miopenFloat, {10, 100, 100}, {100 * 100, 100, 1}, 1, false);
 static Tensor kOverride(miopenFloat, {10, 100, 100}, {100 * 100, 100, 1}, 1, false);
 
-static std::array<ValidatedValue<Tensor*>, 2> anyAtensors{ValidatedValue<Tensor*>{true, &A},
-                                                          ValidatedValue<Tensor*>{false, nullptr}};
+static Tensor D(miopenFloat, {10, 100}, {100, 1}, 1, false);
+static Tensor aSmall(miopenFloat, {100}, {1}, 1, false);
+static Tensor bSmall(miopenFloat, {100}, {1}, 1, false);
+static Tensor cSmall(miopenFloat, {100}, {1}, 1, false);
+
+static std::array<ValidatedValue<Tensor*>, 3> anyAtensors{ValidatedValue<Tensor*>{true, &A},
+                                                          ValidatedValue<Tensor*>{false, nullptr},
+                                                          ValidatedValue<Tensor*>{false, &aSmall}};
 static std::array<ValidatedValue<Tensor*>, 1> validAtensors{ValidatedValue<Tensor*>{true, &A}};
-static std::array<ValidatedValue<Tensor*>, 1> invalidAtensors{
-    ValidatedValue<Tensor*>{false, nullptr}};
+static std::array<ValidatedValue<Tensor*>, 2> invalidAtensors{
+    ValidatedValue<Tensor*>{false, nullptr}, ValidatedValue<Tensor*>{false, &aSmall}};
 
-static std::array<ValidatedValue<Tensor*>, 2> anyBtensors{ValidatedValue<Tensor*>{true, &B},
-                                                          ValidatedValue<Tensor*>{false, nullptr}};
+static std::array<ValidatedValue<Tensor*>, 3> anyBtensors{ValidatedValue<Tensor*>{true, &B},
+                                                          ValidatedValue<Tensor*>{false, nullptr},
+                                                          ValidatedValue<Tensor*>{false, &bSmall}};
 static std::array<ValidatedValue<Tensor*>, 1> validBtensors{ValidatedValue<Tensor*>{true, &B}};
-static std::array<ValidatedValue<Tensor*>, 1> invalidBtensors{
-    ValidatedValue<Tensor*>{false, nullptr}};
+static std::array<ValidatedValue<Tensor*>, 2> invalidBtensors{
+    ValidatedValue<Tensor*>{false, nullptr}, ValidatedValue<Tensor*>{false, &bSmall}};
 
-static std::array<ValidatedValue<Tensor*>, 2> anyCtensors{ValidatedValue<Tensor*>{true, &C},
-                                                          ValidatedValue<Tensor*>{false, nullptr}};
+static std::array<ValidatedValue<Tensor*>, 3> anyCtensors{ValidatedValue<Tensor*>{true, &C},
+                                                          ValidatedValue<Tensor*>{false, nullptr},
+                                                          ValidatedValue<Tensor*>{false, &cSmall}};
 static std::array<ValidatedValue<Tensor*>, 1> validCtensors{ValidatedValue<Tensor*>{true, &C}};
-static std::array<ValidatedValue<Tensor*>, 1> invalidCtensors{
-    ValidatedValue<Tensor*>{false, nullptr}};
+static std::array<ValidatedValue<Tensor*>, 2> invalidCtensors{
+    ValidatedValue<Tensor*>{false, nullptr}, ValidatedValue<Tensor*>{false, &cSmall}};
 
 static std::array<ValidatedValue<Tensor*>, 1> validMOverridetensors{
     ValidatedValue<Tensor*>{true, &mOverride}};
@@ -380,6 +388,9 @@ static std::array<ValidatedValue<Tensor*>, 1> validNOverridetensors{
 static std::array<ValidatedValue<Tensor*>, 1> validKOverridetensors{
     ValidatedValue<Tensor*>{true, &kOverride}};
 
+static std::array<ValidatedValue<Tensor*>, 1> differentDimensionsCountTensor{
+    ValidatedValue<Tensor*>{true, &D}};
+
 static auto validAttributes = testing::Combine(testing::Values(true),
                                                testing::ValuesIn(validMatmuls),
                                                testing::ValuesIn(validAtensors),
@@ -389,6 +400,16 @@ static auto validAttributes = testing::Combine(testing::Values(true),
                                                testing::ValuesIn(validMOverridetensors),
                                                testing::ValuesIn(validNOverridetensors),
                                                testing::ValuesIn(validKOverridetensors));
+
+static auto invalidDimsensions = testing::Combine(testing::Values(false),
+                                                  testing::ValuesIn(validMatmuls),
+                                                  testing::ValuesIn(differentDimensionsCountTensor),
+                                                  testing::ValuesIn(validBtensors),
+                                                  testing::ValuesIn(validCtensors),
+                                                  testing::Values(1),
+                                                  testing::ValuesIn(validMOverridetensors),
+                                                  testing::ValuesIn(validNOverridetensors),
+                                                  testing::ValuesIn(validKOverridetensors));
 
 static auto invalidAtLeastMatmuls = testing::Combine(testing::Values(false),
                                                      testing::ValuesIn(invalidMatmuls),
@@ -431,6 +452,9 @@ static auto invalidAtLeastCtensors = testing::Combine(testing::Values(false),
                                                       testing::ValuesIn(validKOverridetensors));
 
 INSTANTIATE_TEST_SUITE_P(ValidAttributes, GraphApiOperationMatmulBuilder, validAttributes);
+
+INSTANTIATE_TEST_SUITE_P(invalidDimsensions, GraphApiOperationMatmulBuilder, invalidDimsensions);
+
 INSTANTIATE_TEST_SUITE_P(invalidAtLeastMatmuls,
                          GraphApiOperationMatmulBuilder,
                          invalidAtLeastMatmuls);

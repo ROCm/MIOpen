@@ -148,50 +148,22 @@ private:
     bool matmulSet = false;
 
 public:
-    OperationMatmulBuilder& setA(Tensor* A)
-    {
-        mOperationMatmul.mA = checkPtr(A);
-        aSet                = true;
-        return *this;
-    };
-    OperationMatmulBuilder& setB(Tensor* B)
-    {
-        mOperationMatmul.mB = checkPtr(B);
-        bSet                = true;
-        return *this;
-    };
-    OperationMatmulBuilder& setC(Tensor* C)
-    {
-        mOperationMatmul.mC = checkPtr(C);
-        cSet                = true;
-        return *this;
-    };
-    OperationMatmulBuilder& setBatchCount(int64_t count)
-    {
-        mOperationMatmul.mBatchCount = count;
-        return *this;
-    };
-    OperationMatmulBuilder& setGemmMOverride(Tensor* overrideTensor)
-    {
-        mOperationMatmul.mGemmMOverride = checkPtr(overrideTensor);
-        return *this;
-    };
-    OperationMatmulBuilder& setGemmNOverride(Tensor* overrideTensor)
-    {
-        mOperationMatmul.mGemmNOverride = checkPtr(overrideTensor);
-        return *this;
-    };
-    OperationMatmulBuilder& setGemmKOverride(Tensor* overrideTensor)
-    {
-        mOperationMatmul.mGemmKOverride = checkPtr(overrideTensor);
-        return *this;
-    };
-    OperationMatmulBuilder& setMatmulDescriptor(Matmul* mMatmul)
-    {
-        mOperationMatmul.mMatmul = checkPtr(mMatmul);
-        matmulSet                = true;
-        return *this;
-    }
+    OperationMatmulBuilder& setA(Tensor* A);
+
+    OperationMatmulBuilder& setB(Tensor* B);
+
+    OperationMatmulBuilder& setC(Tensor* C);
+
+    OperationMatmulBuilder& setBatchCount(int64_t count);
+
+    OperationMatmulBuilder& setGemmMOverride(Tensor* overrideTensor);
+
+    OperationMatmulBuilder& setGemmNOverride(Tensor* overrideTensor);
+
+    OperationMatmulBuilder& setGemmKOverride(Tensor* overrideTensor);
+
+    OperationMatmulBuilder& setMatmulDescriptor(Matmul* mMatmul);
+
     OperationMatmul build();
 };
 
