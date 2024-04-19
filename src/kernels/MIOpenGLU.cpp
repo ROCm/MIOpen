@@ -51,7 +51,7 @@ __device__ void GLUFwdCOntiguousKernel(const TI* __restrict__ input,
     size_t inputIdx1 =
         outerIdx * splitDim_size * inner_size + splittedDimIdx * inner_size + innerIdx;
     size_t inputIdx2 = outerIdx * splitDim_size * inner_size +
-                           (splittedDimIdx + splitedDim_size) * inner_size + innerIdx;
+                       (splittedDimIdx + splitedDim_size) * inner_size + innerIdx;
 
     FLOAT_ACCUM val1 = CVT_FLOAT2ACCUM(input[inputIdx1]);
     FLOAT_ACCUM val2 = sigmoid(CVT_FLOAT2ACCUM(input[inputIdx2]));
@@ -66,5 +66,6 @@ extern "C" __global__ void GLUFwdContiguous(const INPUT_TYPE* __restrict__ input
                                             size_t splitedDim_size,
                                             size_t splitDim_size)
 {
-    GLUFwdCOntiguousKernel<INPUT_TYPE, OUTPUT_TYPE>(input, output, N, inner_size, splitedDim_size, splitDim_size);
+    GLUFwdCOntiguousKernel<INPUT_TYPE, OUTPUT_TYPE>(
+        input, output, N, inner_size, splitedDim_size, splitDim_size);
 }

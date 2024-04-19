@@ -111,18 +111,24 @@ ConvSolution GLUForward::GetSolution(const ExecutionContext& context,
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::glu::InvokeParams>();
-            auto inputDims = params.inputDesc->GetLengths();
+            auto inputDims        = params.inputDesc->GetLengths();
             auto outputDims       = params.outputDesc->GetLengths();
-            auto dim = params.dim;
-            auto splitDim_size = inputDims[dim];
+            auto dim              = params.dim;
+            auto splitDim_size    = inputDims[dim];
             auto splittedDim_size = outputDims[dim];
             auto output_numel     = std::accumulate(
                 outputDims.begin(), outputDims.end(), 1ULL, std::multiplies<size_t>());
             auto inner_size = 1ULL;
-            for (int32_t i = dim + 1; i < inputDims.size(); i++) {
+            for(int32_t i = dim + 1; i < inputDims.size(); i++)
+            {
                 inner_size *= inputDims[i];
             }
-            kernel(params.input, params.output, output_numel, inner_size, splittedDim_size, splitDim_size);
+            kernel(params.input,
+                   params.output,
+                   output_numel,
+                   inner_size,
+                   splittedDim_size,
+                   splitDim_size);
         };
     };
 

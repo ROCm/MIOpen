@@ -130,70 +130,26 @@ protected:
             }
         }
 
-        inputFirstHalf = tensor<T>{out_dims};
-        std::fill(
-            inputFirstHalf.begin(), inputFirstHalf.end(), std::numeric_limits<T>::quiet_NaN());
-
-        inputSecondHalf = tensor<T>{out_dims};
-        std::fill(
-            inputSecondHalf.begin(), inputSecondHalf.end(), std::numeric_limits<T>::quiet_NaN());
-
         output = tensor<T>{out_dims};
         std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
 
         ref_output = tensor<T>{out_dims};
         std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<T>::quiet_NaN());
 
-        splitInput();
-
-        inputFirstHalf_dev  = handle.Write(inputFirstHalf.data);
-        inputSecondHalf_dev = handle.Write(inputSecondHalf.data);
+        input_dev           = handle.Write(input.data);
         output_dev          = handle.Write(output.data);
-    }
-
-    void splitInput()
-    {
-        auto input_dims  = input.desc.GetLengths();
-        auto output_dims = output.desc.GetLengths();
-
-        auto splitDim_size   = input_dims[dim];
-        auto splitedDim_size = output_dims[dim];
-        auto output_numel =
-            std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
-
-        auto inner_size = 1ULL;
-        for(int32_t i = dim + 1; i < input_dims.size(); i++)
-        {
-            inner_size *= input_dims[i];
-        }
-
-        for(size_t o = 0; o < output_numel; o++)
-        {
-            size_t innerIdx       = o % inner_size;
-            size_t splittedDimIdx = ((o - innerIdx) / inner_size) % splitedDim_size;
-            size_t outerIdx =
-                (o - innerIdx - splittedDimIdx * inner_size) / (inner_size * splitedDim_size);
-            size_t inputIdx1 =
-                outerIdx * splitDim_size * inner_size + splittedDimIdx * inner_size + innerIdx;
-            size_t inputIdx2 = outerIdx * splitDim_size * inner_size +
-                               (splittedDimIdx + splitedDim_size) * inner_size + innerIdx;
-            inputFirstHalf[o]  = input[inputIdx1];
-            inputSecondHalf[o] = input[inputIdx2];
-        }
     }
 
     void RunTest()
     {
         auto&& handle = get_handle();
 
-        cpu_glu_forward<T>(inputFirstHalf, inputSecondHalf, ref_output);
+        cpu_glu_forward<T>(input, ref_output, dim);
         miopenStatus_t status;
 
         status = miopen::GLUForward(handle,
                                     input.desc,
-                                    inputFirstHalf.desc,
-                                    inputFirstHalf_dev.get(),
-                                    inputSecondHalf_dev.get(),
+                                    input_dev.get(),
                                     dim,
                                     output.desc,
                                     output_dev.get());
@@ -227,14 +183,11 @@ protected:
     GLUTestCase glu_config;
 
     tensor<T> input;
-    tensor<T> inputFirstHalf;
-    tensor<T> inputSecondHalf;
     tensor<T> output;
 
     tensor<T> ref_output;
 
-    miopen::Allocator::ManageDataPtr inputFirstHalf_dev;
-    miopen::Allocator::ManageDataPtr inputSecondHalf_dev;
+    miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr output_dev;
 
     int32_t dim;

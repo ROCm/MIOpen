@@ -45,13 +45,13 @@ miopenStatus_t GLUForward(Handle& handle,
     const auto problem = glu::ProblemDescription{inputDesc, outputDesc, dim};
 
     const auto invoke_params = [&]() {
-        auto tmp            = glu::InvokeParams{};
-        tmp.type            = InvokeType::Run;
-        tmp.inputDesc       = &inputDesc;
-        tmp.outputDesc      = &outputDesc;
-        tmp.input           = input;
-        tmp.output          = output;
-        tmp.dim             = dim;
+        auto tmp       = glu::InvokeParams{};
+        tmp.type       = InvokeType::Run;
+        tmp.inputDesc  = &inputDesc;
+        tmp.outputDesc = &outputDesc;
+        tmp.input      = input;
+        tmp.output     = output;
+        tmp.dim        = dim;
         return tmp;
     }();
 

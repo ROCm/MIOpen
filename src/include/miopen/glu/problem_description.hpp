@@ -51,10 +51,7 @@ struct ProblemDescription : ProblemDescriptionBase
     ProblemDescription(const TensorDescriptor& inputDesc_,
                        const TensorDescriptor& outputDesc_,
                        int32_t dim_)
-        : direction(Direction::Forward),
-          inputDesc(inputDesc_),
-          outputDesc(outputDesc_),
-          dim(dim_)
+        : direction(Direction::Forward), inputDesc(inputDesc_), outputDesc(outputDesc_), dim(dim_)
     {
         if(inputDesc.GetLengths().size() != outputDesc.GetLengths().size())
         {

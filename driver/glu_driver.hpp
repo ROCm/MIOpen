@@ -58,7 +58,7 @@ int32_t mloGLUForwardRunHost(miopenTensorDescriptor_t inputDesc,
                              Tcheck* outputHost,
                              int32_t dim)
 {
-    auto input_dims = miopen::deref(inputDesc).GetLengths();
+    auto input_dims  = miopen::deref(inputDesc).GetLengths();
     auto output_dims = miopen::deref(outputDesc).GetLengths();
 
     auto splitDim_size   = input_dims[dim];
@@ -251,17 +251,17 @@ template <typename Tgpu, typename Tref>
 int GLUDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
 
-    size_t in_sz       = GetTensorSpace(inputTensor);
-    size_t out_sz      = GetTensorSpace(outputTensor);
+    size_t in_sz  = GetTensorSpace(inputTensor);
+    size_t out_sz = GetTensorSpace(outputTensor);
 
     uint32_t ctx = 0;
 
-    in_dev             = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-    out_dev            = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+    in_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
-    in             = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-    out            = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    outhost        = std::vector<Tref>(out_sz, static_cast<Tref>(0));
+    in      = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    out     = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    outhost = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
     for(int i = 0; i < in_sz; i++)
     {
@@ -269,8 +269,8 @@ int GLUDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
 
     if(in_dev->ToGPU(GetStream(), in.data()) != 0)
-        std::cerr << "Error copying (second half in) to GPU, size: "
-                  << in_dev->GetSize() << std::endl;
+        std::cerr << "Error copying (second half in) to GPU, size: " << in_dev->GetSize()
+                  << std::endl;
 
     if(out_dev->ToGPU(GetStream(), out.data()) != 0)
         std::cerr << "Error copying (out) to GPU, size: " << out_dev->GetSize() << std::endl;
@@ -289,12 +289,8 @@ int GLUDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenGLUForward(GetHandle(),
-                         inputTensor,
-                         in_dev->GetMem(),
-                         dim,
-                         outputTensor,
-                         out_dev->GetMem());
+        miopenGLUForward(
+            GetHandle(), inputTensor, in_dev->GetMem(), dim, outputTensor, out_dev->GetMem());
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -325,8 +321,7 @@ int GLUDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int GLUDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloGLUForwardRunHost<Tgpu, Tref>(
-        inputTensor, in.data(), outputTensor, outhost.data(), dim);
+    mloGLUForwardRunHost<Tgpu, Tref>(inputTensor, in.data(), outputTensor, outhost.data(), dim);
 
     return miopenStatusSuccess;
 }
