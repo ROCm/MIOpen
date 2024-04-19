@@ -10,7 +10,6 @@ struct KernelTuningNetTestCase : AIModelTestCase
     std::string arch;
 };
 
-
 std::vector<KernelTuningNetTestCase> GetConvAsm1x1UTestCases()
 {
     return {{{{1, 512, 192, 288, {56, 56}, {1, 1}, {0, 0}, {1, 1}, {1, 1}},
@@ -30,55 +29,57 @@ std::vector<KernelTuningNetTestCase> GetConvAsm1x1UTestCases()
 std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupFwdXdlopsTestCases()
 {
     return {
-            {{{1, 128, 64, 128, {209, 209}, {3, 3}, {0, 0}, {2, 2}, {1, 1}},
-            miopen::conv::Direction::Forward,
-            miopenFloat,
-            miopenTensorNHWC},
-            "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle<256, 128, 128, 16, Default, 32, 32, 2, 2, 4, 4, 4, 1, 1>",
-            "gfx90a"},
-            {{{48, 32, 48, 48, {14, 14}, {3, 3}, {1,1}, {1, 1}, {1, 1}},
-            miopen::conv::Direction::Forward,
-            miopenHalf,
-            miopenTensorNHWC},
-            "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle<64, 64, 64, 32, Default, 32, 32, 2, 2, 1, 1, 1, 1, 1>",
-            "gfx942"},
-         };
+        {{{1, 128, 64, 128, {209, 209}, {3, 3}, {0, 0}, {2, 2}, {1, 1}},
+          miopen::conv::Direction::Forward,
+          miopenFloat,
+          miopenTensorNHWC},
+         "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle<256, 128, 128, 16, Default, 32, 32, 2, 2, "
+         "4, 4, 4, 1, 1>",
+         "gfx90a"},
+        {{{48, 32, 48, 48, {14, 14}, {3, 3}, {1, 1}, {1, 1}, {1, 1}},
+          miopen::conv::Direction::Forward,
+          miopenHalf,
+          miopenTensorNHWC},
+         "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle<64, 64, 64, 32, Default, 32, 32, 2, 2, 1, "
+         "1, 1, 1, 1>",
+         "gfx942"},
+    };
 }
 
 std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupBwdXdlopsTestCases()
 {
-    return {
-        {{{32, 4, 256, 256, {59, 59}, {3, 3}, {1,1}, {2, 2}, {1, 1}},
-          miopen::conv::Direction::BackwardData,
-          miopenHalf,
-          miopenTensorNHWC},
-         "DeviceGroupedConvBwdDataMultipleD_Xdl_CShuffle_v1<128, 128, 32, 32, 8, 8, Default, 32, 32, 2, 1, 8, 8, 1, 1>",
-         "gfx90a"},
-        {{{64, 96, 64, 64, {224, 224}, {3, 3}, {1, 1}, {1, 1}, {1, 1}},
-        miopen::conv::Direction::BackwardData,
-        miopenFloat,
-        miopenTensorNHWC},
-        "DeviceGroupedConvBwdDataMultipleD_Xdl_CShuffle_v1<64, 64, 64, 32, 8, 8, Default, 32, 32, 2, 2, 1, 1, 1, 1>",
-        "gfx942"}
-         };
+    return {{{{32, 4, 256, 256, {59, 59}, {3, 3}, {1, 1}, {2, 2}, {1, 1}},
+              miopen::conv::Direction::BackwardData,
+              miopenHalf,
+              miopenTensorNHWC},
+             "DeviceGroupedConvBwdDataMultipleD_Xdl_CShuffle_v1<128, 128, 32, 32, 8, 8, Default, "
+             "32, 32, 2, 1, 8, 8, 1, 1>",
+             "gfx90a"},
+            {{{64, 96, 64, 64, {224, 224}, {3, 3}, {1, 1}, {1, 1}, {1, 1}},
+              miopen::conv::Direction::BackwardData,
+              miopenFloat,
+              miopenTensorNHWC},
+             "DeviceGroupedConvBwdDataMultipleD_Xdl_CShuffle_v1<64, 64, 64, 32, 8, 8, Default, 32, "
+             "32, 2, 2, 1, 1, 1, 1>",
+             "gfx942"}};
 }
 
 std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupWrwXdlopsTestCases()
 {
-    return {
-            {{{4, 2, 512, 512, {24, 36}, {3, 3}, {1, 1}, {1, 1}, {1, 1}},
-            miopen::conv::Direction::BackwardWeights,
-            miopenFloat,
-            miopenTensorNHWC},
-            "DeviceGroupedConvBwdWeight_Xdl_CShuffle<128, 128, 32, 4, Default, 4, 2, 1, 4, 4, 4, 1, 1, 1, 4>",
-            "gfx942"},
+    return {{{{4, 2, 512, 512, {24, 36}, {3, 3}, {1, 1}, {1, 1}, {1, 1}},
+              miopen::conv::Direction::BackwardWeights,
+              miopenFloat,
+              miopenTensorNHWC},
+             "DeviceGroupedConvBwdWeight_Xdl_CShuffle<128, 128, 32, 4, Default, 4, 2, 1, 4, 4, 4, "
+             "1, 1, 1, 4>",
+             "gfx942"},
             {{{1, 16, 128, 256, {27, 27}, {3, 3}, {0, 0}, {1, 2}, {1, 1}},
-            miopen::conv::Direction::BackwardWeights,
-            miopenHalf,
-            miopenTensorNHWC},
-            "DeviceGroupedConvBwdWeight_Xdl_CShuffle<64, 64, 32, 4, Default, 8, 2, 1, 8, 4, 8, 2, 1, 1, 8>",
-            "gfx90a"}
-            };
+              miopen::conv::Direction::BackwardWeights,
+              miopenHalf,
+              miopenTensorNHWC},
+             "DeviceGroupedConvBwdWeight_Xdl_CShuffle<64, 64, 32, 4, Default, 8, 2, 1, 8, 4, 8, 2, "
+             "1, 1, 8>",
+             "gfx90a"}};
 }
 
 struct KernelTuningNetTest : public ::testing::TestWithParam<KernelTuningNetTestCase>
@@ -107,7 +108,7 @@ protected:
                                                          conv_desc,
                                                          test_case.direction);
         expected = test_case.expected_config;
-        arch = test_case.arch;
+        arch     = test_case.arch;
 #else
         GTEST_SKIP();
 #endif
@@ -118,7 +119,9 @@ protected:
 };
 
 template <typename T>
-void TestParameterPredictionModel(miopen::conv::ProblemDescription problem, std::string expected, std::string arch)
+void TestParameterPredictionModel(miopen::conv::ProblemDescription problem,
+                                  std::string expected,
+                                  std::string arch)
 {
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
     auto&& handle = get_handle();
@@ -159,29 +162,33 @@ struct KernelTuningNetTestConvHipIgemmGroupWrwXdlops : KernelTuningNetTest
 
 TEST_P(KernelTuningNetTestConvAsm1x1U, ConvAsm1x1UParameterPredictionModel)
 {
-    TestParameterPredictionModel<miopen::solver::conv::PerformanceConfigConvAsm1x1U>(problem,
-                                                                                     expected,
-                                                                                     arch);
+    TestParameterPredictionModel<miopen::solver::conv::PerformanceConfigConvAsm1x1U>(
+        problem, expected, arch);
 }
 
 TEST_P(KernelTuningNetTestConvHipIgemmGroupFwdXdlops,
        ConvHipIgemmGroupFwdXdlopsParameterPredictionModel)
 {
-    TestParameterPredictionModel<miopen::solver::conv::PerformanceConfigHipImplicitGemmGroupFwdXdlops>(problem, expected, arch);
+    TestParameterPredictionModel<
+        miopen::solver::conv::PerformanceConfigHipImplicitGemmGroupFwdXdlops>(
+        problem, expected, arch);
 }
 
 TEST_P(KernelTuningNetTestConvHipIgemmGroupBwdXdlops,
        ConvHipIgemmGroupBwdXdlopsParameterPredictionModel)
 {
-    TestParameterPredictionModel<miopen::solver::conv::PerformanceConfigHipImplicitGemmGroupBwdXdlops>(problem, expected, arch);
+    TestParameterPredictionModel<
+        miopen::solver::conv::PerformanceConfigHipImplicitGemmGroupBwdXdlops>(
+        problem, expected, arch);
 }
 
 TEST_P(KernelTuningNetTestConvHipIgemmGroupWrwXdlops,
        ConvHipIgemmGroupWrwXdlopsParameterPredictionModel)
 {
-    TestParameterPredictionModel<miopen::solver::conv::PerformanceConfigHipImplicitGemmGroupWrwXdlops>(problem, expected, arch);
+    TestParameterPredictionModel<
+        miopen::solver::conv::PerformanceConfigHipImplicitGemmGroupWrwXdlops>(
+        problem, expected, arch);
 }
-
 
 INSTANTIATE_TEST_SUITE_P(ConvAsm1x1UParameterPredictionModelTest,
                          KernelTuningNetTestConvAsm1x1U,
@@ -198,5 +205,3 @@ INSTANTIATE_TEST_SUITE_P(ConvHipIgemmGroupBwdXdlopsParameterPredictionModelTest,
 INSTANTIATE_TEST_SUITE_P(ConvHipIgemmGroupWrwXdlopsParameterPredictionModelTest,
                          KernelTuningNetTestConvHipIgemmGroupWrwXdlops,
                          testing::ValuesIn(GetConvHipIgemmGroupWrwXdlopsTestCases()));
-
-
