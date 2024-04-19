@@ -180,8 +180,6 @@ struct MIOPEN_EXPORT TensorDescriptor : miopenTensorDescriptor
 
     const std::vector<std::size_t>& GetLengths() const;
     const std::vector<std::size_t>& GetStrides() const;
-    // This name is misleading, all the usages should be replaced with GetNumDims()
-    int GetSize() const;
     unsigned GetNumDims() const;
 
     miopenDataType_t GetType() const;

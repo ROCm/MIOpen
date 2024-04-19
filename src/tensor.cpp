@@ -333,9 +333,6 @@ const std::vector<std::size_t>& TensorDescriptor::GetStrides() const { return st
 
 unsigned TensorDescriptor::GetNumDims() const { return lens.size(); }
 
-// This name is misleading, all the usages should be replaced with GetNumDims()
-int TensorDescriptor::GetSize() const { return GetNumDims(); }
-
 std::size_t TensorDescriptor::GetElementSize() const
 {
     return std::accumulate(lens.begin(), lens.end(), vector_length, std::multiplies<std::size_t>());
@@ -376,7 +373,7 @@ std::size_t TensorDescriptor::GetIndex(std::initializer_list<int> l) const
     // l is in NCHW order (MIOpen implicit logic)
     if(this->GetLayout_str() == "CHWNc")
     {
-        assert(l.size() - 1 <= this->GetSize());
+        assert(l.size() - 1 <= this->GetNumDims());
         std::initializer_list<int> l_chwn{
             *(l.begin()), *(l.begin() + 2), *(l.begin() + 3), *(l.begin() + 4), *(l.begin() + 1)};
         return std::inner_product(l_chwn.begin() + 1,
@@ -388,12 +385,12 @@ std::size_t TensorDescriptor::GetIndex(std::initializer_list<int> l) const
     {
         if(!this->IsVectorized())
         {
-            assert(l.size() <= this->GetSize());
+            assert(l.size() <= this->GetNumDims());
             return std::inner_product(l.begin(), l.end(), strides.begin(), std::size_t{0});
         }
         else
         {
-            assert(l.size() - 1 <= this->GetSize());
+            assert(l.size() - 1 <= this->GetNumDims());
             return std::inner_product(
                 l.begin() + 1, l.end(), strides.begin(), static_cast<std::size_t>(*(l.begin())));
         }

@@ -68,7 +68,7 @@ void BatchNormForwardTraining(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(xDesc.GetSize() != yDesc.GetSize() || xDesc.GetSize() != bnScaleBiasMeanVarDesc.GetSize())
+    if(xDesc.GetNumDims() != yDesc.GetNumDims() || xDesc.GetNumDims() != bnScaleBiasMeanVarDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -81,7 +81,7 @@ void BatchNormForwardTraining(Handle& handle,
         MIOPEN_LOG_E("Only fully packed tensors supported.");
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(xDesc.GetSize() < 3)
+    if(xDesc.GetNumDims() < 3)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -185,8 +185,8 @@ void BatchNormForwardInference(Handle& handle,
         {
             MIOPEN_THROW(miopenStatusBadParm);
         }
-        if(xDesc.GetSize() != yDesc.GetSize() ||
-           xDesc.GetSize() != bnScaleBiasMeanVarDesc.GetSize())
+        if(xDesc.GetNumDims() != yDesc.GetNumDims() ||
+           xDesc.GetNumDims() != bnScaleBiasMeanVarDesc.GetNumDims())
         {
             MIOPEN_THROW(miopenStatusBadParm);
         }
@@ -194,7 +194,7 @@ void BatchNormForwardInference(Handle& handle,
         {
             MIOPEN_THROW(miopenStatusBadParm);
         }
-        if(xDesc.GetSize() < 3)
+        if(xDesc.GetNumDims() < 3)
         {
             MIOPEN_THROW(miopenStatusBadParm);
         }
@@ -297,7 +297,7 @@ void BatchNormBackward(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(xDesc.GetSize() != dyDesc.GetSize() || xDesc.GetSize() != bnScaleBiasDiffDesc.GetSize())
+    if(xDesc.GetNumDims() != dyDesc.GetNumDims() || xDesc.GetNumDims() != bnScaleBiasDiffDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -305,7 +305,7 @@ void BatchNormBackward(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(xDesc.GetSize() < 3)
+    if(xDesc.GetNumDims() < 3)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
