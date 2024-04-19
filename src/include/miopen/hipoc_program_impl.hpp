@@ -26,6 +26,7 @@
 #ifndef GUARD_MIOPEN_HIPOC_PROGRAM_IMPL_HPP
 #define GUARD_MIOPEN_HIPOC_PROGRAM_IMPL_HPP
 
+#include <string_view>
 #include <miopen/target_properties.hpp>
 #include <miopen/manage_ptr.hpp>
 #include <miopen/tmp_dir.hpp>
@@ -48,7 +49,7 @@ struct HIPOCProgramImpl
                      const TargetProperties& target_,
                      const std::string& kernel_src);
 
-    std::string program;
+    fs::path program;
     TargetProperties target;
     fs::path hsaco_file;
     hipModulePtr module;
@@ -56,12 +57,13 @@ struct HIPOCProgramImpl
     std::vector<char> binary;
 
 #if !MIOPEN_USE_COMGR
-    void
-    BuildCodeObjectInFile(std::string& params, const std::string& src, const std::string& filename);
+    void BuildCodeObjectInFile(std::string& params,
+                               const std::string_view src,
+                               const fs::path& filename);
 #else
     void BuildCodeObjectInMemory(const std::string& params,
-                                 const std::string& src,
-                                 const std::string& filename);
+                                 const std::string_view src,
+                                 const fs::path& filename);
 #endif
 
     void BuildCodeObject(std::string params, const std::string& kernel_src);
