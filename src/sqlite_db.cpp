@@ -95,10 +95,11 @@ class SQLite::impl
         if(is_system)
         {
 
-            const auto& it_p = miopen_data().find(filepath.filename().string() + ".o");
+            const auto& it_p =
+                miopen_data().find(make_object_file_name(filepath.filename()).string());
             if(it_p == miopen_data().end())
             {
-                MIOPEN_LOG_I("Unknown database: " + filepath.string() + " in internal file cache");
+                MIOPEN_LOG_I("Unknown database: " << filepath << " in internal file cache");
                 return SQLITE_ERROR;
             }
             const auto& p    = it_p->second;
@@ -349,12 +350,13 @@ std::string SQLite::Statement::ColumnText(int idx)
         reinterpret_cast<const char*>(sqlite3_column_text(pImpl->ptrStmt.get(), idx)), bytes};
 }
 
-std::string SQLite::Statement::ColumnBlob(int idx)
+std::vector<char> SQLite::Statement::ColumnBlob(int idx)
 {
-    auto ptr = sqlite3_column_blob(pImpl->ptrStmt.get(), idx);
+    auto ptr = static_cast<const char*>(sqlite3_column_blob(pImpl->ptrStmt.get(), idx));
     auto sz  = sqlite3_column_bytes(pImpl->ptrStmt.get(), idx);
-    return std::string{reinterpret_cast<const char*>(ptr), static_cast<size_t>(sz)};
+    return {ptr, ptr + sz};
 }
+
 int64_t SQLite::Statement::ColumnInt64(int idx)
 {
     return sqlite3_column_int64(pImpl->ptrStmt.get(), idx);
@@ -366,7 +368,8 @@ int SQLite::Statement::BindText(int idx, const std::string& txt)
         pImpl->ptrStmt.get(), idx, txt.data(), txt.size(), SQLITE_TRANSIENT); // NOLINT
     return 0;
 }
-int SQLite::Statement::BindBlob(int idx, const std::string& blob)
+
+int SQLite::Statement::BindBlob(int idx, const std::vector<char>& blob)
 {
     sqlite3_bind_blob(
         pImpl->ptrStmt.get(), idx, blob.data(), blob.size(), SQLITE_TRANSIENT); // NOLINT
@@ -457,7 +460,7 @@ SQLitePerfDb::SQLitePerfDb(DbKinds db_kind, const std::string& filename_, bool i
         }
         if(!CheckTableColumns("perf_db", {"solver", "config", "params"}))
         {
-            MIOPEN_LOG_W("Invalid fields in table: perf_db disabling access to " + filename);
+            MIOPEN_LOG_W("Invalid fields in table: perf_db disabling access to " << filename);
             dbInvalid = true;
         }
     }

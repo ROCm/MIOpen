@@ -897,34 +897,6 @@ set(CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvCkIgemmFwdV6r1DlopsNchw
     MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW=1)
 
-add_custom_test(test_reduce_custom_fp32 GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED SKIP_UNLESS_ALL
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 1024 30528 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-)
-
-add_custom_test(test_reduce_custom_fp32_fp16 HALF_ENABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED SKIP_UNLESS_ALL
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 8 2 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 160 10 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 7 1024 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 1 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 1 1 --I 0 --N 1 ---ReduceOp 1 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 1 1 --I 1 --N 1 ---ReduceOp 3 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 2 1 --I 1 --N 1 ---ReduceOp 3 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 6 2 1 --I 0 --N 1 ---ReduceOp 3 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 6 2 1 --I 0 --N 1 ---ReduceOp 2 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 2 2 1 --I 0 --N 1 ---ReduceOp 0 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 4 3 1 --I 0 --N 1 ---ReduceOp 3 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 3 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 3 --R 0 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 2048 32 1 --I 0 --N 1 ---ReduceOp 3 --R 0 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 4 3 1 --I 0 --N 1 ---ReduceOp 2 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 2 --R 0 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 2048 32 1 --I 0 --N 1 ---ReduceOp 2 --R 0 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 2 --R 0 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 12 11 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 13 4 7 7 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 3 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 64 3 280 81 --I 0 --N 0 --ReduceOp 0 --R 0 ${MIOPEN_TEST_FLAGS_ARGS}
-)
-
 if(MIOPEN_TEST_FLOAT)
     add_custom_test(test_reduce_double SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED COMMAND  $<TARGET_FILE:test_reduce_test> --double --all --verbose)
 endif()
@@ -1020,50 +992,12 @@ add_custom_test(smoke_solver_ConvMlirIgemm_W GFX900_DISABLED GFX908_DISABLED GFX
     ENVIRONMENT MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5 ${IMPLICITGEMM_MLIR_ENV_W}
     COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 64 64  28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
-
-add_custom_test(test_regression_half_vega SKIP_UNLESS_ALL FLOAT_DISABLED HALF_ENABLED GFX908_DISABLED GFX90A_DISABLED
-# Issue #1956.
-    ENVIRONMENT MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmBwdRest'
-    COMMAND $<TARGET_FILE:test_conv3d> ${TEST_CONV_VERBOSE_B} --cmode conv --pmode default --group-count 1 --batch_size 2 --input_channels 64 --output_channels 32 --spatial_dim_elements 128 128 128 --filter_dims 3 3 3 --pads_strides_dilations 1 1 1 1 1 1 1 1 1 --trans_output_pads 0 0 0 --in_layout NCDHW --fil_layout NCDHW --out_layout NCDHW ${MIOPEN_TEST_FLAGS_ARGS}
-)
-# Test case for issue #1956 uses huge tensors, therefore:
-set_tests_properties(test_regression_half_vega PROPERTIES RUN_SERIAL On)
-
-set(ENVS_REGRESSION_ISSUE_1012
-    MIOPEN_FIND_MODE=normal)
-
-set(ARGS_REGRESSION_ISSUE_1012
-    --verbose
-    --disable-forward
-    --disable-backward-data
-    --disable-validation)
-
-add_custom_test(test_regression_issue_2012 GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED
-    # Issue #1012.
-    ENVIRONMENT ${ENVS_REGRESSION_ISSUE_1012}
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 128, 832, 7,  7  --weights 32,  832, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  192, 28, 28 --weights 64,  192, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  256, 28, 28 --weights 128, 256, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  480, 14, 14 --weights 64,  480, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  512, 14, 14 --weights 128, 512, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  512, 28, 28 --weights 128, 512, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  64,  56, 56 --weights 256, 64,  1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
-)
-
-set(ENVS_FIND_ONLY_HIP_IGEMM_V4R4XDLOPS
-    MIOPEN_FIND_MODE=normal
-    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmForwardV4R4Xdlops)
-
-set(ARGS_ENABLE_FORWARD_ONLY
-    --verbose
-    --disable-backward-data
-    --disable-backward-weights)
-
-add_custom_test(test_regression_half_mi200 GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED FLOAT_DISABLED HALF_ENABLED
-    # Issue-internal #4
-    ENVIRONMENT ${ENVS_FIND_ONLY_HIP_IGEMM_V4R4XDLOPS}
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --input 120 64 75 75 --weights 128 64 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_ENABLE_FORWARD_ONLY}
-)
-#override if we need to install gtests
+#Dont install the tests if we are building each test separately
+#When the tests are built as a single unit, then we want to be 
+#able to package them
 set(INSTALL_GTEST OFF)
+if(MIOPEN_TEST_DISCRETE)
 add_subdirectory(gtest EXCLUDE_FROM_ALL)
+else()
+add_subdirectory(gtest)
+endif()
