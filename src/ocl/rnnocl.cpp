@@ -3973,9 +3973,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(dhyDesc.GetNumDims() != dcyDesc.GetNumDims() || dhyDesc.GetNumDims() != hxDesc.GetNumDims() ||
-       dhyDesc.GetNumDims() != cxDesc.GetNumDims() || dhyDesc.GetNumDims() != dhxDesc.GetNumDims() ||
-       dhyDesc.GetNumDims() != dcxDesc.GetNumDims())
+    if(dhyDesc.GetNumDims() != dcyDesc.GetNumDims() ||
+       dhyDesc.GetNumDims() != hxDesc.GetNumDims() || dhyDesc.GetNumDims() != cxDesc.GetNumDims() ||
+       dhyDesc.GetNumDims() != dhxDesc.GetNumDims() || dhyDesc.GetNumDims() != dcxDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -4108,7 +4108,8 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
 
     // if projections supported, dcxDesc.GetLengths()[2] should be used for hidden_size,
     // dhxDesc.GetLengths()[2] for proj_size.
-    if(dhxDesc.GetNumDims() != dcxDesc.GetNumDims() || dhxDesc.GetLengths()[2] != dcxDesc.GetLengths()[2])
+    if(dhxDesc.GetNumDims() != dcxDesc.GetNumDims() ||
+       dhxDesc.GetLengths()[2] != dcxDesc.GetLengths()[2])
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }

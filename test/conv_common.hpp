@@ -2063,7 +2063,8 @@ struct conv_driver : test_driver
         }
 
         if(input.desc.GetNumDims() != in_layout.size() ||
-           weights.desc.GetNumDims() != fil_layout.size() || input.desc.GetNumDims() != out_layout.size())
+           weights.desc.GetNumDims() != fil_layout.size() ||
+           input.desc.GetNumDims() != out_layout.size())
         {
             std::cout << input.desc.GetNumDims() << "," << in_layout.size() << std::endl;
             std::cout << weights.desc.GetNumDims() << "," << fil_layout.size() << std::endl;
@@ -2101,7 +2102,8 @@ struct conv_driver : test_driver
             weights.desc = miopen::TensorDescriptor(miopen_type<T>{}, dim_lens, dim_strides);
         }
 
-        if(input.desc.GetNumDims() != 2 + spatial_dim || weights.desc.GetNumDims() != 2 + spatial_dim ||
+        if(input.desc.GetNumDims() != 2 + spatial_dim ||
+           weights.desc.GetNumDims() != 2 + spatial_dim ||
            pads_strides_dilations.size() != 3 * spatial_dim ||
            trans_output_pads.size() != spatial_dim)
         {

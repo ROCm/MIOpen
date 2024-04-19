@@ -68,7 +68,8 @@ void BatchNormForwardTraining(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(xDesc.GetNumDims() != yDesc.GetNumDims() || xDesc.GetNumDims() != bnScaleBiasMeanVarDesc.GetNumDims())
+    if(xDesc.GetNumDims() != yDesc.GetNumDims() ||
+       xDesc.GetNumDims() != bnScaleBiasMeanVarDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -297,7 +298,8 @@ void BatchNormBackward(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(xDesc.GetNumDims() != dyDesc.GetNumDims() || xDesc.GetNumDims() != bnScaleBiasDiffDesc.GetNumDims())
+    if(xDesc.GetNumDims() != dyDesc.GetNumDims() ||
+       xDesc.GetNumDims() != bnScaleBiasDiffDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
