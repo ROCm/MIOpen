@@ -480,6 +480,8 @@ void MultiHeadAttentionBackwardDataf8(const tensor<T>& q_val,
                                       float dV_scale,
                                       float s_scale,
                                       float s_descale,
+                                      float ds_scale,
+                                      float ds_descale,
                                       float O_descale,
                                       float dO_descale,
                                       float& aMax_dS,
@@ -544,8 +546,6 @@ void MultiHeadAttentionBackwardDataf8(const tensor<T>& q_val,
     // AMax_dS
     aMax_dS = AbsoluteMax(bias_sub_fp32_pm_softmax);
 
-    float ds_scale   = GetF8Scaling(aMax_dS);
-    float ds_descale = 1.f / s_scale;
     // s_scale to convert to fp8
     ScaleMult(bias_sub_fp32_pm_softmax, ds_scale, bias_sub_fp8_pm_softmax);
 

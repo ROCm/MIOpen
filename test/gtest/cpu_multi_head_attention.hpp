@@ -126,7 +126,6 @@ protected:
             float s_descale = 1.f; // / s_scale;
 
             float o_scale = 1.f;
-
             // clang-tidy complains about the same expression on both sides of "/": 1.f / 1.f
             float o_descale = 1.f; // / o_scale;
 
@@ -165,6 +164,10 @@ protected:
             float dK_scale = 1.f;
             float dQ_scale = 1.f;
 
+            float dS_scale = 1.f;
+            // clang-tidy complains about the same expression on both sides of "/": 1.f / 1.f
+            float dS_descale = 1.f; // / dS_scale;
+
             tensor<OutputType> dO_val_fp8(dO_val.desc.GetLengths());
 
             ScaleMult(dO_val, dO_scale, dO_val_fp8);
@@ -182,6 +185,8 @@ protected:
                                              dV_scale,
                                              s_scale,
                                              s_descale,
+                                             dS_scale,
+                                             dS_descale,
                                              o_descale,
                                              dO_descale,
                                              aMax_dS,
