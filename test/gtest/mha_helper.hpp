@@ -557,8 +557,8 @@ void MultiHeadAttentionBackwardDataf8(const tensor<T>& q_val,
     tensor<float> dQ_val_fp32(dQ_val.desc.GetLengths());
     tensor<float> dK_val_fp32(dK_val.desc.GetLengths());
     // bring it back to fp32
-    ScaleMult(dQ_val, ds_descale * q_descale, dQ_val_fp32);
-    ScaleMult(dK_val, ds_descale * k_descale, dK_val_fp32);
+    ScaleMult(dQ_val, ds_descale * k_descale, dQ_val_fp32);
+    ScaleMult(dK_val, ds_descale * q_descale, dK_val_fp32);
 
     aMax_dQ = AbsoluteMax(dQ_val_fp32);
     aMax_dK = AbsoluteMax(dK_val_fp32);
