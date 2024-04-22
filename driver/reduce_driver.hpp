@@ -41,11 +41,7 @@
 #include <miopen/reduce_common.hpp>
 #include <miopen/tensor.hpp>
 
-#if !defined(_WIN32)
 #include <half/half.hpp>
-#else
-#include <half.hpp>
-#endif
 
 #include <algorithm>
 #include <cassert>
