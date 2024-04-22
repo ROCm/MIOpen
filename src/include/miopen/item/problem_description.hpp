@@ -121,11 +121,11 @@ private:
     TensorDescriptor dxDesc{};
     TensorDescriptor errorDesc{};
 
-    int32_t dimCount;
-    const int32_t* dims;
-    int32_t sliceCount;
-    const int32_t* slices;
-    int32_t offset;
+    int32_t dimCount      = 0;
+    const int32_t* dims   = nullptr;
+    int32_t sliceCount    = 0;
+    const int32_t* slices = nullptr;
+    int32_t offset        = 0;
 
     NetworkConfig MakeForwardNetworkConfig() const;
 };

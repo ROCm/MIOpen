@@ -31,13 +31,13 @@ namespace miopen {
 namespace solver {
 namespace item {
 
-typedef struct
+using tensor_view_5d_t = struct
 {
     size_t stride[5];
     size_t size[5];
-} tensor_view_5d_t;
+};
 
-tensor_view_5d_t get_inner_expanded_tv(const TensorDescriptor Desc)
+inline tensor_view_5d_t get_inner_expanded_tv(const TensorDescriptor Desc)
 {
     auto dims    = Desc.GetLengths();
     auto strides = Desc.GetStrides();
@@ -57,7 +57,7 @@ tensor_view_5d_t get_inner_expanded_tv(const TensorDescriptor Desc)
     return tv_5d;
 }
 
-void slice_tv(tensor_view_5d_t& tv_5d, int32_t sliceCount, const int32_t* slices)
+inline void slice_tv(tensor_view_5d_t& tv_5d, int32_t sliceCount, const int32_t* slices)
 {
     for(int32_t i = 0; i < sliceCount; i++)
     {

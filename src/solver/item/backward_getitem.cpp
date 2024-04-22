@@ -54,7 +54,7 @@ bool IsLargeIndex(const miopen::item::ProblemDescription& problem)
     return true;
 }
 
-bool GetitemBackward::IsApplicable(const ExecutionContext& context,
+bool GetitemBackward::IsApplicable(const ExecutionContext& /*context*/,
                                    const miopen::item::ProblemDescription& problem) const
 {
     if(!problem.IsSameType())
@@ -66,7 +66,7 @@ bool GetitemBackward::IsApplicable(const ExecutionContext& context,
     return true;
 }
 
-ConvSolution GetitemBackward::GetSolution(const ExecutionContext& context,
+ConvSolution GetitemBackward::GetSolution(const ExecutionContext& /*context*/,
                                           const miopen::item::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
@@ -257,7 +257,7 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& context,
     return result;
 }
 
-std::size_t GetitemBackward::GetWorkspaceSize(const ExecutionContext& context,
+std::size_t GetitemBackward::GetWorkspaceSize(const ExecutionContext& /*context*/,
                                               const miopen::item::ProblemDescription& problem) const
 {
     auto indexCount = problem.GetIndexCount();
