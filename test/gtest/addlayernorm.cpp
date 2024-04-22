@@ -55,7 +55,7 @@ struct AddLayerNormTestBFloat16 : AddLayerNormTest<bfloat16>
 };
 
 } // namespace addlayernorm
-using namespace layernorm;
+using namespace addlayernorm;
 
 TEST_P(AddLayerNormTestFloat, AddLayerNormTestFw)
 {

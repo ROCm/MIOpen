@@ -67,7 +67,7 @@ struct T5LayerNormBwdTestBFloat16 : T5LayerNormBwdTest<bfloat16>
 };
 
 } // namespace t5layernorm
-using namespace layernorm;
+using namespace t5layernorm;
 
 TEST_P(T5LayerNormTestFloat, T5LayerNormTestFw)
 {
