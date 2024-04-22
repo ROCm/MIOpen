@@ -340,7 +340,7 @@ int T5LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     const Tgpu Tgpu0val      = static_cast<Tgpu>(0.0);
     const Tgpu Tgpu1val      = static_cast<Tgpu>(1.0);
     const Tgpu Tgpuminus1val = static_cast<Tgpu>(-1.0);
-    const Tref Tgpu0val      = static_cast<Tref>(0.0);
+    const Tref Tref0ref      = static_cast<Tref>(0.0);
     size_t x_sz              = GetTensorSize(xDesc);
     size_t weight_sz         = GetTensorSize(weightDesc);
     size_t y_sz              = GetTensorSize(yDesc);
@@ -372,10 +372,10 @@ int T5LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     dy       = std::vector<Tgpu>(dy_sz, Tgpu0val);
     dx       = std::vector<Tgpu>(dx_sz, Tgpu0val);
     dw       = std::vector<Tgpu>(dw_sz, Tgpu0val);
-    yhost    = std::vector<Tref>(y_sz, Tgpu0val);
-    rstdhost = std::vector<Tref>(rstd_sz, Tgpu0val);
-    dxhost   = std::vector<Tref>(dx_sz, Tgpu0val);
-    dwhost   = std::vector<Tref>(dw_sz, Tgpu0val);
+    yhost    = std::vector<Tref>(y_sz, Tref0ref);
+    rstdhost = std::vector<Tref>(rstd_sz, Tref0ref);
+    dxhost   = std::vector<Tref>(dx_sz, Tref0ref);
+    dwhost   = std::vector<Tref>(dw_sz, Tref0ref);
 
     for(int i = 0; i < x_sz; i++)
     {

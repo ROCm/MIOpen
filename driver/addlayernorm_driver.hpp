@@ -275,7 +275,7 @@ int AddLayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
     const Tgpu Tgpu0val = static_cast<Tgpu>(0.0);
     const Tgpu Tgpu1val = static_cast<Tgpu>(1.0);
-    const Tref Tgpu0val = static_cast<Tref>(0.0);
+    const Tref Tref0val = static_cast<Tref>(0.0);
     size_t in_sz        = GetTensorSize(inputDesc);
     size_t in2_sz       = GetTensorSize(input2Desc);
     size_t weight_sz    = GetTensorSize(weightDesc);
@@ -299,11 +299,11 @@ int AddLayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     weight   = std::vector<Tgpu>(weight_sz, Tgpu0val);
     bias     = std::vector<Tgpu>(bias_sz, Tgpu0val);
     out      = std::vector<Tgpu>(out_sz, Tgpu0val);
-    mean     = std::vector<Tref>(mean_sz, Tgpu0val);
-    rstd     = std::vector<Tref>(rstd_sz, Tgpu0val);
-    outhost  = std::vector<Tref>(out_sz, Tgpu0val);
-    meanhost = std::vector<Tref>(mean_sz, Tgpu0val);
-    rstdhost = std::vector<Tref>(rstd_sz, Tgpu0val);
+    mean     = std::vector<Tref>(mean_sz, Tref0val);
+    rstd     = std::vector<Tref>(rstd_sz, Tref0val);
+    outhost  = std::vector<Tref>(out_sz, Tref0val);
+    meanhost = std::vector<Tref>(mean_sz, Tref0val);
+    rstdhost = std::vector<Tref>(rstd_sz, Tref0val);
 
     for(int i = 0; i < in_sz; i++)
     {
