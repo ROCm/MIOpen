@@ -38,15 +38,15 @@ struct DataInvokeParams : InvokeParams
     Data_t workSpace;
     std::size_t workSpaceSize;
     bool gfx90aFp16alt;
-    const void* alpha;
-    const void* beta;
+    ConstData_t alpha;
+    ConstData_t beta;
 
     DataInvokeParams(ConvDataTensors tensors_,
                      Data_t workSpace_,
                      std::size_t workSpaceSize_,
                      bool gfx90aFp16alt_,
-                     const void* alpha_ = nullptr,
-                     const void* beta_  = nullptr)
+                     ConstData_t alpha_ = nullptr,
+                     ConstData_t beta_  = nullptr)
         : tensors(tensors_),
           workSpace(workSpace_),
           workSpaceSize(workSpaceSize_),
@@ -61,8 +61,8 @@ struct DataInvokeParams : InvokeParams
                      Data_t workSpace_,
                      std::size_t workSpaceSize_,
                      bool gfx90aFp16alt_,
-                     void* alpha_ = nullptr,
-                     void* beta_  = nullptr)
+                     ConstData_t alpha_ = nullptr,
+                     ConstData_t beta_  = nullptr)
         : InvokeParams{type_},
           tensors(tensors_),
           workSpace(workSpace_),

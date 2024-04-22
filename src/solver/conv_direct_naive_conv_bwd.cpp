@@ -153,8 +153,10 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ExecutionContext& ctx,
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 decltype(auto) data_ctx =
                     primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
-                const auto& tensors = data_ctx.tensors;
-                float elapsed       = 0;
+                const auto& tensors   = data_ctx.tensors;
+                const auto& alpha_ptr = data_ctx.alpha;
+                const auto& beta_ptr  = data_ctx.beta;
+                float elapsed         = 0;
                 auto in_strides = conv_internal::MakeStrideArray<5>(conv_internal::SplitStrideCtoGC(
                     group, tensors.inDesc.GetStrides(), G_stride_idx));
                 // For weights, we split K to (G, K_per_group), which is always index 0
@@ -163,6 +165,14 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ExecutionContext& ctx,
                 auto out_strides =
                     conv_internal::MakeStrideArray<5>(conv_internal::SplitStrideCtoGC(
                         group, tensors.outDesc.GetStrides(), G_stride_idx));
+                float alpha_val = 1.0;
+                float beta_val  = 0.0;
+                if(alpha_ptr != nullptr && beta_ptr != nullptr)
+                {
+                    alpha_val = *static_cast<const float*>(alpha_ptr);
+                    beta_val  = *static_cast<const float*>(beta_ptr);
+                }
+
                 /// \ref backward_tensors_reversed_why
                 if(is_f8)
                 {
@@ -196,6 +206,8 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ExecutionContext& ctx,
                 {
                     handle.Run(kern)(tensors.out,
                                      tensors.w,
+                                     alpha_val,
+                                     beta_val,
                                      tensors.in,
                                      out_strides,
                                      wei_strides,
@@ -235,8 +247,10 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ExecutionContext& ctx,
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 decltype(auto) data_ctx =
                     primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
-                const auto& tensors = data_ctx.tensors;
-                float elapsed       = 0;
+                const auto& tensors   = data_ctx.tensors;
+                const auto& alpha_ptr = data_ctx.alpha;
+                const auto& beta_ptr  = data_ctx.beta;
+                float elapsed         = 0;
 
                 auto in_strides = conv_internal::MakeStrideArray<6>(conv_internal::SplitStrideCtoGC(
                     group, tensors.inDesc.GetStrides(), G_stride_idx));
@@ -246,7 +260,13 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ExecutionContext& ctx,
                 auto out_strides =
                     conv_internal::MakeStrideArray<6>(conv_internal::SplitStrideCtoGC(
                         group, tensors.outDesc.GetStrides(), G_stride_idx));
-
+                float alpha_val = 1.0;
+                float beta_val  = 0.0;
+                if(alpha_ptr != nullptr && beta_ptr != nullptr)
+                {
+                    alpha_val = *static_cast<const float*>(alpha_ptr);
+                    beta_val  = *static_cast<const float*>(beta_ptr);
+                }
                 /// \anchor backward_tensors_reversed_why
                 /// \todo Someone made the silly decision of swapping in and
                 /// out pointers in ConvTensors for backward pass, so now I have to
@@ -254,6 +274,8 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ExecutionContext& ctx,
                 /// vice-versa --amberhassaan
                 handle.Run(kern)(tensors.out,
                                  tensors.w,
+                                 alpha_val,
+                                 beta_val,
                                  tensors.in,
                                  out_strides,
                                  wei_strides,

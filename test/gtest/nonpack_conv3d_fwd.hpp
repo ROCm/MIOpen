@@ -44,49 +44,58 @@ struct NonPackTestCase : Conv3DTestCase
     size_t o2;
     size_t o3;
     size_t o4;
+    float alpha;
+    float beta;
     std::vector<size_t> GetInputStrides() { return {i0, i1, i2, i3, i4}; }
     std::vector<size_t> GetWeightStrides() { return {w0, w1, w2, w3, w4}; }
     std::vector<size_t> GetOutputStrides() { return {o0, o1, o2, o3, o4}; }
+    float GetAlpha() { return alpha; }
+    float GetBeta() { return beta; }
 };
 
 template <>
 std::vector<NonPackTestCase> ConvTestConfigs()
-{ // g    n   c     d    h   w    k    z   y   x   pad_x pad_y pad_z stri_x stri_y stri_z dia_x
-  // dia_y dia_z
-    return {{{1, 1, 8, 1, 2, 2, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-             10240,
-             1,
-             2560,
-             160,
-             16,
-
-             432,
-             1,
-             144,
-             48,
-             16,
-
-             9216,
-             1,
-             2304,
-             256,
-             16},
-            {{1, 1, 64, 3, 16, 16, 128, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-             65536,
-             1,
-             24000,
-             2048,
-             64,
-             1728,
-             1,
-             576,
-             192,
-             64,
-             98304,
-             1,
-             32768,
-             2048,
-             128}};
+{ // g  n  c  d  h  w  k  z  y  x  pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
+    return {{
+                {1, 4, 16, 4, 9, 16, 16, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+                10240,
+                1,
+                2560,
+                160,
+                16,
+                432,
+                1,
+                144,
+                48,
+                16,
+                9216,
+                1,
+                2304,
+                256,
+                16,
+                2.0, // alpha
+                4.0  // beta
+            },
+            {
+                {1, 1, 64, 3, 16, 16, 128, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+                65536,
+                1,
+                24000,
+                2048,
+                64,
+                1728,
+                1,
+                576,
+                192,
+                64,
+                98304,
+                1,
+                32768,
+                2048,
+                128,
+                1.0, // alpha
+                0.0  // beta
+            }};
 }
 
 template <typename T = float>
@@ -100,11 +109,13 @@ protected:
         test_skipped = false;
 
         std::tie(algo, conv_config, tensor_layout) = GetParam();
-        input   = tensor<T>{tensor_layout, conv_config.GetInput(), conv_config.GetInputStrides()};
-        weights = tensor<T>{tensor_layout, conv_config.GetWeights()};
+        input     = tensor<T>{tensor_layout, conv_config.GetInput(), conv_config.GetInputStrides()};
+        weights   = tensor<T>{tensor_layout, conv_config.GetWeights()};
+        alpha_val = conv_config.GetAlpha();
+        beta_val  = conv_config.GetBeta();
         std::random_device rd{};
         std::mt19937 gen{rd()};
-        std::uniform_real_distribution<> d{-2, 2};
+        std::uniform_real_distribution<> d{-3, 3};
         auto gen_value = [&](auto...) { return d(gen); };
         input.generate(gen_value);
         weights.generate(gen_value);
@@ -114,7 +125,9 @@ protected:
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
         output = tensor<T>{tensor_layout, output_desc.GetLengths()};
-        std::fill(output.begin(), output.end(), 0.0);
+        // since now we do alpha*value + output*beta
+        // we set output to some random floating value.
+        std::fill(output.begin(), output.end(), 2.2);
         auto&& handle = get_handle();
         in_dev        = handle.Write(input.data);
         wei_dev       = handle.Write(weights.data);
@@ -129,8 +142,14 @@ protected:
 
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
-        ref_out     = tensor<T>{tensor_layout, output_desc.GetLengths()};
-        ref_out     = ref_conv_fwd(input, weights, output, conv_desc);
+        ref_out = tensor<T>{tensor_layout, output_desc.GetLengths()};
+        ref_out = ref_conv_fwd(input,
+                               weights,
+                               output,
+                               conv_desc,
+                               static_cast<const void*>(&alpha_val),
+                               static_cast<const void*>(&beta_val));
+
         output.data = handle.Read<T>(out_dev, output.data.size());
         EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
         EXPECT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
@@ -152,6 +171,9 @@ protected:
     tensor<T> weights;
     tensor<T> output;
     tensor<T> ref_out;
+    float alpha_val;
+    float beta_val;
+
     miopen::Allocator::ManageDataPtr in_dev;
     miopen::Allocator::ManageDataPtr wei_dev;
     miopen::Allocator::ManageDataPtr out_dev;

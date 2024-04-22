@@ -152,8 +152,10 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ExecutionContext& ctx,
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 decltype(auto) data_ctx =
                     primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
-                const auto& tensors = data_ctx.tensors;
-                float elapsed       = 0;
+                const auto& tensors   = data_ctx.tensors;
+                const auto& alpha_ptr = data_ctx.alpha;
+                const auto& beta_ptr  = data_ctx.beta;
+                float elapsed         = 0;
 
                 auto in_strides = conv_internal::MakeStrideArray<5>(conv_internal::SplitStrideCtoGC(
                     group, tensors.inDesc.GetStrides(), G_stride_idx));
@@ -163,6 +165,13 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ExecutionContext& ctx,
                 auto out_strides =
                     conv_internal::MakeStrideArray<5>(conv_internal::SplitStrideCtoGC(
                         group, tensors.outDesc.GetStrides(), G_stride_idx));
+                float alpha_val = 1.0;
+                float beta_val  = 0.0;
+                if(alpha_ptr != nullptr && beta_ptr != nullptr)
+                {
+                    alpha_val = *static_cast<const float*>(alpha_ptr);
+                    beta_val  = *static_cast<const float*>(beta_ptr);
+                }
 
                 if(is_f8)
                 {
@@ -196,6 +205,8 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ExecutionContext& ctx,
                 {
                     handle.Run(kern)(tensors.in,
                                      tensors.w,
+                                     alpha_val,
+                                     beta_val,
                                      tensors.out,
                                      in_strides,
                                      wei_strides,
@@ -235,8 +246,10 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ExecutionContext& ctx,
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 decltype(auto) data_ctx =
                     primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
-                const auto& tensors = data_ctx.tensors;
-                float elapsed       = 0;
+                const auto& tensors   = data_ctx.tensors;
+                const auto& alpha_ptr = data_ctx.alpha;
+                const auto& beta_ptr  = data_ctx.beta;
+                float elapsed         = 0;
 
                 auto in_strides = conv_internal::MakeStrideArray<6>(conv_internal::SplitStrideCtoGC(
                     group, tensors.inDesc.GetStrides(), G_stride_idx));
@@ -246,8 +259,19 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ExecutionContext& ctx,
                 auto out_strides =
                     conv_internal::MakeStrideArray<6>(conv_internal::SplitStrideCtoGC(
                         group, tensors.outDesc.GetStrides(), G_stride_idx));
+
+                float alpha_val = 1.0;
+                float beta_val  = 0.0;
+                if(alpha_ptr != nullptr && beta_ptr != nullptr)
+                {
+                    alpha_val = *static_cast<const float*>(alpha_ptr);
+                    beta_val  = *static_cast<const float*>(beta_ptr);
+                }
+
                 handle.Run(kern)(tensors.in,
                                  tensors.w,
+                                 alpha_val,
+                                 beta_val,
                                  tensors.out,
                                  in_strides,
                                  wei_strides,
