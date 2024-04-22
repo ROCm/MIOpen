@@ -30,7 +30,6 @@
 #include <miopen/exec_utils.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
-#include <miopen/stringutils.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/target_properties.hpp>
 #include <boost/optional.hpp>
@@ -135,8 +134,6 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     // cppcheck-suppress unreadVariable
     const LcOptionTargetStrings lots(target);
 
-    auto env = std::string("");
-
     if(params.find("-std=") == std::string::npos)
         params += " --std=c++17";
 
@@ -185,7 +182,7 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
         if(testing_mode)
             args += " 1>/dev/null 2>&1";
 #endif
-        tmp_dir->Execute(MIOPEN_HIP_COMPILER, args, env);
+        tmp_dir->Execute(MIOPEN_HIP_COMPILER, args);
         if(!fs::exists(bin_file))
             MIOPEN_THROW("Failed cmd: '" MIOPEN_HIP_COMPILER "', args: '" + args + '\'');
     }

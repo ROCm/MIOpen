@@ -40,7 +40,7 @@ struct ProcessImpl
 public:
     ProcessImpl(std::string_view cmd) : path{cmd} {}
 
-    void Create(std::string_view args, std::string_view cwd, std::string_view envs)
+    void Create(std::string_view args, std::string_view cwd)
     {
         STARTUPINFOA info;
         ZeroMemory(&info, sizeof(STARTUPINFO));
@@ -48,7 +48,7 @@ public:
 
         std::string cmd{path.string()};
         if(!args.empty())
-            cmd.append(" ").append(args);
+            cmd += " " + std::string{args};
 
         // Refer to
         // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessa
@@ -57,26 +57,13 @@ public:
         if(cmd.size() < BUFFER_CAPACITY)
             cmd.resize(BUFFER_CAPACITY, '\0');
 
-        std::vector<TCHAR> environment{};
-        if(!envs.empty())
-        {
-            std::istringstream iss{std::string{envs}};
-            std::string str;
-            while(iss >> str)
-            {
-                environment.insert(environment.end(), str.begin(), str.end());
-                environment.emplace_back('\0');
-            }
-            environment.emplace_back('\0');
-        }
-
         if(CreateProcess(path.string().c_str(),
                          cmd.data(),
                          nullptr,
                          nullptr,
                          FALSE,
                          0,
-                         environment.empty() ? nullptr : environment.data(),
+                         nullptr,
                          cwd.empty() ? nullptr : cwd.data(),
                          &info,
                          &processInfo) == FALSE)
@@ -110,15 +97,13 @@ struct ProcessImpl
 {
     ProcessImpl(std::string_view cmd) : path{cmd} {}
 
-    void Create(std::string_view args, std::string_view cwd, std::string_view envs)
+    void Create(std::string_view args, std::string_view cwd)
     {
         std::string cmd{path.string()};
-        if(!envs.empty())
-            cmd.insert(0, " ").insert(0, envs);
         if(!args.empty())
             cmd += " " + std::string{args};
         if(!cwd.empty())
-            cmd.insert(0, "; ").insert(0, cwd).insert(0, "cd ");
+            cmd.insert(0, "cd " + std::string{cwd} + "; ");
         pipe = popen(cmd.c_str(), "w");
         if(pipe == nullptr)
             MIOPEN_THROW("Error: popen()");
@@ -141,16 +126,16 @@ Process::Process(const fs::path& cmd) : impl{std::make_unique<ProcessImpl>(cmd.s
 
 Process::~Process() noexcept = default;
 
-int Process::operator()(std::string_view args, const fs::path& cwd, std::string_view envs)
+int Process::operator()(std::string_view args, const fs::path& cwd)
 {
-    impl->Create(args, cwd.string(), envs);
+    impl->Create(args, cwd.string());
     return impl->Wait();
 }
 
-ProcessAsync::ProcessAsync(const fs::path& cmd, std::string_view args, const fs::path& cwd, std::string_view envs)
+ProcessAsync::ProcessAsync(const fs::path& cmd, std::string_view args, const fs::path& cwd)
     : impl{std::make_unique<ProcessImpl>(cmd.string())}
 {
-    impl->Create(args, cwd.string(), envs);
+    impl->Create(args, cwd.string());
 }
 
 ProcessAsync::~ProcessAsync() noexcept = default;

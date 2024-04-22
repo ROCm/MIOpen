@@ -56,7 +56,7 @@ int TmpDir::Execute(std::string_view cmd, std::string_view args, std::string_vie
     {
         MIOPEN_LOG_I2(path);
     }
-    auto status = Process{cmd}(args, path, envs);
+    auto status = Process{cmd}(args, path);
     if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_EXIT_STATUS_TEMP_DIR)))
     {
         MIOPEN_LOG_I2(status);
