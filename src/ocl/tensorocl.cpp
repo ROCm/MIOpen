@@ -1430,14 +1430,14 @@ void SetTensor(const Handle& handle,
     const TensorDescriptor yDesc_flat = GetFlattenedTensorDescriptor(yDesc);
 
 #ifndef NDEBUG
-    if(yDesc.GetSize() != yDesc_flat.GetSize())
+    if(yDesc.GetNumDims() != yDesc_flat.GetNumDims())
     {
         MIOPEN_LOG_I2("real descriptor: " << yDesc);
         MIOPEN_LOG_I2("flat descriptor: " << yDesc_flat);
     }
 #endif
 
-    const std::size_t yDim_flat = yDesc_flat.GetSize();
+    const std::size_t yDim_flat = yDesc_flat.GetNumDims();
 
     assert(yDim_flat > 0 && yDim_flat <= 5);
 
@@ -1583,14 +1583,14 @@ void ScaleTensor(const Handle& handle,
     const TensorDescriptor yDesc_flat = GetFlattenedTensorDescriptor(yDesc);
 
 #ifndef NDEBUG
-    if(yDesc.GetSize() != yDesc_flat.GetSize())
+    if(yDesc.GetNumDims() != yDesc_flat.GetNumDims())
     {
         MIOPEN_LOG_I2("real descriptor: " << yDesc);
         MIOPEN_LOG_I2("flat descriptor: " << yDesc_flat);
     }
 #endif
 
-    const std::size_t yDim_flat = yDesc_flat.GetSize();
+    const std::size_t yDim_flat = yDesc_flat.GetNumDims();
 
     assert(yDim_flat > 0 && yDim_flat <= 5);
 
@@ -1761,7 +1761,7 @@ void CopyTensor(const Handle& handle,
     const TensorDescriptor& dstDesc_flat = std::get<1>(flat_descriptors);
 
 #ifndef NDEBUG
-    if(srcDesc.GetSize() != srcDesc_flat.GetSize())
+    if(srcDesc.GetNumDims() != srcDesc_flat.GetNumDims())
     {
         MIOPEN_LOG_I2("src real descriptor: " << srcDesc);
         MIOPEN_LOG_I2("src flat descriptor: " << srcDesc_flat);
@@ -1770,7 +1770,7 @@ void CopyTensor(const Handle& handle,
     }
 #endif
 
-    std::size_t srcDim_flat = srcDesc_flat.GetSize();
+    std::size_t srcDim_flat = srcDesc_flat.GetNumDims();
 
     if(srcDim_flat < 1 || srcDim_flat > 5)
     {
@@ -1970,7 +1970,7 @@ void CastTensor(const Handle& handle,
     const TensorDescriptor& dstDesc_flat = std::get<1>(flat_descriptors);
 
 #ifndef NDEBUG
-    if(srcDesc.GetSize() != srcDesc_flat.GetSize())
+    if(srcDesc.GetNumDims() != srcDesc_flat.GetNumDims())
     {
         MIOPEN_LOG_I2("src real descriptor: " << srcDesc);
         MIOPEN_LOG_I2("src flat descriptor: " << srcDesc_flat);
@@ -1979,7 +1979,7 @@ void CastTensor(const Handle& handle,
     }
 #endif
 
-    std::size_t srcDim_flat = srcDesc_flat.GetSize();
+    std::size_t srcDim_flat = srcDesc_flat.GetNumDims();
 
     if(srcDim_flat < 1 || srcDim_flat > 5)
     {
@@ -2253,20 +2253,20 @@ void TransformTensor(const Handle& handle,
         const TensorDescriptor& yDesc_flat = std::get<1>(flat_descriptors);
 
 #ifndef NDEBUG
-        if(xDesc.GetSize() != xDesc_flat.GetSize())
+        if(xDesc.GetNumDims() != xDesc_flat.GetNumDims())
         {
             MIOPEN_LOG_I2("x real descriptor: " << xDesc);
             MIOPEN_LOG_I2("x flat descriptor: " << xDesc_flat);
         }
 
-        if(yDesc.GetSize() != yDesc_flat.GetSize())
+        if(yDesc.GetNumDims() != yDesc_flat.GetNumDims())
         {
             MIOPEN_LOG_I2("y real descriptor: " << yDesc);
             MIOPEN_LOG_I2("y flat descriptor: " << yDesc_flat);
         }
 #endif
 
-        const std::size_t yDim_flat = yDesc_flat.GetSize();
+        const std::size_t yDim_flat = yDesc_flat.GetNumDims();
 
         assert(yDim_flat > 0 && yDim_flat <= 5);
 

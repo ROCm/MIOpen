@@ -275,7 +275,7 @@ extern "C" miopenStatus_t miopenGetTensorDescriptorSize(miopenTensorDescriptor_t
                                                         int* size)
 {
     MIOPEN_LOG_FUNCTION(tensorDesc);
-    return miopen::try_([&] { miopen::deref(size) = miopen::deref(tensorDesc).GetSize(); });
+    return miopen::try_([&] { miopen::deref(size) = miopen::deref(tensorDesc).GetNumDims(); });
 }
 
 extern "C" miopenStatus_t miopenGetTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
