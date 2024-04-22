@@ -101,7 +101,7 @@ inline std::vector<int> GetTensorLengths(const miopenTensorDescriptor_t& tensor)
     }
 
     std::vector<int> tensor_len;
-    tensor_len.resize(miopen::deref(tensor).GetSize());
+    tensor_len.resize(miopen::deref(tensor).GetNumDims());
     miopenGetTensorDescriptor(tensor, nullptr, tensor_len.data(), nullptr);
 
     return tensor_len;
@@ -131,7 +131,7 @@ inline std::vector<int> GetTensorStrides(const miopenTensorDescriptor_t& tensor)
     }
 
     std::vector<int> tensor_strides;
-    tensor_strides.resize(miopen::deref(tensor).GetSize());
+    tensor_strides.resize(miopen::deref(tensor).GetNumDims());
 
     miopenGetTensorDescriptor(tensor, nullptr, nullptr, tensor_strides.data());
 
