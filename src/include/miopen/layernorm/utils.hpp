@@ -53,6 +53,34 @@ inline std::size_t sizeof_local_memory_t5(const miopen::layernorm::ProblemDescri
     return rv;
 }
 
+size_t get_reqd_work_item_cnt(const ExecutionContext& context)
+{
+    // At least 4 WGs per one CU
+    return static_cast<size_t>(LOCAL_SIZE * context.GetStream().GetMaxComputeUnits() * 4);
+}
+
+size_t get_reqd_work_item_cnt(const Handle& handle)
+{
+    // At least 4 WGs per one CU
+    return static_cast<size_t>(LOCAL_SIZE * handle.GetMaxComputeUnits() * 4);
+}
+
+size_t get_parallelism_size(size_t reqd_work_item_cnt, size_t inner_size, size_t outer_size)
+{
+    size_t parallelism_size = 1ULL;
+    while(parallelism_size * inner_size < reqd_work_item_cnt &&
+          parallelism_size < std::sqrt(outer_size))
+    {
+        parallelism_size *= 2ULL;
+    }
+    return parallelism_size;
+}
+
+bool is_parallelism(size_t reqd_work_item_cnt, size_t inner_size, size_t outer_size)
+{
+    return !(inner_size > reqd_work_item_cnt) && (inner_size * outer_size > reqd_work_item_cnt);
+}
+
 } // namespace layernorm
 } // namespace solver
 } // namespace miopen
