@@ -30,7 +30,6 @@
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/batched_transpose_sol.hpp>
 #include <miopen/tensor_ops.hpp>
-#include <type_traits>
 
 #if MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/utility/data_type.hpp>

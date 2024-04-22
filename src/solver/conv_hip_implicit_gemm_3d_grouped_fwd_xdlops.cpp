@@ -66,7 +66,6 @@ using DeviceOpGFwdPtrs =
 
 namespace {
 
-template <typename DataType>
 struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
@@ -141,26 +140,25 @@ struct CKArgs
     template <typename ConvPtr>
     auto MakeArgPtr(const ConvPtr& conv_ptr, ConstData_t in, ConstData_t w, Data_t out) const
     {
-        return conv_ptr->MakeArgumentPointer(
-            in,
-            w,
-            {},
-            out,
-            input,
-            in_strides,
-            weight,
-            wei_strides,
-            {},
-            {},
-            output,
-            out_strides,
-            strides,
-            dilation,
-            lPadding,
-            rPadding,
-            {},
-            {},
-            {} /*Bilinear{GetNumFromVoidPtr<DataType>(alpha), GetNumFromVoidPtr<DataType>(beta)}*/);
+        return conv_ptr->MakeArgumentPointer(in,
+                                             w,
+                                             {},
+                                             out,
+                                             input,
+                                             in_strides,
+                                             weight,
+                                             wei_strides,
+                                             {},
+                                             {},
+                                             output,
+                                             out_strides,
+                                             strides,
+                                             dilation,
+                                             lPadding,
+                                             rPadding,
+                                             {},
+                                             {},
+                                             {} /*Bilinear{alpha, beta}*/);
     }
 
     template <typename ConvPtr>
@@ -210,7 +208,7 @@ struct CKArgs
 template <typename DataType>
 void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::Init(const ProblemDescription& problem)
 {
-    valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<DataType>, CKArgs<DataType>>(problem);
+    valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<DataType>, CKArgs>(problem);
     index         = 0;
     kernel_id     = valid_kernels[index];
 }
@@ -219,14 +217,14 @@ template <typename DataType>
 bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
-    return IsCKArgsSupported<DeviceOpGFwdPtrs<DataType>, CKArgs<DataType>>(problem, kernel_id);
+    return IsCKArgsSupported<DeviceOpGFwdPtrs<DataType>, CKArgs>(problem, kernel_id);
 }
 
 template <typename DataType>
 bool ConvHipImplicitGemm3DGroupFwdXdlops::CheckCKApplicability(
     const ProblemDescription& problem) const
 {
-    return IsCKApplicable<DeviceOpGFwdPtrs<DataType>, CKArgs<DataType>>(problem);
+    return IsCKApplicable<DeviceOpGFwdPtrs<DataType>, CKArgs>(problem);
 }
 #endif
 
@@ -383,14 +381,14 @@ ConvSolution ConvHipImplicitGemm3DGroupFwdXdlops::GetSolution(
             using T = decltype(data_type_val);
             return InitInvokerFactoryFwdNCHW<3,
                                              DeviceOpGFwdPtrs<T>,
-                                             CKArgs<T>,
+                                             CKArgs,
                                              miopen::conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
             return InitInvokerFactoryNHWC<DeviceOpGFwdPtrs<T>,
-                                          CKArgs<T>,
+                                          CKArgs,
                                           miopen::conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         });
