@@ -297,6 +297,27 @@ public:
     OpGraph build() &&;
 };
 
+class GraphEngine
+{
+    OpGraph* mUserGraph;
+
+public:
+    GraphEngine(OpGraph* g) : mUserGraph(g) {}
+    const OpGraph* getOpGraph() const { return mUserGraph; }
+    OpGraph* getOpGraph() { return mUserGraph; }
+};
+
+// Pattern is a family of solvers for the same graph shape
+class GraphPattern
+{
+
+public:
+    virtual bool matches(const OpGraph& graph)                        = 0;
+    virtual std::vector<GraphEngine> getEngines(const OpGraph& graph) = 0;
+
+    virtual ~GraphPattern();
+};
+
 bool isIsomorphic(const OpGraph& left, const OpGraph& right);
 
 std::string pathToStr(const Path& path);
