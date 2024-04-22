@@ -198,8 +198,8 @@ struct CKArgs
     int Y;
     int X;
     int Z;
-    const void* alpha;
-    const void* beta;
+    ConstData_t alpha;
+    ConstData_t beta;
     std::array<ck::index_t, 6> in_lengths;
     std::array<ck::index_t, 6> in_strides;
     std::array<ck::index_t, 6> out_lengths;
