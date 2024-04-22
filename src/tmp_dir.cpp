@@ -50,7 +50,7 @@ TmpDir::TmpDir(std::string_view prefix) : path{fs::temp_directory_path()}
     fs::create_directories(path);
 }
 
-int TmpDir::Execute(std::string_view cmd, std::string_view args, std::string_view envs) const
+int TmpDir::Execute(std::string_view cmd, std::string_view args) const
 {
     if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_SAVE_TEMP_DIR)))
     {
