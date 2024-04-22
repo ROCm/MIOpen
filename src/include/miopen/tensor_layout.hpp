@@ -76,7 +76,7 @@ template <typename T>
 void tensor_layout_to_strides(const std::vector<T>& len,
                               const std::string& len_layout,
                               const std::string& layout,
-                              const T vector_size,
+                              const std::size_t vector_size,
                               std::vector<T>& strides)
 {
     const std::string base_layout = layout.substr(0, len.size());

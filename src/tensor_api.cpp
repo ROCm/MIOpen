@@ -199,16 +199,16 @@ extern "C" miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t ten
     });
 }
 
-extern "C" miopenStatus_t miopenSetTensorDescriptorEx(miopenTensorDescriptor_t tensorDesc,
+extern "C" miopenStatus_t miopenSetTensorDescriptorV2(miopenTensorDescriptor_t tensorDesc,
                                                       miopenDataType_t dataType,
                                                       int nbDims,
-                                                      const std::size_t* dimsA,
-                                                      const std::size_t* stridesA)
+                                                      const size_t* dimsA,
+                                                      const size_t* stridesA)
 {
     if(miopen::IsLoggingFunctionCalls())
     {
-        const miopen::logger::CArray<std::size_t, int> dim(dimsA, nbDims);
-        const miopen::logger::CArray<std::size_t, int> stride(stridesA, nbDims);
+        const miopen::logger::CArray<size_t, int> dim(dimsA, nbDims);
+        const miopen::logger::CArray<size_t, int> stride(stridesA, nbDims);
         MIOPEN_LOG_FUNCTION(tensorDesc, dataType, nbDims, dim.values, stride.values);
     }
 

@@ -752,7 +752,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t 
 #ifdef MIOPEN_BETA_API
 /*! @copydoc miopenSetTensorDescriptor()
  */
-MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptorEx(miopenTensorDescriptor_t tensorDesc,
+MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptorV2(miopenTensorDescriptor_t tensorDesc,
                                                          miopenDataType_t dataType,
                                                          int nbDims,
                                                          const size_t* dimsA,

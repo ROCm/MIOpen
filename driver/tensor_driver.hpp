@@ -186,7 +186,7 @@ inline int SetTensorNd(miopenTensorDescriptor_t t,
                        std::vector<std::size_t>& strides,
                        miopenDataType_t data_type = miopenFloat)
 {
-    return miopenSetTensorDescriptorEx(t, data_type, len.size(), len.data(), strides.data());
+    return miopenSetTensorDescriptorV2(t, data_type, len.size(), len.data(), strides.data());
 }
 
 inline int SetTensorNd(miopenTensorDescriptor_t t,
