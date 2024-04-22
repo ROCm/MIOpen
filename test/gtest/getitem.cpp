@@ -30,7 +30,7 @@
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-namespace layernorm {
+namespace getitem {
 
 std::string GetFloatArg()
 {
@@ -54,8 +54,8 @@ struct GetitemBwdTestBFloat16 : GetitemBwdTest<bfloat16>
 {
 };
 
-} // namespace layernorm
-using namespace layernorm;
+} // namespace getitem
+using namespace getitem;
 
 TEST_P(GetitemBwdTestFloat, GetitemBwdTestFw)
 {
