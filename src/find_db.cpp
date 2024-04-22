@@ -219,7 +219,7 @@ std::string FindDbRecord_t<TDb>::GetUserPath(Handle& handle, const std::string& 
 {
 #if !MIOPEN_DISABLE_USERDB
     std::ostringstream ss;
-    ss << GetUserDbPath() << '/';
+    ss << GetUserDbPath().string() << '/';
     ss << handle.GetDbBasename();
     ss << '.' << GetUserDbSuffix();
     if(!path_suffix.empty())
