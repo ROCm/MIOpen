@@ -42,10 +42,10 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     auto dim_info_offset = indexCount > 0 ? indexCount * index_dims[0] : 0;
     auto start_dim       = dims[0];
 
-    std::vector<int32_t> output_dims;
+    std::vector<int32_t> output_dims(dimCount);
     for(int32_t i = 0; i < dimCount; i++)
     {
-        output_dims.push_back(dx_dims[dims[i]]);
+        output_dims[i] = static_cast<int32_t>(dx_dims[dims[i]]);
     }
     std::ostringstream ss;
 

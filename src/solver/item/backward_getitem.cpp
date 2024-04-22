@@ -84,10 +84,10 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& context,
     auto dy_numel =
         std::accumulate(dy_dims.begin(), dy_dims.end(), 1ULL, std::multiplies<size_t>());
 
-    std::vector<int32_t> output_dims;
+    std::vector<int32_t> output_dims(dimCount);
     for(int32_t i = 0; i < dimCount; i++)
     {
-        output_dims.push_back(dx_dims[problem.GetDim(i)]);
+        output_dims[i] = static_cast<int32_t>(dx_dims[problem.GetDim(i)]);
     }
 
     for(int32_t i = 0; i < indexCount; i++)
@@ -175,10 +175,10 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& context,
             auto dims     = params.dims;
             auto dimCount = params.dimCount;
 
-            std::vector<int32_t> output_dims;
+            std::vector<int32_t> output_dims(dimCount);
             for(int32_t i = 0; i < dimCount; i++)
             {
-                output_dims.push_back(dx_dims[dims[i]]);
+                output_dims[i] = static_cast<int32_t>(dx_dims[dims[i]]);
             }
 
             auto indexCount = params.indexCount;

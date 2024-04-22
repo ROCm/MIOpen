@@ -34,7 +34,7 @@ struct Handle;
 struct TensorDescriptor;
 
 std::size_t GetGetitemWorkspaceSize(Handle& handle,
-                                    const int32_t indexCount,
+                                    int32_t indexCount,
                                     const TensorDescriptor* const* indexDescs);
 
 miopenStatus_t GetitemBackward(Handle& handle,
@@ -42,18 +42,18 @@ miopenStatus_t GetitemBackward(Handle& handle,
                                size_t workspaceSizeInBytes,
                                const TensorDescriptor& dyDesc,
                                ConstData_t dy,
-                               const int32_t indexCount,
+                               int32_t indexCount,
                                const TensorDescriptor* const* indexDescs,
                                ConstData_t* indexs,
                                const TensorDescriptor& dxDesc,
                                Data_t dx,
                                const TensorDescriptor& errorDesc,
                                Data_t error,
-                               const int32_t dimCount,
+                               int32_t dimCount,
                                const int32_t* dims,
-                               const int32_t sliceCount,
+                               int32_t sliceCount,
                                const int32_t* slices,
-                               const int32_t offset);
+                               int32_t offset);
 
 } // namespace miopen
 #endif // _MIOPEN_GETITEM_HPP_

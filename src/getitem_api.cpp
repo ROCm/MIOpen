@@ -59,53 +59,55 @@ static void LogCmdGetitem(const miopenTensorDescriptor_t dyDesc,
 
         std::string dy_s;
         auto dy_dims = miopen::deref(dyDesc).GetLengths();
-        for(auto dy_dim : dy_dims)
+        for(int i = 0; i < dy_dims.size(); i++)
         {
-            dy_s += std::to_string(dy_dim);
-            dy_s += ",";
+            dy_s += std::to_string(dy_dims[i]);
+            if(i != dy_dims.size() - 2)
+                dy_s += ",";
         }
-        dy_s.pop_back();
         ss << " -doutput " << dy_s;
 
         for(int i = 0; i < indexCount; i++)
         {
             std::string index_s;
             auto index_dims = miopen::deref(indexDescs[i]).GetLengths();
-            for(auto index_dim : index_dims)
+            for(int j = 0; j < index_dims.size(); j++)
             {
-                index_s += std::to_string(index_dim);
-                index_s += ",";
+                index_s += std::to_string(index_dims[j]);
+                if(j != index_dims.size() - 2)
+                    index_s += ",";
             }
-            index_s.pop_back();
             ss << " -index" << i + 1 << " " << index_s;
         }
 
         std::string dx_s;
         auto dx_dims = miopen::deref(dxDesc).GetLengths();
-        for(auto dx_dim : dx_dims)
+
+        for(int i = 0; i < dx_dims.size(); i++)
         {
-            dx_s += std::to_string(dx_dim);
-            dx_s += ",";
+            dx_s += std::to_string(dx_dims[i]);
+            if(i != dx_dims.size() - 2)
+                dx_s += ",";
         }
-        dx_s.pop_back();
+
         ss << " -dx " << dx_s;
 
         std::string dims_s;
         for(int i = 0; i < dimCount; i++)
         {
             dims_s += std::to_string(dims[i]);
-            dims_s += ",";
+            if(i != dimCount - 2)
+                dims_s += ",";
         }
-        dims_s.pop_back();
         ss << " -dims" << dims_s;
 
         std::string slices_s;
         for(int i = 0; i < sliceCount; i++)
         {
             slices_s += std::to_string(slices[i]);
-            slices_s += ",";
+            if(i != sliceCount - 2)
+                slices_s += ",";
         }
-        slices_s.pop_back();
         ss << " -slice" << slices_s;
 
         ss << " -offset" << offset;
