@@ -270,7 +270,8 @@ set( MIOpen_Source
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
     solver/layernorm/forward_t5layernorm.cpp
-    solver/mha/mha_solver.cpp
+    solver/mha/mha_solver_backward.cpp
+    solver/mha/mha_solver_forward.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
