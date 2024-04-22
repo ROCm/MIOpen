@@ -28,10 +28,11 @@
 #include <miopen/miopen.h>
 #include <gtest/cba.hpp>
 #include <miopen/conv_algo_name.hpp>
+#include <gtest/group_conv.hpp>
 
 struct AIModelTestCase
 {
-    struct ConvTestCaseBase conv;
+    struct group_conv::GroupConvTestConfig<2u> conv;
     miopen::conv::Direction direction;
     miopenDataType_t data_type;
     miopenTensorLayout_t layout;

@@ -1,5 +1,8 @@
 {
-    "num_tuning_params": 8,
+    "num_tuning_params": {
+        "fwd": 8,
+        "bwd": 8        
+    },
     "decodings": {
         "tunings": {
             "0": "-1",
