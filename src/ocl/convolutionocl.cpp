@@ -453,14 +453,14 @@ void ConvolutionDescriptor::ValidateTensors(const ConvTensors& tensors) const
     }
 
     // x_tensor_invalid =
-    if(tensors.xDesc.GetSize() < 3)
+    if(tensors.xDesc.GetNumDims() < 3)
     {
         MIOPEN_THROW(miopenStatusBadParm, "input tensor's number of dimensions is wrong");
     }
 
     // tensor_sizes_not_matched =
-    if(tensors.xDesc.GetSize() != tensors.yDesc.GetSize() ||
-       tensors.xDesc.GetSize() != tensors.wDesc.GetSize())
+    if(tensors.xDesc.GetNumDims() != tensors.yDesc.GetNumDims() ||
+       tensors.xDesc.GetNumDims() != tensors.wDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm,
                      "number of dimensions mismatch between input, output and weights tensors");

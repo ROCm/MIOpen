@@ -1300,7 +1300,7 @@ void RNNDescriptor::RNNForward(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(hDesc.GetSize() != cDesc.GetSize())
+    if(hDesc.GetNumDims() != cDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -1405,7 +1405,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(hDesc.GetSize() != cDesc.GetSize())
+    if(hDesc.GetNumDims() != cDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }

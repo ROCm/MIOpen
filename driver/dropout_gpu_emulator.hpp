@@ -208,8 +208,8 @@ void RunDropoutForwardEmulator(miopenHandle_t handle,
                                size_t rsvsp_offset = 0)
 {
     (void)noise_shape;
-    auto in_dim  = miopen::deref(inputTensor).GetSize();
-    auto out_dim = miopen::deref(outputTensor).GetSize();
+    auto in_dim  = miopen::deref(inputTensor).GetNumDims();
+    auto out_dim = miopen::deref(outputTensor).GetNumDims();
     if(in_dim != out_dim)
     {
         printf("CPU verification: Input/Output dimension does not match\n");
@@ -292,8 +292,8 @@ void RunDropoutBackwardEmulator(const miopenDropoutDescriptor_t dropoutDesc,
                                 size_t out_offset   = 0,
                                 size_t rsvsp_offset = 0)
 {
-    auto in_dim  = miopen::deref(inputTensor).GetSize();
-    auto out_dim = miopen::deref(outputTensor).GetSize();
+    auto in_dim  = miopen::deref(inputTensor).GetNumDims();
+    auto out_dim = miopen::deref(outputTensor).GetNumDims();
     if(in_dim != out_dim)
     {
         printf("CPU verification: Input/Output dimension does not match\n");

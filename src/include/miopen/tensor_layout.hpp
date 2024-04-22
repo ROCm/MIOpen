@@ -105,7 +105,7 @@ void tensor_layout_to_strides(const std::vector<T>& len,
         });
 }
 
-inline std::string tensor_layout_get_default(int size)
+inline std::string tensor_layout_get_default(unsigned size)
 {
     if(size == 4)
         return "NCHW";
