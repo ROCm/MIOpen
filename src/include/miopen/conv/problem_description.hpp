@@ -42,9 +42,6 @@ namespace miopen {
 
 struct ExecutionContext;
 
-static const float default_alphaValue = 1.0f;
-static const float default_betaValue  = 0.0f;
-
 std::string
 EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataType_t out);
 
@@ -150,8 +147,8 @@ struct ProblemDescription : ProblemDescriptionBase
                        const ConvolutionDescriptor& conv_,
                        Direction direction_,
                        int bias_          = 0,
-                       const void* alpha_ = static_cast<const void*>(&default_alphaValue),
-                       const void* beta_  = static_cast<const void*>(&default_betaValue))
+                       ConstData_t alpha_ = nullptr,
+                       ConstData_t beta_  = nullptr)
         : in(in_),
           weights(weights_),
           out(out_),
@@ -303,8 +300,8 @@ struct ProblemDescription : ProblemDescriptionBase
     bool IsDirectionBackwardWrW() const { return direction == conv::Direction::BackwardWeights; }
     std::string GetDirectionStr() const;
 
-    const void* GetAlpha() const { return alpha; }
-    const void* GetBeta() const { return beta; }
+    ConstData_t GetAlpha() const { return alpha; }
+    ConstData_t GetBeta() const { return beta; }
 
     bool IsDefaultAlphaBetaType() const
     {
@@ -502,8 +499,8 @@ private:
     std::string out_layout;
     Direction direction = Direction::Forward;
     int bias            = 0;
-    const void* alpha   = nullptr;
-    const void* beta    = nullptr;
+    ConstData_t alpha   = nullptr;
+    ConstData_t beta    = nullptr;
 };
 
 } // namespace conv

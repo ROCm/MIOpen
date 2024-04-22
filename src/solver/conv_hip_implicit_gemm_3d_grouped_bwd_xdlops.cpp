@@ -33,7 +33,7 @@
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
-#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_data.hpp>
+#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_data_bilinear.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS)
@@ -45,20 +45,27 @@ namespace conv {
 using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-template <typename DataType>
-using DeviceOpGBwd = ck::tensor_operation::device::DeviceGroupedConvBwdDataMultipleD<
-    3,
-    ck::tensor_layout::convolution::NDHWGK,
-    ck::tensor_layout::convolution::GKZYXC,
-    ck::Tuple<>,
-    ck::tensor_layout::convolution::NDHWGC,
-    DataType,
-    DataType,
-    ck::Tuple<>,
-    DataType,
-    ck::tensor_operation::element_wise::PassThrough,
-    ck::tensor_operation::element_wise::PassThrough,
-    ck::tensor_operation::element_wise::PassThrough>;
+
+using InLayout                             = ck::tensor_layout::convolution::NDHWGC;
+using WeiLayout                            = ck::tensor_layout::convolution::GKZYXC;
+using OutLayout                            = ck::tensor_layout::convolution::NDHWGK;
+using PassThrough                          = ck::tensor_operation::element_wise::PassThrough;
+using Bilinear                             = ck::tensor_operation::element_wise::Bilinear;
+static constexpr ck::index_t NumDimSpatial = 3;
+
+using DeviceOpGBwd =
+    ck::tensor_operation::device::DeviceGroupedConvBwdDataMultipleD<NumDimSpatial,
+                                                                    OutLayout,
+                                                                    WeiLayout,
+                                                                    ck::Tuple<InLayout>,
+                                                                    InLayout,
+                                                                    OutDataType,
+                                                                    WeiDataType,
+                                                                    ck::Tuple<InDataType>,
+                                                                    InDataType,
+                                                                    PassThrough,
+                                                                    PassThrough,
+                                                                    Bilinear>;
 
 template <typename DataType>
 using DeviceOpGBwdPtrs =
@@ -86,9 +93,9 @@ struct CKArgs
         Do = ProblemInterpreter::GetOutputDepthDo(problem);
         Z  = ProblemInterpreter::GetFilterDepthZ(problem);
 
-        input  = {G, N, C, Di, Hi, Wi};
-        output = {G, N, K, Do, Ho, Wo};
-        weight = {G, K, C, Z, Y, X};
+        in_lengths  = {G, N, C, Di, Hi, Wi};
+        out_lengths = {G, N, K, Do, Ho, Wo};
+        wei_lengths = {G, K, C, Z, Y, X};
 
         // CK strides are in GNCDHW order
         if(problem.IsLayoutNHWC())
@@ -122,16 +129,16 @@ struct CKArgs
             wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
         }
 
-        strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
-                   ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
-                   ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
-        dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
-                    ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
-                    ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
-        lPadding = {ProblemInterpreter::GetInputLeftPadD(problem),
+        filter_strides   = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
+                          ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
+                          ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
+        filter_dilations = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
+                            ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
+                            ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
+        lPadding         = {ProblemInterpreter::GetInputLeftPadD(problem),
                     ProblemInterpreter::GetInputLeftPadH(problem),
                     ProblemInterpreter::GetInputLeftPadW(problem)};
-        rPadding = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
+        rPadding         = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadH(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
     }
@@ -143,25 +150,26 @@ struct CKArgs
     template <typename ConvPtr>
     auto MakeArgPtr(const ConvPtr& conv_ptr, Data_t in, ConstData_t w, ConstData_t out) const
     {
-        return conv_ptr->MakeArgumentPointer(out,
-                                             w,
-                                             {},
-                                             in,
-                                             output,
-                                             out_strides,
-                                             weight,
-                                             wei_strides,
-                                             {},
-                                             {},
-                                             input,
-                                             in_strides,
-                                             strides,
-                                             dilation,
-                                             lPadding,
-                                             rPadding,
-                                             {},
-                                             {},
-                                             {});
+        return conv_ptr->MakeArgumentPointer(
+            out,
+            w,
+            {in},
+            in,
+            out_lengths,
+            out_strides,
+            wei_lengths,
+            wei_strides,
+            {in_lengths},
+            {in_strides},
+            in_lengths,
+            in_strides,
+            filter_strides,
+            filter_dilations,
+            lPadding,
+            rPadding,
+            PassThrough{},
+            PassThrough{},
+            Bilinear{*static_cast<const float*>(alpha), *static_cast<const float*>(beta)});
     }
 
     template <typename ConvPtr>
@@ -192,14 +200,14 @@ struct CKArgs
     int Y;
     int X;
     int Z;
-    std::array<ck::index_t, 6> input;
+    std::array<ck::index_t, 6> in_lengths;
     std::array<ck::index_t, 6> in_strides;
-    std::array<ck::index_t, 6> output;
+    std::array<ck::index_t, 6> out_lengths;
     std::array<ck::index_t, 6> out_strides;
-    std::array<ck::index_t, 6> weight;
+    std::array<ck::index_t, 6> wei_lengths;
     std::array<ck::index_t, 6> wei_strides;
-    std::array<ck::index_t, 3> strides;
-    std::array<ck::index_t, 3> dilation;
+    std::array<ck::index_t, 3> filter_strides;
+    std::array<ck::index_t, 3> filter_dilations;
     std::array<ck::index_t, 3> lPadding;
     std::array<ck::index_t, 3> rPadding;
 };
