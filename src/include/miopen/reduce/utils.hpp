@@ -23,36 +23,16 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_LAYERNORM_UTILS_HPP_
-#define MIOPEN_LAYERNORM_UTILS_HPP_
+#ifndef MIOPEN_REDUCE_UTILS_HPP_
+#define MIOPEN_REDUCE_UTILS_HPP_
 
-#include <miopen/layernorm/solvers.hpp>
+#include <miopen/reduce/solvers.hpp>
 
 namespace miopen {
 namespace solver {
-namespace layernorm {
+namespace reduce {
 
 #define LOCAL_SIZE 256
-
-inline std::size_t sizeof_kernel_FLOAT(const miopen::layernorm::ProblemDescription& problem)
-{
-    const auto datatype = problem.GetXDesc().GetType();
-    return get_data_size(datatype);
-}
-
-inline std::size_t sizeof_local_memory(const miopen::layernorm::ProblemDescription& problem)
-{
-    std::size_t rv = 0;
-    rv += LOCAL_SIZE * sizeof_kernel_FLOAT(problem) * 2;
-    return rv;
-}
-
-inline std::size_t sizeof_local_memory_t5(const miopen::layernorm::ProblemDescription& problem)
-{
-    std::size_t rv = 0;
-    rv += LOCAL_SIZE * sizeof_kernel_FLOAT(problem);
-    return rv;
-}
 
 inline size_t get_reqd_work_item_cnt(const ExecutionContext& context)
 {
@@ -66,24 +46,26 @@ inline size_t get_reqd_work_item_cnt(const Handle& handle)
     return static_cast<size_t>(LOCAL_SIZE * handle.GetMaxComputeUnits() * 4);
 }
 
-inline size_t get_parallelism_size(size_t reqd_work_item_cnt, size_t inner_size, size_t outer_size)
+inline size_t
+get_parallelism_size(size_t reqd_work_item_cnt, size_t output_numel, size_t reduce_size)
 {
     size_t parallelism_size = 1ULL;
-    while(parallelism_size * inner_size < reqd_work_item_cnt &&
-          parallelism_size < std::sqrt(outer_size))
+    while(parallelism_size * output_numel < reqd_work_item_cnt &&
+          parallelism_size < std::sqrt(reduce_size))
     {
         parallelism_size *= 2ULL;
     }
     return parallelism_size;
 }
 
-inline bool is_parallelism(size_t reqd_work_item_cnt, size_t inner_size, size_t outer_size)
+inline bool is_parallelism(size_t reqd_work_item_cnt, size_t output_numel, size_t reduce_size)
 {
-    return !(inner_size > reqd_work_item_cnt) && (inner_size * outer_size > reqd_work_item_cnt);
+    return !(output_numel > reqd_work_item_cnt) &&
+           (output_numel * reduce_size > reqd_work_item_cnt);
 }
 
-} // namespace layernorm
+} // namespace reduce
 } // namespace solver
 } // namespace miopen
 
-#endif // _MIOPEN_LAYERNORM_UTILS_HPP_
+#endif // _MIOPEN_REDUCE_UTILS_HPP_
