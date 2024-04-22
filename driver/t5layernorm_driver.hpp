@@ -337,13 +337,17 @@ int T5LayerNormDriver<Tgpu, Tref>::AddCmdLineArgs()
 template <typename Tgpu, typename Tref>
 int T5LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
-    size_t x_sz      = GetTensorSize(xDesc);
-    size_t weight_sz = GetTensorSize(weightDesc);
-    size_t y_sz      = GetTensorSize(yDesc);
-    size_t rstd_sz   = GetTensorSize(rstdDesc);
-    size_t dy_sz     = GetTensorSize(dyDesc);
-    size_t dx_sz     = GetTensorSize(dxDesc);
-    size_t dw_sz     = GetTensorSize(dwDesc);
+    const Tgpu Tgpu0val      = static_cast<Tgpu>(0.0);
+    const Tgpu Tgpu1val      = static_cast<Tgpu>(1.0);
+    const Tgpu Tgpuminus1val = static_cast<Tgpu>(-1.0);
+    const Tref Tgpu0val      = static_cast<Tref>(0.0);
+    size_t x_sz              = GetTensorSize(xDesc);
+    size_t weight_sz         = GetTensorSize(weightDesc);
+    size_t y_sz              = GetTensorSize(yDesc);
+    size_t rstd_sz           = GetTensorSize(rstdDesc);
+    size_t dy_sz             = GetTensorSize(dyDesc);
+    size_t dx_sz             = GetTensorSize(dxDesc);
+    size_t dw_sz             = GetTensorSize(dwDesc);
 
     miopenGetT5LayerNormBackwardWorkspaceSize(
         GetHandle(), mode, dyDesc, xDesc, weightDesc, rstdDesc, dxDesc, dwDesc, &ws_sizeInBytes);
@@ -361,22 +365,22 @@ int T5LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     dw_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, dw_sz, sizeof(Tgpu)));
     workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sizeInBytes, sizeof(std::byte)));
 
-    x        = std::vector<Tgpu>(x_sz, static_cast<Tgpu>(0));
-    weight   = std::vector<Tgpu>(weight_sz, static_cast<Tgpu>(0));
-    y        = std::vector<Tgpu>(y_sz, static_cast<Tgpu>(0));
-    rstd     = std::vector<Tgpu>(rstd_sz, static_cast<Tgpu>(0));
-    dy       = std::vector<Tgpu>(dy_sz, static_cast<Tgpu>(0));
-    dx       = std::vector<Tgpu>(dx_sz, static_cast<Tgpu>(0));
-    dw       = std::vector<Tgpu>(dw_sz, static_cast<Tgpu>(0));
-    yhost    = std::vector<Tref>(y_sz, static_cast<Tref>(0));
-    rstdhost = std::vector<Tref>(rstd_sz, static_cast<Tref>(0));
-    dxhost   = std::vector<Tref>(dx_sz, static_cast<Tref>(0));
-    dwhost   = std::vector<Tref>(dw_sz, static_cast<Tref>(0));
+    x        = std::vector<Tgpu>(x_sz, Tgpu0val);
+    weight   = std::vector<Tgpu>(weight_sz, Tgpu0val);
+    y        = std::vector<Tgpu>(y_sz, Tgpu0val);
+    rstd     = std::vector<Tgpu>(rstd_sz, Tgpu0val);
+    dy       = std::vector<Tgpu>(dy_sz, Tgpu0val);
+    dx       = std::vector<Tgpu>(dx_sz, Tgpu0val);
+    dw       = std::vector<Tgpu>(dw_sz, Tgpu0val);
+    yhost    = std::vector<Tref>(y_sz, Tgpu0val);
+    rstdhost = std::vector<Tref>(rstd_sz, Tgpu0val);
+    dxhost   = std::vector<Tref>(dx_sz, Tgpu0val);
+    dwhost   = std::vector<Tref>(dw_sz, Tgpu0val);
 
     for(int i = 0; i < x_sz; i++)
     {
-        x[i]  = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1), static_cast<Tgpu>(1));
-        dy[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1), static_cast<Tgpu>(1));
+        x[i]  = prng::gen_A_to_B<Tgpu>(Tgpuminus1val, Tgpu1val);
+        dy[i] = prng::gen_A_to_B<Tgpu>(Tgpuminus1val, Tgpu1val);
     }
 
     if(x_dev->ToGPU(GetStream(), x.data()) != 0)
@@ -387,9 +391,9 @@ int T5LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     for(int i = 0; i < weight_sz; i++)
     {
         if(mode == MIOPEN_ELEMENTWISE_AFFINE)
-            weight[i] = static_cast<Tgpu>(1);
+            weight[i] = Tgpu1val;
         else
-            weight[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1), static_cast<Tgpu>(1));
+            weight[i] = prng::gen_A_to_B<Tgpu>(Tgpuminus1val, Tgpu1val);
     }
 
     if(weight_dev->ToGPU(GetStream(), weight.data()) != 0)

@@ -273,13 +273,16 @@ int AddLayerNormDriver<Tgpu, Tref>::AddCmdLineArgs()
 template <typename Tgpu, typename Tref>
 int AddLayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
-    size_t in_sz     = GetTensorSize(inputDesc);
-    size_t in2_sz    = GetTensorSize(input2Desc);
-    size_t weight_sz = GetTensorSize(weightDesc);
-    size_t bias_sz   = GetTensorSize(biasDesc);
-    size_t out_sz    = GetTensorSize(outputDesc);
-    size_t mean_sz   = GetTensorSize(meanDesc);
-    size_t rstd_sz   = GetTensorSize(rstdDesc);
+    const Tgpu Tgpu0val = static_cast<Tgpu>(0.0);
+    const Tgpu Tgpu1val = static_cast<Tgpu>(1.0);
+    const Tref Tgpu0val = static_cast<Tref>(0.0);
+    size_t in_sz        = GetTensorSize(inputDesc);
+    size_t in2_sz       = GetTensorSize(input2Desc);
+    size_t weight_sz    = GetTensorSize(weightDesc);
+    size_t bias_sz      = GetTensorSize(biasDesc);
+    size_t out_sz       = GetTensorSize(outputDesc);
+    size_t mean_sz      = GetTensorSize(meanDesc);
+    size_t rstd_sz      = GetTensorSize(rstdDesc);
 
     uint32_t ctx = 0;
 
@@ -291,25 +294,25 @@ int AddLayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     mean_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, mean_sz, sizeof(Tref)));
     rstd_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, rstd_sz, sizeof(Tref)));
 
-    in       = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-    in2      = std::vector<Tgpu>(in2_sz, static_cast<Tgpu>(0));
-    weight   = std::vector<Tgpu>(weight_sz, static_cast<Tgpu>(0));
-    bias     = std::vector<Tgpu>(bias_sz, static_cast<Tgpu>(0));
-    out      = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    mean     = std::vector<Tref>(mean_sz, static_cast<Tref>(0));
-    rstd     = std::vector<Tref>(rstd_sz, static_cast<Tref>(0));
-    outhost  = std::vector<Tref>(out_sz, static_cast<Tref>(0));
-    meanhost = std::vector<Tref>(mean_sz, static_cast<Tref>(0));
-    rstdhost = std::vector<Tref>(rstd_sz, static_cast<Tref>(0));
+    in       = std::vector<Tgpu>(in_sz, Tgpu0val);
+    in2      = std::vector<Tgpu>(in2_sz, Tgpu0val);
+    weight   = std::vector<Tgpu>(weight_sz, Tgpu0val);
+    bias     = std::vector<Tgpu>(bias_sz, Tgpu0val);
+    out      = std::vector<Tgpu>(out_sz, Tgpu0val);
+    mean     = std::vector<Tref>(mean_sz, Tgpu0val);
+    rstd     = std::vector<Tref>(rstd_sz, Tgpu0val);
+    outhost  = std::vector<Tref>(out_sz, Tgpu0val);
+    meanhost = std::vector<Tref>(mean_sz, Tgpu0val);
+    rstdhost = std::vector<Tref>(rstd_sz, Tgpu0val);
 
     for(int i = 0; i < in_sz; i++)
     {
-        in[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        in[i] = prng::gen_A_to_B<Tgpu>(Tgpu0val, Tgpu1val);
     }
 
     for(int i = 0; i < in2_sz; i++)
     {
-        in2[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        in2[i] = prng::gen_A_to_B<Tgpu>(Tgpu0val, Tgpu1val);
     }
 
     if(in_dev->ToGPU(GetStream(), in.data()) != 0)
@@ -320,9 +323,9 @@ int AddLayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     for(int i = 0; i < weight_sz; i++)
     {
         if(mode == MIOPEN_ELEMENTWISE_AFFINE)
-            weight[i] = static_cast<Tgpu>(1);
+            weight[i] = Tgpu1val;
         else
-            weight[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            weight[i] = prng::gen_A_to_B<Tgpu>(Tgpu0val, Tgpu1val);
     }
 
     if(weight_dev->ToGPU(GetStream(), weight.data()) != 0)
@@ -331,9 +334,9 @@ int AddLayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     for(int i = 0; i < bias_sz; i++)
     {
         if(mode == MIOPEN_ELEMENTWISE_AFFINE)
-            bias[i] = static_cast<Tgpu>(0);
+            bias[i] = Tgpu0val;
         else
-            bias[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            bias[i] = prng::gen_A_to_B<Tgpu>(Tgpu0val, Tgpu1val);
     }
     if(bias_dev->ToGPU(GetStream(), bias.data()) != 0)
         std::cerr << "Error copying (bias) to GPU, size: " << bias_dev->GetSize() << std::endl;
