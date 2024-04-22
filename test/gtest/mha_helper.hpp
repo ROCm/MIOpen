@@ -29,6 +29,13 @@
 #include <hip_float8.hpp>
 #include <nlohmann/json.hpp>
 
+// disable __device__ qualifiers
+#ifdef FQUALIFIERS
+#error rocrand FQUALIFIERS defined externally, probably one of rocrand device header included prior to this
+#endif
+#define FQUALIFIERS inline
+#include <miopen_rocrand.hpp>
+
 namespace test {
 namespace cpu {
 
@@ -268,16 +275,24 @@ void RowReductionReciprocalSum(const tensor<T>& A_mat, tensor<T>& rrsum_tensor)
 // }
 
 template <class T>
-void DropOut(tensor<T>& q_dot_k_transpose, const double& drop_out_rate)
+void DropOut(tensor<T>& tensor, float dropout_rate, uint64_t seed, uint64_t offset)
 {
-    tensor<T> rand_dis(q_dot_k_transpose.desc.GetLengths());
-    rand_dis.generate(GenData<T>{});
-    q_dot_k_transpose.par_for_each([&](auto... id) {
-        if(rand_dis(id...) < drop_out_rate)
+    if(dropout_rate > 0.0f)
+    {
+        // it assumes that 'blockIdx.x * blockDim.x + threadIdx.x' will cover whole tensor
+        // and without idle threads
+        std::vector<rocrand_state_xorwow> rng(tensor.data.size());
+        for(size_t idx = 0; idx < tensor.data.size(); ++idx)
         {
-            q_dot_k_transpose(id...) = T(0);
+            rocrand_init(prng::hash(seed + idx), 0, offset, &rng[idx]);
         }
-    });
+
+        size_t idx = 0;
+        tensor.for_each([&, scale = 1.0f / (1.0f - dropout_rate)](auto... id) {
+            const bool drop = prng::xorwow_uniform(&rng[idx++]) < dropout_rate;
+            tensor(id...)   = drop ? T(0) : tensor(id...) * scale;
+        });
+    }
 }
 
 template <class T, class U>
@@ -334,6 +349,9 @@ void MultiHeadAttentionfp8(const tensor<T>& q_val,
                            float s_descale,
                            float s_scale,
                            float o_scale,
+                           float dropout_rate,
+                           uint64_t seed,
+                           uint64_t offset,
                            float& aMax_S,
                            float& aMax_O,
                            tensor<T>& multi_head_attention_fp8)
@@ -355,11 +373,11 @@ void MultiHeadAttentionfp8(const tensor<T>& q_val,
 
     SoftMax(q_dot_k_fp8_stored_in_fp32_tensor, softmax, attn_max, Z_sum);
 
-    // drop out
-    // DropOut(q_dot_k_transpose, cpu_mha_test_case.drop_out_rate);
-
     // Get scaling for softmax
     aMax_S = FindMax4D(softmax);
+
+    // drop out
+    DropOut(softmax, dropout_rate, seed, offset);
 
     tensor<T> softmax_fp8(softmax.desc.GetLengths());
     // get fp8 version of Softmax(Q.dot(K_transpose)) and V

@@ -140,6 +140,7 @@ ConvSolution AttnSoftmax::GetSolution(const ExecutionContext& context,
                    nullptr, // attention related parameters
                    nullptr, // attention related parameters
                    nullptr, // attention related parameters
+                   nullptr, // attention related parameters
                    seq_len,
                    nhs);
         };

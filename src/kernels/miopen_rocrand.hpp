@@ -25,39 +25,53 @@
  *******************************************************************************/
 #pragma once
 
-namespace miopen::prng {
-// borrowed from rocrand, since hiprtc/comgr has some problems to compile kernels with rocrand
-struct xorwow_state
+#include "miopen_limits.hpp"
+#include "miopen_cstdint.hpp"
+
+#ifdef __HIPCC_RTC__
+#define WORKAROUND_IGNORE_ROCRAND_INCLUDES 1
+#else
+#define WORKAROUND_IGNORE_ROCRAND_INCLUDES 0
+#endif
+
+#if WORKAROUND_IGNORE_ROCRAND_INCLUDES == 1
+// disable math.h from rocrand (it conflicts with hiptrc)
+// NOLINTNEXTLINE
+#define _GLIBCXX_MATH_H 1
+#endif
+
+// disable normal-distribution shortcuts (it bloats prng state)
+#define ROCRAND_DETAIL_XORWOW_BM_NOT_IN_STATE
+#include <rocrand/rocrand_xorwow.h>
+
+namespace prng {
+
+// based on splitmix64
+inline constexpr uint64_t hash(uint64_t x)
 {
-    // Weyl sequence value
-    unsigned int d;
-    // Xorshift values (160 bits)
-    unsigned int x[5];
+    x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ull;
+    x = (x ^ (x >> 27)) * 0x94d049bb133111ebull;
+    x = x ^ (x >> 31);
+    return x;
 };
 
-inline constexpr unsigned int xorwow_next(xorwow_state* state)
-{
-    const unsigned int t = state->x[0] ^ (state->x[0] >> 2);
-    state->x[0]          = state->x[1];
-    state->x[1]          = state->x[2];
-    state->x[2]          = state->x[3];
-    state->x[3]          = state->x[4];
-    state->x[4]          = (state->x[4] ^ (state->x[4] << 4)) ^ (t ^ (t << 1));
-
-    state->d += 362437;
-
-    return state->d + state->x[4];
-}
-
+// borrowed from <rocrand/rocrand_uniform.h>
+// rocrand_uniform.h has too many dependencies and device code
 inline constexpr float uniform_distribution(unsigned int v)
 {
-    constexpr float ROCRAND_2POW32_INV = 2.3283064e-10f;
-    return ROCRAND_2POW32_INV + (static_cast<float>(v) * ROCRAND_2POW32_INV);
+    constexpr float rocrand_2pow32_inv =
+#ifdef ROCRAND_2POW32_INV
+        ROCRAND_2POW32_INV;
+#else
+        2.3283064e-10f;
+#endif
+
+    return rocrand_2pow32_inv + (static_cast<float>(v) * rocrand_2pow32_inv);
 }
 
-inline constexpr float xorwow_uniform(xorwow_state* state)
+inline constexpr float xorwow_uniform(rocrand_device::xorwow_engine* state)
 {
-    return uniform_distribution(xorwow_next(state));
+    return uniform_distribution(state->next());
 }
 
-} // namespace miopen::prng
+} // namespace prng
