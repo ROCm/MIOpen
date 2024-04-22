@@ -37,9 +37,7 @@
 #include <vector>
 #include <tuple>
 
-#include "../../kernels/miopen_rocrand.hpp"
-
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ATTN_NAIVE)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ATTN_NAIVE_FWD)
 
 namespace miopen {
 
@@ -60,8 +58,11 @@ constexpr S RoundUpToMultiple(T val, T mul)
     return Ceil(val, mul) * mul;
 }
 
-constexpr uint32_t nextPow2(uint32_t v)
+template <typename T>
+constexpr T nextPow2(T v)
 {
+    static_assert(std::is_unsigned_v<T>);
+
     if(v == 1)
     {
         return (v << 1);
@@ -72,72 +73,76 @@ constexpr uint32_t nextPow2(uint32_t v)
         v |= v >> 1;
         v |= v >> 2;
         v |= v >> 4;
-        v |= v >> 8;
-        v |= v >> 16;
+        if constexpr(sizeof(T) > 1)
+            v |= v >> 8;
+        if constexpr(sizeof(T) > 2)
+            v |= v >> 16;
+        if constexpr(sizeof(T) > 4)
+            v |= v >> 32;
         v++;
         return v;
     }
 }
 
-MultiBufferWorkspaceTraits
-SplitBufferToWorkspace(size_t S, size_t D, size_t NHS, size_t global_threads)
+MultiBufferWorkspaceTraits SplitBufferToWorkspace(size_t S, size_t D, size_t NHS)
 {
     // the first MatMul (N*H*S*D) * (N*H*S*D)T = (N*H*S*S)
     // the second MatMul (N*H*S*S) * (N*H*S*D) = (N*H*S*D)
     return MultiBufferWorkspaceTraits{
-        NHS * std::max(S, D) * get_data_size(miopenFloat),    // first and second matmuls tensor
-        NHS * S * get_data_size(miopenFloat),                 // first matmul tensor
-        global_threads * sizeof(miopen::prng::xorwow_state)}; // random state
+        NHS * std::max(S, D) * get_data_size(miopenFloat), // first and second matmuls tensor
+        NHS * S * get_data_size(miopenFloat)};             // first matmul tensor
 }
 
 MultiBufferWorkspaceTraits SplitBufferToWorkspace(const std::vector<size_t>& lengths)
 {
     const auto [N, H, S, D] = miopen::tien<4>(lengths);
-    const auto NHS          = N * H * S;
-
-    size_t local_threads  = std::clamp<size_t>(nextPow2(S), warpSize, 256);
-    size_t global_threads = NHS * local_threads;
-    if(S <= warpSize)
-    {
-        global_threads = Ceil(global_threads, local_threads / warpSize);
-    }
-
-    return SplitBufferToWorkspace(S, D, NHS, global_threads);
+    return SplitBufferToWorkspace(S, D, N * H * S);
 }
 } // namespace
 
-bool Mha::IsApplicable([[maybe_unused]] const ExecutionContext& context,
-                       const miopen::mha::ProblemDescription& problem) const
-{
-    auto [N, H, S, D] = miopen::tien<4>(problem.GetDescs().kDesc.GetLengths());
-
-    return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_NAIVE)) && //
-           S <= std::numeric_limits<uint32_t>::max() &&         //
-           problem.GetDescs().kDesc.IsPacked() &&               //
-           problem.GetDescs().qDesc.IsPacked() &&               //
-           problem.GetDescs().vDesc.IsPacked() &&               //
-           MIOPEN_USE_GEMM;
-}
-
-std::size_t Mha::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
-                                  const miopen::mha::ProblemDescription& problem) const
-{
-    return SplitBufferToWorkspace(problem.GetDescs().kDesc.GetLengths()).GetSize();
-}
-
-ConvSolution Mha::GetSolution(const ExecutionContext& context,
+bool MhaForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                               const miopen::mha::ProblemDescription& problem) const
+{
+    // It's important to have this check before problem.GetDescsForward() call
+    if(!problem.IsForward())
+    {
+        return false;
+    }
+
+    const miopen::mha::MhaInputDescsForward& descsForward = problem.GetDescsForward();
+
+    auto [N, H, S, D] = miopen::tien<4>(descsForward.kDesc.GetLengths());
+
+    return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_NAIVE_FWD)) //
+           && S <= std::numeric_limits<uint32_t>::max()          //
+           && descsForward.kDesc.IsPacked()                      //
+           && descsForward.qDesc.IsPacked()                      //
+           && descsForward.vDesc.IsPacked()                      //
+           && descsForward.oDesc.IsPacked()                      //
+           && descsForward.mDesc.IsPacked()                      //
+           && descsForward.zInvDesc.IsPacked()                   //
+           && MIOPEN_USE_GEMM;
+}
+
+std::size_t MhaForward::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
+                                         const miopen::mha::ProblemDescription& problem) const
+{
+    return SplitBufferToWorkspace(problem.GetDescsForward().kDesc.GetLengths()).GetSize();
+}
+
+ConvSolution MhaForward::GetSolution(const ExecutionContext& context,
+                                     const miopen::mha::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto [N, H, S, D] = miopen::tien<4>(problem.GetDescs().kDesc.GetLengths());
-    uint32_t seq_len  = S;
+    auto [N, H, S, D] = miopen::tien<4>(problem.GetDescsForward().kDesc.GetLengths());
+    uint32_t seq_len  = static_cast<uint32_t>(S);
     uint64_t nhs      = N * H * S;
     uint64_t nhsd     = N * H * S * D;
 
     auto warpSize = context.GetStream().GetWavefrontWidth();
 
-    size_t local_threads  = std::clamp<uint32_t>(nextPow2(seq_len), warpSize, 256);
+    size_t local_threads  = std::clamp(nextPow2(S), warpSize, static_cast<size_t>(256));
     size_t global_threads = nhs * local_threads;
 
     auto softmax_kernel = KernelInfo{};
@@ -155,12 +160,11 @@ ConvSolution Mha::GetSolution(const ExecutionContext& context,
     softmax_kernel.g_wk = {global_threads, 1, 1};
     result.construction_params.push_back(softmax_kernel);
 
-    auto getBuffPart = [ws = SplitBufferToWorkspace(S, D, nhs, global_threads)](void* buffer,
-                                                                                size_t part_idx) {
+    auto getBuffPart = [ws = SplitBufferToWorkspace(S, D, nhs)](void* buffer, size_t part_idx) {
         return static_cast<void*>(static_cast<std::byte*>(buffer) + ws.GetOffset(part_idx));
     };
 
-    local_threads  = std::clamp<uint32_t>(nextPow2(nhsd), warpSize, 256);
+    local_threads  = std::clamp(nextPow2(nhsd), warpSize, static_cast<size_t>(256));
     global_threads = RoundUpToMultiple(nhsd, local_threads);
 
     auto scale_reduce_kernel = KernelInfo{};
@@ -186,9 +190,9 @@ ConvSolution Mha::GetSolution(const ExecutionContext& context,
                            S * D,
                            S * D,
                            S * S,
-                           problem.GetDescs().scale,
+                           problem.GetDescsForward().scale,
                            0.0f,
-                           problem.GetDescs().kDesc.GetType(),
+                           problem.GetDescsForward().kDesc.GetType(),
                            true);
 
     GemmDescriptor SV_desc(false,
@@ -206,7 +210,7 @@ ConvSolution Mha::GetSolution(const ExecutionContext& context,
                            S * D,
                            1.0f,
                            0.0f,
-                           problem.GetDescs().vDesc.GetType(),
+                           problem.GetDescsForward().vDesc.GetType(),
                            true);
 #endif
 
@@ -217,6 +221,7 @@ ConvSolution Mha::GetSolution(const ExecutionContext& context,
             HipEventPtr start    = nullptr;
             HipEventPtr stop     = nullptr;
             const bool profiling = handle_.IsProfilingEnabled();
+            const auto& dataFwd  = params.GetDataForward();
 
             if(profiling)
             {
@@ -227,57 +232,42 @@ ConvSolution Mha::GetSolution(const ExecutionContext& context,
             }
 
             // zero amax output data to use atomics
-            hipMemsetAsync(params.GetData().amaxSData, 0, sizeof(float), handle_.GetStream());
-            hipMemsetAsync(params.GetData().amaxOData, 0, sizeof(float), handle_.GetStream());
+            hipMemsetAsync(dataFwd.amaxSData, 0, sizeof(float), handle_.GetStream());
+            hipMemsetAsync(dataFwd.amaxOData, 0, sizeof(float), handle_.GetStream());
 
             void* fp32_ws = getBuffPart(params.GetWorkspace(), 0);
             void* fp8_ws  = getBuffPart(params.GetWorkspace(), 1);
-            void* prng_ws = getBuffPart(params.GetWorkspace(), 2);
 
 #if MIOPEN_USE_GEMM
-            CallGemmStridedBatched(handle_,
-                                   QK_desc,
-                                   params.GetData().qData,
-                                   0,
-                                   params.GetData().kData,
-                                   0,
-                                   fp32_ws,
-                                   0,
-                                   GemmBackend_t::rocblas);
+            CallGemmStridedBatched(
+                handle_, QK_desc, dataFwd.qData, 0, dataFwd.kData, 0, fp32_ws, 0);
 #endif
             decltype(auto) softmax_kernel = handle_.Run(kernels.front());
             softmax_kernel(fp32_ws,
                            fp8_ws,
-                           params.GetData().mData,
-                           params.GetData().zInvData,
-                           params.GetData().amaxSData,
-                           params.GetData().descaleQData,
-                           params.GetData().descaleKData,
-                           params.GetData().scaleSData,
-                           prng_ws,
-                           params.GetData().dropoutProbabilityData,
+                           dataFwd.mData,
+                           dataFwd.zInvData,
+                           dataFwd.amaxSData,
+                           dataFwd.descaleQData,
+                           dataFwd.descaleKData,
+                           dataFwd.scaleSData,
+                           dataFwd.dropoutSeedData,
+                           dataFwd.dropoutOffsetData,
+                           dataFwd.dropoutProbabilityData,
                            seq_len,
                            nhs);
 
 #if MIOPEN_USE_GEMM
-            CallGemmStridedBatched(handle_,
-                                   SV_desc,
-                                   fp8_ws,
-                                   0,
-                                   params.GetData().vData,
-                                   0,
-                                   fp32_ws,
-                                   0,
-                                   GemmBackend_t::rocblas);
+            CallGemmStridedBatched(handle_, SV_desc, fp8_ws, 0, dataFwd.vData, 0, fp32_ws, 0);
 #endif
 
             decltype(auto) scale_reduce_kernel = handle_.Run(kernels.back());
             scale_reduce_kernel(fp32_ws,
-                                params.GetData().oData,
-                                params.GetData().amaxOData,
-                                params.GetData().descaleSData,
-                                params.GetData().descaleVData,
-                                params.GetData().scaleOData,
+                                dataFwd.oData,
+                                dataFwd.amaxOData,
+                                dataFwd.descaleSData,
+                                dataFwd.descaleVData,
+                                dataFwd.scaleOData,
                                 nhsd);
 
             if(profiling)
@@ -296,7 +286,7 @@ ConvSolution Mha::GetSolution(const ExecutionContext& context,
     return result;
 }
 
-bool Mha::MayNeedWorkspace() const { return true; }
+bool MhaForward::MayNeedWorkspace() const { return true; }
 
 } // namespace mha
 
