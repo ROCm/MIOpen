@@ -292,7 +292,7 @@ struct ProblemTensorTransposeDescriptor
 
     inline TensorDescriptor Transpose(const TensorDescriptor& in) const
     {
-        const auto labels    = tensor_layout_get_default(in.GetSize());
+        const auto labels    = tensor_layout_get_default(in.GetNumDims());
         auto derived_strides = std::vector<size_t>{};
         tensor_layout_to_strides(
             in.GetLengths(), labels, SyncLayoutDims(labels.c_str(), to), derived_strides);
@@ -441,7 +441,7 @@ struct TransposingSolver : Base
         for(auto transpose : Derived::GetTransposes())
         {
             decltype(auto) descriptor = (problem.*(transpose.cdescriptor))();
-            const auto labels         = tensor_layout_get_default(descriptor.GetSize());
+            const auto labels         = tensor_layout_get_default(descriptor.GetNumDims());
             const auto layout         = descriptor.GetLayout(labels);
             const auto to             = SyncLayoutDims(layout.c_str(), transpose.to);
 
@@ -488,7 +488,7 @@ struct TransposingSolver : Base
         for(auto transpose : Derived::GetTransposes())
         {
             const auto& descriptor = (problem.*(transpose.cdescriptor))();
-            const auto labels      = tensor_layout_get_default(descriptor.GetSize());
+            const auto labels      = tensor_layout_get_default(descriptor.GetNumDims());
             const auto layout      = descriptor.GetLayout(labels);
             const auto to          = SyncLayoutDims(labels.c_str(), transpose.to);
 

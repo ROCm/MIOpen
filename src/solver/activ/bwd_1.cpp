@@ -71,14 +71,14 @@ ConvSolution ActivBwdSolver1::GetSolution(const ExecutionContext&,
     int hdOutStride = 0;
     int wdOutStride = 0;
 
-    if(dyDesc.GetSize() == 4)
+    if(dyDesc.GetNumDims() == 4)
     {
         std::tie(ndOut, cdOut, hdOut, wdOut)                         = tien<4>(dyDesc.GetLengths());
         std::tie(ndOutStride, cdOutStride, hdOutStride, wdOutStride) = tien<4>(dyDesc.GetStrides());
     }
-    else if(dyDesc.GetSize() < 4 && dyDesc.GetSize() > 0)
+    else if(dyDesc.GetNumDims() < 4 && dyDesc.GetNumDims() > 0)
     {
-        auto tensor_size = dyDesc.GetSize();
+        auto tensor_size = dyDesc.GetNumDims();
         switch(tensor_size)
         {
         case 1:
@@ -116,14 +116,14 @@ ConvSolution ActivBwdSolver1::GetSolution(const ExecutionContext&,
     int hOutStride = 0;
     int wOutStride = 0;
 
-    if(yDesc.GetSize() == 4)
+    if(yDesc.GetNumDims() == 4)
     {
         std::tie(nOut, cOut, hOut, wOut)                         = tien<4>(yDesc.GetLengths());
         std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tien<4>(yDesc.GetStrides());
     }
-    else if(yDesc.GetSize() < 4 && yDesc.GetSize() > 0)
+    else if(yDesc.GetNumDims() < 4 && yDesc.GetNumDims() > 0)
     {
-        auto tensor_size = yDesc.GetSize();
+        auto tensor_size = yDesc.GetNumDims();
         switch(tensor_size)
         {
         case 1:
@@ -162,14 +162,14 @@ ConvSolution ActivBwdSolver1::GetSolution(const ExecutionContext&,
     int hdInStride = 0;
     int wdInStride = 0;
 
-    if(dxDesc.GetSize() == 4)
+    if(dxDesc.GetNumDims() == 4)
     {
         std::tie(ndIn, cdIn, hdIn, wdIn)                         = tien<4>(dxDesc.GetLengths());
         std::tie(ndInStride, cdInStride, hdInStride, wdInStride) = tien<4>(dxDesc.GetStrides());
     }
-    else if(dxDesc.GetSize() < 4 && dxDesc.GetSize() > 0)
+    else if(dxDesc.GetNumDims() < 4 && dxDesc.GetNumDims() > 0)
     {
-        auto tensor_size = dxDesc.GetSize();
+        auto tensor_size = dxDesc.GetNumDims();
         switch(tensor_size)
         {
         case 1:
@@ -208,14 +208,14 @@ ConvSolution ActivBwdSolver1::GetSolution(const ExecutionContext&,
     int hInStride = 0;
     int wInStride = 0;
 
-    if(xDesc.GetSize() == 4)
+    if(xDesc.GetNumDims() == 4)
     {
         std::tie(nIn, cIn, hIn, wIn)                         = tien<4>(xDesc.GetLengths());
         std::tie(nInStride, cInStride, hInStride, wInStride) = tien<4>(xDesc.GetStrides());
     }
-    else if(xDesc.GetSize() < 4 && xDesc.GetSize() > 0)
+    else if(xDesc.GetNumDims() < 4 && xDesc.GetNumDims() > 0)
     {
-        auto tensor_size = xDesc.GetSize();
+        auto tensor_size = xDesc.GetNumDims();
         switch(tensor_size)
         {
         case 1:

@@ -942,7 +942,7 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
             static_cast<int>(miopenConvolutionFindModeNormal)); // Repeat via hidden API.
         miopenSetConvolutionGroupCount(warmupConvDesc, group_count);
 
-        int warmup_out_len_size = miopen::deref(warmupInputTensor).GetSize();
+        int warmup_out_len_size = miopen::deref(warmupInputTensor).GetNumDims();
         std::vector<int> warmup_out_len(warmup_out_len_size);
         miopenGetConvolutionNdForwardOutputDim(warmupConvDesc,
                                                warmupInputTensor,
@@ -1297,7 +1297,7 @@ int ConvDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
 template <typename Tgpu, typename Tref>
 std::vector<int> ConvDriver<Tgpu, Tref>::GetOutputTensorLengths()
 {
-    int ndim = miopen::deref(inputTensor).GetSize();
+    int ndim = miopen::deref(inputTensor).GetNumDims();
 
     std::vector<int> out_lens(ndim);
 
@@ -1750,7 +1750,7 @@ void ConvDriver<Tgpu, Tref>::PrintForwardTime(const float kernel_total_time,
                                     : kernel_first_time;
     printf("GPU Kernel Time Forward Conv. Elapsed: %f ms (average)\n", kernel_average_time);
 
-    const auto num_dim = miopen::deref(inputTensor).GetSize() - 2;
+    const auto num_dim = miopen::deref(inputTensor).GetNumDims() - 2;
     if(num_dim != 2 && num_dim != 3)
     {
         printf("stats: <not implemented> for conv%dd\n", num_dim);
@@ -2648,7 +2648,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardDataTime(float kernel_total_time, floa
 
     printf("GPU Kernel Time Backward Data Conv. Elapsed: %f ms (average)\n", kernel_average_time);
 
-    const auto num_dim = miopen::deref(inputTensor).GetSize() - 2;
+    const auto num_dim = miopen::deref(inputTensor).GetNumDims() - 2;
     if(num_dim != 2 && num_dim != 3)
     {
         printf("stats: <not implemented> for conv%dd\n", num_dim);
@@ -2856,7 +2856,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float
     printf("GPU Kernel Time Backward Weights Conv. Elapsed: %f ms (average)\n",
            kernel_average_time);
 
-    const auto num_dim = miopen::deref(inputTensor).GetSize() - 2;
+    const auto num_dim = miopen::deref(inputTensor).GetNumDims() - 2;
     if(num_dim != 2 && num_dim != 3)
     {
         printf("stats: <not implemented> for conv%dd\n", num_dim);

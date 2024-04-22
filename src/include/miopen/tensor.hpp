@@ -180,7 +180,7 @@ struct MIOPEN_EXPORT TensorDescriptor : miopenTensorDescriptor
 
     const std::vector<std::size_t>& GetLengths() const;
     const std::vector<std::size_t>& GetStrides() const;
-    int GetSize() const;
+    unsigned GetNumDims() const;
 
     miopenDataType_t GetType() const;
     miopenTensorLayout_t GetLayout_t() const;
