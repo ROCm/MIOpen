@@ -77,7 +77,9 @@ int32_t mloT5LayerNormForwardRunHost(miopenTensorDescriptor_t xDesc,
 
         for(int32_t i = 0; i < inner_size; i++)
         {
-            Tcheck pweight = mode ? static_cast<Tcheck>(weight[i]) : static_cast<Tcheck>(1);
+            Tcheck pweight = (mode == MIOPEN_ELEMENTWISE_AFFINE_T5)
+                                 ? static_cast<Tcheck>(1)
+                                 : static_cast<Tcheck>(weight[i]);
             yhost[o * inner_size + i] =
                 (static_cast<Tcheck>(x[o * inner_size + i])) * prstd * pweight;
         }
@@ -110,7 +112,9 @@ int32_t mloT5LayerNormBackwardRunHost(miopenTensorDescriptor_t dyDesc,
         Tcheck sum = static_cast<Tcheck>(0);
         for(int32_t i = 0; i < inner_size; i++)
         {
-            Tcheck pweight = mode ? static_cast<Tcheck>(weight[i]) : static_cast<Tcheck>(1);
+            Tcheck pweight = (mode == MIOPEN_ELEMENTWISE_AFFINE_T5)
+                                 ? static_cast<Tcheck>(1)
+                                 : static_cast<Tcheck>(weight[i]);
             Tcheck pdy = dy ? static_cast<Tcheck>(dy[o * inner_size + i]) : static_cast<Tcheck>(0);
             Tcheck px  = static_cast<Tcheck>(x[o * inner_size + i]);
             sum += pdy * px * pweight;
@@ -123,7 +127,9 @@ int32_t mloT5LayerNormBackwardRunHost(miopenTensorDescriptor_t dyDesc,
 
         for(int32_t i = 0; i < inner_size; i++)
         {
-            Tcheck pweight = mode ? static_cast<Tcheck>(weight[i]) : static_cast<Tcheck>(1);
+            Tcheck pweight = (mode == MIOPEN_ELEMENTWISE_AFFINE_T5)
+                                 ? static_cast<Tcheck>(1)
+                                 : static_cast<Tcheck>(weight[i]);
             Tcheck pdy = dy ? static_cast<Tcheck>(dy[o * inner_size + i]) : static_cast<Tcheck>(0);
 
             Tcheck val = prstd * pdy * pweight - a * static_cast<Tcheck>(x[o * inner_size + i]);
@@ -268,23 +274,40 @@ int T5LayerNormDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int T5LayerNormDriver<Tgpu, Tref>::GetandSetData()
 {
-    std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
+    auto inTensorParam = inflags.GetValueTensor("input");
+
+    auto in_len = inTensorParam.lengths;
 
     std::vector<int> inner_len;
 
     inner_len = {in_len[in_len.size() - 1]};
 
+    MIOPEN_THROW_IF(inner_len[0] == 0, "final dimension must be nonzero");
+
     std::vector<int> outer_len;
 
     outer_len = {in_len.begin(), in_len.end() - 1};
 
-    SetTensorNd(xDesc, in_len, data_type);
-    SetTensorNd(weightDesc, inner_len, data_type);
-    SetTensorNd(yDesc, in_len, data_type);
-    SetTensorNd(rstdDesc, outer_len, data_type);
-    SetTensorNd(dyDesc, in_len, data_type);
-    SetTensorNd(dxDesc, in_len, data_type);
-    SetTensorNd(dwDesc, inner_len, data_type);
+    if(SetTensorNd(xDesc, in_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input") + ".");
+
+    if(SetTensorNd(weightDesc, inner_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting weight tensor.");
+
+    if(SetTensorNd(yDesc, in_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting doutput tensor.");
+
+    if(SetTensorNd(rstdDesc, outer_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting rstd tensor.");
+
+    if(SetTensorNd(dyDesc, in_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting dy tensor.");
+
+    if(SetTensorNd(dxDesc, in_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting dx tensor.");
+
+    if(SetTensorNd(dwDesc, inner_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting dw tensor.");
 
     eps  = static_cast<double>(inflags.GetValueDouble("eps"));
     mode = miopenNormMode_t(inflags.GetValueInt("mode"));
@@ -296,11 +319,7 @@ template <typename Tgpu, typename Tref>
 int T5LayerNormDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward T5LayerNorm (Default=1)", "int");
-    inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
-    inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
-    inflags.AddInputFlag("in_d", 'D', "0", "Input Depth (Default=0)", "int");
-    inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
-    inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
+    inflags.AddTensorFlag("input", 'X', "100x3x32x32", "input tensor descriptor");
 
     inflags.AddInputFlag("eps", 'e', "0.00001", "Alpha (Default=0.00001)", "double");
     inflags.AddInputFlag(
@@ -313,46 +332,6 @@ int T5LayerNormDriver<Tgpu, Tref>::AddCmdLineArgs()
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
 
     return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref>
-std::vector<int> T5LayerNormDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
-{
-    int in_n = inflags.GetValueInt("batchsize");
-    int in_c = inflags.GetValueInt("in_channels");
-    int in_w = inflags.GetValueInt("in_w");
-    int in_h = inflags.GetValueInt("in_h");
-    int in_d = inflags.GetValueInt("in_d");
-
-    if((in_n != 0) && (in_c != 0) && (in_d != 0) && (in_h != 0) && (in_w != 0))
-    {
-        dim_size = 5;
-        return std::vector<int>({in_n, in_c, in_d, in_h, in_w});
-    }
-    else if((in_n != 0) && (in_c != 0) && (in_h != 0) && (in_w != 0))
-    {
-        dim_size = 4;
-        return std::vector<int>({in_n, in_c, in_h, in_w});
-    }
-    else if((in_n != 0) && (in_c != 0) && (in_w != 0))
-    {
-        dim_size = 3;
-        return std::vector<int>({in_n, in_c, in_w});
-    }
-    else if((in_n != 0) && (in_w != 0))
-    {
-        dim_size = 2;
-        return std::vector<int>({in_n, in_w});
-    }
-    else if(in_n != 0)
-    {
-        return std::vector<int>({in_n});
-    }
-    else
-    {
-        std::cout << "Error Input Tensor Lengths\n" << std::endl;
-        return std::vector<int>({0});
-    }
 }
 
 template <typename Tgpu, typename Tref>

@@ -109,8 +109,10 @@ __device__ void layernormfwdcontiguous(const TI* __restrict__ x,
         FLOAT_ACCUM pweight;
         FLOAT_ACCUM pbias;
 
-        pweight = mode ? CVT_FLOAT2ACCUM(weight[i]) : CVT_FP32_2ACCUM(1.0f);
-        pbias   = mode ? CVT_FLOAT2ACCUM(bias[i]) : static_cast<FLOAT>(0);
+        pweight = (mode == MIOPEN_ELEMENTWISE_AFFINE) ? CVT_FP32_2ACCUM(1.0f)
+                                                      : CVT_FLOAT2ACCUM(weight[i]);
+        pbias =
+            (mode == MIOPEN_ELEMENTWISE_AFFINE) ? static_cast<FLOAT>(0) : CVT_FLOAT2ACCUM(bias[i]);
 
         FLOAT_ACCUM val = (CVT_FLOAT2ACCUM(x[idx]) - pmean) * prstd * pweight + pbias;
         y[idx]          = CVT_ACCUM2FLOAT(val);
@@ -179,8 +181,10 @@ __device__ void addlayernormfwdcontiguous(const TI* __restrict__ x,
         FLOAT_ACCUM pweight;
         FLOAT_ACCUM pbias;
 
-        pweight = mode ? CVT_FLOAT2ACCUM(weight[i]) : CVT_FP32_2ACCUM(1.0f);
-        pbias   = mode ? CVT_FLOAT2ACCUM(bias[i]) : static_cast<FLOAT>(0);
+        pweight = (mode == MIOPEN_ELEMENTWISE_AFFINE_FUSED_ADD) ? CVT_FP32_2ACCUM(1.0f)
+                                                                : CVT_FLOAT2ACCUM(weight[i]);
+        pbias   = (mode == MIOPEN_ELEMENTWISE_AFFINE_FUSED_ADD) ? static_cast<FLOAT>(0)
+                                                                : CVT_FLOAT2ACCUM(bias[i]);
 
         FLOAT_ACCUM val =
             (CVT_FLOAT2ACCUM(x[idx]) + CVT_FLOAT2ACCUM(x2[idx]) - pmean) * prstd * pweight + pbias;
@@ -238,7 +242,8 @@ __device__ void t5layernormfwdcontiguous(const TI* __restrict__ x,
 
         FLOAT_ACCUM pweight;
 
-        pweight = mode ? CVT_FLOAT2ACCUM(weight[i]) : CVT_FP32_2ACCUM(1.0f);
+        pweight = (mode == MIOPEN_ELEMENTWISE_AFFINE_T5) ? CVT_FP32_2ACCUM(1.0f)
+                                                         : CVT_FLOAT2ACCUM(weight[i]);
 
         FLOAT_ACCUM val = (CVT_FLOAT2ACCUM(x[idx])) * prstd * pweight;
         y[idx]          = CVT_ACCUM2FLOAT(val);
@@ -266,7 +271,8 @@ __device__ void t5layernormbwdcontiguous(const TI* __restrict__ dy,
     {
         size_t x_idx = gid * inner_size + i;
 
-        FLOAT_ACCUM pweight = mode ? CVT_FLOAT2ACCUM(weight[i]) : CVT_FP32_2ACCUM(1.0f);
+        FLOAT_ACCUM pweight = (mode == MIOPEN_ELEMENTWISE_AFFINE_T5) ? CVT_FP32_2ACCUM(1.0f)
+                                                                     : CVT_FLOAT2ACCUM(weight[i]);
 
         FLOAT_ACCUM pdy = dy ? CVT_FLOAT2ACCUM(dy[x_idx]) : 0;
         sum += pdy * CVT_FLOAT2ACCUM(x[x_idx]) * pweight;
@@ -292,7 +298,8 @@ __device__ void t5layernormbwdcontiguous(const TI* __restrict__ dy,
     {
         size_t idx = gid * inner_size + i;
 
-        FLOAT_ACCUM pweight = mode ? CVT_FLOAT2ACCUM(weight[i]) : CVT_FP32_2ACCUM(1.0f);
+        FLOAT_ACCUM pweight = (mode == MIOPEN_ELEMENTWISE_AFFINE_T5) ? CVT_FP32_2ACCUM(1.0f)
+                                                                     : CVT_FLOAT2ACCUM(weight[i]);
         FLOAT_ACCUM pdy     = dy ? CVT_FLOAT2ACCUM(dy[idx]) : 0;
 
         FLOAT_ACCUM val = prstd * pdy * pweight - a * CVT_FLOAT2ACCUM(x[idx]);

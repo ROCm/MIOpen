@@ -57,10 +57,11 @@ int32_t mloAddLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
     auto dims         = miopen::deref(inputDesc).GetLengths();
     size_t outer_size = 1;
     size_t inner_size = 1;
+    size_t norm_dim   = static_cast<size_t>(normalized_dim);
 
     for(size_t i = 0ULL; i < dims.size(); ++i)
     {
-        if(i < normalized_dim)
+        if(i < norm_dim)
             outer_size *= dims[i];
         else
             inner_size *= dims[i];
@@ -89,8 +90,10 @@ int32_t mloAddLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
 
         for(int32_t i = 0; i < inner_size; i++)
         {
-            Tcheck pweight = mode ? static_cast<Tcheck>(weight[i]) : 1;
-            Tcheck pbias   = mode ? static_cast<Tcheck>(bias[i]) : 0;
+            Tcheck pweight =
+                (mode == MIOPEN_ELEMENTWISE_AFFINE_FUSED_ADD) ? 1 : static_cast<Tcheck>(weight[i]);
+            Tcheck pbias =
+                (mode == MIOPEN_ELEMENTWISE_AFFINE_FUSED_ADD) ? 0 : static_cast<Tcheck>(bias[i]);
             outputhost[o * inner_size + i] =
                 (static_cast<Tcheck>(input[o * inner_size + i]) +
                  static_cast<Tcheck>(input2[o * inner_size + i]) - pmean) *
@@ -199,9 +202,14 @@ int AddLayerNormDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int AddLayerNormDriver<Tgpu, Tref>::GetandSetData()
 {
-    std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
+    auto inTensorParam = inflags.GetValueTensor("input");
+
+    auto in_len = inTensorParam.lengths;
 
     dim = inflags.GetValueInt("normalized_dim");
+
+    MIOPEN_THROW_IF(dim < 0 || static_cast<size_t>(dim) >= in_len.size(),
+                    "normalized_dim out of range");
 
     std::vector<int> inner_len;
     if(dim == in_len.size())
@@ -215,13 +223,26 @@ int AddLayerNormDriver<Tgpu, Tref>::GetandSetData()
     else
         outer_len = {in_len.begin(), in_len.end() - (in_len.size() - dim)};
 
-    SetTensorNd(inputDesc, in_len, data_type);
-    SetTensorNd(input2Desc, in_len, data_type);
-    SetTensorNd(weightDesc, inner_len, data_type);
-    SetTensorNd(biasDesc, inner_len, data_type);
-    SetTensorNd(outputDesc, in_len, data_type);
-    SetTensorNd(meanDesc, outer_len, data_type);
-    SetTensorNd(rstdDesc, outer_len, data_type);
+    if(SetTensorNd(inputDesc, in_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input") + ".");
+
+    if(SetTensorNd(input2Desc, in_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing input2 tensor: " + inflags.GetValueStr("input") + ".");
+
+    if(SetTensorNd(weightDesc, inner_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting weight tensor.");
+
+    if(SetTensorNd(biasDesc, inner_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting bias tensor.");
+
+    if(SetTensorNd(outputDesc, in_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting doutput tensor.");
+
+    if(SetTensorNd(meanDesc, outer_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting mean tensor.");
+
+    if(SetTensorNd(rstdDesc, outer_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting rstd tensor.");
 
     eps  = static_cast<double>(inflags.GetValueDouble("eps"));
     mode = miopenNormMode_t(inflags.GetValueInt("mode"));
@@ -233,11 +254,7 @@ template <typename Tgpu, typename Tref>
 int AddLayerNormDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward AddLayerNorm (Default=1)", "int");
-    inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
-    inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
-    inflags.AddInputFlag("in_d", 'D', "0", "Input Depth (Default=0)", "int");
-    inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
-    inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
+    inflags.AddTensorFlag("input", 'X', "100x3x32x32", "input tensor descriptor");
 
     inflags.AddInputFlag("eps", 'e', "0.00001", "Alpha (Default=0.00001)", "double");
     inflags.AddInputFlag("normalized_dim", 'o', "3", "Nomalized Dim (Default=3)", "int");
@@ -251,46 +268,6 @@ int AddLayerNormDriver<Tgpu, Tref>::AddCmdLineArgs()
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
 
     return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref>
-std::vector<int> AddLayerNormDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
-{
-    int in_n = inflags.GetValueInt("batchsize");
-    int in_c = inflags.GetValueInt("in_channels");
-    int in_w = inflags.GetValueInt("in_w");
-    int in_h = inflags.GetValueInt("in_h");
-    int in_d = inflags.GetValueInt("in_d");
-
-    if((in_n != 0) && (in_c != 0) && (in_d != 0) && (in_h != 0) && (in_w != 0))
-    {
-        dim_size = 5;
-        return std::vector<int>({in_n, in_c, in_d, in_h, in_w});
-    }
-    else if((in_n != 0) && (in_c != 0) && (in_h != 0) && (in_w != 0))
-    {
-        dim_size = 4;
-        return std::vector<int>({in_n, in_c, in_h, in_w});
-    }
-    else if((in_n != 0) && (in_c != 0) && (in_w != 0))
-    {
-        dim_size = 3;
-        return std::vector<int>({in_n, in_c, in_w});
-    }
-    else if((in_n != 0) && (in_w != 0))
-    {
-        dim_size = 2;
-        return std::vector<int>({in_n, in_w});
-    }
-    else if(in_n != 0)
-    {
-        return std::vector<int>({in_n});
-    }
-    else
-    {
-        std::cout << "Error Input Tensor Lengths\n" << std::endl;
-        return std::vector<int>({0});
-    }
 }
 
 template <typename Tgpu, typename Tref>
@@ -502,8 +479,8 @@ int AddLayerNormDriver<Tgpu, Tref>::VerifyForward()
     }
     else
     {
-        std::cout << "Forward AddLayerNorm mean Verifies OK on CPU reference (" << error << " < "
-                  << tolerance << ')' << std::endl;
+        std::cout << "Forward AddLayerNorm mean Verifies OK on CPU reference (" << meanerror
+                  << " < " << tolerance << ')' << std::endl;
     }
 
     auto rstderror = miopen::rms_range(rstdhost, rstd);
