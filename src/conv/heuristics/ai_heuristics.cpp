@@ -76,7 +76,11 @@ Metadata::Metadata(const std::string& arch)
       features_mean(common::LookupValues<std::string, float>(
           features, json["stats"]["overall"]["features"]["mean"])),
       features_std(common::LookupValues<std::string, float>(
-          features, json["stats"]["overall"]["features"]["std"]))
+          features, json["stats"]["overall"]["features"]["std"])),
+      test_features_mean(common::LookupValues<std::string, float>(
+          features, json["stats"]["test"]["features"]["mean"])),
+      test_features_std(common::LookupValues<std::string, float>(
+          features, json["stats"]["test"]["features"]["std"]))
 {
 }
 
@@ -435,7 +439,8 @@ protected:
 
         // normalize
         for(size_t i = 0; i < features.size(); ++i)
-            features[i] = (features[i] - metadata.features_mean[i]) / metadata.features_std[i];
+            features[i] =
+                (features[i] - metadata.test_features_mean[i]) / metadata.test_features_std[i];
 
         return features;
     }
@@ -529,7 +534,8 @@ Metadata::Metadata(const std::string& arch, const std::string& solver)
 {
     const nlohmann::json metadata =
         common::LoadJSON(GetSystemDbPath() + "/" + arch + "_" + solver + "_metadata.ktn.model");
-    num_tuning_params = metadata["num_tuning_params"].get<std::size_t>();
+    num_tuning_params =
+        metadata["num_tuning_params"].get<std::unordered_map<std::string, std::size_t>>();
     tuning_decodings =
         metadata["decodings"]["tunings"].get<std::unordered_map<std::string, std::string>>();
 }
@@ -601,6 +607,7 @@ std::shared_ptr<Model> GetModel(const std::string& arch, const std::string& solv
 
 bool ModelSetParams(const std::string& arch,
                     const std::string& solver,
+                    miopen::conv::Direction direction,
                     const std::vector<float>& features,
                     bool transform_features,
                     std::function<bool(std::size_t, std::string)> validator)
@@ -611,9 +618,19 @@ bool ModelSetParams(const std::string& arch,
         dim = std::sqrt(features.size());
     else
         dim = features.size();
+    auto start             = std::chrono::high_resolution_clock::now();
     fdeep::tensors context = model->Encode(features, dim, transform_features);
     float decoder_input    = 0.0;
-    for(std::size_t i = 0; i < model->metadata.num_tuning_params; ++i)
+    std::string dir;
+    switch(direction)
+    {
+    case miopen::conv::Direction::Forward: dir = "fwd"; break;
+    case miopen::conv::Direction::BackwardData: dir = "bwd"; break;
+    case miopen::conv::Direction::BackwardWeights: dir = "wrw"; break;
+    default: return false;
+    }
+    std::size_t num_tuning_params = model->metadata.num_tuning_params[dir];
+    for(std::size_t i = 0; i < num_tuning_params; ++i)
     {
         fdeep::tensors decoder_output = model->Decode(decoder_input, context);
 
@@ -630,7 +647,12 @@ bool ModelSetParams(const std::string& arch,
             std::string value = model->metadata.tuning_decodings[std::to_string(token)];
             pq.pop();
             if(value == "-1")
+            {
+                auto stop     = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+                MIOPEN_LOG_I2("Model ran for " << duration.count() << " micro-seconds");
                 return false;
+            }
             if(validator(i, value))
             {
                 output_token_index =
@@ -641,6 +663,9 @@ bool ModelSetParams(const std::string& arch,
         decoder_input = float(output_token_index);
         context       = {decoder_output.begin() + 1, decoder_output.end()};
     }
+    auto stop     = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    MIOPEN_LOG_I2("Model ran for " << duration.count() << " micro-seconds");
     return true;
 }
 

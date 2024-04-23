@@ -27,11 +27,8 @@
 #ifndef GUARD_TENSOR_UTIL_HPP
 #define GUARD_TENSOR_UTIL_HPP
 
-#include <iostream>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
-#include <utility>
-#include <cstdlib>
 #include "tensor_holder.hpp"
 
 // loop over sub-tensor, and operate on each data
@@ -71,54 +68,6 @@ void operate_over_subtensor_impl(const data_operator_t<T>& r_data_operator,
         }
 
         index += current_stride;
-    }
-}
-
-template <typename T>
-void output_tensor_to_csv(const tensor<T>& x, std::string filename)
-{
-    int dim = x.desc.GetSize();
-    std::vector<int> index(dim);
-
-    std::ofstream file;
-
-    file.open(filename);
-
-    for(int j = 0; j < dim; ++j)
-        file << "d" << j << ", ";
-    file << "x" << std::endl;
-
-    for(int i = 0; i < x.data.size(); ++i)
-    {
-        int is = i;
-        for(int j = 0; j < dim; ++j)
-        {
-            index[j] = is / x.desc.GetStrides()[j];
-            is -= index[j] * x.desc.GetStrides()[j];
-        }
-
-        for(int j = 0; j < dim; ++j)
-        {
-            file << index[j] << ", ";
-        }
-        file << x[i] << std::endl;
-    }
-
-    file.close();
-}
-
-template <typename T>
-void output_tensor_to_bin(const char* fileName, T* data, size_t dataNumItems)
-{
-    std::ofstream outFile(fileName, std::ios::binary);
-    if(outFile)
-    {
-        outFile.write(reinterpret_cast<char*>(data), dataNumItems * sizeof(T));
-        outFile.close();
-    }
-    else
-    {
-        std::cerr << "Could not open file " << fileName << " for writing" << std::endl;
     }
 }
 
