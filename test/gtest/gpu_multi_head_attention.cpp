@@ -168,7 +168,7 @@ protected:
             auto val_full = tensor<float>{nhsd...}.generate(
                 [bias](auto...) { return prng::gen_A_to_B(-2.5f + bias, 2.5f + bias); });
             auto val_scaled = tensor<float>{nhsd...};
-            float scale     = test::cpu::GetF8Scaling(test::cpu::FindMax4D(val_full));
+            float scale     = test::cpu::GetF8Scaling(test::cpu::AbsoluteMax(val_full));
             float descale   = 1.f / scale;
             test::cpu::ScaleMult(val_full, scale, val_scaled);
             return std::tuple{val_scaled, scale, descale};
@@ -231,8 +231,8 @@ protected:
         }
 
         tensor<float> q_dot_k_transpose{n, h, s, s};
-        tensor<float> softmax{n, h, s, s};
 
+        softmax_ref  = tensor<float>{n, h, s, s};
         oDesc_ref    = tensor<float>{n, h, s, d};
         mDesc_ref    = tensor<float>{n, h, s, 1};
         zInvDesc_ref = tensor<float>{n, h, s, 1};
@@ -241,6 +241,7 @@ protected:
             std::get<tensor<float>>(tensors[miopenTensorMhaQ]->m_cpu_tensor),
             std::get<tensor<float>>(tensors[miopenTensorMhaK]->m_cpu_tensor),
             std::get<tensor<float>>(tensors[miopenTensorMhaV]->m_cpu_tensor),
+            softmax_ref,
             mDesc_ref,
             zInvDesc_ref,
             q_descale,
@@ -264,6 +265,7 @@ protected:
     std::vector<miopenTensorArgument_t> args;
 
     // ref data
+    tensor<float> softmax_ref;
     tensor<float> oDesc_ref;
     tensor<float> mDesc_ref;
     tensor<float> zInvDesc_ref;
