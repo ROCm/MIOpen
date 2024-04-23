@@ -508,19 +508,19 @@ pipeline {
             description: "")
         booleanParam(
             name: "PERF_TEST",
-            defaultValue: false,
+            defaultValue: true,
             description: "Enable performance testing stages")
         booleanParam(
             name: "PERF_TEST_FP16",
-            defaultValue: false,
+            defaultValue: true,
             description: "Enable performance testing stages")
         booleanParam(
             name: "PERF_TEST_FP32",
-            defaultValue: false,
+            defaultValue: true,
             description: "Enable performance testing stages")
         booleanParam(
             name: "PERF_TEST_BRANCH_OVERRIDE",
-            defaultValue: false,
+            defaultValue: true,
             description: "Enable performance testing stages")
         string(name: "PERF_TEST_OVERRIDE",
             defaultValue: '',
