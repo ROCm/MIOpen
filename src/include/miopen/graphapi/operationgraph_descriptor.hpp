@@ -50,7 +50,12 @@ private:
     std::vector<Engine> mEngines;
 
 public:
-    OperationGraph() noexcept = default;
+    OperationGraph() noexcept             = default;
+    OperationGraph(const OperationGraph&) = default;
+    OperationGraph(OperationGraph&&)      = default;
+    OperationGraph& operator=(const OperationGraph&) = default;
+    OperationGraph& operator=(OperationGraph&&) = default;
+
     OperationGraph(miopenHandle_t handle, const OpGraph& opGraph);
     OperationGraph(miopenHandle_t handle, OpGraph&& opGraph);
 

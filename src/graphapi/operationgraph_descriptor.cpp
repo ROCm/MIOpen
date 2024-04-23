@@ -33,23 +33,21 @@ namespace miopen {
 
 namespace graphapi {
 
-OperationGraph::OperationGraph(miopenHandle_t handle, const OpGraph& opGraph) : mHandle(handle)
+OperationGraph::OperationGraph(miopenHandle_t handle, const OpGraph& opGraph) : mHandle(checkPtr(handle))
 {
     /* TODO: to be implemented in
      * [MHA] Implement MIOPEN_BACKEND_OPERATIONGRAPH_DESCRIPTOR read only attributes #2914
      * https://github.com/ROCm/MIOpen/issues/2914
      */
-    (void)handle;
     (void)opGraph;
 }
 
-OperationGraph::OperationGraph(miopenHandle_t handle, OpGraph&& opGraph) : mHandle(handle)
+OperationGraph::OperationGraph(miopenHandle_t handle, OpGraph&& opGraph) : mHandle(checkPtr(handle))
 {
     /* TODO: to be implemented in
      * [MHA] Implement MIOPEN_BACKEND_OPERATIONGRAPH_DESCRIPTOR read only attributes #2914
      * https://github.com/ROCm/MIOpen/issues/2914
      */
-    (void)handle;
     (void)opGraph;
 }
 

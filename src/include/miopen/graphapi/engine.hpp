@@ -40,7 +40,12 @@ private:
     friend class EngineBuilder;
 
 public:
-    Engine() = default;
+    Engine()              = default;
+    Engine(const Engine&) = default;
+    Engine(Engine&&)      = default;
+    Engine& operator=(const Engine&) = default;
+    Engine& operator=(Engine&&) = default;
+
     Engine(const Solution& solution) : mSolution(solution) {}
     Engine(Solution&& solution) : mSolution(std::move(solution)) {}
 
