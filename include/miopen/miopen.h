@@ -68,6 +68,7 @@
  * @defgroup argmax
  * @defgroup groupnorm
  * @defgroup cat
+ * @defgroup nllloss
  *
  */
 
@@ -6585,9 +6586,9 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
 #ifdef MIOPEN_BETA_API
 // NLLLoss APIs
 /** @addtogroup nllloss
- *
- *  @{
- */
+*
+*  @{
+*/
 /*! @brief Execute a nllloss forward layer
  *
  * @param handle         MIOpen handle (input)

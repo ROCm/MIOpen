@@ -170,7 +170,7 @@ int NLLLossDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("verify", 'V', "1", "Verify (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "1", "Time (Default=0)", "int");
     inflags.AddInputFlag(
-        "wall", 'w', "1", "Wall-clock Time, Requires time == 1 (Default=0)", "int");
+        "wall", 'w', "0", "Wall-clock Time, Requires time == 1 (Default=0)", "int");
 
     return miopenStatusSuccess;
 }
