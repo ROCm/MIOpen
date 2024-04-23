@@ -37,11 +37,7 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/stringutils.hpp>
 
-#if !defined(_WIN32)
 #include <amd_comgr/amd_comgr.h>
-#else
-#include <amd_comgr.h>
-#endif
 #include <hip/hip_runtime_api.h>
 #if MIOPEN_USE_HIPRTC
 #include <miopen/manage_ptr.hpp>
