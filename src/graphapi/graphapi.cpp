@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include <miopen/errors.hpp>
 #include <miopen/graphapi/convolution.hpp>
+#include <miopen/graphapi/engine.hpp>
 #include <miopen/graphapi/graphapi.hpp>
 #include <miopen/graphapi/opgraph.hpp>
 #include <miopen/graphapi/pointwise.hpp>
@@ -55,6 +56,9 @@ miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
         // clang-format off
         case MIOPEN_BACKEND_CONVOLUTION_DESCRIPTOR:
             outputDescriptor = new miopen::graphapi::BackendConvolutionDescriptor(); break;
+
+        case MIOPEN_BACKEND_ENGINE_DESCRIPTOR:
+            outputDescriptor = new miopen::graphapi::BackendEngineDescriptor(); break;
 
         case MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR:
             outputDescriptor = new miopen::graphapi::BackendOperationConvolutionForwardDescriptor(); break;
@@ -210,6 +214,9 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
         // clang-format off
         case MIOPEN_BACKEND_CONVOLUTION_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendConvolutionDescriptor>(descriptor, sizeInBytes); break;
+
+        case MIOPEN_BACKEND_ENGINE_DESCRIPTOR:
+            initializeBackendDescriptor<miopen::graphapi::BackendEngineDescriptor>(descriptor, sizeInBytes); break;
 
         case MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendOperationConvolutionForwardDescriptor>(descriptor, sizeInBytes); break;

@@ -27,6 +27,7 @@
 #pragma once
 
 #include <miopen/graphapi/graphapi.hpp>
+#include <miopen/graphapi/opgraph.hpp>
 #include <miopen/solution.hpp>
 
 namespace miopen {
@@ -37,6 +38,8 @@ class Engine
 {
 private:
     Solution mSolution;
+    int64_t mGlobalIndex = -1;
+    int32_t mSmCount     = 0;
     friend class EngineBuilder;
 
 public:
@@ -49,8 +52,52 @@ public:
     Engine(const Solution& solution) : mSolution(solution) {}
     Engine(Solution&& solution) : mSolution(std::move(solution)) {}
 
-    const Solution& getSolution() const { return mSolution; }
-    Solution& getSolution() { return mSolution; }
+    const Solution& getSolution() const noexcept { return mSolution; }
+    Solution& getSolution() noexcept { return mSolution; }
+
+    int64_t getGlobalIndex() const noexcept { return mGlobalIndex; }
+    int32_t getSmCount() const noexcept { return mSmCount; }
+};
+
+class OpGraph;
+
+class EngineBuilder
+{
+private:
+    const OpGraph* mOpGraph = nullptr;
+    int64_t mGlobalIndex    = -1;
+    int32_t mSmCount        = 0;
+    bool mGlobalIndexSet    = false;
+
+public:
+    EngineBuilder& setOpGraph(const OpGraph* opGraph);
+    EngineBuilder& setGlobalIndex(int64_t globalIndex);
+    EngineBuilder& setSmCount(int32_t smCount);
+    Engine build();
+};
+
+class BackendEngineDescriptor : public BackendDescriptor
+{
+private:
+    EngineBuilder mBuilder;
+    Engine mEngine;
+
+    miopenBackendDescriptor_t mOpGraphDescriptor = nullptr;
+
+public:
+    void setAttribute(miopenBackendAttributeName_t attributeName,
+                      miopenBackendAttributeType_t attributeType,
+                      int64_t elementCount,
+                      void* arrayOfElements) override;
+    void finalize() override;
+    void getAttribute(miopenBackendAttributeName_t attributeName,
+                      miopenBackendAttributeType_t attributeType,
+                      int64_t requestedElementCount,
+                      int64_t* elementCount,
+                      void* arrayOfElements) override;
+
+    const Engine& getEngine() const noexcept { return mEngine; }
+    Engine& getEngine() noexcept { return mEngine; }
 };
 
 } // namespace graphapi
