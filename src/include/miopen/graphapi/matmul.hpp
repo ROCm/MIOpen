@@ -142,10 +142,10 @@ class OperationMatmulBuilder
 {
 private:
     OperationMatmul mOperationMatmul;
-    bool aSet      = false;
-    bool bSet      = false;
-    bool cSet      = false;
-    bool matmulSet = false;
+    bool mASet      = false;
+    bool mBSet      = false;
+    bool mCSet      = false;
+    bool mMatmulSet = false;
 
 public:
     OperationMatmulBuilder& setA(Tensor* A);

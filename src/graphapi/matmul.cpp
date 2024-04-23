@@ -26,7 +26,6 @@
 
 #include <miopen/errors.hpp>
 #include <miopen/graphapi/matmul.hpp>
-#include <iostream>
 
 namespace miopen {
 namespace graphapi {
@@ -110,7 +109,7 @@ OperationMatmulBuilder& OperationMatmulBuilder::setA(Tensor* A)
     mOperationMatmul.mA = checkPtr(A);
     if(mOperationMatmul.mA->getDimensions().size() < 2)
         MIOPEN_THROW(miopenStatusBadParm);
-    aSet = true;
+    mASet = true;
     return *this;
 };
 OperationMatmulBuilder& OperationMatmulBuilder::setB(Tensor* B)
@@ -118,7 +117,7 @@ OperationMatmulBuilder& OperationMatmulBuilder::setB(Tensor* B)
     mOperationMatmul.mB = checkPtr(B);
     if(mOperationMatmul.mB->getDimensions().size() < 2)
         MIOPEN_THROW(miopenStatusBadParm);
-    bSet = true;
+    mBSet = true;
     return *this;
 };
 OperationMatmulBuilder& OperationMatmulBuilder::setC(Tensor* C)
@@ -126,7 +125,7 @@ OperationMatmulBuilder& OperationMatmulBuilder::setC(Tensor* C)
     mOperationMatmul.mC = checkPtr(C);
     if(mOperationMatmul.mC->getDimensions().size() < 2)
         MIOPEN_THROW(miopenStatusBadParm);
-    cSet = true;
+    mCSet = true;
     return *this;
 };
 OperationMatmulBuilder& OperationMatmulBuilder::setBatchCount(int64_t count)
@@ -152,47 +151,75 @@ OperationMatmulBuilder& OperationMatmulBuilder::setGemmKOverride(Tensor* overrid
 OperationMatmulBuilder& OperationMatmulBuilder::setMatmulDescriptor(Matmul* mMatmul)
 {
     mOperationMatmul.mMatmul = checkPtr(mMatmul);
-    matmulSet                = true;
+    mMatmulSet               = true;
     return *this;
 }
 
 OperationMatmul OperationMatmulBuilder::build()
 {
-    if(!aSet || !bSet || !cSet || !matmulSet)
+    if(!mASet || !mBSet || !mCSet || !mMatmulSet)
         MIOPEN_THROW(miopenStatusBadParm);
 
-    int aDimensionsCount = mOperationMatmul.mA->getDimensions().size();
-    int bDimensionsCount = mOperationMatmul.mB->getDimensions().size();
-    int cDimensionsCount = mOperationMatmul.mC->getDimensions().size();
+    auto& aDimensions = mOperationMatmul.mA->getDimensions();
+    auto& bDimensions = mOperationMatmul.mB->getDimensions();
+    auto& cDimensions = mOperationMatmul.mC->getDimensions();
 
-    if(aDimensionsCount != bDimensionsCount || bDimensionsCount != cDimensionsCount)
+    int aDimensionsCount = aDimensions.size();
+    int bDimensionsCount = bDimensions.size();
+    int cDimensionsCount = cDimensions.size();
+
+    if(cDimensionsCount != std::max(aDimensionsCount, bDimensionsCount))
         MIOPEN_THROW(miopenStatusBadParm);
 
-    int Am = mOperationMatmul.mA->getDimensions().end()[-2];
-    int An = mOperationMatmul.mA->getDimensions().end()[-1];
+    int Am = aDimensions[aDimensionsCount - 2];
+    int An = aDimensions[aDimensionsCount - 1];
 
-    int Bn = mOperationMatmul.mB->getDimensions().end()[-2];
-    int Bk = mOperationMatmul.mB->getDimensions().end()[-1];
+    int Bn = bDimensions[bDimensionsCount - 2];
+    int Bk = bDimensions[bDimensionsCount - 1];
 
-    int Cm = mOperationMatmul.mB->getDimensions().end()[-2];
-    int Ck = mOperationMatmul.mB->getDimensions().end()[-1];
+    int Cm = cDimensions[cDimensionsCount - 2];
+    int Ck = cDimensions[cDimensionsCount - 1];
 
     if(Am != Cm || An != Bn || Bk != Ck)
         MIOPEN_THROW(miopenStatusBadParm);
 
-    // TODO: need broadcsat checks
-    //
+    auto correctBroadcastedDims = [](int dim1, int dim2, int dimOut) -> bool {
+        if(dim1 == dim2 && dim2 == dimOut)
+            return true;
+        if(dim1 == 1)
+            return dimOut == dim2;
+        if(dim2 == 1)
+            return dimOut == dim1;
+        return false;
+    };
 
+    auto lengthDiff =
+        std::max(aDimensionsCount, bDimensionsCount) - std::min(aDimensionsCount, bDimensionsCount);
+
+    auto& longestDims = aDimensionsCount > bDimensionsCount ? aDimensions : bDimensions;
+
+    // For tensors (j×1×n×m) and (k×m×p) second tensor will be virtually extended to (1*k×m×p)
+    //
+    for(int i = 0; i < lengthDiff; i++)
+    {
+        if(!correctBroadcastedDims(1, longestDims[i], cDimensions[i]))
+            MIOPEN_THROW(miopenStatusBadParm);
+    }
+    // Last 2 dimensions are not batch dimensions
+    //
+    for(int i = lengthDiff; i < cDimensionsCount - 2; i++)
+    {
+        if(!correctBroadcastedDims(aDimensions[i], bDimensions[i], cDimensions[i]))
+            MIOPEN_THROW(miopenStatusBadParm);
+    }
     return mOperationMatmul;
 }
 
 void BackendOperationMatmulDescriptor::finalize()
 {
-    if(mFinalized || !deref(mA).isFinalized() || !deref(mB).isFinalized() ||
-       !deref(mC).isFinalized() || !deref(mGemmMOverride).isFinalized() ||
-       !deref(mGemmNOverride).isFinalized() || !deref(mGemmKOverride).isFinalized())
+    if(mFinalized)
     {
-        MIOPEN_THROW(miopenStatusNotInitialized);
+        MIOPEN_THROW(miopenStatusBadParm);
     }
 
     mMatmul    = mBuilder.build();

@@ -354,6 +354,8 @@ static Tensor nOverride(miopenFloat, {10, 100, 100}, {100 * 100, 100, 1}, 1, fal
 static Tensor kOverride(miopenFloat, {10, 100, 100}, {100 * 100, 100, 1}, 1, false);
 
 static Tensor D(miopenFloat, {10, 100}, {100, 1}, 1, false);
+static Tensor E(miopenFloat, {2, 10, 100, 100}, {100 * 100 * 10, 100 * 100, 100, 1}, 1, false);
+
 static Tensor aSmall(miopenFloat, {100}, {1}, 1, false);
 static Tensor bSmall(miopenFloat, {100}, {1}, 1, false);
 static Tensor cSmall(miopenFloat, {100}, {1}, 1, false);
@@ -388,8 +390,11 @@ static std::array<ValidatedValue<Tensor*>, 1> validNOverridetensors{
 static std::array<ValidatedValue<Tensor*>, 1> validKOverridetensors{
     ValidatedValue<Tensor*>{true, &kOverride}};
 
-static std::array<ValidatedValue<Tensor*>, 1> differentDimensionsCountTensor{
+static std::array<ValidatedValue<Tensor*>, 1> invalidBroadcastTensors{
     ValidatedValue<Tensor*>{true, &D}};
+
+static std::array<ValidatedValue<Tensor*>, 1> validBroadcastTensors{
+    ValidatedValue<Tensor*>{true, &E}};
 
 static auto validAttributes = testing::Combine(testing::Values(true),
                                                testing::ValuesIn(validMatmuls),
@@ -401,15 +406,25 @@ static auto validAttributes = testing::Combine(testing::Values(true),
                                                testing::ValuesIn(validNOverridetensors),
                                                testing::ValuesIn(validKOverridetensors));
 
-static auto invalidDimsensions = testing::Combine(testing::Values(false),
-                                                  testing::ValuesIn(validMatmuls),
-                                                  testing::ValuesIn(differentDimensionsCountTensor),
-                                                  testing::ValuesIn(validBtensors),
-                                                  testing::ValuesIn(validCtensors),
-                                                  testing::Values(1),
-                                                  testing::ValuesIn(validMOverridetensors),
-                                                  testing::ValuesIn(validNOverridetensors),
-                                                  testing::ValuesIn(validKOverridetensors));
+static auto invalidBroadcasts = testing::Combine(testing::Values(false),
+                                                 testing::ValuesIn(validMatmuls),
+                                                 testing::ValuesIn(invalidBroadcastTensors),
+                                                 testing::ValuesIn(validBtensors),
+                                                 testing::ValuesIn(validCtensors),
+                                                 testing::Values(1),
+                                                 testing::ValuesIn(validMOverridetensors),
+                                                 testing::ValuesIn(validNOverridetensors),
+                                                 testing::ValuesIn(validKOverridetensors));
+
+static auto validBroadcasts = testing::Combine(testing::Values(true),
+                                               testing::ValuesIn(validMatmuls),
+                                               testing::ValuesIn(validBroadcastTensors),
+                                               testing::ValuesIn(validBtensors),
+                                               testing::ValuesIn(validCtensors),
+                                               testing::Values(1),
+                                               testing::ValuesIn(validMOverridetensors),
+                                               testing::ValuesIn(validNOverridetensors),
+                                               testing::ValuesIn(validKOverridetensors));
 
 static auto invalidAtLeastMatmuls = testing::Combine(testing::Values(false),
                                                      testing::ValuesIn(invalidMatmuls),
@@ -453,7 +468,7 @@ static auto invalidAtLeastCtensors = testing::Combine(testing::Values(false),
 
 INSTANTIATE_TEST_SUITE_P(ValidAttributes, GraphApiOperationMatmulBuilder, validAttributes);
 
-INSTANTIATE_TEST_SUITE_P(invalidDimsensions, GraphApiOperationMatmulBuilder, invalidDimsensions);
+INSTANTIATE_TEST_SUITE_P(invalidBroadcasts, GraphApiOperationMatmulBuilder, invalidBroadcasts);
 
 INSTANTIATE_TEST_SUITE_P(invalidAtLeastMatmuls,
                          GraphApiOperationMatmulBuilder,
