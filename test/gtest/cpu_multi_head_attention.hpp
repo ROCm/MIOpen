@@ -150,6 +150,9 @@ protected:
                                   s_descale,
                                   s_scale,
                                   o_scale,
+                                  0.0f,
+                                  0,
+                                  0,
                                   aMax_S,
                                   aMax_O,
                                   multi_head_attention);

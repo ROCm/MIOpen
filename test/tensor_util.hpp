@@ -27,11 +27,8 @@
 #ifndef GUARD_TENSOR_UTIL_HPP
 #define GUARD_TENSOR_UTIL_HPP
 
-#include <iostream>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
-#include <utility>
-#include <cstdlib>
 #include "tensor_holder.hpp"
 
 // loop over sub-tensor, and operate on each data
