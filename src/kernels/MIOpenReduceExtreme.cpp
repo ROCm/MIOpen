@@ -29,7 +29,7 @@
 #endif
 
 #include "float_types.h"
-#include "reduceextreme.hpp"
+#include "MIOpenReduceExtreme.hpp"
 
 template <typename TI, typename TO, ReduceExtremeOp_t op>
 __device__ void extremefwdcontiguous(const TI* __restrict__ x,

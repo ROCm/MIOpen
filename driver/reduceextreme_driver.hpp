@@ -50,6 +50,15 @@ enum class ReduceExtremeOp_t
     Max    = 4,
 };
 
+static_assert(MIOPEN_REDUCE_EXTREME_ARGMIN ==
+              static_cast<miopenReduceExtremeOp_t>(ReduceExtremeOp_t::Argmin));
+static_assert(MIOPEN_REDUCE_EXTREME_ARGMAX ==
+              static_cast<miopenReduceExtremeOp_t>(ReduceExtremeOp_t::Argmax));
+static_assert(MIOPEN_REDUCE_EXTREME_MIN ==
+              static_cast<miopenReduceExtremeOp_t>(ReduceExtremeOp_t::Min));
+static_assert(MIOPEN_REDUCE_EXTREME_MAX ==
+              static_cast<miopenReduceExtremeOp_t>(ReduceExtremeOp_t::Max));
+
 template <typename T1, typename T2, ReduceExtremeOp_t op>
 struct reduce_func
 {
@@ -131,7 +140,7 @@ int32_t mloReduceExtremeForwardRunHost(miopenTensorDescriptor_t xDesc,
     auto inner_size =
         std::accumulate(x_dims.begin() + dim + 1, x_dims.end(), 1ULL, std::multiplies<uint64_t>());
 
-    int32_t ret = 0;
+    int32_t ret = miopenStatusSuccess;
 
     for(size_t o = 0; o < indice_numel; o++)
     {
@@ -172,7 +181,6 @@ public:
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
-    std::vector<int> GetInputTensorLengthsFromCmdLine();
 
     int AllocateBuffersAndCopy() override;
 
@@ -181,6 +189,7 @@ public:
 
     int RunBackwardGPU() override;
 
+    Tref GetTolerance();
     int VerifyBackward() override;
     int VerifyForward() override;
     ~ReduceExtremeDriver() override
@@ -224,19 +233,22 @@ int ReduceExtremeDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     {
         miopenEnableProfiling(GetHandle(), true);
     }
+
+    if((static_cast<miopenReduceExtremeOp_t>(inflags.GetValueInt("ReduceExtremeOp")) < 1) ||
+       (static_cast<miopenReduceExtremeOp_t>(inflags.GetValueInt("ReduceExtremeOp")) > 4))
+        std::cerr << "Error ReduceExtremeOp(1-4)" << std::endl;
+
     return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
 int ReduceExtremeDriver<Tgpu, Tref>::GetandSetData()
 {
-    std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
-    dim                     = inflags.GetValueInt("DimToReduce");
-    reduceExtremeOp = static_cast<miopenReduceExtremeOp_t>(inflags.GetValueInt("ReduceExtremeOp"));
-    if((reduceExtremeOp < 1) || (reduceExtremeOp > 4))
-        std::cerr << "Error ReduceExtremeOp(1-4)\n" << std::endl;
+    auto inTensorParam = inflags.GetValueTensor("input");
+    auto in_len        = inTensorParam.lengths;
 
-    SetTensorNd(xDesc, in_len, data_type);
+    dim             = inflags.GetValueInt("DimToReduce");
+    reduceExtremeOp = static_cast<miopenReduceExtremeOp_t>(inflags.GetValueInt("ReduceExtremeOp"));
 
     std::vector<int> out_len;
 
@@ -251,8 +263,14 @@ int ReduceExtremeDriver<Tgpu, Tref>::GetandSetData()
     if(out_len.empty())
         out_len.push_back(1);
 
-    SetTensorNd(yDesc, out_len, data_type);
-    SetTensorNd(indiceDesc, out_len, indice_data_type);
+    if(SetTensorNd(xDesc, in_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing x tensor: " + inflags.GetValueStr("input") + ".");
+
+    if(SetTensorNd(yDesc, out_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting y tensor.");
+
+    if(SetTensorNd(indiceDesc, out_len, indice_data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting indice tensor.");
 
     return 0;
 }
@@ -261,11 +279,7 @@ template <typename Tgpu, typename Tref>
 int ReduceExtremeDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward ReduceExtreme (Default=1)", "int");
-    inflags.AddInputFlag("batchsize", 'n', "21", "Mini-batch size (Default=100)", "int");
-    inflags.AddInputFlag("in_channels", 'c', "500", "Number of Input Channels (Default=3)", "int");
-    inflags.AddInputFlag("in_d", 'D', "0", "Input Depth (Default=0)", "int");
-    inflags.AddInputFlag("in_h", 'H', "0", "Input Height (Default=32)", "int");
-    inflags.AddInputFlag("in_w", 'W', "375", "Input Width (Default=32)", "int");
+    inflags.AddTensorFlag("input", 'X', "21x500x375", "input tensor descriptor");
     inflags.AddInputFlag(
         "DimToReduce", 'R', "0", "The indice of the dimensions to be reduced(Default=1)", "int");
     inflags.AddInputFlag("ReduceExtremeOp",
@@ -281,42 +295,6 @@ int ReduceExtremeDriver<Tgpu, Tref>::AddCmdLineArgs()
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
 
     return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref>
-std::vector<int> ReduceExtremeDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
-{
-    int in_n = inflags.GetValueInt("batchsize");
-    int in_c = inflags.GetValueInt("in_channels");
-    int in_w = inflags.GetValueInt("in_w");
-    int in_h = inflags.GetValueInt("in_h");
-    int in_d = inflags.GetValueInt("in_d");
-
-    if((in_n != 0) && (in_c != 0) && (in_d != 0) && (in_h != 0) && (in_w != 0))
-    {
-        return std::vector<int>({in_n, in_c, in_d, in_h, in_w});
-    }
-    else if((in_n != 0) && (in_c != 0) && (in_h != 0) && (in_w != 0))
-    {
-        return std::vector<int>({in_n, in_c, in_h, in_w});
-    }
-    else if((in_n != 0) && (in_c != 0) && (in_w != 0))
-    {
-        return std::vector<int>({in_n, in_c, in_w});
-    }
-    else if((in_n != 0) && (in_w != 0))
-    {
-        return std::vector<int>({in_n, in_w});
-    }
-    else if(in_n != 0)
-    {
-        return std::vector<int>({in_n});
-    }
-    else
-    {
-        std::cerr << "Error Input Tensor Lengths\n" << std::endl;
-        return std::vector<int>({0});
-    }
 }
 
 template <typename Tgpu, typename Tref>
@@ -436,32 +414,45 @@ int ReduceExtremeDriver<Tgpu, Tref>::RunForwardCPU()
 {
     if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMIN)
     {
-        mloReduceExtremeForwardRunHost<Tgpu, Tref, ReduceExtremeOp_t::Argmin>(
+        return mloReduceExtremeForwardRunHost<Tgpu, Tref, ReduceExtremeOp_t::Argmin>(
             xDesc, nullptr, indiceDesc, x.data(), nullptr, indicehost.data(), dim);
     }
     else if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMAX)
     {
-        mloReduceExtremeForwardRunHost<Tgpu, Tref, ReduceExtremeOp_t::Argmax>(
+        return mloReduceExtremeForwardRunHost<Tgpu, Tref, ReduceExtremeOp_t::Argmax>(
             xDesc, nullptr, indiceDesc, x.data(), nullptr, indicehost.data(), dim);
     }
     else if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN)
     {
-        mloReduceExtremeForwardRunHost<Tgpu, Tref, ReduceExtremeOp_t::Min>(
+        return mloReduceExtremeForwardRunHost<Tgpu, Tref, ReduceExtremeOp_t::Min>(
             xDesc, yDesc, indiceDesc, x.data(), yhost.data(), indicehost.data(), dim);
     }
     else if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX)
     {
-        mloReduceExtremeForwardRunHost<Tgpu, Tref, ReduceExtremeOp_t::Max>(
+        return mloReduceExtremeForwardRunHost<Tgpu, Tref, ReduceExtremeOp_t::Max>(
             xDesc, yDesc, indiceDesc, x.data(), yhost.data(), indicehost.data(), dim);
     }
 
-    return miopenStatusSuccess;
+    return miopenStatusInternalError;
 }
 
 template <typename Tgpu, typename Tref>
 int ReduceExtremeDriver<Tgpu, Tref>::RunBackwardGPU()
 {
     return miopenStatusSuccess;
+}
+
+template <typename Tgpu, typename Tref>
+Tref ReduceExtremeDriver<Tgpu, Tref>::GetTolerance()
+{
+    // Computation error of fp16 is ~2^13 (=8192) bigger than
+    // the one of fp32 because mantissa is shorter by 13 bits.
+    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
+
+    // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+    if(std::is_same<Tgpu, bfloat16>::value)
+        tolerance *= 8.0;
+    return tolerance;
 }
 
 template <typename Tgpu, typename Tref>
@@ -472,16 +463,19 @@ int ReduceExtremeDriver<Tgpu, Tref>::VerifyForward()
     if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN) ||
        (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX))
     {
-        auto error = miopen::rms_range(yhost, y);
+        const Tref tolerance = GetTolerance();
+        auto error           = miopen::rms_range(yhost, y);
 
-        if(!std::isfinite(error) || std::abs(static_cast<float>(error)) != 0.0f)
+        if(!std::isfinite(error) || error > tolerance)
         {
-            std::cout << "Forward ReduceExtreme FAILED: Result does not equal" << std::endl;
+            std::cout << "Forward ReduceExtreme FAILED: " << error << " > " << tolerance
+                      << std::endl;
             return EC_VerifyFwd;
         }
         else
         {
-            std::cout << "Forward ReduceExtreme Verifies on CPU and GPU (err=" << error << ")\n";
+            std::cout << "Forward ReduceExtreme Verifies on CPU (" << error << " < " << tolerance
+                      << ')' << std::endl;
         }
     }
     auto indice_error = miopen::rms_range(indicehost, indice);
@@ -494,7 +488,7 @@ int ReduceExtremeDriver<Tgpu, Tref>::VerifyForward()
     else
     {
         std::cout << "Forward ReduceExtreme Incide Verifies on CPU and GPU (err=" << indice_error
-                  << ")\n";
+                  << ")" << std::endl;
     }
 
     return miopenStatusSuccess;

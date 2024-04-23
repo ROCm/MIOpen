@@ -23,16 +23,23 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_REDUCEEXTREME_HPP
-#define GUARD_REDUCEEXTREME_HPP
+#ifndef GUARD_KERNELS_MIOPENREDUCEEXTREME_HPP
+#define GUARD_KERNELS_MIOPENREDUCEEXTREME_HPP
 
 enum class ReduceExtremeOp_t
 {
     Argmin = 1,
-    Argmax = 2,
-    Min    = 3,
-    Max    = 4,
+    Argmax,
+    Min,
+    Max,
+    First_ = Argmin,
+    Last_  = Max,
 };
+
+static_assert(MIOPEN_REDUCE_EXTREME_ARGMIN == static_cast<int>(ReduceExtremeOp_t::Argmin));
+static_assert(MIOPEN_REDUCE_EXTREME_ARGMAX == static_cast<int>(ReduceExtremeOp_t::Argmax));
+static_assert(MIOPEN_REDUCE_EXTREME_MIN == static_cast<int>(ReduceExtremeOp_t::Min));
+static_assert(MIOPEN_REDUCE_EXTREME_MAX == static_cast<int>(ReduceExtremeOp_t::Max));
 
 template <typename T1, typename T2, ReduceExtremeOp_t op>
 struct reduce_func
@@ -91,4 +98,4 @@ struct reduce_func<T1, T2, ReduceExtremeOp_t::Argmin>
         }
     }
 };
-#endif // GUARD_GUARD_REDUCEEXTREME_HPP
+#endif // GUARD_GUARD_KERNELS_MIOPENREDUCEEXTREME_HPP

@@ -107,7 +107,11 @@ ConvSolution MinForward::GetSolution(const ExecutionContext&,
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
             {"INDICE_TYPE", indice_dtype},
-            {"OP_TYPE", "ReduceExtremeOp_t::Min"}};
+            {"OP_TYPE", "ReduceExtremeOp_t::Min"},
+            {"MIOPEN_REDUCE_EXTREME_ARGMIN", MIOPEN_REDUCE_EXTREME_ARGMIN},
+            {"MIOPEN_REDUCE_EXTREME_ARGMAX", MIOPEN_REDUCE_EXTREME_ARGMAX},
+            {"MIOPEN_REDUCE_EXTREME_MIN", MIOPEN_REDUCE_EXTREME_MIN},
+            {"MIOPEN_REDUCE_EXTREME_MAX", MIOPEN_REDUCE_EXTREME_MAX}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
