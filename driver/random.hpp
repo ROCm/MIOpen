@@ -2,6 +2,8 @@
 #define GUARD_RANDOM_GEN_
 
 #include <miopen/env.hpp>
+
+#include <cassert>
 #include <iostream>
 #include <random>
 
