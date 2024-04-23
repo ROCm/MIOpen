@@ -31,22 +31,6 @@
 
 #include "graphapi_gtest_common.hpp"
 
-namespace miopen {
-
-namespace graphapi {
-
-std::ostream& operator<<(std::ostream& os, std::variant<int64_t, Tensor*> seed)
-{
-    if(seed.index() == 0)
-        return os << std::get<0>(seed);
-    else
-        return os << std::get<1>(seed);
-};
-
-} // namespace graphapi
-
-} // namespace miopen
-
 namespace {
 
 using miopen::graphapi::Matmul;
