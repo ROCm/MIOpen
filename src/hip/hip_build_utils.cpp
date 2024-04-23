@@ -171,7 +171,7 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #endif
 
     // hip version
-    params += " -DHIP_PACKAGE_VERSION_FLAT=" MIOPEN_STRINGIZE(HIP_PACKAGE_VERSION_FLAT) " ";
+    params += " -DHIP_PACKAGE_VERSION_FLAT=" + std::string{HIP_PACKAGE_VERSION_FLAT} + " ";
     auto bin_file = make_object_file_name(tmp_dir.get() / filename);
 
     // compile
