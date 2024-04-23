@@ -33,7 +33,7 @@
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
-#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight.hpp>
+#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight_bilinear.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS)
@@ -45,22 +45,32 @@ namespace conv {
 using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-template <typename DataType>
-using DeviceOpGWrw = ck::tensor_operation::device::DeviceGroupedConvBwdWeight<
-    3,
-    ck::tensor_layout::convolution::NDHWGC,
-    ck::tensor_layout::convolution::GKZYXC,
-    ck::tensor_layout::convolution::NDHWGK,
-    DataType,
-    DataType,
-    DataType,
-    ck::tensor_operation::element_wise::PassThrough,
-    ck::tensor_operation::element_wise::PassThrough,
-    ck::tensor_operation::element_wise::PassThrough>;
+
+using InLayout                             = ck::tensor_layout::convolution::NDHWGC;
+using WeiLayout                            = ck::tensor_layout::convolution::GKZYXC;
+using OutLayout                            = ck::tensor_layout::convolution::NDHWGK;
+using PassThrough                          = ck::tensor_operation::element_wise::PassThrough;
+using Bilinear                             = ck::tensor_operation::element_wise::Bilinear;
+static constexpr ck::index_t NumDimSpatial = 3;
 
 template <typename DataType>
-using DeviceOpGWrwPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGWrw<DataType>>;
+using DeviceOpGBwdWrw = ck::tensor_operation::device::DeviceGroupedConvBwdWeightMultipleD<
+            NDimSpatial,
+            InLayout,
+            WeiLayout,
+            OutLayout,
+            ck::Tuple<WeiLayout>,
+            DataType,
+            DataType,
+            DataType,
+            ck::Tuple<DataType>,
+            InElementOp,
+            WeiElementOp,
+            OutElementOp>;
+
+template <typename DataType>
+using DeviceOpGBwdWrwPtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGBwdWrw<DataType>>;
 
 namespace {
 
@@ -83,10 +93,12 @@ struct CKArgs
         Di = ProblemInterpreter::GetInputDepthDi(problem);
         Do = ProblemInterpreter::GetOutputDepthDo(problem);
         Z  = ProblemInterpreter::GetFilterDepthZ(problem);
+        alpha = ProblemInterpreter::GetAlpha(problem);
+        beta  = ProblemInterpreter::GetBeta(problem);
 
-        input  = {G, N, C, Di, Hi, Wi};
-        output = {G, N, K, Do, Ho, Wo};
-        weight = {G, K, C, Z, Y, X};
+        in_lengths  = {G, N, C, Di, Hi, Wi};
+        out_lengths = {G, N, K, Do, Ho, Wo};
+        wei_lengths = {G, K, C, Z, Y, X};
 
         // CK strides are in GNCDHW order
         if(problem.IsLayoutNHWC())
@@ -120,10 +132,10 @@ struct CKArgs
             wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
         }
 
-        strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
+        filter_strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
-        dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
+        filter_dilations = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
                     ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
                     ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
         lPadding = {ProblemInterpreter::GetInputLeftPadD(problem),
@@ -143,19 +155,22 @@ struct CKArgs
         return conv_ptr->MakeArgumentPointer(x,
                                              dw,
                                              dy,
-                                             input,
+                                             {dw}, // no sure what goes here
+                                             in_lengths,
                                              in_strides,
-                                             weight,
+                                             wei_lengths,
                                              wei_strides,
-                                             output,
+                                             out_lengths,
                                              out_strides,
-                                             strides,
-                                             dilation,
-                                             lPadding,
-                                             rPadding,
-                                             {},
-                                             {},
-                                             {},
+                                             {wei_lengths},
+                                             {wei_strides},
+                                             filter_strides,
+                                             filter_dilations,
+                                             input_left_pads,
+                                             input_right_pads,
+                                             PassThrough{},
+                                             Bilinear{*static_cast<const float*>(alpha), *static_cast<const float*>(beta)}),
+                                             PassThrough{},
                                              split_k);
     }
 
@@ -187,6 +202,8 @@ struct CKArgs
     int Y;
     int X;
     int Z;
+    ConstData_t alpha;
+    ConstData_t beta;
     ck::index_t split_k = 1;
     std::array<ck::index_t, 6> input;
     std::array<ck::index_t, 6> in_strides;
@@ -204,7 +221,7 @@ struct CKArgs
 template <typename DataType>
 void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::Init(const ProblemDescription& problem)
 {
-    valid_kernels = FillValidKernelsIDs<DeviceOpGWrwPtrs<DataType>, CKArgs>(problem);
+    valid_kernels = FillValidKernelsIDs<DeviceOpGBwdWrwPtrs<DataType>, CKArgs>(problem);
     index         = 0;
     kernel_id     = valid_kernels[index];
 }
@@ -213,14 +230,14 @@ template <typename DataType>
 bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
-    return IsCKArgsSupported<DeviceOpGWrwPtrs<DataType>, CKArgs>(problem, kernel_id);
+    return IsCKArgsSupported<DeviceOpGBwdWrwPtrs<DataType>, CKArgs>(problem, kernel_id);
 }
 
 template <typename DataType>
 bool ConvHipImplicitGemm3DGroupWrwXdlops::CheckCKApplicability(
     const ProblemDescription& problem) const
 {
-    return IsCKApplicable<DeviceOpGWrwPtrs<DataType>, CKArgs>(problem);
+    return IsCKApplicable<DeviceOpGBwdWrwPtrs<DataType>, CKArgs>(problem);
 }
 #endif
 
@@ -376,14 +393,14 @@ ConvSolution ConvHipImplicitGemm3DGroupWrwXdlops::GetSolution(
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
             return InitInvokerFactoryWrwNCHW<3,
-                                             DeviceOpGWrwPtrs<T>,
+                                             DeviceOpGBwdWrwPtrs<T>,
                                              CKArgs,
                                              miopen::conv::WrWInvokeParams>(
                 ctx, problem, config.kernel_id);
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<DeviceOpGWrwPtrs<T>,
+            return InitInvokerFactoryNHWC<DeviceOpGBwdWrwPtrs<T>,
                                           CKArgs,
                                           miopen::conv::WrWInvokeParams>(
                 ctx, problem, config.kernel_id);
