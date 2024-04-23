@@ -41,7 +41,7 @@ inline void Pooling_logging_cmd(const miopenPoolingDescriptor_t poolDesc,
 {
     if(miopen::IsLoggingCmd())
     {
-        auto tensor_dim = miopen::deref(tensorDesc).GetSize();
+        auto tensor_dim = miopen::deref(tensorDesc).GetNumDims();
         std::stringstream ss;
 
         switch(miopen::deref(tensorDesc).GetType())

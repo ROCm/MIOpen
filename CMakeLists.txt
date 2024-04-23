@@ -369,24 +369,28 @@ if(MIOPEN_USE_MLIR)
     if(NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR})
         message(FATAL_ERROR "Potential symbol conflict between mlir and comgr in static build")
     endif()
-    # Try to find package rocMLIR
-    # REQUIRED is omitted since we do not want cmake to abort if the package is not found
-    find_package(rocMLIR 1.0.0 CONFIG)
-    if(NOT rocMLIR_FOUND)
-        message(STATUS "Falling back to find library libMLIRMIOpen")
-        # Backward compatibility with ROCm 5.3
-        # If the rocMLIR package is not found, try to find the library libMLIRMIOpen directly
-        find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
-        if(NOT LIBMLIRMIOPEN)
-            message(FATAL_ERROR "library libMLIRMIOpen not found, please reinstall dependencies. \
-            Refer to https://github.com/ROCm/MIOpen#installing-the-dependencies")
-        else()
-            message(STATUS "Build with library libMLIRMIOpen: " ${LIBMLIRMIOPEN})
-            set(rocMLIR_VERSION 0.0.1)
-        endif()
+    if(WIN32)
+        # Windows does not support earlier ROCm versions hence no fallback to MLIRMIOpen.
+        find_package(rocMLIR 1.0.0 CONFIG REQUIRED)
     else()
-        message(STATUS "Build with rocMLIR::rockCompiler ${rocMLIR_VERSION}")
+        # Try to find package rocMLIR
+        # REQUIRED is omitted since we do not want cmake to abort if the package is not found
+        find_package(rocMLIR 1.0.0 CONFIG)
+        if(NOT rocMLIR_FOUND)
+            message(STATUS "Falling back to find library libMLIRMIOpen")
+            # Backward compatibility with ROCm 5.3
+            # If the rocMLIR package is not found, try to find the library libMLIRMIOpen directly
+            find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
+            if(NOT LIBMLIRMIOPEN)
+                message(FATAL_ERROR "library libMLIRMIOpen not found, please reinstall dependencies. \
+                Refer to https://github.com/ROCm/MIOpen#installing-the-dependencies")
+            else()
+                message(STATUS "Build with library libMLIRMIOpen: " ${LIBMLIRMIOPEN})
+                set(rocMLIR_VERSION 0.0.1)
+            endif()
+        endif()
     endif()
+    message(STATUS "Build with rocMLIR::rockCompiler ${rocMLIR_VERSION}")
 endif()
 
 # Update HIP Runtime Package Dependency
