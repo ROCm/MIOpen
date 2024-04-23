@@ -58,9 +58,9 @@ bool ArgminForward::OverMaxGridSize(const ExecutionContext& context,
 bool ArgminForward::IsApplicable(const ExecutionContext& context,
                                  const miopen::reduce::ProblemDescription& problem) const
 {
-    if(!problem.IsRightDim())
+    if(!problem.IsValidDim())
         return false;
-    if(!problem.IsRightLengthIndice())
+    if(!problem.IsValidLengthIndice())
         return false;
     if(!problem.IsAllPackedIndice())
         return false;

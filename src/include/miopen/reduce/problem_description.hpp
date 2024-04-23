@@ -74,80 +74,64 @@ struct ProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetIndiceDesc() const { return indiceDesc; }
     int32_t GetDim() const { return dim; }
 
-    bool IsSameType() const
-    {
-        if(xDesc.GetType() != yDesc.GetType())
-        {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm, "Reduce: Tensor types do not match.");
-#else
-            return false;
-#endif
-        }
-        return true;
-    }
-
-    bool IsRightLength() const
+    bool IsValidLength() const
     {
         if(xDesc.GetLengths().size() == 1)
             return true;
 
         int32_t posy = 0;
-        for(int32_t i = 0; i < xDesc.GetLengths().size(); i++)
+        for(int32_t i = 0; i < xDesc.GetLengths().size(); ++i)
         {
             if(i == dim)
                 continue;
 
             if(xDesc.GetLengths()[i] != yDesc.GetLengths()[posy])
             {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
                 MIOPEN_THROW(miopenStatusBadParm, "Reduce: Tensor dimension lengths do not match.");
-#else
-                return false;
-#endif
             }
 
-            posy++;
+            ++posy;
         }
         return true;
     }
 
-    bool IsRightLengthIndice() const
+    bool IsValidLengthIndice() const
     {
         if(xDesc.GetLengths().size() == 1)
             return true;
 
         int32_t posy = 0;
-        for(int32_t i = 0; i < xDesc.GetLengths().size(); i++)
+        for(int32_t i = 0; i < xDesc.GetLengths().size(); ++i)
         {
             if(i == dim)
                 continue;
 
             if(xDesc.GetLengths()[i] != indiceDesc.GetLengths()[posy])
             {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
                 MIOPEN_THROW(miopenStatusBadParm, "Reduce: Tensor dimension lengths do not match.");
-#else
-                return false;
-#endif
             }
 
-            posy++;
+            ++posy;
         }
         return true;
     }
 
-    bool IsRightDim() const
+    bool IsValidDim() const
     {
         if((dim < 0) || (dim > xDesc.GetLengths().size()))
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(
                 miopenStatusBadParm,
                 "Reduce: is greater than 0 and less than or equal tensor dimension length.");
-#else
+        }
+        return true;
+    }
+
+    bool IsSameType() const
+    {
+        if(xDesc.GetType() != yDesc.GetType())
+        {
             return false;
-#endif
         }
         return true;
     }
@@ -156,11 +140,7 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(!(xDesc.IsPacked() && yDesc.IsPacked()))
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm, "Reduce: Unpacked tensors not supported.");
-#else
             return false;
-#endif
         }
 
         return true;
@@ -170,11 +150,7 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(!(xDesc.IsPacked() && yDesc.IsPacked() && indiceDesc.IsPacked()))
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm, "Reduce: Unpacked tensors not supported.");
-#else
             return false;
-#endif
         }
 
         return true;
@@ -184,11 +160,7 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(!(xDesc.IsPacked() && indiceDesc.IsPacked()))
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm, "Reduce: Unpacked tensors not supported.");
-#else
             return false;
-#endif
         }
 
         return true;

@@ -260,7 +260,7 @@ protected:
 
         std::vector<size_t> out_dims;
 
-        for(int32_t i = 0; i < in_dims.size(); i++)
+        for(int32_t i = 0; i < in_dims.size(); ++i)
         {
             if(i != dim)
             {

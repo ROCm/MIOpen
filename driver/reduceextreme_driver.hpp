@@ -142,14 +142,14 @@ int32_t mloReduceExtremeForwardRunHost(miopenTensorDescriptor_t xDesc,
 
     int32_t ret = miopenStatusSuccess;
 
-    for(size_t o = 0; o < indice_numel; o++)
+    for(size_t o = 0; o < indice_numel; ++o)
     {
         size_t x_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
 
         int32_t extreme_idx = 0;
         Tcheck extreme      = static_cast<Tcheck>(x[x_idx]);
 
-        for(int32_t i = 1; i < reduce_size; i++)
+        for(int32_t i = 1; i < reduce_size; ++i)
         {
             x_idx += inner_size;
             Tcheck val = static_cast<Tcheck>(x[x_idx]);
@@ -238,6 +238,13 @@ int ReduceExtremeDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
        (static_cast<miopenReduceExtremeOp_t>(inflags.GetValueInt("ReduceExtremeOp")) > 4))
         std::cerr << "Error ReduceExtremeOp(1-4)" << std::endl;
 
+    auto inTensorParam = inflags.GetValueTensor("input");
+
+    if((static_cast<miopenReduceExtremeOp_t>(inflags.GetValueInt("DimToReduce")) < 0) ||
+       (static_cast<miopenReduceExtremeOp_t>(inflags.GetValueInt("DimToReduce")) >
+        inTensorParam.lengths.size() - 1))
+        std::cerr << "Error DimToReduce(0-" << inTensorParam.lengths.size() - 1 << ")" << std::endl;
+
     return miopenStatusSuccess;
 }
 
@@ -252,7 +259,7 @@ int ReduceExtremeDriver<Tgpu, Tref>::GetandSetData()
 
     std::vector<int> out_len;
 
-    for(int i = 0; i < in_len.size(); i++)
+    for(int i = 0; i < in_len.size(); ++i)
     {
         if(i != dim)
         {
@@ -312,7 +319,7 @@ int ReduceExtremeDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     indice     = std::vector<int32_t>(out_sz, static_cast<int32_t>(0));
     indicehost = std::vector<int32_t>(out_sz, static_cast<int32_t>(0));
 
-    for(int32_t i = 0; i < in_sz; i++)
+    for(int32_t i = 0; i < in_sz; ++i)
     {
         x[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(1.0));
     }
@@ -346,7 +353,7 @@ int ReduceExtremeDriver<Tgpu, Tref>::RunForwardGPU()
     Timer t;
     START_TIME
 
-    for(int32_t i = 0; i < inflags.GetValueInt("iter"); i++)
+    for(int32_t i = 0; i < inflags.GetValueInt("iter"); ++i)
     {
         if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN) ||
            (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX))

@@ -58,9 +58,9 @@ bool MinForward::OverMaxGridSize(const ExecutionContext& context,
 bool MinForward::IsApplicable(const ExecutionContext& context,
                               const miopen::reduce::ProblemDescription& problem) const
 {
-    if(!problem.IsRightDim())
+    if(!problem.IsValidDim())
         return false;
-    if(!problem.IsRightLength())
+    if(!problem.IsValidLength())
         return false;
     if(!problem.IsAllPackedWithIndice())
         return false;
