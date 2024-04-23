@@ -63,8 +63,6 @@
 #endif
 #endif
 
-#define FIN_OLD_HANDLE_COMPAT 1
-
 namespace miopen {
 
 struct HandleImpl;
@@ -73,7 +71,7 @@ struct HandleImpl;
 using rocblas_handle_ptr = MIOPEN_MANAGE_PTR(rocblas_handle, rocblas_destroy_handle);
 #endif
 
-struct Handle : miopenHandle
+struct MIOPEN_EXPORT Handle : miopenHandle
 {
     friend struct TargetProperties;
 
@@ -135,16 +133,6 @@ struct Handle : miopenHandle
                         std::string params,
                         const std::string& kernel_src) const;
 
-#if FIN_OLD_HANDLE_COMPAT
-    Program LoadProgram(const std::string& program_name,
-                        std::string params,
-                        bool,
-                        const std::string& kernel_src) const
-    {
-        return LoadProgram(program_name, params, kernel_src);
-    }
-#endif
-
     bool HasProgram(const std::string& program_name, const std::string& params) const;
     void ClearProgram(const std::string& program_name, const std::string& params) const;
     void AddProgram(Program prog, const std::string& program_name, const std::string& params) const;
@@ -197,6 +185,7 @@ public:
     template <class Container>
     Allocator::ManageDataPtr Write(const Container& c)
     {
+        assert(!c.empty());
         using type = typename Container::value_type;
         auto buf   = this->Create<type>(c.size());
         return std::move(
@@ -209,6 +198,15 @@ public:
         std::vector<T> result(sz);
         this->ReadTo(result.data(), ddata, sz * sizeof(T));
         return result;
+    }
+
+    template <class V>
+    void ReadToVec(const Allocator::ManageDataPtr& ddata, V& output_vec)
+    {
+        using T = typename V::value_type;
+        assert(ddata);
+        assert(output_vec.size() > 0);
+        this->ReadTo(output_vec.data(), ddata, output_vec.size() * sizeof(T));
     }
 
     static std::string GetDbBasename(const TargetProperties& target, size_t num_cu)

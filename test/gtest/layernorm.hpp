@@ -23,16 +23,16 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/miopen.h>
-#include <gtest/gtest.h>
-#include <miopen/layernorm.hpp>
 
-#include "tensor_holder.hpp"
+#include "../driver/tensor_driver.hpp"
 #include "cpu_layernorm.hpp"
 #include "get_handle.hpp"
-#include "../driver/tensor_driver.hpp"
+#include "random.hpp"
+#include "tensor_holder.hpp"
 #include "verify.hpp"
-#include <random>
+#include <gtest/gtest.h>
+#include <miopen/layernorm.hpp>
+#include <miopen/miopen.h>
 
 struct LayerNormTestCase
 {
@@ -43,7 +43,7 @@ struct LayerNormTestCase
     size_t W;
     size_t nomalized_dim;
     float eps;
-    miopenLayerNormMode_t ln_mode;
+    miopenNormMode_t ln_mode;
     friend std::ostream& operator<<(std::ostream& os, const LayerNormTestCase& tc)
     {
         return os << " N:" << tc.N << " C:" << tc.C << " D:" << tc.D << " H:" << tc.H
@@ -151,15 +151,6 @@ std::vector<LayerNormTestCase> LayerNormTestConfigs()
     // clang-format on
 }
 
-static int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
-{
-    std::vector<std::size_t> lens = desc.GetLengths();
-    std::vector<int32_t> int32_t_lens(lens.begin(), lens.end());
-
-    // set the strides for the tensor
-    return SetTensorNd(&desc, int32_t_lens, desc.GetType());
-}
-
 template <typename T = float>
 struct LayerNormTest : public ::testing::TestWithParam<LayerNormTestCase>
 {
@@ -168,10 +159,7 @@ protected:
     {
         auto&& handle    = get_handle();
         layernorm_config = GetParam();
-
-        std::mt19937 gen(0);
-        std::uniform_real_distribution<> d{-3, 3};
-        auto gen_value = [&](auto...) { return d(gen); };
+        auto gen_value   = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
         nomalized_dim = layernorm_config.nomalized_dim;
         eps           = layernorm_config.eps;
@@ -193,15 +181,11 @@ protected:
             auto gen_zero = [&](auto...) { return 0; };
             weight        = tensor<T>{inner_dim}.generate(gen_one);
             bias          = tensor<T>{inner_dim}.generate(gen_zero);
-            SetTensorLayout(weight.desc);
-            SetTensorLayout(bias.desc);
         }
         else
         {
             weight = tensor<T>{inner_dim}.generate(gen_value);
             bias   = tensor<T>{inner_dim}.generate(gen_value);
-            SetTensorLayout(weight.desc);
-            SetTensorLayout(bias.desc);
         }
 
         std::vector<size_t> outer_dim;
@@ -210,14 +194,9 @@ protected:
         else
             outer_dim = {in_dim.begin(), in_dim.end() - (in_dim.size() - nomalized_dim)};
 
-        SetTensorLayout(input.desc);
-
         output = tensor<T>{in_dim};
         mean   = tensor<T>{outer_dim};
         rstd   = tensor<T>{outer_dim};
-        SetTensorLayout(output.desc);
-        SetTensorLayout(mean.desc);
-        SetTensorLayout(rstd.desc);
         std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
         std::fill(mean.begin(), mean.end(), std::numeric_limits<T>::quiet_NaN());
         std::fill(rstd.begin(), rstd.end(), std::numeric_limits<T>::quiet_NaN());
@@ -309,5 +288,5 @@ protected:
 
     size_t nomalized_dim;
     float eps;
-    miopenLayerNormMode_t ln_mode;
+    miopenNormMode_t ln_mode;
 };

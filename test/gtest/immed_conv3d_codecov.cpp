@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,45 +28,27 @@
 #include "get_handle.hpp"
 #include "test_env.hpp"
 
-#include "conv3d.hpp"
+#include "immed_conv3d.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(CODECOV_TEST)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
 
 namespace immed_conv3d_codecov {
 
-template <class T>
-struct conv3d_driver : conv_driver<T, ConvApi::Immediate>
+class ImmedConv3dFloat : public testing::TestWithParam<std::vector<std::string>>
 {
-    conv3d_driver() : conv_driver<T, ConvApi::Immediate>()
-    {
-        this->add(this->input_dims, "input");
-        this->add(this->weight_tensor_dims, "weights");
-        this->add(this->batch_size,
-                  "batch_size",
-                  this->generate_data_limited(this->get_batch_sizes(), 1, {8}));
-        this->add(this->input_channels,
-                  "input_channels",
-                  this->generate_data_limited(this->get_input_channels(), 1, {2}));
-        this->add(this->output_channels,
-                  "output_channels",
-                  this->generate_data_limited(this->get_output_channels(), 1, {16}));
-        this->add(this->spatial_dim_elements,
-                  "spatial_dim_elements",
-                  this->generate_data_limited(this->get_3d_spatial_dims(), 1, {16, 16, 16}));
-        this->add(this->filter_dims,
-                  "filter_dims",
-                  this->generate_data_limited(this->get_3d_filter_dims(), 2, {5, 5, 5}));
-        this->add(this->pads_strides_dilations,
-                  "pads_strides_dilations",
-                  this->generate_data_limited(this->get_3d_pads_strides_dilations(), 2));
-        this->add(this->trans_output_pads,
-                  "trans_output_pads",
-                  this->generate_data_limited(this->get_3d_trans_output_pads(), 1));
-        this->add(this->in_layout, "in_layout", this->generate_data({"NCDHW"}));
-        this->add(this->fil_layout, "fil_layout", this->generate_data({"NCDHW"}));
-        this->add(this->out_layout, "out_layout", this->generate_data({"NCDHW"}));
-    }
+};
+
+class ImmedConv3dHalf : public testing::TestWithParam<std::vector<std::string>>
+{
+};
+
+class ImmedConv3dBFloat16 : public testing::TestWithParam<std::vector<std::string>>
+{
+};
+
+class ImmedConv3dInt8 : public testing::TestWithParam<std::vector<std::string>>
+{
 };
 
 static bool SkipTest(void) { return !miopen::IsEnabled(ENV(CODECOV_TEST)); }
@@ -86,10 +68,10 @@ void Run3dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenHalf: params = Conv3dHalf::GetParam(); break;
-    case miopenBFloat16: params = Conv3dBFloat16::GetParam(); break;
-    case miopenFloat: params = Conv3dFloat::GetParam(); break;
-    case miopenInt8: params = Conv3dInt8::GetParam(); break;
+    case miopenHalf: params = ImmedConv3dHalf::GetParam(); break;
+    case miopenBFloat16: params = ImmedConv3dBFloat16::GetParam(); break;
+    case miopenFloat: params = ImmedConv3dFloat::GetParam(); break;
+    case miopenInt8: params = ImmedConv3dInt8::GetParam(); break;
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
@@ -98,7 +80,7 @@ void Run3dDriver(miopenDataType_t prec)
                   "data type not supported by "
                   "immed_conv3d_codecov test";
 
-    default: params = Conv3dFloat::GetParam();
+    default: params = ImmedConv3dFloat::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -136,7 +118,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 } // namespace immed_conv3d_codecov
 using namespace immed_conv3d_codecov;
 
-TEST_P(Conv3dFloat, FloatTest_immed_conv3d_codecov)
+TEST_P(ImmedConv3dFloat, FloatTest_immed_conv3d_codecov)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--float"))
@@ -149,7 +131,7 @@ TEST_P(Conv3dFloat, FloatTest_immed_conv3d_codecov)
     }
 };
 
-TEST_P(Conv3dHalf, HalfTest_immed_conv3d_codecov)
+TEST_P(ImmedConv3dHalf, HalfTest_immed_conv3d_codecov)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--half"))
@@ -162,7 +144,7 @@ TEST_P(Conv3dHalf, HalfTest_immed_conv3d_codecov)
     }
 };
 
-TEST_P(Conv3dBFloat16, BFloat16Test_immed_conv3d_codecov)
+TEST_P(ImmedConv3dBFloat16, BFloat16Test_immed_conv3d_codecov)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--bfloat16"))
@@ -175,7 +157,7 @@ TEST_P(Conv3dBFloat16, BFloat16Test_immed_conv3d_codecov)
     }
 };
 
-TEST_P(Conv3dInt8, Int8Test_immed_conv3d_codecov)
+TEST_P(ImmedConv3dInt8, Int8Test_immed_conv3d_codecov)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--int8"))
@@ -188,10 +170,12 @@ TEST_P(Conv3dInt8, Int8Test_immed_conv3d_codecov)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ImmedConv3D, Conv3dFloat, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(ImmedConv3D, ImmedConv3dFloat, testing::Values(GetTestCases("--float")));
 
-INSTANTIATE_TEST_SUITE_P(ImmedConv3D, Conv3dHalf, testing::Values(GetTestCases("--half")));
+INSTANTIATE_TEST_SUITE_P(ImmedConv3D, ImmedConv3dHalf, testing::Values(GetTestCases("--half")));
 
-INSTANTIATE_TEST_SUITE_P(ImmedConv3D, Conv3dBFloat16, testing::Values(GetTestCases("--bfloat16")));
+INSTANTIATE_TEST_SUITE_P(ImmedConv3D,
+                         ImmedConv3dBFloat16,
+                         testing::Values(GetTestCases("--bfloat16")));
 
-INSTANTIATE_TEST_SUITE_P(ImmedConv3D, Conv3dInt8, testing::Values(GetTestCases("--int8")));
+INSTANTIATE_TEST_SUITE_P(ImmedConv3D, ImmedConv3dInt8, testing::Values(GetTestCases("--int8")));

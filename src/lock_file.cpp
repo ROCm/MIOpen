@@ -29,11 +29,9 @@
 #include <miopen/logger.hpp>
 #include <miopen/md5.hpp>
 
-namespace fs = boost::filesystem;
-
 namespace miopen {
 
-inline void LogFsError(const fs::filesystem_error& ex, const std::string& from)
+inline void LogFsError(const fs::filesystem_error& ex, const std::string_view from)
 {
     // clang-format off
     MIOPEN_LOG_E_FROM(from, "File system operation error in LockFile. "
@@ -51,16 +49,16 @@ std::string LockFilePath(const fs::path& filename_)
         if(!fs::exists(directory))
         {
             fs::create_directories(directory);
-            fs::permissions(directory, fs::all_all);
+            fs::permissions(directory, fs::perms::all);
         }
         const auto hash = md5(filename_.parent_path().string());
-        const auto file = directory / (hash + "_" + filename_.filename().string() + ".lock");
+        const auto file = directory / (hash + "_" + filename_.filename() + ".lock");
 
         return file.string();
     }
     catch(const fs::filesystem_error& ex)
     {
-        LogFsError(ex, MIOPEN_GET_FN_NAME());
+        LogFsError(ex, MIOPEN_GET_FN_NAME);
         throw;
     }
 }
@@ -73,18 +71,18 @@ LockFile::LockFile(const char* path_, PassKey) : path(path_)
         {
             if(!std::ofstream{path})
                 MIOPEN_THROW(std::string("Error creating file <") + path + "> for locking.");
-            fs::permissions(path, fs::all_all);
+            fs::permissions(path, fs::perms::all);
         }
         flock = path;
     }
     catch(const fs::filesystem_error& ex)
     {
-        LogFsError(ex, MIOPEN_GET_FN_NAME());
+        LogFsError(ex, MIOPEN_GET_FN_NAME);
         throw;
     }
     catch(const boost::interprocess::interprocess_exception& ex)
     {
-        LogFlockError(ex, "lock initialization", MIOPEN_GET_FN_NAME());
+        LogFlockError(ex, "lock initialization", MIOPEN_GET_FN_NAME);
         throw;
     }
 }

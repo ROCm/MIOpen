@@ -36,11 +36,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <type_traits>
-#if !defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL)
 #include <half/half.hpp>
-#else
-#include <half.hpp>
-#endif
 #include "test.hpp"
 #include "driver.hpp"
 #include "tensor_holder.hpp"

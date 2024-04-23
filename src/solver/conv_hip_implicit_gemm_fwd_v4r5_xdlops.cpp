@@ -1026,6 +1026,9 @@ bool ConvHipImplicitGemmForwardV4R5Xdlops::IsApplicable(const ExecutionContext& 
     if(problem.HasNonPackedTensors())
         return false;
 
+    if(!problem.AllTensorsDimsFitIntoInt())
+        return false;
+
     if(problem.IsTensorsCasted())
         return false;
 

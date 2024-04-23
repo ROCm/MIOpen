@@ -27,7 +27,7 @@
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK || MIOPEN_ENABLE_AI_KERNEL_TUNING
 #include <fdeep/fdeep.hpp>
-#include <boost/filesystem.hpp>
+#include <miopen/filesystem.hpp>
 
 namespace miopen {
 namespace ai {
@@ -35,7 +35,7 @@ namespace common {
 
 nlohmann::json LoadJSON(const std::string& path)
 {
-    if(!boost::filesystem::exists(path))
+    if(!fs::exists(path))
         MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
     return nlohmann::json::parse(std::ifstream(path));
 }
@@ -76,7 +76,11 @@ Metadata::Metadata(const std::string& arch)
       features_mean(common::LookupValues<std::string, float>(
           features, json["stats"]["overall"]["features"]["mean"])),
       features_std(common::LookupValues<std::string, float>(
-          features, json["stats"]["overall"]["features"]["std"]))
+          features, json["stats"]["overall"]["features"]["std"])),
+      test_features_mean(common::LookupValues<std::string, float>(
+          features, json["stats"]["test"]["features"]["mean"])),
+      test_features_std(common::LookupValues<std::string, float>(
+          features, json["stats"]["test"]["features"]["std"]))
 {
 }
 
@@ -138,7 +142,7 @@ protected:
     static std::string ModelPath(const std::string& arch)
     {
         const auto file_path = GetSystemDbPath() + "/" + arch + ".tn.model";
-        if(!boost::filesystem::exists(file_path))
+        if(!fs::exists(file_path))
             MIOPEN_THROW(miopenStatusInternalError, "Unable to load AI model file:" + file_path);
         return file_path;
     }
@@ -168,7 +172,7 @@ public:
             MIOPEN_LOG_I2("TunaNet Inapplicable: Layout not supported");
             return false;
         }
-        if(problem.GetWeightsHeight_() != problem.GetWeightsWidth_())
+        if(problem.GetWeightsHeight() != problem.GetWeightsWidth())
         {
             MIOPEN_LOG_I2("TunaNet Inapplicable: Filters must be square (fil_h == fil_w)");
             return false;
@@ -220,18 +224,18 @@ protected:
     {
         const bool isFwd            = problem.GetDirection() == conv::Direction::Forward;
         std::vector<float> features = {
-            static_cast<float>(isFwd ? problem.GetInChannels_() : problem.GetOutChannels_()),
-            static_cast<float>(isFwd ? problem.GetInDepth_() : problem.GetOutDepth_()),
-            static_cast<float>(isFwd ? problem.GetInHeight_() : problem.GetOutHeight_()),
-            static_cast<float>(isFwd ? problem.GetInWidth_() : problem.GetOutWidth_()),
-            static_cast<float>(problem.GetWeightsDepth_()),
-            static_cast<float>(problem.GetWeightsHeight_()),
-            static_cast<float>(problem.GetWeightsWidth_()),
-            static_cast<float>(isFwd ? problem.GetOutChannels_() : problem.GetInChannels_()),
-            static_cast<float>(isFwd ? problem.GetOutDepth_() : problem.GetInDepth_()),
-            static_cast<float>(isFwd ? problem.GetOutHeight_() : problem.GetInHeight_()),
-            static_cast<float>(isFwd ? problem.GetOutWidth_() : problem.GetInWidth_()),
-            static_cast<float>(problem.GetOutBatchSize_()),
+            static_cast<float>(isFwd ? problem.GetInChannels() : problem.GetOutChannels()),
+            static_cast<float>(isFwd ? problem.GetInDepth() : problem.GetOutDepth()),
+            static_cast<float>(isFwd ? problem.GetInHeight() : problem.GetOutHeight()),
+            static_cast<float>(isFwd ? problem.GetInWidth() : problem.GetOutWidth()),
+            static_cast<float>(problem.GetWeightsDepth()),
+            static_cast<float>(problem.GetWeightsHeight()),
+            static_cast<float>(problem.GetWeightsWidth()),
+            static_cast<float>(isFwd ? problem.GetOutChannels() : problem.GetInChannels()),
+            static_cast<float>(isFwd ? problem.GetOutDepth() : problem.GetInDepth()),
+            static_cast<float>(isFwd ? problem.GetOutHeight() : problem.GetInHeight()),
+            static_cast<float>(isFwd ? problem.GetOutWidth() : problem.GetInWidth()),
+            static_cast<float>(problem.GetOutBatchSize()),
             static_cast<float>(1), // TunaNet was trained on a dataset of 2D
                                    // problems where PadD was incorrectly set to 1
             static_cast<float>(problem.GetPadH()),
@@ -321,21 +325,21 @@ protected:
     {
         const bool isFwd            = problem.GetDirection() == conv::Direction::Forward;
         std::vector<float> features = {
-            static_cast<float>(isFwd ? problem.GetInChannels_() : problem.GetOutChannels_()),
-            static_cast<float>(isFwd ? problem.GetInHeight_() : problem.GetOutHeight_()),
-            static_cast<float>(isFwd ? problem.GetInWidth_() : problem.GetOutWidth_()),
-            static_cast<float>(isFwd ? problem.GetOutChannels_() : problem.GetInChannels_()),
-            static_cast<float>(isFwd ? problem.GetOutHeight_() : problem.GetInHeight_()),
-            static_cast<float>(isFwd ? problem.GetOutWidth_() : problem.GetInWidth_()),
-            static_cast<float>(problem.GetWeightsHeight_()),
-            static_cast<float>(problem.GetWeightsWidth_()),
+            static_cast<float>(isFwd ? problem.GetInChannels() : problem.GetOutChannels()),
+            static_cast<float>(isFwd ? problem.GetInHeight() : problem.GetOutHeight()),
+            static_cast<float>(isFwd ? problem.GetInWidth() : problem.GetOutWidth()),
+            static_cast<float>(isFwd ? problem.GetOutChannels() : problem.GetInChannels()),
+            static_cast<float>(isFwd ? problem.GetOutHeight() : problem.GetInHeight()),
+            static_cast<float>(isFwd ? problem.GetOutWidth() : problem.GetInWidth()),
+            static_cast<float>(problem.GetWeightsHeight()),
+            static_cast<float>(problem.GetWeightsWidth()),
             static_cast<float>(problem.GetPadH()),
             static_cast<float>(problem.GetPadW()),
             static_cast<float>(problem.GetKernelStrideH()),
             static_cast<float>(problem.GetKernelStrideW()),
             static_cast<float>(problem.GetDilationH()),
             static_cast<float>(problem.GetDilationW()),
-            static_cast<float>(problem.GetOutBatchSize_()),
+            static_cast<float>(problem.GetOutBatchSize()),
             static_cast<float>(metadata.EncodePrecision(problem.GetInDataType())),
             static_cast<float>(metadata.EncodeDirection(problem.GetDirection())),
             static_cast<float>(problem.GetGroupCount())};
@@ -348,12 +352,107 @@ protected:
     }
 };
 
+class Gfx942Model final : public Model
+{
+public:
+    Gfx942Model() : Model("gfx942") {}
+    bool IsProblemSupported(const conv::ProblemDescription& problem,
+                            const ExecutionContext& ctx) const override
+    {
+        // check if problem is of the kind TunaNet was trained to handle
+        if(!problem.Is2d())
+        {
+            MIOPEN_LOG_I2("TunaNet Inapplicable: Problem not 2D");
+            return false;
+        }
+        if(problem.GetInLayout() != "NCHW")
+        {
+            MIOPEN_LOG_I2("TunaNet Inapplicable: Layout not supported");
+            return false;
+        }
+        if(problem.GetKernelStrideH() != problem.GetKernelStrideW())
+        {
+            MIOPEN_LOG_I2("TunaNet Inapplicable: Stride must be equal along all axes");
+            return false;
+        }
+        if(problem.GetDilationH() != problem.GetDilationW())
+        {
+            MIOPEN_LOG_I2("TunaNet Inapplicable: Dilation must be 1");
+            return false;
+        }
+        if(problem.GetBias() != 0)
+        {
+            MIOPEN_LOG_I2("TunaNet Inapplicable: Bias must be 0");
+            return false;
+        }
+        const auto data_type = problem.GetInDataType();
+        if(data_type != miopenFloat && data_type != miopenHalf && data_type != miopenBFloat16)
+        {
+            MIOPEN_LOG_I2("TunaNet Inapplicable: Unsupported data type");
+            return false;
+        }
+
+        // check if the context is s.t. no solver TunaNet may predict would be applicable
+        size_t applicable_solvers = 0;
+        for(const auto& solver_name : metadata.solver_map)
+        {
+            auto solver_id = solver::Id{solver_name.second};
+            auto solver    = solver_id.GetSolver();
+            if(solver.IsApplicable(ctx, problem))
+            {
+                applicable_solvers++;
+                break;
+            }
+        }
+        if(applicable_solvers == 0)
+        {
+            MIOPEN_LOG_I2("TunaNet Inapplicable: No solver that TunaNet may predict applies");
+            return false;
+        }
+        MIOPEN_LOG_I2("TunaNet Applicable");
+        return true;
+    }
+
+protected:
+    std::vector<float> ToFeatures(const conv::ProblemDescription& problem) const override
+    {
+        const bool isFwd            = problem.GetDirection() == conv::Direction::Forward;
+        std::vector<float> features = {
+            static_cast<float>(isFwd ? problem.GetInChannels() : problem.GetOutChannels()),
+            static_cast<float>(isFwd ? problem.GetInHeight() : problem.GetOutHeight()),
+            static_cast<float>(isFwd ? problem.GetInWidth() : problem.GetOutWidth()),
+            static_cast<float>(isFwd ? problem.GetOutChannels() : problem.GetInChannels()),
+            static_cast<float>(isFwd ? problem.GetOutHeight() : problem.GetInHeight()),
+            static_cast<float>(isFwd ? problem.GetOutWidth() : problem.GetInWidth()),
+            static_cast<float>(problem.GetWeightsHeight()),
+            static_cast<float>(problem.GetWeightsWidth()),
+            static_cast<float>(problem.GetPadH()),
+            static_cast<float>(problem.GetPadW()),
+            static_cast<float>(problem.GetKernelStrideH()),
+            static_cast<float>(problem.GetKernelStrideW()),
+            static_cast<float>(problem.GetDilationH()),
+            static_cast<float>(problem.GetDilationW()),
+            static_cast<float>(problem.GetOutBatchSize()),
+            static_cast<float>(metadata.EncodePrecision(problem.GetInDataType())),
+            static_cast<float>(metadata.EncodeDirection(problem.GetDirection())),
+            static_cast<float>(problem.GetGroupCount())};
+
+        // normalize
+        for(size_t i = 0; i < features.size(); ++i)
+            features[i] =
+                (features[i] - metadata.test_features_mean[i]) / metadata.test_features_std[i];
+
+        return features;
+    }
+};
+
 std::unique_ptr<Model> GetModel(const std::string& device)
 {
+    if(device == "gfx942")
+        return std::make_unique<Gfx942Model>();
     if(device == "gfx90a")
         return std::make_unique<Gfx90aModel>();
-    else
-        return std::make_unique<Gfx908Model>();
+    return std::make_unique<Gfx908Model>();
 }
 
 std::vector<uint64_t> PredictSolver(const conv::ProblemDescription& problem,
@@ -435,7 +534,8 @@ Metadata::Metadata(const std::string& arch, const std::string& solver)
 {
     const nlohmann::json metadata =
         common::LoadJSON(GetSystemDbPath() + "/" + arch + "_" + solver + "_metadata.ktn.model");
-    num_tuning_params = metadata["num_tuning_params"].get<std::size_t>();
+    num_tuning_params =
+        metadata["num_tuning_params"].get<std::unordered_map<std::string, std::size_t>>();
     tuning_decodings =
         metadata["decodings"]["tunings"].get<std::unordered_map<std::string, std::string>>();
 }
@@ -475,7 +575,7 @@ private:
     {
         const std::string path =
             GetSystemDbPath() + "/" + arch + "_" + solver + "_encoder.ktn.model";
-        if(!boost::filesystem::exists(path))
+        if(!fs::exists(path))
             MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
         return path;
     }
@@ -483,7 +583,7 @@ private:
     {
         const std::string path =
             GetSystemDbPath() + "/" + arch + "_" + solver + "_decoder.ktn.model";
-        if(!boost::filesystem::exists(path))
+        if(!fs::exists(path))
             MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
         return path;
     }
@@ -507,6 +607,7 @@ std::shared_ptr<Model> GetModel(const std::string& arch, const std::string& solv
 
 bool ModelSetParams(const std::string& arch,
                     const std::string& solver,
+                    miopen::conv::Direction direction,
                     const std::vector<float>& features,
                     bool transform_features,
                     std::function<bool(std::size_t, std::string)> validator)
@@ -517,9 +618,19 @@ bool ModelSetParams(const std::string& arch,
         dim = std::sqrt(features.size());
     else
         dim = features.size();
+    auto start             = std::chrono::high_resolution_clock::now();
     fdeep::tensors context = model->Encode(features, dim, transform_features);
     float decoder_input    = 0.0;
-    for(std::size_t i = 0; i < model->metadata.num_tuning_params; ++i)
+    std::string dir;
+    switch(direction)
+    {
+    case miopen::conv::Direction::Forward: dir = "fwd"; break;
+    case miopen::conv::Direction::BackwardData: dir = "bwd"; break;
+    case miopen::conv::Direction::BackwardWeights: dir = "wrw"; break;
+    default: return false;
+    }
+    std::size_t num_tuning_params = model->metadata.num_tuning_params[dir];
+    for(std::size_t i = 0; i < num_tuning_params; ++i)
     {
         fdeep::tensors decoder_output = model->Decode(decoder_input, context);
 
@@ -536,7 +647,12 @@ bool ModelSetParams(const std::string& arch,
             std::string value = model->metadata.tuning_decodings[std::to_string(token)];
             pq.pop();
             if(value == "-1")
+            {
+                auto stop     = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+                MIOPEN_LOG_I2("Model ran for " << duration.count() << " micro-seconds");
                 return false;
+            }
             if(validator(i, value))
             {
                 output_token_index =
@@ -547,6 +663,9 @@ bool ModelSetParams(const std::string& arch,
         decoder_input = float(output_token_index);
         context       = {decoder_output.begin() + 1, decoder_output.end()};
     }
+    auto stop     = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    MIOPEN_LOG_I2("Model ran for " << duration.count() << " micro-seconds");
     return true;
 }
 

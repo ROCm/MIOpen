@@ -27,28 +27,29 @@
 #include <string>
 #include <fstream>
 
-#include <boost/filesystem.hpp>
+#include <miopen/filesystem.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/tmp_dir.hpp>
 #include <miopen/process.hpp>
 
 #include "test.hpp"
 
-static int Child(std::string_view cmd, const boost::filesystem::path& path)
-{
-    return miopen::Process{cmd}("-source " + path.string());
-}
-
 namespace miopen {
 namespace tests {
+
+static int Child(std::string_view cmd, const fs::path& path)
+{
+    return miopen::Process{cmd}("-source " + path);
+}
 
 class InlinerTest
 {
 public:
-    void Run(const boost::filesystem::path& exe_path) const
+    void Run(const fs::path& exe_path) const
     {
         const TmpDir test_srcs{"test_include_inliner"};
-        const auto addkernels      = (exe_path.parent_path() / "addkernels").string();
+        const auto addkernels =
+            miopen::make_executable_name(exe_path.parent_path() / "addkernels").string();
         const auto header_filename = "header.h";
         const auto asm_src         = test_srcs.path / "valid.s";
         const auto valid_src       = test_srcs.path / "valid.cl";

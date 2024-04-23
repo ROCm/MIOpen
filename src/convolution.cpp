@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include <miopen/convolution.hpp>
 
+#include <miopen/any_solver.hpp>
 #include <miopen/config.h>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
@@ -354,7 +355,7 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
     out_lens[0] = in_n;
     out_lens[1] = out_c;
 
-    const std::string default_layout = tensor_layout_get_default(xDesc.GetSize());
+    const std::string default_layout = tensor_layout_get_default(xDesc.GetNumDims());
     std::vector<std::size_t> out_strides;
     tensor_layout_to_strides(
         out_lens, default_layout, yLayout, xDesc.GetVectorLength(), out_strides);
@@ -372,7 +373,7 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescr
                                                                miopenDataType_t yType) const
 {
     // output layout same as input
-    const std::string default_layout = tensor_layout_get_default(xDesc.GetSize());
+    const std::string default_layout = tensor_layout_get_default(xDesc.GetNumDims());
     const std::string in_layout      = xDesc.GetLayout(default_layout);
     return GetForwardOutputTensorWithLayout(xDesc, wDesc, in_layout, yType);
 }
@@ -394,7 +395,7 @@ bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(
         return false;
 
     // Filter out configs where 3x3 Winograd does not have high WTI.
-    if(!(problem.GetOutChannels_() >= 16 && problem.GetOutChannels_() % 2 == 0))
+    if(!(problem.GetOutChannels() >= 16 && problem.GetOutChannels() % 2 == 0))
         return false;
 
     return solver::conv::ConvBinWinograd3x3U{}.IsApplicable(ctx, problem);
@@ -429,8 +430,12 @@ std::size_t ConvolutionDescriptor::GetWorkSpaceSize(ExecutionContext ctx,
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             break; // Fall down to Normal Find.
         }
-        MIOPEN_LOG_I(solutions.front().workspace_size);
-        return solutions.front().workspace_size;
+        const auto id             = solver::Id{solutions.front().solution_id};
+        const auto& s             = id.GetSolver();
+        const auto workspace_size = s.GetWorkspaceSize(ctx, problem);
+
+        MIOPEN_LOG_I(workspace_size);
+        return workspace_size;
     }
 
     size_t workspace_size;

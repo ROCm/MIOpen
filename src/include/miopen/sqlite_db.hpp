@@ -55,12 +55,6 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_DISABLE_SQL_WAL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_PERFDB_OVERRIDE)
 
-namespace boost {
-namespace filesystem {
-class path;
-} // namespace filesystem
-} // namespace boost
-
 namespace miopen {
 
 constexpr bool InMemDb = MIOPEN_EMBED_DB;
@@ -81,7 +75,7 @@ struct SQLiteSerializable
                            names.push_back(name);
                        });
         Derived::Visit(static_cast<const Derived&>(*this),
-                       [&](const int value, const std::string name) {
+                       [&](const int64_t value, const std::string name) {
                            std::ignore = value;
                            names.push_back(name);
                        });
@@ -98,7 +92,7 @@ struct SQLiteSerializable
                            values.push_back(value);
                        });
         Derived::Visit(static_cast<const Derived&>(*this),
-                       [&](const int value, const std::string name) {
+                       [&](const int64_t value, const std::string name) {
                            clauses.push_back("(" + name + " = ? )");
                            values.push_back(std::to_string(value));
                        });
@@ -114,7 +108,7 @@ struct SQLiteSerializable
                            values.push_back(value);
                        });
         Derived::Visit(static_cast<const Derived&>(*this),
-                       [&](const int value, const std::string name) {
+                       [&](const int64_t value, const std::string name) {
                            int_names.push_back(name);
                            values.push_back(std::to_string(value));
                        });
@@ -145,7 +139,7 @@ struct SQLiteSerializable
                        });
         std::vector<std::string> int_fields;
         Derived::Visit(static_cast<const Derived&>(*this),
-                       [&](const int value, const std::string name) {
+                       [&](const int64_t value, const std::string name) {
                            std::ignore = value;
                            int_fields.push_back(name);
                        });
@@ -189,10 +183,10 @@ public:
         Statement& operator=(const Statement&) = delete;
         int Step(const SQLite& sql);
         std::string ColumnText(int idx);
-        std::string ColumnBlob(int idx);
+        std::vector<char> ColumnBlob(int idx);
         int64_t ColumnInt64(int idx);
         int BindText(int idx, const std::string& txt);
-        int BindBlob(int idx, const std::string& blob);
+        int BindBlob(int idx, const std::vector<char>& blob);
         int BindInt64(int idx, int64_t);
     };
 
@@ -216,7 +210,7 @@ class SQLiteBase
 {
 protected:
 public:
-    SQLiteBase(const std::string& filename_, bool is_system_)
+    SQLiteBase(DbKinds, const std::string& filename_, bool is_system_)
         : filename(filename_), is_system(is_system_)
     {
         if(DisableUserDbFileIO && !is_system)
@@ -233,7 +227,7 @@ public:
         }
         else if(!is_system)
         {
-            auto file            = boost::filesystem::path(filename_);
+            auto file            = fs::path(filename_);
             const auto directory = file.remove_filename();
             if(directory.string().empty())
             {
@@ -241,18 +235,18 @@ public:
                 return;
             }
 
-            if(!(boost::filesystem::exists(directory)))
+            if(!fs::exists(directory))
             {
-                if(!boost::filesystem::create_directories(directory))
+                if(!fs::create_directories(directory))
                     MIOPEN_LOG_W("Unable to create a directory: " << directory);
                 else
-                    boost::filesystem::permissions(directory, boost::filesystem::all_all);
+                    fs::permissions(directory, fs::perms::all);
             }
         }
         sql = SQLite{filename_, is_system};
         if(!sql.Valid())
         {
-            bool isKDB = boost::filesystem::path(filename).extension() == ".kdb";
+            bool isKDB = fs::path(filename).extension() == ".kdb";
             dbInvalid  = true;
             filename   = "";
             if(!is_system)
@@ -279,8 +273,8 @@ public:
                 else
                 {
                     MIOPEN_LOG(log_level,
-                               "Unable to read system database file:" + filename_ +
-                                   " Performance may degrade");
+                               "Unable to read system database file:"
+                                   << filename_ << " Performance may degrade");
                 }
             }
         }
@@ -403,7 +397,7 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
 {
 public:
     static constexpr char const* MIOPEN_PERFDB_SCHEMA_VER = "1.1.0";
-    SQLitePerfDb(const std::string& filename_, bool is_system);
+    SQLitePerfDb(DbKinds db_kind, const std::string& filename_, bool is_system);
 
     template <class T>
     inline void InsertConfig(const T& prob_desc)

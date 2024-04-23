@@ -300,6 +300,8 @@ bool ConvHipImplicitGemmF16F8F16FwdXdlops::IsApplicable(
         return false;
     if(problem.HasNonPackedTensors())
         return false;
+    if(!problem.AllTensorsDimsFitIntoInt())
+        return false;
     if(!problem.IsTensorsCasted())
         return false;
     if(problem.GetConv().attribute.deterministic)
@@ -325,9 +327,9 @@ ConvSolution ConvHipImplicitGemmF16F8F16FwdXdlops::GetSolution(
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmF16F8F16FwdXdlops& config) const
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
-    return MakeInvokerFactory<DeviceOpF8FwdPtrs<ck::half_t, c_type>,
-                              CKArgs,
-                              miopen::conv::DataInvokeParams>(problem, config.kernel_id);
+    return InitInvokerFactoryNHWC<DeviceOpF8FwdPtrs<ck::half_t, c_type>,
+                                  CKArgs,
+                                  miopen::conv::DataInvokeParams>(ctx, problem, config.kernel_id);
 #else
     return {};
 #endif

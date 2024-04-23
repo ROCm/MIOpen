@@ -62,12 +62,11 @@
 
 #define TEST_DIRECT_SUPPORTED_CONFIG_ONLY (!MIOPEN_USE_ROCBLAS)
 
-#define WORKAROUND_MI100_ROM37_HIP_COMPILER_CRASH \
-    (HIP_PACKAGE_VERSION_MAJOR == 3 && HIP_PACKAGE_VERSION_MINOR == 7)
-
 using ExecutionContext       = miopen::ExecutionContext;
 using ConvProblemDescription = miopen::conv::ProblemDescription;
 using Direction              = miopen::conv::Direction;
+
+bool get_handle_xnack();
 
 #if TEST_DIRECT_SUPPORTED_CONFIG_ONLY
 static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
@@ -121,38 +120,6 @@ static inline bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
     problem.SetupFloats(ctx);
 
     return !FindAllBwdWrW2DSolutions(ctx, problem, {}).empty();
-}
-#endif
-
-#if WORKAROUND_MI100_ROM37_HIP_COMPILER_CRASH
-static inline bool skip_config(miopen::Handle& handle,
-                               const miopen::ConvolutionDescriptor convDesc,
-                               const miopen::TensorDescriptor& xDesc,
-                               const miopen::TensorDescriptor& wDesc,
-                               const miopen::TensorDescriptor& yDesc)
-{
-    if(convDesc.mode != miopenConvolution)
-        return false;
-
-    const auto problem = miopen::conv::ProblemDescription{
-        xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::Forward};
-    auto ctx = miopen::ExecutionContext{};
-
-    ctx.do_search               = false;
-    ctx.save_srch_req           = false;
-    ctx.general_compile_options = "";
-    ctx.disable_perfdb_access   = true;
-    ctx.SetStream(&handle);
-    problem.SetupFloats(ctx);
-
-    return ctx.GetStream().GetDeviceName() == "gfx908" && problem.Is2d() && problem.IsFp16() &&
-           problem.IsLayoutDefault() && ctx.use_hip_kernels && problem.GetGroupCount() == 1 &&
-           problem.GetBatchSize_() == 1 && problem.GetInChannels_() == 192 &&
-           problem.GetInHeight_() == 28 && problem.GetInWidth_() == 28 &&
-           problem.GetOutChannels_() == 1 && problem.GetWeightsHeight_() == 3 &&
-           problem.GetWeightsWidth_() == 3 && problem.GetPadW() == 1 && problem.GetPadH() == 1 &&
-           problem.GetKernelStrideW() == 1 && problem.GetKernelStrideH() == 1 &&
-           problem.GetDilationW() == 1 && problem.GetDilationH() == 1;
 }
 #endif
 
@@ -222,7 +189,7 @@ tensor<Tout> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
 
     std::string yLayout =
         out_layout.empty()
-            ? input.desc.GetLayout(miopen::tensor_layout_get_default(input.desc.GetSize()))
+            ? input.desc.GetLayout(miopen::tensor_layout_get_default(input.desc.GetNumDims()))
             : out_layout;
     return tensor<Tout>{filter.GetForwardOutputTensorWithLayout(
         input.desc, weights.desc, yLayout, miopen_type<Tout>{})};
@@ -2095,12 +2062,13 @@ struct conv_driver : test_driver
                           .generate(tensor_elem_gen_integer{17});
         }
 
-        if(input.desc.GetSize() != in_layout.size() ||
-           weights.desc.GetSize() != fil_layout.size() || input.desc.GetSize() != out_layout.size())
+        if(input.desc.GetNumDims() != in_layout.size() ||
+           weights.desc.GetNumDims() != fil_layout.size() ||
+           input.desc.GetNumDims() != out_layout.size())
         {
-            std::cout << input.desc.GetSize() << "," << in_layout.size() << std::endl;
-            std::cout << weights.desc.GetSize() << "," << fil_layout.size() << std::endl;
-            std::cout << input.desc.GetSize() << "," << out_layout.size() << std::endl;
+            std::cout << input.desc.GetNumDims() << "," << in_layout.size() << std::endl;
+            std::cout << weights.desc.GetNumDims() << "," << fil_layout.size() << std::endl;
+            std::cout << input.desc.GetNumDims() << "," << out_layout.size() << std::endl;
             std::cerr << "FAILED: layout not match dimension size!" << std::endl;
             return;
         }
@@ -2115,7 +2083,7 @@ struct conv_driver : test_driver
             std::vector<std::size_t> dim_strides;
             miopen::tensor_layout_to_strides(
                 dim_lens,
-                miopen::tensor_layout_get_default(weights.desc.GetSize()),
+                miopen::tensor_layout_get_default(weights.desc.GetNumDims()),
                 in_layout,
                 vector_length,
                 dim_strides);
@@ -2127,14 +2095,15 @@ struct conv_driver : test_driver
             std::vector<std::size_t> dim_strides;
             miopen::tensor_layout_to_strides(
                 dim_lens,
-                miopen::tensor_layout_get_default(weights.desc.GetSize()),
+                miopen::tensor_layout_get_default(weights.desc.GetNumDims()),
                 fil_layout,
                 vector_length,
                 dim_strides);
             weights.desc = miopen::TensorDescriptor(miopen_type<T>{}, dim_lens, dim_strides);
         }
 
-        if(input.desc.GetSize() != 2 + spatial_dim || weights.desc.GetSize() != 2 + spatial_dim ||
+        if(input.desc.GetNumDims() != 2 + spatial_dim ||
+           weights.desc.GetNumDims() != 2 + spatial_dim ||
            pads_strides_dilations.size() != 3 * spatial_dim ||
            trans_output_pads.size() != spatial_dim)
         {
@@ -2321,15 +2290,6 @@ struct conv_driver : test_driver
 
                     skip_backward_weights = !is_direct_bwd_wrw_supported(
                         get_handle(), filter, input.desc, weights.desc, output.desc);
-                }
-#endif
-
-#if WORKAROUND_MI100_ROM37_HIP_COMPILER_CRASH
-                if(skip_config(get_handle(), filter, input.desc, weights.desc, output.desc))
-                {
-                    skip_forward          = true;
-                    skip_backward_data    = true;
-                    skip_backward_weights = true;
                 }
 #endif
 
@@ -2543,7 +2503,7 @@ struct conv_bias_driver : test_driver
     {
         for(int i = 2; i < 4; i++)
         {
-            if(output.desc.GetSize() == i + 2)
+            if(output.desc.GetNumDims() == i + 2)
                 return i;
         }
         return -1;

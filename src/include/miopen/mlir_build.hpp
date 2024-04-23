@@ -31,7 +31,7 @@
 
 #include <miopen/target_properties.hpp>
 #include <miopen/tmp_dir.hpp>
-#include <boost/filesystem/path.hpp>
+#include <miopen/filesystem.hpp>
 #include <boost/optional.hpp>
 #include <string>
 

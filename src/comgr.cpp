@@ -34,15 +34,10 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/logger.hpp>
-#include <miopen/rocm_features.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/stringutils.hpp>
 
-#if !defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5004000000ULL)
 #include <amd_comgr/amd_comgr.h>
-#else
-#include <amd_comgr.h>
-#endif
 #include <hip/hip_runtime_api.h>
 #if MIOPEN_USE_HIPRTC
 #include <miopen/manage_ptr.hpp>
@@ -105,26 +100,10 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
 #define COMGR_SUPPORTS_PCH (COMGR_VERSION >= 1008000)
 
 #if COMGR_SUPPORTS_PCH
-/// 3.9 reports that HIP PCH is supported, but in fact it is not.
-#define WORKAROUND_SWDEV_257056_PCH_INCORRECTLY_REPORTED 1
 
 #if defined(__HIP_HAS_GET_PCH) && __HIP_HAS_GET_PCH
 #define HIP_SUPPORTS_PCH 1
 #else
-#define HIP_SUPPORTS_PCH 0
-#endif
-
-#if WORKAROUND_SWDEV_257056_PCH_INCORRECTLY_REPORTED
-#if HIP_SUPPORTS_PCH && (HIP_PACKAGE_VERSION_FLAT <= 3009999999ULL)
-#undef HIP_SUPPORTS_PCH
-#define HIP_SUPPORTS_PCH 0
-#endif
-#endif
-
-// '__hipGetPCH' is not available in [4.4, 5.0). See SWDEV-308265.
-#if HIP_SUPPORTS_PCH && (HIP_PACKAGE_VERSION_FLAT >= 4004000000ULL) && \
-    (HIP_PACKAGE_VERSION_FLAT < 5000000000ULL)
-#undef HIP_SUPPORTS_PCH
 #define HIP_SUPPORTS_PCH 0
 #endif
 
@@ -206,14 +185,17 @@ namespace ocl {
 
 #define OCL_EARLY_INLINE 1
 
-#define OCL_STANDARD 120 // For experiments.
+#define OCL_STANDARD 200
 
 #if !(OCL_STANDARD == 200 || OCL_STANDARD == 120)
 #error "Wrong OCL_STANDARD"
 #endif
 
-static void AddCompilerOptions(OptionList& list, const miopen::TargetProperties& target)
+static void AddCompilerOptions(OptionList& list)
 {
+#if OCL_STANDARD == 200
+    list.push_back("-cl-std=CL2.0");
+#endif
     list.push_back("-cl-kernel-arg-info");
 #if 0 // For experimients.
     list.push_back("-cl-denorms-are-zero");
@@ -233,20 +215,6 @@ static void AddCompilerOptions(OptionList& list, const miopen::TargetProperties&
         list.push_back("-mcumode");
     }
     list.push_back("-O3");
-
-#if ROCM_FEATURE_TARGETID_OFF
-    // It seems like these options are used only in codegen.
-    // However it seems ok to pass these to compiler.
-    if(target.Sramecc())
-    {
-        if(*target.Sramecc())
-            list.push_back("-msram-ecc");
-        else
-            list.push_back("-mno-sram-ecc");
-    }
-#else
-    std::ignore = target;
-#endif
     list.push_back("-mllvm");
     list.push_back("-amdgpu-internalize-symbols");
 }
@@ -345,18 +313,12 @@ static void RemoveLinkOptionsUnwanted(OptionList& list)
 /// \todo Get list of supported isa names from comgr and select.
 static std::string GetIsaName(const miopen::TargetProperties& target, const bool isHlcBuild)
 {
-#if ROCM_FEATURE_TARGETID_OFF
-    std::ignore                  = isHlcBuild;
-    const char* const ecc_suffix = (target.Sramecc() && *target.Sramecc()) ? "+sram-ecc" : "";
-    return {"amdgcn-amd-amdhsa--" + target.Name() + ecc_suffix};
-#else
     const LcOptionTargetStrings lots(target);
 #if WORKAROUND_ISSUE_1257
     if(isHlcBuild)
         return {"amdgcn-amd-amdhsa--" + lots.device + lots.xnack};
 #endif
     return {"amdgcn-amd-amdhsa--" + lots.targetId};
-#endif
 }
 
 } // namespace lc
@@ -819,10 +781,8 @@ void BuildHip(const std::string& name,
                        + " " + GetDebugCompilerOptionsInsert() //
                        + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS) +
                        (" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
-#if ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
             if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
                 raw += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
-#endif
             auto optCompile = miopen::SplitSpaceSeparated(raw, compiler::lc::GetOptionsNoSplit());
             compiler::lc::hip::RemoveCompilerOptionsUnwanted(optCompile);
             action.SetOptionList(optCompile);
@@ -835,14 +795,12 @@ void BuildHip(const std::string& name,
                        + " " + GetDebugCompilerOptionsInsert() //
                        + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS) +
                        (" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
-#if ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
             if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
                 raw += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
-#endif
 #if PCH_IS_SUPPORTED
             if(compiler::lc::hip::IsPchEnabled())
             {
-                raw += " -nogpuinc -DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1";
+                raw += " -nogpuinc -DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS";
             }
 #endif
             auto optCompile = miopen::SplitSpaceSeparated(raw, compiler::lc::GetOptionsNoSplit());
@@ -928,7 +886,7 @@ void BuildOcl(const std::string& name,
 
         auto optCompile = miopen::SplitSpaceSeparated(options);
         compiler::lc::ocl::RemoveOptionsUnwanted(optCompile);
-        compiler::lc::ocl::AddCompilerOptions(optCompile, target);
+        compiler::lc::ocl::AddCompilerOptions(optCompile);
         action.SetOptionList(optCompile);
 
         const Dataset addedPch;
@@ -1008,10 +966,8 @@ void BuildAsm(const std::string& name,
         SetIsaName(action, target);
         action.SetLogging(true);
         auto optAsm = miopen::SplitSpaceSeparated(options);
-#if ROCM_FEATURE_ASM_REQUIRES_NO_XNACK_OPTION
         if(target.Xnack() && !*target.Xnack())
             optAsm.emplace_back("-mno-xnack");
-#endif
         compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
         action.SetOptionList(optAsm);
 
@@ -1043,9 +999,9 @@ void BuildAsm(const std::string& name,
 
 #define WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H 1 // See SWDEV-307838, issue #1648.
 #define WORKAROUND_ISSUE_1674 (HIP_PACKAGE_VERSION_FLAT >= 5003022305ULL)
-/// No assumption that HIP kernels are launched with uniform block size for backward compatibility
-/// SWDEV-413293 and https://reviews.llvm.org/D155213 effective HIP_FLAT_VERSION 500723302
-#define WORKAROUND_SWDEV_413293 (HIP_PACKAGE_VERSION_FLAT >= 5007023302ULL)
+
+// See WORKAROUND_SWDEV_413293 in ./CmakeLists.txt
+#define WORKAROUND_SWDEV_413293 MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK
 
 namespace hiprtc {
 
@@ -1292,17 +1248,17 @@ void BuildHip(const std::string& name,
         auto opts =
             miopen::SplitSpaceSeparated(options, miopen::comgr::compiler::lc::GetOptionsNoSplit());
         compiler::lc::RemoveOptionsUnwanted(opts);
-        opts.push_back("-DWORKAROUND_ISSUE_HIPRTC_TRUE_TYPE"); // Workaround for SWDEV-308073
-#if HIP_PACKAGE_VERSION_FLAT < 6000023494ULL
+#if HIP_PACKAGE_VERSION_MAJOR < 6
         opts.push_back("-D__HIP_PLATFORM_HCC__=1"); // Workaround?
 #endif
         opts.push_back("-D__HIP_PLATFORM_AMD__=1"); // Workaround?
-#if ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
         if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
             opts.push_back("-DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1");
-#endif
         opts.push_back("-DHIP_PACKAGE_VERSION_FLAT=" + std::to_string(HIP_PACKAGE_VERSION_FLAT));
-        opts.push_back("-DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1");
+        opts.push_back("-DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS");
+#if HIP_PACKAGE_VERSION_FLAT < 6001024000ULL && !defined(_WIN32)
+        opts.push_back("-DWORKAROUND_DONT_USE_CUSTOM_LIMITS=1");
+#endif
 #if WORKAROUND_ISSUE_1431
         if((StartsWith(target.Name(), "gfx10") || StartsWith(target.Name(), "gfx11")) &&
            !miopen::comgr::IsWave64Enforced(opts))

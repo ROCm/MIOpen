@@ -35,6 +35,7 @@
 #include <miopen/tensor_ops.hpp>
 #include <miopen/util.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/solver/gemm_common.hpp>
 
 #include <boost/any.hpp>
 #include <boost/range/adaptors.hpp>
@@ -47,36 +48,12 @@ namespace conv {
 
 using ProblemDescription = miopen::conv::ProblemDescription;
 
-#if MIOPEN_USE_GEMM
-#ifdef CPPCHECK
-// Keep the value unknown in cppcheck since this can differ between opencl and hip
-static bool IsBf16Supported;
-static bool IsFp16Supported;
-#else
-static constexpr const bool IsBf16Supported = MIOPEN_USE_ROCBLAS;
-static constexpr const bool IsFp16Supported = MIOPEN_USE_ROCBLAS;
-#endif
-
-static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
-                                   const TensorDescriptor& yDesc,
-                                   const TensorDescriptor& wDesc)
-{
-    return xDesc.GetType() == miopenBFloat16 || yDesc.GetType() == miopenBFloat16 ||
-           wDesc.GetType() == miopenBFloat16;
-}
-
-static inline bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
-                                   const TensorDescriptor& yDesc,
-                                   const TensorDescriptor& wDesc)
-{
-    return xDesc.GetType() == miopenHalf || yDesc.GetType() == miopenHalf ||
-           wDesc.GetType() == miopenHalf;
-}
-#endif
-
 bool GemmFwdBase::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
+    if(!problem.AllTensorsDimsFitIntoInt())
+        return false;
+
     const auto& xDesc = problem.GetIn();
     const auto& wDesc = problem.GetWeights();
     const auto& yDesc = problem.GetOut();
@@ -124,28 +101,14 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext& ctx, const ProblemDescrip
         return false;
     }
     return problem.IsDirectionForward() && problem.IsLayoutDefault() &&
-           !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsBf16Supported) &&
-           !(IsAnyBufferFp16(xDesc, yDesc, wDesc) && !IsFp16Supported);
+           !(gemm::IsAnyBufferBf16(xDesc, yDesc, wDesc) && !gemm::IsBf16Supported) &&
+           !(gemm::IsAnyBufferFp16(xDesc, yDesc, wDesc) && !gemm::IsFp16Supported);
 #else
     std::ignore = ctx;
     std::ignore = problem;
     return false;
 #endif
 };
-
-static double
-SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_factor)
-{
-    if(n_oper > 0)
-    {
-        auto rv = oper_factor;
-        if(n_oper > 1)
-            rv *= multiple_oper_factor;
-        return rv;
-    }
-    else
-        return 1.0;
-}
 
 float GemmFwdBase::GetWti(const ExecutionContext&, const ProblemDescription& problem) const
 {
@@ -212,21 +175,15 @@ float GemmFwdBase::GetWti(const ExecutionContext&, const ProblemDescription& pro
     }
 
     auto wti = 1.0;
-    wti *= SlowdownFactor(n_transpose_NCHW2CNHW, 0.7, 0.9);
-    wti *= SlowdownFactor(n_transpose_CNHW2NCHW, 0.7, 0.9);
-    wti *= SlowdownFactor(n_gemm_runs, 0.9, 0.9);
-    wti *= SlowdownFactor(n_gemm_strided_batched, 1.0, 0.95);
-    wti *= SlowdownFactor(n_transpose_packed_MN2NM, 0.7, 0.9);
-    wti *= SlowdownFactor(n_CastTensor, 0.95, 0.9);
-    wti *= SlowdownFactor(n_Im2ColGPU, 0.4, 0.8);
+    wti *= gemm::SlowdownFactor(n_transpose_NCHW2CNHW, 0.7, 0.9);
+    wti *= gemm::SlowdownFactor(n_transpose_CNHW2NCHW, 0.7, 0.9);
+    wti *= gemm::SlowdownFactor(n_gemm_runs, 0.9, 0.9);
+    wti *= gemm::SlowdownFactor(n_gemm_strided_batched, 1.0, 0.95);
+    wti *= gemm::SlowdownFactor(n_transpose_packed_MN2NM, 0.7, 0.9);
+    wti *= gemm::SlowdownFactor(n_CastTensor, 0.95, 0.9);
+    wti *= gemm::SlowdownFactor(n_Im2ColGPU, 0.4, 0.8);
     return wti;
 }
-
-// copy from convolution.cpp
-// Workaround for issue 1430.
-// Vega20 fails to access GPU memory larger than the return value of GetMaxMemoryAllocSize() of
-// Vega10
-#define MAX_MEM_ALLOC_SZ (std::min(handle.GetMaxMemoryAllocSize(), size_t(7287183769)))
 
 size_t GemmFwd1x1_0_2::GetWorkspaceSize(const ExecutionContext& context,
                                         const ProblemDescription& problem) const
@@ -253,9 +210,10 @@ size_t GemmFwd1x1_0_2::GetWorkspaceSize(const ExecutionContext& context,
     const auto y_t_size   = yDesc.GetElementSize() * GetTypeSize(yDesc.GetType());
     const auto gemm_trans = x_t_size + y_t_size;
 
-    if(gemm_trans > MAX_MEM_ALLOC_SZ)
+    if(gemm_trans > gemm::MaxMemAllocSz(handle, problem))
     {
-        MIOPEN_LOG_I2(gemm_trans << " > " << MAX_MEM_ALLOC_SZ);
+        MIOPEN_LOG_I2("GemmFwd1x1_0_2:" << gemm_trans << " > "
+                                        << gemm::MaxMemAllocSz(handle, problem));
         return 0;
     }
     return gemm_trans;
@@ -536,9 +494,10 @@ size_t GemmFwd1x1_0_1_int8::GetWorkspaceSize(const ExecutionContext& context,
                                          std::multiplies<std::size_t>()) *
                          GetTypeSize(wDesc.GetType()) * conv.group_count;
 
-    if(ws_size > MAX_MEM_ALLOC_SZ)
+    if(ws_size > gemm::MaxMemAllocSz(handle, problem))
     {
-        MIOPEN_LOG_I2(ws_size << " > " << MAX_MEM_ALLOC_SZ);
+        MIOPEN_LOG_I2("GemmFwd1x1_0_1_int8:" << ws_size << " > "
+                                             << gemm::MaxMemAllocSz(handle, problem));
         return 0;
     }
     return ws_size;
@@ -996,9 +955,10 @@ size_t GemmFwdRest::GetWorkspaceSize(const ExecutionContext& context,
 
     const auto ws_sz = (wDesc.GetType() == miopenInt8 ? 2 * workspace_size : workspace_size);
 
-    if(ws_sz > MAX_MEM_ALLOC_SZ)
+    if(ws_sz > gemm::MaxMemAllocSz(handle, problem, true))
     {
-        MIOPEN_LOG_I2(ws_sz << " > " << MAX_MEM_ALLOC_SZ);
+        MIOPEN_LOG_I2("GemmFwdRest: " << ws_sz << " > "
+                                      << gemm::MaxMemAllocSz(handle, problem, true));
         return 0;
     }
     return ws_sz;

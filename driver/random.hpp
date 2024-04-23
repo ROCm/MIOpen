@@ -2,6 +2,8 @@
 #define GUARD_RANDOM_GEN_
 
 #include <miopen/env.hpp>
+
+#include <cassert>
 #include <iostream>
 #include <random>
 
@@ -109,7 +111,9 @@ inline T gen_subnorm()
     if constexpr(!std::is_integral_v<T> && !std::is_same_v<T, double> &&
                  details::has_digits<T>::value)
     {
-        using BitType = std::conditional_t<sizeof(T) == 2, uint16_t, uint32_t>;
+        using BitType = std::conditional_t<sizeof(T) == 1,
+                                           uint8_t,
+                                           std::conditional_t<sizeof(T) == 2, uint16_t, uint32_t>>;
         static_assert(sizeof(T) == sizeof(BitType));
 
         // -1 because ::digits counts the first implicit digit

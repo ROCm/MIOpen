@@ -92,17 +92,17 @@ using ProblemDescription = miopen::conv::ProblemDescription;
                    ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
                        GetSolverWinoXformHWSize();
 
-#define DEFINE_SHADER_ALIASES(problem)                              \
-    const auto group_cnt = (problem).GetGroupCount();               \
-    const int N          = (problem).GetBatchSize_();               \
-    const int K          = (problem).GetOutChannels_() / group_cnt; \
-    const int C          = (problem).GetInChannels_() / group_cnt;  \
-    const int R          = (problem).GetWeightsHeight_();           \
-    const int S          = (problem).GetWeightsWidth_();            \
-    const int H          = (problem).GetInHeight_();                \
-    const int W          = (problem).GetInWidth_();                 \
-    const int out_H      = (problem).GetOutHeight_();               \
-    const int out_W      = (problem).GetOutWidth_();
+#define DEFINE_SHADER_ALIASES(problem)                             \
+    const auto group_cnt = (problem).GetGroupCount();              \
+    const int N          = (problem).GetBatchSize();               \
+    const int K          = (problem).GetOutChannels() / group_cnt; \
+    const int C          = (problem).GetInChannels() / group_cnt;  \
+    const int R          = (problem).GetWeightsHeight();           \
+    const int S          = (problem).GetWeightsWidth();            \
+    const int H          = (problem).GetInHeight();                \
+    const int W          = (problem).GetInWidth();                 \
+    const int out_H      = (problem).GetOutHeight();               \
+    const int out_W      = (problem).GetOutWidth();
 
 #if MIOPEN_BACKEND_HIP
 #define GENERATE_MAIN_OPTIONS(options)                                         \
@@ -295,8 +295,8 @@ static bool IsApplicableTransform(const ExecutionContext& ctx, const ProblemDesc
 
     // clang-format off
     bool ok = (
-        (problem.GetWeightsWidth_() == WinoFilterW
-            && problem.GetWeightsHeight_() == WinoFilterH)
+        (problem.GetWeightsWidth() == WinoFilterW
+            && problem.GetWeightsHeight() == WinoFilterH)
         && (problem.GetKernelStrideW() == 1)
         && problem.GetKernelStrideH() == problem.GetKernelStrideW()
         && problem.GetDilationW() == 1
@@ -325,6 +325,9 @@ bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsA
     // HIP backend required for sending ptr (buffer + offset)
     // ROCBLAS for GEMM step
     if(problem.HasNonPackedTensors())
+        return false;
+
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
 
     if(!problem.IsLayoutDefault())

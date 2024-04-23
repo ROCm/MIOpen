@@ -35,17 +35,12 @@
 #include <miopen/tensor_ops.hpp>
 #include <miopen/util.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/solver/gemm_common.hpp>
 
 #include <boost/any.hpp>
 #include <boost/range/adaptors.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
-
-// copy from convolution.cpp
-// Workaround for issue 1430.
-// Vega20 fails to access GPU memory larger than the return value of GetMaxMemoryAllocSize() of
-// Vega10
-#define MAX_MEM_ALLOC_SZ (std::min(handle.GetMaxMemoryAllocSize(), size_t(7287183769)))
 
 namespace miopen {
 namespace solver {
@@ -53,50 +48,12 @@ namespace conv {
 
 using ProblemDescription = miopen::conv::ProblemDescription;
 
-#if MIOPEN_USE_GEMM
-#ifdef CPPCHECK
-// Keep the value unknown in cppcheck since this can differ between opencl and hip
-static bool IsBf16Supported;
-static bool IsFp16Supported;
-#else
-static constexpr const bool IsBf16Supported = MIOPEN_USE_ROCBLAS;
-static constexpr const bool IsFp16Supported = MIOPEN_USE_ROCBLAS;
-#endif
-
-static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
-                                   const TensorDescriptor& yDesc,
-                                   const TensorDescriptor& wDesc)
-{
-    return xDesc.GetType() == miopenBFloat16 || yDesc.GetType() == miopenBFloat16 ||
-           wDesc.GetType() == miopenBFloat16;
-}
-
-static inline bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
-                                   const TensorDescriptor& yDesc,
-                                   const TensorDescriptor& wDesc)
-{
-    return xDesc.GetType() == miopenHalf || yDesc.GetType() == miopenHalf ||
-           wDesc.GetType() == miopenHalf;
-}
-#endif
-
-static double
-SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_factor)
-{
-    if(n_oper > 0)
-    {
-        auto rv = oper_factor;
-        if(n_oper > 1)
-            rv *= multiple_oper_factor;
-        return rv;
-    }
-    else
-        return 1.0;
-}
-
 bool GemmBwdBase::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
+    if(!problem.AllTensorsDimsFitIntoInt())
+        return false;
+
     const auto& dyDesc             = problem.GetIn();
     const auto& wDesc              = problem.GetWeights();
     const auto& dxDesc             = problem.GetOut();
@@ -137,8 +94,8 @@ bool GemmBwdBase::IsApplicable(const ExecutionContext& ctx, const ProblemDescrip
         return false;
     }
     return problem.IsDirectionBackwardData() && problem.IsLayoutDefault() &&
-           !(IsAnyBufferBF16(dxDesc, dyDesc, wDesc) && !IsBf16Supported) &&
-           !(IsAnyBufferFp16(dxDesc, dyDesc, wDesc) && !IsFp16Supported);
+           !(gemm::IsAnyBufferBf16(dxDesc, dyDesc, wDesc) && !gemm::IsBf16Supported) &&
+           !(gemm::IsAnyBufferFp16(dxDesc, dyDesc, wDesc) && !gemm::IsFp16Supported);
 #else
     std::ignore = ctx;
     std::ignore = problem;
@@ -191,12 +148,12 @@ float GemmBwdBase::GetWti(const ExecutionContext&, const ProblemDescription& pro
     }
 
     auto wti = 1.0;
-    wti *= SlowdownFactor(n_SetTensor, 0.95, 0.99);
-    wti *= SlowdownFactor(n_transpose_NCHW2CNHW, 0.7, 0.9);
-    wti *= SlowdownFactor(n_transpose_CNHW2NCHW, 0.7, 0.9);
-    wti *= SlowdownFactor(n_gemm_runs, 0.9, 0.9);
-    wti *= SlowdownFactor(n_gemm_strided_batched, 1.0, 0.95);
-    wti *= SlowdownFactor(n_Col2ImGPU, 0.4, 0.8);
+    wti *= gemm::SlowdownFactor(n_SetTensor, 0.95, 0.99);
+    wti *= gemm::SlowdownFactor(n_transpose_NCHW2CNHW, 0.7, 0.9);
+    wti *= gemm::SlowdownFactor(n_transpose_CNHW2NCHW, 0.7, 0.9);
+    wti *= gemm::SlowdownFactor(n_gemm_runs, 0.9, 0.9);
+    wti *= gemm::SlowdownFactor(n_gemm_strided_batched, 1.0, 0.95);
+    wti *= gemm::SlowdownFactor(n_Col2ImGPU, 0.4, 0.8);
     return wti;
 }
 
@@ -225,9 +182,10 @@ size_t GemmBwd1x1_stride2::GetWorkspaceSize(const ExecutionContext& context,
     const auto dy_t_size  = dyDesc.GetElementSize() * GetTypeSize(dyDesc.GetType());
     const auto gemm_trans = dx_t_size + dy_t_size;
 
-    if(gemm_trans > MAX_MEM_ALLOC_SZ)
+    if(gemm_trans > gemm::MaxMemAllocSz(handle, problem))
     {
-        MIOPEN_LOG_I2(gemm_trans << " > " << MAX_MEM_ALLOC_SZ);
+        MIOPEN_LOG_I2("GemmBwd1x1_stride2: " << gemm_trans << " > "
+                                             << gemm::MaxMemAllocSz(handle, problem));
         return 0;
     }
     return gemm_trans;
@@ -656,9 +614,10 @@ size_t GemmBwdRest::GetWorkspaceSize(const ExecutionContext& context,
                                            std::multiplies<std::size_t>()) *
                            GetTypeSize(dyDesc.GetType()) * conv.group_count;
 
-    if(gemm_size > MAX_MEM_ALLOC_SZ)
+    if(gemm_size > gemm::MaxMemAllocSz(handle, problem, true))
     {
-        MIOPEN_LOG_I2(gemm_size << " > " << MAX_MEM_ALLOC_SZ);
+        MIOPEN_LOG_I2("GemmBwdRest: " << gemm_size << " > "
+                                      << gemm::MaxMemAllocSz(handle, problem, true));
         return 0;
     }
     return gemm_size;

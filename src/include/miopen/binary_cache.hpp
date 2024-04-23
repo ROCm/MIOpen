@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,62 +29,38 @@
 
 #include <miopen/config.h>
 #include <miopen/target_properties.hpp>
-#include <boost/filesystem/path.hpp>
+#include <miopen/filesystem.hpp>
 #include <string>
-
-#define FIN_OLD_BINARY_CACHE_COMPAT 1
 
 namespace miopen {
 
 bool IsCacheDisabled();
 
-boost::filesystem::path
-GetCacheFile(const std::string& device, const std::string& name, const std::string& args);
+fs::path GetCacheFile(const std::string& device, const std::string& name, const std::string& args);
 
-boost::filesystem::path GetCachePath(bool is_system);
+fs::path GetCachePath(bool is_system);
 
 #if !MIOPEN_ENABLE_SQLITE_KERN_CACHE
-boost::filesystem::path LoadBinary(const TargetProperties& target,
-                                   std::size_t num_cu,
-                                   const std::string& name,
-                                   const std::string& args);
-void SaveBinary(const boost::filesystem::path& binary_path,
+fs::path LoadBinary(const TargetProperties& target,
+                    std::size_t num_cu,
+                    const std::string& name,
+                    const std::string& args);
+
+void SaveBinary(const fs::path& binary_path,
                 const TargetProperties& target,
                 const std::string& name,
                 const std::string& args);
 #else
-std::string LoadBinary(const TargetProperties& target,
-                       std::size_t num_cu,
-                       const std::string& name,
-                       const std::string& args);
+std::vector<char> LoadBinary(const TargetProperties& target,
+                             std::size_t num_cu,
+                             const std::string& name,
+                             const std::string& args);
 
-void SaveBinary(const std::string& hsaco,
+void SaveBinary(const std::vector<char>& hsaco,
                 const TargetProperties& target,
                 std::size_t num_cu,
                 const std::string& name,
                 const std::string& args);
-
-#if FIN_OLD_BINARY_CACHE_COMPAT
-inline std::string LoadBinary(const TargetProperties& target,
-                              std::size_t num_cu,
-                              const std::string& name,
-                              const std::string& args,
-                              bool)
-{
-    return LoadBinary(target, num_cu, name, args);
-}
-
-inline void SaveBinary(const std::string& hsaco,
-                       const TargetProperties& target,
-                       std::size_t num_cu,
-                       const std::string& name,
-                       const std::string& args,
-                       bool)
-{
-    SaveBinary(hsaco, target, num_cu, name, args);
-}
-#endif
-
 #endif
 
 } // namespace miopen

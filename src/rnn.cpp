@@ -458,7 +458,7 @@ size_t RNNDescriptor::GetMainSolWorkspaceSize(size_t batchLenSum,
     return (workspaceScale * nLayers * batchLenSum * hsize * typeSize) * (is_bidirect ? 2 : 1);
 }
 
-size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
+size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
                                        const SeqTensorDescriptor& xDesc,
                                        miopenRNNFWDMode_t fwdMode) const
 {
@@ -478,7 +478,15 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
 
     const std::size_t total_sequence_len = xDesc.GetTotalSequenceLen();
 
-    return transformer_tmp_space +
+    size_t reduction_ws = ReductionWorkspaceSize(handle,
+                                                 total_sequence_len,
+                                                 nHiddenTensorsPerLayer,
+                                                 workspaceScale,
+                                                 hsize,
+                                                 dirMode == miopenRNNbidirection,
+                                                 dataType);
+
+    return transformer_tmp_space + reduction_ws +
            GetMainSolWorkspaceSize(total_sequence_len, fwdMode, miopenRNNDataSeqMajorNotPadded);
 }
 
@@ -499,7 +507,7 @@ size_t RNNDescriptor::GetMaxWorkspaceSize(Handle& handle,
 }
 
 // legacy
-size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
+size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
                                        const int seqLength,
                                        c_array_view<const miopenTensorDescriptor_t> xDesc) const
 {
@@ -523,9 +531,17 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
             return x + deref(y).GetLengths()[0];
         });
 
-    return padding_converter_tmp_space + GetMainSolWorkspaceSize(total_sequence_len,
-                                                                 miopenRNNInference,
-                                                                 miopenRNNDataSeqMajorNotPadded);
+    size_t reduction_ws = ReductionWorkspaceSize(handle,
+                                                 total_sequence_len,
+                                                 nHiddenTensorsPerLayer,
+                                                 workspaceScale,
+                                                 hsize,
+                                                 dirMode == miopenRNNbidirection,
+                                                 dataType);
+
+    return padding_converter_tmp_space + reduction_ws +
+           GetMainSolWorkspaceSize(
+               total_sequence_len, miopenRNNInference, miopenRNNDataSeqMajorNotPadded);
 }
 
 /////////////////////////////////
@@ -1284,7 +1300,7 @@ void RNNDescriptor::RNNForward(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(hDesc.GetSize() != cDesc.GetSize())
+    if(hDesc.GetNumDims() != cDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -1304,15 +1320,8 @@ void RNNDescriptor::RNNForward(Handle& handle,
     }
 
 #if MIOPEN_BACKEND_HIP
-    HipEventPtr start = nullptr;
-    HipEventPtr stop  = nullptr;
-    bool is_profiling = handle.IsProfilingEnabled();
+    RnnHipAutoProfiler kernel_profiler{handle};
 
-    if(is_profiling)
-    {
-        handle.EnableProfiling(false);
-        RNNProfilingBegin(handle, start, stop);
-    }
     try
     {
 #endif
@@ -1363,18 +1372,10 @@ void RNNDescriptor::RNNForward(Handle& handle,
     }
     catch(...)
     {
-        if(is_profiling)
-            handle.EnableProfiling(true);
+        kernel_profiler.abortProfiling();
         throw;
     }
 
-    if(is_profiling)
-    {
-        float eventTime_mS = RNNProfilingEnd(handle, start, stop);
-        handle.EnableProfiling(true);
-        handle.ResetKernelTime();
-        handle.AccumKernelTime(eventTime_mS);
-    }
 #endif
 }
 
@@ -1404,7 +1405,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(hDesc.GetSize() != cDesc.GetSize())
+    if(hDesc.GetNumDims() != cDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -1425,15 +1426,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     }
 
 #if MIOPEN_BACKEND_HIP
-    HipEventPtr start = nullptr;
-    HipEventPtr stop  = nullptr;
-    bool is_profiling = handle.IsProfilingEnabled();
+    RnnHipAutoProfiler kernel_profiler{handle};
 
-    if(is_profiling)
-    {
-        handle.EnableProfiling(false);
-        RNNProfilingBegin(handle, start, stop);
-    }
     try
     {
 #endif
@@ -1486,17 +1480,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     }
     catch(...)
     {
-        if(is_profiling)
-            handle.EnableProfiling(true);
-        throw;
-    }
+        kernel_profiler.abortProfiling();
 
-    if(is_profiling)
-    {
-        float eventTime_mS = RNNProfilingEnd(handle, start, stop);
-        handle.EnableProfiling(true);
-        handle.ResetKernelTime();
-        handle.AccumKernelTime(eventTime_mS);
+        throw;
     }
 #endif
 }
@@ -1537,15 +1523,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     }
 
 #if MIOPEN_BACKEND_HIP
-    HipEventPtr start = nullptr;
-    HipEventPtr stop  = nullptr;
-    bool is_profiling = handle.IsProfilingEnabled();
+    RnnHipAutoProfiler kernel_profiler{handle};
 
-    if(is_profiling)
-    {
-        handle.EnableProfiling(false);
-        RNNProfilingBegin(handle, start, stop);
-    }
     try
     {
 #endif
@@ -1584,17 +1563,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     }
     catch(...)
     {
-        if(is_profiling)
-            handle.EnableProfiling(true);
+        kernel_profiler.abortProfiling();
         throw;
-    }
-
-    if(is_profiling)
-    {
-        float eventTime_mS = RNNProfilingEnd(handle, start, stop);
-        handle.EnableProfiling(true);
-        handle.ResetKernelTime();
-        handle.AccumKernelTime(eventTime_mS);
     }
 #endif
 }
