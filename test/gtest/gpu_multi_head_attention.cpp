@@ -76,24 +76,31 @@ struct TestCase
     size_t h;
     size_t s;
     size_t d;
+    float dropout;
 };
 
 std::vector<TestCase> GetSmokeTestCases()
 {
     if(CheckFloatArg("--float"))
     {
-        return {{9, 8, 8, 8},
-                {1, 2, 4, 5},
-                {2, 1, 5, 4},
-                {4, 2, 1, 3},
-                {5, 3, 4, 1},
-                {1, 2, 65, 5},
-                {2, 1, 67, 4},
-                {8, 7, 68, 1},
-                {1, 2, 257, 5},
-                {2, 1, 259, 4},
-                {8, 7, 270, 1},
-                {1, 1, 1, 1}};
+        return {
+            {9, 8, 8, 8, 0.0f},
+            {1, 2, 4, 5, 0.0f},
+            {2, 1, 5, 4, 0.0f},
+            {4, 2, 1, 3, 0.0f},
+            {5, 3, 4, 1, 0.0f},
+            {1, 2, 65, 5, 0.0f},
+            {2, 1, 67, 4, 0.0f},
+            {8, 7, 68, 1, 0.0f},
+            {1, 2, 257, 5, 0.0f},
+            {2, 1, 259, 4, 0.0f},
+            {8, 7, 270, 1, 0.0f},
+            {1, 1, 1, 1, 0.0f},
+            {3, 5, 32, 7, 0.8f},
+            {2, 2, 64, 128, 0.8f},
+            {2, 1, 128, 4, 0.8f},
+            {2, 7, 256, 31, 0.8f},
+        };
     }
     else
     {
@@ -106,12 +113,16 @@ std::vector<TestCase> GetFullTestCases()
     if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) || miopen::IsEnabled(ENV(MIOPEN_TEST_ALL))) &&
        CheckFloatArg("--float"))
     {
-        return {{3, 15, 2047, 15},
-                {2049, 17, 7, 7},
-                {3, 3, 257, 91},
-                {11, 150, 255, 31},
-                {9, 3, 129, 1023},
-                {3, 15, 31, 2047}};
+        return {
+            {3, 15, 2047, 15, 0.0f},
+            {2049, 17, 7, 7, 0.0f},
+            {3, 3, 257, 91, 0.0f},
+            {11, 150, 255, 31, 0.0f},
+            {9, 3, 129, 1023, 0.0f},
+            {3, 15, 31, 2047, 0.0f},
+            {2049, 17, 32, 7, 0.2f},
+            {11, 150, 256, 31, 0.4f},
+        };
     }
     else
     {
@@ -125,8 +136,8 @@ protected:
     void SetUp() override
     {
         prng::reset_seed();
-        auto [n, h, s, d] = GetParam();
-        Handle& handle    = get_handle();
+        auto [n, h, s, d, drop] = GetParam();
+        Handle& handle          = get_handle();
 
         mha_descriptor.SetParams(1);
         ASSERT_EQ(miopenCreateMhaProblem(&problem, &mha_descriptor, miopenProblemDirectionForward),
@@ -163,45 +174,50 @@ protected:
             return std::tuple{val_scaled, scale, descale};
         };
 
+        float q_scale;
+        float q_descale;
         tensor<float> q_val;
         std::tie(q_val, q_scale, q_descale) = GenScaledTensor(n, h, s, d);
         InitTensor(miopenTensorMhaQ, std::move(q_val));
 
+        float k_scale;
+        float k_descale;
         tensor<float> k_val;
         std::tie(k_val, k_scale, k_descale) = GenScaledTensor(n, h, s, d);
         InitTensor(miopenTensorMhaK, std::move(k_val));
 
+        float v_scale;
+        float v_descale;
         tensor<float> v_val;
         std::tie(v_val, v_scale, v_descale) = GenScaledTensor(n, h, s, d);
         InitTensor(miopenTensorMhaV, std::move(v_val));
 
-        s_scale = 1.f;
+        float s_scale = 1.f;
         // clang-tidy complains about the same expression on both sides of "/": 1.f / 1.f
-        s_descale = 1.f; // / s_scale;
+        float s_descale = 1.f; // / s_scale;
 
-        o_scale = 1.f;
+        float o_scale = 1.f;
         // clang-tidy complains about the same expression on both sides of "/": 1.f / 1.f
-        o_descale = 1.f; // / o_scale;
 
         InitTensor(miopenTensorMhaDescaleQ,
-                   tensor<float>{1, 1, 1, 1}.generate([this](auto...) { return q_descale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return q_descale; }));
         InitTensor(miopenTensorMhaDescaleK,
-                   tensor<float>{1, 1, 1, 1}.generate([this](auto...) { return k_descale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return k_descale; }));
         InitTensor(miopenTensorMhaDescaleV,
-                   tensor<float>{1, 1, 1, 1}.generate([this](auto...) { return v_descale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return v_descale; }));
         InitTensor(miopenTensorMhaDescaleS,
-                   tensor<float>{1, 1, 1, 1}.generate([this](auto...) { return s_descale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return s_descale; }));
         InitTensor(miopenTensorMhaScaleS,
-                   tensor<float>{1, 1, 1, 1}.generate([this](auto...) { return s_scale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return s_scale; }));
         InitTensor(miopenTensorMhaScaleO,
-                   tensor<float>{1, 1, 1, 1}.generate([this](auto...) { return o_scale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return o_scale; }));
 
         InitTensor(miopenTensorMhaDropoutProbability,
-                   tensor<float>{1, 1, 1, 1}.generate([](auto...) { return 0; }));
+                   tensor<float>{1, 1, 1, 1}.generate([rate = drop](auto...) { return rate; }));
         InitTensor(miopenTensorMhaDropoutSeed,
-                   tensor<int>{1, 1, 1, 1}.generate([](auto...) { return 0; }));
+                   tensor<int>{1, 1, 1, 2}.generate([](auto...) { return 0; }));
         InitTensor(miopenTensorMhaDropoutOffset,
-                   tensor<int>{1, 1, 1, 1}.generate([](auto...) { return 0; }));
+                   tensor<int>{1, 1, 1, 2}.generate([](auto...) { return 0; }));
 
         InitTensor(miopenTensorMhaO, tensor<float>{n, h, s, d});
         InitTensor(miopenTensorMhaAmaxO, tensor<float>{1, 1, 1, 1});
@@ -233,6 +249,9 @@ protected:
             s_descale,
             s_scale,
             o_scale,
+            drop,
+            0,
+            0,
             amaxS_ref,
             amaxO_ref,
             oDesc_ref);
@@ -251,21 +270,6 @@ protected:
     float amaxS_ref;
     float amaxO_ref;
 
-    float q_scale;
-    float q_descale;
-
-    float k_scale;
-    float k_descale;
-
-    float v_scale;
-    float v_descale;
-
-    float s_scale;
-    float s_descale;
-
-    float o_scale;
-    float o_descale;
-
     MhaDescriptor mha_descriptor;
     miopenProblem_t problem;
 };
@@ -273,6 +277,12 @@ protected:
 TEST_P(Test_Fwd_Mha, Test_float)
 {
     Handle& handle = get_handle();
+
+    auto [n, h, s, d, drop] = GetParam();
+    if((drop > 0.0f) && (s % handle.GetWavefrontWidth() != 0))
+    {
+        GTEST_SKIP() << "CPU Dropout currently supprorts only fully occupied warps";
+    }
 
     std::vector<miopenSolution_t> solutions(16);
     std::size_t found;
