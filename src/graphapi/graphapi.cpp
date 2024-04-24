@@ -26,7 +26,7 @@
 #include <miopen/errors.hpp>
 #include <miopen/graphapi/convolution.hpp>
 #include <miopen/graphapi/graphapi.hpp>
-#include <miopen/graphapi/operationgraph_descriptor.hpp>
+#include <miopen/graphapi/opgraph.hpp>
 #include <miopen/graphapi/pointwise.hpp>
 #include <miopen/graphapi/reduction.hpp>
 #include <miopen/graphapi/rng.hpp>

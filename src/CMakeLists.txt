@@ -123,7 +123,6 @@ set( MIOpen_Source
     generic_search.cpp
     graphapi/convolution.cpp
     graphapi/graphapi.cpp
-    graphapi/operationgraph_descriptor.cpp
     graphapi/opgraph.cpp
     graphapi/matmul.cpp
     graphapi/pointwise.cpp

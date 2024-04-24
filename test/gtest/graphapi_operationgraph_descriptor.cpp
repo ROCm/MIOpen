@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include <miopen/graphapi/operationgraph_descriptor.hpp>
+#include <miopen/graphapi/opgraph.hpp>
 
 #include <memory>
 #include <string>
