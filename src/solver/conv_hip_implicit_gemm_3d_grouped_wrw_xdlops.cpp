@@ -54,23 +54,23 @@ using Bilinear                             = ck::tensor_operation::element_wise:
 static constexpr ck::index_t NumDimSpatial = 3;
 
 template <typename DataType>
-using DeviceOpGBwdWrw = ck::tensor_operation::device::DeviceGroupedConvBwdWeightMultipleD<
-            NDimSpatial,
-            InLayout,
-            WeiLayout,
-            OutLayout,
-            ck::Tuple<WeiLayout>,
-            DataType,
-            DataType,
-            DataType,
-            ck::Tuple<DataType>,
-            InElementOp,
-            WeiElementOp,
-            OutElementOp>;
+using DeviceOpGBwdWrw =
+    ck::tensor_operation::device::DeviceGroupedConvBwdWeightMultipleD<NDimSpatial,
+                                                                      InLayout,
+                                                                      WeiLayout,
+                                                                      OutLayout,
+                                                                      ck::Tuple<WeiLayout>,
+                                                                      DataType,
+                                                                      DataType,
+                                                                      DataType,
+                                                                      ck::Tuple<DataType>,
+                                                                      InElementOp,
+                                                                      WeiElementOp,
+                                                                      OutElementOp>;
 
 template <typename DataType>
-using DeviceOpGBwdWrwPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGBwdWrw<DataType>>;
+using DeviceOpGBwdWrwPtrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+    DeviceOpGBwdWrw<DataType>>;
 
 namespace {
 
@@ -78,21 +78,21 @@ struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
     {
-        G  = ProblemInterpreter::GetGroupCountG(problem);
-        N  = ProblemInterpreter::GetBatchN(problem);
-        K1 = ProblemInterpreter::GetOutputChannelK(problem);
-        C1 = ProblemInterpreter::GetInputChannelC(problem);
-        C  = C1 / G; // Number of input Channel per group
-        K  = K1 / G; // Number of output Channel per group
-        Hi = ProblemInterpreter::GetInputHeightHi(problem);
-        Wi = ProblemInterpreter::GetInputWidthWi(problem);
-        Ho = ProblemInterpreter::GetOutputHeightHo(problem);
-        Wo = ProblemInterpreter::GetOutputWidthWo(problem);
-        Y  = ProblemInterpreter::GetFilterHeightY(problem);
-        X  = ProblemInterpreter::GetFilterWidthX(problem);
-        Di = ProblemInterpreter::GetInputDepthDi(problem);
-        Do = ProblemInterpreter::GetOutputDepthDo(problem);
-        Z  = ProblemInterpreter::GetFilterDepthZ(problem);
+        G     = ProblemInterpreter::GetGroupCountG(problem);
+        N     = ProblemInterpreter::GetBatchN(problem);
+        K1    = ProblemInterpreter::GetOutputChannelK(problem);
+        C1    = ProblemInterpreter::GetInputChannelC(problem);
+        C     = C1 / G; // Number of input Channel per group
+        K     = K1 / G; // Number of output Channel per group
+        Hi    = ProblemInterpreter::GetInputHeightHi(problem);
+        Wi    = ProblemInterpreter::GetInputWidthWi(problem);
+        Ho    = ProblemInterpreter::GetOutputHeightHo(problem);
+        Wo    = ProblemInterpreter::GetOutputWidthWo(problem);
+        Y     = ProblemInterpreter::GetFilterHeightY(problem);
+        X     = ProblemInterpreter::GetFilterWidthX(problem);
+        Di    = ProblemInterpreter::GetInputDepthDi(problem);
+        Do    = ProblemInterpreter::GetOutputDepthDo(problem);
+        Z     = ProblemInterpreter::GetFilterDepthZ(problem);
         alpha = ProblemInterpreter::GetAlpha(problem);
         beta  = ProblemInterpreter::GetBeta(problem);
 
@@ -132,16 +132,16 @@ struct CKArgs
             wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
         }
 
-        filter_strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
-                   ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
-                   ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
+        filter_strides   = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
+                          ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
+                          ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
         filter_dilations = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
-                    ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
-                    ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
-        lPadding = {ProblemInterpreter::GetInputLeftPadD(problem),
+                            ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
+                            ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
+        lPadding         = {ProblemInterpreter::GetInputLeftPadD(problem),
                     ProblemInterpreter::GetInputLeftPadH(problem),
                     ProblemInterpreter::GetInputLeftPadW(problem)};
-        rPadding = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
+        rPadding         = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadH(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
     }
