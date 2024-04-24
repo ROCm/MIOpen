@@ -64,6 +64,8 @@ public:
     const std::unordered_map<size_t, std::string> solver_map;
     const std::vector<float> features_mean;
     const std::vector<float> features_std;
+    const std::vector<float> test_features_mean;
+    const std::vector<float> test_features_std;
     Metadata(const std::string& arch);
     size_t EncodeDirection(miopen::conv::Direction dir) const;
     size_t EncodePrecision(miopenDataType_t data_type) const;
@@ -80,13 +82,14 @@ std::vector<uint64_t> PredictSolver(const conv::ProblemDescription& problem,
 namespace tuning {
 struct Metadata
 {
-    std::size_t num_tuning_params;
+    std::unordered_map<std::string, std::size_t> num_tuning_params;
     std::unordered_map<std::string, std::string> tuning_decodings;
     Metadata(const std::string& arch, const std::string& solver);
 };
 
 bool ModelSetParams(const std::string& arch,
                     const std::string& solver,
+                    conv::Direction direction,
                     const std::vector<float>& features,
                     bool transform_features,
                     std::function<bool(std::size_t, std::string)> validator);
