@@ -42,6 +42,7 @@
 
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <vector>
 #include <ostream>
 #include <algorithm>
@@ -179,13 +180,13 @@ struct NonTunableSolverBase : SolverMixin<Context, Problem>
     virtual ConvSolution GetSolution(const Context&, const Problem&) const = 0;
 };
 
-namespace conv {
-
-/// Typedef for convolution solvers
-using ConvSolver = NonTunableSolverBase<ExecutionContext, miopen::conv::ProblemDescription>;
+struct TunableSolverTrait
+{
+};
 
 /// Base class for tunable solvers
-struct ConvTunableSolverBase : SolverMixin<ExecutionContext, miopen::conv::ProblemDescription>
+template <class Context, class Problem>
+struct TunableSolverBase : SolverMixin<Context, Problem>, TunableSolverTrait
 {
     /// Initializes performance config to the default values.
     /// The function may involve some heuristic to guess the best solution
@@ -196,14 +197,13 @@ struct ConvTunableSolverBase : SolverMixin<ExecutionContext, miopen::conv::Probl
     /// The int parameter is needed only to not change the name of the
     /// function in the derived class. Function declarations that differ
     /// only by its return type cannot be overloaded.
-    virtual boost::any GetDefaultPerformanceConfig(const ExecutionContext& ctx,
-                                                   const miopen::conv::ProblemDescription& problem,
-                                                   int) const = 0;
+    virtual boost::any
+    GetDefaultPerformanceConfig(const Context& ctx, const Problem& problem, int) const = 0;
 
     /// Should return false if performance config is wrong for a problem.
     /// Main use is validation of values read from the perf db.
-    virtual bool IsValidPerformanceConfig(const ExecutionContext& ctx,
-                                          const miopen::conv::ProblemDescription& problem,
+    virtual bool IsValidPerformanceConfig(const Context& ctx,
+                                          const Problem& problem,
                                           const PerfConfig& config) const = 0;
 
     /// Search
@@ -211,16 +211,35 @@ struct ConvTunableSolverBase : SolverMixin<ExecutionContext, miopen::conv::Probl
     /// The int parameter is needed only to not change the name of the
     /// function in the derived class. Function declarations that differ
     /// only by its return type cannot be overloaded.
-    virtual boost::any Search(const ExecutionContext& ctx,
-                              const miopen::conv::ProblemDescription& problem,
+    virtual boost::any Search(const Context& ctx,
+                              const Problem& problem,
                               const AnyInvokeParams& invoke_ctx,
                               int) const = 0;
 
     /// Tunable solvers provide a GetSolution that takes a Context and PerformanceConfig
-    virtual ConvSolution GetSolution(const ExecutionContext& ctx,
-                                     const miopen::conv::ProblemDescription& problem,
-                                     const PerfConfig& config) const = 0;
+    virtual ConvSolution
+    GetSolution(const Context& ctx, const Problem& problem, const PerfConfig& config) const = 0;
 };
+
+template <class Solver>
+constexpr auto IsTubable(const Solver&) -> bool
+{
+    static_assert(!std::is_same_v<Solver, TunableSolverTrait>,
+                  "Raw trait shouldn't be passed, explicit type is needed");
+
+    if constexpr(std::is_base_of_v<TunableSolverTrait, Solver>)
+        return true;
+    else
+        return false;
+}
+
+namespace conv {
+
+/// Typedef for convolution non-tunable solvers
+using ConvSolver = NonTunableSolverBase<ExecutionContext, miopen::conv::ProblemDescription>;
+
+/// Typedef for convolution tunable solvers
+using ConvTunableSolverBase = TunableSolverBase<ExecutionContext, miopen::conv::ProblemDescription>;
 
 template <class PerformanceConfig>
 struct ConvTunableSolver : ConvTunableSolverBase

@@ -27,6 +27,7 @@
 #ifndef MIOPEN_GUARD_MLOPEN_FIND_SOLUTION_HPP
 #define MIOPEN_GUARD_MLOPEN_FIND_SOLUTION_HPP
 
+#include "miopen/mlo_internal.hpp"
 #include <miopen/env.hpp>
 #include <miopen/conv_solution.hpp>
 #include <miopen/execution_context.hpp>
@@ -37,6 +38,8 @@
 #include <miopen/solver.hpp>
 
 #include <limits>
+#include <type_traits>
+#include <optional>
 #include <vector>
 
 namespace miopen {
@@ -50,12 +53,15 @@ auto FindSolutionImpl(rank<1>,
                       Solver s,
                       const Context& context,
                       const Problem& problem,
-                      Db& db,
+                      Db&& db,
                       const AnyInvokeParams& invoke_ctx,
                       const std::string& perf_cfg,
                       const std::optional<FindOptions>& options)
     -> decltype(s.GetSolution(context, problem, s.Search(context, problem, invoke_ctx)))
 {
+    static_assert(std::is_invocable_v<Db>,
+                  "db is meant to be a functor returning a reference to perfdb");
+
     const FindEnforce enforce =
         options && options->find_enforce ? *options->find_enforce : FindEnforce{};
     if(context.disable_perfdb_access)
@@ -66,7 +72,7 @@ auto FindSolutionImpl(rank<1>,
     MIOPEN_LOG_I(s.SolverDbId());
     if(enforce.IsDbClean(context))
     {
-        if(db.Remove(problem, s.SolverDbId()))
+        if(db().Remove(problem, s.SolverDbId()))
             MIOPEN_LOG_W("Perf Db: record removed: " << s.SolverDbId() << ", enforce: " << enforce);
     }
     else
@@ -91,7 +97,7 @@ auto FindSolutionImpl(rank<1>,
                 MIOPEN_LOG_WE("Invalid config loaded from Perf Db: "
                               << s.SolverDbId() << ": " << config << ". Performance may degrade.");
             }
-            else if(db.Load(problem, s.SolverDbId(), config))
+            else if(db().Load(problem, s.SolverDbId(), config))
             {
                 MIOPEN_LOG_I2("Perf Db: record loaded: " << s.SolverDbId());
                 if(s.IsValidPerformanceConfig(context, problem, config))
@@ -101,7 +107,7 @@ auto FindSolutionImpl(rank<1>,
                 MIOPEN_LOG_WE("Invalid config loaded from Perf Db: "
                               << s.SolverDbId() << ": " << config << ". Performance may degrade.");
             }
-            else if(!s.AltSolverDbId().empty() && db.Load(problem, s.AltSolverDbId(), config))
+            else if(!s.AltSolverDbId().empty() && db().Load(problem, s.AltSolverDbId(), config))
             {
                 MIOPEN_LOG_I("Perf Db: alternate record loaded: " << s.AltSolverDbId());
                 if(s.IsValidPerformanceConfig(context, problem, config))
@@ -124,7 +130,7 @@ auto FindSolutionImpl(rank<1>,
             try
             {
                 auto c = s.Search(context, problem, invoke_ctx);
-                db.Update(problem, s.SolverDbId(), c);
+                db().Update(problem, s.SolverDbId(), c);
                 return s.GetSolution(context, problem, c);
             }
             catch(const miopen::Exception& ex)
@@ -143,7 +149,7 @@ auto FindSolutionImpl(rank<0>,
                       Solver s,
                       const Context& context,
                       const Problem& problem,
-                      Db&,
+                      Db&&,
                       const AnyInvokeParams&,
                       const std::string&,
                       const std::optional<FindOptions>&)
@@ -169,10 +175,18 @@ ConvSolution FindSolution(Solver s,
                           const std::optional<FindOptions>& options = std::nullopt)
 {
     static_assert(sizeof(Solver) == sizeof(SolverBase), "Solver must be stateless");
-    static_assert(std::is_base_of<SolverBase, Solver>{}, "Not derived class of SolverBase");
+    static_assert(std::is_base_of<SolverBase, Solver>{} && !std::is_same_v<SolverBase, Solver>,
+                  "Not derived class of SolverBase");
     // TODO: This assumes all solutions are ConvSolution
-    auto solution =
-        FindSolutionImpl(rank<1>{}, s, context, problem, db, invoke_ctx, perf_cfg, options);
+    auto solution = FindSolutionImpl(
+        rank<1>{},
+        s,
+        context,
+        problem,
+        [&]() -> PerformanceDb& { return db; },
+        invoke_ctx,
+        perf_cfg,
+        options);
     solution.solver_id = s.SolverDbId();
     return solution;
 }
@@ -266,8 +280,10 @@ struct SolverContainer
     std::vector<Solution>
     SearchForSolutions(const ExecutionContext& ctx,
                        const Problem& problem,
-                       std::size_t limit = std::numeric_limits<std::size_t>::max()) const
+                       std::size_t limit = std::numeric_limits<std::size_t>::max(),
+                       const AnyInvokeParams& invoke_params = {}) const
     {
+        auto db_container = std::optional<PerformanceDb>{};
         std::vector<Solution> ss;
         std::size_t count    = 0;
         const auto find_only = GetEnvFindOnlySolver();
@@ -290,8 +306,25 @@ struct SolverContainer
                 }
                 else
                 {
-                    auto s      = solver.GetSolution(ctx, problem);
+                    ConvSolution s;
+
+                    if constexpr(solver::IsTubable(solver))
+                    {
+                        auto db = [&]() -> PerformanceDb& {
+                            if(!db_container)
+                                db_container.emplace(std::move(miopen::GetDb(ctx, problem)));
+                            return *db_container;
+                        };
+
+                        s = FindSolutionImpl(s, ctx, problem, db, invoke_params, "", std::nullopt);
+                    }
+                    else
+                    {
+                        s = solver.GetSolution(ctx, problem);
+                    }
+
                     s.solver_id = solver.SolverDbId();
+
                     if(s.Succeeded())
                     {
                         ++count;
@@ -403,7 +436,7 @@ struct SolverContainer
         }
 
         auto ctx        = ExecutionContext{&handle};
-        const auto slns = SearchForSolutions(ctx, problem, 1);
+        const auto slns = SearchForSolutions(ctx, problem, 1, invoke_params);
 
         if(slns.empty())
             MIOPEN_THROW(miopenStatusNotImplemented, "No solver found.");
