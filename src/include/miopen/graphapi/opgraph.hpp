@@ -28,6 +28,8 @@
 #include <miopen/graphapi/tensor.hpp>
 
 #include <algorithm>
+#include <memory>
+#include <string>
 #include <vector>
 
 #include <cassert>
@@ -36,8 +38,8 @@ namespace miopen {
 namespace graphapi {
 
 namespace internal {
-template <typename C>
-bool contains(const C& container, const typename C::value_type& val) noexcept
+template <typename C, typename T>
+bool contains(const C& container, const T& val) noexcept
 {
     return std::find(container.cbegin(), container.cend(), val) != container.cend();
 }
@@ -49,8 +51,10 @@ class OpGraph;
 class OpNode
 {
 public:
-    using Edge = std::pair<OpNode*, Tensor*>;
+    using Edge = std::pair<const OpNode*, const Tensor*>;
     virtual ~OpNode();
+
+    virtual const std::string& signName() const = 0;
 
 private:
     std::vector<Edge> mInEdges;
@@ -60,8 +64,6 @@ private:
     friend class OpGraph;
 
 protected:
-    virtual const std::string& signName() const = 0;
-
     virtual std::vector<Tensor*> getInTensors() const = 0;
 
     virtual std::vector<Tensor*> getOutTensors() const = 0;
@@ -70,7 +72,7 @@ protected:
 
     const auto& getOutEdges() const { return mOutEdges; }
 
-    bool hasInEdge(OpNode* src, Tensor* tens_ptr) const
+    bool hasInEdge(const OpNode* src, const Tensor* tens_ptr) const
     {
         assert(src);
         assert(tens_ptr);
@@ -78,7 +80,7 @@ protected:
         return internal::contains(mInEdges, e);
     }
 
-    bool hasOutEdge(OpNode* dst, Tensor* tens_ptr) const
+    bool hasOutEdge(const OpNode* dst, const Tensor* tens_ptr) const
     {
         assert(dst);
         assert(tens_ptr);
@@ -105,6 +107,9 @@ protected:
             mInEdges.emplace_back(src, tens_ptr);
         }
     }
+
+    size_t getInDegree() const { return mInEdges.size(); }
+    size_t getOutDegree() const { return mOutEdges.size(); }
 };
 
 using OpEdge = OpNode::Edge;
@@ -125,7 +130,10 @@ protected:
 
     std::vector<Tensor*> getOutTensors() const final { return mOutTensors; }
 
-    bool hasOutTensor(Tensor* tensor) const { return internal::contains(mOutTensors, tensor); }
+    bool hasOutTensor(const Tensor* tensor) const
+    {
+        return internal::contains(mOutTensors, tensor);
+    }
 
     void addOutTensor(Tensor* tens_ptr)
     {
@@ -159,20 +167,84 @@ protected:
     }
 };
 
+using Path       = std::vector<const OpNode*>;
+using VecOfPaths = std::vector<Path>;
+
 class OpGraph
 {
-    SourceOpNode mSrcNode{};
-    SinkOpNode mSinkNode{};
+    // NOTE: mSrcNode and mSinkNode need to reside on the heap because the graph may move
+    // to a new memory location after building, while the nodes maintain address
+    // of SourceOpNode and SinkOpNode in their in and out edge lists
+    std::unique_ptr<SourceOpNode> mSrcNode = std::make_unique<SourceOpNode>();
+    std::unique_ptr<SinkOpNode> mSinkNode  = std::make_unique<SinkOpNode>();
     std::vector<OpNode*> mNodes{};
 
 public:
-    bool hasNode(OpNode* n) const { return internal::contains(mNodes, n); }
+    OpGraph(const OpGraph&) = delete;
+    OpGraph& operator=(const OpGraph&) = delete;
 
-    bool hasEdge(OpNode* src, Tensor* tens_ptr, OpNode* dst) const
+    OpGraph()          = default;
+    OpGraph(OpGraph&&) = default;
+    OpGraph& operator=(OpGraph&&) = default;
+    ~OpGraph()                    = default;
+
+    bool hasNode(const OpNode* n) const { return internal::contains(mNodes, n); }
+
+    bool hasEdge(const OpNode* src, const Tensor* tens_ptr, const OpNode* dst) const
     {
         assert(src);
         assert(dst);
         return src->hasOutEdge(dst, tens_ptr) && dst->hasInEdge(src, tens_ptr);
+    }
+
+    size_t numNodes() const { return mNodes.size(); }
+
+    size_t numEdges() const
+    {
+        size_t ret = 0;
+        for(OpNode* n : mNodes)
+        {
+            ret += n->getOutDegree();
+        }
+        // ignore the edges that lead to mSinkNode
+        assert(ret >= mSinkNode->getInDegree());
+        ret -= mSinkNode->getInDegree();
+
+        return ret;
+    }
+
+    std::vector<std::string> getNodeNames() const
+    {
+        std::vector<std::string> names(mNodes.size());
+        for(size_t i = 0; i < mNodes.size(); ++i)
+        {
+            names[i] = mNodes[i]->signName();
+        }
+        return names;
+    }
+
+    std::vector<std::pair<size_t, size_t>> getInOutDegrees() const
+    {
+        std::vector<std::pair<size_t, size_t>> ret(mNodes.size());
+        for(size_t i = 0; i < mNodes.size(); ++i)
+        {
+            ret[i] = {mNodes[i]->getInDegree(), mNodes[i]->getOutDegree()};
+        }
+        return ret;
+    }
+
+    VecOfPaths getAllPaths() const;
+
+    // NOTE: for testing only. May remove in the future
+    bool hasEdgeFromSource(OpNode* dst, Tensor* tens_ptr) const
+    {
+        return hasEdge(mSrcNode.get(), tens_ptr, dst);
+    }
+
+    // NOTE: for testing only. May remove in the future
+    bool hasEdgeToSink(OpNode* src, Tensor* tens_ptr) const
+    {
+        return hasEdge(src, tens_ptr, mSinkNode.get());
     }
 
 private:
@@ -190,14 +262,14 @@ private:
 
     void addEdgeFromSrc(OpNode* dst, Tensor* tens_ptr)
     {
-        mSrcNode.addOutTensor(tens_ptr);
-        addEdge(&mSrcNode, tens_ptr, dst);
+        mSrcNode->addOutTensor(tens_ptr);
+        addEdge(mSrcNode.get(), tens_ptr, dst);
     }
 
     void addEdgeToSink(OpNode* src, Tensor* tens_ptr)
     {
-        mSinkNode.addInTensor(tens_ptr);
-        addEdge(src, tens_ptr, &mSinkNode);
+        mSinkNode->addInTensor(tens_ptr);
+        addEdge(src, tens_ptr, mSinkNode.get());
     }
 };
 
@@ -224,6 +296,10 @@ public:
     // r-value method that consumes *this
     OpGraph build() &&;
 };
+
+bool isIsomorphic(const OpGraph& left, const OpGraph& right);
+
+std::string pathToStr(const Path& path);
 
 } // end namespace graphapi
 } // end namespace miopen

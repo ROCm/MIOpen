@@ -347,6 +347,12 @@ struct ProblemDescription : ProblemDescriptionBase
         return in.AllDimsFitIntoInt() && weights.AllDimsFitIntoInt() && out.AllDimsFitIntoInt();
     }
 
+    bool AllTensorsLengthsFitIntoInt() const
+    {
+        return in.AllLengthsFitIntoInt() && weights.AllLengthsFitIntoInt() &&
+               out.AllLengthsFitIntoInt();
+    }
+
     void HeuristicUpdateLayouts();
 
     void MakeNetworkConfig(std::string& conf_key) const;
