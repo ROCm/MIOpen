@@ -36,10 +36,12 @@ enum class ReduceExtremeOp_t
     Last_  = Max,
 };
 
+#ifndef __HIP_DEVICE_COMPILE__
 static_assert(MIOPEN_REDUCE_EXTREME_ARGMIN == static_cast<int>(ReduceExtremeOp_t::Argmin));
 static_assert(MIOPEN_REDUCE_EXTREME_ARGMAX == static_cast<int>(ReduceExtremeOp_t::Argmax));
 static_assert(MIOPEN_REDUCE_EXTREME_MIN == static_cast<int>(ReduceExtremeOp_t::Min));
 static_assert(MIOPEN_REDUCE_EXTREME_MAX == static_cast<int>(ReduceExtremeOp_t::Max));
+#endif
 
 template <typename T1, typename T2, ReduceExtremeOp_t op>
 struct reduce_func

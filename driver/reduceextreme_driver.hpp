@@ -41,81 +41,7 @@
 #include <vector>
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
-
-enum class ReduceExtremeOp_t
-{
-    Argmin = 1,
-    Argmax = 2,
-    Min    = 3,
-    Max    = 4,
-};
-
-static_assert(MIOPEN_REDUCE_EXTREME_ARGMIN ==
-              static_cast<miopenReduceExtremeOp_t>(ReduceExtremeOp_t::Argmin));
-static_assert(MIOPEN_REDUCE_EXTREME_ARGMAX ==
-              static_cast<miopenReduceExtremeOp_t>(ReduceExtremeOp_t::Argmax));
-static_assert(MIOPEN_REDUCE_EXTREME_MIN ==
-              static_cast<miopenReduceExtremeOp_t>(ReduceExtremeOp_t::Min));
-static_assert(MIOPEN_REDUCE_EXTREME_MAX ==
-              static_cast<miopenReduceExtremeOp_t>(ReduceExtremeOp_t::Max));
-
-template <typename T1, typename T2, ReduceExtremeOp_t op>
-struct reduce_func
-{
-    inline constexpr void calculate(T1& a, T1 b, T2& c, T2 d) const;
-};
-
-template <typename T1, typename T2>
-struct reduce_func<T1, T2, ReduceExtremeOp_t::Max>
-{
-    inline constexpr void calculate(T1& a, T1 b, T2& c, T2 d) const
-    {
-        if(a < b)
-        {
-            a = b;
-            c = d;
-        }
-    }
-};
-
-template <typename T1, typename T2>
-struct reduce_func<T1, T2, ReduceExtremeOp_t::Min>
-{
-    inline constexpr void calculate(T1& a, T1 b, T2& c, T2 d) const
-    {
-        if(a > b)
-        {
-            a = b;
-            c = d;
-        }
-    }
-};
-
-template <typename T1, typename T2>
-struct reduce_func<T1, T2, ReduceExtremeOp_t::Argmax>
-{
-    inline constexpr void calculate(T1& a, T1 b, T2& c, T2 d) const
-    {
-        if(a < b)
-        {
-            a = b;
-            c = d;
-        }
-    }
-};
-
-template <typename T1, typename T2>
-struct reduce_func<T1, T2, ReduceExtremeOp_t::Argmin>
-{
-    inline constexpr void calculate(T1& a, T1 b, T2& c, T2 d) const
-    {
-        if(a > b)
-        {
-            a = b;
-            c = d;
-        }
-    }
-};
+#include "../src/kernels/MIOpenReduceExtreme.hpp"
 
 template <typename Tgpu, typename Tcheck, ReduceExtremeOp_t op>
 int32_t mloReduceExtremeForwardRunHost(miopenTensorDescriptor_t xDesc,
@@ -234,16 +160,23 @@ int ReduceExtremeDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
         miopenEnableProfiling(GetHandle(), true);
     }
 
-    if((static_cast<miopenReduceExtremeOp_t>(inflags.GetValueInt("ReduceExtremeOp")) < 1) ||
-       (static_cast<miopenReduceExtremeOp_t>(inflags.GetValueInt("ReduceExtremeOp")) > 4))
+    if((static_cast<ReduceExtremeOp_t>(inflags.GetValueInt("ReduceExtremeOp")) <
+        ReduceExtremeOp_t::First_) ||
+       (static_cast<ReduceExtremeOp_t>(inflags.GetValueInt("ReduceExtremeOp")) >
+        ReduceExtremeOp_t::Last_))
+    {
         std::cerr << "Error ReduceExtremeOp(1-4)" << std::endl;
+        return miopenStatusBadParm;
+    }
 
     auto inTensorParam = inflags.GetValueTensor("input");
 
-    if((static_cast<miopenReduceExtremeOp_t>(inflags.GetValueInt("DimToReduce")) < 0) ||
-       (static_cast<miopenReduceExtremeOp_t>(inflags.GetValueInt("DimToReduce")) >
-        inTensorParam.lengths.size() - 1))
+    if((inflags.GetValueInt("DimToReduce") < 0) ||
+       (inflags.GetValueInt("DimToReduce") > inTensorParam.lengths.size() - 1))
+    {
         std::cerr << "Error DimToReduce(0-" << inTensorParam.lengths.size() - 1 << ")" << std::endl;
+        return miopenStatusBadParm;
+    }
 
     return miopenStatusSuccess;
 }
@@ -325,11 +258,15 @@ int ReduceExtremeDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
 
     if(x_dev->ToGPU(GetStream(), x.data()) != 0)
+    {
         std::cerr << "Error copying (x) to GPU, size: " << x_dev->GetSize() << std::endl;
-
+        return miopenStatusAllocFailed;
+    }
     if(indice_dev->ToGPU(GetStream(), indice.data()) != 0)
+    {
         std::cerr << "Error copying (indice) to GPU, size: " << indice_dev->GetSize() << std::endl;
-
+        return miopenStatusAllocFailed;
+    }
     if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN) ||
        (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX))
     {
@@ -338,7 +275,10 @@ int ReduceExtremeDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         yhost = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
         if(y_dev->ToGPU(GetStream(), y.data()) != 0)
+        {
             std::cerr << "Error copying (y) to GPU, size: " << y_dev->GetSize() << std::endl;
+            return miopenStatusAllocFailed;
+        }
     }
 
     return miopenStatusSuccess;
@@ -394,23 +334,28 @@ int ReduceExtremeDriver<Tgpu, Tref>::RunForwardGPU()
         int32_t iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
             std::cout << "Wall-clock Time Forward ReduceExtreme Elapsed: " << t.gettime_ms() / iter
-                      << " ms\n";
+                      << " ms" << std::endl;
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
         std::cout << "GPU Kernel Time Forward ReduceExtreme Elapsed: " << kernel_average_time
-                  << " ms\n";
+                  << " ms" << std::endl;
     }
 
     if(indice_dev->FromGPU(GetStream(), indice.data()) != 0)
+    {
         std::cerr << "Error copying (indice_dev) from GPU, size: " << indice_dev->GetSize()
                   << std::endl;
-
+        return miopenStatusInternalError;
+    }
     if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN) ||
        (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX))
     {
         if(y_dev->FromGPU(GetStream(), y.data()) != 0)
+        {
             std::cerr << "Error copying (y_dev) from GPU, size: " << y_dev->GetSize() << std::endl;
+            return miopenStatusInternalError;
+        }
     }
 
     return miopenStatusSuccess;
@@ -485,17 +430,17 @@ int ReduceExtremeDriver<Tgpu, Tref>::VerifyForward()
                       << ')' << std::endl;
         }
     }
-    auto indice_error = miopen::rms_range(indicehost, indice);
+    auto error_idx = miopen::mismatch_idx(indicehost, indice);
 
-    if(!std::isfinite(indice_error) || std::abs(static_cast<float>(indice_error)) != 0.0f)
+    if(error_idx < miopen::range_distance(indicehost))
     {
-        std::cout << "Forward ReduceExtreme FAILED: Indice does not equal" << std::endl;
+        std::cout << "Forward ReduceExtreme FAILED: Indice does not equal at " << error_idx
+                  << std::endl;
         return EC_VerifyFwd;
     }
     else
     {
-        std::cout << "Forward ReduceExtreme Incide Verifies on CPU and GPU (err=" << indice_error
-                  << ")" << std::endl;
+        std::cout << "Forward ReduceExtreme Incide Verifies on CPU and GPU" << std::endl;
     }
 
     return miopenStatusSuccess;
