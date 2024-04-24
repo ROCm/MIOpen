@@ -45,6 +45,10 @@ struct AdamTestFloat : AdamTest<float, float>
 {
 };
 
+struct AdamTestFloat16 : AdamTest<half_float::half, half_float::half>
+{
+};
+
 struct AmpAdamTestFloat : AdamTest<float, half_float::half, true>
 {
 };
@@ -52,7 +56,20 @@ struct AmpAdamTestFloat : AdamTest<float, half_float::half, true>
 } // namespace adam
 using namespace adam;
 
-TEST_P(AdamTestFloat, AdamTestFw)
+TEST_P(AdamTestFloat, AdamFloatTestFw)
+{
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(AdamTestFloat16, AdamFloat16TestFw)
 {
     if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
     {
@@ -79,4 +96,5 @@ TEST_P(AmpAdamTestFloat, AmpAdamTestFw)
 };
 
 INSTANTIATE_TEST_SUITE_P(AdamTestSet, AdamTestFloat, testing::ValuesIn(AdamTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(AdamTestSet, AdamTestFloat16, testing::ValuesIn(AdamTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(AdamTestSet, AmpAdamTestFloat, testing::ValuesIn(AdamTestConfigs()));
