@@ -308,7 +308,7 @@ struct SolverContainer
                 {
                     ConvSolution s;
 
-                    if constexpr(solver::IsTubable(solver))
+                    if constexpr(solver::IsTunable(solver))
                     {
                         auto db = [&]() -> PerformanceDb& {
                             if(!db_container)

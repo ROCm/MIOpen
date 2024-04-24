@@ -267,7 +267,7 @@ struct TunableSolverMixin : TunableSolverBase<Context, Problem>
 };
 
 template <class Solver>
-constexpr auto IsTubable(const Solver&) -> bool
+constexpr auto IsTunable(const Solver&) -> bool
 {
     static_assert(!std::is_same_v<Solver, TunableSolverTrait>,
                   "Raw trait shouldn't be passed, explicit type is needed");
