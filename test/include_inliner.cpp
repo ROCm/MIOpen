@@ -37,24 +37,24 @@
 namespace miopen {
 namespace tests {
 
-static int Child(std::string_view cmd, const fs::path& path)
-{
-    return miopen::Process{cmd}("-source " + path);
-}
-
 class InlinerTest
 {
+    const TmpDir test_srcs{"test_include_inliner"};
+
+    int Child(const fs::path& exe, const fs::path& source) const
+    {
+        return test_srcs.Execute(exe.string(), "-source " + source);
+    }
+
 public:
     void Run(const fs::path& exe_path) const
     {
-        const TmpDir test_srcs{"test_include_inliner"};
-        const auto addkernels =
-            miopen::make_executable_name(exe_path.parent_path() / "addkernels").string();
+        const auto addkernels      = make_executable_name(exe_path.parent_path() / "addkernels");
         const auto header_filename = "header.h";
-        const auto asm_src         = test_srcs.path / "valid.s";
-        const auto valid_src       = test_srcs.path / "valid.cl";
-        const auto invalid_src     = test_srcs.path / "invalid.cl";
-        const auto header_src      = test_srcs.path / header_filename;
+        const auto asm_src         = test_srcs / "valid.s";
+        const auto valid_src       = test_srcs / "valid.cl";
+        const auto invalid_src     = test_srcs / "invalid.cl";
+        const auto header_src      = test_srcs / header_filename;
 
         // clang-format-off
         std::ofstream(valid_src.c_str()) << "#include <" << header_filename << ">\n"
