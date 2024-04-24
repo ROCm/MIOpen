@@ -55,7 +55,7 @@ static constexpr ck::index_t NumDimSpatial = 3;
 
 template <typename DataType>
 using DeviceOpGBwdWrw =
-    ck::tensor_operation::device::DeviceGroupedConvBwdWeightMultipleD<NDimSpatial,
+    ck::tensor_operation::device::DeviceGroupedConvBwdWeightMultipleD<NumDimSpatial,
                                                                       InLayout,
                                                                       WeiLayout,
                                                                       OutLayout,
@@ -64,9 +64,9 @@ using DeviceOpGBwdWrw =
                                                                       DataType,
                                                                       DataType,
                                                                       ck::Tuple<DataType>,
-                                                                      InElementOp,
-                                                                      WeiElementOp,
-                                                                      OutElementOp>;
+                                                                      PassThrough,
+                                                                      Bilinear,
+                                                                      PassThrough>;
 
 template <typename DataType>
 using DeviceOpGBwdWrwPtrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
@@ -166,10 +166,10 @@ struct CKArgs
                                              {wei_strides},
                                              filter_strides,
                                              filter_dilations,
-                                             input_left_pads,
-                                             input_right_pads,
+                                             lPadding,
+                                             rPadding,
                                              PassThrough{},
-                                             Bilinear{*static_cast<const float*>(alpha), *static_cast<const float*>(beta)}),
+                                             Bilinear{*static_cast<const float*>(alpha), *static_cast<const float*>(beta)},
                                              PassThrough{},
                                              split_k);
     }
@@ -205,14 +205,14 @@ struct CKArgs
     ConstData_t alpha;
     ConstData_t beta;
     ck::index_t split_k = 1;
-    std::array<ck::index_t, 6> input;
+    std::array<ck::index_t, 6> in_lengths;
     std::array<ck::index_t, 6> in_strides;
-    std::array<ck::index_t, 6> output;
+    std::array<ck::index_t, 6> out_lengths;
     std::array<ck::index_t, 6> out_strides;
-    std::array<ck::index_t, 6> weight;
+    std::array<ck::index_t, 6> wei_lengths;
     std::array<ck::index_t, 6> wei_strides;
-    std::array<ck::index_t, 3> strides;
-    std::array<ck::index_t, 3> dilation;
+    std::array<ck::index_t, 3> filter_strides;
+    std::array<ck::index_t, 3> filter_dilations;
     std::array<ck::index_t, 3> lPadding;
     std::array<ck::index_t, 3> rPadding;
 };
