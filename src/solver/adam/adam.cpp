@@ -43,8 +43,6 @@ bool Adam::IsApplicable([[maybe_unused]] const ExecutionContext& context,
 {
     if(!problem.IsAllPacked())
         return false;
-    if(problem.IsAdamW())
-        return false;
     return true;
 }
 
@@ -129,6 +127,7 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
                             params.eps,
                             params.amsgrad,
                             params.maximize,
+                            params.adamw,
                             numel);
 
                 if(handle_.IsProfilingEnabled())
@@ -175,6 +174,7 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
                            params.eps,
                            params.amsgrad,
                            params.maximize,
+                           params.adamw,
                            numel);
                 };
             };
@@ -204,6 +204,7 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
                            params.step,
                            params.amsgrad,
                            params.maximize,
+                           params.adamw,
                            numel);
                 };
             };
