@@ -316,7 +316,8 @@ struct SolverContainer
                             return *db_container;
                         };
 
-                        s = FindSolutionImpl(s, ctx, problem, db, invoke_params, "", std::nullopt);
+                        s = FindSolutionImpl(
+                            rank<1>{}, solver, ctx, problem, db, invoke_params, "", std::nullopt);
                     }
                     else
                     {
@@ -422,20 +423,20 @@ struct SolverContainer
     }
 
     template <class Problem>
-    void ExecutePrimitive(Handle& handle,
+    void ExecutePrimitive(const ExecutionContext& ctx,
                           const Problem& problem,
                           const AlgorithmName& algo,
                           const AnyInvokeParams& invoke_params) const
     {
         const auto network_config = problem.MakeNetworkConfig();
 
-        if(const auto existingInvoker = handle.GetInvoker(network_config, boost::none, algo))
+        if(const auto existingInvoker =
+               ctx.GetStream().GetInvoker(network_config, boost::none, algo))
         {
-            (*existingInvoker)(handle, invoke_params);
+            (*existingInvoker)(ctx.GetStream(), invoke_params);
             return;
         }
 
-        auto ctx        = ExecutionContext{&handle};
         const auto slns = SearchForSolutions(ctx, problem, 1, invoke_params);
 
         if(slns.empty())
@@ -444,9 +445,19 @@ struct SolverContainer
         const auto& sln = slns.front();
         if(!sln.invoker_factory)
             MIOPEN_THROW(miopenStatusInternalError, "Invoker missing in solver " + sln.solver_id);
-        const auto invoker = handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
-        handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo);
-        invoker(handle, invoke_params);
+        const auto invoker =
+            ctx.GetStream().PrepareInvoker(*sln.invoker_factory, sln.construction_params);
+        ctx.GetStream().RegisterInvoker(invoker, network_config, sln.solver_id, algo);
+        invoker(ctx.GetStream(), invoke_params);
+    }
+
+    template <class Problem>
+    void ExecutePrimitive(Handle& handle,
+                          const Problem& problem,
+                          const AlgorithmName& algo,
+                          const AnyInvokeParams& invoke_params) const
+    {
+        return ExecutePrimitive(&handle, problem, algo, invoke_params);
     }
 };
 

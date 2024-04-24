@@ -29,14 +29,16 @@
 
 #include <miopen/config.h>
 
-#include <miopen/conv_solution.hpp>
-#include <miopen/logger.hpp>
-#include <miopen/mlo_internal.hpp>
-#include <miopen/legacy_exhaustive_search.hpp>
-#include <miopen/type_name.hpp>
-#include <miopen/miopen.h>
 #include <miopen/buffer_info.hpp>
+#include <miopen/conv/problem_description.hpp>
+#include <miopen/conv_solution.hpp>
+#include <miopen/execution_context.hpp>
+#include <miopen/legacy_exhaustive_search.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/miopen.h>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/performance_config.hpp>
+#include <miopen/type_name.hpp>
 
 #include <boost/any.hpp>
 
@@ -221,6 +223,49 @@ struct TunableSolverBase : SolverMixin<Context, Problem>, TunableSolverTrait
     GetSolution(const Context& ctx, const Problem& problem, const PerfConfig& config) const = 0;
 };
 
+template <class Context, class Problem, class PerformanceConfig>
+struct TunableSolverMixin : TunableSolverBase<Context, Problem>
+{
+    static_assert(std::is_base_of<PerfConfig, PerformanceConfig>{},
+                  "PerformanceConfig must be derived of PerfConfig");
+
+    virtual PerformanceConfig GetDefaultPerformanceConfig(const Context&, const Problem&) const = 0;
+    virtual bool
+    IsValidPerformanceConfig(const Context&, const Problem&, const PerformanceConfig&) const = 0;
+    virtual PerformanceConfig
+    Search(const Context&, const Problem&, const AnyInvokeParams&) const = 0;
+    virtual ConvSolution
+    GetSolution(const Context&, const Problem&, const PerformanceConfig&) const = 0;
+
+    boost::any
+    GetDefaultPerformanceConfig(const Context& ctx, const Problem& problem, int) const final
+    {
+        return GetDefaultPerformanceConfig(ctx, problem);
+    }
+
+    bool IsValidPerformanceConfig(const Context& ctx,
+                                  const Problem& problem,
+                                  const PerfConfig& config) const final
+    {
+        return IsValidPerformanceConfig(
+            ctx, problem, dynamic_cast<const PerformanceConfig&>(config));
+    }
+
+    boost::any Search(const Context& ctx,
+                      const Problem& problem,
+                      const AnyInvokeParams& invoke_ctx,
+                      int) const final
+    {
+        return Search(ctx, problem, invoke_ctx);
+    }
+
+    ConvSolution
+    GetSolution(const Context& ctx, const Problem& problem, const PerfConfig& config) const final
+    {
+        return GetSolution(ctx, problem, dynamic_cast<const PerformanceConfig&>(config));
+    }
+};
+
 template <class Solver>
 constexpr auto IsTubable(const Solver&) -> bool
 {
@@ -239,57 +284,9 @@ namespace conv {
 using ConvSolver = NonTunableSolverBase<ExecutionContext, miopen::conv::ProblemDescription>;
 
 /// Typedef for convolution tunable solvers
-using ConvTunableSolverBase = TunableSolverBase<ExecutionContext, miopen::conv::ProblemDescription>;
-
 template <class PerformanceConfig>
-struct ConvTunableSolver : ConvTunableSolverBase
-{
-    static_assert(std::is_base_of<PerfConfig, PerformanceConfig>{},
-                  "PerformanceConfig must be derived of PerfConfig");
-
-    virtual PerformanceConfig
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const miopen::conv::ProblemDescription&) const = 0;
-    virtual bool IsValidPerformanceConfig(const ExecutionContext&,
-                                          const miopen::conv::ProblemDescription&,
-                                          const PerformanceConfig&) const      = 0;
-    virtual PerformanceConfig Search(const ExecutionContext&,
-                                     const miopen::conv::ProblemDescription&,
-                                     const AnyInvokeParams&) const             = 0;
-    virtual ConvSolution GetSolution(const ExecutionContext&,
-                                     const miopen::conv::ProblemDescription&,
-                                     const PerformanceConfig&) const           = 0;
-
-    boost::any GetDefaultPerformanceConfig(const ExecutionContext& ctx,
-                                           const miopen::conv::ProblemDescription& problem,
-                                           int) const final
-    {
-        return GetDefaultPerformanceConfig(ctx, problem);
-    }
-
-    bool IsValidPerformanceConfig(const ExecutionContext& ctx,
-                                  const miopen::conv::ProblemDescription& problem,
-                                  const PerfConfig& config) const final
-    {
-        return IsValidPerformanceConfig(
-            ctx, problem, dynamic_cast<const PerformanceConfig&>(config));
-    }
-
-    boost::any Search(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem,
-                      const AnyInvokeParams& invoke_ctx,
-                      int) const final
-    {
-        return Search(ctx, problem, invoke_ctx);
-    }
-
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem,
-                             const PerfConfig& config) const final
-    {
-        return GetSolution(ctx, problem, dynamic_cast<const PerformanceConfig&>(config));
-    }
-};
+using ConvTunableSolver =
+    TunableSolverMixin<ExecutionContext, miopen::conv::ProblemDescription, PerformanceConfig>;
 
 struct PerformanceConfigConvAsm3x3U : PerfConfigBase<PerformanceConfigConvAsm3x3U>
 {
