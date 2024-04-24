@@ -61,7 +61,7 @@ int32_t mloReduceExtremeForwardRunHost(miopenTensorDescriptor_t xDesc,
 
     int32_t reduce_size = static_cast<int32_t>(x_dims[dim]);
     auto indice_numel =
-        std::accumulate(indice_dims.begin(), indice_dims.end(), 1L, std::multiplies<int64_t>());
+        std::accumulate(indice_dims.begin(), indice_dims.end(), 1LL, std::multiplies<int64_t>());
 
     auto inner_size =
         std::accumulate(x_dims.begin() + dim + 1, x_dims.end(), 1ULL, std::multiplies<uint64_t>());
