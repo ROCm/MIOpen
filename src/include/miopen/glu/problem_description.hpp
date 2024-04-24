@@ -113,7 +113,7 @@ struct ProblemDescription : ProblemDescriptionBase
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(
                 miopenStatusBadParm,
-                "Reduce: is greater than 0 and less than or equal tensor dimension length.");
+                "GLU: Dimension is greater than 0 and less than or equal tensor dimension length.");
 #else
             return false;
 #endif
@@ -126,7 +126,20 @@ struct ProblemDescription : ProblemDescriptionBase
         if(!(inputDesc.IsPacked() && outputDesc.IsPacked()))
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm, "Reduce: Unpacked tensors not supported.");
+            MIOPEN_THROW(miopenStatusBadParm, "GLU: Unpacked tensors not supported.");
+#else
+            return false;
+#endif
+        }
+        return true;
+    }
+
+    bool IsFirstDim() const
+    {
+        if(dim != 0)
+        {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+            MIOPEN_THROW(miopenStatusBadParm, "GLU: Dimension is not 0.");
 #else
             return false;
 #endif

@@ -44,13 +44,13 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
                                         outputlength.end(),
                                         static_cast<size_t>(1),
                                         std::multiplies<size_t>());
-    auto dtype         = inputDesc.GetType();
+
     auto input_dtype   = miopen::GetDataType(inputDesc.GetType());
     auto output_dtype  = miopen::GetDataType(outputDesc.GetType());
 
     std::ostringstream ss;
 
-    ss << "dtype" << dtype;
+    ss << "contiguous";
     ss << "input_dtype" << input_dtype;
     ss << "output_dtype" << output_dtype;
     ss << "dim" << dim;

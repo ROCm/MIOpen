@@ -52,40 +52,24 @@ T sigmoid(T x)
 }
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloGLUForwardRunHost(miopenTensorDescriptor_t inputDesc,
+int32_t mloGLUForwardContiguousRunHost(miopenTensorDescriptor_t inputDesc,
                              Tgpu* input,
                              miopenTensorDescriptor_t outputDesc,
-                             Tcheck* outputHost,
-                             int32_t dim)
+                             Tcheck* outputHost)
 {
-    auto input_dims  = miopen::deref(inputDesc).GetLengths();
     auto output_dims = miopen::deref(outputDesc).GetLengths();
 
-    auto splitDim_size   = input_dims[dim];
-    auto splitedDim_size = output_dims[dim];
     auto output_numel =
         std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
-
-    auto inner_size = 1ULL;
-    for(int32_t i = dim + 1; i < input_dims.size(); i++)
-    {
-        inner_size *= input_dims[i];
-    }
+    auto inputFirstHalf = input;
+    auto inputSecondHalf = input + output_numel;
 
     int32_t ret = 0;
 
     for(size_t o = 0; o < output_numel; o++)
     {
-        size_t innerIdx       = o % inner_size;
-        size_t splittedDimIdx = ((o - innerIdx) / inner_size) % splitedDim_size;
-        size_t outerIdx =
-            (o - innerIdx - splittedDimIdx * inner_size) / (inner_size * splitedDim_size);
-        size_t inputIdx1 =
-            outerIdx * splitDim_size * inner_size + splittedDimIdx * inner_size + innerIdx;
-        size_t inputIdx2 = outerIdx * splitDim_size * inner_size +
-                           (splittedDimIdx + splitedDim_size) * inner_size + innerIdx;
-        Tcheck valA   = static_cast<Tcheck>(input[inputIdx1]);
-        Tcheck valB   = static_cast<Tcheck>(input[inputIdx2]);
+        Tcheck valA   = static_cast<Tcheck>(inputFirstHalf[o]);
+        Tcheck valB   = static_cast<Tcheck>(inputSecondHalf[o]);
         Tcheck val    = valA * sigmoid(valB);
         outputHost[o] = val;
     }
@@ -321,7 +305,7 @@ int GLUDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int GLUDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloGLUForwardRunHost<Tgpu, Tref>(inputTensor, in.data(), outputTensor, outhost.data(), dim);
+    mloGLUForwardContiguousRunHost<Tgpu, Tref>(inputTensor, in.data(), outputTensor, outhost.data());
 
     return miopenStatusSuccess;
 }

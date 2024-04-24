@@ -37,7 +37,7 @@ T sigmoid(T x)
 template <class T>
 void cpu_glu_forward(tensor<T> input, tensor<T>& ref_output, int dim)
 {
-    auto input_dims = input.desc.GetLengths();
+    auto input_dims  = input.desc.GetLengths();
     auto output_dims = ref_output.desc.GetLengths();
 
     auto splitDim_size   = input_dims[dim];

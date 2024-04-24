@@ -35,37 +35,24 @@ __device__ FLOAT_ACCUM sigmoid(FLOAT_ACCUM x) { return 1.0f / (1.0f + exp(-x)); 
 template <typename TI, typename TO>
 __device__ void GLUFwdCOntiguousKernel(const TI* __restrict__ input,
                                        TO* __restrict__ output,
-                                       long N,
-                                       size_t inner_size,
-                                       size_t splitedDim_size,
-                                       size_t splitDim_size)
+                                       long N)
 {
+    const TI* inputFirstHalf = input;
+    const TI* inputSecondHalf = input + N;
     const size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
     if(gid >= N)
         return;
 
-    size_t innerIdx       = gid % inner_size;
-    size_t splittedDimIdx = ((gid - innerIdx) / inner_size) % splitedDim_size;
-    size_t outerIdx =
-        (gid - innerIdx - splittedDimIdx * inner_size) / (inner_size * splitedDim_size);
-    size_t inputIdx1 =
-        outerIdx * splitDim_size * inner_size + splittedDimIdx * inner_size + innerIdx;
-    size_t inputIdx2 = outerIdx * splitDim_size * inner_size +
-                       (splittedDimIdx + splitedDim_size) * inner_size + innerIdx;
-
-    FLOAT_ACCUM val1 = CVT_FLOAT2ACCUM(input[inputIdx1]);
-    FLOAT_ACCUM val2 = sigmoid(CVT_FLOAT2ACCUM(input[inputIdx2]));
+    FLOAT_ACCUM val1 = CVT_FLOAT2ACCUM(inputFirstHalf[gid]);
+    FLOAT_ACCUM val2 = sigmoid(CVT_FLOAT2ACCUM(inputSecondHalf[gid]));
     FLOAT_ACCUM val  = val1 * val2;
     output[gid]      = CVT_ACCUM2FLOAT(val);
 }
 
 extern "C" __global__ void GLUFwdContiguous(const INPUT_TYPE* __restrict__ input,
                                             OUTPUT_TYPE* __restrict__ output,
-                                            long N,
-                                            size_t inner_size,
-                                            size_t splitedDim_size,
-                                            size_t splitDim_size)
+                                            long N)
 {
     GLUFwdCOntiguousKernel<INPUT_TYPE, OUTPUT_TYPE>(
-        input, output, N, inner_size, splitedDim_size, splitDim_size);
+        input, output, N);
 }

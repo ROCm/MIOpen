@@ -84,17 +84,10 @@ std::vector<GLUTestCase> GLUTestConfigs()
     // clang-format off
     return {
         { 8,    120,  0,  0,   1,     0},  //bart
-        { 8,    120,  0,  0,   1,     0},
         { 8,    1023, 0,  0,   1,     0},  //gpt_neo
         { 8,    1024, 0,  0,   768,   0},
-        { 8,    1023, 0,  0,   1,     0},
-        { 8,    1024, 0,  0,   768,   0},
         { 16,   1024, 0,  0,   768,   0},  //gpt2
-        { 16,   1024, 0,  0,   768,   0},
         { 48,   8,    0,  512, 512,   0},  //t5
-        { 48,   8,    0,  512, 512,   0},
-        { 16, 311,    0,  98,  512,   2},  //rnnt
-        { 16, 311,    0,  98,  512,   2}
       };
     // clang-format on
 }
@@ -136,8 +129,8 @@ protected:
         ref_output = tensor<T>{out_dims};
         std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<T>::quiet_NaN());
 
-        input_dev           = handle.Write(input.data);
-        output_dev          = handle.Write(output.data);
+        input_dev  = handle.Write(input.data);
+        output_dev = handle.Write(output.data);
     }
 
     void RunTest()
@@ -147,12 +140,8 @@ protected:
         cpu_glu_forward<T>(input, ref_output, dim);
         miopenStatus_t status;
 
-        status = miopen::GLUForward(handle,
-                                    input.desc,
-                                    input_dev.get(),
-                                    dim,
-                                    output.desc,
-                                    output_dev.get());
+        status = miopen::GLUForward(
+            handle, input.desc, input_dev.get(), dim, output.desc, output_dev.get());
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
