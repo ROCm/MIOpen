@@ -618,7 +618,7 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     int nseq              = inflags.GetValueInt("seq_len");
     std::vector<int> in_n = GetInputTensorLengthsFromCmdLine();
     std::size_t inputBatchLenSum;
-    inputBatchLenSum = std::accumulate(in_n.begin(), in_n.begin() + nseq, 0);
+    inputBatchLenSum = std::accumulate(in_n.begin(), in_n.begin() + nseq, 0ULL);
 
     int hid_h = inflags.GetValueInt("hid_h");
     int layer = inflags.GetValueInt("num_layer");
