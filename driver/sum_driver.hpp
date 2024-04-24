@@ -58,7 +58,7 @@ int32_t mloSumForwardRunHost(miopenTensorDescriptor_t inputDesc,
 
     auto reduce_size = input_dims[dim];
     auto output_numel =
-        std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
+        std::accumulate(output_dims.begin(), output_dims.end(), 1LL, std::multiplies<int64_t>());
 
     auto inner_size = 1ULL;
     for(int32_t i = dim + 1; i < input_dims.size(); i++)
