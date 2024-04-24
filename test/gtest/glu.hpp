@@ -137,7 +137,7 @@ protected:
     {
         auto&& handle = get_handle();
 
-        cpu_glu_forward<T>(input, ref_output, dim);
+        cpu_glu_forward<T>(input, ref_output);
         miopenStatus_t status;
 
         status = miopen::GLUForward(

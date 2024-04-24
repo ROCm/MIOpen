@@ -45,8 +45,8 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
                                         static_cast<size_t>(1),
                                         std::multiplies<size_t>());
 
-    auto input_dtype   = miopen::GetDataType(inputDesc.GetType());
-    auto output_dtype  = miopen::GetDataType(outputDesc.GetType());
+    auto input_dtype  = miopen::GetDataType(inputDesc.GetType());
+    auto output_dtype = miopen::GetDataType(outputDesc.GetType());
 
     std::ostringstream ss;
 

@@ -33,13 +33,12 @@
 __device__ FLOAT_ACCUM sigmoid(FLOAT_ACCUM x) { return 1.0f / (1.0f + exp(-x)); }
 
 template <typename TI, typename TO>
-__device__ void GLUFwdCOntiguousKernel(const TI* __restrict__ input,
-                                       TO* __restrict__ output,
-                                       long N)
+__device__ void
+GLUFwdContiguousKernel(const TI* __restrict__ input, TO* __restrict__ output, long N)
 {
-    const TI* inputFirstHalf = input;
+    const TI* inputFirstHalf  = input;
     const TI* inputSecondHalf = input + N;
-    const size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    const size_t gid          = blockIdx.x * blockDim.x + threadIdx.x;
     if(gid >= N)
         return;
 
@@ -49,10 +48,8 @@ __device__ void GLUFwdCOntiguousKernel(const TI* __restrict__ input,
     output[gid]      = CVT_ACCUM2FLOAT(val);
 }
 
-extern "C" __global__ void GLUFwdContiguous(const INPUT_TYPE* __restrict__ input,
-                                            OUTPUT_TYPE* __restrict__ output,
-                                            long N)
+extern "C" __global__ void
+GLUFwdContiguous(const INPUT_TYPE* __restrict__ input, OUTPUT_TYPE* __restrict__ output, long N)
 {
-    GLUFwdCOntiguousKernel<INPUT_TYPE, OUTPUT_TYPE>(
-        input, output, N);
+    GLUFwdContiguousKernel<INPUT_TYPE, OUTPUT_TYPE>(input, output, N);
 }

@@ -35,33 +35,16 @@ T sigmoid(T x)
 }
 
 template <class T>
-void cpu_glu_forward(tensor<T> input, tensor<T>& ref_output, int dim)
+void cpu_glu_forward(tensor<T> input, tensor<T>& ref_output)
 {
-    auto input_dims  = input.desc.GetLengths();
     auto output_dims = ref_output.desc.GetLengths();
 
-    auto splitDim_size   = input_dims[dim];
-    auto splitedDim_size = output_dims[dim];
     auto output_numel =
         std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
 
-    auto inner_size = 1ULL;
-    for(int32_t i = dim + 1; i < input_dims.size(); i++)
-    {
-        inner_size *= input_dims[i];
-    }
-
     par_ford(output_numel)([&](size_t o) {
-        size_t innerIdx       = o % inner_size;
-        size_t splittedDimIdx = ((o - innerIdx) / inner_size) % splitedDim_size;
-        size_t outerIdx =
-            (o - innerIdx - splittedDimIdx * inner_size) / (inner_size * splitedDim_size);
-        size_t inputIdx1 =
-            outerIdx * splitDim_size * inner_size + splittedDimIdx * inner_size + innerIdx;
-        size_t inputIdx2 = outerIdx * splitDim_size * inner_size +
-                           (splittedDimIdx + splitedDim_size) * inner_size + innerIdx;
-        T valA        = input[inputIdx1];
-        T valB        = input[inputIdx2];
+        T valA        = input[o];
+        T valB        = input[o + output_numel];
         T val         = valA * sigmoid(valB);
         ref_output[o] = val;
     });

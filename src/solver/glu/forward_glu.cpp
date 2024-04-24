@@ -115,10 +115,8 @@ ConvSolution GLUForward::GetSolution(const ExecutionContext& context,
             auto outputDims       = params.outputDesc->GetLengths();
             auto output_numel     = std::accumulate(
                 outputDims.begin(), outputDims.end(), 1ULL, std::multiplies<size_t>());
-        
-            kernel(params.input,
-                   params.output,
-                   output_numel);
+
+            kernel(params.input, params.output, output_numel);
         };
     };
 

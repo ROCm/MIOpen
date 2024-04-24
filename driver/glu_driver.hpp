@@ -53,15 +53,15 @@ T sigmoid(T x)
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloGLUForwardContiguousRunHost(miopenTensorDescriptor_t inputDesc,
-                             Tgpu* input,
-                             miopenTensorDescriptor_t outputDesc,
-                             Tcheck* outputHost)
+                                       Tgpu* input,
+                                       miopenTensorDescriptor_t outputDesc,
+                                       Tcheck* outputHost)
 {
     auto output_dims = miopen::deref(outputDesc).GetLengths();
 
     auto output_numel =
         std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
-    auto inputFirstHalf = input;
+    auto inputFirstHalf  = input;
     auto inputSecondHalf = input + output_numel;
 
     int32_t ret = 0;
@@ -305,7 +305,8 @@ int GLUDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int GLUDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloGLUForwardContiguousRunHost<Tgpu, Tref>(inputTensor, in.data(), outputTensor, outhost.data());
+    mloGLUForwardContiguousRunHost<Tgpu, Tref>(
+        inputTensor, in.data(), outputTensor, outhost.data());
 
     return miopenStatusSuccess;
 }
