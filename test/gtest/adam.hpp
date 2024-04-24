@@ -85,6 +85,8 @@ std::vector<AdamTestCase> AdamTestConfigs()
         {{256,512,3,3}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, false, false}};
     // clang-format on
     std::vector<AdamTestCase> result;
+    result.reserve(base_shape.size() * 8);
+
     for(auto& item : base_shape)
     {
         for(int i = 0; i <= 1; ++i)
