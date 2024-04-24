@@ -127,6 +127,17 @@ struct ProblemDescription : ProblemDescriptionBase
         return true;
     }
 
+    bool IsValidInputNumel() const
+    {
+        auto xdims = xDesc.GetLengths();
+        auto input_numel =
+            std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
+        if(numel > INT32_MAX)
+            MIOPEN_THROW(miopenStatusBadParm, "Reduce: input numel is bigger than INT_MAX.");
+
+        return true;
+    }
+
     bool IsSameType() const
     {
         if(xDesc.GetType() != yDesc.GetType())

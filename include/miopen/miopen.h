@@ -5851,7 +5851,8 @@ typedef enum
  * @param reduceExtremeOp          Enumerant specifying the operation used by ReduceExtreme (input)
  * @param yDesc                    Tensor descriptor for reduce data tensor y (input)
  * @param y                        Data tensor y (output)
- * @param indiceDesc               Tensor descriptor for reduce data tensor indice (input)
+ * @param indiceDesc               Tensor descriptor for reduce data tensor indice only int32_t
+ * (input)
  * @param indice                   Data tensor indice (output)
  * @return                         miopenStatus_t
  */

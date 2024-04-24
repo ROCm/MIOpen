@@ -62,6 +62,8 @@ bool ArgmaxForward::IsApplicable(const ExecutionContext& context,
         return false;
     if(!problem.IsValidLengthIndice())
         return false;
+    if(!problem.IsValidInputNumel())
+        return false;
     if(!problem.IsAllPackedIndice())
         return false;
     if(!problem.IsNotLastDim())
