@@ -27,12 +27,12 @@
 #ifndef MIOPEN_GUARD_MLOPEN_FIND_SOLUTION_HPP
 #define MIOPEN_GUARD_MLOPEN_FIND_SOLUTION_HPP
 
-#include "miopen/mlo_internal.hpp"
 #include <miopen/env.hpp>
 #include <miopen/conv_solution.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/find_controls.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/search_options.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/solver.hpp>
@@ -59,7 +59,7 @@ auto FindSolutionImpl(rank<1>,
                       const std::optional<FindOptions>& options)
     -> decltype(s.GetSolution(context, problem, s.Search(context, problem, invoke_ctx)))
 {
-    static_assert(std::is_invocable_v<Db>,
+    static_assert(std::is_invocable_r_v<PerformanceDb&, Db>,
                   "db is meant to be a functor returning a reference to perfdb");
 
     const FindEnforce enforce =
