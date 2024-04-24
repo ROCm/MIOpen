@@ -251,7 +251,7 @@ template <typename Tgpu, typename Tref>
 int CTCDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
     size_t probs_sz  = batch_size * (num_class + 1) * max_time_step;
-    size_t labels_sz = std::accumulate(labelLengths.begin(), labelLengths.end(), 0);
+    size_t labels_sz = std::accumulate(labelLengths.begin(), labelLengths.end(), 0ULL);
     size_t workSpaceSize;
     size_t workSpaceSizeCPU;
 

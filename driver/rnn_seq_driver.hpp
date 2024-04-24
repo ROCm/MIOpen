@@ -766,7 +766,7 @@ inline size_t Get3DNoVECTensorSize(miopenTensorDescriptor_t& tensor)
     assert(miopen::deref(tensor).IsPacked() &&
            "GetTensorSize should not be used on an unpacked tensor.");
     const auto len = GetTensorLengths(tensor);
-    size_t sz      = std::accumulate(len.begin(), len.end(), 1, std::multiplies<size_t>());
+    size_t sz      = std::accumulate(len.begin(), len.end(), 1ULL, std::multiplies<size_t>());
     return sz;
 }
 
@@ -827,7 +827,7 @@ int RNNSeqDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     const std::vector<int> out_lens = GetOutputTensorLengthsFromCmdLine();
 
     const size_t vectors_cnt_host =
-        std::accumulate(sorted_seq_lens.begin(), sorted_seq_lens.end(), 0);
+        std::accumulate(sorted_seq_lens.begin(), sorted_seq_lens.end(), 0ULL);
     const size_t vectors_cnt_gpu =
         io_layout == miopenRNNDataSeqMajorNotPadded ? vectors_cnt_host : in_lens[0] * in_lens[1];
 
