@@ -59,7 +59,7 @@ auto FindSolutionImpl(rank<1>,
                       const std::optional<FindOptions>& options)
     -> decltype(s.GetSolution(context, problem, s.Search(context, problem, invoke_ctx)))
 {
-    static_assert(std::is_invocable_r_v<PerformanceDb&, Db>,
+    static_assert(std::is_invocable_v<Db>,
                   "db is meant to be a functor returning a reference to perfdb");
 
     const FindEnforce enforce =
@@ -178,14 +178,7 @@ ConvSolution FindSolution(Solver s,
     static_assert(std::is_base_of<SolverBase, Solver>{}, "Not derived class of SolverBase");
     // TODO: This assumes all solutions are ConvSolution
     auto solution = FindSolutionImpl(
-        rank<1>{},
-        s,
-        context,
-        problem,
-        [&]() -> PerformanceDb& { return db; },
-        invoke_ctx,
-        perf_cfg,
-        options);
+        rank<1>{}, s, context, problem, [&]() -> Db& { return db; }, invoke_ctx, perf_cfg, options);
     solution.solver_id = s.SolverDbId();
     return solution;
 }
