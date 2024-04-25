@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include "../driver/tensor_driver.hpp"
+#include "../src/kernels/MIOpenReduceExtreme.hpp"
 #include "get_handle.hpp"
 #include "random.hpp"
 #include "tensor_holder.hpp"
@@ -33,71 +34,11 @@
 #include <miopen/reduceextreme.hpp>
 #include <miopen/miopen.h>
 
-enum class ReduceExtremeOp_t
+template <typename T>
+bool compare_equal(T r1, T r2)
 {
-    Argmin = 1,
-    Argmax = 2,
-    Min    = 3,
-    Max    = 4,
-};
-
-template <typename T1, typename T2, ReduceExtremeOp_t op>
-struct reduce_func
-{
-    inline constexpr void calculate(T1& a, T1 b, T2& c, T2 d) const;
-};
-
-template <typename T1, typename T2>
-struct reduce_func<T1, T2, ReduceExtremeOp_t::Max>
-{
-    inline constexpr void calculate(T1& a, T1 b, T2& c, T2 d) const
-    {
-        if(a < b)
-        {
-            a = b;
-            c = d;
-        }
-    }
-};
-
-template <typename T1, typename T2>
-struct reduce_func<T1, T2, ReduceExtremeOp_t::Min>
-{
-    inline constexpr void calculate(T1& a, T1 b, T2& c, T2 d) const
-    {
-        if(a > b)
-        {
-            a = b;
-            c = d;
-        }
-    }
-};
-
-template <typename T1, typename T2>
-struct reduce_func<T1, T2, ReduceExtremeOp_t::Argmax>
-{
-    inline constexpr void calculate(T1& a, T1 b, T2& c, T2 d) const
-    {
-        if(a < b)
-        {
-            a = b;
-            c = d;
-        }
-    }
-};
-
-template <typename T1, typename T2>
-struct reduce_func<T1, T2, ReduceExtremeOp_t::Argmin>
-{
-    inline constexpr void calculate(T1& a, T1 b, T2& c, T2 d) const
-    {
-        if(a > b)
-        {
-            a = b;
-            c = d;
-        }
-    }
-};
+    return r1 == r2;
+}
 
 template <typename T, ReduceExtremeOp_t op>
 void cpu_extreme_forward(tensor<T> input,
@@ -361,11 +302,11 @@ protected:
                 << "Error output beyond tolerance Error:" << error;
         }
 
-        auto indice_error = miopen::rms_range(ref_indice, indice);
+        auto error_idx = miopen::mismatch_idx(ref_indice, indice, compare_equal<int32_t>);
 
         EXPECT_TRUE(miopen::range_distance(ref_indice) == miopen::range_distance(indice));
-        EXPECT_TRUE(std::abs(static_cast<float>(indice_error)) == 0.0f)
-            << "Error indice beyond tolerance Error:" << indice_error;
+        EXPECT_TRUE(error_idx >= miopen::range_distance(ref_indice))
+            << "Error Indice does not equal at " << error_idx << std::endl;
     }
     ReduceExtremeTestCase reduceextreme_config;
 

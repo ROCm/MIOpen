@@ -43,6 +43,12 @@
 #include <../test/verify.hpp>
 #include "../src/kernels/MIOpenReduceExtreme.hpp"
 
+template <typename T>
+bool compare_equal(T r1, T r2)
+{
+    return r1 == r2;
+}
+
 template <typename Tgpu, typename Tcheck, ReduceExtremeOp_t op>
 int32_t mloReduceExtremeForwardRunHost(miopenTensorDescriptor_t xDesc,
                                        miopenTensorDescriptor_t yDesc,
@@ -430,7 +436,7 @@ int ReduceExtremeDriver<Tgpu, Tref>::VerifyForward()
                       << ')' << std::endl;
         }
     }
-    auto error_idx = miopen::mismatch_idx(indicehost, indice);
+    auto error_idx = miopen::mismatch_idx(indicehost, indice, compare_equal<int32_t>);
 
     if(error_idx < miopen::range_distance(indicehost))
     {
