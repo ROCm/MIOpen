@@ -303,8 +303,12 @@ struct SolverContainer
                     if constexpr(solver::IsTunable(solver))
                     {
                         auto db = [&]() -> PerformanceDb& {
-                            if(!db_container)
-                                db_container.emplace(std::move(miopen::GetDb(ctx, problem)));
+                            // without this if CI fails to compile for some reason
+                            if constexpr(solver::IsTunable(solver))
+                            {
+                                if(!db_container)
+                                    db_container.emplace(std::move(miopen::GetDb(ctx, problem)));
+                            }
                             return *db_container;
                         };
 
