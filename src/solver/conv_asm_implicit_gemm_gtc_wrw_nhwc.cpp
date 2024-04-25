@@ -865,11 +865,23 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
         return false;
 #endif
 
-#if WORKAROUND_ISSUE_2496
-    if(problem.GetInChannels_() == 3 && problem.GetOutChannels_() == 1 &&
-       problem.GetInHeight_() == 3 && problem.GetInWidth_() == 3 &&
-       problem.GetWeightsHeight_() == 1 && problem.GetWeightsWidth_() == 1)
-        return false;
+#if WORKAROUND_ISSUE_2867
+    {
+        const int hi        = problem.GetOutHeight();
+        const int wi        = problem.GetOutWidth();
+        const int k         = problem.GetInChannels();
+        const int c         = problem.GetOutChannels();
+        const int y         = problem.GetWeightsHeight();
+        const int x         = problem.GetWeightsWidth();
+        const auto stride_h = problem.GetKernelStrideH();
+        const auto stride_w = problem.GetKernelStrideW();
+        const auto pad_h    = problem.GetPadH();
+        const auto pad_w    = problem.GetPadW();
+
+        if(c == 1 && k == 1 && hi == 1 && wi == 1 && y == 3 && x == 3 && pad_h == 2 && pad_w == 2 &&
+           stride_h == 2 && stride_w == 2)
+            return false;
+    }
 #endif
 
     const auto device_name = ctx.GetStream().GetDeviceName();
