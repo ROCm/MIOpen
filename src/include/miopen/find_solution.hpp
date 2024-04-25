@@ -175,8 +175,7 @@ ConvSolution FindSolution(Solver s,
                           const std::optional<FindOptions>& options = std::nullopt)
 {
     static_assert(sizeof(Solver) == sizeof(SolverBase), "Solver must be stateless");
-    static_assert(std::is_base_of<SolverBase, Solver>{} && !std::is_same_v<SolverBase, Solver>,
-                  "Not derived class of SolverBase");
+    static_assert(std::is_base_of<SolverBase, Solver>{}, "Not derived class of SolverBase");
     // TODO: This assumes all solutions are ConvSolution
     auto solution = FindSolutionImpl(
         rank<1>{},
