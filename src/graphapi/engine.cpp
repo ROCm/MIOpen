@@ -26,6 +26,7 @@
 
 #include <miopen/errors.hpp>
 #include <miopen/graphapi/engine.hpp>
+#include <miopen/graphapi/opgraph.hpp>
 
 namespace miopen {
 

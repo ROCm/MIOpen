@@ -206,8 +206,6 @@ protected:
 using Path       = std::vector<const OpNode*>;
 using VecOfPaths = std::vector<Path>;
 
-class Engine;
-
 class OpGraph
 {
     // NOTE: mSrcNode and mSinkNode need to reside on the heap because the graph may move

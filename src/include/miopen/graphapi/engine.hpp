@@ -27,7 +27,6 @@
 #pragma once
 
 #include <miopen/graphapi/graphapi.hpp>
-#include <miopen/graphapi/opgraph.hpp>
 #include <miopen/solution.hpp>
 
 namespace miopen {
