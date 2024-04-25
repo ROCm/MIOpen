@@ -368,7 +368,11 @@ extern "C" __global__ void AdamUpdateStep(bool* found_inf, int* step_in, int* st
         return;
 
     if(found_inf && *found_inf)
+    {
+        if(step_in != step_out)
+            *step_out = *step_in;
         return;
+    }
 
     *step_out = *step_in + 1;
 }
