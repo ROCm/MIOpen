@@ -174,7 +174,7 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
            "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm[fp16], ctc, dropout[fp16], "
            "tensorop[fp16], reduce[fp16|fp64], layernorm[bfp16|fp16], sum[bfp16|fp16], "
            "argmax[bfp16|fp16], groupnorm[bfp16|fp16], cat[bfp16|fp16], addlayernorm[bfp16|fp16], "
-           "t5layernorm[bfp16|fp16], adam[fp16], ampadam\n");
+           "t5layernorm[bfp16|fp16], adam[fp16], ampadam, adamw[fp16], ampamdw\n");
     exit(0); // NOLINT (concurrency-mt-unsafe)
 }
 
@@ -202,7 +202,8 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "catfp16" && arg != "catbfp16" && arg != "addlayernorm" &&
        arg != "addlayernormfp16" && arg != "addlayernormbfp16" && arg != "t5layernorm" &&
        arg != "t5layernormfp16" && arg != "t5layernormbfp16" && arg != "adam" &&
-       arg != "adamfp16" && arg != "ampadam" && arg != "--version")
+       arg != "adamfp16" && arg != "ampadam" && arg != "adamw" && arg != "adamwfp16" &&
+       arg != "ampadamw" && arg != "--version")
     {
         printf("FAILED: Invalid Base Input Argument\n");
         Usage();

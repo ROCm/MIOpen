@@ -62,6 +62,7 @@ void mloAdamRunHost(miopenTensorDescriptor_t paramDesc,
                     float eps,
                     bool amsgrad,
                     bool maximize,
+                    bool adamw,
                     bool is_amp,
                     int32_t grad_scale,
                     bool found_inf)
@@ -86,7 +87,12 @@ void mloAdamRunHost(miopenTensorDescriptor_t paramDesc,
         float bias_correction2 = 1 - pow(beta2, step);
 
         if(weight_decay != 0)
-            grad += param * weight_decay;
+        {
+            if(adamw)
+                param -= lr * weight_decay * param;
+            else
+                grad += param * weight_decay;
+        }
 
         exp_avg    = exp_avg * beta1 + grad * (1 - beta1);
         exp_avg_sq = exp_avg_sq * beta2 + grad * grad * (1 - beta2);
@@ -114,7 +120,11 @@ void mloAdamRunHost(miopenTensorDescriptor_t paramDesc,
 
 #endif
 
-template <typename Tgpu, typename Tref = Tgpu, bool is_amp = false, typename Tgrad = Tgpu>
+template <typename Tgpu,
+          typename Tref  = Tgpu,
+          bool adamw     = false,
+          bool is_amp    = false,
+          typename Tgrad = Tgpu>
 class AdamDriver : public Driver
 {
 public:
@@ -225,8 +235,8 @@ private:
     miopenDataType_t grad_type;
 };
 
-template <typename Tgpu, typename Tref, bool is_amp, typename Tgrad>
-int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::ParseCmdLineArgs(int argc, char* argv[])
+template <typename Tgpu, typename Tref, bool adamw, bool is_amp, typename Tgrad>
+int AdamDriver<Tgpu, Tref, adamw, is_amp, Tgrad>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
@@ -237,8 +247,8 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::ParseCmdLineArgs(int argc, char* argv
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, bool is_amp, typename Tgrad>
-int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::GetandSetData()
+template <typename Tgpu, typename Tref, bool adamw, bool is_amp, typename Tgrad>
+int AdamDriver<Tgpu, Tref, adamw, is_amp, Tgrad>::GetandSetData()
 {
     auto param_len = GetInputTensorLengthsFromCmdLine();
     lr             = inflags.GetValueDouble("lr");
@@ -280,8 +290,8 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::GetandSetData()
     return 0;
 }
 
-template <typename Tgpu, typename Tref, bool is_amp, typename Tgrad>
-int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::AddCmdLineArgs()
+template <typename Tgpu, typename Tref, bool adamw, bool is_amp, typename Tgrad>
+int AdamDriver<Tgpu, Tref, adamw, is_amp, Tgrad>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward GroupNorm (Default=1)", "int");
     inflags.AddTensorFlag("dims", 'd', "64x32x128", "params tensor dims (Default=64x32x128)");
@@ -309,8 +319,8 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::AddCmdLineArgs()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, bool is_amp, typename Tgrad>
-std::vector<int> AdamDriver<Tgpu, Tref, is_amp, Tgrad>::GetInputTensorLengthsFromCmdLine()
+template <typename Tgpu, typename Tref, bool adamw, bool is_amp, typename Tgrad>
+std::vector<int> AdamDriver<Tgpu, Tref, adamw, is_amp, Tgrad>::GetInputTensorLengthsFromCmdLine()
 {
     std::vector<int> ret;
     auto tensor = inflags.GetValueTensor("dims");
@@ -319,8 +329,8 @@ std::vector<int> AdamDriver<Tgpu, Tref, is_amp, Tgrad>::GetInputTensorLengthsFro
     return ret;
 }
 
-template <typename Tgpu, typename Tref, bool is_amp, typename Tgrad>
-int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::AllocateBuffersAndCopy()
+template <typename Tgpu, typename Tref, bool adamw, bool is_amp, typename Tgrad>
+int AdamDriver<Tgpu, Tref, adamw, is_amp, Tgrad>::AllocateBuffersAndCopy()
 {
     size_t param_sz = GetTensorSize(paramDesc);
 
@@ -425,8 +435,8 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::AllocateBuffersAndCopy()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, bool is_amp, typename Tgrad>
-int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::RunForwardGPU()
+template <typename Tgpu, typename Tref, bool adamw, bool is_amp, typename Tgrad>
+int AdamDriver<Tgpu, Tref, adamw, is_amp, Tgrad>::RunForwardGPU()
 {
     float kernel_total_time = 0;
     float kernel_first_time = 0;
@@ -474,7 +484,7 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::RunForwardGPU()
                                   eps,
                                   amsgrad,
                                   maximize,
-                                  false, // adamw
+                                  adamw,
                                   gradScaleDesc,
                                   grad_scale_ptr,
                                   foundInfDesc,
@@ -505,8 +515,8 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::RunForwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, bool is_amp, typename Tgrad>
-int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::RunForwardCPU()
+template <typename Tgpu, typename Tref, bool adamw, bool is_amp, typename Tgrad>
+int AdamDriver<Tgpu, Tref, adamw, is_amp, Tgrad>::RunForwardCPU()
 {
     mloAdamRunHost<Tref>(paramDesc,
                          param_host.data(),
@@ -522,6 +532,7 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::RunForwardCPU()
                          eps,
                          amsgrad,
                          maximize,
+                         adamw,
                          is_amp,
                          grad_scale,
                          found_inf);
@@ -529,14 +540,14 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::RunForwardCPU()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, bool is_amp, typename Tgrad>
-int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::RunBackwardGPU()
+template <typename Tgpu, typename Tref, bool adamw, bool is_amp, typename Tgrad>
+int AdamDriver<Tgpu, Tref, adamw, is_amp, Tgrad>::RunBackwardGPU()
 {
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, bool is_amp, typename Tgrad>
-Tref AdamDriver<Tgpu, Tref, is_amp, Tgrad>::GetTolerance()
+template <typename Tgpu, typename Tref, bool adamw, bool is_amp, typename Tgrad>
+Tref AdamDriver<Tgpu, Tref, adamw, is_amp, Tgrad>::GetTolerance()
 {
     if(data_type == miopenHalf)
     {
@@ -557,8 +568,8 @@ Tref AdamDriver<Tgpu, Tref, is_amp, Tgrad>::GetTolerance()
     return 0;
 }
 
-template <typename Tgpu, typename Tref, bool is_amp, typename Tgrad>
-int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::VerifyForward()
+template <typename Tgpu, typename Tref, bool adamw, bool is_amp, typename Tgrad>
+int AdamDriver<Tgpu, Tref, adamw, is_amp, Tgrad>::VerifyForward()
 {
     RunForwardCPU();
     const Tref tolerance = GetTolerance();
@@ -575,8 +586,8 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::VerifyForward()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, bool is_amp, typename Tgrad>
-int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::VerifyBackward()
+template <typename Tgpu, typename Tref, bool adamw, bool is_amp, typename Tgrad>
+int AdamDriver<Tgpu, Tref, adamw, is_amp, Tgrad>::VerifyBackward()
 {
     return miopenStatusSuccess;
 }

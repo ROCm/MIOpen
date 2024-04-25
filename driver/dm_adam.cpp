@@ -29,11 +29,17 @@
 static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "adam")
-        return new AdamDriver<float, float>();
+        return new AdamDriver<float, float, false>();
     else if(base_arg == "adamfp16")
-        return new AdamDriver<float16, float>();
+        return new AdamDriver<float16, float, false>();
     else if(base_arg == "ampadam")
-        return new AdamDriver<float, float, true, float16>();
+        return new AdamDriver<float, float, false, true, float16>();
+    else if(base_arg == "adamw")
+        return new AdamDriver<float, float, true>();
+    else if(base_arg == "adamwfp16")
+        return new AdamDriver<float16, float, true>();
+    else if(base_arg == "ampadamw")
+        return new AdamDriver<float, float, true, true, float16>();
     return nullptr;
 }
 
