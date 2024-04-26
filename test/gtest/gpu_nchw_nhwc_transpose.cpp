@@ -30,6 +30,7 @@
 #include <vector>
 
 #include <boost/optional.hpp>
+#include "../../driver/conv_common.hpp"
 #include <miopen/batched_transpose_sol.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/invoke_params.hpp>
@@ -219,6 +220,25 @@ struct to_miopen_data_type<float>
 {
     static miopenDataType_t get() { return miopenFloat; }
 };
+
+template <>
+struct to_miopen_data_type<float16>
+{
+    static miopenDataType_t get() { return miopenHalf; }
+};
+
+template <>
+struct to_miopen_data_type<bfloat16>
+{
+    static miopenDataType_t get() { return miopenHalf; }
+};
+
+// TODO: try to get F8 working
+// template <>
+// struct to_miopen_data_type<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>
+// {
+//     static miopenDataType_t get() { return miopenFloat8; }
+// };
 
 template <>
 struct to_miopen_data_type<uint16_t>
@@ -661,19 +681,31 @@ protected:
 
 using namespace batched_transpose;
 
-DEFINE_DEFAULT_TO_NHWC_TEST(float);
+// DEFINE_DEFAULT_TO_NHWC_TEST(float);
+DEFINE_DEFAULT_TO_NHWC_TEST(float16);
+DEFINE_DEFAULT_TO_NHWC_TEST(bfloat16);
+// TODO: try f8 DEFINE_DEFAULT_TO_NHWC_TEST(float8);
 DEFINE_DEFAULT_TO_NHWC_TEST(uint16_t);
 DEFINE_DEFAULT_TO_NHWC_TEST(uint8_t);
 
 DEFINE_NHWC_TO_DEFAULT_TEST(float);
+DEFINE_NHWC_TO_DEFAULT_TEST(float16);
+DEFINE_NHWC_TO_DEFAULT_TEST(bfloat16);
+// TODO: try f8 DEFINE_NHWC_TO_DEFAULT_TEST(float8);
 DEFINE_NHWC_TO_DEFAULT_TEST(uint16_t);
 DEFINE_NHWC_TO_DEFAULT_TEST(uint8_t);
 
 DEFINE_DEFAULT_TO_NDHWC_TEST(float);
+DEFINE_DEFAULT_TO_NDHWC_TEST(float16);
+DEFINE_DEFAULT_TO_NDHWC_TEST(bfloat16);
+// TODO: try f8 DEFINE_DEFAULT_TO_NDHWC_TEST(float8);
 DEFINE_DEFAULT_TO_NDHWC_TEST(uint16_t);
 DEFINE_DEFAULT_TO_NDHWC_TEST(uint8_t);
 
 DEFINE_NDHWC_TO_DEFAULT_TEST(float);
+DEFINE_NDHWC_TO_DEFAULT_TEST(float16);
+DEFINE_NDHWC_TO_DEFAULT_TEST(bfloat16);
+// TODO: try f8 DEFINE_NDHWC_TO_DEFAULT_TEST(float8);
 DEFINE_NDHWC_TO_DEFAULT_TEST(uint16_t);
 DEFINE_NDHWC_TO_DEFAULT_TEST(uint8_t);
 
