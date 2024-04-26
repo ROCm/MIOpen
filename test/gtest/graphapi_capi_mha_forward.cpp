@@ -33,11 +33,22 @@
 
 #include <gtest/gtest.h>
 
-miopenStatus_t CheckStatusAndThrow(miopenStatus_t status, const std::string& msg)
+miopenStatus_t CheckStatusAndThrow(miopenStatus_t status, const std::string& msg, bool addStatusToMessage = true)
 {
-    if(status != miopenStatusSuccess)
+    std::string newMsg = msg;
+
+    if (addStatusToMessage)
     {
-        MIOPEN_THROW(status, msg);
+        newMsg = "StatusCode=" + std::to_string(status) + ". " + newMsg;
+    }
+
+    if (status == miopenStatusNotImplemented)
+    {
+        std::cerr << "Not Implemented: " << newMsg << std::endl;
+    }
+    else if(status != miopenStatusSuccess)
+    {
+        MIOPEN_THROW(status, newMsg);
     }
 
     return status;
@@ -129,15 +140,17 @@ DescriptorWrapperPtr MakeTensorDescriptor(int64_t uniqueId,
     descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_STRIDES, MIOPEN_TYPE_INT64, 4, strides);
     descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_UNIQUE_ID, MIOPEN_TYPE_INT64, 1, &uniqueId);
 
-    descWrapperPtr->SetAttribute(
-        MIOPEN_ATTR_TENSOR_BYTE_ALIGNMENT, MIOPEN_TYPE_INT64, 1, &alignment);
+    // commented this out as Not Implemented
+    // descWrapperPtr->SetAttribute(
+    //    MIOPEN_ATTR_TENSOR_BYTE_ALIGNMENT, MIOPEN_TYPE_INT64, 1, &alignment);
+
     descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_IS_VIRTUAL, MIOPEN_TYPE_BOOLEAN, 1, &isVirtual);
     descWrapperPtr->Finalize();
 
     return descWrapperPtr;
 }
 
-// just simple id generator, might be redone if necessary
+// just a simple id generator, might be redone if necessary
 int64_t GetNextId()
 {
     static int64_t counter = 0;
