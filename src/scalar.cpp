@@ -40,7 +40,7 @@ bool isCloseToOne(float value)
 namespace miopen {
 namespace conv {
 
-EncodeAlphaBeta GetEncodedAlphaBeta(const Scalar& alpha, const Scalar& beta)
+AlphaBetaCase GetAlphaBetaCase(const Scalar& alpha, const Scalar& beta)
 {
     // default T as double since we are comparing
     // numerical values just to find enum type.
@@ -55,20 +55,20 @@ EncodeAlphaBeta GetEncodedAlphaBeta(const Scalar& alpha, const Scalar& beta)
 
     if(alpha_one && beta_zero)
     {
-        return EncodeAlphaBeta::IDENTITY;
+        return AlphaBetaCase::IDENTITY;
     }
 
     if((!alpha_one && !alpha_zero) && !beta_zero)
     {
-        return EncodeAlphaBeta::BILINEAR;
+        return AlphaBetaCase::BILINEAR;
     }
 
     if(!alpha_zero && beta_zero)
     {
-        return EncodeAlphaBeta::SCALE;
+        return AlphaBetaCase::SCALE;
     }
 
-    return EncodeAlphaBeta::ERROR_STATE;
+    return AlphaBetaCase::ERROR_STATE;
 }
 } // namespace conv
 } // namespace miopen

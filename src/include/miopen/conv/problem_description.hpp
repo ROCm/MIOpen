@@ -163,7 +163,7 @@ struct ProblemDescription : ProblemDescriptionBase
           beta(beta_)
     {
         HeuristicUpdateLayouts();
-        alpha_beta_case = conv::GetAlphaBetaCase(alpha, beta);
+        alpha_beta_case = GetAlphaBetaCase(alpha, beta);
     }
 
     // Conv descriptor getters
@@ -257,7 +257,7 @@ struct ProblemDescription : ProblemDescriptionBase
     Scalar GetAlpha() const { return alpha; }
     Scalar GetBeta() const { return beta; }
 
-    AlphaBetaCase GetAlphaBetaCase() { return alpha_beta_case; }
+    AlphaBetaCase GetAlphaBetaEnumCase() { return alpha_beta_case; }
 
     int GetBias() const { return bias; }
 
