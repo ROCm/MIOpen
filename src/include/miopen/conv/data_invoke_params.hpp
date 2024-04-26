@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include <miopen/scalar_mul.hpp>
 #include <miopen/invoke_params.hpp>
 #include <miopen/conv/tensors.hpp>
 
@@ -38,21 +39,21 @@ struct DataInvokeParams : InvokeParams
     Data_t workSpace;
     std::size_t workSpaceSize;
     bool gfx90aFp16alt;
-    const void* alpha;
-    const void* beta;
+    Alpha mAlpha;
+    Beta mBeta;
 
     DataInvokeParams(ConvDataTensors tensors_,
                      Data_t workSpace_,
                      std::size_t workSpaceSize_,
                      bool gfx90aFp16alt_,
-                     const void* alpha_ = nullptr,
-                     const void* beta_  = nullptr)
+                     Alpha alpha = {},
+                     Beta beta   = {})
         : tensors(tensors_),
           workSpace(workSpace_),
           workSpaceSize(workSpaceSize_),
           gfx90aFp16alt(gfx90aFp16alt_),
-          alpha(alpha_),
-          beta(beta_)
+          mAlpha(alpha),
+          mBeta(beta)
     {
     }
 
@@ -61,15 +62,15 @@ struct DataInvokeParams : InvokeParams
                      Data_t workSpace_,
                      std::size_t workSpaceSize_,
                      bool gfx90aFp16alt_,
-                     void* alpha_ = nullptr,
-                     void* beta_  = nullptr)
+                     Alpha alpha = {},
+                     Beta beta   = {})
         : InvokeParams{type_},
           tensors(tensors_),
           workSpace(workSpace_),
           workSpaceSize(workSpaceSize_),
           gfx90aFp16alt(gfx90aFp16alt_),
-          alpha(alpha_),
-          beta(beta_)
+          mAlpha(alpha),
+          mBeta(beta)
     {
     }
 

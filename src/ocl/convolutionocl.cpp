@@ -497,6 +497,18 @@ void ConvolutionDescriptor::ValidateTensors(const ConvTensors& tensors) const
     //}
 }
 
+miopenDataType_t AlphaBetaStorageDataType(const TensorDescriptor& xDesc)
+{
+    if(xDesc.GetType() == miopenDataType_t::miopenDouble)
+    {
+        return miopenDataType_t::miopenDouble;
+    }
+    else
+    {
+        return miopenDataType_t::miopenFloat;
+    }
+}
+
 void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                                                const void* alpha,
                                                const TensorDescriptor& xDesc,
@@ -521,9 +533,10 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
         const auto algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), conv::Direction::Forward)};
-
+        Alpha alpha_val(alpha, AlphaBetaStorageDataType(xDesc));
+        Beta beta_val(beta, AlphaBetaStorageDataType(xDesc));
         const auto problem = conv::ProblemDescription{
-            xDesc, wDesc, yDesc, *this, conv::Direction::Forward, 0, alpha, beta};
+            xDesc, wDesc, yDesc, *this, conv::Direction::Forward, 0, alpha_val, beta_val};
         const auto network_config = problem.MakeNetworkConfig();
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
@@ -533,8 +546,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                                                             workSpace,
                                                             workSpaceSize,
                                                             this->attribute.gfx90aFp16alt.GetFwd(),
-                                                            alpha,
-                                                            beta};
+                                                            alpha_val,
+                                                            beta_val};
             (*invoker)(handle, invoke_ctx);
             return;
         }
