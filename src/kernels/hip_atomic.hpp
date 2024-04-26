@@ -48,9 +48,10 @@ __device__ static inline ushort ____half_as_ushort(__half x)
 __device__ inline void atomic_add_g(volatile ushort* addr, const float val)
 {
     size_t offset               = (size_t)addr & 0x2;
-    volatile uint* addr_as_uint = (volatile uint*)((volatile char*)addr - offset);
     bool is_32_align            = offset;
+    volatile uint* addr_as_uint = (volatile uint*)((volatile char*)addr - offset);
     uint current                = *addr_as_uint;
+
     uint expected;
 
     do
@@ -70,10 +71,11 @@ __device__ inline void atomic_add_g(volatile ushort* addr, const float val)
 
 __device__ inline void atomic_add_g(volatile __half* addr, const __half val)
 {
-    size_t offset               = (size_t)addr & 0x2;                              // NOLINT
-    volatile uint* addr_as_uint = (volatile uint*)((volatile char*)addr - offset); // NOLINT
+    size_t offset               = (size_t)addr & 0x2;
     bool is_32_align            = offset;
+    volatile uint* addr_as_uint = (volatile uint*)((volatile char*)addr - offset);
     uint current                = *addr_as_uint;
+
     uint expected;
 
     do

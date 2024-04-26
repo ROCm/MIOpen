@@ -38,10 +38,10 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <numeric>
-#include "tensor_view.h"
 #include <vector>
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
+#include "../src/kernels/tensor_view.hpp"
 
 tensor_view_5d_t get_inner_expanded_tv(const miopen::TensorDescriptor Desc)
 {
@@ -276,6 +276,16 @@ int GetitemDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     {
         miopenEnableProfiling(GetHandle(), true);
     }
+
+    if(inflags.GetValueInt("indexcount") < 0)
+        MIOPEN_THROW("Index count is negative: " + inflags.GetValueStr("indexcount") + ".");
+
+    if(inflags.GetValueInt("dimcount") < 0)
+        MIOPEN_THROW("Dim count is negative: " + inflags.GetValueStr("dimcount") + ".");
+
+    if(inflags.GetValueInt("slicecount") < 0)
+        MIOPEN_THROW("Slice count is negative: " + inflags.GetValueStr("slicecount") + ".");
+
     return miopenStatusSuccess;
 }
 

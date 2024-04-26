@@ -125,7 +125,6 @@ extern "C" miopenStatus_t miopenGetGetitemWorkspaceSize(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(handle, indexCount, indexDescs);
 
     return miopen::try_([&] {
-        std::vector<ConstData_t> indexCast;
         std::vector<miopen::TensorDescriptor*> indexDescsCast;
         std::transform(indexDescs,
                        indexDescs + indexCount,

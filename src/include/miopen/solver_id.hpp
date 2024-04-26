@@ -51,13 +51,13 @@ enum class Primitive
     Batchnorm,
     Bias,
     Fusion,
-    Item,
     Pooling,
     Normalization,
     Reduce,
     Cat,
     Mha,
-    Softmax
+    Softmax,
+    Item
 };
 
 struct MIOPEN_EXPORT Id
