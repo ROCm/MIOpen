@@ -120,7 +120,7 @@ MakeTensorDescriptor(int64_t uniqueId, bool isVirtual = false, int64_t n = 1, in
         "miopenBackendSetAttribute for MIOPEN_ATTR_TENSOR_DATA_TYPE failed");
 
     int64_t dims[]    = {n, h, s, d};
-    int64_t strides[] = {0, 0, 0, 0};
+    int64_t strides[] = {1, 1, 1, 1};
     int64_t alignment = 4;
 
     CheckStatusAndThrow(miopenBackendSetAttribute(
@@ -188,24 +188,34 @@ DescriptorWrapperPtr MakeMatmul(DescriptorWrapperPtr tensor1, DescriptorWrapperP
     return matmulOperation;
 }
 
-DescriptorWrapperPtr MakePwScale(DescriptorWrapperPtr tensor1, DescriptorWrapperPtr tensor2, DescriptorWrapperPtr output)
+DescriptorWrapperPtr MakePointwise(miopenPointwiseMode_t mode, DescriptorWrapperPtr tensor1, DescriptorWrapperPtr tensor2, DescriptorWrapperPtr output)
 {
     DescriptorWrapperPtr pointwise = MakeDescriptor(MIOPEN_BACKEND_POINTWISE_DESCRIPTOR);
 
-    miopenPointwiseMode_t mode = MIOPEN_POINTWISE_MUL;
     pointwise->SetAttribute(MIOPEN_ATTR_POINTWISE_MODE, MIOPEN_TYPE_POINTWISE_MODE, 1, &mode);
     pointwise->Finalize();
 
     miopenBackendDescriptor_t childDesc = pointwise->GetDescriptor();
 
     miopenBackendDescriptor_t tensor1Desc = tensor1->GetDescriptor();
-    miopenBackendDescriptor_t tensor2Desc = tensor2->GetDescriptor();
+    miopenBackendDescriptor_t tensor2Desc = nullptr;
+    
+    if (tensor2)
+    {
+        tensor2Desc = tensor2->GetDescriptor();
+    }
+
     miopenBackendDescriptor_t outputDesc = output->GetDescriptor();
 
     DescriptorWrapperPtr pointwiseOperation = MakeDescriptor(MIOPEN_BACKEND_OPERATION_POINTWISE_DESCRIPTOR);
     pointwiseOperation->SetAttribute(MIOPEN_ATTR_OPERATION_POINTWISE_PW_DESCRIPTOR, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &childDesc);
     pointwiseOperation->SetAttribute(MIOPEN_ATTR_OPERATION_POINTWISE_XDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &tensor1Desc);
-    pointwiseOperation->SetAttribute(MIOPEN_ATTR_OPERATION_POINTWISE_BDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &tensor2Desc);
+
+    if (tensor2)
+    {
+        pointwiseOperation->SetAttribute(MIOPEN_ATTR_OPERATION_POINTWISE_BDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &tensor2Desc);
+    }
+
     pointwiseOperation->SetAttribute(MIOPEN_ATTR_OPERATION_POINTWISE_YDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &outputDesc);
 
     pointwiseOperation->AddRef(pointwise);
@@ -213,6 +223,59 @@ DescriptorWrapperPtr MakePwScale(DescriptorWrapperPtr tensor1, DescriptorWrapper
     pointwiseOperation->Finalize();
 
     return pointwiseOperation;
+}
+
+DescriptorWrapperPtr MakeReduction(miopenReduceTensorOp_t opType, DescriptorWrapperPtr tensor1, DescriptorWrapperPtr output)
+{
+    DescriptorWrapperPtr reduction = MakeDescriptor(MIOPEN_BACKEND_REDUCTION_DESCRIPTOR);
+
+    miopenDataType_t dType = miopenFloat;
+    reduction->SetAttribute(MIOPEN_ATTR_REDUCTION_COMP_TYPE, MIOPEN_TYPE_DATA_TYPE, 1, &dType);
+
+    reduction->SetAttribute(MIOPEN_ATTR_REDUCTION_OPERATOR, MIOPEN_TYPE_REDUCTION_OPERATOR_TYPE, 1, &opType);
+    reduction->Finalize();
+
+    miopenBackendDescriptor_t childDesc = reduction->GetDescriptor();
+
+    miopenBackendDescriptor_t tensor1Desc = tensor1->GetDescriptor();
+    miopenBackendDescriptor_t outputDesc = output->GetDescriptor();
+
+    DescriptorWrapperPtr reductionOperation = MakeDescriptor(MIOPEN_BACKEND_OPERATION_REDUCTION_DESCRIPTOR);
+    reductionOperation->SetAttribute(MIOPEN_ATTR_OPERATION_REDUCTION_XDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &childDesc);
+    reductionOperation->SetAttribute(MIOPEN_ATTR_OPERATION_REDUCTION_YDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &tensor1Desc);
+    reductionOperation->SetAttribute(MIOPEN_ATTR_OPERATION_REDUCTION_DESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &outputDesc);
+
+    reductionOperation->AddRef(reduction);
+
+    reductionOperation->Finalize();
+
+    return reductionOperation;
+}
+
+
+DescriptorWrapperPtr MakeRNG(DescriptorWrapperPtr probability, DescriptorWrapperPtr seed, DescriptorWrapperPtr offset, DescriptorWrapperPtr output)
+{
+    DescriptorWrapperPtr rng = MakeDescriptor(MIOPEN_BACKEND_RNG_DESCRIPTOR);
+    rng->Finalize();
+
+    miopenBackendDescriptor_t childDesc = rng->GetDescriptor();
+
+    miopenBackendDescriptor_t probabilityDesc = probability->GetDescriptor();
+    miopenBackendDescriptor_t seedDesc = seed->GetDescriptor();
+    miopenBackendDescriptor_t offsetDesc = offset->GetDescriptor();
+    miopenBackendDescriptor_t outputDesc = output->GetDescriptor();
+
+    DescriptorWrapperPtr rngOperation = MakeDescriptor(MIOPEN_BACKEND_OPERATION_RNG_DESCRIPTOR);
+    rngOperation->SetAttribute(MIOPEN_ATTR_OPERATION_RNG_DESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &childDesc);
+    rngOperation->SetAttribute(MIOPEN_ATTR_OPERATION_RNG_SEED, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &seedDesc);
+    rngOperation->SetAttribute(MIOPEN_ATTR_OPERATION_RNG_OFFSET_DESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &offsetDesc);
+    rngOperation->SetAttribute(MIOPEN_ATTR_OPERATION_RNG_YDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &outputDesc);
+
+    rngOperation->AddRef(rng);
+
+    rngOperation->Finalize();
+
+    return rngOperation;
 }
 
 TEST(TestCGraphApi, MhaForward)
@@ -233,7 +296,7 @@ TEST(TestCGraphApi, MhaForward)
         auto descaleV = MakeTensorDescriptor(GetNextId());
         auto descaleS = MakeTensorDescriptor(GetNextId());
         auto scaleS = MakeTensorDescriptor(GetNextId());
-        auto scaleD = MakeTensorDescriptor(GetNextId());
+        auto scaleO = MakeTensorDescriptor(GetNextId());
 
         auto dp = MakeTensorDescriptor(GetNextId());
         auto ds = MakeTensorDescriptor(GetNextId());
@@ -246,7 +309,7 @@ TEST(TestCGraphApi, MhaForward)
         auto amaxO = MakeTensorDescriptor(GetNextId());
         auto amaxS = MakeTensorDescriptor(GetNextId());
         auto m = MakeTensorDescriptor(GetNextId(), false, test_n, test_h, test_s, 1);
-        auto zinv = MakeTensorDescriptor(GetNextId(), false, test_n, test_h, test_s, 1);
+        auto zInv = MakeTensorDescriptor(GetNextId(), false, test_n, test_h, test_s, 1);
 
         // virtual tensors
         auto tMM0 = MakeTensorDescriptor(GetNextId(), true, test_n, test_h, test_s, test_s);
@@ -267,8 +330,33 @@ TEST(TestCGraphApi, MhaForward)
         auto pwS5 = MakeTensorDescriptor(GetNextId(), true, test_n, test_h, test_s, test_d);
         auto pwS6 = MakeTensorDescriptor(GetNextId(), true, test_n, test_h, test_s, test_d);
 
-        auto matmul1 = MakeMatmul(q, k, tMM0);
-        auto pwScale1 = MakePwScale(tMM0, atnScl, pwS0);
+        // Node creation
+
+        auto matmul0 = MakeMatmul(q, k, tMM0);
+        auto pwScale0 = MakePointwise(MIOPEN_POINTWISE_MUL, tMM0, atnScl, pwS0);
+        auto pwScale1 = MakePointwise(MIOPEN_POINTWISE_MUL, pwS0, descaleQ, pwS1);
+        auto pwScale2 = MakePointwise(MIOPEN_POINTWISE_MUL, pwS1, descaleK, pwS2);
+
+        auto reduction0 = MakeReduction(MIOPEN_REDUCE_TENSOR_MAX, pwScale2, m);
+        auto pwSubtract = MakePointwise(MIOPEN_POINTWISE_SUB, pwScale2, m, tSub);
+        auto pwExp = MakePointwise(MIOPEN_POINTWISE_EXP, tSub, DescriptorWrapperPtr(), tExp);
+        auto reduction1 = MakeReduction(MIOPEN_REDUCE_TENSOR_ADD, tExp, tSum);
+        auto pwInv = MakePointwise(MIOPEN_POINTWISE_EXP, tSum, DescriptorWrapperPtr(), zInv);
+        auto pwMult0 = MakePointwise(MIOPEN_POINTWISE_MUL, tExp, zInv, tMult0);
+
+        auto reduction2 = MakeReduction(MIOPEN_REDUCE_TENSOR_MAX, tMult0, amaxS);
+
+        auto rng = MakeRNG(dp, ds, doff, tRnd);
+
+        auto pwMult1 = MakePointwise(MIOPEN_POINTWISE_MUL, tMult0, tRnd, tMult1);
+        auto pwScale3 = MakePointwise(MIOPEN_POINTWISE_MUL, tMult1, dp, pwS3);
+        auto pwScale4 = MakePointwise(MIOPEN_POINTWISE_MUL, pwS3, scaleS, pwS4);
+
+        auto matmul1 = MakeMatmul(pwS4, v, tMM1);
+        auto pwScale5 = MakePointwise(MIOPEN_POINTWISE_MUL, tMM1, descaleS, pwS5);
+        auto pwScale6 = MakePointwise(MIOPEN_POINTWISE_MUL, pwS5, descaleV, pwS6);
+        auto reduction3 = MakeReduction(MIOPEN_REDUCE_TENSOR_MAX, pwS6, amaxO);
+        auto pwScale7 = MakePointwise(MIOPEN_POINTWISE_MUL, pwS6, scaleO, o);
     }
     catch(const miopen::Exception& ex)
     {
