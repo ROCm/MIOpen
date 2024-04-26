@@ -110,44 +110,22 @@ MakeTensorDescriptor(int64_t uniqueId, bool isVirtual = false, int64_t n = 1, in
 {
     DescriptorWrapperPtr descWrapperPtr = MakeDescriptor(MIOPEN_BACKEND_TENSOR_DESCRIPTOR);
 
-    miopenBackendDescriptor_t descriptor = descWrapperPtr->GetDescriptor();
-
     miopenDataType_t dtype = miopenFloat;
 
-    CheckStatusAndThrow(
-        miopenBackendSetAttribute(
-            descriptor, MIOPEN_ATTR_TENSOR_DATA_TYPE, MIOPEN_TYPE_DATA_TYPE, 1, &dtype),
-        "miopenBackendSetAttribute for MIOPEN_ATTR_TENSOR_DATA_TYPE failed");
+    descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_DATA_TYPE, MIOPEN_TYPE_DATA_TYPE, 1, &dtype);
 
     int64_t dims[]    = {n, h, s, d};
     int64_t strides[] = {1, 1, 1, 1};
     int64_t alignment = 4;
 
-    CheckStatusAndThrow(miopenBackendSetAttribute(
-                            descriptor, MIOPEN_ATTR_TENSOR_DIMENSIONS, MIOPEN_TYPE_INT64, 4, dims),
-                        "miopenBackendSetAttribute for MIOPEN_ATTR_TENSOR_DIMENSIONS failed");
+    descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_DIMENSIONS, MIOPEN_TYPE_INT64, 4, dims);
 
-    CheckStatusAndThrow(miopenBackendSetAttribute(
-                            descriptor, MIOPEN_ATTR_TENSOR_STRIDES, MIOPEN_TYPE_INT64, 4, strides),
-                        "miopenBackendSetAttribute for MIOPEN_ATTR_TENSOR_STRIDES failed");
+    descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_STRIDES, MIOPEN_TYPE_INT64, 4, strides);
+    descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_UNIQUE_ID, MIOPEN_TYPE_INT64, 1, &uniqueId);
 
-    CheckStatusAndThrow(
-        miopenBackendSetAttribute(
-            descriptor, MIOPEN_ATTR_TENSOR_UNIQUE_ID, MIOPEN_TYPE_INT64, 1, &uniqueId),
-        "miopenBackendSetAttribute for MIOPEN_ATTR_TENSOR_UNIQUE_ID failed");
-
-    CheckStatusAndThrow(
-        miopenBackendSetAttribute(
-            descriptor, MIOPEN_ATTR_TENSOR_BYTE_ALIGNMENT, MIOPEN_TYPE_INT64, 1, &alignment),
-        "miopenBackendSetAttribute for MIOPEN_ATTR_TENSOR_BYTE_ALIGNMENT failed");
-
-    CheckStatusAndThrow(
-        miopenBackendSetAttribute(
-            descriptor, MIOPEN_ATTR_TENSOR_IS_VIRTUAL, MIOPEN_TYPE_BOOLEAN, 1, &isVirtual),
-        "miopenBackendSetAttribute for MIOPEN_ATTR_TENSOR_IS_VIRTUAL failed");
-
-    CheckStatusAndThrow(miopenBackendFinalize(descriptor),
-                        "miopenBackendFinalize for Tensor descriptor failed");
+    descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_BYTE_ALIGNMENT, MIOPEN_TYPE_INT64, 1, &alignment);
+    descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_IS_VIRTUAL, MIOPEN_TYPE_BOOLEAN, 1, &isVirtual);
+    descWrapperPtr->Finalize();
 
     return descWrapperPtr;
 }
