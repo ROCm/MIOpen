@@ -57,47 +57,7 @@ struct miopen_type<uint16_t> : std::integral_constant<miopenDataType_t, miopenHa
     #define ASSERT_HIP_SUCCESS(x) ASSERT_EQ((x), hipSuccess)
 #endif
 
-namespace nwch_nchw {
-
-template <typename T>
-void cpu_nchw2nhwc(T* dst, T* src, uint64_t N, uint64_t C, uint64_t H, uint64_t W)
-{
-    for(uint64_t i_n = 0; i_n < N; i_n++)
-    {
-        for(uint64_t i_h = 0; i_h < H; i_h++)
-        {
-            for(uint64_t i_w = 0; i_w < W; i_w++)
-            {
-                for(uint64_t i_c = 0; i_c < C; i_c++)
-                {
-                    uint64_t idx_nhwc = i_n * H * W * C + i_h * W * C + i_w * C + i_c;
-                    uint64_t idx_nchw = i_n * C * H * W + i_c * H * W + i_h * W + i_w;
-                    dst[idx_nhwc]     = src[idx_nchw];
-                }
-            }
-        }
-    }
-}
-
-template <typename T>
-void cpu_nhwc2nchw(T* dst, T* src, uint64_t N, uint64_t C, uint64_t H, uint64_t W)
-{
-    for(uint64_t i_n = 0; i_n < N; i_n++)
-    {
-        for(uint64_t i_c = 0; i_c < C; i_c++)
-        {
-            for(uint64_t i_h = 0; i_h < H; i_h++)
-            {
-                for(uint64_t i_w = 0; i_w < W; i_w++)
-                {
-                    uint64_t idx_nhwc = i_n * H * W * C + i_h * W * C + i_w * C + i_c;
-                    uint64_t idx_nchw = i_n * C * H * W + i_c * H * W + i_h * W + i_w;
-                    dst[idx_nchw]     = src[idx_nhwc];
-                }
-            }
-        }
-    }
-}
+namespace batched_transpose {
 
 template <typename T>
 void cpu_ncdhw2ndhwc(T* dst, T* src, uint64_t N, uint64_t C, uint64_t D, uint64_t H, uint64_t W)
@@ -125,6 +85,12 @@ void cpu_ncdhw2ndhwc(T* dst, T* src, uint64_t N, uint64_t C, uint64_t D, uint64_
 }
 
 template <typename T>
+void cpu_nchw2nhwc(T* dst, T* src, uint64_t N, uint64_t C, uint64_t H, uint64_t W)
+{
+    cpu_ncdhw2ndhwc<T>(dst, src, N, C, 1, H, W);
+}
+
+template <typename T>
 void cpu_ndhwc2ncdhw(T* dst, T* src, uint64_t N, uint64_t C, uint64_t D, uint64_t H, uint64_t W)
 {
     for(uint64_t i_n = 0; i_n < N; i_n++)
@@ -149,6 +115,12 @@ void cpu_ndhwc2ncdhw(T* dst, T* src, uint64_t N, uint64_t C, uint64_t D, uint64_
     }
 }
 
+template <typename T>
+void cpu_nhwc2nchw(T* dst, T* src, uint64_t N, uint64_t C, uint64_t H, uint64_t W)
+{
+    cpu_ndhwc2ncdhw<T>(dst, src, N, C, 1, H, W);
+}
+
 template <typename T, typename TRANSPOSE_SOL>
 struct cpu_transpose
 {
@@ -161,6 +133,20 @@ struct cpu_transpose<T, miopen::TransposeSolutionDefault2Nhwc>
     {
         cpu_nchw2nhwc<T>(dst, src, N, C, H, W);
     }
+
+    static void run(T* dst, T* src, uint64_t N, uint64_t C, uint64_t D, uint64_t H, uint64_t W)
+    {
+        cpu_ncdhw2ndhwc<T>(dst, src, N, C, D, H, W);
+    }
+};
+
+template <typename T>
+struct cpu_transpose<T, miopen::TransposeSolutionDefault2Ndhwc>
+{
+    static void run(T* dst, T* src, uint64_t N, uint64_t C, uint64_t D, uint64_t H, uint64_t W)
+    {
+        cpu_ncdhw2ndhwc<T>(dst, src, N, C, D, H, W);
+    }
 };
 
 template <typename T>
@@ -169,6 +155,20 @@ struct cpu_transpose<T, miopen::TransposeSolutionNhwc2Default>
     static void run(T* dst, T* src, uint64_t N, uint64_t C, uint64_t H, uint64_t W)
     {
         cpu_nhwc2nchw<T>(dst, src, N, C, H, W);
+    }
+
+    static void run(T* dst, T* src, uint64_t N, uint64_t C, uint64_t D, uint64_t H, uint64_t W)
+    {
+        cpu_ndhwc2ncdhw<T>(dst, src, N, C, D, H, W);
+    }
+};
+
+template <typename T>
+struct cpu_transpose<T, miopen::TransposeSolutionNdhwc2Default>
+{
+    static void run(T* dst, T* src, uint64_t N, uint64_t C, uint64_t D, uint64_t H, uint64_t W)
+    {
+        cpu_ndhwc2ncdhw<T>(dst, src, N, C, D, H, W);
     }
 };
 
@@ -256,16 +256,16 @@ bool compare_equal<float>(float r1, float r2)
 }
 
 template <typename T>
-void verify_tensor(tensor<T>& t_gpu, tensor<T>& t_cpu)
+void verify_tensor(tensor<T>& t_tst, const char* _tst, tensor<T>& t_ref, const char* _ref)
 {
-    ASSERT_EQ(t_gpu.data.size(), t_cpu.data.size()) << " tensor sizes not equal, should not happen";
-    if(t_gpu.data.size() != t_cpu.data.size())
+    ASSERT_EQ(t_tst.data.size(), t_ref.data.size()) << " tensor sizes not equal, should not happen";
+    if(t_tst.data.size() != t_ref.data.size())
         return;
 
-    auto idx = miopen::mismatch_idx(t_gpu.data, t_cpu.data, compare_equal<T>);
+    auto idx = miopen::mismatch_idx(t_tst.data, t_ref.data, compare_equal<T>);
 
-    EXPECT_GE(idx, miopen::range_distance(t_cpu))
-        << "diff at:" << idx << ", gpu:" << t_gpu[idx] << ", cpu:" << t_cpu[idx];
+    EXPECT_GE(idx, miopen::range_distance(t_ref))
+        << "diff at:" << idx << ", " << _tst << ":" << t_tst[idx] << ", " << _ref << ":" << t_ref[idx];
 }
 
 struct transpose_base
@@ -468,7 +468,7 @@ struct transpose_test : transpose_base
             cpu_transpose<T, TRANSPOSE_SOL>::run(t_dst.data.data(), t_src.data.data(), n, c, h, w);
 
             // we expect exact match, since use integer
-            verify_tensor(t_dst_gpu, t_dst);
+            verify_tensor(t_dst_gpu, "gpu", t_dst, "cpu");
 
 #if MIOPEN_BACKEND_OPENCL
             clReleaseMemObject(src_dev);
@@ -483,13 +483,13 @@ struct transpose_test : transpose_base
     }
 };
 
-template <typename T>
+template <typename T, typename TRANSPOSE_SOL>
 struct transpose_3d_test : public transpose_base
 {
 
     void run()
     {
-        auto run_transpose = [this](uint32_t n, uint32_t c, uint32_t d, uint32_t h, uint32_t w) {
+        auto run_3d_transpose = [this](uint32_t n, uint32_t c, uint32_t d, uint32_t h, uint32_t w) {
             std::vector<int> tensor_len({static_cast<int>(n),
                                          static_cast<int>(c),
                                          static_cast<int>(d),
@@ -506,31 +506,44 @@ struct transpose_3d_test : public transpose_base
 
             tensor<T> t_src(tensor_len, tensor_strides);
             tensor<T> t_gpu_2d(tensor_len, tensor_strides);
+            tensor<T> t_gpu_3d(tensor_len, tensor_strides);
             tensor<T> t_dst_ref(tensor_len, tensor_strides);
             tensor<T> t_cpu_2d(tensor_len, tensor_strides);
 
             rand_tensor_integer(t_src);
 
             auto tensor_sz = t_src.data.size();
-            void* src_dev;
-            void* dst_dev;
-            ASSERT_HIP_SUCCESS(hipMalloc(&src_dev, sizeof(T) * tensor_sz));
-            ASSERT_HIP_SUCCESS(hipMalloc(&dst_dev, sizeof(T) * tensor_sz));
-            ASSERT_HIP_SUCCESS(hipMemcpy(
-                src_dev, t_src.data.data(), sizeof(T) * tensor_sz, hipMemcpyHostToDevice));
 
-            const auto invoke_param = transpose_invoke_param{
-                DataCast(static_cast<const void*>(src_dev)), DataCast(dst_dev)};
+            void* src_3d_dev;
+            void* dst_3d_dev;
+            ASSERT_HIP_SUCCESS(hipMalloc(&src_3d_dev, sizeof(T) * tensor_sz));
+            ASSERT_HIP_SUCCESS(hipMalloc(&dst_3d_dev, sizeof(T) * tensor_sz));
+            ASSERT_HIP_SUCCESS(hipMemcpy(
+                src_3d_dev, t_src.data.data(), sizeof(T) * tensor_sz, hipMemcpyHostToDevice));
+
+            void* src_2d_dev;
+            void* dst_2d_dev;
+
+            ASSERT_HIP_SUCCESS(hipMalloc(&src_2d_dev, sizeof(T) * tensor_sz));
+            ASSERT_HIP_SUCCESS(hipMalloc(&dst_2d_dev, sizeof(T) * tensor_sz));
+            ASSERT_HIP_SUCCESS(hipMemcpy(
+                src_2d_dev, t_src.data.data(), sizeof(T) * tensor_sz, hipMemcpyHostToDevice));
+
+            const auto invoke_param_3d = transpose_invoke_param{
+                DataCast(static_cast<const void*>(src_3d_dev)), DataCast(dst_3d_dev)};
+            const auto invoke_param_2d = transpose_invoke_param{
+                DataCast(static_cast<const void*>(src_2d_dev)), DataCast(dst_2d_dev)};
 
             miopen::ExecutionContext ctx;
             ctx.SetStream(&miopen::deref(this->handle));
 
-            using TRANSPOSE_SOL = miopen::TransposeSolutionDefault2Nhwc;
-            TRANSPOSE_SOL transpose_sol(ctx, to_miopen_data_type<T>::get(), n, c, d * h, w);
+            TRANSPOSE_SOL transpose_sol_3d(ctx, to_miopen_data_type<T>::get(), n, c, d, h, w);
+            TRANSPOSE_SOL transpose_sol_2d(ctx, to_miopen_data_type<T>::get(), n, c, 1, d*h, w);
 
-            std::vector<OpKernelArg> opArgs = transpose_sol.GetKernelArg();
+            std::vector<OpKernelArg> opArgs_3d = transpose_sol_3d.GetKernelArg();
+            std::vector<OpKernelArg> opArgs_2d = transpose_sol_2d.GetKernelArg();
 
-            boost::optional<miopen::InvokerFactory> invoker_factory(
+            boost::optional<miopen::InvokerFactory> invoker_factory_3d(
                 [=](const std::vector<miopen::Kernel>& kernels) mutable {
                     return [=](const miopen::Handle& handle,
                                const miopen::AnyInvokeParams& primitive_param) mutable {
@@ -539,34 +552,58 @@ struct transpose_3d_test : public transpose_base
 
                         const auto k = handle.Run(kernels[0]);
 
-                        opArgs[0] = OpKernelArg(invoke_params.dst);
-                        opArgs[1] = OpKernelArg(invoke_params.src);
+                        opArgs_3d[0] = OpKernelArg(invoke_params.dst);
+                        opArgs_3d[1] = OpKernelArg(invoke_params.src);
 
-                        k(opArgs);
+                        k(opArgs_3d);
                     };
                 });
 
-            std::vector<miopen::solver::KernelInfo> construction_params{
-                transpose_sol.GetKernelInfo()};
+            boost::optional<miopen::InvokerFactory> invoker_factory_2d(
+                [=](const std::vector<miopen::Kernel>& kernels) mutable {
+                    return [=](const miopen::Handle& handle,
+                               const miopen::AnyInvokeParams& primitive_param) mutable {
+                        decltype(auto) invoke_params =
+                            primitive_param.CastTo<transpose_invoke_param>();
 
-            const auto invoker =
-                miopen::deref(this->handle).PrepareInvoker(*invoker_factory, construction_params);
+                        const auto k = handle.Run(kernels[0]);
+
+                        opArgs_2d[0] = OpKernelArg(invoke_params.dst);
+                        opArgs_2d[1] = OpKernelArg(invoke_params.src);
+
+                        k(opArgs_2d);
+                    };
+                });
+
+            std::vector<miopen::solver::KernelInfo> construction_params_3d{
+                transpose_sol_3d.GetKernelInfo()};
+            std::vector<miopen::solver::KernelInfo> construction_params_2d{
+                transpose_sol_2d.GetKernelInfo()};
+
+            const auto invoker_3d =
+                miopen::deref(this->handle).PrepareInvoker(*invoker_factory_3d, construction_params_3d);
+            const auto invoker_2d =
+                miopen::deref(this->handle).PrepareInvoker(*invoker_factory_2d, construction_params_2d);
 
             // run gpu
-            invoker(miopen::deref(this->handle), invoke_param);
+            invoker_3d(miopen::deref(this->handle), invoke_param_3d);
+            invoker_2d(miopen::deref(this->handle), invoke_param_2d);
 
             ASSERT_HIP_SUCCESS(hipMemcpy(
-                t_gpu_2d.data.data(), dst_dev, sizeof(T) * tensor_sz, hipMemcpyDeviceToHost));
+                t_gpu_3d.data.data(), dst_3d_dev, sizeof(T) * tensor_sz, hipMemcpyDeviceToHost));
+            ASSERT_HIP_SUCCESS(hipMemcpy(
+                t_gpu_2d.data.data(), dst_2d_dev, sizeof(T) * tensor_sz, hipMemcpyDeviceToHost));
 
-            cpu_nchw2nhwc(t_cpu_2d.data.data(), t_src.data.data(), n, c, d * h, w);
+            cpu_transpose<T, TRANSPOSE_SOL>::run(t_cpu_2d.data.data(), t_src.data.data(), n, c, 1, d * h, w);
 
-            cpu_ncdhw2ndhwc(t_dst_ref.data.data(), t_src.data.data(), n, c, d, h, w);
+            cpu_transpose<T, TRANSPOSE_SOL>::run(t_dst_ref.data.data(), t_src.data.data(), n, c, d, h, w);
 
-            verify_tensor(t_dst_ref, t_cpu_2d);
-            verify_tensor(t_dst_ref, t_gpu_2d);
+            verify_tensor(t_dst_ref, "cpu", t_cpu_2d, "cpu2d");
+            verify_tensor(t_gpu_3d, "gpu3d", t_dst_ref, "cpu");
+            verify_tensor(t_gpu_2d, "gpu2d", t_dst_ref, "cpu");
         };
 
-        iterate_transpose_3d(run_transpose);
+        iterate_transpose_3d(run_3d_transpose);
     };
 };
 
@@ -580,24 +617,49 @@ protected:
 };
 
 #define DEFINE_DEFAULT_TO_NHWC_TEST(type)                            \
-    struct TransposeTest_D_TO_NHWC_##type                            \
+    struct TransposeTest_DFLT_TO_NHWC_##type                         \
         : TransposeTest<type, miopen::TransposeSolutionDefault2Nhwc> \
     {                                                                \
     };                                                               \
                                                                      \
-    TEST_F(TransposeTest_D_TO_NHWC_##type, default) { RunTest(); }
+    TEST_F(TransposeTest_DFLT_TO_NHWC_##type, default) { RunTest(); }
 
 #define DEFINE_NHWC_TO_DEFAULT_TEST(type)                            \
-    struct TransposeTest_NHWC_TO_D_##type                            \
+    struct TransposeTest_NHWC_TO_DFLT_##type                         \
         : TransposeTest<type, miopen::TransposeSolutionNhwc2Default> \
     {                                                                \
     };                                                               \
                                                                      \
-    TEST_F(TransposeTest_NHWC_TO_D_##type, default) { RunTest(); }
+    TEST_F(TransposeTest_NHWC_TO_DFLT_##type, default) { RunTest(); }
 
-} // namespace nwch_nchw
+template <class T, class X>
+struct Transpose3dTest : public ::testing::Test
+{
+protected:
+    void SetUp() override {}
 
-using namespace nwch_nchw;
+    void RunTest() { run_test<transpose_3d_test<T, X>>(); }
+};
+
+#define DEFINE_DEFAULT_TO_NDHWC_TEST(type)                              \
+    struct TransposeTest_DFLT_TO_NDHWC_##type                           \
+        : Transpose3dTest<type, miopen::TransposeSolutionDefault2Ndhwc> \
+    {                                                                   \
+    };                                                                  \
+                                                                        \
+    TEST_F(TransposeTest_DFLT_TO_NDHWC_##type, default) { RunTest(); }
+
+#define DEFINE_NDHWC_TO_DEFAULT_TEST(type)                              \
+    struct TransposeTest_NDHWC_TO_DFLT_##type                           \
+        : Transpose3dTest<type, miopen::TransposeSolutionNdhwc2Default> \
+    {                                                                   \
+    };                                                                  \
+                                                                        \
+    TEST_F(TransposeTest_NDHWC_TO_DFLT_##type, default) { RunTest(); }
+
+} // namespace batched_transpose
+
+using namespace batched_transpose;
 
 DEFINE_DEFAULT_TO_NHWC_TEST(float);
 DEFINE_DEFAULT_TO_NHWC_TEST(uint16_t);
@@ -606,3 +668,12 @@ DEFINE_DEFAULT_TO_NHWC_TEST(uint8_t);
 DEFINE_NHWC_TO_DEFAULT_TEST(float);
 DEFINE_NHWC_TO_DEFAULT_TEST(uint16_t);
 DEFINE_NHWC_TO_DEFAULT_TEST(uint8_t);
+
+DEFINE_DEFAULT_TO_NDHWC_TEST(float);
+DEFINE_DEFAULT_TO_NDHWC_TEST(uint16_t);
+DEFINE_DEFAULT_TO_NDHWC_TEST(uint8_t);
+
+DEFINE_NDHWC_TO_DEFAULT_TEST(float);
+DEFINE_NDHWC_TO_DEFAULT_TEST(uint16_t);
+DEFINE_NDHWC_TO_DEFAULT_TEST(uint8_t);
+
