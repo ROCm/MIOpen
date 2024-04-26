@@ -27,41 +27,30 @@
 #pragma once
 
 #include <miopen/common.hpp>
+#include <miopen/errors.hpp>
 #include <miopen/miopen.h>
 
 #include <cmath>
 #include <limits>
 #include <cassert>
 
-template <typename T>
-inline bool isCloseToZero(T value)
-{
-    return std::abs(value) <= std::numeric_limits<T>::epsilon();
-}
-
-template <typename T>
-inline bool isCloseToOne(float value)
-{
-    return std::abs(value - T(1)) <= std::numeric_limits<T>::epsilon();
-}
-
 namespace miopen {
-template <int default_val = 1>
-struct ScalarMul
+struct Scalar
 {
-    ScalarMul()
+    Scalar(double default_val = 1.0)
     {
-        mVal  = static_cast<float>(default_val);
-        mType = miopenFloat;
+        mVal  = static_cast<double>(default_val);
+        mType = miopenDouble;
     }
 
     // only supports double or float
-    ScalarMul(ConstData_t ptr, miopenDataType_t type) : mType(type)
+    Scalar(ConstData_t ptr, miopenDataType_t type = miopenDouble, double default_val = 1.0)
+        : mType(type)
     {
 
         if(ptr == nullptr)
         {
-            mVal = static_cast<float>(default_val);
+            mVal = static_cast<double>(default_val);
         }
         else
         {
@@ -90,7 +79,7 @@ struct ScalarMul
         }
         else
         {
-            throw std::runtime_error("ERROR: only expected float or double\n");
+            MIOPEN_THROW("Only expected float or double.");
         }
     }
 
@@ -104,10 +93,8 @@ private:
     miopenDataType_t mType;
 };
 
-using Alpha = ScalarMul<>;
-using Beta  = ScalarMul<0>;
-
-enum class EncodeAlphaBeta
+namespace conv {
+enum class AlphaBetaCase
 {
     /* IDENTITY      alpha = 1.0 and beta = 0.0 */
     /* SCALE         alpha = 4.2 and beta = 0.0 */
@@ -121,5 +108,6 @@ enum class EncodeAlphaBeta
                         But used to check for errors.*/
 };
 
-EncodeAlphaBeta GetEncodedAlphaBeta(const Alpha& alpha, const Beta& beta);
+AlphaBetaCase GetAlphaBetaCase(const Scalar& alpha, const Scalar& beta);
+} // namespace conv
 } // namespace miopen

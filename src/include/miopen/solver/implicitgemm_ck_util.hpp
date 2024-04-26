@@ -35,6 +35,16 @@
 #include <ck/utility/data_type.hpp>
 #endif // MIOPEN_USE_COMPOSABLEKERNEL
 
+namespace miopen {
+
+namespace conv {
+struct ProblemDescription;
+} // namespace conv
+
+namespace solver {
+
+namespace internal {
+
 template <typename T>
 struct AlphaBetaTypeMapper;
 
@@ -59,14 +69,7 @@ struct AlphaBetaTypeMapper<double>
 {
     using type = double;
 };
-
-namespace miopen {
-
-namespace conv {
-struct ProblemDescription;
-} // namespace conv
-
-namespace solver {
+} // namespace internal
 
 struct ConvSolution;
 

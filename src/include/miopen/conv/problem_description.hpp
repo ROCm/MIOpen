@@ -147,9 +147,9 @@ struct ProblemDescription : ProblemDescriptionBase
                        const TensorDescriptor& out_, // y for Forward, x for Backward*
                        const ConvolutionDescriptor& conv_,
                        Direction direction_,
-                       int bias_    = 0,
-                       Alpha alpha_ = {},
-                       Beta beta_   = {})
+                       int bias_     = 0,
+                       Scalar alpha_ = {},
+                       Scalar beta_  = {})
         : in(in_),
           weights(weights_),
           out(out_),
@@ -163,6 +163,7 @@ struct ProblemDescription : ProblemDescriptionBase
           beta(beta_)
     {
         HeuristicUpdateLayouts();
+        alpha_beta_case = conv::GetAlphaBetaCase(alpha, beta);
     }
 
     // Conv descriptor getters
@@ -253,10 +254,10 @@ struct ProblemDescription : ProblemDescriptionBase
     bool IsDirectionBackwardWrW() const { return direction == conv::Direction::BackwardWeights; }
     std::string GetDirectionStr() const;
 
-    Alpha GetAlpha() const { return alpha; }
-    Beta GetBeta() const { return beta; }
+    Scalar GetAlpha() const { return alpha; }
+    Scalar GetBeta() const { return beta; }
 
-    EncodeAlphaBeta GetEncodedAlphaBeta() { return miopen::GetEncodedAlphaBeta(alpha, beta); }
+    AlphaBetaCase GetAlphaBetaCase() { return alpha_beta_case; }
 
     int GetBias() const { return bias; }
 
@@ -483,8 +484,9 @@ private:
     std::string out_layout;
     Direction direction = Direction::Forward;
     int bias            = 0;
-    Alpha alpha         = {};
-    Beta beta           = {};
+    Scalar alpha        = {};
+    Scalar beta         = {};
+    AlphaBetaCase alpha_beta_case;
 };
 
 } // namespace conv

@@ -141,7 +141,7 @@ struct CKArgs
     template <typename ConvPtr>
     auto MakeArgPtr(const ConvPtr& conv_ptr, ConstData_t in, ConstData_t w, Data_t out) const
     {
-        // using T = typename AlphaBetaTypeMapper<DataType>::type;
+        // using T = typename ::internel::AlphaBetaTypeMapper<DataType>::type;
         // T alpha_val =  alpha.GetVal<T>();
         // T beta_val  =  beta.GetVal<T>();
         return conv_ptr->MakeArgumentPointer(in,
@@ -193,8 +193,8 @@ struct CKArgs
     int Y;
     int X;
     int Z;
-    Alpha alpha;
-    Beta beta;
+    Scalar alpha;
+    Scalar beta;
     std::array<ck::index_t, 6> input;
     std::array<ck::index_t, 6> in_strides;
     std::array<ck::index_t, 6> output;

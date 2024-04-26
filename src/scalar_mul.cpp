@@ -25,7 +25,22 @@
  *******************************************************************************/
 #include <miopen/scalar_mul.hpp>
 
-EncodeAlphaBeta GetEncodedAlphaBeta(const Alpha& alpha, const Beta& beta)
+template <typename T>
+bool isCloseToZero(T value)
+{
+    return std::abs(value) <= std::numeric_limits<T>::epsilon();
+}
+
+template <typename T>
+bool isCloseToOne(float value)
+{
+    return std::abs(value - T(1)) <= std::numeric_limits<T>::epsilon();
+}
+
+namespace miopen {
+namespace conv {
+
+EncodeAlphaBeta GetEncodedAlphaBeta(const Scalar& alpha, const Scalar& beta)
 {
     // default T as double since we are comparing
     // numerical values just to find enum type.
@@ -55,3 +70,5 @@ EncodeAlphaBeta GetEncodedAlphaBeta(const Alpha& alpha, const Beta& beta)
 
     return EncodeAlphaBeta::ERROR_STATE;
 }
+} // namespace conv
+} // namespace miopen
