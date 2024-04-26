@@ -27,7 +27,9 @@
 #ifndef MIOPEN_GUARD_MLOPEN_FIND_SOLUTION_HPP
 #define MIOPEN_GUARD_MLOPEN_FIND_SOLUTION_HPP
 
+#include "miopen/miopen.h"
 #include <miopen/env.hpp>
+#include <miopen/errors.hpp>
 #include <miopen/conv_solution.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/find_controls.hpp>
@@ -169,16 +171,24 @@ template <class Solver, class Context, class Problem, class Db>
 ConvSolution FindSolution(Solver s,
                           const Context& context,
                           const Problem& problem,
-                          Db& db,
+                          Db&& db,
                           const AnyInvokeParams& invoke_ctx,
                           const std::string& perf_cfg               = "",
                           const std::optional<FindOptions>& options = std::nullopt)
 {
     static_assert(sizeof(Solver) == sizeof(SolverBase), "Solver must be stateless");
     static_assert(std::is_base_of<SolverBase, Solver>{}, "Not derived class of SolverBase");
+
+    decltype(auto) db_getter = [&]() -> decltype(auto) {
+        if constexpr(std::is_invocable_v<Db>)
+            return db;
+        else
+            return [&]() -> std::decay_t<Db>& { return db; };
+    }();
+
     // TODO: This assumes all solutions are ConvSolution
-    auto solution = FindSolutionImpl(
-        rank<1>{}, s, context, problem, [&]() -> Db& { return db; }, invoke_ctx, perf_cfg, options);
+    auto solution =
+        FindSolutionImpl(rank<1>{}, s, context, problem, db_getter, invoke_ctx, perf_cfg, options);
     solution.solver_id = s.SolverDbId();
     return solution;
 }
@@ -298,34 +308,29 @@ struct SolverContainer
                 }
                 else
                 {
-                    ConvSolution s;
-
-                    if constexpr(solver::IsTunable(solver))
-                    {
-                        auto db = [&]() -> PerformanceDb& {
-                            // without this if CI fails to compile for some reason
-                            if constexpr(solver::IsTunable(solver))
-                            {
-                                if(!db_container)
-                                    db_container.emplace(std::move(miopen::GetDb(ctx, problem)));
-                            }
-                            return *db_container;
+                    auto db = [&]() -> PerformanceDb& {
+                        // If I inline this, clang doesn't compile on linux for some reason
+                        constexpr auto db_getter = [](const ExecutionContext& ctx,
+                                                      const auto& problem) -> PerformanceDb {
+                            if constexpr(IsTunable<decltype(solver)>())
+                                return miopen::GetDb(ctx, problem);
+                            else
+                                MIOPEN_THROW(miopenStatusInternalError);
                         };
 
-                        s = FindSolutionImpl(
-                            rank<1>{}, solver, ctx, problem, db, invoke_params, "", std::nullopt);
-                    }
-                    else
-                    {
-                        s = solver.GetSolution(ctx, problem);
-                    }
+                        if(!db_container)
+                            db_container.emplace(std::move(db_getter(ctx, problem)));
 
-                    s.solver_id = solver.SolverDbId();
+                        return *db_container;
+                    };
+
+                    auto s =
+                        FindSolution(solver, ctx, problem, db, invoke_params, "", std::nullopt);
 
                     if(s.Succeeded())
                     {
                         ++count;
-                        ss.push_back(s);
+                        ss.emplace_back(std::move(s));
                         MIOPEN_LOG_I2(solver.SolverDbId() << ": Success.");
                     }
                     else

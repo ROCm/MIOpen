@@ -267,16 +267,11 @@ struct TunableSolverMixin : TunableSolverBase<Context, Problem>
 };
 
 template <class Solver>
-constexpr auto IsTunable(const Solver&) -> bool
+struct IsTunable : std::is_base_of<TunableSolverTrait, Solver>
 {
     static_assert(!std::is_same_v<Solver, TunableSolverTrait>,
                   "Raw trait shouldn't be passed, explicit type is needed");
-
-    if constexpr(std::is_base_of_v<TunableSolverTrait, Solver>)
-        return true;
-    else
-        return false;
-}
+};
 
 namespace conv {
 
