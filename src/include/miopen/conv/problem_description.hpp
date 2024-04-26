@@ -29,7 +29,7 @@
 #include <boost/any.hpp>
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/names.hpp>
-#include <miopen/scalar_mul.hpp>
+#include <miopen/scalar.hpp>
 
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
@@ -147,9 +147,9 @@ struct ProblemDescription : ProblemDescriptionBase
                        const TensorDescriptor& out_, // y for Forward, x for Backward*
                        const ConvolutionDescriptor& conv_,
                        Direction direction_,
-                       int bias_     = 0,
-                       Scalar alpha_ = {},
-                       Scalar beta_  = {})
+                       int bias_            = 0,
+                       const Scalar& alpha_ = {1.0},
+                       const Scalar& beta_  = {0.0})
         : in(in_),
           weights(weights_),
           out(out_),
@@ -484,8 +484,8 @@ private:
     std::string out_layout;
     Direction direction = Direction::Forward;
     int bias            = 0;
-    Scalar alpha        = {};
-    Scalar beta         = {};
+    Scalar alpha        = {1.0};
+    Scalar beta         = {0.0};
     AlphaBetaCase alpha_beta_case;
 };
 
