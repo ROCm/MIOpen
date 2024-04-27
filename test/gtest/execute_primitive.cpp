@@ -71,14 +71,12 @@ struct TestProblemDescription : miopen::ProblemDescriptionBase
     {
         visitor(self.net_config, "net_config");
     }
-};
 
-namespace miopen {
-auto GetDb(const ExecutionContext&, const TestProblemDescription& problem) -> PerformanceDb
-{
-    return {DbKinds::PerfDb, problem.pdb_path, problem.updb_path};
-}
-} // namespace miopen
+    friend auto GetDb(const miopen::ExecutionContext&, const TestProblemDescription& problem) -> miopen::PerformanceDb
+    {
+        return {miopen::DbKinds::PerfDb, problem.pdb_path, problem.updb_path};
+    }
+};
 
 struct TestPerfConfig : miopen::solver::PerfConfig
 {

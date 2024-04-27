@@ -29,6 +29,7 @@
 #include <miopen/problem_description_base.hpp>
 #include <miopen/activ.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/mlo_internal.hpp>
 
 #include <cassert>
 #include <string>
@@ -36,6 +37,7 @@
 namespace miopen {
 
 struct NetworkConfig;
+struct ExecutionContext;
 
 namespace batchnorm {
 
@@ -177,6 +179,8 @@ struct ProblemDescription : ProblemDescriptionBase
     }
 
     NetworkConfig MakeNetworkConfig() const override;
+
+    friend auto GetDb(const miopen::ExecutionContext& ctx, const miopen::batchnorm::ProblemDescription&) -> miopen::PerformanceDb;
 
 private:
     Direction direction;

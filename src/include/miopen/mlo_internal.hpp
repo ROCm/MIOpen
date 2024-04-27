@@ -134,18 +134,12 @@ class DbTimer;
 
 struct AnyInvokeParams;
 
-namespace batchnorm {
-struct ProblemDescription;
-}
-
 #if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
 using PerformanceDb = DbTimer<MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>>;
 #else
 using PerformanceDb = DbTimer<MultiFileDb<ReadonlyRamDb, RamDb, true>>;
 #endif
 miopen::PerformanceDb GetDb(const miopen::ExecutionContext& ctx);
-miopen::PerformanceDb GetDb(const miopen::ExecutionContext& ctx,
-                            const miopen::batchnorm::ProblemDescription&);
 
 template <class TTo>
 size_t setTopDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor)

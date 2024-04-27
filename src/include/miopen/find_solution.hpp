@@ -309,17 +309,13 @@ struct SolverContainer
                 else
                 {
                     auto db = [&]() -> PerformanceDb& {
-                        // If I inline this, clang doesn't compile on linux for some reason
-                        constexpr auto db_getter = [](const ExecutionContext& ctx,
-                                                      const auto& problem) -> PerformanceDb {
+                        if(!db_container)
+                        {
                             if constexpr(IsTunable<decltype(solver)>())
-                                return miopen::GetDb(ctx, problem);
+                                db_container.emplace(std::move(GetDb(ctx, problem)));
                             else
                                 MIOPEN_THROW(miopenStatusInternalError);
-                        };
-
-                        if(!db_container)
-                            db_container.emplace(std::move(db_getter(ctx, problem)));
+                        }
 
                         return *db_container;
                     };
