@@ -40,6 +40,8 @@ private:
     int64_t mGlobalIndex = -1;
     int32_t mSmCount     = 0;
     friend class EngineBuilder;
+    std::map<int64_t, miopenTensorDescriptor_t*> mDescFromId;
+    std::map<int64_t, miopenTensorArgumentId_t> mArgFromId;
 
 public:
     Engine()              = default;
@@ -53,6 +55,22 @@ public:
 
     const Solution& getSolution() const noexcept { return mSolution; }
     Solution& getSolution() noexcept { return mSolution; }
+
+    miopenTensorDescriptor_t* getTensorDesc(int64_t uid)
+    {
+        auto it = mDescFromId.find(uid);
+        if(it == mDescFromId.end())
+            return nullptr;
+        return it->second;
+    }
+
+    miopenTensorArgumentId_t getTensorArgType(int64_t uid)
+    {
+        auto it = mArgFromId.find(uid);
+        if(it == mArgFromId.end())
+            return miopenTensorArgumentIdInvalid;
+        return it->second;
+    }
 
     int64_t getGlobalIndex() const noexcept { return mGlobalIndex; }
     int32_t getSmCount() const noexcept { return mSmCount; }

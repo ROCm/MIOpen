@@ -74,6 +74,7 @@ public:
         : mTensorIds(tensorIds), mDataPointers(dataPointers), mWorkspace(workspace)
     {
     }
+
     VariantPack(std::vector<int64_t>&& tensorIds,
                 std::vector<void*>&& dataPointers,
                 void* workspace)
@@ -83,14 +84,17 @@ public:
     {
     }
 
+    int64_t getTensorId(size_t offset) const { return mTensorIds[offset]; }
+
     void* getDataPointer(int64_t tensorId) const
     {
         assert(mTensorIds.size() == mDataPointers.size());
         auto iter = std::find(mTensorIds.cbegin(), mTensorIds.cend(), tensorId);
         MIOPEN_THROW_IF(iter == mTensorIds.cend(), "No such tensor id in VariantPack");
-        return *(mDataPointers.cbegin() + (iter - mTensorIds.cbegin()));
+        return mDataPointers[std::distance(mTensorIds.cbegin(), iter)];
     }
     void* getWorkspace() const noexcept { return mWorkspace; }
+    size_t size() const { return mTensorIds.size(); };
 
 private:
     friend class VariantPackBuilder;
