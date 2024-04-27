@@ -92,6 +92,10 @@ miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
             outputDesciptor = new miopen::graphapi::BackendMatmulDescriptor();
             break;
 
+        case MIOPEN_BACKEND_OPERATION_MATMUL_DESCRIPTOR:
+            outputDesciptor = new miopen::graphapi::BackendOperationMatmulDescriptor();
+            break;
+
         default: MIOPEN_THROW(miopenStatusUnsupportedOp);
             // clang-format on
         }
@@ -215,6 +219,9 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
 
         case MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendOperationConvolutionBackwardDataDescriptor>(descriptor, sizeInBytes); break;
+
+        case MIOPEN_BACKEND_OPERATION_MATMUL_DESCRIPTOR:
+            initializeBackendDescriptor<miopen::graphapi::BackendOperationMatmulDescriptor>(descriptor, sizeInBytes); break;
 
         case MIOPEN_BACKEND_OPERATION_POINTWISE_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendOperationPointwiseDescriptor>(descriptor, sizeInBytes); break;
