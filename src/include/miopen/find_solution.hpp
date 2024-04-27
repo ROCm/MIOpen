@@ -309,13 +309,16 @@ struct SolverContainer
                 else
                 {
                     auto db = [&]() -> PerformanceDb& {
-                        if(!db_container)
+                        constexpr auto db_getter = [](const ExecutionContext& ctx, const auto& problem) -> PerformanceDb
                         {
                             if constexpr(IsTunable<decltype(solver)>())
-                                db_container.emplace(std::move(GetDb(ctx, problem)));
+                                return GetDb(ctx, problem);
                             else
                                 MIOPEN_THROW(miopenStatusInternalError);
-                        }
+                        };
+
+                        if(!db_container)
+                            db_container.emplace(std::move(db_getter(ctx, problem)));
 
                         return *db_container;
                     };
