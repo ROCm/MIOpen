@@ -218,6 +218,7 @@ MIOPEN_EXPORT extern bool
 
 } // namespace debug
 
+MIOPEN_EXPORT const std::string LoggingLevelToCustomString(LoggingLevel level, const char* custom);
 MIOPEN_EXPORT const char* LoggingLevelToCString(LoggingLevel level);
 MIOPEN_EXPORT std::string LoggingPrefix();
 
@@ -378,8 +379,12 @@ constexpr std::string_view LoggingParseFunction(const std::string_view func,
 #define MIOPEN_LOG_XQ_(level, disableQuieting, fn_name, ...) \
     MIOPEN_LOG_XQ_CUSTOM(level, disableQuieting, LoggingLevelToCString(level), fn_name, __VA_ARGS__)
 
-#define MIOPEN_LOG_CUSTOM(level, category, ...) \
-    MIOPEN_LOG_XQ_CUSTOM(level, false, category, MIOPEN_GET_FN_NAME, __VA_ARGS__)
+#define MIOPEN_LOG_CUSTOM(level, category, ...)                       \
+    MIOPEN_LOG_XQ_CUSTOM(level,                                       \
+                         false,                                       \
+                         LoggingLevelToCustomString(level, category), \
+                         MIOPEN_GET_FN_NAME,                          \
+                         __VA_ARGS__)
 #define MIOPEN_LOG(level, ...) MIOPEN_LOG_XQ_(level, false, MIOPEN_GET_FN_NAME, __VA_ARGS__)
 #define MIOPEN_LOG_NQ_(level, ...) MIOPEN_LOG_XQ_(level, true, MIOPEN_GET_FN_NAME, __VA_ARGS__)
 
