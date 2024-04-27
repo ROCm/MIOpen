@@ -81,6 +81,12 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DRIVER_PAD_BUFFERS_2M)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DRIVER_USE_GPU_REFERENCE)
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DRIVER_SUBNORM_PERCENTAGE)
 
+// 0 - Allocate WS size as reported by the library (default)
+// 1 - Do not allocate workspace.
+// 2...16 - Allocate smaller WS. Size = default/value.
+// Other - The driver allocates workspace size equal to the value of the variable (in bytes).
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DRIVER_CONV_WORKSPACE_SIZE_ADJUST)
+
 // Support in the library discontinued, but left in the driver
 // for reference in the future.
 #define miopenInt8x4 (static_cast<miopenDataType_t>(4))
@@ -136,6 +142,22 @@ private:
     bool naive_prev;
     bool quiet_prev;
 };
+
+static inline void AdjustWorkspacesizeVariableFromEnv(std::size_t& sz)
+{
+    auto adj = miopen::Value(ENV(MIOPEN_DRIVER_CONV_WORKSPACE_SIZE_ADJUST));
+    if(adj == 0ULL)
+        return; // nop
+    auto sz_save = sz;
+    if(adj == 1ULL)
+        sz = 0ULL;
+    else if(1 <= adj && adj <= 16)
+        sz /= adj;
+    else
+        sz = adj;
+    MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Info2, "MIOpenDriver", "From " << sz_save << " to " << sz);
+    return;
+}
 
 static inline miopenDataType_t DataTypeFromShortString(const std::string& type)
 {
@@ -566,11 +588,21 @@ private:
                                   Tref* data) const;
     void TrySaveVerificationCache(const Direction& direction, std::vector<Tref>& data) const;
 
+    void DebugPrintWorkspaceDev() const
+    {
+        MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Info2,
+                          "MIOpenDriver",
+                          "ptr=" << (workspace_dev != nullptr ? workspace_dev->GetMem() : nullptr)
+                                 << " size="
+                                 << (workspace_dev != nullptr ? workspace_dev->GetSize() : 0ULL));
+    }
+
     void ResizeWorkspaceDev(context_t ctx, std::size_t size)
     {
         workspace_dev.reset();
         if(size > 0)
             workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, size, 1));
+        DebugPrintWorkspaceDev();
     }
 
     // Helper functions, can be moved out of class.
@@ -1459,6 +1491,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                                                                   &ws_sizeof_find_wrw);
             wrw_auxiliary_gwss.pause(wall_enabled);
             wrw_auxiliary.pause(wall_enabled);
+            AdjustWorkspacesizeVariableFromEnv(ws_sizeof_find_wrw);
         }
         if(is_bwd && rc == miopenStatusSuccess)
         {
@@ -1472,6 +1505,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                                                                &ws_sizeof_find_bwd);
             bwd_auxiliary_gwss.pause(wall_enabled);
             bwd_auxiliary.pause(wall_enabled);
+            AdjustWorkspacesizeVariableFromEnv(ws_sizeof_find_bwd);
         }
         if(is_fwd && rc == miopenStatusSuccess)
         {
@@ -1486,6 +1520,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                 &ws_sizeof_find_fwd);
             fwd_auxiliary_gwss.pause(wall_enabled);
             fwd_auxiliary.pause(wall_enabled);
+            AdjustWorkspacesizeVariableFromEnv(ws_sizeof_find_fwd);
         }
         if(rc != miopenStatusSuccess)
         {
@@ -2120,6 +2155,14 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
     const auto ws_size = perf_results[0].memory;
     is_fwd_igemm       = (algo == miopenConvolutionFwdAlgoImplicitGEMM);
 
+    if(ws_size > ws_sizeof_find_fwd)
+    {
+        MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Error,
+                          "MIOpenDriver",
+                          "Find returns bigger workspace than provided " << ws_sizeof_find_fwd
+                                                                         << " < " << ws_size);
+        return miopenStatusInternalError;
+    }
     ResizeWorkspaceDev(ctx, ws_size);
     wall.start(wall_enabled);
 
@@ -2584,6 +2627,14 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
     const auto ws_size = perf_results_data[0].memory;
     is_bwd_igemm       = (algo == miopenConvolutionBwdDataAlgoImplicitGEMM);
 
+    if(ws_size > ws_sizeof_find_bwd)
+    {
+        MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Error,
+                          "MIOpenDriver",
+                          "Find returns bigger workspace than provided " << ws_sizeof_find_bwd
+                                                                         << " < " << ws_size);
+        return miopenStatusInternalError;
+    }
     ResizeWorkspaceDev(ctx, ws_size);
     wall.start(wall_enabled);
 
@@ -2788,6 +2839,14 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
     is_wrw_winograd    = (algo == miopenConvolutionBwdWeightsAlgoWinograd);
     is_wrw_igemm       = (algo == miopenConvolutionBwdWeightsAlgoImplicitGEMM);
 
+    if(ws_size > ws_sizeof_find_wrw)
+    {
+        MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Error,
+                          "MIOpenDriver",
+                          "Find returns bigger workspace than provided " << ws_sizeof_find_wrw
+                                                                         << " < " << ws_size);
+        return miopenStatusInternalError;
+    }
     ResizeWorkspaceDev(ctx, ws_size);
     wall.start(wall_enabled);
 
