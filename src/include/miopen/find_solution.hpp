@@ -309,8 +309,8 @@ struct SolverContainer
                 else
                 {
                     auto db = [&]() -> PerformanceDb& {
-                        constexpr auto db_getter = [](const ExecutionContext& ctx, const auto& problem) -> PerformanceDb
-                        {
+                        constexpr auto db_getter = [](const ExecutionContext& ctx,
+                                                      const auto& problem) -> PerformanceDb {
                             if constexpr(IsTunable<decltype(solver)>())
                                 return GetDb(ctx, problem);
                             else

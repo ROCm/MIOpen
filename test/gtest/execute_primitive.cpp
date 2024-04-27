@@ -72,7 +72,8 @@ struct TestProblemDescription : miopen::ProblemDescriptionBase
         visitor(self.net_config, "net_config");
     }
 
-    friend auto GetDb(const miopen::ExecutionContext&, const TestProblemDescription& problem) -> miopen::PerformanceDb
+    friend auto GetDb(const miopen::ExecutionContext&, const TestProblemDescription& problem)
+        -> miopen::PerformanceDb
     {
         return {miopen::DbKinds::PerfDb, problem.pdb_path, problem.updb_path};
     }

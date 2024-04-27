@@ -180,7 +180,8 @@ struct ProblemDescription : ProblemDescriptionBase
 
     NetworkConfig MakeNetworkConfig() const override;
 
-    friend auto GetDb(const miopen::ExecutionContext& ctx, const miopen::batchnorm::ProblemDescription&) -> miopen::PerformanceDb;
+    friend auto GetDb(const miopen::ExecutionContext& ctx,
+                      const miopen::batchnorm::ProblemDescription&) -> miopen::PerformanceDb;
 
 private:
     Direction direction;
