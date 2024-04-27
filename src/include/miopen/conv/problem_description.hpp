@@ -482,11 +482,11 @@ private:
     std::string in_layout;
     std::string weights_layout;
     std::string out_layout;
-    Direction direction = Direction::Forward;
-    int bias            = 0;
-    Scalar alpha        = {1.0};
-    Scalar beta         = {0.0};
-    AlphaBetaCase alpha_beta_case;
+    Direction direction           = Direction::Forward;
+    int bias                      = 0;
+    Scalar alpha                  = {1.0};
+    Scalar beta                   = {0.0};
+    AlphaBetaCase alpha_beta_case = AlphaBetaCase::IDENTITY;
 };
 
 } // namespace conv

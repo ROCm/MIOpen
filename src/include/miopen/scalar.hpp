@@ -60,8 +60,8 @@ struct Scalar
             }
             else
             {
-                mVal = *static_cast<const float*>(ptr);
-                type = miopenFloat;
+                mVal  = *static_cast<const float*>(ptr);
+                mType = miopenFloat;
             }
         }
     }
