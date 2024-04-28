@@ -119,8 +119,8 @@ inline __device__ __host__ int8_t cast_to(const int32_t& val)
 template <bool ASSUME_PACKED, typename src_data_t, typename acc_data_t, typename dst_data_t>
 inline __device__ void naive_conv_fwd_nchw(const src_data_t* __restrict__ p_in,
                                            const src_data_t* __restrict__ p_wei,
-                                           const float alpha,
-                                           const float beta,
+                                           const acc_data_t alpha,
+                                           const acc_data_t beta,
                                            dst_data_t* __restrict__ p_out,
                                            Strides5D in_strides,
                                            Strides5D wei_strides,
@@ -237,8 +237,8 @@ inline __device__ void naive_conv_fwd_nchw(const src_data_t* __restrict__ p_in,
             size_t o_idx = static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
 
             p_out[o_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_out[o_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_out[o_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
         else
         {
@@ -246,8 +246,8 @@ inline __device__ void naive_conv_fwd_nchw(const src_data_t* __restrict__ p_in,
                            static_cast<size_t>(iwo) * out_strides[0];
 
             p_out[o_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_out[o_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_out[o_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
     }
 }
@@ -255,8 +255,8 @@ inline __device__ void naive_conv_fwd_nchw(const src_data_t* __restrict__ p_in,
 template <bool ASSUME_PACKED, typename src_data_t, typename acc_data_t, typename dst_data_t>
 inline __device__ void naive_conv_bwd_nchw(dst_data_t* __restrict__ p_in,
                                            const src_data_t* __restrict__ p_wei,
-                                           const float alpha,
-                                           const float beta,
+                                           const acc_data_t alpha,
+                                           const acc_data_t beta,
                                            const src_data_t* __restrict__ p_out,
                                            Strides5D in_strides,
                                            Strides5D wei_strides,
@@ -379,8 +379,8 @@ inline __device__ void naive_conv_bwd_nchw(dst_data_t* __restrict__ p_in,
             size_t i_idx = static_cast<size_t>(ihi) * wi + static_cast<size_t>(iwi);
 
             p_in[i_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_in[i_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_in[i_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
         else
         {
@@ -388,8 +388,8 @@ inline __device__ void naive_conv_bwd_nchw(dst_data_t* __restrict__ p_in,
                 static_cast<size_t>(ihi) * in_strides[1] + static_cast<size_t>(iwi) * in_strides[0];
 
             p_in[i_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_in[i_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_in[i_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
     }
 }
@@ -397,8 +397,8 @@ inline __device__ void naive_conv_bwd_nchw(dst_data_t* __restrict__ p_in,
 template <bool ASSUME_PACKED, typename src_data_t, typename acc_data_t, typename dst_data_t>
 inline __device__ void naive_conv_wrw_nchw(const src_data_t* __restrict__ p_in,
                                            dst_data_t* __restrict__ p_wei,
-                                           const float alpha,
-                                           const float beta,
+                                           const acc_data_t alpha,
+                                           const acc_data_t beta,
                                            const src_data_t* __restrict__ p_out,
                                            Strides5D in_strides,
                                            Strides5D wei_strides,
@@ -518,8 +518,8 @@ inline __device__ void naive_conv_wrw_nchw(const src_data_t* __restrict__ p_in,
                            static_cast<size_t>(ix);
 
             p_wei[f_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_wei[f_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_wei[f_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
         else
         {
@@ -528,8 +528,8 @@ inline __device__ void naive_conv_wrw_nchw(const src_data_t* __restrict__ p_in,
                            static_cast<size_t>(ix) * wei_strides[0];
 
             p_wei[f_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_wei[f_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_wei[f_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
     }
 }
@@ -538,8 +538,8 @@ inline __device__ void naive_conv_wrw_nchw(const src_data_t* __restrict__ p_in,
 template <bool ASSUME_PACKED, typename src_data_t, typename acc_data_t, typename dst_data_t>
 inline __device__ void naive_conv_fwd_ncdhw(const src_data_t* __restrict__ p_in,
                                             const src_data_t* __restrict__ p_wei,
-                                            const float alpha,
-                                            const float beta,
+                                            const acc_data_t alpha,
+                                            const acc_data_t beta,
                                             dst_data_t* __restrict__ p_out,
                                             Strides6D in_strides,
                                             Strides6D wei_strides,
@@ -679,8 +679,8 @@ inline __device__ void naive_conv_fwd_ncdhw(const src_data_t* __restrict__ p_in,
                            static_cast<size_t>(iwo);
 
             p_out[o_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_out[o_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_out[o_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
         else
         {
@@ -689,8 +689,8 @@ inline __device__ void naive_conv_fwd_ncdhw(const src_data_t* __restrict__ p_in,
                            static_cast<size_t>(iwo) * out_strides[0];
 
             p_out[o_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_out[o_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_out[o_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
     }
 }
@@ -698,8 +698,8 @@ inline __device__ void naive_conv_fwd_ncdhw(const src_data_t* __restrict__ p_in,
 template <bool ASSUME_PACKED, typename src_data_t, typename acc_data_t, typename dst_data_t>
 inline __device__ void naive_conv_bwd_ncdhw(dst_data_t* __restrict__ p_in,
                                             const src_data_t* __restrict__ p_wei,
-                                            const float alpha,
-                                            const float beta,
+                                            const acc_data_t alpha,
+                                            const acc_data_t beta,
                                             const src_data_t* __restrict__ p_out,
                                             Strides6D in_strides,
                                             Strides6D wei_strides,
@@ -848,8 +848,8 @@ inline __device__ void naive_conv_bwd_ncdhw(dst_data_t* __restrict__ p_in,
                            static_cast<size_t>(iwi);
 
             p_in[i_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_in[i_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_in[i_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
         else
         {
@@ -858,8 +858,8 @@ inline __device__ void naive_conv_bwd_ncdhw(dst_data_t* __restrict__ p_in,
                            static_cast<size_t>(iwi) * in_strides[0];
 
             p_in[i_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_in[i_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_in[i_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
     }
 }
@@ -867,8 +867,8 @@ inline __device__ void naive_conv_bwd_ncdhw(dst_data_t* __restrict__ p_in,
 template <bool ASSUME_PACKED, typename src_data_t, typename acc_data_t, typename dst_data_t>
 inline __device__ void naive_conv_wrw_ncdhw(const src_data_t* __restrict__ p_in,
                                             dst_data_t* __restrict__ p_wei,
-                                            const float alpha,
-                                            const float beta,
+                                            const acc_data_t alpha,
+                                            const acc_data_t beta,
                                             const src_data_t* __restrict__ p_out,
                                             Strides6D in_strides,
                                             Strides6D wei_strides,
@@ -1008,8 +1008,8 @@ inline __device__ void naive_conv_wrw_ncdhw(const src_data_t* __restrict__ p_in,
                            static_cast<size_t>(ix);
 
             p_wei[f_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_wei[f_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_wei[f_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
         else
         {
@@ -1019,8 +1019,8 @@ inline __device__ void naive_conv_wrw_ncdhw(const src_data_t* __restrict__ p_in,
                            static_cast<size_t>(ix) * wei_strides[0];
 
             p_wei[f_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_wei[f_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_wei[f_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
     }
 }
@@ -1030,8 +1030,8 @@ inline __device__ void naive_conv_wrw_ncdhw(const src_data_t* __restrict__ p_in,
 template <bool ASSUME_PACKED, typename src_data_t, typename acc_data_t, typename dst_data_t>
 inline __device__ void naive_conv_fwd_nhwc(const src_data_t* __restrict__ p_in,
                                            const src_data_t* __restrict__ p_wei,
-                                           const float alpha,
-                                           const float beta,
+                                           const acc_data_t alpha,
+                                           const acc_data_t beta,
                                            dst_data_t* __restrict__ p_out,
                                            Strides5D in_strides,
                                            Strides5D wei_strides,
@@ -1148,8 +1148,8 @@ inline __device__ void naive_conv_fwd_nhwc(const src_data_t* __restrict__ p_in,
             size_t o_idx = static_cast<size_t>(iwo) * k + static_cast<size_t>(ik);
 
             p_out[o_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_out[o_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_out[o_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
         else
         {
@@ -1157,8 +1157,8 @@ inline __device__ void naive_conv_fwd_nhwc(const src_data_t* __restrict__ p_in,
                            static_cast<size_t>(ik) * out_strides[0];
 
             p_out[o_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_out[o_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_out[o_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
     }
 }
@@ -1166,8 +1166,8 @@ inline __device__ void naive_conv_fwd_nhwc(const src_data_t* __restrict__ p_in,
 template <bool ASSUME_PACKED, typename src_data_t, typename acc_data_t, typename dst_data_t>
 inline __device__ void naive_conv_bwd_nhwc(dst_data_t* __restrict__ p_in,
                                            const src_data_t* __restrict__ p_wei,
-                                           const float alpha,
-                                           const float beta,
+                                           const acc_data_t alpha,
+                                           const acc_data_t beta,
                                            const src_data_t* __restrict__ p_out,
                                            Strides5D in_strides,
                                            Strides5D wei_strides,
@@ -1291,16 +1291,16 @@ inline __device__ void naive_conv_bwd_nhwc(dst_data_t* __restrict__ p_in,
             size_t i_idx = static_cast<size_t>(iwi) * c + static_cast<size_t>(ic);
 
             p_in[i_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_in[i_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_in[i_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
         else
         {
             size_t i_idx =
                 static_cast<size_t>(iwi) * in_strides[2] + static_cast<size_t>(ic) * in_strides[0];
             p_in[i_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_in[i_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_in[i_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
     }
 }
@@ -1308,8 +1308,8 @@ inline __device__ void naive_conv_bwd_nhwc(dst_data_t* __restrict__ p_in,
 template <bool ASSUME_PACKED, typename src_data_t, typename acc_data_t, typename dst_data_t>
 inline __device__ void naive_conv_wrw_nhwc(const src_data_t* __restrict__ p_in,
                                            dst_data_t* __restrict__ p_wei,
-                                           const float alpha,
-                                           const float beta,
+                                           const acc_data_t alpha,
+                                           const acc_data_t beta,
                                            const src_data_t* __restrict__ p_out,
                                            Strides5D in_strides,
                                            Strides5D wei_strides,
@@ -1429,8 +1429,8 @@ inline __device__ void naive_conv_wrw_nhwc(const src_data_t* __restrict__ p_in,
                            static_cast<size_t>(ix) * c_per_group + static_cast<size_t>(ic);
 
             p_wei[f_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_wei[f_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_wei[f_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
         else
         {
@@ -1439,8 +1439,8 @@ inline __device__ void naive_conv_wrw_nhwc(const src_data_t* __restrict__ p_in,
                            static_cast<size_t>(ic) * wei_strides[0];
 
             p_wei[f_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_wei[f_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_wei[f_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
     }
 }
@@ -1449,8 +1449,8 @@ inline __device__ void naive_conv_wrw_nhwc(const src_data_t* __restrict__ p_in,
 template <bool ASSUME_PACKED, typename src_data_t, typename acc_data_t, typename dst_data_t>
 inline __device__ void naive_conv_fwd_ndhwc(const src_data_t* __restrict__ p_in,
                                             const src_data_t* __restrict__ p_wei,
-                                            const float alpha,
-                                            const float beta,
+                                            const acc_data_t alpha,
+                                            const acc_data_t beta,
                                             dst_data_t* __restrict__ p_out,
                                             Strides6D in_strides,
                                             Strides6D wei_strides,
@@ -1590,8 +1590,8 @@ inline __device__ void naive_conv_fwd_ndhwc(const src_data_t* __restrict__ p_in,
                            static_cast<size_t>(ik);
 
             p_out[o_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_out[o_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_out[o_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
         else
         {
@@ -1600,8 +1600,8 @@ inline __device__ void naive_conv_fwd_ndhwc(const src_data_t* __restrict__ p_in,
                            static_cast<size_t>(ik) * out_strides[0];
 
             p_out[o_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_out[o_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_out[o_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
     }
 }
@@ -1609,8 +1609,8 @@ inline __device__ void naive_conv_fwd_ndhwc(const src_data_t* __restrict__ p_in,
 template <bool ASSUME_PACKED, typename src_data_t, typename acc_data_t, typename dst_data_t>
 inline __device__ void naive_conv_bwd_ndhwc(dst_data_t* __restrict__ p_in,
                                             const src_data_t* __restrict__ p_wei,
-                                            const float alpha,
-                                            const float beta,
+                                            const acc_data_t alpha,
+                                            const acc_data_t beta,
                                             const src_data_t* __restrict__ p_out,
                                             Strides6D in_strides,
                                             Strides6D wei_strides,
@@ -1758,8 +1758,8 @@ inline __device__ void naive_conv_bwd_ndhwc(dst_data_t* __restrict__ p_in,
                            static_cast<size_t>(ic);
 
             p_in[i_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_in[i_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_in[i_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
         else
         {
@@ -1768,8 +1768,8 @@ inline __device__ void naive_conv_bwd_ndhwc(dst_data_t* __restrict__ p_in,
                            static_cast<size_t>(ic) * in_strides[0];
 
             p_in[i_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_in[i_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_in[i_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
     }
 }
@@ -1777,8 +1777,8 @@ inline __device__ void naive_conv_bwd_ndhwc(dst_data_t* __restrict__ p_in,
 template <bool ASSUME_PACKED, typename src_data_t, typename acc_data_t, typename dst_data_t>
 inline __device__ void naive_conv_wrw_ndhwc(const src_data_t* __restrict__ p_in,
                                             dst_data_t* __restrict__ p_wei,
-                                            const float alpha,
-                                            const float beta,
+                                            const acc_data_t alpha,
+                                            const acc_data_t beta,
                                             const src_data_t* __restrict__ p_out,
                                             Strides6D in_strides,
                                             Strides6D wei_strides,
@@ -1919,8 +1919,8 @@ inline __device__ void naive_conv_wrw_ndhwc(const src_data_t* __restrict__ p_in,
                            static_cast<size_t>(ix) * c_per_group + static_cast<size_t>(ic);
 
             p_wei[f_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_wei[f_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_wei[f_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
         else
         {
@@ -1930,8 +1930,8 @@ inline __device__ void naive_conv_wrw_ndhwc(const src_data_t* __restrict__ p_in,
                            static_cast<size_t>(ic) * wei_strides[0];
 
             p_wei[f_idx] =
-                cast_to<float, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
-                p_wei[f_idx] * cast_to<float, dst_data_t>(beta);
+                cast_to<acc_data_t, dst_data_t>(alpha) * cast_to<acc_data_t, dst_data_t>(value) +
+                p_wei[f_idx] * cast_to<acc_data_t, dst_data_t>(beta);
         }
     }
 }

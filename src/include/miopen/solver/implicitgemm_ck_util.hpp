@@ -43,6 +43,34 @@ struct ProblemDescription;
 
 namespace solver {
 
+namespace internal {
+
+template <typename T>
+struct AlphaBetaTypeMapper;
+
+template <>
+struct AlphaBetaTypeMapper<ck::half_t>
+{
+    using type = float;
+};
+
+template <>
+struct AlphaBetaTypeMapper<float>
+{
+    using type = float;
+};
+template <>
+struct AlphaBetaTypeMapper<int8_t>
+{
+    using type = float;
+};
+template <>
+struct AlphaBetaTypeMapper<double>
+{
+    using type = double;
+};
+} // namespace internal
+
 struct ConvSolution;
 
 template <typename ConvPtrsType>
