@@ -47,7 +47,7 @@ AlphaBetaCase GetAlphaBetaCase(const Scalar& alpha, const Scalar& beta)
     using T = double;
 
     T alpha_val = alpha.GetAsDouble();
-    T beta_val  = alpha.GetAsDouble();
+    T beta_val  = beta.GetAsDouble();
 
     bool alpha_one  = isCloseToOne<T>(alpha_val);
     bool beta_zero  = isCloseToZero<T>(beta_val);
