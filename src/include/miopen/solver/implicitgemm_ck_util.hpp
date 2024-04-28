@@ -48,11 +48,13 @@ namespace internal {
 template <typename T>
 struct AlphaBetaTypeMapper;
 
+#if MIOPEN_USE_COMPOSABLEKERNEL
 template <>
 struct AlphaBetaTypeMapper<ck::half_t>
 {
     using type = float;
 };
+#endif // MIOPEN_USE_COMPOSABLEKERNEL
 
 template <>
 struct AlphaBetaTypeMapper<float>
