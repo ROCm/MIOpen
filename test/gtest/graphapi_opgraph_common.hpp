@@ -86,9 +86,11 @@ private:
     std::unordered_map<std::string, gr::Tensor> mTensorMap;
     std::vector<DummyNode> mNodes;
     gr::OpGraph mGraph;
+    miopenHandle_t mHandle = nullptr;
 
     DummyOpGraphGenerator(const std::vector<DummyNodeGenSpec>& node_specs)
     {
+        miopenCreate(&mHandle);
 
         for(const auto& ns : node_specs)
         {
@@ -112,6 +114,8 @@ private:
 
         gr::OpGraphBuilder builder;
 
+        builder.setHandle(mHandle);
+
         for(auto& n : mNodes)
         {
             builder.addNode(&n);
@@ -125,7 +129,8 @@ public:
     DummyOpGraphGenerator(DummyOpGraphGenerator&&)      = delete;
     DummyOpGraphGenerator& operator=(const DummyOpGraphGenerator&) = delete;
     DummyOpGraphGenerator& operator=(DummyOpGraphGenerator&&) = delete;
-    ~DummyOpGraphGenerator()                                  = default;
+
+    ~DummyOpGraphGenerator() { miopenDestroy(mHandle); }
 
     static std::unique_ptr<DummyOpGraphGenerator>
     Make(const std::vector<DummyNodeGenSpec>& node_specs)
