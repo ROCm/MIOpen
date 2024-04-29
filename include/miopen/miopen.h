@@ -6597,6 +6597,14 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
  * gradients. Fused Adam optimization efficiently combines multiple operations into a single kernel,
  * reducing memory access overhead and improving performance.
  *
+ * Additionally,  Fused Adam can be utilized in both adam w and Automatic Mixed Precision (AMP),
+ * enabling accelerated model training and reduced memory consumption. AMP supports FP16
+ * computation, optimizing model calculations using a mixture of FP32 and FP16 precision to enhance
+ * training speed. When utilizing AMP, FoundInf, ScaleGrad, and step tensors should be employed. In
+ * AMP mode, the execution of Adam is determined based on the FoundInf value. State Step accepts
+ * both int values and int tensors. If a Step tensor is employed, the step received as an int is
+ * disregarded, and if Adam is executed, the step tensor is incremented by 1.
+ *
  * @code
  * // Execute Adam
  * miopenFusedAdam(handle,
