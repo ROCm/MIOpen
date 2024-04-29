@@ -35,6 +35,11 @@
 
 miopenStatus_t CheckStatusAndThrow(miopenStatus_t status, const std::string& msg, bool addStatusToMessage = true)
 {
+    if(status == miopenStatusSuccess)
+    {
+        return status;
+    }
+
     std::string newMsg = msg;
 
     if (addStatusToMessage)
@@ -123,7 +128,8 @@ DescriptorWrapperPtr MakeTensorDescriptor(int64_t uniqueId,
                                           int64_t n      = 1,
                                           int64_t h      = 1,
                                           int64_t s      = 1,
-                                          int64_t d      = 1)
+                                          int64_t d      = 1,
+                                          bool transpose = false)
 {
     DescriptorWrapperPtr descWrapperPtr = MakeDescriptor(MIOPEN_BACKEND_TENSOR_DESCRIPTOR);
 
@@ -131,13 +137,21 @@ DescriptorWrapperPtr MakeTensorDescriptor(int64_t uniqueId,
 
     descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_DATA_TYPE, MIOPEN_TYPE_DATA_TYPE, 1, &dtype);
 
-    int64_t dims[]    = {n, h, s, d};
-    int64_t strides[] = {1, 1, 1, 1};
-    int64_t alignment = 4;
+    std::vector<int64_t> dims    = {n, h, s, d};
+    std::vector<int64_t> strides = {1, n, n*h, n*h*s};
 
-    descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_DIMENSIONS, MIOPEN_TYPE_INT64, 4, dims);
+    if (transpose)
+    {
+        dims = {n, h, d, s};       
+        strides = {1, n, n*h*s, n*h};
+    }
 
-    descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_STRIDES, MIOPEN_TYPE_INT64, 4, strides);
+    // commented this out as Not Implemented
+    // int64_t alignment = 4;
+
+    descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_DIMENSIONS, MIOPEN_TYPE_INT64, 4, dims.data());
+
+    descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_STRIDES, MIOPEN_TYPE_INT64, 4, strides.data());
     descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_UNIQUE_ID, MIOPEN_TYPE_INT64, 1, &uniqueId);
 
     // commented this out as Not Implemented
@@ -199,6 +213,9 @@ DescriptorWrapperPtr MakePointwise(miopenPointwiseMode_t mode,
     DescriptorWrapperPtr pointwise = MakeDescriptor(MIOPEN_BACKEND_POINTWISE_DESCRIPTOR);
 
     pointwise->SetAttribute(MIOPEN_ATTR_POINTWISE_MODE, MIOPEN_TYPE_POINTWISE_MODE, 1, &mode);
+
+    miopenDataType_t dType = miopenFloat;
+    pointwise->SetAttribute(MIOPEN_ATTR_POINTWISE_MATH_PREC, MIOPEN_TYPE_DATA_TYPE, 1, &dType);
     pointwise->Finalize();
 
     miopenBackendDescriptor_t childDesc = pointwise->GetDescriptor();
@@ -259,11 +276,11 @@ DescriptorWrapperPtr MakeReduction(miopenReduceTensorOp_t opType,
     DescriptorWrapperPtr reductionOperation =
         MakeDescriptor(MIOPEN_BACKEND_OPERATION_REDUCTION_DESCRIPTOR);
     reductionOperation->SetAttribute(
-        MIOPEN_ATTR_OPERATION_REDUCTION_XDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &childDesc);
+        MIOPEN_ATTR_OPERATION_REDUCTION_XDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &tensor1Desc);
     reductionOperation->SetAttribute(
-        MIOPEN_ATTR_OPERATION_REDUCTION_YDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &tensor1Desc);
+        MIOPEN_ATTR_OPERATION_REDUCTION_YDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &outputDesc);
     reductionOperation->SetAttribute(
-        MIOPEN_ATTR_OPERATION_REDUCTION_DESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &outputDesc);
+        MIOPEN_ATTR_OPERATION_REDUCTION_DESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &childDesc);
 
     reductionOperation->AddRef(reduction);
 
@@ -314,9 +331,9 @@ TEST(TestCGraphApi, MhaForward)
     try
     {
         // real tensors
-        auto k        = MakeTensorDescriptor(GetNextId(), false, test_n, test_h, test_s, test_d);
+        auto q        = MakeTensorDescriptor(GetNextId(), false, test_n, test_h, test_s, test_d);        
+        auto k        = MakeTensorDescriptor(GetNextId(), false, test_n, test_h, test_s, test_d, true); // transpose the tensor
         auto v        = MakeTensorDescriptor(GetNextId(), false, test_n, test_h, test_s, test_d);
-        auto q        = MakeTensorDescriptor(GetNextId(), false, test_n, test_h, test_s, test_d);
         auto descaleK = MakeTensorDescriptor(GetNextId());
         auto descaleQ = MakeTensorDescriptor(GetNextId());
         auto descaleV = MakeTensorDescriptor(GetNextId());
@@ -363,8 +380,8 @@ TEST(TestCGraphApi, MhaForward)
         auto pwScale1 = MakePointwise(MIOPEN_POINTWISE_MUL, pwS0, descaleQ, pwS1);
         auto pwScale2 = MakePointwise(MIOPEN_POINTWISE_MUL, pwS1, descaleK, pwS2);
 
-        auto reduction0 = MakeReduction(MIOPEN_REDUCE_TENSOR_MAX, pwScale2, m);
-        auto pwSubtract = MakePointwise(MIOPEN_POINTWISE_SUB, pwScale2, m, tSub);
+        auto reduction0 = MakeReduction(MIOPEN_REDUCE_TENSOR_MAX, pwS2, m);
+        auto pwSubtract = MakePointwise(MIOPEN_POINTWISE_SUB, pwS2, m, tSub);
         auto pwExp      = MakePointwise(MIOPEN_POINTWISE_EXP, tSub, DescriptorWrapperPtr(), tExp);
         auto reduction1 = MakeReduction(MIOPEN_REDUCE_TENSOR_ADD, tExp, tSum);
         auto pwInv      = MakePointwise(MIOPEN_POINTWISE_EXP, tSum, DescriptorWrapperPtr(), zInv);
