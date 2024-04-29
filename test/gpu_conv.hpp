@@ -74,8 +74,8 @@ bool gpu_ref_convolution_fwd(const tensor<Tin>& input,
                              const tensor<Twei>& weights,
                              tensor<Tout>& rout,
                              miopen::ConvolutionDescriptor filter,
-                             ConstData_t alpha = nullptr,
-                             ConstData_t beta  = nullptr)
+                             const miopen::Scalar& alpha = {1.0},
+                             const miopen::Scalar& beta  = {0.0})
 {
     bool gpu_ref_used = false;
     if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF)))
@@ -118,8 +118,8 @@ bool gpu_ref_convolution_bwd(tensor<Tin>& input,
                              const tensor<Twei>& weights,
                              const tensor<Tout> output,
                              miopen::ConvolutionDescriptor filter,
-                             ConstData_t alpha = nullptr,
-                             ConstData_t beta  = nullptr)
+                             const miopen::Scalar& alpha = {1.0},
+                             const miopen::Scalar& beta  = {0.0})
 {
     bool gpu_ref_used = false;
     if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF)))
@@ -162,8 +162,8 @@ bool gpu_ref_convolution_wrw(const tensor<Tin>& input,
                              tensor<Twei>& weights,
                              const tensor<Tout> output,
                              miopen::ConvolutionDescriptor filter,
-                             ConstData_t alpha = nullptr,
-                             ConstData_t beta  = nullptr)
+                             const miopen::Scalar& alpha = {1.0},
+                             const miopen::Scalar& beta  = {0.0})
 {
     bool gpu_ref_used = false;
     if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF)))

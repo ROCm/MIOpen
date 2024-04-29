@@ -86,24 +86,24 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ExecutionContext& ctx,
 
     if(problem.Is2d())
     {
-        if(problem.GetInDataType() == miopenDataType_t::miopenDouble)
+        if(IsAccInt32(problem))
         {
-            result = conv_internal::GetConv2DWRWSolution<double>(ctx, problem);
+            result = conv_internal::GetConv2DWRWSolution<int32_t>(ctx, problem);
         }
         else
         {
-            result = conv_internal::GetConv2DWRWSolution<float>(ctx, problem);
+            result = conv_internal::GetConv2DWRWSolution<double>(ctx, problem);
         }
     }
     else
     {
-        if(problem.GetInDataType() == miopenDataType_t::miopenDouble)
+        if(IsAccInt32(problem))
         {
-            result = conv_internal::GetConv3DWRWSolution<double>(ctx, problem);
+            result = conv_internal::GetConv3DWRWSolution<int32_t>(ctx, problem);
         }
         else
         {
-            result = conv_internal::GetConv3DWRWSolution<float>(ctx, problem);
+            result = conv_internal::GetConv3DWRWSolution<double>(ctx, problem);
         }
     }
     return result;

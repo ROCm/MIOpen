@@ -77,14 +77,19 @@ struct Scalar
         {
             return GetAsDouble();
         }
+        if constexpr(std::is_same_v<int32_t, T>)
+        {
+            return GetAsInt32();
+        }
         else
         {
             MIOPEN_THROW("Only expected float or double.");
         }
     }
 
-    float GetAsFloat() const { return (float)mVal; }
-    double GetAsDouble() const { return mVal; }
+    int32_t GetAsInt32() const { return static_cast<int32_t>(mVal); }
+    float GetAsFloat() const { return static_cast<float>(mVal); }
+    double GetAsDouble() const { return static_cast<double>(mVal); }
 
     miopenDataType_t GetType() const { return mType; }
 
