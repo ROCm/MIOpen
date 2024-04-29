@@ -37,11 +37,7 @@
 
 #include "serialize.hpp"
 
-#if !defined(_WIN32)
 #include <half/half.hpp>
-#else
-#include <half.hpp>
-#endif
 using half         = half_float::half;
 using hip_bfloat16 = bfloat16;
 #include <hip_float8.hpp>
@@ -187,7 +183,12 @@ struct tensor
 
     tensor(miopen::TensorDescriptor rhs) : desc(std::move(rhs))
     {
-        assert(desc.GetType() == miopen_type<T>{});
+        assert(desc.GetType() == miopen_type<T>{}
+               /// In the driver, T is input tensor type, but output tensor holders
+               /// are instantiatied with T as well. This leads to false assertion
+               /// failures when T is INT8 because output type is different.
+               /// \todo Get rid of this hack when the driver is improved:
+               || (miopen_type<T>{} == miopenInt8 && desc.GetType() == miopenInt32));
         data.resize(desc.GetElementSpace());
     }
 
