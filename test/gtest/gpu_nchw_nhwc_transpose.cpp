@@ -52,11 +52,7 @@ struct miopen_type<uint16_t> : std::integral_constant<miopenDataType_t, miopenHa
 {
 };
 
-#if MIOPEN_BACKEND_OPENCL
-    #define ASSERT_CL_SUCCESS(x) ASSERT_EQ((x), CL_SUCCESS)
-#else
-    #define ASSERT_HIP_SUCCESS(x) ASSERT_EQ((x), hipSuccess)
-#endif
+#define ASSERT_HIP_SUCCESS(x) ASSERT_EQ((x), hipSuccess)
 
 namespace batched_transpose {
 
@@ -291,16 +287,10 @@ void verify_tensor(tensor<T>& t_tst, const char* _tst, tensor<T>& t_ref, const c
 struct transpose_base
 {
     miopenHandle_t handle{};
-#if MIOPEN_BACKEND_OPENCL
-    cl_command_queue q{};
-#endif
 
     transpose_base()
     {
         miopenCreate(&handle);
-#if MIOPEN_BACKEND_OPENCL
-        miopenGetStream(handle, &q);
-#endif
     }
     ~transpose_base() { miopenDestroy(handle); }
 
@@ -404,33 +394,13 @@ struct transpose_test : transpose_base
             tensor<T> t_dst_gpu(tensor_len, tensor_strides);
 
             rand_tensor_integer(t_src);
-#if MIOPEN_BACKEND_OPENCL
-            cl_context cl_ctx;
-            clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &cl_ctx, nullptr);
-            cl_int status = CL_SUCCESS;
-            cl_mem src_dev =
-                clCreateBuffer(cl_ctx, CL_MEM_READ_WRITE, sizeof(T) * tensor_sz, nullptr, &status);
-            cl_mem dst_dev =
-                clCreateBuffer(cl_ctx, CL_MEM_READ_WRITE, sizeof(T) * tensor_sz, nullptr, nullptr);
-            status |= clEnqueueWriteBuffer(q,
-                                           src_dev,
-                                           CL_TRUE,
-                                           0,
-                                           sizeof(T) * tensor_sz,
-                                           t_src.data.data(),
-                                           0,
-                                           nullptr,
-                                           nullptr);
 
-            ASSERT_CL_SUCCESS(status);
-#elif MIOPEN_BACKEND_HIP
             void* src_dev;
             void* dst_dev;
             ASSERT_HIP_SUCCESS(hipMalloc(&src_dev, sizeof(T) * tensor_sz));
             ASSERT_HIP_SUCCESS(hipMalloc(&dst_dev, sizeof(T) * tensor_sz));
             ASSERT_HIP_SUCCESS(hipMemcpy(
                 src_dev, t_src.data.data(), sizeof(T) * tensor_sz, hipMemcpyHostToDevice));
-#endif
 
             const auto invoke_param = transpose_invoke_param{
                 DataCast(static_cast<const void*>(src_dev)), DataCast(dst_dev)};
@@ -468,21 +438,8 @@ struct transpose_test : transpose_base
             // run gpu
             invoker(miopen::deref(this->handle), invoke_param);
 
-#if MIOPEN_BACKEND_OPENCL
-            status = clEnqueueReadBuffer(q,
-                                         dst_dev,
-                                         CL_TRUE,
-                                         0,
-                                         sizeof(T) * tensor_sz,
-                                         t_dst_gpu.data.data(),
-                                         0,
-                                         nullptr,
-                                         nullptr);
-            ASSERT_CL_SUCCESS(status);
-#elif MIOPEN_BACKEND_HIP
             ASSERT_HIP_SUCCESS(hipMemcpy(
                 t_dst_gpu.data.data(), dst_dev, sizeof(T) * tensor_sz, hipMemcpyDeviceToHost));
-#endif
 
             // run cpu
             cpu_transpose<T, TRANSPOSE_SOL>::run(t_dst.data.data(), t_src.data.data(), n, c, h, w);
@@ -490,13 +447,8 @@ struct transpose_test : transpose_base
             // we expect exact match, since use integer
             verify_tensor(t_dst_gpu, "gpu", t_dst, "cpu");
 
-#if MIOPEN_BACKEND_OPENCL
-            clReleaseMemObject(src_dev);
-            clReleaseMemObject(dst_dev);
-#elif MIOPEN_BACKEND_HIP
             hipFree(src_dev);
             hipFree(dst_dev);
-#endif
         };
 
         iterate_transpose(run_transpose);
