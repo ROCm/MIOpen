@@ -289,17 +289,18 @@ DescriptorWrapperPtr MakeReduction(miopenReduceTensorOp_t opType,
     return reductionOperation;
 }
 
-DescriptorWrapperPtr MakeRNG(DescriptorWrapperPtr probability,
+DescriptorWrapperPtr MakeRNG(double probability,
                              DescriptorWrapperPtr seed,
                              DescriptorWrapperPtr offset,
                              DescriptorWrapperPtr output)
 {
     DescriptorWrapperPtr rng = MakeDescriptor(MIOPEN_BACKEND_RNG_DESCRIPTOR);
+
+    rng->SetAttribute(MIOPEN_ATTR_RNG_BERNOULLI_DIST_PROBABILITY, MIOPEN_TYPE_DOUBLE, 1, &probability);
     rng->Finalize();
 
     miopenBackendDescriptor_t childDesc = rng->GetDescriptor();
 
-    miopenBackendDescriptor_t probabilityDesc = probability->GetDescriptor();
     miopenBackendDescriptor_t seedDesc        = seed->GetDescriptor();
     miopenBackendDescriptor_t offsetDesc      = offset->GetDescriptor();
     miopenBackendDescriptor_t outputDesc      = output->GetDescriptor();
@@ -341,7 +342,11 @@ TEST(TestCGraphApi, MhaForward)
         auto scaleS   = MakeTensorDescriptor(GetNextId());
         auto scaleO   = MakeTensorDescriptor(GetNextId());
 
+        // we have only double input for probability in RNG node, however
+        // for pointwise pwScale3 we need to have it as a tensor, so we need to have these values synced
+        double probability_bernulli = 0.5;
         auto dp   = MakeTensorDescriptor(GetNextId());
+
         auto ds   = MakeTensorDescriptor(GetNextId());
         auto doff = MakeTensorDescriptor(GetNextId());
 
@@ -389,7 +394,7 @@ TEST(TestCGraphApi, MhaForward)
 
         auto reduction2 = MakeReduction(MIOPEN_REDUCE_TENSOR_MAX, tMult0, amaxS);
 
-        auto rng = MakeRNG(dp, ds, doff, tRnd);
+        auto rng = MakeRNG(probability_bernulli, ds, doff, tRnd);
 
         auto pwMult1  = MakePointwise(MIOPEN_POINTWISE_MUL, tMult0, tRnd, tMult1);
         auto pwScale3 = MakePointwise(MIOPEN_POINTWISE_MUL, tMult1, dp, pwS3);
