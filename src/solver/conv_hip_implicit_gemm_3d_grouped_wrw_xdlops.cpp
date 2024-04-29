@@ -74,6 +74,7 @@ using DeviceOpGBwdWrwPtrs = ck::tensor_operation::device::instance::DeviceOperat
 
 namespace {
 
+template <typename DataType>
 struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
@@ -169,7 +170,7 @@ struct CKArgs
                                              lPadding,
                                              rPadding,
                                              PassThrough{},
-                                             Bilinear{*static_cast<const float*>(alpha), *static_cast<const float*>(beta)},
+                                             Bilinear{alpha.GetVal<DataType>(), beta.GetVal<DataType>()},
                                              PassThrough{},
                                              split_k);
     }
@@ -202,8 +203,8 @@ struct CKArgs
     int Y;
     int X;
     int Z;
-    ConstData_t alpha;
-    ConstData_t beta;
+    Scalar alpha;
+    Scalar beta;
     ck::index_t split_k = 1;
     std::array<ck::index_t, 6> in_lengths;
     std::array<ck::index_t, 6> in_strides;
@@ -221,7 +222,7 @@ struct CKArgs
 template <typename DataType>
 void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::Init(const ProblemDescription& problem)
 {
-    valid_kernels = FillValidKernelsIDs<DeviceOpGBwdWrwPtrs<DataType>, CKArgs>(problem);
+    valid_kernels = FillValidKernelsIDs<DeviceOpGBwdWrwPtrs<DataType>, CKArgs<DataType>>(problem);
     index         = 0;
     kernel_id     = valid_kernels[index];
 }
@@ -230,14 +231,14 @@ template <typename DataType>
 bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
-    return IsCKArgsSupported<DeviceOpGBwdWrwPtrs<DataType>, CKArgs>(problem, kernel_id);
+    return IsCKArgsSupported<DeviceOpGBwdWrwPtrs<DataType>, CKArgs<DataType>>(problem, kernel_id);
 }
 
 template <typename DataType>
 bool ConvHipImplicitGemm3DGroupWrwXdlops::CheckCKApplicability(
     const ProblemDescription& problem) const
 {
-    return IsCKApplicable<DeviceOpGBwdWrwPtrs<DataType>, CKArgs>(problem);
+    return IsCKApplicable<DeviceOpGBwdWrwPtrs<DataType>, CKArgs<DataType>>(problem);
 }
 #endif
 
@@ -394,14 +395,14 @@ ConvSolution ConvHipImplicitGemm3DGroupWrwXdlops::GetSolution(
             using T = decltype(data_type_val);
             return InitInvokerFactoryWrwNCHW<3,
                                              DeviceOpGBwdWrwPtrs<T>,
-                                             CKArgs,
+                                             CKArgs<T>,
                                              miopen::conv::WrWInvokeParams>(
                 ctx, problem, config.kernel_id);
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
             return InitInvokerFactoryNHWC<DeviceOpGBwdWrwPtrs<T>,
-                                          CKArgs,
+                                          CKArgs<T>,
                                           miopen::conv::WrWInvokeParams>(
                 ctx, problem, config.kernel_id);
         });

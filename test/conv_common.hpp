@@ -346,8 +346,8 @@ tensor<Tout> ref_conv_fwd(const tensor<T>& input,
                           const tensor<T>& weights,
                           const tensor<Tout>& out,
                           const miopen::ConvolutionDescriptor& filter,
-                          ConstData_t alpha = nullptr,
-                          ConstData_t beta  = nullptr)
+                          const miopen::Scalar& alpha = {1.0},
+                          const miopen::Scalar& beta  = {0.0})
 {
     auto rout = out;
     if(filter.mode == miopenTranspose)
@@ -392,8 +392,8 @@ tensor<Twei> ref_conv_wrw(const tensor<T>& input,
                           const tensor<Twei>& weights,
                           const tensor<Tout>& out,
                           const miopen::ConvolutionDescriptor& filter,
-                          ConstData_t alpha = nullptr,
-                          ConstData_t beta  = nullptr)
+                          const miopen::Scalar& alpha = {1.0},
+                          const miopen::Scalar& beta  = {0.0})
 {
     auto rwei = weights;
     std::fill(rwei.begin(), rwei.end(), 0);
@@ -418,8 +418,8 @@ tensor<Tout> ref_conv_bwd(const tensor<Tout>& input,
                           const tensor<T>& weights,
                           const tensor<T>& out,
                           const miopen::ConvolutionDescriptor& filter,
-                          ConstData_t alpha = nullptr,
-                          ConstData_t beta  = nullptr)
+                          const miopen::Scalar& alpha = {1.0},
+                          const miopen::Scalar& beta  = {0.0})
 {
     auto rinput = input;
 
@@ -465,8 +465,8 @@ tensor<Tout> ref_conv_wrw(const tensor<T>& input,
                           const tensor<Tout>& weights,
                           const tensor<T>& out,
                           const miopen::ConvolutionDescriptor& filter,
-                          ConstData_t alpha = nullptr,
-                          ConstData_t beta  = nullptr)
+                          const miopen::Scalar& alpha = {1.0},
+                          const miopen::Scalar& beta  = {0.0})
 {
     auto rweights = weights;
     std::fill(rweights.begin(), rweights.end(), 0);

@@ -74,6 +74,7 @@ using DeviceOpGBwdPtrs =
 
 namespace {
 
+template <typename DataType>
 struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
@@ -172,7 +173,7 @@ struct CKArgs
             rPadding,
             PassThrough{},
             PassThrough{},
-            Bilinear{*static_cast<const float*>(alpha), *static_cast<const float*>(beta)});
+            Bilinear{alpha.GetVal<DataType>(), beta.GetVal<DataType>()});
     }
 
     template <typename ConvPtr>
@@ -203,8 +204,8 @@ struct CKArgs
     int Y;
     int X;
     int Z;
-    ConstData_t alpha;
-    ConstData_t beta;
+    Scalar alpha;
+    Scalar beta;
     std::array<ck::index_t, 6> in_lengths;
     std::array<ck::index_t, 6> in_strides;
     std::array<ck::index_t, 6> out_lengths;
@@ -221,7 +222,7 @@ struct CKArgs
 template <typename DataType>
 void PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::Init(const ProblemDescription& problem)
 {
-    valid_kernels = FillValidKernelsIDs<DeviceOpGBwdPtrs<DataType>, CKArgs>(problem);
+    valid_kernels = FillValidKernelsIDs<DeviceOpGBwdPtrs<DataType>, CKArgs<DataType>>(problem);
     index         = 0;
     kernel_id     = valid_kernels[index];
 }
@@ -230,14 +231,14 @@ template <typename DataType>
 bool PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
-    return IsCKArgsSupported<DeviceOpGBwdPtrs<DataType>, CKArgs>(problem, kernel_id);
+    return IsCKArgsSupported<DeviceOpGBwdPtrs<DataType>, CKArgs<DataType>>(problem, kernel_id);
 }
 
 template <typename DataType>
 bool ConvHipImplicitGemm3DGroupBwdXdlops::CheckCKApplicability(
     const ProblemDescription& problem) const
 {
-    return IsCKApplicable<DeviceOpGBwdPtrs<DataType>, CKArgs>(problem);
+    return IsCKApplicable<DeviceOpGBwdPtrs<DataType>, CKArgs<DataType>>(problem);
 }
 #endif
 
@@ -396,14 +397,14 @@ ConvSolution ConvHipImplicitGemm3DGroupBwdXdlops::GetSolution(
             using T = decltype(data_type_val);
             return InitInvokerFactoryBwdNCHW<3,
                                              DeviceOpGBwdPtrs<T>,
-                                             CKArgs,
+                                             CKArgs<T>,
                                              miopen::conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
             return InitInvokerFactoryNHWC<DeviceOpGBwdPtrs<T>,
-                                          CKArgs,
+                                          CKArgs<T>,
                                           miopen::conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         });

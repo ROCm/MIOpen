@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include <miopen/scalar.hpp>
 #include <miopen/invoke_params.hpp>
 #include <miopen/conv/tensors.hpp>
 
@@ -38,15 +39,15 @@ struct WrWInvokeParams : InvokeParams
     Data_t workSpace;
     std::size_t workSpaceSize;
     bool gfx90aFp16alt;
-    ConstData_t alpha;
-    ConstData_t beta;
+    Scalar alpha;
+    Scalar beta;
 
     WrWInvokeParams(ConvWrwTensors tensors_,
                     Data_t workSpace_,
                     std::size_t workSpaceSize_,
                     bool gfx90aFp16alt_,
-                    ConstData_t alpha_ = nullptr,
-                    ConstData_t beta_  = nullptr)
+                    const Scalar& alpha_ = {1.0},
+                    const Scalar& beta_  = {0.0})
         : tensors(tensors_),
           workSpace(workSpace_),
           workSpaceSize(workSpaceSize_),
@@ -61,8 +62,8 @@ struct WrWInvokeParams : InvokeParams
                     Data_t workSpace_,
                     std::size_t workSpaceSize_,
                     bool gfx90aFp16alt_,
-                    ConstData_t alpha_ = nullptr,
-                    ConstData_t beta_  = nullptr)
+                    const Scalar& alpha_ = {1.0},
+                    const Scalar& beta_  = {0.0})
         : InvokeParams{type_},
           tensors(tensors_),
           workSpace(workSpace_),

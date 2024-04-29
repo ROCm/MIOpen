@@ -29,6 +29,7 @@
 #include <boost/any.hpp>
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/names.hpp>
+#include <miopen/scalar.hpp>
 
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
@@ -146,9 +147,9 @@ struct ProblemDescription : ProblemDescriptionBase
                        const TensorDescriptor& out_, // y for Forward, x for Backward*
                        const ConvolutionDescriptor& conv_,
                        Direction direction_,
-                       int bias_          = 0,
-                       ConstData_t alpha_ = nullptr,
-                       ConstData_t beta_  = nullptr)
+                       int bias_            = 0,
+                       const Scalar& alpha_ = {1.0},
+                       const Scalar& beta_  = {0.0})
         : in(in_),
           weights(weights_),
           out(out_),
@@ -162,6 +163,7 @@ struct ProblemDescription : ProblemDescriptionBase
           beta(beta_)
     {
         HeuristicUpdateLayouts();
+        alpha_beta_case = GetAlphaBetaCase(alpha, beta);
     }
 
     // Conv descriptor getters
@@ -252,20 +254,10 @@ struct ProblemDescription : ProblemDescriptionBase
     bool IsDirectionBackwardWrW() const { return direction == conv::Direction::BackwardWeights; }
     std::string GetDirectionStr() const;
 
-    ConstData_t GetAlpha() const { return alpha; }
-    ConstData_t GetBeta() const { return beta; }
+    Scalar GetAlpha() const { return alpha; }
+    Scalar GetBeta() const { return beta; }
 
-    bool IsDefaultAlphaBetaType() const
-    {
-        if(alpha == nullptr && beta == nullptr)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
+    AlphaBetaCase GetAlphaBetaEnumCase() { return alpha_beta_case; }
 
     int GetBias() const { return bias; }
 
@@ -424,7 +416,6 @@ struct ProblemDescription : ProblemDescriptionBase
         f(self.GetDilationD(), "dilation_d");
         f(self.GetBias(), "bias");
         f(self.GetGroupCount(), "group_count");
-        f(static_cast<int>(self.IsDefaultAlphaBetaType()), "alpha_beta_type");
     }
 
     template <class Self>
@@ -491,10 +482,11 @@ private:
     std::string in_layout;
     std::string weights_layout;
     std::string out_layout;
-    Direction direction = Direction::Forward;
-    int bias            = 0;
-    ConstData_t alpha   = nullptr;
-    ConstData_t beta    = nullptr;
+    Direction direction           = Direction::Forward;
+    int bias                      = 0;
+    Scalar alpha                  = {1.0};
+    Scalar beta                   = {0.0};
+    AlphaBetaCase alpha_beta_case = AlphaBetaCase::IDENTITY;
 };
 
 } // namespace conv

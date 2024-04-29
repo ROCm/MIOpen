@@ -46,8 +46,8 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
                const miopen::ConvolutionDescriptor& convDesc,
                const NonPackTestCase& conv_config,
                bool& test_skipped,
-               ConstData_t alpha,
-               ConstData_t beta)
+               const miopen::Scalar& alpha = {1.0},
+               const miopen::Scalar& beta  = {0.0})
 {
     auto&& handle = get_handle();
 
@@ -83,22 +83,23 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
 
 TEST_P(ConvNonpackFwdSolverTest3DHalf, CKNonPackConvFwd3D)
 {
-    SolverFwd<miopen::solver::conv::ConvHipImplicitGemm3DGroupFwdXdlops>(
-        input.desc,
-        in_dev.get(),
-        weights.desc,
-        wei_dev.get(),
-        output.desc,
-        out_dev.get(),
-        conv_desc,
-        conv_config,
-        test_skipped,
-        static_cast<ConstData_t>(&alpha_val),
-        static_cast<ConstData_t>(&beta_val));
+    SolverFwd<miopen::solver::conv::ConvHipImplicitGemm3DGroupFwdXdlops>(input.desc,
+                                                                         in_dev.get(),
+                                                                         weights.desc,
+                                                                         wei_dev.get(),
+                                                                         output.desc,
+                                                                         out_dev.get(),
+                                                                         conv_desc,
+                                                                         conv_config,
+                                                                         test_skipped,
+                                                                         miopen::Scalar(alpha_val),
+                                                                         miopen::Scalar(beta_val));
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
                          ConvNonpackFwdSolverTest3DHalf,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
                                           testing::ValuesIn(ConvTestConfigs<NonPackTestCase>()),
+                                          testing::ValuesIn({1.0f}), // alpha
+                                          testing::ValuesIn({0.0f}), // beta
                                           testing::Values(miopenTensorNDHWC)));
