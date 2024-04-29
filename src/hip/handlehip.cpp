@@ -31,6 +31,7 @@
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle_lock.hpp>
+#include <miopen/hip_build_utils.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/logger.hpp>
@@ -493,8 +494,17 @@ Program Handle::LoadProgram(const std::string& program_name,
 
     std::string orig_params = params; // make a copy for target ID fallback
 
-    if(!miopen::EndsWith(program_name, ".mlir"))
-        params = params + " -mcpu=" + this->GetTargetProperties().Name();
+    if(miopen::EndsWith(program_name, ".mlir"))
+    { // no -mcpu
+    }
+    else if(miopen::EndsWith(program_name, ".s"))
+    {
+        params += " -mcpu=" + LcOptionTargetStrings{this->GetTargetProperties()}.targetId;
+    }
+    else
+    {
+        params += " -mcpu=" + this->GetTargetProperties().Name();
+    }
 
     auto hsaco = miopen::LoadBinary(
         this->GetTargetProperties(), this->GetMaxComputeUnits(), program_name, params);
