@@ -751,6 +751,16 @@ MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t 
                                                        const int* stridesA);
 
 #ifdef MIOPEN_BETA_API
+/*! @copydoc miopenSetTensorDescriptor()
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptorV2(miopenTensorDescriptor_t tensorDesc,
+                                                         miopenDataType_t dataType,
+                                                         int nbDims,
+                                                         const size_t* dimsA,
+                                                         const size_t* stridesA);
+#endif
+
+#ifdef MIOPEN_BETA_API
 /*! @brief Set the tensor cast type
  *
  *  For tensors where the cast_type attribute is set, the tensor elements would be converted to the
