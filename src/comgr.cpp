@@ -37,11 +37,7 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/stringutils.hpp>
 
-#if !defined(_WIN32)
 #include <amd_comgr/amd_comgr.h>
-#else
-#include <amd_comgr.h>
-#endif
 #include <hip/hip_runtime_api.h>
 #if MIOPEN_USE_HIPRTC
 #include <miopen/manage_ptr.hpp>
@@ -59,6 +55,9 @@
 /// With base driver 5.11.32 the errors disappear.
 /// More info at https://github.com/ROCm/MIOpen/issues/1257.
 #define WORKAROUND_ISSUE_1257 (HIP_PACKAGE_VERSION_FLAT >= 4003021331ULL)
+
+/// https://github.com/ROCm/ROCm-CompilerSupport/issues/67 about unused -nogpulib.
+#define WORKAROUND_ROCMCOMPILERSUPPORT_ISSUE_67 1
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_LOG_CALLS)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)
@@ -970,9 +969,10 @@ void BuildAsm(const std::string& name,
         SetIsaName(action, target);
         action.SetLogging(true);
         auto optAsm = miopen::SplitSpaceSeparated(options);
-        if(target.Xnack() && !*target.Xnack())
-            optAsm.emplace_back("-mno-xnack");
         compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
+#if WORKAROUND_ROCMCOMPILERSUPPORT_ISSUE_67
+        optAsm.push_back("--rocm-path=.");
+#endif
         action.SetOptionList(optAsm);
 
         const Dataset relocatable;

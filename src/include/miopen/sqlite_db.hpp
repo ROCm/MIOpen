@@ -183,10 +183,10 @@ public:
         Statement& operator=(const Statement&) = delete;
         int Step(const SQLite& sql);
         std::string ColumnText(int idx);
-        std::string ColumnBlob(int idx);
+        std::vector<char> ColumnBlob(int idx);
         int64_t ColumnInt64(int idx);
         int BindText(int idx, const std::string& txt);
-        int BindBlob(int idx, const std::string& blob);
+        int BindBlob(int idx, const std::vector<char>& blob);
         int BindInt64(int idx, int64_t);
     };
 
@@ -210,7 +210,7 @@ class SQLiteBase
 {
 protected:
 public:
-    SQLiteBase(const std::string& filename_, bool is_system_)
+    SQLiteBase(DbKinds, const std::string& filename_, bool is_system_)
         : filename(filename_), is_system(is_system_)
     {
         if(DisableUserDbFileIO && !is_system)
@@ -273,8 +273,8 @@ public:
                 else
                 {
                     MIOPEN_LOG(log_level,
-                               "Unable to read system database file:" + filename_ +
-                                   " Performance may degrade");
+                               "Unable to read system database file:"
+                                   << filename_ << " Performance may degrade");
                 }
             }
         }
@@ -397,7 +397,7 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
 {
 public:
     static constexpr char const* MIOPEN_PERFDB_SCHEMA_VER = "1.1.0";
-    SQLitePerfDb(const std::string& filename_, bool is_system);
+    SQLitePerfDb(DbKinds db_kind, const std::string& filename_, bool is_system);
 
     template <class T>
     inline void InsertConfig(const T& prob_desc)
