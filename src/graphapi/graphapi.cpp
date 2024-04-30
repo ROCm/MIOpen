@@ -68,6 +68,10 @@ miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
         case MIOPEN_BACKEND_EXECUTION_PLAN_DESCRIPTOR:
             outputDescriptor = new miopen::graphapi::BackendExecutionPlanDescriptor(); break;
 
+        case MIOPEN_BACKEND_MATMUL_DESCRIPTOR:
+            outputDescriptor = new miopen::graphapi::BackendMatmulDescriptor();
+            break;
+
         case MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR:
             outputDescriptor = new miopen::graphapi::BackendOperationConvolutionForwardDescriptor(); break;
 
@@ -76,6 +80,10 @@ miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
 
         case MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR:
             outputDescriptor = new miopen::graphapi::BackendOperationConvolutionBackwardDataDescriptor(); break;
+
+        case MIOPEN_BACKEND_OPERATION_MATMUL_DESCRIPTOR:
+            outputDescriptor = new miopen::graphapi::BackendOperationMatmulDescriptor();
+            break;
 
         case MIOPEN_BACKEND_OPERATION_POINTWISE_DESCRIPTOR:
             outputDescriptor = new miopen::graphapi::BackendOperationPointwiseDescriptor(); break;
@@ -103,10 +111,6 @@ miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
 
         case MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR:
             outputDescriptor = new miopen::graphapi::BackendVariantPackDescriptor(); break;
-
-        case MIOPEN_BACKEND_MATMUL_DESCRIPTOR:
-            outputDescriptor = new miopen::graphapi::BackendMatmulDescriptor();
-            break;
 
         default: MIOPEN_THROW(miopenStatusUnsupportedOp);
             // clang-format on
@@ -232,6 +236,9 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
         case MIOPEN_BACKEND_EXECUTION_PLAN_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendExecutionPlanDescriptor>(descriptor, sizeInBytes); break;
 
+        case MIOPEN_BACKEND_MATMUL_DESCRIPTOR:
+	    initializeBackendDescriptor<miopen::graphapi::BackendMatmulDescriptor>(descriptor, sizeInBytes); break;
+
         case MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendOperationConvolutionForwardDescriptor>(descriptor, sizeInBytes); break;
 
@@ -240,6 +247,9 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
 
         case MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendOperationConvolutionBackwardDataDescriptor>(descriptor, sizeInBytes); break;
+
+        case MIOPEN_BACKEND_OPERATION_MATMUL_DESCRIPTOR:
+            initializeBackendDescriptor<miopen::graphapi::BackendOperationMatmulDescriptor>(descriptor, sizeInBytes); break;
 
         case MIOPEN_BACKEND_OPERATION_POINTWISE_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendOperationPointwiseDescriptor>(descriptor, sizeInBytes); break;
@@ -264,9 +274,6 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
 
         case MIOPEN_BACKEND_TENSOR_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendTensorDescriptor>(descriptor, sizeInBytes); break;
-
-        case MIOPEN_BACKEND_MATMUL_DESCRIPTOR:
-	    initializeBackendDescriptor<miopen::graphapi::BackendMatmulDescriptor>(descriptor, sizeInBytes); break;
 
         case MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR:
                 initializeBackendDescriptor<miopen::graphapi::BackendVariantPackDescriptor>(descriptor, sizeInBytes); break;
