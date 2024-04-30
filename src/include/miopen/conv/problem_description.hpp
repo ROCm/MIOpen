@@ -189,24 +189,8 @@ struct ProblemDescription : ProblemDescriptionBase
     std::size_t GetInStrideH() const { return GetH5(GetSpatialDims(), in.GetStrides()); }
     std::size_t GetInStrideW() const { return GetW5(GetSpatialDims(), in.GetStrides()); }
     std::string GetInLayout() const { return in_layout; }
-    std::string ComputeInLayout() const
-    {
-        if(GetSpatialDims() == 2)
-        {
-            return in.GetLayout(in.GetLayout_str());
-        }
-        else
-        {
-            return in.GetLayout("NCDHW");
-        }
-    }
     std::size_t GetInElementSize() const { return GetTypeSize(GetInDataType()); }
-
-    std::size_t GetInSize() const
-    {
-        return GetInBatchSize() * GetInChannels() * GetInDepth() * GetInHeight() * GetInWidth() *
-               GetInElementSize();
-    }
+    std::size_t GetInSize() const { return in.GetNumBytes(); }
 
     // Out getters
     miopenDataType_t GetOutDataType() const { return out.GetType(); }
@@ -222,24 +206,8 @@ struct ProblemDescription : ProblemDescriptionBase
     std::size_t GetOutStrideH() const { return GetH5(GetSpatialDims(), out.GetStrides()); }
     std::size_t GetOutStrideW() const { return GetW5(GetSpatialDims(), out.GetStrides()); }
     std::string GetOutLayout() const { return out_layout; }
-    std::string ComputeOutLayout() const
-    {
-        if(GetSpatialDims() == 2)
-        {
-            return out.GetLayout(out.GetLayout_str());
-        }
-        else
-        {
-            return out.GetLayout("NCDHW");
-        }
-    }
     std::size_t GetOutElementSize() const { return GetTypeSize(GetOutDataType()); }
-
-    std::size_t GetOutSize() const
-    {
-        return GetOutBatchSize() * GetOutChannels() * GetOutDepth() * GetOutHeight() *
-               GetOutWidth() * GetOutElementSize();
-    }
+    std::size_t GetOutSize() const { return out.GetNumBytes(); }
 
     // Weights getters
     miopenDataType_t GetWeightsDataType() const { return weights.GetType(); }
@@ -266,24 +234,8 @@ struct ProblemDescription : ProblemDescriptionBase
     // std::size_t GetWeightsStrideW() const { return GetW5(GetSpatialDims(), weights.GetStrides());
     // }
     std::string GetWeightsLayout() const { return weights_layout; }
-    std::string ComputeWeightsLayout() const
-    {
-        if(GetSpatialDims() == 2)
-        {
-            return weights.GetLayout(weights.GetLayout_str());
-        }
-        else
-        {
-            return weights.GetLayout("NCDHW");
-        }
-    }
     std::size_t GetWeightsElementSize() const { return GetTypeSize(GetWeightsDataType()); }
-
-    std::size_t GetWeightsSize() const
-    {
-        return GetInChannels() * GetOutChannels() * GetWeightsDepth() * GetWeightsHeight() *
-               GetWeightsWidth() * GetWeightsElementSize();
-    }
+    std::size_t GetWeightsSize() const { return weights.GetNumBytes(); }
 
     const TensorDescriptor& GetIn() const { return in; }
     const TensorDescriptor& GetWeights() const { return weights; }
@@ -396,6 +348,12 @@ struct ProblemDescription : ProblemDescriptionBase
         return in.AllDimsFitIntoInt() && weights.AllDimsFitIntoInt() && out.AllDimsFitIntoInt();
     }
 
+    bool AllTensorsLengthsFitIntoInt() const
+    {
+        return in.AllLengthsFitIntoInt() && weights.AllLengthsFitIntoInt() &&
+               out.AllLengthsFitIntoInt();
+    }
+
     void HeuristicUpdateLayouts();
 
     void MakeNetworkConfig(std::string& conf_key) const;
@@ -420,6 +378,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
 #if MIOPEN_ENABLE_SQLITE
     static std::string table_name() { return "config"; }
+#endif
 
     template <class Self>
     static void Visit(Self&& self, std::function<void(int64_t, std::string)> f)
@@ -457,11 +416,54 @@ struct ProblemDescription : ProblemDescriptionBase
         f(data_type, "data_type");
         f(self.GetDirectionStr(), "direction");
     }
-#endif
+
+    template <class Self, class Visitor>
+    static void VisitAll(Self&& self, const Visitor& f)
+    {
+        Visit(std::forward<Self>(self), [&](int64_t value, std::string name) { f(value, name); });
+        Visit(std::forward<Self>(self),
+              [&](std::string value, std::string name) { f(value, name); });
+    }
 
     void SetupFloats(ExecutionContext& ctx) const;
 
 private:
+    std::string ComputeInLayout() const
+    {
+        if(GetSpatialDims() == 2)
+        {
+            return in.GetLayout(in.GetLayout_str());
+        }
+        else
+        {
+            return in.GetLayout("NCDHW");
+        }
+    }
+
+    std::string ComputeOutLayout() const
+    {
+        if(GetSpatialDims() == 2)
+        {
+            return out.GetLayout(out.GetLayout_str());
+        }
+        else
+        {
+            return out.GetLayout("NCDHW");
+        }
+    }
+
+    std::string ComputeWeightsLayout() const
+    {
+        if(GetSpatialDims() == 2)
+        {
+            return weights.GetLayout(weights.GetLayout_str());
+        }
+        else
+        {
+            return weights.GetLayout("NCDHW");
+        }
+    }
+
     TensorDescriptor in;
     TensorDescriptor weights;
     TensorDescriptor out;

@@ -127,6 +127,19 @@ auto deref(T&& x, [[maybe_unused]] miopenStatus_t err = miopenStatusBadParm)
 template <class... Ts>
 auto tie_deref(Ts&... xs) MIOPEN_RETURNS(std::tie(miopen::deref(xs)...));
 
+template <typename Ptr>
+Ptr checkPtr(Ptr ptr, [[maybe_unused]] miopenStatus_t err = miopenStatusBadParm)
+{
+    if(ptr != nullptr)
+    {
+        return ptr;
+    }
+    else
+    {
+        MIOPEN_THROW(err, "Passing nullptr");
+    }
+}
+
 } // namespace miopen
 
 #endif

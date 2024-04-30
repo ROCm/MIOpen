@@ -32,29 +32,75 @@
 #include <miopen/common.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/seq_tensor.hpp>
+#include <miopen/reducetensor.hpp>
 
 namespace miopen {
 
+struct RnnHipAutoProfiler
+{
+    RnnHipAutoProfiler(Handle& handle) : is_profiling_active(handle.IsProfilingEnabled())
+    {
+        if(is_profiling_active)
+        {
 #if MIOPEN_BACKEND_HIP
-inline void RNNProfilingBegin(const miopen::Handle& handle,
-                              miopen::HipEventPtr& start,
-                              miopen::HipEventPtr& stop)
-{
-    start = miopen::make_hip_event();
-    stop  = miopen::make_hip_event();
-    hipEventRecord(start.get(), handle.GetStream());
-}
+            attached_handle = &handle;
+#endif
+            RNNProfilingBegin();
+        }
+    }
+    ~RnnHipAutoProfiler()
+    {
+        if(is_profiling_active)
+        {
+            RNNProfilingEnd();
+        }
+    }
 
-inline float
-RNNProfilingEnd(const miopen::Handle& handle, miopen::HipEventPtr& start, miopen::HipEventPtr& stop)
-{
-    hipEventRecord(stop.get(), handle.GetStream());
-    hipEventSynchronize(stop.get());
-    float mS = 0;
-    hipEventElapsedTime(&mS, start.get(), stop.get());
-    return mS;
-}
+    void abortProfiling()
+    {
+        if(is_profiling_active)
+        {
+#if MIOPEN_BACKEND_HIP
+            attached_handle->EnableProfiling(true);
+#endif
+            is_profiling_active = false;
+        }
+    }
 
+private:
+    void RNNProfilingBegin()
+    {
+#if MIOPEN_BACKEND_HIP
+        attached_handle->EnableProfiling(false);
+        start = miopen::make_hip_event();
+        stop  = miopen::make_hip_event();
+        hipEventRecord(start.get(), attached_handle->GetStream());
+#endif
+    }
+
+    void RNNProfilingEnd()
+    {
+#if MIOPEN_BACKEND_HIP
+        hipEventRecord(stop.get(), attached_handle->GetStream());
+        hipEventSynchronize(stop.get());
+        float eventTime_mS = 0;
+        hipEventElapsedTime(&eventTime_mS, start.get(), stop.get());
+
+        attached_handle->EnableProfiling(true);
+        attached_handle->ResetKernelTime();
+        attached_handle->AccumKernelTime(eventTime_mS);
+#endif
+    }
+
+#if MIOPEN_BACKEND_HIP
+    Handle* attached_handle = nullptr;
+    HipEventPtr start       = nullptr;
+    HipEventPtr stop        = nullptr;
+#endif
+    bool is_profiling_active = false;
+};
+
+#if MIOPEN_BACKEND_HIP
 inline miopen::HipEventPtr make_hip_fast_event()
 {
     hipEvent_t result = nullptr;
@@ -147,7 +193,7 @@ struct RNNTensorPaddingConverter
         size_t total_batch = std::accumulate(
             desc_array.data,
             desc_array.data + desc_array.size(),
-            0,
+            0ULL,
             [](size_t x, miopenTensorDescriptor_t y) { return x + deref(y).GetLengths()[0]; });
 
         return GetTempPackedBuffersSpace(rnn_desc, total_batch, desc_array[0].GetLengths()[1]);
@@ -209,7 +255,7 @@ struct RNNTensorBaseLayoutConverter
         size_t total_batch = std::accumulate(
             desc_array.data,
             desc_array.data + desc_array.size(),
-            0,
+            0ULL,
             [](size_t x, miopenTensorDescriptor_t y) { return x + deref(y).GetLengths()[0]; });
 
         return GetTempPackedBuffersSpace(rnn_desc, total_batch, desc_array[0].GetLengths()[1]);
@@ -271,6 +317,61 @@ private:
 void FillSeqTensorByPaddingMarker(const Handle& handle,
                                   const SeqTensorDescriptor& desc,
                                   Data_t data);
+
+int getReductionAlgo();
+
+inline size_t ReductionWorkspaceSize(const Handle& handle,
+                                     size_t batchLenSum,
+                                     size_t nHiddenTensorsPerLayer,
+                                     size_t workspaceScale,
+                                     size_t hsize,
+                                     bool is_bidirect,
+                                     miopenDataType_t rnn_data_t)
+{
+    int red_algo = getReductionAlgo();
+
+    size_t reduction_ws = 0;
+
+    // nothing to reduce,
+    if(batchLenSum == 1)
+        return 0;
+
+    if(red_algo == 1)
+    {
+        miopen::ReduceTensorDescriptor red_add{
+            miopenReduceTensorOp_t::MIOPEN_REDUCE_TENSOR_ADD,
+            miopenDataType_t::miopenFloat, // compute in float for fp16
+            miopenNanPropagation_t::MIOPEN_PROPAGATE_NAN,
+            miopenReduceTensorIndices_t::MIOPEN_REDUCE_TENSOR_NO_INDICES,
+            miopenIndicesType_t::MIOPEN_32BIT_INDICES};
+
+        int bidirect_mp = is_bidirect ? 2 : 1;
+
+        size_t hy_stride = hsize * bidirect_mp * workspaceScale;
+
+        size_t bias_total_cnt = hsize * bidirect_mp * nHiddenTensorsPerLayer;
+
+        const std::vector<size_t> ws_bias_strides{
+            batchLenSum * workspaceScale * hsize * bidirect_mp, hy_stride, 1};
+
+        const miopen::TensorDescriptor ws_desc{
+            rnn_data_t, {1, batchLenSum, bias_total_cnt}, ws_bias_strides};
+
+        const std::vector<size_t> dw_bias_strides{bias_total_cnt, bias_total_cnt, 1};
+        const miopen::TensorDescriptor dw_desc{rnn_data_t, {1, 1, bias_total_cnt}, dw_bias_strides};
+
+        reduction_ws = red_add.GetWorkspaceSize(handle, ws_desc, dw_desc) + // WA CK bug
+                       (rnn_data_t == miopenDataType_t::miopenHalf ? 4 : 0);
+    }
+    else
+    {
+        if(red_algo == 2 || red_algo == 3)
+        {
+            reduction_ws = batchLenSum * GetTypeSize(rnn_data_t);
+        }
+    }
+    return reduction_ws;
+}
 
 } // namespace miopen
 
