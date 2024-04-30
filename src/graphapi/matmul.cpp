@@ -339,10 +339,7 @@ void BackendOperationMatmulDescriptor::getAttribute(miopenBackendAttributeName_t
     }
 }
 
-OpNode* BackendOperationMatmulDescriptor::getOperation()
-{
-    return &mMatmul;
-}
+OpNode* BackendOperationMatmulDescriptor::getOperation() { return &mMatmul; }
 
 void BackendOperationMatmulDescriptor::setAttribute(miopenBackendAttributeName_t attributeName,
                                                     miopenBackendAttributeType_t attributeType,

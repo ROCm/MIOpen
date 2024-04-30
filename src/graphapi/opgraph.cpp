@@ -353,7 +353,8 @@ void BackendOperationGraphDescriptor::setAttribute(miopenBackendAttributeName_t 
                             elementCount,
                             [&descriptors, &nodes](miopenBackendDescriptor_t apiDescriptor) {
                                 BackendDescriptor& backendDescriptor = deref(apiDescriptor);
-                                if(backendDescriptor.isFinalized() && backendDescriptor.getOperation() != nullptr)
+                                if(backendDescriptor.isFinalized() &&
+                                   backendDescriptor.getOperation() != nullptr)
                                 {
                                     descriptors.push_back(apiDescriptor);
                                     nodes.push_back(backendDescriptor.getOperation());
