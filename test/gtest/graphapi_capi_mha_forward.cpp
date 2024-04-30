@@ -386,9 +386,11 @@ private:
         MakeAndAddRealTensorDescriptor(miopenTensorMhaM, false, m_testN, m_testH, m_testS, 1);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaZInv, false, m_testN, m_testH, m_testS, 1);
 
-        // This attention scale param is just a float in Find 2.0, so no particular enum value, just
-        // use m_nextTensorId, it equals to max value + 1 at this point If it's needed we could save
-        // this value here
+        // get next value for the rest of the tensors (which don't have any particular enum value)
+        m_nextTensorId++;
+
+        // This attention scale param is just a float in Find 2.0, so no particular enum value, we
+        // should use m_nextTensorId as an identifier.
         m_attentionScaleId = GetNextId();
         MakeAndAddRealTensorDescriptor(m_attentionScaleId);
     }
@@ -510,7 +512,7 @@ private:
 
         // Here we memorize maximum id from real tensors set -to start from this value + 1 for
         // virtual tensors set.
-        m_nextTensorId = std::max(m_nextTensorId, tensorId) + 1;
+        m_nextTensorId = std::max(m_nextTensorId, tensorId);
     }
 
     // just a simple id generator, might be redone if necessary
