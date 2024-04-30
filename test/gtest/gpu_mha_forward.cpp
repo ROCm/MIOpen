@@ -59,10 +59,7 @@ struct TensorStruct
     }
 
     TensorStruct(const TensorStruct&) = delete;
-    TensorStruct(TensorStruct&&)      = default;
-
     TensorStruct& operator=(const TensorStruct&) = delete;
-    TensorStruct& operator=(TensorStruct&&) = default;
 
     ~TensorStruct() = default;
 
