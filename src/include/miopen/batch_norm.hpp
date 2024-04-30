@@ -29,6 +29,7 @@
 #include <miopen/common.hpp>
 #include <miopen/miopen.h>
 
+#include <string>
 #include <vector>
 
 #define MIO_BN_CPP_PROF 0

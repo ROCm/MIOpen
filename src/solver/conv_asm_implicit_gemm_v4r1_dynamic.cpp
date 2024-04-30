@@ -410,7 +410,7 @@ static inline ConvSolution GetSolutionBase(const ExecutionContext& ctx,
 
     kernel.comp_options = options.str();
 
-    MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
+    MIOPEN_LOG_I2(kernel.kernel_file << ":" << kernel.kernel_name);
 
     if(kernel_is_1x1)
     {

@@ -560,7 +560,7 @@ void CheckDynamicFDBEntry(size_t thread_index,
                 for(const auto& kern : sol.construction_params)
                 {
                     std::string compile_options = kern.comp_options;
-                    std::string program_file    = kern.kernel_file + ".o";
+                    auto program_file = miopen::make_object_file_name(kern.kernel_file).string();
                     ASSERT_TRUE(!miopen::EndsWith(kern.kernel_file, ".mlir"))
                         << "MLIR detected in dynamic solvers";
                     compile_options += " -mcpu=" + handle.GetDeviceName();
@@ -592,7 +592,8 @@ TEST(DBSync, DISABLED_DynamicFDBSync)
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, handle);
     miopen::CheckKDBObjects(kdb_file_path, "", "");
 
-    const auto& find_db = miopen::ReadonlyRamDb::GetCached(fdb_file_path.string(), true);
+    const auto& find_db =
+        miopen::ReadonlyRamDb::GetCached(miopen::DbKinds::FindDb, fdb_file_path.string(), true);
     // assert that find_db.cache is not empty, since that indicates the file was not readable
     ASSERT_TRUE(!find_db.GetCacheMap().empty()) << "Find DB does not have any entries";
 
@@ -731,7 +732,8 @@ void CheckFDBEntry(size_t thread_index,
                     {
                         bool found                  = false;
                         std::string compile_options = kern.comp_options;
-                        std::string program_file    = kern.kernel_file + ".o";
+                        auto program_file =
+                            miopen::make_object_file_name(kern.kernel_file).string();
                         if(!miopen::EndsWith(kern.kernel_file, ".mlir"))
                         {
                             auto& handle = ctx.GetStream();
@@ -814,7 +816,8 @@ void StaticFDBSync(const std::string& arch, const size_t num_cu)
     // Warmup the kdb cache
     miopen::CheckKDBObjects(kdb_file_path, "", "");
 #endif
-    const auto& find_db = miopen::ReadonlyRamDb::GetCached(fdb_file_path.string(), true);
+    const auto& find_db =
+        miopen::ReadonlyRamDb::GetCached(miopen::DbKinds::FindDb, fdb_file_path.string(), true);
     // assert that find_db.cache is not empty, since that indicates the file was not readable
     ASSERT_TRUE(!find_db.GetCacheMap().empty()) << "Find DB does not have any entries";
     auto _ctx = miopen::ExecutionContext{};

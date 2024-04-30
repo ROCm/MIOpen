@@ -271,6 +271,7 @@ __kernel void SoftmaxForward(global _FLOAT* x,
         }
 
         _FLOAT channel_max = l_helper[0];
+        barrier(CLK_LOCAL_MEM_FENCE);
 #else
         _FLOAT
 #endif
@@ -508,6 +509,7 @@ __kernel void SoftmaxForward(global _FLOAT* x,
     }
 
     _FLOAT channel_max = l_helper[batch * BATCH_SIZE];
+    barrier(CLK_LOCAL_MEM_FENCE);
 #else
     _FLOAT
 #endif

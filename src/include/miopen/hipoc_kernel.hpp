@@ -191,7 +191,7 @@ struct HIPOCKernel
         {
             MIOPEN_THROW_HIP_STATUS(status,
                                     "Failed to get function: " + kernel_module + " from " +
-                                        program.GetCodeObjectPathname().string());
+                                        program.GetCodeObjectPathname());
         }
     }
 

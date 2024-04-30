@@ -27,11 +27,8 @@
 #ifndef GUARD_TENSOR_UTIL_HPP
 #define GUARD_TENSOR_UTIL_HPP
 
-#include <iostream>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
-#include <utility>
-#include <cstdlib>
 #include "tensor_holder.hpp"
 
 // loop over sub-tensor, and operate on each data
@@ -120,6 +117,68 @@ void output_tensor_to_bin(const char* fileName, T* data, size_t dataNumItems)
     {
         std::cerr << "Could not open file " << fileName << " for writing" << std::endl;
     }
+}
+
+template <typename T>
+void print_tensor(const tensor<T>& tensor_val,
+                  std::string header_msg = "start",
+                  size_t set_precision   = 2)
+{
+    std::cout << "\n================= " << header_msg << " =====================\n";
+
+    const auto lens = tensor_val.desc.GetLengths();
+    size_t dim      = lens.size();
+    if(dim == 2)
+    {
+        ford(lens[0], lens[1])([&](int ii, int jj) {
+            std::cout << std::fixed << std::setprecision(set_precision) << tensor_val(ii, jj)
+                      << ", ";
+            if(jj == lens[1] - 1)
+            {
+                std::cout << "\n";
+            }
+        });
+    }
+    else if(dim == 3)
+    {
+        ford(lens[0], lens[1], lens[2])([&](int ii, int jj, int kk) {
+            std::cout << std::fixed << std::setprecision(set_precision) << tensor_val(ii, jj, kk)
+                      << ", ";
+            if(kk == lens[2] - 1)
+            {
+                std::cout << "\n";
+            }
+            if(kk == lens[2] - 1 && jj == lens[1] - 1)
+            {
+                std::cout << "\n";
+            }
+        });
+    }
+    else if(dim == 4)
+    {
+        ford(lens[0], lens[1], lens[2], lens[3])([&](int ii, int jj, int kk, int ll) {
+            std::cout << std::fixed << std::setprecision(set_precision)
+                      << tensor_val(ii, jj, kk, ll) << ", ";
+            if(ll == lens[3] - 1)
+            {
+                std::cout << "\n";
+            }
+            if(ll == lens[3] - 1 && kk == lens[2] - 1)
+            {
+                std::cout << "\n";
+            }
+            if(ll == lens[3] - 1 && kk == lens[2] - 1 && jj == lens[1] - 1)
+            {
+                std::cout << "\n";
+            }
+        });
+    }
+    else
+    {
+        std::cerr << "Need to handle print for dim : " << dim << std::endl;
+    }
+
+    std::cout << "\n=================end=====================\n";
 }
 
 #endif

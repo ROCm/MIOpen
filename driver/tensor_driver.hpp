@@ -101,7 +101,7 @@ inline std::vector<int> GetTensorLengths(const miopenTensorDescriptor_t& tensor)
     }
 
     std::vector<int> tensor_len;
-    tensor_len.resize(miopen::deref(tensor).GetSize());
+    tensor_len.resize(miopen::deref(tensor).GetNumDims());
     miopenGetTensorDescriptor(tensor, nullptr, tensor_len.data(), nullptr);
 
     return tensor_len;
@@ -131,7 +131,7 @@ inline std::vector<int> GetTensorStrides(const miopenTensorDescriptor_t& tensor)
     }
 
     std::vector<int> tensor_strides;
-    tensor_strides.resize(miopen::deref(tensor).GetSize());
+    tensor_strides.resize(miopen::deref(tensor).GetNumDims());
 
     miopenGetTensorDescriptor(tensor, nullptr, nullptr, tensor_strides.data());
 
@@ -182,6 +182,14 @@ inline int SetTensorNd(miopenTensorDescriptor_t t,
 }
 
 inline int SetTensorNd(miopenTensorDescriptor_t t,
+                       std::vector<std::size_t>& len,
+                       std::vector<std::size_t>& strides,
+                       miopenDataType_t data_type = miopenFloat)
+{
+    return miopenSetTensorDescriptorV2(t, data_type, len.size(), len.data(), strides.data());
+}
+
+inline int SetTensorNd(miopenTensorDescriptor_t t,
                        std::vector<int>& len,
                        const std::string& layout,
                        miopenDataType_t data_type = miopenFloat)
@@ -208,10 +216,10 @@ inline int SetTensorNd(miopenTensorDescriptor_t t,
         return SetTensorNd(t, len, data_type);
     }
 
-    std::vector<int> strides;
-    miopen::tensor_layout_to_strides(len, len_layout, layout, strides);
-
-    return SetTensorNd(t, len, strides, data_type);
+    std::vector<std::size_t> strides2;
+    std::vector<std::size_t> len2(len.cbegin(), len.cend());
+    miopen::tensor_layout_to_strides(len2, len_layout, layout, strides2);
+    return SetTensorNd(t, len2, strides2, data_type);
 }
 
 // This function ignores tensor strides completely and its result should not be interpreted as
@@ -222,8 +230,8 @@ inline size_t GetTensorSize(const miopenTensorDescriptor_t& tensor)
 {
     assert(miopen::deref(tensor).IsPacked() &&
            "GetTensorSize should not be used on an unpacked tensor.");
-    const auto len          = GetTensorLengths(tensor);
-    const auto vectorLength = GetTensorVectorLength(tensor);
+    const auto len            = GetTensorLengths(tensor);
+    const size_t vectorLength = GetTensorVectorLength(tensor);
     size_t sz = std::accumulate(len.begin(), len.end(), vectorLength, std::multiplies<size_t>());
 
     return sz;

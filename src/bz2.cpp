@@ -25,6 +25,10 @@
  *******************************************************************************/
 
 #include <miopen/bz2.hpp>
+#include <string>
+#include <vector>
+#include <stdexcept>
+#include <bzlib.h>
 
 namespace miopen {
 void check_bz2_error(int e, const std::string& name)
@@ -55,15 +59,18 @@ void check_bz2_error(int e, const std::string& name)
     throw std::runtime_error(name + " failed: unknown error!");
 }
 
-std::string compress(std::string s, bool* compressed)
+std::vector<char> compress(const std::vector<char>& v, bool* compressed)
 {
-    std::string result = s;
-    unsigned int len   = result.size();
-    auto e             = BZ2_bzBuffToBuffCompress(&result[0], &len, &s[0], s.size(), 9, 0, 30);
+    auto result      = v;
+    unsigned int len = result.size();
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
+    auto e = BZ2_bzBuffToBuffCompress(
+        result.data(), &len, const_cast<char*>(v.data()), v.size(), 9, 0, 30);
+    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
     if(compressed != nullptr and e == BZ_OUTBUFF_FULL)
     {
         *compressed = false;
-        return s;
+        return v;
     }
     check_bz2_error(e, "BZ2_bzBuffToBuffCompress");
     result.resize(len);
@@ -72,11 +79,14 @@ std::string compress(std::string s, bool* compressed)
     return result;
 }
 
-std::string decompress(std::string s, unsigned int size)
+std::vector<char> decompress(const std::vector<char>& v, unsigned int size)
 {
-    std::string result(size, 0);
+    std::vector<char> result(size, 0);
     unsigned int len = result.size();
-    auto e           = BZ2_bzBuffToBuffDecompress(&result[0], &len, &s[0], s.size(), 0, 0);
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
+    auto e = BZ2_bzBuffToBuffDecompress(
+        result.data(), &len, const_cast<char*>(v.data()), v.size(), 0, 0);
+    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
     check_bz2_error(e, "BZ2_bzBuffToBuffDecompress");
     result.resize(len);
     return result;

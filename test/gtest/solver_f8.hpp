@@ -26,7 +26,6 @@
 #pragma once
 
 #include <gtest/gtest.h>
-#include <random>
 #include "cpu_conv.hpp"
 #include "get_handle.hpp"
 #include "tensor_util.hpp"
@@ -35,15 +34,10 @@
 #include "conv_common.hpp"
 #include "hip_float8.hpp"
 #include "verify.hpp"
+#include "../random.hpp"
 
 #include "conv_test_base.hpp"
 #include "f8_cast_util.hpp"
-
-float scalar_gen_random_float(float low, float high)
-{
-    float r = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * (high + low) - low;
-    return r;
-}
 
 struct ConvTestCaseF8
 {
@@ -91,8 +85,7 @@ protected:
         weights = tensor<T>{conv_config.k, conv_config.C, conv_config.y, conv_config.x};
 
         auto gen_fp8_value = [=](auto...) {
-            const auto tmp = float8(scalar_gen_random_float(-0.5, 0.5));
-            return tmp;
+            return prng::gen_A_to_B(static_cast<float8>(-0.5), static_cast<float8>(0.5));
         };
 
         input.generate(gen_fp8_value);

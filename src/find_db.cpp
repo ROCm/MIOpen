@@ -65,7 +65,7 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathEmbed(Handle& handle,
         const auto suffix     = GetSystemFindDbSuffix() + path_suffix;
         const auto filename   = base_name + "." + suffix + ext;
         const auto file_path  = root_path / filename;
-        if(miopen_data().find(filename + ".o") != miopen_data().end())
+        if(miopen_data().find(make_object_file_name(filename).string()) != miopen_data().end())
         {
             MIOPEN_LOG_I2("Found exact embedded find database file:" << filename);
             return file_path.string();
@@ -134,7 +134,7 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle,
         const auto file_path = root_path / (base_name + "." + suffix + ext);
         if(fs::exists(file_path))
         {
-            MIOPEN_LOG_I2("Found exact find database file: " + file_path.string());
+            MIOPEN_LOG_I2("Found exact find database file: " << file_path);
             return file_path.string();
         }
         else
@@ -142,7 +142,7 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle,
             MIOPEN_LOG_I2("inexact find database search");
             if(fs::exists(root_path) && fs::is_directory(root_path))
             {
-                MIOPEN_LOG_I2("Iterating over find db directory " << root_path.string());
+                MIOPEN_LOG_I2("Iterating over find db directory " << root_path);
                 std::vector<fs::path> all_files;
                 std::vector<fs::path> contents;
                 std::copy(fs::directory_iterator(root_path),
@@ -150,8 +150,8 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle,
                           std::back_inserter(contents));
                 for(auto const& filepath : contents)
                 {
-                    const auto& fname = filepath.string();
-                    if(fs::is_regular_file(filepath) && EndsWith(fname, path_suffix + ".fdb.txt"))
+                    if(fs::is_regular_file(filepath) &&
+                       filepath.extension() == path_suffix + ".fdb.txt")
                         all_files.push_back(filepath);
                 }
 

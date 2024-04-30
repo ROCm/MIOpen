@@ -56,7 +56,7 @@ bool ConvDirectNaiveConvWrw::IsApplicable(const ExecutionContext& ctx,
 
     if(!problem.IsDirectionBackwardWrW())
         return false;
-    if(!problem.AllTensorsDimsFitIntoInt())
+    if(!problem.AllTensorsLengthsFitIntoInt())
         return false;
     if(problem.IsTensorsCasted())
     {
