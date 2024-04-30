@@ -48,7 +48,7 @@ std::vector<std::string> GetTestCases(void)
 
     // clang-format off
     return std::vector<std::string>{
-        {cmd + float_arg + " --scales 1 0 --CompType 1 --D 1024 30528 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2"}
+        {cmd + float_arg + " --scales 1 0 --CompType 1 --D 1024 30528 1 --I 0 --N 1 --ReduceOp 0 --R 0 1 2"}
     };
     // clang-format on
 }
