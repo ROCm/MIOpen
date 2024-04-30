@@ -46,7 +46,8 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 using namespace miopen;
 
-bool CheckFloatArg(std::string_view arg)
+namespace {
+inline bool CheckFloatArg(std::string_view arg)
 {
     const std::string& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
     return tmp.empty() || tmp == arg;
@@ -80,7 +81,7 @@ struct TestCase
     float dropout;
 };
 
-std::vector<TestCase> GetSmokeTestCases()
+inline std::vector<TestCase> GetSmokeTestCases()
 {
     if(CheckFloatArg("--float"))
     {
@@ -109,7 +110,7 @@ std::vector<TestCase> GetSmokeTestCases()
     }
 }
 
-std::vector<TestCase> GetFullTestCases()
+inline std::vector<TestCase> GetFullTestCases()
 {
     if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) || miopen::IsEnabled(ENV(MIOPEN_TEST_ALL))) &&
        CheckFloatArg("--float"))
@@ -130,6 +131,7 @@ std::vector<TestCase> GetFullTestCases()
         return {};
     }
 }
+} // namespace
 
 class Test_Bwd_Mha : public testing::TestWithParam<TestCase>
 {
