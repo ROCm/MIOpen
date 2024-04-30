@@ -164,14 +164,6 @@ DescriptorWrapperPtr MakeTensorDescriptor(int64_t uniqueId,
     return descWrapperPtr;
 }
 
-// just a simple id generator, might be redone if necessary
-int64_t GetNextId()
-{
-    static int64_t counter = 0;
-
-    return counter++;
-}
-
 DescriptorWrapperPtr
 MakeMatmul(DescriptorWrapperPtr tensor1, DescriptorWrapperPtr tensor2, DescriptorWrapperPtr output)
 {
@@ -199,6 +191,9 @@ MakeMatmul(DescriptorWrapperPtr tensor1, DescriptorWrapperPtr tensor2, Descripto
         MIOPEN_ATTR_OPERATION_MATMUL_CDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &outputDesc);
 
     matmulOperation->AddRef(matmul);
+    matmulOperation->AddRef(tensor1);
+    matmulOperation->AddRef(tensor2);
+    matmulOperation->AddRef(output);
 
     matmulOperation->Finalize();
 
@@ -243,12 +238,16 @@ DescriptorWrapperPtr MakePointwise(miopenPointwiseMode_t mode,
     {
         pointwiseOperation->SetAttribute(
             MIOPEN_ATTR_OPERATION_POINTWISE_BDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &tensor2Desc);
+
+        pointwiseOperation->AddRef(tensor2);            
     }
 
     pointwiseOperation->SetAttribute(
         MIOPEN_ATTR_OPERATION_POINTWISE_YDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &outputDesc);
 
     pointwiseOperation->AddRef(pointwise);
+    pointwiseOperation->AddRef(tensor1);
+    pointwiseOperation->AddRef(output);   
 
     pointwiseOperation->Finalize();
 
@@ -283,6 +282,8 @@ DescriptorWrapperPtr MakeReduction(miopenReduceTensorOp_t opType,
         MIOPEN_ATTR_OPERATION_REDUCTION_DESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &childDesc);
 
     reductionOperation->AddRef(reduction);
+    reductionOperation->AddRef(tensor1);
+    reductionOperation->AddRef(output);
 
     reductionOperation->Finalize();
 
@@ -316,98 +317,174 @@ DescriptorWrapperPtr MakeRNG(double probability,
         MIOPEN_ATTR_OPERATION_RNG_YDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &outputDesc);
 
     rngOperation->AddRef(rng);
+    rngOperation->AddRef(seed);
+    rngOperation->AddRef(offset);
+    rngOperation->AddRef(output);
 
     rngOperation->Finalize();
 
     return rngOperation;
 }
 
-TEST(TestCGraphApi, MhaForward)
+class MhaForwardTest
 {
-    const int64_t test_n = 2;
-    const int64_t test_h = 4;
-    const int64_t test_s = 8;
-    const int64_t test_d = 16;
-
-    try
+public:
+    void Run()
     {
-        // real tensors
-        auto q        = MakeTensorDescriptor(GetNextId(), false, test_n, test_h, test_s, test_d);        
-        auto k        = MakeTensorDescriptor(GetNextId(), false, test_n, test_h, test_s, test_d, true); // transpose the tensor
-        auto v        = MakeTensorDescriptor(GetNextId(), false, test_n, test_h, test_s, test_d);
-        auto descaleK = MakeTensorDescriptor(GetNextId());
-        auto descaleQ = MakeTensorDescriptor(GetNextId());
-        auto descaleV = MakeTensorDescriptor(GetNextId());
-        auto descaleS = MakeTensorDescriptor(GetNextId());
-        auto scaleS   = MakeTensorDescriptor(GetNextId());
-        auto scaleO   = MakeTensorDescriptor(GetNextId());
+        try
+        {
+            MakeRealTensors();
+            MakeVirtualTensorsAndNodes();
 
-        // we have only double input for probability in RNG node, however
+            // Run OperationGraph
+            RunTheGraph();
+        }
+        catch(const miopen::Exception& ex)
+        {
+            FAIL() << ex.what();
+        }
+    }
+ 
+private:
+    void MakeRealTensors()
+    {
+        // We use identifiers from Find 2.0 enum to have sopmething unique for the test purposes
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaQ, false, m_testN, m_testH, m_testS, m_testD);        
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaK, false, m_testN, m_testH, m_testS, m_testD, true); // transpose this tensor
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaV, false, m_testN, m_testH, m_testS, m_testD);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleK);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleQ);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleV);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleS);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaScaleS);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaScaleO);
+
+        // we have only double input for probability in RNG node (m_bernulliProbability), however
         // for pointwise pwScale3 we need to have it as a tensor, so we need to have these values synced
-        double probability_bernulli = 0.5;
-        auto dp   = MakeTensorDescriptor(GetNextId());
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutProbability);
 
-        auto ds   = MakeTensorDescriptor(GetNextId());
-        auto doff = MakeTensorDescriptor(GetNextId());
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutSeed);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutOffset);
 
-        // This scale param is just a float in Find 2.0
-        auto atnScl = MakeTensorDescriptor(GetNextId());
+        // output real tensors
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaO, false, m_testN, m_testH, m_testS, m_testD);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxO);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxS);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaM, false, m_testN, m_testH, m_testS, 1);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaZInv, false, m_testN, m_testH, m_testS, 1);
 
-        auto o     = MakeTensorDescriptor(GetNextId(), false, test_n, test_h, test_s, test_d);
-        auto amaxO = MakeTensorDescriptor(GetNextId());
-        auto amaxS = MakeTensorDescriptor(GetNextId());
-        auto m     = MakeTensorDescriptor(GetNextId(), false, test_n, test_h, test_s, 1);
-        auto zInv  = MakeTensorDescriptor(GetNextId(), false, test_n, test_h, test_s, 1);
+        // This attention scale param is just a float in Find 2.0, so no particular enum value, just use m_nextTensorId, it equals to max value + 1 at this point
+        // If it's needed we could save this value here
+        m_attentionScaleId = GetNextId();
+        MakeAndAddRealTensorDescriptor(m_attentionScaleId);
+    }
 
+    void MakeVirtualTensorsAndNodes()
+    {
         // virtual tensors
-        auto tMM0 = MakeTensorDescriptor(GetNextId(), true, test_n, test_h, test_s, test_s);
-        auto pwS0 = MakeTensorDescriptor(GetNextId(), true, test_n, test_h, test_s, test_s);
-        auto pwS1 = MakeTensorDescriptor(GetNextId(), true, test_n, test_h, test_s, test_s);
-        auto pwS2 = MakeTensorDescriptor(GetNextId(), true, test_n, test_h, test_s, test_s);
+        auto tMM0 = MakeTensorDescriptor(GetNextId(), true, m_testN, m_testH, m_testS, m_testS);
+        auto pwS0 = MakeTensorDescriptor(GetNextId(), true, m_testN, m_testH, m_testS, m_testS);
+        auto pwS1 = MakeTensorDescriptor(GetNextId(), true, m_testN, m_testH, m_testS, m_testS);
+        auto pwS2 = MakeTensorDescriptor(GetNextId(), true, m_testN, m_testH, m_testS, m_testS);
 
-        auto tSub   = MakeTensorDescriptor(GetNextId(), true, test_n, test_h, test_s, test_s);
-        auto tExp   = MakeTensorDescriptor(GetNextId(), true, test_n, test_h, test_s, test_s);
-        auto tSum   = MakeTensorDescriptor(GetNextId(), true, test_n, test_h, test_s, 1);
-        auto tMult0 = MakeTensorDescriptor(GetNextId(), true, test_n, test_h, test_s, test_s);
-        auto tRnd   = MakeTensorDescriptor(GetNextId(), true, test_n, test_h, test_s, test_s);
-        auto tMult1 = MakeTensorDescriptor(GetNextId(), true, test_n, test_h, test_s, test_s);
-        auto pwS3   = MakeTensorDescriptor(GetNextId(), true, test_n, test_h, test_s, test_s);
-        auto pwS4   = MakeTensorDescriptor(GetNextId(), true, test_n, test_h, test_s, test_s);
+        auto tSub   = MakeTensorDescriptor(GetNextId(), true, m_testN, m_testH, m_testS, m_testS);
+        auto tExp   = MakeTensorDescriptor(GetNextId(), true, m_testN, m_testH, m_testS, m_testS);
+        auto tSum   = MakeTensorDescriptor(GetNextId(), true, m_testN, m_testH, m_testS, 1);
+        auto tMult0 = MakeTensorDescriptor(GetNextId(), true, m_testN, m_testH, m_testS, m_testS);
+        auto tRnd   = MakeTensorDescriptor(GetNextId(), true, m_testN, m_testH, m_testS, m_testS);
+        auto tMult1 = MakeTensorDescriptor(GetNextId(), true, m_testN, m_testH, m_testS, m_testS);
+        auto pwS3   = MakeTensorDescriptor(GetNextId(), true, m_testN, m_testH, m_testS, m_testS);
+        auto pwS4   = MakeTensorDescriptor(GetNextId(), true, m_testN, m_testH, m_testS, m_testS);
 
-        auto tMM1 = MakeTensorDescriptor(GetNextId(), true, test_n, test_h, test_s, test_d);
-        auto pwS5 = MakeTensorDescriptor(GetNextId(), true, test_n, test_h, test_s, test_d);
-        auto pwS6 = MakeTensorDescriptor(GetNextId(), true, test_n, test_h, test_s, test_d);
+        auto tMM1 = MakeTensorDescriptor(GetNextId(), true, m_testN, m_testH, m_testS, m_testD);
+        auto pwS5 = MakeTensorDescriptor(GetNextId(), true, m_testN, m_testH, m_testS, m_testD);
+        auto pwS6 = MakeTensorDescriptor(GetNextId(), true, m_testN, m_testH, m_testS, m_testD);
 
         // Node creation
+        AddGraphNode(MakeMatmul(m_realTensorMap[miopenTensorMhaQ], m_realTensorMap[miopenTensorMhaK], tMM0));
+        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL, tMM0, m_realTensorMap[m_attentionScaleId], pwS0));
+        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL, pwS0, m_realTensorMap[miopenTensorMhaDescaleQ], pwS1));
+        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL, pwS1, m_realTensorMap[miopenTensorMhaDescaleK], pwS2));
 
-        auto matmul0  = MakeMatmul(q, k, tMM0);
-        auto pwScale0 = MakePointwise(MIOPEN_POINTWISE_MUL, tMM0, atnScl, pwS0);
-        auto pwScale1 = MakePointwise(MIOPEN_POINTWISE_MUL, pwS0, descaleQ, pwS1);
-        auto pwScale2 = MakePointwise(MIOPEN_POINTWISE_MUL, pwS1, descaleK, pwS2);
+        AddGraphNode(MakeReduction(MIOPEN_REDUCE_TENSOR_MAX, pwS2, m_realTensorMap[miopenTensorMhaM]));
+        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_SUB, pwS2, m_realTensorMap[miopenTensorMhaM], tSub));
+        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_EXP, tSub, DescriptorWrapperPtr(), tExp));
+        AddGraphNode(MakeReduction(MIOPEN_REDUCE_TENSOR_ADD, tExp, tSum));
+        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_EXP, tSum, DescriptorWrapperPtr(), m_realTensorMap[miopenTensorMhaZInv]));
+        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL, tExp, m_realTensorMap[miopenTensorMhaZInv], tMult0));
 
-        auto reduction0 = MakeReduction(MIOPEN_REDUCE_TENSOR_MAX, pwS2, m);
-        auto pwSubtract = MakePointwise(MIOPEN_POINTWISE_SUB, pwS2, m, tSub);
-        auto pwExp      = MakePointwise(MIOPEN_POINTWISE_EXP, tSub, DescriptorWrapperPtr(), tExp);
-        auto reduction1 = MakeReduction(MIOPEN_REDUCE_TENSOR_ADD, tExp, tSum);
-        auto pwInv      = MakePointwise(MIOPEN_POINTWISE_EXP, tSum, DescriptorWrapperPtr(), zInv);
-        auto pwMult0    = MakePointwise(MIOPEN_POINTWISE_MUL, tExp, zInv, tMult0);
+        AddGraphNode(MakeReduction(MIOPEN_REDUCE_TENSOR_MAX, tMult0, m_realTensorMap[miopenTensorMhaAmaxS]));
 
-        auto reduction2 = MakeReduction(MIOPEN_REDUCE_TENSOR_MAX, tMult0, amaxS);
+        AddGraphNode(MakeRNG(m_bernulliProbability, m_realTensorMap[miopenTensorMhaDropoutSeed], m_realTensorMap[miopenTensorMhaDropoutOffset], tRnd));
 
-        auto rng = MakeRNG(probability_bernulli, ds, doff, tRnd);
+        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL, tMult0, tRnd, tMult1));
+        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL, tMult1, m_realTensorMap[miopenTensorMhaDropoutProbability], pwS3));
+        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL, pwS3, m_realTensorMap[miopenTensorMhaScaleS], pwS4));
 
-        auto pwMult1  = MakePointwise(MIOPEN_POINTWISE_MUL, tMult0, tRnd, tMult1);
-        auto pwScale3 = MakePointwise(MIOPEN_POINTWISE_MUL, tMult1, dp, pwS3);
-        auto pwScale4 = MakePointwise(MIOPEN_POINTWISE_MUL, pwS3, scaleS, pwS4);
-
-        auto matmul1    = MakeMatmul(pwS4, v, tMM1);
-        auto pwScale5   = MakePointwise(MIOPEN_POINTWISE_MUL, tMM1, descaleS, pwS5);
-        auto pwScale6   = MakePointwise(MIOPEN_POINTWISE_MUL, pwS5, descaleV, pwS6);
-        auto reduction3 = MakeReduction(MIOPEN_REDUCE_TENSOR_MAX, pwS6, amaxO);
-        auto pwScale7   = MakePointwise(MIOPEN_POINTWISE_MUL, pwS6, scaleO, o);
+        AddGraphNode(MakeMatmul(pwS4, m_realTensorMap[miopenTensorMhaV], tMM1));
+        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL, tMM1, m_realTensorMap[miopenTensorMhaDescaleS], pwS5));
+        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL, pwS5, m_realTensorMap[miopenTensorMhaDescaleV], pwS6));
+        AddGraphNode(MakeReduction(MIOPEN_REDUCE_TENSOR_MAX, pwS6, m_realTensorMap[miopenTensorMhaAmaxO]));
+        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL, pwS6, m_realTensorMap[miopenTensorMhaScaleO], m_realTensorMap[miopenTensorMhaO]));
     }
-    catch(const miopen::Exception& ex)
+
+    void RunTheGraph()
     {
-        FAIL() << ex.what();
+        DescriptorWrapperPtr operationGraph = MakeDescriptor(MIOPEN_BACKEND_OPERATIONGRAPH_DESCRIPTOR);
+
     }
+
+    void AddGraphNode(DescriptorWrapperPtr node)
+    {
+        m_nodeVector.push_back(node);
+    }
+
+
+    // For real tensors we use values from enum miopenTensorArgumentId_t (miopen.h) jsut to have some unique and named values.
+    // For virtual tensors we use identifiers starting from "max id from real tensors" + 1
+    void MakeAndAddRealTensorDescriptor( int64_t tensorId,
+                                bool isVirtual = false,
+                                int64_t n      = 1,
+                                int64_t h      = 1,
+                                int64_t s      = 1,
+                                int64_t d      = 1,
+                                bool transpose = false)
+    {
+        auto realTensor = MakeTensorDescriptor(tensorId, isVirtual, n, h, s, d, transpose);
+        m_realTensorMap[tensorId] = realTensor;
+
+        // Here we memorize maximum id from real tensors set -to start from this value + 1 for virtual tensors set.
+        m_nextTensorId = std::max(m_nextTensorId, tensorId) + 1;
+    }
+
+    // just a simple id generator, might be redone if necessary
+    int64_t GetNextId()
+    {
+        return m_nextTensorId++;
+    }
+
+private:
+    const int64_t m_testN = 2;
+    const int64_t m_testH = 4;
+    const int64_t m_testS = 8;
+    const int64_t m_testD = 16;    
+
+    double m_bernulliProbability = 0.5;
+
+    // to be fed into OperationGraph
+    std::vector<DescriptorWrapperPtr> m_nodeVector;
+
+    std::map<int64_t, DescriptorWrapperPtr> m_realTensorMap;
+
+    int64_t m_nextTensorId = 0;
+
+    // In Find 2.0 attention scale is just a float value, lets save the id here
+    int64_t m_attentionScaleId = 0;
+};
+
+TEST(TestCGraphApi, MhaForward)
+{
+    MhaForwardTest forwardTest;
+
+    forwardTest.Run();
 }
