@@ -54,11 +54,11 @@ public:
         // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessa
         constexpr std::size_t BUFFER_CAPACITY = 32767;
 
-        TCHAR buffer[BUFFER_CAPACITY];
-        std::strncpy(buffer, cmd.data(), BUFFER_CAPACITY);
+        if(cmd.size() < BUFFER_CAPACITY)
+            cmd.resize(BUFFER_CAPACITY, '\0');
 
         if(CreateProcess(path.string().c_str(),
-                         buffer,
+                         cmd.data(),
                          nullptr,
                          nullptr,
                          FALSE,

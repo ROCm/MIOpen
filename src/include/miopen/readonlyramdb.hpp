@@ -43,9 +43,10 @@ extern bool& rordb_embed_fs_override();
 class ReadonlyRamDb
 {
 public:
-    ReadonlyRamDb(std::string path) : db_path(path) {}
+    ReadonlyRamDb(DbKinds db_kind_, const std::string& path) : db_kind(db_kind_), db_path(path) {}
 
-    static ReadonlyRamDb& GetCached(const std::string& path, bool warn_if_unreadable);
+    static ReadonlyRamDb&
+    GetCached(DbKinds db_kind_, const std::string& path, bool warn_if_unreadable);
 
     boost::optional<DbRecord> FindRecord(const std::string& problem) const
     {
@@ -74,7 +75,7 @@ public:
     template <class TProblem>
     boost::optional<DbRecord> FindRecord(const TProblem& problem) const
     {
-        const auto key = DbRecord::Serialize(problem);
+        const auto key = DbRecord::SerializeKey(db_kind, problem);
         return FindRecord(key);
     }
 
@@ -96,6 +97,7 @@ public:
     const std::unordered_map<std::string, CacheItem>& GetCacheMap() const { return cache; }
 
 private:
+    DbKinds db_kind;
     std::string db_path;
     std::unordered_map<std::string, CacheItem> cache;
 

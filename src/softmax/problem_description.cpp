@@ -35,7 +35,9 @@ namespace softmax {
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    std::string network_config = "sfmfwd-";
+    std::ostringstream ss;
+
+    ss << "sfmfwd-";
 
     if(isForward)
     {
@@ -45,14 +47,11 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
         std::tie(n_x, c_x, h_x, w_x) = tien<4>(xdxDesc.GetLengths());
         std::tie(n_y, c_y, h_y, w_y) = tien<4>(yDesc.GetLengths());
 
-        network_config += "n_x" + std::to_string(n_x) + "c_x" + std::to_string(c_x) + "h_x" +
-                          std::to_string(h_x) + "w_x" + std::to_string(w_x) +
+        ss << "n_x" << n_x << "c_x" << c_x << "h_x" << h_x << "w_x" << w_x;
+        ss << "n_y" << n_y << "c_y" << c_y << "h_y" << h_y << "w_y" << w_y;
 
-                          "n_y" + std::to_string(n_y) + "c_y" + std::to_string(c_y) + "h_y" +
-                          std::to_string(h_y) + "w_y" + std::to_string(w_y);
-
-        network_config += "xpk" + std::to_string(static_cast<int>(xdxDesc.IsPacked())) + "ypk" +
-                          std::to_string(static_cast<int>(yDesc.IsPacked()));
+        ss << "xpk" << static_cast<int>(xdxDesc.IsPacked());
+        ss << "ypk" << static_cast<int>(yDesc.IsPacked());
     }
     else
     {
@@ -64,25 +63,21 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
         std::tie(n_dy, c_dy, h_dy, w_dy) = tien<4>(dyDesc.GetLengths());
         std::tie(n_dx, c_dx, h_dx, w_dx) = tien<4>(xdxDesc.GetLengths());
 
-        network_config += "n_y" + std::to_string(n_y) + "c_y" + std::to_string(c_y) + "h_y" +
-                          std::to_string(h_y) + "w_y" + std::to_string(w_y) +
+        ss << "n_y" << n_y << "c_y" << c_y << "h_y" << h_y << "w_y" << w_y;
+        ss << "n_dy" << n_dy << "c_dy" << c_dy << "h_dy" << h_dy << "w_dy" << w_dy;
+        ss << "n_dx" << n_dx << "c_dx" << c_dx << "h_dx" << h_dx << "w_dx" << w_dx;
 
-                          "n_dy" + std::to_string(n_dy) + "c_dy" + std::to_string(c_dy) + "h_dy" +
-                          std::to_string(h_dy) + "w_dy" + std::to_string(w_dy) +
-
-                          "n_dx" + std::to_string(n_dx) + "c_dx" + std::to_string(c_dx) + "h_dx" +
-                          std::to_string(h_dx) + "w_dx" + std::to_string(w_dx);
-
-        network_config += "ypk" + std::to_string(static_cast<int>(yDesc.IsPacked())) + "dypk" +
-                          std::to_string(static_cast<int>(dyDesc.IsPacked())) + "dxpk" +
-                          std::to_string(static_cast<int>(xdxDesc.IsPacked()));
+        ss << "ypk" << static_cast<int>(yDesc.IsPacked());
+        ss << "dypk" << static_cast<int>(dyDesc.IsPacked());
+        ss << "dxpk" << static_cast<int>(xdxDesc.IsPacked());
     }
 
-    network_config += "a" + std::to_string(alpha) + "b" + std::to_string(beta) + "algo" +
-                      std::to_string(static_cast<int>(algorithm)) + "mode" +
-                      std::to_string(static_cast<int>(mode));
+    ss << "a" << alpha;
+    ss << "b" << beta;
+    ss << "algo" << static_cast<int>(algorithm);
+    ss << "mode" << static_cast<int>(mode);
 
-    return NetworkConfig{network_config};
+    return NetworkConfig{ss.str()};
 }
 
 } // namespace softmax

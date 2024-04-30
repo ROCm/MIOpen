@@ -29,18 +29,22 @@
 #include "InputFlags.hpp"
 #include "driver.hpp"
 #include "mloSoftmaxHost.hpp"
+#include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
+#include "util_driver.hpp"
+
 #include <../test/verify.hpp>
-#include <algorithm>
-#include <cstdlib>
-#include <cfloat>
-#include <memory>
+
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+
+#include <algorithm>
+#include <cfloat>
+#include <cstdlib>
+#include <memory>
 #include <numeric>
 #include <vector>
-#include "random.hpp"
 
 template <typename Tgpu, typename Tref>
 class SoftmaxDriver : public Driver
@@ -186,12 +190,10 @@ int SoftmaxDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     size_t in_sz  = GetTensorSize(inputTensor);
     size_t out_sz = GetTensorSize(outputTensor);
-#if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
 
+    DEFINE_CONTEXT(ctx);
+#if MIOPEN_BACKEND_OPENCL
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
 #endif
     in_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
     out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
@@ -218,18 +220,14 @@ int SoftmaxDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         dout[i] = Data_scale * prng::gen_A_to_B(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
     }
 
-#if MIOPEN_BACKEND_OPENCL
-    cl_int status;
-#elif MIOPEN_BACKEND_HIP
-    int status;
-#endif
+    status_t status;
     status = in_dev->ToGPU(q, in.data());
     status |= out_dev->ToGPU(q, out.data());
 
     status |= din_dev->ToGPU(q, din.data());
     status |= dout_dev->ToGPU(q, dout.data());
 
-    if(status != CL_SUCCESS)
+    if(status != STATUS_SUCCESS)
         printf("Error copying data to GPU\n");
 
     return miopenStatusSuccess;
@@ -240,6 +238,7 @@ int SoftmaxDriver<Tgpu, Tref>::RunForwardGPU()
 {
     float kernel_total_time = 0.0;
     float kernel_first_time = 0.0;
+    float wall_first_time   = 0.0;
 
     Timer t;
     START_TIME
@@ -260,19 +259,36 @@ int SoftmaxDriver<Tgpu, Tref>::RunForwardGPU()
         miopenGetKernelTime(GetHandle(), &time);
         kernel_total_time += time;
         if(i == 0)
+        {
             kernel_first_time = time;
+            STOP_TIME
+            wall_first_time = t.gettime_ms();
+            START_TIME
+        }
     }
 
     if(inflags.GetValueInt("time") == 1)
     {
         STOP_TIME
-        int iter = inflags.GetValueInt("iter");
-        if(WALL_CLOCK)
-            printf("Wall-clock Time Forward Softmax Elapsed: %f ms\n", t.gettime_ms() / iter);
+        int iter           = inflags.GetValueInt("iter");
+        auto gpu_time      = kernel_first_time;
+        auto wall_time     = wall_first_time;
+        auto aux_wall_time = 0.0f;
+        if(iter > 1)
+        {
+            gpu_time      = (kernel_total_time - kernel_first_time) / (iter - 1);
+            wall_time     = t.gettime_ms() / (iter - 1);
+            aux_wall_time = wall_first_time - wall_time;
+        }
 
-        float kernel_average_time =
-            iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        printf("GPU Kernel Time Forward Softmax Elapsed: %f ms\n", kernel_average_time);
+        if(WALL_CLOCK)
+        {
+            printf("Wall-clock Time Forward Softmax Elapsed: %f ms", wall_time);
+            if(iter > 1)
+                printf(", First Call Overhead: %f ms", aux_wall_time);
+            printf("\n");
+        }
+        printf("GPU Kernel Time Forward Softmax Elapsed: %f ms\n", gpu_time);
     }
 
     out_dev->FromGPU(GetStream(), out.data());
@@ -291,6 +307,7 @@ int SoftmaxDriver<Tgpu, Tref>::RunBackwardGPU()
 {
     float kernel_total_time = 0.0;
     float kernel_first_time = 0.0;
+    float wall_first_time   = 0.0;
 
     Timer t;
     START_TIME
@@ -313,19 +330,36 @@ int SoftmaxDriver<Tgpu, Tref>::RunBackwardGPU()
         miopenGetKernelTime(GetHandle(), &time);
         kernel_total_time += time;
         if(i == 0)
+        {
             kernel_first_time = time;
+            STOP_TIME
+            wall_first_time = t.gettime_ms();
+            START_TIME
+        }
     }
 
     if(inflags.GetValueInt("time") == 1)
     {
         STOP_TIME
-        int iter = inflags.GetValueInt("iter");
-        if(WALL_CLOCK)
-            printf("Wall-clock Time Backward Softmax Elapsed: %f ms\n", t.gettime_ms() / iter);
+        int iter           = inflags.GetValueInt("iter");
+        auto gpu_time      = kernel_first_time;
+        auto wall_time     = wall_first_time;
+        auto aux_wall_time = 0.0f;
+        if(iter > 1)
+        {
+            gpu_time      = (kernel_total_time - kernel_first_time) / (iter - 1);
+            wall_time     = t.gettime_ms() / (iter - 1);
+            aux_wall_time = wall_first_time - wall_time;
+        }
 
-        float kernel_average_time =
-            iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        printf("GPU Kernel Time Backward Softmax Elapsed: %f ms\n", kernel_average_time);
+        if(WALL_CLOCK)
+        {
+            printf("Wall-clock Time Backward Softmax Elapsed: %f ms", wall_time);
+            if(iter > 1)
+                printf(", First Call Overhead: %f ms", aux_wall_time);
+            printf("\n");
+        }
+        printf("GPU Kernel Time Backward Softmax Elapsed: %f ms\n", gpu_time);
     }
 
     din_dev->FromGPU(GetStream(), din.data());

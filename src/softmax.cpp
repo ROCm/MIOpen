@@ -33,7 +33,72 @@
 #include <miopen/softmax/solvers.hpp>
 #include <miopen/find_solution.hpp>
 
+#include <nlohmann/json.hpp>
+
 namespace miopen {
+
+extern "C" miopenStatus_t miopenCreateSoftmaxDescriptor(miopenSoftmaxDescriptor_t* softmaxDesc)
+{
+    MIOPEN_LOG_FUNCTION(softmaxDesc);
+    return miopen::try_([&] {
+        auto& desc = miopen::deref(softmaxDesc);
+        desc       = new miopen::SoftmaxDescriptor();
+    });
+}
+
+extern "C" miopenStatus_t miopenSetSoftmaxDescriptor(miopenSoftmaxDescriptor_t softmaxDesc,
+                                                     float alpha,
+                                                     float beta,
+                                                     miopenSoftmaxAlgorithm_t algorithm,
+                                                     miopenSoftmaxMode_t mode)
+{
+
+    MIOPEN_LOG_FUNCTION(softmaxDesc, alpha, beta, algorithm, mode);
+    return miopen::try_(
+        [&] { miopen::deref(softmaxDesc).SetParams(alpha, beta, algorithm, mode); });
+}
+
+extern "C" miopenStatus_t miopenGetSoftmaxDescriptor(const miopenSoftmaxDescriptor_t softmaxDesc,
+                                                     float* alpha,
+                                                     float* beta,
+                                                     miopenSoftmaxAlgorithm_t* algorithm,
+                                                     miopenSoftmaxMode_t* mode)
+{
+    MIOPEN_LOG_FUNCTION(softmaxDesc);
+    return miopen::try_([&] {
+        *alpha     = miopen::deref(softmaxDesc).GetAlpha();
+        *beta      = miopen::deref(softmaxDesc).GetBeta();
+        *algorithm = miopen::deref(softmaxDesc).GetAlgorithm();
+        *mode      = miopen::deref(softmaxDesc).GetMode();
+    });
+}
+
+std::ostream& operator<<(std::ostream& stream, const SoftmaxDescriptor& x)
+{
+    stream << "softmax,"
+           << "alpha" << x.GetAlpha() << ",beta" << x.GetBeta() << ",algorithm" << x.GetAlgorithm()
+           << ",mode" << x.GetMode() << ",";
+
+    return stream;
+}
+
+void to_json(nlohmann::json& json, const SoftmaxDescriptor& descriptor)
+{
+    json = nlohmann::json{
+        {"alpha", descriptor.GetAlpha()},
+        {"beta", descriptor.GetBeta()},
+        {"algorithm", descriptor.GetAlgorithm()},
+        {"mode", descriptor.GetMode()},
+    };
+}
+
+void from_json(const nlohmann::json& json, SoftmaxDescriptor& descriptor)
+{
+    json.at("alpha").get_to(descriptor.alpha);
+    json.at("beta").get_to(descriptor.beta);
+    json.at("algorithm").get_to(descriptor.algorithm);
+    json.at("mode").get_to(descriptor.mode);
+}
 
 miopenStatus_t SoftmaxForward(Handle& handle,
                               const void* alpha,

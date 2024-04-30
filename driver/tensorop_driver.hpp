@@ -28,17 +28,15 @@
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
-#include "tensor_driver.hpp"
-#include "miopen/miopen.h"
-#include "miopen/tensor.hpp"
+#include "mloNeuronHost.hpp"
 #include "random.hpp"
+#include "tensor_driver.hpp"
 #include "timer.hpp"
+#include "util_driver.hpp"
 
-#ifdef MIOPEN_BACKEND_HIP
-#ifndef CL_SUCCESS
-#define CL_SUCCESS 0
-#endif
-#endif
+#include <miopen/float_equal.hpp>
+#include <miopen/miopen.h>
+#include <miopen/tensor.hpp>
 
 template <typename Tgpu, typename Tref>
 class TensorOpDriver : public Driver
@@ -196,11 +194,9 @@ int TensorOpDriver<Tgpu, Tref>::SetTensorOpFromCmdLineArgs()
 template <typename Tgpu, typename Tref>
 int TensorOpDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
+    DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
 #endif
 
     size_t sz = GetTensorSize(aTensor);
@@ -235,12 +231,7 @@ int TensorOpDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         }
     }
 
-#if MIOPEN_BACKEND_OPENCL
-    cl_int status;
-#elif MIOPEN_BACKEND_HIP
-    int status;
-#endif
-
+    status_t status;
     status = a_dev->ToGPU(q, a.data());
     if(!is_set && !is_scale)
     {
@@ -248,7 +239,7 @@ int TensorOpDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         status |= c_dev->ToGPU(q, c.data());
     }
 
-    if(status != CL_SUCCESS)
+    if(status != STATUS_SUCCESS)
         printf("Error copying data to GPU\n");
 
     return miopenStatusSuccess;

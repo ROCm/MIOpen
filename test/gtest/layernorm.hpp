@@ -151,15 +151,6 @@ std::vector<LayerNormTestCase> LayerNormTestConfigs()
     // clang-format on
 }
 
-static int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
-{
-    const std::vector<std::size_t>& lens = desc.GetLengths();
-    std::vector<int32_t> int32_t_lens(lens.begin(), lens.end());
-
-    // set the strides for the tensor
-    return SetTensorNd(&desc, int32_t_lens, desc.GetType());
-}
-
 template <typename T = float>
 struct LayerNormTest : public ::testing::TestWithParam<LayerNormTestCase>
 {
@@ -190,15 +181,11 @@ protected:
             auto gen_zero = [&](auto...) { return 0; };
             weight        = tensor<T>{inner_dim}.generate(gen_one);
             bias          = tensor<T>{inner_dim}.generate(gen_zero);
-            SetTensorLayout(weight.desc);
-            SetTensorLayout(bias.desc);
         }
         else
         {
             weight = tensor<T>{inner_dim}.generate(gen_value);
             bias   = tensor<T>{inner_dim}.generate(gen_value);
-            SetTensorLayout(weight.desc);
-            SetTensorLayout(bias.desc);
         }
 
         std::vector<size_t> outer_dim;
@@ -207,14 +194,9 @@ protected:
         else
             outer_dim = {in_dim.begin(), in_dim.end() - (in_dim.size() - nomalized_dim)};
 
-        SetTensorLayout(input.desc);
-
         output = tensor<T>{in_dim};
         mean   = tensor<T>{outer_dim};
         rstd   = tensor<T>{outer_dim};
-        SetTensorLayout(output.desc);
-        SetTensorLayout(mean.desc);
-        SetTensorLayout(rstd.desc);
         std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
         std::fill(mean.begin(), mean.end(), std::numeric_limits<T>::quiet_NaN());
         std::fill(rstd.begin(), rstd.end(), std::numeric_limits<T>::quiet_NaN());

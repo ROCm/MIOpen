@@ -1640,7 +1640,7 @@ struct rnn_seq_api_test_driver : test_driver
         fill_buffers(input, dy, hx, cx, dhy, dcy, weights);
 
         // avoid BWD unexpected fails
-        // https://github.com/ROCmSoftwarePlatform/MIOpen/pull/2493#discussion_r1406959588
+        // https://github.com/ROCm/MIOpen/pull/2493#discussion_r1406959588
         if(inVecLen == 1 && hiddenSize == 13 && seqLength == 1 && batchSize == 1)
         {
             tolerance = 110;

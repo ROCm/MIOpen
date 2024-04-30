@@ -796,122 +796,10 @@ if(WORKAROUND_ISSUE_936 AND MIOPEN_TEST_HALF)
     SET(MIOPEN_TEST_FLOAT_ARG ${SAVE_MIOPEN_TEST_FLOAT_ARG})
 endif()
 
-add_custom_test(test_conv_group SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	128	56	56	--weights	256	4	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	256	56	56	--weights	512	8	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	256	28	28	--weights	512	8	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	512	28	28	--weights	1024	16	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	512	14	14	--weights	1024	16	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	1024	14	14	--weights	2048	32	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	1024	7	7	--weights	2048	32	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	32	128	56	56	--weights	256	4	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	32	256	56	56	--weights	512	8	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32
-#
-# Workaround for "Memory access fault by GPU node" during "HIP Release All" - WrW disabled.
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	32	256	28	28	--weights	512	8	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32 --disable-backward-weights
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	32	512	28	28	--weights	1024	16	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	32	512	14	14	--weights	1024	16	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	32	1024	14	14	--weights	2048	32	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	32	1024	7	7	--weights	2048	32	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	4	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1	--group-count	4
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	2	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1	--group-count	2
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	4	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1	--group-count	4
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	32	2	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1	--group-count	2
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	32	79	341	--weights	32	16	5	10	--pads_strides_dilations	0	0	2	2	1	1	--group-count	2
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	32	79	341	--weights	32	16	5	10	--pads_strides_dilations	0	0	2	2	1	1	--group-count	2
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	32	79	341	--weights	32	16	5	10	--pads_strides_dilations	0	0	2	2	1	1	--group-count	2
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	32	32	79	341	--weights	32	16	5	10	--pads_strides_dilations	0	0	2	2	1	1	--group-count	2
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	4	48	480	--weights	16	1	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	4
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	16	24	240	--weights	32	1	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	16
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	32	12	120	--weights	64	8	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	4
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	64	6	60	--weights	128	16	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	4
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	3	108	108	--weights	63	1	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	3
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	64	54	54	--weights	64	8	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	8
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	128	27	27	--weights	128	16	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	8
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	3	224	224	--weights	63	1	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	3
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	64	112	112	--weights	128	32	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	2
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	9	224	224	--weights	63	3	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	3
-#
-# Workaround for "Memory access fault by GPU node" during "FP32 gfx908 Hip Release All subset" - WrW disabled.
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	64	112	112	--weights	128	16	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	4 --disable-backward-weights
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	3	224	224	--weights	63	1	7	7	--pads_strides_dilations	3	3	2	2	1	1	--group-count	3
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	192	28	28	--weights	32	12	5	5	--pads_strides_dilations	2	2	1	1	1	1	--group-count	16
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	832	7	7	--weights	128	52	5	5	--pads_strides_dilations	2	2	1	1	1	1	--group-count	16
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	192	28	28	--weights	32	24	1	1	--pads_strides_dilations	0	0	1	1	1	1	--group-count	8
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	832	7	7	--weights	128	104	1	1	--pads_strides_dilations	0	0	1	1	1	1	--group-count	8
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	11	23	161	700	--weights	46	1	7	7	--pads_strides_dilations	1	1	2	2	1	1	--group-count	23
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	7	224	224	--weights	63	1	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	7
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	7	224	224	--weights	63	1	3	3	--pads_strides_dilations	0	0	1	1	1	1	--group-count	7
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	7	224	224	--weights	63	1	3	3	--pads_strides_dilations	0	0	2	2	1	1	--group-count	7
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	7	224	224	--weights	63	1	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	7
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	7	224	224	--weights	63	1	3	3	--pads_strides_dilations	2	2	2	2	1	1	--group-count	7
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	3	108	108	--weights	63	1	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	3
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	3	108	108	--weights	63	1	3	3	--pads_strides_dilations	0	0	1	1	1	1	--group-count	3
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	3	108	108	--weights	63	1	3	3	--pads_strides_dilations	0	0	2	2	1	1	--group-count	3
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	3	108	108	--weights	63	1	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	3
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	3	108	108	--weights	63	1	3	3	--pads_strides_dilations	2	2	2	2	1	1	--group-count	3
-)
-
-
-
-
 if(MIOPEN_TEST_DEEPBENCH)
     add_custom_test(test_deepbench_rnn GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
     )
 endif()
-
-add_custom_test(test_conv_extra SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
-# COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	1	1	1	--weights	1	1	2	2	--pads_strides_dilations	0	0	3	3	1	1
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	1	161	700	--weights	4	1	5	20	--pads_strides_dilations	0	0	2	2	1	1
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	1	161	700	--weights	4	1	5	20	--pads_strides_dilations	0	0	2	2	1	1
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	32	79	341	--weights	4	32	5	10	--pads_strides_dilations	0	0	2	2	1	1
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	32	79	341	--weights	4	32	5	10	--pads_strides_dilations	0	0	2	2	1	1
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	3	227	227	--weights	4	3	11	11	--pads_strides_dilations	0	0	4	4	1	1
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	3	224	224	--weights	4	3	11	11	--pads_strides_dilations	2	2	4	4	1	1
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	1	48	480	--weights	16	1	3	3	--pads_strides_dilations	1	1	1	1	1	1
-# Forward disabled since FFT fails verification for the forward direction
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	32	64	27	27	--weights	192	64	5	5	--pads_strides_dilations	2	2	1	1	1	1 --disable-forward
-# COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	64	14	14	--weights	24	64	5	5	--pads_strides_dilations	2	2	1	1	1	1
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	96	14	14	--weights	32	96	5	5	--pads_strides_dilations	2	2	1	1	1	1
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	16	14	14	--weights	4	16	5	5	--pads_strides_dilations	2	2	1	1	1	1
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	32	14	14	--weights	4	32	5	5	--pads_strides_dilations	2	2	1	1	1	1
-
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 16 3 64 128 --weights 96 3 11 11 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 16 3 32 32 --weights 96 3 11 11 --pads_strides_dilations 0 0 2 2 1 1  ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 16 3 64 128 --weights 96 3 11 11 --pads_strides_dilations 5 5 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 16 3 32 32 --weights 96 3 11 11 --pads_strides_dilations 5 5 2 2 1 1  ${MIOPEN_TEST_FLAGS_ARGS}
-
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 1024 2048 --weights 32 16 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 1024 2048 --weights 32 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 3072 3072 --weights 32 16 3 3 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 3072 3072 --weights 32 16 3 3 --pads_strides_dilations 2 2 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 128 320 1 7 --weights 256 320 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 128 1024 1 7 --weights 2048 1024 1 1 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 352 192 7 1 --weights 320 192 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 352 16 7 1 --weights 32 16 1 1 --pads_strides_dilations 2 2 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-)
-
-
-add_custom_test(test_conv_3d SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
-COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input 16    32   4    9     9  --weights    64    32   3  3    3  --pads_strides_dilations  0  0  0    2  2   2    1   1   1  --group-count   1   --cmode conv   --pmode   default
-COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input  4     3   4  227   227  --weights     4     3   3 11   11  --pads_strides_dilations  0  0  0    1  1   1    1   1   1  --group-count   1   --cmode conv   --pmode   default
-COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input 16   128   4   56    56  --weights   256     4   3  3    3  --pads_strides_dilations  1  1  1    1  1   1    1   1   1  --group-count   32  --cmode conv   --pmode   default
-COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input 16   128  56   56    56  --weights   256     4   3  3    3  --pads_strides_dilations  1  2  3    1  1   1    1   2   3  --group-count   32  --cmode conv   --pmode   default
-COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input  4     4   4  161   700  --weights    32     1   3  5   20  --pads_strides_dilations  1  1  1    2  2   2    1   1   1  --group-count   4   --cmode conv   --pmode   default
-COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input  8   512   4   28    28  --weights   512   128   1  1    1  --pads_strides_dilations  0  0  0    1  1   1    1   1   1  --group-count   4   --cmode conv   --pmode   same
-COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input  8   512   4   56    56  --weights   512   128   1  1    1  --pads_strides_dilations  0  0  0    2  2   2    1   1   1  --group-count   4   --cmode conv   --pmode   same
-COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input  8   512   3   14    14  --weights   512   128   1  1    1  --pads_strides_dilations  0  0  0    2  2   2    1   1   1  --trans_output_pads 0 0 0 --group-count   1   --cmode trans  --pmode   same
-COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input 16    64   3    4     4  --weights    64    32   1  3    3  --pads_strides_dilations  0  0  0    2  2   2    1   1   1  --trans_output_pads 0 0 0 --group-count   4   --cmode trans  --pmode   default
-COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input 16    32   4    9     9  --weights    64    32   3  3    3  --pads_strides_dilations  0  0  0    1  2   3    1   2   3  --group-count   1   --cmode conv   --pmode   default
-COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input  4     3   4  227   227  --weights     4     3   3 11   11  --pads_strides_dilations  0  0  0    1  1   1    1   2   3  --group-count   1   --cmode conv   --pmode   default
-COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input 16   128   4   56    56  --weights   256     4   3  3    3  --pads_strides_dilations  1  2  3    1  1   1    1   2   3  --group-count   32  --cmode conv   --pmode   default
-COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input  4     4   4  161   700  --weights    32     1   3  5   20  --pads_strides_dilations  1  2  3    1  2   3    1   2   3  --group-count   4   --cmode conv   --pmode   default
-COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input  8   512   4   28    28  --weights   512   128   1  1    1  --pads_strides_dilations  0  0  0    1  1   1    1   2   3  --group-count   4   --cmode conv   --pmode   same
-COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input  8   512   4   56    56  --weights   512   128   1  1    1  --pads_strides_dilations  0  0  0    1  2   3    1   2   3  --group-count   4   --cmode conv   --pmode   same
-COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input  8   512   3   14    14  --weights   512   128   1  1    1  --pads_strides_dilations  0  0  0    1  2   3    1   2   3  --trans_output_pads 0 0 0 --group-count   1   --cmode trans  --pmode   same
-COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input 16    64   3    4     4  --weights    64    32   1  3    3  --pads_strides_dilations  0  0  0    1  2   3    1   2   3  --trans_output_pads 0 0 0 --group-count   4   --cmode trans  --pmode   default
-)
 
 set(DYNAMIC_IMPLICITGEMM_COMMON
     MIOPEN_FIND_MODE=normal)
@@ -1009,34 +897,6 @@ set(CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvCkIgemmFwdV6r1DlopsNchw
     MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW=1)
 
-add_custom_test(test_reduce_custom_fp32 GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED SKIP_UNLESS_ALL
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 1024 30528 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-)
-
-add_custom_test(test_reduce_custom_fp32_fp16 HALF_ENABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED SKIP_UNLESS_ALL
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 8 2 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 160 10 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 7 1024 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 1 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 1 1 --I 0 --N 1 ---ReduceOp 1 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 1 1 --I 1 --N 1 ---ReduceOp 3 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 2 1 --I 1 --N 1 ---ReduceOp 3 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 6 2 1 --I 0 --N 1 ---ReduceOp 3 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 6 2 1 --I 0 --N 1 ---ReduceOp 2 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 2 2 1 --I 0 --N 1 ---ReduceOp 0 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 4 3 1 --I 0 --N 1 ---ReduceOp 3 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 3 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 3 --R 0 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 2048 32 1 --I 0 --N 1 ---ReduceOp 3 --R 0 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 4 3 1 --I 0 --N 1 ---ReduceOp 2 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 2 --R 0 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 2048 32 1 --I 0 --N 1 ---ReduceOp 2 --R 0 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 2 --R 0 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 12 11 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 13 4 7 7 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 3 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 64 3 280 81 --I 0 --N 0 --ReduceOp 0 --R 0 ${MIOPEN_TEST_FLAGS_ARGS}
-)
-
 if(MIOPEN_TEST_FLOAT)
     add_custom_test(test_reduce_double SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED COMMAND  $<TARGET_FILE:test_reduce_test> --double --all --verbose)
 endif()
@@ -1132,52 +992,12 @@ add_custom_test(smoke_solver_ConvMlirIgemm_W GFX900_DISABLED GFX908_DISABLED GFX
     ENVIRONMENT MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5 ${IMPLICITGEMM_MLIR_ENV_W}
     COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 64 64  28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
-
-add_custom_test(test_regression_half_vega SKIP_UNLESS_ALL FLOAT_DISABLED HALF_ENABLED GFX908_DISABLED GFX90A_DISABLED
-# Issue #1956.
-    ENVIRONMENT MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmBwdRest'
-    COMMAND $<TARGET_FILE:test_conv3d> ${TEST_CONV_VERBOSE_B} --cmode conv --pmode default --group-count 1 --batch_size 2 --input_channels 64 --output_channels 32 --spatial_dim_elements 128 128 128 --filter_dims 3 3 3 --pads_strides_dilations 1 1 1 1 1 1 1 1 1 --trans_output_pads 0 0 0 --in_layout NCDHW --fil_layout NCDHW --out_layout NCDHW ${MIOPEN_TEST_FLAGS_ARGS}
-)
-# Test case for issue #1956 uses huge tensors, therefore:
-set_tests_properties(test_regression_half_vega PROPERTIES RUN_SERIAL On)
-
-set(ENVS_REGRESSION_ISSUE_1012
-    MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS=1
-    MIOPEN_FIND_MODE=normal)
-
-set(ARGS_REGRESSION_ISSUE_1012
-    --verbose
-    --disable-forward
-    --disable-backward-data
-    --disable-validation)
-
-add_custom_test(test_regression_issue_2012 GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED
-    # Issue #1012.
-    ENVIRONMENT ${ENVS_REGRESSION_ISSUE_1012}
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 128, 832, 7,  7  --weights 32,  832, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  192, 28, 28 --weights 64,  192, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  256, 28, 28 --weights 128, 256, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  480, 14, 14 --weights 64,  480, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  512, 14, 14 --weights 128, 512, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  512, 28, 28 --weights 128, 512, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  64,  56, 56 --weights 256, 64,  1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
-)
-
-set(ENVS_FIND_ONLY_HIP_IGEMM_V4R4XDLOPS
-    MIOPEN_FIND_MODE=normal
-    MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS=1
-    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmForwardV4R4Xdlops)
-
-set(ARGS_ENABLE_FORWARD_ONLY
-    --verbose
-    --disable-backward-data
-    --disable-backward-weights)
-
-add_custom_test(test_regression_half_mi200 GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED FLOAT_DISABLED HALF_ENABLED
-    # Issue-internal #4
-    ENVIRONMENT ${ENVS_FIND_ONLY_HIP_IGEMM_V4R4XDLOPS}
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --input 120 64 75 75 --weights 128 64 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_ENABLE_FORWARD_ONLY}
-)
-#override if we need to install gtests
+#Dont install the tests if we are building each test separately
+#When the tests are built as a single unit, then we want to be 
+#able to package them
 set(INSTALL_GTEST OFF)
+if(MIOPEN_TEST_DISCRETE)
 add_subdirectory(gtest EXCLUDE_FROM_ALL)
+else()
+add_subdirectory(gtest)
+endif()
