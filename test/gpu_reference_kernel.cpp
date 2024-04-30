@@ -938,7 +938,7 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                 rand_tensor_integer(in, 3, -2);
                 rand_tensor_integer(out, 3, -2);
                 /// \ref copy_non_packed_output_before_convolution
-                // rand_tensor_integer(wei);
+                rand_tensor_integer(wei);
 #if MIOPEN_BACKEND_OPENCL
                 status |= clEnqueueWriteBuffer(q,
                                                in_dev,
