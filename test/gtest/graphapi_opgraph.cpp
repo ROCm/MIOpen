@@ -56,7 +56,15 @@ TEST(GraphAPI, BuildDiamond)
     auto t_c = makeDummyTensor("t_c");
     auto t_d = makeDummyTensor("t_d");
 
+    miopenHandle_t handle = nullptr;
+    miopenStatus_t status = miopenCreate(&handle);
+
+    ASSERT_EQ(status, miopenStatusSuccess) << "Handle wasn't created";
+    ASSERT_NE(handle, nullptr) << "miopenCreate() created a null handle";
+
     gr::OpGraphBuilder graph_builder;
+
+    graph_builder.setHandle(handle);
 
     DummyNode top{"top", {&t_in}, {&t_a, &t_b}};
     DummyNode left{"left", {&t_a}, {&t_c}};
@@ -84,4 +92,6 @@ TEST(GraphAPI, BuildDiamond)
     ASSERT_TRUE(graph.numEdges() == 4);
     ASSERT_TRUE(graph.hasEdgeToSink(&bottom, &t_out));
     ASSERT_TRUE(graph.hasEdgeFromSource(&top, &t_in));
+
+    miopenDestroy(handle);
 }
