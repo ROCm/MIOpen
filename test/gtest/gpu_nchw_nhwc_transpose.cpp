@@ -580,12 +580,12 @@ INSTANTIATE_TEST_SUITE_P(   TransposeTest_2D_ ## sol ## _ ## type ## _Test,     
                             )                                                                       \
 );
 
-#define DEFINE_2D_TYPED_TESTS(sol)         \
-DEFINE_TransposeTest_2D(float, sol);       \
-DEFINE_TransposeTest_2D(float16, sol);     \
-DEFINE_TransposeTest_2D(bfloat16, sol);    \
-DEFINE_TransposeTest_2D(uint16_t, sol);    \
-DEFINE_TransposeTest_2D(uint8_t, sol);
+#define DEFINE_2D_TYPED_TESTS(sol)          \
+DEFINE_TransposeTest_2D(float, sol);        \
+DEFINE_TransposeTest_2D(float16, sol);      \
+DEFINE_TransposeTest_2D(bfloat16, sol);     \
+DEFINE_TransposeTest_2D(uint16_t, sol);     \
+DEFINE_TransposeTest_2D(uint8_t, sol);      \
 
 DEFINE_2D_TYPED_TESTS(TransposeSolutionDefault2Nhwc);
 DEFINE_2D_TYPED_TESTS(TransposeSolutionNhwc2Default);
@@ -611,12 +611,12 @@ INSTANTIATE_TEST_SUITE_P(   TransposeTest_3D_ ## sol ## _ ## type ## _Test,     
                             )                                                                       \
 );
 
-#define DEFINE_3D_TYPED_TESTS(sol)         \
-DEFINE_TransposeTest_3D(float, sol);       \
-DEFINE_TransposeTest_3D(float16, sol);     \
-DEFINE_TransposeTest_3D(bfloat16, sol);    \
-DEFINE_TransposeTest_3D(uint16_t, sol);    \
-DEFINE_TransposeTest_3D(uint8_t, sol);
+#define DEFINE_3D_TYPED_TESTS(sol)          \
+DEFINE_TransposeTest_3D(float, sol);        \
+DEFINE_TransposeTest_3D(float16, sol);      \
+DEFINE_TransposeTest_3D(bfloat16, sol);     \
+DEFINE_TransposeTest_3D(uint16_t, sol);     \
+DEFINE_TransposeTest_3D(uint8_t, sol);      \
 
 DEFINE_3D_TYPED_TESTS(TransposeSolutionDefault2Ndhwc);
 DEFINE_3D_TYPED_TESTS(TransposeSolutionNdhwc2Default);
