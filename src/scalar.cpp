@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <miopen/scalar.hpp>
+#include <miopen/conv/problem_description.hpp>
 
 template <typename T>
 bool isCloseToZero(T value)
