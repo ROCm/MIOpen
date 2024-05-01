@@ -155,7 +155,8 @@ static inline void AdjustWorkspacesizeVariableFromEnv(std::size_t& sz)
         sz /= adj;
     else
         sz = adj;
-    MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Info2, "MIOpenDriver", "From " << sz_save << " to " << sz);
+    MIOPEN_LOG_CUSTOM(
+        miopen::LoggingLevel::Info2, "MIOpenDriver", "From " << sz_save << " to " << sz);
     return;
 }
 
