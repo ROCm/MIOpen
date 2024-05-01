@@ -616,18 +616,6 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
         registry, ++id, Primitive::Normalization, layernorm::Layernorm4DCKForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Normalization, layernorm::LayernormForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Reduce, reduce::SumForward{}.SolverDbId());
-    RegisterWithSolver(registry,
-                       ++id,
-                       conv::ConvHipImplicitGemmF16F8F16FwdXdlops{},
-                       miopenConvolutionAlgoImplicitGEMM);
-    RegisterWithSolver(registry,
-                       ++id,
-                       conv::ConvHipImplicitGemmF16F8F16BwdXdlops{},
-                       miopenConvolutionAlgoImplicitGEMM);
-    RegisterWithSolver(registry,
-                       ++id,
-                       conv::ConvHipImplicitGemmF16F8F16WrwXdlops{},
-                       miopenConvolutionAlgoImplicitGEMM);
     Register(registry,
              ++id,
              Primitive::Fusion,
