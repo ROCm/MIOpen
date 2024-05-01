@@ -431,7 +431,7 @@ protected:
 };
 
 template <typename T, class TRANSPOSE_SOL>
-struct TransposeTest_3D
+struct LayoutTransposeTest_3D
     : public ::testing::TestWithParam<
           std::tuple<uint32_t, uint32_t>>
 {
@@ -601,58 +601,58 @@ protected:
     }
 };
 
-#define DEFINE_TransposeTest_2D(type, sol)                                                          \
-struct TransposeTest_2D_ ## sol ## _ ## type                                                        \
-    : public TransposeTest_2D<type, miopen::sol>                                                    \
-{                                                                                                   \
-protected:                                                                                          \
-    void SetUp() override { TransposeTest_2D<type, miopen::sol>::SetUp(); }                         \
-    void TearDown() override { TransposeTest_2D<type, miopen::sol>::TearDown(); }                   \
-};                                                                                                  \
-TEST_P(TransposeTest_2D_ ## sol ## _ ## type, TransposeTest_2D_ ## sol ## _ ## type ## _P)          \
-{ RunTest(); }                                                                                      \
-INSTANTIATE_TEST_SUITE_P(   TransposeTest_2D_ ## sol ## _ ## type ## _Test,                         \
-                            TransposeTest_2D_ ## sol ## _ ## type,                                  \
-                            testing::Combine(                                                       \
-                                testing::ValuesIn(transpose_dims::get_batch_size()),                \
-                                testing::ValuesIn(transpose_dims::get_channel_size())               \
-                            )                                                                       \
+#define DEFINE_LayoutTransposeTest_2D(type, sol)                                                        \
+struct LayoutTransposeTest_2D_ ## sol ## _ ## type                                                      \
+    : public LayoutTransposeTest_2D<type, miopen::sol>                                                  \
+{                                                                                                       \
+protected:                                                                                              \
+    void SetUp() override { LayoutTransposeTest_2D<type, miopen::sol>::SetUp(); }                       \
+    void TearDown() override { LayoutTransposeTest_2D<type, miopen::sol>::TearDown(); }                 \
+};                                                                                                      \
+TEST_P(LayoutTransposeTest_2D_ ## sol ## _ ## type, LayoutTransposeTest_2D_ ## sol ## _ ## type ## _P)  \
+{ RunTest(); }                                                                                          \
+INSTANTIATE_TEST_SUITE_P(   LayoutTransposeTest_2D_ ## sol ## _ ## type ## _Test,                       \
+                            LayoutTransposeTest_2D_ ## sol ## _ ## type,                                \
+                            testing::Combine(                                                           \
+                                testing::ValuesIn(transpose_dims::get_batch_size()),                    \
+                                testing::ValuesIn(transpose_dims::get_channel_size())                   \
+                            )                                                                           \
 );
 
-#define DEFINE_2D_TYPED_TESTS(sol)          \
-DEFINE_TransposeTest_2D(float, sol);        \
-DEFINE_TransposeTest_2D(float16, sol);      \
-DEFINE_TransposeTest_2D(bfloat16, sol);     \
-DEFINE_TransposeTest_2D(uint16_t, sol);     \
-DEFINE_TransposeTest_2D(uint8_t, sol);      \
+#define DEFINE_2D_TYPED_TESTS(sol)              \
+DEFINE_LayoutTransposeTest_2D(float, sol);      \
+DEFINE_LayoutTransposeTest_2D(float16, sol);    \
+DEFINE_LayoutTransposeTest_2D(bfloat16, sol);   \
+DEFINE_LayoutTransposeTest_2D(uint16_t, sol);   \
+DEFINE_LayoutTransposeTest_2D(uint8_t, sol);    \
 
 DEFINE_2D_TYPED_TESTS(TransposeSolutionDefault2Nhwc);
 DEFINE_2D_TYPED_TESTS(TransposeSolutionNhwc2Default);
 
-#define DEFINE_TransposeTest_3D(type, sol)                                                          \
-struct TransposeTest_3D_ ## sol ## _ ## type                                                        \
-    : public TransposeTest_3D<type, miopen::sol>                                                    \
-{                                                                                                   \
-protected:                                                                                          \
-    void SetUp() override { TransposeTest_3D<type, miopen::sol>::SetUp(); }                         \
-    void TearDown() override { TransposeTest_3D<type, miopen::sol>::TearDown(); }                   \
-};                                                                                                  \
-TEST_P(TransposeTest_3D_ ## sol ## _ ## type, TransposeTest_3D_ ## sol ## _ ## type ## _P)          \
-{ RunTest(); }                                                                                      \
-INSTANTIATE_TEST_SUITE_P(   TransposeTest_3D_ ## sol ## _ ## type ## _Test,                         \
-                            TransposeTest_3D_ ## sol ## _ ## type,                                  \
-                            testing::Combine(                                                       \
-                                testing::ValuesIn(transpose_dims::get_batch_size()),                \
-                                testing::ValuesIn(transpose_dims::get_channel_size())               \
-                            )                                                                       \
+#define DEFINE_LayoutTransposeTest_3D(type, sol)                                                        \
+struct LayoutTransposeTest_3D_ ## sol ## _ ## type                                                      \
+    : public LayoutTransposeTest_3D<type, miopen::sol>                                                  \
+{                                                                                                       \
+protected:                                                                                              \
+    void SetUp() override { LayoutTransposeTest_3D<type, miopen::sol>::SetUp(); }                       \
+    void TearDown() override { LayoutTransposeTest_3D<type, miopen::sol>::TearDown(); }                 \
+};                                                                                                      \
+TEST_P(LayoutTransposeTest_3D_ ## sol ## _ ## type, LayoutTransposeTest_3D_ ## sol ## _ ## type ## _P)  \
+{ RunTest(); }                                                                                          \
+INSTANTIATE_TEST_SUITE_P(   LayoutTransposeTest_3D_ ## sol ## _ ## type ## _Test,                       \
+                            LayoutTransposeTest_3D_ ## sol ## _ ## type,                                \
+                            testing::Combine(                                                           \
+                                testing::ValuesIn(transpose_dims::get_batch_size()),                    \
+                                testing::ValuesIn(transpose_dims::get_channel_size())                   \
+                            )                                                                           \
 );
 
-#define DEFINE_3D_TYPED_TESTS(sol)          \
-DEFINE_TransposeTest_3D(float, sol);        \
-DEFINE_TransposeTest_3D(float16, sol);      \
-DEFINE_TransposeTest_3D(bfloat16, sol);     \
-DEFINE_TransposeTest_3D(uint16_t, sol);     \
-DEFINE_TransposeTest_3D(uint8_t, sol);      \
+#define DEFINE_3D_TYPED_TESTS(sol)              \
+DEFINE_LayoutTransposeTest_3D(float, sol);      \
+DEFINE_LayoutTransposeTest_3D(float16, sol);    \
+DEFINE_LayoutTransposeTest_3D(bfloat16, sol);   \
+DEFINE_LayoutTransposeTest_3D(uint16_t, sol);   \
+DEFINE_LayoutTransposeTest_3D(uint8_t, sol);    \
 
 DEFINE_3D_TYPED_TESTS(TransposeSolutionDefault2Ndhwc);
 DEFINE_3D_TYPED_TESTS(TransposeSolutionNdhwc2Default);
