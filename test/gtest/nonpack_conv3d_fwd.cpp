@@ -46,8 +46,8 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
                const miopen::ConvolutionDescriptor& convDesc,
                const NonPackTestCase& conv_config,
                bool& test_skipped,
-               const miopen::Scalar& alpha = {1.0},
-               const miopen::Scalar& beta  = {0.0})
+               const miopen::Scalar& alpha = miopen::Scalar(1.0),
+               const miopen::Scalar& beta  = miopen::Scalar(0.0))
 {
     auto&& handle = get_handle();
 
