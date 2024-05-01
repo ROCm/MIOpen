@@ -43,16 +43,6 @@
 #include "driver.hpp"
 #include "random.hpp"
 
-template <>
-struct miopen_type<uint8_t> : std::integral_constant<miopenDataType_t, miopenInt8>
-{
-};
-
-template <>
-struct miopen_type<uint16_t> : std::integral_constant<miopenDataType_t, miopenHalf>
-{
-};
-
 #define ASSERT_HIP_SUCCESS(x) ASSERT_EQ((x), hipSuccess)
 
 namespace batched_transpose {
