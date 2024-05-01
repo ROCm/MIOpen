@@ -257,12 +257,30 @@ void verify_tensor(tensor<T>& t_tst, const char* _tst, tensor<T>& t_ref, const c
 
 struct transpose_dims
 {
-    static std::vector<uint32_t> get_image_size() { return {1, 9, 14}; }
-    static std::vector<uint32_t> get_image_size_ext() { auto v = get_image_size(); v.push_back(prng::gen_off_range(29, 13)); return v; }
-    static std::vector<uint32_t> get_channel_size() { return {3, 8, 14}; }
-    static std::vector<uint32_t> get_channel_size_ext() { auto v = get_channel_size(); v.push_back(prng::gen_off_range(15, 13)); return v; }
-    static std::vector<uint32_t> get_batch_size() { return {1, 2, 4}; }
-    static std::vector<uint32_t> get_batch_size_ext() { auto v = get_batch_size(); v.push_back(prng::gen_off_range(3, 4)); return v; }
+    static constexpr uint32_t image_size_rand_offset {29};
+    static constexpr uint32_t image_size_rand_range {13};
+    static uint32_t get_max_image_size()
+    {
+        return image_size_rand_offset + image_size_rand_range - 1;
+    }
+    static std::vector<uint32_t> get_image_size()
+    {
+        std::vector<uint32_t> v = {1, 9, 14};
+        v.push_back(prng::gen_off_range(image_size_rand_offset, image_size_rand_range));
+        return v;
+    }
+    static std::vector<uint32_t> get_channel_size()
+    {
+        std::vector<uint32_t> v = {3, 11};
+        v.push_back(prng::gen_off_range(19, 7));
+        return v;
+    }
+    static std::vector<uint32_t> get_batch_size()
+    {
+        std::vector<uint32_t> v = {1, 2, 4};
+        v.push_back(prng::gen_off_range(3, 4));
+        return v;
+    }
 };
 
 struct transpose_invoke_param : public miopen::InvokeParams
@@ -287,7 +305,7 @@ using namespace batched_transpose;
 template <typename T, class TRANSPOSE_SOL>
 struct TransposeTest_2D
     : public ::testing::TestWithParam<
-          std::tuple<uint32_t, uint32_t, uint32_t, uint32_t>>
+          std::tuple<uint32_t, uint32_t>>
 {
 protected:
     miopenHandle_t              handle{};
@@ -302,46 +320,107 @@ protected:
     uint32_t tensor_sz;
     uint32_t n;
     uint32_t c;
-    uint32_t h;
-    uint32_t w;
 
     virtual void SetUp() override
     {
         miopenCreate(&handle);
 
-        auto [_n, _c, _h, _w] = GetParam();
+        auto [_n, _c] = GetParam();
         n = _n;
         c = _c;
-        h = _h;
-        w = _w;
 
-        tensor_sz = n * c * h * w;
+        auto wh = transpose_dims::get_max_image_size();
+        auto max_tensor_sz = n * c * wh * wh;
 
-        std::vector<int> tensor_len({static_cast<int>(n),
-                                        static_cast<int>(c),
-                                        static_cast<int>(h),
-                                        static_cast<int>(w)});
+        ASSERT_HIP_SUCCESS(hipMalloc(&src_dev, sizeof(T) * max_tensor_sz));
+        ASSERT_HIP_SUCCESS(hipMalloc(&dst_dev, sizeof(T) * max_tensor_sz));
+    }
+    void RunTest()
+    {
+        auto H = transpose_dims::get_image_size();
+        auto W = transpose_dims::get_image_size();
 
-        std::vector<int> tensor_strides;
+        for (auto h : H)
+        {
+            for (auto w : W)
+            {
+                tensor_sz = n * c * h * w;
 
-        std::string layout_default = miopen::tensor_layout_get_default(4);
-        std::string layout_string  = tensor_layout_to_string(miopen::tensor_layout_nchw);
+                std::vector<int> tensor_len = {
+                    static_cast<int>(n),
+                    static_cast<int>(c),
+                    static_cast<int>(h),
+                    static_cast<int>(w)
+                };
 
-        miopen::tensor_layout_to_strides(
-            tensor_len, layout_default, layout_string, tensor_strides);
+                std::vector<int> tensor_strides;
 
-        t_src = tensor<T> {tensor_len, tensor_strides};
-        t_dst = tensor<T> {tensor_len, tensor_strides};
-        t_dst_gpu = tensor<T> {tensor_len, tensor_strides};
+                std::string layout_default = miopen::tensor_layout_get_default(4);
+                std::string layout_string  = tensor_layout_to_string(miopen::tensor_layout_nchw);
 
-        rand_tensor_integer(t_src);
+                miopen::tensor_layout_to_strides(
+                    tensor_len, layout_default, layout_string, tensor_strides);
 
-        ASSERT_HIP_SUCCESS(hipMalloc(&src_dev, sizeof(T) * tensor_sz));
-        ASSERT_HIP_SUCCESS(hipMalloc(&dst_dev, sizeof(T) * tensor_sz));
-        ASSERT_HIP_SUCCESS(hipMemcpy(
-            src_dev, t_src.data.data(), sizeof(T) * tensor_sz, hipMemcpyHostToDevice));
+                t_src       = tensor<T> {tensor_len, tensor_strides};
+                t_dst       = tensor<T> {tensor_len, tensor_strides};
+                t_dst_gpu   = tensor<T> {tensor_len, tensor_strides};
 
-        ctx.SetStream(&miopen::deref(this->handle));
+                rand_tensor_integer(t_src);
+
+                ASSERT_HIP_SUCCESS(hipMalloc(&src_dev, sizeof(T) * tensor_sz));
+                ASSERT_HIP_SUCCESS(hipMalloc(&dst_dev, sizeof(T) * tensor_sz));
+                ASSERT_HIP_SUCCESS(hipMemcpy(
+                    src_dev, t_src.data.data(), sizeof(T) * tensor_sz, hipMemcpyHostToDevice));
+
+                ctx.SetStream(&miopen::deref(this->handle));
+
+                TRANSPOSE_SOL transpose_sol(ctx, to_miopen_data_type<T>::get(), n, c, h, w);
+
+                std::vector<OpKernelArg> opArgs = transpose_sol.GetKernelArg();
+
+                boost::optional<miopen::InvokerFactory> invoker_factory(
+                    [=](const std::vector<miopen::Kernel>& kernels) mutable {
+                        return [=](const miopen::Handle& _handle,
+                                    const miopen::AnyInvokeParams& primitive_param) mutable {
+                            decltype(auto) invoke_params =
+                                primitive_param.CastTo<transpose_invoke_param>();
+
+                            const auto k = _handle.Run(kernels[0]);
+
+                            opArgs[0] = OpKernelArg(invoke_params.dst);
+                            opArgs[1] = OpKernelArg(invoke_params.src);
+
+                            k(opArgs);
+                        };
+                    });
+
+                std::vector<miopen::solver::KernelInfo> construction_params{
+                    transpose_sol.GetKernelInfo()};
+
+                const auto invoker =
+                    miopen::deref(this->handle).PrepareInvoker(*invoker_factory, construction_params);
+
+                const auto invoke_param = transpose_invoke_param{
+                    DataCast(static_cast<const void*>(src_dev)), DataCast(dst_dev)};
+
+                // run gpu
+                invoker(miopen::deref(this->handle), invoke_param);
+
+                ASSERT_HIP_SUCCESS(hipMemcpy(
+                    t_dst_gpu.data.data(), dst_dev, sizeof(T) * tensor_sz, hipMemcpyDeviceToHost));
+
+                // run cpu
+                cpu_transpose<T, TRANSPOSE_SOL>::run(t_dst.data.data(), t_src.data.data(), n, c, h, w);
+
+#ifdef BREAK_IT
+        // TEMPCODE break it
+        t_dst[prng::gen_0_to_B(tensor_sz)] += 1;
+#endif
+
+                // we expect exact match, since use integer
+                verify_tensor(t_dst_gpu, "gpu", t_dst, "cpu");
+            }
+        }
     }
     virtual void TearDown() override
     {
@@ -349,61 +428,12 @@ protected:
         hipFree(dst_dev);
         miopenDestroy(handle);
     }
-
-    void RunTest()
-    {
-        TRANSPOSE_SOL transpose_sol(ctx, to_miopen_data_type<T>::get(), n, c, h, w);
-
-        std::vector<OpKernelArg> opArgs = transpose_sol.GetKernelArg();
-
-        boost::optional<miopen::InvokerFactory> invoker_factory(
-            [=](const std::vector<miopen::Kernel>& kernels) mutable {
-                return [=](const miopen::Handle& _handle,
-                            const miopen::AnyInvokeParams& primitive_param) mutable {
-                    decltype(auto) invoke_params =
-                        primitive_param.CastTo<transpose_invoke_param>();
-
-                    const auto k = _handle.Run(kernels[0]);
-
-                    opArgs[0] = OpKernelArg(invoke_params.dst);
-                    opArgs[1] = OpKernelArg(invoke_params.src);
-
-                    k(opArgs);
-                };
-            });
-
-        std::vector<miopen::solver::KernelInfo> construction_params{
-            transpose_sol.GetKernelInfo()};
-
-        const auto invoker =
-            miopen::deref(this->handle).PrepareInvoker(*invoker_factory, construction_params);
-
-        const auto invoke_param = transpose_invoke_param{
-            DataCast(static_cast<const void*>(src_dev)), DataCast(dst_dev)};
-
-        // run gpu
-        invoker(miopen::deref(this->handle), invoke_param);
-
-        ASSERT_HIP_SUCCESS(hipMemcpy(
-            t_dst_gpu.data.data(), dst_dev, sizeof(T) * tensor_sz, hipMemcpyDeviceToHost));
-
-        // run cpu
-        cpu_transpose<T, TRANSPOSE_SOL>::run(t_dst.data.data(), t_src.data.data(), n, c, h, w);
-
-#ifdef BREAK_IT
-        // TEMPCODE break it
-        t_dst[prng::gen_0_to_B(tensor_sz)] += 1;
-#endif
-
-        // we expect exact match, since use integer
-        verify_tensor(t_dst_gpu, "gpu", t_dst, "cpu");
-    }
 };
 
 template <typename T, class TRANSPOSE_SOL>
 struct TransposeTest_3D
     : public ::testing::TestWithParam<
-          std::tuple<uint32_t, uint32_t, uint32_t, uint32_t, uint32_t>>
+          std::tuple<uint32_t, uint32_t>>
 {
 protected:
     miopen::ExecutionContext    ctx;
@@ -419,59 +449,146 @@ protected:
     tensor<T>   t_dst_ref;
     tensor<T>   t_cpu_2d;
 
-    uint32_t tensor_sz;
     uint32_t n;
     uint32_t c;
-    uint32_t d;
-    uint32_t h;
-    uint32_t w;
 
     virtual void SetUp() override
     {
         miopenCreate(&handle);
 
-        auto [_n, _c, _d, _h, _w] = GetParam();
+        auto [_n, _c] = GetParam();
         n = _n;
         c = _c;
-        d = _d;
-        h = _h;
-        w = _w;
 
-        tensor_sz = n * c * d * h * w;
+        auto dwh = transpose_dims::get_max_image_size();
+        auto max_tensor_sz = n * c * dwh * dwh * dwh;
 
-        std::vector<int> tensor_len({   static_cast<int>(n),
-                                        static_cast<int>(c),
-                                        static_cast<int>(d),
-                                        static_cast<int>(h),
-                                        static_cast<int>(w)});
+        ASSERT_HIP_SUCCESS(hipMalloc(&src_3d_dev, sizeof(T) * max_tensor_sz));
+        ASSERT_HIP_SUCCESS(hipMalloc(&dst_3d_dev, sizeof(T) * max_tensor_sz));
+        ASSERT_HIP_SUCCESS(hipMalloc(&src_2d_dev, sizeof(T) * max_tensor_sz));
+        ASSERT_HIP_SUCCESS(hipMalloc(&dst_2d_dev, sizeof(T) * max_tensor_sz));
+    }
+    void RunTest()
+    {
+        auto W = transpose_dims::get_image_size();
+        auto H = transpose_dims::get_image_size();
+        auto D = transpose_dims::get_image_size();
 
-        std::vector<int> tensor_strides;
+        for (auto w : W)
+        {
+            for (auto h : H)
+            {
+                for (auto d : D)
+                {
+                    auto tensor_sz = n * c * d * h * w;
 
-        std::string layout_default = miopen::tensor_layout_get_default(5);
-        std::string layout_string  = tensor_layout_to_string(miopen::tensor_layout_ncdhw);
+                    std::vector<int> tensor_len = {
+                        static_cast<int>(n),
+                        static_cast<int>(c),
+                        static_cast<int>(d),
+                        static_cast<int>(h),
+                        static_cast<int>(w)
+                    };
 
-        miopen::tensor_layout_to_strides(
-            tensor_len, layout_default, layout_string, tensor_strides);
+                    std::vector<int> tensor_strides;
+                    std::string layout_default = miopen::tensor_layout_get_default(5);
+                    std::string layout_string  = tensor_layout_to_string(miopen::tensor_layout_ncdhw);
 
-        t_src       = tensor<T> {tensor_len, tensor_strides};
-        t_gpu_2d    = tensor<T> {tensor_len, tensor_strides};
-        t_gpu_3d    = tensor<T> {tensor_len, tensor_strides};
-        t_dst_ref   = tensor<T> {tensor_len, tensor_strides};
-        t_cpu_2d    = tensor<T> {tensor_len, tensor_strides};
+                    miopen::tensor_layout_to_strides(
+                        tensor_len, layout_default, layout_string, tensor_strides);
 
-        rand_tensor_integer(t_src);
+                    t_src       = tensor<T> {tensor_len, tensor_strides};
+                    t_gpu_2d    = tensor<T> {tensor_len, tensor_strides};
+                    t_gpu_3d    = tensor<T> {tensor_len, tensor_strides};
+                    t_dst_ref   = tensor<T> {tensor_len, tensor_strides};
+                    t_cpu_2d    = tensor<T> {tensor_len, tensor_strides};
 
-        ASSERT_HIP_SUCCESS(hipMalloc(&src_3d_dev, sizeof(T) * tensor_sz));
-        ASSERT_HIP_SUCCESS(hipMalloc(&dst_3d_dev, sizeof(T) * tensor_sz));
-        ASSERT_HIP_SUCCESS(hipMemcpy(
-            src_3d_dev, t_src.data.data(), sizeof(T) * tensor_sz, hipMemcpyHostToDevice));
+                    rand_tensor_integer(t_src);
 
-        ASSERT_HIP_SUCCESS(hipMalloc(&src_2d_dev, sizeof(T) * tensor_sz));
-        ASSERT_HIP_SUCCESS(hipMalloc(&dst_2d_dev, sizeof(T) * tensor_sz));
-        ASSERT_HIP_SUCCESS(hipMemcpy(
-            src_2d_dev, t_src.data.data(), sizeof(T) * tensor_sz, hipMemcpyHostToDevice));
+                    ASSERT_HIP_SUCCESS(hipMemcpy(
+                        src_3d_dev, t_src.data.data(), sizeof(T) * tensor_sz, hipMemcpyHostToDevice));
 
-        ctx.SetStream(&miopen::deref(this->handle));
+                    ASSERT_HIP_SUCCESS(hipMemcpy(
+                        src_2d_dev, t_src.data.data(), sizeof(T) * tensor_sz, hipMemcpyHostToDevice));
+
+                    ctx.SetStream(&miopen::deref(this->handle));
+
+                    TRANSPOSE_SOL transpose_sol_3d(ctx, to_miopen_data_type<T>::get(), n, c, d, h, w);
+                    TRANSPOSE_SOL transpose_sol_2d(ctx, to_miopen_data_type<T>::get(), n, c, 1, d*h, w);
+
+                    std::vector<OpKernelArg> opArgs_3d = transpose_sol_3d.GetKernelArg();
+                    std::vector<OpKernelArg> opArgs_2d = transpose_sol_2d.GetKernelArg();
+
+                    boost::optional<miopen::InvokerFactory> invoker_factory_3d(
+                        [=](const std::vector<miopen::Kernel>& kernels) mutable {
+                            return [=](const miopen::Handle& _handle,
+                                        const miopen::AnyInvokeParams& primitive_param) mutable {
+                                decltype(auto) invoke_params =
+                                    primitive_param.CastTo<transpose_invoke_param>();
+
+                                const auto k = _handle.Run(kernels[0]);
+
+                                opArgs_3d[0] = OpKernelArg(invoke_params.dst);
+                                opArgs_3d[1] = OpKernelArg(invoke_params.src);
+
+                                k(opArgs_3d);
+                            };
+                        });
+
+                    boost::optional<miopen::InvokerFactory> invoker_factory_2d(
+                        [=](const std::vector<miopen::Kernel>& kernels) mutable {
+                            return [=](const miopen::Handle& _handle,
+                                        const miopen::AnyInvokeParams& primitive_param) mutable {
+                                decltype(auto) invoke_params =
+                                    primitive_param.CastTo<transpose_invoke_param>();
+
+                                const auto k = _handle.Run(kernels[0]);
+
+                                opArgs_2d[0] = OpKernelArg(invoke_params.dst);
+                                opArgs_2d[1] = OpKernelArg(invoke_params.src);
+
+                                k(opArgs_2d);
+                            };
+                        });
+
+                    std::vector<miopen::solver::KernelInfo> construction_params_3d{
+                        transpose_sol_3d.GetKernelInfo()};
+                    std::vector<miopen::solver::KernelInfo> construction_params_2d{
+                        transpose_sol_2d.GetKernelInfo()};
+
+                    const auto invoker_3d =
+                        miopen::deref(this->handle).PrepareInvoker(*invoker_factory_3d, construction_params_3d);
+                    const auto invoker_2d =
+                        miopen::deref(this->handle).PrepareInvoker(*invoker_factory_2d, construction_params_2d);
+
+                    const auto invoke_param_3d = transpose_invoke_param{
+                        DataCast(static_cast<const void*>(src_3d_dev)), DataCast(dst_3d_dev)};
+                    const auto invoke_param_2d = transpose_invoke_param{
+                        DataCast(static_cast<const void*>(src_2d_dev)), DataCast(dst_2d_dev)};
+
+                    // run gpu
+                    invoker_3d(miopen::deref(this->handle), invoke_param_3d);
+                    invoker_2d(miopen::deref(this->handle), invoke_param_2d);
+
+                    ASSERT_HIP_SUCCESS(hipMemcpy(
+                        t_gpu_3d.data.data(), dst_3d_dev, sizeof(T) * tensor_sz, hipMemcpyDeviceToHost));
+                    ASSERT_HIP_SUCCESS(hipMemcpy(
+                        t_gpu_2d.data.data(), dst_2d_dev, sizeof(T) * tensor_sz, hipMemcpyDeviceToHost));
+
+                    // run cpu
+                    cpu_transpose<T, TRANSPOSE_SOL>::run(t_dst_ref.data.data(), t_src.data.data(), n, c, d, h, w);
+
+#ifdef BREAK_IT
+        // TEMPCODE break it
+        t_dst_ref[prng::gen_0_to_B(tensor_sz)] += 1;
+#endif
+
+                    // we expect exact match, since use integer
+                    verify_tensor(t_gpu_3d, "gpu3d", t_dst_ref, "cpu");
+                    verify_tensor(t_gpu_2d, "gpu2d", t_dst_ref, "cpu");
+                }
+            }
+        }
     }
     virtual void TearDown() override
     {
@@ -481,82 +598,6 @@ protected:
         hipFree(dst_2d_dev);
 
         miopenDestroy(handle);
-    }
-    void RunTest()
-    {
-        TRANSPOSE_SOL transpose_sol_3d(ctx, to_miopen_data_type<T>::get(), n, c, d, h, w);
-        TRANSPOSE_SOL transpose_sol_2d(ctx, to_miopen_data_type<T>::get(), n, c, 1, d*h, w);
-
-        std::vector<OpKernelArg> opArgs_3d = transpose_sol_3d.GetKernelArg();
-        std::vector<OpKernelArg> opArgs_2d = transpose_sol_2d.GetKernelArg();
-
-        boost::optional<miopen::InvokerFactory> invoker_factory_3d(
-            [=](const std::vector<miopen::Kernel>& kernels) mutable {
-                return [=](const miopen::Handle& _handle,
-                            const miopen::AnyInvokeParams& primitive_param) mutable {
-                    decltype(auto) invoke_params =
-                        primitive_param.CastTo<transpose_invoke_param>();
-
-                    const auto k = _handle.Run(kernels[0]);
-
-                    opArgs_3d[0] = OpKernelArg(invoke_params.dst);
-                    opArgs_3d[1] = OpKernelArg(invoke_params.src);
-
-                    k(opArgs_3d);
-                };
-            });
-
-        boost::optional<miopen::InvokerFactory> invoker_factory_2d(
-            [=](const std::vector<miopen::Kernel>& kernels) mutable {
-                return [=](const miopen::Handle& _handle,
-                            const miopen::AnyInvokeParams& primitive_param) mutable {
-                    decltype(auto) invoke_params =
-                        primitive_param.CastTo<transpose_invoke_param>();
-
-                    const auto k = _handle.Run(kernels[0]);
-
-                    opArgs_2d[0] = OpKernelArg(invoke_params.dst);
-                    opArgs_2d[1] = OpKernelArg(invoke_params.src);
-
-                    k(opArgs_2d);
-                };
-            });
-
-        std::vector<miopen::solver::KernelInfo> construction_params_3d{
-            transpose_sol_3d.GetKernelInfo()};
-        std::vector<miopen::solver::KernelInfo> construction_params_2d{
-            transpose_sol_2d.GetKernelInfo()};
-
-        const auto invoker_3d =
-            miopen::deref(this->handle).PrepareInvoker(*invoker_factory_3d, construction_params_3d);
-        const auto invoker_2d =
-            miopen::deref(this->handle).PrepareInvoker(*invoker_factory_2d, construction_params_2d);
-
-        const auto invoke_param_3d = transpose_invoke_param{
-            DataCast(static_cast<const void*>(src_3d_dev)), DataCast(dst_3d_dev)};
-        const auto invoke_param_2d = transpose_invoke_param{
-            DataCast(static_cast<const void*>(src_2d_dev)), DataCast(dst_2d_dev)};
-
-        // run gpu
-        invoker_3d(miopen::deref(this->handle), invoke_param_3d);
-        invoker_2d(miopen::deref(this->handle), invoke_param_2d);
-
-        ASSERT_HIP_SUCCESS(hipMemcpy(
-            t_gpu_3d.data.data(), dst_3d_dev, sizeof(T) * tensor_sz, hipMemcpyDeviceToHost));
-        ASSERT_HIP_SUCCESS(hipMemcpy(
-            t_gpu_2d.data.data(), dst_2d_dev, sizeof(T) * tensor_sz, hipMemcpyDeviceToHost));
-
-        // run cpu
-        cpu_transpose<T, TRANSPOSE_SOL>::run(t_dst_ref.data.data(), t_src.data.data(), n, c, d, h, w);
-
-#ifdef BREAK_IT
-        // TEMPCODE break it
-        t_dst_ref[prng::gen_0_to_B(tensor_sz)] += 1;
-#endif
-
-        // we expect exact match, since use integer
-        verify_tensor(t_gpu_3d, "gpu3d", t_dst_ref, "cpu");
-        verify_tensor(t_gpu_2d, "gpu2d", t_dst_ref, "cpu");
     }
 };
 
@@ -573,10 +614,8 @@ TEST_P(TransposeTest_2D_ ## sol ## _ ## type, TransposeTest_2D_ ## sol ## _ ## t
 INSTANTIATE_TEST_SUITE_P(   TransposeTest_2D_ ## sol ## _ ## type ## _Test,                         \
                             TransposeTest_2D_ ## sol ## _ ## type,                                  \
                             testing::Combine(                                                       \
-                                testing::ValuesIn(transpose_dims::get_batch_size_ext()),            \
-                                testing::ValuesIn(transpose_dims::get_channel_size_ext()),          \
-                                testing::ValuesIn(transpose_dims::get_image_size_ext()),            \
-                                testing::ValuesIn(transpose_dims::get_image_size_ext())             \
+                                testing::ValuesIn(transpose_dims::get_batch_size()),                \
+                                testing::ValuesIn(transpose_dims::get_channel_size())               \
                             )                                                                       \
 );
 
@@ -603,11 +642,8 @@ TEST_P(TransposeTest_3D_ ## sol ## _ ## type, TransposeTest_3D_ ## sol ## _ ## t
 INSTANTIATE_TEST_SUITE_P(   TransposeTest_3D_ ## sol ## _ ## type ## _Test,                         \
                             TransposeTest_3D_ ## sol ## _ ## type,                                  \
                             testing::Combine(                                                       \
-                                testing::ValuesIn(transpose_dims::get_batch_size_ext()),            \
-                                testing::ValuesIn(transpose_dims::get_channel_size_ext()),          \
-                                testing::ValuesIn(transpose_dims::get_image_size_ext()),            \
-                                testing::ValuesIn(transpose_dims::get_image_size_ext()),            \
-                                testing::ValuesIn(transpose_dims::get_image_size_ext())             \
+                                testing::ValuesIn(transpose_dims::get_batch_size()),                \
+                                testing::ValuesIn(transpose_dims::get_channel_size())               \
                             )                                                                       \
 );
 
