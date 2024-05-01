@@ -41,16 +41,6 @@
 #include "get_handle.hpp"
 #include "workspace.hpp"
 
-template <>
-struct miopen_type<uint8_t> : std::integral_constant<miopenDataType_t, miopenInt8>
-{
-};
-
-template <>
-struct miopen_type<uint16_t> : std::integral_constant<miopenDataType_t, miopenHalf>
-{
-};
-
 template <typename T>
 void cpu_tensor_reorder(T* dst,
                         T* src,
