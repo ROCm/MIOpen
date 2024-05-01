@@ -42,12 +42,19 @@ struct Scalar
     {
     }
 
-    // only supports double or float
+    // Any type of data in ptr are converted to double
     Scalar(ConstData_t ptr, miopenDataType_t type = miopenDouble, double default_val = 1.0)
-        : mVal(ptr != nullptr ? *static_cast<const double*>(ptr)
-                              : static_cast<double>(default_val)),
-          mType(type)
     {
+        double temp = 1.0;
+        if(ptr != nullptr)
+        {
+            memcpy(&temp, ptr, sizeof(double));
+        }
+        else
+        {
+            temp = default_val;
+        }
+        mVal = temp;
     }
 
     int32_t GetAsInt32() const { return static_cast<int32_t>(mVal); }
