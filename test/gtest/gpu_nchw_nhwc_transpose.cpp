@@ -37,6 +37,7 @@
 #include <miopen/invoker.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include "../tensor_holder.hpp"
 #include <miopen/tensor_layout.hpp>
 
 #include "driver.hpp"
@@ -186,26 +187,6 @@ struct transpose_str<miopen::TransposeSolutionNhwc2Default>
     static std::string get() { return "nhwc2nchw"; }
 };
 
-enum tensor_layout_t
-{
-    miopen_tensor_layout_nchw,
-    miopen_tensor_layout_ncdhw,
-    miopen_tensor_layout_nhwc,
-    miopen_tensor_layout_ndhwc,
-};
-
-std::string tensor_layout_to_string(tensor_layout_t layout)
-{
-    switch(layout)
-    {
-    case miopen_tensor_layout_nchw: return "NCHW";
-    case miopen_tensor_layout_ncdhw: return "NCDHW";
-    case miopen_tensor_layout_nhwc: return "NHWC";
-    case miopen_tensor_layout_ndhwc: return "NDHWC";
-    default: MIOPEN_THROW("Unsupported tensor layout");
-    }
-}
-
 template <typename T>
 struct to_miopen_data_type
 {
@@ -230,11 +211,11 @@ struct to_miopen_data_type<bfloat16>
 };
 
 // TODO: try to get F8 working
-// template <>
-// struct to_miopen_data_type<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>
-// {
-//     static miopenDataType_t get() { return miopenFloat8; }
-// };
+template <>
+struct to_miopen_data_type<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>
+{
+    static miopenDataType_t get() { return miopenFloat8; }
+};
 
 template <>
 struct to_miopen_data_type<uint16_t>
@@ -354,7 +335,7 @@ protected:
         std::vector<int> tensor_strides;
 
         std::string layout_default = miopen::tensor_layout_get_default(4);
-        std::string layout_string  = tensor_layout_to_string(miopen_tensor_layout_nchw);
+        std::string layout_string  = tensor_layout_to_string(miopen::tensor_layout_nchw);
 
         miopen::tensor_layout_to_strides(
             tensor_len, layout_default, layout_string, tensor_strides);
@@ -477,7 +458,7 @@ protected:
         std::vector<int> tensor_strides;
 
         std::string layout_default = miopen::tensor_layout_get_default(5);
-        std::string layout_string  = tensor_layout_to_string(miopen_tensor_layout_ncdhw);
+        std::string layout_string  = tensor_layout_to_string(miopen::tensor_layout_ncdhw);
 
         miopen::tensor_layout_to_strides(
             tensor_len, layout_default, layout_string, tensor_strides);
@@ -511,7 +492,6 @@ protected:
 
         miopenDestroy(handle);
     }
-
     void RunTest()
     {
         TRANSPOSE_SOL transpose_sol_3d(ctx, to_miopen_data_type<T>::get(), n, c, d, h, w);
