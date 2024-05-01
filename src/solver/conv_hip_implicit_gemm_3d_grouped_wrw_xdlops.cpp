@@ -170,7 +170,7 @@ struct CKArgs
                                              lPadding,
                                              rPadding,
                                              PassThrough{},
-                                             Bilinear{alpha.GetVal<DataType>(), beta.GetVal<DataType>()},
+                                             Bilinear{alpha.GetAsFloat(), beta.GetAsFloat()},
                                              PassThrough{},
                                              split_k);
     }

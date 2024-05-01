@@ -167,7 +167,7 @@ struct CKArgs
             rPadding,
             PassThrough{},
             PassThrough{},
-            Bilinear{alpha.GetVal<DataType>(), beta.GetVal<DataType>()});
+            Bilinear{alpha.GetAsFloat(), beta.GetAsFloat()});
     }
 
     template <typename ConvPtr>
