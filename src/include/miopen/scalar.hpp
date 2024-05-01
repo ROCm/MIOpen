@@ -37,54 +37,24 @@
 namespace miopen {
 struct Scalar
 {
-    Scalar(double default_val = 1.0)
+    explicit Scalar(double default_val = 1.0)
+        : mVal(static_cast<double>(default_val)), mType(miopenDouble)
     {
-        mVal  = static_cast<double>(default_val);
-        mType = miopenDouble;
     }
 
-    // only supports double or float
+    // Any type of data in ptr are converted to double
     Scalar(ConstData_t ptr, miopenDataType_t type = miopenDouble, double default_val = 1.0)
-        : mType(type)
     {
-
-        if(ptr == nullptr)
+        double temp = 1.0;
+        if(ptr != nullptr)
         {
-            mVal = static_cast<double>(default_val);
+            memcpy(&temp, ptr, sizeof(double));
         }
         else
         {
-            if(type == miopenDouble)
-            {
-                mVal = *static_cast<const double*>(ptr);
-            }
-            else
-            {
-                mVal  = *static_cast<const float*>(ptr);
-                mType = miopenFloat;
-            }
+            temp = default_val;
         }
-    }
-
-    template <typename T>
-    T GetVal() const
-    {
-        if constexpr(std::is_same_v<float, T>)
-        {
-            return GetAsFloat();
-        }
-        else if constexpr(std::is_same_v<double, T>)
-        {
-            return GetAsDouble();
-        }
-        if constexpr(std::is_same_v<int32_t, T>)
-        {
-            return GetAsInt32();
-        }
-        else
-        {
-            MIOPEN_THROW("Only expected float or double.");
-        }
+        mVal = temp;
     }
 
     int32_t GetAsInt32() const { return static_cast<int32_t>(mVal); }
@@ -98,21 +68,4 @@ private:
     miopenDataType_t mType;
 };
 
-namespace conv {
-enum class AlphaBetaCase
-{
-    /* IDENTITY      alpha = 1.0 and beta = 0.0 */
-    /* SCALE         alpha = 4.2 and beta = 0.0 */
-    /* BILINEAR      alpha = 3.2 and beta = 1.1 */
-    /* ERROR_STATE   alpha = 0.0 and beta = 3.1 */
-
-    IDENTITY    = 0, /* alpha = 1.0 and beta = 0.0.*/
-    SCALE       = 1, /* alpha with some value and beta 0.0*/
-    BILINEAR    = 2, /* both alpha and beta with some value*/
-    ERROR_STATE = 3, /* alpha 0.0 and beta with some value, this should not occur.
-                        But used to check for errors.*/
-};
-
-AlphaBetaCase GetAlphaBetaCase(const Scalar& alpha, const Scalar& beta);
-} // namespace conv
 } // namespace miopen

@@ -46,8 +46,8 @@ struct WrWInvokeParams : InvokeParams
                     Data_t workSpace_,
                     std::size_t workSpaceSize_,
                     bool gfx90aFp16alt_,
-                    const Scalar& alpha_ = {1.0},
-                    const Scalar& beta_  = {0.0})
+                    const Scalar& alpha_ = Scalar(1.0),
+                    const Scalar& beta_  = Scalar(0.0))
         : tensors(tensors_),
           workSpace(workSpace_),
           workSpaceSize(workSpaceSize_),
@@ -62,8 +62,8 @@ struct WrWInvokeParams : InvokeParams
                     Data_t workSpace_,
                     std::size_t workSpaceSize_,
                     bool gfx90aFp16alt_,
-                    const Scalar& alpha_ = {1.0},
-                    const Scalar& beta_  = {0.0})
+                    const Scalar& alpha_ = Scalar(1.0),
+                    const Scalar& beta_  = Scalar(0.0))
         : InvokeParams{type_},
           tensors(tensors_),
           workSpace(workSpace_),

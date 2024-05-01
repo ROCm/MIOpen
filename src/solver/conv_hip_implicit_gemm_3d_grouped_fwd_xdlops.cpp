@@ -74,7 +74,6 @@ using DeviceOpGFwdPtrs =
 
 namespace {
 
-template <typename DataType>
 struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
@@ -222,7 +221,7 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::Init(const ProblemDescrip
     // AlphaBetaType alpha_beta_operation_type = problem.GetEncodedAlphaBeta();
 
     // Will use alpha_beta_operation_type to select CK solver
-    valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<DataType>, CKArgs<DataType>>(problem);
+    valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<DataType>, CKArgs>(problem);
     index         = 0;
     kernel_id     = valid_kernels[index];
 }
@@ -231,14 +230,14 @@ template <typename DataType>
 bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
-    return IsCKArgsSupported<DeviceOpGFwdPtrs<DataType>, CKArgs<DataType>>(problem, kernel_id);
+    return IsCKArgsSupported<DeviceOpGFwdPtrs<DataType>, CKArgs>(problem, kernel_id);
 }
 
 template <typename DataType>
 bool ConvHipImplicitGemm3DGroupFwdXdlops::CheckCKApplicability(
     const ProblemDescription& problem) const
 {
-    return IsCKApplicable<DeviceOpGFwdPtrs<DataType>, CKArgs<DataType>>(problem);
+    return IsCKApplicable<DeviceOpGFwdPtrs<DataType>, CKArgs>(problem);
 }
 #endif
 
@@ -395,14 +394,14 @@ ConvSolution ConvHipImplicitGemm3DGroupFwdXdlops::GetSolution(
             using T = decltype(data_type_val);
             return InitInvokerFactoryFwdNCHW<3,
                                              DeviceOpGFwdPtrs<T>,
-                                             CKArgs<T>,
+                                             CKArgs,
                                              miopen::conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
             return InitInvokerFactoryNHWC<DeviceOpGFwdPtrs<T>,
-                                          CKArgs<T>,
+                                          CKArgs,
                                           miopen::conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         });

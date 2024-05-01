@@ -86,25 +86,11 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ExecutionContext& ctx,
 
     if(problem.Is2d())
     {
-        if(IsAccInt32(problem))
-        {
-            result = conv_internal::GetConv2DFWDSolution<int32_t>(ctx, problem);
-        }
-        else
-        {
-            result = conv_internal::GetConv2DFWDSolution<double>(ctx, problem);
-        }
+        result = conv_internal::GetConv2DFWDSolution(ctx, problem);
     }
     else
     {
-        if(IsAccInt32(problem))
-        {
-            result = conv_internal::GetConv3DFWDSolution<int32_t>(ctx, problem);
-        }
-        else
-        {
-            result = conv_internal::GetConv3DFWDSolution<double>(ctx, problem);
-        }
+        result = conv_internal::GetConv3DFWDSolution(ctx, problem);
     }
     return result;
 }
