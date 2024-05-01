@@ -44,7 +44,8 @@ struct Scalar
 
     // only supports double or float
     Scalar(ConstData_t ptr, miopenDataType_t type = miopenDouble, double default_val = 1.0)
-        : mVal(ptr ? *static_cast<const double*>(ptr) : static_cast<double>(default_val)),
+        : mVal(ptr != nullptr ? *static_cast<const double*>(ptr)
+                              : static_cast<double>(default_val)),
           mType(type)
     {
     }
