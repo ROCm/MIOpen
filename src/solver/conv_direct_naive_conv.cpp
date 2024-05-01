@@ -332,8 +332,7 @@ void conv_internal::DebugPrintTensorStrides(const TensorDescriptor& inDesc,
     printOneStrideVec("outDesc = ", outDesc.GetStrides());
 }
 
-
-namespace conv_internal{
+namespace conv_internal {
 ::miopen::solver::ConvSolution
 GetConv2DFWDSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemDescription& problem)
 {
@@ -435,36 +434,64 @@ GetConv2DFWDSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemD
             }
             else
             {
-                auto alpha_val = IsAccInt32(problem)?
-                                    problem.GetAlpha().GetAsInt32():
-                                    problem.GetAlpha().GetAsDouble();
-                auto beta_val = IsAccInt32(problem)?
-                                    problem.GetBeta().GetAsInt32():
-                                    problem.GetBeta().GetAsDouble();
-                handle.Run(kern)(tensors.in,
-                                 tensors.w,
-                                 alpha_val,
-                                 beta_val,
-                                 tensors.out,
-                                 in_strides,
-                                 wei_strides,
-                                 out_strides,
-                                 hi,
-                                 wi,
-                                 n,
-                                 k_per_group,
-                                 c_per_group,
-                                 ho,
-                                 wo,
-                                 sy,
-                                 sx,
-                                 dy,
-                                 dx,
-                                 py,
-                                 px,
-                                 fy,
-                                 fx,
-                                 group);
+                if(IsAccInt32(problem))
+                {
+                    auto alpha_val = problem.GetAlpha().GetAsInt32();
+                    auto beta_val  = problem.GetBeta().GetAsInt32();
+                    handle.Run(kern)(tensors.in,
+                                     tensors.w,
+                                     alpha_val,
+                                     beta_val,
+                                     tensors.out,
+                                     in_strides,
+                                     wei_strides,
+                                     out_strides,
+                                     hi,
+                                     wi,
+                                     n,
+                                     k_per_group,
+                                     c_per_group,
+                                     ho,
+                                     wo,
+                                     sy,
+                                     sx,
+                                     dy,
+                                     dx,
+                                     py,
+                                     px,
+                                     fy,
+                                     fx,
+                                     group);
+                }
+                else
+                {
+                    auto alpha_val = problem.GetAlpha().GetAsDouble();
+                    auto beta_val  = problem.GetBeta().GetAsDouble();
+                    handle.Run(kern)(tensors.in,
+                                     tensors.w,
+                                     alpha_val,
+                                     beta_val,
+                                     tensors.out,
+                                     in_strides,
+                                     wei_strides,
+                                     out_strides,
+                                     hi,
+                                     wi,
+                                     n,
+                                     k_per_group,
+                                     c_per_group,
+                                     ho,
+                                     wo,
+                                     sy,
+                                     sx,
+                                     dy,
+                                     dx,
+                                     py,
+                                     px,
+                                     fy,
+                                     fx,
+                                     group);
+                }
             }
             if(handle.IsProfilingEnabled())
                 elapsed += handle.GetKernelTime();
@@ -555,43 +582,76 @@ GetConv3DFWDSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemD
                 MakeStrideArray<6>(SplitWeiStrideKtoGK(k_per_group, tensors.wDesc.GetStrides()));
             auto out_strides = MakeStrideArray<6>(
                 SplitStrideCtoGC(group, tensors.outDesc.GetStrides(), G_stride_idx));
-            auto alpha_val = IsAccInt32(problem)?
-                                    problem.GetAlpha().GetAsInt32():
-                                    problem.GetAlpha().GetAsDouble();
-                auto beta_val = IsAccInt32(problem)?
-                                    problem.GetBeta().GetAsInt32():
-                                    problem.GetBeta().GetAsDouble();
-
-            handle.Run(kern)(tensors.in,
-                             tensors.w,
-                             alpha_val,
-                             beta_val,
-                             tensors.out,
-                             in_strides,
-                             wei_strides,
-                             out_strides,
-                             di,
-                             hi,
-                             wi,
-                             n,
-                             k_per_group,
-                             c_per_group,
-                             do_,
-                             ho,
-                             wo,
-                             sz,
-                             sy,
-                             sx,
-                             dz,
-                             dy,
-                             dx,
-                             pz,
-                             py,
-                             px,
-                             fz,
-                             fy,
-                             fx,
-                             group);
+            if(IsAccInt32(problem))
+            {
+                auto alpha_val = problem.GetAlpha().GetAsInt32();
+                auto beta_val  = problem.GetBeta().GetAsInt32();
+                handle.Run(kern)(tensors.in,
+                                 tensors.w,
+                                 alpha_val,
+                                 beta_val,
+                                 tensors.out,
+                                 in_strides,
+                                 wei_strides,
+                                 out_strides,
+                                 di,
+                                 hi,
+                                 wi,
+                                 n,
+                                 k_per_group,
+                                 c_per_group,
+                                 do_,
+                                 ho,
+                                 wo,
+                                 sz,
+                                 sy,
+                                 sx,
+                                 dz,
+                                 dy,
+                                 dx,
+                                 pz,
+                                 py,
+                                 px,
+                                 fz,
+                                 fy,
+                                 fx,
+                                 group);
+            }
+            else
+            {
+                auto alpha_val = problem.GetAlpha().GetAsDouble();
+                auto beta_val  = problem.GetBeta().GetAsDouble();
+                handle.Run(kern)(tensors.in,
+                                 tensors.w,
+                                 alpha_val,
+                                 beta_val,
+                                 tensors.out,
+                                 in_strides,
+                                 wei_strides,
+                                 out_strides,
+                                 di,
+                                 hi,
+                                 wi,
+                                 n,
+                                 k_per_group,
+                                 c_per_group,
+                                 do_,
+                                 ho,
+                                 wo,
+                                 sz,
+                                 sy,
+                                 sx,
+                                 dz,
+                                 dy,
+                                 dx,
+                                 pz,
+                                 py,
+                                 px,
+                                 fz,
+                                 fy,
+                                 fx,
+                                 group);
+            }
             if(handle.IsProfilingEnabled())
                 elapsed += handle.GetKernelTime();
             if(handle.IsProfilingEnabled())
@@ -695,36 +755,64 @@ GetConv2DWRWSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemD
             }
             else
             {
-                auto alpha_val = IsAccInt32(problem)?
-                                    problem.GetAlpha().GetAsInt32():
-                                    problem.GetAlpha().GetAsDouble();
-                auto beta_val = IsAccInt32(problem)?
-                                    problem.GetBeta().GetAsInt32():
-                                    problem.GetBeta().GetAsDouble();
-                handle.Run(kern)(tensors.x,
-                                 tensors.dw,
-                                 alpha_val,
-                                 beta_val,
-                                 tensors.dy,
-                                 in_strides,
-                                 wei_strides,
-                                 out_strides,
-                                 hi,
-                                 wi,
-                                 n,
-                                 k_per_group,
-                                 c_per_group,
-                                 ho,
-                                 wo,
-                                 sy,
-                                 sx,
-                                 dy,
-                                 dx,
-                                 py,
-                                 px,
-                                 fy,
-                                 fx,
-                                 group);
+                if(IsAccInt32(problem))
+                {
+                    auto alpha_val = problem.GetAlpha().GetAsInt32();
+                    auto beta_val  = problem.GetBeta().GetAsInt32();
+                    handle.Run(kern)(tensors.x,
+                                     tensors.dw,
+                                     alpha_val,
+                                     beta_val,
+                                     tensors.dy,
+                                     in_strides,
+                                     wei_strides,
+                                     out_strides,
+                                     hi,
+                                     wi,
+                                     n,
+                                     k_per_group,
+                                     c_per_group,
+                                     ho,
+                                     wo,
+                                     sy,
+                                     sx,
+                                     dy,
+                                     dx,
+                                     py,
+                                     px,
+                                     fy,
+                                     fx,
+                                     group);
+                }
+                else
+                {
+                    auto alpha_val = problem.GetAlpha().GetAsDouble();
+                    auto beta_val  = problem.GetBeta().GetAsDouble();
+                    handle.Run(kern)(tensors.x,
+                                     tensors.dw,
+                                     alpha_val,
+                                     beta_val,
+                                     tensors.dy,
+                                     in_strides,
+                                     wei_strides,
+                                     out_strides,
+                                     hi,
+                                     wi,
+                                     n,
+                                     k_per_group,
+                                     c_per_group,
+                                     ho,
+                                     wo,
+                                     sy,
+                                     sx,
+                                     dy,
+                                     dx,
+                                     py,
+                                     px,
+                                     fy,
+                                     fx,
+                                     group);
+                }
             }
             if(handle.IsProfilingEnabled())
                 elapsed += handle.GetKernelTime();
@@ -804,42 +892,77 @@ GetConv3DWRWSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemD
                 MakeStrideArray<6>(SplitWeiStrideKtoGK(k_per_group, tensors.dwDesc.GetStrides()));
             auto out_strides = MakeStrideArray<6>(
                 SplitStrideCtoGC(group, tensors.dyDesc.GetStrides(), G_stride_idx));
-            auto alpha_val = IsAccInt32(problem)?
-                                    problem.GetAlpha().GetAsInt32():
-                                    problem.GetAlpha().GetAsDouble();
-                auto beta_val = IsAccInt32(problem)?
-                                    problem.GetBeta().GetAsInt32():
-                                    problem.GetBeta().GetAsDouble();
-            handle.Run(kern)(tensors.x,
-                             tensors.dw,
-                             alpha_val,
-                             beta_val,
-                             tensors.dy,
-                             in_strides,
-                             wei_strides,
-                             out_strides,
-                             di,
-                             hi,
-                             wi,
-                             n,
-                             k_per_group,
-                             c_per_group,
-                             do_,
-                             ho,
-                             wo,
-                             sz,
-                             sy,
-                             sx,
-                             dz,
-                             dy,
-                             dx,
-                             pz,
-                             py,
-                             px,
-                             fz,
-                             fy,
-                             fx,
-                             group);
+
+            if(IsAccInt32(problem))
+            {
+                auto alpha_val = problem.GetAlpha().GetAsInt32();
+                auto beta_val  = problem.GetBeta().GetAsInt32();
+                handle.Run(kern)(tensors.x,
+                                 tensors.dw,
+                                 alpha_val,
+                                 beta_val,
+                                 tensors.dy,
+                                 in_strides,
+                                 wei_strides,
+                                 out_strides,
+                                 di,
+                                 hi,
+                                 wi,
+                                 n,
+                                 k_per_group,
+                                 c_per_group,
+                                 do_,
+                                 ho,
+                                 wo,
+                                 sz,
+                                 sy,
+                                 sx,
+                                 dz,
+                                 dy,
+                                 dx,
+                                 pz,
+                                 py,
+                                 px,
+                                 fz,
+                                 fy,
+                                 fx,
+                                 group);
+            }
+            else
+            {
+                auto alpha_val = problem.GetAlpha().GetAsDouble();
+                auto beta_val  = problem.GetBeta().GetAsDouble();
+                handle.Run(kern)(tensors.x,
+                                 tensors.dw,
+                                 alpha_val,
+                                 beta_val,
+                                 tensors.dy,
+                                 in_strides,
+                                 wei_strides,
+                                 out_strides,
+                                 di,
+                                 hi,
+                                 wi,
+                                 n,
+                                 k_per_group,
+                                 c_per_group,
+                                 do_,
+                                 ho,
+                                 wo,
+                                 sz,
+                                 sy,
+                                 sx,
+                                 dz,
+                                 dy,
+                                 dx,
+                                 pz,
+                                 py,
+                                 px,
+                                 fz,
+                                 fy,
+                                 fx,
+                                 group);
+            }
             if(handle.IsProfilingEnabled())
                 elapsed += handle.GetKernelTime();
             if(handle.IsProfilingEnabled())
@@ -956,36 +1079,64 @@ GetConv2DBWDSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemD
             }
             else
             {
-                auto alpha_val = IsAccInt32(problem)?
-                                    problem.GetAlpha().GetAsInt32():
-                                    problem.GetAlpha().GetAsDouble();
-                auto beta_val = IsAccInt32(problem)?
-                                    problem.GetBeta().GetAsInt32():
-                                    problem.GetBeta().GetAsDouble();
-                handle.Run(kern)(tensors.out,
-                                 tensors.w,
-                                 alpha_val,
-                                 beta_val,
-                                 tensors.in,
-                                 out_strides,
-                                 wei_strides,
-                                 in_strides,
-                                 hi,
-                                 wi,
-                                 n,
-                                 k_per_group,
-                                 c_per_group,
-                                 ho,
-                                 wo,
-                                 sy,
-                                 sx,
-                                 dy,
-                                 dx,
-                                 py,
-                                 px,
-                                 fy,
-                                 fx,
-                                 group);
+                if(IsAccInt32(problem))
+                {
+                    auto alpha_val = problem.GetAlpha().GetAsInt32();
+                    auto beta_val  = problem.GetBeta().GetAsInt32();
+                    handle.Run(kern)(tensors.out,
+                                     tensors.w,
+                                     alpha_val,
+                                     beta_val,
+                                     tensors.in,
+                                     out_strides,
+                                     wei_strides,
+                                     in_strides,
+                                     hi,
+                                     wi,
+                                     n,
+                                     k_per_group,
+                                     c_per_group,
+                                     ho,
+                                     wo,
+                                     sy,
+                                     sx,
+                                     dy,
+                                     dx,
+                                     py,
+                                     px,
+                                     fy,
+                                     fx,
+                                     group);
+                }
+                else
+                {
+                    auto alpha_val = problem.GetAlpha().GetAsDouble();
+                    auto beta_val  = problem.GetBeta().GetAsDouble();
+                    handle.Run(kern)(tensors.out,
+                                     tensors.w,
+                                     alpha_val,
+                                     beta_val,
+                                     tensors.in,
+                                     out_strides,
+                                     wei_strides,
+                                     in_strides,
+                                     hi,
+                                     wi,
+                                     n,
+                                     k_per_group,
+                                     c_per_group,
+                                     ho,
+                                     wo,
+                                     sy,
+                                     sx,
+                                     dy,
+                                     dx,
+                                     py,
+                                     px,
+                                     fy,
+                                     fx,
+                                     group);
+                }
             }
             if(handle.IsProfilingEnabled())
                 elapsed += handle.GetKernelTime();
@@ -1082,42 +1233,76 @@ GetConv3DBWDSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemD
             /// out pointers in ConvTensors for backward pass, so now I have to
             /// pass out in place of in, out_strides in place of in_strides and
             /// vice-versa --amberhassaan
-            auto alpha_val = IsAccInt32(problem)?
-                                    problem.GetAlpha().GetAsInt32():
-                                    problem.GetAlpha().GetAsDouble();
-                auto beta_val = IsAccInt32(problem)?
-                                    problem.GetBeta().GetAsInt32():
-                                    problem.GetBeta().GetAsDouble();
-            handle.Run(kern)(tensors.out,
-                             tensors.w,
-                             alpha_val,
-                             beta_val,
-                             tensors.in,
-                             out_strides,
-                             wei_strides,
-                             in_strides,
-                             di,
-                             hi,
-                             wi,
-                             n,
-                             k_per_group,
-                             c_per_group,
-                             do_,
-                             ho,
-                             wo,
-                             sz,
-                             sy,
-                             sx,
-                             dz,
-                             dy,
-                             dx,
-                             pz,
-                             py,
-                             px,
-                             fz,
-                             fy,
-                             fx,
-                             group);
+            if(IsAccInt32(problem))
+            {
+                auto alpha_val = problem.GetAlpha().GetAsInt32();
+                auto beta_val  = problem.GetBeta().GetAsInt32();
+                handle.Run(kern)(tensors.out,
+                                 tensors.w,
+                                 alpha_val,
+                                 beta_val,
+                                 tensors.in,
+                                 out_strides,
+                                 wei_strides,
+                                 in_strides,
+                                 di,
+                                 hi,
+                                 wi,
+                                 n,
+                                 k_per_group,
+                                 c_per_group,
+                                 do_,
+                                 ho,
+                                 wo,
+                                 sz,
+                                 sy,
+                                 sx,
+                                 dz,
+                                 dy,
+                                 dx,
+                                 pz,
+                                 py,
+                                 px,
+                                 fz,
+                                 fy,
+                                 fx,
+                                 group);
+            }
+            else
+            {
+                auto alpha_val = problem.GetAlpha().GetAsDouble();
+                auto beta_val  = problem.GetBeta().GetAsDouble();
+                handle.Run(kern)(tensors.out,
+                                 tensors.w,
+                                 alpha_val,
+                                 beta_val,
+                                 tensors.in,
+                                 out_strides,
+                                 wei_strides,
+                                 in_strides,
+                                 di,
+                                 hi,
+                                 wi,
+                                 n,
+                                 k_per_group,
+                                 c_per_group,
+                                 do_,
+                                 ho,
+                                 wo,
+                                 sz,
+                                 sy,
+                                 sx,
+                                 dz,
+                                 dy,
+                                 dx,
+                                 pz,
+                                 py,
+                                 px,
+                                 fz,
+                                 fy,
+                                 fx,
+                                 group);
+            }
             if(handle.IsProfilingEnabled())
                 elapsed += handle.GetKernelTime();
             if(handle.IsProfilingEnabled())
