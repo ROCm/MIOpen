@@ -27,7 +27,7 @@
 
 #include <miopen/miopen.h>
 #include <miopen/graphapi/graphapi.hpp>
-#include <miopen/graphapi/operation.hpp>
+#include <miopen/graphapi/opgraph.hpp>
 
 namespace miopen {
 
@@ -119,6 +119,7 @@ public:
     Tensor* getX() const noexcept { return mX; }
     Tensor* getY() const noexcept { return mY; }
 
+    const std::string& signName() const override;
     std::vector<Tensor*> getInTensors() const override;
     std::vector<Tensor*> getOutTensors() const override;
 };

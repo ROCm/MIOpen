@@ -23,26 +23,34 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #pragma once
 
-#include <miopen/graphapi/tensor.hpp>
+#include <miopen/graphapi/graphapi.hpp>
+#include <miopen/solution.hpp>
 
 namespace miopen {
 
 namespace graphapi {
 
-class OpNode
+class Engine
 {
+private:
+    Solution mSolution;
+    friend class EngineBuilder;
+
 public:
-    virtual ~OpNode() = default;
+    Engine()              = default;
+    Engine(const Engine&) = default;
+    Engine(Engine&&)      = default;
+    Engine& operator=(const Engine&) = default;
+    Engine& operator=(Engine&&) = default;
 
-    virtual std::vector<Tensor*> getInTensors() const = 0;
+    Engine(const Solution& solution) : mSolution(solution) {}
+    Engine(Solution&& solution) : mSolution(std::move(solution)) {}
 
-    virtual std::vector<Tensor*> getOutTensors() const = 0;
-
-    /* TODO: The remaining part of the class is being
-     * developed separately. Needs merging after finished.
-     */
+    const Solution& getSolution() const { return mSolution; }
+    Solution& getSolution() { return mSolution; }
 };
 
 } // namespace graphapi
