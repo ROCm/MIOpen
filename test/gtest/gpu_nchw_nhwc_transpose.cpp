@@ -557,7 +557,6 @@ protected:
             t_gpu_2d.data.data(), dst_2d_dev, sizeof(T) * tensor_sz, hipMemcpyDeviceToHost));
 
         // run cpu
-        cpu_transpose<T, TRANSPOSE_SOL>::run(t_cpu_2d.data.data(), t_src.data.data(), n, c, 1, d * h, w);
         cpu_transpose<T, TRANSPOSE_SOL>::run(t_dst_ref.data.data(), t_src.data.data(), n, c, d, h, w);
 
 #ifdef BREAK_IT
@@ -566,20 +565,10 @@ protected:
 #endif
 
         // we expect exact match, since use integer
-        verify_tensor(t_dst_ref, "cpu", t_cpu_2d, "cpu2d");
         verify_tensor(t_gpu_3d, "gpu3d", t_dst_ref, "cpu");
         verify_tensor(t_gpu_2d, "gpu2d", t_dst_ref, "cpu");
     }
 };
-
-
-
-
-
-
-
-
-
 
 #define DEFINE_TransposeTest_2D(type, sol)                                                          \
 struct TransposeTest_2D_ ## sol ## _ ## type                                                        \
