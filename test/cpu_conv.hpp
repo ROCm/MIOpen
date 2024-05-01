@@ -90,8 +90,8 @@ void cpu_convolution_forward_impl(const tensor<Tin>& in,
                                   FW fw = {})
 {
     static_assert(ConvDim > 0, "wrong! convolution dim should be larger than 0");
-    assert(in.desc.GetSize() == ConvDim + 2 and wei.desc.GetSize() == ConvDim + 2 and
-           out.desc.GetSize() == ConvDim + 2 and pads.size() == ConvDim and
+    assert(in.desc.GetNumDims() == ConvDim + 2 and wei.desc.GetNumDims() == ConvDim + 2 and
+           out.desc.GetNumDims() == ConvDim + 2 and pads.size() == ConvDim and
            strides.size() == ConvDim and dilations.size() == ConvDim);
     std::size_t out_n_len = out.desc.GetLengths()[0];
 
@@ -212,8 +212,8 @@ void cpu_convolution_backward_data_impl(tensor<Tin>& in,
                                         FO fo = {})
 {
     static_assert(ConvDim > 0, "wrong! convolution dim should be larger than 0");
-    assert(in.desc.GetSize() == ConvDim + 2 and wei.desc.GetSize() == ConvDim + 2 and
-           out.desc.GetSize() == ConvDim + 2 and pads.size() == ConvDim and
+    assert(in.desc.GetNumDims() == ConvDim + 2 and wei.desc.GetNumDims() == ConvDim + 2 and
+           out.desc.GetNumDims() == ConvDim + 2 and pads.size() == ConvDim and
            strides.size() == ConvDim and dilations.size() == ConvDim);
 
     std::size_t in_n_len = in.desc.GetLengths()[0];
@@ -306,8 +306,8 @@ void cpu_convolution_backward_weight_impl(const tensor<Tin>& in,
                                           FO fo)
 {
     static_assert(ConvDim > 0, "wrong! convolution dim should be larger than 0");
-    assert(in.desc.GetSize() == ConvDim + 2 and wei.desc.GetSize() == ConvDim + 2 and
-           out.desc.GetSize() == ConvDim + 2 and pads.size() == ConvDim and
+    assert(in.desc.GetNumDims() == ConvDim + 2 and wei.desc.GetNumDims() == ConvDim + 2 and
+           out.desc.GetNumDims() == ConvDim + 2 and pads.size() == ConvDim and
            strides.size() == ConvDim and dilations.size() == ConvDim);
 
     std::size_t out_n_len = out.desc.GetLengths()[0];
