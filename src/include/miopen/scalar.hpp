@@ -36,24 +36,10 @@ struct Scalar
 {
     explicit Scalar(double val) : mVal(val), mType(miopenDouble) {}
 
-    Scalar(ConstData_t ptr, miopenDataType_t type)
-    {
-        if(type == miopenFloat)
-        {
-            mVal = *static_cast<const float*>(ptr);
-        }
-        else if(type == miopenDouble)
-        {
-            mVal = *static_cast<const double*>(ptr);
-        }
-        else
-        {
-            MIOPEN_THROW("ERROR: Only accepts float or double type for now.");
-        }
-    }
+    Scalar(ConstData_t ptr, miopenDataType_t type);
 
-    float GetAsFloat() const { return std::get<float>(mVal); }
-    double GetAsDouble() const { return std::get<double>(mVal); }
+    float GetAsFloat() const;
+    double GetAsDouble() const;
 
     miopenDataType_t GetType() const { return mType; }
 

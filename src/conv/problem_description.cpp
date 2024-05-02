@@ -44,6 +44,16 @@ EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataT
     return GetDataTypeName(in) + GetDataTypeName(weights) + GetDataTypeName(out);
 }
 
+bool isCloseToZero(double value)
+{
+    return std::abs(value) <= std::numeric_limits<double>::epsilon();
+}
+
+bool isCloseToOne(double value)
+{
+    return std::abs(value - double(1.0)) <= std::numeric_limits<double>::epsilon();
+}
+
 namespace conv {
 namespace {
 
@@ -64,6 +74,32 @@ std::ostream& operator<<(std::ostream& stream, std::function<void(std::ostream&)
 }
 
 } // namespace
+
+AlphaBetaCase GetAlphaBetaCase(const Scalar& alpha, const Scalar& beta)
+{
+    // double since we are comparing
+
+    bool alpha_one  = isCloseToOne(alpha.GetAsDouble());
+    bool beta_zero  = isCloseToZero(beta.GetAsDouble());
+    bool alpha_zero = isCloseToZero(alpha.GetAsDouble());
+
+    if(alpha_one && beta_zero)
+    {
+        return AlphaBetaCase::IDENTITY;
+    }
+
+    if((!alpha_one && !alpha_zero) && !beta_zero)
+    {
+        return AlphaBetaCase::BILINEAR;
+    }
+
+    if(!alpha_zero && beta_zero)
+    {
+        return AlphaBetaCase::SCALE;
+    }
+
+    return AlphaBetaCase::ERROR_STATE;
+}
 
 std::string ProblemDescription::GetDirectionStr() const
 {

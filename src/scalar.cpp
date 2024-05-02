@@ -26,50 +26,42 @@
 #include <miopen/scalar.hpp>
 #include <miopen/conv/problem_description.hpp>
 
-template <typename T>
-bool isCloseToZero(T value)
-{
-    return std::abs(value) <= std::numeric_limits<T>::epsilon();
-}
-
-template <typename T>
-bool isCloseToOne(float value)
-{
-    return std::abs(value - T(1)) <= std::numeric_limits<T>::epsilon();
-}
-
 namespace miopen {
-namespace conv {
 
-AlphaBetaCase GetAlphaBetaCase(const Scalar& alpha, const Scalar& beta)
+Scalar::Scalar(ConstData_t ptr, miopenDataType_t type)
 {
-    // default T as double since we are comparing
-    // numerical values just to find enum type.
-    using T = double;
-
-    T alpha_val = alpha.GetAsDouble();
-    T beta_val  = beta.GetAsDouble();
-
-    bool alpha_one  = isCloseToOne<T>(alpha_val);
-    bool beta_zero  = isCloseToZero<T>(beta_val);
-    bool alpha_zero = isCloseToZero<T>(alpha_val);
-
-    if(alpha_one && beta_zero)
+    if(type == miopenFloat)
     {
-        return AlphaBetaCase::IDENTITY;
+        mVal = *static_cast<const float*>(ptr);
     }
-
-    if((!alpha_one && !alpha_zero) && !beta_zero)
+    else if(type == miopenDouble)
     {
-        return AlphaBetaCase::BILINEAR;
+        mVal = *static_cast<const double*>(ptr);
     }
-
-    if(!alpha_zero && beta_zero)
+    else
     {
-        return AlphaBetaCase::SCALE;
+        MIOPEN_THROW("ERROR: Only accepts float or double type for now.");
     }
-
-    return AlphaBetaCase::ERROR_STATE;
 }
-} // namespace conv
+
+float Scalar::GetAsFloat() const
+{
+    if(mType == miopenFloat)
+    {
+        return std::get<float>(mVal);
+    }
+
+    return static_cast<float>(std::get<double>(mVal));
+}
+
+double Scalar::GetAsDouble() const
+{
+    if(mType == miopenDouble)
+    {
+        return std::get<double>(mVal);
+    }
+
+    return static_cast<double>(std::get<float>(mVal));
+}
+
 } // namespace miopen
