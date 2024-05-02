@@ -34,11 +34,8 @@
 namespace miopen {
 struct Scalar
 {
-    explicit Scalar(double val)
-    {
-        mVal  = static_cast<double>(val);
-        mType = miopenDouble;
-    }
+    explicit Scalar(double val) : mVal(val), mType(miopenDouble) {}
+
     Scalar(ConstData_t ptr, miopenDataType_t type)
     {
         if(type == miopenFloat)
