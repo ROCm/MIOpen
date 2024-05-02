@@ -28,43 +28,23 @@
 
 #include <miopen/common.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/miopen.h>
 
-#include <cmath>
-#include <limits>
-#include <cassert>
+#include <variant>
 
 namespace miopen {
 struct Scalar
 {
-    explicit Scalar(double default_val = 1.0)
-        : mVal(static_cast<double>(default_val)), mType(miopenDouble)
-    {
-    }
+    explicit Scalar(double val) : mVal(val), mType(miopenDouble) {}
 
-    // Any type of data in ptr are converted to double
-    Scalar(ConstData_t ptr, miopenDataType_t type = miopenDouble, double default_val = 1.0)
-    {
-        double temp = 1.0;
-        if(ptr != nullptr)
-        {
-            memcpy(&temp, ptr, sizeof(double));
-        }
-        else
-        {
-            temp = default_val;
-        }
-        mVal = temp;
-    }
+    Scalar(ConstData_t ptr, miopenDataType_t type);
 
-    int32_t GetAsInt32() const { return static_cast<int32_t>(mVal); }
-    float GetAsFloat() const { return static_cast<float>(mVal); }
-    double GetAsDouble() const { return static_cast<double>(mVal); }
+    float GetAsFloat() const;
+    double GetAsDouble() const;
 
     miopenDataType_t GetType() const { return mType; }
 
 private:
-    double mVal;
+    std::variant<double, float> mVal;
     miopenDataType_t mType;
 };
 
