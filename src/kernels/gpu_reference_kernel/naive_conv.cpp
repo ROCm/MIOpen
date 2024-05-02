@@ -28,6 +28,7 @@
 #include <hip/hip_runtime.h>
 #include <hip/hip_bfloat16.h>
 #endif
+#include <cfloat> // has DBL_EPSILON
 
 #include "miopen_cstdint.hpp"
 #include "miopen_limits.hpp"
@@ -102,6 +103,13 @@ inline __device__ __host__ int8_t cast_to(const int32_t& val)
     return static_cast<int8_t>(val & 0xff);
 }
 
+inline __device__ __host__ bool IsZero(double val) { return fabs(val) < DBL_EPSILON; }
+
+inline __device__ __host__ bool IsOne(double val)
+{
+    return fabs(val - static_cast<double>(1.0) < DBL_EPSILON);
+}
+
 template <typename dst_data_t, typename acc_data_t>
 inline __device__ void alphaBetaUpdate(dst_data_t* __restrict__ p_array,
                                        const acc_data_t value,
@@ -109,6 +117,12 @@ inline __device__ void alphaBetaUpdate(dst_data_t* __restrict__ p_array,
                                        double beta,
                                        size_t index)
 {
+    if(IsOne(alpha) && IsZero(beta))
+    {
+        p_array[index] = cast_to<acc_data_t, dst_data_t>(value);
+        return;
+    }
+
     acc_data_t val_alpha_beta =
         cast_to<double, acc_data_t>(alpha) * value +
         cast_to<dst_data_t, acc_data_t>(p_array[index]) * cast_to<double, acc_data_t>(beta);
