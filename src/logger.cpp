@@ -151,7 +151,7 @@ bool IsLogging(const LoggingLevel level, const bool disableQuieting)
 #endif
 }
 
-const std::string LoggingLevelToCustomString(const LoggingLevel level, const char* custom)
+std::string LoggingLevelToCustomString(const LoggingLevel level, const char* custom)
 {
     std::ostringstream oss;
     oss << custom << " " << LoggingLevelToCString(level);

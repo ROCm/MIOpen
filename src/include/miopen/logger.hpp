@@ -218,7 +218,7 @@ MIOPEN_EXPORT extern bool
 
 } // namespace debug
 
-MIOPEN_EXPORT const std::string LoggingLevelToCustomString(LoggingLevel level, const char* custom);
+MIOPEN_EXPORT std::string LoggingLevelToCustomString(LoggingLevel level, const char* custom);
 MIOPEN_EXPORT const char* LoggingLevelToCString(LoggingLevel level);
 MIOPEN_EXPORT std::string LoggingPrefix();
 
