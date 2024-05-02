@@ -325,9 +325,7 @@ protected:
     {
         miopenCreate(&handle);
 
-        auto [_n, _c] = GetParam();
-        n = _n;
-        c = _c;
+        std::tie(n, c) = GetParam();
 
         auto wh = transpose_dims::get_max_image_size();
         auto max_tensor_sz = n * c * wh * wh;
@@ -456,9 +454,7 @@ protected:
     {
         miopenCreate(&handle);
 
-        auto [_n, _c] = GetParam();
-        n = _n;
-        c = _c;
+        std::tie(n, c) = GetParam();
 
         auto dwh = transpose_dims::get_max_image_size();
         auto max_tensor_sz = n * c * dwh * dwh * dwh;
