@@ -40,5 +40,14 @@ miopenStatus_t GLUForward(Handle& handle,
                           const TensorDescriptor& outputDesc,
                           Data_t output);
 
+miopenStatus_t GLUBackward(Handle& handle,
+                           const TensorDescriptor& inputDesc,
+                           Data_t input,
+                           const TensorDescriptor& inputGradDesc,
+                           Data_t inputGrad,
+                           const TensorDescriptor& outputGradDesc,
+                           Data_t outputGrad,
+                           int32_t dim);
+
 } // namespace miopen
 #endif // _MIOPEN_GLU_HPP_

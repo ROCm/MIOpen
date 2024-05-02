@@ -48,3 +48,25 @@ extern "C" miopenStatus_t miopenGLUForward(miopenHandle_t handle,
                            DataCast(output));
     });
 }
+
+extern "C" miopenStatus_t miopenGLUBackward(miopenHandle_t handle,
+                                              const miopenTensorDescriptor_t inputDesc,
+                                              void* input,
+                                              const miopenTensorDescriptor_t inputGradDesc,
+                                              void* inputGrad,
+                                              const miopenTensorDescriptor_t outputGradDesc,
+                                              void* outputGrad,
+                                              const int32_t dim)
+{
+    MIOPEN_LOG_FUNCTION(handle, inputDesc, input, inputGradDesc, inputGrad, outputGradDesc, outputGrad, dim);
+    return miopen::try_([&] {
+       miopen::GLUBackward(miopen::deref(handle),
+                            miopen::deref(inputDesc),
+                            DataCast(input),
+                            miopen::deref(inputGradDesc),
+                            DataCast(inputGrad),
+                            miopen::deref(outputGradDesc),
+                            DataCast(outputGrad),
+                            dim); 
+    });
+}

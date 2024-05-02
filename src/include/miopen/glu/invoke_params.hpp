@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include "miopen/common.hpp"
 #include <cstdint>
 #include <miopen/invoke_params.hpp>
 #include <miopen/tensor.hpp>
@@ -43,6 +44,23 @@ struct InvokeParams : public miopen::InvokeParams
     ConstData_t input = nullptr;
     Data_t output     = nullptr;
     int32_t dim       = 0;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
+
+struct BwdInvokeParams : public miopen::InvokeParams
+{
+    BwdInvokeParams() = default;
+
+    const TensorDescriptor* inputDesc      = nullptr;
+    const TensorDescriptor* inputGradDesc  = nullptr;
+    const TensorDescriptor* outputGradDesc = nullptr;
+
+    ConstData_t input                      = nullptr;
+    Data_t inputGrad                       = nullptr;
+    ConstData_t outputGrad                 = nullptr;
+    int32_t dim                            = 0;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }

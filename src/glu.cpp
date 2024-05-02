@@ -63,4 +63,36 @@ miopenStatus_t GLUForward(Handle& handle,
     return miopenStatusSuccess;
 }
 
+miopenStatus_t GLUBackward(Handle& handle,
+                           const TensorDescriptor& inputDesc,
+                           Data_t input,
+                           const TensorDescriptor& inputGradDesc,
+                           Data_t inputGrad,
+                           const TensorDescriptor& outputGradDesc,
+                           Data_t outputGrad,
+                           int32_t dim)
+{
+    const auto problem = glu::ProblemDescription{inputDesc, inputGradDesc, outputGradDesc, dim};
+
+    const auto invoke_params = [&]() {
+        auto tmp       = glu::BwdInvokeParams{};
+        tmp.type                             = InvokeType::Run;
+        tmp.inputDesc                        = &inputDesc;
+        tmp.input                            = input;
+        tmp.inputGradDesc                    = &inputGradDesc;
+        tmp.inputGrad                        = inputGrad;
+        tmp.outputGradDesc                   = &outputGradDesc;
+        tmp.outputGrad                       = outputGrad;
+        tmp.dim                              = dim;
+        return tmp;
+    }();
+
+    const auto algo    = AlgorithmName{"GLUBackward"};
+    const auto solvers = solver::SolverContainer<solver::glu::GLUBackward>{};
+
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+
+    return miopenStatusSuccess;
+}
+
 } // namespace miopen

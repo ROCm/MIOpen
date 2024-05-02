@@ -36,6 +36,42 @@ namespace glu {
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
+    switch(direction) 
+    {
+    case Direction::Forward: return MakeForwardNetworkConfig();
+    case Direction::Backward: return MakeBackwardNetworkConfig();
+    default: MIOPEN_THROW(miopenStatusInternalError);
+    }
+}
+
+NetworkConfig ProblemDescription::MakeForwardNetworkConfig() const
+{
+    auto inputlength  = inputDesc.GetLengths();
+    auto outputlength = outputDesc.GetLengths();
+
+    auto splitdim_size = inputlength[dim];
+    auto output_numel  = std::accumulate(outputlength.begin(),
+                                        outputlength.end(),
+                                        static_cast<size_t>(1),
+                                        std::multiplies<size_t>());
+
+    auto input_dtype  = miopen::GetDataType(inputDesc.GetType());
+    auto output_dtype = miopen::GetDataType(outputDesc.GetType());
+
+    std::ostringstream ss;
+
+    ss << "contiguous";
+    ss << "input_dtype" << input_dtype;
+    ss << "output_dtype" << output_dtype;
+    ss << "dim" << dim;
+    ss << "splitDim_size" << splitdim_size;
+    ss << "output_numel" << output_numel;
+
+    return NetworkConfig{ss.str()};
+}
+
+NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
+{
     auto inputlength  = inputDesc.GetLengths();
     auto outputlength = outputDesc.GetLengths();
 

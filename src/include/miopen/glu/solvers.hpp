@@ -47,6 +47,16 @@ struct GLUForward final : GLUSolver
                              const miopen::glu::ProblemDescription& problem) const override;
 };
 
+struct GLUBackward final : GLUSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<GLUBackward>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::glu::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::glu::ProblemDescription& problem) const override;
+};
+
 } // namespace glu
 
 } // namespace solver
