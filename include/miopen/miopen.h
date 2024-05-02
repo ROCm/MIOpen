@@ -6621,7 +6621,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGLUForward(miopenHandle_t handle,
  * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGLUBackward(miopenHandle_t handle,
-                                              const miopenTensorDescriptor_t inputDesc,
+                                               const miopenTensorDescriptor_t inputDesc,
                                               void* input,
                                               const miopenTensorDescriptor_t inputGradDesc,
                                               void* inputGrad,

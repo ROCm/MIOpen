@@ -127,7 +127,7 @@ struct ProblemDescription : ProblemDescriptionBase
             {
                 if(i == dim)
                 {
-                    if(inputDesc.GetLengths()[i] / 2 != outputDesc.GetLengths()[i])
+                    if( inputDesc.GetLengths()[i] / 2 != outputDesc.GetLengths()[i])
                     {
                         return false;
                     }

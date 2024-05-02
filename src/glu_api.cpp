@@ -60,7 +60,7 @@ extern "C" miopenStatus_t miopenGLUBackward(miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(handle, inputDesc, input, inputGradDesc, inputGrad, outputGradDesc, outputGrad, dim);
     return miopen::try_([&] {
-       miopen::GLUBackward(miopen::deref(handle),
+       miopen::GLUBackward( miopen::deref(handle),
                             miopen::deref(inputDesc),
                             DataCast(input),
                             miopen::deref(inputGradDesc),

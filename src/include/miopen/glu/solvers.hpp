@@ -53,7 +53,7 @@ struct GLUBackward final : GLUSolver
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::glu::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
+    ConvSolution GetSolution( const ExecutionContext& context,
                              const miopen::glu::ProblemDescription& problem) const override;
 };
 

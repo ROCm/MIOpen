@@ -69,7 +69,7 @@ GLUBwdContiguousKernel(const TI* input, TI* output_grad, const TO* input_grad, l
 }
 
 extern "C" __global__ void
-GLUFwdContiguous(const INPUT_TYPE* input, OUTPUT_TYPE* output, long N)
+GLUFwdContiguous(const INPUT_TYPE* input,  OUTPUT_TYPE* output, long N)
 {
     GLUFwdContiguousKernel<INPUT_TYPE, OUTPUT_TYPE>(input, output, N);
 }

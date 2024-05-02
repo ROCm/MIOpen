@@ -114,7 +114,8 @@ ConvSolution GLUBackward::GetSolution(const ExecutionContext& context,
             auto output_grad_numel     = std::accumulate(
                 outputGradDims.begin(), outputGradDims.end(), 1ULL, std::multiplies<size_t>());
 
-            kernel(params.input, params.outputGrad, params.inputGrad, output_grad_numel);
+            kernel(params.input, 
+            params.outputGrad, params.inputGrad, output_grad_numel);
         };
     };
 

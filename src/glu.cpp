@@ -65,7 +65,7 @@ miopenStatus_t GLUForward(Handle& handle,
 
 miopenStatus_t GLUBackward(Handle& handle,
                            const TensorDescriptor& inputDesc,
-                           Data_t input,
+                            Data_t input,
                            const TensorDescriptor& inputGradDesc,
                            Data_t inputGrad,
                            const TensorDescriptor& outputGradDesc,
