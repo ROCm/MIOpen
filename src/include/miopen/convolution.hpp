@@ -229,10 +229,12 @@ struct MIOPEN_EXPORT ConvolutionDescriptor : miopenConvolutionDescriptor
     std::size_t GetSolutionCount(const ExecutionContext& ctx,
                                  const conv::ProblemDescription& problem) const;
 
-    std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& ctx,
-                                                   const conv::ProblemDescription& problem,
-                                                   size_t maxSolutionCount,
-                                                   bool* fallbackPathTaken) const;
+    std::vector<miopenConvSolution_t>
+    GetSolutions(const ExecutionContext& ctx,
+                 const conv::ProblemDescription& problem,
+                 size_t maxSolutionCount,
+                 bool* fallbackPathTaken,
+                 const AnyInvokeParams* invokeParams = nullptr) const;
 
     void CompileSolution(const ExecutionContext& ctx,
                          const conv::ProblemDescription& problem,
@@ -355,9 +357,11 @@ struct MIOPEN_EXPORT ConvolutionDescriptor : miopenConvolutionDescriptor
     FindMode findMode;
     ConvolutionAttribute attribute;
 
-    std::vector<miopenConvSolution_t> GetSolutionsFallback(const ExecutionContext& ctx,
-                                                           const conv::ProblemDescription& problem,
-                                                           size_t maxSolutionCount) const;
+    std::vector<miopenConvSolution_t>
+    GetSolutionsFallback(const ExecutionContext& ctx,
+                         const conv::ProblemDescription& problem,
+                         size_t maxSolutionCount,
+                         const AnyInvokeParams* invokeParams = nullptr) const;
 
     std::size_t GetSolutionCountFallback(const ExecutionContext& ctx,
                                          const conv::ProblemDescription& problem) const;

@@ -229,23 +229,10 @@ static void EvaluateInvokers(Handle& handle,
 
     for(const auto& sol : solutions)
     {
-        if(sol.workspace_sz > 0)
-        {
-            if(invoke_ctx.GetWorkspace() == nullptr)
-            {
-                MIOPEN_LOG_W("Skipping solver <" << sol.solver_id
-                                                 << "> due to no workspace provided ("
-                                                 << sol.workspace_sz << " required)");
-                continue;
-            }
-            if(invoke_ctx.GetWorkspaceSize() < sol.workspace_sz)
-            {
-                MIOPEN_LOG_W("Skipping solver <"
-                             << sol.solver_id << "> due to insufficient workspace ("
-                             << invoke_ctx.GetWorkspaceSize() << " < " << sol.workspace_sz << ")");
-                continue;
-            }
-        }
+
+        if(!conv::IsEnoughWorkspace(
+               "EvaluateInvokers", solver::Id{sol.solver_id}, sol.workspace_sz, &invoke_ctx))
+            continue;
 
         if(!sol.invoker_factory)
             MIOPEN_THROW("Invoker is not provided by solver " + sol.solver_id);
@@ -348,6 +335,26 @@ bool IsAlgorithmDisabled(miopenConvAlgorithm_t algo)
     default: // Disable future algos by default to enforce explicit handling:
         return true;
     } // clang-format on
+}
+
+bool IsEnoughWorkspace(std::string_view where,
+                       const miopen::solver::Id& solver_id,
+                       const std::size_t required_size,
+                       const miopen::AnyInvokeParams* const invokeParams)
+{
+    if(invokeParams != nullptr && required_size > 0)
+    {
+        const auto provided_size = invokeParams->GetWorkspaceSize();
+        const auto provided_ptr  = invokeParams->GetWorkspace();
+        if(provided_ptr == nullptr || provided_size < required_size)
+        {
+            MIOPEN_LOG_W("[" << where << "] Solver <" << solver_id.ToString() << ">"
+                             << ", workspace required: " << required_size
+                             << ", provided ptr: " << provided_ptr << " size: " << provided_size);
+            return false;
+        }
+    }
+    return true;
 }
 
 } // namespace conv

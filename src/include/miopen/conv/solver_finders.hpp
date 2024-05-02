@@ -29,10 +29,13 @@
 #include <miopen/conv_solution.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/execution_context.hpp>
+#include <miopen/invoke_params.hpp>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/search_options.hpp>
+#include <miopen/solver_id.hpp>
 
 #include <memory>
+#include <string_view>
 #include <type_traits>
 #include <vector>
 
@@ -160,6 +163,10 @@ void FindCore(const AnyInvokeParams& invoke_ctx,
 namespace conv {
 
 bool IsAlgorithmDisabled(miopenConvAlgorithm_t algo);
+bool IsEnoughWorkspace(std::string_view where,
+                       const miopen::solver::Id& solver_id,
+                       std::size_t required_size,
+                       const miopen::AnyInvokeParams* invokeParams);
 
 struct ConvFindParameters : PrimitiveFindParameters
 {
