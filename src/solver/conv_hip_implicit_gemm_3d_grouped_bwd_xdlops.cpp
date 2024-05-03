@@ -74,10 +74,10 @@ using DeviceOpGBwdPtrs =
 
 namespace {
 
-template <typename DataType>
 struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
+        : alpha(ProblemInterpreter::GetAlpha(problem)), beta(ProblemInterpreter::GetBeta(problem))
     {
         G     = ProblemInterpreter::GetGroupCountG(problem);
         N     = ProblemInterpreter::GetBatchN(problem);
@@ -154,26 +154,25 @@ struct CKArgs
     template <typename ConvPtr>
     auto MakeArgPtr(const ConvPtr& conv_ptr, Data_t in, ConstData_t w, ConstData_t out) const
     {
-        return conv_ptr->MakeArgumentPointer(
-            out,
-            w,
-            {in},
-            in,
-            out_lengths,
-            out_strides,
-            wei_lengths,
-            wei_strides,
-            {in_lengths},
-            {in_strides},
-            in_lengths,
-            in_strides,
-            filter_strides,
-            filter_dilations,
-            lPadding,
-            rPadding,
-            PassThrough{},
-            PassThrough{},
-            Bilinear{alpha.GetAsFloat(), beta.GetAsFloat()});
+        return conv_ptr->MakeArgumentPointer(out,
+                                             w,
+                                             {in},
+                                             in,
+                                             out_lengths,
+                                             out_strides,
+                                             wei_lengths,
+                                             wei_strides,
+                                             {in_lengths},
+                                             {in_strides},
+                                             in_lengths,
+                                             in_strides,
+                                             filter_strides,
+                                             filter_dilations,
+                                             lPadding,
+                                             rPadding,
+                                             PassThrough{},
+                                             PassThrough{},
+                                             Bilinear{alpha.GetAsFloat(), beta.GetAsFloat()});
     }
 
     template <typename ConvPtr>
@@ -222,7 +221,7 @@ struct CKArgs
 template <typename DataType>
 void PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::Init(const ProblemDescription& problem)
 {
-    valid_kernels = FillValidKernelsIDs<DeviceOpGBwdPtrs<DataType>, CKArgs<DataType>>(problem);
+    valid_kernels = FillValidKernelsIDs<DeviceOpGBwdPtrs<DataType>, CKArgs>(problem);
     index         = 0;
     kernel_id     = valid_kernels[index];
 }
@@ -231,14 +230,14 @@ template <typename DataType>
 bool PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
-    return IsCKArgsSupported<DeviceOpGBwdPtrs<DataType>, CKArgs<DataType>>(problem, kernel_id);
+    return IsCKArgsSupported<DeviceOpGBwdPtrs<DataType>, CKArgs>(problem, kernel_id);
 }
 
 template <typename DataType>
 bool ConvHipImplicitGemm3DGroupBwdXdlops::CheckCKApplicability(
     const ProblemDescription& problem) const
 {
-    return IsCKApplicable<DeviceOpGBwdPtrs<DataType>, CKArgs<DataType>>(problem);
+    return IsCKApplicable<DeviceOpGBwdPtrs<DataType>, CKArgs>(problem);
 }
 #endif
 
@@ -397,14 +396,14 @@ ConvSolution ConvHipImplicitGemm3DGroupBwdXdlops::GetSolution(
             using T = decltype(data_type_val);
             return InitInvokerFactoryBwdNCHW<3,
                                              DeviceOpGBwdPtrs<T>,
-                                             CKArgs<T>,
+                                             CKArgs,
                                              miopen::conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
             return InitInvokerFactoryNHWC<DeviceOpGBwdPtrs<T>,
-                                          CKArgs<T>,
+                                          CKArgs,
                                           miopen::conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         });

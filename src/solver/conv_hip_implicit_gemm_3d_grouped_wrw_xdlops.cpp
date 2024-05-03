@@ -74,10 +74,10 @@ using DeviceOpGBwdWrwPtrs = ck::tensor_operation::device::instance::DeviceOperat
 
 namespace {
 
-template <typename DataType>
 struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
+        : alpha(ProblemInterpreter::GetAlpha(problem)), beta(ProblemInterpreter::GetBeta(problem))
     {
         G     = ProblemInterpreter::GetGroupCountG(problem);
         N     = ProblemInterpreter::GetBatchN(problem);
@@ -222,7 +222,7 @@ struct CKArgs
 template <typename DataType>
 void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::Init(const ProblemDescription& problem)
 {
-    valid_kernels = FillValidKernelsIDs<DeviceOpGBwdWrwPtrs<DataType>, CKArgs<DataType>>(problem);
+    valid_kernels = FillValidKernelsIDs<DeviceOpGBwdWrwPtrs<DataType>, CKArgs>(problem);
     index         = 0;
     kernel_id     = valid_kernels[index];
 }
@@ -231,14 +231,14 @@ template <typename DataType>
 bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
-    return IsCKArgsSupported<DeviceOpGBwdWrwPtrs<DataType>, CKArgs<DataType>>(problem, kernel_id);
+    return IsCKArgsSupported<DeviceOpGBwdWrwPtrs<DataType>, CKArgs>(problem, kernel_id);
 }
 
 template <typename DataType>
 bool ConvHipImplicitGemm3DGroupWrwXdlops::CheckCKApplicability(
     const ProblemDescription& problem) const
 {
-    return IsCKApplicable<DeviceOpGBwdWrwPtrs<DataType>, CKArgs<DataType>>(problem);
+    return IsCKApplicable<DeviceOpGBwdWrwPtrs<DataType>, CKArgs>(problem);
 }
 #endif
 
@@ -395,14 +395,14 @@ ConvSolution ConvHipImplicitGemm3DGroupWrwXdlops::GetSolution(
             using T = decltype(data_type_val);
             return InitInvokerFactoryWrwNCHW<3,
                                              DeviceOpGBwdWrwPtrs<T>,
-                                             CKArgs<T>,
+                                             CKArgs,
                                              miopen::conv::WrWInvokeParams>(
                 ctx, problem, config.kernel_id);
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
             return InitInvokerFactoryNHWC<DeviceOpGBwdWrwPtrs<T>,
-                                          CKArgs<T>,
+                                          CKArgs,
                                           miopen::conv::WrWInvokeParams>(
                 ctx, problem, config.kernel_id);
         });
