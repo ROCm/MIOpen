@@ -71,7 +71,7 @@ ConvSolution NLLLossForward::GetSolution(const ExecutionContext& context,
         size_t N_total = problem.GetNtotal();
 
         size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize = AlignUp(N_total, xlocalsize);
+        size_t xgridsize  = AlignUp(N_total, xlocalsize);
 
         size_t ylocalsize = 1;
         size_t ygridsize  = 1;
@@ -132,18 +132,18 @@ ConvSolution NLLLossForward::GetSolution(const ExecutionContext& context,
 }
 
 bool NLLLossBackward::IsApplicable(const ExecutionContext&,
-                                  const miopen::nllloss::ProblemDescription& problem) const
+                                   const miopen::nllloss::ProblemDescription& problem) const
 {
     return true;
 }
 
 ConvSolution NLLLossBackward::GetSolution(const ExecutionContext& context,
-                                         const miopen::nllloss::ProblemDescription& problem) const
+                                          const miopen::nllloss::ProblemDescription& problem) const
 {
     std::ignore = context;
 
-    auto result       = ConvSolution{miopenStatusSuccess};
-    auto input_grad_dtype = miopen::GetDataType(problem.GetInputGradDesc().GetType());
+    auto result            = ConvSolution{miopenStatusSuccess};
+    auto input_grad_dtype  = miopen::GetDataType(problem.GetInputGradDesc().GetType());
     auto output_grad_dtype = miopen::GetDataType(problem.GetOutputGradDesc().GetType());
 
     {
@@ -151,7 +151,7 @@ ConvSolution NLLLossBackward::GetSolution(const ExecutionContext& context,
         size_t N_total = problem.GetNtotal();
 
         size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize = AlignUp(N_total, xlocalsize);
+        size_t xgridsize  = AlignUp(N_total, xlocalsize);
 
         size_t ylocalsize = 1;
         size_t ygridsize  = 1;

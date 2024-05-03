@@ -40,7 +40,7 @@ struct InvokeParams : public miopen::InvokeParams
 
     const TensorDescriptor* inputDesc  = nullptr;
     const TensorDescriptor* outputDesc = nullptr;
-    
+
     ConstData_t input  = nullptr;
     ConstData_t target = nullptr;
     ConstData_t weight = nullptr;
@@ -59,7 +59,7 @@ struct BwdInvokeParams : public miopen::InvokeParams
 
     const TensorDescriptor* inputGradDesc  = nullptr;
     const TensorDescriptor* outputGradDesc = nullptr;
-    
+
     ConstData_t input_grad  = nullptr;
     ConstData_t target      = nullptr;
     ConstData_t weight      = nullptr;

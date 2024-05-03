@@ -150,7 +150,7 @@ private:
     size_t C;
     size_t D1;
     size_t D2;
-    bool is_bwd=false;
+    bool is_bwd = false;
 
     NetworkConfig MakeForwardNetworkConfig() const;
 };

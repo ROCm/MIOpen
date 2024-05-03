@@ -72,7 +72,8 @@ using namespace nllloss;
 // FORWARD TEST
 TEST_P(NLLLossTestFloat, NLLLossTest)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") || GetFloatArg() == "--testall")
+    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") ||
+       GetFloatArg() == "--testall")
     {
         RunTest();
         Verify();
@@ -85,7 +86,8 @@ TEST_P(NLLLossTestFloat, NLLLossTest)
 
 TEST_P(NLLLossTestHalf, NLLLossTest)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") || GetFloatArg() == "--testall")
+    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") ||
+       GetFloatArg() == "--testall")
     {
         RunTest();
         Verify();
@@ -98,7 +100,8 @@ TEST_P(NLLLossTestHalf, NLLLossTest)
 
 TEST_P(NLLLossTestBFloat16, NLLLossTest)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") || GetFloatArg() == "--testall")
+    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") ||
+       GetFloatArg() == "--testall")
     {
         RunTest();
         Verify();
@@ -118,7 +121,8 @@ INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
 // BACKWARD TEST
 TEST_P(NLLLossTestFloatBwd, NLLLossTestBwd)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") || GetFloatArg() == "--testall")
+    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") ||
+       GetFloatArg() == "--testall")
     {
         RunTest();
         Verify();
@@ -131,7 +135,8 @@ TEST_P(NLLLossTestFloatBwd, NLLLossTestBwd)
 
 TEST_P(NLLLossTestHalfBwd, NLLLossTestBwd)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") || GetFloatArg() == "--testall")
+    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") ||
+       GetFloatArg() == "--testall")
     {
         RunTest();
         Verify();
@@ -144,7 +149,8 @@ TEST_P(NLLLossTestHalfBwd, NLLLossTestBwd)
 
 TEST_P(NLLLossTestBFloat16Bwd, NLLLossTestBwd)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") || GetFloatArg() == "--testall")
+    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") ||
+       GetFloatArg() == "--testall")
     {
         RunTest();
         Verify();
@@ -155,8 +161,12 @@ TEST_P(NLLLossTestBFloat16Bwd, NLLLossTestBwd)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(NLLLossTestSet, NLLLossTestFloatBwd, testing::ValuesIn(NLLLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(NLLLossTestSet, NLLLossTestHalfBwd, testing::ValuesIn(NLLLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
+                         NLLLossTestFloatBwd,
+                         testing::ValuesIn(NLLLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
+                         NLLLossTestHalfBwd,
+                         testing::ValuesIn(NLLLossTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
                          NLLLossTestBFloat16Bwd,
                          testing::ValuesIn(NLLLossTestConfigs()));

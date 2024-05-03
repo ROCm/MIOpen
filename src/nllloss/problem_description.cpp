@@ -41,7 +41,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     size_t num_batches = N;
     size_t num_classes = C;
 
-    auto input_dtype  = weightDesc.GetType();
+    auto input_dtype = weightDesc.GetType();
 
     std::ostringstream ss;
 

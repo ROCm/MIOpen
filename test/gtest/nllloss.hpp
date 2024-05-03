@@ -218,8 +218,7 @@ protected:
         std::fill(input_grad.begin(), input_grad.end(), static_cast<T>(0.0f));
 
         ref_input_grad = tensor<T>{in_dim};
-        std::fill(
-            ref_input_grad.begin(), ref_input_grad.end(), static_cast<T>(0.0f));
+        std::fill(ref_input_grad.begin(), ref_input_grad.end(), static_cast<T>(0.0f));
 
         target = tensor<int32_t>{target_dim}.generate(gen_target_value);
 

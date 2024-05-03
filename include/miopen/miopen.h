@@ -6638,15 +6638,15 @@ MIOPEN_EXPORT miopenStatus_t miopenNLLLossForward(miopenHandle_t handle,
  * @return               miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenNLLLossBackward(miopenHandle_t handle,
-                                                  const miopenTensorDescriptor_t inputGradDesc,
-                                                  void* input_grad,
-                                                  const miopenTensorDescriptor_t targetDesc,
-                                                  const void* target,
-                                                  const miopenTensorDescriptor_t weightDesc,
-                                                  const void* weight,
-                                                  const miopenTensorDescriptor_t outputGradDesc,
-                                                  void* output_grad,
-                                                  int ignore_index);
+                                                   const miopenTensorDescriptor_t inputGradDesc,
+                                                   void* input_grad,
+                                                   const miopenTensorDescriptor_t targetDesc,
+                                                   const void* target,
+                                                   const miopenTensorDescriptor_t weightDesc,
+                                                   const void* weight,
+                                                   const miopenTensorDescriptor_t outputGradDesc,
+                                                   void* output_grad,
+                                                   int ignore_index);
 
 /** @} */
 // CLOSEOUT nllloss DOXYGEN GROUP

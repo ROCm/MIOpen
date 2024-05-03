@@ -52,9 +52,9 @@ static void LogCmdNLLLoss(const miopenTensorDescriptor_t xDesc, bool is_fwd)
         int32_t size = {0};
         miopenGetTensorDescriptorSize(xDesc, &size);
         ss << " -N " << miopen::deref(xDesc).GetLengths()[0];
-        ss << " -C " << miopen::deref(xDesc).GetLengths()[1] 
-           << " -d " << miopen::deref(xDesc).GetLengths()[2] 
-           << " -D " << miopen::deref(xDesc).GetLengths()[3];
+        ss << " -C " << miopen::deref(xDesc).GetLengths()[1] << " -d "
+           << miopen::deref(xDesc).GetLengths()[2] << " -D "
+           << miopen::deref(xDesc).GetLengths()[3];
 
         ss << " -F " << ((is_fwd) ? "1" : "2");
 

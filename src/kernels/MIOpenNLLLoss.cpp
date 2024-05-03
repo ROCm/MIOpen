@@ -119,9 +119,9 @@ __device__ void nlllossUnreducedBackward4dContiguous(TO* __restrict__ input_grad
 
     FLOAT_ACCUM grad_val = CVT_FLOAT2ACCUM(output_grad[gid]);
 
-    FLOAT_ACCUM input_grad_value   = CVT_FP32_2ACCUM(-1.0f) * w * grad_val;
-    input_grad[input_offset] = CVT_ACCUM2FLOAT(input_grad_value);
-    // if (input_grad_value != 0.0f) 
+    FLOAT_ACCUM input_grad_value = CVT_FP32_2ACCUM(-1.0f) * w * grad_val;
+    input_grad[input_offset]     = CVT_ACCUM2FLOAT(input_grad_value);
+    // if (input_grad_value != 0.0f)
     // {
     //     printf("grad_val GPU: %f\n", CVT_FLOAT2ACCUM(grad_val));
     //     printf("output GPU: %f\n", CVT_FLOAT2ACCUM(output_grad[gid]));
