@@ -6622,12 +6622,12 @@ MIOPEN_EXPORT miopenStatus_t miopenGLUForward(miopenHandle_t handle,
  */
 MIOPEN_EXPORT miopenStatus_t miopenGLUBackward(miopenHandle_t handle,
                                                const miopenTensorDescriptor_t inputDesc,
-                                              void* input,
-                                              const miopenTensorDescriptor_t inputGradDesc,
-                                              void* inputGrad,
-                                              const miopenTensorDescriptor_t outputGradDesc,
-                                              void* outputGrad,
-                                              const int32_t dim);
+                                               void* input,
+                                               const miopenTensorDescriptor_t inputGradDesc,
+                                               void* inputGrad,
+                                               const miopenTensorDescriptor_t outputGradDesc,
+                                               void* outputGrad,
+                                               const int32_t dim);
 
 /** @} */
 // CLOSEOUT BackendAPI DOXYGEN GROUP

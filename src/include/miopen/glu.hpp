@@ -38,7 +38,7 @@ miopenStatus_t GLUForward(Handle& handle,
                           Data_t input,
                           int32_t dim,
                           const TensorDescriptor& outputDesc,
-                           Data_t output);
+                          Data_t output);
 
 miopenStatus_t GLUBackward(Handle& handle,
                            const TensorDescriptor& inputDesc,

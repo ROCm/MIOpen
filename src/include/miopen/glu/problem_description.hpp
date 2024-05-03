@@ -71,7 +71,11 @@ struct ProblemDescription : ProblemDescriptionBase
                        const TensorDescriptor& inputGradDesc_,
                        const TensorDescriptor& outputGradDesc_,
                        int32_t dim_)
-        : direction(Direction::Backward), inputDesc(inputDesc_), inputGradDesc(inputGradDesc_), outputGradDesc(outputGradDesc_), dim(dim_)
+        : direction(Direction::Backward),
+          inputDesc(inputDesc_),
+          inputGradDesc(inputGradDesc_),
+          outputGradDesc(outputGradDesc_),
+          dim(dim_)
     {
         if(inputDesc.GetLengths().size() != inputGradDesc.GetLengths().size() ||
            inputDesc.GetLengths().size() != outputGradDesc.GetLengths().size())
@@ -96,7 +100,8 @@ struct ProblemDescription : ProblemDescriptionBase
 
     bool IsSameType() const
     {
-        if (direction == Direction::Forward) {
+        if(direction == Direction::Forward)
+        {
             if(inputDesc.GetType() != outputDesc.GetType())
             {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
@@ -105,29 +110,32 @@ struct ProblemDescription : ProblemDescriptionBase
                 return false;
 #endif
             }
-        } else {
-            if(inputDesc.GetType() != inputGradDesc.GetType() 
-                || inputGradDesc.GetType() != outputGradDesc.GetType())
+        }
+        else
+        {
+            if(inputDesc.GetType() != inputGradDesc.GetType() ||
+               inputGradDesc.GetType() != outputGradDesc.GetType())
             {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
                 MIOPEN_THROW(miopenStatusBadParm, "GLU: Tensor types do not match.");
 #else
                 return false;
-#endif                
+#endif
             }
         }
-        
+
         return true;
     }
 
     bool IsRightLength() const
     {
-        if (direction == Direction::Forward) {
+        if(direction == Direction::Forward)
+        {
             for(int32_t i = 0; i < inputDesc.GetLengths().size(); i++)
             {
                 if(i == dim)
                 {
-                    if( inputDesc.GetLengths()[i] / 2 != outputDesc.GetLengths()[i])
+                    if(inputDesc.GetLengths()[i] / 2 != outputDesc.GetLengths()[i])
                     {
                         return false;
                     }
@@ -140,20 +148,23 @@ struct ProblemDescription : ProblemDescriptionBase
                     }
                 }
             }
-        } else
+        }
+        else
         {
             for(int32_t i = 0; i < inputDesc.GetLengths().size(); i++)
             {
                 if(i == dim)
                 {
-                    if(inputDesc.GetLengths()[i] / 2 != outputGradDesc.GetLengths()[i] || inputDesc.GetLengths()[i] != inputGradDesc.GetLengths()[i])
+                    if(inputDesc.GetLengths()[i] / 2 != outputGradDesc.GetLengths()[i] ||
+                       inputDesc.GetLengths()[i] != inputGradDesc.GetLengths()[i])
                     {
                         return false;
                     }
                 }
                 else
                 {
-                    if(inputDesc.GetLengths()[i] != inputGradDesc.GetLengths()[i] || inputDesc.GetLengths()[i] != outputGradDesc.GetLengths()[i])
+                    if(inputDesc.GetLengths()[i] != inputGradDesc.GetLengths()[i] ||
+                       inputDesc.GetLengths()[i] != outputGradDesc.GetLengths()[i])
                     {
                         return false;
                     }
@@ -180,7 +191,8 @@ struct ProblemDescription : ProblemDescriptionBase
 
     bool IsAllPacked() const
     {
-        if (direction == Direction::Forward) {
+        if(direction == Direction::Forward)
+        {
             if(!(inputDesc.IsPacked() && outputDesc.IsPacked()))
             {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
@@ -188,8 +200,10 @@ struct ProblemDescription : ProblemDescriptionBase
 #else
                 return false;
 #endif
-            }            
-        } else {
+            }
+        }
+        else
+        {
             if(!(inputDesc.IsPacked() && inputGradDesc.IsPacked() && outputGradDesc.IsPacked()))
             {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG

@@ -33,8 +33,7 @@
 __device__ FLOAT_ACCUM sigmoid(FLOAT_ACCUM x) { return 1.0f / (1.0f + exp(-x)); }
 
 template <typename TI, typename TO>
-__device__ void
-GLUFwdContiguousKernel(const TI* input, TO* output, long N)
+__device__ void GLUFwdContiguousKernel(const TI* input, TO* output, long N)
 {
     const TI* inputFirstHalf  = input;
     const TI* inputSecondHalf = input + N;
@@ -54,28 +53,28 @@ GLUBwdContiguousKernel(const TI* input, TI* output_grad, const TO* input_grad, l
 {
     const TI* inputFirstHalf  = input;
     const TI* inputSecondHalf = input + N;
-    TO* inputFirstHalf_grad = input_grad;
-    TO* inputSecondHalf_grad = input_grad + N;
+    TO* inputFirstHalf_grad   = input_grad;
+    TO* inputSecondHalf_grad  = input_grad + N;
     const size_t gid          = blockIdx.x * blockDim.x + threadIdx.x;
     if(gid >= N)
         return;
 
     FLOAT_ACCUM inputFirstHalf_v = CVT_FLOAT_2ACCUM(inputFirstHalf[gid]);
-    FLOAT_ACCUM sigmoid_v = sigmoid(CVT_FLOAT2ACCUM(inputSecondHalf[gid]));
-    FLOAT_ACCUM grad_v = CVT_FLOAT_2ACCUM(output_grad[gid]);
+    FLOAT_ACCUM sigmoid_v        = sigmoid(CVT_FLOAT2ACCUM(inputSecondHalf[gid]));
+    FLOAT_ACCUM grad_v           = CVT_FLOAT_2ACCUM(output_grad[gid]);
 
     inputFirstHalf_grad[gid] = CVT_ACCUM2FLOAT(sigmoid_v * grad_v);
-    inputSecondHalf_grad[gid] = CVT_ACCUM2FLOAT((1 - sigmoid_v) * sigmoid_v * grad_v * inputFirstHalf_v);
+    inputSecondHalf_grad[gid] =
+        CVT_ACCUM2FLOAT((1 - sigmoid_v) * sigmoid_v * grad_v * inputFirstHalf_v);
 }
 
-extern "C" __global__ void
-GLUFwdContiguous(const INPUT_TYPE* input,  OUTPUT_TYPE* output, long N)
+extern "C" __global__ void GLUFwdContiguous(const INPUT_TYPE* input, OUTPUT_TYPE* output, long N)
 {
     GLUFwdContiguousKernel<INPUT_TYPE, OUTPUT_TYPE>(input, output, N);
 }
 
 extern "C" __global__ void
-GLUBwdContiguous(const INPUT_TYPE* input, INPUT_TYPE* output_grad, OUTPUT_TYPE* input_grad,  long N)
+GLUBwdContiguous(const INPUT_TYPE* input, INPUT_TYPE* output_grad, OUTPUT_TYPE* input_grad, long N)
 {
     GLUBwdContiguousKernel<INPUT_TYPE, OUTPUT_TYPE>(input, output_grad, input_grad, N);
 }

@@ -43,7 +43,7 @@ namespace solver {
 namespace glu {
 
 bool GLUBackward::IsApplicable(const ExecutionContext& context,
-                              const miopen::glu::ProblemDescription& problem) const
+                               const miopen::glu::ProblemDescription& problem) const
 {
     std::ignore = context;
 
@@ -59,19 +59,19 @@ bool GLUBackward::IsApplicable(const ExecutionContext& context,
 }
 
 ConvSolution GLUBackward::GetSolution(const ExecutionContext& context,
-                                     const miopen::glu::ProblemDescription& problem) const
+                                      const miopen::glu::ProblemDescription& problem) const
 {
     std::ignore = context;
 
     auto result = ConvSolution{miopenStatusSuccess};
 
     {
-        auto dtype        = problem.GetInputDesc().GetType();
+        auto dtype             = problem.GetInputDesc().GetType();
         auto input_dtype       = miopen::GetDataType(problem.GetInputDesc().GetType());
         auto input_grad_dtype  = miopen::GetDataType(problem.GetInputGradDesc().GetType());
-        auto outputGradDims   = problem.GetOutputGradDesc().GetLengths();
-        auto output_grad_numel =
-            std::accumulate(outputGradDims.begin(), outputGradDims.end(), 1ULL, std::multiplies<size_t>());
+        auto outputGradDims    = problem.GetOutputGradDesc().GetLengths();
+        auto output_grad_numel = std::accumulate(
+            outputGradDims.begin(), outputGradDims.end(), 1ULL, std::multiplies<size_t>());
 
         size_t xlocalsize = LOCAL_SIZE;
         size_t xgridsize  = AlignUp(output_grad_numel, xlocalsize);
@@ -108,14 +108,13 @@ ConvSolution GLUBackward::GetSolution(const ExecutionContext& context,
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::glu::BwdInvokeParams>();
-            auto outputGradDims       = params.outputGradDesc->GetLengths();
-            auto output_grad_numel     = std::accumulate(
+            decltype(auto) kernel  = handle_.Run(kernels.front());
+            decltype(auto) params  = raw_params.CastTo<miopen::glu::BwdInvokeParams>();
+            auto outputGradDims    = params.outputGradDesc->GetLengths();
+            auto output_grad_numel = std::accumulate(
                 outputGradDims.begin(), outputGradDims.end(), 1ULL, std::multiplies<size_t>());
 
-            kernel(params.input, 
-            params.outputGrad, params.inputGrad, output_grad_numel);
+            kernel(params.input, params.outputGrad, params.inputGrad, output_grad_numel);
         };
     };
 

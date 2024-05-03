@@ -36,7 +36,7 @@ namespace glu {
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    switch(direction) 
+    switch(direction)
     {
     case Direction::Forward: return MakeForwardNetworkConfig();
     case Direction::Backward: return MakeBackwardNetworkConfig();
@@ -75,7 +75,7 @@ NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
     auto inputlength  = inputDesc.GetLengths();
     auto outputlength = outputDesc.GetLengths();
 
-    auto splitdim_size =  inputlength[dim];
+    auto splitdim_size = inputlength[dim];
     auto output_numel  = std::accumulate(outputlength.begin(),
                                         outputlength.end(),
                                         static_cast<size_t>(1),
