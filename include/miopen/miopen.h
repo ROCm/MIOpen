@@ -1672,6 +1672,9 @@ miopenConvolutionBackwardWeightsImmediate(miopenHandle_t handle,
  * size of the workspace that must be provided to miopenFindConvolutionForwardAlgorithm() in order
  * for the latter to find the best candidate from the available forward data convolution algorithms.
  *
+ * WARNING: Providing smaller workspace may result in the selection of a slow convolution
+ * algorithm, and therefore affect library performance.
+ *
  * It should be assumed that the required workspace size is different for each convolution
  * configuration. Therefore, typically this function should be called at least once for each
  * convolution configuration used.
@@ -1680,14 +1683,6 @@ miopenConvolutionBackwardWeightsImmediate(miopenHandle_t handle,
  * should ensure that all descriptors contain complete information. For example, if Group/Depthwise
  * convolution mode is used, then miopenSetConvolutionGroupCount() should be called before running
  * this, and so on.
- *
- * WARNING: Providing smaller workspace may result in the selection of a slow convolution
- * algorithm, and therefore affect library performance. Moreover, sub-optimal data may be
- * cached in the user's find-db. This means that the performance drop will become persistent,
- * i.e. even providing sufficient workspace won't restore the performance. To get rid of
- * this problem, the user will need to either remove the user's find-db, or repeat
- * miopenFindConvolutionForwardAlgorithm() with affected convolution configs
- * in Normal Find Mode (the latter will overwrite sub-optimal user's find-db records).
  *
  * @param handle         MIOpen handle (input)
  * @param wDesc          Tensor descriptor for weight tensor w (input)
@@ -1842,6 +1837,9 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionForwardBias(miopenHandle_t handle,
  * order for the latter to find the best candidate from the available backward data convolution
  * algorithms.
  *
+ * WARNING: Providing smaller workspace may result in the selection of a slow convolution
+ * algorithm, and therefore affect library performance.
+ *
  * It should be assumed that the required workspace size is different for each convolution
  * configuration. Therefore, typically this function should be called at least once for each
  * convolution configuration used.
@@ -1850,14 +1848,6 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionForwardBias(miopenHandle_t handle,
  * should ensure that all descriptors contain complete information. For example, if Group/Depthwise
  * convolution mode is used, then miopenSetConvolutionGroupCount() should be called before running
  * this, and so on.
- *
- * WARNING: Providing smaller workspace may result in the selection of a slow convolution
- * algorithm, and therefore affect library performance. Moreover, sub-optimal data may be
- * cached in the user's find-db. This means that the performance drop will become persistent,
- * i.e. even providing sufficient workspace won't restore the performance. To get rid of
- * this problem, the user will need to either remove the user's find-db, or repeat
- * miopenFindConvolutionBackwardDataAlgorithm() with affected convolution configs
- * in Normal Find Mode (the latter will overwrite sub-optimal user's find-db records).
  *
  * @param handle         MIOpen handle (input)
  * @param dyDesc         Tensor descriptor for data input tensor dy (input)
@@ -1989,6 +1979,9 @@ miopenConvolutionBackwardData(miopenHandle_t handle,
  * order for the latter to find the best candidate from the available backward weights convolution
  * algorithms.
  *
+ * WARNING: Providing smaller workspace may result in the selection of a slow convolution
+ * algorithm, and therefore affect library performance.
+ *
  * It should be assumed that the required workspace size is different for each convolution
  * configuration. Therefore, typically this function should be called at least once for each
  * convolution configuration used.
@@ -1997,14 +1990,6 @@ miopenConvolutionBackwardData(miopenHandle_t handle,
  * should ensure that all descriptors contain complete information. For example, if Group/Depthwise
  * convolution mode is used, then miopenSetConvolutionGroupCount() should be called before running
  * this, and so on.
- *
- * WARNING: Providing smaller workspace may result in the selection of a slow convolution
- * algorithm, and therefore affect library performance. Moreover, sub-optimal data may be
- * cached in the user's find-db. This means that the performance drop will become persistent,
- * i.e. even providing sufficient workspace won't restore the performance. To get rid of
- * this problem, the user will need to either remove the user's find-db, or repeat
- * miopenFindConvolutionBackwardWeightsAlgorithm() with affected convolution configs
- * in Normal Find Mode (the latter will overwrite sub-optimal user's find-db records).
  *
  * @param handle         MIOpen handle (input)
  * @param dyDesc         Tensor descriptor for data input tensor dy (input)
