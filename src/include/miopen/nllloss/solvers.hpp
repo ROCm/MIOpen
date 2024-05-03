@@ -53,6 +53,17 @@ struct NLLLossForward final : NormalizationSolver
                              const miopen::nllloss::ProblemDescription& problem) const override;
 };
 
+struct NLLLossBackward final : NormalizationSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<NLLLossBackward>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::nllloss::ProblemDescription& problem) const override;
+
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::nllloss::ProblemDescription& problem) const override;
+};
+
 } // namespace nllloss
 
 } // namespace solver

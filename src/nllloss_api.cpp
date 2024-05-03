@@ -52,9 +52,9 @@ static void LogCmdNLLLoss(const miopenTensorDescriptor_t xDesc, bool is_fwd)
         int32_t size = {0};
         miopenGetTensorDescriptorSize(xDesc, &size);
         ss << " -N " << miopen::deref(xDesc).GetLengths()[0];
-        ss << " -C " << miopen::deref(xDesc).GetLengths()[1] << " -d "
-           << miopen::deref(xDesc).GetLengths()[2] << " -D "
-           << miopen::deref(xDesc).GetLengths()[3];
+        ss << " -C " << miopen::deref(xDesc).GetLengths()[1] 
+           << " -d " << miopen::deref(xDesc).GetLengths()[2] 
+           << " -D " << miopen::deref(xDesc).GetLengths()[3];
 
         ss << " -F " << ((is_fwd) ? "1" : "2");
 
@@ -96,5 +96,42 @@ extern "C" miopenStatus_t miopenNLLLossForward(miopenHandle_t handle,
                                miopen::deref(outputDesc),
                                DataCast(output),
                                ignore_index);
+    });
+}
+
+extern "C" miopenStatus_t miopenNLLLossBackward(miopenHandle_t handle,
+                                                const miopenTensorDescriptor_t inputGradDesc,
+                                                void* input_grad,
+                                                const miopenTensorDescriptor_t targetDesc,
+                                                const void* target,
+                                                const miopenTensorDescriptor_t weightDesc,
+                                                const void* weight,
+                                                const miopenTensorDescriptor_t outputGradDesc,
+                                                void* output_grad,
+                                                int ignore_index)
+{
+    MIOPEN_LOG_FUNCTION(handle,
+                        inputGradDesc,
+                        input_grad,
+                        targetDesc,
+                        target,
+                        weightDesc,
+                        weight,
+                        outputGradDesc,
+                        output_grad,
+                        ignore_index);
+
+    LogCmdNLLLoss(inputGradDesc, false);
+    return miopen::try_([&] {
+        miopen::NLLLossBackward(miopen::deref(handle),
+                                miopen::deref(inputGradDesc),
+                                DataCast(input_grad),
+                                miopen::deref(targetDesc),
+                                DataCast(target),
+                                miopen::deref(weightDesc),
+                                DataCast(weight),
+                                miopen::deref(outputGradDesc),
+                                DataCast(output_grad),
+                                ignore_index);
     });
 }

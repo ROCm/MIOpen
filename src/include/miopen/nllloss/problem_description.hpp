@@ -44,7 +44,7 @@ struct ProblemDescription : ProblemDescriptionBase
                        const TensorDescriptor& targetDesc_,
                        const TensorDescriptor& weightDesc_,
                        const TensorDescriptor& outputDesc_,
-                       int ignore_index_)
+                       int32_t ignore_index_)
         : inputDesc(inputDesc_),
           targetDesc(targetDesc_),
           weightDesc(weightDesc_),
@@ -58,10 +58,32 @@ struct ProblemDescription : ProblemDescriptionBase
     {
     }
 
+    ProblemDescription(const TensorDescriptor& inputGradDesc_,
+                       const TensorDescriptor& targetDesc_,
+                       const TensorDescriptor& weightDesc_,
+                       const TensorDescriptor& outputGradDesc_,
+                       const bool is_bwd_,
+                       int32_t ignore_index_)
+        : inputGradDesc(inputGradDesc_),
+          targetDesc(targetDesc_),
+          weightDesc(weightDesc_),
+          outputGradDesc(outputGradDesc_),
+          ignore_index(ignore_index_),
+          N_total(outputGradDesc_.GetElementSize()),
+          N(inputGradDesc_.GetLengths()[0]),
+          C(inputGradDesc_.GetLengths()[1]),
+          D1(inputGradDesc_.GetLengths()[2]),
+          D2(inputGradDesc_.GetLengths()[3]),
+          is_bwd(is_bwd_)
+    {
+    }
+
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
+    const TensorDescriptor& GetInputGradDesc() const { return inputGradDesc; }
     const TensorDescriptor& GetTargetDesc() const { return targetDesc; }
     const TensorDescriptor& GetWeightDesc() const { return weightDesc; }
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
+    const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
     int GetIgnoreIndex() const { return ignore_index; }
     size_t GetNtotal() const { return N_total; }
     size_t GetC() const { return C; }
@@ -116,16 +138,19 @@ struct ProblemDescription : ProblemDescriptionBase
 
 private:
     TensorDescriptor inputDesc;
+    TensorDescriptor inputGradDesc;
     TensorDescriptor targetDesc;
     TensorDescriptor weightDesc;
     TensorDescriptor outputDesc;
+    TensorDescriptor outputGradDesc;
 
-    int ignore_index;
+    int32_t ignore_index;
     size_t N_total;
     size_t N;
     size_t C;
     size_t D1;
     size_t D2;
+    bool is_bwd=false;
 
     NetworkConfig MakeForwardNetworkConfig() const;
 };

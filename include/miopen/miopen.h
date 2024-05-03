@@ -6586,9 +6586,9 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
 #ifdef MIOPEN_BETA_API
 // NLLLoss APIs
 /** @addtogroup nllloss
-*
-*  @{
-*/
+ *
+ *  @{
+ */
 /*! @brief Execute a nllloss forward layer
  *
  * @param handle         MIOpen handle (input)
@@ -6613,6 +6613,41 @@ MIOPEN_EXPORT miopenStatus_t miopenNLLLossForward(miopenHandle_t handle,
                                                   const miopenTensorDescriptor_t outputDesc,
                                                   void* output,
                                                   int ignore_index);
+/** @} */
+// CLOSEOUT nllloss DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+// NLLLoss APIs
+/** @addtogroup nllloss
+ *
+ *  @{
+ */
+/*! @brief Execute a nllloss backward layer
+ *
+ * @param handle         MIOpen handle (input)
+ * @param inputDesc      Tensor descriptor for data input tensor input (input)
+ * @param input          Data tensor input (input)
+ * @param targetDesc     Tensor descriptor for data input tensor target (input)
+ * @param target         Data tensor target (input)
+ * @param weightDesc     Tensor descriptor for data input tensor weight (input)
+ * @param weight         Data tensor weight (input)
+ * @param outputDesc     Tensor descriptor for output data tensor y (input)
+ * @param output         Data tensor y (output)
+ * @param ignore_index   Class index to ignore (input)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenNLLLossBackward(miopenHandle_t handle,
+                                                  const miopenTensorDescriptor_t inputGradDesc,
+                                                  void* input_grad,
+                                                  const miopenTensorDescriptor_t targetDesc,
+                                                  const void* target,
+                                                  const miopenTensorDescriptor_t weightDesc,
+                                                  const void* weight,
+                                                  const miopenTensorDescriptor_t outputGradDesc,
+                                                  void* output_grad,
+                                                  int ignore_index);
+
 /** @} */
 // CLOSEOUT nllloss DOXYGEN GROUP
 #endif // MIOPEN_BETA_API

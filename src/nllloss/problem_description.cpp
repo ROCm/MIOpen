@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include <cstddef>
 #include <miopen/nllloss/problem_description.hpp>
 #include <miopen/names.hpp>
 
@@ -35,23 +36,22 @@ namespace nllloss {
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    auto dims          = inputDesc.GetLengths();
-    size_t numel       = outputDesc.GetElementSize();
-    size_t num_batches = dims[0];
-    size_t num_classes = dims[1];
+    auto numel = targetDesc.GetElementSize();
 
-    auto input_dtype  = inputDesc.GetType();
-    auto output_dtype = outputDesc.GetType();
+    size_t num_batches = N;
+    size_t num_classes = C;
+
+    auto input_dtype  = weightDesc.GetType();
 
     std::ostringstream ss;
 
     ss << "input_dtype" << input_dtype;
-    ss << "output_dtype" << output_dtype;
     ss << "numel" << numel;
     ss << "num_batches" << num_batches;
     ss << "num_classes" << num_classes;
-    ss << "D1" << dims[2];
-    ss << "D2" << dims[3];
+    ss << "D1" << D1;
+    ss << "D2" << D2;
+    ss << "is_bwd" << is_bwd;
 
     return NetworkConfig{ss.str()};
 }

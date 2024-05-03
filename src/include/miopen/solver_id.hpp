@@ -57,7 +57,8 @@ enum class Primitive
     Cat,
     Mha,
     Softmax,
-    NLLLossForward
+    NLLLossForward,
+    NLLLossBackward
 };
 
 struct MIOPEN_EXPORT Id

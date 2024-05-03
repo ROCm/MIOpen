@@ -71,7 +71,6 @@ ConvSolution NLLLossForward::GetSolution(const ExecutionContext& context,
         size_t N_total = problem.GetNtotal();
 
         size_t xlocalsize = LOCAL_SIZE;
-        // size_t xgridsize  = (N_total + LOCAL_SIZE - 1) / LOCAL_SIZE * LOCAL_SIZE;
         size_t xgridsize = AlignUp(N_total, xlocalsize);
 
         size_t ylocalsize = 1;
@@ -121,6 +120,86 @@ ConvSolution NLLLossForward::GetSolution(const ExecutionContext& context,
                    params.target,
                    params.weight,
                    params.output,
+                   params.ignore_index,
+                   N_total,
+                   C,
+                   D1,
+                   D2);
+        };
+    };
+
+    return result;
+}
+
+bool NLLLossBackward::IsApplicable(const ExecutionContext&,
+                                  const miopen::nllloss::ProblemDescription& problem) const
+{
+    return true;
+}
+
+ConvSolution NLLLossBackward::GetSolution(const ExecutionContext& context,
+                                         const miopen::nllloss::ProblemDescription& problem) const
+{
+    std::ignore = context;
+
+    auto result       = ConvSolution{miopenStatusSuccess};
+    auto input_grad_dtype = miopen::GetDataType(problem.GetInputGradDesc().GetType());
+    auto output_grad_dtype = miopen::GetDataType(problem.GetOutputGradDesc().GetType());
+
+    {
+        auto dtype     = problem.GetInputGradDesc().GetType();
+        size_t N_total = problem.GetNtotal();
+
+        size_t xlocalsize = LOCAL_SIZE;
+        size_t xgridsize = AlignUp(N_total, xlocalsize);
+
+        size_t ylocalsize = 1;
+        size_t ygridsize  = 1;
+        size_t zlocalsize = 1;
+        size_t zgridsize  = 1;
+
+        auto kernel = KernelInfo{};
+
+        kernel.kernel_file = "MIOpenNLLLoss.cpp";
+        kernel.kernel_name = "NLLLossUnreducedBackward4dContiguous";
+
+        const auto build_params = KernelBuildParameters{
+            {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+            {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+            {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
+            {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+            {"INPUT_TYPE", input_grad_dtype == "bfloat16" ? "ushort" : input_grad_dtype},
+            {"OUTPUT_TYPE", output_grad_dtype == "bfloat16" ? "ushort" : output_grad_dtype},
+        };
+
+        kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
+
+        kernel.l_wk.push_back(xlocalsize);
+        kernel.l_wk.push_back(ylocalsize);
+        kernel.l_wk.push_back(zlocalsize);
+
+        kernel.g_wk.push_back(xgridsize);
+        kernel.g_wk.push_back(ygridsize);
+        kernel.g_wk.push_back(zgridsize);
+
+        result.construction_params.push_back(kernel);
+    }
+
+    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+            decltype(auto) kernel = handle_.Run(kernels.front());
+            decltype(auto) params = raw_params.CastTo<miopen::nllloss::BwdInvokeParams>();
+
+            size_t N_total = params.outputGradDesc->GetElementSize();
+            auto dims      = params.inputGradDesc->GetLengths();
+            size_t C       = dims[1];
+            size_t D1      = dims[2];
+            size_t D2      = dims[3];
+
+            kernel(params.input_grad,
+                   params.target,
+                   params.weight,
+                   params.output_grad,
                    params.ignore_index,
                    N_total,
                    C,
