@@ -72,11 +72,8 @@ int main(int argc, char* argv[])
         std::cout << "ParseCmdLineArgs() FAILED, rc = " << rc << std::endl;
         return rc;
     }
-    std::cout << "after ParseCmdLineArgs()" << std::endl;
     drv->GetandSetData();
-    std::cout << "after GetandSetData()" << std::endl;
     rc = drv->AllocateBuffersAndCopy();
-    std::cout << "after AllocateBuffersAndCopy()" << std::endl;
     if(rc != 0)
     {
         std::cout << "AllocateBuffersAndCopy() FAILED, rc = " << rc << std::endl;
@@ -92,7 +89,6 @@ int main(int argc, char* argv[])
     if(fargval & 1 || fargval == 0 || bnFwdInVer)
     {
         rc = drv->RunForwardGPU();
-        std::cout << "after RunForwardGPU()" << std::endl;
         cumulative_rc |= rc;
         if(rc != 0)
             std::cout << "RunForwardGPU() FAILED, rc = "
