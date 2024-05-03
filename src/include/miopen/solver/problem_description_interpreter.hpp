@@ -235,6 +235,10 @@ struct ProblemInterpreter
     {
         return problem.GetBeta();
     }
+    static miopen::conv::AlphaBetaCase GetAlphaBetaCase(const miopen::conv::ProblemDescription& problem)
+    {
+        return problem.GetAlphaBetaEnumCase();
+    }
 
     // adjust right padding size so that filter will not move out-of-bound
     static auto GetAdjustedInputRightPadD(const miopen::conv::ProblemDescription& problem)

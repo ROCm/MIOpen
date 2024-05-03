@@ -100,6 +100,6 @@ INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
                          ConvNonpackFwdSolverTest3DHalf,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
                                           testing::ValuesIn(ConvTestConfigs<NonPackTestCase>()),
-                                          testing::ValuesIn({1.0f}), // alpha
-                                          testing::ValuesIn({0.0f}), // beta
+                                          testing::ValuesIn({2.0}), // alpha
+                                          testing::ValuesIn({0.0}), // beta
                                           testing::Values(miopenTensorNDHWC)));

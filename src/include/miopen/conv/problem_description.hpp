@@ -273,7 +273,7 @@ struct ProblemDescription : ProblemDescriptionBase
     Scalar GetAlpha() const { return alpha; }
     Scalar GetBeta() const { return beta; }
 
-    AlphaBetaCase GetAlphaBetaEnumCase() { return alpha_beta_case; }
+    AlphaBetaCase GetAlphaBetaEnumCase() const { return alpha_beta_case; }
 
     int GetBias() const { return bias; }
 
