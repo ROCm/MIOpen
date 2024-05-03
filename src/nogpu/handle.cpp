@@ -161,7 +161,7 @@ const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
     return this->impl->cache.GetKernels(algorithm, network_config);
 }
 
-KernelInvoke Handle::Run(Kernel /* k */) const { return {}; }
+KernelInvoke Handle::Run(Kernel /*k*/, bool /*coop_launch*/) const { return {}; }
 
 Program Handle::LoadProgram(const std::string& program_name,
                             std::string params,
@@ -249,6 +249,8 @@ std::size_t Handle::GetMaxMemoryAllocSize()
     else
         return this->impl->max_mem_alloc_size;
 }
+
+bool Handle::CooperativeLaunchSupported() const { return false; }
 
 const TargetProperties& Handle::GetTargetProperties() const
 {
