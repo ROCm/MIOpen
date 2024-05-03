@@ -125,6 +125,11 @@ TEST_P(ConvBiasActivFind2InferTestFloat, ConvBinWinogradRxSFind2Fused)
 }
 TEST_P(ConvBiasActivFind2InferTestFloat, ConvBinWinogradRxSf2x3g1Find2Fused)
 {
+    if(SkipTest())
+    {
+        test_skipped = true;
+        GTEST_SKIP() << "Fusion does not support xnack";
+    }
     RunSolver<miopen::solver::fusion::ConvBinWinogradRxSf2x3g1Fused>(
         fused_problem, invoke_params, conv_config, test_skipped);
 }

@@ -98,6 +98,9 @@ void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
     (invoker)(handle, *(plan_params.get()));
     handle.Finish();
 }
+
+bool SkipTest() { return get_handle_xnack(); }
+
 } // namespace cba_infer
 using namespace cba_infer;
 
@@ -124,6 +127,11 @@ TEST_P(ConvBiasActivInferTestFloat, ConvBinWinogradRxSFused)
 }
 TEST_P(ConvBiasActivInferTestFloat, ConvBinWinogradRxSf2x3g1Fused)
 {
+    if(SkipTest())
+    {
+        test_skipped = true;
+        GTEST_SKIP() << "Fusion does not support xnack";
+    }
     const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
         params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);
     RunSolver<miopen::solver::fusion::ConvBinWinogradRxSf2x3g1Fused>(
@@ -141,6 +149,11 @@ TEST_P(ConvBiasActivInferTestHalf, ConvCKIgemmFwdBiasActivFused)
 #if MIOPEN_BACKEND_HIP
 TEST_P(ConvBiasActivInferTestFloatFusionCompileStep, ConvBiasActivAsm1x1UFloat_testCompile)
 {
+    if(SkipTest())
+    {
+        test_skipped = true;
+        GTEST_SKIP() << "Fusion does not support xnack";
+    }
     setEnvironmentVariable("MIOPEN_FIND_ENFORCE", "SEARCH_DB_UPDATE");
     setEnvironmentVariable("MIOPEN_DEBUG_TUNING_ITERATIONS_MAX", "5");
     fusePlanDesc.Compile(get_handle());
