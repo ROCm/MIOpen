@@ -30,6 +30,7 @@ namespace miopen {
 
 Scalar::Scalar(ConstData_t ptr, miopenDataType_t type)
 {
+    mType = type;
     if(type == miopenFloat)
     {
         mVal = *static_cast<const float*>(ptr);
