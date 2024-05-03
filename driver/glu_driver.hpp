@@ -233,7 +233,11 @@ int GLUDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int GLUDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("forw", 'F', "1", "Run only Forward (1) or Run both Forward and Backward (0) (Default=1)", "int");
+    inflags.AddInputFlag("forw",
+                         'F',
+                         "1",
+                         "Run only Forward (1) or Run both Forward and Backward (0) (Default=1)",
+                         "int");
     inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
     inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
     inflags.AddInputFlag("in_d", 'D', "0", "Input Depth (Default=0)", "int");
@@ -336,7 +340,7 @@ int GLUDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     if(forw == 0)
     {
-        size_t out_sz    = GetTensorSpace(outputTensor);
+        size_t out_sz     = GetTensorSpace(outputTensor);
         size_t inGrad_sz  = GetTensorSpace(inputTensorGrad);
         size_t outGrad_sz = GetTensorSpace(outputTensorGrad);
 
@@ -438,9 +442,14 @@ int GLUDriver<Tgpu, Tref>::RunBackwardGPU()
     START_TIME;
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenGLUBackward(
-            GetHandle(), inputTensor, in_dev->GetMem(), inputTensorGrad, inGrad_dev->GetMem(),
-    outputTensorGrad, outGrad_dev->GetMem(), dim);
+        miopenGLUBackward(GetHandle(),
+                          inputTensor,
+                          in_dev->GetMem(),
+                          inputTensorGrad,
+                          inGrad_dev->GetMem(),
+                          outputTensorGrad,
+                          outGrad_dev->GetMem(),
+                          dim);
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
         kernel_total_time += time;
@@ -461,8 +470,9 @@ int GLUDriver<Tgpu, Tref>::RunBackwardGPU()
     }
 
     if(inGrad_dev->FromGPU(GetStream(), inGrad.data()) != 0)
-        std::cerr << "Error copying (out_dev) from GPU, size: " << inGrad_dev->GetSize() << std::endl;
-    
+        std::cerr << "Error copying (out_dev) from GPU, size: " << inGrad_dev->GetSize()
+                  << std::endl;
+
     return miopenStatusSuccess;
 }
 
