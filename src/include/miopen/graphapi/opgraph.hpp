@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -312,8 +312,8 @@ class GraphPattern
 {
 
 public:
-    virtual bool matches(const OpGraph& graph)                        = 0;
-    virtual std::vector<GraphEngine> getEngines(const OpGraph& graph) = 0;
+    virtual bool matches(const OpGraph& graph)  const                       = 0;
+    virtual std::vector<GraphEngine> getEngines(const OpGraph& graph) const = 0;
 
     virtual ~GraphPattern();
 };

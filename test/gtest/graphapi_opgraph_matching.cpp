@@ -42,7 +42,7 @@ TEST(GraphMatchingAPI, DiamondGraphMatch)
 
     {
         // create a mirror copy
-        auto dg3 = DummyOpGraphGenerator::Make({{"top", {"t_in"}, {"t_a", "t_b"}},
+        auto dg3 = gr::PatternGraphGenerator::Make({{"top", {"t_in"}, {"t_a", "t_b"}},
                                                 {"left", {"t_b"}, {"t_d"}},
                                                 {"right", {"t_a"}, {"t_c"}},
                                                 {"bottom", {"t_c", "t_d"}, {"t_out"}}});
@@ -52,7 +52,7 @@ TEST(GraphMatchingAPI, DiamondGraphMatch)
 
     {
         // remove one of the edges to bottom
-        auto dg4 = DummyOpGraphGenerator::Make({{"top", {"t_in"}, {"t_a", "t_b"}},
+        auto dg4 = gr::PatternGraphGenerator::Make({{"top", {"t_in"}, {"t_a", "t_b"}},
                                                 {"left", {"t_b"}, {"t_d"}},
                                                 {"right", {"t_a"}, {"t_c"}},
                                                 {"bottom", {"t_c"}, {"t_out"}}});
@@ -61,7 +61,7 @@ TEST(GraphMatchingAPI, DiamondGraphMatch)
 
     {
         // remove one of the edges out of top
-        auto dg5 = DummyOpGraphGenerator::Make({{"top", {"t_in"}, {"t_a"}},
+        auto dg5 = gr::PatternGraphGenerator::Make({{"top", {"t_in"}, {"t_a"}},
                                                 {"left", {"t_b"}, {"t_d"}},
                                                 {"right", {"t_a"}, {"t_c"}},
                                                 {"bottom", {"t_c", "t_d"}, {"t_out"}}});

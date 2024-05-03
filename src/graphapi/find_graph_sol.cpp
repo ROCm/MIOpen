@@ -27,6 +27,7 @@
 
 #include <miopen/errors.hpp>
 #include <miopen/graphapi/opgraph.hpp>
+#include <miopen/graphapi/util.hpp>
 
 namespace miopen {
 namespace graphapi {
@@ -37,7 +38,7 @@ class MHA_FP8_Pattern : public GraphPattern
 {
     static const OpGraph& getPatternGraph()
     {
-        static auto graph_gen = DummyOpGraphGenerator::Make({
+        static auto graph_gen = PatternGraphGenerator::Make({
             {"OP_MATMUL", {"Q", "K"}, {"T_BMM_0"}},
             {"OP_POINTWISE:SCALE", {"T_BMM_0", "ATTN_S"}, {"PW_S_0"}},
             {"OP_POINTWISE:SCALE", {"PW_S_0", "DSCL_Q"}, {"PW_S_1"}},
@@ -61,12 +62,23 @@ class MHA_FP8_Pattern : public GraphPattern
             {"OP_REDUCTION:MAX", {"PW_S_6"}, {"AMAX_O"}},
 
         });
+
+        return graph_gen->graph();
     }
 
 public:
     static std::unique_ptr<GraphPattern> Make() { return std::make_unique<MHA_FP8_Pattern>(); }
+
+    bool matches(const OpGraph& graph) const override  {
+      return isIsomorphic(graph, getPatternGraph());
+    }
+
+    std::vector<GraphEngine> getEngines(const OpGraph&) const override {
+      return {};
+    }
 };
 
+/*
 class FwdConvResAddBiasActPattern : public GraphPattern
 {
 public:
@@ -75,12 +87,13 @@ public:
         return std::make_unique<FwdConvResAddBiasActPattern>();
     }
 };
+*/
 
 std::vector<GraphEngine> findSolution(const OpGraph& graph)
 {
 
-    std::vector<std::unique_ptr<GraphPattern>> patterns = {MHA_FP8_Pattern::Make(),
-                                                           FwdConvResAddBiasActPattern::Make()};
+    std::vector<std::unique_ptr<GraphPattern>> patterns; 
+    patterns.emplace_back(MHA_FP8_Pattern::Make());
 
     bool found = false;
 

@@ -48,20 +48,25 @@ TEST(GraphAPI, BuildDiamond)
      *       v
      */
 
-    auto t_in  = makeDummyTensor("t_in");
-    auto t_out = makeDummyTensor("t_out");
+    gr::PatternGraphGenerator gen;
+    using DummyNode = gr::PatternGraphGenerator::DummyNode;
 
-    auto t_a = makeDummyTensor("t_a");
-    auto t_b = makeDummyTensor("t_b");
-    auto t_c = makeDummyTensor("t_c");
-    auto t_d = makeDummyTensor("t_d");
+    auto t_in  = gen.makeDummyTensor("t_in");
+    auto t_out = gen.makeDummyTensor("t_out");
+
+    auto t_a = gen.makeDummyTensor("t_a");
+    auto t_b = gen.makeDummyTensor("t_b");
+    auto t_c = gen.makeDummyTensor("t_c");
+    auto t_d = gen.makeDummyTensor("t_d");
 
     gr::OpGraphBuilder graph_builder;
 
-    DummyNode top{"top", {&t_in}, {&t_a, &t_b}};
-    DummyNode left{"left", {&t_a}, {&t_c}};
-    DummyNode right{"right", {&t_b}, {&t_d}};
-    DummyNode bottom{"bottom", {&t_c, &t_d}, {&t_out}};
+    using TV = std::vector<gr::Tensor*>;
+
+    DummyNode top{"top", TV({t_in}), TV({t_a, t_b})};
+    DummyNode left{"left", TV({t_a}), TV({t_c})};
+    DummyNode right{"right", TV({t_b}), TV({t_d})};
+    DummyNode bottom{"bottom", TV({t_c, t_d}), TV({t_out})};
 
     graph_builder.addNode(&top);
     graph_builder.addNode(&left);
@@ -75,13 +80,13 @@ TEST(GraphAPI, BuildDiamond)
     ASSERT_TRUE(graph.hasNode(&right));
     ASSERT_TRUE(graph.hasNode(&bottom));
 
-    ASSERT_TRUE(graph.hasEdge(&top, &t_a, &left));
-    ASSERT_TRUE(graph.hasEdge(&top, &t_b, &right));
-    ASSERT_TRUE(graph.hasEdge(&left, &t_c, &bottom));
-    ASSERT_TRUE(graph.hasEdge(&right, &t_d, &bottom));
+    ASSERT_TRUE(graph.hasEdge(&top, t_a, &left));
+    ASSERT_TRUE(graph.hasEdge(&top, t_b, &right));
+    ASSERT_TRUE(graph.hasEdge(&left, t_c, &bottom));
+    ASSERT_TRUE(graph.hasEdge(&right, t_d, &bottom));
 
     ASSERT_TRUE(graph.numNodes() == 4);
     ASSERT_TRUE(graph.numEdges() == 4);
-    ASSERT_TRUE(graph.hasEdgeToSink(&bottom, &t_out));
-    ASSERT_TRUE(graph.hasEdgeFromSource(&top, &t_in));
+    ASSERT_TRUE(graph.hasEdgeToSink(&bottom, t_out));
+    ASSERT_TRUE(graph.hasEdgeFromSource(&top, t_in));
 }

@@ -28,9 +28,14 @@
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
 
+#include <gtest/gtest.h>
+
+#include <miopen/graphapi/matmul.hpp>
 #include <miopen/graphapi/opgraph.hpp>
 #include <miopen/graphapi/pointwise.hpp>
 #include <miopen/graphapi/reduction.hpp>
+#include <miopen/graphapi/rng.hpp>
+#include <miopen/graphapi/util.hpp>
 
 #include <numeric>
 #include <string>
@@ -41,86 +46,36 @@ namespace gr = miopen::graphapi;
 namespace mha_graph_test {
 
 
-struct Deleter {
-  using Fn = std::function<void()>;
-  const Fn emptyFn = [](){};
-  Fn mFn = emptyFn;
-
-  template <typename T>
-  explicit Deleter(T* ptr) {
-    mFn = [ptr] () { delete ptr; };
-  }
-
-  Deleter(const Deleter&) = delete;
-  Deleter& operator = (const Deleter&) = delete;
-
-  Deleter(Deleter&& that) noexcept : mFn(std::move(that.mFn)) {
-    that.mFn = emptyFn;
-  }
-
-  Deleter& operator = (Deleter&& that) noexcept { 
-    this->mFn(); // destruct self.
-    this->mFn = std::move(that.mFn);
-    that.mFn = emptyFn;
-    return *this;
-  }
-
-  ~Deleter() {
-    mFn();
-  }
-};
 
 
+class MhaFwdGraphTest: public testing::TestWithParam<std::tuple<int, int, int, int>> {
 
-class MhaGraphTest: public testing::TestWithParam<std::array<int64_t, 4>> {
-
-  std::vector<Deleter> mPtrsToFree;
   std::unique_ptr<gr::OpGraphBuilder> mGraphBuilder;
   gr::OpGraph mGraph;
-
-  template <typename T>
-  T* alloc(T&& val) {
-    T* ret = new T(std::forward<T>(val));
-    mPtrsToFree.emplace_back(ret);
-    return ret;
-  }
-
-  template <typename Vec>
-  gr::Tensor* makeTensor(std::string_view name, const Vec& dims, bool isVirtual=true) {
-    int64_t id = 0;
-    MIOPEN_THROW_IF(name.size() > sizeof(id), "tensor name exceeds 8 chars");
-    std::copy_n(name.begin(), std::min(sizeof(id), name.size()), reinterpret_cast<char*>(id));
+  gr::AutoDeleteAllocator mAlloc;
 
 
-    Vec strides(dims);
-    using T = typename Vec::value_type;
-    std::exclusive_scan(dims.begin(), dims.end(), strides.begin(), T{1ll}, std::multiplies<T>{});
-
-
-    return alloc(gr::TensorBuilder{}
-    .setDataType(miopenFloat)
-      .setDim(dims)
-      .setStride(strides)
-      .setId(id)
-      .setVirtual(isVirtual)
-      .build());
+  gr::Tensor* makeTensor(std::string_view name, const std::vector<int64_t>& dims) {
+    return mAlloc.allocate(gr::makeTensor<true>(name, dims));
   }
 
   auto* makePointWiseDesc(miopenPointwiseMode_t mode) {
-      return alloc(gr::PointwiseBuilder{}
+      return mAlloc.allocate(gr::PointwiseBuilder{}
           .setMode(MIOPEN_POINTWISE_MUL)
           .setMathPrecision(miopenFloat)
           .build());
   }
 
+  using TensorVec = std::vector<gr::Tensor*>;
+
   void addBinaryPointwiseNode( gr::Pointwise* pw,
-      std::initializer_list<gr::Tensor*> in_tensors, 
-      std::initializer_list<gr::Tensor*> out_tensors) {
+      const TensorVec& in_tensors, 
+      const TensorVec&  out_tensors) {
 
       assert(in_tensors.size() == 2);
       assert(out_tensors.size() == 1);
 
-      mGraphBuilder->addNode(alloc(gr::OperationPointwiseBuilder{}
+      mGraphBuilder->addNode(mAlloc.allocate(gr::OperationPointwiseBuilder{}
             .setPointwise(pw)
             .setX(in_tensors[0])
             .setB(in_tensors[1])
@@ -130,13 +85,13 @@ class MhaGraphTest: public testing::TestWithParam<std::array<int64_t, 4>> {
   }
 
   void addUnaryPointwiseNode( gr::Pointwise* pw,
-      std::initializer_list<gr::Tensor*> in_tensors, 
-      std::initializer_list<gr::Tensor*> out_tensors) {
+      const TensorVec&  in_tensors, 
+      const TensorVec&  out_tensors) {
 
       assert(in_tensors.size() == 1);
       assert(out_tensors.size() == 1);
 
-      mGraphBuilder->addNode(alloc(gr::OperationPointwiseBuilder{}
+      mGraphBuilder->addNode(mAlloc.allocate(gr::OperationPointwiseBuilder{}
             .setPointwise(pw)
             .setX(in_tensors[0])
             .setY(out_tensors[0])
@@ -145,10 +100,10 @@ class MhaGraphTest: public testing::TestWithParam<std::array<int64_t, 4>> {
   }
 
   void addReductionNode(miopenReduceTensorOp_t red_op,
-      std::initializer_list<gr::Tensor*> in_tensors, 
-      std::initializer_list<gr::Tensor*> out_tensors) {
+      const TensorVec&  in_tensors, 
+      const TensorVec&  out_tensors) {
 
-      auto* red_desc = alloc(gr::ReductionBuilder{}
+      auto* red_desc = mAlloc.allocate(gr::ReductionBuilder{}
         .setCompType(miopenFloat)
         .setReductionOperator(red_op)
         .build());
@@ -156,7 +111,7 @@ class MhaGraphTest: public testing::TestWithParam<std::array<int64_t, 4>> {
       assert(in_tensors.size() == 1);
       assert(out_tensors.size() == 1);
 
-      mGraphBuilder->addNode(alloc(gr::OperationReductionBuilder{}
+      mGraphBuilder->addNode(mAlloc.allocate(gr::OperationReductionBuilder{}
             .setReduction(red_desc)
             .setX(in_tensors[0])
             .setY(out_tensors[0])
@@ -164,15 +119,15 @@ class MhaGraphTest: public testing::TestWithParam<std::array<int64_t, 4>> {
   }
 
   void addNode(std::string_view name, 
-      std::initializer_list<gr::Tensor*> in_tensors, 
-      std::initializer_list<gr::Tensor*> out_tensors) {
+      const TensorVec&  in_tensors, 
+      const TensorVec&  out_tensors) {
     
     if (name == "OP_MATMUL") {
       assert(in_tensors.size() == 2);
       assert(out_tensors.size() == 1);
 
-      auto* mm_desc = alloc(gr::MatmulBuilder().setComputeType(miopenFloat8).build());
-      mGraphBuilder->addNode(alloc(gr::OperationMatmulBuilder{}
+      auto* mm_desc = mAlloc.allocate(gr::MatmulBuilder().setComputeType(miopenFloat8).build());
+      mGraphBuilder->addNode(mAlloc.allocate(gr::OperationMatmulBuilder{}
         .setA(in_tensors[0])
         .setB(in_tensors[1])
         .setC(out_tensors[0])
@@ -192,7 +147,7 @@ class MhaGraphTest: public testing::TestWithParam<std::array<int64_t, 4>> {
       auto* pw = makePointWiseDesc(MIOPEN_POINTWISE_EXP);
       addUnaryPointwiseNode(pw, in_tensors, out_tensors);
 
-    } else if (name == "OP_POINTWISE:RECIPROCAL) {
+    } else if (name == "OP_POINTWISE:RECIPROCAL") {
       auto* pw = makePointWiseDesc(MIOPEN_POINTWISE_RECIPROCAL);
       addUnaryPointwiseNode(pw, in_tensors, out_tensors);
 
@@ -204,7 +159,7 @@ class MhaGraphTest: public testing::TestWithParam<std::array<int64_t, 4>> {
 
     } else if (name == "OP_RNG") {
       constexpr double BERNOULLI = 0.5; 
-      auto* rng_desc = alloc(gr::RngBuilder{}
+      auto* rng_desc = mAlloc.allocate(gr::RngBuilder{}
           .setDistribution(MIOPEN_RNG_DISTRIBUTION_BERNOULLI)
           .setBernoulliProb(BERNOULLI)
           .build());
@@ -212,7 +167,7 @@ class MhaGraphTest: public testing::TestWithParam<std::array<int64_t, 4>> {
       assert(in_tensors.size() == 2);// first is seed tensor, second is offset
       assert(out_tensors.size() == 1);
 
-      mGraphBuilder->addNode(alloc(gr::OperationRngBuilder{}
+      mGraphBuilder->addNode(mAlloc.allocate(gr::OperationRngBuilder{}
             .setRng(rng_desc)
             .setSeed(in_tensors[0])
             .setOffset(in_tensors[1])
@@ -237,11 +192,14 @@ class MhaGraphTest: public testing::TestWithParam<std::array<int64_t, 4>> {
     std::vector<int64_t> nhs1 = {n, h, s, 1};
     std::vector<int64_t> all1s = {1, 1, 1, 1};
 
-    auto Q = makeTensor("Q", nhsd, false);
-    auto K = makeTensor("K", nhsd, false);
-    auto V = makeTensor("V", nhsd, false);
-
 #define MAKE_TENSOR(name, dims) auto* name = makeTensor(#name, dims)
+
+    // auto Q = makeTensor("Q", nhsd, false);
+    // auto K = makeTensor("K", nhsd, false);
+    // auto V = makeTensor("V", nhsd, false);
+    MAKE_TENSOR(Q, nhsd);
+    MAKE_TENSOR(K, nhsd);
+    MAKE_TENSOR(V, nhsd);
 
     MAKE_TENSOR(T_MM_0, nhss);
     addNode("OP_MATMUL", {Q, K}, {T_MM_0});
@@ -323,6 +281,32 @@ class MhaGraphTest: public testing::TestWithParam<std::array<int64_t, 4>> {
 #undef MAKE_TENSOR
 
   }
+
+  void extractFind20Tensors() {
+  }
+
+public:
+  void Run() {
+    auto [n, h, s, d] = GetParam();
+    createMhaGraph(n, h, s, d);
+  }
+
 };
 
 } // end namespace mha_graph_test
+ 
+
+using namespace mha_graph_test;
+
+TEST_P(MhaFwdGraphTest, MhaFwdGraph) {
+  Run();
+}
+
+
+INSTANTIATE_TEST_SUITE_P(MhaGraphFwdSuite, MhaFwdGraphTest, 
+    testing::Combine(
+      testing::ValuesIn({2}),  // n
+      testing::ValuesIn({4}),  // s
+      testing::ValuesIn({8}),  // h
+      testing::ValuesIn({16}) // d
+    ));
