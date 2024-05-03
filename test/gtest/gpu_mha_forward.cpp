@@ -44,8 +44,8 @@ MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 using namespace miopen;
-
-bool CheckFloatArg(std::string_view arg)
+namespace {
+inline bool CheckFloatArg(std::string_view arg)
 {
     const std::string& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
     return tmp.empty() || tmp == arg;
@@ -59,10 +59,7 @@ struct TensorStruct
     }
 
     TensorStruct(const TensorStruct&) = delete;
-    TensorStruct(TensorStruct&&)      = default;
-
     TensorStruct& operator=(const TensorStruct&) = delete;
-    TensorStruct& operator=(TensorStruct&&) = default;
 
     ~TensorStruct() = default;
 
@@ -79,7 +76,7 @@ struct TestCase
     float dropout;
 };
 
-std::vector<TestCase> GetSmokeTestCases()
+inline std::vector<TestCase> GetSmokeTestCases()
 {
     if(CheckFloatArg("--float"))
     {
@@ -108,7 +105,7 @@ std::vector<TestCase> GetSmokeTestCases()
     }
 }
 
-std::vector<TestCase> GetFullTestCases()
+inline std::vector<TestCase> GetFullTestCases()
 {
     if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) || miopen::IsEnabled(ENV(MIOPEN_TEST_ALL))) &&
        CheckFloatArg("--float"))
@@ -129,7 +126,7 @@ std::vector<TestCase> GetFullTestCases()
         return {};
     }
 }
-
+} // namespace
 class Test_Fwd_Mha : public testing::TestWithParam<TestCase>
 {
 protected:
@@ -138,6 +135,11 @@ protected:
         prng::reset_seed();
         auto [n, h, s, d, drop] = GetParam();
         Handle& handle          = get_handle();
+
+        if((drop > 0.0f) && (s % handle.GetWavefrontWidth() != 0))
+        {
+            GTEST_SKIP() << "CPU Dropout currently supprorts only fully occupied warps";
+        }
 
         mha_descriptor.SetParams(1);
         ASSERT_EQ(miopenCreateMhaProblem(&problem, &mha_descriptor, miopenProblemDirectionForward),
@@ -258,7 +260,13 @@ protected:
             oDesc_ref);
     }
 
-    void TearDown() override { ASSERT_EQ(miopenDestroyProblem(problem), miopenStatusSuccess); }
+    void TearDown() override
+    {
+        if(problem)
+        {
+            ASSERT_EQ(miopenDestroyProblem(problem), miopenStatusSuccess);
+        }
+    }
 
     std::map<miopenTensorArgumentId_t, std::unique_ptr<TensorStruct>> tensors;
     std::vector<miopenTensorDescriptor_t> descVector;
@@ -273,18 +281,12 @@ protected:
     float amaxO_ref;
 
     MhaDescriptor mha_descriptor;
-    miopenProblem_t problem;
+    miopenProblem_t problem = nullptr;
 };
 
 TEST_P(Test_Fwd_Mha, Test_float)
 {
     Handle& handle = get_handle();
-
-    auto [n, h, s, d, drop] = GetParam();
-    if((drop > 0.0f) && (s % handle.GetWavefrontWidth() != 0))
-    {
-        GTEST_SKIP() << "CPU Dropout currently supprorts only fully occupied warps";
-    }
 
     std::vector<miopenSolution_t> solutions(16);
     std::size_t found;
