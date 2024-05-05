@@ -44,16 +44,6 @@ EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataT
     return GetDataTypeName(in) + GetDataTypeName(weights) + GetDataTypeName(out);
 }
 
-bool isCloseToZero(double value)
-{
-    return std::abs(value) <= std::numeric_limits<double>::epsilon();
-}
-
-bool isCloseToOne(double value)
-{
-    return std::abs(value - double(1.0)) <= std::numeric_limits<double>::epsilon();
-}
-
 namespace conv {
 namespace {
 
@@ -75,27 +65,29 @@ std::ostream& operator<<(std::ostream& stream, std::function<void(std::ostream&)
 
 } // namespace
 
-AlphaBetaCase GetAlphaBetaCase(const Scalar& alpha, const Scalar& beta)
+AlphaBetaCase ClassifyAlphaBeta(const Scalar& alpha, const Scalar& beta)
 {
     // double since we are comparing
+    double alpha_val = alpha.GetAsDouble();
+    double beta_val  = beta.GetAsDouble();
 
-    bool alpha_one  = isCloseToOne(alpha.GetAsDouble());
-    bool beta_zero  = isCloseToZero(beta.GetAsDouble());
-    bool alpha_zero = isCloseToZero(alpha.GetAsDouble());
+    bool alpha_one  = (alpha_val == 1.0);
+    bool alpha_zero = (alpha_val == 0.0);
+    bool beta_zero  = (beta_val == 0.0);
 
     if(alpha_one && beta_zero)
     {
-        return AlphaBetaCase::IDENTITY;
+        return AlphaBetaCase::DEFAULT;
     }
 
-    if((!alpha_one && !alpha_zero) && !beta_zero)
-    {
-        return AlphaBetaCase::BILINEAR;
-    }
-
-    if(!alpha_zero && beta_zero)
+    if(!alpha_one && beta_zero)
     {
         return AlphaBetaCase::SCALE;
+    }
+
+    if(!alpha_zero && !beta_zero)
+    {
+        return AlphaBetaCase::BILINEAR;
     }
 
     return AlphaBetaCase::ERROR_STATE;

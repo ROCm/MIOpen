@@ -32,6 +32,7 @@
 #include <variant>
 
 namespace miopen {
+// Class store value in double for higher precision.
 struct Scalar
 {
     explicit Scalar(double val) : mVal(val), mType(miopenDouble) {}
@@ -44,7 +45,7 @@ struct Scalar
     miopenDataType_t GetType() const { return mType; }
 
 private:
-    std::variant<double, float> mVal;
+    double mVal;
     miopenDataType_t mType;
 };
 
