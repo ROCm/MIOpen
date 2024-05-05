@@ -530,8 +530,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
         const auto algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), conv::Direction::Forward)};
-        Scalar alpha_val(alpha, GetScalarDataType(xDesc));
-        Scalar beta_val(beta, GetScalarDataType(xDesc));
+        Scalar alpha_val(alpha, GetScalarDataType(yDesc));
+        Scalar beta_val(beta, GetScalarDataType(yDesc));
         const auto problem = conv::ProblemDescription{
             xDesc, wDesc, yDesc, *this, conv::Direction::Forward, 0, alpha_val, beta_val};
         const auto network_config = problem.MakeNetworkConfig();
