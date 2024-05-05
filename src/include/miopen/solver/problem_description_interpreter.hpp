@@ -237,7 +237,7 @@ struct ProblemInterpreter
     }
     static miopen::conv::AlphaBetaCase GetAlphaBetaCase(const miopen::conv::ProblemDescription& problem)
     {
-        return problem.GetAlphaBetaEnumCase();
+        return problem.GetAlphaBetaCase();
     }
 
     // adjust right padding size so that filter will not move out-of-bound

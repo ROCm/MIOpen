@@ -140,14 +140,14 @@ enum class AlphaBetaCase
     /* BILINEAR      alpha = 3.2 and beta = 1.1 */
     /* ERROR_STATE   alpha = 0.0 and beta = 3.1 */
 
-    IDENTITY    = 0, /* alpha = 1.0 and beta = 0.0.*/
+    DEFAULT     = 0, /* alpha = 1.0 and beta = 0.0.*/
     SCALE       = 1, /* alpha with some value and beta 0.0*/
     BILINEAR    = 2, /* both alpha and beta with some value*/
     ERROR_STATE = 3, /* alpha 0.0 and beta with some value, this should not occur.
                         But used to check for errors.*/
 };
 
-AlphaBetaCase GetAlphaBetaCase(const Scalar& alpha, const Scalar& beta);
+AlphaBetaCase ClassifyAlphaBeta(const Scalar& alpha, const Scalar& beta);
 
 struct ProblemDescription : ProblemDescriptionBase
 #if MIOPEN_ENABLE_SQLITE
@@ -177,7 +177,7 @@ struct ProblemDescription : ProblemDescriptionBase
           bias(bias_),
           alpha(alpha_),
           beta(beta_),
-          alpha_beta_case(GetAlphaBetaCase(alpha, beta))
+          alpha_beta_case(ClassifyAlphaBeta(alpha, beta))
     {
         HeuristicUpdateLayouts();
     }
@@ -273,7 +273,7 @@ struct ProblemDescription : ProblemDescriptionBase
     Scalar GetAlpha() const { return alpha; }
     Scalar GetBeta() const { return beta; }
 
-    AlphaBetaCase GetAlphaBetaEnumCase() const { return alpha_beta_case; }
+    AlphaBetaCase GetAlphaBetaCase() const { return alpha_beta_case; }
 
     int GetBias() const { return bias; }
 
@@ -502,7 +502,7 @@ private:
     int bias                      = 0;
     Scalar alpha                  = Scalar(1.0);
     Scalar beta                   = Scalar(0.0);
-    AlphaBetaCase alpha_beta_case = AlphaBetaCase::IDENTITY;
+    AlphaBetaCase alpha_beta_case = AlphaBetaCase::DEFAULT;
 };
 
 } // namespace conv

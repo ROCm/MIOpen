@@ -190,11 +190,11 @@ struct CKArgs
     template <typename ConvPtr>
     auto MakeArgPtr(const ConvPtr& conv_ptr, ConstData_t in, ConstData_t w, Data_t out) const
     {
-        if constexpr(std::is_same<ConvPtr, DeviceOpGFwdBilinearPtrs<DataType>>::value)
+        if constexpr(std::is_same_v<ConvPtr, DeviceOpGFwdBilinearPtrs<DataType>>)
         {
             return MakeBilinearArgPtr(conv_ptr, in, w, out);
         }
-        else if constexpr(std::is_same<ConvPtr, DeviceOpGFwdScalePtrs<DataType>>::value)
+        else if constexpr(std::is_same_v<ConvPtr, DeviceOpGFwdScalePtrs<DataType>>)
         {
             return MakeScaleArgPtr(conv_ptr, in, w, out);
         }
