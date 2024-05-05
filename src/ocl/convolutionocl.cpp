@@ -494,7 +494,7 @@ void ConvolutionDescriptor::ValidateTensors(const ConvTensors& tensors) const
     //}
 }
 
-miopenDataType_t AlphaBetaStorageDataType(const TensorDescriptor& xDesc)
+miopenDataType_t GetScalarDataType(const TensorDescriptor& xDesc)
 {
     if(xDesc.GetType() == miopenDataType_t::miopenDouble)
     {
@@ -530,8 +530,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
         const auto algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), conv::Direction::Forward)};
-        Scalar alpha_val(alpha, AlphaBetaStorageDataType(xDesc));
-        Scalar beta_val(beta, AlphaBetaStorageDataType(xDesc));
+        Scalar alpha_val(alpha, GetScalarDataType(xDesc));
+        Scalar beta_val(beta, GetScalarDataType(xDesc));
         const auto problem = conv::ProblemDescription{
             xDesc, wDesc, yDesc, *this, conv::Direction::Forward, 0, alpha_val, beta_val};
         const auto network_config = problem.MakeNetworkConfig();

@@ -28,9 +28,8 @@
 
 namespace miopen {
 
-Scalar::Scalar(ConstData_t ptr, miopenDataType_t type)
+Scalar::Scalar(ConstData_t ptr, miopenDataType_t type) : mType(type)
 {
-    mType = type;
     if(type == miopenFloat)
     {
         mVal = *static_cast<const float*>(ptr);
@@ -47,22 +46,10 @@ Scalar::Scalar(ConstData_t ptr, miopenDataType_t type)
 
 float Scalar::GetAsFloat() const
 {
-    if(mType == miopenFloat)
-    {
-        return std::get<float>(mVal);
-    }
-
-    return static_cast<float>(std::get<double>(mVal));
+    assert(mType == miopenFloat);
+    return static_cast<float>(mVal);
 }
 
-double Scalar::GetAsDouble() const
-{
-    if(mType == miopenDouble)
-    {
-        return std::get<double>(mVal);
-    }
-
-    return static_cast<double>(std::get<float>(mVal));
-}
+double Scalar::GetAsDouble() const { return mVal; }
 
 } // namespace miopen
