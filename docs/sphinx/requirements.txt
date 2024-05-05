@@ -159,7 +159,7 @@ sphinxcontrib-qthelp==1.0.3
     # via sphinx
 sphinxcontrib-serializinghtml==1.1.5
     # via sphinx
-tqdm==4.66.2
+tqdm==4.66.3
     # via mpire
 typing-extensions==4.10.0
     # via
