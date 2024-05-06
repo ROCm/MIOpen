@@ -46,16 +46,18 @@ bool GLUForward::IsApplicable(const ExecutionContext& context,
                               const miopen::glu::ProblemDescription& problem) const
 {
     std::ignore = context;
+    auto inputDims = problem.GetInputDesc().GetLengths();
+    auto input_numel = std::accumulate(inputDims.begin(), inputDims.end(), 1, std::multiplies<int32_t>());
 
     if(!problem.IsSameType())
-        return false;
-    if(!problem.IsRightDim())
         return false;
     if(!problem.IsRightLength())
         return false;
     if(!problem.IsAllPacked())
         return false;
     if(!problem.IsFirstDim())
+        return false;
+    if(!(input_numel < 400000))
         return false;
     return true;
 }

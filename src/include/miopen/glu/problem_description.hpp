@@ -104,11 +104,7 @@ struct ProblemDescription : ProblemDescriptionBase
         {
             if(inputDesc.GetType() != outputDesc.GetType())
             {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-                MIOPEN_THROW(miopenStatusBadParm, "GLU: Tensor types do not match.");
-#else
                 return false;
-#endif
             }
         }
         else
@@ -116,11 +112,7 @@ struct ProblemDescription : ProblemDescriptionBase
             if(inputDesc.GetType() != inputGradDesc.GetType() ||
                inputGradDesc.GetType() != outputGradDesc.GetType())
             {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-                MIOPEN_THROW(miopenStatusBadParm, "GLU: Tensor types do not match.");
-#else
                 return false;
-#endif
             }
         }
 
@@ -174,43 +166,20 @@ struct ProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    bool IsRightDim() const
-    {
-        if((dim < 0) || (dim > outputDesc.GetLengths().size()))
-        {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(
-                miopenStatusBadParm,
-                "GLU: Dimension is greater than 0 and less than or equal tensor dimension length.");
-#else
-            return false;
-#endif
-        }
-        return true;
-    }
-
     bool IsAllPacked() const
     {
         if(direction == Direction::Forward)
         {
             if(!(inputDesc.IsPacked() && outputDesc.IsPacked()))
             {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-                MIOPEN_THROW(miopenStatusBadParm, "GLU: Unpacked tensors not supported.");
-#else
                 return false;
-#endif
             }
         }
         else
         {
             if(!(inputDesc.IsPacked() && inputGradDesc.IsPacked() && outputGradDesc.IsPacked()))
             {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-                MIOPEN_THROW(miopenStatusBadParm, "GLU: Unpacked tensors not supported.");
-#else
                 return false;
-#endif
             }
         }
 
@@ -221,11 +190,7 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(dim != 0)
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm, "GLU: Dimension is not 0.");
-#else
             return false;
-#endif
         }
         return true;
     }

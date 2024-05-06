@@ -43,24 +43,24 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct GLUTestFloat : GLUTest<float>
+struct GLUBwdTestFloat : GLUBwdTest<float>
 {
 };
 
-struct GLUTestFP16 : GLUTest<float16>
+struct GLUBwdTestFP16 : GLUBwdTest<float16>
 {
 };
 
-struct GLUTestBFP16 : GLUTest<bfloat16>
+struct GLUBwdTestBFP16 : GLUBwdTest<bfloat16>
 {
 };
 
 } // namespace glu
 using namespace glu;
 
-TEST_P(GLUTestFloat, GLUTestFw)
+TEST_P(GLUBwdTestFloat, GLUTestBwd)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float" || GetFloatArg() == "--all"))
     {
         RunTest();
         Verify();
@@ -71,9 +71,9 @@ TEST_P(GLUTestFloat, GLUTestFw)
     }
 };
 
-TEST_P(GLUTestFP16, GLUTestFw)
+TEST_P(GLUBwdTestFP16, GLUTestBwd)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--fp16"))
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--fp16" || GetFloatArg() == "--all"))
     {
         RunTest();
         Verify();
@@ -84,9 +84,9 @@ TEST_P(GLUTestFP16, GLUTestFw)
     }
 };
 
-TEST_P(GLUTestBFP16, GLUTestFw)
+TEST_P(GLUBwdTestBFP16, GLUTestBwd)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfp16"))
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfp16" || GetFloatArg() == "--all"))
     {
         RunTest();
         Verify();
@@ -97,6 +97,6 @@ TEST_P(GLUTestBFP16, GLUTestFw)
     }
 }
 
-INSTANTIATE_TEST_SUITE_P(GLUTestSet, GLUTestFloat, testing::ValuesIn(GLUTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(GLUTestSet, GLUTestFP16, testing::ValuesIn(GLUTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(GLUTestSet, GLUTestBFP16, testing::ValuesIn(GLUTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(GLUTestSet, GLUBwdTestFloat, testing::ValuesIn(GLUTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(GLUTestSet, GLUBwdTestFP16, testing::ValuesIn(GLUTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(GLUTestSet, GLUBwdTestBFP16, testing::ValuesIn(GLUTestConfigs()));

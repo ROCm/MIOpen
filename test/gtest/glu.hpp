@@ -27,13 +27,16 @@
 #include "../driver/tensor_driver.hpp"
 #include "cpu_glu.hpp"
 #include "get_handle.hpp"
+#include "miopen/allocator.hpp"
 #include "random.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include <algorithm>
+#include <cmath>
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/glu.hpp>
+#include <numeric>
 
 struct GLUTestCase
 {
@@ -83,17 +86,20 @@ std::vector<GLUTestCase> GLUTestConfigs()
 { // n c d h w dim
     // clang-format off
     return {
-        { 8,    120,  0,  0,   1,     0},  //bart
-        { 8,    1023, 0,  0,   1,     0},  //gpt_neo
-        { 8,    1024, 0,  0,   768,   0},
-        { 16,   1024, 0,  0,   768,   0},  //gpt2
-        { 48,   8,    0,  512, 512,   0},  //t5
+        { 2,    320,   4,  4,   4,    0},
+        { 32,    64,   3,  3,    3,     0},
+        { 64,    3,  0,  11,    11,     0},
+        { 256,    256,  0,  1,    1,     0},
+        { 128,    64,  0,  7,    7,     0},
+        { 64,    64,  0,  7,    7,     0},
+        { 64,    32,  0,  7,    7,     0},
+        { 32,    32,  0,  7,    7,     0}
       };
     // clang-format on
 }
 
 template <typename T>
-struct GLUTest : public ::testing::TestWithParam<GLUTestCase>
+struct GLUFwdTest : public ::testing::TestWithParam<GLUTestCase>
 {
 protected:
     void SetUp() override
@@ -178,6 +184,108 @@ protected:
 
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr output_dev;
+
+    int32_t dim;
+};
+
+template <typename T>
+struct GLUBwdTest : public ::testing::TestWithParam<GLUTestCase>
+{
+protected:
+    void SetUp() override
+    {
+
+        auto&& handle  = get_handle();
+        glu_config     = GetParam();
+        auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
+
+        dim = glu_config.dim;
+
+        auto in_dims = glu_config.GetInput();
+
+        input = tensor<T>{in_dims}.generate(gen_value);
+        inputGrad = tensor<T>{in_dims};
+        std::fill(inputGrad.begin(), inputGrad.end(), std::numeric_limits<T>::quiet_NaN());
+
+        ref_inputGrad = tensor<T>{in_dims};
+        std::fill(ref_inputGrad.begin(), ref_inputGrad.end(), std::numeric_limits<T>::quiet_NaN());
+
+        std::vector<size_t> out_dims;
+
+        for(int i = 0; i < in_dims.size(); i++)
+        {
+            if(i != dim)
+            {
+                out_dims.push_back(in_dims[i]);
+            }
+            else
+            {
+                out_dims.push_back(in_dims[i] / 2);
+            }
+        }
+
+        outputGrad = tensor<T>{out_dims}.generate(gen_value);
+
+        input_dev  = handle.Write(input.data);
+        inputGrad_dev = handle.Write(inputGrad.data);
+        outputGrad_dev = handle.Write(outputGrad.data);
+    }
+
+    void RunTest()
+    {
+        auto&& handle = get_handle();
+
+        cpu_glu_backward<T>(input, outputGrad, ref_inputGrad);
+        miopenStatus_t status;
+
+        status = miopen::GLUBackward(
+            handle, input.desc, input_dev.get(), inputGrad.desc, inputGrad_dev.get(), outputGrad.desc, outputGrad_dev.get(), dim);
+
+        EXPECT_EQ(status, miopenStatusSuccess);
+
+        inputGrad.data = handle.Read<T>(inputGrad_dev, inputGrad.data.size());
+    }
+
+    double GetTolerance()
+    {
+        // Computation error of fp16 is ~2^13 (=8192) bigger than
+        // the one of fp32 because mantissa is shorter by 13 bits.
+        double tolerance = std::is_same<T, float>::value ? 1.5e-6 : 8.2e-3;
+
+        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+        if(std::is_same<T, bfloat16>::value)
+            tolerance *= 8.0;
+        return tolerance;
+    }
+
+    void Verify()
+    {
+        double threshold = GetTolerance();
+        auto error       = miopen::rms_range(ref_inputGrad, inputGrad);
+        auto inputDims = input.desc.GetLengths();
+        auto inputEl = std::accumulate(inputDims.begin(), inputDims.end(), 1, std::multiplies<size_t>());
+        for (int i = 0; i < inputEl; i++) {
+            if (isnan(inputGrad[i]) || isnan(ref_inputGrad[i])){
+                std::cout << "index = " << i << "inputGrad[i] = " << inputGrad[i] << ", ref_inputGrad[i] = " << ref_inputGrad[i] << std::endl;
+                break;
+            }
+        }
+
+        EXPECT_TRUE(miopen::range_distance(ref_inputGrad) == miopen::range_distance(inputGrad));
+        EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance Error:" << error
+                                            << ",  Thresholdx10: " << threshold * 10;
+    }
+    GLUTestCase glu_config;
+
+    tensor<T> input;
+    tensor<T> inputGrad;
+    tensor<T> outputGrad;
+
+    tensor<T> ref_inputGrad;
+
+    miopen::Allocator::ManageDataPtr input_dev;
+    miopen::Allocator::ManageDataPtr inputGrad_dev;
+    miopen::Allocator::ManageDataPtr outputGrad_dev;
 
     int32_t dim;
 };

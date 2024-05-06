@@ -46,6 +46,8 @@ bool GLUBackward::IsApplicable(const ExecutionContext& context,
                                const miopen::glu::ProblemDescription& problem) const
 {
     std::ignore = context;
+    auto inputDims = problem.GetInputDesc().GetLengths();
+    auto input_numel = std::accumulate(inputDims.begin(), inputDims.end(), 1, std::multiplies<int32_t>());
 
     if(!problem.IsSameType())
         return false;
@@ -54,6 +56,8 @@ bool GLUBackward::IsApplicable(const ExecutionContext& context,
     if(!problem.IsAllPacked())
         return false;
     if(!problem.IsFirstDim())
+        return false;
+    if(!(input_numel < 800000))
         return false;
     return true;
 }
@@ -69,12 +73,12 @@ ConvSolution GLUBackward::GetSolution(const ExecutionContext& context,
         auto dtype             = problem.GetInputDesc().GetType();
         auto input_dtype       = miopen::GetDataType(problem.GetInputDesc().GetType());
         auto input_grad_dtype  = miopen::GetDataType(problem.GetInputGradDesc().GetType());
-        auto outputGradDims    = problem.GetOutputGradDesc().GetLengths();
-        auto output_grad_numel = std::accumulate(
-            outputGradDims.begin(), outputGradDims.end(), 1ULL, std::multiplies<size_t>());
+        auto inputDims = problem.GetInputDesc().GetLengths();
+        auto input_numel = std::accumulate(inputDims.begin(), inputDims.end(), 1, std::multiplies<int32_t>());
+        std::cout << "input_numel: " << input_numel << std::endl;
 
         size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize  = AlignUp(output_grad_numel, xlocalsize);
+        size_t xgridsize  = AlignUp(input_numel / 2, xlocalsize);
         size_t ylocalsize = 1;
         size_t ygridsize  = 1;
         size_t zlocalsize = 1;
