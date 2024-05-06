@@ -152,7 +152,7 @@ const std::vector<std::unique_ptr<ISolversFinder>>& GetConvSolverFinders();
 
 } // namespace conv
 
-void FindCore(const AnyInvokeParams& invoke_ctx,
+bool FindCore(const AnyInvokeParams& invoke_ctx,
               DbRecord& record,
               const ExecutionContext& ctx,
               const ProblemDescriptionBase& problem,

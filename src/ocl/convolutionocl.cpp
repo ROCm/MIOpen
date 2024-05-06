@@ -242,7 +242,8 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
             const auto params =
                 conv::ConvFindParameters{conv.IsWinograd3x3SupportedAndFast(ctx_copy, problem)};
 
-            FindCore(invoke_ctx, record, ctx_copy, problem, params, conv::GetConvSolverFinders());
+            return FindCore(
+                invoke_ctx, record, ctx_copy, problem, params, conv::GetConvSolverFinders());
         });
     }
 

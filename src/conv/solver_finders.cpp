@@ -219,7 +219,8 @@ static void EvaluateInvokers(Handle& handle,
                              const AlgorithmName& algorithm_name,
                              const NetworkConfig& network_config,
                              const AnyInvokeParams& invoke_ctx,
-                             DbRecord& record)
+                             DbRecord& record,
+                             bool& is_result_optimal)
 {
     const auto& arch = miopen::GetStringEnv(ENV(MIOPEN_DEVICE_ARCH));
     if(!arch.empty())
@@ -229,58 +230,35 @@ static void EvaluateInvokers(Handle& handle,
     auto best         = std::numeric_limits<float>::max();
     auto best_invoker = Invoker{};
 
-    // In the 1st loop, find out if workspace size is sufficient.
-    // In the 2nd loop, after evaluation of invokers, write results only if workspace size
-    // is sufficient for *all* solvers. This is to avoid the following problem:
-    //
-    // Providing smaller workspace may result in the selection of a slow convolution algorithm,
-    // and therefore affect library performance. Moreover, sub-optimal data may be cached in the
-    // user's find-db. This means that the performance drop will become persistent, i.e. even
-    // providing sufficient workspace won't restore the performance. To get rid of this problem,
-    // the user will/ need to either remove the user's find-db, or repeat miopenFindConvolution*()
-    // with affected convolution configs in Normal Find Mode (the latter will overwrite
-    // sub-optimal user's find-db records).
-    //
-    // Writing of sub-optimal results into find-db can be enabled via environment variable.
-
-    bool enough_workspace_4all = true;
-    std::vector<bool> enough_workspace(solutions.size(),
-                                       true); // Cache to avoid calling IsEnoughWorkspace() twice.
-    std::size_t index = 0;
     for(const auto& sol : solutions)
     {
-        if(!sol.invoker_factory)
-            MIOPEN_THROW("Invoker is not provided by solver " + sol.solver_id);
-
         if(!conv::IsEnoughWorkspace(
                "EvaluateInvokers", solver::Id{sol.solver_id}, sol.workspace_sz, &invoke_ctx))
         {
-            enough_workspace[index] = false;
-            enough_workspace_4all   = false;
-        }
-        ++index;
-    }
-
-    index = 0;
-    for(const auto& sol : solutions)
-    {
-        if(!enough_workspace[index])
-        {
-            ++index;
+            // Providing smaller workspace may result in the selection of a slow convolution
+            // algorithm, and therefore affect library performance. Moreover, sub-optimal data may
+            // be cached in the user's find-db. This means that the performance drop will become
+            // persistent, i.e. even providing sufficient workspace won't restore the performance.
+            // To get rid of this problem, the user will need to either remove the user's find-db,
+            // or repeat miopenFindConvolution*() with affected convolution configs in Normal Find
+            // Mode (the latter will overwrite sub-optimal user's find-db records).
+            //
+            // That is why we do not write sub-optimal results into persistent find-db (on disk)
+            // unless this is explicitly enabled via environment setting.
+            if(!IsEnabled(ENV(MIOPEN_FIND_CONV_INSUFFICIENT_WORKSPACE_ALLOW_FINDDB_UPDATE)))
+                is_result_optimal = false;
             continue;
         }
+
+        if(!sol.invoker_factory)
+            MIOPEN_THROW("Invoker is not provided by solver " + sol.solver_id);
 
         const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
         try
         {
             invoker(handle, invoke_ctx);
             const auto elapsed = handle.GetKernelTime();
-            if(enough_workspace_4all //
-               || IsEnabled(ENV(MIOPEN_FIND_CONV_INSUFFICIENT_WORKSPACE_ALLOW_FINDDB_UPDATE)))
-            {
-                record.SetValues(sol.solver_id,
-                                 FindDbData{elapsed, sol.workspace_sz, algorithm_name});
-            }
+            record.SetValues(sol.solver_id, FindDbData{elapsed, sol.workspace_sz, algorithm_name});
 
             MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ") << best);
             if(elapsed < best)
@@ -294,7 +272,6 @@ static void EvaluateInvokers(Handle& handle,
         {
             MIOPEN_LOG_E(ex.what());
         }
-        ++index;
     }
 
     if(selected.Succeeded())
@@ -314,7 +291,7 @@ static inline void AppendPointersToElements(const std::vector<miopen::solver::Co
                    [](const miopen::solver::ConvSolution& s) { return &s; });
 }
 
-void FindCore(const AnyInvokeParams& invoke_ctx,
+bool FindCore(const AnyInvokeParams& invoke_ctx,
               DbRecord& record,
               const ExecutionContext& ctx,
               const ProblemDescriptionBase& problem,
@@ -347,12 +324,15 @@ void FindCore(const AnyInvokeParams& invoke_ctx,
     // Evaluate Invokers
     AutoEnableProfiling enableProfiling{handle};
     const auto network_config = problem.MakeNetworkConfig();
+    auto is_result_optimal    = true;
 
     for(const auto& ss : solutions)
     {
         if(!ss.second.empty())
-            EvaluateInvokers(handle, ss.second, ss.first, network_config, invoke_ctx, record);
+            EvaluateInvokers(
+                handle, ss.second, ss.first, network_config, invoke_ctx, record, is_result_optimal);
     }
+    return is_result_optimal;
 }
 
 namespace conv {
