@@ -45,9 +45,6 @@ namespace gr = miopen::graphapi;
 
 namespace mha_graph_test {
 
-
-
-
 class MhaFwdGraphTest: public testing::TestWithParam<std::tuple<int, int, int, int>> {
 
   std::unique_ptr<gr::OpGraphBuilder> mGraphBuilder;
@@ -283,6 +280,31 @@ class MhaFwdGraphTest: public testing::TestWithParam<std::tuple<int, int, int, i
   }
 
   void extractFind20Tensors() {
+
+
+    for (auto [neigh, tens_ptr] : mGraph.GetOutEdges(mGraph.GetSourceNode())) {
+
+      if (neigh->signName() == "OP_MATMUL") {
+        auto* matmul = dynamic_cast<gr::OperationMatmul*>(neigh);
+        assert(matmul);
+        tensor_map[miopenTensorMhaQ] = matmul->getA();
+        tensor_map[miopenTensorMhaK] = matmul->getB();
+
+      } else if (neigh->signName() == "OP_RNG") {
+        auto* rng = dynamic_cast<gr::OperationRng*>(neigh);
+        assert(matmul);
+        tensor_map[miopenTensorMhaDropoutSeed] = std::get<gr::Tensor*>(rng->getSeed());
+        tensor_map[miopenTensorMhaDropoutOffset] = rng->getOffset();
+        tensor_map[miopenTensorMhaDropoutProbability] = rng->getRng()->getBernoulliProb();
+
+
+      }
+    }
+
+    // identify output tensors
+    for (auto [neigh, tens_ptr] : mGraph.GetInEdges(mGraph.GetSinkNode())) {
+
+    }
   }
 
 public:
