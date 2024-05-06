@@ -495,6 +495,8 @@ std::vector<miopenTensorLayout_t> GetLayoutValues()
     }
 }
 
+bool SkipTest() { return get_handle_xnack(); }
+
 } // namespace group_conv
 
 #define DEFINE_GROUP_CONV_TEST(ndim, type, dir)                                             \
@@ -503,6 +505,11 @@ std::vector<miopenTensorLayout_t> GetLayoutValues()
     };                                                                                      \
     TEST_P(GroupConv##ndim##D_##dir##_##type, GroupConv##ndim##D_##dir##_##type##_Test)     \
     {                                                                                       \
+        if(SkipTest())                                                                      \
+        {                                                                                   \
+            test_skipped = true;                                                            \
+            GTEST_SKIP() << "GROUP_CONV does not support xnack";                            \
+        }                                                                                   \
         RunSolver();                                                                        \
     }                                                                                       \
     INSTANTIATE_TEST_SUITE_P(                                                               \

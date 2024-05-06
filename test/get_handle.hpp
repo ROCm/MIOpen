@@ -60,4 +60,12 @@ static inline miopen::Handle get_handle_with_stream(const miopen::Handle& h)
     return miopen::Handle{h.GetStream()};
 }
 
+static inline bool get_handle_xnack()
+{
+    auto& handle    = get_handle();
+    auto is_xnack_b = handle.GetTargetProperties().Xnack();
+    bool is_xnack   = (is_xnack_b) ? *is_xnack_b : false;
+    return is_xnack;
+}
+
 #endif
