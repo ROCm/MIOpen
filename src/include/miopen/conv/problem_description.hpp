@@ -275,7 +275,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
     AlphaBetaCase GetAlphaBetaCase() const { return alpha_beta_case; }
 
-    std::string GetAlphaBetaCaseStr()const;
+    std::string GetAlphaBetaCaseStr() const;
 
     int GetBias() const { return bias; }
 

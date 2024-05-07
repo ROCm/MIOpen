@@ -489,7 +489,7 @@ tensor<Tout> ref_conv_wrw(const tensor<T>& input,
     }
     else
     {
-        bool gpu_ref_used = gpu_ref_convolution_wrw(input, rweights, out, filter);
+        bool gpu_ref_used = gpu_ref_convolution_wrw(input, rweights, out, filter, alpha, beta);
         if(!gpu_ref_used)
         {
             MIOPEN_LOG_W("GPU reference not run");

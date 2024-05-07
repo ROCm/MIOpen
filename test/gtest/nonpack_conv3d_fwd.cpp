@@ -83,20 +83,22 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
 
 TEST_P(ConvNonpackFwdSolverTest3DHalf, CKNonPackConvFwd3D)
 {
-    SolverFwd<miopen::solver::conv::ConvHipImplicitGemm3DGroupFwdXdlops>(input.desc,
-                                                                         in_dev.get(),
-                                                                         weights.desc,
-                                                                         wei_dev.get(),
-                                                                         output.desc,
-                                                                         out_dev.get(),
-                                                                         conv_desc,
-                                                                         conv_config,
-                                                                         test_skipped,
-                                                                         miopen::Scalar(&alpha_val, miopenFloat),
-                                                                         miopen::Scalar(&beta_val, miopenFloat));
+    SolverFwd<miopen::solver::conv::ConvHipImplicitGemm3DGroupFwdXdlops>(
+        input.desc,
+        in_dev.get(),
+        weights.desc,
+        wei_dev.get(),
+        output.desc,
+        out_dev.get(),
+        conv_desc,
+        conv_config,
+        test_skipped,
+        miopen::Scalar(&alpha_val, miopenFloat),
+        miopen::Scalar(&beta_val, miopenFloat));
 }
 
-// TODO: write test that varifies if values of alpha beta selects default, scalar or bilinear solver.
+// TODO: write test that varifies if values of alpha beta selects default, scalar or bilinear
+// solver.
 
 INSTANTIATE_TEST_SUITE_P(ConvFwdTestDefault,
                          ConvNonpackFwdSolverTest3DHalf,
@@ -105,7 +107,7 @@ INSTANTIATE_TEST_SUITE_P(ConvFwdTestDefault,
                                           testing::ValuesIn({1.0}), // alpha
                                           testing::ValuesIn({0.0}), // beta
                                           testing::Values(miopenTensorNDHWC)));
-                                        
+
 INSTANTIATE_TEST_SUITE_P(ConvFwdTestScalar,
                          ConvNonpackFwdSolverTest3DHalf,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),

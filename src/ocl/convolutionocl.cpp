@@ -328,12 +328,13 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
 namespace {
 
-void ValidateAlphaBeta(const void* alpha, const void* beta)
+// Currently 2D case only support default (alpha = 1.0 and beta = 0.0)
+void ValidateAlphaBeta(const conv::ProblemDescription& problem)
 {
-    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
-       !float_equal(*(static_cast<const float*>(beta)), 0))
+    if(problem.Is2d() && problem.GetAlphaBetaCase() != ::miopen::conv::AlphaBetaCase::DEFAULT)
     {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Only alpha=1 and beta=0 is supported");
+        MIOPEN_THROW(miopenStatusNotImplemented,
+                     "Only alpha=1 and beta=0 is supported for 2D cases.");
     }
 }
 
@@ -524,16 +525,17 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
     const auto tensors = ConvFwdTensors{xDesc, x, wDesc, w, yDesc, y};
     ValidateTensors(tensors);
+    Scalar alpha_val(alpha, GetScalarDataType(yDesc));
+    Scalar beta_val(beta, GetScalarDataType(yDesc));
+    const auto problem = conv::ProblemDescription{
+        xDesc, wDesc, yDesc, *this, conv::Direction::Forward, 0, alpha_val, beta_val};
+    ValidateAlphaBeta(problem);
 
     ConvForwardCheckNumerics(handle, tensors, [&]() {
         ValidateGroupCount(xDesc, wDesc, *this);
 
         const auto algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), conv::Direction::Forward)};
-        Scalar alpha_val(alpha, GetScalarDataType(yDesc));
-        Scalar beta_val(beta, GetScalarDataType(yDesc));
-        const auto problem = conv::ProblemDescription{
-            xDesc, wDesc, yDesc, *this, conv::Direction::Forward, 0, alpha_val, beta_val};
         const auto network_config = problem.MakeNetworkConfig();
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
@@ -981,7 +983,11 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
     auto tensors = ConvBwdTensors{dyDesc, dy, wDesc, w, dxDesc, dx};
 
     ValidateTensors(tensors);
-    ValidateAlphaBeta(alpha, beta);
+    Scalar alpha_val(alpha, GetScalarDataType(dxDesc));
+    Scalar beta_val(beta, GetScalarDataType(dxDesc));
+    const auto problem = conv::ProblemDescription{
+        dyDesc, wDesc, dxDesc, *this, conv::Direction::BackwardData, 0, alpha_val, beta_val};
+    ValidateAlphaBeta(problem);
 
     ConvBwdCheckNumerics(handle, tensors, beta, [&]() {
         if(dyDesc.GetLengths()[1] != wDesc.GetLengths()[0])
@@ -993,16 +999,18 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         const auto algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), conv::Direction::BackwardData)};
 
-        const auto problem =
-            conv::ProblemDescription{dyDesc, wDesc, dxDesc, *this, conv::Direction::BackwardData};
         const auto network_config = problem.MakeNetworkConfig();
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(!invoker)
             MIOPEN_THROW("No invoker was registered for convolution backward. Was find executed?");
 
-        const auto& invoke_ctx = conv::DataInvokeParams{
-            tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetBwd()};
+        const auto& invoke_ctx = conv::DataInvokeParams{tensors,
+                                                        workSpace,
+                                                        workSpaceSize,
+                                                        this->attribute.gfx90aFp16alt.GetBwd(),
+                                                        alpha_val,
+                                                        beta_val};
         (*invoker)(handle, invoke_ctx);
     });
 }
@@ -1189,7 +1197,12 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(const Handle& handle,
     ValidateWorkspace(workSpace, workSpaceSize);
     decltype(auto) tensors = ConvWrwTensors{dyDesc, dy, xDesc, x, dwDesc, dw};
     ValidateTensors(tensors);
-    ValidateAlphaBeta(alpha, beta);
+    decltype(auto) direction = conv::Direction::BackwardWeights;
+    Scalar alpha_val(alpha, GetScalarDataType(dwDesc));
+    Scalar beta_val(beta, GetScalarDataType(dwDesc));
+    decltype(auto) problem =
+        conv::ProblemDescription{dyDesc, dwDesc, xDesc, *this, direction, 0, alpha_val, beta_val};
+    ValidateAlphaBeta(problem);
 
     if(xDesc.GetType() == miopenInt8)
         MIOPEN_THROW(miopenStatusBadParm);
@@ -1197,18 +1210,20 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(const Handle& handle,
     ConvWrwCheckNumerics(handle, tensors, beta, [&]() {
         ValidateGroupCount(xDesc, dwDesc, *this);
 
-        decltype(auto) direction      = conv::Direction::BackwardWeights;
         decltype(auto) algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), direction)};
-        decltype(auto) problem = conv::ProblemDescription{dyDesc, dwDesc, xDesc, *this, direction};
         decltype(auto) network_config = problem.MakeNetworkConfig();
         decltype(auto) invoker = handle.GetInvoker(network_config, boost::none, algorithm_name);
 
         if(!invoker)
             MIOPEN_THROW("No invoker was registered for convolution weights. Was find executed?");
 
-        const auto invoke_ctx = conv::WrWInvokeParams{
-            tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetWrW()};
+        const auto invoke_ctx = conv::WrWInvokeParams{tensors,
+                                                      workSpace,
+                                                      workSpaceSize,
+                                                      this->attribute.gfx90aFp16alt.GetWrW(),
+                                                      alpha_val,
+                                                      beta_val};
         (*invoker)(handle, invoke_ctx);
     });
 }

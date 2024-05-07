@@ -48,12 +48,13 @@ using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
-using InLayout                             = ck::tensor_layout::convolution::NDHWGC;
-using WeiLayout                            = ck::tensor_layout::convolution::GKZYXC;
-using OutLayout                            = ck::tensor_layout::convolution::NDHWGK;
-using PassThrough                          = ck::tensor_operation::element_wise::PassThrough;
-using Bilinear                             = ck::tensor_operation::element_wise::Bilinear;
-using Scale                                = ck::tensor_operation::element_wise::Scale;
+using InLayout    = ck::tensor_layout::convolution::NDHWGC;
+using WeiLayout   = ck::tensor_layout::convolution::GKZYXC;
+using OutLayout   = ck::tensor_layout::convolution::NDHWGK;
+using PassThrough = ck::tensor_operation::element_wise::PassThrough;
+using Bilinear    = ck::tensor_operation::element_wise::Bilinear;
+using Scale       = ck::tensor_operation::element_wise::Scale;
+
 static constexpr ck::index_t NumDimSpatial = 3;
 
 template <typename DataType>
@@ -86,21 +87,18 @@ using DeviceOpGBwdWeightScale =
                                                                       Scale,
                                                                       PassThrough>;
 
-// CK does not have default instance of bwd weight. So, for now will just use Scale.
 template <typename DataType>
 using DeviceOpGBwdWeightDefault =
-    ck::tensor_operation::device::DeviceGroupedConvBwdWeightMultipleD<NumDimSpatial,
-                                                                      InLayout,
-                                                                      WeiLayout,
-                                                                      OutLayout,
-                                                                      ck::Tuple<>,
-                                                                      DataType,
-                                                                      DataType,
-                                                                      DataType,
-                                                                      ck::Tuple<>,
-                                                                      PassThrough,
-                                                                      Scale,
-                                                                      PassThrough>;
+    ck::tensor_operation::device::DeviceGroupedConvBwdWeight<NumDimSpatial,
+                                                             InLayout,
+                                                             WeiLayout,
+                                                             OutLayout,
+                                                             DataType,
+                                                             DataType,
+                                                             DataType,
+                                                             PassThrough,
+                                                             PassThrough,
+                                                             PassThrough>;
 
 template <typename DataType>
 using DeviceOpGBwdWeightBilinearPtrs =
@@ -226,7 +224,7 @@ struct CKArgs
         return conv_ptr->MakeArgumentPointer(x,
                                              dw,
                                              dy,
-                                             {dw}, // no sure what goes here
+                                             {dw},
                                              in_lengths,
                                              in_strides,
                                              wei_lengths,
@@ -276,15 +274,12 @@ struct CKArgs
         return conv_ptr->MakeArgumentPointer(x,
                                              dw,
                                              dy,
-                                             {},
                                              in_lengths,
                                              in_strides,
                                              wei_lengths,
                                              wei_strides,
                                              out_lengths,
                                              out_strides,
-                                             {},
-                                             {},
                                              filter_strides,
                                              filter_dilations,
                                              lPadding,
@@ -325,7 +320,7 @@ struct CKArgs
     int Z;
     Scalar alpha;
     Scalar beta;
-    ck::index_t split_k = 1;
+    ck::index_t split_k = 2;
     std::array<ck::index_t, 6> in_lengths;
     std::array<ck::index_t, 6> in_strides;
     std::array<ck::index_t, 6> out_lengths;
@@ -405,9 +400,9 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     switch(problem.GetInDataType())
     {
-    case miopenHalf: // Init<ck::half_t>(problem); break;
+    case miopenHalf: Init<ck::half_t>(problem); break;
     case miopenFloat: Init<float>(problem); break;
-    case miopenInt8: // Init<int8_t>(problem); break;
+    case miopenInt8: Init<int8_t>(problem); break;
     case miopenInt32:
     case miopenBFloat16:
     case miopenFloat8:
@@ -447,9 +442,9 @@ bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::IsValid(
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     switch(problem.GetInDataType())
     {
-    case miopenHalf: // return CheckIsSupportCKArgs<ck::half_t>(problem);
+    case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
-    case miopenInt8: // return CheckIsSupportCKArgs<int8_t>(problem);
+    case miopenInt8: return CheckIsSupportCKArgs<int8_t>(problem);
     case miopenInt32:
     case miopenBFloat16:
     case miopenFloat8:
@@ -524,9 +519,9 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::IsApplicable(
         return false;
     switch(problem.GetInDataType())
     {
-    case miopenHalf: // return CheckCKApplicability<ck::half_t>(problem);
+    case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
     case miopenFloat: return CheckCKApplicability<float>(problem);
-    case miopenInt8: // return CheckCKApplicability<int8_t>(problem);
+    case miopenInt8: return CheckCKApplicability<int8_t>(problem);
     case miopenInt32:
     case miopenBFloat16:
     case miopenFloat8:

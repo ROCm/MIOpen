@@ -29,7 +29,11 @@
 
 using namespace group_conv;
 
-DEFINE_GROUP_CONV3D_TEST(float, BackwardData);
-DEFINE_GROUP_CONV3D_TEST(half, BackwardData);
+DEFINE_GROUP_CONV3D_TEST(float, BackwardData, 2.2, 3.3, Bilinear);
+DEFINE_GROUP_CONV3D_TEST(float, BackwardData, 2.2, 0.0, Scalar);
+DEFINE_GROUP_CONV3D_TEST(float, BackwardData, 1.0, 0.0, Default);
+DEFINE_GROUP_CONV3D_TEST(half, BackwardData, 2.2, 3.3, Bilinear);
+DEFINE_GROUP_CONV3D_TEST(half, BackwardData, 2.2, 0.0, Scalar);
+DEFINE_GROUP_CONV3D_TEST(half, BackwardData, 1.0, 0.0, Default);
 /// \todo int8_t tests don't work. Need debugging
 // DEFINE_GROUP_CONV3D_TEST(int8_t, BackwardData);

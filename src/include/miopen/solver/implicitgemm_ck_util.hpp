@@ -35,6 +35,12 @@
 #include <ck/utility/data_type.hpp>
 #endif // MIOPEN_USE_COMPOSABLEKERNEL
 
+#define HIP_CHECK(exp)                                                                 \
+    if((exp) != hipSuccess)                                                            \
+    {                                                                                  \
+        MIOPEN_LOG_E(#exp "failed at line: " << __LINE__ << " in file: " << __FILE__); \
+    }
+
 namespace miopen {
 
 namespace conv {
@@ -155,8 +161,27 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                         auto zero           = 0.0f;
                         const auto& tensors = data_ctx.tensors;
                         SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
+
+                        void* gpu_buf    = nullptr;
+                        size_t num_bytes = sh_conv_ptr->GetWorkSpaceSize(argument_ptr.get());
+                        if(num_bytes != 0)
+                        {
+                            // allocate gpu workspace memory
+                            HIP_CHECK(hipMalloc(&gpu_buf, num_bytes));
+                            assert(gpu_buf != nullptr);
+                            sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), gpu_buf);
+                            invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+                            HIP_CHECK(hipFree(gpu_buf));
+                        }
+                        else
+                        {
+                            invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+                        }
                     }
-                    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+                    else
+                    {
+                        invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+                    }
                 }
             };
         };
@@ -658,7 +683,28 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                                                    tr_ptrs[0]->GetBufferPtr(),
                                                    tr_ptrs[1]->GetBufferPtr(),
                                                    tr_ptrs[2]->GetBufferPtr());
-            invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+            if constexpr(std::is_same<CastType, miopen::conv::WrWInvokeParams>::value)
+            {
+                void* gpu_buf    = nullptr;
+                size_t num_bytes = sh_conv_ptr->GetWorkSpaceSize(argument_ptr.get());
+                if(num_bytes != 0)
+                {
+                    // allocate gpu workspace memory
+                    HIP_CHECK(hipMalloc(&gpu_buf, num_bytes));
+                    assert(gpu_buf != nullptr);
+                    sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), gpu_buf);
+                    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+                    HIP_CHECK(hipFree(gpu_buf));
+                }
+                else
+                {
+                    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+                }
+            }
+            else
+            {
+                invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+            }
             output_tr_inst.ConvertTo(handle, kernels, conv_tensors);
         };
     };
