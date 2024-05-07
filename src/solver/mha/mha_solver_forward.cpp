@@ -78,7 +78,7 @@ bool MhaForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
 
     auto [N, H, S, D] = miopen::tien<4>(descsFwd.kDesc.GetLengths());
 
-    return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_NAIVE_FWD))    //
+    return !env::disabled(MIOPEN_DEBUG_ATTN_NAIVE_FWD))             //
            && S <= std::numeric_limits<uint32_t>::max()             //
            && descsFwd.kDesc.IsPacked()                             //
            && descsFwd.qDesc.IsPacked()                             //

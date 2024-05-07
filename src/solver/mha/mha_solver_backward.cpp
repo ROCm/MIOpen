@@ -91,7 +91,7 @@ bool MhaBackward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
 
     auto [N, H, S, D] = miopen::tien<4>(descsBwd.kDesc.GetLengths());
 
-    return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_NAIVE_BWD))      //
+    return !env::disabled(MIOPEN_DEBUG_ATTN_NAIVE_BWD))               //
            && S <= std::numeric_limits<uint32_t>::max()               //
            && D <= std::numeric_limits<uint32_t>::max()               //
            && descsBwd.kDesc.IsPacked()                               //
