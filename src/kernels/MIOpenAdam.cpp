@@ -376,3 +376,183 @@ extern "C" __global__ void AdamUpdateStep(bool* found_inf, int* step_in, int* st
 
     *step_out = *step_in + 1;
 }
+
+template <typename T1, typename T2>
+inline __device__ void TransformersAdamInternal(T1* param_in,
+                                                T1* param_out,
+                                                T1* exp_avg_in,
+                                                T1* exp_avg_out,
+                                                T1* exp_avg_sq_in,
+                                                T1* exp_avg_sq_out,
+                                                T2 grad,
+                                                T2 beta1,
+                                                T2 beta2,
+                                                T2 eps,
+                                                T2 lr_weight_decay,
+                                                T2 step_size,
+                                                size_t gid)
+{
+    T2 param      = static_cast<T2>(param_in[gid]);
+    T2 exp_avg    = static_cast<T2>(exp_avg_in[gid]);
+    T2 exp_avg_sq = static_cast<T2>(exp_avg_sq_in[gid]);
+
+    __builtin_assume(exp_avg_sq >= 0 && exp_avg_sq <= 1);
+    __builtin_assume(beta1 >= 0);
+    __builtin_assume(beta2 >= 0);
+
+    exp_avg    = exp_avg * beta1 + grad * (1 - beta1);
+    exp_avg_sq = exp_avg_sq * beta2 + grad * grad * (1 - beta2);
+
+    T2 denom = sqrt(exp_avg_sq) + eps;
+
+    param = param - step_size * exp_avg / denom;
+    param = param - param * lr_weight_decay;
+
+    param_out[gid]      = static_cast<T1>(param);
+    exp_avg_out[gid]    = static_cast<T1>(exp_avg);
+    exp_avg_sq_out[gid] = static_cast<T1>(exp_avg_sq);
+}
+
+extern "C" __global__ void TransformersAdamPacked(PTYPE* param_in,
+                                                  PTYPE* param_out,
+                                                  half* param_out_fp16,
+                                                  GTYPE* grad_in,
+                                                  PTYPE* exp_avg_in,
+                                                  PTYPE* exp_avg_out,
+                                                  PTYPE* exp_avg_sq_in,
+                                                  PTYPE* exp_avg_sq_out,
+                                                  int32_t* grad_scale,
+                                                  bool* found_inf,
+                                                  float beta1,
+                                                  float beta2,
+                                                  float eps,
+                                                  float lr_weight_decay,
+                                                  float step_size,
+                                                  size_t input_size)
+{
+    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if(gid >= input_size)
+        return;
+
+    if(found_inf == nullptr || *found_inf == false)
+    {
+        size_t gsz         = gridDim.x * blockDim.x;
+        CTYPE scale_factor = (grad_scale) ? static_cast<CTYPE>(*grad_scale) : 1.0f;
+
+        for(; gid < input_size; gid += gsz)
+        {
+            CTYPE grad = static_cast<CTYPE>(grad_in[gid]);
+            if(grad_scale)
+                grad /= scale_factor;
+
+            TransformersAdamInternal<PTYPE, CTYPE>(param_in,
+                                                   param_out,
+                                                   exp_avg_in,
+                                                   exp_avg_out,
+                                                   exp_avg_sq_in,
+                                                   exp_avg_sq_out,
+                                                   grad,
+                                                   beta1,
+                                                   beta2,
+                                                   eps,
+                                                   lr_weight_decay,
+                                                   step_size,
+                                                   gid);
+
+            if(param_out_fp16)
+                param_out_fp16[gid] = static_cast<half>(param_out[gid]);
+        }
+    }
+    else
+    {
+        AmpAdamSetOutputFromInput<PTYPE>(param_in,
+                                         param_out,
+                                         param_out_fp16,
+                                         exp_avg_in,
+                                         exp_avg_out,
+                                         exp_avg_sq_in,
+                                         exp_avg_sq_out,
+                                         nullptr,
+                                         nullptr,
+                                         false,
+                                         input_size);
+    }
+}
+
+extern "C" __global__ void TransformersAdamPackedWithStep(PTYPE* param_in,
+                                                          PTYPE* param_out,
+                                                          half* param_out_fp16,
+                                                          GTYPE* grad_in,
+                                                          PTYPE* exp_avg_in,
+                                                          PTYPE* exp_avg_out,
+                                                          PTYPE* exp_avg_sq_in,
+                                                          PTYPE* exp_avg_sq_out,
+                                                          int32_t* grad_scale,
+                                                          bool* found_inf,
+                                                          int* step,
+                                                          float lr,
+                                                          float beta1,
+                                                          float beta2,
+                                                          float eps,
+                                                          float lr_weight_decay,
+                                                          float step_size,
+                                                          bool correct_bias,
+                                                          size_t input_size)
+{
+    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if(gid >= input_size)
+        return;
+
+    if(found_inf == nullptr || *found_inf == false)
+    {
+        size_t gsz         = gridDim.x * blockDim.x;
+        CTYPE scale_factor = (grad_scale) ? static_cast<CTYPE>(*grad_scale) : 1.0f;
+        uint32_t step_val  = static_cast<uint32_t>(*step) + 1;
+
+        if(step_size == -1 && correct_bias)
+        {
+            CTYPE bias_correction1 = 1 - pow(beta1, step_val);
+            CTYPE bias_correction2 = 1 - pow(beta2, step_val);
+            step_size              = lr * sqrt(bias_correction2) / bias_correction1;
+        }
+
+        for(; gid < input_size; gid += gsz)
+        {
+            CTYPE grad = static_cast<CTYPE>(grad_in[gid]);
+            if(grad_scale)
+                grad /= scale_factor;
+
+            TransformersAdamInternal<PTYPE, CTYPE>(param_in,
+                                                   param_out,
+                                                   exp_avg_in,
+                                                   exp_avg_out,
+                                                   exp_avg_sq_in,
+                                                   exp_avg_sq_out,
+                                                   grad,
+                                                   beta1,
+                                                   beta2,
+                                                   eps,
+                                                   lr_weight_decay,
+                                                   step_size,
+                                                   gid);
+            if(param_out_fp16)
+                param_out_fp16[gid] = static_cast<half>(param_out[gid]);
+        }
+    }
+    else
+    {
+        AmpAdamSetOutputFromInput<PTYPE>(param_in,
+                                         param_out,
+                                         param_out_fp16,
+                                         exp_avg_in,
+                                         exp_avg_out,
+                                         exp_avg_sq_in,
+                                         exp_avg_sq_out,
+                                         nullptr,
+                                         nullptr,
+                                         false,
+                                         input_size);
+    }
+}
