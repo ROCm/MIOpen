@@ -33,7 +33,7 @@ typedef struct
     uint64_t size[5];
 } tensor_view_5d_t;
 
-// Get index
+// Get index by n
 #define TV_IDX(tv, d, n) (tv.stride[d] * (n))
 // Get index by n0
 #define TV1D_IDX(tv, n0) (TV_IDX(tv, 0, n0))

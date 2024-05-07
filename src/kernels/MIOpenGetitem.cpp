@@ -31,7 +31,7 @@
 #include "hip_atomic.hpp"
 #include "miopen_cstdint.hpp"
 #include "float_types.h"
-#include "tensor_view.h"
+#include "tensor_view.hpp"
 
 template <typename IDX, typename E>
 __device__ void getitembuildindices(const IDX* __restrict__ index,
