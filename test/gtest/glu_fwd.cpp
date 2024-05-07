@@ -60,7 +60,8 @@ using namespace glu;
 
 TEST_P(GLUFwdTestFloat, GLUTestFw)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float" || GetFloatArg() == "--all"))
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
+       (GetFloatArg() == "--float" || GetFloatArg() == "--all"))
     {
         RunTest();
         Verify();
@@ -73,7 +74,8 @@ TEST_P(GLUFwdTestFloat, GLUTestFw)
 
 TEST_P(GLUFwdTestFP16, GLUTestFw)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--fp16" || GetFloatArg() == "--all"))
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
+       (GetFloatArg() == "--fp16" || GetFloatArg() == "--all"))
     {
         RunTest();
         Verify();
@@ -86,7 +88,8 @@ TEST_P(GLUFwdTestFP16, GLUTestFw)
 
 TEST_P(GLUFwdTestBFP16, GLUTestFw)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfp16" || GetFloatArg() == "--all"))
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
+       (GetFloatArg() == "--bfp16" || GetFloatArg() == "--all"))
     {
         RunTest();
         Verify();

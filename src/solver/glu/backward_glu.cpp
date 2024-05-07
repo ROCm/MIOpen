@@ -45,9 +45,10 @@ namespace glu {
 bool GLUBackward::IsApplicable(const ExecutionContext& context,
                                const miopen::glu::ProblemDescription& problem) const
 {
-    std::ignore = context;
+    std::ignore    = context;
     auto inputDims = problem.GetInputDesc().GetLengths();
-    auto input_numel = std::accumulate(inputDims.begin(), inputDims.end(), 1, std::multiplies<int32_t>());
+    auto input_numel =
+        std::accumulate(inputDims.begin(), inputDims.end(), 1, std::multiplies<int32_t>());
 
     if(!problem.IsSameType())
         return false;
@@ -70,12 +71,12 @@ ConvSolution GLUBackward::GetSolution(const ExecutionContext& context,
     auto result = ConvSolution{miopenStatusSuccess};
 
     {
-        auto dtype             = problem.GetInputDesc().GetType();
-        auto input_dtype       = miopen::GetDataType(problem.GetInputDesc().GetType());
-        auto input_grad_dtype  = miopen::GetDataType(problem.GetInputGradDesc().GetType());
-        auto inputDims = problem.GetInputDesc().GetLengths();
-        auto input_numel = std::accumulate(inputDims.begin(), inputDims.end(), 1, std::multiplies<int32_t>());
-        std::cout << "input_numel: " << input_numel << std::endl;
+        auto dtype            = problem.GetInputDesc().GetType();
+        auto input_dtype      = miopen::GetDataType(problem.GetInputDesc().GetType());
+        auto input_grad_dtype = miopen::GetDataType(problem.GetInputGradDesc().GetType());
+        auto inputDims        = problem.GetInputDesc().GetLengths();
+        auto input_numel =
+            std::accumulate(inputDims.begin(), inputDims.end(), 1, std::multiplies<int32_t>());
 
         size_t xlocalsize = LOCAL_SIZE;
         size_t xgridsize  = AlignUp(input_numel / 2, xlocalsize);

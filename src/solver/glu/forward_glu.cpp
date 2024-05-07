@@ -45,9 +45,10 @@ namespace glu {
 bool GLUForward::IsApplicable(const ExecutionContext& context,
                               const miopen::glu::ProblemDescription& problem) const
 {
-    std::ignore = context;
+    std::ignore    = context;
     auto inputDims = problem.GetInputDesc().GetLengths();
-    auto input_numel = std::accumulate(inputDims.begin(), inputDims.end(), 1, std::multiplies<int32_t>());
+    auto input_numel =
+        std::accumulate(inputDims.begin(), inputDims.end(), 1, std::multiplies<int32_t>());
 
     if(!problem.IsSameType())
         return false;

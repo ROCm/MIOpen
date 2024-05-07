@@ -203,7 +203,7 @@ protected:
 
         auto in_dims = glu_config.GetInput();
 
-        input = tensor<T>{in_dims}.generate(gen_value);
+        input     = tensor<T>{in_dims}.generate(gen_value);
         inputGrad = tensor<T>{in_dims};
         std::fill(inputGrad.begin(), inputGrad.end(), std::numeric_limits<T>::quiet_NaN());
 
@@ -226,8 +226,8 @@ protected:
 
         outputGrad = tensor<T>{out_dims}.generate(gen_value);
 
-        input_dev  = handle.Write(input.data);
-        inputGrad_dev = handle.Write(inputGrad.data);
+        input_dev      = handle.Write(input.data);
+        inputGrad_dev  = handle.Write(inputGrad.data);
         outputGrad_dev = handle.Write(outputGrad.data);
     }
 
@@ -238,8 +238,14 @@ protected:
         cpu_glu_backward<T>(input, outputGrad, ref_inputGrad);
         miopenStatus_t status;
 
-        status = miopen::GLUBackward(
-            handle, input.desc, input_dev.get(), inputGrad.desc, inputGrad_dev.get(), outputGrad.desc, outputGrad_dev.get(), dim);
+        status = miopen::GLUBackward(handle,
+                                     input.desc,
+                                     input_dev.get(),
+                                     inputGrad.desc,
+                                     inputGrad_dev.get(),
+                                     outputGrad.desc,
+                                     outputGrad_dev.get(),
+                                     dim);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -262,14 +268,6 @@ protected:
     {
         double threshold = GetTolerance();
         auto error       = miopen::rms_range(ref_inputGrad, inputGrad);
-        auto inputDims = input.desc.GetLengths();
-        auto inputEl = std::accumulate(inputDims.begin(), inputDims.end(), 1, std::multiplies<size_t>());
-        for (int i = 0; i < inputEl; i++) {
-            if (isnan(inputGrad[i]) || isnan(ref_inputGrad[i])){
-                std::cout << "index = " << i << "inputGrad[i] = " << inputGrad[i] << ", ref_inputGrad[i] = " << ref_inputGrad[i] << std::endl;
-                break;
-            }
-        }
 
         EXPECT_TRUE(miopen::range_distance(ref_inputGrad) == miopen::range_distance(inputGrad));
         EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance Error:" << error

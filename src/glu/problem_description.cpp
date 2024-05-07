@@ -47,11 +47,10 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 NetworkConfig ProblemDescription::MakeForwardNetworkConfig() const
 {
     auto inputlength  = inputDesc.GetLengths();
-    auto outputlength = outputDesc.GetLengths();
 
     auto splitdim_size = inputlength[dim];
-    auto output_numel  = std::accumulate(outputlength.begin(),
-                                        outputlength.end(),
+    auto input_numel  = std::accumulate(inputlength.begin(),
+                                        inputlength.end(),
                                         static_cast<size_t>(1),
                                         std::multiplies<size_t>());
 
@@ -65,7 +64,7 @@ NetworkConfig ProblemDescription::MakeForwardNetworkConfig() const
     ss << "output_dtype" << output_dtype;
     ss << "dim" << dim;
     ss << "splitDim_size" << splitdim_size;
-    ss << "output_numel" << output_numel;
+    ss << "input_numel" << input_numel;
 
     return NetworkConfig{ss.str()};
 }
@@ -73,11 +72,10 @@ NetworkConfig ProblemDescription::MakeForwardNetworkConfig() const
 NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
 {
     auto inputlength  = inputDesc.GetLengths();
-    auto outputlength = outputDesc.GetLengths();
 
     auto splitdim_size = inputlength[dim];
-    auto output_numel  = std::accumulate(outputlength.begin(),
-                                        outputlength.end(),
+    auto input_numel  = std::accumulate(inputlength.begin(),
+                                        inputlength.end(),
                                         static_cast<size_t>(1),
                                         std::multiplies<size_t>());
 
@@ -91,7 +89,7 @@ NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
     ss << "output_dtype" << output_dtype;
     ss << "dim" << dim;
     ss << "splitDim_size" << splitdim_size;
-    ss << "output_numel" << output_numel;
+    ss << "input_numel" << input_numel;
 
     return NetworkConfig{ss.str()};
 }

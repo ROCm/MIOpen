@@ -55,15 +55,15 @@ template <class T>
 void cpu_glu_backward(tensor<T> input, tensor<T> grad_output, tensor<T>& grad_input)
 {
     auto outputGrad_dims = grad_output.desc.GetLengths();
-    
-    auto outputGrad_numel =
-        std::accumulate(outputGrad_dims.begin(), outputGrad_dims.end(), 1L, std::multiplies<int64_t>());
+
+    auto outputGrad_numel = std::accumulate(
+        outputGrad_dims.begin(), outputGrad_dims.end(), 1L, std::multiplies<int64_t>());
 
     par_ford(outputGrad_numel)([&](size_t o) {
-        T inputFirstHalf_v        = input[o];
-        T sigmoid_v = sigmoid(input[o + outputGrad_numel]);
-        T grad_v = grad_output[o];
-        grad_input[o] = sigmoid_v * grad_v;
+        T inputFirstHalf_v               = input[o];
+        T sigmoid_v                      = sigmoid(input[o + outputGrad_numel]);
+        T grad_v                         = grad_output[o];
+        grad_input[o]                    = sigmoid_v * grad_v;
         grad_input[o + outputGrad_numel] = (1 - sigmoid_v) * sigmoid_v * grad_v * inputFirstHalf_v;
     });
 }
