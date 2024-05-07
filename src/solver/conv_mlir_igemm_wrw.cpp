@@ -45,7 +45,7 @@ bool ConvMlirIgemmWrW::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
-    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW)))
+    if(env::disabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW))
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;

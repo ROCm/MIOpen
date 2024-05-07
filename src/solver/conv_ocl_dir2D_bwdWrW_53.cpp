@@ -46,7 +46,7 @@ static bool WorkaroundSwdev168168() { return true; }
 bool ConvOclBwdWrW53::IsApplicable(const ExecutionContext& ctx,
                                    const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW53)))
+    if(env::disabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW53))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;

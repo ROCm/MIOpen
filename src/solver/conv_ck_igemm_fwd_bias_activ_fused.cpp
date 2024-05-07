@@ -404,7 +404,7 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     {
         MIOPEN_THROW(miopenStatusInternalError, "desc.op_map.empty()");
     }
-    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_ACTIV)))
+    if(env::disabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_ACTIV))
         return false;
     // check the sequence of prims
     if(desc.op_map.size() != 3)

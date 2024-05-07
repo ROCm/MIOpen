@@ -145,7 +145,7 @@ private:
 
 static inline void AdjustWorkspacesizeVariableFromEnv(std::size_t& sz)
 {
-    auto adj = miopen::Value(MIOPEN_ENV(MIOPEN_DRIVER_CONV_WORKSPACE_SIZE_ADJUST));
+    auto adj = env::value(MIOPEN_DRIVER_CONV_WORKSPACE_SIZE_ADJUST);
     if(adj == 0ULL)
         return; // nop
     auto sz_save = sz;
@@ -1391,12 +1391,12 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     size_t in_sz  = GetTensorSize(inputTensor);
     size_t wei_sz = GetTensorSize(weightTensor);
     size_t out_sz = GetTensorSize(outputTensor);
-    auto subnorm_percentage = miopen::Value(MIOPEN_ENV(MIOPEN_DRIVER_SUBNORM_PERCENTAGE));
+    auto subnorm_percentage = env::value(MIOPEN_DRIVER_SUBNORM_PERCENTAGE);
     if(subnorm_percentage != 0)
         std::cout << "MIOPEN_DRIVER_SUBNORM_PERCENTAGE = " << subnorm_percentage << std::endl;
 
     // Workaround: Pad buffers allocations to be a multiple of 2M
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DRIVER_PAD_BUFFERS_2M)))
+    if(env::enabled(MIOPEN_DRIVER_PAD_BUFFERS_2M))
     {
         // PadBufferSize(in_sz, sizeof(Tgpu));
         PadBufferSize(wei_sz, sizeof(Tgpu));
@@ -1419,7 +1419,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             size_t warmup_in_sz  = GetTensorSize(warmupInputTensor);
             size_t warmup_wei_sz = GetTensorSize(warmupWeightTensor);
             size_t warmup_out_sz = GetTensorSize(warmupOutputTensor);
-            if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DRIVER_PAD_BUFFERS_2M)))
+            if(env::enabled(MIOPEN_DRIVER_PAD_BUFFERS_2M))
             {
                 PadBufferSize(warmup_wei_sz, sizeof(warmup_Tgpu));
                 PadBufferSize(warmup_out_sz, sizeof(warmup_Tgpu));
@@ -1739,7 +1739,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 template <typename Tgpu, typename Tref>
 bool ConvDriver<Tgpu, Tref>::UseGPUReference()
 {
-    if(!miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DRIVER_USE_GPU_REFERENCE)))
+    if(!env::disabled(MIOPEN_DRIVER_USE_GPU_REFERENCE))
     {
         if((miopen_type<Tref>{} == miopenFloat &&
             (miopen_type<Tgpu>{} == miopenFloat || miopen_type<Tgpu>{} == miopenHalf ||

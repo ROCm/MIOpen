@@ -32,6 +32,8 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
+namespace env = miopen::env;
+
 namespace conv_trans {
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
@@ -145,7 +147,7 @@ using namespace conv_trans;
 TEST_P(ConfigWithFloat_conv_trans, FloatTest_conv_trans)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)))
+    if(IsTestSupportedForDevice(handle) && env::enabled(MIOPEN_TEST_ALL))
     {
         Run2dDriver(miopenFloat);
     }

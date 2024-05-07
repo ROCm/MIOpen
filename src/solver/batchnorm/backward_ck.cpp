@@ -191,7 +191,7 @@ bool BnCKBwdBackward::IsApplicable(
     [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_CK_BN_BACK)))
+    if(env::disabled(MIOPEN_DEBUG_CONV_CK_BN_BACK))
         return false;
     if(!bn_problem.IsLayoutNHWC())
         return false;

@@ -296,7 +296,7 @@ bool ConvHipImplicitGemmF16F8F16WrwXdlops::IsApplicable(
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_F16F8F16_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS)))
+    if(env::disabled(MIOPEN_DEBUG_F16F8F16_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS))
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;

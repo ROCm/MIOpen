@@ -267,7 +267,7 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
     solution.workspace_sz = workspace_req;
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
-        const bool time_precision = (!IsDisabled(MIOPEN_ENV(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)));
+        const bool time_precision = !env::disabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING);
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto& conv_params    = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
@@ -451,7 +451,7 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
     solution.workspace_sz = 0;
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
-        const bool time_precision = (!IsDisabled(MIOPEN_ENV(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)));
+        const bool time_precision = !env::disabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING);
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto& conv_params = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
@@ -703,7 +703,7 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
     solution.workspace_sz = workspace_req;
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
-        const bool time_precision = (!IsDisabled(MIOPEN_ENV(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)));
+        const bool time_precision = !env::disabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING);
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto& conv_params    = primitive_params.CastTo<miopen::conv::DataInvokeParams>();

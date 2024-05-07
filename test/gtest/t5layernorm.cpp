@@ -34,7 +34,7 @@ namespace t5layernorm {
 
 std::string GetFloatArg()
 {
-    const auto& tmp = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
+    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
     if(tmp.empty())
     {
         return "";
@@ -71,8 +71,8 @@ using namespace t5layernorm;
 
 TEST_P(T5LayerNormTestFloat, T5LayerNormTestFw)
 {
-    auto TypeArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    auto TypeArg = env::value(MIOPEN_TEST_FLOAT_ARG);
+    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--float")
     {
         RunTest();
         Verify();
@@ -85,8 +85,8 @@ TEST_P(T5LayerNormTestFloat, T5LayerNormTestFw)
 
 TEST_P(T5LayerNormTestHalf, T5LayerNormTestFw)
 {
-    auto TypeArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
+    auto TypeArg = env::value(MIOPEN_TEST_FLOAT_ARG);
+    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--half")
     {
         RunTest();
         Verify();
@@ -99,8 +99,8 @@ TEST_P(T5LayerNormTestHalf, T5LayerNormTestFw)
 
 TEST_P(T5LayerNormTestBFloat16, T5LayerNormTestFw)
 {
-    auto TypeArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))
+    auto TypeArg = env::value(MIOPEN_TEST_FLOAT_ARG);
+    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--bfloat16")
     {
         RunTest();
         Verify();
@@ -113,8 +113,8 @@ TEST_P(T5LayerNormTestBFloat16, T5LayerNormTestFw)
 
 TEST_P(T5LayerNormBwdTestFloat, T5LayerNormBwdTestFw)
 {
-    auto TypeArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    auto TypeArg = env::value(MIOPEN_TEST_FLOAT_ARG);
+    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--float")
     {
         RunTest();
         Verify();
@@ -127,8 +127,8 @@ TEST_P(T5LayerNormBwdTestFloat, T5LayerNormBwdTestFw)
 
 TEST_P(T5LayerNormBwdTestHalf, T5LayerNormBwdTestFw)
 {
-    auto TypeArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
+    auto TypeArg = env::value(MIOPEN_TEST_FLOAT_ARG);
+    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--half")
     {
         RunTest();
         Verify();
@@ -141,8 +141,8 @@ TEST_P(T5LayerNormBwdTestHalf, T5LayerNormBwdTestFw)
 
 TEST_P(T5LayerNormBwdTestBFloat16, T5LayerNormBwdTestFw)
 {
-    auto TypeArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))
+    auto TypeArg = env::value(MIOPEN_TEST_FLOAT_ARG);
+    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--bfloat16")
     {
         RunTest();
         Verify();

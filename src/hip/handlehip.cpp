@@ -627,7 +627,7 @@ std::size_t Handle::GetGlobalMemorySize() const
 
 std::size_t Handle::GetMaxComputeUnits() const
 {
-    const std::size_t num_cu = Value(MIOPEN_ENV(MIOPEN_DEVICE_CU));
+    const std::size_t num_cu = env::value(MIOPEN_DEVICE_CU);
     if(num_cu > 0)
         return num_cu;
 

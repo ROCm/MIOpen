@@ -213,7 +213,7 @@ bool Layernorm2DCKForward::IsApplicable(
     [[maybe_unused]] const miopen::layernorm::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_LAYERNORM2DCKFORWARD_CONV_CK_LN)))
+    if(env::disabled(MIOPEN_DEBUG_LAYERNORM2DCKFORWARD_CONV_CK_LN))
         return false;
     if(!problem.IsSameType())
         return false;

@@ -151,9 +151,8 @@ TEST_P(ConvHipIgemmXdlopsConfigInt8, Int8Test)
 
 #else // MIOPEN_BACKEND_HIP, OCL_DISABLED
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) &&
-       miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_COMPOSABLEKERNEL)) &&
-       miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && IsTestRunWith("--int8"))
+    if(IsTestSupportedForDevice(handle) && env::enabled(MIOPEN_TEST_COMPOSABLEKERNEL) &&
+       env::enabled(MIOPEN_TEST_ALL) && IsTestRunWith("--int8"))
     {
         Run2dDriver(miopenInt8);
     }

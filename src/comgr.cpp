@@ -40,7 +40,6 @@
 #include <amd_comgr/amd_comgr.h>
 #include <hip/hip_runtime_api.h>
 #if MIOPEN_USE_HIPRTC
-#include <miopen/manage_ptr.hpp>
 #include <hip/hiprtc.h>
 #endif
 
@@ -123,18 +122,18 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)
 
 #define COMPILER_LC 1
 
-#define EC_BASE(comgrcall, info, action)                                     \
-    do                                                                       \
-    {                                                                        \
-        const amd_comgr_status_t status = (comgrcall);                       \
-        if(status != AMD_COMGR_STATUS_SUCCESS)                               \
-        {                                                                    \
-            MIOPEN_LOG_E("\'" #comgrcall "\' " << to_string(info) << ": "    \
-                                               << GetStatusText(status));    \
-            (action);                                                        \
-        }                                                                    \
-        else if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_COMGR_LOG_CALLS))) \
-            MIOPEN_LOG_I("Ok \'" #comgrcall "\' " << to_string(info));       \
+#define EC_BASE(comgrcall, info, action)                                  \
+    do                                                                    \
+    {                                                                     \
+        const amd_comgr_status_t status = (comgrcall);                    \
+        if(status != AMD_COMGR_STATUS_SUCCESS)                            \
+        {                                                                 \
+            MIOPEN_LOG_E("\'" #comgrcall "\' " << to_string(info) << ": " \
+                                               << GetStatusText(status)); \
+            (action);                                                     \
+        }                                                                 \
+        else if(env::enabled(MIOPEN_DEBUG_COMGR_LOG_CALLS))               \
+            MIOPEN_LOG_I("Ok \'" #comgrcall "\' " << to_string(info));    \
     } while(false)
 
 /// \anchor comgr_throw_macros
@@ -212,7 +211,7 @@ static void AddCompilerOptions(OptionList& list)
 #endif
     list.push_back("-mllvm");
     list.push_back("-amdgpu-prelink");
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)))
+    if(env::enabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP))
     {
         list.push_back("-mwavefrontsize64");
         list.push_back("-mcumode");
@@ -239,17 +238,14 @@ static void RemoveOptionsUnwanted(OptionList& list)
 namespace hip {
 
 #if PCH_IS_SUPPORTED
-static bool IsPchEnabled()
-{
-    return !miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE));
-}
+static bool IsPchEnabled() { return !env::disabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE); }
 #endif
 
 static std::string GetPchEnableStatus()
 {
 #if PCH_IS_SUPPORTED
     auto rv = std::string{IsPchEnabled() ? "1" : "0"};
-    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)))
+    if(env::disabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE))
         return rv += " (enforced)";
     return rv;
 #else
@@ -293,14 +289,13 @@ static void AddCompilerOptions(const OptionList& list) // `const` is for clang-t
 static void RemoveCompilerOptionsUnwanted(OptionList& list)
 {
     RemoveCommonOptionsUnwanted(list);
-    list.erase(
-        remove_if(list.begin(),
-                  list.end(),
-                  [&](const auto& option) { // clang-format off
-                             return (!miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN))
+    list.erase(remove_if(list.begin(),
+                         list.end(),
+                         [&](const auto& option) { // clang-format off
+                             return (!env::enabled(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN)
                                     && (IsLinkerOption(option))); // clang-format on
-                  }),
-        list.end());
+                         }),
+               list.end());
 }
 
 static void RemoveLinkOptionsUnwanted(OptionList& list)
@@ -446,7 +441,7 @@ static std::string GetStatusText(const amd_comgr_status_t status, const bool unk
 
 static void LogOptions(const char* options[], size_t count)
 {
-    static const auto control = miopen::Value(MIOPEN_ENV(MIOPEN_DEBUG_COMGR_LOG_OPTIONS));
+    static const auto control = env::value(MIOPEN_DEBUG_COMGR_LOG_OPTIONS);
     if(!(control != 0 && miopen::IsLogging(miopen::LoggingLevel::Info)))
         return;
     if(control == 2)
@@ -590,12 +585,12 @@ public:
                  const amd_comgr_data_kind_t type) const
     {
         const Data d(type);
-        if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)))
+        if(env::enabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES))
             MIOPEN_LOG_I(name << ' ' << content.size() << " bytes");
         d.SetName(name.string());
         d.SetBytes(content);
         AddData(d);
-        const auto show_first = miopen::Value(MIOPEN_ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT));
+        const auto show_first = env::value(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT);
         if(show_first > 0 && miopen::IsLogging(miopen::LoggingLevel::Info) &&
            (type == AMD_COMGR_DATA_KIND_SOURCE || type == AMD_COMGR_DATA_KIND_INCLUDE))
         {
@@ -609,7 +604,7 @@ public:
     {
         const char name[] = "hip.pch";
         const Data d(AMD_COMGR_DATA_KIND_PRECOMPILED_HEADER);
-        if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)))
+        if(env::enabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES))
         {
             MIOPEN_LOG_I(name << ' ' << size
                               << " bytes,  ptr = " << static_cast<const void*>(content));
@@ -735,8 +730,7 @@ static void SetIsaName(const ActionInfo& action,
 
 static std::string GetDebugCompilerOptionsInsert()
 {
-    const auto& p = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_DEBUG_COMGR_COMPILER_OPTIONS_INSERT));
-    return {p};
+    return env::value(MIOPEN_DEBUG_COMGR_COMPILER_OPTIONS_INSERT);
 }
 
 static inline bool IsWave64Enforced(const OptionList& opts)
@@ -781,7 +775,7 @@ void BuildHip(const fs::path& name,
         action.SetLogging(true);
 
         const Dataset exe;
-        if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN)))
+        if(env::enabled(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN))
         {
             auto raw = options                                 //
                        + " " + GetDebugCompilerOptionsInsert() //
@@ -1065,7 +1059,7 @@ static std::string GetStatusText(const hiprtcResult status)
             MIOPEN_LOG_E("\'" #call "\' " << info << ": " << GetStatusText(status)); \
             (action);                                                                \
         }                                                                            \
-        else if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_COMGR_LOG_CALLS)))         \
+        else if(env::enabled(MIOPEN_DEBUG_COMGR_LOG_CALLS))                          \
             MIOPEN_LOG_I("Ok \'" #call "\' " << info);                               \
     } while(false)
 
@@ -1199,11 +1193,11 @@ public:
 private:
     void LogInputFile(const fs::path& name, const std::string_view content)
     {
-        if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)))
+        if(env::enabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES))
             MIOPEN_LOG_I(name << ' ' << content.size() << " bytes");
         if(miopen::IsLogging(miopen::LoggingLevel::Info))
         {
-            const auto show_first = miopen::Value(MIOPEN_ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT));
+            const auto show_first = env::value(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT);
             if(show_first > 0)
             {
                 const auto text_length =

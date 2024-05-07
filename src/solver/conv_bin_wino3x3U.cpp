@@ -46,7 +46,7 @@ using ProblemDescription = miopen::conv::ProblemDescription;
 bool ConvBinWinograd3x3U::IsApplicable(const ExecutionContext& ctx,
                                        const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)))
+    if(env::disabled(MIOPEN_DEBUG_AMD_WINOGRAD_3X3))
         return false;
     if(!problem.Is2d())
         return false;

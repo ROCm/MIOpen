@@ -34,6 +34,8 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
 
+namespace env = miopen::env;
+
 namespace pooling2d_asymmetric {
 
 class Pooling2dFloat : public testing::TestWithParam<std::vector<std::string>>
@@ -44,7 +46,7 @@ class AsymPooling2dHalf : public testing::TestWithParam<std::vector<std::string>
 {
 };
 
-static bool SkipTest(void) { return miopen::IsDisabled(MIOPEN_ENV(MIOPEN_TEST_ALL)); }
+static bool SkipTest(void) { return env::disabled(MIOPEN_TEST_ALL); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -98,7 +100,7 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle) { return true; }
 
 std::vector<std::string> GetTestCases(const std::string& precision)
 {
-    const auto& flag_arg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLAGS_ARGS));
+    const auto& flag_arg = env::value(MIOPEN_TEST_FLAGS_ARGS);
 
     const std::vector<std::string> test_cases = {
         // clang-format off

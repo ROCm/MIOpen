@@ -259,7 +259,7 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS)))
+    if(env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS))
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;

@@ -33,6 +33,8 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(CODECOV_TEST)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
 
+namespace env = miopen::env;
+
 namespace conv3d_codecov {
 
 class Conv3dFloat : public testing::TestWithParam<std::vector<std::string>>
@@ -51,7 +53,7 @@ class Conv3dInt8 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
-static bool SkipTest(void) { return !miopen::IsEnabled(MIOPEN_ENV(CODECOV_TEST)); }
+static bool SkipTest(void) { return !env::enabled(CODECOV_TEST); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -104,7 +106,7 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle) { return true; }
 
 std::vector<std::string> GetTestCases(const std::string& precision)
 {
-    const auto& flag_arg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLAGS_ARGS));
+    const auto& flag_arg = env::value(MIOPEN_TEST_FLAGS_ARGS);
 
     const std::vector<std::string> test_cases = {
         // clang-format off
