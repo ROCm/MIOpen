@@ -5819,9 +5819,13 @@ MIOPEN_EXPORT miopenStatus_t miopenSumForward(miopenHandle_t handle,
 #endif
 
 #ifdef MIOPEN_BETA_API
-
-/*! @ingroup argmax
- * @brief Find the index of the maximum value of a tensor across dimensions.
+// Argmax APIs
+/*! @addtogroup argmax
+ *
+ * @{
+ */
+/*! @brief Find the index of the maximum value of a tensor across dimensions.
+ * To enable this, define `MIOPEN_BETA_API` before including `miopen.h`.
  *
  * @param handle                   MIOpen handle (input)
  * @param xDesc                    Tensor descriptor for data input tensor x (input)
@@ -5837,7 +5841,7 @@ MIOPEN_EXPORT miopenStatus_t miopenArgmaxForward(miopenHandle_t handle,
                                                  const int32_t dim,
                                                  const miopenTensorDescriptor_t yDesc,
                                                  void* y);
-
+/** @} */
 #endif
 
 #ifdef MIOPEN_BETA_API
@@ -5977,6 +5981,7 @@ typedef enum
     MIOPEN_ATTR_EXECUTION_PLAN_WORKSPACE_SIZE             = 402,
     MIOPEN_ATTR_EXECUTION_PLAN_COMPUTED_INTERMEDIATE_UIDS = 403,
     MIOPEN_ATTR_EXECUTION_PLAN_RUN_ONLY_INTERMEDIATE_UIDS = 404,
+    MIOPEN_ATTR_EXECUTION_PLAN_JSON_REPRESENTATION        = 405,
 
     MIOPEN_ATTR_INTERMEDIATE_INFO_UNIQUE_ID            = 500,
     MIOPEN_ATTR_INTERMEDIATE_INFO_SIZE                 = 501,
