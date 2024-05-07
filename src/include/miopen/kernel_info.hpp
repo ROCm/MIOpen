@@ -45,7 +45,7 @@ struct KernelInfo
     std::string comp_options;
     std::vector<size_t> l_wk;
     std::vector<size_t> g_wk;
-    std::string kernel_file;
+    fs::path kernel_file;
     std::string kernel_name;
     friend std::ostream& operator<<(std::ostream& os, const KernelInfo& k);
 };

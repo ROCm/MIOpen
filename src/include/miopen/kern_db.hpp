@@ -47,7 +47,7 @@ namespace miopen {
 struct KernelConfig
 {
     static std::string table_name() { return "kern_db"; }
-    std::string kernel_name;
+    fs::path kernel_name;
     std::string kernel_args;
     std::vector<char> kernel_blob;
     static std::vector<std::string> FieldNames()
@@ -85,10 +85,10 @@ class KernDb : public SQLiteBase<KernDb>
     std::function<std::vector<char>(const std::vector<char>&, unsigned int)> decompress_fn;
 
 public:
-    KernDb(DbKinds db_kind, const std::string& filename_, bool is_system);
+    KernDb(DbKinds db_kind, const fs::path& filename_, bool is_system);
     // This constructor is only intended for testing
     KernDb(DbKinds db_kind,
-           const std::string& filename_,
+           const fs::path& filename_,
            bool is_system_,
            std::function<std::vector<char>(const std::vector<char>&, bool*)> compress_fn_,
            std::function<std::vector<char>(const std::vector<char>&, unsigned int)> decompress_fn_);
@@ -163,7 +163,7 @@ public:
         bool success           = false;
         auto compressed_blob   = compress_fn(problem_config.kernel_blob, &success);
         auto stmt              = SQLite::Statement{sql, insert_query};
-        stmt.BindText(1, problem_config.kernel_name);
+        stmt.BindPath(1, problem_config.kernel_name);
         stmt.BindText(2, problem_config.kernel_args);
         if(!success)
         {

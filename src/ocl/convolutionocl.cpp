@@ -344,7 +344,7 @@ void ValidateAlphaBeta(const conv::ProblemDescription& problem)
 void DumpTensorToFileFromDevice(const miopen::Handle& handle,
                                 const miopen::TensorDescriptor& tDesc,
                                 ConstData_t dData,
-                                const std::string& filename)
+                                const fs::path& filename)
 {
     if(dData == nullptr)
     {
@@ -352,25 +352,19 @@ void DumpTensorToFileFromDevice(const miopen::Handle& handle,
         return;
     }
 
-    fs::path file_name_with_path(filename);
-    fs::path path = file_name_with_path.parent_path();
+    fs::path path = filename.has_parent_path() ? filename : fs::current_path() / filename;
 
-    // dump to current folder if full path not provided.
-    if(path.empty())
-    {
-        path                = fs::current_path();
-        file_name_with_path = path / file_name_with_path; // append paths
-    }
-    if(!fs::exists(path))
+    if(!fs::is_directory(path.parent_path()))
     {
         MIOPEN_LOG_E("Directory does not exists : " << path);
         return;
     }
 
-    std::ofstream file_stream{file_name_with_path};
+    std::ofstream file_stream{path, std::ios::binary};
+
     if(!file_stream.is_open())
     {
-        MIOPEN_LOG_E("Cannot write to file : " << file_name_with_path);
+        MIOPEN_LOG_E("Cannot write to file : " << path);
         return;
     }
 
@@ -381,10 +375,9 @@ void DumpTensorToFileFromDevice(const miopen::Handle& handle,
     handle.ReadTo(hdata.data(), dData, num_bytes);
     MIOPEN_LOG_I2("Done bringing tensor from device to host");
     // write tensor data to file
-    const char* pointer = hdata.data();
-    file_stream.write(pointer, num_bytes);
+    file_stream.write(hdata.data(), num_bytes);
     file_stream.close();
-    MIOPEN_LOG_I("Dumping tensor to file : " << file_name_with_path);
+    MIOPEN_LOG_I("Dumping tensor to file : " << path);
 }
 
 static void ConvForwardCheckNumerics(const Handle& handle,

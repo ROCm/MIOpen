@@ -28,9 +28,9 @@
 #include <miopen/errors.hpp>
 #include <miopen/lock_file.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/filesystem.hpp>
 
 #include <boost/date_time/posix_time/posix_time_types.hpp>
-#include <miopen/filesystem.hpp>
 #include <boost/none.hpp>
 #include <boost/optional.hpp>
 
@@ -47,10 +47,10 @@
 
 namespace miopen {
 
-PlainTextDb::PlainTextDb(DbKinds db_kind_, const std::string& filename_, bool is_system)
+PlainTextDb::PlainTextDb(DbKinds db_kind_, const fs::path& filename_, bool is_system)
     : db_kind(db_kind_),
       filename(filename_),
-      lock_file(LockFile::Get(LockFilePath(filename_).c_str())),
+      lock_file(LockFile::Get(LockFilePath(filename_))),
       warning_if_unreadable(is_system)
 {
     if(is_system)
@@ -61,10 +61,8 @@ PlainTextDb::PlainTextDb(DbKinds db_kind_, const std::string& filename_, bool is
 
     if(!DisableUserDbFileIO)
     {
-        auto file            = fs::path(filename_);
-        const auto directory = file.remove_filename();
-
-        if(!(fs::exists(directory)))
+        fs::path directory = filename.has_parent_path() ? filename.parent_path() : "";
+        if(!fs::exists(directory))
         {
             if(!fs::create_directories(directory))
                 MIOPEN_LOG_W("Unable to create a directory: " << directory);

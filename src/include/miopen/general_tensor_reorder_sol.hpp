@@ -58,7 +58,7 @@ struct GenericReorderSolutionImpl
     // TODO batched transpose API
     solver::KernelInfo GetKernelInfo() const;
     std::vector<OpKernelArg> GetKernelArg() const;
-    std::string GetKernelFileName() const;
+    fs::path GetKernelFileName() const;
     std::string GetKernelName() const;
     bool IsSkippable() const;
     size_t GetOutputTensorSize() const;

@@ -112,10 +112,10 @@ struct ExecutionContext
     ExecutionContext& operator=(ExecutionContext&&) = default;
 
 #if MIOPEN_EMBED_DB
-    std::string GetPerfDbPathEmbed() const
+    fs::path GetPerfDbPathEmbed() const
     {
         static const auto result = [&] {
-            fs::path pdb_path(GetSystemDbPath());
+            auto pdb_path(GetSystemDbPath());
             std::ostringstream filename;
             // clang-format off
             filename << GetStream().GetDbBasename();
@@ -179,31 +179,29 @@ struct ExecutionContext
         return result;
     }
 #else
-    std::string GetPerfDbPathFile() const
+    fs::path GetPerfDbPathFile() const
     {
         static const auto result = [&] {
-            const fs::path pdb_path(GetSystemDbPath());
-            std::ostringstream filename;
-            // clang-format off
-        filename << GetStream().GetDbBasename();
+            const auto pdb_path(GetSystemDbPath());
 #if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
-        const std::string ext = ".db";
+            constexpr std::string_view ext = ".db";
 #else
-        const std::string ext = ".db.txt";
+            constexpr std::string_view ext = ".db.txt";
 #endif
-        filename << ext;
+            fs::path filename{GetStream().GetDbBasename().append(ext)};
+
             // clang-format on
-            if(fs::exists(pdb_path / filename.str()))
+            if(fs::exists(pdb_path / filename))
             {
                 MIOPEN_LOG_I("Found exact perf database file");
-                return (pdb_path / filename.str()).string();
+                return pdb_path / filename;
             }
             else
             {
                 MIOPEN_LOG_I2("inexact perf database search");
                 const auto db_id        = GetStream().GetTargetProperties().DbId();
                 const int real_cu_count = GetStream().GetMaxComputeUnits();
-                if(fs::exists(pdb_path) && fs::is_directory(pdb_path))
+                if(fs::is_directory(pdb_path))
                 {
                     MIOPEN_LOG_I2("Iterating over perf db directory " << pdb_path);
                     int closest_cu = std::numeric_limits<int>::max();
@@ -216,7 +214,7 @@ struct ExecutionContext
                     {
                         const auto fname = filepath.stem().string();
                         if(fs::is_regular_file(filepath) && filepath.extension() == ext &&
-                           fname.rfind(db_id, 0) == 0) // starts with db_id
+                           fname.rfind(db_id, 0) == 0)
                         {
                             MIOPEN_LOG_I2("Checking perf db file: " << fname);
                             const auto pos = fname.find('_');
@@ -248,20 +246,20 @@ struct ExecutionContext
                             }
                         }
                     }
-                    return best_path.string();
+                    return best_path;
                 }
                 else
                 {
                     MIOPEN_LOG_I("Database directory does not exist");
                 }
             }
-            return std::string();
+            return fs::path{};
         }();
         return result;
     }
 #endif
 
-    std::string GetPerfDbPath() const
+    fs::path GetPerfDbPath() const
     {
 #if MIOPEN_EMBED_DB
         return GetPerfDbPathEmbed();
@@ -270,21 +268,20 @@ struct ExecutionContext
 #endif
     }
 
-    std::string GetUserPerfDbPath() const
+    fs::path GetUserPerfDbPath() const
     {
         // an empty user-db path indicates user intent to disable
         // the database. Default in when dev builds are on
         const auto& udb = GetUserDbPath();
         if(udb.empty())
             return "";
-        std::ostringstream filename;
-        filename << GetStream().GetDbBasename();
+        const auto filename = GetStream().GetDbBasename() +
 #if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
-        filename << "_" << SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER << ".udb";
+                              "_" + SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER + ".udb";
 #else
-        filename << "." << GetUserDbSuffix() << ".udb.txt";
+                              "." + GetUserDbSuffix() + ".udb.txt";
 #endif
-        return (udb / filename.str()).string();
+        return udb / filename;
     }
 
 private:

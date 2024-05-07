@@ -27,15 +27,18 @@
 #ifndef GUARD_MLOPEN_SIMPLE_HASH_HPP
 #define GUARD_MLOPEN_SIMPLE_HASH_HPP
 
+#include <miopen/filesystem.hpp>
+#include <cstddef>
 #include <string>
+#include <utility>
 
 namespace miopen {
 struct SimpleHash
 {
-    size_t operator()(const std::pair<std::string, std::string>& p) const
+    size_t operator()(const std::pair<fs::path, std::string>& p) const
     {
         using std::hash;
-        return (hash<std::string>()(p.first) ^ hash<std::string>()(p.second));
+        return (hash<fs::path>()(p.first) ^ hash<std::string>()(p.second));
     }
 };
 

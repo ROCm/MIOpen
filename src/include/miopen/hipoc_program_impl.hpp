@@ -34,17 +34,20 @@
 #include <boost/optional.hpp>
 #include <hip/hip_runtime_api.h>
 
+#include <string>
+#include <vector>
+
 namespace miopen {
 
 using hipModulePtr = MIOPEN_MANAGE_PTR(hipModule_t, hipModuleUnload);
 struct HIPOCProgramImpl
 {
     HIPOCProgramImpl(){};
-    HIPOCProgramImpl(const std::string& program_name, const fs::path& filespec);
+    HIPOCProgramImpl(const fs::path& program_name, const fs::path& filespec);
 
-    HIPOCProgramImpl(const std::string& program_name, const std::vector<char>& blob);
+    HIPOCProgramImpl(const fs::path& program_name, const std::vector<char>& blob);
 
-    HIPOCProgramImpl(const std::string& program_name,
+    HIPOCProgramImpl(const fs::path& program_name,
                      std::string params,
                      const TargetProperties& target_,
                      const std::string& kernel_src);

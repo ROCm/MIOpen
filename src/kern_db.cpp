@@ -23,17 +23,18 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include "miopen/bz2.hpp"
 #include <miopen/kern_db.hpp>
 
 namespace miopen {
-KernDb::KernDb(DbKinds db_kind, const std::string& filename_, bool is_system_)
+KernDb::KernDb(DbKinds db_kind, const fs::path& filename_, bool is_system_)
     : KernDb(db_kind, filename_, is_system_, compress, decompress)
 {
 }
 
 KernDb::KernDb(
     DbKinds db_kind,
-    const std::string& filename_,
+    const fs::path& filename_,
     bool is_system_,
     std::function<std::vector<char>(const std::vector<char>&, bool*)> compress_fn_,
     std::function<std::vector<char>(const std::vector<char>&, unsigned int)> decompress_fn_)
@@ -49,7 +50,7 @@ KernDb::KernDb(
         if(filename.empty())
             MIOPEN_LOG_I("database not present");
         else
-            MIOPEN_LOG_I(filename + " database invalid");
+            MIOPEN_LOG_I(filename << " database invalid");
         return;
     }
     if(!is_system)
