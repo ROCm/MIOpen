@@ -527,7 +527,7 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
 
     std::size_t total_sequence_len = 0;
     total_sequence_len             = std::accumulate(
-        xDesc.data, xDesc.data + seqLength, 0, [](size_t x, miopenTensorDescriptor_t y) {
+        xDesc.data, xDesc.data + seqLength, 0ULL, [](size_t x, miopenTensorDescriptor_t y) {
             return x + deref(y).GetLengths()[0];
         });
 
@@ -589,7 +589,7 @@ size_t RNNDescriptor::GetReserveSize(Handle& /* handle */,
     }
     std::size_t inputBatchLenSum = 0;
     inputBatchLenSum             = std::accumulate(
-        xDesc.data, xDesc.data + seqLength, 0, [](size_t x, miopenTensorDescriptor_t y) {
+        xDesc.data, xDesc.data + seqLength, 0ULL, [](size_t x, miopenTensorDescriptor_t y) {
             return x + deref(y).GetLengths()[0];
         });
     return GetReserveSize(inputBatchLenSum);
@@ -646,7 +646,7 @@ size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& /* handle */,
     if(paddingMode == miopenRNNIONotPadded)
     {
         inputBatchLenSum = std::accumulate(
-            xDesc.data, xDesc.data + seqLength, 0, [](size_t x, miopenTensorDescriptor_t y) {
+            xDesc.data, xDesc.data + seqLength, 0ULL, [](size_t x, miopenTensorDescriptor_t y) {
                 return x + deref(y).GetLengths()[0];
             });
     }
@@ -1300,7 +1300,7 @@ void RNNDescriptor::RNNForward(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(hDesc.GetSize() != cDesc.GetSize())
+    if(hDesc.GetNumDims() != cDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -1405,7 +1405,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(hDesc.GetSize() != cDesc.GetSize())
+    if(hDesc.GetNumDims() != cDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
