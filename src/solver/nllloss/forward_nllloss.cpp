@@ -36,8 +36,12 @@
 #include <miopen/nllloss.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/target_properties.hpp>
+#include <miopen/tensor_view.hpp>
 
-#define LOCAL_SIZE 1024
+#define LOCAL_SIZE_CON_FWD 1024
+#define LOCAL_SIZE_NON_CON_FWD 1024
+#define LOCAL_SIZE_CON_BWD 1024
+#define LOCAL_SIZE_NON_CON_BWD 1024
 
 namespace miopen {
 
@@ -45,20 +49,34 @@ namespace solver {
 
 namespace nllloss {
 
-bool NLLLossForward::IsApplicable(const ExecutionContext&,
-                                  const miopen::nllloss::ProblemDescription& problem) const
+bool NLLLossUnreduceForwardSolver::IsApplicable(
+    const ExecutionContext&, const miopen::nllloss::UnreduceProblemDescription& problem) const
 {
     if(!problem.IsSameType())
         return false;
-    if(!problem.IsAllPacked())
+    if(!problem.IsRightLength())
         return false;
-    if(!problem.IsRightDim())
+    if(!problem.IsRightStride())
+        return false;
+    if(!problem.IsAllPacked())
         return false;
     return true;
 }
 
-ConvSolution NLLLossForward::GetSolution(const ExecutionContext& context,
-                                         const miopen::nllloss::ProblemDescription& problem) const
+bool NLLLossUnreduceForwardContiguous::IsApplicable(
+    const ExecutionContext& context,
+    const miopen::nllloss::UnreduceProblemDescription& problem) const
+{
+    if(!problem.IsAllContiguous())
+        return false;
+    if(!NLLLossUnreduceForwardSolver::IsApplicable(context, problem))
+        return false;
+    return true;
+}
+
+ConvSolution NLLLossUnreduceForwardContiguous::GetSolution(
+    const ExecutionContext& context,
+    const miopen::nllloss::UnreduceProblemDescription& problem) const
 {
     std::ignore = context;
 
@@ -67,10 +85,10 @@ ConvSolution NLLLossForward::GetSolution(const ExecutionContext& context,
     auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
 
     {
-        auto dtype     = problem.GetInputDesc().GetType();
+        auto dtype     = problem.GetOutputDesc().GetType();
         size_t N_total = problem.GetNtotal();
 
-        size_t xlocalsize = LOCAL_SIZE;
+        size_t xlocalsize = LOCAL_SIZE_CON_FWD;
         size_t xgridsize  = AlignUp(N_total, xlocalsize);
 
         size_t ylocalsize = 1;
@@ -131,26 +149,131 @@ ConvSolution NLLLossForward::GetSolution(const ExecutionContext& context,
     return result;
 }
 
-bool NLLLossBackward::IsApplicable(const ExecutionContext&,
-                                   const miopen::nllloss::ProblemDescription& problem) const
+bool NLLLossUnreduceForward4d::IsApplicable(
+    const ExecutionContext& context,
+    const miopen::nllloss::UnreduceProblemDescription& problem) const
 {
+    if(problem.GetInputDesc().GetSize() > 4)
+        return false;
+    if(!NLLLossUnreduceForwardSolver::IsApplicable(context, problem))
+        return false;
     return true;
 }
 
-ConvSolution NLLLossBackward::GetSolution(const ExecutionContext& context,
-                                          const miopen::nllloss::ProblemDescription& problem) const
+ConvSolution NLLLossUnreduceForward4d::GetSolution(
+    const ExecutionContext& context,
+    const miopen::nllloss::UnreduceProblemDescription& problem) const
+{
+    std::ignore = context;
+
+    auto result       = ConvSolution{miopenStatusSuccess};
+    auto input_dtype  = miopen::GetDataType(problem.GetInputDesc().GetType());
+    auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
+
+    {
+        auto dtype     = problem.GetOutputDesc().GetType();
+        size_t N_total = problem.GetNtotal();
+
+        size_t xlocalsize = LOCAL_SIZE_NON_CON_FWD;
+        size_t xgridsize  = AlignUp(N_total, xlocalsize);
+
+        size_t ylocalsize = 1;
+        size_t ygridsize  = 1;
+        size_t zlocalsize = 1;
+        size_t zgridsize  = 1;
+
+        auto kernel = KernelInfo{};
+
+        kernel.kernel_file = "MIOpenNLLLoss.cpp";
+        kernel.kernel_name = "NLLLossUnreducedForward4d";
+
+        const auto build_params = KernelBuildParameters{
+            {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+            {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+            {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
+            {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+            {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
+            {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
+        };
+
+        kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
+
+        kernel.l_wk.push_back(xlocalsize);
+        kernel.l_wk.push_back(ylocalsize);
+        kernel.l_wk.push_back(zlocalsize);
+
+        kernel.g_wk.push_back(xgridsize);
+        kernel.g_wk.push_back(ygridsize);
+        kernel.g_wk.push_back(zgridsize);
+
+        result.construction_params.push_back(kernel);
+    }
+
+    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+            decltype(auto) kernel = handle_.Run(kernels.front());
+            decltype(auto) params = raw_params.CastTo<miopen::nllloss::InvokeParams>();
+
+            auto input_tv  = get_inner_expanded_tv_4d(deref(params.inputDesc));
+            auto target_tv = get_inner_expanded_tv_3d(deref(params.targetDesc));
+            auto weight_tv = get_inner_expanded_tv_1d(deref(params.weightDesc));
+            auto output_tv = get_inner_expanded_tv_3d(deref(params.outputDesc));
+
+            kernel(params.input,
+                   params.target,
+                   params.weight,
+                   params.output,
+                   params.ignore_index,
+                   input_tv,
+                   target_tv,
+                   weight_tv,
+                   output_tv);
+        };
+    };
+
+    return result;
+}
+
+bool NLLLossUnreduceBackwardSolver::IsApplicable(
+    const ExecutionContext&, const miopen::nllloss::UnreduceProblemDescription& problem) const
+{
+    if(!problem.IsSameType())
+        return false;
+    if(!problem.IsRightLength())
+        return false;
+    if(!problem.IsRightStride())
+        return false;
+    if(!problem.IsAllPacked())
+        return false;
+    return true;
+}
+
+bool NLLLossUnreduceBackwardContiguous::IsApplicable(
+    const ExecutionContext& context,
+    const miopen::nllloss::UnreduceProblemDescription& problem) const
+{
+    if(!problem.IsAllContiguous())
+        return false;
+    if(!NLLLossUnreduceBackwardSolver::IsApplicable(context, problem))
+        return false;
+    return true;
+}
+
+ConvSolution NLLLossUnreduceBackwardContiguous::GetSolution(
+    const ExecutionContext& context,
+    const miopen::nllloss::UnreduceProblemDescription& problem) const
 {
     std::ignore = context;
 
     auto result            = ConvSolution{miopenStatusSuccess};
-    auto input_grad_dtype  = miopen::GetDataType(problem.GetInputGradDesc().GetType());
-    auto output_grad_dtype = miopen::GetDataType(problem.GetOutputGradDesc().GetType());
+    auto input_grad_dtype  = miopen::GetDataType(problem.GetInputDesc().GetType());
+    auto output_grad_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
 
     {
-        auto dtype     = problem.GetInputGradDesc().GetType();
+        auto dtype     = problem.GetInputDesc().GetType();
         size_t N_total = problem.GetNtotal();
 
-        size_t xlocalsize = LOCAL_SIZE;
+        size_t xlocalsize = LOCAL_SIZE_CON_BWD;
         size_t xgridsize  = AlignUp(N_total, xlocalsize);
 
         size_t ylocalsize = 1;
@@ -205,6 +328,91 @@ ConvSolution NLLLossBackward::GetSolution(const ExecutionContext& context,
                    C,
                    D1,
                    D2);
+        };
+    };
+
+    return result;
+}
+
+bool NLLLossUnreduceBackward4d::IsApplicable(
+    const ExecutionContext& context,
+    const miopen::nllloss::UnreduceProblemDescription& problem) const
+{
+    if(problem.GetInputDesc().GetSize() > 4)
+        return false;
+    if(!NLLLossUnreduceBackwardSolver::IsApplicable(context, problem))
+        return false;
+    return true;
+}
+
+ConvSolution NLLLossUnreduceBackward4d::GetSolution(
+    const ExecutionContext& context,
+    const miopen::nllloss::UnreduceProblemDescription& problem) const
+{
+    std::ignore = context;
+
+    auto result            = ConvSolution{miopenStatusSuccess};
+    auto input_grad_dtype  = miopen::GetDataType(problem.GetInputDesc().GetType());
+    auto output_grad_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
+
+    {
+        auto dtype     = problem.GetInputDesc().GetType();
+        size_t N_total = problem.GetNtotal();
+
+        size_t xlocalsize = LOCAL_SIZE_NON_CON_BWD;
+        size_t xgridsize  = AlignUp(N_total, xlocalsize);
+
+        size_t ylocalsize = 1;
+        size_t ygridsize  = 1;
+        size_t zlocalsize = 1;
+        size_t zgridsize  = 1;
+
+        auto kernel = KernelInfo{};
+
+        kernel.kernel_file = "MIOpenNLLLoss.cpp";
+        kernel.kernel_name = "NLLLossUnreducedBackward4d";
+
+        const auto build_params = KernelBuildParameters{
+            {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+            {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+            {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
+            {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+            {"INPUT_TYPE", input_grad_dtype == "bfloat16" ? "ushort" : input_grad_dtype},
+            {"OUTPUT_TYPE", output_grad_dtype == "bfloat16" ? "ushort" : output_grad_dtype},
+        };
+
+        kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
+
+        kernel.l_wk.push_back(xlocalsize);
+        kernel.l_wk.push_back(ylocalsize);
+        kernel.l_wk.push_back(zlocalsize);
+
+        kernel.g_wk.push_back(xgridsize);
+        kernel.g_wk.push_back(ygridsize);
+        kernel.g_wk.push_back(zgridsize);
+
+        result.construction_params.push_back(kernel);
+    }
+
+    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+            decltype(auto) kernel = handle_.Run(kernels.front());
+            decltype(auto) params = raw_params.CastTo<miopen::nllloss::BwdInvokeParams>();
+
+            auto input_grad_tv  = get_inner_expanded_tv_4d(deref(params.inputGradDesc));
+            auto target_tv      = get_inner_expanded_tv_3d(deref(params.targetDesc));
+            auto weight_tv      = get_inner_expanded_tv_1d(deref(params.weightDesc));
+            auto output_grad_tv = get_inner_expanded_tv_3d(deref(params.outputGradDesc));
+
+            kernel(params.input_grad,
+                   params.target,
+                   params.weight,
+                   params.output_grad,
+                   params.ignore_index,
+                   input_grad_tv,
+                   target_tv,
+                   weight_tv,
+                   output_grad_tv);
         };
     };
 

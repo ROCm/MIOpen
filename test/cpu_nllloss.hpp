@@ -28,6 +28,7 @@
 #define GUARD_CPU_NLLLOSS_HPP
 
 #include "tensor_holder.hpp"
+#include <miopen/tensor_view.hpp>
 
 template <class T>
 void cpu_nllloss_forward_4d(tensor<T> input,
@@ -42,28 +43,29 @@ void cpu_nllloss_forward_4d(tensor<T> input,
     size_t D1 = dims[2];
     size_t D2 = dims[3];
 
-    for(size_t n = 0; n < N; n++)
-    {
-        for(size_t d1 = 0; d1 < D1; d1++)
-        {
-            for(size_t d2 = 0; d2 < D2; d2++)
-            {
-                size_t target_index = n * D1 * D2 + d1 * D2 + d2;
-                int32_t t           = target[target_index];
-                size_t input_index  = (n * C + t) * D1 * D2 + d1 * D2 + d2;
-                size_t weight_index = t;
-                size_t output_index = target_index;
+    auto I_tv = get_inner_expanded_tv_4d(input.desc);
+    auto T_tv = get_inner_expanded_tv_3d(target.desc);
+    auto W_tv = get_inner_expanded_tv_1d(weight.desc);
+    auto O_tv = get_inner_expanded_tv_3d(output.desc);
 
-                if(t < 0 || t == ignore_index || t >= C)
-                {
-                    output[output_index] = static_cast<T>(0);
-                }
-                else
-                {
-                    output[output_index] =
-                        static_cast<T>(-1.0f) * weight[weight_index] * input[input_index];
-                }
-            }
+    for(size_t i = 0; i < N * D1 * D2; i++)
+    {
+        uint64_t n[3];
+        GET_NCD(n[0], n[1], n[2], i, O_tv);
+        size_t target_index = TV3D_IDX(T_tv, n[0], n[1], n[2]);
+        int32_t t           = target[target_index];
+        size_t input_index  = TV4D_IDX(I_tv, n[0], t, n[1], n[2]);
+        size_t weight_index = TV1D_IDX(W_tv, t);
+        size_t output_index = TV3D_IDX(O_tv, n[0], n[1], n[2]);
+
+        if(t < 0 || t == ignore_index || t >= C)
+        {
+            output[output_index] = static_cast<T>(0);
+        }
+        else
+        {
+            output[output_index] =
+                static_cast<T>(-1.0f) * weight[weight_index] * input[input_index];
         }
     }
 }
@@ -81,28 +83,29 @@ void cpu_nllloss_backward_4d(tensor<T>& input_grad,
     size_t D1 = dims[2];
     size_t D2 = dims[3];
 
-    for(size_t n = 0; n < N; n++)
-    {
-        for(size_t d1 = 0; d1 < D1; d1++)
-        {
-            for(size_t d2 = 0; d2 < D2; d2++)
-            {
-                size_t target_index      = n * D1 * D2 + d1 * D2 + d2;
-                int32_t t                = target[target_index];
-                size_t input_grad_index  = (n * C + t) * D1 * D2 + d1 * D2 + d2;
-                size_t weight_index      = t;
-                size_t output_grad_index = target_index;
+    auto I_tv = get_inner_expanded_tv_4d(input_grad.desc);
+    auto T_tv = get_inner_expanded_tv_3d(target.desc);
+    auto W_tv = get_inner_expanded_tv_1d(weight.desc);
+    auto O_tv = get_inner_expanded_tv_3d(output_grad.desc);
 
-                if(t < 0 || t == ignore_index || t >= C)
-                {
-                    input_grad[input_grad_index] = static_cast<T>(0);
-                }
-                else
-                {
-                    input_grad[input_grad_index] = static_cast<T>(-1.0f) * weight[weight_index] *
-                                                   output_grad[output_grad_index];
-                }
-            }
+    for(size_t i = 0; i < N * D1 * D2; i++)
+    {
+        uint64_t n[3];
+        GET_NCD(n[0], n[1], n[2], i, O_tv);
+        size_t target_index = TV3D_IDX(T_tv, n[0], n[1], n[2]);
+        int32_t t           = target[target_index];
+        size_t input_grad_index  = TV4D_IDX(I_tv, n[0], t, n[1], n[2]);
+        size_t weight_index = TV1D_IDX(W_tv, t);
+        size_t output_grad_index = TV3D_IDX(O_tv, n[0], n[1], n[2]);
+
+        if(t < 0 || t == ignore_index || t >= C)
+        {
+            input_grad[input_grad_index] = static_cast<T>(0);
+        }
+        else
+        {
+            input_grad[input_grad_index] = static_cast<T>(-1.0f) * weight[weight_index] *
+                                            output_grad[output_grad_index];
         }
     }
 }

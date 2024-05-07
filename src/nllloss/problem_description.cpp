@@ -34,24 +34,24 @@ namespace miopen {
 
 namespace nllloss {
 
-NetworkConfig ProblemDescription::MakeNetworkConfig() const
+NetworkConfig UnreduceProblemDescription::MakeNetworkConfig() const
 {
-    auto numel = targetDesc.GetElementSize();
+    auto contiguous    = IsAllContiguous();
+    size_t numel       = GetNtotal();
+    size_t num_batches = inputDesc.GetLengths()[0];
+    size_t num_classes = GetC();
 
-    size_t num_batches = N;
-    size_t num_classes = C;
-
-    auto input_dtype = weightDesc.GetType();
+    auto input_dtype = inputDesc.GetType();
 
     std::ostringstream ss;
 
+    ss << "nllloss_unreduce";
+    ss << "is_fwd" << is_fwd;
+    ss << "contiguous" << contiguous;
     ss << "input_dtype" << input_dtype;
     ss << "numel" << numel;
     ss << "num_batches" << num_batches;
     ss << "num_classes" << num_classes;
-    ss << "D1" << D1;
-    ss << "D2" << D2;
-    ss << "is_bwd" << is_bwd;
 
     return NetworkConfig{ss.str()};
 }

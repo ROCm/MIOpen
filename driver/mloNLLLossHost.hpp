@@ -27,48 +27,98 @@
 #define MLO_NLLLOSSHOST_H_
 
 #include <miopen/tensor.hpp>
+#include <miopen/tensor_view.hpp>
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloNLLLossForwardRunHost(miopenTensorDescriptor_t inputDesc,
-                                 Tgpu* input,
-                                 int32_t* target,
-                                 Tgpu* weight,
-                                 Tcheck* outputhost,
-                                 int32_t ignore_index)
+int32_t mloNLLLossUnreduceForwardRunHost(const miopenTensorDescriptor_t inputDesc,
+                                        const miopenTensorDescriptor_t targetDesc,
+                                        const miopenTensorDescriptor_t weightDesc,
+                                        const miopenTensorDescriptor_t outputDesc,
+                                        const Tgpu* input,
+                                        const int32_t* target,
+                                        const Tgpu* weight,
+                                        Tcheck* output,
+                                        const int32_t ignore_index)
 {
     auto dims = miopen::deref(inputDesc).GetLengths();
-
     size_t N  = dims[0];
     size_t C  = dims[1];
     size_t D1 = dims[2];
     size_t D2 = dims[3];
 
-    for(size_t n = 0; n < N; n++)
-    {
-        for(size_t d1 = 0; d1 < D1; d1++)
-        {
-            for(size_t d2 = 0; d2 < D2; d2++)
-            {
-                size_t target_index = n * D1 * D2 + d1 * D2 + d2;
-                int32_t t           = target[target_index];
-                size_t input_index  = (n * C + t) * D1 * D2 + d1 * D2 + d2;
-                size_t weight_index = t;
-                size_t output_index = target_index;
+    auto I_tv = get_inner_expanded_tv_4d(miopen::deref(inputDesc));
+    auto T_tv = get_inner_expanded_tv_3d(miopen::deref(targetDesc));
+    auto W_tv = get_inner_expanded_tv_1d(miopen::deref(weightDesc));
+    auto O_tv = get_inner_expanded_tv_3d(miopen::deref(outputDesc));
 
-                if(t < 0 || t == ignore_index || t >= C)
-                {
-                    outputhost[output_index] = static_cast<Tcheck>(0);
-                }
-                else
-                {
-                    outputhost[output_index] = static_cast<Tcheck>(-1) *
-                                               static_cast<Tcheck>(weight[weight_index]) *
-                                               static_cast<Tcheck>(input[input_index]);
-                }
-            }
+    for(size_t i = 0; i < N * D1 * D2; i++)
+    {
+        uint64_t n[3];
+        GET_NCD(n[0], n[1], n[2], i, O_tv);
+        size_t target_index = TV3D_IDX(T_tv, n[0], n[1], n[2]);
+        int32_t t           = target[target_index];
+        size_t input_index  = TV4D_IDX(I_tv, n[0], t, n[1], n[2]);
+        size_t weight_index = TV1D_IDX(W_tv, t);
+        size_t output_index = TV3D_IDX(O_tv, n[0], n[1], n[2]);
+
+        if(t < 0 || t == ignore_index || t >= C)
+        {
+            output[output_index] = static_cast<Tcheck>(0);
+        }
+        else
+        {
+            output[output_index] =
+                static_cast<Tcheck>(-1.0f) * weight[weight_index] * input[input_index];
         }
     }
 
     return 0;
 }
+
+template <typename Tgpu, typename Tcheck>
+int32_t mloNLLLossUnreduceBackwardRunHost(const miopenTensorDescriptor_t inputDesc,
+                                        const miopenTensorDescriptor_t targetDesc,
+                                        const miopenTensorDescriptor_t weightDesc,
+                                        const miopenTensorDescriptor_t outputDesc,
+                                        Tcheck* input_grad,
+                                        const int32_t* target,
+                                        const Tgpu* weight,
+                                        const Tgpu* output_grad,
+                                        const int32_t ignore_index)
+{
+    auto dims = miopen::deref(inputDesc).GetLengths();
+    size_t N  = dims[0];
+    size_t C  = dims[1];
+    size_t D1 = dims[2];
+    size_t D2 = dims[3];
+
+    auto I_tv = get_inner_expanded_tv_4d(miopen::deref(inputDesc));
+    auto T_tv = get_inner_expanded_tv_3d(miopen::deref(targetDesc));
+    auto W_tv = get_inner_expanded_tv_1d(miopen::deref(weightDesc));
+    auto O_tv = get_inner_expanded_tv_3d(miopen::deref(outputDesc));
+
+    for(size_t i = 0; i < N * D1 * D2; i++)
+    {
+        uint64_t n[3];
+        GET_NCD(n[0], n[1], n[2], i, O_tv);
+        size_t target_index = TV3D_IDX(T_tv, n[0], n[1], n[2]);
+        int32_t t           = target[target_index];
+        size_t input_grad_index  = TV4D_IDX(I_tv, n[0], t, n[1], n[2]);
+        size_t weight_index = TV1D_IDX(W_tv, t);
+        size_t output_grad_index = TV3D_IDX(O_tv, n[0], n[1], n[2]);
+
+        if(t < 0 || t == ignore_index || t >= C)
+        {
+            input_grad[input_grad_index] = static_cast<Tcheck>(0);
+        }
+        else
+        {
+            input_grad[input_grad_index] = static_cast<Tcheck>(-1.0f) * weight[weight_index] *
+                                            output_grad[output_grad_index];
+        }
+    }
+    
+    return 0;
+}
+
 #endif // MLO_NLLLOSSHOST_H_

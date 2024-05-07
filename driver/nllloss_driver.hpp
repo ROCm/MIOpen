@@ -51,6 +51,21 @@
 #include <numeric>
 #include <vector>
 
+inline std::vector<int> GetStrides(std::vector<int> lengths, int contiguous)
+{
+    if(contiguous != 0 && contiguous != 1)
+        std::cerr << "Error Tensor Contiguous should be 0 or 1" << std::endl;
+    if(contiguous == 0)
+        std::swap(lengths.front(), lengths.back());
+    std::vector<int> strides(lengths.size());
+    strides.back() = 1;
+    for(int i = lengths.size() - 2; i >= 0; --i)
+        strides[i] = strides[i + 1] * lengths[i + 1];
+    if(contiguous == 0)
+        std::swap(strides.front(), strides.back());
+    return strides;
+}
+
 template <typename Tgpu, typename Tref>
 class NLLLossDriver : public Driver
 {
@@ -61,6 +76,8 @@ public:
         miopenCreateTensorDescriptor(&targetDesc);
         miopenCreateTensorDescriptor(&weightDesc);
         miopenCreateTensorDescriptor(&outputDesc);
+        miopenCreateTensorDescriptor(&inputGradDesc);
+        miopenCreateTensorDescriptor(&outputGradDesc);
 
         data_type = miopen_type<Tgpu>{};
     }
@@ -77,6 +94,7 @@ public:
     int RunForwardCPU();
 
     int RunBackwardGPU() override;
+    int RunBackwardCPU();
 
     Tref GetTolerance();
     int VerifyBackward() override;
@@ -87,6 +105,8 @@ public:
         miopenDestroyTensorDescriptor(targetDesc);
         miopenDestroyTensorDescriptor(weightDesc);
         miopenDestroyTensorDescriptor(outputDesc);
+        miopenDestroyTensorDescriptor(inputGradDesc);
+        miopenDestroyTensorDescriptor(outputGradDesc);
     }
 
 private:
@@ -98,17 +118,26 @@ private:
     miopenTensorDescriptor_t targetDesc;
     miopenTensorDescriptor_t weightDesc;
     miopenTensorDescriptor_t outputDesc;
+    miopenTensorDescriptor_t inputGradDesc;
+    miopenTensorDescriptor_t outputGradDesc;
+
 
     std::unique_ptr<GPUMem> in_dev;
     std::unique_ptr<GPUMem> target_dev;
     std::unique_ptr<GPUMem> weight_dev;
     std::unique_ptr<GPUMem> out_dev;
+    std::unique_ptr<GPUMem> in_grad_dev;
+    std::unique_ptr<GPUMem> out_grad_dev;
 
     std::vector<Tgpu> in;
     std::vector<int> target;
     std::vector<Tgpu> weight;
     std::vector<Tgpu> out;
     std::vector<Tref> out_host;
+
+    std::vector<Tgpu> in_grad;
+    std::vector<Tref> in_grad_host;
+    std::vector<Tgpu> out_grad;
 
     size_t N;
     size_t C;
@@ -148,12 +177,19 @@ int NLLLossDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> weight_len = {C};
     std::vector<int> out_len    = {N, D1, D2};
 
-    SetTensorNd(inputDesc, in_len, data_type);
-    SetTensorNd(targetDesc, target_len, data_type);
-    SetTensorNd(weightDesc, weight_len, data_type);
-    SetTensorNd(outputDesc, out_len, data_type);
+    auto in_strides    = GetStrides(in_len, 1);
+    auto tar_strides = GetStrides(target_len, inflags.GetValueInt("contiguous"));
+    auto weight_strides = GetStrides(weight_len, 1);
+    auto output_strides = GetStrides(out_len, 1);
 
-    return 0;
+    SetTensorNd(inputDesc, in_len, in_strides, data_type);
+    SetTensorNd(targetDesc, target_len, tar_strides, data_type);
+    SetTensorNd(weightDesc, weight_len, weight_strides, data_type);
+    SetTensorNd(outputDesc, out_len, output_strides, data_type);
+    SetTensorNd(inputGradDesc, in_len, in_strides, data_type);
+    SetTensorNd(outputGradDesc, out_len, output_strides, data_type);
+
+    return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
@@ -165,6 +201,7 @@ int NLLLossDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("D1", 'd', "17", "Size D1", "int");
     inflags.AddInputFlag("D2", 'D', "19", "Size D2", "int");
     inflags.AddInputFlag("ignore_index", 'g', "-1", "Ignore index", "int");
+    inflags.AddInputFlag("contiguous", 'c', "1", "Is input tensor contiguous? (Default=1 for contiguous tensor)", "int");
 
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify (Default=1)", "int");
@@ -189,6 +226,8 @@ int NLLLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     target_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, target_sz, sizeof(int)));
     weight_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, weight_sz, sizeof(Tgpu)));
     out_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+    in_grad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    out_grad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
     in       = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
     target   = std::vector<int>(target_sz, static_cast<int>(0));
@@ -196,8 +235,13 @@ int NLLLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     out      = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
     out_host = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
+    in_grad = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    in_grad_host = std::vector<Tref>(in_sz, static_cast<Tref>(0));
+    out_grad = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+
     int status;
 
+    // forward
     for(int i = 0; i < in_sz; i++)
     {
         in[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-10.0), static_cast<Tgpu>(-(1e-2)));
@@ -218,6 +262,15 @@ int NLLLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     status |= out_dev->ToGPU(q, out.data());
 
+    // backward
+    status |= in_grad_dev->ToGPU(q, in_grad.data());
+
+    for (int i = 0; i < out_sz; i++)
+    {
+        out_grad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-10.0), static_cast<Tgpu>(10.0));
+    }
+    status |= out_grad_dev->ToGPU(q, out_grad.data());
+
     if(status != 0)
         std::cout << "Error copying data to GPU\n" << std::endl;
 
@@ -235,7 +288,7 @@ int NLLLossDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenNLLLossForward(GetHandle(),
+        miopenNLLLossUnreduceForward(GetHandle(),
                              inputDesc,
                              in_dev->GetMem(),
                              targetDesc,
@@ -273,8 +326,16 @@ int NLLLossDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int NLLLossDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloNLLLossForwardRunHost<Tgpu, Tref>(
-        inputDesc, in.data(), target.data(), weight.data(), out_host.data(), ignore_index);
+    mloNLLLossUnreduceForwardRunHost<Tgpu, Tref>(
+        inputDesc, 
+        targetDesc,
+        weightDesc,
+        outputDesc,
+        in.data(),
+        target.data(), 
+        weight.data(), 
+        out_host.data(), 
+        ignore_index);
 
     return miopenStatusSuccess;
 }
@@ -282,6 +343,63 @@ int NLLLossDriver<Tgpu, Tref>::RunForwardCPU()
 template <typename Tgpu, typename Tref>
 int NLLLossDriver<Tgpu, Tref>::RunBackwardGPU()
 {
+    float kernel_total_time = 0.0;
+    float kernel_first_time = 0.0;
+
+    Timer t;
+    START_TIME
+
+    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+    {
+        miopenNLLLossUnreduceBackward(GetHandle(),
+                             inputGradDesc,
+                             in_grad_dev->GetMem(),
+                             targetDesc,
+                             target_dev->GetMem(),
+                             weightDesc,
+                             weight_dev->GetMem(),
+                             outputGradDesc,
+                             out_grad_dev->GetMem(),
+                             ignore_index);
+
+        float time = 0.0;
+        miopenGetKernelTime(GetHandle(), &time);
+        kernel_total_time += time;
+        if(i == 0)
+            kernel_first_time = time;
+    }
+
+    if(inflags.GetValueInt("time") == 1)
+    {
+        STOP_TIME
+        int iter = inflags.GetValueInt("iter");
+        if(WALL_CLOCK)
+            printf("Wall-clock Time Forward NLLLoss Elapsed: %f ms\n", t.gettime_ms() / iter);
+
+        float kernel_average_time =
+            iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
+        printf("GPU Kernel Time Backward NLLLoss Elapsed: %f ms\n", kernel_average_time);
+    }
+
+    in_grad_dev->FromGPU(GetStream(), in_grad.data());
+
+    return miopenStatusSuccess;
+}
+
+template <typename Tgpu, typename Tref>
+int NLLLossDriver<Tgpu, Tref>::RunBackwardCPU()
+{
+    mloNLLLossUnreduceBackwardRunHost<Tgpu, Tref>(
+        inputGradDesc, 
+        targetDesc,
+        weightDesc,
+        outputGradDesc,
+        in_grad_host.data(), 
+        target.data(), 
+        weight.data(), 
+        out_grad.data(), 
+        ignore_index);
+
     return miopenStatusSuccess;
 }
 
@@ -321,6 +439,19 @@ int NLLLossDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int NLLLossDriver<Tgpu, Tref>::VerifyBackward()
 {
+    RunBackwardCPU();
+    const Tref tolerance = GetTolerance();
+    auto error           = miopen::rms_range(out_host, out);
+
+    if(!std::isfinite(error) || error > tolerance)
+    {
+        std::cout << "Backward NLLLoss FAILED: " << error << std::endl;
+        return EC_VerifyFwd;
+    }
+    else
+    {
+        printf("Backward NLLLoss Verifies on CPU and GPU (err=%f)\n", error);
+    }
     return miopenStatusSuccess;
 }
 

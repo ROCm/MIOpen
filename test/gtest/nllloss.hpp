@@ -33,55 +33,118 @@
 #include <miopen/nllloss.hpp>
 #include <miopen/miopen.h>
 
+inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
+{
+    os << '{';
+    for(int i = 0; i < v.size(); ++i)
+    {
+        if(i != 0)
+            os << ',';
+        os << v[i];
+    }
+    os << '}';
+    return os;
+}
+
 struct NLLLossTestCase
 {
-    size_t N             = 0;
-    size_t C             = 0;
-    size_t D1            = 0;
-    size_t D2            = 0;
-    bool weight_mode     = false;
-    int32_t ignore_index = -1;
+    std::vector<size_t> input;
+    bool weight_mode;
+    int32_t ignore_index;
+    bool contiguous;
 
-    std::vector<size_t> input = {N, C, D1, D2};
     friend std::ostream& operator<<(std::ostream& os, const NLLLossTestCase& tc)
     {
-        return os << " N:" << tc.N << " C:" << tc.C << " D1:" << tc.D1 << " D2:" << tc.D2
-                  << " weight_mode:" << tc.weight_mode << " ignore_index:" << tc.ignore_index;
+        return os << " input:" << tc.input
+                  << " weight_mode:" << tc.weight_mode 
+                  << " ignore_index:" << tc.ignore_index
+                  << " Contiguous:" << tc.contiguous;
     }
 
     std::vector<size_t> GetInput() const { return input; }
 };
 
-inline std::vector<NLLLossTestCase> NLLLossTestConfigs()
+inline std::vector<NLLLossTestCase> NLLLossUnreduceForwardContiguousTestConfigs()
 { // dim, dims
     // clang-format off
-    return {{16, 21,512,512,false, 255},
-            // {64, 21,254,333,false, 255},
-            // {64, 21,213,331,false, 255},
-            // {64, 21,240,332,false, 255},
-            // {64, 21,212,320,false, 255},
-            // {64, 21,218,333,false, 255},
-            // {64, 21,270,333,false, 255},
-            // {64, 21,237,329,false, 255},
-            // {64, 21,225,246,false, 255},
-            // {64, 21,240,292,false, 255},
-            // {64, 21,288,303,false, 255},
-            // {64, 21,274,275,false, 255},
-            // {64, 21,273,322,false, 255},
-            // {64, 21,240,320,false, 255},
-            // {64, 21,238,269,false, 255},
-            // {64, 21,213,326,false, 255},
-            // {64, 21,297,333,false, 255},
-            // {64, 21,212,303,false, 255},
-            // {64, 21,230,335,false, 255},
-            // {64, 21,198,257,false, 255},
-            // {64, 21,283,320,false, 255},
-            // {64, 21,175,333,false, 255},
-            // {64, 21,267,326,false, 255},
-            // {32, 21,256,256,false, 255},
-            // {55, 21,112,257,false, 255},
-            {24, 21,512,512,true, 255}};
+    return {{{16, 21,512,512},false, 255, true},
+            // {{64, 21,254,333},false, 255, true},
+            // {{64, 21,213,331},false, 255, true},
+            // {{64, 21,240,332},false, 255, true},
+            // {{64, 21,212,320},false, 255, true},
+            // {{64, 21,218,333},false, 255, true},
+            // {{64, 21,270,333},false, 255, true},
+            // {{64, 21,237,329},false, 255, true},
+            // {{64, 21,225,246},false, 255, true},
+            // {{64, 21,240,292},false, 255, true},
+            // {{64, 21,288,303},false, 255, true},
+            // {{64, 21,274,275},false, 255, true},
+            // {{64, 21,273,322},false, 255, true},
+            // {{64, 21,240,320},false, 255, true},
+            // {{64, 21,238,269},false, 255, true},
+            // {{64, 21,213,326},false, 255, true},
+            // {{64, 21,297,333},false, 255, true},
+            // {{64, 21,212,303},false, 255, true},
+            // {{64, 21,230,335},false, 255, true},
+            // {{64, 21,198,257},false, 255, true},
+            // {{64, 21,283,320},false, 255, true},
+            // {{64, 21,175,333},false, 255, true},
+            // {{64, 21,267,326},false, 255, true},
+            // {{32, 21,256,256},false, 255, true},
+            // {{55, 21,112,257},false, 255, true},
+            {{24, 21,512,512},true, 255, true}};
     // clang-format on
+}
+
+inline std::vector<NLLLossTestCase> NLLLossUnreduceBackwardContiguousTestConfigs()
+{ // dim, dims
+    // clang-format off
+    return {{{16, 21,512,512},false, 255, true},
+            {{24, 21,512,512},true, 255, true}};
+    // clang-format on
+}
+
+inline std::vector<NLLLossTestCase> NLLLossUnreduceForwardTestConfigs()
+{ // dim, dims
+    // clang-format off
+    return {{{16, 21,512,512},false, 255, false},
+            {{24, 21,512,512},true, 255, false}};
+    // clang-format on
+}
+
+inline std::vector<NLLLossTestCase> NLLLossUnreduceBackwardTestConfigs()
+{ // dim, dims
+    // clang-format off
+    return {{{16, 21,512,512},false, 255, false},
+            {{24, 21,512,512},true, 255, false}};
+    // clang-format on
+}
+
+inline std::vector<NLLLossTestCase> NLLLossTestConfigs()
+{
+    std::vector<NLLLossTestCase> tcs, temp;
+    // temp = NLLLossUnreduceForwardContiguousTestConfigs();
+    // tcs.insert(tcs.end(), temp.begin(), temp.end());
+    // temp = NLLLossUnreduceBackwardContiguousTestConfigs();
+    // tcs.insert(tcs.end(), temp.begin(), temp.end());
+    // temp = NLLLossUnreduceForwardTestConfigs();
+    // tcs.insert(tcs.end(), temp.begin(), temp.end());
+    temp = NLLLossUnreduceBackwardTestConfigs();
+    tcs.insert(tcs.end(), temp.begin(), temp.end());
+    return tcs;
+}
+
+inline std::vector<size_t> GetStrides(std::vector<size_t> input, bool contiguous)
+{
+    if(!contiguous)
+        std::swap(input.front(), input.back());
+    std::vector<size_t> strides(input.size());
+    strides.back() = 1;
+    for(int i = input.size() - 2; i >= 0; --i)
+        strides[i] = strides[i + 1] * input[i + 1];
+    if(!contiguous)
+        std::swap(strides.front(), strides.back());
+    return strides;
 }
 
 // FORWARD TEST
@@ -96,6 +159,7 @@ protected:
 
         ignore_index = nllloss_config.ignore_index;
         weight_mode  = nllloss_config.weight_mode;
+        auto contiguous = nllloss_config.contiguous;
 
         auto in_dim                    = nllloss_config.GetInput();
         std::vector<size_t> target_dim = {in_dim[0], in_dim[2], in_dim[3]};
@@ -114,19 +178,23 @@ protected:
         };
         auto gen_weight_one = [](auto...) { return static_cast<T>(1); };
 
-        input = tensor<T>{in_dim}.generate(gen_input_value);
+        auto in_strides = GetStrides(in_dim, true);
+        input = tensor<T>{in_dim, in_strides}.generate(gen_input_value);
 
-        target = tensor<int32_t>{target_dim}.generate(gen_target_value);
+        auto tar_strides = GetStrides(target_dim, contiguous);
+        target = tensor<int32_t>{target_dim, tar_strides}.generate(gen_target_value);
 
+        auto weight_strides = GetStrides(weight_dim, true);
         if(!weight_mode)
-            weight = tensor<T>{weight_dim}.generate(gen_weight_one);
+            weight = tensor<T>{weight_dim, weight_strides}.generate(gen_weight_one);
         else
-            weight = tensor<T>{weight_dim}.generate(gen_weight_value);
+            weight = tensor<T>{weight_dim, weight_strides}.generate(gen_weight_value);
 
-        output = tensor<T>{out_dim};
+        auto out_strides = GetStrides(out_dim, true);
+        output = tensor<T>{out_dim, out_strides};
         std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
 
-        ref_output = tensor<T>{out_dim};
+        ref_output = tensor<T>{out_dim, out_strides};
         std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<T>::quiet_NaN());
 
         input_dev  = handle.Write(input.data);
@@ -140,16 +208,16 @@ protected:
         auto&& handle = get_handle();
         cpu_nllloss_forward_4d<T>(input, target, weight, ref_output, ignore_index);
 
-        miopenStatus_t status = miopen::NLLLossForward(handle,
-                                                       input.desc,
-                                                       input_dev.get(),
-                                                       target.desc,
-                                                       target_dev.get(),
-                                                       weight.desc,
-                                                       weight_dev.get(),
-                                                       output.desc,
-                                                       output_dev.get(),
-                                                       ignore_index);
+        miopenStatus_t status = miopen::NLLLossUnreduceForward(handle,
+                                                               input.desc,
+                                                               input_dev.get(),
+                                                               target.desc,
+                                                               target_dev.get(),
+                                                               weight.desc,
+                                                               weight_dev.get(),
+                                                               output.desc,
+                                                               output_dev.get(),
+                                                               ignore_index);
         fflush(stdout);
 
         EXPECT_EQ(status, miopenStatusSuccess);
@@ -195,6 +263,7 @@ protected:
 
         ignore_index = nllloss_config.ignore_index;
         weight_mode  = nllloss_config.weight_mode;
+        auto contiguous = nllloss_config.contiguous;
 
         auto in_dim                      = nllloss_config.GetInput();
         std::vector<size_t> target_dim   = {in_dim[0], in_dim[2], in_dim[3]};
@@ -214,20 +283,24 @@ protected:
             return prng::gen_A_to_B<T>(static_cast<T>(-100.0f), static_cast<T>(100.0f));
         };
 
-        input_grad = tensor<T>{in_dim};
+        auto in_strides = GetStrides(in_dim, true);
+        input_grad = tensor<T>{in_dim, in_strides};
         std::fill(input_grad.begin(), input_grad.end(), static_cast<T>(0.0f));
 
-        ref_input_grad = tensor<T>{in_dim};
+        ref_input_grad = tensor<T>{in_dim, in_strides};
         std::fill(ref_input_grad.begin(), ref_input_grad.end(), static_cast<T>(0.0f));
 
-        target = tensor<int32_t>{target_dim}.generate(gen_target_value);
+        auto tar_strides = GetStrides(target_dim, contiguous);
+        target = tensor<int32_t>{target_dim, tar_strides}.generate(gen_target_value);
 
+        auto weight_strides = GetStrides(weight_dim, true);
         if(!weight_mode)
-            weight = tensor<T>{weight_dim}.generate(gen_weight_one);
+            weight = tensor<T>{weight_dim, weight_strides}.generate(gen_weight_one);
         else
-            weight = tensor<T>{weight_dim}.generate(gen_weight_value);
+            weight = tensor<T>{weight_dim, weight_strides}.generate(gen_weight_value);
 
-        output_grad = tensor<T>{out_grad_dim}.generate(gen_output_grad_value);
+        auto out_strides = GetStrides(out_grad_dim, true);
+        output_grad = tensor<T>{out_grad_dim, out_strides}.generate(gen_output_grad_value);
 
         input_grad_dev  = handle.Write(input_grad.data);
         target_dev      = handle.Write(target.data);
@@ -240,16 +313,16 @@ protected:
         auto&& handle = get_handle();
         cpu_nllloss_backward_4d<T>(ref_input_grad, target, weight, output_grad, ignore_index);
 
-        miopenStatus_t status = miopen::NLLLossBackward(handle,
-                                                        input_grad.desc,
-                                                        input_grad_dev.get(),
-                                                        target.desc,
-                                                        target_dev.get(),
-                                                        weight.desc,
-                                                        weight_dev.get(),
-                                                        output_grad.desc,
-                                                        output_grad_dev.get(),
-                                                        ignore_index);
+        miopenStatus_t status = miopen::NLLLossUnreduceBackward(handle,
+                                                                input_grad.desc,
+                                                                input_grad_dev.get(),
+                                                                target.desc,
+                                                                target_dev.get(),
+                                                                weight.desc,
+                                                                weight_dev.get(),
+                                                                output_grad.desc,
+                                                                output_grad_dev.get(),
+                                                                ignore_index);
 
         fflush(stdout);
 

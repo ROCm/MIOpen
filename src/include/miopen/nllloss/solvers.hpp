@@ -40,28 +40,78 @@ namespace solver {
 namespace nllloss {
 
 using NormalizationSolver =
-    NonTunableSolverBase<ExecutionContext, miopen::nllloss::ProblemDescription>;
+    NonTunableSolverBase<ExecutionContext, miopen::nllloss::UnreduceProblemDescription>;
 
-struct NLLLossForward final : NormalizationSolver
+struct NLLLossUnreduceForwardSolver : NormalizationSolver
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<NLLLossForward>(); }
-
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::nllloss::ProblemDescription& problem) const override;
-
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::nllloss::ProblemDescription& problem) const override;
+                      const miopen::nllloss::UnreduceProblemDescription& problem) const override;
 };
 
-struct NLLLossBackward final : NormalizationSolver
+struct NLLLossUnreduceForwardContiguous final : NLLLossUnreduceForwardSolver
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<NLLLossBackward>(); }
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<NLLLossUnreduceForwardContiguous>();
+    }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::nllloss::ProblemDescription& problem) const override;
+                      const miopen::nllloss::UnreduceProblemDescription& problem) const override;
 
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::nllloss::ProblemDescription& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::nllloss::UnreduceProblemDescription& problem) const override;
+};
+
+struct NLLLossUnreduceForward4d final : NLLLossUnreduceForwardSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<NLLLossUnreduceForward4d>();
+    }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::nllloss::UnreduceProblemDescription& problem) const override;
+
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::nllloss::UnreduceProblemDescription& problem) const override;
+};
+
+struct NLLLossUnreduceBackwardSolver : NormalizationSolver
+{
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::nllloss::UnreduceProblemDescription& problem) const override;
+};
+
+struct NLLLossUnreduceBackwardContiguous final : NLLLossUnreduceBackwardSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<NLLLossUnreduceBackwardContiguous>();
+    }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::nllloss::UnreduceProblemDescription& problem) const override;
+
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::nllloss::UnreduceProblemDescription& problem) const override;
+};
+
+struct NLLLossUnreduceBackward4d final : NLLLossUnreduceBackwardSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<NLLLossUnreduceBackward4d>();
+    }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::nllloss::UnreduceProblemDescription& problem) const override;
+
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::nllloss::UnreduceProblemDescription& problem) const override;
 };
 
 } // namespace nllloss
