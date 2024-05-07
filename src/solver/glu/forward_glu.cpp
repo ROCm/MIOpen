@@ -52,8 +52,6 @@ bool GLUForward::IsApplicable(const ExecutionContext& context,
 
     if(!problem.IsSameType())
         return false;
-    if(!problem.IsRightLength())
-        return false;
     if(!problem.IsAllPacked())
         return false;
     if(!problem.IsFirstDim())

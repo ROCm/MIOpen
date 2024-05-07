@@ -46,50 +46,42 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
 NetworkConfig ProblemDescription::MakeForwardNetworkConfig() const
 {
-    auto inputlength  = inputDesc.GetLengths();
+    auto inputlength = inputDesc.GetLengths();
 
-    auto splitdim_size = inputlength[dim];
-    auto input_numel  = std::accumulate(inputlength.begin(),
-                                        inputlength.end(),
-                                        static_cast<size_t>(1),
-                                        std::multiplies<size_t>());
+    auto input_numel = std::accumulate(
+        inputlength.begin(), inputlength.end(), static_cast<size_t>(1), std::multiplies<size_t>());
 
     auto input_dtype  = miopen::GetDataType(inputDesc.GetType());
     auto output_dtype = miopen::GetDataType(outputDesc.GetType());
 
     std::ostringstream ss;
 
-    ss << "contiguous";
     ss << "input_dtype" << input_dtype;
     ss << "output_dtype" << output_dtype;
     ss << "dim" << dim;
-    ss << "splitDim_size" << splitdim_size;
     ss << "input_numel" << input_numel;
+    ss << IsAllPacked();
 
     return NetworkConfig{ss.str()};
 }
 
 NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
 {
-    auto inputlength  = inputDesc.GetLengths();
+    auto inputlength = inputDesc.GetLengths();
 
-    auto splitdim_size = inputlength[dim];
-    auto input_numel  = std::accumulate(inputlength.begin(),
-                                        inputlength.end(),
-                                        static_cast<size_t>(1),
-                                        std::multiplies<size_t>());
+    auto input_numel = std::accumulate(
+        inputlength.begin(), inputlength.end(), static_cast<size_t>(1), std::multiplies<size_t>());
 
-    auto input_dtype  = miopen::GetDataType(inputDesc.GetType());
-    auto output_dtype = miopen::GetDataType(outputDesc.GetType());
+    auto input_dtype     = miopen::GetDataType(inputDesc.GetType());
+    auto inputGrad_dtype = miopen::GetDataType(inputGradDesc.GetType());
 
     std::ostringstream ss;
 
-    ss << "contiguous";
     ss << "input_dtype" << input_dtype;
-    ss << "output_dtype" << output_dtype;
+    ss << "inputGrad_dtype" << inputGrad_dtype;
     ss << "dim" << dim;
-    ss << "splitDim_size" << splitdim_size;
     ss << "input_numel" << input_numel;
+    ss << IsAllPacked();
 
     return NetworkConfig{ss.str()};
 }

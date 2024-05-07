@@ -64,6 +64,28 @@ struct ProblemDescription : ProblemDescriptionBase
                          "GLU::ProblemDescription: The split dimension size of input tensor should "
                          "be divisible by 2.");
         }
+
+        for(int32_t i = 0; i < inputDesc.GetLengths().size(); i++)
+        {
+            if(i == dim)
+            {
+                if(inputDesc.GetLengths()[i] / 2 != outputDesc.GetLengths()[i])
+                {
+                    MIOPEN_THROW(miopenStatusBadParm,
+                                 "GLU::ProblemDescription: Dimension sizes don't match between "
+                                 "input tensor and output tensor.");
+                }
+            }
+            else
+            {
+                if(inputDesc.GetLengths()[i] != outputDesc.GetLengths()[i])
+                {
+                    MIOPEN_THROW(miopenStatusBadParm,
+                                 "GLU::ProblemDescription: Dimension sizes don't match between "
+                                 "input tensor and output tensor.");
+                }
+            }
+        }
     }
 
     // Backward constructor
@@ -83,11 +105,36 @@ struct ProblemDescription : ProblemDescriptionBase
             MIOPEN_THROW(miopenStatusBadParm,
                          "GLU::ProblemDescription: Number of tensor dimension do not match.");
         }
+
         if(inputDesc.GetLengths()[dim] % 2 != 0)
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "GLU::ProblemDescription: The split dimension size of input tensor should "
                          "be divisible by 2.");
+        }
+
+        for(int32_t i = 0; i < inputDesc.GetLengths().size(); i++)
+        {
+            if(i == dim)
+            {
+                if(inputDesc.GetLengths()[i] / 2 != outputGradDesc.GetLengths()[i] ||
+                   inputDesc.GetLengths()[i] != inputGradDesc.GetLengths()[i])
+                {
+                    MIOPEN_THROW(miopenStatusBadParm,
+                                 "GLU::ProblemDescription: Dimension sizes don't match between "
+                                 "input tensor and output tensor.");
+                }
+            }
+            else
+            {
+                if(inputDesc.GetLengths()[i] != inputGradDesc.GetLengths()[i] ||
+                   inputDesc.GetLengths()[i] != outputGradDesc.GetLengths()[i])
+                {
+                    MIOPEN_THROW(miopenStatusBadParm,
+                                 "GLU::ProblemDescription: Dimension sizes don't match between "
+                                 "input tensor and output tensor.");
+                }
+            }
         }
     }
 
@@ -116,53 +163,6 @@ struct ProblemDescription : ProblemDescriptionBase
             }
         }
 
-        return true;
-    }
-
-    bool IsRightLength() const
-    {
-        if(direction == Direction::Forward)
-        {
-            for(int32_t i = 0; i < inputDesc.GetLengths().size(); i++)
-            {
-                if(i == dim)
-                {
-                    if(inputDesc.GetLengths()[i] / 2 != outputDesc.GetLengths()[i])
-                    {
-                        return false;
-                    }
-                }
-                else
-                {
-                    if(inputDesc.GetLengths()[i] != outputDesc.GetLengths()[i])
-                    {
-                        return false;
-                    }
-                }
-            }
-        }
-        else
-        {
-            for(int32_t i = 0; i < inputDesc.GetLengths().size(); i++)
-            {
-                if(i == dim)
-                {
-                    if(inputDesc.GetLengths()[i] / 2 != outputGradDesc.GetLengths()[i] ||
-                       inputDesc.GetLengths()[i] != inputGradDesc.GetLengths()[i])
-                    {
-                        return false;
-                    }
-                }
-                else
-                {
-                    if(inputDesc.GetLengths()[i] != inputGradDesc.GetLengths()[i] ||
-                       inputDesc.GetLengths()[i] != outputGradDesc.GetLengths()[i])
-                    {
-                        return false;
-                    }
-                }
-            }
-        }
         return true;
     }
 
