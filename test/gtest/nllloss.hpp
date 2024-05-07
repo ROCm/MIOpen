@@ -55,10 +55,8 @@ struct NLLLossTestCase
 
     friend std::ostream& operator<<(std::ostream& os, const NLLLossTestCase& tc)
     {
-        return os << " input:" << tc.input
-                  << " weight_mode:" << tc.weight_mode 
-                  << " ignore_index:" << tc.ignore_index
-                  << " Contiguous:" << tc.contiguous;
+        return os << " input:" << tc.input << " weight_mode:" << tc.weight_mode
+                  << " ignore_index:" << tc.ignore_index << " Contiguous:" << tc.contiguous;
     }
 
     std::vector<size_t> GetInput() const { return input; }
@@ -157,8 +155,8 @@ protected:
         auto&& handle  = get_handle();
         nllloss_config = GetParam();
 
-        ignore_index = nllloss_config.ignore_index;
-        weight_mode  = nllloss_config.weight_mode;
+        ignore_index    = nllloss_config.ignore_index;
+        weight_mode     = nllloss_config.weight_mode;
         auto contiguous = nllloss_config.contiguous;
 
         auto in_dim                    = nllloss_config.GetInput();
@@ -179,10 +177,10 @@ protected:
         auto gen_weight_one = [](auto...) { return static_cast<T>(1); };
 
         auto in_strides = GetStrides(in_dim, true);
-        input = tensor<T>{in_dim, in_strides}.generate(gen_input_value);
+        input           = tensor<T>{in_dim, in_strides}.generate(gen_input_value);
 
         auto tar_strides = GetStrides(target_dim, contiguous);
-        target = tensor<int32_t>{target_dim, tar_strides}.generate(gen_target_value);
+        target           = tensor<int32_t>{target_dim, tar_strides}.generate(gen_target_value);
 
         auto weight_strides = GetStrides(weight_dim, true);
         if(!weight_mode)
@@ -191,7 +189,7 @@ protected:
             weight = tensor<T>{weight_dim, weight_strides}.generate(gen_weight_value);
 
         auto out_strides = GetStrides(out_dim, true);
-        output = tensor<T>{out_dim, out_strides};
+        output           = tensor<T>{out_dim, out_strides};
         std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
 
         ref_output = tensor<T>{out_dim, out_strides};
@@ -261,8 +259,8 @@ protected:
         auto&& handle  = get_handle();
         nllloss_config = GetParam();
 
-        ignore_index = nllloss_config.ignore_index;
-        weight_mode  = nllloss_config.weight_mode;
+        ignore_index    = nllloss_config.ignore_index;
+        weight_mode     = nllloss_config.weight_mode;
         auto contiguous = nllloss_config.contiguous;
 
         auto in_dim                      = nllloss_config.GetInput();
@@ -284,14 +282,14 @@ protected:
         };
 
         auto in_strides = GetStrides(in_dim, true);
-        input_grad = tensor<T>{in_dim, in_strides};
+        input_grad      = tensor<T>{in_dim, in_strides};
         std::fill(input_grad.begin(), input_grad.end(), static_cast<T>(0.0f));
 
         ref_input_grad = tensor<T>{in_dim, in_strides};
         std::fill(ref_input_grad.begin(), ref_input_grad.end(), static_cast<T>(0.0f));
 
         auto tar_strides = GetStrides(target_dim, contiguous);
-        target = tensor<int32_t>{target_dim, tar_strides}.generate(gen_target_value);
+        target           = tensor<int32_t>{target_dim, tar_strides}.generate(gen_target_value);
 
         auto weight_strides = GetStrides(weight_dim, true);
         if(!weight_mode)
@@ -300,7 +298,7 @@ protected:
             weight = tensor<T>{weight_dim, weight_strides}.generate(gen_weight_value);
 
         auto out_strides = GetStrides(out_grad_dim, true);
-        output_grad = tensor<T>{out_grad_dim, out_strides}.generate(gen_output_grad_value);
+        output_grad      = tensor<T>{out_grad_dim, out_strides}.generate(gen_output_grad_value);
 
         input_grad_dev  = handle.Write(input_grad.data);
         target_dev      = handle.Write(target.data);

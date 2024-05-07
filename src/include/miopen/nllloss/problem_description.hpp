@@ -151,11 +151,11 @@ struct ProblemDescription : ProblemDescriptionBase
             {
                 if(s != td.GetStrides()[i])
                 {
-// #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+                    // #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
                     // MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Non-contiguous Tensor.");
-// #else
+                    // #else
                     return false;
-// #endif
+                    // #endif
                 }
                 s *= td.GetLengths()[i];
             }

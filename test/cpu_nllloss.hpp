@@ -92,10 +92,10 @@ void cpu_nllloss_backward_4d(tensor<T>& input_grad,
     {
         uint64_t n[3];
         GET_NCD(n[0], n[1], n[2], i, O_tv);
-        size_t target_index = TV3D_IDX(T_tv, n[0], n[1], n[2]);
-        int32_t t           = target[target_index];
+        size_t target_index      = TV3D_IDX(T_tv, n[0], n[1], n[2]);
+        int32_t t                = target[target_index];
         size_t input_grad_index  = TV4D_IDX(I_tv, n[0], t, n[1], n[2]);
-        size_t weight_index = TV1D_IDX(W_tv, t);
+        size_t weight_index      = TV1D_IDX(W_tv, t);
         size_t output_grad_index = TV3D_IDX(O_tv, n[0], n[1], n[2]);
 
         if(t < 0 || t == ignore_index || t >= C)
@@ -104,8 +104,8 @@ void cpu_nllloss_backward_4d(tensor<T>& input_grad,
         }
         else
         {
-            input_grad[input_grad_index] = static_cast<T>(-1.0f) * weight[weight_index] *
-                                            output_grad[output_grad_index];
+            input_grad[input_grad_index] =
+                static_cast<T>(-1.0f) * weight[weight_index] * output_grad[output_grad_index];
         }
     }
 }

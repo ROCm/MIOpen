@@ -87,22 +87,22 @@ using tensor_view_5d_t = struct
         c          = nc % tv.size[1];     \
     }
 
-#define GET_NCDH(n, c, d, h, idx, tv)  \
-    {                                  \
+#define GET_NCDH(n, c, d, h, idx, tv)   \
+    {                                   \
         ulong ncd = (idx) / tv.size[3]; \
         h         = (idx) % tv.size[3]; \
-        ulong nc  = ncd / tv.size[2];  \
-        d         = ncd % tv.size[2];  \
-        n         = nc / tv.size[1];   \
-        c         = nc % tv.size[1];   \
+        ulong nc  = ncd / tv.size[2];   \
+        d         = ncd % tv.size[2];   \
+        n         = nc / tv.size[1];    \
+        c         = nc % tv.size[1];    \
     }
 
-#define GET_NCD(n, c, d, idx, tv)  \
+#define GET_NCD(n, c, d, idx, tv)      \
     {                                  \
-        ulong nc  = (idx) / tv.size[2];  \
-        d         = (idx) % tv.size[2];  \
-        n         = nc / tv.size[1];   \
-        c         = nc % tv.size[1];   \
+        ulong nc = (idx) / tv.size[2]; \
+        d        = (idx) % tv.size[2]; \
+        n        = nc / tv.size[1];    \
+        c        = nc % tv.size[1];    \
     }
 
 #endif // GUARD_TENSOR_VIEW_H

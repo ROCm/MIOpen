@@ -121,7 +121,6 @@ private:
     miopenTensorDescriptor_t inputGradDesc;
     miopenTensorDescriptor_t outputGradDesc;
 
-
     std::unique_ptr<GPUMem> in_dev;
     std::unique_ptr<GPUMem> target_dev;
     std::unique_ptr<GPUMem> weight_dev;
@@ -177,8 +176,8 @@ int NLLLossDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> weight_len = {C};
     std::vector<int> out_len    = {N, D1, D2};
 
-    auto in_strides    = GetStrides(in_len, 1);
-    auto tar_strides = GetStrides(target_len, inflags.GetValueInt("contiguous"));
+    auto in_strides     = GetStrides(in_len, 1);
+    auto tar_strides    = GetStrides(target_len, inflags.GetValueInt("contiguous"));
     auto weight_strides = GetStrides(weight_len, 1);
     auto output_strides = GetStrides(out_len, 1);
 
@@ -201,7 +200,11 @@ int NLLLossDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("D1", 'd', "17", "Size D1", "int");
     inflags.AddInputFlag("D2", 'D', "19", "Size D2", "int");
     inflags.AddInputFlag("ignore_index", 'g', "-1", "Ignore index", "int");
-    inflags.AddInputFlag("contiguous", 'c', "1", "Is input tensor contiguous? (Default=1 for contiguous tensor)", "int");
+    inflags.AddInputFlag("contiguous",
+                         'c',
+                         "1",
+                         "Is input tensor contiguous? (Default=1 for contiguous tensor)",
+                         "int");
 
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify (Default=1)", "int");
@@ -222,11 +225,11 @@ int NLLLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     uint32_t ctx = 0;
 
-    in_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-    target_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, target_sz, sizeof(int)));
-    weight_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, weight_sz, sizeof(Tgpu)));
-    out_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-    in_grad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    in_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    target_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, target_sz, sizeof(int)));
+    weight_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, weight_sz, sizeof(Tgpu)));
+    out_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+    in_grad_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
     out_grad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
     in       = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
@@ -235,9 +238,9 @@ int NLLLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     out      = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
     out_host = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
-    in_grad = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    in_grad      = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
     in_grad_host = std::vector<Tref>(in_sz, static_cast<Tref>(0));
-    out_grad = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    out_grad     = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
 
     int status;
 
@@ -265,7 +268,7 @@ int NLLLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     // backward
     status |= in_grad_dev->ToGPU(q, in_grad.data());
 
-    for (int i = 0; i < out_sz; i++)
+    for(int i = 0; i < out_sz; i++)
     {
         out_grad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-10.0), static_cast<Tgpu>(10.0));
     }
@@ -289,15 +292,15 @@ int NLLLossDriver<Tgpu, Tref>::RunForwardGPU()
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
         miopenNLLLossUnreduceForward(GetHandle(),
-                             inputDesc,
-                             in_dev->GetMem(),
-                             targetDesc,
-                             target_dev->GetMem(),
-                             weightDesc,
-                             weight_dev->GetMem(),
-                             outputDesc,
-                             out_dev->GetMem(),
-                             ignore_index);
+                                     inputDesc,
+                                     in_dev->GetMem(),
+                                     targetDesc,
+                                     target_dev->GetMem(),
+                                     weightDesc,
+                                     weight_dev->GetMem(),
+                                     outputDesc,
+                                     out_dev->GetMem(),
+                                     ignore_index);
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -326,16 +329,15 @@ int NLLLossDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int NLLLossDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloNLLLossUnreduceForwardRunHost<Tgpu, Tref>(
-        inputDesc, 
-        targetDesc,
-        weightDesc,
-        outputDesc,
-        in.data(),
-        target.data(), 
-        weight.data(), 
-        out_host.data(), 
-        ignore_index);
+    mloNLLLossUnreduceForwardRunHost<Tgpu, Tref>(inputDesc,
+                                                 targetDesc,
+                                                 weightDesc,
+                                                 outputDesc,
+                                                 in.data(),
+                                                 target.data(),
+                                                 weight.data(),
+                                                 out_host.data(),
+                                                 ignore_index);
 
     return miopenStatusSuccess;
 }
@@ -352,15 +354,15 @@ int NLLLossDriver<Tgpu, Tref>::RunBackwardGPU()
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
         miopenNLLLossUnreduceBackward(GetHandle(),
-                             inputGradDesc,
-                             in_grad_dev->GetMem(),
-                             targetDesc,
-                             target_dev->GetMem(),
-                             weightDesc,
-                             weight_dev->GetMem(),
-                             outputGradDesc,
-                             out_grad_dev->GetMem(),
-                             ignore_index);
+                                      inputGradDesc,
+                                      in_grad_dev->GetMem(),
+                                      targetDesc,
+                                      target_dev->GetMem(),
+                                      weightDesc,
+                                      weight_dev->GetMem(),
+                                      outputGradDesc,
+                                      out_grad_dev->GetMem(),
+                                      ignore_index);
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -389,16 +391,15 @@ int NLLLossDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 int NLLLossDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    mloNLLLossUnreduceBackwardRunHost<Tgpu, Tref>(
-        inputGradDesc, 
-        targetDesc,
-        weightDesc,
-        outputGradDesc,
-        in_grad_host.data(), 
-        target.data(), 
-        weight.data(), 
-        out_grad.data(), 
-        ignore_index);
+    mloNLLLossUnreduceBackwardRunHost<Tgpu, Tref>(inputGradDesc,
+                                                  targetDesc,
+                                                  weightDesc,
+                                                  outputGradDesc,
+                                                  in_grad_host.data(),
+                                                  target.data(),
+                                                  weight.data(),
+                                                  out_grad.data(),
+                                                  ignore_index);
 
     return miopenStatusSuccess;
 }

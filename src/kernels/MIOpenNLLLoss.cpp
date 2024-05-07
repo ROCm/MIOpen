@@ -99,7 +99,9 @@ __device__ void nlllossUnreducedForward4d(const TI* __restrict__ input,
     size_t n[3];
     GET_NCD(n[0], n[1], n[2], gid, output_tv);
 
-    // printf("gid: %d, n[0]: %d, n[1]: %d, n[2]: %d, output_tv.size[0]: %d, output_tv.size[1]: %d, output_tv.size[2]: %d\n", gid, n[0], n[1], n[2], output_tv.size[0], output_tv.size[1], output_tv.size[2]);
+    // printf("gid: %d, n[0]: %d, n[1]: %d, n[2]: %d, output_tv.size[0]: %d, output_tv.size[1]: %d,
+    // output_tv.size[2]: %d\n", gid, n[0], n[1], n[2], output_tv.size[0], output_tv.size[1],
+    // output_tv.size[2]);
 
     size_t max_gid = output_tv.size[0] * output_tv.size[1] * output_tv.size[2];
     if(gid >= max_gid)
@@ -108,7 +110,7 @@ __device__ void nlllossUnreducedForward4d(const TI* __restrict__ input,
     size_t Tidx = TV3D_IDX(target_tv, n[0], n[1], n[2]);
     size_t Oidx = TV3D_IDX(output_tv, n[0], n[1], n[2]);
 
-    int32_t C = weight_tv.size[0];
+    int32_t C   = weight_tv.size[0];
     int32_t t   = target[Tidx];
     size_t Iidx = TV4D_IDX(input_tv, n[0], t, n[1], n[2]);
     size_t Widx = TV1D_IDX(weight_tv, t);
@@ -215,7 +217,7 @@ __device__ void nlllossUnreducedBackward4d(TO* __restrict__ input_grad,
     size_t Tidx = TV3D_IDX(target_tv, n[0], n[1], n[2]);
     size_t Oidx = TV3D_IDX(output_grad_tv, n[0], n[1], n[2]);
 
-    int32_t C = weight_tv.size[0];
+    int32_t C   = weight_tv.size[0];
     int32_t t   = target[Tidx];
     size_t Iidx = TV4D_IDX(input_grad_tv, n[0], t, n[1], n[2]);
     size_t Widx = TV1D_IDX(weight_tv, t);
