@@ -29,7 +29,7 @@ found, they're stored in the User PerfDb. MIOpen then automatically reads and us
 values.
 
 By default, System PerfDb resides within MIOpen's install location, while User PerfDb resides in your
-home directory. See :ref:` setting up locations <setting-up-locations>` for more information.
+home directory. See :ref:`setting up locations <setting-up-locations>` for more information.
 
 System PerfDb is not modified during MIOpen installation.
 
