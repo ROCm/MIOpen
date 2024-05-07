@@ -235,7 +235,8 @@ struct ProblemInterpreter
     {
         return problem.GetBeta();
     }
-    static miopen::conv::AlphaBetaCase GetAlphaBetaCase(const miopen::conv::ProblemDescription& problem)
+    static miopen::conv::AlphaBetaCase
+    GetAlphaBetaCase(const miopen::conv::ProblemDescription& problem)
     {
         return problem.GetAlphaBetaCase();
     }

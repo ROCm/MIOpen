@@ -34,6 +34,8 @@
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight_bilinear.hpp>
+#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight_scale.hpp>
+#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS)
@@ -51,10 +53,11 @@ using WeiLayout                            = ck::tensor_layout::convolution::GKZ
 using OutLayout                            = ck::tensor_layout::convolution::NDHWGK;
 using PassThrough                          = ck::tensor_operation::element_wise::PassThrough;
 using Bilinear                             = ck::tensor_operation::element_wise::Bilinear;
+using Scale                                = ck::tensor_operation::element_wise::Scale;
 static constexpr ck::index_t NumDimSpatial = 3;
 
 template <typename DataType>
-using DeviceOpGBwdWrw =
+using DeviceOpGBwdWeightBilinear =
     ck::tensor_operation::device::DeviceGroupedConvBwdWeightMultipleD<NumDimSpatial,
                                                                       InLayout,
                                                                       WeiLayout,
@@ -69,11 +72,54 @@ using DeviceOpGBwdWrw =
                                                                       PassThrough>;
 
 template <typename DataType>
-using DeviceOpGBwdWrwPtrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-    DeviceOpGBwdWrw<DataType>>;
+using DeviceOpGBwdWeightScale =
+    ck::tensor_operation::device::DeviceGroupedConvBwdWeightMultipleD<NumDimSpatial,
+                                                                      InLayout,
+                                                                      WeiLayout,
+                                                                      OutLayout,
+                                                                      ck::Tuple<>,
+                                                                      DataType,
+                                                                      DataType,
+                                                                      DataType,
+                                                                      ck::Tuple<>,
+                                                                      PassThrough,
+                                                                      Scale,
+                                                                      PassThrough>;
+
+// CK does not have default instance of bwd weight. So, for now will just use Scale.
+template <typename DataType>
+using DeviceOpGBwdWeightDefault =
+    ck::tensor_operation::device::DeviceGroupedConvBwdWeightMultipleD<NumDimSpatial,
+                                                                      InLayout,
+                                                                      WeiLayout,
+                                                                      OutLayout,
+                                                                      ck::Tuple<>,
+                                                                      DataType,
+                                                                      DataType,
+                                                                      DataType,
+                                                                      ck::Tuple<>,
+                                                                      PassThrough,
+                                                                      Scale,
+                                                                      PassThrough>;
+
+template <typename DataType>
+using DeviceOpGBwdWeightBilinearPtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGBwdWeightBilinear<DataType>>;
+
+template <typename DataType>
+using DeviceOpGBwdWeightScalePtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGBwdWeightScale<DataType>>;
+
+template <typename DataType>
+using DeviceOpGBwdWeightDefaultPtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGBwdWeightDefault<DataType>>;
 
 namespace {
 
+template <typename DataType>
 struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
@@ -153,6 +199,30 @@ struct CKArgs
     template <typename ConvPtr>
     auto MakeArgPtr(const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy) const
     {
+        // The function parameter "const ConvPtr&" modifies the "typename ConvPtr"
+        // adding "const" and "reference". So had to adjust them during comparison.
+        if constexpr(std::is_same_v<std::remove_const_t<std::remove_reference_t<ConvPtr>>,
+                                    std::unique_ptr<DeviceOpGBwdWeightBilinear<DataType>>> ||
+                     std::is_same_v<std::remove_const_t<std::remove_reference_t<ConvPtr>>,
+                                    std::shared_ptr<DeviceOpGBwdWeightBilinear<DataType>>>)
+        {
+            return MakeBilinearArgPtr(conv_ptr, x, dw, dy);
+        }
+        else if constexpr(std::is_same_v<std::remove_const_t<std::remove_reference_t<ConvPtr>>,
+                                         std::unique_ptr<DeviceOpGBwdWeightScale<DataType>>> ||
+                          std::is_same_v<std::remove_const_t<std::remove_reference_t<ConvPtr>>,
+                                         std::shared_ptr<DeviceOpGBwdWeightScale<DataType>>>)
+        {
+            return MakeScaleArgPtr(conv_ptr, x, dw, dy);
+        }
+        else
+        {
+            return MakeDefaultArgPtr(conv_ptr, x, dw, dy);
+        }
+    }
+    template <typename ConvPtr>
+    auto MakeBilinearArgPtr(const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy) const
+    {
         return conv_ptr->MakeArgumentPointer(x,
                                              dw,
                                              dy,
@@ -171,6 +241,56 @@ struct CKArgs
                                              rPadding,
                                              PassThrough{},
                                              Bilinear{alpha.GetAsFloat(), beta.GetAsFloat()},
+                                             PassThrough{},
+                                             split_k);
+    }
+
+    template <typename ConvPtr>
+    auto MakeScaleArgPtr(const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy) const
+    {
+        return conv_ptr->MakeArgumentPointer(x,
+                                             dw,
+                                             dy,
+                                             {},
+                                             in_lengths,
+                                             in_strides,
+                                             wei_lengths,
+                                             wei_strides,
+                                             out_lengths,
+                                             out_strides,
+                                             {},
+                                             {},
+                                             filter_strides,
+                                             filter_dilations,
+                                             lPadding,
+                                             rPadding,
+                                             PassThrough{},
+                                             Scale{alpha.GetAsFloat()},
+                                             PassThrough{},
+                                             split_k);
+    }
+
+    template <typename ConvPtr>
+    auto MakeDefaultArgPtr(const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy) const
+    {
+        return conv_ptr->MakeArgumentPointer(x,
+                                             dw,
+                                             dy,
+                                             {},
+                                             in_lengths,
+                                             in_strides,
+                                             wei_lengths,
+                                             wei_strides,
+                                             out_lengths,
+                                             out_strides,
+                                             {},
+                                             {},
+                                             filter_strides,
+                                             filter_dilations,
+                                             lPadding,
+                                             rPadding,
+                                             PassThrough{},
+                                             PassThrough{},
                                              PassThrough{},
                                              split_k);
     }
@@ -222,23 +342,57 @@ struct CKArgs
 template <typename DataType>
 void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::Init(const ProblemDescription& problem)
 {
-    valid_kernels = FillValidKernelsIDs<DeviceOpGBwdWrwPtrs<DataType>, CKArgs>(problem);
-    index         = 0;
-    kernel_id     = valid_kernels[index];
+    switch(problem.GetAlphaBetaCase())
+    {
+    case ::miopen::conv::AlphaBetaCase::BILINEAR:
+        valid_kernels =
+            FillValidKernelsIDs<DeviceOpGBwdWeightBilinearPtrs<DataType>, CKArgs<DataType>>(
+                problem);
+        break;
+    case ::miopen::conv::AlphaBetaCase::SCALE:
+        valid_kernels =
+            FillValidKernelsIDs<DeviceOpGBwdWeightScalePtrs<DataType>, CKArgs<DataType>>(problem);
+        break;
+    default:
+        valid_kernels =
+            FillValidKernelsIDs<DeviceOpGBwdWeightDefaultPtrs<DataType>, CKArgs<DataType>>(problem);
+        break;
+    }
+    index     = 0;
+    kernel_id = valid_kernels[index];
 }
 
 template <typename DataType>
 bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
-    return IsCKArgsSupported<DeviceOpGBwdWrwPtrs<DataType>, CKArgs>(problem, kernel_id);
+    switch(problem.GetAlphaBetaCase())
+    {
+    case ::miopen::conv::AlphaBetaCase::BILINEAR:
+        return IsCKArgsSupported<DeviceOpGBwdWeightBilinearPtrs<DataType>, CKArgs<DataType>>(
+            problem, kernel_id);
+    case ::miopen::conv::AlphaBetaCase::SCALE:
+        return IsCKArgsSupported<DeviceOpGBwdWeightScalePtrs<DataType>, CKArgs<DataType>>(
+            problem, kernel_id);
+    default:
+        return IsCKArgsSupported<DeviceOpGBwdWeightDefaultPtrs<DataType>, CKArgs<DataType>>(
+            problem, kernel_id);
+    }
 }
 
 template <typename DataType>
 bool ConvHipImplicitGemm3DGroupWrwXdlops::CheckCKApplicability(
     const ProblemDescription& problem) const
 {
-    return IsCKApplicable<DeviceOpGBwdWrwPtrs<DataType>, CKArgs>(problem);
+    switch(problem.GetAlphaBetaCase())
+    {
+    case ::miopen::conv::AlphaBetaCase::BILINEAR:
+        return IsCKApplicable<DeviceOpGBwdWeightBilinearPtrs<DataType>, CKArgs<DataType>>(problem);
+    case ::miopen::conv::AlphaBetaCase::SCALE:
+        return IsCKApplicable<DeviceOpGBwdWeightScalePtrs<DataType>, CKArgs<DataType>>(problem);
+    default:
+        return IsCKApplicable<DeviceOpGBwdWeightDefaultPtrs<DataType>, CKArgs<DataType>>(problem);
+    }
 }
 #endif
 
@@ -251,9 +405,9 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     switch(problem.GetInDataType())
     {
-    case miopenHalf: Init<ck::half_t>(problem); break;
+    case miopenHalf: // Init<ck::half_t>(problem); break;
     case miopenFloat: Init<float>(problem); break;
-    case miopenInt8: Init<int8_t>(problem); break;
+    case miopenInt8: // Init<int8_t>(problem); break;
     case miopenInt32:
     case miopenBFloat16:
     case miopenFloat8:
@@ -293,9 +447,9 @@ bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::IsValid(
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     switch(problem.GetInDataType())
     {
-    case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
+    case miopenHalf: // return CheckIsSupportCKArgs<ck::half_t>(problem);
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
-    case miopenInt8: return CheckIsSupportCKArgs<int8_t>(problem);
+    case miopenInt8: // return CheckIsSupportCKArgs<int8_t>(problem);
     case miopenInt32:
     case miopenBFloat16:
     case miopenFloat8:
@@ -370,9 +524,9 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::IsApplicable(
         return false;
     switch(problem.GetInDataType())
     {
-    case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
+    case miopenHalf: // return CheckCKApplicability<ck::half_t>(problem);
     case miopenFloat: return CheckCKApplicability<float>(problem);
-    case miopenInt8: return CheckCKApplicability<int8_t>(problem);
+    case miopenInt8: // return CheckCKApplicability<int8_t>(problem);
     case miopenInt32:
     case miopenBFloat16:
     case miopenFloat8:
@@ -393,18 +547,48 @@ ConvSolution ConvHipImplicitGemm3DGroupWrwXdlops::GetSolution(
         problem,
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryWrwNCHW<3,
-                                             DeviceOpGBwdWrwPtrs<T>,
-                                             CKArgs,
-                                             miopen::conv::WrWInvokeParams>(
-                ctx, problem, config.kernel_id);
+            switch(problem.GetAlphaBetaCase())
+            {
+            case ::miopen::conv::AlphaBetaCase::BILINEAR:
+                return InitInvokerFactoryWrwNCHW<3,
+                                                 DeviceOpGBwdWeightBilinearPtrs<T>,
+                                                 CKArgs<T>,
+                                                 miopen::conv::WrWInvokeParams>(
+                    ctx, problem, config.kernel_id);
+            case ::miopen::conv::AlphaBetaCase::SCALE:
+                return InitInvokerFactoryWrwNCHW<3,
+                                                 DeviceOpGBwdWeightScalePtrs<T>,
+                                                 CKArgs<T>,
+                                                 miopen::conv::WrWInvokeParams>(
+                    ctx, problem, config.kernel_id);
+            default:
+                return InitInvokerFactoryWrwNCHW<3,
+                                                 DeviceOpGBwdWeightDefaultPtrs<T>,
+                                                 CKArgs<T>,
+                                                 miopen::conv::WrWInvokeParams>(
+                    ctx, problem, config.kernel_id);
+            }
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<DeviceOpGBwdWrwPtrs<T>,
-                                          CKArgs,
-                                          miopen::conv::WrWInvokeParams>(
-                ctx, problem, config.kernel_id);
+            switch(problem.GetAlphaBetaCase())
+            {
+            case ::miopen::conv::AlphaBetaCase::BILINEAR:
+                return InitInvokerFactoryNHWC<DeviceOpGBwdWeightBilinearPtrs<T>,
+                                              CKArgs<T>,
+                                              miopen::conv::WrWInvokeParams>(
+                    ctx, problem, config.kernel_id);
+            case ::miopen::conv::AlphaBetaCase::SCALE:
+                return InitInvokerFactoryNHWC<DeviceOpGBwdWeightScalePtrs<T>,
+                                              CKArgs<T>,
+                                              miopen::conv::WrWInvokeParams>(
+                    ctx, problem, config.kernel_id);
+            default:
+                return InitInvokerFactoryNHWC<DeviceOpGBwdWeightDefaultPtrs<T>,
+                                              CKArgs<T>,
+                                              miopen::conv::WrWInvokeParams>(
+                    ctx, problem, config.kernel_id);
+            }
         });
 
 #else

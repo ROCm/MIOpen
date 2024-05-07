@@ -92,8 +92,11 @@ std::vector<NonPackTestCase> ConvTestConfigs()
 
 template <typename T = float>
 struct ConvNonpackFwdSolverTest3D
-    : public ::testing::TestWithParam<
-          std::tuple<miopenConvFwdAlgorithm_t, NonPackTestCase, double, double, miopenTensorLayout_t>>
+    : public ::testing::TestWithParam<std::tuple<miopenConvFwdAlgorithm_t,
+                                                 NonPackTestCase,
+                                                 double,
+                                                 double,
+                                                 miopenTensorLayout_t>>
 {
 protected:
     void SetUp() override
@@ -101,8 +104,8 @@ protected:
         test_skipped = false;
 
         std::tie(algo, conv_config, alpha_val, beta_val, tensor_layout) = GetParam();
-        input     = tensor<T>{tensor_layout, conv_config.GetInput(), conv_config.GetInputStrides()};
-        weights   = tensor<T>{tensor_layout, conv_config.GetWeights()};
+        input   = tensor<T>{tensor_layout, conv_config.GetInput(), conv_config.GetInputStrides()};
+        weights = tensor<T>{tensor_layout, conv_config.GetWeights()};
         std::random_device rd{};
         std::mt19937 gen{rd()};
         std::uniform_real_distribution<> d{-3, 3};
@@ -116,8 +119,8 @@ protected:
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
         output = tensor<T>{tensor_layout, output_desc.GetLengths()};
         // since now we do alpha*value + output*beta
-        // we set output to some random floating value.
-        std::fill(output.begin(), output.end(), 2.2);
+        // we set output with values other then nan.
+        std::fill(output.begin(), output.end(), 0.0);
         auto&& handle = get_handle();
         in_dev        = handle.Write(input.data);
         wei_dev       = handle.Write(weights.data);

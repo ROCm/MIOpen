@@ -92,14 +92,32 @@ TEST_P(ConvNonpackFwdSolverTest3DHalf, CKNonPackConvFwd3D)
                                                                          conv_desc,
                                                                          conv_config,
                                                                          test_skipped,
-                                                                         miopen::Scalar(alpha_val),
-                                                                         miopen::Scalar(beta_val));
+                                                                         miopen::Scalar(&alpha_val, miopenFloat),
+                                                                         miopen::Scalar(&beta_val, miopenFloat));
 }
 
-INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
+// TODO: write test that varifies if values of alpha beta selects default, scalar or bilinear solver.
+
+INSTANTIATE_TEST_SUITE_P(ConvFwdTestDefault,
+                         ConvNonpackFwdSolverTest3DHalf,
+                         testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
+                                          testing::ValuesIn(ConvTestConfigs<NonPackTestCase>()),
+                                          testing::ValuesIn({1.0}), // alpha
+                                          testing::ValuesIn({0.0}), // beta
+                                          testing::Values(miopenTensorNDHWC)));
+                                        
+INSTANTIATE_TEST_SUITE_P(ConvFwdTestScalar,
                          ConvNonpackFwdSolverTest3DHalf,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
                                           testing::ValuesIn(ConvTestConfigs<NonPackTestCase>()),
                                           testing::ValuesIn({2.0}), // alpha
                                           testing::ValuesIn({0.0}), // beta
+                                          testing::Values(miopenTensorNDHWC)));
+
+INSTANTIATE_TEST_SUITE_P(ConvFwdTestBilinear,
+                         ConvNonpackFwdSolverTest3DHalf,
+                         testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
+                                          testing::ValuesIn(ConvTestConfigs<NonPackTestCase>()),
+                                          testing::ValuesIn({2.0}), // alpha
+                                          testing::ValuesIn({3.0}), // beta
                                           testing::Values(miopenTensorNDHWC)));

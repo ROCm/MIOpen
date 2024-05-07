@@ -108,6 +108,22 @@ std::string ProblemDescription::GetDirectionStr() const
     return s;
 }
 
+
+std::string ProblemDescription::GetAlphaBetaCaseStr() const
+{
+    std::string s;
+
+    switch(GetAlphaBetaCase())
+    {
+    case AlphaBetaCase::BILINEAR: s = "Bilinear"; break;
+    case AlphaBetaCase::SCALE: s = "Scale"; break;
+    case AlphaBetaCase::DEFAULT: s = "Default"; break;
+    default: assert(false);
+    }
+
+    return s;
+}
+
 void ProblemDescription::HeuristicUpdateLayouts()
 {
     const std::string labels = tensor_layout_get_default(in_layout.size());
@@ -174,6 +190,7 @@ void ProblemDescription::MakeNetworkConfig(std::string& conf_key) const
     ss << 'x' << PrintDHW('x', GetSpatialDims(), GetDilationD(), GetDilationH(), GetDilationW());
     ss << 'x' << GetGroupCount();
     ss << 'x' << GetDirectionStr();
+    ss << 'x' << GetAlphaBetaCaseStr();
 
     conf_key = ss.str();
 }

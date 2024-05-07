@@ -54,7 +54,7 @@ using WeiLayout                            = ck::tensor_layout::convolution::GKZ
 using OutLayout                            = ck::tensor_layout::convolution::NDHWGK;
 using PassThrough                          = ck::tensor_operation::element_wise::PassThrough;
 using Bilinear                             = ck::tensor_operation::element_wise::Bilinear;
-using Scale                               = ck::tensor_operation::element_wise::Scale;
+using Scale                                = ck::tensor_operation::element_wise::Scale;
 static constexpr ck::index_t NumDimSpatial = 3;
 
 template <typename DataType>
@@ -87,32 +87,37 @@ using DeviceOpGFwdScale =
                                                                   PassThrough,
                                                                   Scale>;
 
-
-// template <typename DataType>
-// using DeviceOpGFwdIdentityPtrs =
-//     ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<NumDimSpatial,
-//                                                                   InLayout,
-//                                                                   WeiLayout,
-//                                                                   ck::Tuple<>,
-//                                                                   OutLayout,
-//                                                                   DataType,
-//                                                                   DataType,
-//                                                                   ck::Tuple<>,
-//                                                                   DataType,
-//                                                                   PassThrough,
-//                                                                   PassThrough,
-//                                                                   PassThrough,
-//                                                                   DataType,
-//                                                                   DataType>;
-
+template <typename DataType>
+using DeviceOpGFwdDefault =
+    ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<NumDimSpatial,
+                                                                  InLayout,
+                                                                  WeiLayout,
+                                                                  ck::Tuple<>,
+                                                                  OutLayout,
+                                                                  DataType,
+                                                                  DataType,
+                                                                  ck::Tuple<>,
+                                                                  DataType,
+                                                                  PassThrough,
+                                                                  PassThrough,
+                                                                  PassThrough,
+                                                                  DataType,
+                                                                  DataType>;
 
 template <typename DataType>
 using DeviceOpGFwdBilinearPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGFwdBilinear<DataType>>;
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGFwdBilinear<DataType>>;
 
 template <typename DataType>
 using DeviceOpGFwdScalePtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGFwdScale<DataType>>;
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGFwdScale<DataType>>;
+
+template <typename DataType>
+using DeviceOpGFwdDefaultPtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGFwdDefault<DataType>>;
 
 namespace {
 
@@ -122,21 +127,21 @@ struct CKArgs
     CKArgs(const ProblemDescription& problem)
         : alpha(ProblemInterpreter::GetAlpha(problem)), beta(ProblemInterpreter::GetBeta(problem))
     {
-        G  = ProblemInterpreter::GetGroupCountG(problem);
-        N  = ProblemInterpreter::GetBatchN(problem);
-        K1 = ProblemInterpreter::GetOutputChannelK(problem);
-        C1 = ProblemInterpreter::GetInputChannelC(problem);
-        C  = C1 / G; // Number of input Channel per group
-        K  = K1 / G; // Number of output Channel per group
-        Hi = ProblemInterpreter::GetInputHeightHi(problem);
-        Wi = ProblemInterpreter::GetInputWidthWi(problem);
-        Ho = ProblemInterpreter::GetOutputHeightHo(problem);
-        Wo = ProblemInterpreter::GetOutputWidthWo(problem);
-        Y  = ProblemInterpreter::GetFilterHeightY(problem);
-        X  = ProblemInterpreter::GetFilterWidthX(problem);
-        Di = ProblemInterpreter::GetInputDepthDi(problem);
-        Do = ProblemInterpreter::GetOutputDepthDo(problem);
-        Z  = ProblemInterpreter::GetFilterDepthZ(problem);
+        G               = ProblemInterpreter::GetGroupCountG(problem);
+        N               = ProblemInterpreter::GetBatchN(problem);
+        K1              = ProblemInterpreter::GetOutputChannelK(problem);
+        C1              = ProblemInterpreter::GetInputChannelC(problem);
+        C               = C1 / G; // Number of input Channel per group
+        K               = K1 / G; // Number of output Channel per group
+        Hi              = ProblemInterpreter::GetInputHeightHi(problem);
+        Wi              = ProblemInterpreter::GetInputWidthWi(problem);
+        Ho              = ProblemInterpreter::GetOutputHeightHo(problem);
+        Wo              = ProblemInterpreter::GetOutputWidthWo(problem);
+        Y               = ProblemInterpreter::GetFilterHeightY(problem);
+        X               = ProblemInterpreter::GetFilterWidthX(problem);
+        Di              = ProblemInterpreter::GetInputDepthDi(problem);
+        Do              = ProblemInterpreter::GetOutputDepthDo(problem);
+        Z               = ProblemInterpreter::GetFilterDepthZ(problem);
         alpha_beta_case = ProblemInterpreter::GetAlphaBetaCase(problem);
 
         in_lengths  = {G, N, C, Di, Hi, Wi};
@@ -187,71 +192,103 @@ struct CKArgs
     CKArgs(const CKArgs&)     = default;
     CKArgs(CKArgs&&) noexcept = default;
     CKArgs& operator=(const CKArgs&) = default;
+
     template <typename ConvPtr>
     auto MakeArgPtr(const ConvPtr& conv_ptr, ConstData_t in, ConstData_t w, Data_t out) const
     {
-        if constexpr(std::is_same_v<ConvPtr, DeviceOpGFwdBilinearPtrs<DataType>>)
+        // The function parameter "const ConvPtr&" modifies the "typename ConvPtr"
+        // adding "const" and "reference". So had to adjust them during comparison.
+        if constexpr(std::is_same_v<std::remove_const_t<std::remove_reference_t<ConvPtr>>,
+                                    std::unique_ptr<DeviceOpGFwdBilinear<DataType>>> ||
+                     std::is_same_v<std::remove_const_t<std::remove_reference_t<ConvPtr>>,
+                                    std::shared_ptr<DeviceOpGFwdBilinear<DataType>>>)
         {
             return MakeBilinearArgPtr(conv_ptr, in, w, out);
         }
-        else if constexpr(std::is_same_v<ConvPtr, DeviceOpGFwdScalePtrs<DataType>>)
+        else if constexpr(std::is_same_v<std::remove_const_t<std::remove_reference_t<ConvPtr>>,
+                                         std::unique_ptr<DeviceOpGFwdScale<DataType>>> ||
+                          std::is_same_v<std::remove_const_t<std::remove_reference_t<ConvPtr>>,
+                                         std::shared_ptr<DeviceOpGFwdScale<DataType>>>)
         {
             return MakeScaleArgPtr(conv_ptr, in, w, out);
         }
-        else {
-             return MakeScaleArgPtr(conv_ptr, in, w, out); // throw error or return identity
+        else
+        {
+            return MakeDefaultArgPtr(conv_ptr, in, w, out);
         }
     }
 
     template <typename ConvPtr>
-    auto MakeBilinearArgPtr(const ConvPtr& conv_ptr, ConstData_t in, ConstData_t w, Data_t out) const
+    auto
+    MakeBilinearArgPtr(const ConvPtr& conv_ptr, ConstData_t in, ConstData_t w, Data_t out) const
     {
-        return conv_ptr->MakeArgumentPointer(
-            in,
-            w,
-            {out},
-            out,
-            in_lengths,
-            in_strides,
-            wei_lengths,
-            wei_strides,
-            {out_lengths}, 
-            {out_strides}, 
-            out_lengths,
-            out_strides,
-            filter_strides,
-            filter_dilations,
-            lPadding,
-            rPadding,
-            PassThrough{},
-            PassThrough{},
-            Bilinear{alpha.GetAsFloat(), beta.GetAsFloat()});
+        return conv_ptr->MakeArgumentPointer(in,
+                                             w,
+                                             {out},
+                                             out,
+                                             in_lengths,
+                                             in_strides,
+                                             wei_lengths,
+                                             wei_strides,
+                                             {out_lengths},
+                                             {out_strides},
+                                             out_lengths,
+                                             out_strides,
+                                             filter_strides,
+                                             filter_dilations,
+                                             lPadding,
+                                             rPadding,
+                                             PassThrough{},
+                                             PassThrough{},
+                                             Bilinear{alpha.GetAsFloat(), beta.GetAsFloat()});
     }
 
-    
     template <typename ConvPtr>
     auto MakeScaleArgPtr(const ConvPtr& conv_ptr, ConstData_t in, ConstData_t w, Data_t out) const
     {
-        return conv_ptr->MakeArgumentPointer(
-            in,
-            w,
-            {},
-            out,
-            in_lengths,
-            in_strides,
-            wei_lengths,
-            wei_strides,
-            {},
-            {},
-            out_lengths,
-            out_strides,
-            filter_strides,
-            filter_dilations,
-            lPadding,
-            rPadding,
-            PassThrough{},
-            PassThrough{},
-            Scale{alpha.GetAsFloat()});
+        return conv_ptr->MakeArgumentPointer(in,
+                                             w,
+                                             {},
+                                             out,
+                                             in_lengths,
+                                             in_strides,
+                                             wei_lengths,
+                                             wei_strides,
+                                             {},
+                                             {},
+                                             out_lengths,
+                                             out_strides,
+                                             filter_strides,
+                                             filter_dilations,
+                                             lPadding,
+                                             rPadding,
+                                             PassThrough{},
+                                             PassThrough{},
+                                             Scale{alpha.GetAsFloat()});
+    }
+
+    template <typename ConvPtr>
+    auto MakeDefaultArgPtr(const ConvPtr& conv_ptr, ConstData_t in, ConstData_t w, Data_t out) const
+    {
+        return conv_ptr->MakeArgumentPointer(in,
+                                             w,
+                                             {},
+                                             out,
+                                             in_lengths,
+                                             in_strides,
+                                             wei_lengths,
+                                             wei_strides,
+                                             {},
+                                             {},
+                                             out_lengths,
+                                             out_strides,
+                                             filter_strides,
+                                             filter_dilations,
+                                             lPadding,
+                                             rPadding,
+                                             PassThrough{},
+                                             PassThrough{},
+                                             PassThrough{});
     }
 
     template <typename ConvPtr>
@@ -302,27 +339,55 @@ struct CKArgs
 template <typename DataType>
 void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::Init(const ProblemDescription& problem)
 {
-
-    // AlphaBetaType alpha_beta_operation_type = problem.GetEncodedAlphaBeta();
-
-    // Will use alpha_beta_operation_type to select CK solver
-    valid_kernels = FillValidKernelsIDs<DeviceOpGFwdScalePtrs<DataType>, CKArgs<DataType>>(problem);
-    index         = 0;
-    kernel_id     = valid_kernels[index];
+    switch(problem.GetAlphaBetaCase())
+    {
+    case ::miopen::conv::AlphaBetaCase::BILINEAR:
+        valid_kernels =
+            FillValidKernelsIDs<DeviceOpGFwdBilinearPtrs<DataType>, CKArgs<DataType>>(problem);
+        break;
+    case ::miopen::conv::AlphaBetaCase::SCALE:
+        valid_kernels =
+            FillValidKernelsIDs<DeviceOpGFwdScalePtrs<DataType>, CKArgs<DataType>>(problem);
+        break;
+    default:
+        valid_kernels =
+            FillValidKernelsIDs<DeviceOpGFwdDefaultPtrs<DataType>, CKArgs<DataType>>(problem);
+        break;
+    }
+    index     = 0;
+    kernel_id = valid_kernels[index];
 }
 
 template <typename DataType>
 bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
-    return IsCKArgsSupported<DeviceOpGFwdScalePtrs<DataType>, CKArgs<DataType>>(problem, kernel_id);
+    switch(problem.GetAlphaBetaCase())
+    {
+    case ::miopen::conv::AlphaBetaCase::BILINEAR:
+        return IsCKArgsSupported<DeviceOpGFwdBilinearPtrs<DataType>, CKArgs<DataType>>(problem,
+                                                                                       kernel_id);
+    case ::miopen::conv::AlphaBetaCase::SCALE:
+        return IsCKArgsSupported<DeviceOpGFwdScalePtrs<DataType>, CKArgs<DataType>>(problem,
+                                                                                    kernel_id);
+    default:
+        return IsCKArgsSupported<DeviceOpGFwdDefaultPtrs<DataType>, CKArgs<DataType>>(problem,
+                                                                                      kernel_id);
+    }
 }
 
 template <typename DataType>
 bool ConvHipImplicitGemm3DGroupFwdXdlops::CheckCKApplicability(
     const ProblemDescription& problem) const
 {
-    return IsCKApplicable<DeviceOpGFwdScalePtrs<DataType>, CKArgs<DataType>>(problem);
+    switch(problem.GetAlphaBetaCase())
+    {
+    case ::miopen::conv::AlphaBetaCase::BILINEAR:
+        return IsCKApplicable<DeviceOpGFwdBilinearPtrs<DataType>, CKArgs<DataType>>(problem);
+    case ::miopen::conv::AlphaBetaCase::SCALE:
+        return IsCKApplicable<DeviceOpGFwdScalePtrs<DataType>, CKArgs<DataType>>(problem);
+    default: return IsCKApplicable<DeviceOpGFwdDefaultPtrs<DataType>, CKArgs<DataType>>(problem);
+    }
 }
 #endif
 
@@ -478,18 +543,48 @@ ConvSolution ConvHipImplicitGemm3DGroupFwdXdlops::GetSolution(
         problem,
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryFwdNCHW<3,
-                                             DeviceOpGFwdScalePtrs<T>,
-                                             CKArgs<T>,
-                                             miopen::conv::DataInvokeParams>(
-                ctx, problem, config.kernel_id);
+            switch(problem.GetAlphaBetaCase())
+            {
+            case ::miopen::conv::AlphaBetaCase::BILINEAR:
+                return InitInvokerFactoryFwdNCHW<3,
+                                                 DeviceOpGFwdBilinearPtrs<T>,
+                                                 CKArgs<T>,
+                                                 miopen::conv::DataInvokeParams>(
+                    ctx, problem, config.kernel_id);
+            case ::miopen::conv::AlphaBetaCase::SCALE:
+                return InitInvokerFactoryFwdNCHW<3,
+                                                 DeviceOpGFwdScalePtrs<T>,
+                                                 CKArgs<T>,
+                                                 miopen::conv::DataInvokeParams>(
+                    ctx, problem, config.kernel_id);
+            default:
+                return InitInvokerFactoryFwdNCHW<3,
+                                                 DeviceOpGFwdDefaultPtrs<T>,
+                                                 CKArgs<T>,
+                                                 miopen::conv::DataInvokeParams>(
+                    ctx, problem, config.kernel_id);
+            }
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<DeviceOpGFwdScalePtrs<T>,
-                                          CKArgs<T>,
-                                          miopen::conv::DataInvokeParams>(
-                ctx, problem, config.kernel_id);
+            switch(problem.GetAlphaBetaCase())
+            {
+            case ::miopen::conv::AlphaBetaCase::BILINEAR:
+                return InitInvokerFactoryNHWC<DeviceOpGFwdBilinearPtrs<T>,
+                                              CKArgs<T>,
+                                              miopen::conv::DataInvokeParams>(
+                    ctx, problem, config.kernel_id);
+            case ::miopen::conv::AlphaBetaCase::SCALE:
+                return InitInvokerFactoryNHWC<DeviceOpGFwdScalePtrs<T>,
+                                              CKArgs<T>,
+                                              miopen::conv::DataInvokeParams>(
+                    ctx, problem, config.kernel_id);
+            default:
+                return InitInvokerFactoryNHWC<DeviceOpGFwdDefaultPtrs<T>,
+                                              CKArgs<T>,
+                                              miopen::conv::DataInvokeParams>(
+                    ctx, problem, config.kernel_id);
+            }
         });
 
 #else
