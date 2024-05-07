@@ -26,62 +26,76 @@
 
 #pragma once
 
-#include <miopen/graphapi/graphapi.hpp>
-#include <miopen/solution.hpp>
+#include <miopen/graphapi/engine.hpp>
 
 namespace miopen {
 
 namespace graphapi {
 
-class Engine
+class EngineCfg
 {
 private:
-    Solution mSolution;
-    int64_t mGlobalIndex = -1;
-    int32_t mSmCount     = 0;
-    friend class EngineBuilder;
-
-public:
-    Engine()              = default;
-    Engine(const Engine&) = default;
-    Engine(Engine&&)      = default;
-    Engine& operator=(const Engine&) = default;
-    Engine& operator=(Engine&&) = default;
-
-    Engine(const Solution& solution) : mSolution(solution) {}
-    Engine(Solution&& solution) : mSolution(std::move(solution)) {}
-
-    const Solution& getSolution() const noexcept { return mSolution; }
-    Solution& getSolution() noexcept { return mSolution; }
-
-    int64_t getGlobalIndex() const noexcept { return mGlobalIndex; }
-    int32_t getSmCount() const noexcept { return mSmCount; }
-};
-
-class OpGraph;
-
-class EngineBuilder
-{
-private:
-    const OpGraph* mOpGraph = nullptr;
-    int64_t mGlobalIndex    = -1;
-    int32_t mSmCount        = 0;
-    bool mGlobalIndexSet    = false;
-
-public:
-    EngineBuilder& setOpGraph(const OpGraph* opGraph);
-    EngineBuilder& setGlobalIndex(int64_t globalIndex);
-    EngineBuilder& setSmCount(int32_t smCount);
-    Engine build();
-};
-
-class BackendEngineDescriptor : public BackendDescriptor
-{
-private:
-    EngineBuilder mBuilder;
+    /* we don't use a pointer here to allow a user
+     * to have several configs for an Engine. Each
+     * config might modify its Engine in future so
+     * their instance of Engine shouldn't be shared
+     */
     Engine mEngine;
 
-    miopenBackendDescriptor_t mOpGraphDescriptor = nullptr;
+    friend class EngineCfgBuilder;
+
+public:
+    EngineCfg()                 = default;
+    EngineCfg(const EngineCfg&) = default;
+    EngineCfg(EngineCfg&&)      = default;
+    EngineCfg& operator=(const EngineCfg&) = default;
+    EngineCfg& operator=(EngineCfg&&) = default;
+
+    EngineCfg(const Engine& engine) : mEngine(engine) {}
+    EngineCfg(Engine&& engine) : mEngine(std::move(engine)) {}
+
+    const Engine& getEngine() const noexcept { return mEngine; }
+    Engine& getEngine() noexcept { return mEngine; }
+};
+
+/* For now we don't support tuning and a builder is not needed,
+ * but in future it will be needed.
+ */
+class EngineCfgBuilder
+{
+private:
+    EngineCfg mEngineCfg;
+    bool mEngineSet = false;
+
+public:
+    EngineCfgBuilder& setEngine(const Engine& engine) &
+    {
+        mEngineCfg.mEngine = engine;
+        mEngineSet         = true;
+        return *this;
+    }
+    EngineCfgBuilder& setEngine(Engine&& engine) &
+    {
+        mEngineCfg.mEngine = std::move(engine);
+        mEngineSet         = true;
+        return *this;
+    }
+    EngineCfgBuilder&& setEngine(const Engine& engine) && { return std::move(setEngine(engine)); }
+    EngineCfgBuilder&& setEngine(Engine&& engine) &&
+    {
+        return std::move(setEngine(std::move(engine)));
+    }
+    EngineCfg build() &;
+    EngineCfg build() &&;
+};
+
+class BackendEngineCfgDescriptor : public BackendDescriptor
+{
+private:
+    EngineCfgBuilder mBuilder;
+    EngineCfg mEngineCfg;
+
+    miopenBackendDescriptor_t mEngineDescriptor = nullptr;
 
 public:
     void setAttribute(miopenBackendAttributeName_t attributeName,
@@ -95,8 +109,8 @@ public:
                       int64_t* elementCount,
                       void* arrayOfElements) override;
 
-    const Engine& getEngine() const noexcept { return mEngine; }
-    Engine& getEngine() noexcept { return mEngine; }
+    const EngineCfg& getEngineCfg() const { return mEngineCfg; }
+    EngineCfg& getEngineCfg() { return mEngineCfg; }
 };
 
 } // namespace graphapi
