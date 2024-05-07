@@ -35,46 +35,42 @@
 
 namespace miopen {
 
-miopenStatus_t Adam(Handle& handle,
-                    const TensorDescriptor& paramInDesc,
-                    ConstData_t paramIn,
-                    const TensorDescriptor& paramOutDesc,
-                    Data_t paramOut,
-                    const TensorDescriptor& paramOutFloat16Desc,
-                    Data_t paramOutFloat16,
-                    const TensorDescriptor& gradInDesc,
-                    ConstData_t gradIn,
-                    const TensorDescriptor& expAvgInDesc,
-                    ConstData_t expAvgIn,
-                    const TensorDescriptor& expAvgOutDesc,
-                    Data_t expAvgOut,
-                    const TensorDescriptor& expAvgSqInDesc,
-                    ConstData_t expAvgSqIn,
-                    const TensorDescriptor& expAvgSqOutDesc,
-                    Data_t expAvgSqOut,
-                    const TensorDescriptor& maxExpAvgSqInDesc,
-                    ConstData_t maxExpAvgSqIn,
-                    const TensorDescriptor& maxExpAvgSqOutDesc,
-                    Data_t maxExpAvgSqOut,
-                    const TensorDescriptor& gradScaleDesc,
-                    ConstData_t gradScale,
-                    const TensorDescriptor& foundInfDesc,
-                    ConstData_t foundInf,
-                    const TensorDescriptor& stepInDesc,
-                    ConstData_t stepIn,
-                    const TensorDescriptor& stepOutDesc,
-                    Data_t stepOut,
-                    const uint32_t step,
-                    const float lr,
-                    const float beta1,
-                    const float beta2,
-                    const float weight_decay,
-                    const float eps,
-                    const bool amsgrad,
-                    const bool maximize,
-                    const bool adamw,
-                    const bool is_amp)
+miopenStatus_t TransformersAdam(Handle& handle,
+                                const TensorDescriptor& paramInDesc,
+                                ConstData_t paramIn,
+                                const TensorDescriptor& paramOutDesc,
+                                Data_t paramOut,
+                                const TensorDescriptor& paramOutFloat16Desc,
+                                Data_t paramOutFloat16,
+                                const TensorDescriptor& gradInDesc,
+                                ConstData_t gradIn,
+                                const TensorDescriptor& expAvgInDesc,
+                                ConstData_t expAvgIn,
+                                const TensorDescriptor& expAvgOutDesc,
+                                Data_t expAvgOut,
+                                const TensorDescriptor& expAvgSqInDesc,
+                                ConstData_t expAvgSqIn,
+                                const TensorDescriptor& expAvgSqOutDesc,
+                                Data_t expAvgSqOut,
+                                const TensorDescriptor& gradScaleDesc,
+                                ConstData_t gradScale,
+                                const TensorDescriptor& foundInfDesc,
+                                ConstData_t foundInf,
+                                const TensorDescriptor& stepInDesc,
+                                ConstData_t stepIn,
+                                const TensorDescriptor& stepOutDesc,
+                                Data_t stepOut,
+                                const uint32_t step,
+                                const float lr,
+                                const float beta1,
+                                const float beta2,
+                                const float eps,
+                                const float weight_decay,
+                                const float step_size,
+                                const bool correct_bias,
+                                const bool is_amp)
 {
+    const miopen::TensorDescriptor dummyDesc;
     const auto problem = adam::ProblemDescription{paramInDesc,
                                                   paramOutDesc,
                                                   paramOutFloat16Desc,
@@ -83,19 +79,19 @@ miopenStatus_t Adam(Handle& handle,
                                                   expAvgOutDesc,
                                                   expAvgSqInDesc,
                                                   expAvgSqOutDesc,
-                                                  maxExpAvgSqInDesc,
-                                                  maxExpAvgSqOutDesc,
+                                                  dummyDesc, // max_exp_svg_sg_in
+                                                  dummyDesc, // max_exp_svg_sg_out
                                                   gradScaleDesc,
                                                   foundInfDesc,
                                                   stepInDesc,
                                                   stepOutDesc,
-                                                  amsgrad,
-                                                  true,
-                                                  adamw,
+                                                  false, // amsgrad
+                                                  correct_bias,
+                                                  true, // adam_w
                                                   is_amp};
 
     const auto invoke_params = [&]() {
-        auto tmp = adam::AdamInvokeParams{};
+        auto tmp = adam::TransformersAdamInvokeParams{};
         tmp.type = InvokeType::Run;
 
         tmp.paramDesc       = &paramInDesc;
@@ -108,8 +104,6 @@ miopenStatus_t Adam(Handle& handle,
         tmp.expAvgOut       = expAvgOut;
         tmp.expAvgSqIn      = expAvgSqIn;
         tmp.expAvgSqOut     = expAvgSqOut;
-        tmp.maxExpAvgSqIn   = maxExpAvgSqIn;
-        tmp.maxExpAvgSqOut  = maxExpAvgSqOut;
         tmp.gradScale       = gradScale;
         tmp.foundInf        = foundInf;
         tmp.stepIn          = stepIn;
@@ -119,17 +113,16 @@ miopenStatus_t Adam(Handle& handle,
         tmp.lr           = lr;
         tmp.beta1        = beta1;
         tmp.beta2        = beta2;
-        tmp.weight_decay = weight_decay;
         tmp.eps          = eps;
-        tmp.amsgrad      = amsgrad;
-        tmp.maximize     = maximize;
-        tmp.adamw        = adamw;
+        tmp.weight_decay = weight_decay;
+        tmp.step_size    = step_size;
+        tmp.correct_bias = correct_bias;
 
         return tmp;
     }();
 
-    const auto algo    = AlgorithmName{"Adam"};
-    const auto solvers = solver::SolverContainer<solver::adam::Adam>{};
+    const auto algo    = AlgorithmName{"TransformersAdam"};
+    const auto solvers = solver::SolverContainer<solver::adam::TransformersAdam>{};
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
     return miopenStatusSuccess;

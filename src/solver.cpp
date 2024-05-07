@@ -651,6 +651,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Softmax, softmax::AttnSoftmax{}.SolverDbId());
     Register(registry, ++id, Primitive::Cat, cat::CatForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Adam, adam::Adam{}.SolverDbId());
+    Register(registry, ++id, Primitive::Adam, adam::TransformersAdam{}.SolverDbId());
 
     Register(registry, ++id, Primitive::Mha, mha::MhaForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Mha, mha::MhaBackward{}.SolverDbId());
