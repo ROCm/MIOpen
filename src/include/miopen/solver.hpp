@@ -2352,12 +2352,12 @@ struct ConvWinoFuryRxS final : ConvSolver
                       const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
 
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&) const override;
-
-    static constexpr bool is2x3() { return Winodata == 2 && Winofilter == 3; }
-    static constexpr bool is3x2() { return Winodata == 3 && Winofilter == 2; }
 };
 
 // Suppress misleading clang warnings
@@ -4506,7 +4506,7 @@ private:
     bool RunParameterPredictionModel(const ExecutionContext& ctx,
                                      const miopen::conv::ProblemDescription& problem);
     void InitHeuristicKernelIDs();
-    bool ModelApplyToken(int idx, std::string value);
+    bool ModelApplyToken(int idx, std::string value, const std::string& arch);
 #endif
     template <typename DataType>
     void Init(const miopen::conv::ProblemDescription&);
@@ -4800,7 +4800,8 @@ struct PerformanceConfigHipImplicitGemmGroupBwdXdlops
         : PerformanceConfigHipImplicitGemmGroupBwdXdlops(0, "")
     {
     }
-    void HeuristicInit(const miopen::conv::ProblemDescription&);
+
+    void HeuristicInit(const ExecutionContext&, const miopen::conv::ProblemDescription&);
     bool SetNextValue(const miopen::conv::ProblemDescription&);
     bool IsValidValue() const;
     bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription& problem) const
@@ -4809,8 +4810,19 @@ struct PerformanceConfigHipImplicitGemmGroupBwdXdlops
     }
     bool IsValid(const miopen::conv::ProblemDescription&) const;
     bool operator==(const PerformanceConfigHipImplicitGemmGroupBwdXdlops& other) const;
+    bool IsModelApplicable(const ExecutionContext& ctx,
+                           const miopen::conv::ProblemDescription& problem) const;
 
 private:
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+    std::vector<int> heuristic_indexes;
+    std::vector<std::vector<std::string>> heuristic_kernels;
+    template <typename DataType>
+    bool RunParameterPredictionModel(const ExecutionContext& ctx,
+                                     const miopen::conv::ProblemDescription& problem);
+    void InitHeuristicKernelIDs();
+    bool ModelApplyToken(int idx, std::string value);
+#endif
     template <typename DataType>
     void Init(const miopen::conv::ProblemDescription&);
     template <typename DataType>
@@ -4875,7 +4887,7 @@ struct PerformanceConfigHipImplicitGemmGroupWrwXdlops
         : PerformanceConfigHipImplicitGemmGroupWrwXdlops(0, "")
     {
     }
-    void HeuristicInit(const miopen::conv::ProblemDescription&);
+    void HeuristicInit(const ExecutionContext&, const miopen::conv::ProblemDescription&);
     bool SetNextValue(const miopen::conv::ProblemDescription&);
     bool IsValidValue() const;
     bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription& problem) const
@@ -4884,8 +4896,19 @@ struct PerformanceConfigHipImplicitGemmGroupWrwXdlops
     }
     bool IsValid(const miopen::conv::ProblemDescription&) const;
     bool operator==(const PerformanceConfigHipImplicitGemmGroupWrwXdlops& other) const;
+    bool IsModelApplicable(const ExecutionContext& ctx,
+                           const miopen::conv::ProblemDescription& problem) const;
 
 private:
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+    std::vector<int> heuristic_indexes;
+    std::vector<std::vector<std::string>> heuristic_kernels;
+    template <typename DataType>
+    bool RunParameterPredictionModel(const ExecutionContext& ctx,
+                                     const miopen::conv::ProblemDescription& problem);
+    void InitHeuristicKernelIDs();
+    bool ModelApplyToken(int idx, std::string value);
+#endif
     template <typename DataType>
     void Init(const miopen::conv::ProblemDescription&);
     template <typename DataType>

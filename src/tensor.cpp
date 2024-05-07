@@ -272,6 +272,12 @@ TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t, const int*
     return MakeDescriptor(t, GetDefaultLayout(), plens, size);
 }
 
+TensorDescriptor
+TensorDescriptor::MakeDescriptor(miopenDataType_t t, const std::size_t* plens, int size)
+{
+    return MakeDescriptor(t, GetDefaultLayout(), plens, size);
+}
+
 TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t,
                                                   miopenTensorLayout_t layout,
                                                   const int* plens,
@@ -284,6 +290,17 @@ TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t,
 }
 
 TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t,
+                                                  miopenTensorLayout_t layout,
+                                                  const std::size_t* plens,
+                                                  int size)
+{
+    if(plens == nullptr || size <= 0)
+        MIOPEN_THROW(miopenStatusInvalidValue);
+
+    return {t, layout, std::vector<std::size_t>(plens, plens + size)};
+}
+
+TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t,
                                                   const int* plens,
                                                   const int* pstrides,
                                                   int size)
@@ -292,6 +309,19 @@ TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t,
         MIOPEN_THROW(miopenStatusInvalidValue);
 
     return {t, std::vector<int>(plens, plens + size), std::vector<int>(pstrides, pstrides + size)};
+}
+
+TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t,
+                                                  const std::size_t* plens,
+                                                  const std::size_t* pstrides,
+                                                  int size)
+{
+    if(plens == nullptr || pstrides == nullptr || size <= 0)
+        MIOPEN_THROW(miopenStatusInvalidValue);
+
+    return {t,
+            std::vector<std::size_t>(plens, plens + size),
+            std::vector<std::size_t>(pstrides, pstrides + size)};
 }
 
 void TensorDescriptor::CalculateStrides()
@@ -331,15 +361,10 @@ const std::vector<std::size_t>& TensorDescriptor::GetLengths() const { return le
 
 const std::vector<std::size_t>& TensorDescriptor::GetStrides() const { return strides; }
 
-int TensorDescriptor::GetSize() const
-{
-    assert(lens.size() == strides.size());
-    return lens.size();
-}
+unsigned TensorDescriptor::GetNumDims() const { return lens.size(); }
 
 std::size_t TensorDescriptor::GetElementSize() const
 {
-    assert(lens.size() == strides.size());
     return std::accumulate(lens.begin(), lens.end(), vector_length, std::multiplies<std::size_t>());
 }
 
@@ -378,7 +403,7 @@ std::size_t TensorDescriptor::GetIndex(std::initializer_list<int> l) const
     // l is in NCHW order (MIOpen implicit logic)
     if(this->GetLayout_str() == "CHWNc")
     {
-        assert(l.size() - 1 <= this->GetSize());
+        assert(l.size() - 1 <= this->GetNumDims());
         std::initializer_list<int> l_chwn{
             *(l.begin()), *(l.begin() + 2), *(l.begin() + 3), *(l.begin() + 4), *(l.begin() + 1)};
         return std::inner_product(l_chwn.begin() + 1,
@@ -390,12 +415,12 @@ std::size_t TensorDescriptor::GetIndex(std::initializer_list<int> l) const
     {
         if(!this->IsVectorized())
         {
-            assert(l.size() <= this->GetSize());
+            assert(l.size() <= this->GetNumDims());
             return std::inner_product(l.begin(), l.end(), strides.begin(), std::size_t{0});
         }
         else
         {
-            assert(l.size() - 1 <= this->GetSize());
+            assert(l.size() - 1 <= this->GetNumDims());
             return std::inner_product(
                 l.begin() + 1, l.end(), strides.begin(), static_cast<std::size_t>(*(l.begin())));
         }
@@ -430,7 +455,7 @@ std::size_t TensorDescriptor::GetNumBytes() const
 
 bool TensorDescriptor::IsPacked() const { return this->packed; }
 
-bool TensorDescriptor::AllDimsFitIntoInt() const
+bool TensorDescriptor::AllLengthsFitIntoInt() const
 {
     if(std::any_of(lens.cbegin(), lens.cend(), [](std::size_t x) {
            return x > std::numeric_limits<int>::max();
@@ -438,6 +463,13 @@ bool TensorDescriptor::AllDimsFitIntoInt() const
     {
         return false;
     }
+    return true;
+}
+
+bool TensorDescriptor::AllDimsFitIntoInt() const
+{
+    if(!AllLengthsFitIntoInt())
+        return false;
     if(std::any_of(strides.cbegin(), strides.cend(), [](std::size_t x) {
            return x > std::numeric_limits<int>::max();
        }))
