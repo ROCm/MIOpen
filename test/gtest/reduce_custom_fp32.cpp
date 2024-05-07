@@ -30,6 +30,7 @@
 #include <miopen/env.hpp>
 #include "get_handle.hpp"
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 namespace reduce_custom_fp32 {
@@ -69,7 +70,9 @@ bool IsTestSupportedForDevice()
 void Run2dDriver(void)
 {
     if(!(IsTestSupportedForDevice() &&
-         miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float"))
+         (miopen::IsUnset(ENV(MIOPEN_TEST_ALL))       // standalone run
+          || (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) // or --float full tests enabled
+              && miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float"))))
     {
         GTEST_SKIP();
     }
