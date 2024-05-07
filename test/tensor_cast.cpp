@@ -184,10 +184,10 @@ struct tensor_cast_driver : test_driver
         std::vector<size_t> srcSuperStrides = srcSuper.desc.GetStrides();
         std::vector<size_t> dstSuperStrides = dstSuper.desc.GetStrides();
         std::vector<int> src_super_strides(srcSuperStrides.begin() +
-                                               (srcSuper.desc.GetSize() - castLens.size()),
+                                               (srcSuper.desc.GetNumDims() - castLens.size()),
                                            srcSuperStrides.end());
         std::vector<int> dst_super_strides(dstSuperStrides.begin() +
-                                               (dstSuper.desc.GetSize() - castLens.size()),
+                                               (dstSuper.desc.GetNumDims() - castLens.size()),
                                            dstSuperStrides.end());
 
         srcDesc = miopen::TensorDescriptor(miopenInt32, castLens, src_super_strides);
