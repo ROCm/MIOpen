@@ -366,8 +366,11 @@ const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
     return this->impl->cache.GetKernels(algorithm, network_config);
 }
 
-KernelInvoke Handle::Run(Kernel k) const
+KernelInvoke Handle::Run(Kernel k, bool coop_launch) const
 {
+    if(coop_launch)
+        MIOPEN_THROW(miopenStatusInternalError);
+
     auto q = this->GetStream();
     if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
     {
@@ -479,6 +482,8 @@ std::size_t Handle::GetMaxMemoryAllocSize()
             miopen::GetDevice(this->GetStream()));
     return m_MaxMemoryAllocSizeCached;
 }
+
+bool Handle::CooperativeLaunchSupported() const { return false; }
 
 std::size_t Handle::GetMaxComputeUnits() const
 {
