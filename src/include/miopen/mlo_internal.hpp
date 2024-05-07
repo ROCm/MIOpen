@@ -121,7 +121,6 @@ inline int AlignUp(int val, unsigned step)
 
 inline size_t AlignUp(size_t num, size_t align)
 {
-    assert(num >= 0);
     return (num + align - 1) / align * align;
 }
 
