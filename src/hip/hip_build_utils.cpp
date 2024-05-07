@@ -118,7 +118,7 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     // Let's assume includes are overkill for feature tests & optimize'em out.
     if(!testing_mode)
     {
-        auto inc_list = GetHipKernelIncList();
+        auto inc_list = GetKernelIncList();
         auto inc_path = tmp_dir->path;
         fs::create_directories(inc_path);
         for(const auto& inc_file : inc_list)
@@ -206,7 +206,7 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     return hsaco->path();
 #else
     return bin_file;
-#endif
+#endif    
 }
 
 fs::path HipBuild(boost::optional<TmpDir>& tmp_dir,
