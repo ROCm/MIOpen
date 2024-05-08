@@ -226,12 +226,12 @@ struct ProblemInterpreter
         return problem.GetPadW();
     }
 
-    static Scalar GetAlpha(const miopen::conv::ProblemDescription& problem)
+    static const Scalar& GetAlpha(const miopen::conv::ProblemDescription& problem)
     {
         return problem.GetAlpha();
     }
 
-    static Scalar GetBeta(const miopen::conv::ProblemDescription& problem)
+    static const Scalar& GetBeta(const miopen::conv::ProblemDescription& problem)
     {
         return problem.GetBeta();
     }

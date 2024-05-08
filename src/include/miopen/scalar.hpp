@@ -29,7 +29,7 @@
 #include <miopen/common.hpp>
 #include <miopen/errors.hpp>
 
-#include <variant>
+#include <cassert>
 
 namespace miopen {
 // Class store value in double for higher precision.
@@ -39,8 +39,12 @@ struct Scalar
 
     Scalar(ConstData_t ptr, miopenDataType_t type);
 
-    float GetAsFloat() const;
-    double GetAsDouble() const;
+    float GetAsFloat() const
+    {
+        assert(mType == miopenFloat);
+        return static_cast<float>(mVal);
+    }
+    double GetAsDouble() const { return mVal; }
 
     miopenDataType_t GetType() const { return mType; }
 

@@ -270,8 +270,8 @@ struct ProblemDescription : ProblemDescriptionBase
     bool IsDirectionBackwardWrW() const { return direction == conv::Direction::BackwardWeights; }
     std::string GetDirectionStr() const;
 
-    Scalar GetAlpha() const { return alpha; }
-    Scalar GetBeta() const { return beta; }
+    const Scalar& GetAlpha() const { return alpha; }
+    const Scalar& GetBeta() const { return beta; }
 
     AlphaBetaCase GetAlphaBetaCase() const { return alpha_beta_case; }
 

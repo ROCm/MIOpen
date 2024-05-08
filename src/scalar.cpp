@@ -44,12 +44,4 @@ Scalar::Scalar(ConstData_t ptr, miopenDataType_t type) : mType(type)
     }
 }
 
-float Scalar::GetAsFloat() const
-{
-    assert(mType == miopenFloat);
-    return static_cast<float>(mVal);
-}
-
-double Scalar::GetAsDouble() const { return mVal; }
-
 } // namespace miopen
