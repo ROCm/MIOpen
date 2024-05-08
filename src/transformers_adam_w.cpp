@@ -35,40 +35,40 @@
 
 namespace miopen {
 
-miopenStatus_t TransformersAdam(Handle& handle,
-                                const TensorDescriptor& paramInDesc,
-                                ConstData_t paramIn,
-                                const TensorDescriptor& paramOutDesc,
-                                Data_t paramOut,
-                                const TensorDescriptor& paramOutFloat16Desc,
-                                Data_t paramOutFloat16,
-                                const TensorDescriptor& gradInDesc,
-                                ConstData_t gradIn,
-                                const TensorDescriptor& expAvgInDesc,
-                                ConstData_t expAvgIn,
-                                const TensorDescriptor& expAvgOutDesc,
-                                Data_t expAvgOut,
-                                const TensorDescriptor& expAvgSqInDesc,
-                                ConstData_t expAvgSqIn,
-                                const TensorDescriptor& expAvgSqOutDesc,
-                                Data_t expAvgSqOut,
-                                const TensorDescriptor& gradScaleDesc,
-                                ConstData_t gradScale,
-                                const TensorDescriptor& foundInfDesc,
-                                ConstData_t foundInf,
-                                const TensorDescriptor& stepInDesc,
-                                ConstData_t stepIn,
-                                const TensorDescriptor& stepOutDesc,
-                                Data_t stepOut,
-                                const uint32_t step,
-                                const float lr,
-                                const float beta1,
-                                const float beta2,
-                                const float eps,
-                                const float weight_decay,
-                                const float step_size,
-                                const bool correct_bias,
-                                const bool is_amp)
+miopenStatus_t TransformersAdamW(Handle& handle,
+                                 const TensorDescriptor& paramInDesc,
+                                 ConstData_t paramIn,
+                                 const TensorDescriptor& paramOutDesc,
+                                 Data_t paramOut,
+                                 const TensorDescriptor& paramOutFloat16Desc,
+                                 Data_t paramOutFloat16,
+                                 const TensorDescriptor& gradInDesc,
+                                 ConstData_t gradIn,
+                                 const TensorDescriptor& expAvgInDesc,
+                                 ConstData_t expAvgIn,
+                                 const TensorDescriptor& expAvgOutDesc,
+                                 Data_t expAvgOut,
+                                 const TensorDescriptor& expAvgSqInDesc,
+                                 ConstData_t expAvgSqIn,
+                                 const TensorDescriptor& expAvgSqOutDesc,
+                                 Data_t expAvgSqOut,
+                                 const TensorDescriptor& gradScaleDesc,
+                                 ConstData_t gradScale,
+                                 const TensorDescriptor& foundInfDesc,
+                                 ConstData_t foundInf,
+                                 const TensorDescriptor& stepInDesc,
+                                 ConstData_t stepIn,
+                                 const TensorDescriptor& stepOutDesc,
+                                 Data_t stepOut,
+                                 const uint32_t step,
+                                 const float lr,
+                                 const float beta1,
+                                 const float beta2,
+                                 const float eps,
+                                 const float weight_decay,
+                                 const float step_size,
+                                 const bool correct_bias,
+                                 const bool is_amp)
 {
     const miopen::TensorDescriptor dummyDesc;
     const auto problem = adam::ProblemDescription{paramInDesc,
@@ -91,7 +91,7 @@ miopenStatus_t TransformersAdam(Handle& handle,
                                                   is_amp};
 
     const auto invoke_params = [&]() {
-        auto tmp = adam::TransformersAdamInvokeParams{};
+        auto tmp = adam::TransformersAdamWInvokeParams{};
         tmp.type = InvokeType::Run;
 
         tmp.paramDesc       = &paramInDesc;
@@ -121,8 +121,8 @@ miopenStatus_t TransformersAdam(Handle& handle,
         return tmp;
     }();
 
-    const auto algo    = AlgorithmName{"TransformersAdam"};
-    const auto solvers = solver::SolverContainer<solver::adam::TransformersAdam>{};
+    const auto algo    = AlgorithmName{"TransformersAdamW"};
+    const auto solvers = solver::SolverContainer<solver::adam::TransformersAdamW>{};
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
     return miopenStatusSuccess;

@@ -68,9 +68,9 @@ struct AdamInvokeParams : public miopen::InvokeParams
     Data_t GetWorkspace() const { return nullptr; }
 };
 
-struct TransformersAdamInvokeParams : public miopen::InvokeParams
+struct TransformersAdamWInvokeParams : public miopen::InvokeParams
 {
-    TransformersAdamInvokeParams() = default;
+    TransformersAdamWInvokeParams() = default;
 
     const TensorDescriptor* paramDesc = nullptr;
     const TensorDescriptor* gradDesc  = nullptr;
