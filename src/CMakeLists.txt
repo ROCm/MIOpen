@@ -298,7 +298,6 @@ set( MIOpen_Source
     sum_api.cpp
     t5layernorm_api.cpp
     target_properties.cpp
-    temp_file.cpp
     tensor.cpp
     tensor_api.cpp
     seq_tensor.cpp

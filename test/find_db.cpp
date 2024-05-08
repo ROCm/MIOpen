@@ -35,7 +35,6 @@
 #include <miopen/execution_context.hpp>
 #include <miopen/find_db.hpp>
 #include <miopen/logger.hpp>
-#include <miopen/temp_file.hpp>
 #include <miopen/hip_build_utils.hpp>
 
 #include <chrono>
@@ -90,7 +89,8 @@ struct FindDbTest : test_driver
         w_dev = handle.Write(w.data);
         y_dev = handle.Write(y.data);
 
-        const TempFile temp_file{"miopen.test.find_db"};
+        const TmpDir tmp;
+        auto temp_file                         = (tmp / "miopen.test.find_db").string();
         debug::testing_find_db_path_override() = temp_file;
         TestRordbEmbedFsOverrideLock rordb_embed_fs_override;
 
