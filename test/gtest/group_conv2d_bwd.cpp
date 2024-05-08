@@ -29,7 +29,7 @@
 
 using namespace group_conv;
 
-DEFINE_GROUP_CONV2D_TEST(float, BackwardData);
-DEFINE_GROUP_CONV2D_TEST(half, BackwardData);
+DEFINE_GROUP_CONV2D_TEST(float, BackwardData, 1.0, 0.0, Default);
+DEFINE_GROUP_CONV2D_TEST(half, BackwardData, 1.0, 0.0, Default);
 /// \todo int8_t tests don't work. Need debugging
 // DEFINE_GROUP_CONV2D_TEST(int8_t, BackwardData);

@@ -29,7 +29,7 @@
 
 using namespace group_conv;
 
-DEFINE_GROUP_CONV2D_TEST(float, BackwardWeights);
+DEFINE_GROUP_CONV2D_TEST(float, BackwardWeights, 1.0, 0.0, Default);
 /// \todo Debug issues: some tests skipped due to IsApplicable returning false.
 /// One test has ref output with NaNs
 // DEFINE_GROUP_CONV2D_TEST(half, BackwardWeights);

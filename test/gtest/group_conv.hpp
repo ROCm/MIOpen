@@ -544,6 +544,7 @@ std::vector<miopenTensorLayout_t> GetLayoutValues()
             testing::ValuesIn({beta}),                                                  \
             testing::ValuesIn(GetLayoutValues<ndim>())));
 
-#define DEFINE_GROUP_CONV2D_TEST(type, dir) DEFINE_GROUP_CONV_TEST(2, type, dir)
+#define DEFINE_GROUP_CONV2D_TEST(type, dir, alpha, beta, ab_case) \
+    DEFINE_GROUP_CONV_TEST(2, alpha, beta, type, dir, ab_case)
 #define DEFINE_GROUP_CONV3D_TEST(type, dir, alpha, beta, ab_case) \
     DEFINE_GROUP_CONV_TEST(3, alpha, beta, type, dir, ab_case)
