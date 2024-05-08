@@ -125,6 +125,9 @@ set( MIOpen_Source
     fusion/problem_description.cpp
     generic_search.cpp
     graphapi/convolution.cpp
+    graphapi/engine.cpp
+    graphapi/enginecfg.cpp
+    graphapi/execution_plan.cpp
     graphapi/graphapi.cpp
     graphapi/opgraph.cpp
     graphapi/matmul.cpp
