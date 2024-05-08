@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,9 +24,9 @@
  *
  *******************************************************************************/
 
+#include <miopen/addlayernorm.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
-#include <miopen/layernorm.hpp>
 #include <miopen/layernorm/solvers.hpp>
 #include <miopen/layernorm/invoke_params.hpp>
 #include <miopen/layernorm/utils.hpp>
@@ -40,8 +40,8 @@ namespace solver {
 
 namespace layernorm {
 
-bool LayernormForward::IsApplicable(const ExecutionContext&,
-                                    const miopen::layernorm::ProblemDescription& problem) const
+bool AddLayernormForward::IsApplicable(const ExecutionContext&,
+                                       const miopen::layernorm::ProblemDescription& problem) const
 {
     if(!problem.IsSameType())
         return false;
@@ -57,8 +57,8 @@ bool LayernormForward::IsApplicable(const ExecutionContext&,
 }
 
 ConvSolution
-LayernormForward::GetSolution(const ExecutionContext& context,
-                              const miopen::layernorm::ProblemDescription& problem) const
+AddLayernormForward::GetSolution(const ExecutionContext& context,
+                                 const miopen::layernorm::ProblemDescription& problem) const
 {
     std::ignore = context;
 
@@ -86,7 +86,7 @@ LayernormForward::GetSolution(const ExecutionContext& context,
         auto kernel = KernelInfo{};
 
         kernel.kernel_file = "MIOpenLayerNorm.cpp";
-        kernel.kernel_name = "LayernormFwdContiguous";
+        kernel.kernel_name = "AddLayernormFwdContiguous";
 
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
@@ -119,7 +119,7 @@ LayernormForward::GetSolution(const ExecutionContext& context,
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::layernorm::InvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::layernorm::AddInvokeParams>();
 
             auto dims         = params.xDesc->GetLengths();
             size_t inner_size = 1;
@@ -130,6 +130,7 @@ LayernormForward::GetSolution(const ExecutionContext& context,
             }
 
             kernel(params.x,
+                   params.x2,
                    params.weight,
                    params.bias,
                    params.y,
@@ -137,7 +138,7 @@ LayernormForward::GetSolution(const ExecutionContext& context,
                    params.rstd,
                    params.epsilon,
                    inner_size,
-                   static_cast<bool>(params.mode));
+                   static_cast<bool>(params.mode % 2));
         };
     };
 
