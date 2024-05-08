@@ -85,6 +85,7 @@ endfunction()
 set( MIOpen_Source
     activ/problem_description.cpp
     activ_api.cpp
+    addlayernorm_api.cpp
     api/find2_0_commons.cpp
     argmax_api.cpp
     batch_norm.cpp
@@ -268,9 +269,12 @@ set( MIOpen_Source
     solver/gemm_common.cpp
     solver/gemm_wrw.cpp
     solver/groupnorm/forward_groupnorm.cpp
+    solver/layernorm/backward_t5layernorm.cpp
+    solver/layernorm/forward_addlayernorm.cpp
     solver/layernorm/forward_layernorm.cpp
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
+    solver/layernorm/forward_t5layernorm.cpp
     solver/mha/mha_solver_backward.cpp
     solver/mha/mha_solver_forward.cpp
     solver/pooling/forward2d.cpp
@@ -284,6 +288,7 @@ set( MIOpen_Source
     solver/softmax/softmax.cpp
     subbuffers.cpp
     sum_api.cpp
+    t5layernorm_api.cpp
     target_properties.cpp
     temp_file.cpp
     tensor.cpp
@@ -590,11 +595,12 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
     list(APPEND MIOpen_Source
         activ.cpp
+        addlayernorm.cpp
         argmax.cpp
         cat.cpp
         groupnorm.cpp
         kernel_cache.cpp
-        layer_norm.cpp
+        layernorm.cpp
         lrn.cpp
         mlo_dir_conv.cpp
         exec_utils.cpp
@@ -615,6 +621,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         hip/batched_transpose_sol.cpp
         hip/general_tensor_reorder_sol.cpp
         pooling.cpp
+        t5layernorm.cpp
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
         sum.cpp

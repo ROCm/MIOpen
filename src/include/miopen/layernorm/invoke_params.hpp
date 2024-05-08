@@ -52,6 +52,64 @@ struct InvokeParams : public miopen::InvokeParams
     Data_t GetWorkspace() const { return nullptr; }
 };
 
+struct AddInvokeParams : public miopen::InvokeParams
+{
+    AddInvokeParams() = default;
+
+    const TensorDescriptor* xDesc = nullptr;
+
+    ConstData_t x          = nullptr;
+    ConstData_t x2         = nullptr;
+    ConstData_t weight     = nullptr;
+    ConstData_t bias       = nullptr;
+    Data_t y               = nullptr;
+    Data_t mean            = nullptr;
+    Data_t rstd            = nullptr;
+    float epsilon          = 0;
+    int32_t normalized_dim = 0;
+    miopenNormMode_t mode  = MIOPEN_ELEMENTWISE_AFFINE;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
+
+struct T5InvokeParams : public miopen::InvokeParams
+{
+    T5InvokeParams() = default;
+
+    const TensorDescriptor* xDesc = nullptr;
+
+    ConstData_t x         = nullptr;
+    ConstData_t weight    = nullptr;
+    Data_t y              = nullptr;
+    Data_t rstd           = nullptr;
+    float epsilon         = 0;
+    miopenNormMode_t mode = MIOPEN_ELEMENTWISE_AFFINE;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
+
+struct T5BwdInvokeParams : public miopen::InvokeParams
+{
+    T5BwdInvokeParams() = default;
+
+    const TensorDescriptor* dyDesc = nullptr;
+
+    ConstData_t dy             = nullptr;
+    ConstData_t x              = nullptr;
+    ConstData_t weight         = nullptr;
+    ConstData_t rstd           = nullptr;
+    Data_t dx                  = nullptr;
+    Data_t dw                  = nullptr;
+    Data_t workspace           = nullptr;
+    std::size_t workspace_size = 0;
+    miopenNormMode_t mode      = MIOPEN_ELEMENTWISE_AFFINE;
+
+    std::size_t GetWorkspaceSize() const { return workspace_size; }
+    Data_t GetWorkspace() const { return workspace; }
+};
+
 } // namespace layernorm
 
 } // namespace miopen
