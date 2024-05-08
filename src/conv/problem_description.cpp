@@ -117,7 +117,7 @@ std::string ProblemDescription::GetAlphaBetaCaseStr() const
     case AlphaBetaCase::BILINEAR: s = "Bilinear"; break;
     case AlphaBetaCase::SCALE: s = "Scale"; break;
     case AlphaBetaCase::DEFAULT: s = "Default"; break;
-    default: assert(false);
+    default: s = "Error_State"; break;
     }
 
     return s;

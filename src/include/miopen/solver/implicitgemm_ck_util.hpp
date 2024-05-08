@@ -168,7 +168,10 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                         {
                             // allocate gpu workspace memory
                             HIP_CHECK(hipMalloc(&gpu_buf, num_bytes));
-                            assert(gpu_buf != nullptr);
+                            if(!gpu_buf)
+                            {
+                                MIOPEN_THROW("nullptr encountered when allocating gpu memory");
+                            }
                             sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), gpu_buf);
                             invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
                             HIP_CHECK(hipFree(gpu_buf));
@@ -691,7 +694,10 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 {
                     // allocate gpu workspace memory
                     HIP_CHECK(hipMalloc(&gpu_buf, num_bytes));
-                    assert(gpu_buf != nullptr);
+                    if(!gpu_buf)
+                    {
+                        MIOPEN_THROW("nullptr encountered when allocating gpu memory");
+                    }
                     sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), gpu_buf);
                     invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
                     HIP_CHECK(hipFree(gpu_buf));
