@@ -112,14 +112,6 @@ miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
         case MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR:
             outputDescriptor = new miopen::graphapi::BackendVariantPackDescriptor(); break;
 
-        case MIOPEN_BACKEND_MATMUL_DESCRIPTOR:
-            outputDescriptor = new miopen::graphapi::BackendMatmulDescriptor();
-            break;
-
-        case MIOPEN_BACKEND_OPERATION_MATMUL_DESCRIPTOR:
-            outputDescriptor = new miopen::graphapi::BackendOperationMatmulDescriptor();
-            break;
-
         default: MIOPEN_THROW(miopenStatusUnsupportedOp);
             // clang-format on
         }
