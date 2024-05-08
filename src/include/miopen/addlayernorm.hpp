@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_LAYERNORM_HPP_
-#define MIOPEN_LAYERNORM_HPP_
+#ifndef MIOPEN_ADDLAYERNORM_HPP_
+#define MIOPEN_ADDLAYERNORM_HPP_
 
 #include <miopen/common.hpp>
 
@@ -33,22 +33,24 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-miopenStatus_t LayerNormForward(Handle& handle,
-                                const TensorDescriptor& xDesc,
-                                ConstData_t x,
-                                const TensorDescriptor& weightDesc,
-                                ConstData_t weight,
-                                const TensorDescriptor& biasDesc,
-                                ConstData_t bias,
-                                const TensorDescriptor& yDesc,
-                                Data_t y,
-                                const TensorDescriptor& meanDesc,
-                                Data_t mean,
-                                const TensorDescriptor& rstdDesc,
-                                Data_t rstd,
-                                miopenNormMode_t mode,
-                                float epsilon,
-                                int32_t normalized_dim);
+miopenStatus_t AddLayerNormForward(Handle& handle,
+                                   const TensorDescriptor& xDesc,
+                                   ConstData_t x,
+                                   const TensorDescriptor& x2Desc,
+                                   ConstData_t x2,
+                                   const TensorDescriptor& weightDesc,
+                                   ConstData_t weight,
+                                   const TensorDescriptor& biasDesc,
+                                   ConstData_t bias,
+                                   const TensorDescriptor& yDesc,
+                                   Data_t y,
+                                   const TensorDescriptor& meanDesc,
+                                   Data_t mean,
+                                   const TensorDescriptor& rstdDesc,
+                                   Data_t rstd,
+                                   miopenNormMode_t mode,
+                                   float epsilon,
+                                   int32_t normalized_dim);
 
 } // namespace miopen
-#endif // MIOPEN_LAYERNORM_HPP_
+#endif // MIOPEN_ADDLAYERNORM_HPP_
