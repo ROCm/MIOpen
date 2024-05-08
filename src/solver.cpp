@@ -649,11 +649,12 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(registry, ++id, Primitive::Softmax, softmax::Softmax{}.SolverDbId());
     Register(registry, ++id, Primitive::Softmax, softmax::AttnSoftmax{}.SolverDbId());
-    Register(registry, ++id, Primitive::Cat, cat::CatForward{}.SolverDbId());
-    Register(registry, ++id, Primitive::Adam, adam::Adam{}.SolverDbId());
 
     Register(registry, ++id, Primitive::Mha, mha::MhaForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Mha, mha::MhaBackward{}.SolverDbId());
+
+    Register(registry, ++id, Primitive::Cat, cat::CatForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Adam, adam::Adam{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }
