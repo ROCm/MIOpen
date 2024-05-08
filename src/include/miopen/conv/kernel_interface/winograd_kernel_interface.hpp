@@ -97,17 +97,21 @@ struct WinoShaderArgsV2
     unsigned int K;     // number of output channels in each filter group
     unsigned int R;     // filter height
     unsigned int S;     // filter width
-    int32_t pad_h;  // padding in h dimension
-    int32_t pad_w;  // padding in w dimension
+    int32_t pad_h;      // padding in h dimension
+    int32_t pad_w;      // padding in w dimension
     unsigned int out_h; // output height
     unsigned int out_w; // output width
     unsigned int G;     // number of filter groups
 
     // Data layout related parameters
-    unsigned int d_N_stride; // stride in number of elements of the N dimension of the input data buffer
-    unsigned int d_C_stride; // stride in number of elements of the C dimension of the input data buffer
-    unsigned int d_H_stride; // stride in number of elements of the H dimension of the input data buffer
-    unsigned int d_G_stride; // stride in number of elements of the G dimension of the input data buffer
+    unsigned int
+        d_N_stride; // stride in number of elements of the N dimension of the input data buffer
+    unsigned int
+        d_C_stride; // stride in number of elements of the C dimension of the input data buffer
+    unsigned int
+        d_H_stride; // stride in number of elements of the H dimension of the input data buffer
+    unsigned int
+        d_G_stride; // stride in number of elements of the G dimension of the input data buffer
 
     unsigned int f_K_stride; // stride in number of elements of the K dimension of the filter buffer
     unsigned int f_C_stride; // stride in number of elements of the C dimension of the filter buffer
@@ -125,7 +129,7 @@ struct WinoShaderArgsV2
     WinoShaderActivationModeV2_t activation_mode; // activation mode
 
     // Other shader parameters
-    unsigned int n_groups;         // number of shader groups
+    unsigned int n_groups;     // number of shader groups
     WinoShaderFlagsV2 flags64; // shader flags
     uint8_t sync_limit;        // maximum number of sync attempts
     uint8_t sync_period;       // synchronization period
