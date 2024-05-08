@@ -38,25 +38,23 @@ namespace solver {
 
 namespace adam {
 
-bool TransformersAdam::IsApplicable([[maybe_unused]] const ExecutionContext& context,
-                                    const miopen::adam::ProblemDescription& problem) const
+bool TransformersAdamW::IsApplicable([[maybe_unused]] const ExecutionContext& context,
+                                     const miopen::adam::ProblemDescription& problem) const
 {
     if(!problem.IsAllPacked())
         return false;
     return true;
 }
 
-ConvSolution TransformersAdam::GetSolution(const ExecutionContext& context,
-                                           const miopen::adam::ProblemDescription& problem) const
+ConvSolution TransformersAdamW::GetSolution(const ExecutionContext& context,
+                                            const miopen::adam::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
     {
         auto param_dtype = miopen::GetDataType(problem.GetParamDesc().GetType());
         auto ptype_size  = miopen::get_data_size(problem.GetParamDesc().GetType());
-        auto grad_dtype  = (problem.IsAmp() || problem.ExistStepTensor())
-                               ? miopen::GetDataType(problem.GetGradDesc().GetType())
-                               : "float";
+        auto grad_dtype  = miopen::GetDataType(problem.GetGradDesc().GetType());
 
         const auto build_params = KernelBuildParameters{
             {"PTYPE", param_dtype},
@@ -77,8 +75,8 @@ ConvSolution TransformersAdam::GetSolution(const ExecutionContext& context,
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
         kernel.kernel_file = "MIOpenAdam.cpp";
-        kernel.kernel_name =
-            problem.ExistStepTensor() ? "TransformersAdamPackedWithStep" : "TransformersAdamPacked";
+        kernel.kernel_name = problem.ExistStepTensor() ? "TransformersAdamWPackedWithStep"
+                                                       : "TransformersAdamWPacked";
 
         result.construction_params.push_back(kernel);
 
@@ -98,7 +96,7 @@ ConvSolution TransformersAdam::GetSolution(const ExecutionContext& context,
                 decltype(auto) kernel_adam = handle_.Run(kernels[0]);
                 decltype(auto) kernel_step = handle_.Run(kernels[1]);
                 decltype(auto) params =
-                    raw_params.CastTo<miopen::adam::TransformersAdamInvokeParams>();
+                    raw_params.CastTo<miopen::adam::TransformersAdamWInvokeParams>();
                 decltype(auto) numel  = params.paramDesc->GetElementSize();
                 float lr_weight_decay = params.lr * params.weight_decay;
                 auto elapsed          = 0.f;
@@ -117,8 +115,9 @@ ConvSolution TransformersAdam::GetSolution(const ExecutionContext& context,
                             params.lr,
                             params.beta1,
                             params.beta2,
-                            lr_weight_decay,
                             params.eps,
+                            lr_weight_decay,
+                            params.step_size,
                             params.correct_bias,
                             numel);
 
@@ -142,16 +141,23 @@ ConvSolution TransformersAdam::GetSolution(const ExecutionContext& context,
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel = handle_.Run(kernels.front());
                 decltype(auto) params =
-                    raw_params.CastTo<miopen::adam::TransformersAdamInvokeParams>();
+                    raw_params.CastTo<miopen::adam::TransformersAdamWInvokeParams>();
                 decltype(auto) numel  = params.paramDesc->GetElementSize();
                 float lr_weight_decay = params.lr * params.weight_decay;
                 auto step_size        = params.step_size;
 
-                if((step_size == -1) && params.correct_bias)
+                if(step_size < 0)
                 {
-                    float bias_correction1 = 1 - pow(params.beta1, params.step);
-                    float bias_correction2 = 1 - pow(params.beta2, params.step);
-                    step_size              = params.lr * sqrt(bias_correction2) / bias_correction1;
+                    if(params.correct_bias)
+                    {
+                        float bias_correction1 = 1 - pow(params.beta1, params.step);
+                        float bias_correction2 = 1 - pow(params.beta2, params.step);
+                        step_size = params.lr * sqrt(bias_correction2) / bias_correction1;
+                    }
+                    else
+                    {
+                        step_size = params.lr;
+                    }
                 }
                 kernel(params.paramIn,
                        params.paramOut,
@@ -163,13 +169,11 @@ ConvSolution TransformersAdam::GetSolution(const ExecutionContext& context,
                        params.expAvgSqOut,
                        params.gradScale,
                        params.foundInf,
-                       params.step,
-                       params.lr,
                        params.beta1,
                        params.beta2,
                        params.eps,
                        lr_weight_decay,
-                       params.step_size,
+                       step_size,
                        numel);
             };
         };

@@ -378,19 +378,19 @@ extern "C" __global__ void AdamUpdateStep(bool* found_inf, int* step_in, int* st
 }
 
 template <typename T1, typename T2>
-inline __device__ void TransformersAdamInternal(T1* param_in,
-                                                T1* param_out,
-                                                T1* exp_avg_in,
-                                                T1* exp_avg_out,
-                                                T1* exp_avg_sq_in,
-                                                T1* exp_avg_sq_out,
-                                                T2 grad,
-                                                T2 beta1,
-                                                T2 beta2,
-                                                T2 eps,
-                                                T2 lr_weight_decay,
-                                                T2 step_size,
-                                                size_t gid)
+inline __device__ void TransformersAdamWInternal(T1* param_in,
+                                                 T1* param_out,
+                                                 T1* exp_avg_in,
+                                                 T1* exp_avg_out,
+                                                 T1* exp_avg_sq_in,
+                                                 T1* exp_avg_sq_out,
+                                                 T2 grad,
+                                                 T2 beta1,
+                                                 T2 beta2,
+                                                 T2 eps,
+                                                 T2 lr_weight_decay,
+                                                 T2 step_size,
+                                                 size_t gid)
 {
     T2 param      = static_cast<T2>(param_in[gid]);
     T2 exp_avg    = static_cast<T2>(exp_avg_in[gid]);
@@ -413,22 +413,22 @@ inline __device__ void TransformersAdamInternal(T1* param_in,
     exp_avg_sq_out[gid] = static_cast<T1>(exp_avg_sq);
 }
 
-extern "C" __global__ void TransformersAdamPacked(PTYPE* param_in,
-                                                  PTYPE* param_out,
-                                                  half* param_out_fp16,
-                                                  GTYPE* grad_in,
-                                                  PTYPE* exp_avg_in,
-                                                  PTYPE* exp_avg_out,
-                                                  PTYPE* exp_avg_sq_in,
-                                                  PTYPE* exp_avg_sq_out,
-                                                  int32_t* grad_scale,
-                                                  bool* found_inf,
-                                                  float beta1,
-                                                  float beta2,
-                                                  float eps,
-                                                  float lr_weight_decay,
-                                                  float step_size,
-                                                  size_t input_size)
+extern "C" __global__ void TransformersAdamWPacked(PTYPE* param_in,
+                                                   PTYPE* param_out,
+                                                   half* param_out_fp16,
+                                                   GTYPE* grad_in,
+                                                   PTYPE* exp_avg_in,
+                                                   PTYPE* exp_avg_out,
+                                                   PTYPE* exp_avg_sq_in,
+                                                   PTYPE* exp_avg_sq_out,
+                                                   int32_t* grad_scale,
+                                                   bool* found_inf,
+                                                   float beta1,
+                                                   float beta2,
+                                                   float eps,
+                                                   float lr_weight_decay,
+                                                   float step_size,
+                                                   size_t input_size)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -446,19 +446,19 @@ extern "C" __global__ void TransformersAdamPacked(PTYPE* param_in,
             if(grad_scale)
                 grad /= scale_factor;
 
-            TransformersAdamInternal<PTYPE, CTYPE>(param_in,
-                                                   param_out,
-                                                   exp_avg_in,
-                                                   exp_avg_out,
-                                                   exp_avg_sq_in,
-                                                   exp_avg_sq_out,
-                                                   grad,
-                                                   beta1,
-                                                   beta2,
-                                                   eps,
-                                                   lr_weight_decay,
-                                                   step_size,
-                                                   gid);
+            TransformersAdamWInternal<PTYPE, CTYPE>(param_in,
+                                                    param_out,
+                                                    exp_avg_in,
+                                                    exp_avg_out,
+                                                    exp_avg_sq_in,
+                                                    exp_avg_sq_out,
+                                                    grad,
+                                                    beta1,
+                                                    beta2,
+                                                    eps,
+                                                    lr_weight_decay,
+                                                    step_size,
+                                                    gid);
 
             if(param_out_fp16)
                 param_out_fp16[gid] = static_cast<half>(param_out[gid]);
@@ -480,25 +480,25 @@ extern "C" __global__ void TransformersAdamPacked(PTYPE* param_in,
     }
 }
 
-extern "C" __global__ void TransformersAdamPackedWithStep(PTYPE* param_in,
-                                                          PTYPE* param_out,
-                                                          half* param_out_fp16,
-                                                          GTYPE* grad_in,
-                                                          PTYPE* exp_avg_in,
-                                                          PTYPE* exp_avg_out,
-                                                          PTYPE* exp_avg_sq_in,
-                                                          PTYPE* exp_avg_sq_out,
-                                                          int32_t* grad_scale,
-                                                          bool* found_inf,
-                                                          int* step,
-                                                          float lr,
-                                                          float beta1,
-                                                          float beta2,
-                                                          float eps,
-                                                          float lr_weight_decay,
-                                                          float step_size,
-                                                          bool correct_bias,
-                                                          size_t input_size)
+extern "C" __global__ void TransformersAdamWPackedWithStep(PTYPE* param_in,
+                                                           PTYPE* param_out,
+                                                           half* param_out_fp16,
+                                                           GTYPE* grad_in,
+                                                           PTYPE* exp_avg_in,
+                                                           PTYPE* exp_avg_out,
+                                                           PTYPE* exp_avg_sq_in,
+                                                           PTYPE* exp_avg_sq_out,
+                                                           int32_t* grad_scale,
+                                                           bool* found_inf,
+                                                           int* step,
+                                                           float lr,
+                                                           float beta1,
+                                                           float beta2,
+                                                           float eps,
+                                                           float lr_weight_decay,
+                                                           float step_size,
+                                                           bool correct_bias,
+                                                           size_t input_size)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -511,11 +511,18 @@ extern "C" __global__ void TransformersAdamPackedWithStep(PTYPE* param_in,
         CTYPE scale_factor = (grad_scale) ? static_cast<CTYPE>(*grad_scale) : 1.0f;
         uint32_t step_val  = static_cast<uint32_t>(*step) + 1;
 
-        if(step_size == -1 && correct_bias)
+        if(step_size < 0)
         {
-            CTYPE bias_correction1 = 1 - pow(beta1, step_val);
-            CTYPE bias_correction2 = 1 - pow(beta2, step_val);
-            step_size              = lr * sqrt(bias_correction2) / bias_correction1;
+            if(correct_bias)
+            {
+                CTYPE bias_correction1 = 1 - pow(beta1, step_val);
+                CTYPE bias_correction2 = 1 - pow(beta2, step_val);
+                step_size              = lr * sqrt(bias_correction2) / bias_correction1;
+            }
+            else
+            {
+                step_size = lr;
+            }
         }
 
         for(; gid < input_size; gid += gsz)
@@ -524,19 +531,19 @@ extern "C" __global__ void TransformersAdamPackedWithStep(PTYPE* param_in,
             if(grad_scale)
                 grad /= scale_factor;
 
-            TransformersAdamInternal<PTYPE, CTYPE>(param_in,
-                                                   param_out,
-                                                   exp_avg_in,
-                                                   exp_avg_out,
-                                                   exp_avg_sq_in,
-                                                   exp_avg_sq_out,
-                                                   grad,
-                                                   beta1,
-                                                   beta2,
-                                                   eps,
-                                                   lr_weight_decay,
-                                                   step_size,
-                                                   gid);
+            TransformersAdamWInternal<PTYPE, CTYPE>(param_in,
+                                                    param_out,
+                                                    exp_avg_in,
+                                                    exp_avg_out,
+                                                    exp_avg_sq_in,
+                                                    exp_avg_sq_out,
+                                                    grad,
+                                                    beta1,
+                                                    beta2,
+                                                    eps,
+                                                    lr_weight_decay,
+                                                    step_size,
+                                                    gid);
             if(param_out_fp16)
                 param_out_fp16[gid] = static_cast<half>(param_out[gid]);
         }

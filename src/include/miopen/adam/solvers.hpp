@@ -56,9 +56,9 @@ struct Adam final : AdamSolver
     bool MayNeedWorkspace() const override { return false; }
 };
 
-struct TransformersAdam final : AdamSolver
+struct TransformersAdamW final : AdamSolver
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<TransformersAdam>(); }
+    const std::string& SolverDbId() const override { return GetSolverDbId<TransformersAdamW>(); }
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::adam::ProblemDescription& problem) const override;
