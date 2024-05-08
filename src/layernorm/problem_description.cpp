@@ -39,22 +39,38 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     size_t outer_size = 1;
     size_t inner_size = 1;
 
-    for(size_t i = 0ULL; i < dims.size(); ++i)
+    if((mode == MIOPEN_WEIGHT_BIAS_T5) || (mode == MIOPEN_ELEMENTWISE_AFFINE_T5))
     {
-        if(i < normalized_dim)
-            outer_size *= dims[i];
-        else
-            inner_size *= dims[i];
+        inner_size = dims[dims.size() - 1];
+        outer_size = std::accumulate(dims.begin(), dims.end() - 1, 1ULL, std::multiplies<size_t>());
     }
-
+    else
+    {
+        outer_size = std::accumulate(
+            dims.begin(), dims.begin() + normalized_dim, 1ULL, std::multiplies<size_t>());
+        inner_size = std::accumulate(
+            dims.begin() + normalized_dim, dims.end(), 1ULL, std::multiplies<size_t>());
+    }
     auto dtype = xDesc.GetType();
 
     std::ostringstream ss;
 
     ss << "dtype" << dtype;
-    ss << "normalized_dim" << normalized_dim;
+    if((mode == MIOPEN_WEIGHT_BIAS_T5) || (mode == MIOPEN_ELEMENTWISE_AFFINE_T5))
+    {
+        ss << "normalized_dim" << dims.size() - 1;
+    }
+    else
+    {
+        ss << "normalized_dim" << normalized_dim;
+    }
     ss << "outer_size" << outer_size;
     ss << "inner_size" << inner_size;
+
+    if((mode == MIOPEN_WEIGHT_BIAS_FUSED_ADD) || (mode == MIOPEN_ELEMENTWISE_AFFINE_FUSED_ADD))
+        ss << "addlayernorm";
+    if((mode == MIOPEN_WEIGHT_BIAS_T5) || (mode == MIOPEN_ELEMENTWISE_AFFINE_T5))
+        ss << "t5layernorm";
 
     return NetworkConfig{ss.str()};
 }

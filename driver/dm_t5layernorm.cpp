@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,32 +23,18 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_LAYERNORM_HPP_
-#define MIOPEN_LAYERNORM_HPP_
+#include "t5layernorm_driver.hpp"
+#include "registry_driver_maker.hpp"
 
-#include <miopen/common.hpp>
+static Driver* makeDriver(const std::string& base_arg)
+{
+    if(base_arg == "t5layernorm")
+        return new T5LayerNormDriver<float, float>();
+    if(base_arg == "t5layernormfp16")
+        return new T5LayerNormDriver<float16, float>();
+    if(base_arg == "t5layernormbfp16")
+        return new T5LayerNormDriver<bfloat16, float>();
+    return nullptr;
+}
 
-namespace miopen {
-
-struct Handle;
-struct TensorDescriptor;
-
-miopenStatus_t LayerNormForward(Handle& handle,
-                                const TensorDescriptor& xDesc,
-                                ConstData_t x,
-                                const TensorDescriptor& weightDesc,
-                                ConstData_t weight,
-                                const TensorDescriptor& biasDesc,
-                                ConstData_t bias,
-                                const TensorDescriptor& yDesc,
-                                Data_t y,
-                                const TensorDescriptor& meanDesc,
-                                Data_t mean,
-                                const TensorDescriptor& rstdDesc,
-                                Data_t rstd,
-                                miopenNormMode_t mode,
-                                float epsilon,
-                                int32_t normalized_dim);
-
-} // namespace miopen
-#endif // MIOPEN_LAYERNORM_HPP_
+REGISTER_DRIVER_MAKER(makeDriver);
