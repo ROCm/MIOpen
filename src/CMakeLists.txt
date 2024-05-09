@@ -85,6 +85,8 @@ endfunction()
 set( MIOpen_Source
     activ/problem_description.cpp
     activ_api.cpp
+    adam/problem_description.cpp
+    adam_api.cpp
     addlayernorm_api.cpp
     api/find2_0_commons.cpp
     argmax_api.cpp
@@ -176,6 +178,7 @@ set( MIOpen_Source
     solver/activ/bwd_1.cpp
     solver/activ/fwd_0.cpp
     solver/activ/fwd_1.cpp
+    solver/adam/adam.cpp
     solver/batchnorm/backward_ck.cpp
     solver/batchnorm/backward_per_activation.cpp
     solver/batchnorm/backward_per_activation_fused.cpp
@@ -457,6 +460,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${GPU_REFERENCE_KERNEL_ASM}
         ${GPU_BATCHED_TRANSPOSE_KERNEL_HIP}
         ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_SOURCE}
+        kernels/MIOpenAdam.cpp
         kernels/MIOpenArgmax.cpp
         kernels/MIOpenCat.cpp
         kernels/MIOpenCheckNumerics.cpp
@@ -596,6 +600,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
     list(APPEND MIOpen_Source
         activ.cpp
+        adam.cpp
         addlayernorm.cpp
         argmax.cpp
         cat.cpp

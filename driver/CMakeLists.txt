@@ -30,6 +30,7 @@ add_executable(MIOpenDriver
     InputFlags.cpp
     conv_common.cpp
     dm_activ.cpp
+    dm_adam.cpp
     dm_addlayernorm.cpp
     dm_argmax.cpp
     dm_bnorm.cpp
