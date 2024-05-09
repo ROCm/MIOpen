@@ -1754,7 +1754,7 @@ miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
  * miopenFindConvolutionForwardAlgorithm() must have been executed previously to
  * determine the required memory needed for the workspace and the best convolutional algorithm.
  * The scaling parameter alpha (float) and shift parameter beta (float) are only supported for
- * alpha = 1 and beta = 0.
+ * alpha = 1 and beta = 0 in 2D. In 3D, these parameters can take other values.
  *
  * The forward convolution is designed to accommodate both packed and non-packed tensor strides for
  * multiple data types and dimensions across various platforms. This flexibility ensures optimal
