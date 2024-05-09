@@ -26,6 +26,10 @@
 
 #pragma once
 
+#include <type_traits>
+#include <ostream>
+#include <stdint.h>
+
 namespace miopen {
 namespace conv {
 
