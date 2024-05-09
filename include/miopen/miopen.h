@@ -487,6 +487,14 @@ typedef enum
     MIOPEN_ELEMENTWISE_AFFINE = 0, /*!< initialized to ones for weights and zeros for biases */
     MIOPEN_WEIGHT_BIAS =
         1, /*!< learnable weights and biases of the module of shape normalized_shape */
+    MIOPEN_ELEMENTWISE_AFFINE_FUSED_ADD =
+        2, /*!< initialized to ones for weights and zeros for biases in addlayernorm */
+    MIOPEN_WEIGHT_BIAS_FUSED_ADD = 3, /*!< learnable weights and biases of the module of shape
+                                         normalized_shape in addlayernorm */
+    MIOPEN_ELEMENTWISE_AFFINE_T5 =
+        4, /*!< initialized to ones for weights and zeros for biases in t5layernorm */
+    MIOPEN_WEIGHT_BIAS_T5 = 5, /*!< learnable weights and biases of the module of shape
+                                  normalized_shape in t5layernorm */
 } miopenNormMode_t;
 #endif
 /*! @ingroup batchnorm
@@ -5893,6 +5901,155 @@ MIOPEN_EXPORT miopenStatus_t miopenGroupNormForward(miopenHandle_t handle,
 #endif
 
 #ifdef MIOPEN_BETA_API
+// LayerNorm APIs
+/** @addtogroup layernorm
+ *
+ *  @{
+ */
+/*! @brief Execute a add and layernorm forward layer
+ *
+ * @param handle         MIOpen handle (input)
+ * @param mode           LayerNorm mode (input)
+ * @param xDesc          Tensor descriptor for data input tensor x (input)
+ * @param x              Data tensor x (input)
+ * @param x2Desc         Tensor descriptor for data input tensor x2 (input)
+ * @param x2             Data tensor x2 (input)
+ * @param weightDesc     Tensor descriptor for data input tensor weight (input)
+ * @param weight         Data tensor weight (input)
+ * @param biasDesc       Tensor descriptor for data input tensor bias (input)
+ * @param bias           Data tensor bias (input)
+ * @param epsilon        Value to stablize inverse variance calculation (input)
+ * @param normalized_dim Nomalized dimensions in the input array (input)
+ * @param yDesc          Tensor descriptor for output data tensor y (input)
+ * @param y              Data tensor y (output)
+ * @param meanDesc       Tensor descriptor for output data tensor mean (input)
+ * @param mean           Data tensor mean (output)
+ * @param rstdDesc       Tensor descriptor for output data tensor rstd (input)
+ * @param rstd           Data tensor rstd (output)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenAddLayerNormForward(miopenHandle_t handle,
+                                                       miopenNormMode_t mode,
+                                                       const miopenTensorDescriptor_t xDesc,
+                                                       const void* x,
+                                                       const miopenTensorDescriptor_t x2Desc,
+                                                       const void* x2,
+                                                       const miopenTensorDescriptor_t weightDesc,
+                                                       const void* weight,
+                                                       const miopenTensorDescriptor_t biasDesc,
+                                                       const void* bias,
+                                                       const float epsilon,
+                                                       const int32_t normalized_dim,
+                                                       const miopenTensorDescriptor_t yDesc,
+                                                       void* y,
+                                                       const miopenTensorDescriptor_t meanDesc,
+                                                       void* mean,
+                                                       const miopenTensorDescriptor_t rstdDesc,
+                                                       void* rstd);
+
+/** @} */
+// CLOSEOUT LAYERNORM DOXYGEN GROUP
+#endif
+
+#ifdef MIOPEN_BETA_API
+// LayerNorm APIs
+/** @addtogroup layernorm
+ *
+ *  @{
+ */
+/*! @brief Execute a T5layernorm forward layer
+ *
+ * @param handle         MIOpen handle (input)
+ * @param mode           LayerNorm mode (input)
+ * @param xDesc          Tensor descriptor for data input tensor x (input)
+ * @param x              Data tensor x (input)
+ * @param weightDesc     Tensor descriptor for data input tensor weight (input)
+ * @param weight         Data tensor weight (input)
+ * @param epsilon        Value to stablize inverse variance calculation (input)
+ * @param yDesc          Tensor descriptor for output data tensor y (input)
+ * @param y              Data tensor y (output)
+ * @param rstdDesc       Tensor descriptor for output data tensor rstd (input)
+ * @param rstd           Data tensor rstd (output)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenT5LayerNormForward(miopenHandle_t handle,
+                                                      miopenNormMode_t mode,
+                                                      const miopenTensorDescriptor_t xDesc,
+                                                      const void* x,
+                                                      const miopenTensorDescriptor_t weightDesc,
+                                                      const void* weight,
+                                                      const float epsilon,
+                                                      const miopenTensorDescriptor_t yDesc,
+                                                      void* y,
+                                                      const miopenTensorDescriptor_t rstdDesc,
+                                                      void* rstd);
+
+/*! @brief Helper function to query the minimum workspace size required by the T5layernorm backward
+ * call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param mode                     LayerNorm mode (input)
+ * @param dyDesc                   Tensor descriptor for data input tensor dy (input)
+ * @param xDesc                    Tensor descriptor for data input tensor x (input)
+ * @param weightDesc               Tensor descriptor for data input tensor weight (input)
+ * @param rstdDesc                 Tensor descriptor for data input tensor rstd (input)
+ * @param dxDesc                   Tensor descriptor for output data tensor dx (input)
+ * @param dwDesc                   Tensor descriptor for output data tensor dw (input)
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size
+ * @return                         miopenStatus_t
+ */
+extern "C" miopenStatus_t
+miopenGetT5LayerNormBackwardWorkspaceSize(miopenHandle_t handle,
+                                          miopenNormMode_t mode,
+                                          const miopenTensorDescriptor_t dyDesc,
+                                          const miopenTensorDescriptor_t xDesc,
+                                          const miopenTensorDescriptor_t weightDesc,
+                                          const miopenTensorDescriptor_t rstdDesc,
+                                          const miopenTensorDescriptor_t dxDesc,
+                                          const miopenTensorDescriptor_t dwDesc,
+                                          size_t* sizeInBytes);
+
+/*! @brief Execute a T5layernorm backward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param mode                     LayerNorm mode (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param dyDesc                   Tensor descriptor for data input tensor dy (input)
+ * @param dy                       Data tensor dy (input)
+ * @param xDesc                    Tensor descriptor for output data tensor x (input)
+ * @param x                        Data tensor x (input)
+ * @param weightDesc               Tensor descriptor for data input tensor weight (input)
+ * @param weight                   Data tensor weight (input)
+ * @param rstdDesc                 Tensor descriptor for output data tensor rstd (input)
+ * @param rstd                     Data tensor rstd (output)
+ * @param dxDesc                   Tensor descriptor for output data tensor dx (input)
+ * @param dx                       Data tensor dx (output)
+ * @param dwDesc                   Tensor descriptor for output data tensor dw (input)
+ * @param dw                       Data tensor dw (output)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenT5LayerNormBackward(miopenHandle_t handle,
+                                                       miopenNormMode_t mode,
+                                                       void* workspace,
+                                                       size_t workspaceSizeInBytes,
+                                                       const miopenTensorDescriptor_t dyDesc,
+                                                       const void* dy,
+                                                       const miopenTensorDescriptor_t xDesc,
+                                                       const void* x,
+                                                       const miopenTensorDescriptor_t weightDesc,
+                                                       const void* weight,
+                                                       const miopenTensorDescriptor_t rstdDesc,
+                                                       const void* rstd,
+                                                       const miopenTensorDescriptor_t dxDesc,
+                                                       void* dx,
+                                                       const miopenTensorDescriptor_t dwDesc,
+                                                       void* dw);
+/** @} */
+// CLOSEOUT LAYERNORM DOXYGEN GROUP
+#endif
+
+#ifdef MIOPEN_BETA_API
 // Graph API
 /** @addtogroup GraphAPI
  *
@@ -5982,6 +6139,7 @@ typedef enum
     MIOPEN_ATTR_EXECUTION_PLAN_WORKSPACE_SIZE             = 402,
     MIOPEN_ATTR_EXECUTION_PLAN_COMPUTED_INTERMEDIATE_UIDS = 403,
     MIOPEN_ATTR_EXECUTION_PLAN_RUN_ONLY_INTERMEDIATE_UIDS = 404,
+    MIOPEN_ATTR_EXECUTION_PLAN_JSON_REPRESENTATION        = 405,
 
     MIOPEN_ATTR_INTERMEDIATE_INFO_UNIQUE_ID            = 500,
     MIOPEN_ATTR_INTERMEDIATE_INFO_SIZE                 = 501,
