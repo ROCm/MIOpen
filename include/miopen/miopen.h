@@ -6579,6 +6579,19 @@ typedef enum
     MIOPEN_RNG_DISTRIBUTION_NORMAL,
 } miopenRngDistribution_t;
 
+/*! @brief Operation mode of CUDNN_BACKEND_ENGINEHEUR_DESCRIPTOR
+ *
+ *  An enumerated type to indicate the operation mode of a CUDNN_BACKEND_ENGINEHEUR_DESCRIPTOR
+ */
+typedef enum
+{
+    MIOPEN_HEUR_MODE_INSTANT  = 0,
+    MIOPEN_HEUR_MODE_B        = 1,
+    MIOPEN_HEUR_MODE_FALLBACK = 2,
+    MIOPEN_HEUR_MODE_A        = 3,
+    MIOPEN_HEUR_MODES_COUNT   = 4,
+} miopenBackendHeurMode_t;
+
 /*! @brief Backend descriptor
  *
  * A typedef void pointer to one of many opaque descriptor structures.
