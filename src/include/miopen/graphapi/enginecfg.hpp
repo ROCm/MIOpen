@@ -91,13 +91,26 @@ public:
 
 class BackendEngineCfgDescriptor : public BackendDescriptor
 {
-private:
+protected:
     EngineCfgBuilder mBuilder;
     EngineCfg mEngineCfg;
 
     miopenBackendDescriptor_t mEngineDescriptor = nullptr;
 
+    BackendEngineCfgDescriptor(const EngineCfg& engineCfg,
+                               miopenBackendDescriptor_t engineDescriptor)
+        : mEngineCfg(engineCfg), mEngineDescriptor(engineDescriptor)
+    {
+        mFinalized = true;
+    }
+    BackendEngineCfgDescriptor(EngineCfg&& engineCfg, miopenBackendDescriptor_t engineDescriptor)
+        : mEngineCfg(std::move(engineCfg)), mEngineDescriptor(engineDescriptor)
+    {
+        mFinalized = true;
+    }
+
 public:
+    BackendEngineCfgDescriptor() = default;
     void setAttribute(miopenBackendAttributeName_t attributeName,
                       miopenBackendAttributeType_t attributeType,
                       int64_t elementCount,

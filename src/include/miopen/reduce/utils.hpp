@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,32 +23,49 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_LAYERNORM_HPP_
-#define MIOPEN_LAYERNORM_HPP_
+#ifndef MIOPEN_REDUCE_UTILS_HPP_
+#define MIOPEN_REDUCE_UTILS_HPP_
 
-#include <miopen/common.hpp>
+#include <miopen/reduce/solvers.hpp>
 
 namespace miopen {
+namespace solver {
+namespace reduce {
 
-struct Handle;
-struct TensorDescriptor;
+#define LOCAL_SIZE 256
 
-miopenStatus_t LayerNormForward(Handle& handle,
-                                const TensorDescriptor& xDesc,
-                                ConstData_t x,
-                                const TensorDescriptor& weightDesc,
-                                ConstData_t weight,
-                                const TensorDescriptor& biasDesc,
-                                ConstData_t bias,
-                                const TensorDescriptor& yDesc,
-                                Data_t y,
-                                const TensorDescriptor& meanDesc,
-                                Data_t mean,
-                                const TensorDescriptor& rstdDesc,
-                                Data_t rstd,
-                                miopenNormMode_t mode,
-                                float epsilon,
-                                int32_t normalized_dim);
+inline size_t get_reqd_work_item_cnt(const ExecutionContext& context)
+{
+    // At least 4 WGs per one CU
+    return static_cast<size_t>(LOCAL_SIZE * context.GetStream().GetMaxComputeUnits() * 4);
+}
 
+inline size_t get_reqd_work_item_cnt(const Handle& handle)
+{
+    // At least 4 WGs per one CU
+    return static_cast<size_t>(LOCAL_SIZE * handle.GetMaxComputeUnits() * 4);
+}
+
+inline size_t
+get_parallelism_size(size_t reqd_work_item_cnt, size_t output_numel, size_t reduce_size)
+{
+    size_t parallelism_size = 1ULL;
+    while(parallelism_size * output_numel < reqd_work_item_cnt &&
+          parallelism_size < std::sqrt(reduce_size))
+    {
+        parallelism_size *= 2ULL;
+    }
+    return parallelism_size;
+}
+
+inline bool is_parallelism(size_t reqd_work_item_cnt, size_t output_numel, size_t reduce_size)
+{
+    return !(output_numel > reqd_work_item_cnt) &&
+           (output_numel * reduce_size > reqd_work_item_cnt);
+}
+
+} // namespace reduce
+} // namespace solver
 } // namespace miopen
-#endif // MIOPEN_LAYERNORM_HPP_
+
+#endif // _MIOPEN_REDUCE_UTILS_HPP_
