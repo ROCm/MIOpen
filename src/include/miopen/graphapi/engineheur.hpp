@@ -26,70 +26,79 @@
 
 #pragma once
 
+#include <miopen/graphapi/enginecfg.hpp>
 #include <miopen/graphapi/graphapi.hpp>
-#include <miopen/solution.hpp>
+#include <miopen/graphapi/opgraph.hpp>
+
+#include <cstdint>
+#include <vector>
 
 namespace miopen {
 
 namespace graphapi {
 
-class Engine
+class EngineHeur
 {
 private:
-    Solution mSolution;
-    int64_t mGlobalIndex = -1;
-    int32_t mSmCount     = 0;
-    friend class EngineBuilder;
+    OpGraph* mOpGraph;
+    std::vector<EngineCfg> mResults;
+    int32_t mSmCount              = 0;
+    miopenBackendHeurMode_t mMode = miopenBackendHeurMode_t(0);
+
+    friend class EngineHeurBuilder;
 
 public:
-    Engine()              = default;
-    Engine(const Engine&) = default;
-    Engine(Engine&&)      = default;
-    Engine& operator=(const Engine&) = default;
-    Engine& operator=(Engine&&) = default;
+    EngineHeur() noexcept             = default;
+    EngineHeur(const EngineHeur&)     = default;
+    EngineHeur(EngineHeur&&) noexcept = default;
+    EngineHeur& operator=(const EngineHeur&) = default;
+    EngineHeur& operator=(EngineHeur&&) noexcept = default;
 
-    Engine(const Solution& solution) : mSolution(solution) {}
-    Engine(Solution&& solution) : mSolution(std::move(solution)) {}
-
-    const Solution& getSolution() const noexcept { return mSolution; }
-    Solution& getSolution() noexcept { return mSolution; }
-
-    int64_t getGlobalIndex() const noexcept { return mGlobalIndex; }
+    OpGraph* getOpgraph() const noexcept { return mOpGraph; }
+    miopenBackendHeurMode_t getMode() const noexcept { return mMode; }
+    const std::vector<EngineCfg>& getResults() const noexcept { return mResults; }
+    std::vector<EngineCfg>& getResults() noexcept { return mResults; }
     int32_t getSmCount() const noexcept { return mSmCount; }
 };
 
-class OpGraph;
-
-class EngineBuilder
+class EngineHeurBuilder
 {
 private:
-    const OpGraph* mOpGraph = nullptr;
-    int64_t mGlobalIndex    = -1;
-    int32_t mSmCount        = 0;
-    bool mGlobalIndexSet    = false;
+    EngineHeur mEngineHeur;
+    bool mModeSet = false;
 
 public:
-    EngineBuilder& setOpGraph(const OpGraph* opGraph);
-    EngineBuilder& setGlobalIndex(int64_t globalIndex);
-    EngineBuilder& setSmCount(int32_t smCount);
-    Engine build();
+    EngineHeurBuilder& setOpGraph(OpGraph* opGraph);
+    EngineHeurBuilder& setMode(miopenBackendHeurMode_t mode);
+    EngineHeurBuilder& setSmCount(int32_t smCount);
+    EngineHeur build();
 };
 
-class BackendEngineDescriptor : public BackendDescriptor
+class BackendEngineHeurDescriptor : public BackendDescriptor
 {
 private:
-    EngineBuilder mBuilder;
-    Engine mEngine;
+    EngineHeurBuilder mBuilder;
+    EngineHeur mEngineHeur;
 
     miopenBackendDescriptor_t mOpGraphDescriptor = nullptr;
 
-public:
-    BackendEngineDescriptor() = default;
-    BackendEngineDescriptor(const Engine& engine, miopenBackendDescriptor_t opGraphDescriptor)
-        : mEngine(engine), mOpGraphDescriptor(opGraphDescriptor)
+    class OwnedEngineCfgDescriptor : public BackendEngineCfgDescriptor
     {
-    }
+    private:
+        BackendEngineDescriptor mOwnedEngineDescriptorInstance;
 
+    public:
+        OwnedEngineCfgDescriptor(EngineCfg&& engineCfg,
+                                 miopenBackendDescriptor_t opGraphDescriptor);
+        OwnedEngineCfgDescriptor(const OwnedEngineCfgDescriptor& other);
+        OwnedEngineCfgDescriptor(OwnedEngineCfgDescriptor&& other) noexcept;
+        OwnedEngineCfgDescriptor& operator=(const OwnedEngineCfgDescriptor& other);
+        OwnedEngineCfgDescriptor& operator=(OwnedEngineCfgDescriptor&& other) noexcept;
+    };
+
+    std::vector<OwnedEngineCfgDescriptor> mResults;
+
+public:
     void setAttribute(miopenBackendAttributeName_t attributeName,
                       miopenBackendAttributeType_t attributeType,
                       int64_t elementCount,
@@ -100,9 +109,6 @@ public:
                       int64_t requestedElementCount,
                       int64_t* elementCount,
                       void* arrayOfElements) override;
-
-    const Engine& getEngine() const noexcept { return mEngine; }
-    Engine& getEngine() noexcept { return mEngine; }
 };
 
 } // namespace graphapi

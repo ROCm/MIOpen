@@ -127,10 +127,11 @@ set( MIOpen_Source
     graphapi/convolution.cpp
     graphapi/engine.cpp
     graphapi/enginecfg.cpp
+    graphapi/engineheur.cpp
     graphapi/execution_plan.cpp
     graphapi/graphapi.cpp
-    graphapi/opgraph.cpp
     graphapi/matmul.cpp
+    graphapi/opgraph.cpp
     graphapi/pointwise.cpp
     graphapi/reduction.cpp
     graphapi/rng.cpp
