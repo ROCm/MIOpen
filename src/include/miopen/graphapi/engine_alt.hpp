@@ -33,13 +33,12 @@
 namespace miopen {
 namespace graphapi {
 
-class TensorInfo {
+struct TensorInfo {
   miopenTensorArgumentId_t mEnumId = miopenTensorArgumentIdInvalid;
   Tensor* mGraphTensor = nullptr;
   TensorDescriptor mTensDesc{};
   Data_t mDevBuf = nullptr;
 
-public:
   TensorInfo(miopenTensorArgumentId_t enum_id, Tensor* tens_ptr):
     mEnumId(enum_id),
     mGraphTensor(tens_ptr),

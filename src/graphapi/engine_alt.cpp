@@ -226,11 +226,45 @@ public:
 
     std::vector<Engine> getEngines(OpGraph* graph) const override {
 
+      assert(graph);
       assert(matches(graph));
 
 
+      miopenProblem_t mha_prob;
+      MhaDescriptor mha_desc;
 
-      return {};
+      float scale = 1.0; // TODO: get attention scale
+
+      mha_desc.SetParams(scale);
+
+      auto s =miopenCreateMhaProblem(&mha_prob, &mha_desc, miopenProblemDirectionForward);
+      MIOPEN_THROW_IF(s != miopenStatusSuccess, "failed while creating problem for mha fwd");
+
+      std::shared_ptr<TensorInfoMap> tensor_map = extractFind20Tensors(*graph);
+
+      for (auto& [k, v] : *tensor_map) {
+        s = miopenSetProblemTensorDescriptor(mha_prob, v.mEnumId, &(v.mTensDesc));
+        MIOPEN_THROW_IF(s != miopenStatusSuccess, "failed while setting tensor descriptor for mha fwd");
+      }
+
+      std::vector<miopenSolution_t> solutions(10);
+      size_t num_found = 0; 
+      s = miopenFindSolutions(graph->getHandle(), mha_prob, solutions.data(), &num_found, solutions.size());
+      MIOPEN_THROW_IF(s != miopenStatusSuccess, "failed while finding solutions for mha fwd");
+
+      solutions.resize(num_found);
+
+      std::vector<Engine> engines;
+
+      for(const auto& sol : solutions) {
+        engines.emplace_back(EngineBuilder()
+            .setGraph(graph)
+            .setSolution(sol)
+            .setTensorInfoMap(tensor_map)
+            .build());
+      }
+
+      return engines;
     }
 };
 
