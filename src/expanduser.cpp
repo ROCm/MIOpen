@@ -28,9 +28,13 @@
 #include <miopen/logger.hpp>
 #include <miopen/stringutils.hpp>
 
-#include <boost/filesystem.hpp>
+#include <miopen/filesystem.hpp>
 
 #include <string>
+#ifdef _WIN32
+#include <optional>
+#include <boost/algorithm/string/replace.hpp>
+#endif
 
 #ifdef __linux__
 #include <errno.h>
@@ -81,7 +85,7 @@
 #endif
 #endif // __linux__
 
-MIOPEN_DECLARE_ENV_VAR(HOME)
+MIOPEN_DECLARE_ENV_VAR_STR(HOME)
 
 namespace miopen {
 
@@ -131,11 +135,9 @@ bool IsNetworked(unsigned long ft)
 } // namespace
 
 #undef CASE_RET_STRING
-#endif // __linux__
 
-bool IsNetworkedFilesystem(const boost::filesystem::path& path_)
+bool IsNetworkedFilesystem(const fs::path& path_)
 {
-#ifdef __linux__
     // Non-DEV builds put user databases in ~/.config/miopen by default; the binary cache is placed
     // in ~/.cache/miopen. If these directories do not exist, this is not a problem, because the
     // library creates them as needed.
@@ -153,9 +155,9 @@ bool IsNetworkedFilesystem(const boost::filesystem::path& path_)
     auto path = path_;
     for(int i = 0; i < 32; ++i)
     {
-        if(boost::filesystem::exists(path))
+        if(fs::exists(path))
             break;
-        MIOPEN_LOG_NQI2("Path does not exist: '" << path.string() << '\'');
+        MIOPEN_LOG_NQI2("Path does not exist: '" << path << '\'');
         path = path.parent_path();
         if(path.empty())
             break;
@@ -165,39 +167,101 @@ bool IsNetworkedFilesystem(const boost::filesystem::path& path_)
     if(rc != 0)
     {
         // NOLINTNEXTLINE (concurrency-mt-unsafe)
-        MIOPEN_LOG_NQE("statfs('" << path.string() << "') rc = " << rc << ", '" << strerror(errno)
-                                  << "'");
+        MIOPEN_LOG_NQE("statfs('" << path << "') rc = " << rc << ", '" << strerror(errno) << "'");
         return false;
     }
-    MIOPEN_LOG_NQI("Filesystem type at '" << path.string() << "' is: 0x" << std::hex << stat.f_type
-                                          << " '" << Stringize(stat.f_type) << '\'');
+    MIOPEN_LOG_NQI("Filesystem type at '" << path << "' is: 0x" << std::hex << stat.f_type << " '"
+                                          << Stringize(stat.f_type) << '\'');
     return IsNetworked(stat.f_type);
-#else
-    std::ignore = path_;
-    return false;
-#endif // __linux__
 }
 
 namespace {
 std::string GetHomeDir()
 {
-    const char* const p = GetStringEnv(HOME{});
-    if(!(p == nullptr || p == std::string("/") || p == std::string("")))
+    const auto p = GetStringEnv(ENV(HOME));
+    if(!(p.empty() || p == std::string("/")))
     {
-        return {p};
+        return p;
     }
     // todo:
     // need to figure out what is the correct thing to do here
     // in tensoflow unit tests run via bazel, $HOME is not set, so this can happen
     // setting home_dir to the /tmp for now
-    return {boost::filesystem::temp_directory_path().string()};
+    return {fs::temp_directory_path().string()};
 }
 } // namespace
 
-boost::filesystem::path ExpandUser(const std::string& path)
+fs::path ExpandUser(const std::string& path)
 {
     static const std::string home_dir = GetHomeDir();
     return {ReplaceString(path, "~", home_dir)};
 }
+
+#else
+
+namespace {
+std::optional<std::string> GetEnvironmentVariable(const std::string_view name)
+{
+    std::size_t required_size;
+    getenv_s(&required_size, nullptr, 0, name.data());
+    if(required_size == 0)
+    {
+        return std::nullopt;
+    }
+    // getenv_s returns the required size of a string including '\0' character.
+    std::string result(required_size - 1, 'A');
+    getenv_s(&required_size, result.data(), required_size, name.data());
+    return {result};
+}
+
+std::optional<std::pair<std::string::size_type, std::string>>
+ReplaceVariable(const std::string& path, std::string_view name, std::size_t offset = 0)
+{
+    std::vector<std::string> variables{
+        "$" + std::string{name}, "$env:" + std::string{name}, "%" + std::string{name} + "%"};
+    for(auto& variable : variables)
+    {
+        auto pos{path.find(variable, offset)};
+        if(pos != std::string::npos)
+        {
+            auto result{path};
+            auto value{GetEnvironmentVariable(name)};
+            if(!value)
+            {
+                // TODO: log warning message that the name used
+                //       does not correspond to an environment variable.
+                value = fs::temp_directory_path().string();
+            }
+            result.replace(pos, variable.length(), *value);
+            return {{pos, result}};
+        }
+    }
+    return std::nullopt;
+}
+} // namespace
+
+fs::path ExpandUser(const std::string& path)
+{
+    auto result{ReplaceVariable(path, "USERPROFILE")};
+    if(!result)
+    {
+        result = ReplaceVariable(path, "HOME");
+        if(!result)
+        {
+            result = ReplaceVariable(path, "HOMEDRIVE");
+            if(result)
+            {
+                result = ReplaceVariable(std::get<1>(*result), "HOMEPATH", std::get<0>(*result));
+                // TODO: if (not result): log warning message that
+                //       HOMEDRIVE and HOMEPATH work in conjunction, respectively.
+            }
+        }
+    }
+    return {!result ? path : std::get<1>(*result)};
+}
+
+bool IsNetworkedFilesystem(const fs::path&) { return false; }
+
+#endif
 
 } // namespace miopen

@@ -28,50 +28,35 @@
 
 #include <miopen/fusion_plan.hpp>
 #include <miopen/batchnorm/problem_description.hpp>
+#include <miopen/conv/problem_description.hpp>
+#include <miopen/problem_description_base.hpp>
+#include <utility>
 
 namespace miopen {
 
-struct FusionDescription
+struct FusionDescription : ProblemDescriptionBase
 #if MIOPEN_ENABLE_SQLITE
-    : SQLiteSerializable<FusionDescription>
+    ,
+                           SQLiteSerializable<FusionDescription>
 #endif
 {
     const miopen::FusionPlanDescriptor* fusion_plan_desc;
     FusionDescription(const miopen::FusionPlanDescriptor* ptr_desc) : fusion_plan_desc(ptr_desc) {}
 
-    void GetNetworkConfig(std::stringstream& net_config, Handle& handle) const
+    [[nodiscard]] NetworkConfig MakeNetworkConfig() const override
     {
-        for(const auto& op : fusion_plan_desc->op_map)
-        {
-            if(op->kind() == miopenFusionOpConvForward)
-            {
-                const auto prob = GetConvProblem(op->GetIdx(), conv::Direction::Forward);
-                net_config << prob.BuildConfKey().ToString();
-            }
-            else if(op->kind() == miopenFusionOpBatchNormInference)
-            {
-                const auto prob =
-                    GetBnProblem(op->GetIdx(), miopen::batchnorm::Direction::ForwardInference);
-                net_config << prob.MakeNetworkConfig().ToString();
-            }
-            else if(op->kind() == miopenFusionOpBatchNormFwdTrain)
-            {
-                const auto prob =
-                    GetBnProblem(op->GetIdx(), miopen::batchnorm::Direction::ForwardTraining);
-                net_config << prob.MakeNetworkConfig().ToString();
-            }
-            else if(op->kind() == miopenFusionOpBatchNormBwdTrain)
-            {
-                const auto prob =
-                    GetBnProblem(op->GetIdx(), miopen::batchnorm::Direction::Backward);
-                net_config << prob.MakeNetworkConfig().ToString();
-            }
-            else
-            {
-                op->GetNetworkConfig(net_config, handle);
-            }
-        }
-        MIOPEN_LOG_I2(net_config.str());
+        std::ostringstream ss;
+        Serialize(ss);
+        return NetworkConfig{ss.str()};
+    }
+
+    void Serialize(std::ostringstream& ss) const
+    {
+        const auto& input_desc  = fusion_plan_desc->input_desc;
+        const auto& output_desc = fusion_plan_desc->output_desc;
+        ss << input_desc.ToString() << ((input_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
+        ss << output_desc.ToString() << ((output_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
+        GetNetworkConfig(ss);
     }
 
 #if !MIOPEN_ENABLE_SQLITE
@@ -89,13 +74,20 @@ struct FusionDescription
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
-        auto conv_prob = self.GetConvProblem(0, conv::Direction::Forward);
-        ProblemDescription::Visit(conv_prob, f);
+        auto conv_prob = self.GetConvProblem(conv::Direction::Forward);
+        conv::ProblemDescription::Visit(conv_prob, f);
+    }
+
+    template <class Self, class F>
+    static void VisitAll(Self&& self, F f)
+    {
+        auto conv_prob = self.GetConvProblem(conv::Direction::Forward);
+        conv::ProblemDescription::VisitAll(conv_prob, f);
     }
 #endif
 
     // This and the following method should be moved to the Ops once the return type can be unified
-    miopen::ProblemDescription GetConvProblem(size_t idx, conv::Direction dir, int bias = 0) const
+    conv::ProblemDescription GetConvProblem(size_t idx, conv::Direction dir, int bias = 0) const
     {
         const auto& conv_op =
             dynamic_cast<ConvForwardOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
@@ -103,18 +95,20 @@ struct FusionDescription
         {
             TensorDescriptor out_desc;
             conv_op.GetOutputDesc(out_desc);
-            return miopen::conv::ProblemDescription{conv_op.input_desc,
-                                                    conv_op.filter_desc,
-                                                    out_desc,
-                                                    conv_op.base_desc /* conv desc */,
-                                                    dir,
-                                                    bias};
+            return conv::ProblemDescription{conv_op.input_desc,
+                                            conv_op.filter_desc,
+                                            out_desc,
+                                            conv_op.base_desc /* conv desc */,
+                                            dir,
+                                            bias};
         }
         else
         {
             MIOPEN_THROW(miopenStatusNotImplemented);
         }
     }
+
+    conv::ProblemDescription GetConvProblem(conv::Direction dir, int bias = 0) const;
 
     miopen::batchnorm::ProblemDescription GetBnProblem(size_t idx,
                                                        miopen::batchnorm::Direction dir) const
@@ -163,6 +157,42 @@ struct FusionDescription
         }
         else
             MIOPEN_THROW(miopenStatusNotImplemented);
+    }
+
+private:
+    void GetNetworkConfig(std::ostringstream& net_config) const
+    {
+        for(const auto& op : fusion_plan_desc->op_map)
+        {
+            if(op->kind() == miopenFusionOpConvForward)
+            {
+                const auto prob = GetConvProblem(op->GetIdx(), conv::Direction::Forward);
+                net_config << prob.MakeNetworkConfig().ToString();
+            }
+            else if(op->kind() == miopenFusionOpBatchNormInference)
+            {
+                const auto prob =
+                    GetBnProblem(op->GetIdx(), miopen::batchnorm::Direction::ForwardInference);
+                net_config << prob.MakeNetworkConfig().ToString();
+            }
+            else if(op->kind() == miopenFusionOpBatchNormFwdTrain)
+            {
+                const auto prob =
+                    GetBnProblem(op->GetIdx(), miopen::batchnorm::Direction::ForwardTraining);
+                net_config << prob.MakeNetworkConfig().ToString();
+            }
+            else if(op->kind() == miopenFusionOpBatchNormBwdTrain)
+            {
+                const auto prob =
+                    GetBnProblem(op->GetIdx(), miopen::batchnorm::Direction::Backward);
+                net_config << prob.MakeNetworkConfig().ToString();
+            }
+            else
+            {
+                op->GetNetworkConfig(net_config);
+            }
+        }
+        MIOPEN_LOG_I2(net_config.str());
     }
 };
 

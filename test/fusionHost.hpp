@@ -36,7 +36,6 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <utility>
-// #include "driver.hpp"
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
@@ -135,21 +134,21 @@ void convHostForward(const tensor<T>& input,
     }
 }
 
-template <class T, class U>
+template <class T, class U, class V = U>
 void batchNormSpatialHostInference(const tensor<T>& input,
                                    tensor<T>& output,
                                    const tensor<U>& scale,
                                    const tensor<U>& bias,
                                    double epsilon,
-                                   const tensor<U>& estimatedMean,
-                                   const tensor<U>& estimatedVariance)
+                                   const tensor<V>& estimatedMean,
+                                   const tensor<V>& estimatedVariance)
 {
 
     int n_batches, channels, height, width;
     std::tie(n_batches, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
     par_for(channels, 1, [&](int cidx) { // via channel
-        double mean      = estimatedMean(0, cidx, 0, 0);
-        double variance  = estimatedVariance(0, cidx, 0, 0);
+        V mean           = estimatedMean(0, cidx, 0, 0);
+        V variance       = estimatedVariance(0, cidx, 0, 0);
         double invertVar = 1.0 / sqrt(variance + epsilon);
         // process the batch per channel
         for(int row = 0; row < height; row++)
@@ -203,17 +202,17 @@ void batchNormPerActivHostInference(const tensor<T>& input,
     });
 }
 
-template <class T, class U>
+template <class T, class U, class V = U>
 void batchNormSpatialHostFwdTrain(const tensor<T>& input,
                                   tensor<T>& out,
                                   const tensor<U>& scale,
                                   const tensor<U>& bias,
                                   double epsilon,
                                   double expAvgFactor,
-                                  tensor<U>& saveMean,
-                                  tensor<U>& saveInvVar,
-                                  tensor<U>& runMean,
-                                  tensor<U>& runVar)
+                                  tensor<V>& saveMean,
+                                  tensor<V>& saveInvVar,
+                                  tensor<V>& runMean,
+                                  tensor<V>& runVar)
 {
 
     int height, width, n_batch, channels;
@@ -279,15 +278,15 @@ void batchNormSpatialHostFwdTrain(const tensor<T>& input,
     });
 }
 
-template <class T, class U>
-void batchNormSpatialHostBwdTrain(const tensor<T>& x_input,
-                                  const tensor<T>& dy_input,
-                                  tensor<T>& dx_out,
-                                  const tensor<U>& scale,
-                                  tensor<U>& dscale,
-                                  tensor<U>& dbias,
-                                  const tensor<U>& savedMean,
-                                  const tensor<U>& savedInvVar)
+template <class DataType, class XAndScaleDataType>
+void batchNormSpatialHostBwdTrain(const tensor<XAndScaleDataType>& x_input,
+                                  const tensor<DataType>& dy_input,
+                                  tensor<DataType>& dx_out,
+                                  const tensor<XAndScaleDataType>& scale,
+                                  tensor<DataType>& dscale,
+                                  tensor<DataType>& dbias,
+                                  const tensor<DataType>& savedMean,
+                                  const tensor<DataType>& savedInvVar)
 {
 
     int height, width, n_batch, channels;
@@ -335,7 +334,7 @@ void batchNormSpatialHostBwdTrain(const tensor<T>& x_input,
                     double tmp1 = nhw * dy_input(bidx, cidx, row, column) - dbias(0, cidx, 0, 0);
                     double tmp2 = -xhat[xhat_index] * dscale(0, cidx, 0, 0);
                     double tmp3 = (scale(0, cidx, 0, 0) * invVar) / nhw;
-                    dx_out(bidx, cidx, row, column) = static_cast<T>(tmp3 * (tmp2 + tmp1));
+                    dx_out(bidx, cidx, row, column) = static_cast<DataType>(tmp3 * (tmp2 + tmp1));
                 } // end for(n_batchs)
             }     // for (column)
         }         // for (row)
@@ -812,5 +811,5 @@ tensor<T> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
                             const tensor<T>& input,
                             const tensor<T>& weights)
 {
-    return tensor<T>{filter.GetForwardOutputTensor(input.desc, weights.desc)};
+    return tensor<T>{filter.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{})};
 }

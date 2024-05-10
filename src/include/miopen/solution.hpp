@@ -80,6 +80,8 @@ struct Solution : miopenSolution
             if(argument.descriptor != nullptr)
                 descriptor = miopen::deref(*argument.descriptor);
         }
+
+        inline RunInput(Data_t buffer_) : buffer(buffer_) {}
     };
 
     struct KernelInfo
@@ -98,8 +100,8 @@ struct Solution : miopenSolution
     const solver::Id& GetSolver() const { return solver; }
     void SetSolver(solver::Id value) { solver = value; }
     void SetPerfConfig(const std::optional<std::string>& cfg) { perf_cfg = cfg; }
-    const Problem& GetProblem() const { return problem; }
-    void SetProblem(Problem value) { problem = std::move(value); }
+    const ProblemContainer& GetProblem() const { return problem; }
+    void SetProblem(ProblemContainer value) { problem = std::move(value); }
 
     void Run(Handle& handle,
              const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
@@ -144,7 +146,7 @@ private:
     float time                     = 0;
     std::size_t workspace_required = 0;
     solver::Id solver;
-    Problem problem;
+    ProblemContainer problem;
     std::optional<std::string> perf_cfg = std::nullopt;
     std::optional<Invoker> invoker;
     std::vector<KernelInfo> kernels;
@@ -155,6 +157,24 @@ private:
                  std::size_t workspace_size,
                  const ConvolutionDescriptor& conv_desc);
 
+    void RunImpl(Handle& handle,
+                 const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
+                 Data_t /*workspace*/,
+                 std::size_t /*workspace_size*/,
+                 const SoftmaxDescriptor& softmax_desc);
+
+    void RunImpl(Handle& handle,
+                 const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
+                 Data_t workspace,
+                 std::size_t workspace_size,
+                 const MhaDescriptor& mha_desc);
+
+    void RunImpl(Handle& handle,
+                 const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
+                 Data_t workspace,
+                 std::size_t workspace_size,
+                 const FusedProblem& problem_);
+
     static AnyInvokeParams MakeInvokeParams(const Problem& problem_,
                                             const ConvolutionDescriptor& conv_desc,
                                             const RunInput& x,
@@ -164,7 +184,12 @@ private:
                                             size_t workspace_size);
 
     static Problem Transpose(const Problem& problem, RunInput* x, const RunInput& w, RunInput* y);
-    void LogDriverCommand(const ConvolutionDescriptor& conv_desc) const;
+
+    void LogDriverCommand(const ConvolutionDescriptor& desc) const;
+    void LogDriverCommand(const ActivationDescriptor& desc) const;
+
+    void LogDriverCommand(const Problem& problem_) const;
+    void LogDriverCommand(const FusedProblem& problem_) const;
 };
 
 } // namespace miopen

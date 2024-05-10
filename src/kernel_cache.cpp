@@ -48,7 +48,7 @@
 #include <iostream>
 #include <iterator>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEVICE_ARCH)
 
 namespace miopen {
 
@@ -100,7 +100,6 @@ Kernel KernelCache::AddKernel(const Handle& h,
                               const std::vector<size_t>& vgd,
                               std::string params,
                               std::size_t cache_index,
-                              bool is_kernel_miopengemm_str,
                               const std::string& kernel_src,
                               Program* program_out)
 {
@@ -121,18 +120,15 @@ Kernel KernelCache::AddKernel(const Handle& h,
                 // This may happen if someone calls immediate mode and then find 2.0 with request
                 // for binaries.
                 program =
-                    h.LoadProgram(program_name, params, is_kernel_miopengemm_str, kernel_src, true);
+                    h.LoadProgram(program_name, params, kernel_src, true);
             }
 
             return program;
         }
         else
         {
-            if(!is_kernel_miopengemm_str) // default value
-                is_kernel_miopengemm_str = algorithm.find("ImplicitGEMM") == std::string::npos &&
-                                           algorithm.find("GEMM") != std::string::npos;
             auto program = h.LoadProgram(
-                program_name, params, is_kernel_miopengemm_str, kernel_src, program_out != nullptr);
+                program_name, params, kernel_src, program_out != nullptr);
 
             program_map[std::make_pair(program_name, params)] = program;
             return program;
@@ -142,9 +138,16 @@ Kernel KernelCache::AddKernel(const Handle& h,
     if(program_out != nullptr)
         *program_out = program;
 
-    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
-    auto kernel            = (arch != nullptr && strlen(arch) > 0) ? Kernel{program, kernel_name}
-                                                                   : Kernel{program, kernel_name, vld, vgd};
+    Kernel kernel{};
+    const auto& arch = miopen::GetStringEnv(ENV(MIOPEN_DEVICE_ARCH));
+    if(!arch.empty())
+    {
+        kernel = Kernel{program, kernel_name};
+    }
+    else
+    {
+        kernel = Kernel{program, kernel_name, vld, vgd};
+    }
 
     if(!network_config.empty() && !algorithm.empty())
     {

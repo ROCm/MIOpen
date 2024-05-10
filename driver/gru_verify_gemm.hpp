@@ -3,10 +3,14 @@
 
 #define ADNN_MM_TRANSPOSE 1
 
-#include <math.h>
-#include <cassert>
-#include <algorithm>
 #include "dropout_gpu_emulator.hpp"
+#include "mloConvHost.hpp" // ADNN_mm_cpu
+
+#include <../test/rnn_util.hpp>
+
+#include <algorithm>
+#include <cassert>
+#include <math.h>
 
 template <typename Tgpu, typename Tref>
 void RunGRUForwardGEMMCPUVerify(miopenHandle_t handle,
@@ -860,7 +864,6 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
                                      std::vector<Tgpu>& dhy, // current/final hidden state
                                      std::vector<Tref>& dhx_host,
                                      std::vector<Tgpu>& hx, // initial hidden state
-                                     std::vector<Tgpu>& out,
                                      std::vector<Tgpu>& dout,
                                      std::vector<int>& in_n, // input batch size
                                      int in_h,               // input data length
@@ -882,7 +885,6 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
                                      bool dhy_is_null = false)
 {
     int batch_n = sumvc(in_n);
-    (void)out;
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
     int bacc, baccbi; // accumulation of batch

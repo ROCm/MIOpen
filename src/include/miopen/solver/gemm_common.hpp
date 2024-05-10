@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,22 +23,41 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#pragma once
+#ifndef GUARD_MIOPEN_SOLVER_GEMM_COMMON_HPP
+#define GUARD_MIOPEN_SOLVER_GEMM_COMMON_HPP
 
-#ifndef GUARD_SOLVER_GEMM_COMMON_HPP_
-#define GUARD_SOLVER_GEMM_COMMON_HPP_
+#include <miopen/config.h>
+#include <miopen/conv/problem_description.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/tensor.hpp>
 
-#include <miopen/execution_context.hpp>
+#include <cstddef>
 
 namespace miopen {
-namespace conv {
 namespace solver {
+namespace conv {
 namespace gemm {
 
-bool IsWorkaroundIssue1315(const miopen::ExecutionContext& ctx);
+std::size_t MaxMemAllocSz(Handle& h,
+                          const miopen::conv::ProblemDescription& problem,
+                          bool double_limit_for_fp32 = false);
+
+constexpr bool IsBf16Supported = MIOPEN_USE_ROCBLAS;
+constexpr bool IsFp16Supported = MIOPEN_USE_ROCBLAS;
+
+bool IsAnyBufferBf16(const TensorDescriptor& xDesc,
+                     const TensorDescriptor& yDesc,
+                     const TensorDescriptor& wDesc);
+bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
+                     const TensorDescriptor& yDesc,
+                     const TensorDescriptor& wDesc);
+
+double SlowdownFactor(int n_oper, double oper_factor, double multiple_oper_factor);
 
 } // namespace gemm
-} // namespace solver
 } // namespace conv
+} // namespace solver
 } // namespace miopen
 
-#endif
+#endif // GUARD_MIOPEN_SOLVER_GEMM_COMMON_HPP

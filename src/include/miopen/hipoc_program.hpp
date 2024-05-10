@@ -29,7 +29,7 @@
 #include <miopen/target_properties.hpp>
 #include <miopen/manage_ptr.hpp>
 #include <miopen/hipoc_program_impl.hpp>
-#include <boost/filesystem/path.hpp>
+#include <miopen/filesystem.hpp>
 #include <hip/hip_runtime_api.h>
 #include <string>
 
@@ -47,20 +47,18 @@ struct HIPOCProgram
     /// Other ctors only guarantee to initialize module.
     HIPOCProgram(const std::string& program_name,
                  std::string params,
-                 bool is_kernel_str,
                  const TargetProperties& target,
                  const std::string& kernel_src);
-    HIPOCProgram(const std::string& program_name, const boost::filesystem::path& hsaco);
+    HIPOCProgram(const std::string& program_name, const fs::path& hsaco);
     HIPOCProgram(const std::string& program_name, const std::string& hsaco);
     HIPOCProgram(const std::string& program_name, const std::vector<uint8_t>& hsaco);
     std::shared_ptr<HIPOCProgramImpl> impl;
     hipModule_t GetModule() const;
     /// \return Pathname of CO file, if it resides on the filesystem.
     /// This function should not be called after FreeCodeObjectFileStorage().
-    boost::filesystem::path GetCodeObjectPathname() const;
+    fs::path GetCodeObjectPathname() const;
     /// \return Copy of in-memory CO blob.
-    std::string GetCodeObjectBlob() const;
-    const std::vector<char>& GetCodeObjectBlobAsVector() const;
+    std::vector<char> GetCodeObjectBlob() const;
     /// \return True if CO blob resides in-memory.
     /// False if CO resides on filesystem.
     bool IsCodeObjectInMemory() const;

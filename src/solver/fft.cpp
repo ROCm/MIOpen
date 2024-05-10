@@ -35,10 +35,13 @@
 
 #include <boost/any.hpp>
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_FFT)
+
 namespace miopen {
 namespace solver {
+namespace conv {
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 static void cgemm_grid(size_t* global_work_size,
                        size_t* local_work_size,
@@ -112,15 +115,16 @@ bool fft::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& pr
     std::ignore = ctx;
 
     // disable running any FFT based convolutions by checking this env variable
-    if(problem.direction.IsBackwardWrW() || !problem.IsFp32())
+    if(problem.IsDirectionBackwardWrW() || !problem.IsFp32())
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
-    const auto is_fwd    = problem.direction.IsForward();
+    if(!problem.AllTensorsDimsFitIntoInt())
+        return false;
+
+    const auto is_fwd    = problem.IsDirectionForward();
     decltype(auto) conv  = problem.GetConv();
     decltype(auto) xDesc = is_fwd ? problem.GetIn() : problem.GetOut();
     decltype(auto) yDesc = is_fwd ? problem.GetOut() : problem.GetIn();
@@ -160,7 +164,7 @@ bool fft::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& pr
 
 size_t fft::GetWorkspaceSize(const ExecutionContext&, const ProblemDescription& problem) const
 {
-    const auto fwd       = problem.direction.IsForward();
+    const auto fwd       = problem.IsDirectionForward();
     decltype(auto) xDesc = fwd ? problem.GetIn() : problem.GetOut();
     decltype(auto) yDesc = fwd ? problem.GetOut() : problem.GetIn();
     decltype(auto) wDesc = problem.GetWeights();
@@ -202,12 +206,12 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
 {
     std::ignore = ctx;
 
-    int in_n  = problem.GetBatchSize_();
-    int in_c  = problem.GetInChannels_();
-    int in_h  = problem.GetInHeight_();
-    int in_w  = problem.GetInWidth_();
-    int out_n = problem.GetBatchSize_();
-    int out_c = problem.GetOutChannels_();
+    int in_n  = problem.GetBatchSize();
+    int in_c  = problem.GetInChannels();
+    int in_h  = problem.GetInHeight();
+    int in_w  = problem.GetInWidth();
+    int out_n = problem.GetBatchSize();
+    int out_c = problem.GetOutChannels();
 
     const int N          = FFTConvParams::TileSize(in_h, in_w);
     const int NumKernels = FFTConvParams::NumKernels;
@@ -317,9 +321,13 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
 
     if(((in_h == 28) && (in_w == 28)) || ((in_h == 14) && (in_w == 14)) ||
        ((in_h == 7) && (in_w == 7)))
+    {
         cgemm_choice = 2;
+    }
     else if((in_h == 27) && (in_w == 27))
+    {
         cgemm_choice = 1;
+    }
 
     if((in_n < 16) || (in_c < 16) || (out_c < 16))
         cgemm_choice = 0;
@@ -343,13 +351,21 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
     }
 
     if((in_h == 28) && (in_w == 28))
+    {
         parms += " -DCFF_IMG_SZ_28_28";
+    }
     else if((in_h == 27) && (in_w == 27))
+    {
         parms += " -DCFF_IMG_SZ_27_27";
+    }
     else if((in_h == 14) && (in_w == 14))
+    {
         parms += " -DCFF_IMG_SZ_14_14";
+    }
     else if((in_h == 7) && (in_w == 7))
+    {
         parms += " -DCFF_IMG_SZ_7_7";
+    }
 
     const auto workSpaceSize = GetWorkspaceSize(ctx, problem);
 
@@ -366,7 +382,7 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
     parms += " -DCFF_HALFW=";
     parms += std::to_string(workSpaceSize / (sizeof(float) * 2 * 2));
 
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
     {
         parms += " -DCFF_BACKWARD";
     }
@@ -424,13 +440,15 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
         const int padding = FFTConvParams::TransposePadding;
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& params  = primitive_params.CastTo<conv::DataInvokeParams>();
+            const auto& params  = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
             const auto& tensors = params.tensors;
 
             if(params.workSpaceSize < workSpaceSize)
+            {
                 MIOPEN_THROW("Not enough workspace for FFT: expected " +
                              std::to_string(workSpaceSize) + ", got " +
                              std::to_string(params.workSpaceSize));
+            }
 
             float time_fft = 0;
             int kernel_id  = 0;
@@ -484,5 +502,6 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
     return sol;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

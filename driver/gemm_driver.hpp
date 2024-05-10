@@ -26,18 +26,25 @@
 #ifndef GUARD_MIOPEN_GEMM_DRIVER_HPP
 #define GUARD_MIOPEN_GEMM_DRIVER_HPP
 
+#include <miopen/config.h>
+
 #if MIOPEN_USE_GEMM
 #include "InputFlags.hpp"
 #include "driver.hpp"
+#include "random.hpp"
+#include "util_driver.hpp"
+
+#include <../test/verify.hpp>
+
+#include <miopen/gemm_v2.hpp>
+#include <miopen/miopen.h>
+
 #include <algorithm>
 #include <cstdlib>
 #include <float.h>
 #include <memory>
-#include <miopen/miopen.h>
-#include <miopen/gemm_v2.hpp>
 #include <numeric>
 #include <vector>
-#include "random.hpp"
 
 #define GEMM_DRIVER_DEBUG 0
 
@@ -93,10 +100,12 @@ void callCpuGemmStridedBatched(bool isColMajor,
                                         : a_offset + strideA * bi + lda * mi + ki;
                     int bindex = transB ? b_offset + strideB * bi + ldb * ni + ki
                                         : b_offset + strideB * bi + ldb * ki + ni;
-                    y += a_ptr[aindex] * b_ptr[bindex];
+                    y += static_cast<double>(a_ptr[aindex]) * static_cast<double>(b_ptr[bindex]);
                 }
-                int cindex    = c_offset + strideC * bi + ldc * mi + ni;
-                c_ptr[cindex] = alpha * y + beta * c_ptr[cindex];
+                int cindex = c_offset + strideC * bi + ldc * mi + ni;
+                c_ptr[cindex] =
+                    static_cast<T>(static_cast<double>(alpha) * y +
+                                   static_cast<double>(beta) * static_cast<double>(c_ptr[cindex]));
             }
         }
     }
@@ -141,7 +150,8 @@ private:
 
     T alpha, beta;
 
-    miopen::GemmDescriptor gemm_desc;
+    miopen::GemmDescriptor gemm_desc = {
+        false, false, false, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.0f, 0.0f, miopenFloat, false};
 };
 
 template <typename T>
@@ -180,13 +190,29 @@ int GemmDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename T>
 int GemmDriver<T>::GetandSetData()
 {
-    gemm_desc.isColMajor = inflags.GetValueInt("isColMajor");
+    if constexpr(std::is_same_v<T, float>)
+    {
+        gemm_desc.dataType = miopenFloat;
+    }
+    else if constexpr(std::is_same_v<T, float16>)
+    {
+        gemm_desc.dataType = miopenHalf;
+    }
+    else
+    {
+        static_assert(!"unsupported type");
+    }
+
+    gemm_desc.a_cast_type = data_type;
+    gemm_desc.b_cast_type = data_type;
+
+    gemm_desc.isColMajor = inflags.GetValueInt("isColMajor") != 0;
     gemm_desc.m          = inflags.GetValueInt("a_h");
     gemm_desc.k          = inflags.GetValueInt("a_w");
     gemm_desc.n          = inflags.GetValueInt("b_w");
 
-    gemm_desc.transA = inflags.GetValueInt("transA");
-    gemm_desc.transB = inflags.GetValueInt("transB");
+    gemm_desc.transA = inflags.GetValueInt("transA") != 0;
+    gemm_desc.transB = inflags.GetValueInt("transB") != 0;
 
     gemm_desc.alpha = inflags.GetValueDouble("alpha");
     gemm_desc.beta  = inflags.GetValueDouble("beta");
@@ -207,6 +233,7 @@ int GemmDriver<T>::GetandSetData()
     gemm_desc.strideB = gemm_desc.k * gemm_desc.n;
     gemm_desc.strideC = gemm_desc.m * gemm_desc.n;
 
+    gemm_desc.deterministic = false;
     return (0);
 }
 
@@ -216,12 +243,10 @@ int GemmDriver<T>::AllocateBuffersAndCopy()
     size_t a_sz = gemm_desc.m * gemm_desc.k + (gemm_desc.batch_count - 1) * gemm_desc.strideA;
     size_t b_sz = gemm_desc.k * gemm_desc.n + (gemm_desc.batch_count - 1) * gemm_desc.strideB;
     size_t c_sz = gemm_desc.m * gemm_desc.n + (gemm_desc.batch_count - 1) * gemm_desc.strideC;
-#if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
 
+    DEFINE_CONTEXT(ctx);
+#if MIOPEN_BACKEND_OPENCL
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx      = 0;
 #endif
     a_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, a_sz, sizeof(T)));
     b_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, b_sz, sizeof(T)));
@@ -230,39 +255,36 @@ int GemmDriver<T>::AllocateBuffersAndCopy()
     a = std::vector<T>(a_sz);
     b = std::vector<T>(b_sz);
 #if GEMM_DRIVER_DEBUG
-    c = std::vector<T>(c_sz, 1.);
+    c = std::vector<T>(c_sz, static_cast<T>(1));
 #else
-    c                 = std::vector<T>(c_sz, 0.);
+
+    c = std::vector<T>(c_sz, static_cast<T>(0));
 #endif
     chost = c;
 
     for(int i = 0; i < a_sz; i++)
     {
 #if GEMM_DRIVER_DEBUG
-        a[i] = static_cast<double>(i);
+        a[i] = static_cast<T>(i);
 #else
-        a[i] = static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX);
+        a[i] = prng::gen_canonical<T>();
 #endif
     }
 
     for(int i = 0; i < b_sz; i++)
     {
 #if GEMM_DRIVER_DEBUG
-        b[i] = static_cast<double>(i);
+        b[i] = static_cast<T>(i);
 #else
-        b[i] = static_cast<double>((GET_RAND()) * (1.0 / RAND_MAX) - 0.5) * 0.001;
+        b[i] = prng::gen_A_to_B(static_cast<T>(-0.5), static_cast<T>(0.5));
 #endif
     }
-#if MIOPEN_BACKEND_OPENCL
-    cl_int status;
-#elif MIOPEN_BACKEND_HIP
-    int status;
-#endif
+    status_t status;
     status = a_dev->ToGPU(q, a.data());
     status |= b_dev->ToGPU(q, b.data());
     status |= c_dev->ToGPU(q, c.data());
 
-    if(status != CL_SUCCESS)
+    if(status != STATUS_SUCCESS)
         printf("Error copying data to GPU\n");
 
     return miopenStatusSuccess;

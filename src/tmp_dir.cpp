@@ -26,57 +26,69 @@
 
 #include <miopen/tmp_dir.hpp>
 #include <miopen/env.hpp>
-#include <boost/filesystem.hpp>
+#include <miopen/filesystem.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/process.hpp>
+#include <boost/filesystem/operations.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SAVE_TEMP_DIR)
+#include <thread>
+#include <string_view>
+
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_SAVE_TEMP_DIR)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_EXIT_STATUS_TEMP_DIR)
 
 namespace miopen {
 
-void SystemCmd(std::string cmd)
+TmpDir::TmpDir(std::string_view prefix) : path{fs::temp_directory_path()}
 {
-    MIOPEN_LOG_I2(cmd);
-// We shouldn't call system commands
-#ifdef MIOPEN_USE_CLANG_TIDY
-    (void)cmd;
-#else
-    if(std::system(cmd.c_str()) != 0)
-        MIOPEN_THROW("Can't execute " + cmd);
-#endif
+    std::string p{prefix.empty() ? "" : (prefix[0] == '-' ? "" : "-")};
+
+    path /= boost::filesystem::unique_path("miopen" + p.append(prefix) + "-%%%%-%%%%-%%%%-%%%%")
+                .string();
+
+    fs::create_directories(path);
 }
 
-TmpDir::TmpDir(std::string prefix)
-    : path(boost::filesystem::temp_directory_path() /
-           boost::filesystem::unique_path("miopen-" + prefix + "-%%%%-%%%%-%%%%-%%%%"))
+int TmpDir::Execute(std::string_view cmd, std::string_view args) const
 {
-    boost::filesystem::create_directories(this->path);
-}
-
-TmpDir& TmpDir::operator=(TmpDir&& other) noexcept
-{
-    this->path = other.path;
-    other.path = "";
-    return *this;
-}
-
-void TmpDir::Execute(std::string exe, std::string args) const
-{
-    if(miopen::IsEnabled(MIOPEN_DEBUG_SAVE_TEMP_DIR{}))
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_SAVE_TEMP_DIR)))
     {
-        MIOPEN_LOG_I2(this->path.string());
+        MIOPEN_LOG_I2(path);
     }
-    std::string cd  = "cd " + this->path.string() + "; ";
-    std::string cmd = cd + exe + " " + args; // + " > /dev/null";
-    SystemCmd(cmd);
+    auto status = Process{cmd}(args, path);
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_EXIT_STATUS_TEMP_DIR)))
+    {
+        MIOPEN_LOG_I2(status);
+    }
+    return status;
 }
 
 TmpDir::~TmpDir()
 {
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_SAVE_TEMP_DIR{}))
+    if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_SAVE_TEMP_DIR)))
     {
+#ifdef _WIN32
+        constexpr int remove_max_retries = 5;
+        int count                        = 0;
+        while(count < remove_max_retries)
+        {
+            try
+            {
+                fs::remove_all(path);
+                break;
+            }
+            catch(const fs::filesystem_error& err)
+            {
+                MIOPEN_LOG_W(err.what());
+                std::this_thread::sleep_for(std::chrono::milliseconds{125});
+            }
+            ++count;
+        }
+#else
         if(!this->path.empty())
-            boost::filesystem::remove_all(this->path);
+            fs::remove_all(this->path);
+#endif
     }
 }
 

@@ -110,6 +110,7 @@ __kernel void LSTMFwdHidUpdate(const global _FLOAT* cx,
         int rsv_idx = b_idx * hy_stride + h_idx;
 
         *((READ_TYPE*)s_dat) = *((const global READ_TYPE*)(reservespace + i_offset + rsv_idx));
+
         ActivationFunction_Sigmoid(
             RD_BLCK, i_dat, (const _FLOAT*)s_dat, activ_param, activ_param, activ_param);
 
@@ -170,22 +171,26 @@ __kernel void LSTMFwdHidUpdate(const global _FLOAT* cx,
         }
         ActivationFunction_TanH(RD_BLCK, cx_dat, s_dat, activ_param, activ_param, activ_param);
 
+#if !INFERENCE_MODE
         *((global READ_TYPE*)(reservespace + i_offset + rsv_idx)) = *((READ_TYPE*)i_dat);
         *((global READ_TYPE*)(reservespace + f_offset + rsv_idx)) = *((READ_TYPE*)f_dat);
         *((global READ_TYPE*)(reservespace + o_offset + rsv_idx)) = *((READ_TYPE*)o_dat);
         *((global READ_TYPE*)(reservespace + c_offset + rsv_idx)) = *((READ_TYPE*)c_dat);
+#endif
 
-        *((global READ_TYPE*)(reservespace + cell_offset + rsv_idx)) = *((READ_TYPE*)s_dat);
+        *((global READ_TYPE*)(reservespace + cell_offset + rsv_idx)) = *((READ_TYPE*)s_dat); // Ct
+
 #if !INFERENCE_MODE
         *((global READ_TYPE*)(reservespace + activ_cell_offset + b_idx * hy_stride / 6 + h_idx)) =
             *((READ_TYPE*)cx_dat);
 #endif
+
         for(int i = 0; i < RD_BLCK; ++i)
         {
             s_dat[i] = o_dat[i] * cx_dat[i];
         }
 
-        *((global READ_TYPE*)(reservespace + hidden_offset + rsv_idx)) = *((READ_TYPE*)s_dat);
+        *((global READ_TYPE*)(reservespace + hidden_offset + rsv_idx)) = *((READ_TYPE*)s_dat); // Ht
     }
 }
 #endif

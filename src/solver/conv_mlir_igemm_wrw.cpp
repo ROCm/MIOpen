@@ -33,29 +33,38 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/mlir_common.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
-bool ConvMlirIgemmWrW::IsApplicable(const ConvolutionContext& ctx,
+using ProblemDescription = miopen::conv::ProblemDescription;
+
+bool ConvMlirIgemmWrW::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW)))
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
+        return false;
+    if(problem.HasNonPackedTensors())
+        return false;
+    if(!problem.AllTensorsDimsFitIntoInt())
+        return false;
+    if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
     // Note: ConvMlirIgemmWrW can run on a machine with xdlops support, however, it is
     // guaranteed to be slower than its xdlops alternative, therefore disabling it to
     // save compilation overhead
     if(IsXdlopsSupport(ctx))
         return false;
-    // Refer to https://github.com/ROCmSoftwarePlatform/llvm-project-private/issues/389
+    // Refer to https://github.com/ROCm/llvm-project-private/issues/389
     const auto device_name = ctx.GetStream().GetDeviceName();
     if(StartsWith(device_name, "gfx900"))
         return false;
@@ -69,13 +78,13 @@ bool ConvMlirIgemmWrW::IsApplicable(const ConvolutionContext& ctx,
 }
 
 PerformanceConvMlirIgemm
-ConvMlirIgemmWrW::GetDefaultPerformanceConfig(const ConvolutionContext&,
+ConvMlirIgemmWrW::GetDefaultPerformanceConfig(const ExecutionContext&,
                                               const ProblemDescription&) const
 {
     return PerformanceConvMlirIgemm::MlirHeuristicInitRequest();
 }
 
-bool ConvMlirIgemmWrW::IsValidPerformanceConfig(const ConvolutionContext& ctx,
+bool ConvMlirIgemmWrW::IsValidPerformanceConfig(const ExecutionContext& ctx,
                                                 const ProblemDescription& problem,
                                                 const PerformanceConvMlirIgemm& config) const
 {
@@ -83,14 +92,14 @@ bool ConvMlirIgemmWrW::IsValidPerformanceConfig(const ConvolutionContext& ctx,
     return config.IsValid(ctx, problem);
 }
 
-PerformanceConvMlirIgemm ConvMlirIgemmWrW::Search(const ConvolutionContext& ctx,
+PerformanceConvMlirIgemm ConvMlirIgemmWrW::Search(const ExecutionContext& ctx,
                                                   const ProblemDescription& problem,
                                                   const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-ConvSolution ConvMlirIgemmWrW::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvMlirIgemmWrW::GetSolution(const ExecutionContext& ctx,
                                            const ProblemDescription& problem,
                                            const PerformanceConvMlirIgemm& config) const
 {
@@ -114,7 +123,7 @@ ConvSolution ConvMlirIgemmWrW::GetSolution(const ConvolutionContext& ctx,
     construction_parameters.g_wk.push_back(1);
     construction_parameters.g_wk.push_back(1);
 
-    result.invoker_factory = conv::MakeMlirWrWInvokerFactory(problem, 0);
+    result.invoker_factory = miopen::conv::MakeMlirWrWInvokerFactory(problem, 0);
     result.construction_params.push_back(construction_parameters);
     return result;
 #else
@@ -125,5 +134,6 @@ ConvSolution ConvMlirIgemmWrW::GetSolution(const ConvolutionContext& ctx,
 #endif
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

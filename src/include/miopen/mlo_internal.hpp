@@ -63,14 +63,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <miopen/ocldeviceinfo.hpp>
 #endif
 #include <miopen/db_path.hpp>
-#if MIOPEN_ENABLE_SQLITE
+#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
 #include <miopen/sqlite_db.hpp>
 #else
 #include <miopen/readonlyramdb.hpp>
 #endif
-#include <miopen/conv/context.hpp>
+#include <miopen/execution_context.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/problem_description.hpp>
+#include <miopen/conv/problem_description.hpp>
 #include <miopen/ramdb.hpp>
 
 #if MIOPEN_BACKEND_OPENCL
@@ -133,7 +134,7 @@ class DbTimer;
 
 struct AnyInvokeParams;
 
-#if MIOPEN_ENABLE_SQLITE
+#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
 using PerformanceDb = DbTimer<MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>>;
 #else
 using PerformanceDb = DbTimer<MultiFileDb<ReadonlyRamDb, RamDb, true>>;
@@ -179,75 +180,75 @@ auto mloConstruct(T& x) -> decltype(x.mloConstruct(), void())
 }
 
 std::vector<miopen::solver::ConvSolution>
-FindAllGemmSolutions(const miopen::ConvolutionContext& ctx,
-                     const miopen::ProblemDescription& problem,
+FindAllGemmSolutions(const miopen::ExecutionContext& ctx,
+                     const miopen::conv::ProblemDescription& problem,
                      const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<std::pair<std::string, size_t>>
-AllGemmWorkspaceSize(const miopen::ConvolutionContext& ctx,
-                     const miopen::ProblemDescription& problem);
+AllGemmWorkspaceSize(const miopen::ExecutionContext& ctx,
+                     const miopen::conv::ProblemDescription& problem);
 
 std::vector<std::pair<std::string, size_t>>
-AllDirectForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx,
-                                          const miopen::ProblemDescription& problem);
+AllDirectForwardBackwardDataWorkspaceSize(const miopen::ExecutionContext& ctx,
+                                          const miopen::conv::ProblemDescription& problem);
 
 std::vector<std::pair<std::string, size_t>>
-FindAllImplicitGemmWorkspaceSizes(const miopen::ConvolutionContext& ctx,
-                                  const miopen::ProblemDescription& problem);
+FindAllImplicitGemmWorkspaceSizes(const miopen::ExecutionContext& ctx,
+                                  const miopen::conv::ProblemDescription& problem);
 
 std::vector<std::pair<std::string, size_t>>
-FindAllWinogradWorkspaceSizes(const miopen::ConvolutionContext& ctx,
-                              const miopen::ProblemDescription& problem);
+FindAllWinogradWorkspaceSizes(const miopen::ExecutionContext& ctx,
+                              const miopen::conv::ProblemDescription& problem);
 
 std::vector<std::pair<std::string, size_t>>
-FindWinogradWrWWorkspaceSizes(const miopen::ConvolutionContext& ctx,
-                              const miopen::ProblemDescription& problem);
+FindWinogradWrWWorkspaceSizes(const miopen::ExecutionContext& ctx,
+                              const miopen::conv::ProblemDescription& problem);
 
 std::vector<std::pair<std::string, size_t>>
-FindImplicitGemmWrWWorkspaceSizes(const miopen::ConvolutionContext& ctx,
-                                  const miopen::ProblemDescription& problem);
+FindImplicitGemmWrWWorkspaceSizes(const miopen::ExecutionContext& ctx,
+                                  const miopen::conv::ProblemDescription& problem);
 
 std::vector<std::pair<std::string, size_t>>
-AllDirectBwdWrW2DWorkspaceSize(const miopen::ConvolutionContext& ctx,
-                               const miopen::ProblemDescription& problem);
+AllDirectBwdWrW2DWorkspaceSize(const miopen::ExecutionContext& ctx,
+                               const miopen::conv::ProblemDescription& problem);
 
 std::vector<std::pair<std::string, size_t>>
-AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx,
-                                       const miopen::ProblemDescription& problem);
+AllFFTForwardBackwardDataWorkspaceSize(const miopen::ExecutionContext& ctx,
+                                       const miopen::conv::ProblemDescription& problem);
 
 std::vector<miopen::solver::ConvSolution>
-FindAllDirectSolutions(const miopen::ConvolutionContext& ctx,
-                       const miopen::ProblemDescription& problem,
+FindAllDirectSolutions(const miopen::ExecutionContext& ctx,
+                       const miopen::conv::ProblemDescription& problem,
                        const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<miopen::solver::ConvSolution>
-FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx,
-                             const miopen::ProblemDescription& problem,
+FindAllImplicitGemmSolutions(const miopen::ExecutionContext& ctx,
+                             const miopen::conv::ProblemDescription& problem,
                              const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<miopen::solver::ConvSolution>
-FindAllWinogradSolutions(const miopen::ConvolutionContext& ctx,
-                         const miopen::ProblemDescription& problem,
+FindAllWinogradSolutions(const miopen::ExecutionContext& ctx,
+                         const miopen::conv::ProblemDescription& problem,
                          const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<miopen::solver::ConvSolution>
-FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx,
-                            const miopen::ProblemDescription& problem,
+FindWinogradWrWAllSolutions(const miopen::ExecutionContext& ctx,
+                            const miopen::conv::ProblemDescription& problem,
                             const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<miopen::solver::ConvSolution>
-FindImplicitGemmWrWAllSolutions(const miopen::ConvolutionContext& ctx,
-                                const miopen::ProblemDescription& problem,
+FindImplicitGemmWrWAllSolutions(const miopen::ExecutionContext& ctx,
+                                const miopen::conv::ProblemDescription& problem,
                                 const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<miopen::solver::ConvSolution>
-FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx,
-                         const miopen::ProblemDescription& problem,
+FindAllBwdWrW2DSolutions(const miopen::ExecutionContext& ctx,
+                         const miopen::conv::ProblemDescription& problem,
                          const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<miopen::solver::ConvSolution>
-FindAllFFTSolutions(const miopen::ConvolutionContext& ctx,
-                    const miopen::ProblemDescription& problem,
+FindAllFFTSolutions(const miopen::ExecutionContext& ctx,
+                    const miopen::conv::ProblemDescription& problem,
                     const miopen::AnyInvokeParams& invoke_ctx);
 
 struct mlo_construct_base
@@ -275,7 +276,7 @@ struct mlo_construct_base
 
 protected:
     miopen::ProblemDescriptionCompatTemporary _problem;
-    miopen::ConvolutionContext _ctx;
+    miopen::ExecutionContext _ctx;
 };
 
 #define MLO_POOLING_OP_AVE 0

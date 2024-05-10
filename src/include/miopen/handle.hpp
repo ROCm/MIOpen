@@ -51,6 +51,10 @@
 #include <unordered_map>
 
 #if MIOPEN_USE_ROCBLAS
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-macros"
+#define ROCBLAS_BETA_FEATURES_API 1
+#pragma clang diagnostic pop
 #include <miopen/manage_ptr.hpp>
 #if MIOPEN_ROCBLAS_VERSION_FLAT < 2045000
 #include <rocblas.h>
@@ -62,16 +66,12 @@
 namespace miopen {
 
 struct HandleImpl;
-#if MIOPEN_USE_MIOPENGEMM
-struct GemmGeometry;
-using GemmKey = std::pair<std::string, std::string>;
-#endif
 
 #if MIOPEN_USE_ROCBLAS
 using rocblas_handle_ptr = MIOPEN_MANAGE_PTR(rocblas_handle, rocblas_destroy_handle);
 #endif
 
-struct Handle : miopenHandle
+struct MIOPEN_EXPORT Handle : miopenHandle
 {
     friend struct TargetProperties;
 
@@ -105,7 +105,6 @@ struct Handle : miopenHandle
                            const std::vector<size_t>& vgd,
                            const std::string& params,
                            std::size_t cache_index       = 0,
-                           bool is_kernel_str            = false,
                            const std::string& kernel_src = "") const;
 
     void ClearKernels(const std::string& algorithm, const std::string& network_config) const;
@@ -132,7 +131,6 @@ struct Handle : miopenHandle
 
     Program LoadProgram(const std::string& program_name,
                         std::string params,
-                        bool is_kernel_str,
                         const std::string& kernel_src,
                         bool force_attach_binary = false) const;
 
@@ -188,6 +186,7 @@ public:
     template <class Container>
     Allocator::ManageDataPtr Write(const Container& c)
     {
+        assert(!c.empty());
         using type = typename Container::value_type;
         auto buf   = this->Create<type>(c.size());
         return std::move(
@@ -200,6 +199,15 @@ public:
         std::vector<T> result(sz);
         this->ReadTo(result.data(), ddata, sz * sizeof(T));
         return result;
+    }
+
+    template <class V>
+    void ReadToVec(const Allocator::ManageDataPtr& ddata, V& output_vec)
+    {
+        using T = typename V::value_type;
+        assert(ddata);
+        assert(output_vec.size() > 0);
+        this->ReadTo(output_vec.data(), ddata, output_vec.size() * sizeof(T));
     }
 
     static std::string GetDbBasename(const TargetProperties& target, size_t num_cu)
@@ -222,9 +230,6 @@ public:
 
     std::unique_ptr<HandleImpl> impl;
     std::unordered_map<std::string, std::vector<miopenConvSolution_t>> find_map;
-#if MIOPEN_USE_MIOPENGEMM
-    std::unordered_map<GemmKey, std::unique_ptr<GemmGeometry>, SimpleHash> geo_map;
-#endif
 
     Invoker PrepareInvoker(const InvokerFactory& factory,
                            const std::vector<solver::KernelInfo>& kernels,

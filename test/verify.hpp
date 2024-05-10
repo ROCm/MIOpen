@@ -33,6 +33,11 @@
 #include <miopen/float_equal.hpp>
 #include <miopen/returns.hpp>
 #include <numeric>
+#include <miopen/bfloat16.hpp>
+using half         = half_float::half;
+using hip_bfloat16 = bfloat16;
+#include <hip_float8.hpp>
+#include "tensor_holder.hpp"
 
 namespace miopen {
 
@@ -77,8 +82,11 @@ struct not_finite_fn
     template <class T>
     bool operator()(T x) const
     {
-        using std::isfinite;
-        return not isfinite(x);
+        // The standard library from MSVC does not implement std::isfinite() for integer
+        // types - no additional overloads are provided. According to the documentation,
+        // integer types should be treaded as doubles.
+        // Refer to https://en.cppreference.com/w/cpp/numeric/math/isfinite for more information.
+        return not std::isfinite(static_cast<double>(x));
     }
 };
 static constexpr not_finite_fn not_finite{};
@@ -105,7 +113,7 @@ struct square_diff_fn
     template <class T, class U>
     double operator()(T x, U y) const
     {
-        return (x - y) * (x - y);
+        return static_cast<double>((x - y) * (x - y));
     }
 };
 static constexpr square_diff_fn square_diff{};
@@ -118,6 +126,27 @@ bool range_empty(R1&& r1)
 
 template <class R1>
 auto range_distance(R1&& r1) MIOPEN_RETURNS(std::distance(r1.begin(), r1.end()));
+
+template <class R>
+bool f8_range_zero(R& r);
+
+template <>
+inline bool f8_range_zero<tensor<float8>>(tensor<float8>& r1)
+{
+    return std::all_of(r1.data.begin(), r1.data.end(), [&](float8 x) { return x.is_zero(); });
+}
+
+template <>
+inline bool f8_range_zero<tensor<bfloat8>>(tensor<bfloat8>& r1)
+{
+    return std::all_of(r1.data.begin(), r1.data.end(), [&](bfloat8 x) { return x.is_zero(); });
+}
+
+template <>
+inline bool f8_range_zero<tensor<float>>(tensor<float>& r1)
+{
+    return std::all_of(r1.data.begin(), r1.data.end(), [](float x) { return x == 0.0; });
+}
 
 template <class R1>
 bool range_zero(R1&& r1)
@@ -168,18 +197,19 @@ template <class R1, class R2>
 double rms_range(R1&& r1, R2&& r2)
 {
     std::size_t n = range_distance(r1);
-    // When range is zero-sized, max_element() returns a past-the-end iterator.
-    if(n == range_distance(r2) && n != 0)
+    if(n == range_distance(r2))
     {
+        if(n == 0)
+            return 0;
         double square_difference = range_product(r1, r2, 0.0, sum_fn{}, square_diff);
-        double mag1              = *std::max_element(r1.begin(), r1.end(), compare_mag);
-        double mag2              = *std::max_element(r2.begin(), r2.end(), compare_mag);
+        double mag1 = static_cast<double>(*std::max_element(r1.begin(), r1.end(), compare_mag));
+        double mag2 = static_cast<double>(*std::max_element(r2.begin(), r2.end(), compare_mag));
         double mag =
             std::max({std::fabs(mag1), std::fabs(mag2), std::numeric_limits<double>::min()});
         return std::sqrt(square_difference) / (std::sqrt(n) * mag);
     }
     else
-        return std::numeric_limits<range_value<R1>>::max();
+        return double(std::numeric_limits<range_value<R1>>::max());
 }
 } // namespace miopen
 #endif

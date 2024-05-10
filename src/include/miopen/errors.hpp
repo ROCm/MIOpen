@@ -67,7 +67,19 @@ template <class... Params>
     do                                                        \
     {                                                         \
         miopen::MIOpenThrow(__FILE__, __LINE__, __VA_ARGS__); \
-    } while(false);
+    } while(false)
+
+#define MIOPEN_THROW_IF(condition, msg)                                                \
+    do                                                                                 \
+    {                                                                                  \
+        if((condition))                                                                \
+        {                                                                              \
+            miopen::MIOpenThrow(__FILE__,                                              \
+                                __LINE__,                                              \
+                                miopenStatusInternalError,                             \
+                                std::string(msg) + ", failed condition: " #condition); \
+        }                                                                              \
+    } while(false)
 
 #define MIOPEN_THROW_CL_STATUS(...) \
     MIOPEN_THROW(miopenStatusUnknownError, miopen::OpenCLErrorMessage(__VA_ARGS__))
@@ -114,6 +126,19 @@ auto deref(T&& x, [[maybe_unused]] miopenStatus_t err = miopenStatusBadParm)
 
 template <class... Ts>
 auto tie_deref(Ts&... xs) MIOPEN_RETURNS(std::tie(miopen::deref(xs)...));
+
+template <typename Ptr>
+Ptr checkPtr(Ptr ptr, [[maybe_unused]] miopenStatus_t err = miopenStatusBadParm)
+{
+    if(ptr != nullptr)
+    {
+        return ptr;
+    }
+    else
+    {
+        MIOPEN_THROW(err, "Passing nullptr");
+    }
+}
 
 } // namespace miopen
 

@@ -36,8 +36,16 @@
 #include <limits>
 
 /// W/A for issue 1979: igemm solver does not support group conv. See:
-/// https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1979
+/// https://github.com/ROCm/MIOpen/issues/1979
 #define WORKAROUND_ISSUE_1979 1
+
+/// W/A for issue 2624: asm igemm fwd error when c <=4 and dilation_y > 1
+/// https://github.com/ROCm/MIOpen/issues/2624
+#define WORKAROUND_ISSUE_2624 1
+
+/// W/A for issue 2624: asm igemm wrw computation error with stride=2, padding=2, filter=3, h=w=1
+/// https://github.com/ROCm/MIOpen/issues/2867
+#define WORKAROUND_ISSUE_2867 1
 
 namespace miopen {
 
@@ -255,7 +263,9 @@ static inline int igemm_split_batch_size(const int hi,
     // max_n * image_size <= max_tensor_size
     size_t max_n = max_tensor_size / image_size;
     if(max_n > n)
+    {
         max_n = n % max_n;
+    }
     else if(max_n < n)
     {
         // find the smallest multiple m of n such that (n / m) * image_size <= max_tensor_size.
@@ -265,7 +275,9 @@ static inline int igemm_split_batch_size(const int hi,
         while(n % max_n != 0)
         {
             if(n % m == 0)
+            {
                 max_n = n / m;
+            }
             else
             {
                 m += 1;

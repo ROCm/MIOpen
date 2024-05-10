@@ -37,6 +37,11 @@
 #include <miopen/each_args.hpp>
 #include <miopen/object.hpp>
 #include <miopen/config.h>
+#include <miopen/export.h>
+
+#if MIOPEN_USE_ROCTRACER
+#include <roctracer/roctx.h>
+#endif
 
 // See https://github.com/pfultz2/Cloak/wiki/C-Preprocessor-tricks,-tips,-and-idioms
 #define MIOPEN_PP_CAT(x, y) MIOPEN_PP_PRIMITIVE_CAT(x, y)
@@ -208,18 +213,22 @@ namespace debug {
 /// by MIOPEN_LOG_NQ* macros (that ignore this switch).
 ///
 /// WARNING: This switch is not intended for use in multi-threaded applications.
-extern bool LoggingQuiet; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+MIOPEN_EXPORT extern bool
+    LoggingQuiet; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
 } // namespace debug
 
-const char* LoggingLevelToCString(LoggingLevel level);
-std::string LoggingPrefix();
+MIOPEN_EXPORT const char* LoggingLevelToCString(LoggingLevel level);
+MIOPEN_EXPORT std::string LoggingPrefix();
 
 /// \return true if level is enabled.
 /// \param level - one of the values defined in LoggingLevel.
-bool IsLogging(LoggingLevel level, bool disableQuieting = false);
+MIOPEN_EXPORT bool IsLogging(LoggingLevel level, bool disableQuieting = false);
 bool IsLoggingCmd();
 bool IsLoggingFunctionCalls();
+#if MIOPEN_USE_ROCTRACER
+bool IsLoggingToRoctx();
+#endif
 
 namespace logger {
 
@@ -248,9 +257,11 @@ inline const void* LogObjImpl(const void* x) { return x; }
 
 #if !WORKAROUND_ISSUE_PP_TRANSFORM_ARGS
 template <class T, typename std::enable_if<(std::is_pointer<T>{}), int>::type = 0>
-std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
+std::ostream& LogParam(std::ostream& os, std::string name, const T& x, bool indent = true)
 {
-    os << '\t' << name << " = ";
+    if(indent)
+        os << '\t';
+    os << name << " = ";
     if(x == nullptr)
         os << "nullptr";
     else
@@ -259,16 +270,21 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 }
 
 template <class T, typename std::enable_if<(not std::is_pointer<T>{}), int>::type = 0>
-std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
+std::ostream& LogParam(std::ostream& os, std::string name, const T& x, bool indent = true)
 {
-    os << '\t' << name << " = " << get_object(x);
+    if(indent)
+        os << '\t';
+    os << name << " = " << get_object(x);
     return os;
 }
 
 template <class T>
-std::ostream& LogParam(std::ostream& os, std::string name, const std::vector<T>& vec)
+std::ostream&
+LogParam(std::ostream& os, std::string name, const std::vector<T>& vec, bool indent = true)
 {
-    os << '\t' << name << " = { ";
+    if(indent)
+        os << '\t';
+    os << name << " = { ";
     for(auto& val : vec)
         os << val << ' ';
     os << '}';
@@ -287,8 +303,33 @@ std::ostream& LogParam(std::ostream& os, std::string name, const std::vector<T>&
         std::cerr << miopen_log_func_ss.str();                                  \
     } while(false);
 
+#define MIOPEN_LOG_FUNCTION_EACH_ROCTX(param)                                     \
+    do                                                                            \
+    {                                                                             \
+        /* Use stringstram as ostream to engage existing template functions: */   \
+        std::ostream& miopen_log_func_ostream = miopen_log_func_ss;               \
+        miopen::LogParam(miopen_log_func_ostream, #param, param, false) << " | "; \
+    } while(false);
+
+#if MIOPEN_USE_ROCTRACER
+#define MIOPEN_LOG_ROCTX_DEFINE_OBJECT miopen::LogScopeRoctx logtx;
+#define MIOPEN_LOG_ROCTX_DO_LOGGING(...)                                 \
+    if(miopen::IsLoggingToRoctx())                                       \
+    {                                                                    \
+        std::ostringstream miopen_log_func_ss;                           \
+        miopen_log_func_ss << "s_api = " << __FUNCTION__ << " | ";       \
+        MIOPEN_PP_EACH_ARGS(MIOPEN_LOG_FUNCTION_EACH_ROCTX, __VA_ARGS__) \
+        logtx.logRange(miopen_log_func_ss.str());                        \
+    }
+#else
+#define MIOPEN_LOG_ROCTX_DEFINE_OBJECT
+#define MIOPEN_LOG_ROCTX_DO_LOGGING(...)
+#endif
+
 #define MIOPEN_LOG_FUNCTION(...)                                                        \
+    MIOPEN_LOG_ROCTX_DEFINE_OBJECT                                                      \
     do                                                                                  \
+    {                                                                                   \
         if(miopen::IsLoggingFunctionCalls())                                            \
         {                                                                               \
             std::ostringstream miopen_log_func_ss;                                      \
@@ -300,15 +341,27 @@ std::ostream& LogParam(std::ostream& os, std::string name, const std::vector<T>&
             miopen_log_func_ss << miopen::LoggingPrefix() << "}" << std::endl;          \
             std::cerr << miopen_log_func_ss.str();                                      \
         }                                                                               \
-    while(false)
+        MIOPEN_LOG_ROCTX_DO_LOGGING(__VA_ARGS__)                                        \
+    } while(false)
 #else
 #define MIOPEN_LOG_FUNCTION(...)
 #endif
 
-std::string LoggingParseFunction(const char* func, const char* pretty_func);
+constexpr std::string_view LoggingParseFunction(const std::string_view func,
+                                                const std::string_view pretty_func)
+{
+    if(func != "operator()")
+        return func;
+    // lambda
+    const auto pf_tail = pretty_func.substr(0, pretty_func.find_first_of('('));
+    return pf_tail.substr(1 + pf_tail.find_last_of(':'));
+}
 
-#define MIOPEN_GET_FN_NAME() \
-    (miopen::LoggingParseFunction(__func__, __PRETTY_FUNCTION__)) /* NOLINT */
+#ifdef _MSC_VER
+#define MIOPEN_GET_FN_NAME miopen::LoggingParseFunction(__func__, __FUNCSIG__)
+#else
+#define MIOPEN_GET_FN_NAME miopen::LoggingParseFunction(__func__, __PRETTY_FUNCTION__)
+#endif
 
 #define MIOPEN_LOG_XQ_CUSTOM(level, disableQuieting, category, fn_name, ...)                \
     do                                                                                      \
@@ -326,9 +379,9 @@ std::string LoggingParseFunction(const char* func, const char* pretty_func);
     MIOPEN_LOG_XQ_CUSTOM(level, disableQuieting, LoggingLevelToCString(level), fn_name, __VA_ARGS__)
 
 #define MIOPEN_LOG_CUSTOM(level, category, ...) \
-    MIOPEN_LOG_XQ_CUSTOM(level, false, category, MIOPEN_GET_FN_NAME(), __VA_ARGS__)
-#define MIOPEN_LOG(level, ...) MIOPEN_LOG_XQ_(level, false, MIOPEN_GET_FN_NAME(), __VA_ARGS__)
-#define MIOPEN_LOG_NQ_(level, ...) MIOPEN_LOG_XQ_(level, true, MIOPEN_GET_FN_NAME(), __VA_ARGS__)
+    MIOPEN_LOG_XQ_CUSTOM(level, false, category, MIOPEN_GET_FN_NAME, __VA_ARGS__)
+#define MIOPEN_LOG(level, ...) MIOPEN_LOG_XQ_(level, false, MIOPEN_GET_FN_NAME, __VA_ARGS__)
+#define MIOPEN_LOG_NQ_(level, ...) MIOPEN_LOG_XQ_(level, true, MIOPEN_GET_FN_NAME, __VA_ARGS__)
 
 #define MIOPEN_LOG_E(...) MIOPEN_LOG(miopen::LoggingLevel::Error, __VA_ARGS__)
 #define MIOPEN_LOG_E_FROM(from, ...) \
@@ -346,17 +399,21 @@ std::string LoggingParseFunction(const char* func, const char* pretty_func);
 // Warnings in installable builds, errors otherwise.
 #define MIOPEN_LOG_WE(...) MIOPEN_LOG(LogWELevel, __VA_ARGS__)
 
-#define MIOPEN_LOG_DRIVER_CMD(...)                                                             \
-    do                                                                                         \
-    {                                                                                          \
-        std::ostringstream miopen_driver_cmd_ss;                                               \
-        miopen_driver_cmd_ss << miopen::LoggingPrefix() << "Command"                           \
-                             << " ["                                                           \
-                             << miopen::LoggingParseFunction(__func__,                         \
-                                                             __PRETTY_FUNCTION__) /* NOLINT */ \
-                             << "] ./bin/MIOpenDriver " << __VA_ARGS__ << std::endl;           \
-        std::cerr << miopen_driver_cmd_ss.str();                                               \
+#define MIOPEN_LOG_DRIVER_COMMAND(driver, ...)                                               \
+    do                                                                                       \
+    {                                                                                        \
+        std::ostringstream miopen_driver_cmd_ss;                                             \
+        miopen_driver_cmd_ss << miopen::LoggingPrefix() << "Command"                         \
+                             << " [" << MIOPEN_GET_FN_NAME << "] " driver " " << __VA_ARGS__ \
+                             << std::endl;                                                   \
+        std::cerr << miopen_driver_cmd_ss.str();                                             \
     } while(false)
+
+#ifdef _WIN32
+#define MIOPEN_LOG_DRIVER_CMD(...) MIOPEN_LOG_DRIVER_COMMAND("MIOpenDriver.exe", __VA_ARGS__)
+#else
+#define MIOPEN_LOG_DRIVER_CMD(...) MIOPEN_LOG_DRIVER_COMMAND("./bin/MIOpenDriver", __VA_ARGS__)
+#endif
 
 #if MIOPEN_LOG_FUNC_TIME_ENABLE
 class LogScopeTime
@@ -378,9 +435,36 @@ private:
     std::chrono::time_point<std::chrono::high_resolution_clock> m_beg;
 };
 
-#define MIOPEN_LOG_SCOPE_TIME const miopen::LogScopeTime miopen_timer(MIOPEN_GET_FN_NAME())
+#define MIOPEN_LOG_SCOPE_TIME const miopen::LogScopeTime miopen_timer(MIOPEN_GET_FN_NAME)
 #else
 #define MIOPEN_LOG_SCOPE_TIME
+#endif
+
+#if MIOPEN_USE_ROCTRACER
+class LogScopeRoctx
+{
+public:
+    LogScopeRoctx() = default;
+    explicit LogScopeRoctx(const std::string& name) { logRange(name); }
+    void logRange(const std::string& name)
+    {
+        if(!m_active)
+        {
+            roctxRangePush(name.c_str());
+            m_active = true;
+        }
+    }
+    ~LogScopeRoctx()
+    {
+        if(m_active)
+        {
+            roctxRangePop();
+        }
+    }
+
+private:
+    bool m_active{false};
+};
 #endif
 
 } // namespace miopen

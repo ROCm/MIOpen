@@ -6,6 +6,7 @@
 struct TunaNetTestCase : AIModelTestCase
 {
     std::size_t expected_solver;
+    std::string device_architecture;
 };
 
 std::vector<TunaNetTestCase> GetGfx908FloatTestCases()
@@ -14,7 +15,8 @@ std::vector<TunaNetTestCase> GetGfx908FloatTestCases()
               miopen::conv::Direction::Forward,
               miopenFloat,
               miopenTensorNCHW},
-             4}};
+             4,
+             "gfx908"}};
 }
 
 std::vector<TunaNetTestCase> GetGfx908HalfTestCases()
@@ -23,7 +25,8 @@ std::vector<TunaNetTestCase> GetGfx908HalfTestCases()
               miopen::conv::Direction::Forward,
               miopenHalf,
               miopenTensorNCHW},
-             3}};
+             3,
+             "gfx908"}};
 }
 
 std::vector<TunaNetTestCase> GetGfx908BF16TestCases()
@@ -32,7 +35,38 @@ std::vector<TunaNetTestCase> GetGfx908BF16TestCases()
               miopen::conv::Direction::Forward,
               miopenBFloat16,
               miopenTensorNCHW},
-             4}};
+             4,
+             "gfx908"}};
+}
+
+std::vector<TunaNetTestCase> GetGfx90aFloatTestCases()
+{
+    return {{{{5, 3, 1301, 1333, 64, 7, 7, 3, 3, 2, 2, 1, 1, miopenConvolution},
+              miopen::conv::Direction::Forward,
+              miopenFloat,
+              miopenTensorNCHW},
+             6,
+             "gfx90a"}};
+}
+
+std::vector<TunaNetTestCase> GetGfx90aHalfTestCases()
+{
+    return {{{{24, 1024, 14, 14, 2048, 1, 1, 0, 0, 2, 2, 1, 1, miopenConvolution},
+              miopen::conv::Direction::Forward,
+              miopenHalf,
+              miopenTensorNCHW},
+             4,
+             "gfx90a"}};
+}
+
+std::vector<TunaNetTestCase> GetGfx90aBF16TestCases()
+{
+    return {{{{2, 480, 28, 28, 192, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+              miopen::conv::Direction::Forward,
+              miopenBFloat16,
+              miopenTensorNCHW},
+             6,
+             "gfx90a"}};
 }
 
 template <typename G>
@@ -42,12 +76,10 @@ protected:
     void SetUp() override
     {
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
-        auto test_case = GetParam();
-        tensor<G> input_tensor =
-            tensor<G>(test_case.data_type, test_case.layout, test_case.conv.GetInput());
-        tensor<G> weights_tensor =
-            tensor<G>(test_case.data_type, test_case.layout, test_case.conv.GetWeights());
-        auto conv_desc                       = test_case.conv.GetConv();
+        auto test_case           = GetParam();
+        tensor<G> input_tensor   = tensor<G>(test_case.layout, test_case.conv.GetInput());
+        tensor<G> weights_tensor = tensor<G>(test_case.layout, test_case.conv.GetWeights());
+        auto conv_desc           = test_case.conv.GetConv();
         miopen::TensorDescriptor output_desc = conv_desc.GetForwardOutputTensor(
             input_tensor.desc, weights_tensor.desc, test_case.data_type);
 
@@ -63,13 +95,15 @@ protected:
                                                          conv_desc,
                                                          test_case.direction);
 
-        expected_solver = test_case.expected_solver;
+        expected_solver     = test_case.expected_solver;
+        device_architecture = test_case.device_architecture;
 #else
         GTEST_SKIP();
 #endif
     }
-    miopen::ProblemDescription problem;
+    miopen::conv::ProblemDescription problem;
     std::size_t expected_solver;
+    std::string device_architecture;
 };
 
 struct TunaNetTestFloat : TunaNetTest<float>
@@ -84,14 +118,16 @@ struct TunaNetTestBF16 : TunaNetTest<bfloat16>
 {
 };
 
-void TestSolverPredictionModel(miopen::ProblemDescription& problem, std::size_t expected_solver)
+void TestSolverPredictionModel(miopen::conv::ProblemDescription& problem,
+                               std::size_t expected_solver,
+                               std::string device_architecture)
 {
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
     auto&& handle      = get_handle();
     std::string device = handle.GetDeviceName();
-    if(device != "gfx908")
+    if(device != device_architecture)
         GTEST_SKIP();
-    miopen::ConvolutionContext ctx;
+    miopen::ExecutionContext ctx;
     ctx.SetStream(&handle);
     std::vector<std::size_t> solvers = miopen::ai::immed_mode::PredictSolver(problem, ctx, device);
     std::size_t solver =
@@ -102,26 +138,27 @@ void TestSolverPredictionModel(miopen::ProblemDescription& problem, std::size_t 
 #else
     std::ignore = problem;
     std::ignore = expected_solver;
+    std::ignore = device_architecture;
     GTEST_SKIP();
 #endif
 }
 
-TEST_P(TunaNetTestFloat, Gfx908TestSolverPredictionModelFloat)
+TEST_P(TunaNetTestFloat, TestSolverPredictionModelFloat)
 {
-    TestSolverPredictionModel(problem, expected_solver);
+    TestSolverPredictionModel(problem, expected_solver, device_architecture);
 }
 
-TEST_P(TunaNetTestHalf, Gfx908TestSolverPredictionModelHalf)
+TEST_P(TunaNetTestHalf, TestSolverPredictionModelHalf)
 {
-    TestSolverPredictionModel(problem, expected_solver);
+    TestSolverPredictionModel(problem, expected_solver, device_architecture);
 }
 
-TEST_P(TunaNetTestBF16, Gfx908TestSolverPredictionModelBF16)
+TEST_P(TunaNetTestBF16, TestSolverPredictionModelBF16)
 {
-    TestSolverPredictionModel(problem, expected_solver);
+    TestSolverPredictionModel(problem, expected_solver, device_architecture);
 }
 
-INSTANTIATE_TEST_SUITE_P(Gfx908TestSolverPredictionModelFloatTest,
+INSTANTIATE_TEST_SUITE_P(Gfx908TestSolverPredictionModelFloat,
                          TunaNetTestFloat,
                          testing::ValuesIn(GetGfx908FloatTestCases()));
 
@@ -132,3 +169,15 @@ INSTANTIATE_TEST_SUITE_P(Gfx908TestSolverPredictionModelHalfTest,
 INSTANTIATE_TEST_SUITE_P(Gfx908TestSolverPredictionModelBF16Test,
                          TunaNetTestBF16,
                          testing::ValuesIn(GetGfx908BF16TestCases()));
+
+INSTANTIATE_TEST_SUITE_P(Gfx90aTestSolverPredictionModelFloat,
+                         TunaNetTestFloat,
+                         testing::ValuesIn(GetGfx90aFloatTestCases()));
+
+INSTANTIATE_TEST_SUITE_P(Gfx90aTestSolverPredictionModelHalfTest,
+                         TunaNetTestHalf,
+                         testing::ValuesIn(GetGfx90aHalfTestCases()));
+
+INSTANTIATE_TEST_SUITE_P(Gfx90aTestSolverPredictionModelBF16Test,
+                         TunaNetTestBF16,
+                         testing::ValuesIn(GetGfx90aBF16TestCases()));

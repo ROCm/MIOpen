@@ -26,23 +26,28 @@
 #pragma once
 
 #include "InputFlags.hpp"
-#include "driver.hpp"
-#include "timer.hpp"
-#include "random.hpp"
 #include "ctc_verify.hpp"
+#include "driver.hpp"
+#include "random.hpp"
+#include "timer.hpp"
+#include "util_driver.hpp"
+#include "util_file.hpp"
+
+#include <miopen/env.hpp>
+#include <miopen/miopen.h>
+
 #include <../test/verify.hpp>
+
 #include <algorithm>
+#include <array>
+#include <cfloat>
 #include <cstdlib>
 #include <cstring>
-#include <cfloat>
 #include <fstream>
 #include <memory>
-#include <miopen/miopen.h>
-#include <miopen/env.hpp>
 #include <numeric>
 #include <sstream>
 #include <vector>
-#include <array>
 
 template <typename Tgpu, typename Tref = Tgpu>
 class CTCDriver : public Driver
@@ -255,7 +260,7 @@ int CTCDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < labels_sz; i++)
     {
-        labels[i] = static_cast<int>(GET_RAND() % num_class + 1);
+        labels[i] = prng::gen_off_range(1, num_class);
         if(blank_lb > num_class)
             labels[i] = labels[i] == num_class ? num_class - 1 : labels[i];
         else if(blank_lb < 0)
@@ -282,12 +287,9 @@ int CTCDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                                      ctc_algo,
                                      &workSpaceSizeCPU);
 
+    DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
-
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
 #endif
 
     probs_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, probs_sz, sizeof(Tgpu)));
@@ -303,12 +305,11 @@ int CTCDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     workspace      = std::vector<Tgpu>(workSpaceSize / sizeof(Tgpu), 0);
     workspace_host = std::vector<Tref>(workSpaceSizeCPU / sizeof(Tref), 0);
 
-    srand(0);
     double scale = 0.01;
 
     for(int i = 0; i < probs_sz; i++)
     {
-        probs[i] = static_cast<Tgpu>((static_cast<double>(scale * GET_RAND()) * (1.0 / RAND_MAX)));
+        probs[i] = static_cast<Tgpu>(prng::gen_0_to_B(scale));
     }
     if(apply_softmax)
     {
@@ -331,19 +332,13 @@ int CTCDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         dumpBufferToFile("dump_inputLengths.bin", inputLengths.data(), batch_size);
     }
 
-#if MIOPEN_BACKEND_OPENCL
-    cl_int status;
-#elif MIOPEN_BACKEND_HIP
-#define CL_SUCCESS 0
-    int status;
-#endif
-
+    status_t status;
     status = probs_dev->ToGPU(q, probs.data());
     status |= losses_dev->ToGPU(q, losses.data());
     status |= gradients_dev->ToGPU(q, gradients.data());
     status |= workspace_dev->ToGPU(q, workspace.data());
 
-    if(status != CL_SUCCESS)
+    if(status != STATUS_SUCCESS)
         printf("Error copying data to GPU\n");
 
     return miopenStatusSuccess;

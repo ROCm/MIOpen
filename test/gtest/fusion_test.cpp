@@ -39,8 +39,7 @@ public:
     void SetUp() override
     {
         cba<T>::SetUp();
-        weights2 =
-            tensor<T>{miopen_type<T>{}, cba<T>::tensor_layout, cba<T>::conv_config.GetWeights()};
+        weights2 = tensor<T>{cba<T>::tensor_layout, cba<T>::conv_config.GetWeights()};
         weights2.generate(tensor_elem_gen_integer{3});
         cba<T>::weights = weights2;
         auto&& handle   = get_handle();
@@ -61,10 +60,19 @@ struct FusionSetArgTestFloat : FusionSetArgTest<float>
 {
 };
 
+bool SkipTest() { return get_handle_xnack(); }
+
 TEST_P(FusionSetArgTestFloat, TestSetArgApiCall)
 {
     // Original fusion_plan/args execution happens in cba_infer.cpp
     // Original is checked independently and not sequentially, prior to FusionTestSetArgTest.
+
+    if(SkipTest())
+    {
+        test_skipped = true;
+        GTEST_SKIP() << "Fusion does not support xnack";
+    }
+
     using cba_float = cba<float>;
 
     auto&& handle = get_handle();
@@ -100,7 +108,7 @@ TEST_P(FusionSetArgTestFloat, TestSetArgApiCall)
 INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
                          FusionSetArgTestFloat,
                          testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(GetNetwork1()),
+                                          testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
                                           testing::Values(miopenTensorNCHW)));
 
 #endif

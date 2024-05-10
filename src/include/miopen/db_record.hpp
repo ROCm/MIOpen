@@ -38,6 +38,13 @@
 
 namespace miopen {
 
+enum class DbKinds : std::uint8_t
+{
+    FindDb,
+    PerfDb,
+    KernelDb,
+};
+
 /// db consists of 0 or more records.
 /// Each record is an ASCII text line.
 /// Record format:
@@ -170,6 +177,27 @@ private:
         return ss.str();
     }
 
+    template <class T>
+    static // 'static' is for calling from ctor
+        std::string
+        SerializeKey(DbKinds db_kind, const T& data)
+    {
+        std::ostringstream ss;
+        if(db_kind == DbKinds::FindDb)
+        {
+            data.Serialize(ss);
+        }
+        else
+        {
+            T::VisitAll(data, [&](auto&& value, auto&&) {
+                if(ss.tellp() > 0)
+                    ss << "x";
+                ss << value;
+            });
+        }
+        return ss.str();
+    }
+
     bool ParseContents(std::istream& contents);
     void WriteContents(std::ostream& stream) const;
     void WriteIdsAndValues(std::ostream& stream) const;
@@ -189,9 +217,13 @@ public:
     /// T shall provide a db KEY by means of the "void Serialize(std::ostream&) const" member
     /// function.
     template <class T>
-    DbRecord(const T& problem_config_) : DbRecord(Serialize(problem_config_))
+    DbRecord(DbKinds db_kind, const T& problem_config_)
+        : DbRecord(SerializeKey(db_kind, problem_config_))
     {
     }
+
+    // used in tests
+    DbRecord(DbKinds, const std::string& problem_config_) : DbRecord(problem_config_) {}
 
     auto GetSize() const { return map.size(); }
 
@@ -230,8 +262,10 @@ public:
 
         const bool ok = values.Deserialize(s);
         if(!ok)
+        {
             MIOPEN_LOG_WE(
                 "Perf db record is obsolete or corrupt: " << s << ". Performance may degrade.");
+        }
         return ok;
     }
 

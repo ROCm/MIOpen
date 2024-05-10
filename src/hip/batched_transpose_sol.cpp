@@ -252,9 +252,12 @@ static inline BatchedTransposeParam HeuristicGet(const ExecutionContext& ctx,
 
     for(auto it = kernel_list.rbegin(); it != kernel_list.rend(); it++)
     {
-        if(it->tile_x == 4 || it->tile_y == 4) // We don't want such kernel to be selected here,
-                                               // they should be used in above cases
+        if(it->tile_x == 4 || it->tile_y == 4)
+        {
+            // We don't want such kernel to be selected here,
+            // they should be used in above cases
             continue;
+        }
         if(!IsApplicable(batch, height, width, &(*it)))
             continue;
         std::size_t current_padding_size = GetExtraPaddingSize(batch, height, width, &(*it));
@@ -322,7 +325,11 @@ BatchedTransposeSolution::BatchedTransposeSolution(const ExecutionContext& ctx,
                                                    uint32_t width_)
     : data_type(data_type_), batch(batch_), height(height_), width(width_)
 {
-    if(data_type == miopenInt8x4 || data_type == miopenDouble)
+    if(!(data_type == miopenHalf     //
+         || data_type == miopenFloat //
+         || data_type == miopenInt32 //
+         || data_type == miopenInt8  //
+         || data_type == miopenBFloat16))
         MIOPEN_THROW("These data type are not supported");
     num_cu                 = ctx.GetStream().GetMaxComputeUnits();
     std::size_t data_size  = miopen::GetTypeSize(data_type);

@@ -28,7 +28,6 @@
 
 #include <miopen/common.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/problem.hpp>
 #include <miopen/search_options.hpp>
@@ -37,20 +36,108 @@
 #include <miopen/type_name.hpp>
 
 #include <nlohmann/json.hpp>
+#include <boost/hof/match.hpp>
+
+template <class OperationDescriptor>
+static miopenStatus_t MakeProblem(miopenProblem_t* problem,
+                                  OperationDescriptor operatorDesc,
+                                  miopenProblemDirection_t direction)
+{
+    return miopen::try_([&] {
+        miopen::deref(problem) = new miopen::ProblemContainer();
+        auto& container_deref  = miopen::deref(*problem);
+
+        container_deref.item = miopen::Problem();
+        auto& problem_deref  = boost::get<miopen::Problem>(container_deref.item);
+        auto& operator_deref = miopen::deref(operatorDesc);
+
+        problem_deref.SetOperatorDescriptor(operator_deref);
+        problem_deref.SetDirection(direction);
+    });
+}
 
 extern "C" {
 miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
                                        miopenConvolutionDescriptor_t operatorDesc,
                                        miopenProblemDirection_t direction)
 {
-    MIOPEN_LOG_FUNCTION(problem);
-    return miopen::try_([&] {
-        miopen::deref(problem)        = new miopen::Problem();
-        decltype(auto) problem_deref  = miopen::deref(*problem);
-        decltype(auto) operator_deref = miopen::deref(operatorDesc);
+    MIOPEN_LOG_FUNCTION(problem, operatorDesc, direction);
+    return MakeProblem(problem, operatorDesc, direction);
+}
 
-        problem_deref.SetOperatorDescriptor(operator_deref);
+miopenStatus_t miopenCreateActivationProblem(miopenProblem_t* problem,
+                                             miopenActivationDescriptor_t operatorDesc,
+                                             miopenProblemDirection_t direction)
+{
+    MIOPEN_LOG_FUNCTION(problem, operatorDesc, direction);
+    return MakeProblem(problem, operatorDesc, direction);
+}
+
+miopenStatus_t miopenCreateBiasProblem(miopenProblem_t* problem, miopenProblemDirection_t direction)
+{
+    MIOPEN_LOG_FUNCTION(problem, direction);
+
+    return miopen::try_([&] {
+        miopen::deref(problem) = new miopen::ProblemContainer();
+        auto& container_deref  = miopen::deref(*problem);
+
+        container_deref.item = miopen::Problem();
+        auto& problem_deref  = boost::get<miopen::Problem>(container_deref.item);
+
+        problem_deref.SetOperatorDescriptor(miopen::BiasDescriptor{});
         problem_deref.SetDirection(direction);
+    });
+}
+
+miopenStatus_t miopenCreateMhaProblem(miopenProblem_t* problem,
+                                      miopenMhaDescriptor_t operatorDesc,
+                                      miopenProblemDirection_t direction)
+{
+    MIOPEN_LOG_FUNCTION(problem, direction);
+    return MakeProblem(problem, operatorDesc, direction);
+}
+
+miopenStatus_t miopenCreateSoftmaxProblem(miopenProblem_t* problem,
+                                          miopenSoftmaxDescriptor_t operatorDesc,
+                                          miopenProblemDirection_t direction)
+{
+    MIOPEN_LOG_FUNCTION(problem, direction);
+    return MakeProblem(problem, operatorDesc, direction);
+}
+
+miopenStatus_t miopenFuseProblems(miopenProblem_t problem1, miopenProblem_t problem2)
+{
+    MIOPEN_LOG_FUNCTION(problem1, problem2);
+    return miopen::try_([&] {
+        auto& problem1_deref = miopen::deref(problem1);
+
+        auto emplace_problem2 = [problem2](auto& problems) {
+            const auto impl2 = boost::hof::match(
+                [&](miopen::Problem& problem2_inner) { problems.emplace_back(problem2_inner); },
+                [&](const miopen::FusedProblem& problem2_inner) {
+                    problems.reserve(problems.size() + problem2_inner.problems.size());
+                    std::copy(problem2_inner.problems.begin(),
+                              problem2_inner.problems.end(),
+                              std::back_inserter(problems));
+                });
+
+            boost::apply_visitor(impl2, miopen::deref(problem2).item);
+        };
+
+        boost::apply_visitor(boost::hof::match(
+                                 [&](miopen::Problem& problem1_inner) {
+                                     auto tmp = miopen::FusedProblem{};
+                                     tmp.problems.reserve(2);
+                                     tmp.problems.emplace_back(problem1_inner);
+                                     emplace_problem2(tmp.problems);
+                                     problem1_deref.item = std::move(tmp);
+                                 },
+                                 [&](miopen::FusedProblem& problem1_inner) {
+                                     emplace_problem2(problem1_inner.problems);
+                                 }),
+                             miopen::deref(problem1).item);
+
+        boost::get<miopen::FusedProblem&>(miopen::deref(problem1).item).PropagateDescriptors();
     });
 }
 
@@ -66,8 +153,18 @@ miopenStatus_t miopenSetProblemTensorDescriptor(miopenProblem_t problem,
 {
     MIOPEN_LOG_FUNCTION(problem, id, descriptor);
 
-    return miopen::try_(
-        [&] { miopen::deref(problem).RegisterTensorDescriptor(id, miopen::deref(descriptor)); });
+    return miopen::try_([&] {
+        const auto impl = boost::hof::match(
+            [&](miopen::Problem& problem) {
+                problem.RegisterTensorDescriptor(id, miopen::deref(descriptor));
+            },
+            [&](const miopen::FusedProblem&) {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "Attempt to set tensor descriptor of a fused problem");
+            });
+
+        boost::apply_visitor(impl, miopen::deref(problem).item);
+    });
 }
 
 miopenStatus_t miopenCreateFindOptions(miopenFindOptions_t* options)
@@ -157,15 +254,18 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
 
     return miopen::try_([&] {
         auto& handle_deref        = miopen::deref(handle);
-        const auto& problem_deref = miopen::deref(problem);
+        const auto& problem_deref = miopen::deref(problem).item;
 
-        problem_deref.LogDriverCommand();
+        boost::apply_visitor([](auto&& problem) { problem.LogDriverCommand(); }, problem_deref);
 
         const auto& options_deref =
             options == nullptr ? miopen::FindOptions{} : miopen::deref(options);
 
-        auto solutions_deref =
-            problem_deref.FindSolutions(handle_deref, options_deref, maxSolutions);
+        auto solutions_deref = boost::apply_visitor(
+            [&](auto&& problem) {
+                return problem.FindSolutions(handle_deref, options_deref, maxSolutions);
+            },
+            problem_deref);
 
         for(auto i = 0; i < solutions_deref.size(); ++i)
             miopen::deref(solutions + i) = new miopen::Solution{std::move(solutions_deref[i])};
@@ -182,6 +282,35 @@ inline std::ostream& operator<<(std::ostream& stream, const miopenTensorArgument
     case miopenTensorConvolutionW: stream << "ConvW"; break;
     case miopenTensorConvolutionX: stream << "ConvX"; break;
     case miopenTensorConvolutionY: stream << "ConvY"; break;
+    case miopenTensorActivationX: stream << "ActivX"; break;
+    case miopenTensorActivationDX: stream << "ActivDX"; break;
+    case miopenTensorActivationY: stream << "ActivY"; break;
+    case miopenTensorActivationDY: stream << "ActivDY"; break;
+    case miopenTensorBias: stream << "Bias"; break;
+    case miopenTensorBiasX: stream << "BiasX"; break;
+    case miopenTensorBiasY: stream << "BiasY"; break;
+    case miopenTensorMhaK: stream << "MhaK"; break;
+    case miopenTensorMhaQ: stream << "MhaQ"; break;
+    case miopenTensorMhaV: stream << "MhaV"; break;
+    case miopenTensorMhaDescaleK: stream << "MhaDescaleK"; break;
+    case miopenTensorMhaDescaleQ: stream << "DescaleQ"; break;
+    case miopenTensorMhaDescaleV: stream << "DescaleV"; break;
+    case miopenTensorMhaDescaleS: stream << "MhaDescaleS"; break;
+    case miopenTensorMhaScaleS: stream << "MhaScaleS"; break;
+    case miopenTensorMhaScaleO: stream << "MhaScaleO"; break;
+    case miopenTensorMhaDropoutProbability: stream << "MhaDropoutProbability"; break;
+    case miopenTensorMhaDropoutSeed: stream << "MhaDropoutSeed"; break;
+    case miopenTensorMhaDropoutOffset: stream << "MhaDropoutOffset"; break;
+    case miopenTensorMhaO: stream << "MhaO"; break;
+    case miopenTensorMhaAmaxO: stream << "MhaAmaxO"; break;
+    case miopenTensorMhaAmaxS: stream << "MhaAmaxS"; break;
+    case miopenTensorMhaM: stream << "MhaM"; break;
+    case miopenTensorMhaZInv: stream << "MhaZInv"; break;
+    case miopenTensorSoftmaxX: stream << "SoftmaxX"; break;
+    case miopenTensorSoftmaxY: stream << "SoftmaxY"; break;
+    case miopenTensorSoftmaxDX: stream << "SoftmaxDX"; break;
+    case miopenTensorSoftmaxDY: stream << "SoftmaxDY"; break;
+    case miopenTensorArgumentIsScalar: stream << "ScalarArgument"; break;
     case miopenTensorArgumentIdInvalid: stream << "Invalid"; break;
     }
 
@@ -273,7 +402,7 @@ miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data)
 
 miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size)
 {
-    MIOPEN_LOG_FUNCTION(solution, size);
+    MIOPEN_LOG_FUNCTION(solution);
 
     return miopen::try_([&] {
         if(size == nullptr)
@@ -293,7 +422,7 @@ miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size)
 
 miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t solution, size_t* workspaceSize)
 {
-    MIOPEN_LOG_FUNCTION(solution, workspaceSize);
+    MIOPEN_LOG_FUNCTION(solution);
 
     return miopen::try_([&] {
         const auto& solution_deref = miopen::deref(solution);
@@ -303,7 +432,7 @@ miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t solution, size_t*
 
 miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time)
 {
-    MIOPEN_LOG_FUNCTION(solution, time);
+    MIOPEN_LOG_FUNCTION(solution);
 
     return miopen::try_([&] {
         const auto& solution_deref = miopen::deref(solution);
@@ -313,7 +442,7 @@ miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time)
 
 miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution, uint64_t* solverId)
 {
-    MIOPEN_LOG_FUNCTION(solution, solverId);
+    MIOPEN_LOG_FUNCTION(solution);
 
     return miopen::try_([&] {
         const auto& solution_deref = miopen::deref(solution);
@@ -323,7 +452,7 @@ miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution, uint64_t* so
 
 miopenStatus_t miopenGetSolverIdConvAlgorithm(uint64_t solverId, miopenConvAlgorithm_t* result)
 {
-    MIOPEN_LOG_FUNCTION(solverId, result);
+    MIOPEN_LOG_FUNCTION(solverId);
 
     return miopen::try_([&] {
         const auto id_deref = miopen::solver::Id{solverId};

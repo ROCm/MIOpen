@@ -27,15 +27,15 @@
 #include "test.hpp"
 #include "driver.hpp"
 
+#include <miopen/filesystem.hpp>
 #include <miopen/db.hpp>
 #include <miopen/db_record.hpp>
 #include <miopen/lock_file.hpp>
+#include <miopen/process.hpp>
 #include <miopen/ramdb.hpp>
 #include <miopen/readonlyramdb.hpp>
 #include <miopen/temp_file.hpp>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
 #include <boost/optional.hpp>
 
 #include <array>
@@ -65,10 +65,10 @@ private:
     bool cached;
 };
 
-static boost::filesystem::path& exe_path()
+static fs::path& exe_path()
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static boost::filesystem::path exe_path;
+    static fs::path exe_path;
     return exe_path;
 }
 
@@ -151,15 +151,22 @@ struct TestData
         return {static_cast<int>(rnd.Next()), static_cast<int>(rnd.Next())};
     }
 
+    template <class TSelf, class Visitor>
+    static void VisitAll(TSelf&& self, Visitor visitor)
+    {
+        visitor(self.x, "x");
+        visitor(self.y, "y");
+    }
+
     void Serialize(std::ostream& s) const
     {
-        static const auto sep = ',';
+        static const auto sep = 'x';
         s << x << sep << y;
     }
 
     bool Deserialize(const std::string& s)
     {
-        static const auto sep = ',';
+        static const auto sep = 'x';
         TestData t(NoInit{});
         std::istringstream ss(s);
 
@@ -212,7 +219,7 @@ class DbTest
 public:
     DbTest(TempFile& temp_file_) : temp_file(temp_file_) { ResetDb(); }
 
-    virtual ~DbTest() { std::remove(LockFilePath(temp_file.Path()).c_str()); }
+    virtual ~DbTest() { fs::remove(LockFilePath(temp_file.Path())); }
 
 protected:
     TempFile& temp_file;
@@ -282,7 +289,7 @@ protected:
                          const std::array<std::pair<const std::string, TValue>, count> values)
     {
         std::ostringstream ss_vals;
-        ss_vals << key.x << ',' << key.y << '=';
+        ss_vals << key.x << 'x' << key.y << '=';
 
         auto first = true;
 
@@ -292,7 +299,7 @@ protected:
                 ss_vals << ";";
 
             first = false;
-            ss_vals << id_value.first << ':' << id_value.second.x << ',' << id_value.second.y;
+            ss_vals << id_value.first << ':' << id_value.second.x << 'x' << id_value.second.y;
         }
 
         std::ofstream(db_path, std::ios::out | std::ios::ate) << ss_vals.str() << std::endl;
@@ -330,7 +337,7 @@ public:
 
         RawWrite(temp_file, key(), common_data());
 
-        TDb db(temp_file);
+        TDb db(DbKinds::PerfDb, temp_file);
         ValidateSingleEntry(key(), common_data(), db);
 
         const TestData invalid_key(100, 200);
@@ -352,12 +359,12 @@ public:
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for reading stored data...");
 
-        DbRecord record(key());
+        DbRecord record(DbKinds::PerfDb, key());
         EXPECT(record.SetValues(id0(), value0()));
         EXPECT(record.SetValues(id1(), value1()));
 
         {
-            TDb db(temp_file);
+            TDb db(DbKinds::PerfDb, temp_file);
 
             EXPECT(db.StoreRecord(record));
         }
@@ -365,7 +372,7 @@ public:
         std::string read;
         EXPECT(std::getline(std::ifstream(temp_file), read).good());
 
-        TDb db{temp_file};
+        TDb db{DbKinds::PerfDb, temp_file};
         ValidateSingleEntry(key(), common_data(), db);
     }
 };
@@ -384,21 +391,21 @@ public:
                                      << " for updating existing records...");
 
         // Store record0 (key=id0:value0)
-        DbRecord record0(key());
+        DbRecord record0(DbKinds::PerfDb, key());
         EXPECT(record0.SetValues(id0(), value0()));
 
         {
-            TDb db(temp_file);
+            TDb db(DbKinds::PerfDb, temp_file);
 
             EXPECT(db.StoreRecord(record0));
         }
 
         // Update with record1 (key=id1:value1)
-        DbRecord record1(key());
+        DbRecord record1(DbKinds::PerfDb, key());
         EXPECT(record1.SetValues(id1(), value1()));
 
         {
-            TDb db(temp_file);
+            TDb db(DbKinds::PerfDb, temp_file);
 
             EXPECT(db.UpdateRecord(record1));
         }
@@ -411,7 +418,7 @@ public:
         EXPECT_EQUAL(value1(), read1);
 
         // Check record that is stored in db (key=id0:value0;id1:value1)
-        TDb db{temp_file};
+        TDb db{DbKinds::PerfDb, temp_file};
         ValidateSingleEntry(key(), common_data(), db);
     }
 };
@@ -430,18 +437,18 @@ public:
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for removing records...");
 
-        DbRecord record(key());
+        DbRecord record(DbKinds::PerfDb, key());
         EXPECT(record.SetValues(id0(), value0()));
         EXPECT(record.SetValues(id1(), value1()));
 
         {
-            TDb db(temp_file);
+            TDb db(DbKinds::PerfDb, temp_file);
 
             EXPECT(db.StoreRecord(record));
         }
 
         {
-            TDb db(temp_file);
+            TDb db(DbKinds::PerfDb, temp_file);
 
             EXPECT(db.FindRecord(key()));
             EXPECT(db.RemoveRecord(key()));
@@ -465,7 +472,7 @@ public:
                                      << " for reading premade file by Load...");
 
         RawWrite(temp_file, key(), common_data());
-        TDb db{temp_file};
+        TDb db{DbKinds::PerfDb, temp_file};
         ValidateSingleEntry(key(), common_data(), db);
     }
 };
@@ -484,7 +491,7 @@ public:
                                      << " for storing unexistent records by update...");
 
         {
-            TDb db(temp_file);
+            TDb db(DbKinds::PerfDb, temp_file);
 
             EXPECT(db.Update(key(), id0(), value0()));
             EXPECT(db.Update(key(), id1(), value1()));
@@ -493,7 +500,7 @@ public:
         std::string read;
         EXPECT(std::getline(std::ifstream(temp_file), read).good());
 
-        TDb db{temp_file};
+        TDb db{DbKinds::PerfDb, temp_file};
         ValidateSingleEntry(key(), common_data(), db);
     }
 };
@@ -514,7 +521,7 @@ public:
         const TestData to_be_rewritten(7, 8);
 
         {
-            TDb db(temp_file);
+            TDb db(DbKinds::PerfDb, temp_file);
 
             EXPECT(db.Update(key(), id0(), to_be_rewritten));
             EXPECT(db.Update(key(), id1(), to_be_rewritten));
@@ -528,7 +535,7 @@ public:
         }
 
         {
-            TDb db(temp_file);
+            TDb db(DbKinds::PerfDb, temp_file);
 
             // Rewriting existing value to store it to file.
             EXPECT(db.Update(key(), id0(), value0()));
@@ -537,7 +544,7 @@ public:
         {
             TestData read0, read1, read_missing;
             const auto read_missing_cmp(read_missing);
-            TDb db(temp_file);
+            TDb db(DbKinds::PerfDb, temp_file);
 
             // Loading by id not present in record should execute well but return false as nothing
             // was read.
@@ -568,7 +575,7 @@ public:
         {
             TestData read0, read1;
             const auto read_missing_cmp(read0);
-            TDb db(temp_file);
+            TDb db(DbKinds::PerfDb, temp_file);
 
             EXPECT(!db.Load(key(), id0(), read0));
             EXPECT(db.Load(key(), id1(), read1));
@@ -594,13 +601,13 @@ public:
                        << " for using two objects targeting one file existing in one scope...");
 
         {
-            TDb db(temp_file);
+            TDb db(DbKinds::PerfDb, temp_file);
             EXPECT(db.Update(key(), id0(), value0()));
         }
 
         {
-            TDb db0(temp_file);
-            TDb db1(temp_file);
+            TDb db0(DbKinds::PerfDb, temp_file);
+            TDb db1(DbKinds::PerfDb, temp_file);
 
             auto r0 = db0.FindRecord(key());
             auto r1 = db1.FindRecord(key());
@@ -621,7 +628,7 @@ public:
             {id2(), value2()},
         }};
 
-        TDb db{temp_file};
+        TDb db{DbKinds::PerfDb, temp_file};
         ValidateSingleEntry(key(), data, db);
     }
 };
@@ -708,8 +715,8 @@ private:
             const auto err_path = *thread_logs_root() + "/thread-" + std::to_string(id) + "_" +
                                   log_postfix + "-err.log";
 
-            std::remove(out_path.c_str());
-            std::remove(err_path.c_str());
+            fs::remove(out_path);
+            fs::remove(err_path);
 
             log.open(out_path);
             log_err.open(err_path);
@@ -883,7 +890,7 @@ public:
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test threads...");
         threads.reserve(DBMultiThreadedTestWork::threads_count);
         const std::string p = temp_file;
-        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(p, false));
+        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, p, false));
 
         {
             std::unique_lock<std::mutex> lock(mutex);
@@ -927,7 +934,7 @@ public:
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
         const std::string p = temp_file;
-        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(p, false));
+        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, p, false));
         DBMultiThreadedTestWork::FillForReading(c);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test threads...");
@@ -937,10 +944,12 @@ public:
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
                 });
+            }
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test threads...");
@@ -962,7 +971,7 @@ public:
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for multiprocess write access...");
 
-        std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
+        std::vector<ProcessAsync> children{};
         const auto lock_file_path = LockFilePath(temp_file);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
@@ -975,37 +984,38 @@ public:
 
             auto id = 0;
 
-            for(auto& child : children)
+            // clang-format off
+            for(auto i = 0; i < DBMultiThreadedTestWork::threads_count; ++i)
             {
-                auto command = exe_path().string() + " --" + ArgsHelper::write_arg + " --" +
-                               ArgsHelper::id_arg + " " + std::to_string(id++) + " --" +
-                               ArgsHelper::path_arg + " " + temp_file.Path() + " --" +
-                               ArgsHelper::db_class_arg + " " + ArgsHelper::db_class::Get<TDb>();
+                auto args =
+                    std::string{"--"} + ArgsHelper::write_arg +
+                                " --" + ArgsHelper::id_arg + " " + std::to_string(id++) +
+                                " --" + ArgsHelper::path_arg + " " + temp_file.Path() +
+                                " --" + ArgsHelper::db_class_arg + " " + ArgsHelper::db_class::Get<TDb>();
 
                 if(thread_logs_root())
-                    command +=
-                        std::string(" --") + ArgsHelper::logs_path_arg + " " + *thread_logs_root();
+                {
+                    args += std::string{" --"} + ArgsHelper::logs_path_arg + " " + *thread_logs_root();
+                }
 
                 if(full_set())
-                    command += " --all";
+                    args += " --all";
 
-                child = popen(command.c_str(), "w");
+                children.emplace_back(exe_path(), args);
             }
+            // clang-format on
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test processes...");
-        for(auto child : children)
+        for(auto&& child : children)
         {
-            auto status          = pclose(child);
-            const auto exit_code = WEXITSTATUS(status);
-
-            EXPECT_EQUAL(exit_code, 0);
+            EXPECT_EQUAL(child.Wait(), 0);
         }
 
-        std::remove(lock_file_path.c_str());
+        fs::remove(lock_file_path);
 
         const std::string p = temp_file;
-        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(p, false));
+        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, p, false));
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Validating results...");
         DBMultiThreadedTestWork::ValidateCommonPart(c);
@@ -1019,7 +1029,8 @@ public:
             std::lock_guard<LockFile> lock(file_lock);
         }
 
-        const auto c = [&db_path]() MIOPEN_RETURNS(GetDbInstance<TDb>(db_path, false));
+        const auto c = [&db_path]()
+            MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, db_path, false));
 
         if(write)
             DBMultiThreadedTestWork::WorkItem(id, c, "mp");
@@ -1044,12 +1055,12 @@ public:
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for multiprocess read access...");
 
-        std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
+        std::vector<ProcessAsync> children{};
         const auto lock_file_path = LockFilePath(temp_file);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
         std::string p = temp_file;
-        const auto c  = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(p, false));
+        const auto c  = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, p, false));
         DBMultiThreadedTestWork::FillForReading(c);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test processes...");
@@ -1059,35 +1070,35 @@ public:
 
             auto id = 0;
 
-            for(auto& child : children)
+            // clang-format off
+            for(auto i = 0; i < DBMultiThreadedTestWork::threads_count; ++i)
             {
-                auto command = exe_path().string() + " --" + ArgsHelper::id_arg + " " +
-                               std::to_string(id++) + " --" + ArgsHelper::path_arg + " " + p +
-                               " --" + ArgsHelper::db_class_arg + " " +
-                               ArgsHelper::db_class::Get<TDb>();
+                auto args =
+                    std::string{"--"} + ArgsHelper::id_arg + " " + std::to_string(id++) +
+                               " --" + ArgsHelper::path_arg + " " + p +
+                               " --" + ArgsHelper::db_class_arg + " " + ArgsHelper::db_class::Get<TDb>();
 
                 if(thread_logs_root())
-                    command +=
-                        std::string(" --") + ArgsHelper::logs_path_arg + " " + *thread_logs_root();
+                {
+                    args += std::string{" --"} + ArgsHelper::logs_path_arg + " " + *thread_logs_root();
+                }
 
                 if(full_set())
-                    command += " --all";
+                    args += " --all";
 
-                MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", command);
-                child = popen(command.c_str(), "w");
+                MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", exe_path() + " " + args);
+                children.emplace_back(exe_path(), args);
             }
+            // clang-format on
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test processes...");
-        for(auto child : children)
+        for(auto&& child : children)
         {
-            auto status          = pclose(child);
-            const auto exit_code = WEXITSTATUS(status);
-
-            EXPECT_EQUAL(exit_code, 0);
+            EXPECT_EQUAL(child.Wait(), 0);
         }
 
-        std::remove(lock_file_path.c_str());
+        fs::remove(lock_file_path);
     }
 
     static void WorkItem(unsigned int id, const std::string& db_path)
@@ -1169,7 +1180,8 @@ private:
             {id0(), value2()},
         }};
 
-        MultiFileDb<ReadonlyRamDb, RamDb, merge_records> db(temp_file, user_db_path);
+        MultiFileDb<ReadonlyRamDb, RamDb, merge_records> db(
+            DbKinds::PerfDb, temp_file, user_db_path);
         if(merge_records)
             ValidateSingleEntry(key(), merged_data, db);
         else
@@ -1183,14 +1195,16 @@ private:
     void ReadUser() const
     {
         RawWrite(user_db_path, key(), single_item_data());
-        MultiFileDb<ReadonlyRamDb, RamDb, merge_records> db(temp_file, user_db_path);
+        MultiFileDb<ReadonlyRamDb, RamDb, merge_records> db(
+            DbKinds::PerfDb, temp_file, user_db_path);
         ValidateSingleEntry(key(), single_item_data(), db);
     }
 
     void ReadInstalled() const
     {
         RawWrite(temp_file, key(), single_item_data());
-        MultiFileDb<ReadonlyRamDb, RamDb, merge_records> db(temp_file, user_db_path);
+        MultiFileDb<ReadonlyRamDb, RamDb, merge_records> db(
+            DbKinds::PerfDb, temp_file, user_db_path);
         ValidateSingleEntry(key(), single_item_data(), db);
     }
 
@@ -1210,12 +1224,12 @@ public:
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Running multifile write test...");
 
-        DbRecord record(key());
+        DbRecord record(DbKinds::PerfDb, key());
         EXPECT(record.SetValues(id0(), value0()));
         EXPECT(record.SetValues(id1(), value1()));
 
         {
-            MultiFileDb<ReadonlyRamDb, RamDb, true> db(temp_file, user_db_path);
+            MultiFileDb<ReadonlyRamDb, RamDb, true> db(DbKinds::PerfDb, temp_file, user_db_path);
 
             EXPECT(db.StoreRecord(record));
         }
@@ -1224,7 +1238,7 @@ public:
         EXPECT(!std::getline(std::ifstream(temp_file), read).good());
         EXPECT(std::getline(std::ifstream(user_db_path), read).good());
 
-        auto db = MultiFileDb<ReadonlyRamDb, RamDb, true>{temp_file, user_db_path};
+        auto db = MultiFileDb<ReadonlyRamDb, RamDb, true>{DbKinds::PerfDb, temp_file, user_db_path};
         ValidateSingleEntry(key(), common_data(), db);
     }
 };
@@ -1248,11 +1262,11 @@ public:
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Running multifile operations test...");
 
         {
-            DbRecord record(key());
+            DbRecord record(DbKinds::PerfDb, key());
             EXPECT(record.SetValues(id0(), value0()));
             EXPECT(record.SetValues(id1(), value2()));
 
-            PlainTextDb db(temp_file);
+            PlainTextDb db(DbKinds::PerfDb, temp_file);
             EXPECT(db.StoreRecord(record));
         }
     }
@@ -1262,12 +1276,12 @@ public:
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Update test...");
 
         {
-            MultiFileDb<ReadonlyRamDb, RamDb, true> db(temp_file, user_db_path);
+            MultiFileDb<ReadonlyRamDb, RamDb, true> db(DbKinds::PerfDb, temp_file, user_db_path);
             EXPECT(db.Update(key(), id1(), value1()));
         }
 
         {
-            PlainTextDb db(user_db_path);
+            PlainTextDb db(DbKinds::PerfDb, user_db_path);
             TestData read(TestData::NoInit{});
             EXPECT(!db.Load(key(), id0(), read));
             EXPECT(db.Load(key(), id1(), read));
@@ -1275,7 +1289,7 @@ public:
         }
 
         {
-            PlainTextDb db(temp_file);
+            PlainTextDb db(DbKinds::PerfDb, temp_file);
             ValidateData(db, value2());
         }
     }
@@ -1284,7 +1298,7 @@ public:
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Load test...");
 
-        MultiFileDb<ReadonlyRamDb, RamDb, true> db(temp_file, user_db_path);
+        MultiFileDb<ReadonlyRamDb, RamDb, true> db(DbKinds::PerfDb, temp_file, user_db_path);
         ValidateData(db, value1());
     }
 
@@ -1292,7 +1306,7 @@ public:
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Remove test...");
 
-        MultiFileDb<ReadonlyRamDb, RamDb, true> db(temp_file, user_db_path);
+        MultiFileDb<ReadonlyRamDb, RamDb, true> db(DbKinds::PerfDb, temp_file, user_db_path);
         EXPECT(!db.Remove(key(), id0()));
         EXPECT(db.Remove(key(), id1()));
 
@@ -1303,7 +1317,7 @@ public:
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Remove record test...");
 
-        MultiFileDb<ReadonlyRamDb, RamDb, true> db(temp_file, user_db_path);
+        MultiFileDb<ReadonlyRamDb, RamDb, true> db(DbKinds::PerfDb, temp_file, user_db_path);
         EXPECT(db.Update(key(), id1(), value1()));
         EXPECT(db.RemoveRecord(key()));
 
@@ -1337,7 +1351,9 @@ public:
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
         const std::string p = temp_file;
         const auto& up      = user_db_path;
-        const auto c        = [&p, up]() { return MultiFileDb<ReadonlyRamDb, RamDb, true>(p, up); };
+        const auto c        = [&p, up]() {
+            return MultiFileDb<ReadonlyRamDb, RamDb, true>(DbKinds::PerfDb, p, up);
+        };
         ResetDb();
         DBMultiThreadedTestWork::FillForReading(c);
 
@@ -1348,10 +1364,12 @@ public:
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
                 });
+            }
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test threads...");
@@ -1383,16 +1401,20 @@ public:
         threads.reserve(DBMultiThreadedTestWork::threads_count);
         const std::string p = temp_file;
         const auto up       = user_db_path;
-        const auto c = [&p, &up]() { return MultiFileDb<ReadonlyRamDb, RamDb, true>(p, up); };
+        const auto c        = [&p, &up]() {
+            return MultiFileDb<ReadonlyRamDb, RamDb, true>(DbKinds::PerfDb, p, up);
+        };
 
         {
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::WorkItem(i, c, "mt");
                 });
+            }
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test threads...");
@@ -1438,10 +1460,14 @@ struct PerfDbDriver : test_driver
         if(mt_child_id >= 0)
         {
             if(mt_child_db_class == ArgsHelper::db_class::db)
+            {
                 DbMultiProcessTest<PlainTextDb>::WorkItem(
                     mt_child_id, mt_child_db_path, test_write);
+            }
             else if(mt_child_db_class == ArgsHelper::db_class::ramdb)
+            {
                 DbMultiProcessTest<RamDb>::WorkItem(mt_child_id, mt_child_db_path, test_write);
+            }
             return;
         }
 

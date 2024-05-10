@@ -27,29 +27,34 @@
 #define GUARD_MIOPEN_RNN_DRIVER_HPP
 
 #include "InputFlags.hpp"
-#include "rnn_verify_gemm.hpp"
-#include "lstm_verify_gemm.hpp"
-#include "gru_verify_gemm.hpp"
 #include "driver.hpp"
+#include "gru_verify_gemm.hpp"
+#include "lstm_verify_gemm.hpp"
+#include "mloConvHost.hpp"
+#include "random.hpp"
+#include "rnn_verify_gemm.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "util_driver.hpp"
-#include "random.hpp"
+#include "util_file.hpp"
+
 #include <../test/verify.hpp>
-#include <algorithm>
-#include <cstdlib>
-#include <cstring>
-#include <cfloat>
-#include <fstream>
-#include <memory>
+
+#include <miopen/env.hpp>
 #include <miopen/miopen.h>
 #include <miopen/rnn.hpp>
 #include <miopen/tensor.hpp>
-#include <miopen/env.hpp>
+
+#include <algorithm>
+#include <array>
+#include <cfloat>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <memory>
 #include <numeric>
 #include <sstream>
 #include <vector>
-#include <array>
 
 template <typename Tgpu, typename Tref>
 class RNNDriver : public Driver
@@ -481,12 +486,9 @@ int RNNDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
         miopenDropoutGetStatesSize(GetHandle(), &statesSizeInBytes);
         size_t states_size = statesSizeInBytes / sizeof(prngStates);
 
+        DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-        cl_context ctx;
-
         clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-        uint32_t ctx = 0;
 #endif
 
         dropout_states_dev =
@@ -564,12 +566,9 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     workSpace_sz /= sizeof(Tgpu);
     reserveSpace_sz = (reserveSpace_sz + sizeof(Tgpu) - 1) / sizeof(Tgpu);
 
+    DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
-
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
 #endif
 
     in_dev           = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
@@ -660,8 +659,6 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         std::string inFileName  = inflags.GetValueStr("in_data");
         std::string weiFileName = inflags.GetValueStr("weights");*/
 
-    // Unless seed is persistent between runs validation using cache stored in file is impossible.
-    srand(0);
     double scale = 0.01;
 
     /*    bool dataRead = false;
@@ -677,19 +674,19 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < in_sz; i++)
     {
-        in[i] = static_cast<Tgpu>((static_cast<double>(scale * GET_RAND()) * (1.0 / RAND_MAX)));
+        in[i] = static_cast<Tgpu>(prng::gen_0_to_B(scale));
     }
 
     for(int i = 0; i < hy_sz; i++)
     {
-        hx[i] = static_cast<Tgpu>((scale * static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX)));
+        hx[i] = static_cast<Tgpu>(prng::gen_0_to_B(scale));
     }
 
     if((inflags.GetValueStr("mode")) == "lstm")
     {
         for(int i = 0; i < hy_sz; i++)
         {
-            cx[i] = static_cast<Tgpu>((scale * static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX)));
+            cx[i] = static_cast<Tgpu>(prng::gen_0_to_B(scale));
         }
     }
 
@@ -697,22 +694,19 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     {
         for(int i = 0; i < out_sz; i++)
         {
-            dout[i] =
-                static_cast<Tgpu>((scale * static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX)));
+            dout[i] = static_cast<Tgpu>(prng::gen_0_to_B(scale));
         }
 
         for(int i = 0; i < hy_sz; i++)
         {
-            dhy[i] =
-                static_cast<Tgpu>((scale * static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX)));
+            dhy[i] = static_cast<Tgpu>(prng::gen_0_to_B(scale));
         }
 
         if((inflags.GetValueStr("mode")) == "lstm")
         {
             for(int i = 0; i < hy_sz; i++)
             {
-                dcy[i] =
-                    static_cast<Tgpu>((scale * static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX)));
+                dcy[i] = static_cast<Tgpu>(prng::gen_0_to_B(scale));
             }
         }
     }
@@ -729,8 +723,7 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < wei_sz; i++)
     {
-        wei[i] =
-            static_cast<Tgpu>((scale * static_cast<double>((GET_RAND()) * (1.0 / RAND_MAX) - 0.5)));
+        wei[i] = static_cast<Tgpu>(scale * prng::gen_A_to_B(-0.5, 0.5));
     }
 
     if(inflags.GetValueInt("dump_output"))
@@ -739,13 +732,7 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         dumpBufferToFile("dump_wei.bin", wei.data(), wei_sz);
     }
 
-#if MIOPEN_BACKEND_OPENCL
-    cl_int status;
-#elif MIOPEN_BACKEND_HIP
-#define CL_SUCCESS 0
-    int status;
-#endif
-
+    status_t status;
     status = in_dev->ToGPU(q, in.data());
     status |= wei_dev->ToGPU(q, wei.data());
     status |= out_dev->ToGPU(q, out.data());
@@ -754,7 +741,7 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     status |= workspace_dev->ToGPU(q, workspace.data());
     status |= reservespace_dev->ToGPU(q, reservespace.data());
 
-    if(status != CL_SUCCESS)
+    if(status != STATUS_SUCCESS)
         printf("Error copying data to GPU\n");
 
     if(inflags.GetValueInt("forw") != 2)
@@ -762,7 +749,7 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         status = hy_dev->ToGPU(q, hy.data());
         status |= cy_dev->ToGPU(q, cy.data());
 
-        if(status != CL_SUCCESS)
+        if(status != STATUS_SUCCESS)
             printf("Error copying data to GPU\n");
     }
 
@@ -776,7 +763,7 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         status |= dhy_dev->ToGPU(q, dhy.data());
         status |= dcy_dev->ToGPU(q, dcy.data());
 
-        if(status != CL_SUCCESS)
+        if(status != STATUS_SUCCESS)
             printf("Error copying data to GPU\n");
     }
 
@@ -907,16 +894,6 @@ int RNNDriver<Tgpu, Tref>::RunForwardGPU()
        */
 
     return miopenStatusSuccess;
-}
-
-std::tuple<size_t, size_t>
-GetTempPackedBuffersSize(std::vector<int> batchs, int in_vec, int out_vec)
-{
-    size_t total_batch = std::accumulate(batchs.begin(), batchs.end(), 0);
-
-    size_t in_buff_size  = total_batch * in_vec;
-    size_t out_buff_size = total_batch * out_vec;
-    return {in_buff_size, out_buff_size};
 }
 
 template <typename Tgpu>
@@ -1470,7 +1447,6 @@ int RNNDriver<Tgpu, Tref>::RunBackwardDataCPU()
         (inflags.GetValueInt("use_padding") == 1) ? miopenRNNIOWithPadding : miopenRNNIONotPadded;
 
     std::vector<Tref> converted_din;
-    std::vector<Tgpu> converted_out;
     std::vector<Tgpu> converted_dout;
 
     if(paddingMode == miopenRNNIOWithPadding)
@@ -1479,16 +1455,13 @@ int RNNDriver<Tgpu, Tref>::RunBackwardDataCPU()
         std::tie(packedXInSize, packedYOutSize) = GetTempPackedBuffersSize(in_n, in_h, out_h);
 
         converted_din.resize(packedXInSize);
-        converted_out.resize(packedYOutSize);
         converted_dout.resize(packedYOutSize);
 
-        ChangeDataPadding(out, converted_out, in_n, in_n[0], out_h, false);
         ChangeDataPadding(dout, converted_dout, in_n, in_n[0], out_h, false);
     }
 
     std::vector<Tref>* din_packed =
         paddingMode == miopenRNNIOWithPadding ? &converted_din : &din_host;
-    std::vector<Tgpu>* out_packed = paddingMode == miopenRNNIOWithPadding ? &converted_out : &out;
     std::vector<Tgpu>* dout_packed =
         paddingMode == miopenRNNIOWithPadding ? &converted_dout : &dout;
 
@@ -1501,7 +1474,6 @@ int RNNDriver<Tgpu, Tref>::RunBackwardDataCPU()
                                         dhy,
                                         dhx_host,
                                         hx,
-                                        *out_packed,
                                         *dout_packed,
                                         in_n,
                                         in_h,
@@ -1531,7 +1503,6 @@ int RNNDriver<Tgpu, Tref>::RunBackwardDataCPU()
                                          dcy,
                                          dcx_host,
                                          cx,
-                                         *out_packed,
                                          *dout_packed,
                                          in_n,
                                          in_h,
@@ -1557,7 +1528,6 @@ int RNNDriver<Tgpu, Tref>::RunBackwardDataCPU()
                                         dhy,
                                         dhx_host,
                                         hx,
-                                        *out_packed,
                                         *dout_packed,
                                         in_n,
                                         in_h,

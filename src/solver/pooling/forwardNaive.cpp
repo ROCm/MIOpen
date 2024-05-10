@@ -30,7 +30,7 @@
 #include <miopen/pooling/invoke_params.hpp>
 #include <miopen/pooling/solvers.hpp>
 
-#define WORKAROUND_ISSUE_MIFIN_80 1 // https://github.com/ROCmSoftwarePlatform/MIFin/issues/80
+#define WORKAROUND_ISSUE_MIFIN_80 1 // https://github.com/ROCm/MIFin/issues/80
 
 namespace miopen {
 
@@ -68,18 +68,21 @@ inline uint32_t RoundUpNearestPower2Positive(uint32_t v)
 bool PoolingForwardNaive::IsApplicable(const ExecutionContext&,
                                        const miopen::pooling::ProblemDescription& problem) const
 {
-    return problem.GetDirection() == miopen::pooling::Direction::Forward   //
-           && problem.GetXDesc().GetType() == problem.GetYDesc().GetType() //
-           && (problem.GetXDesc().GetType() == miopenFloat                 //
-               || problem.GetXDesc().GetType() == miopenHalf)              //
-           && (                                                            //
-                  (problem.GetXDesc().GetSize() == 5                       //
-                   && problem.GetXDesc().GetLayout("NCDHW") == "NCDHW"     //
-                   && problem.GetYDesc().GetLayout("NCDHW") == "NCDHW")    //
-                  ||                                                       //
-                  (problem.GetXDesc().GetSize() == 4                       //
-                   && problem.GetXDesc().GetLayout("NCHW") == "NCHW"       //
-                   && problem.GetYDesc().GetLayout("NCHW") == "NCHW")      //
+    return problem.GetDirection() == miopen::pooling::Direction::Forward           //
+           && problem.GetXDesc().GetType() == problem.GetYDesc().GetType()         //
+           && (problem.GetXDesc().GetType() == miopenFloat                         //
+               || problem.GetXDesc().GetType() == miopenHalf)                      //
+           && (problem.GetPooling().GetMode() == miopenPoolingMax                  //
+               || problem.GetPooling().GetMode() == miopenPoolingAverage           //
+               || problem.GetPooling().GetMode() == miopenPoolingAverageInclusive) //
+           && (                                                                    //
+                  (problem.GetXDesc().GetSize() == 5                               //
+                   && problem.GetXDesc().GetLayout("NCDHW") == "NCDHW"             //
+                   && problem.GetYDesc().GetLayout("NCDHW") == "NCDHW")            //
+                  ||                                                               //
+                  (problem.GetXDesc().GetSize() == 4                               //
+                   && problem.GetXDesc().GetLayout("NCHW") == "NCHW"               //
+                   && problem.GetYDesc().GetLayout("NCHW") == "NCHW")              //
               );
 }
 

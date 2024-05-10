@@ -27,15 +27,15 @@
 #include "test.hpp"
 #include "driver.hpp"
 
-#include <miopen/problem_description.hpp>
+#include <miopen/conv/problem_description.hpp>
 #include <miopen/sqlite_db.hpp>
 #include <miopen/db.hpp>
 #include <miopen/db_record.hpp>
 #include <miopen/lock_file.hpp>
+#include <miopen/process.hpp>
 #include <miopen/temp_file.hpp>
+#include <miopen/filesystem.hpp>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
 #include <boost/optional.hpp>
 #include <boost/thread.hpp>
 
@@ -51,10 +51,10 @@
 
 namespace miopen {
 namespace tests {
-static boost::filesystem::path& exe_path()
+static fs::path& exe_path()
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static boost::filesystem::path exe_path;
+    static fs::path exe_path;
     return exe_path;
 }
 static boost::optional<std::string>& thread_logs_root()
@@ -244,7 +244,10 @@ std::ostream& operator<<(std::ostream& s, const SolverData& td)
 class DbTest
 {
 public:
-    DbTest() : temp_file("miopen.tests.perfdb"), db_inst{std::string(temp_file), false} {}
+    DbTest()
+        : temp_file("miopen.tests.perfdb"), db_inst{DbKinds::PerfDb, std::string(temp_file), false}
+    {
+    }
 
     virtual ~DbTest() {}
 
@@ -335,7 +338,7 @@ protected:
                          const TKey& key,
                          const std::array<std::pair<std::string, TValue>, count> values)
     {
-        SQLitePerfDb tmp_inst(std::string(db_path), false);
+        SQLitePerfDb tmp_inst(DbKinds::PerfDb, std::string(db_path), false);
         for(const auto& id_values : values)
         {
             tmp_inst.UpdateUnsafe(key, id_values.first, id_values.second);
@@ -411,7 +414,7 @@ public:
         const SolverData to_be_rewritten(7, 8);
 
         {
-            SQLitePerfDb db(std::string(temp_file), false);
+            SQLitePerfDb db(DbKinds::PerfDb, std::string(temp_file), false);
 
             EXPECT(db.Update(p, id0(), to_be_rewritten));
             EXPECT(db.Update(p, id1(), to_be_rewritten));
@@ -425,7 +428,7 @@ public:
         }
 
         {
-            SQLitePerfDb db(std::string(temp_file), false);
+            SQLitePerfDb db(DbKinds::PerfDb, std::string(temp_file), false);
 
             // Rewriting existing value to store it to file.
             EXPECT(db.Update(p, id0(), value0()));
@@ -434,7 +437,7 @@ public:
         {
             SolverData read0, read1, read_missing;
             const auto read_missing_cmp(read_missing);
-            SQLitePerfDb db(std::string(temp_file), false);
+            SQLitePerfDb db(DbKinds::PerfDb, std::string(temp_file), false);
 
             // Loading by id not present in record should execute well but return false as nothing
             // was read.
@@ -463,7 +466,7 @@ public:
         {
             SolverData read0, read1;
             const auto read_missing_cmp(read0);
-            SQLitePerfDb db(std::string(temp_file), false);
+            SQLitePerfDb db(DbKinds::PerfDb, std::string(temp_file), false);
 
             EXPECT(!db.Load(p, id0(), read0));
             EXPECT(db.Load(p, id1(), read1));
@@ -484,12 +487,12 @@ public:
 
         ProblemData p;
 
-        SQLitePerfDb db(std::string(temp_file), false);
+        SQLitePerfDb db(DbKinds::PerfDb, std::string(temp_file), false);
         EXPECT(db.Update(p, id0(), value0()));
 
         {
-            SQLitePerfDb db0(std::string(temp_file), false);
-            SQLitePerfDb db1(std::string(temp_file), false);
+            SQLitePerfDb db0(DbKinds::PerfDb, std::string(temp_file), false);
+            SQLitePerfDb db1(DbKinds::PerfDb, std::string(temp_file), false);
 
             auto r0 = db0.FindRecord(p);
             auto r1 = db1.FindRecord(p);
@@ -509,7 +512,7 @@ public:
         EXPECT(db.Update(p, id1(), value1()));
         EXPECT(db.Update(p, id2(), value2()));
 
-        ValidateSingleEntry(p, data, SQLitePerfDb(temp_file, false));
+        ValidateSingleEntry(p, data, SQLitePerfDb(DbKinds::PerfDb, temp_file, false));
     }
 };
 
@@ -594,8 +597,8 @@ private:
             const auto err_path = *thread_logs_root() + "/thread-" + std::to_string(id) + "_" +
                                   log_postfix + "-err.log";
 
-            std::remove(out_path.c_str());
-            std::remove(err_path.c_str());
+            fs::remove(out_path);
+            fs::remove(err_path);
 
             log.open(out_path);
             log_err.open(err_path);
@@ -757,16 +760,18 @@ public:
         std::cout << "Launching test threads..." << std::endl;
         threads.reserve(DBMultiThreadedTestWork::threads_count);
         const std::string p = temp_file;
-        const auto c        = [&p]() { return SQLitePerfDb(p, false); };
+        const auto c        = [&p]() { return SQLitePerfDb(DbKinds::PerfDb, p, false); };
 
         {
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::WorkItem(i, c, "mt");
                 });
+            }
         }
 
         std::cout << "Waiting for test threads..." << std::endl;
@@ -790,7 +795,7 @@ public:
 
         std::cout << "Initializing test data..." << std::endl;
         const std::string p = temp_file;
-        const auto c        = [&p]() { return SQLitePerfDb(p, false); };
+        const auto c        = [&p]() { return SQLitePerfDb(DbKinds::PerfDb, p, false); };
         DBMultiThreadedTestWork::FillForReading(c);
 
         std::cout << "Launching test threads..." << std::endl;
@@ -800,10 +805,12 @@ public:
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
                 });
+            }
         }
 
         std::cout << "Waiting for test threads..." << std::endl;
@@ -824,7 +831,7 @@ public:
         std::cout << "Testing db for multiprocess write access..." << std::endl;
 
         ResetDb();
-        std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
+        std::vector<ProcessAsync> children{};
         const auto lock_file_path = LockFilePath(temp_file);
 
         std::cout << "Initializing test data..." << std::endl;
@@ -837,35 +844,37 @@ public:
 
             auto id = 0;
 
-            for(auto& child : children)
+            // clang-format off
+            for(auto i = 0; i < DBMultiThreadedTestWork::threads_count; ++i)
             {
-                auto command = exe_path().string() + " --" + write_arg + " --" + id_arg + " " +
-                               std::to_string(id++) + " --" + path_arg + " " + temp_file.Path();
+                auto args =
+                    std::string{"--"} + write_arg +
+                                " --" + id_arg + " " + std::to_string(id++) +
+                                " --" + path_arg + " " + temp_file.Path();
 
                 if(thread_logs_root())
-                    command += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " +
-                               *thread_logs_root();
+                {
+                    args += std::string{" --"} + DbMultiThreadedTest::logs_path_arg + " " + *thread_logs_root();
+                }
 
                 if(full_set())
-                    command += " --all";
+                    args += " --all";
 
-                child = popen(command.c_str(), "w");
+                children.emplace_back(exe_path(), args);
             }
+            // clang-format on
         }
 
         std::cout << "Waiting for test processes..." << std::endl;
-        for(auto child : children)
+        for(auto&& child : children)
         {
-            auto status          = pclose(child);
-            const auto exit_code = WEXITSTATUS(status);
-
-            EXPECT_EQUAL(exit_code, 0);
+            EXPECT_EQUAL(child.Wait(), 0);
         }
 
-        std::remove(lock_file_path.c_str());
+        fs::remove(lock_file_path);
 
         const std::string p = temp_file;
-        const auto c        = [&p]() { return SQLitePerfDb(p, false); };
+        const auto c        = [&p]() { return SQLitePerfDb(DbKinds::PerfDb, p, false); };
 
         std::cout << "Validating results..." << std::endl;
         DBMultiThreadedTestWork::ValidateCommonPart(c);
@@ -879,7 +888,7 @@ public:
             std::lock_guard<LockFile> lock(file_lock);
         }
 
-        const auto c = [&db_path]() { return SQLitePerfDb(db_path, false); };
+        const auto c = [&db_path]() { return SQLitePerfDb(DbKinds::PerfDb, db_path, false); };
 
         if(write)
             DBMultiThreadedTestWork::WorkItem(id, c, "mp");
@@ -898,12 +907,13 @@ public:
     {
         std::cout << "Testing db for multiprocess read access..." << std::endl;
 
-        std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
+        std::vector<ProcessAsync> children{};
+
         const auto lock_file_path = LockFilePath(temp_file);
 
         std::cout << "Initializing test data..." << std::endl;
         std::string p = temp_file;
-        const auto c  = [&p]() { return SQLitePerfDb(p, false); };
+        const auto c  = [&p]() { return SQLitePerfDb(DbKinds::PerfDb, p, false); };
         DBMultiThreadedTestWork::FillForReading(c);
 
         std::cout << "Launching test processes..." << std::endl;
@@ -913,34 +923,34 @@ public:
 
             auto id = 0;
 
-            for(auto& child : children)
+            // clang-format off
+            for(auto i = 0; i < DBMultiThreadedTestWork::threads_count; ++i)
             {
-                auto command = exe_path().string() + " --" + DbMultiProcessTest::id_arg + " " +
-                               std::to_string(id++) + " --" + DbMultiProcessTest::path_arg + " " +
-                               p;
+                auto args =
+                    std::string{"--"} + DbMultiProcessTest::id_arg + " " + std::to_string(id++) +
+                                " --" + DbMultiProcessTest::path_arg + " " + p;
 
                 if(thread_logs_root())
-                    command += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " +
-                               *thread_logs_root();
+                {
+                    args += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " + *thread_logs_root();
+                }
 
                 if(full_set())
-                    command += " --all";
+                    args += " --all";
 
-                std::cout << command << std::endl;
-                child = popen(command.c_str(), "w");
+                std::cout << exe_path() << " " << args << std::endl;
+                children.emplace_back(exe_path(), args);
             }
+            // clang-format on
         }
 
         std::cout << "Waiting for test processes..." << std::endl;
-        for(auto child : children)
+        for(auto&& child : children)
         {
-            auto status          = pclose(child);
-            const auto exit_code = WEXITSTATUS(status);
-
-            EXPECT_EQUAL(exit_code, 0);
+            EXPECT_EQUAL(child.Wait(), 0);
         }
 
-        std::remove(lock_file_path.c_str());
+        fs::remove(lock_file_path);
     }
 
     static void WorkItem(unsigned int id, const std::string& db_path)
@@ -949,7 +959,7 @@ public:
             auto& file_lock = LockFile::Get(LockFilePath(db_path).c_str());
             std::lock_guard<LockFile> lock(file_lock);
         }
-        const auto c = [&db_path]() { return SQLitePerfDb(db_path, false); };
+        const auto c = [&db_path]() { return SQLitePerfDb(DbKinds::PerfDb, db_path, false); };
 
         DBMultiThreadedTestWork::WorkItem(id, c, "mp");
     }
@@ -1012,13 +1022,15 @@ private:
             {id0(), value2()},
         }};
 
-        MultiFileDb<SQLitePerfDb, SQLitePerfDb, merge_records> db(temp_file, user_db_path);
+        MultiFileDb<SQLitePerfDb, SQLitePerfDb, merge_records> db(
+            DbKinds::PerfDb, temp_file, user_db_path);
         if(merge_records)
             ValidateSingleEntry(key(), merged_data, std::move(db));
         else
             ValidateSingleEntry(key(), single_item_data(), std::move(db));
 
-        MultiFileDb<SQLitePerfDb, SQLitePerfDb, merge_records> db1(temp_file, user_db_path);
+        MultiFileDb<SQLitePerfDb, SQLitePerfDb, merge_records> db1(
+            DbKinds::PerfDb, temp_file, user_db_path);
         ProblemData p;
         auto record1 = db1.FindRecord(p);
         EXPECT(!record1);
@@ -1027,19 +1039,19 @@ private:
     void ReadUser() const
     {
         RawWrite(user_db_path, key(), single_item_data());
-        ValidateSingleEntry(
-            key(),
-            single_item_data(),
-            MultiFileDb<SQLitePerfDb, SQLitePerfDb, merge_records>(temp_file, user_db_path));
+        ValidateSingleEntry(key(),
+                            single_item_data(),
+                            MultiFileDb<SQLitePerfDb, SQLitePerfDb, merge_records>(
+                                DbKinds::PerfDb, temp_file, user_db_path));
     }
 
     void ReadInstalled() const
     {
         RawWrite(temp_file, key(), single_item_data());
-        ValidateSingleEntry(
-            key(),
-            single_item_data(),
-            MultiFileDb<SQLitePerfDb, SQLitePerfDb, merge_records>(temp_file, user_db_path));
+        ValidateSingleEntry(key(),
+                            single_item_data(),
+                            MultiFileDb<SQLitePerfDb, SQLitePerfDb, merge_records>(
+                                DbKinds::PerfDb, temp_file, user_db_path));
     }
 
     void ReadConflict() const
@@ -1058,16 +1070,18 @@ public:
         ResetDb();
 
         {
-            MultiFileDb<SQLitePerfDb, SQLitePerfDb, true> db(temp_file, user_db_path);
+            MultiFileDb<SQLitePerfDb, SQLitePerfDb, true> db(
+                DbKinds::PerfDb, temp_file, user_db_path);
             EXPECT(db.StoreRecord(key(), id0(), value0()));
             EXPECT(db.Update(key(), id1(), value1()));
         }
-        EXPECT(!SQLitePerfDb(temp_file, false).FindRecord(key()));
-        EXPECT(SQLitePerfDb(user_db_path, false).FindRecord(key()));
+        EXPECT(!SQLitePerfDb(DbKinds::PerfDb, temp_file, false).FindRecord(key()));
+        EXPECT(SQLitePerfDb(DbKinds::PerfDb, user_db_path, false).FindRecord(key()));
 
         ValidateSingleEntry(key(),
                             common_data(),
-                            MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>(temp_file, user_db_path));
+                            MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>(
+                                DbKinds::PerfDb, temp_file, user_db_path));
     }
 };
 
@@ -1089,7 +1103,7 @@ public:
         std::cout << "Running multifile operations test..." << std::endl;
 
         {
-            SQLitePerfDb db(temp_file, false);
+            SQLitePerfDb db(DbKinds::PerfDb, temp_file, false);
             EXPECT(db.StoreRecord(key(), id0(), value0()));
             EXPECT(db.Update(key(), id1(), value2()));
         }
@@ -1100,12 +1114,13 @@ public:
         std::cout << "Update test..." << std::endl;
 
         {
-            MultiFileDb<SQLitePerfDb, SQLitePerfDb, true> db(temp_file, user_db_path);
+            MultiFileDb<SQLitePerfDb, SQLitePerfDb, true> db(
+                DbKinds::PerfDb, temp_file, user_db_path);
             EXPECT(db.Update(key(), id1(), value1()));
         }
 
         {
-            SQLitePerfDb db(user_db_path, false);
+            SQLitePerfDb db(DbKinds::PerfDb, user_db_path, false);
             SolverData read(SolverData::NoInit{});
             EXPECT(!db.Load(key(), id0(), read));
             EXPECT(db.Load(key(), id1(), read));
@@ -1113,7 +1128,7 @@ public:
         }
 
         {
-            SQLitePerfDb db(temp_file, false);
+            SQLitePerfDb db(DbKinds::PerfDb, temp_file, false);
             ValidateData(db, value2());
         }
     }
@@ -1122,7 +1137,7 @@ public:
     {
         std::cout << "Load test..." << std::endl;
 
-        MultiFileDb<SQLitePerfDb, SQLitePerfDb, true> db(temp_file, user_db_path);
+        MultiFileDb<SQLitePerfDb, SQLitePerfDb, true> db(DbKinds::PerfDb, temp_file, user_db_path);
         ValidateData(db, value1());
     }
 
@@ -1130,7 +1145,7 @@ public:
     {
         std::cout << "Remove test..." << std::endl;
 
-        MultiFileDb<SQLitePerfDb, SQLitePerfDb, true> db(temp_file, user_db_path);
+        MultiFileDb<SQLitePerfDb, SQLitePerfDb, true> db(DbKinds::PerfDb, temp_file, user_db_path);
         EXPECT(db.Remove(key(), id0()));
         EXPECT(db.Remove(key(), id1()));
 
@@ -1141,7 +1156,7 @@ public:
     {
         std::cout << "Remove record test..." << std::endl;
 
-        MultiFileDb<SQLitePerfDb, SQLitePerfDb, true> db(temp_file, user_db_path);
+        MultiFileDb<SQLitePerfDb, SQLitePerfDb, true> db(DbKinds::PerfDb, temp_file, user_db_path);
         EXPECT(db.Update(key(), id1(), value1()));
         EXPECT(db.Remove(key(), id1()));
 
@@ -1172,7 +1187,9 @@ public:
         std::cout << "Initializing test data..." << std::endl;
         const std::string p = temp_file;
         const auto& up      = user_db_path;
-        const auto c = [&p, up]() { return MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>(p, up); };
+        const auto c        = [&p, up]() {
+            return MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>(DbKinds::PerfDb, p, up);
+        };
         ResetDb();
         DBMultiThreadedTestWork::FillForReading(c);
 
@@ -1183,10 +1200,12 @@ public:
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
                 });
+            }
         }
 
         std::cout << "Waiting for test threads..." << std::endl;
@@ -1215,16 +1234,20 @@ public:
         threads.reserve(DBMultiThreadedTestWork::threads_count);
         const std::string p = temp_file;
         const auto up       = user_db_path;
-        const auto c = [&p, &up]() { return MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>(p, up); };
+        const auto c        = [&p, &up]() {
+            return MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>(DbKinds::PerfDb, p, up);
+        };
 
         {
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::WorkItem(i, c, "mt");
                 });
+            }
         }
 
         std::cout << "Waiting for test threads..." << std::endl;

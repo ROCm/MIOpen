@@ -27,13 +27,11 @@
 #include <miopen/readonlyramdb.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/filesystem.hpp>
 
 #if MIOPEN_EMBED_DB
 #include <miopen_data.hpp>
 #endif
-
-#include <boost/filesystem.hpp>
-#include <boost/filesystem/path.hpp>
 
 #include <fstream>
 #include <mutex>
@@ -51,12 +49,14 @@ bool& rordb_embed_fs_override()
 }
 } // namespace debug
 
-ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path, bool warn_if_unreadable)
+ReadonlyRamDb&
+ReadonlyRamDb::GetCached(DbKinds db_kind_, const std::string& path, bool warn_if_unreadable)
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
     const std::lock_guard<std::mutex> lock{mutex};
 
+    // We don't have to store kind to properly index as different dbs would have different paths
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static auto instances = std::map<std::string, ReadonlyRamDb*>{};
     const auto it         = instances.find(path);
@@ -71,7 +71,8 @@ ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path, bool warn_if_un
     // footprint in heap is very small. That is why we can omit deletion of
     // these objects thus avoiding bothering with MP/MT syncronization.
     // These will be destroyed altogether with heap.
-    auto instance = new ReadonlyRamDb{path};
+    // NOLINTNEXTLINE (cppcoreguidelines-owning-memory)
+    auto instance = new ReadonlyRamDb{db_kind_, path};
     instances.emplace(path, instance);
     instance->Prefetch(warn_if_unreadable);
     return *instance;
@@ -136,11 +137,12 @@ void ReadonlyRamDb::Prefetch(bool warn_if_unreadable)
         if(!debug::rordb_embed_fs_override() && isEmbedded)
         {
 #if MIOPEN_EMBED_DB
-            boost::filesystem::path filepath(db_path);
-            const auto& it_p = miopen_data().find(filepath.filename().string() + ".o");
+            fs::path filepath(db_path);
+            const auto& it_p =
+                miopen_data().find(make_object_file_name(filepath.filename()).string());
             if(it_p == miopen_data().end())
                 MIOPEN_THROW(miopenStatusInternalError,
-                             "Unknown database: " + filepath.filename().string() +
+                             "Unknown database: " + filepath.filename() +
                                  " in internal filesystem");
 
             const auto& p = it_p->second;

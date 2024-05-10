@@ -28,19 +28,24 @@
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
+#include "mloConvHost.hpp"
 #include "mloPoolingHost.hpp"
+#include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
+#include "util_driver.hpp"
+#include "util_file.hpp"
+
+#include <miopen/miopen.h>
+#include <miopen/pooling.hpp>
+#include <miopen/tensor.hpp>
+
 #include <algorithm>
 #include <cstdlib>
 #include <float.h>
 #include <memory>
-#include <miopen/miopen.h>
-#include <miopen/tensor.hpp>
-#include <miopen/pooling.hpp>
 #include <numeric>
 #include <vector>
-#include "random.hpp"
 
 template <typename T>
 void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems);
@@ -329,7 +334,7 @@ namespace detail {
 template <typename T>
 T RanGenInput()
 {
-    return RAN_GEN<T>(static_cast<T>(0.0), static_cast<T>(1.0));
+    return prng::gen_canonical<T>();
 }
 
 #define FP16IN_NORMAL 1
@@ -342,19 +347,19 @@ float16 RanGenInput()
 {
     using T = float16;
 #if FP16IN_NORMAL
-    return RAN_GEN<T>(static_cast<T>(0.0), static_cast<T>(1.0));
+    return prng::gen_canonical<T>();
 #endif
 #if FP16IN_CONST_SMALLEST_NORMALIZED
-    return static_cast<T>(+1.0p-eh) // (6.103515625E-05);
+    return static_cast<T>(+1.0p - eh) // (6.103515625E-05);
 #endif
 #if FP16IN_5VALUES_0_TO_1
-           const int r = GET_RAND() % 5; // values from 0 to 4
-    return static_cast<T>(r * 0.25);     // { 0.0, 0.25, 0.5, 0.75, 1.0 }
+           const int r = prng::gen_0_to_B(4); // values from 0 to 4
+    return static_cast<T>(r * 0.25);          // { 0.0, 0.25, 0.5, 0.75, 1.0 }
 #endif
 #if FP16IN_SPARSE_X
-    if(GET_RAND() % (FP16IN_SPARSE_X) != 0) // produce 9 zeros in ~ each 10 values
+    if(prng::gen_0_to_B(FP16IN_SPARSE_X) != 0) // produce 9 zeros in ~ each 10 values
         return static_cast<T>(0.0);
-    return RAN_GEN<T>(static_cast<T>(0.0), static_cast<T>(1.0));
+    return prng::gen_canonical<T>();
 #endif
 }
 } // namespace detail
@@ -372,12 +377,9 @@ int PoolDriver_impl<Tgpu, Tref, Index>::AllocateBuffersAndCopy()
         workSpaceSize /
         sizeof(Index); // work space is used by mask_dev and mask which are of type Index
 
+    DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
-    cl_context ctx;
-
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
 #endif
     in_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
     out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
@@ -392,7 +394,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::AllocateBuffersAndCopy()
     maskhost = std::vector<size_t>(out_sz, static_cast<size_t>(0));
     outhost  = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
-    din     = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    din     = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(1.0));
     dout    = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
     dinhost = std::vector<Tref>(in_sz, static_cast<Tref>(0));
 
@@ -412,25 +414,22 @@ int PoolDriver_impl<Tgpu, Tref, Index>::AllocateBuffersAndCopy()
         Tgpu Data_scale = static_cast<Tgpu>(0.001);
         for(int i = 0; i < out_sz; i++)
         {
-            dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
+            dout[i] =
+                Data_scale * prng::gen_A_to_B(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
         }
 
         if(!dump_root.empty())
             dumpBufferToFile<Tgpu>((dump_root + "/dump_dout.bin").c_str(), dout.data(), out_sz);
     }
 
-#if MIOPEN_BACKEND_OPENCL
-    cl_int status;
-#elif MIOPEN_BACKEND_HIP
-    int status;
-#endif
+    status_t status;
     status = in_dev->ToGPU(q, in.data());
     status |= out_dev->ToGPU(q, out.data());
 
     status = din_dev->ToGPU(q, din.data());
     status |= dout_dev->ToGPU(q, dout.data());
 
-    if(status != CL_SUCCESS)
+    if(status != STATUS_SUCCESS)
         printf("Error copying data to GPU\n");
 
     return miopenStatusSuccess;
@@ -455,25 +454,27 @@ int PoolDriver_impl<Tgpu, Tref, Index>::RunForwardGPU()
 
     Timer t;
     START_TIME
+    int rc = 0;
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenPoolingForward(GetHandle(),
-                             poolDesc,
-                             &alpha,
-                             inputTensor,
-                             in_dev->GetMem(),
-                             &beta,
-                             outputTensor,
-                             out_dev->GetMem(),
-                             do_backward,
-                             mask_dev->GetMem(),
-                             0);
+        rc |= miopenPoolingForward(GetHandle(),
+                                   poolDesc,
+                                   &alpha,
+                                   inputTensor,
+                                   in_dev->GetMem(),
+                                   &beta,
+                                   outputTensor,
+                                   out_dev->GetMem(),
+                                   do_backward,
+                                   mask_dev->GetMem(),
+                                   0);
     }
     if(inflags.GetValueInt("time") == 1)
     {
         float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
+        if(rc == 0)
+            miopenGetKernelTime(GetHandle(), &time);
 
         STOP_TIME
         if(WALL_CLOCK)
@@ -493,7 +494,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::RunForwardGPU()
         dumpBufferToFile<Index>((dump_root + "/dump_mask.bin").c_str(), mask.data(), out_sz);
     }
 
-    return miopenStatusSuccess;
+    return rc;
 }
 
 template <typename Tgpu, typename Tref, typename Index>
@@ -523,27 +524,29 @@ int PoolDriver_impl<Tgpu, Tref, Index>::RunBackwardGPU()
 
     Timer t;
     START_TIME
+    int rc = 0;
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenPoolingBackward(GetHandle(),
-                              poolDesc,
-                              &alpha,
-                              outputTensor,
-                              out_dev->GetMem(),
-                              dOutputTensor,
-                              dout_dev->GetMem(),
-                              inputTensor,
-                              in_dev->GetMem(),
-                              &beta,
-                              dInputTensor,
-                              din_dev->GetMem(),
-                              mask_dev->GetMem());
+        rc |= miopenPoolingBackward(GetHandle(),
+                                    poolDesc,
+                                    &alpha,
+                                    outputTensor,
+                                    out_dev->GetMem(),
+                                    dOutputTensor,
+                                    dout_dev->GetMem(),
+                                    inputTensor,
+                                    in_dev->GetMem(),
+                                    &beta,
+                                    dInputTensor,
+                                    din_dev->GetMem(),
+                                    mask_dev->GetMem());
     }
     if(inflags.GetValueInt("time") == 1)
     {
         float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
+        if(rc == 0)
+            miopenGetKernelTime(GetHandle(), &time);
 
         STOP_TIME
         if(WALL_CLOCK)
@@ -560,7 +563,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::RunBackwardGPU()
         dumpBufferToFile<Tgpu>((dump_root + "/dump_din.bin").c_str(), din.data(), in_sz);
     }
 
-    return miopenStatusSuccess;
+    return rc;
 }
 
 template <typename Tgpu, typename Tref, typename Index>

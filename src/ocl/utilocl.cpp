@@ -80,8 +80,8 @@ float Im2d2ColGPU(const Handle& handle,
 
     int data_size_bound = c * in_h * in_w;
 
-    int data_size_bound_pack = type == miopenInt8x4 ? data_size_bound * 4 : data_size_bound;
-    int im_offset_pack       = type == miopenInt8x4 ? im_offset / 4 : im_offset;
+    int data_size_bound_pack = data_size_bound;
+    int im_offset_pack       = im_offset;
 
     if(!kernels.empty())
     {
@@ -105,7 +105,7 @@ float Im2d2ColGPU(const Handle& handle,
     }
     else
     {
-        const int c_pack = type == miopenInt8x4 ? c / 4 : c;
+        const int c_pack = c;
 
         std::string params;
         int num_ch_per_wg;
@@ -331,9 +331,8 @@ float Im3d2ColGPU(const Handle& handle,
 
     auto&& kernels = handle.GetKernels("miopenIm3d2Col", network_config);
 
-    // int8x4 vectorize-c format
-    int im_offset_pack = type == miopenInt8x4 ? im_offset / 4 : im_offset;
-    int im_c_pack      = type == miopenInt8x4 ? im_c / 4 : im_c;
+    int im_offset_pack = im_offset;
+    int im_c_pack      = im_c;
 
     if(!kernels.empty())
     {
@@ -757,8 +756,8 @@ float transpose_NCHW2CNHW(const Handle& handle,
                           int w_out,
                           ConstData_t in,
                           Data_t out,
-                          int in_offset,
-                          int out_offset,
+                          std::size_t in_offset,
+                          std::size_t out_offset,
                           int h_stride,
                           int w_stride,
                           miopenDataType_t type)
@@ -771,13 +770,6 @@ float transpose_NCHW2CNHW(const Handle& handle,
     std::string kernel_name = "transpose_NCHW2CNHW";
 
     std::string params = GetDataTypeKernelParams(type);
-
-    if(type == miopenInt8x4)
-    {
-        c /= 4;
-        in_offset /= 4;
-        out_offset /= 4;
-    }
 
     if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
     {
@@ -805,6 +797,7 @@ float transpose_NCHW2CNHW(const Handle& handle,
         }
 
         kernel_name += "_" + READ_TYPE;
+        kernel_name += "_off64";
 
         auto&& kernels = handle.GetKernels(kernel_name, network_config);
         if(!kernels.empty())
@@ -844,6 +837,8 @@ float transpose_NCHW2CNHW(const Handle& handle,
         {
             kernel_name += "_2D_WG";
         }
+
+        kernel_name += "_off64";
 
         auto&& kernels = handle.GetKernels(kernel_name, network_config);
         if(!kernels.empty())
@@ -895,8 +890,8 @@ float transpose_CNHW2NCHW(const Handle& handle,
                           int w_in,
                           ConstData_t in,
                           Data_t out,
-                          int in_offset,
-                          int out_offset,
+                          std::size_t in_offset,
+                          std::size_t out_offset,
                           int h_stride,
                           int w_stride,
                           miopenDataType_t type)
@@ -909,13 +904,6 @@ float transpose_CNHW2NCHW(const Handle& handle,
     std::string kernel_name = "transpose_CNHW2NCHW";
 
     std::string params = GetDataTypeKernelParams(type);
-
-    if(type == miopenInt8x4)
-    {
-        c /= 4;
-        in_offset /= 4;
-        out_offset /= 4;
-    }
 
     if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
     {
@@ -942,6 +930,7 @@ float transpose_CNHW2NCHW(const Handle& handle,
         }
 
         kernel_name += "_" + READ_TYPE;
+        kernel_name += "_off64";
 
         auto&& kernels = handle.GetKernels(kernel_name, network_config);
         if(!kernels.empty())
@@ -978,6 +967,12 @@ float transpose_CNHW2NCHW(const Handle& handle,
         {
             kernel_name += "_2D_WG";
         }
+
+        /// After switching to 64-bit offsets, do not use old kernels
+        /// from the binary cache that use 32-bit offsets.
+        /// See https://github.com/ROCm/MIOpen/pull/2613#issuecomment-1864781888
+        /// for details.
+        kernel_name += "_off64";
 
         const int hw_in  = h_in * w_in;
         const int hw_out = h_out * w_out;
@@ -1154,8 +1149,8 @@ float transpose_NCHW2Vec(const Handle& handle,
 float transpose_packed_MN2NM(const Handle& handle,
                              int m,
                              int n,
-                             int in_offset,
-                             int out_offset,
+                             std::size_t in_offset,
+                             std::size_t out_offset,
                              ConstData_t in,
                              Data_t out,
                              miopenDataType_t type)
@@ -1165,19 +1160,13 @@ float transpose_packed_MN2NM(const Handle& handle,
 
     std::string network_config = "t" + std::to_string(type);
 
-    std::string kernel_name = "transpose_packed_MN2NM";
+    std::string kernel_name = "transpose_packed_MN2NM_off64";
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
 
     std::string params = GetDataTypeKernelParams(type);
-    if(type == miopenInt8x4)
-    {
-        m /= 4;
-        in_offset /= 4;
-        out_offset /= 4;
-    }
 
-    if(!(type == miopenInt8x4 || type == miopenInt8))
+    if(type != miopenInt8)
     {
         MIOPEN_THROW("transpose_packed_MN2NM only meant for int8 variants.");
     }

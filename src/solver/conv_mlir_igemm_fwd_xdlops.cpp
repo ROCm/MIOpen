@@ -33,10 +33,13 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/mlir_common.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 void PerformanceConvMlirIgemmXdlops::SetMlirHeuristicInitRequest()
 {
@@ -52,19 +55,25 @@ void PerformanceConvMlirIgemmXdlops::SetMlirHeuristicInitRequest()
     GemmBThreadCopyMoreGemmKPack = false;
 }
 
-bool ConvMlirIgemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
+bool ConvMlirIgemmFwdXdlops::IsApplicable(const ExecutionContext& ctx,
                                           const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD_XDLOPS{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD_XDLOPS)))
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;
     if(!IsXdlopsSupport(ctx))
         return false;
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
+        return false;
+    if(problem.HasNonPackedTensors())
+        return false;
+    if(!problem.AllTensorsDimsFitIntoInt())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
+        return false;
+    if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
     return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, problem, true));
 #else
@@ -123,7 +132,7 @@ bool PerformanceConvMlirIgemmXdlops::operator==(const PerformanceConvMlirIgemmXd
     // clang-format on
 }
 
-bool PerformanceConvMlirIgemmXdlops::IsValid(const ConvolutionContext& ctx,
+bool PerformanceConvMlirIgemmXdlops::IsValid(const ExecutionContext& ctx,
                                              const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
@@ -187,14 +196,14 @@ bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ProblemDescription& prob
 }
 
 PerformanceConvMlirIgemmXdlops
-ConvMlirIgemmFwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext&,
+ConvMlirIgemmFwdXdlops::GetDefaultPerformanceConfig(const ExecutionContext&,
                                                     const ProblemDescription&) const
 {
     return PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest();
 }
 
 bool ConvMlirIgemmFwdXdlops::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceConvMlirIgemmXdlops& config) const
 {
@@ -203,14 +212,14 @@ bool ConvMlirIgemmFwdXdlops::IsValidPerformanceConfig(
 }
 
 PerformanceConvMlirIgemmXdlops
-ConvMlirIgemmFwdXdlops::Search(const ConvolutionContext& ctx,
+ConvMlirIgemmFwdXdlops::Search(const ExecutionContext& ctx,
                                const ProblemDescription& problem,
                                const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-ConvSolution ConvMlirIgemmFwdXdlops::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvMlirIgemmFwdXdlops::GetSolution(const ExecutionContext& ctx,
                                                  const ProblemDescription& problem,
                                                  const PerformanceConvMlirIgemmXdlops& config) const
 {
@@ -234,7 +243,7 @@ ConvSolution ConvMlirIgemmFwdXdlops::GetSolution(const ConvolutionContext& ctx,
     construction_parameters.g_wk.push_back(1);
     construction_parameters.g_wk.push_back(1);
 
-    result.invoker_factory = conv::MakeMlirFwdInvokerFactory(problem);
+    result.invoker_factory = miopen::conv::MakeMlirFwdInvokerFactory(problem);
     result.construction_params.push_back(construction_parameters);
     return result;
 #else
@@ -245,5 +254,6 @@ ConvSolution ConvMlirIgemmFwdXdlops::GetSolution(const ConvolutionContext& ctx,
 #endif
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

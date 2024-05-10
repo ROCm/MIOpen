@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,36 +24,84 @@
  *
  *******************************************************************************/
 
-#include <miopen/config.h>
+#include <miopen/env.hpp>
 #include <miopen/solver/gemm_common.hpp>
 
-#include <tuple> // std::ignore
+#include <algorithm>
+#include <limits>
 
-/// This W/A disables all GEMM convolution solvers for xDLOPs
-/// targets when MIOpenGEMM is used (OCL BE). More info at
-/// https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1315.
-///
-/// W/A affects ROCm releases starting from 4.5 and also
-/// pre-5.0 Mainline HIP builds, e.g. 9148.
-#define WORKAROUND_ISSUE_1315 (MIOPEN_USE_MIOPENGEMM && (HIP_PACKAGE_VERSION_FLAT >= 4004000000ULL))
+// Workaround for MLOpen issue 1430. Vega20 fails to access GPU memory
+// larger than the return value of GetMaxMemoryAllocSize() of Vega10.
+// Due to historical reasons, this W/A is applied to all targets.
+// We are going to keep it as is until the new GEMM backend
+// is used instead of rocBLAS. See also issue #2809.
+#define WORKAROUND_MLOPEN_ISSUE_1430 1
+
+// Double the limit for FP32, for GemmFwdRest and GemmBwdRest solvers only.
+// See issues #2789 and #2808.
+//
+// IMPORTANT: The limit can only be increased for the "rest-of" kind GEMM solvers,
+// since there are dependencies between the applicability of GEMM solvers.
+// For example, expanding the applicability of GemmFwd1x1_0_1 will result
+// in narrowing the applicability of GemmFwdRest. This side effect will
+// lead to errors unless the databases are re-tuned.
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_WORKAROUND_ISSUE_2789)
 
 namespace miopen {
-namespace conv {
 namespace solver {
+namespace conv {
 namespace gemm {
 
-bool IsWorkaroundIssue1315(const miopen::ExecutionContext& ctx)
+std::size_t MaxMemAllocSz(Handle& h,
+                          const miopen::conv::ProblemDescription& problem,
+                          bool double_limit_for_fp32)
 {
-#if WORKAROUND_ISSUE_1315
-    const auto device = ctx.GetStream().GetTargetProperties().Name();
-    return (device == "gfx908") || (device == "gfx90a");
+    const auto m = h.GetMaxMemoryAllocSize();
+#if WORKAROUND_MLOPEN_ISSUE_1430
+    auto limit = static_cast<std::size_t>(7287183769);
+    if(!miopen::IsDisabled(ENV(MIOPEN_WORKAROUND_ISSUE_2789)))
+    {
+        if(problem.IsFp32() && double_limit_for_fp32)
+            limit *= 2;
+    }
+    return std::min(m, limit);
 #else
-    std::ignore = ctx;
-    return false;
+    return m;
 #endif
 }
 
+bool IsAnyBufferBf16(const TensorDescriptor& xDesc,
+                     const TensorDescriptor& yDesc,
+                     const TensorDescriptor& wDesc)
+{
+    return xDesc.GetType() == miopenBFloat16    //
+           || yDesc.GetType() == miopenBFloat16 //
+           || wDesc.GetType() == miopenBFloat16;
+}
+
+bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
+                     const TensorDescriptor& yDesc,
+                     const TensorDescriptor& wDesc)
+{
+    return xDesc.GetType() == miopenHalf    //
+           || yDesc.GetType() == miopenHalf //
+           || wDesc.GetType() == miopenHalf;
+}
+
+double SlowdownFactor(const int n_oper, const double oper_factor, const double multiple_oper_factor)
+{
+    if(n_oper > 0)
+    {
+        auto rv = oper_factor;
+        if(n_oper > 1)
+            rv *= multiple_oper_factor;
+        return rv;
+    }
+    else
+        return 1.0;
+}
+
 } // namespace gemm
-} // namespace solver
 } // namespace conv
+} // namespace solver
 } // namespace miopen

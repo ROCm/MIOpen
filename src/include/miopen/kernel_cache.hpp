@@ -73,7 +73,6 @@ public:
                      const std::vector<size_t>& vgd,
                      std::string params            = "",
                      std::size_t cache_index       = 0,
-                     bool is_kernel_miopengemm_str = false,
                      const std::string& kernel_src = "",
                      Program* program_out          = nullptr);
 
