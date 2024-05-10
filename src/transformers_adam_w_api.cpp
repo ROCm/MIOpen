@@ -29,14 +29,14 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
-static void LogCmdAdam(const miopenTensorDescriptor_t paramDesc,
-                       const float lr,
-                       const float beta1,
-                       const float beta2,
-                       const float weight_decay,
-                       const float eps,
-                       const bool correct_bias,
-                       const bool is_amp)
+static void LogCmdTransformersAdamW(const miopenTensorDescriptor_t paramDesc,
+                                    const float lr,
+                                    const float beta1,
+                                    const float beta2,
+                                    const float weight_decay,
+                                    const float eps,
+                                    const bool correct_bias,
+                                    const bool is_amp)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -44,11 +44,11 @@ static void LogCmdAdam(const miopenTensorDescriptor_t paramDesc,
         auto dtype = miopen::deref(paramDesc).GetType();
         if(is_amp)
         {
-            ss << "ampadamw";
+            ss << "transformersampadamw";
         }
         else
         {
-            ss << "adamw";
+            ss << "transformersadamw";
         }
 
         if(dtype == miopenHalf)
@@ -121,7 +121,7 @@ extern "C" miopenStatus_t miopenTransformersAdamW(miopenHandle_t handle,
     const miopen::TensorDescriptor dummyDesc;
     bool is_amp = (foundInfDesc != nullptr || gradScaleDesc != nullptr);
 
-    LogCmdAdam(paramDesc, lr, beta1, beta2, weight_decay, eps, correct_bias, is_amp);
+    LogCmdTransformersAdamW(paramDesc, lr, beta1, beta2, weight_decay, eps, correct_bias, is_amp);
 
     return miopen::try_([&] {
         miopen::TransformersAdamW(miopen::deref(handle),
@@ -231,7 +231,7 @@ miopenTransformersAdamWWithOutput(miopenHandle_t handle,
     const miopen::TensorDescriptor dummyDesc;
     bool is_amp = (foundInfDesc != nullptr || gradScaleDesc != nullptr);
 
-    LogCmdAdam(paramInDesc, lr, beta1, beta2, weight_decay, eps, correct_bias, is_amp);
+    LogCmdTransformersAdamW(paramInDesc, lr, beta1, beta2, weight_decay, eps, correct_bias, is_amp);
 
     return miopen::try_([&] {
         miopen::TransformersAdamW(miopen::deref(handle),

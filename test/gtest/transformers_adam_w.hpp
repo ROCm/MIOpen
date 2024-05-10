@@ -159,20 +159,20 @@ protected:
         const miopen::TensorDescriptor emptyDesc;
         auto&& handle = get_handle();
 
-        cpu_adam<Tp, Tg>(ref_param,
-                         grad,
-                         exp_avg,
-                         exp_avg_sq,
-                         lr,
-                         beta1,
-                         beta2,
-                         weight_decay,
-                         eps,
-                         correct_bias,
-                         is_amp,
-                         grad_scale[0],
-                         found_inf[0],
-                         step_count);
+        cpu_transformers_adam_w<Tp, Tg>(ref_param,
+                                        grad,
+                                        exp_avg,
+                                        exp_avg_sq,
+                                        lr,
+                                        beta1,
+                                        beta2,
+                                        weight_decay,
+                                        eps,
+                                        correct_bias,
+                                        is_amp,
+                                        grad_scale[0],
+                                        found_inf[0],
+                                        step_count);
 
         for(uint32_t i = 1; i <= step_count; i++)
         {

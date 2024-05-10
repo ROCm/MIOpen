@@ -29,20 +29,20 @@
 #include "tensor_holder.hpp"
 
 template <typename T1, typename T2>
-void cpu_adam(tensor<T1>& params,
-              tensor<T2>& grads,
-              tensor<T1>& exp_avgs,
-              tensor<T1>& exp_avg_sqs,
-              float lr,
-              float beta1,
-              float beta2,
-              float weight_decay,
-              float eps,
-              bool correct_bias,
-              bool is_amp,
-              int32_t grad_scale,
-              bool found_inf,
-              int32_t step_count)
+void cpu_transformers_adam_w(tensor<T1>& params,
+                             tensor<T2>& grads,
+                             tensor<T1>& exp_avgs,
+                             tensor<T1>& exp_avg_sqs,
+                             float lr,
+                             float beta1,
+                             float beta2,
+                             float weight_decay,
+                             float eps,
+                             bool correct_bias,
+                             bool is_amp,
+                             int32_t grad_scale,
+                             bool found_inf,
+                             int32_t step_count)
 {
     if(is_amp && found_inf)
         return;
