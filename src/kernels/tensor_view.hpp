@@ -34,8 +34,9 @@ template <int N>
 struct tensor_view_t
 {
     // Get index in tensor view at tensor layout
-    constexpr uint64_t get_tensor_view_idx(tensor_layerout_t<N> tensor_layout)
+    constexpr uint64_t get_tensor_view_idx(const tensor_layerout_t<N>& tensor_layout)
     {
+        static_assert(N > 0);
         uint64_t idx = 0;
         for(auto i = 0; i < N; ++i)
         {
@@ -51,28 +52,23 @@ template <int N>
 struct tensor_layerout_t
 {
     // Make tensor layout at index using tensor view
-    constexpr tensor_layerout_t(tensor_view_t<N>& tensor_view, uint64_t idx)
+    constexpr tensor_layerout_t(const tensor_view_t<N>& tensor_view, uint64_t idx)
     {
+        static_assert(N > 0);
         uint64_t temp = idx;
-        if(N == 1)
+        if constexpr(N == 1)
         {
             layerout[0] = idx;
         }
         else
         {
-            for(auto i = N - 1; i >= 1; --i)
+            for(auto i = N - 1; i > 1; --i)
             {
-                if(i > 1)
-                {
-                    layerout[i] = (temp) % tensor_view.size[i];
-                }
-                else
-                {
-                    layerout[i - 1] = temp / tensor_view.size[i];
-                    layerout[i]     = temp % tensor_view.size[i];
-                }
-                temp = idx / tensor_view.size[i];
+                layerout[i] = temp % tensor_view.size[i];
+                temp        = idx / tensor_view.size[i];
             }
+            layerout[1] = temp % tensor_view.size[1];
+            layerout[0] = temp / tensor_view.size[1];
         }
     }
 
