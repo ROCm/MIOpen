@@ -170,6 +170,7 @@ int TransformersAdamWDriver<Tgpu, Tref, is_amp, Tgrad>::GetandSetData()
     eps            = inflags.GetValueDouble("eps");
     weight_decay   = inflags.GetValueDouble("weight_decay");
     correct_bias   = inflags.GetValueInt("correct_bias");
+    iter           = inflags.GetValueInt("iter");
 
     if(is_amp)
     {
@@ -401,6 +402,7 @@ int TransformersAdamWDriver<Tgpu, Tref, is_amp, Tgrad>::RunForwardCPU()
     auto grads       = grad_host.data();
     auto exp_avgs    = exp_avg_host.data();
     auto exp_avg_sqs = exp_avg_sq_host.data();
+    auto step        = iter;
 
     size_t numel = miopen::deref(paramDesc).GetElementSize();
     for(int i = 0; i < numel; i++)
@@ -421,8 +423,8 @@ int TransformersAdamWDriver<Tgpu, Tref, is_amp, Tgrad>::RunForwardCPU()
 
         if(correct_bias)
         {
-            float bias_correction1 = 1 - pow(beta1, i + 1);
-            float bias_correction2 = 1 - pow(beta2, i + 1);
+            float bias_correction1 = 1 - pow(beta1, step);
+            float bias_correction2 = 1 - pow(beta2, step);
             step_size              = step_size * sqrt(bias_correction2) / bias_correction1;
         }
 
