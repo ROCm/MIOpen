@@ -50,6 +50,7 @@ struct tensor_view_t
 template <int N>
 struct tensor_layerout_t
 {
+    // Copy tensor layout
     constexpr tensor_layerout_t(tensor_layerout_t<N>& tensor_layerout)
     {
         for(auto i = 0; i < N; ++i)
@@ -83,6 +84,8 @@ struct tensor_layerout_t
             }
         }
     }
+
+    // Make tensor layout with offset
     constexpr tensor_layerout_t(tensor_layerout_t<N>& tensor_layerout, uint64_t offset)
     {
         for(auto i = 0; i < N; ++i)
