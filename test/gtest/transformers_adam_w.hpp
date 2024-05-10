@@ -61,17 +61,25 @@ std::vector<TransformersAdamWTestCase> TransformersAdamWTestConfigs()
 { // dim, dims
     // clang-format off
     std::vector<TransformersAdamWTestCase> base_shape{
-        {{1}, 0, false, false, false},
-        {{96}, 0, false, false, false},
-        {{288}, 0, false, false, false},
-        {{768}, 0, false, false, false},
-        {{2304}, 0, false, false, false},
-        {{3072}, 0, false, false, false},
-        {{96, 3072}, 0, false, false, false},
-        {{512, 768}, 0, false, false, false},
-        {{768, 768}, 0, false, false, false},
-        {{768, 2304}, 0, false, false, false},
-        {{768, 3072}, 0, false, false, false}};
+        {{96}, 0, false, false, false},        // gpt
+        {{288}, 0, false, false, false},       // gpt
+        {{384}, 0, false, false, false},       // gpt
+        {{512}, 0, false, false, false},       // t5
+        {{768}, 0, false, false, false},       // gpt
+        {{4, 8}, 0, false, false, false},      // t5
+        {{64, 512}, 0, false, false, false},   // t5
+        {{64, 1024}, 0, false, false, false},  // t5
+        {{96, 768}, 0, false, false, false},   // gpt
+        {{96, 3072}, 0, false, false, false},  // gpt
+        {{128, 512}, 0, false, false, false},  // t5
+        {{128, 768}, 0, false, false, false},  // gpt
+        {{192, 512}, 0, false, false, false},  // t5
+        {{288, 768}, 0, false, false, false},  // gpt
+        {{384, 768}, 0, false, false, false},  // gpt
+        {{6278, 512}, 0, false, false, false}, // t5
+        {{6278, 768}, 0, false, false, false}, // gpt
+        {{6283, 512}, 0, false, false, false}, // t5
+        {{6283, 768}, 0, false, false, false}};// gpt
     // clang-format on
     std::vector<TransformersAdamWTestCase> result;
     result.reserve(base_shape.size() * 16);
