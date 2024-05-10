@@ -61,8 +61,6 @@ bool GetitemBackward::IsApplicable(const ExecutionContext& /*context*/,
         return false;
     if(!IsLargeIndex(problem))
         return false;
-    if(!problem.IsSameType())
-        return false;
     return true;
 }
 

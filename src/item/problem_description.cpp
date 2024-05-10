@@ -38,7 +38,8 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
     auto dx_dims         = dxDesc.GetLengths();
     auto index_dims      = (*indexDescs)[0].GetLengths();
-    auto dtype           = dyDesc.GetType();
+    auto input_dtype     = dyDesc.GetType();
+    auto output_dtype    = dxDesc.GetType();
     auto dim_info_offset = indexCount > 0 ? indexCount * index_dims[0] : 0;
     auto start_dim       = dims[0];
 
@@ -49,7 +50,9 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     }
     std::ostringstream ss;
 
-    ss << "dtype" << dtype;
+    ss << "getitembwd";
+    ss << "input_dtype" << input_dtype;
+    ss << "output_dtype" << output_dtype;
     ss << "indexCount" << indexCount;
     ss << "offset" << offset;
     ss << "dim_info_offset" << dim_info_offset;

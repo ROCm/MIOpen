@@ -103,11 +103,7 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(dyDesc.GetType() != dxDesc.GetType())
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm, "Item: Tensor types do not match.");
-#else
             return false;
-#endif
         }
         return true;
     }
