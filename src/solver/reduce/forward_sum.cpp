@@ -73,9 +73,9 @@ bool SumForward::IsApplicable(const ExecutionContext& context,
 {
     if(!problem.IsSameType())
         return false;
-    if(!problem.IsRightDim())
+    if(!problem.IsValidDim())
         return false;
-    if(!problem.IsRightLength())
+    if(!problem.IsValidLength())
         return false;
     if(!problem.IsAllPacked())
         return false;
