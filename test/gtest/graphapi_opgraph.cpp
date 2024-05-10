@@ -59,14 +59,20 @@ TEST(GraphAPI, BuildDiamond)
     auto t_c = gen.makeDummyTensor("t_c");
     auto t_d = gen.makeDummyTensor("t_d");
 
+    miopenHandle_t handle = nullptr;
+    miopenStatus_t status = miopenCreate(&handle);
+
+    ASSERT_EQ(status, miopenStatusSuccess) << "Handle wasn't created";
+    ASSERT_NE(handle, nullptr) << "miopenCreate() created a null handle";
+
     gr::OpGraphBuilder graph_builder;
 
-    using TV = std::vector<gr::Tensor*>;
+    graph_builder.setHandle(handle);
 
-    DummyNode top{"top", TV({t_in}), TV({t_a, t_b})};
-    DummyNode left{"left", TV({t_a}), TV({t_c})};
-    DummyNode right{"right", TV({t_b}), TV({t_d})};
-    DummyNode bottom{"bottom", TV({t_c, t_d}), TV({t_out})};
+    DummyNode top{"top", {t_in}, {t_a, t_b}};
+    DummyNode left{"left", {t_a}, {t_c}};
+    DummyNode right{"right", {t_b}, {t_d}};
+    DummyNode bottom{"bottom", {t_c, t_d}, {t_out}};
 
     graph_builder.addNode(&top);
     graph_builder.addNode(&left);
@@ -89,4 +95,6 @@ TEST(GraphAPI, BuildDiamond)
     ASSERT_TRUE(graph.numEdges() == 4);
     ASSERT_TRUE(graph.hasEdgeToSink(&bottom, t_out));
     ASSERT_TRUE(graph.hasEdgeFromSource(&top, t_in));
+
+    miopenDestroy(handle);
 }

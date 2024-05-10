@@ -25,11 +25,13 @@
  *******************************************************************************/
 #pragma once
 
+#include <miopen/graphapi/engine.hpp>
 #include <miopen/graphapi/tensor.hpp>
 
 #include <algorithm>
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include <cassert>
@@ -42,6 +44,40 @@ template <typename C, typename T>
 bool contains(const C& container, const T& val) noexcept
 {
     return std::find(container.cbegin(), container.cend(), val) != container.cend();
+}
+
+template <typename R, int threshold = 500>
+bool noRepetitions(const R& r)
+{
+    auto begin = r.cbegin();
+    auto end   = r.cend();
+
+    if(std::distance(begin, end) < threshold)
+    {
+        // time = O(n^2) mem = O(1)
+        bool result = true;
+        while(result && begin != end)
+        {
+            const auto& val = *begin++;
+            result          = std::find(begin, end, val) == end;
+        }
+        return result;
+    }
+    else
+    {
+        // time = O(n) mem = O(n)
+        std::unordered_set<std::remove_cv_t<std::remove_reference_t<decltype(*begin)>>> seen;
+        for(; begin != end; ++begin)
+        {
+            const auto& val = *begin;
+            if(seen.find(val) != seen.end())
+            {
+                return false;
+            }
+            seen.insert(val);
+        }
+        return true;
+    }
 }
 } // end namespace internal
 
@@ -179,6 +215,10 @@ class OpGraph
     std::unique_ptr<SinkOpNode> mSinkNode  = std::make_unique<SinkOpNode>();
     std::vector<OpNode*> mNodes{};
 
+    // Descriptor related members
+    miopenHandle_t mHandle = nullptr;
+    std::vector<Engine> mEngines;
+
 public:
     OpGraph(const OpGraph&) = delete;
     OpGraph& operator=(const OpGraph&) = delete;
@@ -247,6 +287,9 @@ public:
         return hasEdge(src, tens_ptr, mSinkNode.get());
     }
 
+    miopenHandle_t getHandle() const noexcept { return mHandle; }
+    const std::vector<Engine>& getEngines() const noexcept { return mEngines; }
+
 private:
     friend class OpGraphBuilder;
 
@@ -277,14 +320,29 @@ class OpGraphBuilder
 {
 private:
     std::vector<OpNode*> mNodes;
+    miopenHandle_t mHandle = nullptr;
 
 public:
+    void setHandle(miopenHandle_t handle);
+
     bool hasNode(OpNode* node) const { return internal::contains(mNodes, node); }
 
     void addNode(OpNode* node)
     {
         assert(!hasNode(node));
         mNodes.emplace_back(node);
+    }
+
+    void setNodes(const std::vector<OpNode*>& nodes)
+    {
+        assert(internal::noRepetitions(nodes));
+        mNodes = nodes;
+    }
+
+    void setNodes(std::vector<OpNode*>&& nodes)
+    {
+        assert(internal::noRepetitions(nodes));
+        mNodes = std::move(nodes);
     }
 
     struct EdgeInfo
@@ -300,6 +358,29 @@ public:
 bool isIsomorphic(const OpGraph& left, const OpGraph& right);
 
 std::string pathToStr(const Path& path);
+
+class BackendOperationGraphDescriptor : public BackendDescriptor
+{
+private:
+    OpGraphBuilder mBuilder;
+    OpGraph mOpGraph;
+    std::vector<miopenBackendDescriptor_t> mOps; // to return them in getAttribute
+
+public:
+    void setAttribute(miopenBackendAttributeName_t attributeName,
+                      miopenBackendAttributeType_t attributeType,
+                      int64_t elementCount,
+                      void* arrayOfElements) override;
+    void finalize() override;
+    void getAttribute(miopenBackendAttributeName_t attributeName,
+                      miopenBackendAttributeType_t attributeType,
+                      int64_t requestedElementCount,
+                      int64_t* elementCount,
+                      void* arrayOfElements) override;
+
+    const OpGraph* getOperationGraph() const noexcept { return &mOpGraph; }
+    OpGraph* getOperationGraph() noexcept { return &mOpGraph; }
+};
 
 } // end namespace graphapi
 } // end namespace miopen

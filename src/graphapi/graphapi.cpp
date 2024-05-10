@@ -25,7 +25,11 @@
  *******************************************************************************/
 #include <miopen/errors.hpp>
 #include <miopen/graphapi/convolution.hpp>
+#include <miopen/graphapi/engine.hpp>
+#include <miopen/graphapi/enginecfg.hpp>
+#include <miopen/graphapi/execution_plan.hpp>
 #include <miopen/graphapi/graphapi.hpp>
+#include <miopen/graphapi/opgraph.hpp>
 #include <miopen/graphapi/pointwise.hpp>
 #include <miopen/graphapi/reduction.hpp>
 #include <miopen/graphapi/rng.hpp>
@@ -42,7 +46,7 @@ miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
 {
     MIOPEN_LOG_FUNCTION(descriptorType, descriptor);
     return miopen::try_([&] {
-        auto& outputDesciptor = miopen::deref(descriptor);
+        auto& outputDescriptor = miopen::deref(descriptor);
 
         switch(descriptorType)
         {
@@ -53,48 +57,60 @@ miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
          */
         // clang-format off
         case MIOPEN_BACKEND_CONVOLUTION_DESCRIPTOR:
-            outputDesciptor = new miopen::graphapi::BackendConvolutionDescriptor(); break;
+            outputDescriptor = new miopen::graphapi::BackendConvolutionDescriptor(); break;
 
-        case MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR:
-            outputDesciptor = new miopen::graphapi::BackendOperationConvolutionForwardDescriptor(); break;
+        case MIOPEN_BACKEND_ENGINE_DESCRIPTOR:
+            outputDescriptor = new miopen::graphapi::BackendEngineDescriptor(); break;
 
-        case MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR:
-            outputDesciptor = new miopen::graphapi::BackendOperationConvolutionBackwardFilterDescriptor(); break;
+        case MIOPEN_BACKEND_ENGINECFG_DESCRIPTOR:
+            outputDescriptor = new miopen::graphapi::BackendEngineCfgDescriptor(); break;
 
-        case MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR:
-            outputDesciptor = new miopen::graphapi::BackendOperationConvolutionBackwardDataDescriptor(); break;
-
-        case MIOPEN_BACKEND_OPERATION_POINTWISE_DESCRIPTOR:
-            outputDesciptor = new miopen::graphapi::BackendOperationPointwiseDescriptor(); break;
-
-        case MIOPEN_BACKEND_OPERATION_REDUCTION_DESCRIPTOR:
-            outputDesciptor = new miopen::graphapi::BackendOperationReductionDescriptor(); break;
-
-        case MIOPEN_BACKEND_OPERATION_RNG_DESCRIPTOR:
-            outputDesciptor = new miopen::graphapi::BackendOperationRngDescriptor(); break;
-
-        case MIOPEN_BACKEND_POINTWISE_DESCRIPTOR:
-            outputDesciptor = new miopen::graphapi::BackendPointwiseDescriptor(); break;
-
-        case MIOPEN_BACKEND_REDUCTION_DESCRIPTOR:
-            outputDesciptor = new miopen::graphapi::BackendReductionDescriptor(); break;
-
-        case MIOPEN_BACKEND_RNG_DESCRIPTOR:
-            outputDesciptor = new miopen::graphapi::BackendRngDescriptor(); break;
-
-        case MIOPEN_BACKEND_TENSOR_DESCRIPTOR:
-            outputDesciptor = new miopen::graphapi::BackendTensorDescriptor(); break;
-
-        case MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR:
-            outputDesciptor = new miopen::graphapi::BackendVariantPackDescriptor(); break;
+        case MIOPEN_BACKEND_EXECUTION_PLAN_DESCRIPTOR:
+            outputDescriptor = new miopen::graphapi::BackendExecutionPlanDescriptor(); break;
 
         case MIOPEN_BACKEND_MATMUL_DESCRIPTOR:
-            outputDesciptor = new miopen::graphapi::BackendMatmulDescriptor();
+            outputDescriptor = new miopen::graphapi::BackendMatmulDescriptor();
             break;
 
+        case MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR:
+            outputDescriptor = new miopen::graphapi::BackendOperationConvolutionForwardDescriptor(); break;
+
+        case MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR:
+            outputDescriptor = new miopen::graphapi::BackendOperationConvolutionBackwardFilterDescriptor(); break;
+
+        case MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR:
+            outputDescriptor = new miopen::graphapi::BackendOperationConvolutionBackwardDataDescriptor(); break;
+
         case MIOPEN_BACKEND_OPERATION_MATMUL_DESCRIPTOR:
-            outputDesciptor = new miopen::graphapi::BackendOperationMatmulDescriptor();
+            outputDescriptor = new miopen::graphapi::BackendOperationMatmulDescriptor();
             break;
+
+        case MIOPEN_BACKEND_OPERATION_POINTWISE_DESCRIPTOR:
+            outputDescriptor = new miopen::graphapi::BackendOperationPointwiseDescriptor(); break;
+
+        case MIOPEN_BACKEND_OPERATION_REDUCTION_DESCRIPTOR:
+            outputDescriptor = new miopen::graphapi::BackendOperationReductionDescriptor(); break;
+
+        case MIOPEN_BACKEND_OPERATION_RNG_DESCRIPTOR:
+            outputDescriptor = new miopen::graphapi::BackendOperationRngDescriptor(); break;
+
+        case MIOPEN_BACKEND_OPERATIONGRAPH_DESCRIPTOR:
+            outputDescriptor = new miopen::graphapi::BackendOperationGraphDescriptor(); break;
+
+        case MIOPEN_BACKEND_POINTWISE_DESCRIPTOR:
+            outputDescriptor = new miopen::graphapi::BackendPointwiseDescriptor(); break;
+
+        case MIOPEN_BACKEND_REDUCTION_DESCRIPTOR:
+            outputDescriptor = new miopen::graphapi::BackendReductionDescriptor(); break;
+
+        case MIOPEN_BACKEND_RNG_DESCRIPTOR:
+            outputDescriptor = new miopen::graphapi::BackendRngDescriptor(); break;
+
+        case MIOPEN_BACKEND_TENSOR_DESCRIPTOR:
+            outputDescriptor = new miopen::graphapi::BackendTensorDescriptor(); break;
+
+        case MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR:
+            outputDescriptor = new miopen::graphapi::BackendVariantPackDescriptor(); break;
 
         default: MIOPEN_THROW(miopenStatusUnsupportedOp);
             // clang-format on
@@ -211,6 +227,18 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
         case MIOPEN_BACKEND_CONVOLUTION_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendConvolutionDescriptor>(descriptor, sizeInBytes); break;
 
+        case MIOPEN_BACKEND_ENGINE_DESCRIPTOR:
+            initializeBackendDescriptor<miopen::graphapi::BackendEngineDescriptor>(descriptor, sizeInBytes); break;
+
+        case MIOPEN_BACKEND_ENGINECFG_DESCRIPTOR:
+            initializeBackendDescriptor<miopen::graphapi::BackendEngineCfgDescriptor>(descriptor, sizeInBytes); break;
+
+        case MIOPEN_BACKEND_EXECUTION_PLAN_DESCRIPTOR:
+            initializeBackendDescriptor<miopen::graphapi::BackendExecutionPlanDescriptor>(descriptor, sizeInBytes); break;
+
+        case MIOPEN_BACKEND_MATMUL_DESCRIPTOR:
+	    initializeBackendDescriptor<miopen::graphapi::BackendMatmulDescriptor>(descriptor, sizeInBytes); break;
+
         case MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendOperationConvolutionForwardDescriptor>(descriptor, sizeInBytes); break;
 
@@ -232,6 +260,9 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
         case MIOPEN_BACKEND_OPERATION_RNG_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendOperationRngDescriptor>(descriptor, sizeInBytes); break;
 
+        case MIOPEN_BACKEND_OPERATIONGRAPH_DESCRIPTOR:
+            initializeBackendDescriptor<miopen::graphapi::BackendOperationGraphDescriptor>(descriptor, sizeInBytes); break;
+
         case MIOPEN_BACKEND_POINTWISE_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendPointwiseDescriptor>(descriptor, sizeInBytes); break;
 
@@ -243,9 +274,6 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
 
         case MIOPEN_BACKEND_TENSOR_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendTensorDescriptor>(descriptor, sizeInBytes); break;
-
-        case MIOPEN_BACKEND_MATMUL_DESCRIPTOR:
-	    initializeBackendDescriptor<miopen::graphapi::BackendMatmulDescriptor>(descriptor, sizeInBytes); break;
 
         case MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR:
                 initializeBackendDescriptor<miopen::graphapi::BackendVariantPackDescriptor>(descriptor, sizeInBytes); break;
