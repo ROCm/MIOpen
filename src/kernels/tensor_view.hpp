@@ -27,12 +27,6 @@
 #ifndef GUARD_TENSOR_VIEW_H
 #define GUARD_TENSOR_VIEW_H
 
-typedef struct
-{
-    uint64_t stride[5];
-    uint64_t size[5];
-} tensor_view_5d_t;
-
 template <int N>
 struct tensor_layerout_t;
 
