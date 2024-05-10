@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,43 +23,18 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include "reduceextreme_driver.hpp"
+#include "registry_driver_maker.hpp"
 
-#include "argmax.hpp"
-#include <miopen/env.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
-namespace argmax {
-
-std::string GetFloatArg()
+static Driver* makeDriver(const std::string& base_arg)
 {
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
+    if(base_arg == "reduceextreme")
+        return new ReduceExtremeDriver<float, float>();
+    if(base_arg == "reduceextremefp16")
+        return new ReduceExtremeDriver<float16, float>();
+    if(base_arg == "reduceextremebfp16")
+        return new ReduceExtremeDriver<bfloat16, float>();
+    return nullptr;
 }
 
-struct ArgmaxTestFloat : ArgmaxTest<float>
-{
-};
-
-} // namespace argmax
-using namespace argmax;
-
-TEST_P(ArgmaxTestFloat, ArgmaxTestFw)
-{
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-INSTANTIATE_TEST_SUITE_P(ArgmaxTestSet, ArgmaxTestFloat, testing::ValuesIn(ArgmaxTestConfigs()));
+REGISTER_DRIVER_MAKER(makeDriver);
