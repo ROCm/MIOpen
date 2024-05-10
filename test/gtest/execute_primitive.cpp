@@ -227,9 +227,3 @@ TEST(ExecutePrimitive, SearchUpdate)
     ASSERT_TRUE(results.search_invoked);
     ASSERT_EQ(results.perf_cfg_value, TestPerfConfig::searched_value);
 }
-
-int main(int argc, char** argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
