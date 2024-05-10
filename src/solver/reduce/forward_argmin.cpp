@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +38,7 @@ namespace solver {
 
 namespace reduce {
 
-size_t ArgmaxForward::XGridSize(std::vector<size_t> indicedims) const
+size_t ArgminForward::XGridSize(std::vector<size_t> indicedims) const
 {
     auto indice_numel =
         std::accumulate(indicedims.begin(), indicedims.end(), 1ULL, std::multiplies<size_t>());
@@ -46,7 +46,7 @@ size_t ArgmaxForward::XGridSize(std::vector<size_t> indicedims) const
 }
 
 /// \todo https://github.com/ROCm/MIOpen/pull/2583#discussion_r1437054128
-bool ArgmaxForward::OverMaxGridSize(const ExecutionContext& context,
+bool ArgminForward::OverMaxGridSize(const ExecutionContext& context,
                                     const miopen::reduce::ProblemDescription& problem) const
 {
     auto indicedims = problem.GetIndiceDesc().GetLengths();
@@ -55,7 +55,7 @@ bool ArgmaxForward::OverMaxGridSize(const ExecutionContext& context,
     return true;
 }
 
-bool ArgmaxForward::IsApplicable(const ExecutionContext& context,
+bool ArgminForward::IsApplicable(const ExecutionContext& context,
                                  const miopen::reduce::ProblemDescription& problem) const
 {
     if(!problem.IsValidDim())
@@ -73,7 +73,7 @@ bool ArgmaxForward::IsApplicable(const ExecutionContext& context,
     return true;
 }
 
-ConvSolution ArgmaxForward::GetSolution(const ExecutionContext&,
+ConvSolution ArgminForward::GetSolution(const ExecutionContext&,
                                         const miopen::reduce::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
@@ -106,7 +106,7 @@ ConvSolution ArgmaxForward::GetSolution(const ExecutionContext&,
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"OUTPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"INDICE_TYPE", indice_dtype},
-            {"OP_TYPE", "ReduceExtremeOp_t::Argmax"},
+            {"OP_TYPE", "ReduceExtremeOp_t::Argmin"},
             {"MIOPEN_REDUCE_EXTREME_ARGMIN", MIOPEN_REDUCE_EXTREME_ARGMIN},
             {"MIOPEN_REDUCE_EXTREME_ARGMAX", MIOPEN_REDUCE_EXTREME_ARGMAX},
             {"MIOPEN_REDUCE_EXTREME_MIN", MIOPEN_REDUCE_EXTREME_MIN},
