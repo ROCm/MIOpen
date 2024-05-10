@@ -37,11 +37,7 @@
 struct TransformersAdamWTestCase
 {
     std::vector<int> input;
-    float lr;
-    float beta1;
-    float beta2;
     float weight_decay;
-    float eps;
     bool correct_bias;
     bool use_step_tensor;
     bool use_step_size;
@@ -54,36 +50,28 @@ struct TransformersAdamWTestCase
         {
             os << "x" << tc.input[i];
         }
-        return os << " lr:" << tc.lr << " beta1:" << tc.beta1 << " beta2:" << tc.beta2
-                  << " weight_decay:" << tc.weight_decay << " eps:" << tc.eps
-                  << " correct_bias:" << tc.correct_bias;
+        return os << " weight_decay:" << tc.weight_decay << " correct_bias:" << tc.correct_bias
+                  << " use_step_tensor:" << tc.use_step_tensor
+                  << " use_step_size:" << tc.use_step_size;
     }
 
     const std::vector<int>& GetInput() { return input; }
 };
-
 std::vector<TransformersAdamWTestCase> TransformersAdamWTestConfigs()
 { // dim, dims
     // clang-format off
     std::vector<TransformersAdamWTestCase> base_shape{
-        {{1}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
-        {{2}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
-        {{255}, 0.001, 0.9, 0.999, 0.0005, 0.000001, false, false, false},
-        {{1024}, 0.001, 0.9, 0.999, 1e-08, 0.000001, false, false, false},
-        {{32317}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
-        {{50000}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
-        {{29,1024}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
-        {{80,1536}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
-        {{128,1024}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
-        {{3706,32}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
-        {{32,1,41,11}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
-        {{32,64,3,3}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, false, false},
-        {{64,256,3,3}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, false, false},
-        {{128,192,1,1}, 0.001, 0.9, 0.999, 0.0005, 0.000001, false, false, false},
-        {{128,1024,1,1}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, false, false},
-        {{192,192,3,3}, 0.001, 0.9, 0.999, 0.0005, 0.000001, false, false, false},
-        {{255,640,1,1}, 0.001, 0.9, 0.999, 0.0005, 0.000001, false, false, false},
-        {{256,512,3,3}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, false, false}};
+        {{1}, 0, false, false, false},
+        {{96}, 0, false, false, false},
+        {{288}, 0, false, false, false},
+        {{768}, 0, false, false, false},
+        {{2304}, 0, false, false, false},
+        {{3072}, 0, false, false, false},
+        {{96, 3072}, 0, false, false, false},
+        {{512, 768}, 0, false, false, false},
+        {{768, 768}, 0, false, false, false},
+        {{768, 2304}, 0, false, false, false},
+        {{768, 3072}, 0, false, false, false}};
     // clang-format on
     std::vector<TransformersAdamWTestCase> result;
     result.reserve(base_shape.size() * 16);
@@ -96,10 +84,14 @@ std::vector<TransformersAdamWTestCase> TransformersAdamWTestConfigs()
             {
                 for(int k = 0; k <= 1; ++k)
                 {
-                    item.correct_bias    = static_cast<bool>(i);
-                    item.use_step_tensor = static_cast<bool>(j);
-                    item.use_step_size   = static_cast<bool>(k);
-                    result.push_back(item);
+                    for(int l = 0; l <= 1; ++l)
+                    {
+                        item.correct_bias    = static_cast<bool>(i);
+                        item.use_step_tensor = static_cast<bool>(j);
+                        item.use_step_size   = static_cast<bool>(k);
+                        item.weight_decay    = l * 0.0005;
+                        result.push_back(item);
+                    }
                 }
             }
         }
@@ -119,11 +111,7 @@ protected:
         auto gen_zero  = [](auto...) { return 0; };
         auto dims      = adam_config.GetInput();
 
-        lr              = adam_config.lr;
-        beta1           = adam_config.beta1;
-        beta2           = adam_config.beta2;
         weight_decay    = adam_config.weight_decay;
-        eps             = adam_config.eps;
         correct_bias    = adam_config.correct_bias;
         use_step_tensor = adam_config.use_step_tensor;
         use_step_size   = adam_config.use_step_size;
@@ -278,11 +266,11 @@ protected:
     miopen::Allocator::ManageDataPtr found_inf_dev;
     miopen::Allocator::ManageDataPtr grad_scale_dev;
 
-    float lr             = 0.0f;
-    float beta1          = 0.0f;
-    float beta2          = 0.0f;
+    const float lr       = 0.001f;
+    const float beta1    = 0.9f;
+    const float beta2    = 0.999f;
     float weight_decay   = 0.0f;
-    float eps            = 0.0f;
+    const float eps      = 1e-06;
     bool correct_bias    = false;
     bool use_step_tensor = false;
     bool use_step_size   = false;
