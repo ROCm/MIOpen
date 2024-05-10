@@ -54,7 +54,9 @@ ConvSolution TransformersAdamW::GetSolution(const ExecutionContext& context,
     {
         auto param_dtype = miopen::GetDataType(problem.GetParamDesc().GetType());
         auto ptype_size  = miopen::get_data_size(problem.GetParamDesc().GetType());
-        auto grad_dtype  = miopen::GetDataType(problem.GetGradDesc().GetType());
+        auto grad_dtype  = (problem.IsAmp() || problem.ExistStepTensor())
+                               ? miopen::GetDataType(problem.GetGradDesc().GetType())
+                               : "float";
 
         const auto build_params = KernelBuildParameters{
             {"PTYPE", param_dtype},
@@ -75,8 +77,15 @@ ConvSolution TransformersAdamW::GetSolution(const ExecutionContext& context,
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
         kernel.kernel_file = "MIOpenAdam.cpp";
-        kernel.kernel_name = problem.ExistStepTensor() ? "TransformersAdamWPackedWithStep"
-                                                       : "TransformersAdamWPacked";
+        if(problem.ExistStepTensor())
+        {
+            kernel.kernel_name = "TransformersAmpAdamWPackedWithStep";
+        }
+        else
+        {
+            kernel.kernel_name =
+                problem.IsAmp() ? "TransformersAmpAdamWPacked" : "TransformersAdamWPacked";
+        }
 
         result.construction_params.push_back(kernel);
 
@@ -137,46 +146,91 @@ ConvSolution TransformersAdamW::GetSolution(const ExecutionContext& context,
     }
     else
     {
-        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-                decltype(auto) kernel = handle_.Run(kernels.front());
-                decltype(auto) params =
-                    raw_params.CastTo<miopen::adam::TransformersAdamWInvokeParams>();
-                decltype(auto) numel  = params.paramDesc->GetElementSize();
-                float lr_weight_decay = params.lr * params.weight_decay;
-                auto step_size        = params.step_size;
+        if(problem.IsAmp())
+        {
+            result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+                return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+                    decltype(auto) kernel = handle_.Run(kernels.front());
+                    decltype(auto) params =
+                        raw_params.CastTo<miopen::adam::TransformersAdamWInvokeParams>();
+                    decltype(auto) numel  = params.paramDesc->GetElementSize();
+                    float lr_weight_decay = params.lr * params.weight_decay;
+                    auto step_size        = params.step_size;
 
-                if(step_size < 0)
-                {
-                    if(params.correct_bias)
+                    if(step_size < 0)
                     {
-                        float bias_correction1 = 1 - pow(params.beta1, params.step);
-                        float bias_correction2 = 1 - pow(params.beta2, params.step);
-                        step_size = params.lr * sqrt(bias_correction2) / bias_correction1;
+                        if(params.correct_bias)
+                        {
+                            float bias_correction1 = 1 - pow(params.beta1, params.step);
+                            float bias_correction2 = 1 - pow(params.beta2, params.step);
+                            step_size = params.lr * sqrt(bias_correction2) / bias_correction1;
+                        }
+                        else
+                        {
+                            step_size = params.lr;
+                        }
                     }
-                    else
-                    {
-                        step_size = params.lr;
-                    }
-                }
-                kernel(params.paramIn,
-                       params.paramOut,
-                       params.paramOutFloat16,
-                       params.gradIn,
-                       params.expAvgIn,
-                       params.expAvgOut,
-                       params.expAvgSqIn,
-                       params.expAvgSqOut,
-                       params.gradScale,
-                       params.foundInf,
-                       params.beta1,
-                       params.beta2,
-                       params.eps,
-                       lr_weight_decay,
-                       step_size,
-                       numel);
+
+                    kernel(params.paramIn,
+                           params.paramOut,
+                           params.paramOutFloat16,
+                           params.gradIn,
+                           params.expAvgIn,
+                           params.expAvgOut,
+                           params.expAvgSqIn,
+                           params.expAvgSqOut,
+                           params.gradScale,
+                           params.foundInf,
+                           params.beta1,
+                           params.beta2,
+                           params.eps,
+                           lr_weight_decay,
+                           step_size,
+                           numel);
+                };
             };
-        };
+        }
+        else
+        {
+            result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+                return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+                    decltype(auto) kernel = handle_.Run(kernels.front());
+                    decltype(auto) params =
+                        raw_params.CastTo<miopen::adam::TransformersAdamWInvokeParams>();
+                    decltype(auto) numel  = params.paramDesc->GetElementSize();
+                    float lr_weight_decay = params.lr * params.weight_decay;
+                    auto step_size        = params.step_size;
+
+                    if(step_size < 0)
+                    {
+                        if(params.correct_bias)
+                        {
+                            float bias_correction1 = 1 - pow(params.beta1, params.step);
+                            float bias_correction2 = 1 - pow(params.beta2, params.step);
+                            step_size = params.lr * sqrt(bias_correction2) / bias_correction1;
+                        }
+                        else
+                        {
+                            step_size = params.lr;
+                        }
+                    }
+
+                    kernel(params.paramIn,
+                           params.paramOut,
+                           params.gradIn,
+                           params.expAvgIn,
+                           params.expAvgOut,
+                           params.expAvgSqIn,
+                           params.expAvgSqOut,
+                           params.beta1,
+                           params.beta2,
+                           params.eps,
+                           lr_weight_decay,
+                           step_size,
+                           numel);
+                };
+            };
+        }
     }
 
     return result;
