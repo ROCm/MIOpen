@@ -91,7 +91,7 @@ __device__ void getitembwd(const TI* __restrict__ dy,
     if(ncdhw.layerout[0] >= dy_tv.size[0])
         return;
 
-    tensor_layerout_t<5> idx(ncdhw);
+    tensor_layerout_t<5> idx = ncdhw;
 
     if(indexCount > 0)
     {

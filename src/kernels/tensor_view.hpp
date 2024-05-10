@@ -33,7 +33,7 @@ struct tensor_layerout_t;
 template <int N>
 struct tensor_view_t
 {
-    // Get tensor view index at tensor layout
+    // Get index in tensor view at tensor layout
     constexpr uint64_t get_tensor_view_idx(tensor_layerout_t<N> tensor_layout)
     {
         uint64_t idx = 0;
@@ -50,15 +50,6 @@ struct tensor_view_t
 template <int N>
 struct tensor_layerout_t
 {
-    // Copy tensor layout
-    constexpr tensor_layerout_t(tensor_layerout_t<N>& tensor_layerout)
-    {
-        for(auto i = 0; i < N; ++i)
-        {
-            layerout[i] = tensor_layerout.layerout[i];
-        }
-    }
-
     // Make tensor layout at index using tensor view
     constexpr tensor_layerout_t(tensor_view_t<N>& tensor_view, uint64_t idx)
     {
@@ -85,21 +76,6 @@ struct tensor_layerout_t
         }
     }
 
-    // Make tensor layout with offset
-    constexpr tensor_layerout_t(tensor_layerout_t<N>& tensor_layerout, uint64_t offset)
-    {
-        for(auto i = 0; i < N; ++i)
-        {
-            if(i == 0)
-            {
-                layerout[i] = tensor_layerout.layerout[i] + offset;
-            }
-            else
-            {
-                layerout[i] = tensor_layerout.layerout[i];
-            }
-        }
-    }
     uint64_t layerout[N];
 };
 
