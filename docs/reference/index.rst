@@ -33,4 +33,5 @@ The MIOpen API library is structured as follows:
   * :doc:`Cat <../doxygen/html/group__cat>` (experimental)
   * :doc:`Getitem <../doxygen/html/group__getitem>` (experimental)
   * :doc:`Argmax<../doxygen/html/group__argmax>` (experimental)
+  * :doc:`SGD <../doxygen/html/group___s_g_d>` (experimental)
 

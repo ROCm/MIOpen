@@ -57,6 +57,7 @@ enum class Primitive
     Cat,
     Mha,
     Softmax,
+    Adam,
     Item
 };
 
