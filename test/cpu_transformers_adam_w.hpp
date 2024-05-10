@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CPU_ADAM_HPP
-#define GUARD_CPU_ADAM_HPP
+#ifndef GUARD_CPU_TRANSFORMERS_ADAM_W_HPP
+#define GUARD_CPU_TRANSFORMERS_ADAM_W_HPP
 
 #include "tensor_holder.hpp"
 
