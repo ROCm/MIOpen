@@ -7125,7 +7125,7 @@ miopenGetGetitemWorkspaceSize(miopenHandle_t handle,
 
 /*! @brief Execute a getitem backward layer
  *
- * Backward of getitem for tensor indexing
+ * Backward of getitem for tensor indexing, slicing, masking.
  *
  * @param handle                  MIOpen handle (input)
  * @param workspace               Address of the allocated workspace data (input)
