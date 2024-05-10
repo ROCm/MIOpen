@@ -7103,83 +7103,65 @@ miopenFusedAdamWithOutput(miopenHandle_t handle,
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
-// FusedAdam APIs
+// TransformersAdamW APIs
 /** @addtogroup SGD
  *
  *  @{
  */
-/*! @brief Perform Fused Adam optimization for a single tensor (Adaptive Moment Estimation).
+/*! @brief Implements Adam algorithm with weight decay fix as introduced in
+ * <a href="https://arxiv.org/abs/1711.05101">Decoupled Weight Decay Regularization</a>.
+ * This is the fused kernel version of AdamW included in the Hugging Face Transformers module.
  *
- * This function implements the Fused Adam optimization algorithm. Adam, short for Adaptive Moment
- * Estimation, extends the RMSProp optimizer. It combines the advantages of AdaGrad and RMSProp by
- * adaptively adjusting learning rates for each parameter using the first and second moments of
- * gradients. Fused Adam optimization efficiently combines multiple operations into a single kernel,
- * reducing memory access overhead and improving performance.
- *
- * Additionally,  Fused Adam can be utilized in both adam w and Automatic Mixed Precision (AMP),
- * enabling accelerated model training and reduced memory consumption. AMP supports FP16
- * computation, optimizing model calculations using a mixture of FP32 and FP16 precision to enhance
- * training speed. When utilizing AMP, FoundInf, ScaleGrad, and step tensors should be employed. In
- * AMP mode, the execution of Adam is determined based on the FoundInf value. State Step accepts
- * both int values and int tensors. If a Step tensor is employed, the step received as an int is
- * disregarded, and if Adam is executed, the step tensor is incremented by 1.
+ * @see miopenFusedAdam
  *
  * @code
  * // Execute Adam
- * miopenTransformersAdam(handle,
- *                 paramDesc,
- *                 param,
- *                 gradDesc,
- *                 grad,
- *                 expAvgDesc,
- *                 expAvg,
- *                 expAvgSqDesc,
- *                 expAvgSq,
- *                 NULL,     // Unused maxExpAvgSqDesc because amsgrad is false
- *                 NULL,
- *                 NULL,     // Unused stateStep Tensor because use step integer argument
- *                 NULL,
- *                 step,
- *                 lr,
- *                 beta1,
- *                 beta2,
- *                 weight_decay,
- *                 eps,
- *                 false,    // amsgrad
- *                 false,    // maximize
- *                 false,    // adamw
- *                 NULL,     // Unused gradScale Tensor because not amp
- *                 NULL,
- *                 NULL,     // Unused foundInf Tensor because not amp
- *                 NULL);
+ * miopenTransformersAdamW(handle,
+ *                         paramDesc,
+ *                         param,
+ *                         gradDesc,
+ *                         grad,
+ *                         expAvgDesc,
+ *                         expAvg,
+ *                         expAvgSqDesc,
+ *                         expAvgSq,
+ *                         NULL,     // Unused stateStep Tensor because use step integer argument
+ *                         NULL,
+ *                         step,
+ *                         lr,
+ *                         beta1,
+ *                         beta2,
+ *                         weight_decay,
+ *                         eps,
+ *                         true,     // correct_bias
+ *                         NULL,     // Unused gradScale Tensor because not amp
+ *                         NULL,
+ *                         NULL,     // Unused foundInf Tensor because not amp
+ *                         NULL);
  *
  * // Execute AMP Adam
- * miopenTransformersAdam(handle,
- *                 paramDesc,
- *                 param,
- *                 gradDesc,
- *                 grad,
- *                 expAvgDesc,
- *                 expAvg,
- *                 expAvgSqDesc,
- *                 expAvgSq,
- *                 NULL,     // Unused maxExpAvgSqDesc because amsgrad is false
- *                 NULL,
- *                 stateStepDesc,
- *                 stateStep,
- *                 -1,       // Ignore step value because stateStep Tensor is used
- *                 lr,
- *                 beta1,
- *                 beta2,
- *                 weight_decay,
- *                 eps,
- *                 false,    // amsgrad
- *                 false,    // maximize
- *                 false,    // adamw
- *                 gradScaleDesc,
- *                 gradScale,
- *                 foundInfDesc,
- *                 foundInf);
+ * miopenTransformersAdamW(handle,
+ *                         paramDesc,
+ *                         param,
+ *                         gradDesc,
+ *                         grad,
+ *                         expAvgDesc,
+ *                         expAvg,
+ *                         expAvgSqDesc,
+ *                         expAvgSq,
+ *                         stateStepDesc,
+ *                         stateStep,
+ *                         -1,       // Ignore step value because stateStep Tensor is used
+ *                         lr,
+ *                         beta1,
+ *                         beta2,
+ *                         weight_decay,
+ *                         eps,
+ *                         true,     // correct_bias
+ *                         gradScaleDesc,
+ *                         gradScale,
+ *                         foundInfDesc,
+ *                         foundInf);
  * @endcode
  *
  * @param handle              MIOpen handle (input)
@@ -7193,10 +7175,6 @@ miopenFusedAdamWithOutput(miopenHandle_t handle,
  * @param expAvgSqDesc        Tensor descriptor for the input exponential moving average squared
  *                            tensor (input)
  * @param expAvgSq            Input exponential moving average squared tensor (input)
- * @param maxExpAvgSqDesc     Tensor descriptor for the input maximum exponential moving average
- *                            squared tensor. Used when amsgrad is true (input, optional)
- * @param maxExpAvgSq         Input maximum exponential moving average squared tensor. Used when
- *                            amsgrad is true (input, optional)
  * @param stateStepDesc       Tensor descriptor for the input state step tensor (input)
  * @param stateStep           Input state step tensor (input)
  * @param state_step          Input state step. used when the step tensor is null (input)
@@ -7207,10 +7185,8 @@ miopenFusedAdamWithOutput(miopenHandle_t handle,
  *                            gradient (input)
  * @param weight_decay        Weight decay (input)
  * @param eps                 Term added to the denominator to improve numerical stability (input)
- * @param amsgrad             Flag indicating whether to use the AMSGrad variant of Adam (input)
- * @param maximize            Flag indicating whether to maximize the objective with respect to the
- *                            parameters (input)
- * @param adamw               If true, the operation becomes AdamW (input) (not supported)
+ * @param correct_bias        Whether or not to correct bias in Adam (for instance, in Bert TF
+ *                            repository they use False).
  * @param gradScaleDesc       Tensor descriptor for the input grad scale tensor (input, optional)
  * @param gradScale           Input grad scale tensor (input, optional)
  * @param foundInfDesc        Tensor descriptor for the input found inf tensor (input, optional)
@@ -7246,85 +7222,80 @@ MIOPEN_EXPORT miopenStatus_t miopenTransformersAdamW(miopenHandle_t handle,
  *
  * This function is equivalent to miopenTransformersAdam but receives the result in a separate
  * output tensor.
- * @see miopenTransformersAdam
+ * @see miopenTransformersAdamW
+ * @see miopenFusedAdamWithOutput
  *
  * @code
  * // Execute Adam
- * miopenTransformersAdamWithOutput(handle,
- *                           paramInDesc,
- *                           paramIn,
- *                           paramOutDesc,
- *                           paramOut,
- *                           NULL,   // Unused paramOutFloat16 tensor because is not amp
- *                           NULL,
- *                           gradInDesc,
- *                           gradIn,
- *                           expAvgInDesc,
- *                           expAvgIn,
- *                           expAvgOutDesc,
- *                           expAvgOut,
- *                           expAvgInSqDesc,
- *                           expAvgSqIn,
- *                           expAvgSqOutDesc,
- *                           expAvgSqOut,
- *                           NULL,   // Unused maxExpAvgSqIn tensor because amsgrad is false
- *                           NULL,
- *                           NULL,   // Unused maxExpAvgSqOut tensor because amsgrad is false
- *                           NULL,
- *                           NULL,   // Unused stateStepIn tensor because use step integer argument
- *                           NULL,
- *                           NULL,   // Unused stateStepOut tensor because use step integer argument
- *                           NULL,
- *                           step,
- *                           lr,
- *                           beta1,
- *                           beta2,
- *                           weight_decay,
- *                           eps,
- *                           false,  // amsgrad
- *                           false,  // maximize
- *                           false,  // adamw
- *                           NULL,   // Unused gradScale Tensor because not amp
- *                           NULL,
- *                           NULL,   // Unused foundInf Tensor because not amp
- *                           NULL);
+ * miopenTransformersAdamWWithOutput(handle,
+ *                                   paramInDesc,
+ *                                   paramIn,
+ *                                   paramOutDesc,
+ *                                   paramOut,
+ *                                   NULL,   // Unused paramOutFloat16 tensor because is not amp
+ *                                   NULL,
+ *                                   gradInDesc,
+ *                                   gradIn,
+ *                                   expAvgInDesc,
+ *                                   expAvgIn,
+ *                                   expAvgOutDesc,
+ *                                   expAvgOut,
+ *                                   expAvgInSqDesc,
+ *                                   expAvgSqIn,
+ *                                   expAvgSqOutDesc,
+ *                                   expAvgSqOut,
+ *                                   NULL,   // Unused stateStepIn tensor because use step int
+ *                                   NULL,
+ *                                   NULL,   // Unused stateStepOut tensor because use step int
+ *                                   NULL,
+ *                                   step,
+ *                                   lr,
+ *                                   beta1,
+ *                                   beta2,
+ *                                   weight_decay,
+ *                                   eps,
+ *                                   -1,     // step_size
+ *                                   true,   // correct_bias
+ *                                   NULL,   // Unused gradScale Tensor because not amp
+ *                                   NULL,
+ *                                   NULL,   // Unused foundInf Tensor because not amp
+ *                                   NULL);
  *
  * // Execute Amp Adam
- * miopenTransformersAdamWithOutput(handle,
- *                           paramInDesc,
- *                           paramIn,
- *                           paramOutDesc,
- *                           paramOut,
- *                           paramOutFloat16Desc,  // paramOutFloat16 tensor is optional in amp
- *                           paramOutFloat16,
- *                           gradInDesc,
- *                           gradIn,
- *                           expAvgInDesc,
- *                           expAvgIn,
- *                           expAvgOutDesc,
- *                           expAvgOut,
- *                           expAvgInSqDesc,
- *                           expAvgSqIn,
- *                           expAvgSqIn,
- *                           expAvgSqOutDesc,
- *                           expAvgSqOut,
- *                           NULL,         // Unused maxExpAvgSqIn tensor because amsgrad is false
- *                           NULL,
- *                           NULL,         // Unused maxExpAvgSqOut tensor because amsgrad is false
- *                           NULL,
- *                           stateStepInDesc,
- *                           stateStepIn,
- *                           stateStepOutDesc,
- *                           stateStepOut
- *                           -1,           // Ignore step value because stateStep Tensor is used
- *                           lr, beta1, beta2, weight_decay, eps,
- *                           false,        // amsgrad
- *                           false,        // maximize
- *                           false,        // adamw
- *                           gradScaleDesc,
- *                           gradScale,
- *                           foundInfDesc,
- *                           foundInf);
+ * miopenTransformersAdamWWithOutput(handle,
+ *                                   paramInDesc,
+ *                                   paramIn,
+ *                                   paramOutDesc,
+ *                                   paramOut,
+ *                                   paramOutFloat16Desc,  // optional in amp
+ *                                   paramOutFloat16,
+ *                                   gradInDesc,
+ *                                   gradIn,
+ *                                   expAvgInDesc,
+ *                                   expAvgIn,
+ *                                   expAvgOutDesc,
+ *                                   expAvgOut,
+ *                                   expAvgInSqDesc,
+ *                                   expAvgSqIn,
+ *                                   expAvgSqIn,
+ *                                   expAvgSqOutDesc,
+ *                                   expAvgSqOut,
+ *                                   stateStepInDesc,
+ *                                   stateStepIn,
+ *                                   stateStepOutDesc,
+ *                                   stateStepOut
+ *                                   -1,   // Ignore step value because stateStep Tensor is used
+ *                                   lr,
+ *                                   beta1,
+ *                                   beta2,
+ *                                   weight_decay,
+ *                                   eps,
+ *                                   -1,   // step_size
+ *                                   true, // correct_bias
+ *                                   NULL, // Unused gradScale Tensor because not amp
+ *                                   NULL,
+ *                                   NULL, // Unused foundInf Tensor because not amp
+ *                                   NULL);
  * @endcode
  *
  * @param handle              MIOpen handle (input)
@@ -7362,7 +7333,9 @@ MIOPEN_EXPORT miopenStatus_t miopenTransformersAdamW(miopenHandle_t handle,
  *                            gradient (input)
  * @param weight_decay        Weight decay (input)
  * @param eps                 Term added to the denominator to improve numerical stability (input)
- * @param correct_bias
+ * @param step_size           Pre-calculated step_size, used for performance enhancement (input)
+ * @param correct_bias        Whether or not to correct bias in Adam (for instance, in Bert TF
+ *                            repository they use False) (input)
  * @param gradScaleDesc       Tensor descriptor for the input grad scale tensor (input, optional)
  * @param gradScale           Input grad scale tensor (input, optional)
  * @param foundInfDesc        Tensor descriptor for the input found inf tensor (input, optional)
