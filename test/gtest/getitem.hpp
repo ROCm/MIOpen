@@ -25,54 +25,14 @@
  *******************************************************************************/
 
 #include "../driver/tensor_driver.hpp"
-#include "../src/kernels/tensor_view.hpp"
+#include "../src/include/miopen/item/utils.hpp"
 #include "get_handle.hpp"
 #include "random.hpp"
 #include "tensor_holder.hpp"
-#include "tensor_view.hpp"
 #include "verify.hpp"
 #include <gtest/gtest.h>
 #include <miopen/getitem.hpp>
 #include <miopen/miopen.h>
-
-tensor_view_5d_t get_inner_expanded_tv(const miopen::TensorDescriptor Desc)
-{
-    auto dims    = Desc.GetLengths();
-    auto strides = Desc.GetStrides();
-
-    tensor_view_5d_t tv_5d;
-    for(size_t i = 0; i < strides.size(); ++i)
-    {
-        tv_5d.stride[i] = strides[i];
-        tv_5d.size[i]   = dims[i];
-    }
-    auto rest = strides.size();
-    for(size_t j = rest; j < 5; ++j)
-    {
-        tv_5d.stride[j] = (rest == 0 ? 1 : strides[rest - 1]);
-        tv_5d.size[j]   = 1;
-    }
-    return tv_5d;
-}
-
-void slice_tv(tensor_view_5d_t& tv_5d, int32_t sliceCount, const int32_t* slices)
-{
-    for(int32_t i = 0; i < sliceCount; i++)
-    {
-        int32_t dim   = slices[4 * i + 0];
-        int32_t start = slices[4 * i + 1];
-        int32_t end   = slices[4 * i + 2];
-        int32_t step  = slices[4 * i + 3];
-
-        if(end > static_cast<int32_t>(tv_5d.size[dim]))
-            end = tv_5d.size[dim];
-
-        auto len = end - start;
-
-        tv_5d.size[dim] = (len + step - 1) / step;
-        tv_5d.stride[dim] *= step;
-    }
-}
 
 template <class T>
 void cpu_getitem_backward(tensor<T> dy,
@@ -103,9 +63,9 @@ void cpu_getitem_backward(tensor<T> dy,
     auto dim_info_offset = indexCount > 0 ? indexCount * index_dims[0] : 0;
     auto start_dim       = dims[0];
 
-    auto dy_tv     = get_inner_expanded_tv(dy.desc);
-    auto ref_dx_tv = get_inner_expanded_tv(ref_dx.desc);
-    slice_tv(ref_dx_tv, sliceCount, slices);
+    auto dy_tv     = miopen::solver::item::get_inner_expanded_tv<5>(dy.desc);
+    auto ref_dx_tv = miopen::solver::item::get_inner_expanded_tv<5>(ref_dx.desc);
+    miopen::solver::item::slice_tv<5>(ref_dx_tv, sliceCount, slices);
 
     // Get element index form indexs
     for(int j = 0; j < indexCount; j++)
@@ -138,36 +98,30 @@ void cpu_getitem_backward(tensor<T> dy,
 
     // GetItem
     par_ford(dy_numel)([&](int32_t o) {
-        size_t NCDHW[5], idx[5];
-        GET_NCDHW(NCDHW[0], NCDHW[1], NCDHW[2], NCDHW[3], NCDHW[4], o, dy_tv);
-
-        for(int i = 0; i < 5; i++)
-        {
-            idx[i] = NCDHW[i];
-        }
+        tensor_layerout_t<5> ncdhw(dy_tv, o);
+        tensor_layerout_t<5> idx(ncdhw);
 
         if(indexCount > 0)
         {
-            size_t dim_cursor = NCDHW[start_dim];
+            size_t dim_cursor = ncdhw.layerout[start_dim];
             size_t i          = start_dim;
             size_t j          = 0;
 
             for(; i < start_dim + indexCount; ++i, ++j)
             {
-                size_t dim_idx = element_index[dim_info_offset + j];
-                idx[dim_idx]   = element_index[(dim_cursor * indexCount) + j];
+                size_t dim_idx        = element_index[dim_info_offset + j];
+                idx.layerout[dim_idx] = element_index[(dim_cursor * indexCount) + j];
             }
 
             i          = element_index[dim_info_offset + indexCount - 1] + 1;
             dim_cursor = start_dim + 1;
             for(; i < 5; ++i, ++dim_cursor)
             {
-                idx[i] = NCDHW[dim_cursor];
+                idx.layerout[i] = ncdhw.layerout[dim_cursor];
             }
         }
 
-        ref_dx[TV5D_IDX(ref_dx_tv, idx[0] + offset, idx[1], idx[2], idx[3], idx[4])] +=
-            dy[TV5D_IDX(dy_tv, NCDHW[0] + offset, NCDHW[1], NCDHW[2], NCDHW[3], NCDHW[4])];
+        ref_dx[ref_dx_tv.get_tensor_view_idx(idx)] += dy[dy_tv.get_tensor_view_idx(ncdhw)];
     });
 }
 

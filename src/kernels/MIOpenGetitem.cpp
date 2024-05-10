@@ -40,19 +40,18 @@ __device__ void getitembuildindices(const IDX* __restrict__ index,
                                     int32_t index_dim,
                                     int32_t indexCount,
                                     int32_t dim_size,
-                                    tensor_view_5d_t index_tv,
+                                    tensor_view_t<5> index_tv,
                                     int32_t dim_offset,
                                     int32_t dim_info_offset)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
-    uint64_t NCDHW[5];
-    GET_NCDHW(NCDHW[0], NCDHW[1], NCDHW[2], NCDHW[3], NCDHW[4], gid, index_tv);
+    tensor_layerout_t<5> ncdhw(index_tv, gid);
 
-    if(NCDHW[0] >= index_tv.size[0])
+    if(ncdhw.layerout[0] >= index_tv.size[0])
         return;
 
-    uint64_t idx      = TV5D_IDX(index_tv, NCDHW[0], NCDHW[1], NCDHW[2], NCDHW[3], NCDHW[4]);
+    uint64_t idx      = index_tv.get_tensor_view_idx(ncdhw);
     IDX getitem_index = index[idx];
 
     if(getitem_index >= 0 && getitem_index < dim_size)
@@ -80,50 +79,45 @@ __device__ void getitembwd(const TI* __restrict__ dy,
                            TO* __restrict__ dx,
                            int32_t start_dim,
                            int32_t indexCount,
-                           tensor_view_5d_t dy_tv,
-                           tensor_view_5d_t dx_tv,
+                           tensor_view_t<5> dy_tv,
+                           tensor_view_t<5> dx_tv,
                            int32_t dim_info_offset,
                            int32_t offset)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
-    uint64_t NCDHW[5];
+    tensor_layerout_t<5> ncdhw(dy_tv, gid);
 
-    GET_NCDHW(NCDHW[0], NCDHW[1], NCDHW[2], NCDHW[3], NCDHW[4], gid, dy_tv);
-
-    if(NCDHW[0] >= dy_tv.size[0])
+    if(ncdhw.layerout[0] >= dy_tv.size[0])
         return;
 
-    uint64_t idx[5];
-    for(uint64_t i = 0; i < 5; ++i)
-    {
-        idx[i] = NCDHW[i];
-    }
+    tensor_layerout_t<5> idx(ncdhw);
 
     if(indexCount > 0)
     {
-        int32_t dim_cursor = NCDHW[start_dim];
+        int32_t dim_cursor = ncdhw.layerout[start_dim];
         int32_t i          = start_dim;
         int32_t j          = 0;
 
         for(; i < start_dim + indexCount; ++i, ++j)
         {
             uint64_t dim_idx = static_cast<uint64_t>(element_index[dim_info_offset + j]);
-            idx[dim_idx]     = static_cast<uint64_t>(element_index[(dim_cursor * indexCount) + j]);
+            idx.layerout[dim_idx] =
+                static_cast<uint64_t>(element_index[(dim_cursor * indexCount) + j]);
         }
 
         i          = element_index[dim_info_offset + indexCount - 1] + 1;
         dim_cursor = start_dim + 1;
         for(; i < 5; ++i, ++dim_cursor)
         {
-            idx[i] = NCDHW[dim_cursor];
+            idx.layerout[i] = ncdhw.layerout[dim_cursor];
         }
     }
 
-    atomic_add_g(
-        &TV_5D_AT(dx, idx[0] + static_cast<uint64_t>(offset), idx[1], idx[2], idx[3], idx[4]),
-        TV_5D_AT(
-            dy, NCDHW[0] + static_cast<uint64_t>(offset), NCDHW[1], NCDHW[2], NCDHW[3], NCDHW[4]));
+    idx.layerout[0] += offset;
+    ncdhw.layerout[0] += offset;
+
+    atomic_add_g(&dx[dx_tv.get_tensor_view_idx(idx)], dy[dy_tv.get_tensor_view_idx(ncdhw)]);
 }
 
 extern "C" __global__ void GetItemBuildIndices(const INDEX_TYPE* __restrict__ index,
@@ -132,7 +126,7 @@ extern "C" __global__ void GetItemBuildIndices(const INDEX_TYPE* __restrict__ in
                                                int32_t index_dim,
                                                int32_t indexCount,
                                                int32_t dim_size,
-                                               tensor_view_5d_t index_tv,
+                                               tensor_view_t<5> index_tv,
                                                int32_t dim_offset,
                                                int32_t dim_info_offset)
 {
@@ -153,8 +147,8 @@ extern "C" __global__ void GetitemBwd(const INPUT_TYPE* __restrict__ dy,
                                       OUTPUT_TYPE* __restrict__ dx,
                                       int32_t start_dim,
                                       int32_t indexCount,
-                                      tensor_view_5d_t dy_tv,
-                                      tensor_view_5d_t dx_tv,
+                                      tensor_view_t<5> dy_tv,
+                                      tensor_view_t<5> dx_tv,
                                       int32_t dim_info_offset,
                                       int32_t offset)
 {

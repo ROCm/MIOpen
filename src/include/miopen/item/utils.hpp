@@ -25,39 +25,36 @@
  *******************************************************************************/
 #pragma once
 
+#include "../src/kernels/tensor_view.hpp"
 #include <miopen/item/solvers.hpp>
 
 namespace miopen {
 namespace solver {
 namespace item {
 
-using tensor_view_5d_t = struct
-{
-    size_t stride[5];
-    size_t size[5];
-};
-
-inline tensor_view_5d_t get_inner_expanded_tv(const TensorDescriptor Desc)
+template <int N>
+inline tensor_view_t<N> get_inner_expanded_tv(const TensorDescriptor Desc)
 {
     auto dims    = Desc.GetLengths();
     auto strides = Desc.GetStrides();
 
-    tensor_view_5d_t tv_5d;
+    tensor_view_t<N> tensor_view;
     for(size_t i = 0; i < strides.size(); ++i)
     {
-        tv_5d.stride[i] = strides[i];
-        tv_5d.size[i]   = dims[i];
+        tensor_view.stride[i] = strides[i];
+        tensor_view.size[i]   = dims[i];
     }
     auto rest = strides.size();
     for(size_t j = rest; j < 5; ++j)
     {
-        tv_5d.stride[j] = (rest == 0 ? 1 : strides[rest - 1]);
-        tv_5d.size[j]   = 1;
+        tensor_view.stride[j] = (rest == 0 ? 1 : strides[rest - 1]);
+        tensor_view.size[j]   = 1;
     }
-    return tv_5d;
+    return tensor_view;
 }
 
-inline void slice_tv(tensor_view_5d_t& tv_5d, int32_t sliceCount, const int32_t* slices)
+template <int N>
+inline void slice_tv(tensor_view_t<N>& tensor_view, int32_t sliceCount, const int32_t* slices)
 {
     for(int32_t i = 0; i < sliceCount; i++)
     {
@@ -66,13 +63,13 @@ inline void slice_tv(tensor_view_5d_t& tv_5d, int32_t sliceCount, const int32_t*
         int32_t end   = slices[4 * i + 2];
         int32_t step  = slices[4 * i + 3];
 
-        if(end > static_cast<int32_t>(tv_5d.size[dim]))
-            end = tv_5d.size[dim];
+        if(end > static_cast<int32_t>(tensor_view.size[dim]))
+            end = tensor_view.size[dim];
 
         auto len = end - start;
 
-        tv_5d.size[dim] = (len + step - 1) / step;
-        tv_5d.stride[dim] *= step;
+        tensor_view.size[dim] = (len + step - 1) / step;
+        tensor_view.stride[dim] *= step;
     }
 }
 

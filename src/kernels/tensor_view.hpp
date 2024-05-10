@@ -33,33 +33,77 @@ typedef struct
     uint64_t size[5];
 } tensor_view_5d_t;
 
-// Get index by n
-#define TV_IDX(tv, d, n) (tv.stride[d] * (n))
-// Get index by n0
-#define TV1D_IDX(tv, n0) (TV_IDX(tv, 0, n0))
-// Get index by n0 n1
-#define TV2D_IDX(tv, n0, n1) (TV_IDX(tv, 1, n1) + TV1D_IDX(tv, n0))
-// Get index by n0 n1 n2
-#define TV3D_IDX(tv, n0, n1, n2) (TV_IDX(tv, 2, n2) + TV2D_IDX(tv, n0, n1))
-// Get index by n0 n1 n2 n3
-#define TV4D_IDX(tv, n0, n1, n2, n3) (TV_IDX(tv, 3, n3) + TV3D_IDX(tv, n0, n1, n2))
-// Get index by n0 n1 n2 n3 n4
-#define TV5D_IDX(tv, n0, n1, n2, n3, n4) (TV_IDX(tv, 4, n4) + TV4D_IDX(tv, n0, n1, n2, n3))
+template <int N>
+struct tensor_layerout_t;
 
-// Get value by n0 n1 n2 n3 n4
-#define TV_5D_AT(x, n0, n1, n2, n3, n4) (x[TV5D_IDX(x##_tv, n0, n1, n2, n3, n4)])
-
-// Get n c d h w by index
-#define GET_NCDHW(n, c, d, h, w, idx, tv) \
-    {                                     \
-        ulong ncdh = (idx) / tv.size[4];  \
-        w          = (idx) % tv.size[4];  \
-        ulong ncd  = ncdh / tv.size[3];   \
-        h          = ncdh % tv.size[3];   \
-        ulong nc   = ncd / tv.size[2];    \
-        d          = ncd % tv.size[2];    \
-        n          = nc / tv.size[1];     \
-        c          = nc % tv.size[1];     \
+template <int N>
+struct tensor_view_t
+{
+    // Get tensor view index at tensor layout
+    constexpr uint64_t get_tensor_view_idx(tensor_layerout_t<N> tensor_layout)
+    {
+        uint64_t idx = 0;
+        for(auto i = 0; i < N; ++i)
+        {
+            idx += stride[i] * tensor_layout.layerout[i];
+        }
+        return idx;
     }
+    uint64_t stride[N];
+    uint64_t size[N];
+};
+
+template <int N>
+struct tensor_layerout_t
+{
+    constexpr tensor_layerout_t(tensor_layerout_t<N>& tensor_layerout)
+    {
+        for(auto i = 0; i < N; ++i)
+        {
+            layerout[i] = tensor_layerout.layerout[i];
+        }
+    }
+
+    // Make tensor layout at index using tensor view
+    constexpr tensor_layerout_t(tensor_view_t<N>& tensor_view, uint64_t idx)
+    {
+        uint64_t temp = idx;
+        if(N == 1)
+        {
+            layerout[0] = idx;
+        }
+        else
+        {
+            for(auto i = N - 1; i >= 1; --i)
+            {
+                if(i > 1)
+                {
+                    layerout[i] = (temp) % tensor_view.size[i];
+                }
+                else
+                {
+                    layerout[i - 1] = temp / tensor_view.size[i];
+                    layerout[i]     = temp % tensor_view.size[i];
+                }
+                temp = idx / tensor_view.size[i];
+            }
+        }
+    }
+    constexpr tensor_layerout_t(tensor_layerout_t<N>& tensor_layerout, uint64_t offset)
+    {
+        for(auto i = 0; i < N; ++i)
+        {
+            if(i == 0)
+            {
+                layerout[i] = tensor_layerout.layerout[i] + offset;
+            }
+            else
+            {
+                layerout[i] = tensor_layerout.layerout[i];
+            }
+        }
+    }
+    uint64_t layerout[N];
+};
 
 #endif // GUARD_TENSOR_VIEW_H

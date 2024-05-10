@@ -41,46 +41,7 @@
 #include <vector>
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
-#include "../src/kernels/tensor_view.hpp"
-
-tensor_view_5d_t get_inner_expanded_tv(const miopen::TensorDescriptor Desc)
-{
-    auto dims    = Desc.GetLengths();
-    auto strides = Desc.GetStrides();
-
-    tensor_view_5d_t tv_5d;
-    for(size_t i = 0; i < strides.size(); ++i)
-    {
-        tv_5d.stride[i] = strides[i];
-        tv_5d.size[i]   = dims[i];
-    }
-    auto rest = strides.size();
-    for(size_t j = rest; j < 5; ++j)
-    {
-        tv_5d.stride[j] = (rest == 0 ? 1 : strides[rest - 1]);
-        tv_5d.size[j]   = 1;
-    }
-    return tv_5d;
-}
-
-void slice_tv(tensor_view_5d_t& tv_5d, int32_t sliceCount, const int32_t* slices)
-{
-    for(int32_t i = 0; i < sliceCount; i++)
-    {
-        int32_t dim   = slices[4 * i + 0];
-        int32_t start = slices[4 * i + 1];
-        int32_t end   = slices[4 * i + 2];
-        int32_t step  = slices[4 * i + 3];
-
-        if(end > static_cast<int32_t>(tv_5d.size[dim]))
-            end = tv_5d.size[dim];
-
-        auto len = end - start;
-
-        tv_5d.size[dim] = (len + step - 1) / step;
-        tv_5d.stride[dim] *= step;
-    }
-}
+#include "../src/include/miopen/item/utils.hpp"
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
@@ -115,9 +76,9 @@ int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
     auto dim_info_offset = indexCount > 0 ? indexCount * index_dims[0] : 0;
     auto start_dim       = dims[0];
 
-    auto dy_tv     = get_inner_expanded_tv(miopen::deref(dyDesc));
-    auto dxhost_tv = get_inner_expanded_tv(miopen::deref(dxDesc));
-    slice_tv(dxhost_tv, sliceCount, slices);
+    auto dy_tv     = miopen::solver::item::get_inner_expanded_tv<5>(miopen::deref(dyDesc));
+    auto dxhost_tv = miopen::solver::item::get_inner_expanded_tv<5>(miopen::deref(dxDesc));
+    miopen::solver::item::slice_tv<5>(dxhost_tv, sliceCount, slices);
 
     int32_t ret = 0;
 
@@ -154,36 +115,30 @@ int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
     // GetItem
     for(size_t o = 0; o < dy_numel; o++)
     {
-        size_t NCDHW[5], idx[5];
-        GET_NCDHW(NCDHW[0], NCDHW[1], NCDHW[2], NCDHW[3], NCDHW[4], o, dy_tv);
-
-        for(int i = 0; i < 5; i++)
-        {
-            idx[i] = NCDHW[i];
-        }
+        tensor_layerout_t<5> ncdhw(dy_tv, o);
+        tensor_layerout_t<5> idx(ncdhw);
 
         if(indexCount > 0)
         {
-            size_t dim_cursor = NCDHW[start_dim];
+            size_t dim_cursor = ncdhw.layerout[start_dim];
             size_t i          = start_dim;
             size_t j          = 0;
 
             for(; i < start_dim + indexCount; ++i, ++j)
             {
-                size_t dim_idx = element_index[dim_info_offset + j];
-                idx[dim_idx]   = element_index[(dim_cursor * indexCount) + j];
+                size_t dim_idx        = element_index[dim_info_offset + j];
+                idx.layerout[dim_idx] = element_index[(dim_cursor * indexCount) + j];
             }
 
             i          = element_index[dim_info_offset + indexCount - 1] + 1;
             dim_cursor = start_dim + 1;
             for(; i < 5; ++i, ++dim_cursor)
             {
-                idx[i] = NCDHW[dim_cursor];
+                idx.layerout[i] = ncdhw.layerout[dim_cursor];
             }
         }
 
-        dxhost[TV5D_IDX(dxhost_tv, idx[0] + offset, idx[1], idx[2], idx[3], idx[4])] +=
-            dy[TV5D_IDX(dy_tv, NCDHW[0] + offset, NCDHW[1], NCDHW[2], NCDHW[3], NCDHW[4])];
+        dxhost[dxhost_tv.get_tensor_view_idx(idx)] += dy[dy_tv.get_tensor_view_idx(ncdhw)];
     }
 
     return ret;

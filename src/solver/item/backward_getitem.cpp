@@ -188,10 +188,10 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& /*context*/,
             auto dim_info_offset =
                 indexCount > 0 ? indexCount * static_cast<int32_t>(index_dims[0]) : 0;
 
-            auto dy_tv = get_inner_expanded_tv(params.dyDesc);
-            auto dx_tv = get_inner_expanded_tv(params.dxDesc);
+            auto dy_tv = get_inner_expanded_tv<5>(params.dyDesc);
+            auto dx_tv = get_inner_expanded_tv<5>(params.dxDesc);
 
-            slice_tv(dx_tv, sliceCount, slices);
+            slice_tv<5>(dx_tv, sliceCount, slices);
 
             auto elapsed = 0.f;
             HipEventPtr start;
@@ -203,7 +203,7 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& /*context*/,
 
                 auto index_dim  = dims[i];
                 auto dim_size   = output_dims[i];
-                auto index_tv   = get_inner_expanded_tv(*params.indexDescs[i]);
+                auto index_tv   = get_inner_expanded_tv<5>(*params.indexDescs[i]);
                 auto dim_offset = i;
 
                 if((i == 0) && handle_.IsProfilingEnabled())
