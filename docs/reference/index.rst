@@ -31,7 +31,6 @@ The MIOpen API library is structured as follows:
   * :doc:`Sum <../doxygen/html/group__sum>` (experimental)
   * :doc:`GroupNorm <../doxygen/html/group__groupnorm>` (experimental)
   * :doc:`Cat <../doxygen/html/group__cat>` (experimental)
-  * :doc:`Getitem <../doxygen/html/group__getitem>` (experimental)
-  * :doc:`Argmax<../doxygen/html/group__argmax>` (experimental)
   * :doc:`SGD <../doxygen/html/group___s_g_d>` (experimental)
-
+  * :doc:`ReduceExtreme <../doxygen/html/group__ReduceExtreme>` (experimental)
+  * :doc:`Getitem <../doxygen/html/group__getitem>` (experimental)

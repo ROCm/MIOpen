@@ -65,7 +65,7 @@
  * @defgroup TensorReduce
  * @defgroup find2
  * @defgroup sum
- * @defgroup argmax
+ * @defgroup ReduceExtreme
  * @defgroup groupnorm
  * @defgroup cat
  * @defgroup SGD
@@ -5790,7 +5790,7 @@ typedef enum
  *
  * @param handle                   MIOpen Handle (input)
  * @param xDesc                    Tensor descriptor for data input tensor x (input)
- * @param dim                      Dimensions to sum. (input)
+ * @param dim                      Dimension to sum. (input)
  * @param yDesc                    Tensor descriptor for output data tensor y (input)
  * @param sizeInBytes              Pointer to data to return the minimum workspace size
  * @return                         miopenStatus_t
@@ -5809,7 +5809,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetSumWorkspaceSize(miopenHandle_t handle,
  * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
  * @param xDesc                    Tensor descriptor for data input tensor x (input)
  * @param x                        Data tensor x (input)
- * @param dim                      Dimensions to sum. (input)
+ * @param dim                      Dimension to sum. (input)
  * @param yDesc                    Tensor descriptor for output data tensor y (input)
  * @param y                        Data tensor y (output)
  * @return                         miopenStatus_t
@@ -5829,29 +5829,56 @@ MIOPEN_EXPORT miopenStatus_t miopenSumForward(miopenHandle_t handle,
 #endif
 
 #ifdef MIOPEN_BETA_API
-// Argmax APIs
-/*! @addtogroup argmax
- *
- * @{
+
+/*! @ingroup ReduceExtreme
+ * @enum miopenReduceExtremeOp_t
+ * Reduction Extreme operation types
  */
-/*! @brief Find the index of the maximum value of a tensor across dimensions.
- * To enable this, define `MIOPEN_BETA_API` before including `miopen.h`.
+typedef enum
+{
+    MIOPEN_REDUCE_EXTREME_ARGMIN =
+        1, /*!< the operation is getting the minimum index of the reduced elements */
+    MIOPEN_REDUCE_EXTREME_ARGMAX =
+        2, /*!< the operation is getting the maximum index of the reduced elements */
+    MIOPEN_REDUCE_EXTREME_MIN =
+        3, /*!< the operation is getting the minimum value and index of the reduced elements */
+    MIOPEN_REDUCE_EXTREME_MAX =
+        4, /*!< the operation is getting the maximum value and index of the reduced elements */
+} miopenReduceExtremeOp_t;
+
+// ReduceExtreme APIs
+/** @addtogroup ReduceExtreme
+ *
+ *  @{
+ */
+
+/*! @brief Find the the extreme (minimum, maximum) value and index of a tensor across Dimension.
  *
  * @param handle                   MIOpen handle (input)
  * @param xDesc                    Tensor descriptor for data input tensor x (input)
  * @param x                        Data tensor x (input)
- * @param dim                      Dimensions to reduce argmax. (input)
- * @param yDesc                    Tensor descriptor for output indice data tensor y (input)
+ * @param dim                      Dimension to reduce argmax. (input)
+ * @param reduceExtremeOp          Enumerant specifying the operation used by ReduceExtreme (input)
+ * @param yDesc                    Tensor descriptor for reduce data tensor y (input)
  * @param y                        Data tensor y (output)
+ * @param indiceDesc               Tensor descriptor for reduce data tensor indice only int32_t
+ * (input)
+ * @param indice                   Data tensor indice (output)
  * @return                         miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t miopenArgmaxForward(miopenHandle_t handle,
-                                                 const miopenTensorDescriptor_t xDesc,
-                                                 const void* x,
-                                                 const int32_t dim,
-                                                 const miopenTensorDescriptor_t yDesc,
-                                                 void* y);
+MIOPEN_EXPORT miopenStatus_t
+miopenReduceExtremeForward(miopenHandle_t handle,
+                           const miopenTensorDescriptor_t xDesc,
+                           const void* x,
+                           const int32_t dim,
+                           const miopenReduceExtremeOp_t reduceExtremeOp,
+                           const miopenTensorDescriptor_t yDesc,
+                           void* y,
+                           const miopenTensorDescriptor_t indiceDesc,
+                           void* indice);
+
 /** @} */
+// CLOSEOUT REDUCEEXTREME DOXYGEN GROUP
 #endif
 
 #ifdef MIOPEN_BETA_API

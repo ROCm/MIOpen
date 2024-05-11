@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,44 +23,33 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CPU_ARGMAX_HPP
-#define GUARD_CPU_ARGMAX_HPP
+#ifndef MIOPEN_REDUCEEXTREME_HPP_
+#define MIOPEN_REDUCEEXTREME_HPP_
 
-#include "tensor_holder.hpp"
+#include <miopen/common.hpp>
 
-template <class T>
-void cpu_argmax_forward(tensor<T> input, tensor<int>& ref_output, int32_t dim)
-{
-    auto input_dims  = input.desc.GetLengths();
-    auto output_dims = ref_output.desc.GetLengths();
+namespace miopen {
 
-    auto reduce_size = input_dims[dim];
-    auto output_numel =
-        std::accumulate(output_dims.begin(), output_dims.end(), 1LL, std::multiplies<int64_t>());
+struct Handle;
+struct TensorDescriptor;
 
-    auto inner_size = 1ULL;
-    for(int32_t i = dim + 1; i < input_dims.size(); i++)
-    {
-        inner_size *= input_dims[i];
-    }
+miopenStatus_t ReduceExtremeForward(Handle& handle,
+                                    const TensorDescriptor& xDesc,
+                                    ConstData_t x,
+                                    const TensorDescriptor& indiceDesc,
+                                    Data_t indice,
+                                    int32_t dim,
+                                    miopenReduceExtremeOp_t reduceExtremeOp);
 
-    par_ford(output_numel)([&](size_t o) {
-        size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
+miopenStatus_t ReduceExtremeForward(Handle& handle,
+                                    const TensorDescriptor& xDesc,
+                                    ConstData_t x,
+                                    const TensorDescriptor& yDesc,
+                                    Data_t y,
+                                    const TensorDescriptor& indiceDesc,
+                                    Data_t indice,
+                                    int32_t dim,
+                                    miopenReduceExtremeOp_t reduceExtremeOp);
 
-        int32_t max_idx = 0;
-        T max           = input[input_idx];
-
-        ford(reduce_size)([&](size_t i) {
-            T val = input[input_idx];
-            if(max < val)
-            {
-                max     = val;
-                max_idx = i;
-            }
-            input_idx += inner_size;
-        });
-
-        ref_output[o] = max_idx;
-    });
-}
-#endif
+} // namespace miopen
+#endif // MIOPEN_REDUCEEXTREME_HPP_
