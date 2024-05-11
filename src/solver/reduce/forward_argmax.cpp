@@ -40,7 +40,7 @@ namespace reduce {
 
 size_t ArgmaxForward::XGridSize(std::vector<size_t> indicedims) const
 {
-    auto indice_numel =
+    size_t indice_numel =
         std::accumulate(indicedims.begin(), indicedims.end(), 1ULL, std::multiplies<size_t>());
     return AlignUp(indice_numel, LOCAL_SIZE);
 }
