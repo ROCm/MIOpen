@@ -259,6 +259,8 @@ static void EvaluateInvokers(Handle& handle,
         const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
         try
         {
+            invoker(handle, invoke_ctx); // Dry-run once to warm-up.
+
             constexpr int N_RUNS = 5;
             miopen::Timer timer;
             using elapsed_t = decltype(timer.elapsed_ms());

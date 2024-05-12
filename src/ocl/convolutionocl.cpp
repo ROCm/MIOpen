@@ -307,7 +307,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         return tmp;
     }();
 
-    const auto invoke_ctx = conv::DataInvokeParams{InvokeType::Evaluate,
+    const auto invoke_ctx = conv::DataInvokeParams{InvokeType::Run,
                                                    {xDesc, x, wDesc, w, yDesc, y},
                                                    workSpace,
                                                    workSpaceSize,
@@ -895,7 +895,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         return tmp;
     }();
 
-    const auto invoke_ctx = conv::DataInvokeParams{InvokeType::Evaluate,
+    const auto invoke_ctx = conv::DataInvokeParams{InvokeType::Run,
                                                    {dyDesc, dy, wDesc, w, dxDesc, dx},
                                                    workSpace,
                                                    workSpaceSize,
@@ -1106,7 +1106,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         return tmp;
     }();
 
-    const auto invoke_ctx = conv::WrWInvokeParams{InvokeType::Evaluate,
+    const auto invoke_ctx = conv::WrWInvokeParams{InvokeType::Run,
                                                   {dyDesc, dy, xDesc, x, dwDesc, dw},
                                                   workSpace,
                                                   workSpaceSize,
