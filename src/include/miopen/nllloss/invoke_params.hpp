@@ -30,6 +30,8 @@
 #include <miopen/invoke_params.hpp>
 #include <miopen/tensor.hpp>
 
+#include <limits>
+
 namespace miopen {
 namespace nllloss {
 
@@ -49,9 +51,12 @@ struct InvokeParams : public miopen::InvokeParams
     Data_t output      = nullptr;
 
     int32_t ignore_index = -1;
+    float divisor              = std::numeric_limits<float>::quiet_NaN();
+    Data_t workspace           = nullptr;
+    std::size_t workspace_size = 0;
 
-    std::size_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
+    std::size_t GetWorkspaceSize() const { return workspace_size; }
+    Data_t GetWorkspace() const { return workspace; }
 };
 
 struct BwdInvokeParams : public miopen::InvokeParams
@@ -70,9 +75,12 @@ struct BwdInvokeParams : public miopen::InvokeParams
     ConstData_t output_grad = nullptr;
 
     int32_t ignore_index = -1;
+    float divisor              = std::numeric_limits<float>::quiet_NaN();
+    Data_t workspace           = nullptr;
+    std::size_t workspace_size = 0;
 
-    std::size_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
+    std::size_t GetWorkspaceSize() const { return workspace_size; }
+    Data_t GetWorkspace() const { return workspace; }
 };
 
 } // namespace nllloss

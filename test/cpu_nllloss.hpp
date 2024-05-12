@@ -71,6 +71,75 @@ void cpu_nllloss_forward_4d(tensor<T> input,
 }
 
 template <class T>
+void cpu_nllloss_reduce_forward_4d(tensor<T> input,
+                                   tensor<int32_t> target,
+                                   tensor<T> weight,
+                                   tensor<T>& output,
+                                   tensor<T>& workspace,
+                                   int32_t ignore_index,
+                                   float divisor)
+{
+    auto dims = input.desc.GetLengths();
+    size_t N  = dims[0];
+    size_t C  = dims[1];
+    size_t D1 = dims[2];
+    size_t D2 = dims[3];
+
+    auto I_tv = get_inner_expanded_tv_4d(input.desc);
+    auto T_tv = get_inner_expanded_tv_3d(target.desc);
+    auto W_tv = get_inner_expanded_tv_1d(weight.desc);
+
+    for(size_t i = 0; i < N * D1 * D2; i++)
+    {
+        uint64_t n[3];
+        GET_NCD(n[0], n[1], n[2], i, T_tv);
+        size_t target_index = TV3D_IDX(T_tv, n[0], n[1], n[2]);
+        int32_t t           = target[target_index];
+        size_t input_index  = TV4D_IDX(I_tv, n[0], t, n[1], n[2]);
+        size_t weight_index = TV1D_IDX(W_tv, t);
+
+        if(t < 0 || t == ignore_index || t >= C)
+        {
+            workspace[target_index] = static_cast<T>(0);
+        }
+        else
+        {
+            workspace[target_index] =
+                (static_cast<T>(-1.0f) * weight[weight_index] * input[input_index]) /
+                static_cast<T>(divisor);
+        }
+    }
+
+    auto reduce_size     = N * D1 * D2;
+    const int local_size = 256;
+    int offset_a         = 0;
+    int offset_b         = reduce_size;
+    size_t _size         = reduce_size;
+    do
+    {
+        for(int i = 0; i < _size; i += local_size)
+        {
+            T shared[local_size];
+            par_ford(local_size)([&](size_t j) {
+                shared[j] = i + j < _size ? workspace[offset_a + i + j] : static_cast<T>(0.0f);
+            });
+            for(int offset = local_size / 2; offset > 0; offset >>= 1)
+                ford(local_size)([&](size_t j) {
+                    if(j < offset)
+                        shared[j] += shared[j + offset];
+                });
+            if(_size <= local_size)
+                output[0] = shared[0];
+            else
+                workspace[offset_b + i / local_size] = shared[0];
+        }
+        std::swap(offset_a, offset_b);
+        _size = (_size + local_size - 1) / local_size;
+    } while(_size > 1);
+    // printf("Output: %f\n", static_cast<float>(output[0]));
+}
+
+template <class T>
 void cpu_nllloss_backward_4d(tensor<T>& input_grad,
                              tensor<int32_t> target,
                              tensor<T> weight,
@@ -106,6 +175,46 @@ void cpu_nllloss_backward_4d(tensor<T>& input_grad,
         {
             input_grad[input_grad_index] =
                 static_cast<T>(-1.0f) * weight[weight_index] * output_grad[output_grad_index];
+        }
+    }
+}
+
+template <class T>
+void cpu_nllloss_reduce_backward_4d(tensor<T>& input_grad,
+                                    tensor<int32_t> target,
+                                    tensor<T> weight,
+                                    tensor<T> output_grad,
+                                    int32_t ignore_index,
+                                    float divisor)
+{
+    auto dims = input_grad.desc.GetLengths();
+    size_t N  = dims[0];
+    size_t C  = dims[1];
+    size_t D1 = dims[2];
+    size_t D2 = dims[3];
+
+    auto I_tv = get_inner_expanded_tv_4d(input_grad.desc);
+    auto T_tv = get_inner_expanded_tv_3d(target.desc);
+    auto W_tv = get_inner_expanded_tv_1d(weight.desc);
+
+    for(size_t i = 0; i < N * D1 * D2; i++)
+    {
+        uint64_t n[3];
+        GET_NCD(n[0], n[1], n[2], i, T_tv);
+        size_t target_index     = TV3D_IDX(T_tv, n[0], n[1], n[2]);
+        int32_t t               = target[target_index];
+        size_t input_grad_index = TV4D_IDX(I_tv, n[0], t, n[1], n[2]);
+        size_t weight_index     = TV1D_IDX(W_tv, t);
+
+        if(t < 0 || t == ignore_index || t >= C)
+        {
+            input_grad[input_grad_index] = static_cast<T>(0);
+        }
+        else
+        {
+            input_grad[input_grad_index] =
+                (static_cast<T>(-1.0f) * weight[weight_index] * output_grad[0]) /
+                static_cast<T>(divisor);
         }
     }
 }

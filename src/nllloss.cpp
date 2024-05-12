@@ -71,6 +71,68 @@ miopenStatus_t NLLLossUnreduceForward(Handle& handle,
     return miopenStatusSuccess;
 }
 
+size_t GetNLLLossReduceForwardWorkspaceSize(Handle& handle,
+                                            const TensorDescriptor& inputDesc,
+                                            const TensorDescriptor& targetDesc,
+                                            const TensorDescriptor& weightDesc,
+                                            const TensorDescriptor& outputDesc)
+{
+    auto ctx           = ExecutionContext{&handle};
+    const auto problem = nllloss::ReduceProblemDescription{inputDesc, targetDesc, 
+                                                           weightDesc, outputDesc, -1, true};
+
+    const auto algo = AlgorithmName{"NLLLossReduceForward"};
+    const auto solvers =
+        solver::SolverContainer<solver::nllloss::NLLLossReduceForward4d>{};
+
+    auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem);
+
+    return pair_size_vector.empty() ? static_cast<size_t>(-1) : pair_size_vector.front().second;
+}
+
+miopenStatus_t NLLLossReduceForward(Handle& handle,
+                                      Data_t workspace,
+                                      size_t workspaceSizeInBytes,
+                                      const TensorDescriptor& inputDesc,
+                                      ConstData_t input,
+                                      const TensorDescriptor& targetDesc,
+                                      ConstData_t target,
+                                      const TensorDescriptor& weightDesc,
+                                      ConstData_t weight,
+                                      const TensorDescriptor& outputDesc,
+                                      Data_t output,
+                                      int32_t ignore_index,
+                                      float divisor)
+{
+    const auto problem = nllloss::ReduceProblemDescription{
+        inputDesc, targetDesc, weightDesc, outputDesc, ignore_index, true};
+
+    const auto invoke_params = [&]() {
+        auto tmp       = nllloss::InvokeParams{};
+        tmp.inputDesc  = &inputDesc;
+        tmp.targetDesc = &targetDesc;
+        tmp.weightDesc = &weightDesc;
+        tmp.outputDesc = &outputDesc;
+
+        tmp.input        = input;
+        tmp.target       = target;
+        tmp.weight       = weight;
+        tmp.output       = output;
+        tmp.workspace    = workspace;
+        tmp.workspace_size = workspaceSizeInBytes;
+        tmp.ignore_index = ignore_index;
+        tmp.divisor      = divisor;
+        return tmp;
+    }();
+
+    const auto algo    = AlgorithmName{"NLLLossReduceForward"};
+    const auto solvers = solver::SolverContainer<solver::nllloss::NLLLossReduceForward4d>{};
+
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+
+    return miopenStatusSuccess;
+}
+
 miopenStatus_t NLLLossUnreduceBackward(Handle& handle,
                                        const TensorDescriptor& inputGradDesc,
                                        Data_t input_grad,
@@ -102,6 +164,44 @@ miopenStatus_t NLLLossUnreduceBackward(Handle& handle,
     const auto algo    = AlgorithmName{"NLLLossUnreduceBackward"};
     const auto solvers = solver::SolverContainer<solver::nllloss::NLLLossUnreduceBackwardContiguous,
                                                  solver::nllloss::NLLLossUnreduceBackward4d>{};
+
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+
+    return miopenStatusSuccess;
+}
+
+miopenStatus_t NLLLossReduceBackward(Handle& handle,
+                                       const TensorDescriptor& inputGradDesc,
+                                       Data_t input_grad,
+                                       const TensorDescriptor& targetDesc,
+                                       ConstData_t target,
+                                       const TensorDescriptor& weightDesc,
+                                       ConstData_t weight,
+                                       const TensorDescriptor& outputGradDesc,
+                                       Data_t output_grad,
+                                       int32_t ignore_index,
+                                       float divisor)
+{
+    const auto problem = nllloss::ReduceProblemDescription{
+        inputGradDesc, targetDesc, weightDesc, outputGradDesc, ignore_index, false};
+
+    const auto invoke_params = [&]() {
+        auto tmp           = nllloss::BwdInvokeParams{};
+        tmp.inputGradDesc  = &inputGradDesc;
+        tmp.targetDesc     = &targetDesc;
+        tmp.weightDesc     = &weightDesc;
+        tmp.outputGradDesc = &outputGradDesc;
+
+        tmp.input_grad   = input_grad;
+        tmp.target       = target;
+        tmp.weight       = weight;
+        tmp.output_grad  = output_grad;
+        tmp.ignore_index = ignore_index;
+        tmp.divisor = divisor;
+        return tmp;
+    }();
+    const auto algo    = AlgorithmName{"NLLLossReduceBackward"};
+    const auto solvers = solver::SolverContainer<solver::nllloss::NLLLossReduceBackward4d>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
