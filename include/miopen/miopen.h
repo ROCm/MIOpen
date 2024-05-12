@@ -6651,11 +6651,11 @@ miopenNLLLossUnreduceBackward(miopenHandle_t handle,
  */
 MIOPEN_EXPORT miopenStatus_t
 miopenGetNLLLossReduceForwardWorkspaceSize(miopenHandle_t handle,
-                                            miopenTensorDescriptor_t inputDesc,
-                                            miopenTensorDescriptor_t targetDesc,
-                                            miopenTensorDescriptor_t weightDesc,
-                                            miopenTensorDescriptor_t outputDesc,
-                                            size_t* sizeInBytes);
+                                           miopenTensorDescriptor_t inputDesc,
+                                           miopenTensorDescriptor_t targetDesc,
+                                           miopenTensorDescriptor_t weightDesc,
+                                           miopenTensorDescriptor_t outputDesc,
+                                           size_t* sizeInBytes);
 
 /*! @brief Execute a NLLLoss forward layer
  *
@@ -6703,17 +6703,18 @@ MIOPEN_EXPORT miopenStatus_t miopenNLLLossReduceForward(miopenHandle_t handle,
  * @param ignore_index   Class index to ignore (input)
  * @return               miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t miopenNLLLossReduceBackward(miopenHandle_t handle,
-                                                        const miopenTensorDescriptor_t inputGradDesc,
-                                                        void* input_grad,
-                                                        const miopenTensorDescriptor_t targetDesc,
-                                                        const void* target,
-                                                        const miopenTensorDescriptor_t weightDesc,
-                                                        const void* weight,
-                                                        const miopenTensorDescriptor_t outputDesc,
-                                                        void* output_grad,
-                                                        const int32_t ignore_index,
-                                                        const float divisor);
+MIOPEN_EXPORT miopenStatus_t
+miopenNLLLossReduceBackward(miopenHandle_t handle,
+                            const miopenTensorDescriptor_t inputGradDesc,
+                            void* input_grad,
+                            const miopenTensorDescriptor_t targetDesc,
+                            const void* target,
+                            const miopenTensorDescriptor_t weightDesc,
+                            const void* weight,
+                            const miopenTensorDescriptor_t outputDesc,
+                            void* output_grad,
+                            const int32_t ignore_index,
+                            const float divisor);
 /** @} */
 // CLOSEOUT nllloss DOXYGEN GROUP
 

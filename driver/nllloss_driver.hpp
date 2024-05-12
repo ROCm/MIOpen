@@ -258,20 +258,20 @@ int NLLLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     uint32_t ctx = 0;
 
-    in_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-    target_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, target_sz, sizeof(int)));
-    weight_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, weight_sz, sizeof(Tgpu)));
-    out_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+    in_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    target_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, target_sz, sizeof(int)));
+    weight_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, weight_sz, sizeof(Tgpu)));
+    out_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
     workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sizeInBytes, sizeof(std::byte)));
-    in_grad_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-    out_grad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+    in_grad_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    out_grad_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
-    in       = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-    target   = std::vector<int>(target_sz, static_cast<int>(0));
-    weight   = std::vector<Tgpu>(weight_sz, static_cast<Tgpu>(1));
-    out      = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    out_host = std::vector<Tref>(out_sz, static_cast<Tref>(0));
-    workspace = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    in             = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    target         = std::vector<int>(target_sz, static_cast<int>(0));
+    weight         = std::vector<Tgpu>(weight_sz, static_cast<Tgpu>(1));
+    out            = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    out_host       = std::vector<Tref>(out_sz, static_cast<Tref>(0));
+    workspace      = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
     workspace_host = std::vector<Tref>(in_sz, static_cast<Tref>(0));
 
     in_grad      = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
@@ -327,32 +327,34 @@ int NLLLossDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        if(!std::isnan(divisor)){
+        if(!std::isnan(divisor))
+        {
             miopenNLLLossReduceForward(GetHandle(),
-                                        workspace_dev->GetMem(),
-                                        ws_sizeInBytes,
-                                        inputDesc,
-                                        in_dev->GetMem(),
-                                        targetDesc,
-                                        target_dev->GetMem(),
-                                        weightDesc,
-                                        weight_dev->GetMem(),
-                                        outputDesc,
-                                        out_dev->GetMem(),
-                                        ignore_index,
-                                        divisor);
+                                       workspace_dev->GetMem(),
+                                       ws_sizeInBytes,
+                                       inputDesc,
+                                       in_dev->GetMem(),
+                                       targetDesc,
+                                       target_dev->GetMem(),
+                                       weightDesc,
+                                       weight_dev->GetMem(),
+                                       outputDesc,
+                                       out_dev->GetMem(),
+                                       ignore_index,
+                                       divisor);
         }
-        else {
+        else
+        {
             miopenNLLLossUnreduceForward(GetHandle(),
-                                        inputDesc,
-                                        in_dev->GetMem(),
-                                        targetDesc,
-                                        target_dev->GetMem(),
-                                        weightDesc,
-                                        weight_dev->GetMem(),
-                                        outputDesc,
-                                        out_dev->GetMem(),
-                                        ignore_index);
+                                         inputDesc,
+                                         in_dev->GetMem(),
+                                         targetDesc,
+                                         target_dev->GetMem(),
+                                         weightDesc,
+                                         weight_dev->GetMem(),
+                                         outputDesc,
+                                         out_dev->GetMem(),
+                                         ignore_index);
         }
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -380,30 +382,31 @@ int NLLLossDriver<Tgpu, Tref>::RunForwardGPU()
 
 template <typename Tgpu, typename Tref>
 int NLLLossDriver<Tgpu, Tref>::RunForwardCPU()
-{   
-    if (!std::isnan(divisor)) {
+{
+    if(!std::isnan(divisor))
+    {
         mloNLLLossReduceForwardRunHost<Tgpu, Tref>(inputDesc,
-                                                    targetDesc,
-                                                    weightDesc,
-                                                    in.data(),
-                                                    target.data(),
-                                                    weight.data(),
-                                                    out_host.data(),
-                                                    workspace_host.data(),
-                                                    ignore_index,
-                                                    divisor);
+                                                   targetDesc,
+                                                   weightDesc,
+                                                   in.data(),
+                                                   target.data(),
+                                                   weight.data(),
+                                                   out_host.data(),
+                                                   workspace_host.data(),
+                                                   ignore_index,
+                                                   divisor);
     }
-    else {
+    else
+    {
         mloNLLLossUnreduceForwardRunHost<Tgpu, Tref>(inputDesc,
-                                                    targetDesc,
-                                                    weightDesc,
-                                                    outputDesc,
-                                                    in.data(),
-                                                    target.data(),
-                                                    weight.data(),
-                                                    out_host.data(),
-                                                    ignore_index);
-
+                                                     targetDesc,
+                                                     weightDesc,
+                                                     outputDesc,
+                                                     in.data(),
+                                                     target.data(),
+                                                     weight.data(),
+                                                     out_host.data(),
+                                                     ignore_index);
     }
     return miopenStatusSuccess;
 }
@@ -418,31 +421,33 @@ int NLLLossDriver<Tgpu, Tref>::RunBackwardGPU()
     START_TIME
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
-    {   
-        if(!std::isnan(divisor)){
+    {
+        if(!std::isnan(divisor))
+        {
             miopenNLLLossReduceBackward(GetHandle(),
-                                      inputGradDesc,
-                                      in_grad_dev->GetMem(),
-                                      targetDesc,
-                                      target_dev->GetMem(),
-                                      weightDesc,
-                                      weight_dev->GetMem(),
-                                      outputGradDesc,
-                                      out_grad_dev->GetMem(),
-                                      ignore_index,
-                                      divisor);
+                                        inputGradDesc,
+                                        in_grad_dev->GetMem(),
+                                        targetDesc,
+                                        target_dev->GetMem(),
+                                        weightDesc,
+                                        weight_dev->GetMem(),
+                                        outputGradDesc,
+                                        out_grad_dev->GetMem(),
+                                        ignore_index,
+                                        divisor);
         }
-        else {
+        else
+        {
             miopenNLLLossUnreduceBackward(GetHandle(),
-                                      inputGradDesc,
-                                      in_grad_dev->GetMem(),
-                                      targetDesc,
-                                      target_dev->GetMem(),
-                                      weightDesc,
-                                      weight_dev->GetMem(),
-                                      outputGradDesc,
-                                      out_grad_dev->GetMem(),
-                                      ignore_index);
+                                          inputGradDesc,
+                                          in_grad_dev->GetMem(),
+                                          targetDesc,
+                                          target_dev->GetMem(),
+                                          weightDesc,
+                                          weight_dev->GetMem(),
+                                          outputGradDesc,
+                                          out_grad_dev->GetMem(),
+                                          ignore_index);
         }
 
         float time = 0.0;
@@ -472,28 +477,29 @@ int NLLLossDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 int NLLLossDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    if (!std::isnan(divisor)) {
+    if(!std::isnan(divisor))
+    {
         mloNLLLossReduceBackwardRunHost<Tgpu, Tref>(inputGradDesc,
-                                                  targetDesc,
-                                                  weightDesc,
-                                                  in_grad_host.data(),
-                                                  target.data(),
-                                                  weight.data(),
-                                                  out_grad.data(),
-                                                  ignore_index,
-                                                  divisor);
+                                                    targetDesc,
+                                                    weightDesc,
+                                                    in_grad_host.data(),
+                                                    target.data(),
+                                                    weight.data(),
+                                                    out_grad.data(),
+                                                    ignore_index,
+                                                    divisor);
     }
-    else {
+    else
+    {
         mloNLLLossUnreduceBackwardRunHost<Tgpu, Tref>(inputGradDesc,
-                                                  targetDesc,
-                                                  weightDesc,
-                                                  outputGradDesc,
-                                                  in_grad_host.data(),
-                                                  target.data(),
-                                                  weight.data(),
-                                                  out_grad.data(),
-                                                  ignore_index);
-
+                                                      targetDesc,
+                                                      weightDesc,
+                                                      outputGradDesc,
+                                                      in_grad_host.data(),
+                                                      target.data(),
+                                                      weight.data(),
+                                                      out_grad.data(),
+                                                      ignore_index);
     }
     return miopenStatusSuccess;
 }

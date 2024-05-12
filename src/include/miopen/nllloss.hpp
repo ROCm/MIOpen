@@ -77,15 +77,15 @@ miopenStatus_t NLLLossUnreduceBackward(Handle& handle,
                                        int32_t ignore_index);
 
 miopenStatus_t NLLLossReduceBackward(Handle& handle,
-                                       const TensorDescriptor& inputGradDesc,
-                                       Data_t input_grad,
-                                       const TensorDescriptor& targetDesc,
-                                       ConstData_t target,
-                                       const TensorDescriptor& weightDesc,
-                                       ConstData_t weight,
-                                       const TensorDescriptor& outputGradDesc,
-                                       Data_t output_grad,
-                                       int32_t ignore_index,
-                                       float divisor);
+                                     const TensorDescriptor& inputGradDesc,
+                                     Data_t input_grad,
+                                     const TensorDescriptor& targetDesc,
+                                     ConstData_t target,
+                                     const TensorDescriptor& weightDesc,
+                                     ConstData_t weight,
+                                     const TensorDescriptor& outputGradDesc,
+                                     Data_t output_grad,
+                                     int32_t ignore_index,
+                                     float divisor);
 } // namespace miopen
 #endif // _MIOPEN_NLLLOSS_HPP_

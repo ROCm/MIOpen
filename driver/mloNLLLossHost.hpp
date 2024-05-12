@@ -77,15 +77,15 @@ int32_t mloNLLLossUnreduceForwardRunHost(const miopenTensorDescriptor_t inputDes
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloNLLLossReduceForwardRunHost(const miopenTensorDescriptor_t inputDesc,
-                                         const miopenTensorDescriptor_t targetDesc,
-                                         const miopenTensorDescriptor_t weightDesc,
-                                         const Tgpu* input,
-                                         const int32_t* target,
-                                         const Tgpu* weight,
-                                         Tcheck* output,
-                                         Tcheck* workspace,
-                                         const int32_t ignore_index,
-                                         const float divisor)
+                                       const miopenTensorDescriptor_t targetDesc,
+                                       const miopenTensorDescriptor_t weightDesc,
+                                       const Tgpu* input,
+                                       const int32_t* target,
+                                       const Tgpu* weight,
+                                       Tcheck* output,
+                                       Tcheck* workspace,
+                                       const int32_t ignore_index,
+                                       const float divisor)
 {
     auto dims = miopen::deref(inputDesc).GetLengths();
     size_t N  = dims[0];
@@ -113,11 +113,12 @@ int32_t mloNLLLossReduceForwardRunHost(const miopenTensorDescriptor_t inputDesc,
         else
         {
             workspace[target_index] =
-                (static_cast<Tcheck>(-1.0f) * weight[weight_index] * input[input_index]) / static_cast<Tcheck>(divisor);
+                (static_cast<Tcheck>(-1.0f) * weight[weight_index] * input[input_index]) /
+                static_cast<Tcheck>(divisor);
         }
     }
 
-    auto size = N * D1 * D2;
+    auto size            = N * D1 * D2;
     const int local_size = 256;
     int offset_a         = 0;
     int offset_b         = size;
@@ -193,14 +194,14 @@ int32_t mloNLLLossUnreduceBackwardRunHost(const miopenTensorDescriptor_t inputDe
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloNLLLossReduceBackwardRunHost(const miopenTensorDescriptor_t inputDesc,
-                                          const miopenTensorDescriptor_t targetDesc,
-                                          const miopenTensorDescriptor_t weightDesc,
-                                          Tcheck* input_grad,
-                                          const int32_t* target,
-                                          const Tgpu* weight,
-                                          const Tgpu* output_grad,
-                                          const int32_t ignore_index,
-                                          const float divisor)
+                                        const miopenTensorDescriptor_t targetDesc,
+                                        const miopenTensorDescriptor_t weightDesc,
+                                        Tcheck* input_grad,
+                                        const int32_t* target,
+                                        const Tgpu* weight,
+                                        const Tgpu* output_grad,
+                                        const int32_t ignore_index,
+                                        const float divisor)
 {
     auto dims = miopen::deref(inputDesc).GetLengths();
     size_t N  = dims[0];
@@ -216,10 +217,10 @@ int32_t mloNLLLossReduceBackwardRunHost(const miopenTensorDescriptor_t inputDesc
     {
         uint64_t n[3];
         GET_NCD(n[0], n[1], n[2], i, T_tv);
-        size_t target_index      = TV3D_IDX(T_tv, n[0], n[1], n[2]);
-        int32_t t                = target[target_index];
-        size_t input_grad_index  = TV4D_IDX(I_tv, n[0], t, n[1], n[2]);
-        size_t weight_index      = TV1D_IDX(W_tv, t);
+        size_t target_index     = TV3D_IDX(T_tv, n[0], n[1], n[2]);
+        int32_t t               = target[target_index];
+        size_t input_grad_index = TV4D_IDX(I_tv, n[0], t, n[1], n[2]);
+        size_t weight_index     = TV1D_IDX(W_tv, t);
 
         if(t < 0 || t == ignore_index || t >= C)
         {
@@ -228,7 +229,8 @@ int32_t mloNLLLossReduceBackwardRunHost(const miopenTensorDescriptor_t inputDesc
         else
         {
             input_grad[input_grad_index] =
-                (static_cast<Tcheck>(-1.0f) * weight[weight_index] * output_grad[0]) / static_cast<Tcheck>(divisor);
+                (static_cast<Tcheck>(-1.0f) * weight[weight_index] * output_grad[0]) /
+                static_cast<Tcheck>(divisor);
         }
     }
 

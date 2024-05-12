@@ -50,7 +50,7 @@ struct InvokeParams : public miopen::InvokeParams
     ConstData_t weight = nullptr;
     Data_t output      = nullptr;
 
-    int32_t ignore_index = -1;
+    int32_t ignore_index       = -1;
     float divisor              = std::numeric_limits<float>::quiet_NaN();
     Data_t workspace           = nullptr;
     std::size_t workspace_size = 0;
@@ -74,7 +74,7 @@ struct BwdInvokeParams : public miopen::InvokeParams
     ConstData_t weight      = nullptr;
     ConstData_t output_grad = nullptr;
 
-    int32_t ignore_index = -1;
+    int32_t ignore_index       = -1;
     float divisor              = std::numeric_limits<float>::quiet_NaN();
     Data_t workspace           = nullptr;
     std::size_t workspace_size = 0;

@@ -96,15 +96,14 @@ struct NLLLossReduceForward4d final : NLLLossReduceForwardSolver
         return GetSolverDbId<NLLLossReduceForward4d>();
     }
 
-    bool IsApplicable(
-        const ExecutionContext& context,
-        const miopen::nllloss::ReduceProblemDescription& problem) const override;
-    ConvSolution GetSolution(
-        const ExecutionContext& context,
-        const miopen::nllloss::ReduceProblemDescription& problem) const override;
-    std::size_t GetWorkspaceSize(
-        const ExecutionContext& context,
-        const miopen::nllloss::ReduceProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::nllloss::ReduceProblemDescription& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::nllloss::ReduceProblemDescription& problem) const override;
+    std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::nllloss::ReduceProblemDescription& problem) const override;
     bool MayNeedWorkspace() const override { return true; }
 };
 
@@ -153,12 +152,11 @@ struct NLLLossReduceBackward4d final : NLLLossReduceSolver
         return GetSolverDbId<NLLLossReduceBackward4d>();
     }
 
-    bool IsApplicable(
-        const ExecutionContext& context,
-        const miopen::nllloss::ReduceProblemDescription& problem) const override;
-    ConvSolution GetSolution(
-        const ExecutionContext& context,
-        const miopen::nllloss::ReduceProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::nllloss::ReduceProblemDescription& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::nllloss::ReduceProblemDescription& problem) const override;
     bool MayNeedWorkspace() const override { return false; }
 };
 

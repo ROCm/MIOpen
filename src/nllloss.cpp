@@ -77,13 +77,12 @@ size_t GetNLLLossReduceForwardWorkspaceSize(Handle& handle,
                                             const TensorDescriptor& weightDesc,
                                             const TensorDescriptor& outputDesc)
 {
-    auto ctx           = ExecutionContext{&handle};
-    const auto problem = nllloss::ReduceProblemDescription{inputDesc, targetDesc, 
-                                                           weightDesc, outputDesc, -1, true};
+    auto ctx = ExecutionContext{&handle};
+    const auto problem =
+        nllloss::ReduceProblemDescription{inputDesc, targetDesc, weightDesc, outputDesc, -1, true};
 
-    const auto algo = AlgorithmName{"NLLLossReduceForward"};
-    const auto solvers =
-        solver::SolverContainer<solver::nllloss::NLLLossReduceForward4d>{};
+    const auto algo    = AlgorithmName{"NLLLossReduceForward"};
+    const auto solvers = solver::SolverContainer<solver::nllloss::NLLLossReduceForward4d>{};
 
     auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem);
 
@@ -91,18 +90,18 @@ size_t GetNLLLossReduceForwardWorkspaceSize(Handle& handle,
 }
 
 miopenStatus_t NLLLossReduceForward(Handle& handle,
-                                      Data_t workspace,
-                                      size_t workspaceSizeInBytes,
-                                      const TensorDescriptor& inputDesc,
-                                      ConstData_t input,
-                                      const TensorDescriptor& targetDesc,
-                                      ConstData_t target,
-                                      const TensorDescriptor& weightDesc,
-                                      ConstData_t weight,
-                                      const TensorDescriptor& outputDesc,
-                                      Data_t output,
-                                      int32_t ignore_index,
-                                      float divisor)
+                                    Data_t workspace,
+                                    size_t workspaceSizeInBytes,
+                                    const TensorDescriptor& inputDesc,
+                                    ConstData_t input,
+                                    const TensorDescriptor& targetDesc,
+                                    ConstData_t target,
+                                    const TensorDescriptor& weightDesc,
+                                    ConstData_t weight,
+                                    const TensorDescriptor& outputDesc,
+                                    Data_t output,
+                                    int32_t ignore_index,
+                                    float divisor)
 {
     const auto problem = nllloss::ReduceProblemDescription{
         inputDesc, targetDesc, weightDesc, outputDesc, ignore_index, true};
@@ -114,14 +113,14 @@ miopenStatus_t NLLLossReduceForward(Handle& handle,
         tmp.weightDesc = &weightDesc;
         tmp.outputDesc = &outputDesc;
 
-        tmp.input        = input;
-        tmp.target       = target;
-        tmp.weight       = weight;
-        tmp.output       = output;
-        tmp.workspace    = workspace;
+        tmp.input          = input;
+        tmp.target         = target;
+        tmp.weight         = weight;
+        tmp.output         = output;
+        tmp.workspace      = workspace;
         tmp.workspace_size = workspaceSizeInBytes;
-        tmp.ignore_index = ignore_index;
-        tmp.divisor      = divisor;
+        tmp.ignore_index   = ignore_index;
+        tmp.divisor        = divisor;
         return tmp;
     }();
 
@@ -171,16 +170,16 @@ miopenStatus_t NLLLossUnreduceBackward(Handle& handle,
 }
 
 miopenStatus_t NLLLossReduceBackward(Handle& handle,
-                                       const TensorDescriptor& inputGradDesc,
-                                       Data_t input_grad,
-                                       const TensorDescriptor& targetDesc,
-                                       ConstData_t target,
-                                       const TensorDescriptor& weightDesc,
-                                       ConstData_t weight,
-                                       const TensorDescriptor& outputGradDesc,
-                                       Data_t output_grad,
-                                       int32_t ignore_index,
-                                       float divisor)
+                                     const TensorDescriptor& inputGradDesc,
+                                     Data_t input_grad,
+                                     const TensorDescriptor& targetDesc,
+                                     ConstData_t target,
+                                     const TensorDescriptor& weightDesc,
+                                     ConstData_t weight,
+                                     const TensorDescriptor& outputGradDesc,
+                                     Data_t output_grad,
+                                     int32_t ignore_index,
+                                     float divisor)
 {
     const auto problem = nllloss::ReduceProblemDescription{
         inputGradDesc, targetDesc, weightDesc, outputGradDesc, ignore_index, false};
@@ -197,7 +196,7 @@ miopenStatus_t NLLLossReduceBackward(Handle& handle,
         tmp.weight       = weight;
         tmp.output_grad  = output_grad;
         tmp.ignore_index = ignore_index;
-        tmp.divisor = divisor;
+        tmp.divisor      = divisor;
         return tmp;
     }();
     const auto algo    = AlgorithmName{"NLLLossReduceBackward"};
