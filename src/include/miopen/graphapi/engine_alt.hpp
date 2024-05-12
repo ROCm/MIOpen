@@ -45,7 +45,7 @@ struct TensorInfo {
     mTensDesc(static_cast<TensorDescriptor>(*tens_ptr))
   {
     assert(tens_ptr);
-    assert(mEnumId != miopenTensorArgumentIdInvalid;
+    assert(mEnumId != miopenTensorArgumentIdInvalid);
   }
 
   void setDevBuf(Data_t ptr) {

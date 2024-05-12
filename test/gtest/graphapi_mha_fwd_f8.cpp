@@ -47,13 +47,44 @@ namespace mha_graph_test {
 
 class MhaFwdGraphTest: public testing::TestWithParam<std::tuple<int, int, int, int>> {
 
+  struct TensorData {
+    gr::Tensor* mTensPtr;
+    tensor<float> mCpuTensor;
+    miopen::ManageDataPtr mGpuBuf;
+
+    explicit TensorData(gr::Tensor* tens_ptr):
+      mTensPtr(tens_ptr),
+      mCpuTensor(tens_ptr->getDimensions())
+    {
+
+      mCpuTensor.generate(
+          [] (auto...) { return prng::gen_0_to_B(static_cast<float>(3.0)); }
+          );
+
+      auto& handle = get_handle();
+      mGpuBuf = handle.Write(mCpuTensor.data);
+    }
+
+    TensorData(const TensorData&) = delete;
+    TensorData(TensorData&&) = default;
+
+    TensorData& operator = (const TensorData&) = delete;
+    TensorData& operator = (TensorData&&) = default;
+
+    ~TensorData() = default;
+  };
+
   std::unique_ptr<gr::OpGraphBuilder> mGraphBuilder;
   gr::OpGraph mGraph;
   gr::AutoDeleteAllocator mAlloc;
+  std::vector<TensorData> mFilledTensors;
 
-
+  template <bool IsVirt>
   gr::Tensor* makeTensor(std::string_view name, const std::vector<int64_t>& dims) {
-    return mAlloc.allocate(gr::makeTensor<true>(name, dims));
+    auto ptr =  mAlloc.allocate(gr::makeTensor<IsVirt>(name, dims));
+    if constexpr (!IsVirt) {
+      mFilledTensors.emplace_back(TensorData(tens_ptr));
+    }
   }
 
   auto* makePointWiseDesc(miopenPointwiseMode_t mode) {
@@ -189,94 +220,90 @@ class MhaFwdGraphTest: public testing::TestWithParam<std::tuple<int, int, int, i
     std::vector<int64_t> nhs1 = {n, h, s, 1};
     std::vector<int64_t> all1s = {1, 1, 1, 1};
 
-#define MAKE_TENSOR(name, dims) auto* name = makeTensor(#name, dims)
+#define MAKE_TENSOR(name, dims, isVirt) auto* name = makeTensor<isVirt>(#name, dims)
 
-    // auto Q = makeTensor("Q", nhsd, false);
-    // auto K = makeTensor("K", nhsd, false);
-    // auto V = makeTensor("V", nhsd, false);
-    MAKE_TENSOR(Q, nhsd);
-    MAKE_TENSOR(K, nhsd);
-    MAKE_TENSOR(V, nhsd);
+    MAKE_TENSOR(Q, nhsd, false);
+    MAKE_TENSOR(K, nhsd, false);
+    MAKE_TENSOR(V, nhsd, false);
 
-    MAKE_TENSOR(T_MM_0, nhss);
+    MAKE_TENSOR(T_MM_0, nhss, true);
     addNode("OP_MATMUL", {Q, K}, {T_MM_0});
 
-    MAKE_TENSOR(T_SCL_0, nhss);
-    MAKE_TENSOR(ATN_SCL, all1s);
+    MAKE_TENSOR(T_SCL_0, nhss, true);
+    MAKE_TENSOR(ATN_SCL, all1s, false);
 
     addNode("OP_POINTWISE:MUL", {T_MM_0, ATN_SCL}, {T_SCL_0});
 
-    MAKE_TENSOR(T_SCL_1, nhss);
-    MAKE_TENSOR(DSCL_Q, all1s);
+    MAKE_TENSOR(T_SCL_1, nhss, true);
+    MAKE_TENSOR(DSCL_Q, all1s, false);
 
     addNode("OP_POINTWISE:MUL", {T_SCL_0, DSCL_Q}, {T_SCL_1});
 
-    MAKE_TENSOR(T_SCL_2, nhss);
-    MAKE_TENSOR(DSCL_K, all1s);
+    MAKE_TENSOR(T_SCL_2, nhss, true);
+    MAKE_TENSOR(DSCL_K, all1s, false);
 
     addNode("OP_POINTWISE:MUL", {T_SCL_1, DSCL_K}, {T_SCL_2});
 
-    MAKE_TENSOR(M, nhs1);
+    MAKE_TENSOR(M, nhs1, false);
     addNode("OP_REDUCTION:MAX", {T_SCL_2}, {M});
 
-    MAKE_TENSOR(T_SUB, nhss);
+    MAKE_TENSOR(T_SUB, nhss, true);
     addNode("OP_POINTWISE:SUB", {T_SCL_2, M}, {T_SUB});
 
-    MAKE_TENSOR(T_EXP, nhss);
+    MAKE_TENSOR(T_EXP, nhss, true);
     addNode("OP_POINTWISE:EXP", {T_SUB}, {T_EXP});
 
-    MAKE_TENSOR(T_SUM, nhs1);
+    MAKE_TENSOR(T_SUM, nhs1, true);
     addNode("OP_REDUCTION:SUM", {T_EXP}, {T_SUM});
 
-    MAKE_TENSOR(Z_INV, nhs1);
+    MAKE_TENSOR(Z_INV, nhs1, false);
     addNode("OP_POINTWISE:RECIPROCAL", {T_SUM}, {Z_INV});
 
-    MAKE_TENSOR(T_MUL_0, nhss);
+    MAKE_TENSOR(T_MUL_0, nhss, true);
     addNode("OP_POINTWISE:MUL", {T_EXP, Z_INV}, {T_MUL_0});
 
-    MAKE_TENSOR(AMAX_S, all1s);
+    MAKE_TENSOR(AMAX_S, all1s, false);
     addNode("OP_REDUCTION:MAX", {T_MUL_0}, {AMAX_S});
 
-    MAKE_TENSOR(RND_SD, all1s);
-    MAKE_TENSOR(RND_OFF, all1s);
+    MAKE_TENSOR(RND_SD, all1s, false);
+    MAKE_TENSOR(RND_OFF, all1s, false);
 
-    MAKE_TENSOR(T_RND, nhss);
+    MAKE_TENSOR(T_RND, nhss, true);
     addNode("OP_RNG", {RND_SD, RND_OFF}, {T_RND});
 
-    MAKE_TENSOR(T_MUL_1, nhss);
+    MAKE_TENSOR(T_MUL_1, nhss, true);
     addNode("OP_POINTWISE:MUL", {T_MUL_0, T_RND}, {T_MUL_1});
 
-    MAKE_TENSOR(RND_PRB, all1s); // TODO(Amber): revisit
-    MAKE_TENSOR(T_SCL_3, nhss);
+    MAKE_TENSOR(RND_PRB, all1s, false); // TODO(Amber): revisit
+    MAKE_TENSOR(T_SCL_3, nhss, true);
     addNode("OP_POINTWISE:MUL", {T_MUL_1, RND_PRB}, {T_SCL_3});
 
-    MAKE_TENSOR(T_SCL_4, nhss);
-    MAKE_TENSOR(SCL_S, all1s);
+    MAKE_TENSOR(T_SCL_4, nhss, true);
+    MAKE_TENSOR(SCL_S, all1s, false);
     addNode("OP_POINTWISE:MUL", {T_SCL_3, SCL_S}, {T_SCL_4});
 
-    MAKE_TENSOR(T_MM_1, nhsd);
+    MAKE_TENSOR(T_MM_1, nhsd), true;
     addNode("OP_MATMUL", {T_SCL_4, V}, {T_MM_1});
 
-    MAKE_TENSOR(T_SCL_5, nhsd);
-    MAKE_TENSOR(DSCL_S, all1s);
+    MAKE_TENSOR(T_SCL_5, nhsd, true);
+    MAKE_TENSOR(DSCL_S, all1s, false);
     addNode("OP_POINTWISE:MUL", {T_MM_1, DSCL_S}, {T_SCL_5});
 
-    MAKE_TENSOR(T_SCL_6, nhsd);
-    MAKE_TENSOR(DSCL_V, all1s);
+    MAKE_TENSOR(T_SCL_6, nhsd, true);
+    MAKE_TENSOR(DSCL_V, all1s, false);
     addNode("OP_POINTWISE:MUL", {T_SCL_5, DSCL_V}, {T_SCL_6});
 
-    MAKE_TENSOR(T_SCL_7, nhsd);
-    MAKE_TENSOR(SCL_O, all1s);
+    MAKE_TENSOR(T_SCL_7, nhsd, true);
+    MAKE_TENSOR(SCL_O, all1s, false);
     addNode("OP_POINTWISE:MUL", {T_SCL_6, SCL_O}, {T_SCL_7});
 
-    MAKE_TENSOR(AMAX_O, all1s);
+    MAKE_TENSOR(AMAX_O, all1s, false);
     addNode("OP_REDUCTION:MAX", {T_SCL_6}, {AMAX_O});
 
     mGraph = std::move(*mGraphBuilder).build(); 
     mGraphBuilder.reset(nullptr);
 
 #undef MAKE_TENSOR
-
   }
 
   gr::OpNode* findNodeByName(const std::string& name) const {
@@ -423,6 +450,22 @@ public:
   void Run() {
     auto [n, h, s, d] = GetParam();
     createMhaGraph(n, h, s, d);
+
+    // TODO(amber): should this be a vector of pointers
+    std::vector<gr::Engine> engines = gr::findEngines(&mGraph);
+
+    auto engine_cfg = gr::EngineConfigBuilder()
+      .setEngine(&engines[0])
+      .build();
+
+    auto plan = gr::ExecutionPlanBuilder()
+      .setEngineConfig(&engine_cfg)
+      .build();
+
+    auto variant_pack = buildMhaVariantPack(plan);
+
+    plan.execute(variant_pack);
+
   }
 
 };

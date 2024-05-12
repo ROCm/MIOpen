@@ -323,7 +323,9 @@ private:
     miopenHandle_t mHandle = nullptr;
 
 public:
-    void setHandle(miopenHandle_t handle);
+    void setHandle(miopenHandle_t handle) {
+      mHandle = checkPtr(handle);
+    }
 
     bool hasNode(OpNode* node) const { return internal::contains(mNodes, node); }
 

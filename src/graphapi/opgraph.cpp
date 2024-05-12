@@ -35,8 +35,6 @@ namespace graphapi {
 
 OpNode::~OpNode() = default;
 
-void OpGraphBuilder::setHandle(miopenHandle_t handle) { mHandle = checkPtr(handle); }
-
 OpGraph OpGraphBuilder::build() &&
 {
     if(mHandle == nullptr || mNodes.empty())
