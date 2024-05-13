@@ -35,10 +35,18 @@ namespace graphapi {
 
 OpNode::~OpNode() = default;
 
+void OpGraphBuilder::setHandle(miopenHandle_t handle) { mHandle = checkPtr(handle); }
+
 OpGraph OpGraphBuilder::build() &&
 {
+    if(mHandle == nullptr || mNodes.empty())
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
 
     OpGraph graph;
+
+    graph.mHandle = mHandle;
 
     // key = tensor ptr, value = vec. of dest nodes
     /// \todo might eventually move this state to the graph class during build()
@@ -308,6 +316,138 @@ bool isIsomorphic(const OpGraph& left, const OpGraph& right)
     }
 
     return true;
+}
+
+void BackendOperationGraphDescriptor::setAttribute(miopenBackendAttributeName_t attributeName,
+                                                   miopenBackendAttributeType_t attributeType,
+                                                   int64_t elementCount,
+                                                   void* arrayOfElements)
+{
+    if(mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+
+    switch(attributeName)
+    {
+    case MIOPEN_ATTR_OPERATIONGRAPH_HANDLE:
+        if(attributeType == MIOPEN_TYPE_HANDLE && elementCount == 1)
+        {
+            mBuilder.setHandle(*static_cast<miopenHandle_t*>(arrayOfElements));
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+        break;
+
+    case MIOPEN_ATTR_OPERATIONGRAPH_OPS:
+        if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && elementCount > 0)
+        {
+            std::vector<miopenBackendDescriptor_t> descriptors;
+            descriptors.reserve(elementCount);
+            std::vector<OpNode*> nodes;
+            nodes.reserve(elementCount);
+
+            std::for_each_n(static_cast<miopenBackendDescriptor_t*>(arrayOfElements),
+                            elementCount,
+                            [&descriptors, &nodes](miopenBackendDescriptor_t apiDescriptor) {
+                                BackendDescriptor& backendDescriptor = deref(apiDescriptor);
+                                if(backendDescriptor.isFinalized())
+                                {
+                                    descriptors.push_back(apiDescriptor);
+                                    nodes.push_back(backendDescriptor.getOperation());
+                                }
+                                else
+                                {
+                                    MIOPEN_THROW(miopenStatusBadParm);
+                                }
+                            });
+
+            if(!internal::noRepetitions(nodes))
+            {
+                MIOPEN_THROW(miopenStatusBadParm);
+            }
+
+            mBuilder.setNodes(std::move(nodes));
+            mOps = std::move(descriptors);
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+        break;
+
+    default: MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
+void BackendOperationGraphDescriptor::finalize()
+{
+    if(mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+    mOpGraph   = std::move(mBuilder).build();
+    mFinalized = true;
+}
+
+void BackendOperationGraphDescriptor::getAttribute(miopenBackendAttributeName_t attributeName,
+                                                   miopenBackendAttributeType_t attributeType,
+                                                   int64_t requestedElementCount,
+                                                   int64_t* elementCount,
+                                                   void* arrayOfElements)
+{
+    if(!mFinalized)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized);
+    }
+
+    switch(attributeName)
+    {
+    case MIOPEN_ATTR_OPERATIONGRAPH_HANDLE:
+        if(attributeType == MIOPEN_TYPE_HANDLE && requestedElementCount == 1)
+        {
+            *elementCount                                  = 1;
+            *static_cast<miopenHandle_t*>(arrayOfElements) = mOpGraph.getHandle();
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+        break;
+
+    case MIOPEN_ATTR_OPERATIONGRAPH_OPS:
+        if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && requestedElementCount >= 0)
+        {
+            *elementCount = mOps.size();
+            std::copy_n(mOps.cbegin(),
+                        // WORKAROUND: building on Windows is failing due to conflicting definitions
+                        // of std::min() between the MSVC standard library and HIP Clang wrappers.
+                        *elementCount < requestedElementCount ? *elementCount
+                                                              : requestedElementCount,
+                        static_cast<miopenBackendDescriptor_t*>(arrayOfElements));
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+        break;
+
+    case MIOPEN_ATTR_OPERATIONGRAPH_ENGINE_GLOBAL_COUNT:
+        if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount == 1)
+        {
+            *elementCount                           = 1;
+            *static_cast<int64_t*>(arrayOfElements) = mOpGraph.getEngines().size();
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+        break;
+
+    default: MIOPEN_THROW(miopenStatusBadParm);
+    }
 }
 
 } // end namespace graphapi
