@@ -48,7 +48,11 @@ enum class Direction
     Backward,
 };
 
-struct ProblemDescription : ProblemDescriptionBase
+struct ProblemDescriptionTag
+{
+};
+
+struct ProblemDescription : ProblemDescriptionBase, ProblemDescriptionTag
 {
     // Forward
     ProblemDescription(miopenBatchNormMode_t bn_mode_,
@@ -183,8 +187,7 @@ struct ProblemDescription : ProblemDescriptionBase
     // This declaration marks batchnorm as a primitive with tuning enabled.
     // Any tunable solver would be able pick it and fetch a db instance in ExecutePrimitive.
     // It has to be discoverable via ADL from problem description.
-    friend auto GetDb(const miopen::ExecutionContext& ctx,
-                      const miopen::batchnorm::ProblemDescription&) -> miopen::PerformanceDb;
+    friend auto GetDb(const ExecutionContext& ctx, const ProblemDescriptionTag&) -> PerformanceDb;
 
 private:
     Direction direction;

@@ -49,7 +49,7 @@ namespace miopen {
 
 namespace batchnorm {
 miopen::PerformanceDb GetDb(const miopen::ExecutionContext& ctx,
-                            const miopen::batchnorm::ProblemDescription&)
+                            const miopen::batchnorm::ProblemDescriptionTag&)
 {
     return {DbKinds::PerfDb, ctx.GetPerfDbPath("batchnorm"), ctx.GetUserPerfDbPath("batchnorm")};
 }

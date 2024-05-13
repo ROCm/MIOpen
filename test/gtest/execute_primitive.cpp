@@ -52,12 +52,17 @@ struct TestResults
     std::uint32_t perf_cfg_value      = 0;
 };
 
-struct TestProblemDescription : miopen::ProblemDescriptionBase
+struct TestProblemDescriptionTag
+{
+    // In real code this type should not have any data
+    std::string pdb_path;
+    std::string updb_path;
+};
+
+struct TestProblemDescription : miopen::ProblemDescriptionBase, TestProblemDescriptionTag
 {
     std::uint32_t net_config;
     TestResults* test_results;
-    std::string pdb_path;
-    std::string updb_path;
 
     auto MakeNetworkConfig() const -> miopen::NetworkConfig override
     {
@@ -72,7 +77,7 @@ struct TestProblemDescription : miopen::ProblemDescriptionBase
         visitor(self.net_config, "net_config");
     }
 
-    friend auto GetDb(const miopen::ExecutionContext&, const TestProblemDescription& problem)
+    friend auto GetDb(const miopen::ExecutionContext&, const TestProblemDescriptionTag& problem)
         -> miopen::PerformanceDb
     {
         return {miopen::DbKinds::PerfDb, problem.pdb_path, problem.updb_path};
