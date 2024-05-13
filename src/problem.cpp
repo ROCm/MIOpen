@@ -884,56 +884,55 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
             if(pair.first != problem.GetInputId() && pair.first != problem.GetOutputId())
                 get_buffer(pair.first, pair.second);
 
-        std::visit(
-            boost::hof::match(
-                [&](const ConvolutionDescriptor& conv_desc) {
-                    gfx90aaltimpl = conv_desc.attribute.gfx90aFp16alt.GetFwd();
+        std::visit(boost::hof::match(
+                       [&](const ConvolutionDescriptor& conv_desc) {
+                           gfx90aaltimpl = conv_desc.attribute.gfx90aFp16alt.GetFwd();
 
-                    const auto wei_ptr = buffers.at(miopenTensorConvolutionW);
-                    operator_args.params.emplace_back(
-                        std::make_unique<miopen::fusion::ConvolutionOpInvokeParam>(wei_ptr));
-                },
-                [&](const ActivationDescriptor& activ_desc) {
-                    const auto alpha = activ_desc.GetAlpha();
-                    const auto beta  = activ_desc.GetBeta();
-                    const auto gamma = activ_desc.GetGamma();
+                           const auto wei_ptr = buffers.at(miopenTensorConvolutionW);
+                           operator_args.params.emplace_back(
+                               std::make_unique<miopen::fusion::ConvolutionOpInvokeParam>(wei_ptr));
+                       },
+                       [&](const ActivationDescriptor& activ_desc) {
+                           const auto alpha = activ_desc.GetAlpha();
+                           const auto beta  = activ_desc.GetBeta();
+                           const auto gamma = activ_desc.GetGamma();
 
-                    if(problem.GetDirection() == miopenProblemDirectionForward)
-                    {
-                        operator_args.params.emplace_back(
-                            std::make_unique<miopen::fusion::ActivationOpInvokeParam>(
-                                alpha, beta, gamma));
-                    }
-                    else
-                    {
-                        const auto x = buffers.at(miopenTensorActivationX);
-                        const auto y = buffers.at(miopenTensorActivationY);
+                           if(problem.GetDirection() == miopenProblemDirectionForward)
+                           {
+                               operator_args.params.emplace_back(
+                                   std::make_unique<miopen::fusion::ActivationOpInvokeParam>(
+                                       alpha, beta, gamma));
+                           }
+                           else
+                           {
+                               const auto x = buffers.at(miopenTensorActivationX);
+                               const auto y = buffers.at(miopenTensorActivationY);
 
-                        operator_args.params.emplace_back(
-                            std::make_unique<miopen::fusion::ActivationBwdOpInvokeParam>(
-                                y, x, alpha, beta, gamma));
-                    }
-                },
-                [&](const BiasDescriptor&) {
-                    const auto bias_ptr = buffers.at(miopenTensorBias);
-                    operator_args.params.emplace_back(
-                        std::make_unique<miopen::fusion::BiasOpInvokeParam>(bias_ptr));
-                },
+                               operator_args.params.emplace_back(
+                                   std::make_unique<miopen::fusion::ActivationBwdOpInvokeParam>(
+                                       y, x, alpha, beta, gamma));
+                           }
+                       },
+                       [&](const BiasDescriptor&) {
+                           const auto bias_ptr = buffers.at(miopenTensorBias);
+                           operator_args.params.emplace_back(
+                               std::make_unique<miopen::fusion::BiasOpInvokeParam>(bias_ptr));
+                       },
 
-                [&](const MhaDescriptor&) {
-                    // Not implemented
-                    assert(false);
-                    MIOPEN_THROW(miopenStatusNotImplemented,
-                                 "Mha is not implemented for FusedProblem");
-                },
-                [&](const SoftmaxDescriptor&) {
-                    // Not implemented
-                    assert(false);
-                    MIOPEN_THROW(miopenStatusNotImplemented,
-                                 "Softmax is not implemented for FusedProblem");
-                }),
+                       [&](const MhaDescriptor&) {
+                           // Not implemented
+                           assert(false);
+                           MIOPEN_THROW(miopenStatusNotImplemented,
+                                        "Mha is not implemented for FusedProblem");
+                       },
+                       [&](const SoftmaxDescriptor&) {
+                           // Not implemented
+                           assert(false);
+                           MIOPEN_THROW(miopenStatusNotImplemented,
+                                        "Softmax is not implemented for FusedProblem");
+                       }),
 
-            problem.operator_descriptor);
+                   problem.operator_descriptor);
     }
 
     return {operator_args, in_desc, in, out_desc, out, gfx90aaltimpl};

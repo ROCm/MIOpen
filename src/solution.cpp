@@ -70,32 +70,31 @@ void Solution::Run(Handle& handle,
                          std::to_string(workspace_size) + " was provided");
     }
 
-    std::visit(
-        boost::hof::match(
-            [&](const Problem& problem_) {
-                std::visit(
-                    boost::hof::match(
-                        [&](const ConvolutionDescriptor& op_desc) {
-                            RunImpl(handle, inputs, workspace, workspace_size, op_desc);
-                        },
-                        [&](const SoftmaxDescriptor& op_desc) {
-                            RunImpl(handle, inputs, workspace, workspace_size, op_desc);
-                        },
-                        [&](const ActivationDescriptor& /*op_desc*/) {
-                            MIOPEN_THROW(miopenStatusNotImplemented);
-                        },
-                        [&](const BiasDescriptor& /*op_desc*/) {
-                            MIOPEN_THROW(miopenStatusNotImplemented);
-                        },
-                        [&](const MhaDescriptor& op_desc) {
-                            RunImpl(handle, inputs, workspace, workspace_size, op_desc);
-                        }),
-                    problem_.GetOperatorDescriptor());
-            },
-            [&](const FusedProblem& problem_) {
-                RunImpl(handle, inputs, workspace, workspace_size, problem_);
-            }),
-        problem.item);
+    std::visit(boost::hof::match(
+                   [&](const Problem& problem_) {
+                       std::visit(
+                           boost::hof::match(
+                               [&](const ConvolutionDescriptor& op_desc) {
+                                   RunImpl(handle, inputs, workspace, workspace_size, op_desc);
+                               },
+                               [&](const SoftmaxDescriptor& op_desc) {
+                                   RunImpl(handle, inputs, workspace, workspace_size, op_desc);
+                               },
+                               [&](const ActivationDescriptor& /*op_desc*/) {
+                                   MIOPEN_THROW(miopenStatusNotImplemented);
+                               },
+                               [&](const BiasDescriptor& /*op_desc*/) {
+                                   MIOPEN_THROW(miopenStatusNotImplemented);
+                               },
+                               [&](const MhaDescriptor& op_desc) {
+                                   RunImpl(handle, inputs, workspace, workspace_size, op_desc);
+                               }),
+                           problem_.GetOperatorDescriptor());
+                   },
+                   [&](const FusedProblem& problem_) {
+                       RunImpl(handle, inputs, workspace, workspace_size, problem_);
+                   }),
+               problem.item);
 }
 
 void Solution::LogDriverCommand() const
@@ -126,13 +125,12 @@ void Solution::LogDriverCommand(const ActivationDescriptor& desc) const
 
 void Solution::LogDriverCommand(const Problem& problem_) const
 {
-    std::visit(
-        boost::hof::match(
-            [&](const BiasDescriptor&) { /* \todo: think on how to log bias */ },
-            [&](const MhaDescriptor&) { /* \todo: think on how to log mha */ },
-            [&](const SoftmaxDescriptor&) { /* \todo: think on how to log softmax */ },
-            [&](const auto& op_desc) { LogDriverCommand(op_desc); }),
-        problem_.GetOperatorDescriptor());
+    std::visit(boost::hof::match(
+                   [&](const BiasDescriptor&) { /* \todo: think on how to log bias */ },
+                   [&](const MhaDescriptor&) { /* \todo: think on how to log mha */ },
+                   [&](const SoftmaxDescriptor&) { /* \todo: think on how to log softmax */ },
+                   [&](const auto& op_desc) { LogDriverCommand(op_desc); }),
+               problem_.GetOperatorDescriptor());
 }
 
 void Solution::LogDriverCommand(const FusedProblem& problem_) const
@@ -213,10 +211,10 @@ void Solution::RunImpl(Handle& handle,
 
     if(!kernels.empty())
     {
-        auto ctx             = ExecutionContext{&handle};
+        auto ctx = ExecutionContext{&handle};
         conv_problem.SetupFloats(ctx);
-        const auto invoker_factory = GetSolver().GetSolver().GetInvokeFactory(
-            ctx, conv_problem, perf_cfg.value_or(""));
+        const auto invoker_factory =
+            GetSolver().GetSolver().GetInvokeFactory(ctx, conv_problem, perf_cfg.value_or(""));
 
         auto kernel_handles = std::vector<Kernel>{};
 
@@ -252,7 +250,8 @@ void Solution::RunImpl(Handle& handle,
     const auto conv_solution = GetSolver().GetSolver().FindSolution(
         conv_ctx, conv_problem, db, invoke_ctx, perf_cfg.value_or(""));
 
-    invoker = handle.PrepareInvoker(*conv_solution.invoker_factory, conv_solution.construction_params);
+    invoker =
+        handle.PrepareInvoker(*conv_solution.invoker_factory, conv_solution.construction_params);
     handle.RegisterInvoker(*invoker, net_cfg, GetSolver().ToString());
     (*invoker)(handle, invoke_ctx);
     checkNumericsOutput_();
@@ -449,7 +448,7 @@ void Solution::RunImpl(Handle& handle,
                                       : attnSoftmax.GetSolution(ctx, problem_description);
 
     invoker = handle.PrepareInvoker(*softmax_solution.invoker_factory,
-                                                   softmax_solution.construction_params);
+                                    softmax_solution.construction_params);
     handle.RegisterInvoker(*invoker, net_cfg, GetSolver().ToString());
     (*invoker)(handle, invoke_ctx);
 }
@@ -493,8 +492,7 @@ void Solution::RunImpl(Handle& handle,
 
     const auto ctx      = FusionContext{handle};
     const auto solution = MakeFusedSolution(ctx, solver, perf_cfg, fusion_problem, invoke_params);
-    invoker =
-        handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
+    invoker = handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
     handle.RegisterInvoker(*invoker, net_cfg, GetSolver().ToString());
     (*invoker)(handle, invoke_params);
 }
@@ -704,7 +702,8 @@ void to_json(nlohmann::json& json, const Solution& solution)
             binary.reserve(filesize);
             binary.insert(binary.begin(), Iterator{file}, Iterator{});
 
-            MIOPEN_LOG_I2("Serialized binary to solution blob, " << std::to_string(filesize) << " bytes");
+            MIOPEN_LOG_I2("Serialized binary to solution blob, " << std::to_string(filesize)
+                                                                 << " bytes");
         }
         else
         {

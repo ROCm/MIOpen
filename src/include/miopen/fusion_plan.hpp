@@ -58,10 +58,9 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
                            Data_t output,
                            const OperatorArgs& op_args);
     miopenStatus_t Compile(Handle& handle);
-    std::vector<Solution>
-    Find(Handle& handle,
-         const std::function<fusion::FusionInvokeParams()>& invoke_params,
-         const std::optional<FindOptions>& options = std::nullopt) const;
+    std::vector<Solution> Find(Handle& handle,
+                               const std::function<fusion::FusionInvokeParams()>& invoke_params,
+                               const std::optional<FindOptions>& options = std::nullopt) const;
     friend std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& fpd);
 
     miopenStatus_t

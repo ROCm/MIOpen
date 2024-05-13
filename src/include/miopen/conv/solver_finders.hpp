@@ -161,10 +161,9 @@ std::vector<Solution> FindCore(const AnyInvokeParams& invoke_ctx,
                                const PrimitiveFindParameters& parameters,
                                const std::vector<std::unique_ptr<ISolversFinder>>& finders,
                                const std::optional<FindOptions>& options = std::nullopt,
-                               bool force_attach_binary = false);
+                               bool force_attach_binary                  = false);
 
-namespace conv
-{
+namespace conv {
 bool IsAlgorithmDisabled(miopenConvAlgorithm_t algo);
 
 struct ConvFindParameters : PrimitiveFindParameters

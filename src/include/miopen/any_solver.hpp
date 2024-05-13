@@ -152,10 +152,10 @@ struct AnySolver
                                           const miopen::conv::ProblemDescription& problem,
                                           PerformanceDb& db,
                                           const miopen::AnyInvokeParams& invoke_ctx,
-                                          const std::string& perf_cfg) const                    = 0;
+                                          const std::string& perf_cfg) const                   = 0;
         virtual InvokerFactory GetInvokeFactory(const ExecutionContext& ctx,
                                                 const miopen::conv::ProblemDescription& problem,
-                                                const std::string& perf_cfg) const                   = 0;
+                                                const std::string& perf_cfg) const             = 0;
         virtual std::string GetPerfCfgParams(const ExecutionContext& ctx,
                                              const miopen::conv::ProblemDescription& problem,
                                              PerformanceDb& db) const                          = 0;

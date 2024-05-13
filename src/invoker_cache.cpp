@@ -42,7 +42,7 @@ std::optional<Invoker> InvokerCache::operator[](const Key& key) const
 }
 
 std::optional<Invoker> InvokerCache::GetFound1_0(const std::string& network_config,
-                                                          const std::string& algorithm) const
+                                                 const std::string& algorithm) const
 {
     const auto item = invokers.find(network_config);
     if(item == invokers.end())
@@ -74,9 +74,8 @@ std::optional<Invoker> InvokerCache::GetFound1_0(const std::string& network_conf
     return invoker->second;
 }
 
-std::optional<std::string>
-InvokerCache::GetFound1_0SolverId(const std::string& network_config,
-                                  const std::string& algorithm) const
+std::optional<std::string> InvokerCache::GetFound1_0SolverId(const std::string& network_config,
+                                                             const std::string& algorithm) const
 {
     const auto item = invokers.find(network_config);
     if(item == invokers.end())

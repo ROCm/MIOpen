@@ -349,7 +349,7 @@ std::vector<Solution> FindCore(const AnyInvokeParams& invoke_ctx,
 
     for(const auto& ss : solutions)
     {
-        if (ss.second.empty())
+        if(ss.second.empty())
             continue;
 
         auto evaluated = EvaluateInvokers(

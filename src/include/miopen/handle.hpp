@@ -245,10 +245,9 @@ public:
             invokers.SetAsFound1_0(config, *algo, solver);
     }
 
-    std::optional<Invoker>
-    GetInvoker(const NetworkConfig& config,
-               const std::optional<solver::Id>& solver,
-               const std::optional<AlgorithmName>& algo = std::nullopt) const
+    std::optional<Invoker> GetInvoker(const NetworkConfig& config,
+                                      const std::optional<solver::Id>& solver,
+                                      const std::optional<AlgorithmName>& algo = std::nullopt) const
     {
         assert(solver || algo);
         assert(!(solver && algo));
@@ -264,7 +263,7 @@ public:
     }
 
     std::optional<std::string> GetFound1_0SolverId(const NetworkConfig& config,
-                                                            const AlgorithmName& algo) const
+                                                   const AlgorithmName& algo) const
     {
         return invokers.GetFound1_0SolverId(config, algo);
     }

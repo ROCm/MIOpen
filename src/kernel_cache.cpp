@@ -119,16 +119,14 @@ Kernel KernelCache::AddKernel(const Handle& h,
                 // We need the binaries attached to the program.
                 // This may happen if someone calls immediate mode and then find 2.0 with request
                 // for binaries.
-                program =
-                    h.LoadProgram(program_name, params, kernel_src, true);
+                program = h.LoadProgram(program_name, params, kernel_src, true);
             }
 
             return program;
         }
         else
         {
-            auto program = h.LoadProgram(
-                program_name, params, kernel_src, program_out != nullptr);
+            auto program = h.LoadProgram(program_name, params, kernel_src, program_out != nullptr);
 
             program_map[std::make_pair(program_name, params)] = program;
             return program;

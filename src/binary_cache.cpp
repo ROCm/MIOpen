@@ -221,7 +221,7 @@ fs::path SaveBinary(const fs::path& binary_path,
                     const std::string& name,
                     const std::string& args)
 {
-    if (miopen::IsCacheDisabled())
+    if(miopen::IsCacheDisabled())
     {
         fs::remove(binary_path);
         return {};

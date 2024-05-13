@@ -46,9 +46,9 @@ public:
     std::optional<Invoker> operator[](const Key& key) const;
     // For find 1.0
     std::optional<Invoker> GetFound1_0(const std::string& network_config,
-                                                const std::string& algorithm) const;
+                                       const std::string& algorithm) const;
     std::optional<std::string> GetFound1_0SolverId(const std::string& network_config,
-                                                            const std::string& algorithm) const;
+                                                   const std::string& algorithm) const;
 
     void Register(const Key& key, const Invoker& invoker);
     // For find 1.0
