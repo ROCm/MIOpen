@@ -393,12 +393,12 @@ void Solution::RunImpl(Handle& handle,
 
     auto ctx = ExecutionContext{&handle};
 
-        static solver::mha::MhaForward mhaForward;
-        static solver::mha::MhaBackward mhaBackward;
+    static solver::mha::MhaForward mhaForward;
+    static solver::mha::MhaBackward mhaBackward;
 
-        const auto mha_solution = GetSolver().ToString() == mhaForward.SolverDbId()
-                                      ? mhaForward.GetSolution(ctx, problem_description)
-                                      : mhaBackward.GetSolution(ctx, problem_description);
+    const auto mha_solution = GetSolver() == mhaForward.SolverDbId()
+                                  ? mhaForward.GetSolution(ctx, problem_description)
+                                  : mhaBackward.GetSolution(ctx, problem_description);
 
     invoker =
         handle.PrepareInvoker(*mha_solution.invoker_factory, mha_solution.construction_params);
@@ -486,7 +486,7 @@ void Solution::RunImpl(Handle& handle,
     solver::softmax::Softmax regularSoftmax;
     solver::softmax::AttnSoftmax attnSoftmax;
 
-    const auto softmax_solution = GetSolver().ToString() == regularSoftmax.SolverDbId()
+    const auto softmax_solution = GetSolver() == regularSoftmax.SolverDbId()
                                       ? regularSoftmax.GetSolution(ctx, problem_description)
                                       : attnSoftmax.GetSolution(ctx, problem_description);
 
