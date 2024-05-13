@@ -45,6 +45,7 @@
 #include <mutex>
 #include <limits>
 #include <random>
+#include <shared_mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -151,15 +152,22 @@ struct TestData
         return {static_cast<int>(rnd.Next()), static_cast<int>(rnd.Next())};
     }
 
+    template <class TSelf, class Visitor>
+    static void VisitAll(TSelf&& self, Visitor visitor)
+    {
+        visitor(self.x, "x");
+        visitor(self.y, "y");
+    }
+
     void Serialize(std::ostream& s) const
     {
-        static const auto sep = ',';
+        static const auto sep = 'x';
         s << x << sep << y;
     }
 
     bool Deserialize(const std::string& s)
     {
-        static const auto sep = ',';
+        static const auto sep = 'x';
         TestData t(NoInit{});
         std::istringstream ss(s);
 
@@ -282,7 +290,7 @@ protected:
                          const std::array<std::pair<const std::string, TValue>, count> values)
     {
         std::ostringstream ss_vals;
-        ss_vals << key.x << ',' << key.y << '=';
+        ss_vals << key.x << 'x' << key.y << '=';
 
         auto first = true;
 
@@ -292,7 +300,7 @@ protected:
                 ss_vals << ";";
 
             first = false;
-            ss_vals << id_value.first << ':' << id_value.second.x << ',' << id_value.second.y;
+            ss_vals << id_value.first << ':' << id_value.second.x << 'x' << id_value.second.y;
         }
 
         std::ofstream(db_path, std::ios::out | std::ios::ate) << ss_vals.str() << std::endl;
@@ -330,7 +338,7 @@ public:
 
         RawWrite(temp_file, key(), common_data());
 
-        TDb db(temp_file);
+        TDb db(DbKinds::PerfDb, temp_file);
         ValidateSingleEntry(key(), common_data(), db);
 
         const TestData invalid_key(100, 200);
@@ -352,12 +360,12 @@ public:
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for reading stored data...");
 
-        DbRecord record(key());
+        DbRecord record(DbKinds::PerfDb, key());
         EXPECT(record.SetValues(id0(), value0()));
         EXPECT(record.SetValues(id1(), value1()));
 
         {
-            TDb db(temp_file);
+            TDb db(DbKinds::PerfDb, temp_file);
 
             EXPECT(db.StoreRecord(record));
         }
@@ -365,7 +373,7 @@ public:
         std::string read;
         EXPECT(std::getline(std::ifstream(temp_file), read).good());
 
-        TDb db{temp_file};
+        TDb db{DbKinds::PerfDb, temp_file};
         ValidateSingleEntry(key(), common_data(), db);
     }
 };
@@ -384,21 +392,21 @@ public:
                                      << " for updating existing records...");
 
         // Store record0 (key=id0:value0)
-        DbRecord record0(key());
+        DbRecord record0(DbKinds::PerfDb, key());
         EXPECT(record0.SetValues(id0(), value0()));
 
         {
-            TDb db(temp_file);
+            TDb db(DbKinds::PerfDb, temp_file);
 
             EXPECT(db.StoreRecord(record0));
         }
 
         // Update with record1 (key=id1:value1)
-        DbRecord record1(key());
+        DbRecord record1(DbKinds::PerfDb, key());
         EXPECT(record1.SetValues(id1(), value1()));
 
         {
-            TDb db(temp_file);
+            TDb db(DbKinds::PerfDb, temp_file);
 
             EXPECT(db.UpdateRecord(record1));
         }
@@ -411,7 +419,7 @@ public:
         EXPECT_EQUAL(value1(), read1);
 
         // Check record that is stored in db (key=id0:value0;id1:value1)
-        TDb db{temp_file};
+        TDb db{DbKinds::PerfDb, temp_file};
         ValidateSingleEntry(key(), common_data(), db);
     }
 };
@@ -430,18 +438,18 @@ public:
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for removing records...");
 
-        DbRecord record(key());
+        DbRecord record(DbKinds::PerfDb, key());
         EXPECT(record.SetValues(id0(), value0()));
         EXPECT(record.SetValues(id1(), value1()));
 
         {
-            TDb db(temp_file);
+            TDb db(DbKinds::PerfDb, temp_file);
 
             EXPECT(db.StoreRecord(record));
         }
 
         {
-            TDb db(temp_file);
+            TDb db(DbKinds::PerfDb, temp_file);
 
             EXPECT(db.FindRecord(key()));
             EXPECT(db.RemoveRecord(key()));
@@ -465,7 +473,7 @@ public:
                                      << " for reading premade file by Load...");
 
         RawWrite(temp_file, key(), common_data());
-        TDb db{temp_file};
+        TDb db{DbKinds::PerfDb, temp_file};
         ValidateSingleEntry(key(), common_data(), db);
     }
 };
@@ -484,7 +492,7 @@ public:
                                      << " for storing unexistent records by update...");
 
         {
-            TDb db(temp_file);
+            TDb db(DbKinds::PerfDb, temp_file);
 
             EXPECT(db.Update(key(), id0(), value0()));
             EXPECT(db.Update(key(), id1(), value1()));
@@ -493,7 +501,7 @@ public:
         std::string read;
         EXPECT(std::getline(std::ifstream(temp_file), read).good());
 
-        TDb db{temp_file};
+        TDb db{DbKinds::PerfDb, temp_file};
         ValidateSingleEntry(key(), common_data(), db);
     }
 };
@@ -514,7 +522,7 @@ public:
         const TestData to_be_rewritten(7, 8);
 
         {
-            TDb db(temp_file);
+            TDb db(DbKinds::PerfDb, temp_file);
 
             EXPECT(db.Update(key(), id0(), to_be_rewritten));
             EXPECT(db.Update(key(), id1(), to_be_rewritten));
@@ -528,7 +536,7 @@ public:
         }
 
         {
-            TDb db(temp_file);
+            TDb db(DbKinds::PerfDb, temp_file);
 
             // Rewriting existing value to store it to file.
             EXPECT(db.Update(key(), id0(), value0()));
@@ -537,7 +545,7 @@ public:
         {
             TestData read0, read1, read_missing;
             const auto read_missing_cmp(read_missing);
-            TDb db(temp_file);
+            TDb db(DbKinds::PerfDb, temp_file);
 
             // Loading by id not present in record should execute well but return false as nothing
             // was read.
@@ -568,7 +576,7 @@ public:
         {
             TestData read0, read1;
             const auto read_missing_cmp(read0);
-            TDb db(temp_file);
+            TDb db(DbKinds::PerfDb, temp_file);
 
             EXPECT(!db.Load(key(), id0(), read0));
             EXPECT(db.Load(key(), id1(), read1));
@@ -594,13 +602,13 @@ public:
                        << " for using two objects targeting one file existing in one scope...");
 
         {
-            TDb db(temp_file);
+            TDb db(DbKinds::PerfDb, temp_file);
             EXPECT(db.Update(key(), id0(), value0()));
         }
 
         {
-            TDb db0(temp_file);
-            TDb db1(temp_file);
+            TDb db0(DbKinds::PerfDb, temp_file);
+            TDb db1(DbKinds::PerfDb, temp_file);
 
             auto r0 = db0.FindRecord(key());
             auto r1 = db1.FindRecord(key());
@@ -621,7 +629,7 @@ public:
             {id2(), value2()},
         }};
 
-        TDb db{temp_file};
+        TDb db{DbKinds::PerfDb, temp_file};
         ValidateSingleEntry(key(), data, db);
     }
 };
@@ -874,7 +882,7 @@ public:
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for multithreaded write access...");
 
-        std::mutex mutex;
+        std::shared_mutex mutex;
         std::vector<std::thread> threads;
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
@@ -883,15 +891,15 @@ public:
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test threads...");
         threads.reserve(DBMultiThreadedTestWork::threads_count);
         const std::string p = temp_file;
-        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(p, false));
+        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, p, false));
 
         {
-            std::unique_lock<std::mutex> lock(mutex);
+            std::unique_lock<std::shared_mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
             {
                 auto thread_body = [c, &mutex, i]() {
-                    (void)std::unique_lock<std::mutex>(mutex);
+                    std::shared_lock<std::shared_mutex> lock(mutex);
                     DBMultiThreadedTestWork::WorkItem(i, c, "mt");
                 };
 
@@ -922,24 +930,24 @@ public:
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for multithreaded read access...");
 
-        std::mutex mutex;
+        std::shared_mutex mutex;
         std::vector<std::thread> threads;
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
         const std::string p = temp_file;
-        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(p, false));
+        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, p, false));
         DBMultiThreadedTestWork::FillForReading(c);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test threads...");
         threads.reserve(DBMultiThreadedTestWork::threads_count);
 
         {
-            std::unique_lock<std::mutex> lock(mutex);
+            std::unique_lock<std::shared_mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
             {
                 threads.emplace_back([c, &mutex, i]() {
-                    (void)std::unique_lock<std::mutex>(mutex);
+                    std::shared_lock<std::shared_mutex> lock(mutex);
                     DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
                 });
             }
@@ -1008,7 +1016,7 @@ public:
         fs::remove(lock_file_path);
 
         const std::string p = temp_file;
-        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(p, false));
+        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, p, false));
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Validating results...");
         DBMultiThreadedTestWork::ValidateCommonPart(c);
@@ -1022,7 +1030,8 @@ public:
             std::lock_guard<LockFile> lock(file_lock);
         }
 
-        const auto c = [&db_path]() MIOPEN_RETURNS(GetDbInstance<TDb>(db_path, false));
+        const auto c = [&db_path]()
+            MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, db_path, false));
 
         if(write)
             DBMultiThreadedTestWork::WorkItem(id, c, "mp");
@@ -1052,7 +1061,7 @@ public:
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
         std::string p = temp_file;
-        const auto c  = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(p, false));
+        const auto c  = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, p, false));
         DBMultiThreadedTestWork::FillForReading(c);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test processes...");
@@ -1078,7 +1087,7 @@ public:
                 if(full_set())
                     args += " --all";
 
-                MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", exe_path().string() + " " + args);
+                MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", exe_path() + " " + args);
                 children.emplace_back(exe_path(), args);
             }
             // clang-format on
@@ -1172,7 +1181,8 @@ private:
             {id0(), value2()},
         }};
 
-        MultiFileDb<ReadonlyRamDb, RamDb, merge_records> db(temp_file, user_db_path);
+        MultiFileDb<ReadonlyRamDb, RamDb, merge_records> db(
+            DbKinds::PerfDb, temp_file, user_db_path);
         if(merge_records)
             ValidateSingleEntry(key(), merged_data, db);
         else
@@ -1186,14 +1196,16 @@ private:
     void ReadUser() const
     {
         RawWrite(user_db_path, key(), single_item_data());
-        MultiFileDb<ReadonlyRamDb, RamDb, merge_records> db(temp_file, user_db_path);
+        MultiFileDb<ReadonlyRamDb, RamDb, merge_records> db(
+            DbKinds::PerfDb, temp_file, user_db_path);
         ValidateSingleEntry(key(), single_item_data(), db);
     }
 
     void ReadInstalled() const
     {
         RawWrite(temp_file, key(), single_item_data());
-        MultiFileDb<ReadonlyRamDb, RamDb, merge_records> db(temp_file, user_db_path);
+        MultiFileDb<ReadonlyRamDb, RamDb, merge_records> db(
+            DbKinds::PerfDb, temp_file, user_db_path);
         ValidateSingleEntry(key(), single_item_data(), db);
     }
 
@@ -1213,12 +1225,12 @@ public:
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Running multifile write test...");
 
-        DbRecord record(key());
+        DbRecord record(DbKinds::PerfDb, key());
         EXPECT(record.SetValues(id0(), value0()));
         EXPECT(record.SetValues(id1(), value1()));
 
         {
-            MultiFileDb<ReadonlyRamDb, RamDb, true> db(temp_file, user_db_path);
+            MultiFileDb<ReadonlyRamDb, RamDb, true> db(DbKinds::PerfDb, temp_file, user_db_path);
 
             EXPECT(db.StoreRecord(record));
         }
@@ -1227,7 +1239,7 @@ public:
         EXPECT(!std::getline(std::ifstream(temp_file), read).good());
         EXPECT(std::getline(std::ifstream(user_db_path), read).good());
 
-        auto db = MultiFileDb<ReadonlyRamDb, RamDb, true>{temp_file, user_db_path};
+        auto db = MultiFileDb<ReadonlyRamDb, RamDb, true>{DbKinds::PerfDb, temp_file, user_db_path};
         ValidateSingleEntry(key(), common_data(), db);
     }
 };
@@ -1251,11 +1263,11 @@ public:
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Running multifile operations test...");
 
         {
-            DbRecord record(key());
+            DbRecord record(DbKinds::PerfDb, key());
             EXPECT(record.SetValues(id0(), value0()));
             EXPECT(record.SetValues(id1(), value2()));
 
-            PlainTextDb db(temp_file);
+            PlainTextDb db(DbKinds::PerfDb, temp_file);
             EXPECT(db.StoreRecord(record));
         }
     }
@@ -1265,12 +1277,12 @@ public:
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Update test...");
 
         {
-            MultiFileDb<ReadonlyRamDb, RamDb, true> db(temp_file, user_db_path);
+            MultiFileDb<ReadonlyRamDb, RamDb, true> db(DbKinds::PerfDb, temp_file, user_db_path);
             EXPECT(db.Update(key(), id1(), value1()));
         }
 
         {
-            PlainTextDb db(user_db_path);
+            PlainTextDb db(DbKinds::PerfDb, user_db_path);
             TestData read(TestData::NoInit{});
             EXPECT(!db.Load(key(), id0(), read));
             EXPECT(db.Load(key(), id1(), read));
@@ -1278,7 +1290,7 @@ public:
         }
 
         {
-            PlainTextDb db(temp_file);
+            PlainTextDb db(DbKinds::PerfDb, temp_file);
             ValidateData(db, value2());
         }
     }
@@ -1287,7 +1299,7 @@ public:
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Load test...");
 
-        MultiFileDb<ReadonlyRamDb, RamDb, true> db(temp_file, user_db_path);
+        MultiFileDb<ReadonlyRamDb, RamDb, true> db(DbKinds::PerfDb, temp_file, user_db_path);
         ValidateData(db, value1());
     }
 
@@ -1295,7 +1307,7 @@ public:
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Remove test...");
 
-        MultiFileDb<ReadonlyRamDb, RamDb, true> db(temp_file, user_db_path);
+        MultiFileDb<ReadonlyRamDb, RamDb, true> db(DbKinds::PerfDb, temp_file, user_db_path);
         EXPECT(!db.Remove(key(), id0()));
         EXPECT(db.Remove(key(), id1()));
 
@@ -1306,7 +1318,7 @@ public:
     {
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Remove record test...");
 
-        MultiFileDb<ReadonlyRamDb, RamDb, true> db(temp_file, user_db_path);
+        MultiFileDb<ReadonlyRamDb, RamDb, true> db(DbKinds::PerfDb, temp_file, user_db_path);
         EXPECT(db.Update(key(), id1(), value1()));
         EXPECT(db.RemoveRecord(key()));
 
@@ -1334,13 +1346,15 @@ public:
         MIOPEN_LOG_CUSTOM(
             LoggingLevel::Default, "Test", "Testing db for multifile multithreaded read access...");
 
-        std::mutex mutex;
+        std::shared_mutex mutex;
         std::vector<std::thread> threads;
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
         const std::string p = temp_file;
         const auto& up      = user_db_path;
-        const auto c        = [&p, up]() { return MultiFileDb<ReadonlyRamDb, RamDb, true>(p, up); };
+        const auto c        = [&p, up]() {
+            return MultiFileDb<ReadonlyRamDb, RamDb, true>(DbKinds::PerfDb, p, up);
+        };
         ResetDb();
         DBMultiThreadedTestWork::FillForReading(c);
 
@@ -1348,12 +1362,12 @@ public:
         threads.reserve(DBMultiThreadedTestWork::threads_count);
 
         {
-            std::unique_lock<std::mutex> lock(mutex);
+            std::unique_lock<std::shared_mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
             {
                 threads.emplace_back([c, &mutex, i]() {
-                    (void)std::unique_lock<std::mutex>(mutex);
+                    std::shared_lock<std::shared_mutex> lock(mutex);
                     DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
                 });
             }
@@ -1378,7 +1392,7 @@ public:
                           "Test",
                           "Testing db for multifile multithreaded write access...");
 
-        std::mutex mutex;
+        std::shared_mutex mutex;
         std::vector<std::thread> threads;
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
@@ -1388,15 +1402,17 @@ public:
         threads.reserve(DBMultiThreadedTestWork::threads_count);
         const std::string p = temp_file;
         const auto up       = user_db_path;
-        const auto c = [&p, &up]() { return MultiFileDb<ReadonlyRamDb, RamDb, true>(p, up); };
+        const auto c        = [&p, &up]() {
+            return MultiFileDb<ReadonlyRamDb, RamDb, true>(DbKinds::PerfDb, p, up);
+        };
 
         {
-            std::unique_lock<std::mutex> lock(mutex);
+            std::unique_lock<std::shared_mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
             {
                 threads.emplace_back([c, &mutex, i]() {
-                    (void)std::unique_lock<std::mutex>(mutex);
+                    std::shared_lock<std::shared_mutex> lock(mutex);
                     DBMultiThreadedTestWork::WorkItem(i, c, "mt");
                 });
             }

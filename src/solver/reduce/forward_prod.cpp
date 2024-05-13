@@ -45,9 +45,9 @@ bool ProdForward::IsApplicable(const ExecutionContext& context,
 {
     if(!problem.IsSameType())
         return false;
-    if(!problem.IsRightDim())
+    if(!problem.IsValidDim())
         return false;
-    if(!problem.IsRightLength())
+    if(!problem.IsValidLength())
         return false;
     if(!problem.IsAllPacked())
         return false;
@@ -65,9 +65,9 @@ ConvSolution ProdForward::GetSolution(const ExecutionContext& context,
 
     auto dtype        = problem.GetXDesc().GetType();
     auto input_dtype  = miopen::GetDataType(problem.GetXDesc().GetType());
-    auto output_dtype = miopen::GetDataType(problem.GetReduceDesc().GetType());
+    auto output_dtype = miopen::GetDataType(problem.GetYDesc().GetType());
     auto xdims        = problem.GetXDesc().GetLengths();
-    auto ydims        = problem.GetReduceDesc().GetLengths();
+    auto ydims        = problem.GetYDesc().GetLengths();
     auto dim          = problem.GetDim();
 
     auto reduce_size = xdims[dim];
@@ -156,7 +156,7 @@ ConvSolution ProdForward::GetSolution(const ExecutionContext& context,
                 decltype(auto) params          = raw_params.CastTo<miopen::reduce::InvokeParams>();
 
                 auto xdims = params.xDesc->GetLengths();
-                auto ydims = params.reduceDesc->GetLengths();
+                auto ydims = params.yDesc->GetLengths();
                 auto dim   = params.dim;
 
                 auto reduce_size = xdims[dim];
@@ -208,7 +208,7 @@ ConvSolution ProdForward::GetSolution(const ExecutionContext& context,
                 decltype(auto) params = raw_params.CastTo<miopen::reduce::InvokeParams>();
 
                 auto xdims = params.xDesc->GetLengths();
-                auto ydims = params.reduceDesc->GetLengths();
+                auto ydims = params.yDesc->GetLengths();
                 auto dim   = params.dim;
 
                 auto reduce_size = xdims[dim];
@@ -234,7 +234,7 @@ std::size_t ProdForward::GetWorkspaceSize(const ExecutionContext& context,
                                           const miopen::reduce::ProblemDescription& problem) const
 {
     auto xdims = problem.GetXDesc().GetLengths();
-    auto ydims = problem.GetReduceDesc().GetLengths();
+    auto ydims = problem.GetYDesc().GetLengths();
 
     auto reduce_size = xdims[problem.GetDim()];
     auto output_numel =

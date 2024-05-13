@@ -146,7 +146,7 @@ static solver::ConvSolution FindSolution(const ExecutionContext& ctx,
                                          const conv::ProblemDescription& problem,
                                          const std::string& db_path)
 {
-    PlainTextDb db(db_path);
+    PlainTextDb db(DbKinds::PerfDb, db_path);
 
     const auto solvers = solver::SolverContainer<TrivialTestSolver, SearchableTestSolver>{};
 

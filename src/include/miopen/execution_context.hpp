@@ -119,10 +119,10 @@ struct ExecutionContext
             std::ostringstream filename;
             // clang-format off
             filename << GetStream().GetDbBasename();
-#if MIOPEN_ENABLE_SQLITE
+#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
             const std::string ext = ".db";
 #else
-            const std::string ext = ".cd.pdb.txt";
+            const std::string ext = ".db.txt";
 #endif
             filename << ext;
             // clang-format on
@@ -166,7 +166,7 @@ struct ExecutionContext
 
                         if(abs(cur_count - real_cu_count) < (closest_cu))
                         {
-                            MIOPEN_LOG_I2("Updating best candidate to: " << filepath.string());
+                            MIOPEN_LOG_I2("Updating best candidate to: " << filepath);
                             best_path  = filepath;
                             closest_cu = abs(cur_count - real_cu_count);
                         }
@@ -186,10 +186,10 @@ struct ExecutionContext
             std::ostringstream filename;
             // clang-format off
         filename << GetStream().GetDbBasename();
-#if MIOPEN_ENABLE_SQLITE
+#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
         const std::string ext = ".db";
 #else
-        const std::string ext = ".cd.pdb.txt";
+        const std::string ext = ".db.txt";
 #endif
         filename << ext;
             // clang-format on
@@ -205,7 +205,7 @@ struct ExecutionContext
                 const int real_cu_count = GetStream().GetMaxComputeUnits();
                 if(fs::exists(pdb_path) && fs::is_directory(pdb_path))
                 {
-                    MIOPEN_LOG_I2("Iterating over perf db directory " << pdb_path.string());
+                    MIOPEN_LOG_I2("Iterating over perf db directory " << pdb_path);
                     int closest_cu = std::numeric_limits<int>::max();
                     fs::path best_path;
                     std::vector<fs::path> contents;
@@ -242,7 +242,7 @@ struct ExecutionContext
 
                             if(abs(cur_count - real_cu_count) < (closest_cu))
                             {
-                                MIOPEN_LOG_I2("Updating best candidate to: " << filepath.string());
+                                MIOPEN_LOG_I2("Updating best candidate to: " << filepath);
                                 best_path  = filepath;
                                 closest_cu = abs(cur_count - real_cu_count);
                             }
@@ -279,10 +279,10 @@ struct ExecutionContext
             return "";
         std::ostringstream filename;
         filename << GetStream().GetDbBasename();
-#if MIOPEN_ENABLE_SQLITE
+#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
         filename << "_" << SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER << ".udb";
 #else
-        filename << "." << GetUserDbSuffix() << ".cd.updb.txt";
+        filename << "." << GetUserDbSuffix() << ".udb.txt";
 #endif
         return (udb / filename.str()).string();
     }

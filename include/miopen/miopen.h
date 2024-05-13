@@ -64,10 +64,11 @@
  * @defgroup LossFunction
  * @defgroup TensorReduce
  * @defgroup find2
- * @defgroup ReduceCalculation
  * @defgroup ReduceExtreme
  * @defgroup groupnorm
  * @defgroup cat
+ * @defgroup SGD
+ * @defgroup ReduceCalculation
  *
  */
 
@@ -346,6 +347,16 @@ MIOPEN_DECLARE_OBJECT(miopenDropoutDescriptor);
  */
 MIOPEN_DECLARE_OBJECT(miopenReduceTensorDescriptor);
 
+/*! @ingroup mha
+ * @brief Creates the miopenMhaDescriptor_t type
+ */
+MIOPEN_DECLARE_OBJECT(miopenMhaDescriptor);
+
+/*! @ingroup softmax
+ * @brief Creates the miopenSoftmaxDescriptor_t type
+ */
+MIOPEN_DECLARE_OBJECT(miopenSoftmaxDescriptor);
+
 /*! @ingroup tensor
  * @enum miopenDataType_t
  * MIOpen floating point datatypes. Both 32-bit and 16-bit floats are supported in MIOpen.
@@ -476,6 +487,14 @@ typedef enum
     MIOPEN_ELEMENTWISE_AFFINE = 0, /*!< initialized to ones for weights and zeros for biases */
     MIOPEN_WEIGHT_BIAS =
         1, /*!< learnable weights and biases of the module of shape normalized_shape */
+    MIOPEN_ELEMENTWISE_AFFINE_FUSED_ADD =
+        2, /*!< initialized to ones for weights and zeros for biases in addlayernorm */
+    MIOPEN_WEIGHT_BIAS_FUSED_ADD = 3, /*!< learnable weights and biases of the module of shape
+                                         normalized_shape in addlayernorm */
+    MIOPEN_ELEMENTWISE_AFFINE_T5 =
+        4, /*!< initialized to ones for weights and zeros for biases in t5layernorm */
+    MIOPEN_WEIGHT_BIAS_T5 = 5, /*!< learnable weights and biases of the module of shape
+                                  normalized_shape in t5layernorm */
 } miopenNormMode_t;
 #endif
 /*! @ingroup batchnorm
@@ -738,6 +757,16 @@ MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t 
                                                        int nbDims,
                                                        const int* dimsA,
                                                        const int* stridesA);
+
+#ifdef MIOPEN_BETA_API
+/*! @copydoc miopenSetTensorDescriptor()
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptorV2(miopenTensorDescriptor_t tensorDesc,
+                                                         miopenDataType_t dataType,
+                                                         int nbDims,
+                                                         const size_t* dimsA,
+                                                         const size_t* stridesA);
+#endif
 
 #ifdef MIOPEN_BETA_API
 /*! @brief Set the tensor cast type
@@ -5305,15 +5334,55 @@ typedef enum
     miopenTensorConvolutionX      = 1,
     miopenTensorConvolutionW      = 2,
     miopenTensorConvolutionY      = 3,
+
+    miopenTensorMhaK                  = 4,
+    miopenTensorMhaQ                  = 5,
+    miopenTensorMhaV                  = 6,
+    miopenTensorMhaDescaleK           = 7,
+    miopenTensorMhaDescaleQ           = 8,
+    miopenTensorMhaDescaleV           = 9,
+    miopenTensorMhaDescaleS           = 10,
+    miopenTensorMhaScaleS             = 11,
+    miopenTensorMhaScaleO             = 12,
+    miopenTensorMhaDropoutProbability = 13,
+    miopenTensorMhaDropoutSeed        = 14,
+    miopenTensorMhaDropoutOffset      = 15,
+    miopenTensorMhaO                  = 16,
+    miopenTensorMhaAmaxO              = 17,
+    miopenTensorMhaAmaxS              = 18,
+    miopenTensorMhaM                  = 19,
+    miopenTensorMhaZInv               = 20,
+    miopenTensorMhaDO                 = 21,
+    miopenTensorMhaDescaleO           = 22,
+    miopenTensorMhaDescaleDO          = 23,
+    miopenTensorMhaDescaleDS          = 24,
+    miopenTensorMhaScaleDS            = 25,
+    miopenTensorMhaScaleDQ            = 26,
+    miopenTensorMhaScaleDK            = 27,
+    miopenTensorMhaScaleDV            = 28,
+    miopenTensorMhaDQ                 = 29,
+    miopenTensorMhaDK                 = 30,
+    miopenTensorMhaDV                 = 31,
+    miopenTensorMhaAmaxDQ             = 32,
+    miopenTensorMhaAmaxDK             = 33,
+    miopenTensorMhaAmaxDV             = 34,
+    miopenTensorMhaAmaxDS             = 35,
+
 #ifdef MIOPEN_BETA_API
-    miopenTensorActivationX  = 4,
-    miopenTensorActivationY  = 5,
-    miopenTensorActivationDX = 6,
-    miopenTensorActivationDY = 7,
-    miopenTensorBiasX        = 8,
-    miopenTensorBiasY        = 9,
-    miopenTensorBias         = 10,
+    miopenTensorActivationX  = 36,
+    miopenTensorActivationY  = 37,
+    miopenTensorActivationDX = 38,
+    miopenTensorActivationDY = 39,
+    miopenTensorBiasX        = 40,
+    miopenTensorBiasY        = 41,
+    miopenTensorBias         = 42,
+    miopenTensorSoftmaxX     = 43,
+    miopenTensorSoftmaxY     = 44,
+    miopenTensorSoftmaxDX    = 45,
+    miopenTensorSoftmaxDY    = 46,
 #endif
+
+    miopenTensorArgumentIsScalar = 1U << 31,
 } miopenTensorArgumentId_t;
 
 /*! @enum miopenTensorArgumentId_t
@@ -5335,6 +5404,90 @@ typedef enum
 MIOPEN_EXPORT miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
                                                      miopenConvolutionDescriptor_t operatorDesc,
                                                      miopenProblemDirection_t direction);
+
+/*! @brief Initializes a problem object describing a Mha operation.
+ *
+ * @param problem      Pointer to the problem to initialize
+ * @param operatorDesc Descriptor of the operator to be used
+ * @param direction    Direction of the operation
+ * @return             miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenCreateMhaProblem(miopenProblem_t* problem,
+                                                    miopenMhaDescriptor_t operatorDesc,
+                                                    miopenProblemDirection_t direction);
+
+/*! @brief Creates the mha descriptor object
+ *
+ * @param mhaDesc     Pointer to a mha descriptor type
+ * @return            miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenCreateMhaDescriptor(miopenMhaDescriptor_t* mhaDesc);
+
+/*! @brief Sets the Mha descriptor details
+ *
+ * Sets all of the descriptor details for the Mha
+ *
+ * @param mhaDesc               Pointer to a Mha descriptor
+ * @param scale                 Scale
+ * @return                      miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenSetMhaDescriptor(miopenMhaDescriptor_t mhaDesc, float scale);
+
+/*! @brief Gets the Mha descriptor details
+ *
+ * Retrieves all of the descriptor details for the Mha.
+ *
+ * @param mhaDesc       Pointer to a Mha descriptor
+ * @param scale         Scale (output)
+ * @return              miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenGetMhaDescriptor(miopenMhaDescriptor_t mhaDesc, float* scale);
+
+/*! @brief Creates the Softmax descriptor object
+ *
+ * @param softmaxDesc Pointer to an softmax descriptor type
+ * @return            miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenCreateSoftmaxDescriptor(miopenSoftmaxDescriptor_t* softmaxDesc);
+
+/*! @brief Sets the softmax descriptor details
+ *
+ * Sets all of the descriptor details for the softmax layer
+ *
+ * @param softmaxDesc  Pointer to a softmax layer descriptor
+ * @param alpha        Softmax alpha parameter
+ * @param beta         Softmax beta parameter
+ * @param algorithm    Softmax algorithm
+ * @param mode         Softmax mode
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetSoftmaxDescriptor(miopenSoftmaxDescriptor_t softmaxDesc,
+                                                        float alpha,
+                                                        float beta,
+                                                        miopenSoftmaxAlgorithm_t algorithm,
+                                                        miopenSoftmaxMode_t mode);
+
+/*! @brief Gets the softmax layer descriptor details
+ *
+ * Retrieves all of the descriptor details for the softmax layer.
+ *
+ * @param softmaxDesc   Pointer to a softmax layer descriptor (input)
+ * @param alpha         Softmax alpha parameter (output)
+ * @param beta          Softmax beta parameter (output)
+ * @param algorithm     Softmax algorithm (output)
+ * @param mode          Softmax mode (output)
+ * @return              miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetSoftmaxDescriptor(const miopenSoftmaxDescriptor_t softmaxDesc,
+                                                        float* alpha,
+                                                        float* beta,
+                                                        miopenSoftmaxAlgorithm_t* algorithm,
+                                                        miopenSoftmaxMode_t* mode);
 
 /*! @brief Destroys a problem object.
  *
@@ -5445,7 +5598,7 @@ MIOPEN_EXPORT miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
                                                  size_t* numSolutions,
                                                  size_t maxSolutions);
 
-/*! @brief Values of a tensor argument for the miopenRunSolution function.
+/*! @brief Values of a tensor or scalar argument for the miopenRunSolution function.
  */
 struct miopenTensorArgument_t
 {
@@ -5458,7 +5611,8 @@ struct miopenTensorArgument_t
      * is no way to tell from the API. Intended for the future use.
      */
     miopenTensorDescriptor_t* descriptor;
-    /* @brief Pointer to the device memory buffer to use for the operation.
+    /* @brief Pointer to the device memory buffer to use for the operation or to the host memory if
+     * the value is scalar.
      */
     void* buffer;
 };
@@ -5596,6 +5750,18 @@ MIOPEN_EXPORT miopenStatus_t miopenFuseProblems(miopenProblem_t problem1, miopen
 MIOPEN_EXPORT miopenStatus_t miopenCreateBiasProblem(miopenProblem_t* problem,
                                                      miopenProblemDirection_t direction);
 
+/*! @brief Initializes a problem object describing a softmax operation.
+ *
+ * @param problem      Pointer to the problem to initialize
+ * @param operatorDesc Descriptor of the operator to be used
+ * @param direction    Direction of the operation
+ * @return             miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenCreateSoftmaxProblem(miopenProblem_t* problem,
+                                                        miopenSoftmaxDescriptor_t operatorDesc,
+                                                        miopenProblemDirection_t direction);
+
 #endif
 
 /** @} */
@@ -5635,8 +5801,8 @@ typedef enum
  *
  * @param handle                   MIOpen Handle (input)
  * @param xDesc                    Tensor descriptor for data input tensor x (input)
- * @param dim                      Dimensions to reduce calculation. (input)
- * @param reduceDesc               Tensor descriptor for output data tensor y (input)
+ * @param dim                      Dimension to sum. (input)
+ * @param yDesc                    Tensor descriptor for output data tensor y (input)
  * @param sizeInBytes              Pointer to data to return the minimum workspace size
  * @return                         miopenStatus_t
  */
@@ -5656,8 +5822,8 @@ miopenGetReduceCalculationWorkspaceSize(miopenHandle_t handle,
  * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
  * @param xDesc                    Tensor descriptor for data input tensor x (input)
  * @param x                        Data tensor x (input)
- * @param dim                      Dimensions to reduce calculation. (input)
- * @param reduceDesc               Tensor descriptor for output data tensor y (input)
+ * @param dim                      Dimension to sum. (input)
+ * @param yDesc                    Tensor descriptor for output data tensor y (input)
  * @param y                        Data tensor y (output)
  * @return                         miopenStatus_t
  */
@@ -5701,15 +5867,17 @@ typedef enum
  *  @{
  */
 
-/*! @brief Find the the extreme(minimum, maximum) value and index of a tensor across dimensions.
+/*! @brief Find the the extreme (minimum, maximum) value and index of a tensor across Dimension.
  *
  * @param handle                   MIOpen handle (input)
  * @param xDesc                    Tensor descriptor for data input tensor x (input)
  * @param x                        Data tensor x (input)
- * @param dim                      Dimensions to reduce argmax. (input)
+ * @param dim                      Dimension to reduce argmax. (input)
  * @param reduceExtremeOp          Enumerant specifying the operation used by ReduceExtreme (input)
- * @param reduceDesc               Tensor descriptor for reduce data tensor y or indice (input)
+ * @param yDesc                    Tensor descriptor for reduce data tensor y (input)
  * @param y                        Data tensor y (output)
+ * @param indiceDesc               Tensor descriptor for reduce data tensor indice only int32_t
+ * (input)
  * @param indice                   Data tensor indice (output)
  * @return                         miopenStatus_t
  */
@@ -5719,8 +5887,9 @@ miopenReduceExtremeForward(miopenHandle_t handle,
                            const void* x,
                            const int32_t dim,
                            const miopenReduceExtremeOp_t reduceExtremeOp,
-                           const miopenTensorDescriptor_t reduceDesc,
+                           const miopenTensorDescriptor_t yDesc,
                            void* y,
+                           const miopenTensorDescriptor_t indiceDesc,
                            void* indice);
 
 /** @} */
@@ -5773,6 +5942,1208 @@ MIOPEN_EXPORT miopenStatus_t miopenGroupNormForward(miopenHandle_t handle,
 /** @} */
 // CLOSEOUT groupnorm DOXYGEN GROUP
 #endif
+
+#ifdef MIOPEN_BETA_API
+// LayerNorm APIs
+/** @addtogroup layernorm
+ *
+ *  @{
+ */
+/*! @brief Execute a add and layernorm forward layer
+ *
+ * @param handle         MIOpen handle (input)
+ * @param mode           LayerNorm mode (input)
+ * @param xDesc          Tensor descriptor for data input tensor x (input)
+ * @param x              Data tensor x (input)
+ * @param x2Desc         Tensor descriptor for data input tensor x2 (input)
+ * @param x2             Data tensor x2 (input)
+ * @param weightDesc     Tensor descriptor for data input tensor weight (input)
+ * @param weight         Data tensor weight (input)
+ * @param biasDesc       Tensor descriptor for data input tensor bias (input)
+ * @param bias           Data tensor bias (input)
+ * @param epsilon        Value to stablize inverse variance calculation (input)
+ * @param normalized_dim Nomalized dimensions in the input array (input)
+ * @param yDesc          Tensor descriptor for output data tensor y (input)
+ * @param y              Data tensor y (output)
+ * @param meanDesc       Tensor descriptor for output data tensor mean (input)
+ * @param mean           Data tensor mean (output)
+ * @param rstdDesc       Tensor descriptor for output data tensor rstd (input)
+ * @param rstd           Data tensor rstd (output)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenAddLayerNormForward(miopenHandle_t handle,
+                                                       miopenNormMode_t mode,
+                                                       const miopenTensorDescriptor_t xDesc,
+                                                       const void* x,
+                                                       const miopenTensorDescriptor_t x2Desc,
+                                                       const void* x2,
+                                                       const miopenTensorDescriptor_t weightDesc,
+                                                       const void* weight,
+                                                       const miopenTensorDescriptor_t biasDesc,
+                                                       const void* bias,
+                                                       const float epsilon,
+                                                       const int32_t normalized_dim,
+                                                       const miopenTensorDescriptor_t yDesc,
+                                                       void* y,
+                                                       const miopenTensorDescriptor_t meanDesc,
+                                                       void* mean,
+                                                       const miopenTensorDescriptor_t rstdDesc,
+                                                       void* rstd);
+
+/** @} */
+// CLOSEOUT LAYERNORM DOXYGEN GROUP
+#endif
+
+#ifdef MIOPEN_BETA_API
+// LayerNorm APIs
+/** @addtogroup layernorm
+ *
+ *  @{
+ */
+/*! @brief Execute a T5layernorm forward layer
+ *
+ * @param handle         MIOpen handle (input)
+ * @param mode           LayerNorm mode (input)
+ * @param xDesc          Tensor descriptor for data input tensor x (input)
+ * @param x              Data tensor x (input)
+ * @param weightDesc     Tensor descriptor for data input tensor weight (input)
+ * @param weight         Data tensor weight (input)
+ * @param epsilon        Value to stablize inverse variance calculation (input)
+ * @param yDesc          Tensor descriptor for output data tensor y (input)
+ * @param y              Data tensor y (output)
+ * @param rstdDesc       Tensor descriptor for output data tensor rstd (input)
+ * @param rstd           Data tensor rstd (output)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenT5LayerNormForward(miopenHandle_t handle,
+                                                      miopenNormMode_t mode,
+                                                      const miopenTensorDescriptor_t xDesc,
+                                                      const void* x,
+                                                      const miopenTensorDescriptor_t weightDesc,
+                                                      const void* weight,
+                                                      const float epsilon,
+                                                      const miopenTensorDescriptor_t yDesc,
+                                                      void* y,
+                                                      const miopenTensorDescriptor_t rstdDesc,
+                                                      void* rstd);
+
+/*! @brief Helper function to query the minimum workspace size required by the T5layernorm backward
+ * call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param mode                     LayerNorm mode (input)
+ * @param dyDesc                   Tensor descriptor for data input tensor dy (input)
+ * @param xDesc                    Tensor descriptor for data input tensor x (input)
+ * @param weightDesc               Tensor descriptor for data input tensor weight (input)
+ * @param rstdDesc                 Tensor descriptor for data input tensor rstd (input)
+ * @param dxDesc                   Tensor descriptor for output data tensor dx (input)
+ * @param dwDesc                   Tensor descriptor for output data tensor dw (input)
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size
+ * @return                         miopenStatus_t
+ */
+extern "C" miopenStatus_t
+miopenGetT5LayerNormBackwardWorkspaceSize(miopenHandle_t handle,
+                                          miopenNormMode_t mode,
+                                          const miopenTensorDescriptor_t dyDesc,
+                                          const miopenTensorDescriptor_t xDesc,
+                                          const miopenTensorDescriptor_t weightDesc,
+                                          const miopenTensorDescriptor_t rstdDesc,
+                                          const miopenTensorDescriptor_t dxDesc,
+                                          const miopenTensorDescriptor_t dwDesc,
+                                          size_t* sizeInBytes);
+
+/*! @brief Execute a T5layernorm backward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param mode                     LayerNorm mode (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param dyDesc                   Tensor descriptor for data input tensor dy (input)
+ * @param dy                       Data tensor dy (input)
+ * @param xDesc                    Tensor descriptor for output data tensor x (input)
+ * @param x                        Data tensor x (input)
+ * @param weightDesc               Tensor descriptor for data input tensor weight (input)
+ * @param weight                   Data tensor weight (input)
+ * @param rstdDesc                 Tensor descriptor for output data tensor rstd (input)
+ * @param rstd                     Data tensor rstd (output)
+ * @param dxDesc                   Tensor descriptor for output data tensor dx (input)
+ * @param dx                       Data tensor dx (output)
+ * @param dwDesc                   Tensor descriptor for output data tensor dw (input)
+ * @param dw                       Data tensor dw (output)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenT5LayerNormBackward(miopenHandle_t handle,
+                                                       miopenNormMode_t mode,
+                                                       void* workspace,
+                                                       size_t workspaceSizeInBytes,
+                                                       const miopenTensorDescriptor_t dyDesc,
+                                                       const void* dy,
+                                                       const miopenTensorDescriptor_t xDesc,
+                                                       const void* x,
+                                                       const miopenTensorDescriptor_t weightDesc,
+                                                       const void* weight,
+                                                       const miopenTensorDescriptor_t rstdDesc,
+                                                       const void* rstd,
+                                                       const miopenTensorDescriptor_t dxDesc,
+                                                       void* dx,
+                                                       const miopenTensorDescriptor_t dwDesc,
+                                                       void* dw);
+/** @} */
+// CLOSEOUT LAYERNORM DOXYGEN GROUP
+#endif
+
+#ifdef MIOPEN_BETA_API
+// Graph API
+/** @addtogroup GraphAPI
+ *
+ *  @{
+ */
+
+/*! @brief Descriptor type
+ *
+ * An enumerated type that indicates the type of backend descriptors. Users create a backend
+ * descriptor of a particular type by passing a value from this enumerate to the
+ * miopenBackendCreateDescriptor() function.
+ */
+typedef enum
+{
+    MIOPEN_BACKEND_CONVOLUTION_DESCRIPTOR,
+    MIOPEN_BACKEND_ENGINE_DESCRIPTOR,
+    MIOPEN_BACKEND_ENGINECFG_DESCRIPTOR,
+    MIOPEN_BACKEND_ENGINEHEUR_DESCRIPTOR,
+    MIOPEN_BACKEND_EXECUTION_PLAN_DESCRIPTOR,
+    MIOPEN_BACKEND_INTERMEDIATE_INFO_DESCRIPTOR,
+    MIOPEN_BACKEND_KNOB_CHOICE_DESCRIPTOR,
+    MIOPEN_BACKEND_KNOB_INFO_DESCRIPTOR,
+    MIOPEN_BACKEND_LAYOUT_INFO_DESCRIPTOR,
+    MIOPEN_BACKEND_MATMUL_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_CONCAT_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_DATA_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_CONVOLUTION_FORWARD_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_GEN_STATS_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_MATMUL_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_NORM_BACKWARD_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_NORM_FORWARD_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_POINTWISE_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_REDUCTION_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_RESAMPLE_BWD_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_RESAMPLE_FWD_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_RNG_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_SIGNAL_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATIONGRAPH_DESCRIPTOR,
+    MIOPEN_BACKEND_POINTWISE_DESCRIPTOR,
+    MIOPEN_BACKEND_REDUCTION_DESCRIPTOR,
+    MIOPEN_BACKEND_RESAMPLE_DESCRIPTOR,
+    MIOPEN_BACKEND_RNG_DESCRIPTOR,
+    MIOPEN_BACKEND_TENSOR_DESCRIPTOR,
+    MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR,
+} miopenBackendDescriptorType_t;
+
+/*! @brief Backend Descriptor's Attribute
+ *
+ * An enumerated type that indicates the backend descriptor attributes
+ * that can be set or get using miopenBackendSetAttribute() and miopenBackendGetAttribute()
+ * functions. The backend descriptor to which an attribute belongs is
+ * identified by the prefix of the attribute name.
+ */
+typedef enum
+{
+    MIOPEN_ATTR_POINTWISE_MODE                  = 0,
+    MIOPEN_ATTR_POINTWISE_MATH_PREC             = 1,
+    MIOPEN_ATTR_POINTWISE_NAN_PROPAGATION       = 2,
+    MIOPEN_ATTR_POINTWISE_RELU_LOWER_CLIP       = 3,
+    MIOPEN_ATTR_POINTWISE_RELU_UPPER_CLIP       = 4,
+    MIOPEN_ATTR_POINTWISE_RELU_LOWER_CLIP_SLOPE = 5,
+    MIOPEN_ATTR_POINTWISE_ELU_ALPHA             = 6,
+    MIOPEN_ATTR_POINTWISE_SOFTPLUS_BETA         = 7,
+    MIOPEN_ATTR_POINTWISE_SWISH_BETA            = 8,
+    MIOPEN_ATTR_POINTWISE_AXIS                  = 9,
+
+    MIOPEN_ATTR_CONVOLUTION_COMP_TYPE      = 100,
+    MIOPEN_ATTR_CONVOLUTION_CONV_MODE      = 101,
+    MIOPEN_ATTR_CONVOLUTION_DILATIONS      = 102,
+    MIOPEN_ATTR_CONVOLUTION_FILTER_STRIDES = 103,
+    MIOPEN_ATTR_CONVOLUTION_POST_PADDINGS  = 104,
+    MIOPEN_ATTR_CONVOLUTION_PRE_PADDINGS   = 105,
+    MIOPEN_ATTR_CONVOLUTION_SPATIAL_DIMS   = 106,
+
+    MIOPEN_ATTR_ENGINEHEUR_MODE            = 200,
+    MIOPEN_ATTR_ENGINEHEUR_OPERATION_GRAPH = 201,
+    MIOPEN_ATTR_ENGINEHEUR_RESULTS         = 202,
+    MIOPEN_ATTR_ENGINEHEUR_SM_COUNT_TARGET = 203,
+
+    MIOPEN_ATTR_ENGINECFG_ENGINE            = 300,
+    MIOPEN_ATTR_ENGINECFG_INTERMEDIATE_INFO = 301,
+    MIOPEN_ATTR_ENGINECFG_KNOB_CHOICES      = 302,
+
+    MIOPEN_ATTR_EXECUTION_PLAN_HANDLE                     = 400,
+    MIOPEN_ATTR_EXECUTION_PLAN_ENGINE_CONFIG              = 401,
+    MIOPEN_ATTR_EXECUTION_PLAN_WORKSPACE_SIZE             = 402,
+    MIOPEN_ATTR_EXECUTION_PLAN_COMPUTED_INTERMEDIATE_UIDS = 403,
+    MIOPEN_ATTR_EXECUTION_PLAN_RUN_ONLY_INTERMEDIATE_UIDS = 404,
+    MIOPEN_ATTR_EXECUTION_PLAN_JSON_REPRESENTATION        = 405,
+
+    MIOPEN_ATTR_INTERMEDIATE_INFO_UNIQUE_ID            = 500,
+    MIOPEN_ATTR_INTERMEDIATE_INFO_SIZE                 = 501,
+    MIOPEN_ATTR_INTERMEDIATE_INFO_DEPENDENT_DATA_UIDS  = 502,
+    MIOPEN_ATTR_INTERMEDIATE_INFO_DEPENDENT_ATTRIBUTES = 503,
+
+    MIOPEN_ATTR_KNOB_CHOICE_KNOB_TYPE  = 600,
+    MIOPEN_ATTR_KNOB_CHOICE_KNOB_VALUE = 601,
+
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_ALPHA        = 700,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_BETA         = 701,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_CONV_DESC    = 702,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_W            = 703,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_X            = 704,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_FORWARD_Y            = 705,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_ALPHA       = 706,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_BETA        = 707,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_CONV_DESC   = 708,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_W           = 709,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DX          = 710,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_DATA_DY          = 711,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_ALPHA     = 712,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_BETA      = 713,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_CONV_DESC = 714,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DW        = 715,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_X         = 716,
+    MIOPEN_ATTR_OPERATION_CONVOLUTION_BWD_FILTER_DY        = 717,
+    MIOPEN_ATTR_OPERATION_POINTWISE_PW_DESCRIPTOR          = 750,
+    MIOPEN_ATTR_OPERATION_POINTWISE_XDESC                  = 751,
+    MIOPEN_ATTR_OPERATION_POINTWISE_BDESC                  = 752,
+    MIOPEN_ATTR_OPERATION_POINTWISE_YDESC                  = 753,
+    MIOPEN_ATTR_OPERATION_POINTWISE_ALPHA1                 = 754,
+    MIOPEN_ATTR_OPERATION_POINTWISE_ALPHA2                 = 755,
+    MIOPEN_ATTR_OPERATION_POINTWISE_DXDESC                 = 756,
+    MIOPEN_ATTR_OPERATION_POINTWISE_DYDESC                 = 757,
+    MIOPEN_ATTR_OPERATION_POINTWISE_TDESC                  = 758,
+
+    MIOPEN_ATTR_OPERATION_GENSTATS_MODE      = 770,
+    MIOPEN_ATTR_OPERATION_GENSTATS_MATH_PREC = 771,
+    MIOPEN_ATTR_OPERATION_GENSTATS_XDESC     = 772,
+    MIOPEN_ATTR_OPERATION_GENSTATS_SUMDESC   = 773,
+    MIOPEN_ATTR_OPERATION_GENSTATS_SQSUMDESC = 774,
+
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_STATS_MODE                = 780,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_MATH_PREC                 = 781,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_Y_SUM_DESC                = 782,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_Y_SQ_SUM_DESC             = 783,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_SCALE_DESC                = 784,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_BIAS_DESC                 = 785,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_PREV_RUNNING_MEAN_DESC    = 786,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_PREV_RUNNING_VAR_DESC     = 787,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_UPDATED_RUNNING_MEAN_DESC = 788,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_UPDATED_RUNNING_VAR_DESC  = 789,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_SAVED_MEAN_DESC           = 790,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_SAVED_INV_STD_DESC        = 791,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_EQ_SCALE_DESC             = 792,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_EQ_BIAS_DESC              = 793,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_ACCUM_COUNT_DESC          = 794,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_EPSILON_DESC              = 795,
+    MIOPEN_ATTR_OPERATION_BN_FINALIZE_EXP_AVERATE_FACTOR_DESC   = 796,
+
+    MIOPEN_ATTR_OPERATIONGRAPH_HANDLE              = 800,
+    MIOPEN_ATTR_OPERATIONGRAPH_OPS                 = 801,
+    MIOPEN_ATTR_OPERATIONGRAPH_ENGINE_GLOBAL_COUNT = 802,
+
+    MIOPEN_ATTR_TENSOR_BYTE_ALIGNMENT       = 900,
+    MIOPEN_ATTR_TENSOR_DATA_TYPE            = 901,
+    MIOPEN_ATTR_TENSOR_DIMENSIONS           = 902,
+    MIOPEN_ATTR_TENSOR_STRIDES              = 903,
+    MIOPEN_ATTR_TENSOR_VECTOR_COUNT         = 904,
+    MIOPEN_ATTR_TENSOR_VECTORIZED_DIMENSION = 905,
+    MIOPEN_ATTR_TENSOR_UNIQUE_ID            = 906,
+    MIOPEN_ATTR_TENSOR_IS_VIRTUAL           = 907,
+    MIOPEN_ATTR_TENSOR_IS_BY_VALUE          = 908,
+    MIOPEN_ATTR_TENSOR_REORDERING_MODE      = 909,
+    MIOPEN_ATTR_TENSOR_RAGGED_OFFSET_DESC   = 910,
+
+    MIOPEN_ATTR_VARIANT_PACK_UNIQUE_IDS    = 1000,
+    MIOPEN_ATTR_VARIANT_PACK_DATA_POINTERS = 1001,
+    MIOPEN_ATTR_VARIANT_PACK_INTERMEDIATES = 1002,
+    MIOPEN_ATTR_VARIANT_PACK_WORKSPACE     = 1003,
+
+    MIOPEN_ATTR_LAYOUT_INFO_TENSOR_UID = 1100,
+    MIOPEN_ATTR_LAYOUT_INFO_TYPES      = 1101,
+
+    MIOPEN_ATTR_KNOB_INFO_TYPE          = 1200,
+    MIOPEN_ATTR_KNOB_INFO_MAXIMUM_VALUE = 1201,
+    MIOPEN_ATTR_KNOB_INFO_MINIMUM_VALUE = 1202,
+    MIOPEN_ATTR_KNOB_INFO_STRIDE        = 1203,
+
+    MIOPEN_ATTR_ENGINE_OPERATION_GRAPH = 1300,
+    MIOPEN_ATTR_ENGINE_GLOBAL_INDEX    = 1301,
+    MIOPEN_ATTR_ENGINE_KNOB_INFO       = 1302,
+    MIOPEN_ATTR_ENGINE_NUMERICAL_NOTE  = 1303,
+    MIOPEN_ATTR_ENGINE_LAYOUT_INFO     = 1304,
+    MIOPEN_ATTR_ENGINE_BEHAVIOR_NOTE   = 1305,
+    MIOPEN_ATTR_ENGINE_SM_COUNT_TARGET = 1306,
+
+    MIOPEN_ATTR_MATMUL_COMP_TYPE     = 1500,
+    MIOPEN_ATTR_MATMUL_PADDING_VALUE = 1501,
+
+    MIOPEN_ATTR_OPERATION_MATMUL_ADESC                           = 1520,
+    MIOPEN_ATTR_OPERATION_MATMUL_BDESC                           = 1521,
+    MIOPEN_ATTR_OPERATION_MATMUL_CDESC                           = 1522,
+    MIOPEN_ATTR_OPERATION_MATMUL_DESC                            = 1523,
+    MIOPEN_ATTR_OPERATION_MATMUL_IRREGULARLY_STRIDED_BATCH_COUNT = 1524,
+    MIOPEN_ATTR_OPERATION_MATMUL_GEMM_M_OVERRIDE_DESC            = 1525,
+    MIOPEN_ATTR_OPERATION_MATMUL_GEMM_N_OVERRIDE_DESC            = 1526,
+    MIOPEN_ATTR_OPERATION_MATMUL_GEMM_K_OVERRIDE_DESC            = 1527,
+
+    MIOPEN_ATTR_REDUCTION_OPERATOR  = 1600,
+    MIOPEN_ATTR_REDUCTION_COMP_TYPE = 1601,
+
+    MIOPEN_ATTR_OPERATION_REDUCTION_XDESC = 1610,
+    MIOPEN_ATTR_OPERATION_REDUCTION_YDESC = 1611,
+    MIOPEN_ATTR_OPERATION_REDUCTION_DESC  = 1612,
+
+    MIOPEN_ATTR_OPERATION_BN_BWD_WEIGHTS_MATH_PREC        = 1620,
+    MIOPEN_ATTR_OPERATION_BN_BWD_WEIGHTS_MEAN_DESC        = 1621,
+    MIOPEN_ATTR_OPERATION_BN_BWD_WEIGHTS_INVSTD_DESC      = 1622,
+    MIOPEN_ATTR_OPERATION_BN_BWD_WEIGHTS_BN_SCALE_DESC    = 1623,
+    MIOPEN_ATTR_OPERATION_BN_BWD_WEIGHTS_X_DESC           = 1624,
+    MIOPEN_ATTR_OPERATION_BN_BWD_WEIGHTS_DY_DESC          = 1625,
+    MIOPEN_ATTR_OPERATION_BN_BWD_WEIGHTS_DBN_SCALE_DESC   = 1626,
+    MIOPEN_ATTR_OPERATION_BN_BWD_WEIGHTS_DBN_BIAS_DESC    = 1627,
+    MIOPEN_ATTR_OPERATION_BN_BWD_WEIGHTS_EQ_DY_SCALE_DESC = 1628,
+    MIOPEN_ATTR_OPERATION_BN_BWD_WEIGHTS_EQ_X_SCALE_DESC  = 1629,
+    MIOPEN_ATTR_OPERATION_BN_BWD_WEIGHTS_EQ_BIAS          = 1630,
+
+    MIOPEN_ATTR_RESAMPLE_MODE            = 1700,
+    MIOPEN_ATTR_RESAMPLE_COMP_TYPE       = 1701,
+    MIOPEN_ATTR_RESAMPLE_SPATIAL_DIMS    = 1702,
+    MIOPEN_ATTR_RESAMPLE_POST_PADDINGS   = 1703,
+    MIOPEN_ATTR_RESAMPLE_PRE_PADDINGS    = 1704,
+    MIOPEN_ATTR_RESAMPLE_STRIDES         = 1705,
+    MIOPEN_ATTR_RESAMPLE_WINDOW_DIMS     = 1706,
+    MIOPEN_ATTR_RESAMPLE_NAN_PROPAGATION = 1707,
+    MIOPEN_ATTR_RESAMPLE_PADDING_MODE    = 1708,
+
+    MIOPEN_ATTR_OPERATION_RESAMPLE_FWD_XDESC   = 1710,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_FWD_YDESC   = 1711,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_FWD_IDXDESC = 1712,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_FWD_ALPHA   = 1713,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_FWD_BETA    = 1714,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_FWD_DESC    = 1716,
+
+    MIOPEN_ATTR_OPERATION_RESAMPLE_BWD_DXDESC  = 1720,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_BWD_DYDESC  = 1721,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_BWD_IDXDESC = 1722,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_BWD_ALPHA   = 1723,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_BWD_BETA    = 1724,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_BWD_DESC    = 1725,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_BWD_XDESC   = 1726,
+    MIOPEN_ATTR_OPERATION_RESAMPLE_BWD_YDESC   = 1727,
+
+    MIOPEN_ATTR_OPERATION_CONCAT_AXIS          = 1800,
+    MIOPEN_ATTR_OPERATION_CONCAT_INPUT_DESCS   = 1801,
+    MIOPEN_ATTR_OPERATION_CONCAT_INPLACE_INDEX = 1802,
+    MIOPEN_ATTR_OPERATION_CONCAT_OUTPUT_DESC   = 1803,
+
+    MIOPEN_ATTR_OPERATION_SIGNAL_MODE     = 1900,
+    MIOPEN_ATTR_OPERATION_SIGNAL_FLAGDESC = 1901,
+    MIOPEN_ATTR_OPERATION_SIGNAL_VALUE    = 1902,
+    MIOPEN_ATTR_OPERATION_SIGNAL_XDESC    = 1903,
+    MIOPEN_ATTR_OPERATION_SIGNAL_YDESC    = 1904,
+
+    MIOPEN_ATTR_OPERATION_NORM_FWD_MODE                     = 2000,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_PHASE                    = 2001,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_XDESC                    = 2002,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_MEAN_DESC                = 2003,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_INV_VARIANCE_DESC        = 2004,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_SCALE_DESC               = 2005,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_BIAS_DESC                = 2006,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_EPSILON_DESC             = 2007,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_EXP_AVG_FACTOR_DESC      = 2008,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_INPUT_RUNNING_MEAN_DESC  = 2009,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_INPUT_RUNNING_VAR_DESC   = 2010,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_OUTPUT_RUNNING_MEAN_DESC = 2011,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_OUTPUT_RUNNING_VAR_DESC  = 2012,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_YDESC                    = 2013,
+    MIOPEN_ATTR_OPERATION_NORM_FWD_PEER_STAT_DESCS          = 2014,
+
+    MIOPEN_ATTR_OPERATION_NORM_BWD_MODE              = 2100,
+    MIOPEN_ATTR_OPERATION_NORM_BWD_XDESC             = 2101,
+    MIOPEN_ATTR_OPERATION_NORM_BWD_MEAN_DESC         = 2102,
+    MIOPEN_ATTR_OPERATION_NORM_BWD_INV_VARIANCE_DESC = 2103,
+    MIOPEN_ATTR_OPERATION_NORM_BWD_DYDESC            = 2104,
+    MIOPEN_ATTR_OPERATION_NORM_BWD_SCALE_DESC        = 2105,
+    MIOPEN_ATTR_OPERATION_NORM_BWD_EPSILON_DESC      = 2106,
+    MIOPEN_ATTR_OPERATION_NORM_BWD_DSCALE_DESC       = 2107,
+    MIOPEN_ATTR_OPERATION_NORM_BWD_DBIAS_DESC        = 2108,
+    MIOPEN_ATTR_OPERATION_NORM_BWD_DXDESC            = 2109,
+    MIOPEN_ATTR_OPERATION_NORM_BWD_PEER_STAT_DESCS   = 2110,
+
+    MIOPEN_ATTR_OPERATION_RESHAPE_XDESC = 2200,
+    MIOPEN_ATTR_OPERATION_RESHAPE_YDESC = 2201,
+
+    MIOPEN_ATTR_RNG_DISTRIBUTION                   = 2300,
+    MIOPEN_ATTR_RNG_NORMAL_DIST_MEAN               = 2301,
+    MIOPEN_ATTR_RNG_NORMAL_DIST_STANDARD_DEVIATION = 2302,
+    MIOPEN_ATTR_RNG_UNIFORM_DIST_MAXIMUM           = 2303,
+    MIOPEN_ATTR_RNG_UNIFORM_DIST_MINIMUM           = 2304,
+    MIOPEN_ATTR_RNG_BERNOULLI_DIST_PROBABILITY     = 2305,
+
+    MIOPEN_ATTR_OPERATION_RNG_YDESC       = 2310,
+    MIOPEN_ATTR_OPERATION_RNG_SEED        = 2311,
+    MIOPEN_ATTR_OPERATION_RNG_DESC        = 2312,
+    MIOPEN_ATTR_OPERATION_RNG_OFFSET_DESC = 2313,
+
+} miopenBackendAttributeName_t;
+
+/*! @brief Data type of an attribute of a backend descriptor
+ *
+ * Specifies the data type of an attribute of a backend descriptor.
+ * It is used to specify the type of data pointed to by the
+ * void *arrayOfElements argument of miopenBackendSetAttribute()
+ * and miopenBackendGetAttribute()
+ */
+typedef enum
+{
+    MIOPEN_TYPE_HANDLE = 0,              /*!< miopenHandle_t */
+    MIOPEN_TYPE_DATA_TYPE,               /*!< miopenDataType_t */
+    MIOPEN_TYPE_BOOLEAN,                 /*!< bool */
+    MIOPEN_TYPE_INT64,                   /*!< int64_t */
+    MIOPEN_TYPE_FLOAT,                   /*!< float */
+    MIOPEN_TYPE_DOUBLE,                  /*!< double */
+    MIOPEN_TYPE_VOID_PTR,                /*!< void * */
+    MIOPEN_TYPE_CONVOLUTION_MODE,        /*!< miopenConvolutionMode_t */
+    MIOPEN_TYPE_HEUR_MODE,               /*!< miopenBackendHeurMode_t */
+    MIOPEN_TYPE_KNOB_TYPE,               /*!< miopenBackendKnobType_t */
+    MIOPEN_TYPE_NAN_PROPOGATION,         /*!< miopenNanPropagation_t */
+    MIOPEN_TYPE_NUMERICAL_NOTE,          /*!< miopenBackendNumericalNote_t */
+    MIOPEN_TYPE_LAYOUT_TYPE,             /*!< miopenBackendLayoutType_t */
+    MIOPEN_TYPE_ATTRIB_NAME,             /*!< miopenBackendAttributeName_t */
+    MIOPEN_TYPE_POINTWISE_MODE,          /*!< miopenPointwiseMode_t */
+    MIOPEN_TYPE_BACKEND_DESCRIPTOR,      /*!< miopenBackendDescriptor_t */
+    MIOPEN_TYPE_GENSTATS_MODE,           /*!< miopenGenStatsMode_t */
+    MIOPEN_TYPE_BN_FINALIZE_STATS_MODE,  /*!< miopenBnFinalizeStatsMode_t */
+    MIOPEN_TYPE_REDUCTION_OPERATOR_TYPE, /*!< miopenReduceTensorOp_t */
+    MIOPEN_TYPE_BEHAVIOR_NOTE,           /*!< miopenBackendBehaviorNote_t */
+    MIOPEN_TYPE_TENSOR_REORDERING_MODE,  /*!< miopenBackendTensorReordering_t */
+    MIOPEN_TYPE_RESAMPLE_MODE,           /*!< miopenResampleMode_t */
+    MIOPEN_TYPE_PADDING_MODE,            /*!< miopenPaddingMode_t */
+    MIOPEN_TYPE_INT32,                   /*!< int32_t */
+    MIOPEN_TYPE_CHAR,                    /*!< char */
+    MIOPEN_TYPE_SIGNAL_MODE,             /*!< miopenSignalMode_t */
+    MIOPEN_TYPE_FRACTION,                /*!< miopenFraction_t */
+    MIOPEN_TYPE_NORM_MODE,               /*!< miopenBackendNormMode_t */
+    MIOPEN_TYPE_NORM_FWD_PHASE,          /*!< miopenBackendNormFwdPhase_t */
+    MIOPEN_TYPE_RNG_DISTRIBUTION         /*!< miopenRngDistribution_t */
+} miopenBackendAttributeType_t;
+
+/*! @brief Intended poinwise math operation for a pointwise operation descriptor
+ *
+ * An enumerated type to indicate the intended pointwise math operation in the backend pointwise
+ * operation descriptor
+ */
+typedef enum
+{
+    /*! A pointwise addition between two tensors is computed.*/
+    MIOPEN_POINTWISE_ADD,
+
+    /*! A pointwise addition between the first tensor and the square of the second tensor is
+       computed. */
+    MIOPEN_POINTWISE_ADD_SQUARE,
+
+    /*! A pointwise true division of the first tensor by second tensor is computed. */
+    MIOPEN_POINTWISE_DIV,
+
+    /*! A pointwise maximum is taken between two tensors. */
+    MIOPEN_POINTWISE_MAX,
+
+    /*! A pointwise minimum is taken between two tensors. */
+    MIOPEN_POINTWISE_MIN,
+
+    /*! A pointwise floating-point remainder of the first tensor’s division by the second tensor is
+       computed. */
+    MIOPEN_POINTWISE_MOD,
+
+    /*! A pointwise multiplication between two tensors is computed. */
+    MIOPEN_POINTWISE_MUL,
+
+    /*! A pointwise value from the first tensor to the power of the second tensor is computed. */
+    MIOPEN_POINTWISE_POW,
+
+    /*! A pointwise subtraction between two tensors is computed. */
+    MIOPEN_POINTWISE_SUB,
+
+    /*! A pointwise absolute value of the input tensor is computed. */
+    MIOPEN_POINTWISE_ABS,
+
+    /*! A pointwise ceiling of the input tensor is computed. */
+    MIOPEN_POINTWISE_CEIL,
+
+    /*! A pointwise trigonometric cosine of the input tensor is computed. */
+    MIOPEN_POINTWISE_COS,
+
+    /*! A pointwise exponential of the input tensor is computed. */
+    MIOPEN_POINTWISE_EXP,
+
+    /*! A pointwise floor of the input tensor is computed. */
+    MIOPEN_POINTWISE_FLOOR,
+
+    /*! A pointwise natural logarithm of the input tensor is computed. */
+    MIOPEN_POINTWISE_LOG,
+
+    /*! A pointwise numerical negative of the input tensor is computed. */
+    MIOPEN_POINTWISE_NEG,
+
+    /*! A pointwise reciprocal of the square root of the input tensor is computed. */
+    MIOPEN_POINTWISE_RSQRT,
+
+    /*! A pointwise trigonometric sine of the input tensor is computed. */
+    MIOPEN_POINTWISE_SIN,
+
+    /*! A pointwise square root of the input tensor is computed. */
+    MIOPEN_POINTWISE_SQRT,
+
+    /*! A pointwise trigonometric tangent of the input tensor is computed. */
+    MIOPEN_POINTWISE_TAN,
+
+    /*! A pointwise Error Function is computed. */
+    MIOPEN_POINTWISE_ERF,
+
+    /*! No computation is performed. As with other pointwise modes, this mode provides implicit
+       conversions by specifying the data type of the input tensor as one type, and the data type of
+       the output tensor as another. */
+    MIOPEN_POINTWISE_IDENTITY,
+
+    /*! A pointwise rectified linear activation function of the input tensor is computed. */
+    MIOPEN_POINTWISE_RELU_FWD,
+
+    /*! A pointwise tanh activation function of the input tensor is computed. */
+    MIOPEN_POINTWISE_TANH_FWD,
+
+    /*! A pointwise sigmoid activation function of the input tensor is computed. */
+    MIOPEN_POINTWISE_SIGMOID_FWD,
+
+    /*! A pointwise Exponential Linear Unit activation function of the input tensor is computed. */
+    MIOPEN_POINTWISE_ELU_FWD,
+
+    /*! A pointwise Gaussian Error Linear Unit activation function of the input tensor is computed.
+     */
+    MIOPEN_POINTWISE_GELU_FWD,
+
+    /*! A pointwise softplus activation function of the input tensor is computed. */
+    MIOPEN_POINTWISE_SOFTPLUS_FWD,
+
+    /*! A pointwise swish activation function of the input tensor is computed. */
+    MIOPEN_POINTWISE_SWISH_FWD,
+
+    /*! A pointwise tanh approximation of the Gaussian Error Linear Unit activation function of the
+       input tensor is computed. The tanh GELU approximation is computed as \f$0.5x\left(
+       1+\tanh\left[ \sqrt{2/\pi}\left( x+0.044715x^{3} \right) \right] \right)\f$ */
+    MIOPEN_POINTWISE_GELU_APPROX_TANH_FWD,
+
+    /*! A pointwise first derivative of rectified linear activation of the input tensor is computed.
+     */
+    MIOPEN_POINTWISE_RELU_BWD,
+
+    /*! A pointwise first derivative of tanh activation of the input tensor is computed. */
+    MIOPEN_POINTWISE_TANH_BWD,
+
+    /*! A pointwise first derivative of sigmoid activation of the input tensor is computed. */
+    MIOPEN_POINTWISE_SIGMOID_BWD,
+
+    /*! A pointwise first derivative of Exponential Linear Unit activation of the input tensor is
+       computed. */
+    MIOPEN_POINTWISE_ELU_BWD,
+
+    /*! A pointwise first derivative of Gaussian Error Linear Unit activation of the input tensor is
+       computed. */
+    MIOPEN_POINTWISE_GELU_BWD,
+
+    /*! A pointwise first derivative of softplus activation of the input tensor is computed. */
+    MIOPEN_POINTWISE_SOFTPLUS_BWD,
+
+    /*! A pointwise first derivative of swish activation of the input tensor is computed. */
+    MIOPEN_POINTWISE_SWISH_BWD,
+
+    /*! A pointwise first derivative of the tanh approximation of the Gaussian Error Linear Unit
+       activation of the input tensor is computed. This is computed as \f$0.5\left( 1+\tanh\left(
+       b\left( x+cx^{3} \right) \right)+bxsech^{2}\left( b\left( cx^{3}+x \right) \right)\left(
+       3cx^{2}+1 \right)dy \right)\f$ where \f$b\f$ is \f$\sqrt{2/\pi}\f$ and \f$c\f$ is
+       \f$0.044715\f$ */
+    MIOPEN_POINTWISE_GELU_APPROX_TANH_BWD,
+
+    /*! A pointwise truth value of the first tensor equal to the second tensor is computed. */
+    MIOPEN_POINTWISE_CMP_EQ,
+
+    /*! A pointwise truth value of the first tensor not equal to the second tensor is computed. */
+    MIOPEN_POINTWISE_CMP_NEQ,
+
+    /*! A pointwise truth value of the first tensor greater than the second tensor is computed. */
+    MIOPEN_POINTWISE_CMP_GT,
+
+    /*! A pointwise truth value of the first tensor greater than equal to the second tensor is
+       computed. */
+    MIOPEN_POINTWISE_CMP_GE,
+
+    /*! A pointwise truth value of the first tensor less than the second tensor is computed. */
+    MIOPEN_POINTWISE_CMP_LT,
+
+    /*! A pointwise truth value of the first tensor less than equal to the second tensor is
+       computed. */
+    MIOPEN_POINTWISE_CMP_LE,
+
+    /*! A pointwise truth value of the first tensor logical AND second tensor is computed. */
+    MIOPEN_POINTWISE_LOGICAL_AND,
+
+    /*! A pointwise truth value of the first tensor logical OR second tensor is computed. */
+    MIOPEN_POINTWISE_LOGICAL_OR,
+
+    /*! A pointwise truth value of input tensors logical NOT is computed. */
+    MIOPEN_POINTWISE_LOGICAL_NOT,
+
+    /*! A pointwise index value of the input tensor is generated along a given axis. */
+    MIOPEN_POINTWISE_GEN_INDEX,
+
+    /*! A pointwise value is selected amongst two input tensors based on a given predicate tensor.
+     */
+    MIOPEN_POINTWISE_BINARY_SELECT,
+
+    /*! A pointwise reciprocal of the input tensor is computed. In other words, for every element x
+       in the input tensor, 1/x is computed. */
+    MIOPEN_POINTWISE_RECIPROCAL
+} miopenPointwiseMode_t;
+
+/*! @brief Distribution for random number generation
+ *
+ * An enumerated type to indicate the distribution to be used in the backend Rng (random number
+ * generator) operation.
+ */
+typedef enum
+{
+    MIOPEN_RNG_DISTRIBUTION_BERNOULLI,
+    MIOPEN_RNG_DISTRIBUTION_UNIFORM,
+    MIOPEN_RNG_DISTRIBUTION_NORMAL,
+} miopenRngDistribution_t;
+
+/*! @brief Operation mode of CUDNN_BACKEND_ENGINEHEUR_DESCRIPTOR
+ *
+ *  An enumerated type to indicate the operation mode of a CUDNN_BACKEND_ENGINEHEUR_DESCRIPTOR
+ */
+typedef enum
+{
+    MIOPEN_HEUR_MODE_INSTANT  = 0,
+    MIOPEN_HEUR_MODE_B        = 1,
+    MIOPEN_HEUR_MODE_FALLBACK = 2,
+    MIOPEN_HEUR_MODE_A        = 3,
+    MIOPEN_HEUR_MODES_COUNT   = 4,
+} miopenBackendHeurMode_t;
+
+/*! @brief Backend descriptor
+ *
+ * A typedef void pointer to one of many opaque descriptor structures.
+ * The type of structure that it points to is determined by the argument when allocating the memory
+ * for the opaque structure using miopenBackendCreateDescriptor().
+ *
+ * Attributes of a descriptor can be set using miopenBackendSetAttribute(). After all required
+ * attributes of a descriptor are set, the descriptor can be finalized by miopenBackendFinalize().
+ * From a finalized descriptor, one can query its queryable attributes using
+ * miopenBackendGetAttribute(). Finally, the memory allocated for a descriptor can be freed using
+ * miopenBackendDestroyDescriptor().
+ */
+MIOPEN_DECLARE_OBJECT(miopenBackendDescriptor)
+
+/*! @brief Creates a backend descriptor
+ *
+ * Allocates memory for a given descriptorType at the location pointed
+ * by the descriptor
+ *
+ * @param [in]   descriptorType  One among the enumerated miopenBackendDescriptorType_t
+ * @param [out]  descriptor      Pointer to a descriptor
+ *
+ * @retval  miopenStatusSuccess        The creation was successful
+ * @retval  miopenStatusUnsupportedOp  Creating a descriptor of a given type is not supported
+ * @retval  miopenStatusAllocFailed    The memory allocation failed
+ * @retval  miopenStatusUnknownError   The error information was not gathered
+ */
+MIOPEN_EXPORT miopenStatus_t miopenBackendCreateDescriptor(
+    miopenBackendDescriptorType_t descriptorType, miopenBackendDescriptor_t* descriptor);
+
+/*! @brief Sets an attribute of a descriptor
+ *
+ * This function sets an attribute of a descriptor to values provided as a pointer.
+ * Returns miopenStatusUnsupportedOp if the descriptor is already
+ * successfully finalized using miopenBackendFinalize().
+ *
+ * @param  [in]  descriptor       Instance of miopenBackendDescriptor_t whose attribute is being set
+ * @param  [in]  attributeName    The name of the attribute being set on the descriptor
+ * @param  [in]  attributeType    The type of attribute
+ * @param  [in]  elementCount     Number of elements being set
+ * @param  [in]  arrayOfElements  The starting location for an array from where to read the values
+ *                                from. The elements of the array are expected to be of the datatype
+ *                                of the attributeType. The datatype of the attributeType is listed
+ *                                in the mapping table of miopenBackendAttributeType_t.
+ *
+ * @retval  miopenStatusSuccess         The attributeName was set to the descriptor
+ * @retval  miopenStatusNotInitialized  The backend descriptor pointed to by the descriptor is
+ *                                      already in the finalized state
+ * @retval  miopenStatusBadParm         The function is called with arguments that correspond to
+ *                                      invalid values. Some examples include:
+ *                                      * attributeName is not a settable attribute of descriptor.
+ *                                      * attributeType is incorrect for this attributeName.
+ *                                      * elemCount value is unexpected.
+ *                                      * arrayOfElements contains values invalid for the
+ *                                        attributeType.
+ * @retval  miopenStatusUnsupportedOp  The values to which the attributes are being set are not
+ *                                     supported by the current version
+ * @retval  miopenStatusUnknownError   The error information was not gathered
+ */
+MIOPEN_EXPORT miopenStatus_t miopenBackendSetAttribute(miopenBackendDescriptor_t descriptor,
+                                                       miopenBackendAttributeName_t attributeName,
+                                                       miopenBackendAttributeType_t attributeType,
+                                                       int64_t elementCount,
+                                                       void* arrayOfElements);
+
+/*! @brief Finalizes a backend descriptor
+ *
+ * Finalizes the memory pointed to by the descriptor. The type of finalization is done depending on
+ * the descriptorType argument with which the descriptor was created using
+ * miopenBackendCreateDescriptor() or initialized using miopenBackendInitialize().
+ *
+ * @param  [in]  descriptor  Instance of miopenBackendDescriptor_t to finalize
+ *
+ * @retval  miopenStatusSuccess        The descriptor was finalized successfully
+ * @retval  miopenStatusBadParm        Invalid descriptor attribute values or combination thereof is
+ *                                     encountered
+ * @retval  miopenStatusUnsupportedOp  Descriptor attribute values or combinations therefore not
+ *                                     supported by the current version
+ * @retval  miopenStatusInternalError  Some internal errors are encountered
+ * @retval  miopenStatusUnknownError   The error information was not gathered
+ */
+MIOPEN_EXPORT miopenStatus_t miopenBackendFinalize(miopenBackendDescriptor_t descriptor);
+
+/*! @brief Retrieves backend descriptor's attribute
+ *
+ * This function retrieves the values of an attribute of a descriptor. attributeName is the name of
+ * the attribute whose value is requested. attributeType is the type of attribute.
+ * requestsedElementCount is the number of elements to be potentially retrieved. The number of
+ * elements for the requested attribute is stored in elementCount. The retrieved values are stored
+ * in arrayOfElements. When the attribute is expected to have a single value, arrayOfElements can be
+ * pointer to the output value. This function will return miopenStatusNotInitialized if the
+ * descriptor has not been successfully finalized using miopenBackendFinalize()
+ *
+ * @param  [in]   descriptor             Instance of miopenBackendDescriptor_t whose attribute to
+ *                                       retrieve
+ * @param  [in]   attributeName          The name of the attribute being get from the descriptor
+ * @param  [in]   attributeType          The type of attribute
+ * @param  [in]   requestedElementCount  Number of elements to output to arrayOfElements
+ * @param  [out]  elementCount           Output pointer for the number of elements the descriptor
+ *                                       attribute has. Note that miopenBackendGetAttribute() will
+ *                                       only write the least of this and requestedElementCount
+ *                                       elements to arrayOfElements
+ * @param  [out]  arrayOfElements        Array of elements of the datatype of the attributeType. The
+ *                                       data type of the attributeType is listed in the mapping
+ *                                       table of miopenBackendAttributeType_t
+ *
+ * @retval  miopenStatusSuccess         The attributeName was retrieved from the descriptor
+ *                                      successfully
+ * @retval  miopenStatusBadParm         One or more invalid or inconsistent argument values were
+ *                                      encountered. Some examples include:
+ *                                      * attributeName is not a valid attribute for the descriptor.
+ *                                      * attributeType is not one of the valid types for the
+ *                                        attribute.
+ * @retval  miopenStatusNotInitialized  The descriptor has not been successfully finalized using
+ *                                      miopenBackendFinalize()
+ * @retval  miopenStatusUnknownError    The error information was not gathered
+ */
+MIOPEN_EXPORT miopenStatus_t miopenBackendGetAttribute(miopenBackendDescriptor_t descriptor,
+                                                       miopenBackendAttributeName_t attributeName,
+                                                       miopenBackendAttributeType_t attributeType,
+                                                       int64_t requestedElementCount,
+                                                       int64_t* elementCount,
+                                                       void* arrayOfElements);
+
+/*! @brief Executes a graph
+ *
+ * Executes the given Engine Configuration Plan on the VariantPack and the finalized ExecutionPlan
+ * on the data. The data and the working space are encapsulated in the VariantPack
+ *
+ * @param  [in]  handle         An instance of miopenHandle_t
+ * @param  [in]  executionPlan  Descriptor of the finalized ExecutionPlan
+ * @param  [in]  variantPack    Descriptor of the finalized VariantPack consisting of:
+ *                              * Data pointer for each non-virtual pointer of the operation set in
+ *                                the execution plan.
+ *                              * Pointer to user-allocated workspace in global memory at least as
+ *                              large as the size queried
+ *
+ * @retval  miopenStatusSuccess        The ExecutionPlan was executed successfully
+ * @retval  miopenStatusBadParm        An incorrect or inconsistent value is encountered. For
+ *                                     example, a required data pointer is invalid
+ * @retval  miopenStatusInternalError  Some internal errors were encountered
+ * @retval  miopenStatusUnknownError   The error information was not gathered
+ */
+MIOPEN_EXPORT miopenStatus_t miopenBackendExecute(miopenHandle_t handle,
+                                                  miopenBackendDescriptor_t executionPlan,
+                                                  miopenBackendDescriptor_t variantPack);
+
+/*! @brief Destroys an instance of miopenBackendDescriptor_t
+ *
+ * Destroys instances of miopenBackendDescriptor_t that were previously created using
+ * miopenBackendCreateDescriptor(). The value pointed by the descriptor will be undefined after the
+ * memory is free and done.
+ *
+ * **Undefined Behavior** if the descriptor was altered between the 'Create' and 'Destroy
+ * Descriptor'
+ *
+ * @param  [in]  descriptor  Instance of miopenBackendDescriptor_t previously created by
+ *                           miopenBackendCreateDescriptor()
+ *
+ * @retval  miopenStatusSuccess       The memory was destroyed successfully
+ * @retval  miopenStatusAllocFailed   The destruction of memory failed
+ * @retval  miopenStatusUnknownError  The error information was not gathered
+ */
+MIOPEN_EXPORT miopenStatus_t miopenBackendDestroyDescriptor(miopenBackendDescriptor_t descriptor);
+
+/*! @brief Repurposes an instance of miopenBackendDescriptor_t
+ *
+ * Repurposes a pre-allocated memory pointed to by a descriptor of size sizeInByte to a backend
+ * descriptor of type descriptorType. The finalized state of the descriptor is set to false.
+ *
+ * @param  [in]  descriptor      Instance of miopenBackendDescriptor_t to be initialized
+ * @param  [in]  descriptorType  Enumerated value for the type miopenBackendDescriptorType_t
+ * @param  [in]  sizeInBytes     Size of memory pointed to by descriptor
+ *
+ * @retval  miopenStatusSuccess       The memory was initialized successfully
+ * @retval  miopenStatusBadParm       An invalid or inconsistent argument value is encountered. Some
+ *                                    examples include:
+ *                                    * descriptor is a nullptr
+ *                                    * sizeInBytes is less than the size required by the descriptor
+ *                                      type
+ * @retval  miopenStatusUnknownError  The error information was not gathered
+ */
+MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t descriptor,
+                                                     miopenBackendDescriptorType_t descriptorType,
+                                                     size_t sizeInBytes);
+
+/** @} */
+// CLOSEOUT BackendAPI DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+// FusedAdam APIs
+/** @addtogroup SGD
+ *
+ *  @{
+ */
+/*! @brief Perform Fused Adam optimization for a single tensor (Adaptive Moment Estimation).
+ *
+ * This function implements the Fused Adam optimization algorithm. Adam, short for Adaptive Moment
+ * Estimation, extends the RMSProp optimizer. It combines the advantages of AdaGrad and RMSProp by
+ * adaptively adjusting learning rates for each parameter using the first and second moments of
+ * gradients. Fused Adam optimization efficiently combines multiple operations into a single kernel,
+ * reducing memory access overhead and improving performance.
+ *
+ * @code
+ * // Execute Adam
+ * miopenFusedAdam(handle,
+ *                 paramDesc,
+ *                 param,
+ *                 gradDesc,
+ *                 grad,
+ *                 expAvgDesc,
+ *                 expAvg,
+ *                 expAvgSqDesc,
+ *                 expAvgSq,
+ *                 NULL,     // Unused maxExpAvgSqDesc because amsgrad is false
+ *                 NULL,
+ *                 NULL,     // Unused stateStep Tensor because use step integer argument
+ *                 NULL,
+ *                 step,
+ *                 lr,
+ *                 beta1,
+ *                 beta2,
+ *                 weight_decay,
+ *                 eps,
+ *                 false,    // amsgrad
+ *                 false,    // maximize
+ *                 false,    // adamw
+ *                 NULL,     // Unused gradScale Tensor because not amp
+ *                 NULL,
+ *                 NULL,     // Unused foundInf Tensor because not amp
+ *                 NULL);
+ *
+ * // Execute AMP Adam
+ * miopenFusedAdam(handle,
+ *                 paramDesc,
+ *                 param,
+ *                 gradDesc,
+ *                 grad,
+ *                 expAvgDesc,
+ *                 expAvg,
+ *                 expAvgSqDesc,
+ *                 expAvgSq,
+ *                 NULL,     // Unused maxExpAvgSqDesc because amsgrad is false
+ *                 NULL,
+ *                 stateStepDesc,
+ *                 stateStep,
+ *                 -1,       // Ignore step value because stateStep Tensor is used
+ *                 lr,
+ *                 beta1,
+ *                 beta2,
+ *                 weight_decay,
+ *                 eps,
+ *                 false,    // amsgrad
+ *                 false,    // maximize
+ *                 false,    // adamw
+ *                 gradScaleDesc,
+ *                 gradScale,
+ *                 foundInfDesc,
+ *                 foundInf);
+ * @endcode
+ *
+ * @param handle              MIOpen handle (input)
+ * @param paramDesc           Tensor descriptor for the input parameter tensor (input)
+ * @param param               Input parameter tensor (input)
+ * @param gradDesc            Tensor descriptor for the input gradient tensor (input)
+ * @param grad                Input gradient tensor (input)
+ * @param expAvgDesc          Tensor descriptor for the input exponential moving average tensor
+ *                            (input)
+ * @param expAvg              Input exponential moving average tensor (input)
+ * @param expAvgSqDesc        Tensor descriptor for the input exponential moving average squared
+ *                            tensor (input)
+ * @param expAvgSq            Input exponential moving average squared tensor (input)
+ * @param maxExpAvgSqDesc     Tensor descriptor for the input maximum exponential moving average
+ *                            squared tensor. Used when amsgrad is true (input, optional)
+ * @param maxExpAvgSq         Input maximum exponential moving average squared tensor. Used when
+ *                            amsgrad is true (input, optional)
+ * @param stateStepDesc       Tensor descriptor for the input state step tensor (input)
+ * @param stateStep           Input state step tensor (input)
+ * @param state_step          Input state step. used when the step tensor is null (input)
+ * @param lr                  Learning rate (input)
+ * @param beta1               Coefficient used for computing the first moment running average of
+ *                            gradient (input)
+ * @param beta2               Coefficient used for computing the second moment running average of
+ *                            gradient (input)
+ * @param weight_decay        Weight decay (input)
+ * @param eps                 Term added to the denominator to improve numerical stability (input)
+ * @param amsgrad             Flag indicating whether to use the AMSGrad variant of Adam (input)
+ * @param maximize            Flag indicating whether to maximize the objective with respect to the
+ *                            parameters (input)
+ * @param adamw               If true, the operation becomes AdamW (input) (not supported)
+ * @param gradScaleDesc       Tensor descriptor for the input grad scale tensor (input, optional)
+ * @param gradScale           Input grad scale tensor (input, optional)
+ * @param foundInfDesc        Tensor descriptor for the input found inf tensor (input, optional)
+ * @param foundInf            Tensor indicating the presence of inf or NaN in gradients. If true,
+ *                            skips operation and step update (input, optional)
+ * @return                    miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenFusedAdam(miopenHandle_t handle,
+                                             const miopenTensorDescriptor_t paramDesc,
+                                             void* param,
+                                             const miopenTensorDescriptor_t gradDesc,
+                                             const void* grad,
+                                             const miopenTensorDescriptor_t expAvgDesc,
+                                             void* expAvg,
+                                             const miopenTensorDescriptor_t expAvgSqDesc,
+                                             void* expAvgSq,
+                                             const miopenTensorDescriptor_t maxExpAvgSqDesc,
+                                             void* maxExpAvgSq,
+                                             const miopenTensorDescriptor_t stateStepDesc,
+                                             void* stateStep,
+                                             const unsigned int state_step,
+                                             const float lr,
+                                             const float beta1,
+                                             const float beta2,
+                                             const float weight_decay,
+                                             const float eps,
+                                             const bool amsgrad,
+                                             const bool maximize,
+                                             const bool adamw,
+                                             const miopenTensorDescriptor_t gradScaleDesc,
+                                             const void* gradScale,
+                                             const miopenTensorDescriptor_t foundInfDesc,
+                                             const void* foundInf);
+
+/*! @brief Execute single tensor Adam optimization and receive the result in a separate output
+ * tensor.
+ *
+ * This function is equivalent to miopenFusedAdam but receives the result in a separate output
+ * tensor.
+ * @see miopenFusedAdam
+ *
+ * @code
+ * // Execute Adam
+ * miopenFusedAdamWithOutput(handle,
+ *                           paramInDesc,
+ *                           paramIn,
+ *                           paramOutDesc,
+ *                           paramOut,
+ *                           NULL,   // Unused paramOutFloat16 tensor because is not amp
+ *                           NULL,
+ *                           gradInDesc,
+ *                           gradIn,
+ *                           expAvgInDesc,
+ *                           expAvgIn,
+ *                           expAvgOutDesc,
+ *                           expAvgOut,
+ *                           expAvgInSqDesc,
+ *                           expAvgSqIn,
+ *                           expAvgSqOutDesc,
+ *                           expAvgSqOut,
+ *                           NULL,   // Unused maxExpAvgSqIn tensor because amsgrad is false
+ *                           NULL,
+ *                           NULL,   // Unused maxExpAvgSqOut tensor because amsgrad is false
+ *                           NULL,
+ *                           NULL,   // Unused stateStepIn tensor because use step integer argument
+ *                           NULL,
+ *                           NULL,   // Unused stateStepOut tensor because use step integer argument
+ *                           NULL,
+ *                           step,
+ *                           lr,
+ *                           beta1,
+ *                           beta2,
+ *                           weight_decay,
+ *                           eps,
+ *                           false,  // amsgrad
+ *                           false,  // maximize
+ *                           false,  // adamw
+ *                           NULL,   // Unused gradScale Tensor because not amp
+ *                           NULL,
+ *                           NULL,   // Unused foundInf Tensor because not amp
+ *                           NULL);
+ *
+ * // Execute Amp Adam
+ * miopenFusedAdamWithOutput(handle,
+ *                           paramInDesc,
+ *                           paramIn,
+ *                           paramOutDesc,
+ *                           paramOut,
+ *                           paramOutFloat16Desc,  // paramOutFloat16 tensor is optional in amp
+ *                           paramOutFloat16,
+ *                           gradInDesc,
+ *                           gradIn,
+ *                           expAvgInDesc,
+ *                           expAvgIn,
+ *                           expAvgOutDesc,
+ *                           expAvgOut,
+ *                           expAvgInSqDesc,
+ *                           expAvgSqIn,
+ *                           expAvgSqIn,
+ *                           expAvgSqOutDesc,
+ *                           expAvgSqOut,
+ *                           NULL,         // Unused maxExpAvgSqIn tensor because amsgrad is false
+ *                           NULL,
+ *                           NULL,         // Unused maxExpAvgSqOut tensor because amsgrad is false
+ *                           NULL,
+ *                           stateStepInDesc,
+ *                           stateStepIn,
+ *                           stateStepOutDesc,
+ *                           stateStepOut
+ *                           -1,           // Ignore step value because stateStep Tensor is used
+ *                           lr, beta1, beta2, weight_decay, eps,
+ *                           false,        // amsgrad
+ *                           false,        // maximize
+ *                           false,        // adamw
+ *                           gradScaleDesc,
+ *                           gradScale,
+ *                           foundInfDesc,
+ *                           foundInf);
+ * @endcode
+ *
+ * @param handle              MIOpen handle (input)
+ * @param paramInDesc         Tensor descriptor for the input parameter tensor (input)
+ * @param paramIn             Input parameter tensor (input)
+ * @param paramOutDesc        Tensor descriptor for the output parameter tensor (input)
+ * @param paramOut            Output parameter tensor (output)
+ * @param paramOutFloat16Desc Tensor descriptor for the output parameter tensor float16 (input,
+ *                            optional)
+ * @param paramOutFloat16     Output parameter tensor (output, optional)
+ * @param gradInDesc          Tensor descriptor for the input gradient tensor (input)
+ * @param gradIn              Input gradient tensor (input)
+ * @param expAvgInDesc        Tensor descriptor for the input exponential moving average tensor
+ *                            (input)
+ * @param expAvgIn            Input exponential moving average tensor (input)
+ * @param expAvgOutDesc       Tensor descriptor for the output exponential moving average tensor
+ *                            (input)
+ * @param expAvgOut           Output exponential moving average tensor (output)
+ * @param expAvgSqInDesc      Tensor descriptor for the input exponential moving average squared
+ *                            tensor (input)
+ * @param expAvgSqIn          Input exponential moving average squared tensor (input)
+ * @param expAvgSqOutDesc     Tensor descriptor for the output exponential moving average squared
+ *                            tensor (input)
+ * @param expAvgSqOut         Output exponential moving average squared tensor (output)
+ * @param maxExpAvgSqInDesc   Tensor descriptor for the input maximum exponential moving average
+ *                            squared tensor. Used when amsgrad is true (input, optional)
+ * @param maxExpAvgSqIn       Input maximum exponential moving average squared tensor. Used when
+ *                            amsgrad is true (input, optional)
+ * @param maxExpAvgSqOutDesc  Tensor descriptor for the output maximum exponential moving average
+ *                            squared tensor. Used when amsgrad is true (input, optional)
+ * @param maxExpAvgSqOut      Output maximum exponential moving average squared tensor. Used when
+ *                            amsgrad is true (output, optional)
+ * @param stateStepInDesc     Tensor descriptor for the input state step tensor (input, optional)
+ * @param stateStepIn         Input state step tensor (input, optional)
+ * @param stateStepOutDesc    Tensor descriptor for the output state step tensor (input, optional)
+ * @param stateStepOut        Output state step tensor that stores the updated step value. (output,
+ *                            optional)
+ * @param state_step          Input state step, It is used when the step tensor is null. (input)
+ * @param lr                  Learning rate (input)
+ * @param beta1               Coefficient used for computing the first moment running average of
+ *                            gradient (input)
+ * @param beta2               Coefficient used for computing the second moment running average of
+ *                            gradient (input)
+ * @param weight_decay        Weight decay (input)
+ * @param eps                 Term added to the denominator to improve numerical stability (input)
+ * @param amsgrad             Flag indicating whether to use the AMSGrad variant of Adam (input)
+ * @param maximize            Flag indicating whether to maximize the objective with respect to the
+ *                            parameters (input)
+ * @param adamw               If it is true, the operation becomes AdamW (input) (not supported)
+ * @param gradScaleDesc       Tensor descriptor for the input grad scale tensor (input, optional)
+ * @param gradScale           Input grad scale tensor (input, optional)
+ * @param foundInfDesc        Tensor descriptor for the input found inf tensor (input, optional)
+ * @param foundInf            Tensor indicating presence of inf or nan in gradients. If true, skips
+ *                            operation and step update. (input, optional)
+ * @return                    miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenFusedAdamWithOutput(miopenHandle_t handle,
+                          const miopenTensorDescriptor_t paramInDesc,
+                          void* paramIn,
+                          const miopenTensorDescriptor_t paramOutDesc,
+                          void* paramOut,
+                          const miopenTensorDescriptor_t paramOutFloat16Desc,
+                          void* paramOutFloat16,
+                          const miopenTensorDescriptor_t gradInDesc,
+                          const void* gradIn,
+                          const miopenTensorDescriptor_t expAvgInDesc,
+                          void* expAvgIn,
+                          const miopenTensorDescriptor_t expAvgOutDesc,
+                          void* expAvgOut,
+                          const miopenTensorDescriptor_t expAvgSqInDesc,
+                          void* expAvgSqIn,
+                          const miopenTensorDescriptor_t expAvgSqOutDesc,
+                          void* expAvgSqOut,
+                          const miopenTensorDescriptor_t maxExpAvgSqInDesc,
+                          void* maxExpAvgSqIn,
+                          const miopenTensorDescriptor_t maxExpAvgSqOutDesc,
+                          void* maxExpAvgSqOut,
+                          const miopenTensorDescriptor_t stateStepInDesc,
+                          void* stateStepIn,
+                          const miopenTensorDescriptor_t stateStepOutDesc,
+                          void* stateStepOut,
+                          const unsigned int state_step,
+                          const float lr,
+                          const float beta1,
+                          const float beta2,
+                          const float weight_decay,
+                          const float eps,
+                          const bool amsgrad,
+                          const bool maximize,
+                          const bool adamw,
+                          const miopenTensorDescriptor_t gradScaleDesc,
+                          const void* gradScale,
+                          const miopenTensorDescriptor_t foundInfDesc,
+                          const void* foundInf);
+
+/** @} */
+// CLOSEOUT SGD DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus
 }

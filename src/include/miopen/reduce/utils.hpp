@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
+#ifndef MIOPEN_REDUCE_UTILS_HPP_
+#define MIOPEN_REDUCE_UTILS_HPP_
 
 #include <miopen/reduce/solvers.hpp>
 
@@ -67,7 +68,7 @@ inline bool IsImprovementOverROCm(const ExecutionContext& context,
                                   const miopen::reduce::ProblemDescription& problem)
 {
     auto xdims = problem.GetXDesc().GetLengths();
-    auto ydims = problem.GetReduceDesc().GetLengths();
+    auto ydims = problem.GetYDesc().GetLengths();
     auto dim   = problem.GetDim();
 
     auto reduce_size = xdims[dim];
@@ -94,3 +95,5 @@ inline bool IsImprovementOverROCm(const ExecutionContext& context,
 } // namespace reduce
 } // namespace solver
 } // namespace miopen
+
+#endif // _MIOPEN_REDUCE_UTILS_HPP_

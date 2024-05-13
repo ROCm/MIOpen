@@ -204,7 +204,8 @@ static void ShrinkToFind10Results(std::vector<PerfField>& found)
 
 static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx,
                                                      const conv::ProblemDescription& problem,
-                                                     const AnyInvokeParams& invoke_ctx)
+                                                     const AnyInvokeParams& invoke_ctx,
+                                                     const int requestAlgoCount)
 {
     auto results         = std::vector<PerfField>{};
     auto sol             = boost::optional<miopenConvSolution_t>{};
@@ -214,7 +215,16 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
     if(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
         auto fallback = bool{};
-        auto sols     = conv.GetSolutions(ctx, problem, 1, &fallback);
+        auto sols     = conv.GetSolutions(ctx, problem, requestAlgoCount, &fallback);
+
+        // Remove solutions for which the given workspace size is insufficient
+        sols.erase(std::remove_if(sols.begin(),
+                                  sols.end(),
+                                  [&](const miopenConvSolution_t& entry) {
+                                      return invoke_ctx.GetWorkspaceSize() < entry.workspace_size;
+                                  }),
+                   sols.end());
+
         // override the normal find with immed mode with env var
         if(!sols.empty() && (!(findMode.IsHybrid(ctx) && fallback) ||
                              miopen::IsEnabled(ENV(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK))))
@@ -227,9 +237,12 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
         /// It is possible to measure actual execution time and return it to the caller.
         /// \todo Consider if we need (and want to spend time) for this.
         const auto id = solver::Id{sol->solution_id};
+        const auto& s = id.GetSolver();
         CompileSolution(id, ctx, problem);
-        results.push_back(
-            {id.GetAlgo(problem.GetDirection()), id.ToString(), sol->time, sol->workspace_size});
+        results.push_back({id.GetAlgo(problem.GetDirection()),
+                           id.ToString(),
+                           sol->time,
+                           s.GetWorkspaceSize(ctx, problem)});
     }
     else
     {
@@ -300,7 +313,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                                    workSpaceSize,
                                                    attribute.gfx90aFp16alt.GetFwd()};
 
-    const auto results = FindConvolution(ctx, problem, invoke_ctx);
+    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount);
 
     if(results.empty())
     {
@@ -361,14 +374,11 @@ void DumpTensorToFileFromDevice(const miopen::Handle& handle,
         MIOPEN_LOG_E("Directory does not exists : " << path);
         return;
     }
-    std::string file_name_with_path_str = file_name_with_path.string();
 
-    std::ofstream file_stream;
-    file_stream.open(file_name_with_path_str);
-
+    std::ofstream file_stream{file_name_with_path};
     if(!file_stream.is_open())
     {
-        MIOPEN_LOG_E("Cannot write to file : " << file_name_with_path_str);
+        MIOPEN_LOG_E("Cannot write to file : " << file_name_with_path);
         return;
     }
 
@@ -379,10 +389,10 @@ void DumpTensorToFileFromDevice(const miopen::Handle& handle,
     handle.ReadTo(hdata.data(), dData, num_bytes);
     MIOPEN_LOG_I2("Done bringing tensor from device to host");
     // write tensor data to file
-    const char* pointer = reinterpret_cast<const char*>(&hdata[0]);
+    const char* pointer = hdata.data();
     file_stream.write(pointer, num_bytes);
     file_stream.close();
-    MIOPEN_LOG_I("Dumping tensor to file : " << file_name_with_path_str);
+    MIOPEN_LOG_I("Dumping tensor to file : " << file_name_with_path);
 }
 
 static void ConvForwardCheckNumerics(const Handle& handle,
@@ -453,14 +463,14 @@ void ConvolutionDescriptor::ValidateTensors(const ConvTensors& tensors) const
     }
 
     // x_tensor_invalid =
-    if(tensors.xDesc.GetSize() < 3)
+    if(tensors.xDesc.GetNumDims() < 3)
     {
         MIOPEN_THROW(miopenStatusBadParm, "input tensor's number of dimensions is wrong");
     }
 
     // tensor_sizes_not_matched =
-    if(tensors.xDesc.GetSize() != tensors.yDesc.GetSize() ||
-       tensors.xDesc.GetSize() != tensors.wDesc.GetSize())
+    if(tensors.xDesc.GetNumDims() != tensors.yDesc.GetNumDims() ||
+       tensors.xDesc.GetNumDims() != tensors.wDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm,
                      "number of dimensions mismatch between input, output and weights tensors");
@@ -891,7 +901,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                                    workSpaceSize,
                                                    this->attribute.gfx90aFp16alt.GetBwd()};
 
-    const auto results = FindConvolution(ctx, problem, invoke_ctx);
+    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount);
 
     if(results.empty())
     {
@@ -1102,7 +1112,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                   workSpaceSize,
                                                   attribute.gfx90aFp16alt.GetWrW()};
 
-    const auto results = FindConvolution(ctx, problem, invoke_ctx);
+    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount);
 
     if(results.empty())
     {

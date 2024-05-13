@@ -49,7 +49,7 @@ size_t ArgmaxForward::XGridSize(std::vector<size_t> indicedims) const
 bool ArgmaxForward::OverMaxGridSize(const ExecutionContext& context,
                                     const miopen::reduce::ProblemDescription& problem) const
 {
-    auto indicedims = problem.GetReduceDesc().GetLengths();
+    auto indicedims = problem.GetIndiceDesc().GetLengths();
     if(XGridSize(indicedims) > context.GetStream().GetImage3dMaxWidth())
         return false;
     return true;
@@ -58,11 +58,13 @@ bool ArgmaxForward::OverMaxGridSize(const ExecutionContext& context,
 bool ArgmaxForward::IsApplicable(const ExecutionContext& context,
                                  const miopen::reduce::ProblemDescription& problem) const
 {
-    if(!problem.IsRightDim())
+    if(!problem.IsValidDim())
         return false;
-    if(!problem.IsRightLength())
+    if(!problem.IsValidLengthIndice())
         return false;
-    if(!problem.IsAllPacked())
+    if(!problem.IsValidInputNumel())
+        return false;
+    if(!problem.IsAllPackedIndice())
         return false;
     if(!problem.IsNotLastDim())
         return false;
@@ -76,10 +78,11 @@ ConvSolution ArgmaxForward::GetSolution(const ExecutionContext&,
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto dtype       = problem.GetXDesc().GetType();
-    auto input_dtype = miopen::GetDataType(problem.GetXDesc().GetType());
-    auto xdims       = problem.GetXDesc().GetLengths();
-    auto indicedims  = problem.GetReduceDesc().GetLengths();
+    auto dtype        = problem.GetXDesc().GetType();
+    auto input_dtype  = miopen::GetDataType(problem.GetXDesc().GetType());
+    auto indice_dtype = miopen::GetDataType(problem.GetIndiceDesc().GetType());
+    auto xdims        = problem.GetXDesc().GetLengths();
+    auto indicedims   = problem.GetIndiceDesc().GetLengths();
 
     {
         size_t xlocalsize;
@@ -91,8 +94,8 @@ ConvSolution ArgmaxForward::GetSolution(const ExecutionContext&,
 
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenArgmax.cpp";
-        kernel.kernel_name = "ArgmaxFwdContiguous";
+        kernel.kernel_file = "MIOpenReduceExtreme.cpp";
+        kernel.kernel_name = "ExtremeFwdContiguous";
         xlocalsize         = LOCAL_SIZE;
         xgridsize          = XGridSize(indicedims);
 
@@ -101,7 +104,13 @@ ConvSolution ArgmaxForward::GetSolution(const ExecutionContext&,
             {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-        };
+            {"OUTPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
+            {"INDICE_TYPE", indice_dtype},
+            {"OP_TYPE", "ReduceExtremeOp_t::Argmax"},
+            {"MIOPEN_REDUCE_EXTREME_ARGMIN", MIOPEN_REDUCE_EXTREME_ARGMIN},
+            {"MIOPEN_REDUCE_EXTREME_ARGMAX", MIOPEN_REDUCE_EXTREME_ARGMAX},
+            {"MIOPEN_REDUCE_EXTREME_MIN", MIOPEN_REDUCE_EXTREME_MIN},
+            {"MIOPEN_REDUCE_EXTREME_MAX", MIOPEN_REDUCE_EXTREME_MAX}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
@@ -122,7 +131,7 @@ ConvSolution ArgmaxForward::GetSolution(const ExecutionContext&,
             decltype(auto) params = raw_params.CastTo<miopen::reduce::InvokeParams>();
 
             auto xdims      = params.xDesc->GetLengths();
-            auto indicedims = params.reduceDesc->GetLengths();
+            auto indicedims = params.indiceDesc->GetLengths();
             auto dim        = params.dim;
 
             int32_t reduce_size = static_cast<int32_t>(xdims[dim]);
@@ -132,7 +141,7 @@ ConvSolution ArgmaxForward::GetSolution(const ExecutionContext&,
             auto inner_size = std::accumulate(
                 xdims.begin() + dim + 1, xdims.end(), 1ULL, std::multiplies<size_t>());
 
-            kernel(params.x, params.indice, indice_numel, reduce_size, inner_size);
+            kernel(params.x, nullptr, params.indice, indice_numel, reduce_size, inner_size);
         };
     };
 

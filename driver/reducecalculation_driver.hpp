@@ -47,18 +47,18 @@
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloSumForwardRunHost(miopenTensorDescriptor_t inputDesc,
-                             miopenTensorDescriptor_t reduceDesc,
+                             miopenTensorDescriptor_t yDesc,
                              Tgpu* input,
                              Tcheck* outputhost,
                              int32_t dim,
                              miopenReduceCalculationNanPropagation_t nanPropagation)
 {
     auto input_dims  = miopen::deref(inputDesc).GetLengths();
-    auto output_dims = miopen::deref(reduceDesc).GetLengths();
+    auto output_dims = miopen::deref(yDesc).GetLengths();
 
     auto reduce_size = input_dims[dim];
     auto output_numel =
-        std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
+        std::accumulate(output_dims.begin(), output_dims.end(), 1LL, std::multiplies<int64_t>());
 
     auto inner_size = 1ULL;
     for(int32_t i = dim + 1; i < input_dims.size(); i++)
@@ -139,7 +139,7 @@ public:
     ReduceCalculationDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputDesc);
-        miopenCreateTensorDescriptor(&reduceDesc);
+        miopenCreateTensorDescriptor(&yDesc);
 
         data_type = miopen_type<Tgpu>{};
     }
@@ -164,7 +164,7 @@ public:
     ~ReduceCalculationDriver() override
     {
         miopenDestroyTensorDescriptor(inputDesc);
-        miopenDestroyTensorDescriptor(reduceDesc);
+        miopenDestroyTensorDescriptor(yDesc);
     }
 
 private:
@@ -173,7 +173,7 @@ private:
     int forw;
 
     miopenTensorDescriptor_t inputDesc;
-    miopenTensorDescriptor_t reduceDesc;
+    miopenTensorDescriptor_t yDesc;
 
     std::unique_ptr<GPUMem> in_dev;
     std::unique_ptr<GPUMem> out_dev;
@@ -223,7 +223,7 @@ int ReduceCalculationDriver<Tgpu, Tref>::GetandSetData()
     if(out_len.empty())
         out_len.push_back(1);
 
-    SetTensorNd(reduceDesc, out_len, data_type);
+    SetTensorNd(yDesc, out_len, data_type);
 
     nanPropagation =
         static_cast<miopenReduceCalculationNanPropagation_t>(inflags.GetValueInt("NanPropagation"));
@@ -309,10 +309,9 @@ template <typename Tgpu, typename Tref>
 int ReduceCalculationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
     size_t in_sz  = GetTensorSize(inputDesc);
-    size_t out_sz = GetTensorSize(reduceDesc);
+    size_t out_sz = GetTensorSize(yDesc);
 
-    miopenGetReduceCalculationWorkspaceSize(
-        GetHandle(), inputDesc, dim, reduceCalculationOp, reduceDesc, &ws_sizeInBytes);
+    miopenGetSumWorkspaceSize(GetHandle(), inputDesc, dim, yDesc, &ws_sizeInBytes);
     if(ws_sizeInBytes == static_cast<size_t>(-1))
         return miopenStatusAllocFailed;
 
@@ -358,8 +357,8 @@ int ReduceCalculationDriver<Tgpu, Tref>::RunForwardGPU()
                                        inputDesc,
                                        in_dev->GetMem(),
                                        dim,
-                                       reduceCalculationOp,
-                                       reduceDesc,
+                                       yCalculationOp,
+                                       yDesc,
                                        out_dev->GetMem());
 
         float time = 0.0;

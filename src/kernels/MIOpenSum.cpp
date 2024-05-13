@@ -30,22 +30,13 @@
 
 #include "float_types.h"
 
-#if MIOPEN_USE_BFP16 == 1
-#define CVT_FLOAT2ACCUM(x) (bfloat16_to_float(x))
-#define CVT_ACCUM2FLOAT(x) (float_to_bfloat16(x))
-#define CVT_INTEGRAL2ACCUM(x) ((_FLOAT_ACCUM)(x))
-#define CVT_FP32_2FLOAT(x) (CVT_ACCUM2FLOAT(x))
-#define CVT_FP32_2ACCUM(x) (x)
-#endif
-
-template <typename TI, typename TO>
-__device__ void sumparallelfwdcontiguous(const TI* __restrict__ x,
-                                         TO* __restrict__ y,
-                                         uint64_t output_numel,
-                                         uint64_t reduce_size,
-                                         uint64_t parallelism_size,
-                                         uint64_t inner_size,
-                                         bool nanPropagation)
+extern "C" __global__ void SumParallelFwdContiguous(const FLOAT* __restrict__ x,
+                                                    FLOAT* __restrict__ y,
+                                                    uint64_t output_numel,
+                                                    uint64_t reduce_size,
+                                                    uint64_t parallelism_size,
+                                                    uint64_t inner_size,
+                                                    bool nanPropagation)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
     if(gid >= parallelism_size * output_numel)

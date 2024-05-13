@@ -26,14 +26,43 @@
 
 find_package(Threads REQUIRED)
 
-add_executable(MIOpenDriver main.cpp InputFlags.cpp)
+add_executable(MIOpenDriver 
+    InputFlags.cpp
+    conv_common.cpp
+    dm_activ.cpp
+    dm_adam.cpp
+    dm_addlayernorm.cpp
+    dm_bnorm.cpp
+    dm_cat.cpp
+    dm_conv.cpp
+    dm_convbfp16.cpp
+    dm_convbfp8.cpp
+    dm_convfp16.cpp
+    dm_convfp8.cpp
+    dm_convint8.cpp
+    dm_dropout.cpp
+    dm_fusion.cpp
+    dm_gemm.cpp
+    dm_groupnorm.cpp
+    dm_layernorm.cpp
+    dm_lrn.cpp
+    dm_pool.cpp
+    dm_reduce.cpp
+    dm_reduceextreme.cpp
+    dm_rnn.cpp
+    dm_softmax.cpp
+    dm_t5layernorm.cpp
+    dm_tensorop.cpp
+    main.cpp
+    registry_driver_maker.cpp
+    rocrand_wrapper.cpp)
 if(WIN32)
     # Refer to https://en.cppreference.com/w/cpp/language/types for details.
     target_compile_options(MIOpenDriver PRIVATE $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:Clang>:-U__LP64__>>)
 endif()
 add_dependencies(MIOpenDriver generate_kernels)
 target_include_directories(MIOpenDriver PRIVATE ../src/kernels)
-target_link_libraries(MIOpenDriver MIOpen Threads::Threads)
+target_link_libraries(MIOpenDriver MIOpen Threads::Threads roc::rocrand)
 if(NOT MIOPEN_EMBED_DB STREQUAL "")
 target_link_libraries(MIOpenDriver $<BUILD_INTERFACE:miopen_data> )
 endif()

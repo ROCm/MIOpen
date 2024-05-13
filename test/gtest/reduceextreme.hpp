@@ -25,7 +25,7 @@
  *******************************************************************************/
 
 #include "../driver/tensor_driver.hpp"
-#include "cpu_reduceextreme.hpp"
+#include "../src/kernels/MIOpenReduceExtreme.hpp"
 #include "get_handle.hpp"
 #include "random.hpp"
 #include "tensor_holder.hpp"
@@ -33,6 +33,53 @@
 #include <gtest/gtest.h>
 #include <miopen/reduceextreme.hpp>
 #include <miopen/miopen.h>
+
+template <typename T>
+bool compare_equal(T r1, T r2)
+{
+    return r1 == r2;
+}
+
+template <typename T, ReduceExtremeOp_t op>
+void cpu_extreme_forward(tensor<T> input,
+                         tensor<T>& ref_output,
+                         tensor<int32_t>& ref_indice,
+                         int32_t dim,
+                         miopenReduceExtremeOp_t reduceExtremeOp)
+{
+    auto input_dims = input.desc.GetLengths();
+    std::vector<std::size_t> output_dims;
+
+    if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX) ||
+       reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN)
+        output_dims = ref_output.desc.GetLengths();
+    else
+        output_dims = ref_indice.desc.GetLengths();
+
+    auto reduce_size = input_dims[dim];
+    auto output_numel =
+        std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
+
+    auto inner_size = std::accumulate(
+        input_dims.begin() + dim + 1, input_dims.end(), 1ULL, std::multiplies<uint64_t>());
+
+    par_ford(output_numel)([&](size_t o) {
+        size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
+
+        int32_t extreme_idx = 0;
+        T extreme           = input[input_idx];
+
+        ford(reduce_size)([&](size_t i) {
+            T val = input[input_idx];
+            reduce_func<T, int32_t, op>{}.calculate(extreme, val, extreme_idx, i);
+            input_idx += inner_size;
+        });
+        if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX) ||
+           reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN)
+            ref_output[o] = extreme;
+        ref_indice[o] = extreme_idx;
+    });
+}
 
 struct ReduceExtremeTestCase
 {
@@ -154,7 +201,7 @@ protected:
 
         std::vector<size_t> out_dims;
 
-        for(int32_t i = 0; i < in_dims.size(); i++)
+        for(int32_t i = 0; i < in_dims.size(); ++i)
         {
             if(i != dim)
             {
@@ -170,7 +217,6 @@ protected:
 
         input_dev  = handle.Write(input.data);
         indice_dev = handle.Write(indice.data);
-        reduce     = tensor<T>{out_dims};
 
         if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN) ||
            (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX))
@@ -190,19 +236,23 @@ protected:
 
         if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMIN)
         {
-            cpu_argmin_forward<T>(input, ref_indice, dim);
+            cpu_extreme_forward<T, ReduceExtremeOp_t::Argmin>(
+                input, ref_output, ref_indice, dim, reduceExtremeOp);
         }
         else if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMAX)
         {
-            cpu_argmax_forward<T>(input, ref_indice, dim);
+            cpu_extreme_forward<T, ReduceExtremeOp_t::Argmax>(
+                input, ref_output, ref_indice, dim, reduceExtremeOp);
         }
         else if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN)
         {
-            cpu_min_forward<T>(input, ref_output, ref_indice, dim);
+            cpu_extreme_forward<T, ReduceExtremeOp_t::Min>(
+                input, ref_output, ref_indice, dim, reduceExtremeOp);
         }
         else if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX)
         {
-            cpu_max_forward<T>(input, ref_output, ref_indice, dim);
+            cpu_extreme_forward<T, ReduceExtremeOp_t::Max>(
+                input, ref_output, ref_indice, dim, reduceExtremeOp);
         }
 
         miopenStatus_t status;
@@ -212,8 +262,9 @@ protected:
             status = miopen::ReduceExtremeForward(handle,
                                                   input.desc,
                                                   input_dev.get(),
-                                                  reduce.desc,
+                                                  output.desc,
                                                   output_dev.get(),
+                                                  indice.desc,
                                                   indice_dev.get(),
                                                   dim,
                                                   reduceExtremeOp);
@@ -223,8 +274,7 @@ protected:
             status = miopen::ReduceExtremeForward(handle,
                                                   input.desc,
                                                   input_dev.get(),
-                                                  reduce.desc,
-                                                  nullptr,
+                                                  indice.desc,
                                                   indice_dev.get(),
                                                   dim,
                                                   reduceExtremeOp);
@@ -252,17 +302,16 @@ protected:
                 << "Error output beyond tolerance Error:" << error;
         }
 
-        auto indice_error = miopen::rms_range(ref_indice, indice);
+        auto error_idx = miopen::mismatch_idx(ref_indice, indice, compare_equal<int32_t>);
 
         EXPECT_TRUE(miopen::range_distance(ref_indice) == miopen::range_distance(indice));
-        EXPECT_TRUE(std::abs(static_cast<float>(indice_error)) == 0.0f)
-            << "Error indice beyond tolerance Error:" << indice_error;
+        EXPECT_TRUE(error_idx >= miopen::range_distance(ref_indice))
+            << "Error Indice does not equal at " << error_idx << std::endl;
     }
     ReduceExtremeTestCase reduceextreme_config;
 
     tensor<T> input;
     tensor<T> output;
-    tensor<T> reduce;
     tensor<int32_t> indice;
 
     tensor<T> ref_output;

@@ -49,7 +49,7 @@ size_t MaxForward::XGridSize(std::vector<size_t> ydims) const
 bool MaxForward::OverMaxGridSize(const ExecutionContext& context,
                                  const miopen::reduce::ProblemDescription& problem) const
 {
-    auto ydims = problem.GetReduceDesc().GetLengths();
+    auto ydims = problem.GetYDesc().GetLengths();
     if(XGridSize(ydims) > context.GetStream().GetImage3dMaxWidth())
         return false;
     return true;
@@ -58,11 +58,11 @@ bool MaxForward::OverMaxGridSize(const ExecutionContext& context,
 bool MaxForward::IsApplicable(const ExecutionContext& context,
                               const miopen::reduce::ProblemDescription& problem) const
 {
-    if(!problem.IsRightDim())
+    if(!problem.IsValidDim())
         return false;
-    if(!problem.IsRightLength())
+    if(!problem.IsValidLength())
         return false;
-    if(!problem.IsAllPacked())
+    if(!problem.IsAllPackedWithIndice())
         return false;
     if(!problem.IsNotLastDim())
         return false;
@@ -80,9 +80,10 @@ ConvSolution MaxForward::GetSolution(const ExecutionContext&,
 
     auto dtype        = problem.GetXDesc().GetType();
     auto input_dtype  = miopen::GetDataType(problem.GetXDesc().GetType());
-    auto output_dtype = miopen::GetDataType(problem.GetReduceDesc().GetType());
+    auto output_dtype = miopen::GetDataType(problem.GetYDesc().GetType());
+    auto indice_dtype = miopen::GetDataType(problem.GetIndiceDesc().GetType());
     auto xdims        = problem.GetXDesc().GetLengths();
-    auto ydims        = problem.GetReduceDesc().GetLengths();
+    auto ydims        = problem.GetYDesc().GetLengths();
 
     {
         size_t xlocalsize;
@@ -94,8 +95,8 @@ ConvSolution MaxForward::GetSolution(const ExecutionContext&,
 
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenMax.cpp";
-        kernel.kernel_name = "MaxFwdContiguous";
+        kernel.kernel_file = "MIOpenReduceExtreme.cpp";
+        kernel.kernel_name = "ExtremeFwdContiguous";
         xlocalsize         = LOCAL_SIZE;
         xgridsize          = XGridSize(ydims);
 
@@ -104,8 +105,13 @@ ConvSolution MaxForward::GetSolution(const ExecutionContext&,
             {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-            {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
-        };
+            {"OUTPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
+            {"INDICE_TYPE", indice_dtype},
+            {"OP_TYPE", "ReduceExtremeOp_t::Max"},
+            {"MIOPEN_REDUCE_EXTREME_ARGMIN", MIOPEN_REDUCE_EXTREME_ARGMIN},
+            {"MIOPEN_REDUCE_EXTREME_ARGMAX", MIOPEN_REDUCE_EXTREME_ARGMAX},
+            {"MIOPEN_REDUCE_EXTREME_MIN", MIOPEN_REDUCE_EXTREME_MIN},
+            {"MIOPEN_REDUCE_EXTREME_MAX", MIOPEN_REDUCE_EXTREME_MAX}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
@@ -126,7 +132,7 @@ ConvSolution MaxForward::GetSolution(const ExecutionContext&,
             decltype(auto) params = raw_params.CastTo<miopen::reduce::InvokeParams>();
 
             auto xdims = params.xDesc->GetLengths();
-            auto ydims = params.reduceDesc->GetLengths();
+            auto ydims = params.yDesc->GetLengths();
             auto dim   = params.dim;
 
             int32_t reduce_size = static_cast<int32_t>(xdims[dim]);

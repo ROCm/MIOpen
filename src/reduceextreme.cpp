@@ -38,21 +38,20 @@ namespace miopen {
 miopenStatus_t ReduceExtremeForward(Handle& handle,
                                     const TensorDescriptor& xDesc,
                                     ConstData_t x,
-                                    const TensorDescriptor& reduceDesc,
-                                    Data_t y,
+                                    const TensorDescriptor& indiceDesc,
                                     Data_t indice,
                                     int32_t dim,
                                     miopenReduceExtremeOp_t reduceExtremeOp)
 {
     if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMIN)
     {
-        const auto problem = reduce::ProblemDescription{xDesc, reduceDesc, dim, reduceExtremeOp};
+        const auto problem = reduce::ProblemDescription{xDesc, indiceDesc, dim, reduceExtremeOp};
 
         const auto invoke_params = [&]() {
             auto tmp       = reduce::InvokeParams{};
             tmp.type       = InvokeType::Run;
             tmp.xDesc      = &xDesc;
-            tmp.reduceDesc = &reduceDesc;
+            tmp.indiceDesc = &indiceDesc;
             tmp.x          = x;
             tmp.indice     = indice;
             tmp.dim        = dim;
@@ -68,16 +67,14 @@ miopenStatus_t ReduceExtremeForward(Handle& handle,
     }
     else if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMAX)
     {
-        const auto problem = reduce::ProblemDescription{xDesc, reduceDesc, dim, reduceExtremeOp};
+        const auto problem = reduce::ProblemDescription{xDesc, indiceDesc, dim, reduceExtremeOp};
 
         const auto invoke_params = [&]() {
             auto tmp       = reduce::InvokeParams{};
             tmp.type       = InvokeType::Run;
             tmp.xDesc      = &xDesc;
-            tmp.reduceDesc = &reduceDesc;
-            tmp.reduceDesc = &reduceDesc;
+            tmp.indiceDesc = &indiceDesc;
             tmp.x          = x;
-            tmp.y          = y;
             tmp.indice     = indice;
             tmp.dim        = dim;
             return tmp;
@@ -90,15 +87,31 @@ miopenStatus_t ReduceExtremeForward(Handle& handle,
 
         return miopenStatusSuccess;
     }
-    else if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN)
+
+    return miopenStatusUnsupportedOp;
+}
+
+miopenStatus_t ReduceExtremeForward(Handle& handle,
+                                    const TensorDescriptor& xDesc,
+                                    ConstData_t x,
+                                    const TensorDescriptor& yDesc,
+                                    Data_t y,
+                                    const TensorDescriptor& indiceDesc,
+                                    Data_t indice,
+                                    int32_t dim,
+                                    miopenReduceExtremeOp_t reduceExtremeOp)
+{
+    if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN)
     {
-        const auto problem = reduce::ProblemDescription{xDesc, reduceDesc, dim, reduceExtremeOp};
+        const auto problem =
+            reduce::ProblemDescription{xDesc, yDesc, indiceDesc, dim, reduceExtremeOp};
 
         const auto invoke_params = [&]() {
             auto tmp       = reduce::InvokeParams{};
             tmp.type       = InvokeType::Run;
             tmp.xDesc      = &xDesc;
-            tmp.reduceDesc = &reduceDesc;
+            tmp.yDesc      = &yDesc;
+            tmp.indiceDesc = &indiceDesc;
             tmp.x          = x;
             tmp.y          = y;
             tmp.indice     = indice;
@@ -115,13 +128,15 @@ miopenStatus_t ReduceExtremeForward(Handle& handle,
     }
     else if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX)
     {
-        const auto problem = reduce::ProblemDescription{xDesc, reduceDesc, dim, reduceExtremeOp};
+        const auto problem =
+            reduce::ProblemDescription{xDesc, yDesc, indiceDesc, dim, reduceExtremeOp};
 
         const auto invoke_params = [&]() {
             auto tmp       = reduce::InvokeParams{};
             tmp.type       = InvokeType::Run;
             tmp.xDesc      = &xDesc;
-            tmp.reduceDesc = &reduceDesc;
+            tmp.yDesc      = &yDesc;
+            tmp.indiceDesc = &indiceDesc;
             tmp.x          = x;
             tmp.y          = y;
             tmp.indice     = indice;

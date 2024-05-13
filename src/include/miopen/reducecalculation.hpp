@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,7 @@ struct TensorDescriptor;
 
 std::size_t GetReduceCalculationWorkspaceSize(Handle& handle,
                                               const TensorDescriptor& xDesc,
-                                              const TensorDescriptor& reduceDesc,
+                                              const TensorDescriptor& yDesc,
                                               int32_t dim,
                                               miopenReduceCalculationOp_t reduceCalculationOp);
 
@@ -44,7 +44,7 @@ miopenStatus_t ReduceCalculationForward(Handle& handle,
                                         size_t workspaceSizeInBytes,
                                         const TensorDescriptor& xDesc,
                                         ConstData_t x,
-                                        const TensorDescriptor& reduceDesc,
+                                        const TensorDescriptor& yDesc,
                                         Data_t y,
                                         miopenReduceCalculationNanPropagation_t nanPropagation,
                                         int32_t dim,

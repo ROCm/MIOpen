@@ -37,7 +37,7 @@ namespace miopen {
 
 std::size_t GetReduceCalculationWorkspaceSize(Handle& handle,
                                               const TensorDescriptor& xDesc,
-                                              const TensorDescriptor& reduceDesc,
+                                              const TensorDescriptor& yDesc,
                                               int32_t dim,
                                               miopenReduceCalculationOp_t reduceCalculationOp)
 {
@@ -45,7 +45,7 @@ std::size_t GetReduceCalculationWorkspaceSize(Handle& handle,
     {
         auto ctx           = ExecutionContext{&handle};
         const auto problem = reduce::ProblemDescription{
-            MIOPEN_REDUCE_CALCULATION_NOT_PROPAGATE_NAN, xDesc, reduceDesc, dim};
+            MIOPEN_REDUCE_CALCULATION_NOT_PROPAGATE_NAN, xDesc, yDesc, dim};
 
         const auto algo    = AlgorithmName{"SumForward"};
         const auto solvers = solver::SolverContainer<solver::reduce::SumForward>{};
@@ -58,7 +58,7 @@ std::size_t GetReduceCalculationWorkspaceSize(Handle& handle,
     {
         auto ctx           = ExecutionContext{&handle};
         const auto problem = reduce::ProblemDescription{
-            MIOPEN_REDUCE_CALCULATION_NOT_PROPAGATE_NAN, xDesc, reduceDesc, dim};
+            MIOPEN_REDUCE_CALCULATION_NOT_PROPAGATE_NAN, xDesc, yDesc, dim};
 
         const auto algo    = AlgorithmName{"ProdForward"};
         const auto solvers = solver::SolverContainer<solver::reduce::ProdForward>{};
@@ -76,7 +76,7 @@ miopenStatus_t ReduceCalculationForward(Handle& handle,
                                         size_t workspaceSizeInBytes,
                                         const TensorDescriptor& xDesc,
                                         ConstData_t x,
-                                        const TensorDescriptor& reduceDesc,
+                                        const TensorDescriptor& yDesc,
                                         Data_t y,
                                         miopenReduceCalculationNanPropagation_t nanPropagation,
                                         int32_t dim,
@@ -85,13 +85,13 @@ miopenStatus_t ReduceCalculationForward(Handle& handle,
 
     if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_SUM)
     {
-        const auto problem = reduce::ProblemDescription{nanPropagation, xDesc, reduceDesc, dim};
+        const auto problem = reduce::ProblemDescription{nanPropagation, xDesc, yDesc, dim};
 
         const auto invoke_params = [&]() {
             auto tmp           = reduce::InvokeParams{};
             tmp.type           = InvokeType::Run;
             tmp.xDesc          = &xDesc;
-            tmp.reduceDesc     = &reduceDesc;
+            tmp.yDesc          = &yDesc;
             tmp.x              = x;
             tmp.y              = y;
             tmp.workspace      = workspace;
@@ -110,13 +110,13 @@ miopenStatus_t ReduceCalculationForward(Handle& handle,
     }
     else if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_PROD)
     {
-        const auto problem = reduce::ProblemDescription{nanPropagation, xDesc, reduceDesc, dim};
+        const auto problem = reduce::ProblemDescription{nanPropagation, xDesc, yDesc, dim};
 
         const auto invoke_params = [&]() {
             auto tmp           = reduce::InvokeParams{};
             tmp.type           = InvokeType::Run;
             tmp.xDesc          = &xDesc;
-            tmp.reduceDesc     = &reduceDesc;
+            tmp.yDesc          = &yDesc;
             tmp.x              = x;
             tmp.y              = y;
             tmp.workspace      = workspace;
