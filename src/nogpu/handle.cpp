@@ -150,7 +150,6 @@ Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
                                                         k.g_wk,
                                                         k.comp_options,
                                                         kernels.size(),
-                                                        false,
                                                         "",
                                                         program_out);
         built.push_back(kernel);
