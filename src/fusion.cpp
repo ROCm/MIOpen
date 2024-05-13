@@ -863,13 +863,13 @@ FindFusion(const ExecutionContext& ctx,
 
             // We need buffers for find, thus we lazily get them, possibly allocating.
             auto fusion_ctx = FusionContext(ctx.GetStream());
-            FindCore(invoke_params(),
-                     record,
-                     fusion_ctx,
-                     fusion_problem,
-                     FusionFindParameters{},
-                     GetFusionSolverFinders(),
-                     options);
+            return FindCore(invoke_params(),
+                            record,
+                            fusion_ctx,
+                            fusion_problem,
+                            FusionFindParameters{},
+                            GetFusionSolverFinders(),
+                            options);
         },
         "fusion");
 }
