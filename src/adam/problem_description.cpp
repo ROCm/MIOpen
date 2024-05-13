@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,22 +23,41 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_ARGMAX_HPP_
-#define MIOPEN_ARGMAX_HPP_
 
-#include <miopen/common.hpp>
+#include <miopen/adam/problem_description.hpp>
+#include <miopen/datatype.hpp>
+#include <miopen/names.hpp>
+
+#include <sstream>
 
 namespace miopen {
 
-struct Handle;
-struct TensorDescriptor;
+namespace adam {
 
-miopenStatus_t ArgmaxForward(Handle& handle,
-                             const TensorDescriptor& xDesc,
-                             ConstData_t x,
-                             const TensorDescriptor& yDesc,
-                             Data_t y,
-                             int32_t dim);
+NetworkConfig ProblemDescription::MakeNetworkConfig() const
+{
+    auto dtype    = paramInDesc.GetType();
+    auto kernel   = IsAmp() ? "ampadam" : "adam";
+    auto step_ind = ExistStepTensor() ? "device" : "host";
+
+    std::ostringstream ss;
+
+    ss << kernel;
+    if(IsAdamW())
+        ss << "w";
+    if(IsAllPacked())
+        ss << "packed";
+    ss << "step" << step_ind;
+    ss << "dtype" << dtype;
+    if(IsAmp())
+    {
+        auto grad_dtype = gradInDesc.GetType();
+        ss << "grad_dtype" << grad_dtype;
+    }
+
+    return NetworkConfig{ss.str()};
+}
+
+} // namespace adam
 
 } // namespace miopen
-#endif // _MIOPEN_ARGMAX_HPP_

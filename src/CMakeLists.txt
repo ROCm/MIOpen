@@ -85,8 +85,10 @@ endfunction()
 set( MIOpen_Source
     activ/problem_description.cpp
     activ_api.cpp
+    adam/problem_description.cpp
+    adam_api.cpp
+    addlayernorm_api.cpp
     api/find2_0_commons.cpp
-    argmax_api.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
@@ -124,9 +126,13 @@ set( MIOpen_Source
     fusion/problem_description.cpp
     generic_search.cpp
     graphapi/convolution.cpp
+    graphapi/engine.cpp
+    graphapi/enginecfg.cpp
+    graphapi/engineheur.cpp
+    graphapi/execution_plan.cpp
     graphapi/graphapi.cpp
-    graphapi/opgraph.cpp
     graphapi/matmul.cpp
+    graphapi/opgraph.cpp
     graphapi/pointwise.cpp
     graphapi/reduction.cpp
     graphapi/rng.cpp
@@ -155,6 +161,7 @@ set( MIOpen_Source
     process.cpp
     ramdb.cpp
     readonlyramdb.cpp
+    reduceextreme_api.cpp
     reducetensor.cpp
     reducetensor_api.cpp
     reduce/problem_description.cpp
@@ -171,6 +178,7 @@ set( MIOpen_Source
     solver/activ/bwd_1.cpp
     solver/activ/fwd_0.cpp
     solver/activ/fwd_1.cpp
+    solver/adam/adam.cpp
     solver/batchnorm/backward_ck.cpp
     solver/batchnorm/backward_per_activation.cpp
     solver/batchnorm/backward_per_activation_fused.cpp
@@ -265,9 +273,12 @@ set( MIOpen_Source
     solver/gemm_common.cpp
     solver/gemm_wrw.cpp
     solver/groupnorm/forward_groupnorm.cpp
+    solver/layernorm/backward_t5layernorm.cpp
+    solver/layernorm/forward_addlayernorm.cpp
     solver/layernorm/forward_layernorm.cpp
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
+    solver/layernorm/forward_t5layernorm.cpp
     solver/mha/mha_solver_backward.cpp
     solver/mha/mha_solver_forward.cpp
     solver/pooling/forward2d.cpp
@@ -276,11 +287,15 @@ set( MIOpen_Source
     solver/pooling/backward2d.cpp
     solver/pooling/backwardNd.cpp
     solver/reduce/forward_argmax.cpp
+    solver/reduce/forward_argmin.cpp
+    solver/reduce/forward_max.cpp
+    solver/reduce/forward_min.cpp
     solver/reduce/forward_sum.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
     subbuffers.cpp
     sum_api.cpp
+    t5layernorm_api.cpp
     target_properties.cpp
     temp_file.cpp
     tensor.cpp
@@ -411,6 +426,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_stride1.inc
         kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_stride2.inc
         kernels/Conv_Winograd_v30_3_1_metadata.inc
+        kernels/MIOpenReduceExtreme.hpp
         kernels/bfloat16_dev.hpp
         kernels/conv_common.inc
         kernels/conv_sizes.inc
@@ -448,7 +464,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${GPU_REFERENCE_KERNEL_ASM}
         ${GPU_BATCHED_TRANSPOSE_KERNEL_HIP}
         ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_SOURCE}
-        kernels/MIOpenArgmax.cpp
+        kernels/MIOpenAdam.cpp
         kernels/MIOpenCat.cpp
         kernels/MIOpenCheckNumerics.cpp
         kernels/MIOpenBatchNormActivBwdPerAct.cl
@@ -477,6 +493,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConv1x1S.cl
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
+        kernels/MIOpenReduceExtreme.cpp
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenSoftmaxAttn.cpp
         kernels/MIOpenSum.cpp
@@ -587,11 +604,12 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
     list(APPEND MIOpen_Source
         activ.cpp
-        argmax.cpp
+        adam.cpp
+        addlayernorm.cpp
         cat.cpp
         groupnorm.cpp
         kernel_cache.cpp
-        layer_norm.cpp
+        layernorm.cpp
         lrn.cpp
         mlo_dir_conv.cpp
         exec_utils.cpp
@@ -612,8 +630,10 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         hip/batched_transpose_sol.cpp
         hip/general_tensor_reorder_sol.cpp
         pooling.cpp
+        t5layernorm.cpp
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
+        reduceextreme.cpp
         sum.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )
@@ -790,7 +810,7 @@ if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
     endif()
     foreach(MODEL_FILE ${MODEL_FILES})
         get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
-    configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${MODEL_FILE_FILENAME}" COPYONLY)
+        configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${MODEL_FILE_FILENAME}" COPYONLY)
     endforeach()
 endif()
 

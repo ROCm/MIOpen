@@ -30,14 +30,6 @@
 
 #include "float_types.h"
 
-#if MIOPEN_USE_BFP16 == 1
-#define CVT_FLOAT2ACCUM(x) (bfloat16_to_float(x))
-#define CVT_ACCUM2FLOAT(x) (float_to_bfloat16(x))
-#define CVT_INTEGRAL2ACCUM(x) ((_FLOAT_ACCUM)(x))
-#define CVT_FP32_2FLOAT(x) (CVT_ACCUM2FLOAT(x))
-#define CVT_FP32_2ACCUM(x) (x)
-#endif
-
 extern "C" __global__ void SumParallelFwdContiguous(const FLOAT* __restrict__ x,
                                                     FLOAT* __restrict__ y,
                                                     uint64_t output_numel,
