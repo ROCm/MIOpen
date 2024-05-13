@@ -180,6 +180,9 @@ struct ProblemDescription : ProblemDescriptionBase
 
     NetworkConfig MakeNetworkConfig() const override;
 
+    // This declaration marks batchnorm as a primitive with tuning enabled.
+    // Any tunable solver would be able pick it and fetch a db instance in ExecutePrimitive.
+    // It has to be discoverable via ADL from problem description.
     friend auto GetDb(const miopen::ExecutionContext& ctx,
                       const miopen::batchnorm::ProblemDescription&) -> miopen::PerformanceDb;
 
