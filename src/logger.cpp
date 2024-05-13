@@ -31,6 +31,7 @@
 #include <chrono>
 #include <ios>
 #include <iomanip>
+#include <sstream>
 
 #ifdef __linux__
 #include <unistd.h>
@@ -150,6 +151,13 @@ bool IsLogging(const LoggingLevel level, const bool disableQuieting)
 #endif
 }
 
+std::string LoggingLevelToCustomString(const LoggingLevel level, const char* custom)
+{
+    std::ostringstream oss;
+    oss << custom << " " << LoggingLevelToCString(level);
+    return oss.str();
+}
+
 const char* LoggingLevelToCString(const LoggingLevel level)
 {
     switch(level)
@@ -165,6 +173,7 @@ const char* LoggingLevelToCString(const LoggingLevel level)
     default: return "<Unknown>";
     }
 }
+
 bool IsLoggingCmd()
 {
     return miopen::IsEnabled(ENV(MIOPEN_ENABLE_LOGGING_CMD)) && !IsLoggingDebugQuiet();
