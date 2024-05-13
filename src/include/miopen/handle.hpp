@@ -258,6 +258,10 @@ public:
                                                               << solver->ToString());
             return invokers[std::make_pair(config.ToString(), solver->ToString())];
         }
+
+        if(!algo)
+            MIOPEN_THROW(miopenStatusInternalError);
+
         MIOPEN_LOG_I2("Returning an invoker for problem " << config.ToString() << " and algorithm "
                                                           << algo->ToString());
         return invokers.GetFound1_0(config, *algo);
