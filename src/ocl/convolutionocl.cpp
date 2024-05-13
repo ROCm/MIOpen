@@ -207,11 +207,10 @@ static void ShrinkToFind10Results(std::vector<Solution>& found)
     found = std::move(out);
 }
 
-std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
-                                      const conv::ProblemDescription& problem,
-                                      const AnyInvokeParams& invoke_ctx,
-                                      std::size_t max_solutions,
-                                      bool force_attach_binary)
+static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx,
+                                                     const conv::ProblemDescription& problem,
+                                                     const AnyInvokeParams& invoke_ctx,
+                                                     const int requestAlgoCount)
 {
     auto results         = std::vector<Solution>{};
     auto sol             = boost::optional<miopenConvSolution_t>{};
@@ -221,7 +220,16 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
     if(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
         auto fallback = bool{};
-        auto sols     = conv.GetSolutions(ctx, problem, 1, &fallback);
+        auto sols     = conv.GetSolutions(ctx, problem, requestAlgoCount, &fallback);
+
+        // Remove solutions for which the given workspace size is insufficient
+        sols.erase(std::remove_if(sols.begin(),
+                                  sols.end(),
+                                  [&](const miopenConvSolution_t& entry) {
+                                      return invoke_ctx.GetWorkspaceSize() < entry.workspace_size;
+                                  }),
+                   sols.end());
+
         // override the normal find with immed mode with env var
         if(!sols.empty() && (!(findMode.IsHybrid(ctx) && fallback) ||
                              miopen::IsEnabled(ENV(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK))))
@@ -476,14 +484,14 @@ void ConvolutionDescriptor::ValidateTensors(const ConvTensors& tensors) const
     }
 
     // x_tensor_invalid =
-    if(tensors.xDesc.GetSize() < 3)
+    if(tensors.xDesc.GetNumDims() < 3)
     {
         MIOPEN_THROW(miopenStatusBadParm, "input tensor's number of dimensions is wrong");
     }
 
     // tensor_sizes_not_matched =
-    if(tensors.xDesc.GetSize() != tensors.yDesc.GetSize() ||
-       tensors.xDesc.GetSize() != tensors.wDesc.GetSize())
+    if(tensors.xDesc.GetNumDims() != tensors.yDesc.GetNumDims() ||
+       tensors.xDesc.GetNumDims() != tensors.wDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm,
                      "number of dimensions mismatch between input, output and weights tensors");
