@@ -33,15 +33,13 @@
 #include <miopen/conv/problem_description.hpp>
 #include <miopen/solution.hpp>
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEVICE_ARCH)
-
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_GEMM)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_WINOGRAD)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_FFT)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEVICE_ARCH)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMPILE_ONLY)
 
 namespace miopen {
 
@@ -223,7 +221,7 @@ static std::vector<Solution> EvaluateInvokers(Handle& handle,
 {
     const auto& arch = miopen::GetStringEnv(ENV(MIOPEN_DEVICE_ARCH));
     if(!arch.empty())
-        return;
+        return {};
 
     auto selected      = miopen::solver::ConvSolution{miopenStatusUnknownError};
     auto best          = std::numeric_limits<float>::max();
@@ -295,9 +293,9 @@ static std::vector<Solution> EvaluateInvokers(Handle& handle,
 
 std::vector<Solution> FindCore(const AnyInvokeParams& invoke_ctx,
                                const ExecutionContext& ctx,
-                               const ProblemDescription& problem,
+                               const ProblemDescriptionBase& problem,
                                const PrimitiveFindParameters& parameters,
-                               const std::vector<std::unique_ptr<SolversFinder>>& finders,
+                               const std::vector<std::unique_ptr<ISolversFinder>>& finders,
                                const std::optional<FindOptions>& options,
                                bool force_attach_binary)
 {
@@ -330,11 +328,14 @@ std::vector<Solution> FindCore(const AnyInvokeParams& invoke_ctx,
         auto all = std::vector<const miopen::solver::ConvSolution*>{};
         all.reserve(total);
         for(const auto& ss : solutions)
-            AppendPointersToElements(ss.second, all);
+            std::transform(ss.second.begin(),
+                           ss.second.end(),
+                           std::back_inserter(all),
+                           [](auto&& s) { return &s; });
         PrecompileSolutions(handle, all, force_attach_binary);
     }
 
-    if(IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
+    if(IsEnabled(ENV(MIOPEN_DEBUG_COMPILE_ONLY)))
         MIOPEN_THROW(
             miopenStatusGpuOperationsSkipped,
             "MIOPEN_DEBUG_COMPILE_ONLY is enabled, escaping forward convolution. Search skipped.");

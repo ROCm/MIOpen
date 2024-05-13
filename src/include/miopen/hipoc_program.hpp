@@ -51,14 +51,15 @@ struct HIPOCProgram
                  const std::string& kernel_src);
     HIPOCProgram(const std::string& program_name, const fs::path& hsaco);
     HIPOCProgram(const std::string& program_name, const std::string& hsaco);
+    HIPOCProgram(const std::string& program_name, const std::vector<char>& hsaco);
     HIPOCProgram(const std::string& program_name, const std::vector<uint8_t>& hsaco);
     std::shared_ptr<HIPOCProgramImpl> impl;
     hipModule_t GetModule() const;
     /// \return Pathname of CO file, if it resides on the filesystem.
     /// This function should not be called after FreeCodeObjectFileStorage().
     fs::path GetCodeObjectPathname() const;
-    /// \return Copy of in-memory CO blob.
-    std::vector<char> GetCodeObjectBlob() const;
+    /// \return In-memory CO blob.
+    const std::vector<char>& GetCodeObjectBlob() const;
     /// \return True if CO blob resides in-memory.
     /// False if CO resides on filesystem.
     bool IsCodeObjectInMemory() const;
@@ -66,7 +67,7 @@ struct HIPOCProgram
     bool IsCodeObjectInTempFile() const;
     void FreeCodeObjectFileStorage();
     void AttachBinary(std::vector<char> binary);
-    void AttachBinary(boost::filesystem::path binary);
+    void AttachBinary(fs::path binary);
 
     friend bool operator==(const HIPOCProgram& l, const HIPOCProgram& r)
     {

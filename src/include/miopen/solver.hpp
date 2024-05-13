@@ -224,8 +224,8 @@ struct ConvTunableSolverBase : SolverMixin<ExecutionContext, miopen::conv::Probl
     virtual ConvSolution GetSolution(const ExecutionContext& ctx,
                                      const miopen::conv::ProblemDescription& problem,
                                      const PerfConfig& config) const = 0;
-    virtual InvokerFactory GetInvokerFactory(const ConvolutionContext& ctx,
-                                             const ProblemDescription& problem,
+    virtual InvokerFactory GetInvokerFactory(const ExecutionContext& ctx,
+                                             const miopen::conv::ProblemDescription& problem,
                                              const PerfConfig& config) const
     {
         return *GetSolution(ctx, problem, config).invoker_factory;

@@ -468,7 +468,6 @@ Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
                                                         k.g_wk,
                                                         k.comp_options,
                                                         kernels.size(),
-                                                        false,
                                                         "",
                                                         program_out);
         built.push_back(kernel);
@@ -535,12 +534,7 @@ Program Handle::LoadProgram(const std::string& program_name,
 
         // Save to cache
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
-        // It would be nice to change this to std::vector<uint8_t> everywhere to reduce redundant
-        // copies, (nlohmann::json uses that as underlying type for json::binary_t and there is no
-        // clean way to cast vectors) but it is too much hassle for a small host performance
-        // increase at this point as ALL sqlite and compression related functions and classes in the
-        // library are using string.
-        std::string binary;
+        std::vector<char> binary;
         if(!p.IsCodeObjectInMemory())
             binary = miopen::LoadFile(p.GetCodeObjectPathname());
 

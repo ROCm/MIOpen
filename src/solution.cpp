@@ -70,10 +70,10 @@ void Solution::Run(Handle& handle,
                          std::to_string(workspace_size) + " was provided");
     }
 
-    boost::apply_visitor(
+    std::visit(
         boost::hof::match(
             [&](const Problem& problem_) {
-                boost::apply_visitor(
+                std::visit(
                     boost::hof::match(
                         [&](const ConvolutionDescriptor& op_desc) {
                             RunImpl(handle, inputs, workspace, workspace_size, op_desc);
@@ -100,12 +100,12 @@ void Solution::Run(Handle& handle,
 
 void Solution::LogDriverCommand() const
 {
-    boost::apply_visitor([&](const auto& problem_) { LogDriverCommand(problem_); }, problem.item);
+    std::visit([&](const auto& problem_) { LogDriverCommand(problem_); }, problem.item);
 }
 
 void Solution::LogDriverCommand(const ConvolutionDescriptor& desc) const
 {
-    auto problem_ = boost::get<const Problem&>(problem.item);
+    auto problem_ = std::get<Problem>(problem.item);
     const auto& x_desc =
         problem_.GetTensorDescriptorChecked(miopenTensorConvolutionX, "miopenTensorConvolutionX");
     const auto& w_desc =
@@ -119,14 +119,14 @@ void Solution::LogDriverCommand(const ConvolutionDescriptor& desc) const
 void Solution::LogDriverCommand(const ActivationDescriptor& desc) const
 {
     std::ignore = desc;
-    boost::get<Problem>(problem.item).LogDriverCommand();
+    std::get<Problem>(problem.item).LogDriverCommand();
     /// \todo: when possible, add some command for reproducing a specific case rather than the whole
     /// problem
 }
 
 void Solution::LogDriverCommand(const Problem& problem_) const
 {
-    boost::apply_visitor(
+    std::visit(
         boost::hof::match(
             [&](const BiasDescriptor&) { /* \todo: think on how to log bias */ },
             [&](const MhaDescriptor&) { /* \todo: think on how to log mha */ },
@@ -147,7 +147,7 @@ void Solution::RunImpl(Handle& handle,
                        std::size_t workspace_size,
                        const ConvolutionDescriptor& conv_desc)
 {
-    const auto& problem_casted = boost::get<const Problem&>(problem.item);
+    const auto& problem_casted = std::get<Problem>(problem.item);
 
     const auto get_input_checked = [&](auto name, const std::string& name_str) {
         const auto& found = inputs.find(name);
@@ -213,7 +213,7 @@ void Solution::RunImpl(Handle& handle,
 
     if(!kernels.empty())
     {
-        auto ctx             = ExecutionContext{{&handle}};
+        auto ctx             = ExecutionContext{&handle};
         conv_problem.SetupFloats(ctx);
         const auto invoker_factory = GetSolver().GetSolver().GetInvokeFactory(
             ctx, conv_problem, perf_cfg.value_or(""));
@@ -264,7 +264,7 @@ void Solution::RunImpl(Handle& handle,
                        std::size_t workspace_size,
                        [[maybe_unused]] const MhaDescriptor& mha_desc)
 {
-    const Problem& problem_casted = boost::get<const Problem&>(problem.item);
+    const Problem& problem_casted = std::get<Problem>(problem.item);
 
     const auto get_input_checked = [&](auto name, const std::string& name_str) {
         const auto& found = inputs.find(name);
@@ -337,26 +337,31 @@ void Solution::RunImpl(Handle& handle,
         }
     }();
 
-    const auto net_cfg       = problem_description.MakeNetworkConfig();
-    const auto found_invoker = handle.GetInvoker(net_cfg, GetSolver());
-
-    if(found_invoker)
+    if(invoker)
     {
-        (*found_invoker)(handle, invoke_ctx);
+        (*invoker)(handle, invoke_ctx);
+        return;
     }
-    else
+
+    const auto net_cfg = problem_description.MakeNetworkConfig();
+    invoker            = handle.GetInvoker(net_cfg, GetSolver());
+
+    if(invoker)
     {
-        auto ctx = ExecutionContext{&handle};
-
-        static solver::mha::Mha mha;
-
-        const auto mha_solution = mha.GetSolution(ctx, problem_description);
-
-        decltype(auto) invoker =
-            handle.PrepareInvoker(*mha_solution.invoker_factory, mha_solution.construction_params);
-        handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
-        invoker(handle, invoke_ctx);
+        (*invoker)(handle, invoke_ctx);
+        return;
     }
+
+    auto ctx = ExecutionContext{&handle};
+
+    static solver::mha::Mha mha;
+
+    const auto mha_solution = mha.GetSolution(ctx, problem_description);
+
+    invoker =
+        handle.PrepareInvoker(*mha_solution.invoker_factory, mha_solution.construction_params);
+    handle.RegisterInvoker(*invoker, net_cfg, GetSolver().ToString());
+    (*invoker)(handle, invoke_ctx);
 }
 
 void Solution::RunImpl(Handle& handle,
@@ -366,7 +371,7 @@ void Solution::RunImpl(Handle& handle,
                        const SoftmaxDescriptor& softmax_desc)
 {
 
-    const auto& problem_casted = boost::get<const Problem&>(problem.item);
+    const auto& problem_casted = std::get<Problem>(problem.item);
 
     const auto get_input_checked = [&](auto name, const std::string& name_str) {
         const auto& found = inputs.find(name);
@@ -419,29 +424,34 @@ void Solution::RunImpl(Handle& handle,
         }
     }();
 
-    const auto net_cfg       = problem_description.MakeNetworkConfig();
-    const auto found_invoker = handle.GetInvoker(net_cfg, GetSolver());
-
-    if(found_invoker)
+    if(invoker)
     {
-        (*found_invoker)(handle, invoke_ctx);
+        (*invoker)(handle, invoke_ctx);
+        return;
     }
-    else
+
+    const auto net_cfg = problem_description.MakeNetworkConfig();
+    invoker            = handle.GetInvoker(net_cfg, GetSolver());
+
+    if(invoker)
     {
-        auto ctx = ExecutionContext{&handle};
-
-        solver::softmax::Softmax regularSoftmax;
-        solver::softmax::AttnSoftmax attnSoftmax;
-
-        const auto softmax_solution = GetSolver().ToString() == regularSoftmax.SolverDbId()
-                                          ? regularSoftmax.GetSolution(ctx, problem_description)
-                                          : attnSoftmax.GetSolution(ctx, problem_description);
-
-        decltype(auto) invoker = handle.PrepareInvoker(*softmax_solution.invoker_factory,
-                                                       softmax_solution.construction_params);
-        handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
-        invoker(handle, invoke_ctx);
+        (*invoker)(handle, invoke_ctx);
+        return;
     }
+
+    auto ctx = ExecutionContext{&handle};
+
+    solver::softmax::Softmax regularSoftmax;
+    solver::softmax::AttnSoftmax attnSoftmax;
+
+    const auto softmax_solution = GetSolver().ToString() == regularSoftmax.SolverDbId()
+                                      ? regularSoftmax.GetSolution(ctx, problem_description)
+                                      : attnSoftmax.GetSolution(ctx, problem_description);
+
+    invoker = handle.PrepareInvoker(*softmax_solution.invoker_factory,
+                                                   softmax_solution.construction_params);
+    handle.RegisterInvoker(*invoker, net_cfg, GetSolver().ToString());
+    (*invoker)(handle, invoke_ctx);
 }
 
 void Solution::RunImpl(Handle& handle,
@@ -464,24 +474,29 @@ void Solution::RunImpl(Handle& handle,
     OperatorArgs op_args;
     const auto invoke_params = problem_.MakeInvokeParams(buffer_getter, op_args);
 
+    if(invoker)
+    {
+        (*invoker)(handle, invoke_params);
+        return;
+    }
+
     const auto plan           = problem_.AsFusionPlan();
     const auto fusion_problem = FusionDescription{&plan};
     const auto net_cfg        = fusion_problem.MakeNetworkConfig();
 
-    const auto found_invoker = handle.GetInvoker(net_cfg, GetSolver());
-
-    if(found_invoker)
+    invoker = handle.GetInvoker(net_cfg, GetSolver());
+    if(invoker)
     {
-        (*found_invoker)(handle, invoke_params);
+        (*invoker)(handle, invoke_params);
         return;
     }
 
     const auto ctx      = FusionContext{handle};
     const auto solution = MakeFusedSolution(ctx, solver, perf_cfg, fusion_problem, invoke_params);
-    decltype(auto) invoker =
+    invoker =
         handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
-    handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
-    invoker(handle, invoke_params);
+    handle.RegisterInvoker(*invoker, net_cfg, GetSolver().ToString());
+    (*invoker)(handle, invoke_params);
 }
 
 AnyInvokeParams Solution::MakeInvokeParams(const Problem& problem_,
@@ -667,7 +682,7 @@ void to_json(nlohmann::json& json, const Solution& solution)
             // With disabled cache programs after build would be attached as a char vector. Same for
             // the sqlite cache.
 
-            const auto& chars = program.GetCodeObjectBlobAsVector();
+            const auto& chars = program.GetCodeObjectBlob();
             binary.resize(chars.size());
             std::memcpy(binary.data(), chars.data(), chars.size());
 
@@ -689,7 +704,7 @@ void to_json(nlohmann::json& json, const Solution& solution)
             binary.reserve(filesize);
             binary.insert(binary.begin(), Iterator{file}, Iterator{});
 
-            MIOPEN_LOG_I2("Serialized binary to solution blob, " << filesize << " bytes");
+            MIOPEN_LOG_I2("Serialized binary to solution blob, " << std::to_string(filesize) << " bytes");
         }
         else
         {

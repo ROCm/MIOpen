@@ -46,11 +46,10 @@ inline void WriteFile(const std::vector<char>& content, const fs::path& name)
         MIOPEN_THROW("Failed to write to file");
 }
 
-inline void WriteFile(const std::vector<uint8_t>& content, const boost::filesystem::path& name)
+inline void WriteFile(const std::vector<uint8_t>& content, const fs::path& name)
 {
-    // std::cerr << "Write file: " << name << std::endl;
-    const FilePtr f{std::fopen(name.string().c_str(), "w")};
-    if(std::fwrite(&content[0], 1, content.size(), f.get()) != content.size())
+    std::ofstream f{name, std::ios::binary};
+    if(f.write(reinterpret_cast<const char*>(content.data()), content.size()).fail())
         MIOPEN_THROW("Failed to write to file");
 }
 

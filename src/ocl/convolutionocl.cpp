@@ -241,17 +241,18 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
     else
     {
         results = UserFindDbRecord::TryLoad(ctx.GetStream(), problem, [&]() {
-            auto conv_ctx                       = ConvolutionContext{ctx};
-            conv_ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
+            auto ctx_copy                       = ctx;
+            ctx_copy.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             const auto params =
                 conv::ConvFindParameters{conv.IsWinograd3x3SupportedAndFast(ctx_copy, problem)};
 
-            return ConvFindCore(invoke_ctx,
-                                conv_ctx,
-                                problem,
-                                params,
-                                GetConvSolverFinders(),
-                                force_attach_binary);
+            return FindCore(invoke_ctx,
+                            ctx_copy,
+                            problem,
+                            params,
+                            conv::GetConvSolverFinders(),
+                            std::nullopt,
+                            force_attach_binary);
         });
     }
 
@@ -1191,7 +1192,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(const Handle& handle,
             static_cast<miopenConvAlgorithm_t>(algo), direction)};
         decltype(auto) problem = conv::ProblemDescription{dyDesc, dwDesc, xDesc, *this, direction};
         decltype(auto) network_config = problem.MakeNetworkConfig();
-        decltype(auto) invoker = handle.GetInvoker(network_config, boost::none, algorithm_name);
+        decltype(auto) invoker = handle.GetInvoker(network_config, std::nullopt, algorithm_name);
 
         if(!invoker)
             MIOPEN_THROW("No invoker was registered for convolution weights. Was find executed?");

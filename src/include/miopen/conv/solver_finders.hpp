@@ -38,6 +38,12 @@
 
 namespace miopen {
 
+namespace conv {
+struct ProblemDescription;
+}
+
+struct Solution;
+
 class DbRecord;
 
 // This can be used to pass some primitive-specific pre-computed data to finders.
@@ -150,10 +156,10 @@ const std::vector<std::unique_ptr<ISolversFinder>>& GetConvSolverFinders();
 } // namespace conv
 
 std::vector<Solution> FindCore(const AnyInvokeParams& invoke_ctx,
-                               const ConvolutionContext& ctx,
-                               const ProblemDescription& problem,
+                               const ExecutionContext& ctx,
+                               const ProblemDescriptionBase& problem,
                                const PrimitiveFindParameters& parameters,
-                               const std::vector<std::unique_ptr<SolversFinder>>& finders,
+                               const std::vector<std::unique_ptr<ISolversFinder>>& finders,
                                const std::optional<FindOptions>& options = std::nullopt,
                                bool force_attach_binary = false);
 

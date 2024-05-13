@@ -440,7 +440,7 @@ struct SolverContainer
     {
         const auto network_config = problem.MakeNetworkConfig();
 
-        if(const auto existingInvoker = handle.GetInvoker(network_config, boost::none, algo))
+        if(const auto existingInvoker = handle.GetInvoker(network_config, std::nullopt, algo))
         {
             (*existingInvoker)(handle, invoke_params);
             return;

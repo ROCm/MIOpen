@@ -176,7 +176,7 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
     for(const auto& pair : tensor_descriptors)
         allocate(pair.first, pair.second);
 
-    auto ret = boost::apply_visitor(
+    auto ret = std::visit(
         boost::hof::match(
             [&](const ConvolutionDescriptor& op_desc) {
                 return FindSolutionsImpl(handle, options, max_solutions, buffers, op_desc);
@@ -246,7 +246,8 @@ Problem Problem::MakeTransposed() const
         transposed.tensor_descriptors.emplace(descriptor.first, descriptor.second);
 
     const auto transpose_tensors = boost::hof::match(
-        [&](const ConvolutionDescriptor& op_desc) { return transposed.TransposeImpl(op_desc); });
+        [&](const ConvolutionDescriptor& op_desc) { return transposed.TransposeImpl(op_desc); },
+        [](auto&&) { MIOPEN_THROW(miopenStatusNotImplemented); });
 
     std::visit(transpose_tensors, operator_descriptor);
 
@@ -310,7 +311,7 @@ conv::ProblemDescription Problem::AsConvolution() const
 
 activ::ProblemDescription Problem::AsActivation() const
 {
-    const auto& activ_desc = boost::get<ActivationDescriptor>(operator_descriptor);
+    const auto& activ_desc = std::get<ActivationDescriptor>(operator_descriptor);
 
     const auto& x_desc =
         GetTensorDescriptorChecked(miopenTensorActivationX, "miopenTensorActivationX");
@@ -331,7 +332,7 @@ activ::ProblemDescription Problem::AsActivation() const
 
 mha::ProblemDescription Problem::AsMha() const
 {
-    const auto& mha_desc = boost::get<MhaDescriptor>(operator_descriptor);
+    const auto& mha_desc = std::get<MhaDescriptor>(operator_descriptor);
 
     if(GetDirection() == miopenProblemDirectionBackward)
     {
@@ -367,7 +368,7 @@ mha::ProblemDescription Problem::AsMha() const
 
 softmax::ProblemDescription Problem::AsSoftmax() const
 {
-    const auto& softmax_desc = boost::get<SoftmaxDescriptor>(operator_descriptor);
+    const auto& softmax_desc = std::get<SoftmaxDescriptor>(operator_descriptor);
 
     float alpha = softmax_desc.GetAlpha();
     float beta  = softmax_desc.GetBeta();
@@ -454,7 +455,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
 
     for(auto& result : results)
     {
-        result.SetProblem(*this);
+        result.SetProblem({*this});
 
         if(result.GetKernels().empty())
         {
@@ -462,10 +463,9 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
             // This would make binaries not serialized and invoker not cached.
             // So we prepare them here.
 
-            auto db                  = GetDb(ctx);
-            const auto legacy_ctx    = ConvolutionContext{ctx};
-            const auto conv_solution = result.GetSolver().GetSolver().FindSolution(
-                legacy_ctx, conv_problem, db, invoke_ctx);
+            auto db = GetDb(ctx);
+            const auto conv_solution =
+                result.GetSolver().GetSolver().FindSolution(ctx, conv_problem, db, invoke_ctx);
 
             std::vector<Program> programs;
             auto invoker = handle.PrepareInvoker(*conv_solution.invoker_factory,
@@ -690,11 +690,11 @@ void from_json(const nlohmann::json& json, FusedProblem& problem)
 void to_json(nlohmann::json& json, const ProblemContainer& problem)
 {
     json = nlohmann::json{
-        {"problem_type", problem.item.which()},
+        {"problem_type", problem.item.index()},
     };
 
     auto operator_serialization = [&](auto&& op) { json["value"] = op; };
-    boost::apply_visitor(operator_serialization, problem.item);
+    std::visit(operator_serialization, problem.item);
 }
 
 namespace detail {
@@ -721,7 +721,7 @@ void Problem::CalculateOutput()
     if(!HasInput())
         return;
 
-    boost::apply_visitor(
+    std::visit(
         boost::hof::match(
             [&](const ConvolutionDescriptor& conv) {
                 const auto& in = GetInput();
@@ -742,7 +742,7 @@ void Problem::CalculateOutput()
 
 miopenTensorArgumentId_t Problem::GetInputId() const
 {
-    return boost::apply_visitor(
+    return std::visit(
         boost::hof::match([](const ConvolutionDescriptor&) { return miopenTensorConvolutionX; },
                           [](const ActivationDescriptor&) { return miopenTensorActivationX; },
                           [](const BiasDescriptor&) { return miopenTensorBiasX; },
@@ -753,7 +753,7 @@ miopenTensorArgumentId_t Problem::GetInputId() const
 
 miopenTensorArgumentId_t Problem::GetOutputId() const
 {
-    return boost::apply_visitor(
+    return std::visit(
         boost::hof::match([](const ConvolutionDescriptor&) { return miopenTensorConvolutionY; },
                           [](const ActivationDescriptor&) { return miopenTensorActivationY; },
                           [](const BiasDescriptor&) { return miopenTensorBiasY; },
@@ -784,7 +784,7 @@ std::vector<Solution> FusedProblem::FindSolutions(Handle& handle,
                                                   const FindOptions& options,
                                                   std::size_t max_solutions) const
 {
-    const auto find1_solutions = [&]() {
+    auto solutions = [&]() {
         OperatorArgs params;
         auto owned_buffers = std::vector<Allocator::ManageDataPtr>{};
         auto owned_scalars = std::vector<std::uint64_t>{};
@@ -800,34 +800,22 @@ std::vector<Solution> FusedProblem::FindSolutions(Handle& handle,
         return AsFusionPlan().Find(handle, make_invoke_params, options);
     }();
 
-    auto ret = std::vector<Solution>{};
-    ret.reserve(find1_solutions.size());
-    // decltype(auto) db = GetDb(ExecutionContext{&handle});
-
-    for(const auto& find1_solution : find1_solutions)
+    for(auto& solution : solutions)
     {
-        auto solution = Solution{};
-        solution.SetTime(find1_solution.time);
-        solution.SetWorkspaceSize(find1_solution.workspace);
-        solution.SetSolver(find1_solution.solver_id);
         solution.SetProblem({*this});
-        // solution.SetPerfConfig(solution.GetSolver().GetSolver().GetPerfCfgParams(conv_ctx,
-        // legacy_problem, db));
         MIOPEN_LOG_I("Found solution: " << solution.GetSolver().ToString() << " , "
                                         << solution.GetWorkspaceSize() << ", "
                                         << solution.GetTime());
-
-        ret.emplace_back(std::move(solution));
     }
 
-    SortFindResults(options, ret);
-    ret.resize(std::min(ret.size(), max_solutions));
-    return ret;
+    SortFindResults(options, solutions);
+    solutions.resize(std::min(solutions.size(), max_solutions));
+    return solutions;
 }
 
 void FusedProblem::AddProblemToPlan(FusionPlanDescriptor& plan, const Problem& problem)
 {
-    boost::apply_visitor(
+    std::visit(
         boost::hof::match(
             [&](const ConvolutionDescriptor& conv_desc) {
                 plan.AddOp(std::make_shared<ConvForwardOpDescriptor>(
@@ -896,7 +884,7 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
             if(pair.first != problem.GetInputId() && pair.first != problem.GetOutputId())
                 get_buffer(pair.first, pair.second);
 
-        boost::apply_visitor(
+        std::visit(
             boost::hof::match(
                 [&](const ConvolutionDescriptor& conv_desc) {
                     gfx90aaltimpl = conv_desc.attribute.gfx90aFp16alt.GetFwd();

@@ -58,7 +58,7 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
                            Data_t output,
                            const OperatorArgs& op_args);
     miopenStatus_t Compile(Handle& handle);
-    std::vector<struct PerfField>
+    std::vector<Solution>
     Find(Handle& handle,
          const std::function<fusion::FusionInvokeParams()>& invoke_params,
          const std::optional<FindOptions>& options = std::nullopt) const;

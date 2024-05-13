@@ -238,17 +238,17 @@ public:
     void RegisterInvoker(const Invoker& invoker,
                          const NetworkConfig& config,
                          const std::string& solver,
-                         const boost::optional<AlgorithmName>& algo = boost::none)
+                         const std::optional<AlgorithmName>& algo = std::nullopt)
     {
         invokers.Register({config, solver}, invoker);
         if(algo.has_value())
             invokers.SetAsFound1_0(config, *algo, solver);
     }
 
-    boost::optional<const Invoker&>
+    std::optional<Invoker>
     GetInvoker(const NetworkConfig& config,
-               const boost::optional<solver::Id>& solver,
-               const boost::optional<AlgorithmName>& algo = boost::none) const
+               const std::optional<solver::Id>& solver,
+               const std::optional<AlgorithmName>& algo = std::nullopt) const
     {
         assert(solver || algo);
         assert(!(solver && algo));
@@ -263,7 +263,7 @@ public:
         return invokers.GetFound1_0(config, *algo);
     }
 
-    boost::optional<const std::string&> GetFound1_0SolverId(const NetworkConfig& config,
+    std::optional<std::string> GetFound1_0SolverId(const NetworkConfig& config,
                                                             const AlgorithmName& algo) const
     {
         return invokers.GetFound1_0SolverId(config, algo);
