@@ -207,10 +207,11 @@ static void ShrinkToFind10Results(std::vector<Solution>& found)
     found = std::move(out);
 }
 
-static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx,
+static inline std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
                                                      const conv::ProblemDescription& problem,
                                                      const AnyInvokeParams& invoke_ctx,
-                                                     const int requestAlgoCount)
+                                                     const int requestAlgoCount,
+                                                     bool force_attach_binary)
 {
     auto results         = std::vector<Solution>{};
     auto sol             = boost::optional<miopenConvSolution_t>{};
@@ -272,7 +273,7 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
     }
 
     ShrinkToFind10Results(results);
-    results.resize(std::min(results.size(), max_solutions));
+    results.resize(std::min<std::size_t>(results.size(), requestAlgoCount));
 
     for(const auto& entry : results)
         MIOPEN_LOG_I(entry.GetSolver().GetAlgo(problem.GetDirection())
