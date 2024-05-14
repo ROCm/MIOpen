@@ -194,29 +194,45 @@ set( MIOpen_Source
     solver/batchnorm/forward_spatial_single.cpp
     solver/batchnorm/forward_training_ck.cpp
     solver/cat/forward_cat.cpp
+    solver/conv/conv_asm_1x1u.cpp
+    solver/conv/conv_asm_1x1u_stride2.cpp
+    solver/conv/conv_asm_3x3u.cpp
+    solver/conv/conv_asm_5x10u2v2b1.cpp
+    solver/conv/conv_asm_5x10u2v2f1.cpp
+    solver/conv/conv_asm_7x7c3h224w224k64u2v2p3q3f1.cpp
+    solver/conv/conv_asm_dir_BwdWrW1x1.cpp
+    solver/conv/conv_asm_dir_BwdWrW3x3.cpp
+    solver/conv/conv_asm_implicit_gemm_bwd_v4r1_dynamic.cpp
+    solver/conv/conv_asm_implicit_gemm_gtc_bwd.cpp
+    solver/conv/conv_asm_implicit_gemm_gtc_bwd_nhwc.cpp
+    solver/conv/conv_asm_implicit_gemm_gtc_fwd.cpp
+    solver/conv/conv_asm_implicit_gemm_gtc_fwd_nhwc.cpp
+    solver/conv/conv_asm_implicit_gemm_gtc_fwd_nchwc.cpp
+    solver/conv/conv_asm_implicit_gemm_gtc_perf_config.cpp
+    solver/conv/conv_asm_implicit_gemm_gtc_wrw_nhwc.cpp
+    solver/conv/conv_asm_implicit_gemm_v4r1_dynamic.cpp
+    solver/conv/conv_asm_implicit_gemm_wrw_gtc_dynamic_xdlops.cpp
+    solver/conv/conv_asm_implicit_gemm_wrw_v4r1_dynamic.cpp
+    solver/conv/conv_bin_wino3x3U.cpp
+    solver/conv/conv_bin_winoRxS.cpp
+    solver/conv/conv_mlir_igemm_bwd.cpp
+    solver/conv/conv_mlir_igemm_bwd_xdlops.cpp
+    solver/conv/conv_mlir_igemm_fwd.cpp
+    solver/conv/conv_mlir_igemm_fwd_xdlops.cpp
+    solver/conv/conv_mlir_igemm_wrw.cpp
+    solver/conv/conv_mlir_igemm_wrw_xdlops.cpp
+    solver/conv/conv_ocl_dir2D_bwdWrW_1x1.cpp
+    solver/conv/conv_ocl_dir2D_bwdWrW_2.cpp
+    solver/conv/conv_ocl_dir2D_bwdWrW_53.cpp
+    solver/conv/conv_ocl_dir2D11x11.cpp
+    solver/conv/conv_ocl_dir2Dfwd.cpp
+    solver/conv/conv_ocl_dir2Dfwd_exhaustive_search.cpp
+    solver/conv/conv_ocl_dir2Dfwd1x1.cpp
+    solver/conv/conv_ocl_dir2Dfwdgen.cpp
     solver/conv/conv_wino_fury_RxS.cpp
-    solver/conv_asm_1x1u.cpp
+    solver/conv/conv_winoRxS.cpp
+    solver/conv/fft.cpp
     solver/conv_asm_1x1u_bias_activ_fused.cpp
-    solver/conv_asm_1x1u_stride2.cpp
-    solver/conv_asm_3x3u.cpp
-    solver/conv_asm_5x10u2v2b1.cpp
-    solver/conv_asm_5x10u2v2f1.cpp
-    solver/conv_asm_7x7c3h224w224k64u2v2p3q3f1.cpp
-    solver/conv_asm_dir_BwdWrW1x1.cpp
-    solver/conv_asm_dir_BwdWrW3x3.cpp
-    solver/conv_asm_implicit_gemm_bwd_v4r1_dynamic.cpp
-    solver/conv_asm_implicit_gemm_gtc_bwd.cpp
-    solver/conv_asm_implicit_gemm_gtc_bwd_nhwc.cpp
-    solver/conv_asm_implicit_gemm_gtc_fwd.cpp
-    solver/conv_asm_implicit_gemm_gtc_fwd_nhwc.cpp
-    solver/conv_asm_implicit_gemm_gtc_fwd_nchwc.cpp
-    solver/conv_asm_implicit_gemm_gtc_perf_config.cpp
-    solver/conv_asm_implicit_gemm_gtc_wrw_nhwc.cpp
-    solver/conv_asm_implicit_gemm_v4r1_dynamic.cpp
-    solver/conv_asm_implicit_gemm_wrw_gtc_dynamic_xdlops.cpp
-    solver/conv_asm_implicit_gemm_wrw_v4r1_dynamic.cpp
-    solver/conv_bin_wino3x3U.cpp
-    solver/conv_bin_winoRxS.cpp
     solver/conv_bin_winoRxS_fused.cpp
     solver/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
     solver/conv_ck_igemm_fwd_bias_activ_fused.cpp
@@ -249,26 +265,10 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops_padded_gemm.cpp
-    solver/conv_mlir_igemm_bwd.cpp
-    solver/conv_mlir_igemm_bwd_xdlops.cpp
-    solver/conv_mlir_igemm_fwd.cpp
-    solver/conv_mlir_igemm_fwd_xdlops.cpp
-    solver/conv_mlir_igemm_wrw.cpp
-    solver/conv_mlir_igemm_wrw_xdlops.cpp
     solver/conv_MP_bidirectional_winograd.cpp
     solver/conv_multipass_wino3x3WrW.cpp
-    solver/conv_ocl_dir2D_bwdWrW_1x1.cpp
-    solver/conv_ocl_dir2D_bwdWrW_2.cpp
-    solver/conv_ocl_dir2D_bwdWrW_53.cpp
-    solver/conv_ocl_dir2D11x11.cpp
-    solver/conv_ocl_dir2Dfwd.cpp
     solver/conv_ocl_dir2Dfwd_fused.cpp
-    solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
-    solver/conv_ocl_dir2Dfwd1x1.cpp
-    solver/conv_ocl_dir2Dfwdgen.cpp
-    solver/conv_winoRxS.cpp
     solver/conv_winoRxS_fused.cpp
-    solver/fft.cpp
     solver/gemm.cpp
     solver/gemm_bwd.cpp
     solver/gemm_common.cpp
@@ -738,9 +738,9 @@ endif()
 
 if(MIOPEN_USE_MLIR)
     list(APPEND MIOpen_Source
-        mlir_build.cpp
-        solver/mlir_common.cpp
         conv/invokers/mlir_impl_gemm.cpp
+        mlir_build.cpp
+        solver/conv/mlir_common.cpp
         )
 endif()
 
