@@ -61,7 +61,7 @@ struct ProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
     int32_t GetIgnoreIndex() const { return ignore_index; }
 
-    bool IsRightLength() const
+    bool IsValidLength() const
     {
         if(targetDesc.GetLengths()[0] != inputDesc.GetLengths()[0])
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
@@ -91,7 +91,7 @@ struct ProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    bool IsRightStride() const
+    bool IsValidStride() const
     {
         auto isRightStride = [](TensorDescriptor td) {
             auto strides = td.GetStrides();
@@ -108,7 +108,7 @@ struct ProblemDescription : ProblemDescriptionBase
             {
                 if(p[i].first != p[i - 1].first * p[i - 1].second)
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-                    MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Tensor strides do not match.");
+                    MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Tensor strides do not valid.");
 #else
                     return false;
 #endif
@@ -117,6 +117,15 @@ struct ProblemDescription : ProblemDescriptionBase
         };
         return isRightStride(inputDesc) && isRightStride(targetDesc) && isRightStride(outputDesc) &&
                isRightStride(weightDesc);
+    }
+
+    bool IsSameType() const
+    {
+        if(inputDesc.GetType() != weightDesc.GetType())
+        {
+            return false;
+        }
+        return true;
     }
 
     bool IsAllContiguous() const
@@ -135,20 +144,6 @@ struct ProblemDescription : ProblemDescriptionBase
         };
         return isContiguous(inputDesc) && isContiguous(targetDesc) && isContiguous(weightDesc) &&
                isContiguous(outputDesc);
-    }
-
-    bool IsAllPacked() const
-    {
-        if(!(inputDesc.IsPacked() && targetDesc.IsPacked() && weightDesc.IsPacked() &&
-             outputDesc.IsPacked()))
-        {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Unpacked tensors not supported.");
-#else
-            return false;
-#endif
-        }
-        return true;
     }
 
 protected:
@@ -175,27 +170,12 @@ struct UnreduceProblemDescription : ProblemDescription
               inputDesc_, targetDesc_, weightDesc_, outputDesc_, ignore_index_, is_fwd_)
     {
         IsSameType();
-        IsRightLength();
-        IsRightStride();
-        IsAllPacked();
+        IsValidLength();
+        IsValidStride();
     }
 
     size_t GetNtotal() const { return outputDesc.GetElementSize(); }
     size_t GetC() const { return weightDesc.GetElementSize(); }
-
-    bool IsSameType() const
-    {
-        if(inputDesc.GetType() != weightDesc.GetType())
-        {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "NLLLoss: Tensor types of Input and Weight do not match.");
-#else
-            return false;
-#endif
-        }
-        return true;
-    }
 
     NetworkConfig MakeNetworkConfig() const override;
 
@@ -215,38 +195,19 @@ struct ReduceProblemDescription : ProblemDescription
               inputDesc_, targetDesc_, weightDesc_, outputDesc_, ignore_index_, is_fwd_)
     {
         IsSameType();
-        IsRightLength();
-        IsRightStride();
-        IsAllPacked();
+        IsValidLength();
+        IsValidStride();
     }
 
     size_t GetNtotal() const { return targetDesc.GetElementSize(); }
     size_t GetC() const { return weightDesc.GetElementSize(); }
 
-    bool IsSameType() const
+    bool IsValidLength() const
     {
-        if(inputDesc.GetType() != weightDesc.GetType())
-        {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "NLLLoss: Tensor types of Input and Weight do not match.");
-#else
-            return false;
-#endif
-        }
-        return true;
-    }
-
-    bool IsRightLength() const
-    {
-        if(!ProblemDescription::IsRightLength())
+        if(!ProblemDescription::IsValidLength())
             return false;
         if(outputDesc.GetSize() != 1 || outputDesc.GetLengths()[0] != 1)
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Output Tensor size must be (1).");
-#else
-            return false;
-#endif
         return true;
     }
 

@@ -385,7 +385,7 @@ int NLLLossDriver<Tgpu, Tref>::RunForwardCPU()
 {
     if(!std::isnan(divisor))
     {
-        mloNLLLossReduceForwardRunHost<Tgpu, Tref>(inputDesc,
+        mloNLLLossReduceForward4dRunHost<Tgpu, Tref>(inputDesc,
                                                    targetDesc,
                                                    weightDesc,
                                                    in.data(),
@@ -398,7 +398,7 @@ int NLLLossDriver<Tgpu, Tref>::RunForwardCPU()
     }
     else
     {
-        mloNLLLossUnreduceForwardRunHost<Tgpu, Tref>(inputDesc,
+        mloNLLLossUnreduceForward4dRunHost<Tgpu, Tref>(inputDesc,
                                                      targetDesc,
                                                      weightDesc,
                                                      outputDesc,
@@ -479,7 +479,7 @@ int NLLLossDriver<Tgpu, Tref>::RunBackwardCPU()
 {
     if(!std::isnan(divisor))
     {
-        mloNLLLossReduceBackwardRunHost<Tgpu, Tref>(inputGradDesc,
+        mloNLLLossReduceBackward4dRunHost<Tgpu, Tref>(inputGradDesc,
                                                     targetDesc,
                                                     weightDesc,
                                                     in_grad_host.data(),
@@ -491,7 +491,7 @@ int NLLLossDriver<Tgpu, Tref>::RunBackwardCPU()
     }
     else
     {
-        mloNLLLossUnreduceBackwardRunHost<Tgpu, Tref>(inputGradDesc,
+        mloNLLLossUnreduceBackward4dRunHost<Tgpu, Tref>(inputGradDesc,
                                                       targetDesc,
                                                       weightDesc,
                                                       outputGradDesc,

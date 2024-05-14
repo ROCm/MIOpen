@@ -30,7 +30,7 @@
 #include <miopen/tensor_view.hpp>
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloNLLLossUnreduceForwardRunHost(const miopenTensorDescriptor_t inputDesc,
+int32_t mloNLLLossUnreduceForward4dRunHost(const miopenTensorDescriptor_t inputDesc,
                                          const miopenTensorDescriptor_t targetDesc,
                                          const miopenTensorDescriptor_t weightDesc,
                                          const miopenTensorDescriptor_t outputDesc,
@@ -76,7 +76,7 @@ int32_t mloNLLLossUnreduceForwardRunHost(const miopenTensorDescriptor_t inputDes
 }
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloNLLLossReduceForwardRunHost(const miopenTensorDescriptor_t inputDesc,
+int32_t mloNLLLossReduceForward4dRunHost(const miopenTensorDescriptor_t inputDesc,
                                        const miopenTensorDescriptor_t targetDesc,
                                        const miopenTensorDescriptor_t weightDesc,
                                        const Tgpu* input,
@@ -147,7 +147,7 @@ int32_t mloNLLLossReduceForwardRunHost(const miopenTensorDescriptor_t inputDesc,
 }
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloNLLLossUnreduceBackwardRunHost(const miopenTensorDescriptor_t inputDesc,
+int32_t mloNLLLossUnreduceBackward4dRunHost(const miopenTensorDescriptor_t inputDesc,
                                           const miopenTensorDescriptor_t targetDesc,
                                           const miopenTensorDescriptor_t weightDesc,
                                           const miopenTensorDescriptor_t outputDesc,
@@ -193,7 +193,7 @@ int32_t mloNLLLossUnreduceBackwardRunHost(const miopenTensorDescriptor_t inputDe
 }
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloNLLLossReduceBackwardRunHost(const miopenTensorDescriptor_t inputDesc,
+int32_t mloNLLLossReduceBackward4dRunHost(const miopenTensorDescriptor_t inputDesc,
                                         const miopenTensorDescriptor_t targetDesc,
                                         const miopenTensorDescriptor_t weightDesc,
                                         Tcheck* input_grad,
