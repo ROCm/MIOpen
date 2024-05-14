@@ -341,7 +341,7 @@ namespace {
 // Currently 2D case only support default (alpha = 1.0 and beta = 0.0)
 void ValidateAlphaBeta(const conv::ProblemDescription& problem)
 {
-    if(problem.Is2d() && problem.GetAlphaBetaCase() != ::miopen::conv::AlphaBetaCase::DEFAULT)
+    if(problem.Is2d() && problem.GetAlphaBetaCase() != DEFAULT)
     {
         MIOPEN_THROW(miopenStatusNotImplemented,
                      "Only alpha=1 and beta=0 is supported for 2D cases.");

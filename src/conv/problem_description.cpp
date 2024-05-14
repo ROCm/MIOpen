@@ -65,7 +65,7 @@ std::ostream& operator<<(std::ostream& stream, std::function<void(std::ostream&)
 
 } // namespace
 
-AlphaBetaCase ClassifyAlphaBeta(const Scalar& alpha, const Scalar& beta)
+miopenAlphaBetaCase_t ClassifyAlphaBeta(const Scalar& alpha, const Scalar& beta)
 {
     // double since we are comparing
     double alpha_val = alpha.GetAsDouble();
@@ -77,20 +77,20 @@ AlphaBetaCase ClassifyAlphaBeta(const Scalar& alpha, const Scalar& beta)
 
     if(alpha_one && beta_zero)
     {
-        return AlphaBetaCase::DEFAULT;
+        return DEFAULT;
     }
 
     if(!alpha_one && beta_zero)
     {
-        return AlphaBetaCase::SCALE;
+        return SCALE;
     }
 
     if(!alpha_zero && !beta_zero)
     {
-        return AlphaBetaCase::BILINEAR;
+        return BILINEAR;
     }
 
-    return AlphaBetaCase::ERROR_STATE;
+    return ERROR_STATE;
 }
 
 std::string ProblemDescription::GetDirectionStr() const
@@ -112,9 +112,9 @@ std::string ProblemDescription::GetAlphaBetaCaseStr() const
 {
     switch(GetAlphaBetaCase())
     {
-    case AlphaBetaCase::BILINEAR: return "Bilinear";
-    case AlphaBetaCase::SCALE: return "Scale";
-    case AlphaBetaCase::DEFAULT: return "Default";
+    case BILINEAR: return "Bilinear";
+    case SCALE: return "Scale";
+    case DEFAULT: return "Default";
     default: MIOPEN_THROW(miopenStatusInvalidValue, "Alpha Beta Case in ERROR_STATE");
     }
 }

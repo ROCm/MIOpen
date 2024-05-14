@@ -339,11 +339,11 @@ void PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::Init(const ProblemDescrip
 {
     switch(problem.GetAlphaBetaCase())
     {
-    case ::miopen::conv::AlphaBetaCase::BILINEAR:
+    case BILINEAR:
         valid_kernels =
             FillValidKernelsIDs<DeviceOpGBwdBilinearPtrs<DataType>, CKArgs<DataType>>(problem);
         break;
-    case ::miopen::conv::AlphaBetaCase::SCALE:
+    case SCALE:
         valid_kernels =
             FillValidKernelsIDs<DeviceOpGBwdScalePtrs<DataType>, CKArgs<DataType>>(problem);
         break;
@@ -362,10 +362,10 @@ bool PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::CheckIsSupportCKArgs(
 {
     switch(problem.GetAlphaBetaCase())
     {
-    case ::miopen::conv::AlphaBetaCase::BILINEAR:
+    case BILINEAR:
         return IsCKArgsSupported<DeviceOpGBwdBilinearPtrs<DataType>, CKArgs<DataType>>(problem,
                                                                                        kernel_id);
-    case ::miopen::conv::AlphaBetaCase::SCALE:
+    case SCALE:
         return IsCKArgsSupported<DeviceOpGBwdScalePtrs<DataType>, CKArgs<DataType>>(problem,
                                                                                     kernel_id);
     default:
@@ -380,10 +380,9 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::CheckCKApplicability(
 {
     switch(problem.GetAlphaBetaCase())
     {
-    case ::miopen::conv::AlphaBetaCase::BILINEAR:
+    case BILINEAR:
         return IsCKApplicable<DeviceOpGBwdBilinearPtrs<DataType>, CKArgs<DataType>>(problem);
-    case ::miopen::conv::AlphaBetaCase::SCALE:
-        return IsCKApplicable<DeviceOpGBwdScalePtrs<DataType>, CKArgs<DataType>>(problem);
+    case SCALE: return IsCKApplicable<DeviceOpGBwdScalePtrs<DataType>, CKArgs<DataType>>(problem);
     default: return IsCKApplicable<DeviceOpGBwdDefaultPtrs<DataType>, CKArgs<DataType>>(problem);
     }
 }
@@ -544,13 +543,13 @@ ConvSolution ConvHipImplicitGemm3DGroupBwdXdlops::GetSolution(
             using T = decltype(data_type_val);
             switch(problem.GetAlphaBetaCase())
             {
-            case ::miopen::conv::AlphaBetaCase::BILINEAR:
+            case BILINEAR:
                 return InitInvokerFactoryBwdNCHW<3,
                                                  DeviceOpGBwdBilinearPtrs<T>,
                                                  CKArgs<T>,
                                                  miopen::conv::DataInvokeParams>(
                     ctx, problem, config.kernel_id);
-            case ::miopen::conv::AlphaBetaCase::SCALE:
+            case SCALE:
                 return InitInvokerFactoryBwdNCHW<3,
                                                  DeviceOpGBwdScalePtrs<T>,
                                                  CKArgs<T>,
@@ -568,12 +567,12 @@ ConvSolution ConvHipImplicitGemm3DGroupBwdXdlops::GetSolution(
             using T = decltype(data_type_val);
             switch(problem.GetAlphaBetaCase())
             {
-            case ::miopen::conv::AlphaBetaCase::BILINEAR:
+            case BILINEAR:
                 return InitInvokerFactoryNHWC<DeviceOpGBwdBilinearPtrs<T>,
                                               CKArgs<T>,
                                               miopen::conv::DataInvokeParams>(
                     ctx, problem, config.kernel_id);
-            case ::miopen::conv::AlphaBetaCase::SCALE:
+            case SCALE:
                 return InitInvokerFactoryNHWC<DeviceOpGBwdScalePtrs<T>,
                                               CKArgs<T>,
                                               miopen::conv::DataInvokeParams>(

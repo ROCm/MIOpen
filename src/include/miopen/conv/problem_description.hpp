@@ -133,21 +133,21 @@ constexpr TElement GetW5(unsigned spatial_dims, const std::vector<TElement>& dat
 
 namespace conv {
 
-enum class AlphaBetaCase
-{
-    /* IDENTITY      alpha = 1.0 and beta = 0.0 */
-    /* SCALE         alpha = 4.2 and beta = 0.0 */
-    /* BILINEAR      alpha = 3.2 and beta = 1.1 */
-    /* ERROR_STATE   alpha = 0.0 and beta = 3.1 */
+// enum class AlphaBetaCase
+// {
+//     /* IDENTITY      alpha = 1.0 and beta = 0.0 */
+//     /* SCALE         alpha = 4.2 and beta = 0.0 */
+//     /* BILINEAR      alpha = 3.2 and beta = 1.1 */
+//     /* ERROR_STATE   alpha = 0.0 and beta = 3.1 */
 
-    DEFAULT     = 0, /* alpha = 1.0 and beta = 0.0.*/
-    SCALE       = 1, /* alpha with some value and beta 0.0*/
-    BILINEAR    = 2, /* both alpha and beta with some value*/
-    ERROR_STATE = 3, /* alpha 0.0 and beta with some value, this should not occur.
-                        But used to check for errors.*/
-};
+//     DEFAULT     = 0, /* alpha = 1.0 and beta = 0.0.*/
+//     SCALE       = 1, /* alpha with some value and beta 0.0*/
+//     BILINEAR    = 2, /* both alpha and beta with some value*/
+//     ERROR_STATE = 3, /* alpha 0.0 and beta with some value, this should not occur.
+//                         But used to check for errors.*/
+// };
 
-AlphaBetaCase ClassifyAlphaBeta(const Scalar& alpha, const Scalar& beta);
+miopenAlphaBetaCase_t ClassifyAlphaBeta(const Scalar& alpha, const Scalar& beta);
 
 struct ProblemDescription : ProblemDescriptionBase
 #if MIOPEN_ENABLE_SQLITE
@@ -272,7 +272,7 @@ struct ProblemDescription : ProblemDescriptionBase
     const Scalar& GetAlpha() const { return alpha; }
     const Scalar& GetBeta() const { return beta; }
 
-    AlphaBetaCase GetAlphaBetaCase() const { return alpha_beta_case; }
+    miopenAlphaBetaCase_t GetAlphaBetaCase() const { return alpha_beta_case; }
 
     std::string GetAlphaBetaCaseStr() const;
 
@@ -499,11 +499,11 @@ private:
     std::string in_layout;
     std::string weights_layout;
     std::string out_layout;
-    Direction direction           = Direction::Forward;
-    int bias                      = 0;
-    Scalar alpha                  = Scalar(1.0);
-    Scalar beta                   = Scalar(0.0);
-    AlphaBetaCase alpha_beta_case = AlphaBetaCase::DEFAULT;
+    Direction direction                   = Direction::Forward;
+    int bias                              = 0;
+    Scalar alpha                          = Scalar(1.0);
+    Scalar beta                           = Scalar(0.0);
+    miopenAlphaBetaCase_t alpha_beta_case = DEFAULT;
 };
 
 } // namespace conv

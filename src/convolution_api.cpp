@@ -196,6 +196,40 @@ extern "C" miopenStatus_t miopenGetConvolutionFindMode(const miopenConvolutionDe
     });
 }
 
+extern "C" miopenStatus_t
+miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t ab_case,
+                                                   miopenDataType_t data_type,
+                                                   size_t C,
+                                                   size_t K,
+                                                   size_t output_tensor_size,
+                                                   size_t* buffer_size)
+{
+    MIOPEN_LOG_FUNCTION(ab_case, data_type);
+
+    if(ab_case == BILINEAR || ab_case == SCALE ||
+       ((data_type == miopenHalf) && ((C & 1) != 0 || (K & 1) != 0 /* Test if odd*/)))
+    {
+        size_t byte_size;
+        switch(data_type)
+        {
+        case miopenInt32:
+        case miopenFloat: byte_size = 4; break;
+        case miopenHalf:
+        case miopenBFloat16: byte_size = 2; break;
+        case miopenInt8:
+        case miopenFloat8:
+        case miopenBFloat8: byte_size = 1; break;
+        case miopenDouble: byte_size = 8;
+        }
+        *buffer_size = byte_size * output_tensor_size;
+    }
+    else
+    {
+        *buffer_size = 0;
+    }
+    return miopenStatusSuccess;
+}
+
 // Hidden C++ functions for MIGraphX.
 extern "C" MIOPEN_EXPORT miopenStatus_t
 miopenHiddenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc, int findMode)
