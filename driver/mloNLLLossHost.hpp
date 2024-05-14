@@ -31,14 +31,14 @@
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloNLLLossUnreduceForward4dRunHost(const miopenTensorDescriptor_t inputDesc,
-                                         const miopenTensorDescriptor_t targetDesc,
-                                         const miopenTensorDescriptor_t weightDesc,
-                                         const miopenTensorDescriptor_t outputDesc,
-                                         const Tgpu* input,
-                                         const int32_t* target,
-                                         const Tgpu* weight,
-                                         Tcheck* output,
-                                         const int32_t ignore_index)
+                                           const miopenTensorDescriptor_t targetDesc,
+                                           const miopenTensorDescriptor_t weightDesc,
+                                           const miopenTensorDescriptor_t outputDesc,
+                                           const Tgpu* input,
+                                           const int32_t* target,
+                                           const Tgpu* weight,
+                                           Tcheck* output,
+                                           const int32_t ignore_index)
 {
     auto dims = miopen::deref(inputDesc).GetLengths();
     size_t N  = dims[0];
@@ -77,15 +77,15 @@ int32_t mloNLLLossUnreduceForward4dRunHost(const miopenTensorDescriptor_t inputD
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloNLLLossReduceForward4dRunHost(const miopenTensorDescriptor_t inputDesc,
-                                       const miopenTensorDescriptor_t targetDesc,
-                                       const miopenTensorDescriptor_t weightDesc,
-                                       const Tgpu* input,
-                                       const int32_t* target,
-                                       const Tgpu* weight,
-                                       Tcheck* output,
-                                       Tcheck* workspace,
-                                       const int32_t ignore_index,
-                                       const float divisor)
+                                         const miopenTensorDescriptor_t targetDesc,
+                                         const miopenTensorDescriptor_t weightDesc,
+                                         const Tgpu* input,
+                                         const int32_t* target,
+                                         const Tgpu* weight,
+                                         Tcheck* output,
+                                         Tcheck* workspace,
+                                         const int32_t ignore_index,
+                                         const float divisor)
 {
     auto dims = miopen::deref(inputDesc).GetLengths();
     size_t N  = dims[0];
@@ -148,14 +148,14 @@ int32_t mloNLLLossReduceForward4dRunHost(const miopenTensorDescriptor_t inputDes
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloNLLLossUnreduceBackward4dRunHost(const miopenTensorDescriptor_t inputDesc,
-                                          const miopenTensorDescriptor_t targetDesc,
-                                          const miopenTensorDescriptor_t weightDesc,
-                                          const miopenTensorDescriptor_t outputDesc,
-                                          Tcheck* input_grad,
-                                          const int32_t* target,
-                                          const Tgpu* weight,
-                                          const Tgpu* output_grad,
-                                          const int32_t ignore_index)
+                                            const miopenTensorDescriptor_t targetDesc,
+                                            const miopenTensorDescriptor_t weightDesc,
+                                            const miopenTensorDescriptor_t outputDesc,
+                                            Tcheck* input_grad,
+                                            const int32_t* target,
+                                            const Tgpu* weight,
+                                            const Tgpu* output_grad,
+                                            const int32_t ignore_index)
 {
     auto dims = miopen::deref(inputDesc).GetLengths();
     size_t N  = dims[0];
@@ -194,14 +194,14 @@ int32_t mloNLLLossUnreduceBackward4dRunHost(const miopenTensorDescriptor_t input
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloNLLLossReduceBackward4dRunHost(const miopenTensorDescriptor_t inputDesc,
-                                        const miopenTensorDescriptor_t targetDesc,
-                                        const miopenTensorDescriptor_t weightDesc,
-                                        Tcheck* input_grad,
-                                        const int32_t* target,
-                                        const Tgpu* weight,
-                                        const Tgpu* output_grad,
-                                        const int32_t ignore_index,
-                                        const float divisor)
+                                          const miopenTensorDescriptor_t targetDesc,
+                                          const miopenTensorDescriptor_t weightDesc,
+                                          Tcheck* input_grad,
+                                          const int32_t* target,
+                                          const Tgpu* weight,
+                                          const Tgpu* output_grad,
+                                          const int32_t ignore_index,
+                                          const float divisor)
 {
     auto dims = miopen::deref(inputDesc).GetLengths();
     size_t N  = dims[0];

@@ -386,27 +386,27 @@ int NLLLossDriver<Tgpu, Tref>::RunForwardCPU()
     if(!std::isnan(divisor))
     {
         mloNLLLossReduceForward4dRunHost<Tgpu, Tref>(inputDesc,
-                                                   targetDesc,
-                                                   weightDesc,
-                                                   in.data(),
-                                                   target.data(),
-                                                   weight.data(),
-                                                   out_host.data(),
-                                                   workspace_host.data(),
-                                                   ignore_index,
-                                                   divisor);
-    }
-    else
-    {
-        mloNLLLossUnreduceForward4dRunHost<Tgpu, Tref>(inputDesc,
                                                      targetDesc,
                                                      weightDesc,
-                                                     outputDesc,
                                                      in.data(),
                                                      target.data(),
                                                      weight.data(),
                                                      out_host.data(),
-                                                     ignore_index);
+                                                     workspace_host.data(),
+                                                     ignore_index,
+                                                     divisor);
+    }
+    else
+    {
+        mloNLLLossUnreduceForward4dRunHost<Tgpu, Tref>(inputDesc,
+                                                       targetDesc,
+                                                       weightDesc,
+                                                       outputDesc,
+                                                       in.data(),
+                                                       target.data(),
+                                                       weight.data(),
+                                                       out_host.data(),
+                                                       ignore_index);
     }
     return miopenStatusSuccess;
 }
@@ -480,26 +480,26 @@ int NLLLossDriver<Tgpu, Tref>::RunBackwardCPU()
     if(!std::isnan(divisor))
     {
         mloNLLLossReduceBackward4dRunHost<Tgpu, Tref>(inputGradDesc,
-                                                    targetDesc,
-                                                    weightDesc,
-                                                    in_grad_host.data(),
-                                                    target.data(),
-                                                    weight.data(),
-                                                    out_grad.data(),
-                                                    ignore_index,
-                                                    divisor);
-    }
-    else
-    {
-        mloNLLLossUnreduceBackward4dRunHost<Tgpu, Tref>(inputGradDesc,
                                                       targetDesc,
                                                       weightDesc,
-                                                      outputGradDesc,
                                                       in_grad_host.data(),
                                                       target.data(),
                                                       weight.data(),
                                                       out_grad.data(),
-                                                      ignore_index);
+                                                      ignore_index,
+                                                      divisor);
+    }
+    else
+    {
+        mloNLLLossUnreduceBackward4dRunHost<Tgpu, Tref>(inputGradDesc,
+                                                        targetDesc,
+                                                        weightDesc,
+                                                        outputGradDesc,
+                                                        in_grad_host.data(),
+                                                        target.data(),
+                                                        weight.data(),
+                                                        out_grad.data(),
+                                                        ignore_index);
     }
     return miopenStatusSuccess;
 }
