@@ -88,6 +88,9 @@ void Solution::Run(Handle& handle,
                         },
                         [&](const MhaDescriptor& op_desc) {
                             RunImpl(handle, inputs, workspace, workspace_size, op_desc);
+                        },
+                        [&](const BatchnormDescriptor& /*op_desc*/) {
+                            MIOPEN_THROW(miopenStatusNotImplemented);
                         }),
                     problem_.GetOperatorDescriptor());
             },
@@ -121,6 +124,12 @@ void Solution::LogDriverCommand(const ActivationDescriptor& desc) const
     boost::get<Problem>(problem.item).LogDriverCommand();
     /// \todo: when possible, add some command for reproducing a specific case rather than the whole
     /// problem
+}
+
+void Solution::LogDriverCommand(const BatchnormDescriptor& desc) const
+{
+    std::ignore = desc;
+    /// \todo: bnorm command logging
 }
 
 void Solution::LogDriverCommand(const Problem& problem_) const
