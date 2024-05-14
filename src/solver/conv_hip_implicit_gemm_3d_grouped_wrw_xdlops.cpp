@@ -197,24 +197,19 @@ struct CKArgs
     template <typename ConvPtr>
     auto MakeArgPtr(const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy) const
     {
-        // The function parameter "const ConvPtr&" modifies the "typename ConvPtr"
-        // adding "const" and "reference". So had to adjust them during comparison.
-        if constexpr(std::is_same_v<std::remove_const_t<std::remove_reference_t<ConvPtr>>,
-                                    std::unique_ptr<DeviceOpGBwdWeightBilinear<DataType>>> ||
-                     std::is_same_v<std::remove_const_t<std::remove_reference_t<ConvPtr>>,
-                                    std::shared_ptr<DeviceOpGBwdWeightBilinear<DataType>>>)
+        using DeviceP = std::remove_pointer_t<decltype(conv_ptr.get())>;
+        if constexpr(std::is_same_v<DeviceP, DeviceOpGBwdWeightBilinear<DataType>>)
         {
             return MakeBilinearArgPtr(conv_ptr, x, dw, dy);
         }
-        else if constexpr(std::is_same_v<std::remove_const_t<std::remove_reference_t<ConvPtr>>,
-                                         std::unique_ptr<DeviceOpGBwdWeightScale<DataType>>> ||
-                          std::is_same_v<std::remove_const_t<std::remove_reference_t<ConvPtr>>,
-                                         std::shared_ptr<DeviceOpGBwdWeightScale<DataType>>>)
+        else if constexpr(std::is_same_v<DeviceP, DeviceOpGBwdWeightScale<DataType>>)
         {
             return MakeScaleArgPtr(conv_ptr, x, dw, dy);
         }
         else
         {
+            static_assert(std::is_same_v<DeviceP, DeviceOpGBwdWeightDefault<DataType>>,
+                          "Default should be wrw pass through");
             return MakeDefaultArgPtr(conv_ptr, x, dw, dy);
         }
     }

@@ -110,17 +110,13 @@ std::string ProblemDescription::GetDirectionStr() const
 
 std::string ProblemDescription::GetAlphaBetaCaseStr() const
 {
-    std::string s;
-
     switch(GetAlphaBetaCase())
     {
-    case AlphaBetaCase::BILINEAR: s = "Bilinear"; break;
-    case AlphaBetaCase::SCALE: s = "Scale"; break;
-    case AlphaBetaCase::DEFAULT: s = "Default"; break;
-    default: s = "Error_State"; break;
+    case AlphaBetaCase::BILINEAR: return "Bilinear";
+    case AlphaBetaCase::SCALE: return "Scale";
+    case AlphaBetaCase::DEFAULT: return "Default";
+    default: MIOPEN_THROW(miopenStatusInvalidValue, "Alpha Beta Case in ERROR_STATE");
     }
-
-    return s;
 }
 
 void ProblemDescription::HeuristicUpdateLayouts()
