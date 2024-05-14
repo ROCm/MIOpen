@@ -35,12 +35,6 @@
 #include <ck/utility/data_type.hpp>
 #endif // MIOPEN_USE_COMPOSABLEKERNEL
 
-#define HIP_CHECK(exp)                                                                 \
-    if((exp) != hipSuccess)                                                            \
-    {                                                                                  \
-        MIOPEN_LOG_E(#exp "failed at line: " << __LINE__ << " in file: " << __FILE__); \
-    }
-
 namespace miopen {
 
 namespace conv {
@@ -51,7 +45,7 @@ namespace solver {
 
 struct ConvSolution;
 
-struct CKWRWBufferDescriptor
+struct CKBWDWeightBufferDescriptor
 {
     size_t ck_size;
     size_t ck_offset;
@@ -472,7 +466,7 @@ auto MakeTaggedTransposeInstances(ConvSolution& result,
                                   const Input1TposeOp& input1_op,
                                   const Input2TposeOp& input2_op,
                                   const OutputTposeOp& output_op,
-                                  CKWRWBufferDescriptor* ck_buff_des)
+                                  CKBWDWeightBufferDescriptor* ck_buff_des)
 {
 
     auto input1_solver = input1_op.MakeTransposeSolver(ctx, problem, ck_args);
@@ -784,7 +778,7 @@ ConvSolution InitInvokerFactoryWrwNCHW(const ExecutionContext& ctx,
         return {miopenStatusInvalidValue};
     }
 
-    CKWRWBufferDescriptor _ck_buff_des{0, 0};
+    CKBWDWeightBufferDescriptor _ck_buff_des{0, 0};
 
     _ck_buff_des.ck_size = GetCKAlphaBetaWorkspace(problem);
 
