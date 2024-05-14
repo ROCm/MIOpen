@@ -91,11 +91,12 @@ ConvSolution NLLLossUnreduceBackwardContiguous::GetSolution(
             {"OUTPUT_TYPE", output_grad_dtype == "bfloat16" ? "ushort" : output_grad_dtype},
         };
 
-        result.construction_params.push_back(solver::make_hip_kernel({LOCAL_SIZE_CON_BWD},
-                                                                    {N_total},
-                                                                    "MIOpenNLLLoss.cpp",
-                                                                    "NLLLossUnreducedBackward4dContiguous",
-                                                                    build_params));
+        result.construction_params.push_back(
+            solver::make_hip_kernel({LOCAL_SIZE_CON_BWD},
+                                    {N_total},
+                                    "MIOpenNLLLoss.cpp",
+                                    "NLLLossUnreducedBackward4dContiguous",
+                                    build_params));
     }
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {

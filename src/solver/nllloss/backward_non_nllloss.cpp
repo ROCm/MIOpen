@@ -78,10 +78,10 @@ ConvSolution NLLLossUnreduceBackward4d::GetSolution(
         };
 
         result.construction_params.push_back(solver::make_hip_kernel({LOCAL_SIZE_NON_CON_BWD},
-                                                             {N_total},
-                                                             "MIOpenNLLLoss.cpp",
-                                                             "NLLLossUnreducedBackward4d",
-                                                             build_params));
+                                                                     {N_total},
+                                                                     "MIOpenNLLLoss.cpp",
+                                                                     "NLLLossUnreducedBackward4d",
+                                                                     build_params));
     }
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
