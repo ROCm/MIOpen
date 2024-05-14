@@ -70,12 +70,22 @@ struct BiasDescriptor
 {
 };
 
+struct BatchnormDescriptor
+{
+    miopenBatchNormMode_t mode;
+    bool runningMeanVariance;
+
+    friend void to_json(nlohmann::json& j, const BatchnormDescriptor& descriptor);
+    friend void from_json(const nlohmann::json& j, BatchnormDescriptor& descriptor);
+};
+
 // The order of types is important for deserialization and should be preserved between releases.
 using OperatorDescriptor = boost::variant<ConvolutionDescriptor,
                                           ActivationDescriptor,
                                           BiasDescriptor,
                                           SoftmaxDescriptor,
-                                          MhaDescriptor>;
+                                          MhaDescriptor,
+                                          BatchnormDescriptor>;
 
 struct Problem
 {
@@ -181,6 +191,10 @@ private:
 
     void LogDriverCommand(const ConvolutionDescriptor& conv_desc) const;
     void LogDriverCommand(const ActivationDescriptor& descriptor) const;
+    void LogDriverCommand(const BiasDescriptor& descriptor) const;
+    void LogDriverCommand(const MhaDescriptor& descriptor) const;
+    void LogDriverCommand(const SoftmaxDescriptor& descriptor) const;
+    void LogDriverCommand(const BatchnormDescriptor& descriptor) const;
 };
 
 struct FusedProblem
