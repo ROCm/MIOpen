@@ -118,55 +118,55 @@ INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
                          NLLLossTestBFloat16,
                          testing::ValuesIn(NLLLossTestConfigs()));
 
-// // BACKWARD TEST
-// TEST_P(NLLLossTestFloatBwd, NLLLossTestBwd)
-// {
-//     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") ||
-//        GetFloatArg() == "--testall")
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
+// BACKWARD TEST
+TEST_P(NLLLossTestFloatBwd, NLLLossTestBwd)
+{
+    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") ||
+       GetFloatArg() == "--testall")
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
-// TEST_P(NLLLossTestHalfBwd, NLLLossTestBwd)
-// {
-//     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") ||
-//        GetFloatArg() == "--testall")
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
+TEST_P(NLLLossTestHalfBwd, NLLLossTestBwd)
+{
+    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") ||
+       GetFloatArg() == "--testall")
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
-// TEST_P(NLLLossTestBFloat16Bwd, NLLLossTestBwd)
-// {
-//     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") ||
-//        GetFloatArg() == "--testall")
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
+TEST_P(NLLLossTestBFloat16Bwd, NLLLossTestBwd)
+{
+    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") ||
+       GetFloatArg() == "--testall")
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
-// INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
-//                          NLLLossTestFloatBwd,
-//                          testing::ValuesIn(NLLLossTestConfigs()));
-// INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
-//                          NLLLossTestHalfBwd,
-//                          testing::ValuesIn(NLLLossTestConfigs()));
-// INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
-//                          NLLLossTestBFloat16Bwd,
-//                          testing::ValuesIn(NLLLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
+                         NLLLossTestFloatBwd,
+                         testing::ValuesIn(NLLLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
+                         NLLLossTestHalfBwd,
+                         testing::ValuesIn(NLLLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
+                         NLLLossTestBFloat16Bwd,
+                         testing::ValuesIn(NLLLossTestConfigs()));

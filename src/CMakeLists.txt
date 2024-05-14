@@ -266,7 +266,12 @@ set( MIOpen_Source
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
     solver/mha/mha_solver.cpp
-    solver/nllloss/forward_nllloss.cpp
+    solver/nllloss/forward_con_nllloss.cpp
+    solver/nllloss/forward_non_nllloss.cpp
+    solver/nllloss/forward_reduce_nllloss.cpp
+    solver/nllloss/backward_con_nllloss.cpp
+    solver/nllloss/backward_non_nllloss.cpp
+    solver/nllloss/backward_reduce_nllloss.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp

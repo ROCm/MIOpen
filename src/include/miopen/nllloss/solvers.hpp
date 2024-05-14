@@ -30,12 +30,29 @@
 #include "miopen/execution_context.hpp"
 #include <miopen/solver.hpp>
 #include <miopen/nllloss/problem_description.hpp>
+#include "miopen/kernel_build_params.hpp"
+#include "miopen/kernel_info.hpp"
 
 #include <utility>
 
 namespace miopen {
 
 namespace solver {
+
+const auto make_hip_kernel = [](std::vector<size_t> localsize,
+                                std::vector<size_t> gridsize,
+                                std::string kernel_file,
+                                std::string kernel_name,
+                                KernelBuildParameters build_params) {
+    while(localsize.size() < 3)
+        localsize.push_back(1);
+    while(gridsize.size() < 3)
+        gridsize.push_back(1);
+    for(int i = 0; i < localsize.size(); ++i)
+        gridsize[i] = AlignUp(gridsize[i], localsize[i]);
+    return KernelInfo{
+        build_params.GenerateFor(kbp::HIP{}), localsize, gridsize, kernel_file, kernel_name};
+};
 
 namespace nllloss {
 
