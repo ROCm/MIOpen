@@ -318,7 +318,7 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::IsModelApplicable(
         return false;
     if(problem.GetInDataType() != miopenFloat && problem.GetInDataType() != miopenHalf)
         return false;
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR)))
+    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR)))
         return false;
     return true;
 }
@@ -456,9 +456,9 @@ bool ConvHipImplicitGemmGroupWrwXdlops::IsApplicable(
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS)))
+    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS)))
         return false;
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)))
+    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)))
         return false;
     if(problem.HasMixedDataTypes())
         return false;

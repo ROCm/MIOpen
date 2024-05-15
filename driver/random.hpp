@@ -15,7 +15,7 @@ using glibc_gen = std::linear_congruential_engine<std::uint32_t, 1103515245, 123
 inline std::random_device::result_type get_default_seed()
 {
     static std::random_device::result_type seed{[] {
-        auto external_seed = miopen::Value(ENV(MIOPEN_DEBUG_DRIVER_PRNG_SEED));
+        auto external_seed = miopen::Value(MIOPEN_ENV(MIOPEN_DEBUG_DRIVER_PRNG_SEED));
 
         auto seed = external_seed == 0
                         ? std::random_device{}()
