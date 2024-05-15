@@ -751,7 +751,7 @@ public:
         std::cout << "Testing db for multithreaded write access..." << std::endl;
 
         ResetDb();
-        std::mutex mutex;
+        std::shared_mutex mutex;
         std::vector<std::thread> threads;
 
         std::cout << "Initializing test data..." << std::endl;
@@ -763,12 +763,12 @@ public:
         const auto c        = [&p]() { return SQLitePerfDb(DbKinds::PerfDb, p, false); };
 
         {
-            std::unique_lock<std::mutex> lock(mutex);
+            std::unique_lock<std::shared_mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
             {
                 threads.emplace_back([c, &mutex, i]() {
-                    (void)std::unique_lock<std::mutex>(mutex);
+                    std::shared_lock<std::shared_mutex> lock(mutex);
                     DBMultiThreadedTestWork::WorkItem(i, c, "mt");
                 });
             }
@@ -790,7 +790,7 @@ public:
     {
         std::cout << "Testing db for multithreaded read access..." << std::endl;
 
-        std::mutex mutex;
+        std::shared_mutex mutex;
         std::vector<std::thread> threads;
 
         std::cout << "Initializing test data..." << std::endl;
@@ -802,12 +802,12 @@ public:
         threads.reserve(DBMultiThreadedTestWork::threads_count);
 
         {
-            std::unique_lock<std::mutex> lock(mutex);
+            std::unique_lock<std::shared_mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
             {
                 threads.emplace_back([c, &mutex, i]() {
-                    (void)std::unique_lock<std::mutex>(mutex);
+                    std::shared_lock<std::shared_mutex> lock(mutex);
                     DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
                 });
             }
@@ -938,7 +938,7 @@ public:
                 if(full_set())
                     args += " --all";
 
-                std::cout << exe_path().string() + " " + args << std::endl;
+                std::cout << exe_path() << " " << args << std::endl;
                 children.emplace_back(exe_path(), args);
             }
             // clang-format on
@@ -1181,7 +1181,7 @@ public:
     {
         std::cout << "Testing db for multifile multithreaded read access..." << std::endl;
 
-        std::mutex mutex;
+        std::shared_mutex mutex;
         std::vector<std::thread> threads;
 
         std::cout << "Initializing test data..." << std::endl;
@@ -1197,12 +1197,12 @@ public:
         threads.reserve(DBMultiThreadedTestWork::threads_count);
 
         {
-            std::unique_lock<std::mutex> lock(mutex);
+            std::unique_lock<std::shared_mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
             {
                 threads.emplace_back([c, &mutex, i]() {
-                    (void)std::unique_lock<std::mutex>(mutex);
+                    std::shared_lock<std::shared_mutex> lock(mutex);
                     DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
                 });
             }
@@ -1224,7 +1224,7 @@ public:
         std::cout << "Testing db for multifile multithreaded write access..." << std::endl;
 
         ResetDb();
-        std::mutex mutex;
+        std::shared_mutex mutex;
         std::vector<std::thread> threads;
 
         std::cout << "Initializing test data..." << std::endl;
@@ -1239,12 +1239,12 @@ public:
         };
 
         {
-            std::unique_lock<std::mutex> lock(mutex);
+            std::unique_lock<std::shared_mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
             {
                 threads.emplace_back([c, &mutex, i]() {
-                    (void)std::unique_lock<std::mutex>(mutex);
+                    std::shared_lock<std::shared_mutex> lock(mutex);
                     DBMultiThreadedTestWork::WorkItem(i, c, "mt");
                 });
             }

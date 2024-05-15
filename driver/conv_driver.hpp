@@ -28,43 +28,48 @@
 
 #include "InputFlags.hpp"
 #include "conv_verify.hpp"
+#include "conv_common.hpp"
 #include "driver.hpp"
-#include "rocrand_wrapper.hpp"
 #include "mloConvHost.hpp"
+#include "random.hpp"
+#include "rocrand_wrapper.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "util_driver.hpp"
+#include "util_file.hpp"
+
+#include <miopen/algorithm.hpp>
+#include <miopen/conv_algo_name.hpp>
+#include <miopen/convolution.hpp>
+#include <miopen/env.hpp>
+#include <miopen/execution_context.hpp>
+#include <miopen/find_controls.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/miopen.h>
+#include <miopen/miopen_internal.h>
+#include <miopen/solver.hpp>
+#include <miopen/tensor.hpp>
+
+#include <../test/cpu_bias.hpp>
+#include <../test/cpu_conv.hpp>
+#include <../test/serialize.hpp>
+#include <../test/tensor_holder.hpp>
+#include <../test/verify.hpp>
+
+#include <boost/optional.hpp>
+#include <boost/optional/optional_io.hpp>
+#include <boost/range/adaptors.hpp>
+
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <float.h>
 #include <fstream>
 #include <memory>
-#include <miopen/miopen.h>
-#include <miopen/miopen_internal.h>
-#include <miopen/tensor.hpp>
-#include <miopen/env.hpp>
-#include <miopen/algorithm.hpp>
-#include <miopen/conv_algo_name.hpp>
-#include <miopen/logger.hpp>
-#include <miopen/convolution.hpp>
-#include <miopen/solver.hpp>
-#include <miopen/find_controls.hpp>
-#include <miopen/execution_context.hpp>
-#include "random.hpp"
 #include <numeric>
 #include <sstream>
-#include <vector>
 #include <type_traits>
-#include <boost/range/adaptors.hpp>
-#include <boost/optional/optional_io.hpp>
-#include <../test/verify.hpp>
-#include <../test/serialize.hpp>
-#include <../test/tensor_holder.hpp>
-#include <../test/cpu_conv.hpp>
-#include <../test/cpu_bias.hpp>
-
-#include <boost/optional.hpp>
+#include <vector>
 
 // Declare hidden function for MIGraphX to smoke test it.
 extern "C" MIOPEN_EXPORT miopenStatus_t
@@ -76,23 +81,15 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DRIVER_PAD_BUFFERS_2M)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DRIVER_USE_GPU_REFERENCE)
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DRIVER_SUBNORM_PERCENTAGE)
 
+// 0 - Allocate WS size as reported by the library (default)
+// 1 - Do not allocate workspace.
+// 2...16 - Allocate smaller WS. Size = default/value.
+// Other - The driver allocates workspace size equal to the value of the variable (in bytes).
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DRIVER_CONV_WORKSPACE_SIZE_ADJUST)
+
 // Support in the library discontinued, but left in the driver
 // for reference in the future.
 #define miopenInt8x4 (static_cast<miopenDataType_t>(4))
-
-#if MIOPEN_BACKEND_OPENCL
-#define STATUS_SUCCESS CL_SUCCESS
-typedef cl_int status_t;
-typedef cl_context context_t;
-#define DEFINE_CONTEXT(name) context_t name
-typedef cl_command_queue stream;
-#else // MIOPEN_BACKEND_HIP
-#define STATUS_SUCCESS 0
-typedef int status_t;
-typedef uint32_t context_t;
-#define DEFINE_CONTEXT(name) context_t name = 0
-typedef hipStream_t stream;
-#endif
 
 struct AutoMiopenWarmupMode
 {
@@ -146,25 +143,21 @@ private:
     bool quiet_prev;
 };
 
-template <typename T>
-void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems)
+static inline void AdjustWorkspacesizeVariableFromEnv(std::size_t& sz)
 {
-    if(data == nullptr)
-    {
-        printf("Ignored ouput file %s - no host buffer to dump data from (nullptr)\n", fileName);
-        return;
-    }
-    std::ofstream outFile(fileName, std::ios::binary);
-    if(outFile)
-    {
-        outFile.write(reinterpret_cast<char*>(data), dataNumItems * sizeof(T));
-        outFile.close();
-        printf("Wrote output to file %s\n", fileName);
-    }
+    auto adj = miopen::Value(ENV(MIOPEN_DRIVER_CONV_WORKSPACE_SIZE_ADJUST));
+    if(adj == 0ULL)
+        return; // nop
+    auto sz_save = sz;
+    if(adj == 1ULL)
+        sz = 0ULL;
+    else if(1 <= adj && adj <= 16)
+        sz /= adj;
     else
-    {
-        printf("Could not open file %s for writing\n", fileName);
-    }
+        sz = adj;
+    MIOPEN_LOG_CUSTOM(
+        miopen::LoggingLevel::Info2, "MIOpenDriver", "From " << sz_save << " to " << sz);
+    return;
 }
 
 static inline miopenDataType_t DataTypeFromShortString(const std::string& type)
@@ -184,29 +177,6 @@ static inline miopenDataType_t DataTypeFromShortString(const std::string& type)
     else
     {
         MIOPEN_THROW("Invalid compute/cast type short hand supplied");
-    }
-}
-
-template <typename T>
-bool readBufferFromFile(T* data, size_t dataNumItems, const char* fileName)
-{
-    if(data == nullptr)
-    {
-        printf("Ignored input file %s - no host buffer to copy data into (nullptr)\n", fileName);
-        return false;
-    }
-    std::ifstream infile(fileName, std::ios::binary);
-    if(infile)
-    {
-        infile.read(reinterpret_cast<char*>(data), dataNumItems * sizeof(T));
-        infile.close();
-        printf("Read data from input file %s\n", fileName);
-        return true;
-    }
-    else
-    {
-        printf("Could not open file %s for reading\n", fileName);
-        return false;
     }
 }
 
@@ -258,7 +228,7 @@ public:
             return;
         }
 
-        for(int i = 0; i < sz; ++i)
+        for(size_t i = 0; i < sz; ++i)
         {
             /// \anchor move_rand
             /// Generate random value, even if buffer is unused. This provides the same
@@ -619,11 +589,21 @@ private:
                                   Tref* data) const;
     void TrySaveVerificationCache(const Direction& direction, std::vector<Tref>& data) const;
 
+    void DebugPrintWorkspaceDev() const
+    {
+        MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Info2,
+                          "MIOpenDriver",
+                          "ptr=" << (workspace_dev != nullptr ? workspace_dev->GetMem() : nullptr)
+                                 << " size="
+                                 << (workspace_dev != nullptr ? workspace_dev->GetSize() : 0ULL));
+    }
+
     void ResizeWorkspaceDev(context_t ctx, std::size_t size)
     {
         workspace_dev.reset();
         if(size > 0)
             workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, size, 1));
+        DebugPrintWorkspaceDev();
     }
 
     // Helper functions, can be moved out of class.
@@ -995,7 +975,7 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
             static_cast<int>(miopenConvolutionFindModeNormal)); // Repeat via hidden API.
         miopenSetConvolutionGroupCount(warmupConvDesc, group_count);
 
-        int warmup_out_len_size = miopen::deref(warmupInputTensor).GetSize();
+        int warmup_out_len_size = miopen::deref(warmupInputTensor).GetNumDims();
         std::vector<int> warmup_out_len(warmup_out_len_size);
         miopenGetConvolutionNdForwardOutputDim(warmupConvDesc,
                                                warmupInputTensor,
@@ -1350,7 +1330,7 @@ int ConvDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
 template <typename Tgpu, typename Tref>
 std::vector<int> ConvDriver<Tgpu, Tref>::GetOutputTensorLengths()
 {
-    int ndim = miopen::deref(inputTensor).GetSize();
+    int ndim = miopen::deref(inputTensor).GetNumDims();
 
     std::vector<int> out_lens(ndim);
 
@@ -1360,28 +1340,7 @@ std::vector<int> ConvDriver<Tgpu, Tref>::GetOutputTensorLengths()
     return out_lens;
 }
 
-namespace detail {
-
-template <typename T>
-T RanGenWeights()
-{
-    return prng::gen_A_to_B(static_cast<T>(-0.5), static_cast<T>(0.5));
-}
-
-// Shift FP16 distribution towards positive numbers,
-// otherwise Winograd FP16 validation fails.
-template <>
-float16 RanGenWeights()
-{
-    return prng::gen_A_to_B(static_cast<float16>(-1.0 / 3.0), static_cast<float16>(0.5));
-}
-
-// int8 has it's own range
-template <>
-int8_t RanGenWeights()
-{
-    return prng::gen_A_to_B(static_cast<int8_t>(-1), static_cast<int8_t>(1));
-}
+namespace {
 
 template <typename T>
 void RanGenSubnormBuffer(T* buf, size_t size, int percentage)
@@ -1398,33 +1357,7 @@ void RanGenSubnormBuffer(T* buf, size_t size, int percentage)
     });
 }
 
-template <>
-float8 RanGenWeights()
-{
-    const auto tmp =
-        prng::gen_0_to_B(1.0) > 0.5 ? static_cast<float>(0.0) : static_cast<float>(1.0);
-    // 1 in 2 chance of number being positive
-    const float sign =
-        (prng::gen_0_to_B(1.0) > 0.5) ? static_cast<float>(-1) : static_cast<float>(1);
-    const auto tmp2 = static_cast<float>(std::numeric_limits<float8>::epsilon()) *
-                      static_cast<float>(2) * sign * static_cast<float>(tmp);
-    return static_cast<float8>(tmp2);
-}
-
-template <>
-bfloat8 RanGenWeights()
-{
-    const auto tmp =
-        prng::gen_0_to_B(1.0) > 0.5 ? static_cast<float>(0.0) : static_cast<float>(1.0);
-    // 1 in 2 chance of number being positive
-    const float sign =
-        (prng::gen_0_to_B(1.0) > 0.5) ? static_cast<float>(-1) : static_cast<float>(1);
-    const auto tmp2 = static_cast<float>(std::numeric_limits<float8>::epsilon()) *
-                      static_cast<float>(2) * sign * static_cast<float>(tmp);
-    return static_cast<bfloat8>(tmp2);
-}
-
-} // namespace detail
+} // namespace
 
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
@@ -1559,6 +1492,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                                                                   &ws_sizeof_find_wrw);
             wrw_auxiliary_gwss.pause(wall_enabled);
             wrw_auxiliary.pause(wall_enabled);
+            AdjustWorkspacesizeVariableFromEnv(ws_sizeof_find_wrw);
         }
         if(is_bwd && rc == miopenStatusSuccess)
         {
@@ -1572,6 +1506,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                                                                &ws_sizeof_find_bwd);
             bwd_auxiliary_gwss.pause(wall_enabled);
             bwd_auxiliary.pause(wall_enabled);
+            AdjustWorkspacesizeVariableFromEnv(ws_sizeof_find_bwd);
         }
         if(is_fwd && rc == miopenStatusSuccess)
         {
@@ -1586,6 +1521,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                 &ws_sizeof_find_fwd);
             fwd_auxiliary_gwss.pause(wall_enabled);
             fwd_auxiliary.pause(wall_enabled);
+            AdjustWorkspacesizeVariableFromEnv(ws_sizeof_find_fwd);
         }
         if(rc != miopenStatusSuccess)
         {
@@ -1659,7 +1595,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                 if(!biasFileName.empty())
                     read = readBufferFromFile<float>(b_int8.data(), b_sz, biasFileName.c_str());
                 if(!read)
-                    for(int i = 0; i < b_sz; i++)
+                    for(size_t i = 0; i < b_sz; ++i)
                         b_int8[i] = static_cast<float>(i % 8) + prng::gen_canonical<float>();
             }
             std::ignore = b.AllocOnDeviceAndInit(q, ctx, b_sz, b_int8);
@@ -1685,7 +1621,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
         if(is_wrw)
             if(!is_gpualloc)
-                detail::RanGenSubnormBuffer<Tgpu>(dout.GetVectorData(), out_sz, subnorm_percentage);
+                RanGenSubnormBuffer<Tgpu>(dout.GetVectorData(), out_sz, subnorm_percentage);
 
         if(inflags.GetValueInt("bias") != 0)
         {
@@ -1702,15 +1638,20 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
             if(!is_gpualloc)
             {
-                for(int i = 0; i < b_sz; i++)
+                for(size_t i = 0; i < b_sz; ++i)
                 {
                     if(!b_read)
                     {
-                        b.GetVector()[i] = static_cast<Tgpu>(i % 8)                         //
+                        /// (i % 8) can't be converted to F8 type as there is no suitable
+                        /// conversion, but we have conversions from int and from uint8_t.
+                        /// int is not good as it would produce negative results
+                        /// after truncation of size_t, while we want positive values.
+                        /// uint8_t is fine because (i % 8) fits into 3 bits.
+                        b.GetVector()[i] = static_cast<Tgpu>(static_cast<uint8_t>(i) % 8)   //
                                            + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) //
                                                      : prng::gen_canonical<Tgpu>());
                     }
-                    db.GetVector()[i] = static_cast<Tgpu>(i % 8)                         //
+                    db.GetVector()[i] = static_cast<Tgpu>(static_cast<uint8_t>(i) % 8)   //
                                         + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) //
                                                   : prng::gen_canonical<Tgpu>());
                 }
@@ -1731,13 +1672,13 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     if(!weiRead)
     {
-        auto gen = [&]() -> auto { return Data_scale * detail::RanGenWeights<Tgpu>(); };
+        auto gen = [&]() -> auto { return Data_scale * conv::RanGenWeights<Tgpu>(); };
         wei.InitHostData(wei_sz, is_fwd || is_bwd, gen);
     }
 
     if(is_fwd || is_bwd)
         if(!is_gpualloc)
-            detail::RanGenSubnormBuffer<Tgpu>(wei.GetVectorData(), wei_sz, subnorm_percentage);
+            RanGenSubnormBuffer<Tgpu>(wei.GetVectorData(), wei_sz, subnorm_percentage);
 
     if(inflags.GetValueInt("dump_output"))
     {
@@ -1850,7 +1791,7 @@ void ConvDriver<Tgpu, Tref>::PrintForwardTime(const float kernel_total_time,
                                     : kernel_first_time;
     printf("GPU Kernel Time Forward Conv. Elapsed: %f ms (average)\n", kernel_average_time);
 
-    const auto num_dim = miopen::deref(inputTensor).GetSize() - 2;
+    const auto num_dim = miopen::deref(inputTensor).GetNumDims() - 2;
     if(num_dim != 2 && num_dim != 3)
     {
         printf("stats: <not implemented> for conv%dd\n", num_dim);
@@ -2215,6 +2156,14 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
     const auto ws_size = perf_results[0].memory;
     is_fwd_igemm       = (algo == miopenConvolutionFwdAlgoImplicitGEMM);
 
+    if(ws_size > ws_sizeof_find_fwd)
+    {
+        MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Error,
+                          "MIOpenDriver",
+                          "Find returns bigger workspace than provided " << ws_sizeof_find_fwd
+                                                                         << " < " << ws_size);
+        return miopenStatusInternalError;
+    }
     ResizeWorkspaceDev(ctx, ws_size);
     wall.start(wall_enabled);
 
@@ -2515,7 +2464,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
         {
             auto out_tmp = tensor<Tgpu>(miopen::deref(outputTensor));
             out.CopyFromDeviceToHost(GetStream(), out_tmp);
-            for(int i = 0; i < out_tmp.data.size(); i++)
+            for(size_t i = 0; i < out_tmp.data.size(); ++i)
             {
                 outhost.data[i] = static_cast<Tref>(out_tmp.data[i]);
             }
@@ -2679,6 +2628,14 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
     const auto ws_size = perf_results_data[0].memory;
     is_bwd_igemm       = (algo == miopenConvolutionBwdDataAlgoImplicitGEMM);
 
+    if(ws_size > ws_sizeof_find_bwd)
+    {
+        MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Error,
+                          "MIOpenDriver",
+                          "Find returns bigger workspace than provided " << ws_sizeof_find_bwd
+                                                                         << " < " << ws_size);
+        return miopenStatusInternalError;
+    }
     ResizeWorkspaceDev(ctx, ws_size);
     wall.start(wall_enabled);
 
@@ -2748,7 +2705,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardDataTime(float kernel_total_time, floa
 
     printf("GPU Kernel Time Backward Data Conv. Elapsed: %f ms (average)\n", kernel_average_time);
 
-    const auto num_dim = miopen::deref(inputTensor).GetSize() - 2;
+    const auto num_dim = miopen::deref(inputTensor).GetNumDims() - 2;
     if(num_dim != 2 && num_dim != 3)
     {
         printf("stats: <not implemented> for conv%dd\n", num_dim);
@@ -2883,6 +2840,14 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
     is_wrw_winograd    = (algo == miopenConvolutionBwdWeightsAlgoWinograd);
     is_wrw_igemm       = (algo == miopenConvolutionBwdWeightsAlgoImplicitGEMM);
 
+    if(ws_size > ws_sizeof_find_wrw)
+    {
+        MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Error,
+                          "MIOpenDriver",
+                          "Find returns bigger workspace than provided " << ws_sizeof_find_wrw
+                                                                         << " < " << ws_size);
+        return miopenStatusInternalError;
+    }
     ResizeWorkspaceDev(ctx, ws_size);
     wall.start(wall_enabled);
 
@@ -2956,7 +2921,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float
     printf("GPU Kernel Time Backward Weights Conv. Elapsed: %f ms (average)\n",
            kernel_average_time);
 
-    const auto num_dim = miopen::deref(inputTensor).GetSize() - 2;
+    const auto num_dim = miopen::deref(inputTensor).GetNumDims() - 2;
     if(num_dim != 2 && num_dim != 3)
     {
         printf("stats: <not implemented> for conv%dd\n", num_dim);
@@ -3023,7 +2988,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float
             "stats: name, n, c, do, ho, wo, z, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
             "GB/s, timeMs\n");
         printf("stats: %s%dx%dx%du%d, %u, %u, %u, %u, %u, %u, %u, %u, %u,  %zu, %zu, %zu, %.0f, "
-               "%.0f, %f\n ",
+               "%.0f, %f\n",
                "bwdw-conv",
                wei_d,
                wei_h,
@@ -3426,7 +3391,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsGPUReference()
         {
             auto dwei_tmp = tensor<Tgpu>(miopen::deref(weightTensor));
             dwei.CopyFromDeviceToHost(GetStream(), dwei_tmp);
-            for(int i = 0; i < dwei_tmp.data.size(); i++)
+            for(size_t i = 0; i < dwei_tmp.data.size(); ++i)
             {
                 dwei_host.data[i] = static_cast<Tref>(dwei_tmp.data[i]);
             }
@@ -3477,7 +3442,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
         {
             auto din_tmp = tensor<Tgpu>(miopen::deref(inputTensor));
             din.CopyFromDeviceToHost(GetStream(), din_tmp);
-            for(int i = 0; i < din_tmp.data.size(); i++)
+            for(size_t i = 0; i < din_tmp.data.size(); ++i)
             {
                 din_host.data[i] = static_cast<Tref>(din_tmp.data[i]);
             }
@@ -3532,6 +3497,10 @@ std::string ConvDriver<Tgpu, Tref>::GetVerificationCacheFileName(
         if(std::is_same<decltype(type), int8_t>::value)
         {
             return "int8";
+        }
+        if(std::is_same<decltype(type), int32_t>::value)
+        {
+            return "int32";
         }
         else if(std::is_same<decltype(type), float16>::value)
         {

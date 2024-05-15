@@ -436,10 +436,10 @@ struct tensor_transform_driver : test_driver
         std::vector<size_t> superStrides_src = super_src.desc.GetStrides();
         std::vector<size_t> superStrides_dst = super_dst.desc.GetStrides();
         std::vector<int> subStrides_src(superStrides_src.begin() +
-                                            (super_src.desc.GetSize() - subLens.size()),
+                                            (super_src.desc.GetNumDims() - subLens.size()),
                                         superStrides_src.end());
         std::vector<int> subStrides_dst(superStrides_dst.begin() +
-                                            (super_dst.desc.GetSize() - subLens.size()),
+                                            (super_dst.desc.GetNumDims() - subLens.size()),
                                         superStrides_dst.end());
 
         subDesc_src = miopen::TensorDescriptor(this->type, subLens, subStrides_src);

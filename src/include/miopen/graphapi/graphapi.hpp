@@ -58,9 +58,7 @@ public:
 protected:
     bool mFinalized = false;
 };
-
 } // namespace graphapi
-
 } // namespace miopen
 
 MIOPEN_DEFINE_OBJECT(miopenBackendDescriptor, miopen::graphapi::BackendDescriptor)

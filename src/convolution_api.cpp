@@ -344,9 +344,9 @@ miopenGetConvolutionNdForwardOutputDim(miopenConvolutionDescriptor_t convDesc,
         auto out_desc = miopen::deref(convDesc).GetForwardOutputTensor(
             miopen::deref(inputTensorDesc), miopen::deref(filterDesc));
 
-        miopen::deref(nDim) = out_desc.GetSize();
+        miopen::deref(nDim) = out_desc.GetNumDims();
 
-        for(int i = 0; i < out_desc.GetSize(); ++i)
+        for(unsigned i = 0; i < out_desc.GetNumDims(); ++i)
         {
             outputTensorDimA[i] = out_desc.GetLengths()[i];
         }

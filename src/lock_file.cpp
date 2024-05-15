@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include <regex>
 #include <miopen/errors.hpp>
 #include <miopen/lock_file.hpp>
 #include <miopen/logger.hpp>
@@ -52,7 +53,7 @@ std::string LockFilePath(const fs::path& filename_)
             fs::permissions(directory, fs::perms::all);
         }
         const auto hash = md5(filename_.parent_path().string());
-        const auto file = directory / (hash + "_" + filename_.filename().string() + ".lock");
+        const auto file = directory / (hash + "_" + filename_.filename() + ".lock");
 
         return file.string();
     }
@@ -89,6 +90,12 @@ LockFile::LockFile(const char* path_, PassKey) : path(path_)
 
 LockFile& LockFile::Get(const char* path)
 {
+#ifdef _WIN32
+    // The character ':' is reserved on Windows and cannot be used for constructing
+    // a path except when it follows a drive letter.
+    std::string file{std::regex_replace(path, std::regex(":memory:"), "memory_")};
+    path = file.c_str();
+#endif
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
     std::lock_guard<std::mutex> lock(mutex);

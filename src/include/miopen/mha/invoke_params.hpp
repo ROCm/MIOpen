@@ -35,26 +35,53 @@ namespace mha {
 
 struct InvokeParams : public miopen::InvokeParams
 {
-    InvokeParams(const MhaInputDescsForward& inputDescsForward,
-                 const MhaDataForward& dataForward,
-                 Data_t ws,
-                 std::size_t wsSize)
-        : mhaInputDescsForward(inputDescsForward),
-          mhaDataForward(dataForward),
+    InvokeParams(const MhaDataForward& dataForward, Data_t ws, std::size_t wsSize)
+        : mhaDataForwardPtr(std::make_shared<MhaDataForward>(dataForward)),
           workSpace(ws),
           workSpaceSize(wsSize)
     {
     }
 
-    const MhaInputDescsForward& GetDescs() const { return mhaInputDescsForward; }
-    const MhaDataForward& GetData() const { return mhaDataForward; }
+    InvokeParams(const MhaDataBackward& dataBackward, Data_t ws, std::size_t wsSize)
+        : mhaDataBackwardPtr(std::make_shared<MhaDataBackward>(dataBackward)),
+          workSpace(ws),
+          workSpaceSize(wsSize)
+    {
+    }
+
+    const MhaDataForward& GetDataForward() const
+    {
+        assert(mhaDataForwardPtr);
+
+        if(mhaDataForwardPtr == nullptr)
+        {
+            MIOPEN_THROW("Mha InvokeParams GetDataForward() failed: InvokeParams was initialized "
+                         "with a backward direction ctor");
+        }
+
+        return *mhaDataForwardPtr;
+    }
+
+    const MhaDataBackward& GetDataBackward() const
+    {
+        assert(mhaDataBackwardPtr);
+
+        if(mhaDataBackwardPtr == nullptr)
+        {
+            MIOPEN_THROW("Mha InvokeParams GetDataBackward() failed: InvokeParams was initialized "
+                         "with a forward direction ctor");
+        }
+
+        return *mhaDataBackwardPtr;
+    }
 
     std::size_t GetWorkspaceSize() const { return workSpaceSize; }
     Data_t GetWorkspace() const { return workSpace; }
 
 private:
-    const MhaInputDescsForward mhaInputDescsForward;
-    const MhaDataForward mhaDataForward;
+    std::shared_ptr<MhaDataForward> mhaDataForwardPtr;
+    std::shared_ptr<MhaDataBackward> mhaDataBackwardPtr;
+
     const Data_t workSpace;
     const std::size_t workSpaceSize;
 };

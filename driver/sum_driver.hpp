@@ -47,18 +47,18 @@
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloSumForwardRunHost(miopenTensorDescriptor_t inputDesc,
-                             miopenTensorDescriptor_t outputDesc,
+                             miopenTensorDescriptor_t yDesc,
                              Tgpu* input,
                              Tcheck* outputhost,
                              int32_t dim,
                              miopenSumNanPropagation_t nanPropagation)
 {
     auto input_dims  = miopen::deref(inputDesc).GetLengths();
-    auto output_dims = miopen::deref(outputDesc).GetLengths();
+    auto output_dims = miopen::deref(yDesc).GetLengths();
 
     auto reduce_size = input_dims[dim];
     auto output_numel =
-        std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
+        std::accumulate(output_dims.begin(), output_dims.end(), 1LL, std::multiplies<int64_t>());
 
     auto inner_size = 1ULL;
     for(int32_t i = dim + 1; i < input_dims.size(); i++)
@@ -96,7 +96,7 @@ public:
     SumDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputDesc);
-        miopenCreateTensorDescriptor(&outputDesc);
+        miopenCreateTensorDescriptor(&yDesc);
 
         data_type = miopen_type<Tgpu>{};
     }
@@ -121,7 +121,7 @@ public:
     ~SumDriver() override
     {
         miopenDestroyTensorDescriptor(inputDesc);
-        miopenDestroyTensorDescriptor(outputDesc);
+        miopenDestroyTensorDescriptor(yDesc);
     }
 
 private:
@@ -130,7 +130,7 @@ private:
     int forw;
 
     miopenTensorDescriptor_t inputDesc;
-    miopenTensorDescriptor_t outputDesc;
+    miopenTensorDescriptor_t yDesc;
 
     std::unique_ptr<GPUMem> in_dev;
     std::unique_ptr<GPUMem> out_dev;
@@ -179,7 +179,7 @@ int SumDriver<Tgpu, Tref>::GetandSetData()
     if(out_len.empty())
         out_len.push_back(1);
 
-    SetTensorNd(outputDesc, out_len, data_type);
+    SetTensorNd(yDesc, out_len, data_type);
 
     nanPropagation = static_cast<miopenSumNanPropagation_t>(inflags.GetValueInt("NanPropagation"));
 
@@ -253,9 +253,9 @@ template <typename Tgpu, typename Tref>
 int SumDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
     size_t in_sz  = GetTensorSize(inputDesc);
-    size_t out_sz = GetTensorSize(outputDesc);
+    size_t out_sz = GetTensorSize(yDesc);
 
-    miopenGetSumWorkspaceSize(GetHandle(), inputDesc, dim, outputDesc, &ws_sizeInBytes);
+    miopenGetSumWorkspaceSize(GetHandle(), inputDesc, dim, yDesc, &ws_sizeInBytes);
     if(ws_sizeInBytes == static_cast<size_t>(-1))
         return miopenStatusAllocFailed;
 
@@ -301,7 +301,7 @@ int SumDriver<Tgpu, Tref>::RunForwardGPU()
                          inputDesc,
                          in_dev->GetMem(),
                          dim,
-                         outputDesc,
+                         yDesc,
                          out_dev->GetMem());
 
         float time = 0.0;
@@ -334,7 +334,7 @@ template <typename Tgpu, typename Tref>
 int SumDriver<Tgpu, Tref>::RunForwardCPU()
 {
     mloSumForwardRunHost<Tgpu, Tref>(
-        inputDesc, outputDesc, in.data(), outhost.data(), dim, nanPropagation);
+        inputDesc, yDesc, in.data(), outhost.data(), dim, nanPropagation);
 
     return miopenStatusSuccess;
 }
