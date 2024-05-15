@@ -68,6 +68,7 @@
  * @defgroup argmax
  * @defgroup groupnorm
  * @defgroup cat
+ * @defgroup kldivloss
  *
  */
 
@@ -6580,6 +6581,59 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
 
 /** @} */
 // CLOSEOUT BackendAPI DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+// KLDivLoss APIs
+/** @addtogroup kldivloss
+ *
+ *  @{
+ */
+/*! @brief Execute a kldivloss unreduced forward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Data tensor input (input)
+ * @param targetDesc               Tensor descriptor for target tensor (input)
+ * @param target                   Data tensor target (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param output                   Data tensor output (output)
+ * @param log_target               Specifies whether target is the log space (input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenKLDivLossUnreducedForward(miopenHandle_t handle,
+                                                            const miopenTensorDescriptor_t inputDesc,
+                                                            const void* input,
+                                                            const miopenTensorDescriptor_t targetDesc,
+                                                            const void* target,
+                                                            const miopenTensorDescriptor_t outputDesc,
+                                                            void* output,
+                                                            bool log_target);
+
+// /*! @brief Execute a kldivloss reduced forward layer
+//  *
+//  * @param handle                   MIOpen handle (input)
+//  * @param inputDesc                Tensor descriptor for input tensor (input)
+//  * @param input                    Data tensor input (input)
+//  * @param targetDesc               Tensor descriptor for target tensor (input)
+//  * @param target                   Data tensor target (input)
+//  * @param outputDesc               Tensor descriptor for output tensor (input)
+//  * @param output                   Data tensor output (output)
+//  * @param log_target               Specifies whether target is the log space (input)
+//  * @param divisor                  Divisor (input)
+//  * @return                         miopenStatus_t
+//  */
+// MIOPEN_EXPORT miopenStatus_t miopenKLDivLossReducedForward(miopenHandle_t handle,
+//                                                            const miopenTensorDescriptor_t inputDesc,
+//                                                            const void* input,
+//                                                            const miopenTensorDescriptor_t targetDesc,
+//                                                            const void* target,
+//                                                            const miopenTensorDescriptor_t outputDesc,
+//                                                            void* output,
+//                                                            bool log_target,
+//                                                            float divisor);
+/** @} */
+// CLOSEOUT KLDivLoss DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus

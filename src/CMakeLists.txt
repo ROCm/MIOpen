@@ -134,6 +134,8 @@ set( MIOpen_Source
     invoker_cache.cpp
     kernel_build_params.cpp
     kernel_warnings.cpp
+    kldivloss_api.cpp
+    kldivloss/problem_description.cpp
     layernorm_api.cpp
     layernorm/problem_description.cpp
     load_file.cpp
@@ -259,6 +261,12 @@ set( MIOpen_Source
     solver/gemm.cpp
     solver/gemm_bwd.cpp
     solver/gemm_wrw.cpp
+    solver/kldivloss/forward_kldivloss_unreduced.cpp
+    # solver/kldivloss/forward_kldivloss_reduced.cpp
+    # solver/kldivloss/forward_reduce_kldivloss_4d.cpp
+    # solver/kldivloss/backward_con_kldivloss_4d.cpp
+    # solver/kldivloss/backward_non_kldivloss_4d.cpp
+    # solver/kldivloss/backward_reduce_kldivloss_4d.cpp
     solver/groupnorm/forward_groupnorm.cpp
     solver/layernorm/forward_layernorm.cpp
     solver/layernorm/forward_layernorm2d_ck.cpp
@@ -421,6 +429,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/neuron.inc
         kernels/rocm_version.inc
         kernels/stride_array.hpp
+        kernels/tensor_view.hpp
         kernels/utilities.inc
         kernels/workaround_issue_1431.hpp
         kernels/xform_bidirect_winograd_code.inc
@@ -455,6 +464,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirBatchNormActiv.cl
         kernels/MIOpenConvDirGenFwd.cl
         kernels/MIOpenGroupNorm.cpp
+        kernels/MIOpenKLDivLoss.cpp
         kernels/MIOpenLayerNorm.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
@@ -580,6 +590,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         cat.cpp
         groupnorm.cpp
         kernel_cache.cpp
+        kldivloss.cpp
         layer_norm.cpp
         lrn.cpp
         mlo_dir_conv.cpp
