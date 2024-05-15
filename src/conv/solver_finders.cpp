@@ -24,13 +24,13 @@
  *
  *******************************************************************************/
 
-#include <miopen/config.h>
-#include <miopen/conv/problem_description.hpp>
 #include <miopen/conv/solver_finders.hpp>
+
 #include <miopen/conv_algo_name.hpp>
+#include <miopen/config.h>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/perf_field.hpp>
-#include <miopen/timer.hpp>
+#include <miopen/conv/problem_description.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEVICE_ARCH)
 
@@ -223,12 +223,6 @@ static void EvaluateInvokers(Handle& handle,
     if(!arch.empty())
         return;
 
-    // Even if we don't use GPU time as a metric, we must enable profiling
-    // to synchronize kernel execution on the GPU with the CPU, that is,
-    // force the CPU to wait for the kernel to complete execution.
-    // This is important to measure Wall time correctly.
-    AutoEnableProfiling enableProfiling{handle};
-
     auto selected     = miopen::solver::ConvSolution{miopenStatusUnknownError};
     auto best         = std::numeric_limits<float>::max();
     auto best_invoker = Invoker{};
@@ -262,12 +256,14 @@ static void EvaluateInvokers(Handle& handle,
             invoker(handle, invoke_ctx); // Dry-run once to warm-up.
 
             constexpr int N_RUNS = 5;
-            miopen::Timer timer;
-            using elapsed_t = decltype(timer.elapsed_ms());
-            timer.start();
+            using elapsed_t      = decltype(handle.GetKernelTime());
+            auto elapsed         = static_cast<elapsed_t>(0);
             for(int i = 0; i < N_RUNS; ++i)
+            {
                 invoker(handle, invoke_ctx);
-            const elapsed_t elapsed = timer.elapsed_ms() / static_cast<elapsed_t>(N_RUNS);
+                elapsed += handle.GetKernelTime();
+            }
+            elapsed /= static_cast<elapsed_t>(N_RUNS);
 
             record.SetValues(sol.solver_id, FindDbData{elapsed, sol.workspace_sz, algorithm_name});
 
@@ -332,7 +328,10 @@ void FindCore(const AnyInvokeParams& invoke_ctx,
         PrecompileSolutions(handle, all);
     }
 
+    // Evaluate Invokers
+    AutoEnableProfiling enableProfiling{handle};
     const auto network_config = problem.MakeNetworkConfig();
+
     for(const auto& ss : solutions)
     {
         if(!ss.second.empty())
