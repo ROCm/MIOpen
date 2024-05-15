@@ -165,34 +165,16 @@ protected:
             tensors[id] = std::move(tmp);
         };
 
-        auto GenScaledTensor = [](auto... nhsd) {
-            float bias    = prng::gen_A_to_B(-3.0f, 3.0f);
-            auto val_full = tensor<float>{nhsd...}.generate(
-                [bias](auto...) { return prng::gen_A_to_B(-2.5f + bias, 2.5f + bias); });
-            auto val_scaled = tensor<float>{nhsd...};
-            float scale     = test::cpu::GetF8Scaling(test::cpu::AbsoluteMax(val_full));
-            float descale   = 1.f / scale;
-            test::cpu::ScaleMult(val_full, scale, val_scaled);
-            return std::tuple{val_scaled, scale, descale};
-        };
+        using ScaledTensor = test::cpu::ScaledTensor;
 
-        float q_scale;
-        float q_descale;
-        tensor<float> q_val;
-        std::tie(q_val, q_scale, q_descale) = GenScaledTensor(n, h, s, d);
-        InitTensor(miopenTensorMhaQ, std::move(q_val));
+        ScaledTensor q = test::cpu::GenScaledTensor(n, h, s, d);
+        InitTensor(miopenTensorMhaQ, std::move(q.mTensor));
 
-        float k_scale;
-        float k_descale;
-        tensor<float> k_val;
-        std::tie(k_val, k_scale, k_descale) = GenScaledTensor(n, h, s, d);
-        InitTensor(miopenTensorMhaK, std::move(k_val));
+        ScaledTensor k = test::cpu::GenScaledTensor(n, h, s, d);
+        InitTensor(miopenTensorMhaK, std::move(k.mTensor));
 
-        float v_scale;
-        float v_descale;
-        tensor<float> v_val;
-        std::tie(v_val, v_scale, v_descale) = GenScaledTensor(n, h, s, d);
-        InitTensor(miopenTensorMhaV, std::move(v_val));
+        ScaledTensor v = test::cpu::GenScaledTensor(n, h, s, d);
+        InitTensor(miopenTensorMhaV, std::move(v.mTensor));
 
         float s_scale = 1.f;
         // clang-tidy complains about the same expression on both sides of "/": 1.f / 1.f
@@ -202,11 +184,11 @@ protected:
         // clang-tidy complains about the same expression on both sides of "/": 1.f / 1.f
 
         InitTensor(miopenTensorMhaDescaleQ,
-                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return q_descale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return q.mDescale; }));
         InitTensor(miopenTensorMhaDescaleK,
-                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return k_descale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return k.mDescale; }));
         InitTensor(miopenTensorMhaDescaleV,
-                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return v_descale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return v.mDescale; }));
         InitTensor(miopenTensorMhaDescaleS,
                    tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return s_descale; }));
         InitTensor(miopenTensorMhaScaleS,
@@ -246,9 +228,9 @@ protected:
             softmax_ref,
             mDesc_ref,
             zInvDesc_ref,
-            q_descale,
-            k_descale,
-            v_descale,
+            q.mDescale,
+            k.mDescale,
+            v.mDescale,
             s_descale,
             s_scale,
             o_scale,

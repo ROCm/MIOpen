@@ -41,6 +41,7 @@ namespace cpu {
 
 using float8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
 
+
 struct CPUMHATestCase
 {
     // represents total number of seq len present in batch
@@ -613,6 +614,29 @@ tensor<float> ExtractGoldenDataFromJson(std::string_view json_attention_data,
         << "Malformed ref data: reference tensor has different size";
 
     return res;
+}
+
+struct ScaledTensor {
+  tensor<float> mTensor;
+  float mScale;
+  float mDescale;
+};
+
+
+inline ScaledTensor GenScaledTensor(tensor<float>&& in) {
+    float bias    = prng::gen_A_to_B(-3.0f, 3.0f);
+    tensor<float> val_scaled(std::move(in));
+    auto val_full = val_scaled.generate(
+        [bias](auto...) { return prng::gen_A_to_B(-2.5f + bias, 2.5f + bias); });
+    float scale     = GetF8Scaling(AbsoluteMax(val_full));
+    float descale   = 1.f / scale;
+    ScaleMult(val_full, scale, val_scaled);
+    return {val_scaled, scale, descale};
+}
+
+template <typename... Dims>
+ScaledTensor GenScaledTensor(Dims... nhsd) {
+  return GenScaledTensor(tensor<float>(nhsd...));
 }
 
 } // namespace cpu

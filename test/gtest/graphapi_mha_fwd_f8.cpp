@@ -24,9 +24,9 @@
  *
  *******************************************************************************/
 
-#include "test.hpp"
-#include "get_handle.hpp"
-#include "tensor_holder.hpp"
+#include "mha_helper.hpp"
+#include "../get_handle.hpp"
+#include "../tensor_holder.hpp"
 #include "../workspace.hpp"
 
 #include <gtest/gtest.h>
@@ -42,6 +42,7 @@
 
 #include <numeric>
 #include <string>
+#include <unordered_map>
 
 namespace gr = miopen::graphapi;
 
@@ -59,11 +60,16 @@ class MhaFwdGraphTest: public testing::TestWithParam<std::tuple<int, int, int, i
       mTensPtr(tens_ptr),
       mCpuTensor(tens_ptr->getDimensions())
     {
+    }
 
-      mCpuTensor.generate(
-          [] (auto...) { return prng::gen_0_to_B(static_cast<float>(3.0)); }
-          );
+    void init(tensor<float>&& tens_val) {
+      mCpuTensor = std::move(tens_val);
+      auto& handle = get_handle();
+      mGpuBuf = handle.Write(mCpuTensor.data);
+    }
 
+    void init(float val) {
+      mCpuTensor.generate([=](auto...) { return val; });
       auto& handle = get_handle();
       mGpuBuf = handle.Write(mCpuTensor.data);
     }
@@ -80,13 +86,13 @@ class MhaFwdGraphTest: public testing::TestWithParam<std::tuple<int, int, int, i
   std::unique_ptr<gr::OpGraphBuilder> mGraphBuilder;
   gr::OpGraph mGraph;
   gr::AutoDeleteAllocator mAlloc;
-  std::vector<TensorData> mFilledTensors;
+  std::unordered_map<std::string, TensorData> mFilledTensors;
 
   template <bool IsVirt>
   gr::Tensor* makeTensor(std::string_view name, const std::vector<int64_t>& dims) {
     auto ptr =  mAlloc.allocate(gr::makeTensor<IsVirt>(name, dims));
     if constexpr (!IsVirt) {
-      mFilledTensors.emplace_back(TensorData(tens_ptr));
+      mFilledTensors.emplace_back(std::string(name), TensorData(ptr));
     }
   }
 
@@ -314,9 +320,10 @@ class MhaFwdGraphTest: public testing::TestWithParam<std::tuple<int, int, int, i
     std::vector<int64_t> tens_ids;
     std::vector<void*> gpu_ptrs;
 
-    for (const auto& t : mFilledTensors) {
-      tens_ids.emplace_back(t.mTensPtr->getId());
-      gpu_ptrs.emplace_back(t.mGpuBuf.get());
+    for (const auto& [k, v] : mFilledTensors) {
+      tens_ids.emplace_back(v.mTensPtr->getId());
+      assert(v.mGpuBuf.get());
+      gpu_ptrs.emplace_back(v.mGpuBuf.get());
     }
 
     return gr::VariantPackBuilder()
@@ -326,11 +333,7 @@ class MhaFwdGraphTest: public testing::TestWithParam<std::tuple<int, int, int, i
       .build();
   }
 
-public:
-  void Run() {
-    auto [n, h, s, d] = GetParam();
-    createMhaGraph(n, h, s, d);
-
+  void executeMhaGraph() {
     // TODO(amber): should this be a vector of pointers
     std::vector<gr::Engine> engines = gr::findEngines(&mGraph);
 
@@ -348,7 +351,105 @@ public:
     auto variant_pack = makeMhaVariantPack(ws.ptr());
 
     plan.execute(variant_pack);
+  }
 
+  void initInputs(size_t n, size_t h, size_t s, size_t d) {
+    using namespace test::cpu;
+
+    ScaledTensor Q = GenScaledTensor(n, h, s, d);
+    ScaledTensor K = GenScaledTensor(n, h, s, d);
+    ScaledTensor V = GenScaledTensor(n, h, s, d);
+
+    for (auto& [k,v]: mFilledTensors) {
+      if (k == "Q") {
+        v.init(std::move(Q.mTensor));
+      } else if (k == "DSCL_Q") {
+        v.init(Q.mDescale);
+      } else if (k == "K") {
+        v.init(std::move(K.mTensor));
+      } else if (k == "DSCL_K") {
+        v.init(K.mDescale);
+      } else if (k == "V") {
+        v.init(std::move(V.mTensor));
+      } else if (k == "DSCL_V") {
+        v.init(V.mDescale);
+      } else if (k == "SCL_O" || k == "SCL_S" || k == "DSCL_S"
+          || k == "ATN_SCL") {
+        v.init(1.0f);
+      } else if (k == "RND_PRB" || k == "RND_SD" || k == "RND_OFF") {
+        v.init(0.0f);
+      } else {
+        FAIL() << "Uninitialized input: " << k;
+      }
+    }
+  }
+
+  void runCPUverify(size_t n, size_t h, size_t s, size_t d) {
+
+        auto softmax_ref  = tensor<float>{n, h, s, s};
+        auto oDesc_ref    = tensor<float>{n, h, s, d};
+        auto mDesc_ref    = tensor<float>{n, h, s, 1};
+        auto zInvDesc_ref = tensor<float>{n, h, s, 1};
+        float amaxS_ref = 0;
+        float amaxO_ref = 0;
+
+        test::cpu::MultiHeadAttentionfp8(
+            mFilledTensors["Q"].mCpuTensor,
+            mFilledTensors["K"].mCpuTensor,
+            mFilledTensors["V"].mCpuTensor,
+            softmax_ref,
+            mDesc_ref,
+            zInvDesc_ref,
+            mFilledTensors["DSCL_Q"].mCpuTensor[0],
+            mFilledTensors["DSCL_K"].mCpuTensor[0],
+            mFilledTensors["DSCL_V"].mCpuTensor[0],
+            mFilledTensors["DSCL_S"].mCpuTensor[0],
+            mFilledTensors["SCL_S"].mCpuTensor[0],
+            mFilledTensors["SCL_O"].mCpuTensor[0],
+            mFilledTensors["RND_PRB"].mCpuTensor[0],
+            static_cast<uint64_t>(mFilledTensors["RND_SD"].mCpuTensor[0]),
+            static_cast<uint64_t>(mFilledTensors["RND_OFF"].mCpuTensor[0]),
+            amaxS_ref,
+            amaxO_ref,
+            oDesc_ref);
+
+        auto GetResult = [&] (const std::string& t_name) {
+          auto it = mFilledTensors.find(t_name);
+          assert(it!= mFilledTensors.cend());
+          auto& v = it->second;
+          v.copyBack();
+          return v.mCpuTensor;
+        };
+
+        const double error_threshold = 5e-6;
+
+        const auto& resAmaxS = GetResult("AMAX_S");
+        auto amaxS_abs_diff  = std::abs(amaxS_ref - resAmaxS[0]);
+        EXPECT_LT(amaxS_abs_diff, error_threshold)
+            << " ref: " << amaxS_ref << " result: " << resAmaxS[0];
+
+        const auto& resAmaxO = GetResult("AMAX_O");
+        auto amaxO_abs_diff  = std::abs(amaxO_ref - resAmaxO[0]);
+        EXPECT_LT(amaxO_abs_diff, error_threshold)
+            << " ref: " << amaxO_ref << " result: " << resAmaxO[0];
+
+        double M_error = miopen::rms_range(mDesc_ref, GetResult("M"));
+        EXPECT_LT(M_error, error_threshold);
+
+        double ZInv_error = miopen::rms_range(zInvDesc_ref, GetResult("Z_INV"));
+        EXPECT_LT(ZInv_error, error_threshold);
+
+        double O_error = miopen::rms_range(oDesc_ref, GetResult("O"));
+        EXPECT_LT(O_error, error_threshold);
+  }
+
+public:
+  void Run() {
+    auto [n, h, s, d] = GetParam();
+    createMhaGraph(n, h, s, d);
+    initInputs(n, h, s, d);
+    executeMhaGraph();
+    runCPUverify(n, h, s, d);
   }
 
 };

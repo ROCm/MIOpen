@@ -41,9 +41,9 @@ class MHA_FP8_Pattern : public GraphPattern
     {
         static auto graph_gen = PatternGraphGenerator::Make({
             {"OP_MATMUL", {"Q", "K"}, {"T_BMM_0"}},
-            {"OP_POINTWISE:SCALE", {"T_BMM_0", "ATTN_S"}, {"PW_S_0"}},
-            {"OP_POINTWISE:SCALE", {"PW_S_0", "DSCL_Q"}, {"PW_S_1"}},
-            {"OP_POINTWISE:SCALE", {"PW_S_1", "DSCL_K"}, {"PW_S_2"}},
+            {"OP_POINTWISE:MUL", {"T_BMM_0", "ATTN_S"}, {"PW_S_0"}},
+            {"OP_POINTWISE:MUL", {"PW_S_0", "DSCL_Q"}, {"PW_S_1"}},
+            {"OP_POINTWISE:MUL", {"PW_S_1", "DSCL_K"}, {"PW_S_2"}},
             {"OP_REDUCTION:MAX", {"PW_S_2"}, {"M"}},
             {"OP_POINTWISE:SUB", {"PW_S_2", "M"}, {"T_SUB"}},
             {"OP_POINTWISE:EXP", {"T_SUB"}, {"T_EXP"}},
@@ -53,13 +53,13 @@ class MHA_FP8_Pattern : public GraphPattern
             {"OP_REDUCTION:MAX", {"T_MUL_0"}, {"AMAX_S"}},
             {"OP_RNG", {"SEED", "OFFSET"}, {"T_RND"}},
             {"OP_POINTWISE:MUL", {"T_RND", "T_MUL_0"}, {"T_MUL_1"}},
-            {"OP_POINTWISE:SCALE", {"T_MUL_1", "I_PROB"}, {"PW_S_3"}},
-            {"OP_POINTWISE:SCALE", {"PW_S_3", "SCL_S"}, {"PW_S_4"}},
-            {"OP_POINTWISE:SCALE", {"PW_S_3", "SCL_S"}, {"PW_S_4"}},
+            {"OP_POINTWISE:MUL", {"T_MUL_1", "I_PROB"}, {"PW_S_3"}},
+            {"OP_POINTWISE:MUL", {"PW_S_3", "SCL_S"}, {"PW_S_4"}},
+            {"OP_POINTWISE:MUL", {"PW_S_3", "SCL_S"}, {"PW_S_4"}},
             {"OP_MATMUL", {"PW_S_4", "V"}, {"T_BMM_1"}},
-            {"OP_POINTWISE:SCALE", {"T_BMM_1", "DSCL_S"}, {"PW_S_5"}},
-            {"OP_POINTWISE:SCALE", {"PW_S_5", "DSCL_V"}, {"PW_S_6"}},
-            {"OP_POINTWISE:SCALE", {"PW_S_6", "SCL_O"}, {"O"}},
+            {"OP_POINTWISE:MUL", {"T_BMM_1", "DSCL_S"}, {"PW_S_5"}},
+            {"OP_POINTWISE:MUL", {"PW_S_5", "DSCL_V"}, {"PW_S_6"}},
+            {"OP_POINTWISE:MUL", {"PW_S_6", "SCL_O"}, {"O"}},
             {"OP_REDUCTION:MAX", {"PW_S_6"}, {"AMAX_O"}},
 
         });
