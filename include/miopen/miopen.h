@@ -6422,7 +6422,7 @@ typedef enum
     MIOPEN_RNG_DISTRIBUTION_NORMAL,
 } miopenRngDistribution_t;
 
-typedef enum 
+typedef enum
 {
     /* IDENTITY      alpha = 1.0 and beta = 0.0 */
     /* SCALE         alpha = 4.2 and beta = 0.0 */
