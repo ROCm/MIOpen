@@ -40,6 +40,9 @@ private:
     int64_t mGlobalIndex = -1;
     int32_t mSmCount     = 0;
     friend class EngineBuilder;
+    // Map from miopenTensorArgumentId to BackendApi input tensor unique id
+    //
+    std::map<miopenTensorArgumentId_t, int64_t> mUidFromArg;
 
 public:
     Engine()              = default;
@@ -50,6 +53,8 @@ public:
 
     Engine(const Solution& solution) : mSolution(solution) {}
     Engine(Solution&& solution) : mSolution(std::move(solution)) {}
+
+    std::map<miopenTensorArgumentId_t, int64_t> getUIDMap() { return mUidFromArg; }
 
     const Solution& getSolution() const noexcept { return mSolution; }
     Solution& getSolution() noexcept { return mSolution; }
@@ -94,7 +99,9 @@ public:
                       miopenBackendAttributeType_t attributeType,
                       int64_t elementCount,
                       void* arrayOfElements) override;
+
     void finalize() override;
+
     void getAttribute(miopenBackendAttributeName_t attributeName,
                       miopenBackendAttributeType_t attributeType,
                       int64_t requestedElementCount,

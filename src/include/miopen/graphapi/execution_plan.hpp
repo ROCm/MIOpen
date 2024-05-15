@@ -65,7 +65,7 @@ public:
     int64_t getWorkspaceSize() const { return mWorkspaceSize; }
     std::string getJsonRepresentation() const;
 
-    void execute(const VariantPack& variantPack);
+    void execute(miopenHandle_t handle, const VariantPack& variantPack);
 };
 
 class ExecutionPlanBuilder

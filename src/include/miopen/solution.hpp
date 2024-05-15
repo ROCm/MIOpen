@@ -76,6 +76,10 @@ struct Solution : miopenSolution
         }
 
         inline RunInput(Data_t buffer_) : buffer(buffer_) {}
+        inline RunInput(const TensorDescriptor& descriptor_, Data_t buffer_)
+            : descriptor(descriptor_), buffer(buffer_)
+        {
+        }
     };
 
     float GetTime() const { return time; }

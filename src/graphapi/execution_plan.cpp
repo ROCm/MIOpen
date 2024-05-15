@@ -36,7 +36,25 @@ std::string ExecutionPlan::getJsonRepresentation() const
     return {};
 }
 
-void ExecutionPlan::execute(const VariantPack& variantPack) {}
+void ExecutionPlan::execute(miopenHandle_t handle, const VariantPack& variantPack)
+{
+    auto& solution = mEngineCfg.getEngine().getSolution();
+    auto& problem  = boost::get<Problem>(solution.GetProblem().item);
+    auto workspace = variantPack.getWorkspace();
+    std::unordered_map<miopenTensorArgumentId_t, miopen::Solution::RunInput> solutionInput;
+    const auto& inputMap = mEngineCfg.getEngine().getUIDMap();
+    solutionInput.reserve(inputMap.size());
+
+    for(auto& [arg, uid] : inputMap)
+    {
+        auto& desc = problem.GetTensorDescriptorChecked(arg, miopenTensorArgumentToString(arg));
+        solutionInput.emplace(std::make_pair(
+            arg, miopen::Solution::RunInput{desc, DataCast(variantPack.getDataPointer(uid))}));
+    }
+
+    solution.LogDriverCommand();
+    solution.Run(miopen::deref(handle), solutionInput, DataCast(workspace), mWorkspaceSize);
+}
 
 ExecutionPlanBuilder& ExecutionPlanBuilder::setHandle(miopenHandle_t handle) &
 {
@@ -265,7 +283,9 @@ void BackendExecutionPlanDescriptor::getAttribute(miopenBackendAttributeName_t a
 void BackendExecutionPlanDescriptor::execute(miopenHandle_t handle,
                                              miopenBackendDescriptor_t variantPack)
 {
-    // TODO: Implement BackendExecutionPlanDescriptor::execute
+    auto varPackDesc =
+        dynamic_cast<BackendVariantPackDescriptor&>(miopen::deref(variantPack));
+    mExecutionPlan.execute(handle, miopen::deref(varPackDesc.getVariantPack()));
 }
 
 } // namespace graphapi

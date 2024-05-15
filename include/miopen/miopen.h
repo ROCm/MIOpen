@@ -5440,6 +5440,15 @@ typedef enum
 #endif
 } miopenTensorArgumentId_t;
 
+/*! @brief Get character string for tensor argument Id.
+ *
+ * A function which returns a NULL terminated character string of the tensor argument Id.
+ *
+ * @param arg  miopenTensorArgumentId_t type tensor argument Id (input)
+ * @return     miopenTensorArgumentIdString
+ */
+const char* miopenTensorArgumentToString(miopenTensorArgumentId_t arg);
+
 /*! @enum miopenTensorArgumentId_t
  * Different ways to sort results of the find call.
  */
