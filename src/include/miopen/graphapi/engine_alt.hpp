@@ -33,33 +33,6 @@
 namespace miopen {
 namespace graphapi {
 
-struct TensorInfo {
-  miopenTensorArgumentId_t mEnumId = miopenTensorArgumentIdInvalid;
-  Tensor* mGraphTensor = nullptr;
-  TensorDescriptor mTensDesc{};
-  Data_t mDevBuf = nullptr;
-
-  TensorInfo(miopenTensorArgumentId_t enum_id, Tensor* tens_ptr):
-    mEnumId(enum_id),
-    mGraphTensor(tens_ptr),
-    mTensDesc(static_cast<TensorDescriptor>(*tens_ptr))
-  {
-    assert(tens_ptr);
-    assert(mEnumId != miopenTensorArgumentIdInvalid);
-  }
-
-  void setDevBuf(Data_t ptr) {
-    assert(ptr);
-    mDevBuf = ptr;
-  }
-
-  const TensorDescriptor* tensDescPtr() const { returm mTensDesc; }
-
-};
-
-
-// int64_t is the graph tensor id
-using TensorInfoMap = std::unordered_map<int64_t, TensorInfo>;
 
 class Engine
 {
@@ -77,56 +50,6 @@ public:
 
     const TensorInfoMap* tensorInfoMap() const { return mTensorInfoMap.get(); }
 };
-
-class EngineBuilder
-{
-
-  Engine mEngine;
-  bool mGraphSet = false;
-  bool mSolutionSet = false;
-  bool mTensorInfoMapSet = false;
-
-public:
-
-  EngineBuilder& setGraph(OpGraph* g) {
-    assert(g);
-    mEngine.mGraph = g;
-    mGraphSet = true;
-    return *this;
-  }
-
-  EngineBuilder& setSolution(miopenSolution_t s) {
-    assert(s);
-    mEngine.mSolution = s;
-    mSolutionSet = true;
-    return *this;
-  }
-
-  EngineBuilder& setTensorInfoMap(const std::shared_ptr<TensorInfoMap>& map) {
-    mEngine.mTensorInfoMap = map;
-    mTensorInfoMapSet = true;
-    return *this;
-  }
-
-  Engine build() const {
-    MIOPEN_THROW_IF(!mGraphSet || !mSolutionSet || !mTensorInfoMapSet, "must set graph and solution attributes");
-    return mEngine;
-  }
-};
-
-// Pattern is a family of solvers for the same graph shape
-class GraphPattern
-{
-
-public:
-    virtual bool matches(const OpGraph& graph)  const                       = 0;
-    virtual std::vector<Engine> getEngines(const OpGraph& graph) const = 0;
-
-    virtual ~GraphPattern();
-};
-
-
-std::vector<Engine> findEngines(const OpGraph&);
 
 } // end namespace graphapi
 } // end namespace miopen

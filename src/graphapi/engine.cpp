@@ -32,52 +32,78 @@ namespace miopen {
 
 namespace graphapi {
 
-EngineBuilder& EngineBuilder::setOpGraph(const OpGraph* opGraph)
+GraphPatternExecutor::~GraphPatternExecutor() = default;
+
+size_t GraphExecutorFind20::getWorkspaceSize() const {
+  size_t workspace_size = 0;
+  auto s = miopenGetSolutionWorkspaceSize(mSolution, &workspace_size);
+  MIOPEN_THROW_IF(s != miopenStatusSuccess, "get solution workspace size failed");
+
+  return workspace_size;
+}
+
+void GraphExecutorFind20::execute(miopenHandle_t handle, const VariantPack& vpk) {
+
+  std::vector<miopenTensorArgument_t> tens_args;
+
+  auto num = vpk.getTensorIds().size();
+  assert(num == vpk.getDataPtrs().size());
+
+  // TODO(amber) : verify that variant pack has all the expected input and output
+  // tensors
+  for (auto i = 0ull; i < num; ++i) {
+    auto tens_id = vpk.getTensorIds()[i];
+    auto* gpu_ptr = vpk.getDataPtrs()[i];
+    assert(gpu_ptr);
+
+    MIOPEN_THROW_IF(mTensorInfoMap->find(tens_id) == mTensorInfoMap->cend(), 
+        "couldn't find a variant pack tensor id in the map");
+
+    auto& v = (*mTensorInfoMap)[tens_id];
+
+    miopenTensorArgument_t targ{
+      .id = v.mEnumId,
+      .descriptor = &(v.mTensDesc),
+      .buffer = gpu_ptr
+    };
+
+    tens_args.emplace_back(targ);
+  }
+
+  auto s = miopenRunSolution(
+      handle, 
+      mSolution,
+      tens_args.size(),
+      tens_args.data(),
+      vpk.getWorkspace(),
+      getWorkspaceSize());
+
+  MIOPEN_THROW_IF(s != miopenStatusSuccess, "Run Solution failed");
+
+}
+
+
+EngineBuilder& EngineBuilder::setOpGraph(const OpGraph* g)
 {
-    mOpGraph = checkPtr(opGraph);
+    assert(g);
+    mEngine.mGraph = checkPtr(g);
+    mGraphSet = true;
     return *this;
 }
 
 EngineBuilder& EngineBuilder::setGlobalIndex(int64_t globalIndex)
 {
-    if(globalIndex >= 0)
-    {
-        mGlobalIndex = globalIndex;
-    }
-    else
-    {
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
+    MIOPEN_THROW_IF(globalIndex < 0, "globalIndex must be >= 0");
+    mEngine.mGlobalIndex = globalIndex;
+    mIndexSet = true;
     return *this;
 }
 
 EngineBuilder& EngineBuilder::setSmCount(int32_t smCount)
 {
-    if(smCount >= 0)
-    {
-        mSmCount = smCount;
-    }
-    else
-    {
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
+    MIOPEN_THROW_IF(smCount <= 0, "SM count must be positive");
+    mEngine.mSmCount = smCount;
     return *this;
-}
-
-Engine EngineBuilder::build()
-{
-    if(mOpGraph != nullptr && mGlobalIndexSet && mGlobalIndex < mOpGraph->getEngines().size())
-    {
-        // TODO: validate mSmCount
-        Engine engine       = mOpGraph->getEngines()[mGlobalIndex];
-        engine.mGlobalIndex = mGlobalIndex;
-        engine.mSmCount     = mSmCount;
-        return engine;
-    }
-    else
-    {
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
 }
 
 void BackendEngineDescriptor::setAttribute(miopenBackendAttributeName_t attributeName,

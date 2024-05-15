@@ -87,7 +87,7 @@ class OpGraph;
 class OpNode
 {
 public:
-    using Edge = std::pair<const OpNode*, const Tensor*>;
+    using Edge = std::pair<OpNode*, Tensor*>;
     virtual ~OpNode();
 
     virtual const std::string& signName() const = 0;
@@ -100,6 +100,15 @@ private:
     friend class OpGraph;
 
 protected:
+    static Edge makeEdge(OpNode* n, Tensor* t) {
+      return Edge{n, t};
+    }
+    static Edge makeEdge(const OpNode* n, const Tensor* t) {
+      return Edge {
+        const_cast<OpNode*>(n), 
+        const_cast<Tensor*>(t)
+      };
+    }
     virtual std::vector<Tensor*> getInTensors() const = 0;
 
     virtual std::vector<Tensor*> getOutTensors() const = 0;
@@ -112,7 +121,7 @@ protected:
     {
         assert(src);
         assert(tens_ptr);
-        Edge e{src, tens_ptr};
+        auto e = makeEdge{src, tens_ptr};
         return internal::contains(mInEdges, e);
     }
 
@@ -120,7 +129,7 @@ protected:
     {
         assert(dst);
         assert(tens_ptr);
-        Edge e{dst, tens_ptr};
+        auto e = makeEdge{dst, tens_ptr};
         return internal::contains(mOutEdges, e);
     }
 
@@ -148,7 +157,7 @@ protected:
     size_t getOutDegree() const { return mOutEdges.size(); }
 };
 
-using OpEdge = OpNode::Edge;
+using Edge = OpNode::Edge;
 
 class SourceOpNode : public OpNode
 {
@@ -228,6 +237,14 @@ public:
     OpGraph& operator=(OpGraph&&) = default;
     ~OpGraph()                    = default;
 
+    SourceOpNode* getSourceNode() const noexcept {
+      return mSrcNode.get();
+    }
+
+    SinkOpNode* getSinkNode() const noexcept {
+      return mSinkNode.get();
+    }
+
     bool hasNode(const OpNode* n) const { return internal::contains(mNodes, n); }
 
     bool hasEdge(const OpNode* src, const Tensor* tens_ptr, const OpNode* dst) const
@@ -251,6 +268,52 @@ public:
         ret -= mSinkNode->getInDegree();
 
         return ret;
+    }
+
+    const std::vector<OpNode*> getNodes() const noexcept {
+      return mNodes;
+    }
+
+    const std::vector<Edge>& getOutEdges(const OpNode* n) const noexcept {
+      assert(n);
+      return n->getOutEdges();
+    }
+
+    const std::vector<Edge>& getInEdges(const OpNode* n) const noexcept {
+      assert(n);
+      return n->getInEdges();
+    }
+
+    OpNode* findNodeByName(const std::string& name) const noexcept {
+      for (auto* n : getNodes()) {
+        if (n->signName() == name) {
+          return n;
+        }
+      }
+      return nullptr;
+    }
+
+    OpNode* findOutNeighByName(const OpNode* node, const std::string& neigh_name) const noexcept
+    {
+      assert(node);
+      for (auto [m,t] : getOutEdges(node)) {
+        std::ignore = t;
+        if (m->signName() == neigh_name) {
+          return m;
+        }
+      }
+      return nullptr;
+    }
+
+    OpNode* findInNeighByName(const OpNode* node, const std::string& neigh_name) const {
+      assert(node);
+      for (auto [m,t] : getInEdges(node)) {
+        std::ignore = t;
+        if (m->signName() == neigh_name) {
+          return m;
+        }
+      }
+      return nullptr;
     }
 
     std::vector<std::string> getNodeNames() const

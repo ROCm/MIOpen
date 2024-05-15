@@ -83,6 +83,9 @@ public:
     {
     }
 
+    const auto& getTensorIds() const noexcept { return mTensorIds; }
+    const auto& getDataPtrs() const noexcept { return mDataPointers; }
+
     void* getDataPointer(int64_t tensorId) const
     {
         assert(mTensorIds.size() == mDataPointers.size());

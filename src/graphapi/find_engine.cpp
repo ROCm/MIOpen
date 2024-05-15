@@ -26,7 +26,7 @@
  *******************************************************************************/
 
 #include <miopen/errors.hpp>
-#include <miopen/graphapi/engine_alt.hpp>
+#include <miopen/graphapi/engine.hpp>
 #include <miopen/graphapi/opgraph.hpp>
 #include <miopen/graphapi/util.hpp>
 
@@ -67,34 +67,6 @@ class MHA_FP8_Pattern : public GraphPattern
         return graph_gen->graph();
     }
 
-    OpNode* findNodeByName(const std::string& name) const {
-
-      for (auto* n : graph->getNodes()) {
-        if (n->signName() == name) {
-          return n;
-        }
-      }
-      return nullptr;
-    }
-
-    OpNode* findOutNeighByName(OpNode* node, const std::string& neigh_name) const {
-      for (auto [m,t] : graph->getOutEdges(node)) {
-        if (m->signName() == neigh_name) {
-          return m;
-        }
-      }
-      return nullptr;
-    }
-
-    OpNode* findInNeighByName(OpNode* node, const std::string& neigh_name) const {
-      for (auto [m,t] : graph->getInEdges(node)) {
-        if (m->signName() == neigh_name) {
-          return m;
-        }
-      }
-      return nullptr;
-    }
-
     std::shared_ptr<TensorInfoMap> extractFind20Tensors(OpGraph* graph) {
 
       std::vector<int64_t> all1s = {1ll, 1ll, 1ll, 1ll};
@@ -108,39 +80,39 @@ class MHA_FP8_Pattern : public GraphPattern
         tensor_map->emplace(tens_ptr->getId(), enum_id, tens_ptr);
       };
 
-      for (auto [neigh, tens_ptr] : graph.GetOutEdges(graph.GetSourceNode())) {
+      for (auto [neigh, tens_ptr] : graph->getOutEdges(graph->getSourceNode())) {
 
         if (neigh->signName() == "OP_MATMUL") {
           auto* matmul = dynamic_cast<OperationMatmul*>(neigh);
           assert(matmul);
 
 
-          if (auto* pw_prev = findInNeighByName(matmul, "OP_POINTWISE:MUL"); pw_prev  == nullptr) {
+          if (auto* pw_prev = graph->findInNeighByName(matmul, "OP_POINTWISE:MUL"); pw_prev  == nullptr) {
             // this is the first matmul node
             add_mapping(miopenTensorMhaQ, matmul->getA());
             add_mapping(miopenTensorMhaK, matmul->getB());
             // TODO: dim check on Q and K
 
-            auto* pw_0 = dynamic_cast<OperationPointwise*>(findOutNeighByName(matmul, "OP_POINTWISE:MUL"));
+            auto* pw_0 = dynamic_cast<OperationPointwise*>(graph->findOutNeighByName(matmul, "OP_POINTWISE:MUL"));
             assert(pw_0);
 
             auto* attn_scl = pw_0->getB();
             assert(attn_scl->getDims() == all1s);
             add_mapping(miopenTensorMhaAttnScale, attn_scl);
 
-            auto* pw_1 = dynamic_cast<OperationPointwise*>(findOutNeighByName(pw_0, "OP_POINTWISE:MUL"));
+            auto* pw_1 = dynamic_cast<OperationPointwise*>(graph->findOutNeighByName(pw_0, "OP_POINTWISE:MUL"));
             assert(pw_1);
             auto dscl_q = pw_1->getB();
             assert(dscl_q->getDims() == all1s);
             add_mapping(miopenTensorMhaDescaleQ, dscl_q);
 
-            auto* pw_2 = dynamic_cast<OperationPointwise*>(findOutNeighByName(pw_1, "OP_POINTWISE:MUL"));
+            auto* pw_2 = dynamic_cast<OperationPointwise*>(graph->findOutNeighByName(pw_1, "OP_POINTWISE:MUL"));
             assert(pw_2);
             auto* dscl_k = pw_2->getB();
             assert(dscl_k->getDims() == all1s);
             add_mapping(miopenTensorMhaDescaleK, dscl_k);
 
-            auto* red = dynamic_cast<OperationReduction*>(findOutNeighByName(pw_2, "OP_REDUCTION:MAX"));
+            auto* red = dynamic_cast<OperationReduction*>(graph->findOutNeighByName(pw_2, "OP_REDUCTION:MAX"));
             assert(red);
             auto* m = red->getY();
             assert(m->getDims()[2] == 1ll);
@@ -154,26 +126,26 @@ class MHA_FP8_Pattern : public GraphPattern
             assert(scl_s->getDims() == all1s);
             add_mapping(miopenTensorMhaScaleS, scl_s);
 
-            auto* pw_0 = dynamic_cast<OperationPointwise*>(findOutNeighByName(matmul, "OP_POINTWISE:MUL"));
+            auto* pw_0 = dynamic_cast<OperationPointwise*>(graph->findOutNeighByName(matmul, "OP_POINTWISE:MUL"));
             assert(pw_0);
 
             auto* dscl_s = pw_0->getB();
             assert(dscl_s->getDims() == all1s);
             add_mapping(miopenTensorMhaDescaleS, dscl_s);
 
-            auto* pw_1 = dynamic_cast<OperationPointwise*>(findOutNeighByName(pw_0, "OP_POINTWISE:MUL"));
+            auto* pw_1 = dynamic_cast<OperationPointwise*>(graph->findOutNeighByName(pw_0, "OP_POINTWISE:MUL"));
             assert(pw_1);
             auto* dscl_v = pw_1->getB();
             assert(dscl_v->getDims() == all1s);
             add_mapping(miopenTensorMhaDescaleV, dscl_v);
 
-            auto* red = dynamic_cast<OperationReduction*>(findOutNeighByName(pw_1, "OP_REDUCTION:MAX"));
+            auto* red = dynamic_cast<OperationReduction*>(graph->findOutNeighByName(pw_1, "OP_REDUCTION:MAX"));
             assert(red);
             auto* amax_o = red->getY();
             assert(m->getDims()[2] == 1ll);
             add_mapping(miopenTensorMhaAmaxO, amax_o);
 
-            auto* pw_2 = dynamic_cast<OperationPointwise*>(findOutNeighByName(pw_1, "OP_POINTWISE:MUL"));
+            auto* pw_2 = dynamic_cast<OperationPointwise*>(graph->findOutNeighByName(pw_1, "OP_POINTWISE:MUL"));
             assert(pw_2);
             auto* scl_o = pw_2->getB();
             assert(scl_o->getDims() == all1s);
@@ -195,19 +167,19 @@ class MHA_FP8_Pattern : public GraphPattern
       }
 
       { // discovering Z_INV and AMAX_S tensors
-        auto* exp_node = findNodeByName("OP_POINTWISE:EXP");
+        auto* exp_node = graph->findNodeByName("OP_POINTWISE:EXP");
         assert(exp_node);
 
         // get exp_node's neighbor that is a Pointwise mult
-        auto* pw_mult = dynamic_cast<OperationPointwise*>(findOutNeighByName(exp_node, "OP_POINTWISE:MUL"));
+        auto* pw_mult = dynamic_cast<OperationPointwise*>(graph->findOutNeighByName(exp_node, "OP_POINTWISE:MUL"));
         assert(pw_mult);
 
-        auto* red = dynamic_cast<OperationReduction*>(findOutNeighByName(pw_mult, "OP_REDUCTION:MAX"));
+        auto* red = dynamic_cast<OperationReduction*>(graph->findOutNeighByName(pw_mult, "OP_REDUCTION:MAX"));
         assert(red);
 
         add_mapping(miopenTensorMhaAmaxS, red->getY());
 
-        auto* inv_node = dynamic_cast<OperationPointwise*>(findNodeByName("OP_POINTWISE:RECIPROCAL"));
+        auto* inv_node = dynamic_cast<OperationPointwise*>(graph->findNodeByName("OP_POINTWISE:RECIPROCAL"));
         add_mapping(miopenTensorMhaZInv, inv_node->getY());
 
       }
@@ -217,7 +189,7 @@ class MHA_FP8_Pattern : public GraphPattern
     }
 
 public:
-    static std::unique_ptr<GraphPattern> Make() { return std::make_unique<MHA_FP8_Pattern>(); }
+    static std::unique_ptr<GraphPatternMatcher> Make() { return std::make_unique<MHA_FP8_Pattern>(); }
 
     bool matches(const OpGraph* graph) const final  {
       assert(graph);
@@ -256,12 +228,16 @@ public:
 
       std::vector<Engine> engines;
 
+      size_t i = 0;
       for(const auto& sol : solutions) {
+        auto exec = GraphExecutorFind20::make(sol, tensor_map);
+
         engines.emplace_back(EngineBuilder()
             .setGraph(graph)
-            .setSolution(sol)
-            .setTensorInfoMap(tensor_map)
+            .setExecutor(sol)
+            .setGlobalIndex(i)
             .build());
+        ++i;
       }
 
       return engines;

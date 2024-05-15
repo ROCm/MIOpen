@@ -27,15 +27,18 @@
 #include "test.hpp"
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
+#include "../workspace.hpp"
 
 #include <gtest/gtest.h>
 
+#include <miopen/graphapi/execution_plan.hpp>
 #include <miopen/graphapi/matmul.hpp>
 #include <miopen/graphapi/opgraph.hpp>
 #include <miopen/graphapi/pointwise.hpp>
 #include <miopen/graphapi/reduction.hpp>
 #include <miopen/graphapi/rng.hpp>
 #include <miopen/graphapi/util.hpp>
+#include <miopen/graphapi/variant_pack.hpp>
 
 #include <numeric>
 #include <string>
@@ -282,7 +285,7 @@ class MhaFwdGraphTest: public testing::TestWithParam<std::tuple<int, int, int, i
     MAKE_TENSOR(SCL_S, all1s, false);
     addNode("OP_POINTWISE:MUL", {T_SCL_3, SCL_S}, {T_SCL_4});
 
-    MAKE_TENSOR(T_MM_1, nhsd), true;
+    MAKE_TENSOR(T_MM_1, nhsd, true);
     addNode("OP_MATMUL", {T_SCL_4, V}, {T_MM_1});
 
     MAKE_TENSOR(T_SCL_5, nhsd, true);
@@ -306,144 +309,21 @@ class MhaFwdGraphTest: public testing::TestWithParam<std::tuple<int, int, int, i
 #undef MAKE_TENSOR
   }
 
-  gr::OpNode* findNodeByName(const std::string& name) const {
+  gr::VariantPack makeMhaVariantPack(void* wspace_ptr) {
 
-    for (auto* n : mGraph->getNodes()) {
-      if (n->signName() == name) {
-        return n;
-      }
-    }
-    return nullptr;
-  }
+    std::vector<int64_t> tens_ids;
+    std::vector<void*> gpu_ptrs;
 
-  gr::OpNode* findOutNeighByName(gr::OpNode* node, const std::string& neigh_name) const {
-    for (auto [m,t] : mGraph->getOutEdges(node)) {
-      if (m->signName() == neigh_name) {
-        return m;
-      }
-    }
-    return nullptr;
-  }
-
-  gr::OpNode* findInNeighByName(gr::OpNode* node, const std::string& neigh_name) const {
-    for (auto [m,t] : mGraph->getInEdges(node)) {
-      if (m->signName() == neigh_name) {
-        return m;
-      }
-    }
-    return nullptr;
-  }
-
-  void extractFind20Tensors() {
-
-    std::vector<int64_t> all1s = {1ll, 1ll, 1ll, 1ll};
-
-    std::unordered_map<miopenTensorArgumentId_t, gr::Tensor*> tensor_map;
-
-    for (auto [neigh, tens_ptr] : mGraph.GetOutEdges(mGraph.GetSourceNode())) {
-
-      if (neigh->signName() == "OP_MATMUL") {
-        auto* matmul = dynamic_cast<gr::OperationMatmul*>(neigh);
-        assert(matmul);
-
-
-        if (auto* pw_prev = findInNeighByName(matmul, "OP_POINTWISE:MUL"); pw_prev  == nullptr) {
-          // this is the first matmul node
-          tensor_map[miopenTensorMhaQ] = matmul->getA();
-          tensor_map[miopenTensorMhaK] = matmul->getB();
-          // TODO: dim check on Q and K
-
-          auto* pw_0 = dynamic_cast<gr::OperationPointwise*>(findOutNeighByName(matmul, "OP_POINTWISE:MUL"));
-          assert(pw_0);
-
-          auto* attn_scl = pw_0->getB();
-          assert(attn_scl->getDims() == all1s);
-          tensor_map[miopenTensorMhaAttnScale] = attn_scl;
-
-          auto* pw_1 = dynamic_cast<gr::OperationPointwise*>(findOutNeighByName(pw_0, "OP_POINTWISE:MUL"));
-          assert(pw_1);
-          auto dscl_q = pw_1->getB();
-          assert(dscl_q->getDims() == all1s);
-          tensor_map[miopenTensorMhaDescaleQ] = dscl_q;
-
-          auto* pw_2 = dynamic_cast<gr::OperationPointwise*>(findOutNeighByName(pw_1, "OP_POINTWISE:MUL"));
-          assert(pw_2);
-          auto* dscl_k = pw_2->getB();
-          assert(dscl_k->getDims() == all1s);
-          tensor_map[miopenTensorMhaDescaleK] = dscl_k;
-
-          auto* red = dynamic_cast<gr::OperationReduction*>(findOutNeighByName(pw_2, "OP_REDUCTION:MAX"));
-          assert(red);
-          auto* m = red->getY();
-          assert(m->getDims()[2] == 1ll);
-          tensor_map[miopenTensorMhaM] = m;
-
-        } else {
-          // this is the second matmul node
-          tensor_map[miopenTensorMhaV] = matmul->getB();
-
-          auto* scl_s = pw_prev->getB();
-          assert(scl_s->getDims() == all1s);
-          tensor_map[miopenTensorMhaScaleS] = scl_s;
-
-          auto* pw_0 = dynamic_cast<gr::OperationPointwise*>(findOutNeighByName(matmul, "OP_POINTWISE:MUL"));
-          assert(pw_0);
-
-          auto* dscl_s = pw_0->getB();
-          assert(dscl_s->getDims() == all1s);
-          tensor_map[miopenTensorMhaDescaleS] = dscl_s;
-
-          auto* pw_1 = dynamic_cast<gr::OperationPointwise*>(findOutNeighByName(pw_0, "OP_POINTWISE:MUL"));
-          assert(pw_1);
-          auto* dscl_v = pw_1->getB();
-          assert(dscl_v->getDims() == all1s);
-          tensor_map[miopenTensorMhaDescaleV] = dscl_v;
-
-          auto* red = dynamic_cast<gr::OperationReduction*>(findOutNeighByName(pw_1, "OP_REDUCTION:MAX"));
-          assert(red);
-          auto* amax_o = red->getY();
-          assert(m->getDims()[2] == 1ll);
-          tensor_map[miopenTensorMhaAmaxO] = amax_o;
-
-          auto* pw_2 = dynamic_cast<gr::OperationPointwise*>(findOutNeighByName(pw_1, "OP_POINTWISE:MUL"));
-          assert(pw_2);
-          auto* scl_o = pw_2->getB();
-          assert(scl_o->getDims() == all1s);
-          tensor_map[miopenTensorMhaScaleO] = scl_o;
-
-          auto* o = pw_2->getY();
-          assert(o->getDims() == all1s);
-          tensor_map[miopenTensorMhaO] = o;
-        }
-
-      } else if (neigh->signName() == "OP_RNG") {
-        auto* rng = dynamic_cast<gr::OperationRng*>(neigh);
-        assert(rng);
-        tensor_map[miopenTensorMhaDropoutSeed] = std::get<gr::Tensor*>(rng->getSeed());
-        tensor_map[miopenTensorMhaDropoutOffset] = rng->getOffset();
-        tensor_map[miopenTensorMhaDropoutProbability] = rng->getRng()->getBernoulliProb();
-
-      }
+    for (const auto& t : mFilledTensors) {
+      tens_ids.emplace_back(t.mTensPtr->getId());
+      gpu_ptrs.emplace_back(t.mGpuBuf.get());
     }
 
-    { // discovering Z_INV and AMAX_S tensors
-      auto* exp_node = findNodeByName("OP_POINTWISE:EXP");
-      assert(exp_node);
-
-      // get exp_node's neighbor that is a Pointwise mult
-      auto* pw_mult = dynamic_cast<gr::OperationPointwise*>(findOutNeighByName(exp_node, "OP_POINTWISE:MUL"));
-      assert(pw_mult);
-
-      auto* red = dynamic_cast<gr::OperationReduction*>(findOutNeighByName(pw_mult, "OP_REDUCTION:MAX"));
-      assert(red);
-
-      tensor_map[miopenTensorMhaAmaxS] = red->getY();
-
-      auto* inv_node = dynamic_cast<gr::OperationPointwise*>(findNodeByName("OP_POINTWISE:RECIPROCAL"));
-      tensor_map[miopenTensorMhaZInv] = inv_node->getY();
-
-    }
-
+    return gr::VariantPackBuilder()
+      .setTensorIds(tens_ids)
+      .setDataPointers(gpu_ptrs)
+      .setWorkspace(wspace_ptr)
+      .build();
   }
 
 public:
@@ -460,9 +340,12 @@ public:
 
     auto plan = gr::ExecutionPlanBuilder()
       .setEngineConfig(&engine_cfg)
+      .setHandle(get_handle())
       .build();
 
-    auto variant_pack = buildMhaVariantPack(plan);
+    Workspace ws(plan.getWorkspaceSize());
+
+    auto variant_pack = makeMhaVariantPack(ws.ptr());
 
     plan.execute(variant_pack);
 

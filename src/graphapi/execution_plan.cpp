@@ -36,8 +36,6 @@ std::string ExecutionPlan::getJsonRepresentation() const
     return {};
 }
 
-void ExecutionPlan::execute(const VariantPack& variantPack) {}
-
 ExecutionPlanBuilder& ExecutionPlanBuilder::setHandle(miopenHandle_t handle) &
 {
     mExecutionPlan.mHandle = checkPtr(handle);
