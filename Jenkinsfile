@@ -480,10 +480,6 @@ pipeline {
             defaultValue: false,
             description: "")
         booleanParam(
-            name: "TARGET_GFX94X_DBSYNC",
-            defaultValue: true,
-            description: "")
-        booleanParam(
             name: "TARGET_NAVI21",
             defaultValue: false,
             description: "")
@@ -527,11 +523,19 @@ pipeline {
             name: "PERF_TEST_BRANCH_OVERRIDE",
             defaultValue: false,
             description: "Enable performance testing stages")
+        booleanParam(
+            name: "DBSYNC_TEST",
+            defaultValue: true,
+            description: "Enable database synchronization testing stages")
         string(name: "PERF_TEST_OVERRIDE",
             defaultValue: '',
             description: "Add extra env vars for the MIOpenDriver cmd, comma separated")
         string(name: "DOCKER_IMAGE_OVERRIDE",
             defaultValue: '',
+            description: "")
+        booleanParam(
+            name: "WORKAROUND__TARGET_GFX94X_MINIMUM_TEST_ENABLE",
+            defaultValue: true,
             description: "")
     }
 
@@ -676,7 +680,7 @@ pipeline {
                 stage('Fp32 Hip Debug gfx94X') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX94X }
+                        expression { params.TARGET_GFX94X || params.WORKAROUND__TARGET_GFX94X_MINIMUM_TEST_ENABLE }
                     }
                     options {
                         retry(2)
@@ -955,58 +959,58 @@ pipeline {
                 stage('Dbsync gfx908') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 }
+                        expression { params.DBSYNC_TEST && params.TARGET_GFX908 }
                     }
                     options {
                         retry(2)
                     }
                     agent{ label rocmnode("gfx908") }
-                    environment{
-                        setup_flags="-DMIOPEN_TEST_DBSYNC=1"
-                        make_targets='test_db_sync'
-                        execute_cmd='MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync'
-                    }
                     steps{
-                        buildHipClangJobAndReboot(lfs_pull: true, setup_flags: setup_flags, make_targets: make_targets, execute_cmd: execute_cmd,
-                                                        needs_gpu:false, needs_reboot:false, build_install: "true")
+                        buildHipClangJobAndReboot(lfs_pull: true,
+                                                  setup_flags: "-DMIOPEN_TEST_DBSYNC=1",
+                                                  make_targets: 'test_db_sync',
+                                                  execute_cmd: 'MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync',
+                                                  needs_gpu:false,
+                                                  needs_reboot:false,
+                                                  build_install: "true")
                     }
                 }
                 stage('Dbsync gfx90a') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX90A }
+                        expression { params.DBSYNC_TEST && params.TARGET_GFX90A }
                     }
                     options {
                         retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
-                    environment{
-                        setup_flags="-DMIOPEN_TEST_DBSYNC=1"
-                        make_targets='test_db_sync'
-                        execute_cmd='MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync'
-                    }
                     steps{
-                        buildHipClangJobAndReboot(lfs_pull: true, setup_flags: setup_flags, make_targets: make_targets, execute_cmd: execute_cmd,
-                                                        needs_gpu:false, needs_reboot:false, build_install: "true")
+                        buildHipClangJobAndReboot(lfs_pull: true,
+                                                  setup_flags: "-DMIOPEN_TEST_DBSYNC=1",
+                                                  make_targets: 'test_db_sync',
+                                                  execute_cmd: 'MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync',
+                                                  needs_gpu:false,
+                                                  needs_reboot:false,
+                                                  build_install: "true")
                     }
                 }
                 stage('Dbsync gfx942') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX94X || params.TARGET_GFX94X_DBSYNC }
+                        expression { params.DBSYNC_TEST && (params.TARGET_GFX94X || params.WORKAROUND__TARGET_GFX94X_MINIMUM_TEST_ENABLE) }
                     }
                     options {
                         retry(2)
                     }
                     agent{ label rocmnode("gfx942") }
-                    environment{
-                        setup_flags="-DMIOPEN_TEST_DBSYNC=1"
-                        make_targets='test_db_sync'
-                        execute_cmd='MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync'
-                    }
                     steps{
-                        buildHipClangJobAndReboot(lfs_pull: true, setup_flags: setup_flags, make_targets: make_targets, execute_cmd: execute_cmd,
-                                                        needs_gpu:false, needs_reboot:false, build_install: "true")
+                        buildHipClangJobAndReboot(lfs_pull: true,
+                                                  setup_flags: "-DMIOPEN_TEST_DBSYNC=1",
+                                                  make_targets: 'test_db_sync',
+                                                  execute_cmd: 'MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync',
+                                                  needs_gpu:false,
+                                                  needs_reboot:false,
+                                                  build_install: "true")
                     }
                 }
                 stage('Int8 HIP All Vega20') {
