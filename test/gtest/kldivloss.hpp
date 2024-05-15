@@ -55,7 +55,7 @@ struct KLDivLossTestCase
     friend std::ostream& operator<<(std::ostream& os, const KLDivLossTestCase& tc)
     {
         return os << " input:" << tc.input << " log_target:" << tc.log_target
-                << " divisor:" << tc.divisor;
+                  << " divisor:" << tc.divisor;
     }
 
     std::vector<size_t> GetInput() const { return input; }
@@ -111,19 +111,19 @@ struct KLDivLossTest : public ::testing::TestWithParam<KLDivLossTestCase>
 protected:
     void SetUp() override
     {
-        auto&& handle  = get_handle();
+        auto&& handle    = get_handle();
         kldivloss_config = GetParam();
 
-        log_target     = kldivloss_config.log_target;
-        divisor         = kldivloss_config.divisor;
+        log_target = kldivloss_config.log_target;
+        divisor    = kldivloss_config.divisor;
 
-        auto in_dim                    = kldivloss_config.GetInput();
+        auto in_dim     = kldivloss_config.GetInput();
         auto target_dim = in_dim;
 
         auto gen_input_value = [](auto...) {
             return prng::gen_A_to_B<T>(static_cast<T>(-10.0f), static_cast<T>(10.0f));
         };
-        
+
         auto gen_target_value = [](auto...) {
             return prng::gen_A_to_B<T>(static_cast<T>(1e-2), static_cast<T>(10.0f));
         };
@@ -132,7 +132,7 @@ protected:
         input           = tensor<T>{in_dim, in_strides}.generate(gen_input_value);
 
         auto tar_strides = GetStrides(target_dim, true);
-        target          = tensor<T>{target_dim, tar_strides}.generate(gen_target_value);
+        target           = tensor<T>{target_dim, tar_strides}.generate(gen_target_value);
 
         auto out_dim     = divisor == 0.f ? in_dim : std::vector<size_t>{1};
         auto out_strides = GetStrides(out_dim, true);
@@ -181,13 +181,13 @@ protected:
             cpu_kldivloss_forward_5d<T>(input, target, ref_output, log_target);
 
             status = miopen::KLDivLossUnreducedForward(handle,
-                                                    input.desc,
-                                                    input_dev.get(),
-                                                    target.desc,
-                                                    target_dev.get(),
-                                                    output.desc,
-                                                    output_dev.get(),
-                                                    log_target);
+                                                       input.desc,
+                                                       input_dev.get(),
+                                                       target.desc,
+                                                       target_dev.get(),
+                                                       output.desc,
+                                                       output_dev.get(),
+                                                       log_target);
         }
         else
         {
@@ -330,7 +330,8 @@ protected:
 //         }
 //         else
 //         {
-//             cpu_nllloss_backward_4d<T>(ref_input_grad, target, weight, output_grad, ignore_index);
+//             cpu_nllloss_backward_4d<T>(ref_input_grad, target, weight, output_grad,
+//             ignore_index);
 
 //             status = miopen::KLDivLossUnreducedBackward(handle,
 //                                                      input_grad.desc,
@@ -353,8 +354,9 @@ protected:
 //     {
 //         double threshold = std::numeric_limits<T>::epsilon();
 //         auto error       = miopen::rms_range(ref_input_grad, input_grad);
-//         EXPECT_TRUE(miopen::range_distance(ref_input_grad) == miopen::range_distance(input_grad));
-//         EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance Error:" << error
+//         EXPECT_TRUE(miopen::range_distance(ref_input_grad) ==
+//         miopen::range_distance(input_grad)); EXPECT_TRUE(error < threshold * 10) << "Error output
+//         beyond tolerance Error:" << error
 //                                             << ",  Thresholdx10: " << threshold * 10;
 //     }
 //     KLDivLossTestCase kldivloss_config;

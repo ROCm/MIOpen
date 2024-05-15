@@ -47,10 +47,12 @@ bool KLDivLossUnreducedForward::IsApplicable(
     const ExecutionContext& /*context*/,
     const miopen::kldivloss::UnreducedProblemDescription& problem) const
 {
-    if(!problem.IsValidLength()) {
+    if(!problem.IsValidLength())
+    {
         return false;
     }
-    if(!problem.IsValidStride()) {
+    if(!problem.IsValidStride())
+    {
         return false;
     }
 

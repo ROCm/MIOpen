@@ -49,12 +49,12 @@
 
 template <typename TI, typename TO>
 __device__ void kldivLossUnreducedForward5d(const TI* __restrict__ input,
-                                          const TI* __restrict__ target,
-                                          TO* __restrict__ output,
-                                          bool log_target,
-                                          tensor_view_5d_t input_tv,
-                                          tensor_view_5d_t target_tv,
-                                          tensor_view_5d_t output_tv)
+                                            const TI* __restrict__ target,
+                                            TO* __restrict__ output,
+                                            bool log_target,
+                                            tensor_view_5d_t input_tv,
+                                            tensor_view_5d_t target_tv,
+                                            tensor_view_5d_t output_tv)
 {
     uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -68,28 +68,31 @@ __device__ void kldivLossUnreducedForward5d(const TI* __restrict__ input,
     size_t Tidx = TV5D_IDX(target_tv, n[0], n[1], n[2], n[3], n[4]);
     size_t Oidx = TV5D_IDX(output_tv, n[0], n[1], n[2], n[3], n[4]);
 
-    FLOAT_ACCUM input_value = CVT_FLOAT2ACCUM(input[Iidx]);
+    FLOAT_ACCUM input_value  = CVT_FLOAT2ACCUM(input[Iidx]);
     FLOAT_ACCUM target_value = CVT_FLOAT2ACCUM(target[Tidx]);
     FLOAT_ACCUM forward_output;
 
-    if (log_target) {
-        forward_output = exp(target_value)
-                                    * (target_value - input_value);
-        output[Oidx] = isnan(forward_output) ? CVT_FP32_2FLOAT(0.0f) : CVT_ACCUM2FLOAT(forward_output);
-    } else {
-        forward_output = target_value 
-                                    * (log(target_value) - input_value);
-        output[Oidx] = isnan(forward_output) ? CVT_FP32_2FLOAT(0.0f) : CVT_ACCUM2FLOAT(forward_output);
+    if(log_target)
+    {
+        forward_output = exp(target_value) * (target_value - input_value);
+        output[Oidx] =
+            isnan(forward_output) ? CVT_FP32_2FLOAT(0.0f) : CVT_ACCUM2FLOAT(forward_output);
+    }
+    else
+    {
+        forward_output = target_value * (log(target_value) - input_value);
+        output[Oidx] =
+            isnan(forward_output) ? CVT_FP32_2FLOAT(0.0f) : CVT_ACCUM2FLOAT(forward_output);
     }
 }
 
 extern "C" __global__ void KLDivLossUnreducedForward5d(const INPUT_TYPE* __restrict__ input,
-                                                     const INPUT_TYPE* __restrict__ target,
-                                                     OUTPUT_TYPE* __restrict__ output,
-                                                     bool log_target,
-                                                     tensor_view_5d_t input_tv,
-                                                     tensor_view_5d_t target_tv,
-                                                     tensor_view_5d_t output_tv)
+                                                       const INPUT_TYPE* __restrict__ target,
+                                                       OUTPUT_TYPE* __restrict__ output,
+                                                       bool log_target,
+                                                       tensor_view_5d_t input_tv,
+                                                       tensor_view_5d_t target_tv,
+                                                       tensor_view_5d_t output_tv)
 {
     kldivLossUnreducedForward5d<INPUT_TYPE, OUTPUT_TYPE>(
         input, target, output, log_target, input_tv, target_tv, output_tv);

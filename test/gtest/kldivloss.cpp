@@ -112,8 +112,12 @@ TEST_P(KLDivLossTestBFloat16, KLDivLossTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet, KLDivLossTestFloat, testing::ValuesIn(KLDivLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet, KLDivLossTestHalf, testing::ValuesIn(KLDivLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet,
+                         KLDivLossTestFloat,
+                         testing::ValuesIn(KLDivLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet,
+                         KLDivLossTestHalf,
+                         testing::ValuesIn(KLDivLossTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet,
                          KLDivLossTestBFloat16,
                          testing::ValuesIn(KLDivLossTestConfigs()));

@@ -35,13 +35,13 @@ struct Handle;
 struct TensorDescriptor;
 
 miopenStatus_t KLDivLossUnreducedForward(Handle& handle,
-                                      const TensorDescriptor& inputDesc,
-                                      ConstData_t input,
-                                      const TensorDescriptor& targetDesc,
-                                      ConstData_t target,
-                                      const TensorDescriptor& outputDesc,
-                                      Data_t output,
-                                      bool log_target);
+                                         const TensorDescriptor& inputDesc,
+                                         ConstData_t input,
+                                         const TensorDescriptor& targetDesc,
+                                         ConstData_t target,
+                                         const TensorDescriptor& outputDesc,
+                                         Data_t output,
+                                         bool log_target);
 
 // size_t GetKLDivLossReducedForwardWorkspaceSize(Handle& handle,
 //                                             const TensorDescriptor& inputDesc,

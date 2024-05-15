@@ -34,16 +34,16 @@
 namespace miopen {
 
 miopenStatus_t KLDivLossUnreducedForward(Handle& handle,
-                                      const TensorDescriptor& inputDesc,
-                                      ConstData_t input,
-                                      const TensorDescriptor& targetDesc,
-                                      ConstData_t target,
-                                      const TensorDescriptor& outputDesc,
-                                      Data_t output,
-                                      bool log_target)
+                                         const TensorDescriptor& inputDesc,
+                                         ConstData_t input,
+                                         const TensorDescriptor& targetDesc,
+                                         ConstData_t target,
+                                         const TensorDescriptor& outputDesc,
+                                         Data_t output,
+                                         bool log_target)
 {
-    const auto problem = kldivloss::UnreducedProblemDescription{
-        inputDesc, targetDesc, outputDesc, log_target, true};
+    const auto problem =
+        kldivloss::UnreducedProblemDescription{inputDesc, targetDesc, outputDesc, log_target, true};
 
     const auto invoke_params = [&]() {
         auto tmp       = kldivloss::InvokeParams{};
@@ -51,11 +51,11 @@ miopenStatus_t KLDivLossUnreducedForward(Handle& handle,
         tmp.targetDesc = &targetDesc;
         tmp.outputDesc = &outputDesc;
 
-        tmp.input        = input;
-        tmp.target       = target;
-        tmp.output       = output;
-        
-        tmp.log_target   = log_target;
+        tmp.input  = input;
+        tmp.target = target;
+        tmp.output = output;
+
+        tmp.log_target = log_target;
         return tmp;
     }();
 
@@ -75,7 +75,8 @@ miopenStatus_t KLDivLossUnreducedForward(Handle& handle,
 // {
 //     auto ctx = ExecutionContext{&handle};
 //     const auto problem =
-//         nllloss::ReducedProblemDescription{inputDesc, targetDesc, weightDesc, outputDesc, -1, true};
+//         nllloss::ReducedProblemDescription{inputDesc, targetDesc, weightDesc, outputDesc, -1,
+//         true};
 
 //     const auto algo    = AlgorithmName{"NLLLossReducedForward"};
 //     const auto solvers = solver::SolverContainer<solver::nllloss::NLLLossReducedForward4d>{};
@@ -157,7 +158,8 @@ miopenStatus_t KLDivLossUnreducedForward(Handle& handle,
 //         return tmp;
 //     }();
 //     const auto algo    = AlgorithmName{"NLLLossUnreducedBackward"};
-//     const auto solvers = solver::SolverContainer<solver::nllloss::NLLLossUnreducedBackwardContiguous,
+//     const auto solvers =
+//     solver::SolverContainer<solver::nllloss::NLLLossUnreducedBackwardContiguous,
 //                                                  solver::nllloss::NLLLossUnreducedBackward4d>{};
 
 //     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);

@@ -30,10 +30,7 @@
 #include <miopen/tensor_view.hpp>
 
 template <class T>
-void cpu_kldivloss_forward_5d(tensor<T> input,
-                            tensor<T> target,
-                            tensor<T>& output,
-                            bool log_target)
+void cpu_kldivloss_forward_5d(tensor<T> input, tensor<T> target, tensor<T>& output, bool log_target)
 {
     auto I_tv = get_inner_expanded_tv_5d(input.desc);
     auto T_tv = get_inner_expanded_tv_5d(target.desc);
@@ -43,7 +40,7 @@ void cpu_kldivloss_forward_5d(tensor<T> input,
     {
         uint64_t n[5];
         GET_NCDHW(n[0], n[1], n[2], n[3], n[4], i, O_tv);
-        size_t Iidx  = TV5D_IDX(I_tv, n[0], n[1], n[2], n[3], n[4]);
+        size_t Iidx = TV5D_IDX(I_tv, n[0], n[1], n[2], n[3], n[4]);
         size_t Tidx = TV5D_IDX(T_tv, n[0], n[1], n[2], n[3], n[4]);
         size_t Oidx = TV5D_IDX(O_tv, n[0], n[1], n[2], n[3], n[4]);
 
@@ -51,9 +48,12 @@ void cpu_kldivloss_forward_5d(tensor<T> input,
         T target_value = target[Tidx];
         T forward_output;
 
-        if (log_target) {
+        if(log_target)
+        {
             forward_output = static_cast<T>(exp(target_value)) * (target_value - input_value);
-        } else {
+        }
+        else
+        {
             forward_output = target_value * (static_cast<T>(log(target_value)) - input_value);
         }
         output[Oidx] = std::isnan(forward_output) ? 0.0f : forward_output;

@@ -6601,14 +6601,15 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
  * @param log_target               Specifies whether target is the log space (input)
  * @return                         miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t miopenKLDivLossUnreducedForward(miopenHandle_t handle,
-                                                            const miopenTensorDescriptor_t inputDesc,
-                                                            const void* input,
-                                                            const miopenTensorDescriptor_t targetDesc,
-                                                            const void* target,
-                                                            const miopenTensorDescriptor_t outputDesc,
-                                                            void* output,
-                                                            bool log_target);
+MIOPEN_EXPORT miopenStatus_t
+miopenKLDivLossUnreducedForward(miopenHandle_t handle,
+                                const miopenTensorDescriptor_t inputDesc,
+                                const void* input,
+                                const miopenTensorDescriptor_t targetDesc,
+                                const void* target,
+                                const miopenTensorDescriptor_t outputDesc,
+                                void* output,
+                                bool log_target);
 
 // /*! @brief Execute a kldivloss reduced forward layer
 //  *
@@ -6624,14 +6625,13 @@ MIOPEN_EXPORT miopenStatus_t miopenKLDivLossUnreducedForward(miopenHandle_t hand
 //  * @return                         miopenStatus_t
 //  */
 // MIOPEN_EXPORT miopenStatus_t miopenKLDivLossReducedForward(miopenHandle_t handle,
-//                                                            const miopenTensorDescriptor_t inputDesc,
-//                                                            const void* input,
-//                                                            const miopenTensorDescriptor_t targetDesc,
+//                                                            const miopenTensorDescriptor_t
+//                                                            inputDesc, const void* input, const
+//                                                            miopenTensorDescriptor_t targetDesc,
 //                                                            const void* target,
-//                                                            const miopenTensorDescriptor_t outputDesc,
-//                                                            void* output,
-//                                                            bool log_target,
-//                                                            float divisor);
+//                                                            const miopenTensorDescriptor_t
+//                                                            outputDesc, void* output, bool
+//                                                            log_target, float divisor);
 /** @} */
 // CLOSEOUT KLDivLoss DOXYGEN GROUP
 #endif // MIOPEN_BETA_API

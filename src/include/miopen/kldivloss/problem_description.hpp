@@ -75,12 +75,12 @@ struct ProblemDescription : ProblemDescriptionBase
         }
         if(inputDesc.GetSize() > 5)
         {
-            #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-                MIOPEN_THROW(miopenStatusBadParm, "KLDivLoss: Input tensor size > 5 is not supported.");
-            #else
-                            return false;
-            #endif
-                    }
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+            MIOPEN_THROW(miopenStatusBadParm, "KLDivLoss: Input tensor size > 5 is not supported.");
+#else
+            return false;
+#endif
+        }
         return true;
     }
 
@@ -110,7 +110,7 @@ struct ProblemDescription : ProblemDescriptionBase
         };
         return isRightStride(inputDesc) && isRightStride(targetDesc) && isRightStride(outputDesc);
     }
-    
+
 protected:
     TensorDescriptor inputDesc;
     TensorDescriptor targetDesc;
@@ -125,12 +125,11 @@ protected:
 struct UnreducedProblemDescription : ProblemDescription
 {
     UnreducedProblemDescription(const TensorDescriptor& inputDesc_,
-                               const TensorDescriptor& targetDesc_,
-                               const TensorDescriptor& outputDesc_,
-                               bool log_target_,
-                               bool is_fwd_)
-        : ProblemDescription(
-              inputDesc_, targetDesc_, outputDesc_, log_target_, is_fwd_)
+                                const TensorDescriptor& targetDesc_,
+                                const TensorDescriptor& outputDesc_,
+                                bool log_target_,
+                                bool is_fwd_)
+        : ProblemDescription(inputDesc_, targetDesc_, outputDesc_, log_target_, is_fwd_)
     {
         IsValidLength();
     }
@@ -144,12 +143,11 @@ private:
 struct ReducedProblemDescription : ProblemDescription
 {
     ReducedProblemDescription(const TensorDescriptor& inputDesc_,
-                             const TensorDescriptor& targetDesc_,
-                             const TensorDescriptor& outputDesc_,
-                             bool log_target_,
-                             bool is_fwd_)
-        : ProblemDescription(
-              inputDesc_, targetDesc_, outputDesc_, log_target_, is_fwd_)
+                              const TensorDescriptor& targetDesc_,
+                              const TensorDescriptor& outputDesc_,
+                              bool log_target_,
+                              bool is_fwd_)
+        : ProblemDescription(inputDesc_, targetDesc_, outputDesc_, log_target_, is_fwd_)
     {
         IsValidLength();
     }

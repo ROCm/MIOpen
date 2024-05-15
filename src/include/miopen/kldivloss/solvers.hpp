@@ -66,7 +66,8 @@ using KLDivLossReducedSolver =
 // struct KLDivLossUnreducedForwardSolver : KLDivLossSolver
 // {
 //     bool IsApplicable(const ExecutionContext& context,
-//                       const miopen::kldivloss::UnreducedProblemDescription& problem) const override;
+//                       const miopen::kldivloss::UnreducedProblemDescription& problem) const
+//                       override;
 // };
 
 struct KLDivLossUnreducedForward final : KLDivLossSolver
@@ -88,7 +89,8 @@ struct KLDivLossUnreducedForward final : KLDivLossSolver
 // struct KLDivLossReducedForwardSolver : KLDivLossReducedSolver
 // {
 //     bool IsApplicable(const ExecutionContext& context,
-//                       const miopen::kldivloss::ReducedProblemDescription& problem) const override;
+//                       const miopen::kldivloss::ReducedProblemDescription& problem) const
+//                       override;
 // };
 
 // struct KLDivLossReducedForward final : KLDivLossReducedForwardSolver
@@ -99,7 +101,8 @@ struct KLDivLossUnreducedForward final : KLDivLossSolver
 //     }
 
 //     bool IsApplicable(const ExecutionContext& context,
-//                       const miopen::kldivloss::ReducedProblemDescription& problem) const override;
+//                       const miopen::kldivloss::ReducedProblemDescription& problem) const
+//                       override;
 //     ConvSolution
 //     GetSolution(const ExecutionContext& context,
 //                 const miopen::kldivloss::ReducedProblemDescription& problem) const override;
@@ -113,7 +116,8 @@ struct KLDivLossUnreducedForward final : KLDivLossSolver
 // struct NLLLossUnreducedBackwardSolver : KLDivLossSolver
 // {
 //     bool IsApplicable(const ExecutionContext& context,
-//                       const miopen::kldivloss::UnreducedProblemDescription& problem) const override;
+//                       const miopen::kldivloss::UnreducedProblemDescription& problem) const
+//                       override;
 // };
 
 // struct NLLLossUnreducedBackwardContiguous final : NLLLossUnreducedBackwardSolver
@@ -124,7 +128,8 @@ struct KLDivLossUnreducedForward final : KLDivLossSolver
 //     }
 
 //     bool IsApplicable(const ExecutionContext& context,
-//                       const miopen::kldivloss::UnreducedProblemDescription& problem) const override;
+//                       const miopen::kldivloss::UnreducedProblemDescription& problem) const
+//                       override;
 
 //     ConvSolution
 //     GetSolution(const ExecutionContext& context,
@@ -139,7 +144,8 @@ struct KLDivLossUnreducedForward final : KLDivLossSolver
 //     }
 
 //     bool IsApplicable(const ExecutionContext& context,
-//                       const miopen::kldivloss::UnreducedProblemDescription& problem) const override;
+//                       const miopen::kldivloss::UnreducedProblemDescription& problem) const
+//                       override;
 
 //     ConvSolution
 //     GetSolution(const ExecutionContext& context,
@@ -155,7 +161,8 @@ struct KLDivLossUnreducedForward final : KLDivLossSolver
 //     }
 
 //     bool IsApplicable(const ExecutionContext& context,
-//                       const miopen::kldivloss::ReducedProblemDescription& problem) const override;
+//                       const miopen::kldivloss::ReducedProblemDescription& problem) const
+//                       override;
 //     ConvSolution
 //     GetSolution(const ExecutionContext& context,
 //                 const miopen::kldivloss::ReducedProblemDescription& problem) const override;

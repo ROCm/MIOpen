@@ -63,22 +63,16 @@ static void LogCmdKLDivLoss(const miopenTensorDescriptor_t xDesc, bool is_fwd)
 }
 
 extern "C" miopenStatus_t miopenKLDivLossUnreducedForward(miopenHandle_t handle,
-                                                       const miopenTensorDescriptor_t inputDesc,
-                                                       const void* input,
-                                                       const miopenTensorDescriptor_t targetDesc,
-                                                       const void* target,
-                                                       const miopenTensorDescriptor_t outputDesc,
-                                                       void* output,
-                                                       bool log_target)
+                                                          const miopenTensorDescriptor_t inputDesc,
+                                                          const void* input,
+                                                          const miopenTensorDescriptor_t targetDesc,
+                                                          const void* target,
+                                                          const miopenTensorDescriptor_t outputDesc,
+                                                          void* output,
+                                                          bool log_target)
 {
-    MIOPEN_LOG_FUNCTION(handle,
-                        inputDesc,
-                        input,
-                        targetDesc,
-                        target,
-                        outputDesc,
-                        output,
-                        log_target);
+    MIOPEN_LOG_FUNCTION(
+        handle, inputDesc, input, targetDesc, target, outputDesc, output, log_target);
 
     LogCmdKLDivLoss(inputDesc, true);
     return miopen::try_([&] {
@@ -90,7 +84,7 @@ extern "C" miopenStatus_t miopenKLDivLossUnreducedForward(miopenHandle_t handle,
                                           miopen::deref(outputDesc),
                                           DataCast(output),
                                           log_target);
-            });
+    });
 }
 
 // extern "C" miopenStatus_t
@@ -199,13 +193,13 @@ extern "C" miopenStatus_t miopenKLDivLossUnreducedForward(miopenHandle_t handle,
 // }
 
 // extern "C" miopenStatus_t miopenNLLLossReducedBackward(miopenHandle_t handle,
-//                                                       const miopenTensorDescriptor_t inputGradDesc,
-//                                                       void* input_grad,
-//                                                       const miopenTensorDescriptor_t targetDesc,
-//                                                       const void* target,
-//                                                       const miopenTensorDescriptor_t weightDesc,
-//                                                       const void* weight,
-//                                                       const miopenTensorDescriptor_t outputGradDesc,
+//                                                       const miopenTensorDescriptor_t
+//                                                       inputGradDesc, void* input_grad, const
+//                                                       miopenTensorDescriptor_t targetDesc, const
+//                                                       void* target, const
+//                                                       miopenTensorDescriptor_t weightDesc, const
+//                                                       void* weight, const
+//                                                       miopenTensorDescriptor_t outputGradDesc,
 //                                                       void* output_grad,
 //                                                       const int32_t ignore_index,
 //                                                       const float divisor)
