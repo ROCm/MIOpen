@@ -84,6 +84,12 @@ private:
     miopenBackendDescriptor_t mOpGraphDescriptor = nullptr;
 
 public:
+    BackendEngineDescriptor() = default;
+    BackendEngineDescriptor(const Engine& engine, miopenBackendDescriptor_t opGraphDescriptor)
+        : mEngine(engine), mOpGraphDescriptor(opGraphDescriptor)
+    {
+    }
+
     void setAttribute(miopenBackendAttributeName_t attributeName,
                       miopenBackendAttributeType_t attributeType,
                       int64_t elementCount,

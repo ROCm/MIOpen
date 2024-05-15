@@ -204,8 +204,7 @@ static void ShrinkToFind10Results(std::vector<PerfField>& found)
 
 static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx,
                                                      const conv::ProblemDescription& problem,
-                                                     const AnyInvokeParams& invoke_ctx,
-                                                     const int requestAlgoCount)
+                                                     const AnyInvokeParams& invoke_ctx)
 {
     auto results         = std::vector<PerfField>{};
     auto sol             = boost::optional<miopenConvSolution_t>{};
@@ -215,16 +214,7 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
     if(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
         auto fallback = bool{};
-        auto sols     = conv.GetSolutions(ctx, problem, requestAlgoCount, &fallback);
-
-        // Remove solutions for which the given workspace size is insufficient
-        sols.erase(std::remove_if(sols.begin(),
-                                  sols.end(),
-                                  [&](const miopenConvSolution_t& entry) {
-                                      return invoke_ctx.GetWorkspaceSize() < entry.workspace_size;
-                                  }),
-                   sols.end());
-
+        auto sols     = conv.GetSolutions(ctx, problem, 1, &fallback, &invoke_ctx);
         // override the normal find with immed mode with env var
         if(!sols.empty() && (!(findMode.IsHybrid(ctx) && fallback) ||
                              miopen::IsEnabled(ENV(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK))))
@@ -252,7 +242,8 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
             const auto params =
                 conv::ConvFindParameters{conv.IsWinograd3x3SupportedAndFast(ctx_copy, problem)};
 
-            FindCore(invoke_ctx, record, ctx_copy, problem, params, conv::GetConvSolverFinders());
+            return FindCore(
+                invoke_ctx, record, ctx_copy, problem, params, conv::GetConvSolverFinders());
         });
     }
 
@@ -313,7 +304,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                                    workSpaceSize,
                                                    attribute.gfx90aFp16alt.GetFwd()};
 
-    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount);
+    const auto results = FindConvolution(ctx, problem, invoke_ctx);
 
     if(results.empty())
     {
@@ -631,7 +622,8 @@ struct SolutionTimeComparator
 std::vector<miopenConvSolution_t>
 ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
                                             const conv::ProblemDescription& problem,
-                                            const size_t maxSolutionCount) const
+                                            const size_t maxSolutionCount,
+                                            const AnyInvokeParams* const invokeParams) const
 {
     if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)))
     {
@@ -673,8 +665,11 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
                     continue; // branch should never be taken
                 if(!sol.IsApplicable(ctx, problem))
                     continue;
-                interim.emplace_back(miopenConvSolution_t{
-                    ai_time(idx), sol.GetWorkspaceSize(ctx, problem), solver_id.Value(), algo});
+                const auto ws = sol.GetWorkspaceSize(ctx, problem);
+                if(!conv::IsEnoughWorkspace("GetSolutionsFallback AI", solver_id, ws, invokeParams))
+                    continue;
+                interim.emplace_back(
+                    miopenConvSolution_t{ai_time(idx), ws, solver_id.Value(), algo});
                 ++idx;
             }
         }
@@ -704,13 +699,15 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
             // Let's allow non-dynamic later, if necessary.
             if(s.IsEmpty() || !s.IsDynamic() || !s.IsApplicable(ctx, problem))
                 continue;
+            const auto ws = s.GetWorkspaceSize(ctx, problem);
+            if(!conv::IsEnoughWorkspace("GetSolutionsFallback WTI", solver_id, ws, invokeParams))
+                continue;
 
             const auto wti = s.GetWti(ctx, problem);
             MIOPEN_LOG_I2(solver_id.ToString() << " Estimated WTI = " << wti);
             if(wti < 0.0f) // Skip unknown WTIs.
                 continue;
-            interim.emplace_back(miopenConvSolution_t{
-                wti2time(wti), s.GetWorkspaceSize(ctx, problem), solver_id.Value(), algo});
+            interim.emplace_back(miopenConvSolution_t{wti2time(wti), ws, solver_id.Value(), algo});
         }
     }
     MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount << ", available = " << interim.size());
@@ -730,7 +727,8 @@ namespace {
 
 std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& ctx,
                                                const conv::ProblemDescription& problem,
-                                               const size_t maxSolutionCount)
+                                               const size_t maxSolutionCount,
+                                               const AnyInvokeParams* const invokeParams)
 {
     auto algo_resolver = std::function<int(const std::string&)>{};
 
@@ -758,6 +756,10 @@ std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& ctx,
             continue;
 
         const auto solver_id = solver::Id{pair.first};
+
+        if(!conv::IsEnoughWorkspace("GetSolutions", solver_id, pair.second.workspace, invokeParams))
+            continue;
+
         // Wrong IDs can't be used to call IsApplicable(), so let's
         // ignore obsolete or invalid IDs read from find-db first.
         if(!solver_id.IsValid())
@@ -797,10 +799,11 @@ std::vector<miopenConvSolution_t>
 ConvolutionDescriptor::GetSolutions(const ExecutionContext& ctx,
                                     const conv::ProblemDescription& problem,
                                     size_t maxSolutionCount,
-                                    bool* fallbackPathTaken) const
+                                    bool* fallbackPathTaken,
+                                    const AnyInvokeParams* const invokeParams) const
 {
     MIOPEN_LOG_I("");
-    auto solutions = miopen::GetSolutions(ctx, problem, maxSolutionCount);
+    auto solutions = miopen::GetSolutions(ctx, problem, maxSolutionCount, invokeParams);
 
     if(fallbackPathTaken != nullptr)
         *fallbackPathTaken = solutions.empty();
@@ -808,7 +811,7 @@ ConvolutionDescriptor::GetSolutions(const ExecutionContext& ctx,
     if(!solutions.empty())
         return solutions;
 
-    return GetSolutionsFallback(ctx, problem, maxSolutionCount);
+    return GetSolutionsFallback(ctx, problem, maxSolutionCount, invokeParams);
 }
 
 std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handle,
@@ -919,7 +922,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                                    workSpaceSize,
                                                    this->attribute.gfx90aFp16alt.GetBwd()};
 
-    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount);
+    const auto results = FindConvolution(ctx, problem, invoke_ctx);
 
     if(results.empty())
     {
@@ -1136,7 +1139,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                   workSpaceSize,
                                                   attribute.gfx90aFp16alt.GetWrW()};
 
-    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount);
+    const auto results = FindConvolution(ctx, problem, invoke_ctx);
 
     if(results.empty())
     {

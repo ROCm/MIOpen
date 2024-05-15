@@ -228,7 +228,10 @@ void BackendExecutionPlanDescriptor::getAttribute(miopenBackendAttributeName_t a
             const auto& vec = mExecutionPlan.getIntermediateIds();
             *elementCount   = vec.size();
             std::copy_n(vec.begin(),
-                        std::min(requestedElementCount, *elementCount),
+                        // WORKAROUND: building on Windows is failing due to conflicting definitions
+                        // of std::min() between the MSVC standard library and HIP Clang wrappers.
+                        requestedElementCount < *elementCount ? requestedElementCount
+                                                              : *elementCount,
                         static_cast<int64_t*>(arrayOfElements));
         }
         else
@@ -243,7 +246,10 @@ void BackendExecutionPlanDescriptor::getAttribute(miopenBackendAttributeName_t a
             std::string s = mExecutionPlan.getJsonRepresentation();
             *elementCount = s.size() + 1;
             std::copy_n(s.c_str(),
-                        std::min(requestedElementCount, *elementCount),
+                        // WORKAROUND: building on Windows is failing due to conflicting definitions
+                        // of std::min() between the MSVC standard library and HIP Clang wrappers.
+                        requestedElementCount < *elementCount ? requestedElementCount
+                                                              : *elementCount,
                         static_cast<char*>(arrayOfElements));
         }
         else

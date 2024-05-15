@@ -23,17 +23,17 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "argmax_driver.hpp"
+#include "t5layernorm_driver.hpp"
 #include "registry_driver_maker.hpp"
 
 static Driver* makeDriver(const std::string& base_arg)
 {
-    if(base_arg == "argmax")
-        return new ArgmaxDriver<float, float>();
-    if(base_arg == "argmaxfp16")
-        return new ArgmaxDriver<float16, float>();
-    if(base_arg == "argmaxbfp16")
-        return new ArgmaxDriver<bfloat16, float>();
+    if(base_arg == "t5layernorm")
+        return new T5LayerNormDriver<float, float>();
+    if(base_arg == "t5layernormfp16")
+        return new T5LayerNormDriver<float16, float>();
+    if(base_arg == "t5layernormbfp16")
+        return new T5LayerNormDriver<bfloat16, float>();
     return nullptr;
 }
 

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,13 +24,13 @@
  *
  *******************************************************************************/
 
-#include "argmax.hpp"
+#include "addlayernorm.hpp"
 #include <miopen/env.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-namespace argmax {
+namespace addlayernorm {
 
 std::string GetFloatArg()
 {
@@ -42,15 +42,24 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct ArgmaxTestFloat : ArgmaxTest<float>
+struct AddLayerNormTestFloat : AddLayerNormTest<float>
 {
 };
 
-} // namespace argmax
-using namespace argmax;
-
-TEST_P(ArgmaxTestFloat, ArgmaxTestFw)
+struct AddLayerNormTestHalf : AddLayerNormTest<half_float::half>
 {
+};
+
+struct AddLayerNormTestBFloat16 : AddLayerNormTest<bfloat16>
+{
+};
+
+} // namespace addlayernorm
+using namespace addlayernorm;
+
+TEST_P(AddLayerNormTestFloat, AddLayerNormTestFw)
+{
+    auto TypeArg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
     if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
     {
         RunTest();
@@ -62,4 +71,40 @@ TEST_P(ArgmaxTestFloat, ArgmaxTestFw)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ArgmaxTestSet, ArgmaxTestFloat, testing::ValuesIn(ArgmaxTestConfigs()));
+TEST_P(AddLayerNormTestHalf, AddLayerNormTestFw)
+{
+    auto TypeArg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(AddLayerNormTestBFloat16, AddLayerNormTestFw)
+{
+    auto TypeArg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(AddLayerNormTestSet,
+                         AddLayerNormTestFloat,
+                         testing::ValuesIn(AddLayerNormTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(AddLayerNormTestSet,
+                         AddLayerNormTestHalf,
+                         testing::ValuesIn(AddLayerNormTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(AddLayerNormTestSet,
+                         AddLayerNormTestBFloat16,
+                         testing::ValuesIn(AddLayerNormTestConfigs()));

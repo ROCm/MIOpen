@@ -56,10 +56,11 @@ int32_t mloLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
     auto dims         = miopen::deref(inputDesc).GetLengths();
     size_t outer_size = 1;
     size_t inner_size = 1;
+    size_t norm_dim   = static_cast<size_t>(normalized_dim);
 
     for(size_t i = 0ULL; i < dims.size(); ++i)
     {
-        if(i < normalized_dim)
+        if(i < norm_dim)
             outer_size *= dims[i];
         else
             inner_size *= dims[i];
@@ -87,8 +88,9 @@ int32_t mloLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
 
         for(int32_t i = 0; i < inner_size; i++)
         {
-            Tcheck pweight = mode ? static_cast<Tcheck>(weight[i]) : 1;
-            Tcheck pbias   = mode ? static_cast<Tcheck>(bias[i]) : 0;
+            Tcheck pweight =
+                (mode == MIOPEN_ELEMENTWISE_AFFINE) ? 1 : static_cast<Tcheck>(weight[i]);
+            Tcheck pbias = (mode == MIOPEN_ELEMENTWISE_AFFINE) ? 0 : static_cast<Tcheck>(bias[i]);
             outputhost[o * inner_size + i] =
                 (static_cast<Tcheck>(input[o * inner_size + i]) - pmean) * prstd * pweight + pbias;
         }
@@ -190,9 +192,14 @@ int LayerNormDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int LayerNormDriver<Tgpu, Tref>::GetandSetData()
 {
-    std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
+    auto inTensorParam = inflags.GetValueTensor("input");
+
+    auto in_len = inTensorParam.lengths;
 
     dim = inflags.GetValueInt("normalized_dim");
+
+    MIOPEN_THROW_IF(dim < 0 || static_cast<size_t>(dim) >= in_len.size(),
+                    "normalized_dim out of range");
 
     std::vector<int> inner_len;
     if(dim == in_len.size())
@@ -206,12 +213,23 @@ int LayerNormDriver<Tgpu, Tref>::GetandSetData()
     else
         outer_len = {in_len.begin(), in_len.end() - (in_len.size() - dim)};
 
-    SetTensorNd(inputDesc, in_len, data_type);
-    SetTensorNd(weightDesc, inner_len, data_type);
-    SetTensorNd(biasDesc, inner_len, data_type);
-    SetTensorNd(outputDesc, in_len, data_type);
-    SetTensorNd(meanDesc, outer_len, data_type);
-    SetTensorNd(rstdDesc, outer_len, data_type);
+    if(SetTensorNd(inputDesc, in_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input") + ".");
+
+    if(SetTensorNd(weightDesc, inner_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting weight tensor.");
+
+    if(SetTensorNd(biasDesc, inner_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting bias tensor.");
+
+    if(SetTensorNd(outputDesc, in_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting doutput tensor.");
+
+    if(SetTensorNd(meanDesc, outer_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting mean tensor.");
+
+    if(SetTensorNd(rstdDesc, outer_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting rstd tensor.");
 
     eps  = static_cast<double>(inflags.GetValueDouble("eps"));
     mode = miopenNormMode_t(inflags.GetValueInt("mode"));
@@ -223,11 +241,7 @@ template <typename Tgpu, typename Tref>
 int LayerNormDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward LayerNorm (Default=1)", "int");
-    inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
-    inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
-    inflags.AddInputFlag("in_d", 'D', "0", "Input Depth (Default=0)", "int");
-    inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
-    inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
+    inflags.AddTensorFlag("input", 'X', "100x3x32x32", "input tensor descriptor");
 
     inflags.AddInputFlag("eps", 'e', "0.00001", "Alpha (Default=0.00001)", "double");
     inflags.AddInputFlag("normalized_dim", 'o', "3", "Nomalized Dim (Default=3)", "int");
@@ -244,54 +258,17 @@ int LayerNormDriver<Tgpu, Tref>::AddCmdLineArgs()
 }
 
 template <typename Tgpu, typename Tref>
-std::vector<int> LayerNormDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
-{
-    int in_n = inflags.GetValueInt("batchsize");
-    int in_c = inflags.GetValueInt("in_channels");
-    int in_w = inflags.GetValueInt("in_w");
-    int in_h = inflags.GetValueInt("in_h");
-    int in_d = inflags.GetValueInt("in_d");
-
-    if((in_n != 0) && (in_c != 0) && (in_d != 0) && (in_h != 0) && (in_w != 0))
-    {
-        dim_size = 5;
-        return std::vector<int>({in_n, in_c, in_d, in_h, in_w});
-    }
-    else if((in_n != 0) && (in_c != 0) && (in_h != 0) && (in_w != 0))
-    {
-        dim_size = 4;
-        return std::vector<int>({in_n, in_c, in_h, in_w});
-    }
-    else if((in_n != 0) && (in_c != 0) && (in_w != 0))
-    {
-        dim_size = 3;
-        return std::vector<int>({in_n, in_c, in_w});
-    }
-    else if((in_n != 0) && (in_w != 0))
-    {
-        dim_size = 2;
-        return std::vector<int>({in_n, in_w});
-    }
-    else if(in_n != 0)
-    {
-        return std::vector<int>({in_n});
-    }
-    else
-    {
-        std::cout << "Error Input Tensor Lengths\n" << std::endl;
-        return std::vector<int>({0});
-    }
-}
-
-template <typename Tgpu, typename Tref>
 int LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
-    size_t in_sz     = GetTensorSize(inputDesc);
-    size_t weight_sz = GetTensorSize(weightDesc);
-    size_t bias_sz   = GetTensorSize(biasDesc);
-    size_t out_sz    = GetTensorSize(outputDesc);
-    size_t mean_sz   = GetTensorSize(meanDesc);
-    size_t rstd_sz   = GetTensorSize(rstdDesc);
+    const Tgpu Tgpu0val = static_cast<Tgpu>(0.0);
+    const Tgpu Tgpu1val = static_cast<Tgpu>(1.0);
+    const Tref Tref0ref = static_cast<Tref>(0.0);
+    size_t in_sz        = GetTensorSize(inputDesc);
+    size_t weight_sz    = GetTensorSize(weightDesc);
+    size_t bias_sz      = GetTensorSize(biasDesc);
+    size_t out_sz       = GetTensorSize(outputDesc);
+    size_t mean_sz      = GetTensorSize(meanDesc);
+    size_t rstd_sz      = GetTensorSize(rstdDesc);
 
     uint32_t ctx = 0;
 
@@ -302,19 +279,19 @@ int LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     mean_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, mean_sz, sizeof(Tref)));
     rstd_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, rstd_sz, sizeof(Tref)));
 
-    in       = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-    weight   = std::vector<Tgpu>(weight_sz, static_cast<Tgpu>(0));
-    bias     = std::vector<Tgpu>(bias_sz, static_cast<Tgpu>(0));
-    out      = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    mean     = std::vector<Tref>(mean_sz, static_cast<Tref>(0));
-    rstd     = std::vector<Tref>(rstd_sz, static_cast<Tref>(0));
-    outhost  = std::vector<Tref>(out_sz, static_cast<Tref>(0));
-    meanhost = std::vector<Tref>(mean_sz, static_cast<Tref>(0));
-    rstdhost = std::vector<Tref>(rstd_sz, static_cast<Tref>(0));
+    in       = std::vector<Tgpu>(in_sz, Tgpu0val);
+    weight   = std::vector<Tgpu>(weight_sz, Tgpu0val);
+    bias     = std::vector<Tgpu>(bias_sz, Tgpu0val);
+    out      = std::vector<Tgpu>(out_sz, Tgpu0val);
+    mean     = std::vector<Tref>(mean_sz, Tref0ref);
+    rstd     = std::vector<Tref>(rstd_sz, Tref0ref);
+    outhost  = std::vector<Tref>(out_sz, Tref0ref);
+    meanhost = std::vector<Tref>(mean_sz, Tref0ref);
+    rstdhost = std::vector<Tref>(rstd_sz, Tref0ref);
 
     for(int i = 0; i < in_sz; i++)
     {
-        in[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        in[i] = prng::gen_A_to_B<Tgpu>(Tgpu0val, Tgpu1val);
     }
 
     if(in_dev->ToGPU(GetStream(), in.data()) != 0)
@@ -325,7 +302,7 @@ int LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         if(mode == MIOPEN_ELEMENTWISE_AFFINE)
             weight[i] = static_cast<Tgpu>(1);
         else
-            weight[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            weight[i] = prng::gen_A_to_B<Tgpu>(Tgpu0val, Tgpu1val);
     }
 
     if(weight_dev->ToGPU(GetStream(), weight.data()) != 0)
@@ -334,9 +311,9 @@ int LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     for(int i = 0; i < bias_sz; i++)
     {
         if(mode == MIOPEN_ELEMENTWISE_AFFINE)
-            bias[i] = static_cast<Tgpu>(0);
+            bias[i] = Tgpu0val;
         else
-            bias[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            bias[i] = prng::gen_A_to_B<Tgpu>(Tgpu0val, Tgpu1val);
     }
     if(bias_dev->ToGPU(GetStream(), bias.data()) != 0)
         std::cerr << "Error copying (bias) to GPU, size: " << bias_dev->GetSize() << std::endl;
@@ -479,7 +456,7 @@ int LayerNormDriver<Tgpu, Tref>::VerifyForward()
     }
     else
     {
-        std::cout << "Forward LayerNorm mean Verifies OK on CPU reference (" << error << " < "
+        std::cout << "Forward LayerNorm mean Verifies OK on CPU reference (" << meanerror << " < "
                   << tolerance << ')' << std::endl;
     }
 
