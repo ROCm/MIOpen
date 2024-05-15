@@ -718,9 +718,6 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                 const auto w            = conv_params.tensors.w;
                 const auto y            = conv_params.tensors.out;
 
-                const std::string name = group_count > 1 ? "groupconv" : "convolution";
-                MIOPEN_LOG_FUNCTION(name + ", 1x1");
-
                 // y = w * x
                 miopenStatus_t gemm_status = miopenStatusNotInitialized;
 
@@ -786,7 +783,6 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
             MIOPEN_LOG_FUNCTION("convolution, 1x1");
 
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-                float time = 0;
                 decltype(auto) conv_params =
                     primitive_params.CastTo<miopen::conv::DataInvokeParams>();
                 const auto& tensors = conv_params.tensors;
@@ -809,15 +805,6 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
 
                 if(gemm_status != miopenStatusSuccess)
                     MIOPEN_THROW("GEMM execution failure");
-
-                if(handle.IsProfilingEnabled())
-                    time += handle.GetKernelTime();
-
-                if(handle.IsProfilingEnabled())
-                {
-                    handle.ResetKernelTime();
-                    handle.AccumKernelTime(time);
-                }
             };
         };
     }
