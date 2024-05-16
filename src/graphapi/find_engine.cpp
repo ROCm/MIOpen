@@ -104,7 +104,8 @@ class MHA_FP8_Pattern : public GraphPatternMatcher
 
             auto* attn_scl = pw_0->getB();
             assert(attn_scl->getDimensions() == all1s);
-            add_mapping(miopenTensorMhaAttnScale, attn_scl);
+            // TODO(Amber): uncomment
+            // add_mapping(miopenTensorMhaAttnScale, attn_scl);
 
             auto* pw_1 = dynamic_cast<OperationPointwise*>(graph.findOutNeighByName(pw_0, "OP_POINTWISE:MUL"));
             assert(pw_1);
@@ -169,7 +170,8 @@ class MHA_FP8_Pattern : public GraphPatternMatcher
           assert(rng);
           add_mapping(miopenTensorMhaDropoutSeed, std::get<Tensor*>(rng->getSeed()));
           add_mapping(miopenTensorMhaDropoutOffset, rng->getOffset());
-          add_mapping(miopenTensorMhaDropoutProbability, rng->getRng()->getBernoulliProb());
+          // TODO(Amber): uncomment
+          // add_mapping(miopenTensorMhaDropoutProbability, rng->getRng()->getBernoulliProb());
 
         }
       }

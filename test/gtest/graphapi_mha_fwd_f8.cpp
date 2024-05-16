@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include "mha_helper.hpp"
+#include "../verify.hpp"
 #include "../get_handle.hpp"
 #include "../tensor_holder.hpp"
 #include "../workspace.hpp"
@@ -54,12 +55,18 @@ class MhaFwdGraphTest: public testing::TestWithParam<std::tuple<int, int, int, i
   struct TensorData {
     gr::Tensor* mTensPtr;
     tensor<float> mCpuTensor;
-    miopen::ManageDataPtr mGpuBuf;
+    miopen::Allocator::ManageDataPtr mGpuBuf;
 
     explicit TensorData(gr::Tensor* tens_ptr):
       mTensPtr(tens_ptr),
-      mCpuTensor(tens_ptr->getDimensions())
+      mCpuTensor()
     {
+      assert(tens_ptr);
+      std::vector<size_t> dims;
+      const auto& d = tens_ptr->getDimensions();
+      std::copy(d.begin(), d.end(), dims.begin());
+      mCpuTensor = tensor<float>{dims};
+    
     }
 
     void init(tensor<float>&& tens_val) {
@@ -72,6 +79,11 @@ class MhaFwdGraphTest: public testing::TestWithParam<std::tuple<int, int, int, i
       mCpuTensor.generate([=](auto...) { return val; });
       auto& handle = get_handle();
       mGpuBuf = handle.Write(mCpuTensor.data);
+    }
+
+    void copyBack() {
+      auto& handle = get_handle();
+      handle.ReadToVec(mGpuBuf, mCpuTensor.data);
     }
 
     TensorData(const TensorData&) = delete;
@@ -92,8 +104,9 @@ class MhaFwdGraphTest: public testing::TestWithParam<std::tuple<int, int, int, i
   gr::Tensor* makeTensor(std::string_view name, const std::vector<int64_t>& dims) {
     auto ptr =  mAlloc.allocate(gr::makeTensor<IsVirt>(name, dims));
     if constexpr (!IsVirt) {
-      mFilledTensors.emplace_back(std::string(name), TensorData(ptr));
+      mFilledTensors.emplace(std::string(name), TensorData(ptr));
     }
+    return ptr;
   }
 
   auto* makePointWiseDesc(miopenPointwiseMode_t mode) {
@@ -337,13 +350,15 @@ class MhaFwdGraphTest: public testing::TestWithParam<std::tuple<int, int, int, i
     // TODO(amber): should this be a vector of pointers
     std::vector<gr::Engine> engines = gr::findEngines(&mGraph);
 
-    auto engine_cfg = gr::EngineConfigBuilder()
-      .setEngine(&engines[0])
+    auto engine_cfg = gr::EngineCfgBuilder()
+      .setEngine(engines[0])
       .build();
 
+    auto& handle = get_handle();
+    auto h = static_cast<miopenHandle_t>(&handle);
     auto plan = gr::ExecutionPlanBuilder()
-      .setEngineConfig(&engine_cfg)
-      .setHandle(get_handle())
+      .setEngineCfg(engine_cfg)
+      .setHandle(h)
       .build();
 
     Workspace ws(plan.getWorkspaceSize());
@@ -393,22 +408,28 @@ class MhaFwdGraphTest: public testing::TestWithParam<std::tuple<int, int, int, i
         float amaxS_ref = 0;
         float amaxO_ref = 0;
 
+        auto lookup = [this] (const std::string& k) -> TensorData& {
+          auto it = mFilledTensors.find(k);
+          assert(it != mFilledTensors.cend());
+          return it->second;
+        };
+
         test::cpu::MultiHeadAttentionfp8(
-            mFilledTensors["Q"].mCpuTensor,
-            mFilledTensors["K"].mCpuTensor,
-            mFilledTensors["V"].mCpuTensor,
+            lookup("Q").mCpuTensor,
+            lookup("K").mCpuTensor,
+            lookup("V").mCpuTensor,
             softmax_ref,
             mDesc_ref,
             zInvDesc_ref,
-            mFilledTensors["DSCL_Q"].mCpuTensor[0],
-            mFilledTensors["DSCL_K"].mCpuTensor[0],
-            mFilledTensors["DSCL_V"].mCpuTensor[0],
-            mFilledTensors["DSCL_S"].mCpuTensor[0],
-            mFilledTensors["SCL_S"].mCpuTensor[0],
-            mFilledTensors["SCL_O"].mCpuTensor[0],
-            mFilledTensors["RND_PRB"].mCpuTensor[0],
-            static_cast<uint64_t>(mFilledTensors["RND_SD"].mCpuTensor[0]),
-            static_cast<uint64_t>(mFilledTensors["RND_OFF"].mCpuTensor[0]),
+            lookup("DSCL_Q").mCpuTensor[0],
+            lookup("DSCL_K").mCpuTensor[0],
+            lookup("DSCL_V").mCpuTensor[0],
+            lookup("DSCL_S").mCpuTensor[0],
+            lookup("SCL_S").mCpuTensor[0],
+            lookup("SCL_O").mCpuTensor[0],
+            lookup("RND_PRB").mCpuTensor[0],
+            static_cast<uint64_t>(lookup("RND_SD").mCpuTensor[0]),
+            static_cast<uint64_t>(lookup("RND_OFF").mCpuTensor[0]),
             amaxS_ref,
             amaxO_ref,
             oDesc_ref);
