@@ -38,7 +38,6 @@ namespace graphapi_opgraph_tests {
 
 namespace gr = miopen::graphapi;
 
-
 inline std::unique_ptr<gr::PatternGraphGenerator> makeDiamondGraph()
 {
     /*
@@ -60,9 +59,9 @@ inline std::unique_ptr<gr::PatternGraphGenerator> makeDiamondGraph()
      */
 
     return gr::PatternGraphGenerator::Make({{"top", {"t_in"}, {"t_a", "t_b"}},
-                                        {"left", {"t_a"}, {"t_c"}},
-                                        {"right", {"t_b"}, {"t_d"}},
-                                        {"bottom", {"t_c", "t_d"}, {"t_out"}}});
+                                            {"left", {"t_a"}, {"t_c"}},
+                                            {"right", {"t_b"}, {"t_d"}},
+                                            {"bottom", {"t_c", "t_d"}, {"t_out"}}});
 }
 
 } // end namespace graphapi_opgraph_tests

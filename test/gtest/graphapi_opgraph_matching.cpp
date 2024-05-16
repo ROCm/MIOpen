@@ -43,9 +43,9 @@ TEST(GraphMatchingAPI, DiamondGraphMatch)
     {
         // create a mirror copy
         auto dg3 = gr::PatternGraphGenerator::Make({{"top", {"t_in"}, {"t_a", "t_b"}},
-                                                {"left", {"t_b"}, {"t_d"}},
-                                                {"right", {"t_a"}, {"t_c"}},
-                                                {"bottom", {"t_c", "t_d"}, {"t_out"}}});
+                                                    {"left", {"t_b"}, {"t_d"}},
+                                                    {"right", {"t_a"}, {"t_c"}},
+                                                    {"bottom", {"t_c", "t_d"}, {"t_out"}}});
 
         ASSERT_TRUE(gr::isIsomorphic(dg1->graph(), dg3->graph()));
     }
@@ -53,18 +53,18 @@ TEST(GraphMatchingAPI, DiamondGraphMatch)
     {
         // remove one of the edges to bottom
         auto dg4 = gr::PatternGraphGenerator::Make({{"top", {"t_in"}, {"t_a", "t_b"}},
-                                                {"left", {"t_b"}, {"t_d"}},
-                                                {"right", {"t_a"}, {"t_c"}},
-                                                {"bottom", {"t_c"}, {"t_out"}}});
+                                                    {"left", {"t_b"}, {"t_d"}},
+                                                    {"right", {"t_a"}, {"t_c"}},
+                                                    {"bottom", {"t_c"}, {"t_out"}}});
         ASSERT_FALSE(gr::isIsomorphic(dg1->graph(), dg4->graph()));
     }
 
     {
         // remove one of the edges out of top
         auto dg5 = gr::PatternGraphGenerator::Make({{"top", {"t_in"}, {"t_a"}},
-                                                {"left", {"t_b"}, {"t_d"}},
-                                                {"right", {"t_a"}, {"t_c"}},
-                                                {"bottom", {"t_c", "t_d"}, {"t_out"}}});
+                                                    {"left", {"t_b"}, {"t_d"}},
+                                                    {"right", {"t_a"}, {"t_c"}},
+                                                    {"bottom", {"t_c", "t_d"}, {"t_out"}}});
         ASSERT_FALSE(gr::isIsomorphic(dg1->graph(), dg5->graph()));
     }
 }

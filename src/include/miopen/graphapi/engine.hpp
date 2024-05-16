@@ -45,69 +45,71 @@ class GraphPatternMatcher
 {
 
 public:
-    virtual bool matches(const OpGraph* graph)  const = 0;
+    virtual bool matches(const OpGraph* graph) const             = 0;
     virtual std::vector<Engine> getEngines(OpGraph* graph) const = 0;
 
     virtual ~GraphPatternMatcher();
 };
 
-struct TensorInfo {
-  miopenTensorArgumentId_t mEnumId = miopenTensorArgumentIdInvalid;
-  Tensor* mGraphTensor = nullptr;
-  TensorDescriptor mTensDesc{};
-  Data_t mDevBuf = nullptr;
+struct TensorInfo
+{
+    miopenTensorArgumentId_t mEnumId = miopenTensorArgumentIdInvalid;
+    Tensor* mGraphTensor             = nullptr;
+    TensorDescriptor mTensDesc{};
+    Data_t mDevBuf = nullptr;
 
-  TensorInfo(miopenTensorArgumentId_t enum_id, Tensor* tens_ptr):
-    mEnumId(enum_id),
-    mGraphTensor(tens_ptr),
-    mTensDesc(static_cast<TensorDescriptor>(*tens_ptr))
-  {
-    assert(tens_ptr);
-    assert(mEnumId != miopenTensorArgumentIdInvalid);
-  }
+    TensorInfo(miopenTensorArgumentId_t enum_id, Tensor* tens_ptr)
+        : mEnumId(enum_id),
+          mGraphTensor(tens_ptr),
+          mTensDesc(static_cast<TensorDescriptor>(*tens_ptr))
+    {
+        assert(tens_ptr);
+        assert(mEnumId != miopenTensorArgumentIdInvalid);
+    }
 
-  void setDevBuf(Data_t ptr) {
-    assert(ptr);
-    mDevBuf = ptr;
-  }
+    void setDevBuf(Data_t ptr)
+    {
+        assert(ptr);
+        mDevBuf = ptr;
+    }
 
-  const TensorDescriptor* tensDescPtr() const { return &mTensDesc; }
-
+    const TensorDescriptor* tensDescPtr() const { return &mTensDesc; }
 };
-
 
 // int64_t is the graph tensor id
 using TensorInfoMap = std::unordered_map<int64_t, TensorInfo>;
 
-class GraphPatternExecutor {
+class GraphPatternExecutor
+{
 
 public:
-  virtual void execute(miopenHandle_t handle, const VariantPack& vpk) = 0;
-  virtual size_t getWorkspaceSize() const = 0;
-  virtual ~GraphPatternExecutor();
+    virtual void execute(miopenHandle_t handle, const VariantPack& vpk) = 0;
+    virtual size_t getWorkspaceSize() const                             = 0;
+    virtual ~GraphPatternExecutor();
 };
 
-// generic executor that uses Find 2.0 Solution 
-class GraphExecutorFind20: public GraphPatternExecutor {
-  miopenSolution_t mSolution;
-  std::shared_ptr<TensorInfoMap> mTensorInfoMap;
+// generic executor that uses Find 2.0 Solution
+class GraphExecutorFind20 : public GraphPatternExecutor
+{
+    miopenSolution_t mSolution;
+    std::shared_ptr<TensorInfoMap> mTensorInfoMap;
 
 public:
-  GraphExecutorFind20(miopenSolution_t sol, const std::shared_ptr<TensorInfoMap>& tmap)
-    : GraphPatternExecutor(),
-      mSolution(sol),
-      mTensorInfoMap(tmap)
-  {}
-  
-  void execute(miopenHandle_t handle, const VariantPack& vpk) final;
+    GraphExecutorFind20(miopenSolution_t sol, const std::shared_ptr<TensorInfoMap>& tmap)
+        : GraphPatternExecutor(), mSolution(sol), mTensorInfoMap(tmap)
+    {
+    }
 
-  size_t getWorkspaceSize() const final;
+    void execute(miopenHandle_t handle, const VariantPack& vpk) final;
 
-  static std::unique_ptr<GraphPatternExecutor> make(miopenSolution_t sol, 
-      const std::shared_ptr<TensorInfoMap>& tmap) {
-    GraphPatternExecutor* p = new GraphExecutorFind20(sol, tmap);
-    return std::unique_ptr<GraphPatternExecutor>(p);
-  }
+    size_t getWorkspaceSize() const final;
+
+    static std::unique_ptr<GraphPatternExecutor> make(miopenSolution_t sol,
+                                                      const std::shared_ptr<TensorInfoMap>& tmap)
+    {
+        GraphPatternExecutor* p = new GraphExecutorFind20(sol, tmap);
+        return std::unique_ptr<GraphPatternExecutor>(p);
+    }
 };
 
 class Engine
@@ -126,53 +128,47 @@ public:
     Engine& operator=(const Engine&) = default;
     Engine& operator=(Engine&&) = default;
 
-    GraphPatternExecutor* getExecutor() noexcept
-    { 
-      return mExecutor.get(); 
-    }
+    GraphPatternExecutor* getExecutor() noexcept { return mExecutor.get(); }
 
-    const GraphPatternExecutor* getExecutor() const noexcept
-    { 
-      return mExecutor.get(); 
-    }
+    const GraphPatternExecutor* getExecutor() const noexcept { return mExecutor.get(); }
 
     int64_t getGlobalIndex() const noexcept { return mGlobalIndex; }
     int32_t getSmCount() const noexcept { return mSmCount; }
 
     const OpGraph* getOpGraph() const { return mGraph; }
     OpGraph* getOpGraph() { return mGraph; }
-
 };
 
 class EngineBuilder
 {
 
-  Engine mEngine;
-  bool mGraphSet = false;
-  bool mExecSet = false;
-  bool mIndexSet = false;
+    Engine mEngine;
+    bool mGraphSet = false;
+    bool mExecSet  = false;
+    bool mIndexSet = false;
 
 public:
+    EngineBuilder& setGraph(OpGraph* g);
 
-  EngineBuilder& setGraph(OpGraph* g);
-  
-  EngineBuilder& setGlobalIndex(int64_t globalIndex);
+    EngineBuilder& setGlobalIndex(int64_t globalIndex);
 
-  EngineBuilder& setSmCount(int32_t smCount);
+    EngineBuilder& setSmCount(int32_t smCount);
 
-  EngineBuilder& setExecutor(const std::shared_ptr<GraphPatternExecutor>& e) {
-    assert(e.get());
-    mEngine.mExecutor = e;
-    mExecSet = true;
-    return *this;
-  }
+    EngineBuilder& setExecutor(const std::shared_ptr<GraphPatternExecutor>& e)
+    {
+        assert(e.get());
+        mEngine.mExecutor = e;
+        mExecSet          = true;
+        return *this;
+    }
 
-  Engine build() {
-    MIOPEN_THROW_IF(!mGraphSet || !mExecSet || !mIndexSet, "must set graph, index and executor attributes");
-    return mEngine;
-  }
+    Engine build()
+    {
+        MIOPEN_THROW_IF(!mGraphSet || !mExecSet || !mIndexSet,
+                        "must set graph, index and executor attributes");
+        return mEngine;
+    }
 };
-
 
 class BackendEngineDescriptor : public BackendDescriptor
 {

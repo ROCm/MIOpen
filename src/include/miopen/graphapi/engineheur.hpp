@@ -90,13 +90,14 @@ private:
     public:
         OwnedEngineCfgDescriptor(const EngineCfg& engineCfg,
                                  miopenBackendDescriptor_t opGraphDescriptor)
-          :
-            Base(engineCfg, &mOwnedEngineDescriptorInstance),
-            mOwnedEngineDescriptorInstance(Base::getEngineCfg().getEngine(), opGraphDescriptor)
-        {}
+            : Base(engineCfg, &mOwnedEngineDescriptorInstance),
+              mOwnedEngineDescriptorInstance(Base::getEngineCfg().getEngine(), opGraphDescriptor)
+        {
+        }
 
-        OwnedEngineCfgDescriptor(const OwnedEngineCfgDescriptor& other) = default;
-        OwnedEngineCfgDescriptor(OwnedEngineCfgDescriptor&& other) noexcept = default;;
+        OwnedEngineCfgDescriptor(const OwnedEngineCfgDescriptor& other)     = default;
+        OwnedEngineCfgDescriptor(OwnedEngineCfgDescriptor&& other) noexcept = default;
+        ;
         OwnedEngineCfgDescriptor& operator=(const OwnedEngineCfgDescriptor& other) = default;
         OwnedEngineCfgDescriptor& operator=(OwnedEngineCfgDescriptor&& other) noexcept = default;
     };

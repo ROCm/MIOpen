@@ -34,69 +34,69 @@ namespace graphapi {
 
 GraphPatternExecutor::~GraphPatternExecutor() = default;
 
-size_t GraphExecutorFind20::getWorkspaceSize() const {
-  size_t workspace_size = 0;
-  auto s = miopenGetSolutionWorkspaceSize(mSolution, &workspace_size);
-  MIOPEN_THROW_IF(s != miopenStatusSuccess, "get solution workspace size failed");
+size_t GraphExecutorFind20::getWorkspaceSize() const
+{
+    size_t workspace_size = 0;
+    auto s                = miopenGetSolutionWorkspaceSize(mSolution, &workspace_size);
+    MIOPEN_THROW_IF(s != miopenStatusSuccess, "get solution workspace size failed");
 
-  return workspace_size;
+    return workspace_size;
 }
 
-void GraphExecutorFind20::execute(miopenHandle_t handle, const VariantPack& vpk) {
+void GraphExecutorFind20::execute(miopenHandle_t handle, const VariantPack& vpk)
+{
 
-  std::vector<miopenTensorArgument_t> tens_args;
+    std::vector<miopenTensorArgument_t> tens_args;
 
-  auto num = vpk.getTensorIds().size();
-  assert(num == vpk.getDataPtrs().size());
+    auto num = vpk.getTensorIds().size();
+    assert(num == vpk.getDataPtrs().size());
 
-  // TODO(amber) : verify that variant pack has all the expected input and output
-  // tensors
-  for (auto i = 0ull; i < num; ++i) {
-    auto tens_id = vpk.getTensorIds()[i];
-    auto* gpu_ptr = vpk.getDataPtrs()[i];
-    assert(gpu_ptr);
+    // TODO(amber) : verify that variant pack has all the expected input and output
+    // tensors
+    for(auto i = 0ull; i < num; ++i)
+    {
+        auto tens_id  = vpk.getTensorIds()[i];
+        auto* gpu_ptr = vpk.getDataPtrs()[i];
+        assert(gpu_ptr);
 
-    auto it = mTensorInfoMap->find(tens_id);
-    MIOPEN_THROW_IF(it == mTensorInfoMap->cend(), 
-        "couldn't find a variant pack tensor id in the map");
+        auto it = mTensorInfoMap->find(tens_id);
+        MIOPEN_THROW_IF(it == mTensorInfoMap->cend(),
+                        "couldn't find a variant pack tensor id in the map");
 
-    auto& v = it->second;
+        auto& v = it->second;
 
-    /*
-     * TODO(Amber): use this code with C++20
-    miopenTensorArgument_t targ{
-      .id = v.mEnumId,
-      // .descriptor = &(v.mTensDesc),
-      .descriptor = nullptr,
-      .buffer = gpu_ptr
-    };
-    */
-    miopenTensorArgument_t targ{};
-    targ.id = v.mEnumId;
-    targ.descriptor = nullptr;
-    targ.buffer = gpu_ptr;
+        /*
+         * TODO(Amber): use this code with C++20
+        miopenTensorArgument_t targ{
+          .id = v.mEnumId,
+          // .descriptor = &(v.mTensDesc),
+          .descriptor = nullptr,
+          .buffer = gpu_ptr
+        };
+        */
+        miopenTensorArgument_t targ{};
+        targ.id         = v.mEnumId;
+        targ.descriptor = nullptr;
+        targ.buffer     = gpu_ptr;
 
-    tens_args.emplace_back(targ);
-  }
+        tens_args.emplace_back(targ);
+    }
 
-  auto s = miopenRunSolution(
-      handle, 
-      mSolution,
-      tens_args.size(),
-      tens_args.data(),
-      vpk.getWorkspace(),
-      getWorkspaceSize());
+    auto s = miopenRunSolution(handle,
+                               mSolution,
+                               tens_args.size(),
+                               tens_args.data(),
+                               vpk.getWorkspace(),
+                               getWorkspaceSize());
 
-  MIOPEN_THROW_IF(s != miopenStatusSuccess, "Run Solution failed");
-
+    MIOPEN_THROW_IF(s != miopenStatusSuccess, "Run Solution failed");
 }
-
 
 EngineBuilder& EngineBuilder::setGraph(OpGraph* g)
 {
     assert(g);
     mEngine.mGraph = checkPtr(g);
-    mGraphSet = true;
+    mGraphSet      = true;
     return *this;
 }
 
@@ -104,7 +104,7 @@ EngineBuilder& EngineBuilder::setGlobalIndex(int64_t globalIndex)
 {
     MIOPEN_THROW_IF(globalIndex < 0, "globalIndex must be >= 0");
     mEngine.mGlobalIndex = globalIndex;
-    mIndexSet = true;
+    mIndexSet            = true;
     return *this;
 }
 

@@ -33,7 +33,6 @@
 namespace miopen {
 namespace graphapi {
 
-
 class Engine
 {
     OpGraph* mGraph;
@@ -53,5 +52,3 @@ public:
 
 } // end namespace graphapi
 } // end namespace miopen
-
-

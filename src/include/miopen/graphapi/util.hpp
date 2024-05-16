@@ -37,82 +37,87 @@ namespace miopen {
 namespace graphapi {
 
 template <bool isVirtual, typename Vec>
-Tensor makeTensor(std::string_view name, const Vec& dims, const Vec& strides) {
-  int64_t id = 0;
-  MIOPEN_THROW_IF(name.size() > sizeof(id), "tensor name exceeds 8 chars");
-  std::copy_n(name.begin(), std::min(sizeof(id), name.size()), reinterpret_cast<char*>(&id));
+Tensor makeTensor(std::string_view name, const Vec& dims, const Vec& strides)
+{
+    int64_t id = 0;
+    MIOPEN_THROW_IF(name.size() > sizeof(id), "tensor name exceeds 8 chars");
+    std::copy_n(name.begin(), std::min(sizeof(id), name.size()), reinterpret_cast<char*>(&id));
 
-  return TensorBuilder{}
-    .setDataType(miopenFloat)
-    .setDim(dims)
-    .setStride(strides)
-    .setId(id)
-    .setVirtual(isVirtual)
-    .build();
+    return TensorBuilder{}
+        .setDataType(miopenFloat)
+        .setDim(dims)
+        .setStride(strides)
+        .setId(id)
+        .setVirtual(isVirtual)
+        .build();
 }
 
 template <bool isVirtual, typename Vec>
-Tensor makeTensor(std::string_view name, const Vec& dims) {
+Tensor makeTensor(std::string_view name, const Vec& dims)
+{
 
-  Vec strides(dims);
-  using T = typename Vec::value_type;
-  std::exclusive_scan(dims.begin(), dims.end(), strides.begin(), T{1ll}, std::multiplies<T>{});
+    Vec strides(dims);
+    using T = typename Vec::value_type;
+    std::exclusive_scan(dims.begin(), dims.end(), strides.begin(), T{1ll}, std::multiplies<T>{});
 
-  return makeTensor<isVirtual>(name, dims, strides);
+    return makeTensor<isVirtual>(name, dims, strides);
 }
 
 /// An RAII style class that captures a pointer to an object on heap and frees it
 /// upon destruction. It's different from std::unique_ptr in that it allows
 /// capturing multiple types of pointers
-struct HeapPtrDeleter {
-  using Fn = std::function<void()>;
-  const Fn emptyFn = [](){};
-  Fn mFn = emptyFn;
+struct HeapPtrDeleter
+{
+    using Fn         = std::function<void()>;
+    const Fn emptyFn = []() {};
+    Fn mFn           = emptyFn;
 
-  template <typename T>
-  explicit HeapPtrDeleter(T* ptr) {
-    mFn = [ptr] () { delete ptr; };
-  }
+    template <typename T>
+    explicit HeapPtrDeleter(T* ptr)
+    {
+        mFn = [ptr]() { delete ptr; };
+    }
 
-  HeapPtrDeleter(const HeapPtrDeleter&) = delete;
-  HeapPtrDeleter& operator = (const HeapPtrDeleter&) = delete;
+    HeapPtrDeleter(const HeapPtrDeleter&) = delete;
+    HeapPtrDeleter& operator=(const HeapPtrDeleter&) = delete;
 
-  HeapPtrDeleter(HeapPtrDeleter&& that) noexcept : mFn(std::move(that.mFn)) {
-    that.mFn = emptyFn;
-  }
+    HeapPtrDeleter(HeapPtrDeleter&& that) noexcept : mFn(std::move(that.mFn))
+    {
+        that.mFn = emptyFn;
+    }
 
-  HeapPtrDeleter& operator = (HeapPtrDeleter&& that) noexcept { 
-    this->mFn(); // destruct self.
-    this->mFn = std::move(that.mFn);
-    that.mFn = emptyFn;
-    return *this;
-  }
+    HeapPtrDeleter& operator=(HeapPtrDeleter&& that) noexcept
+    {
+        this->mFn(); // destruct self.
+        this->mFn = std::move(that.mFn);
+        that.mFn  = emptyFn;
+        return *this;
+    }
 
-  ~HeapPtrDeleter() {
-    mFn();
-  }
+    ~HeapPtrDeleter() { mFn(); }
 };
-
 
 /// an automatically deleting allocator that frees the allocated objects upon
 /// destruction
-struct AutoDeleteAllocator {
-  std::vector<HeapPtrDeleter> mPtrsToFree;
+struct AutoDeleteAllocator
+{
+    std::vector<HeapPtrDeleter> mPtrsToFree;
 
-  AutoDeleteAllocator() = default;
-  AutoDeleteAllocator(const AutoDeleteAllocator&) = delete;
-  AutoDeleteAllocator& operator = (const AutoDeleteAllocator&) = delete;
+    AutoDeleteAllocator()                           = default;
+    AutoDeleteAllocator(const AutoDeleteAllocator&) = delete;
+    AutoDeleteAllocator& operator=(const AutoDeleteAllocator&) = delete;
 
-  AutoDeleteAllocator(AutoDeleteAllocator&&) = default;
-  AutoDeleteAllocator& operator = (AutoDeleteAllocator&&) = default;
-  ~AutoDeleteAllocator() = default;
+    AutoDeleteAllocator(AutoDeleteAllocator&&) = default;
+    AutoDeleteAllocator& operator=(AutoDeleteAllocator&&) = default;
+    ~AutoDeleteAllocator()                                = default;
 
-  template <typename T>
-  T* allocate(T&& val) {
-    T* ret = new T(std::forward<T>(val));
-    mPtrsToFree.emplace_back(ret);
-    return ret;
-  }
+    template <typename T>
+    T* allocate(T&& val)
+    {
+        T* ret = new T(std::forward<T>(val));
+        mPtrsToFree.emplace_back(ret);
+        return ret;
+    }
 };
 
 struct PatternGraphGenerator
@@ -155,7 +160,7 @@ private:
     AutoDeleteAllocator mAlloc;
     OpGraph mGraph;
 
-    PatternGraphGenerator(const std::vector<DummyNodeGenSpec>& node_specs): mGraph{}
+    PatternGraphGenerator(const std::vector<DummyNodeGenSpec>& node_specs) : mGraph{}
     {
 
         std::unordered_map<std::string, Tensor*> tensor_map;
@@ -179,20 +184,17 @@ private:
                 out_tensors.emplace_back(it->second);
             }
 
-            builder.addNode(
-                mAlloc.allocate(
-                  DummyNode{ns.mName, in_tensors, out_tensors}));
-
+            builder.addNode(mAlloc.allocate(DummyNode{ns.mName, in_tensors, out_tensors}));
         }
 
         mGraph = std::move(builder).build();
     }
 
 public:
-    PatternGraphGenerator() = default;
+    PatternGraphGenerator()                             = default;
     PatternGraphGenerator(const PatternGraphGenerator&) = delete;
     PatternGraphGenerator& operator=(const PatternGraphGenerator&) = delete;
-    PatternGraphGenerator(PatternGraphGenerator&&)      = default;
+    PatternGraphGenerator(PatternGraphGenerator&&)                 = default;
     PatternGraphGenerator& operator=(PatternGraphGenerator&&) = default;
     ~PatternGraphGenerator()                                  = default;
 

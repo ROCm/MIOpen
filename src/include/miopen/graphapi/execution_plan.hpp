@@ -63,14 +63,15 @@ public:
     const std::vector<int64_t>& getIntermediateIds() const noexcept { return mIntermediateIds; }
     std::string getJsonRepresentation() const;
 
-    void execute(const VariantPack& variantPack) {
-      mEngineCfg.getEngine().getExecutor()->execute(getHandle(), variantPack);
+    void execute(const VariantPack& variantPack)
+    {
+        mEngineCfg.getEngine().getExecutor()->execute(getHandle(), variantPack);
     }
 
-    size_t getWorkspaceSize() const { 
-      return mEngineCfg.getEngine().getExecutor()->getWorkspaceSize(); 
+    size_t getWorkspaceSize() const
+    {
+        return mEngineCfg.getEngine().getExecutor()->getWorkspaceSize();
     }
-
 };
 
 class ExecutionPlanBuilder
