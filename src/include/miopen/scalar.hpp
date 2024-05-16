@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,22 +23,34 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <gtest/gtest.h>
 
-#include "group_conv.hpp"
+#pragma once
 
-using namespace group_conv;
+#include <miopen/common.hpp>
+#include <miopen/errors.hpp>
 
-// Bilinear
-DEFINE_GROUP_CONV3D_TEST(float, Forward, 2.2, 3.3, Bilinear);
-DEFINE_GROUP_CONV3D_TEST(half, Forward, 2.2, 3.3, Bilinear);
-// Scale
-DEFINE_GROUP_CONV3D_TEST(float, Forward, 2.2, 0.0, Scalar);
-DEFINE_GROUP_CONV3D_TEST(half, Forward, 2.2, 0.0, Scalar);
-// Default
-DEFINE_GROUP_CONV3D_TEST(float, Forward, 1.0, 0.0, Default);
-DEFINE_GROUP_CONV3D_TEST(half, Forward, 1.0, 0.0, Default);
-DEFINE_GROUP_CONV3D_TEST(bfloat16, Forward, 1.0, 0.0, Default);
-// DEFINE_GROUP_CONV3D_TEST(half, Forward);
-/// \todo int8_t tests don't work. Need debugging
-// DEFINE_GROUP_CONV3D_TEST(int8_t, Forward);
+#include <cassert>
+
+namespace miopen {
+// Class store value in double for higher precision.
+struct Scalar
+{
+    explicit Scalar(double val) : mVal(val), mType(miopenDouble) {}
+
+    Scalar(ConstData_t ptr, miopenDataType_t type);
+
+    float GetAsFloat() const
+    {
+        assert(mType == miopenFloat);
+        return static_cast<float>(mVal);
+    }
+    double GetAsDouble() const { return mVal; }
+
+    miopenDataType_t GetType() const { return mType; }
+
+private:
+    double mVal;
+    miopenDataType_t mType;
+};
+
+} // namespace miopen
