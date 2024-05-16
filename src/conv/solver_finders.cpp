@@ -339,7 +339,7 @@ FindCoreResult FindCore(const AnyInvokeParams& invoke_ctx,
         PrecompileSolutions(handle, all, force_attach_binary);
     }
 
-    if(IsEnabled(ENV(MIOPEN_DEBUG_COMPILE_ONLY)))
+    if(IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_COMPILE_ONLY)))
         MIOPEN_THROW(
             miopenStatusGpuOperationsSkipped,
             "MIOPEN_DEBUG_COMPILE_ONLY is enabled, escaping forward convolution. Search skipped.");
