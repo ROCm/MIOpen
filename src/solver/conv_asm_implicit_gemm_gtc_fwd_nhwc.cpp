@@ -605,7 +605,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(
                     if(need_k_split)
                     {
                         if(miopen::IsDisabled(
-                               ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)))
+                               MIOPEN_ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)))
                         {
                             if(problem.IsFp16() && gks > 0)
                                 vector_store = 1;
@@ -681,7 +681,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
         return false;
     }
 
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)))
+    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)))
     {
         if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1)
             return false;
@@ -862,7 +862,7 @@ size_t ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(
 bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
     const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC)))
+    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC)))
         return false;
 
     if(problem.GetConv().attribute.deterministic)

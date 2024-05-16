@@ -180,7 +180,7 @@ bool BnCKFwdInference::IsApplicable(
     [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_CK_BN_INFER)))
+    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_CK_BN_INFER)))
         return false;
     if(!bn_problem.IsLayoutNHWC())
         return false;

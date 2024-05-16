@@ -65,7 +65,7 @@ static fs::path ComputeUserCachePath()
     fs::path p;
     /// If MIOPEN_CUSTOM_CACHE_DIR is set in the environment, then
     /// use exactly that path.
-    const auto& custom = miopen::GetStringEnv(ENV(MIOPEN_CUSTOM_CACHE_DIR));
+    const auto& custom = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_CUSTOM_CACHE_DIR));
     if(!custom.empty())
     {
         p = ExpandUser(custom);
@@ -118,7 +118,7 @@ bool IsCacheDisabled()
     if(MIOPEN_DISABLE_USERDB && MIOPEN_DISABLE_SYSDB)
         return true;
     else
-        return miopen::IsEnabled(ENV(MIOPEN_DISABLE_CACHE));
+        return miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DISABLE_CACHE));
 #else
     return true;
 #endif
