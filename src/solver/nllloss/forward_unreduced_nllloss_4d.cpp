@@ -35,7 +35,7 @@
 #include <miopen/target_properties.hpp>
 #include <miopen/tensor_view.hpp>
 
-#define LOCAL_SIZE_CON_BWD 1024
+#define LOCAL_SIZE_NON_CON_FWD 1024
 
 namespace miopen {
 
@@ -43,69 +43,68 @@ namespace solver {
 
 namespace nllloss {
 
-bool NLLLossUnreduceBackwardContiguous4d::IsApplicable(
+bool NLLLossUnreduceForward4d::IsApplicable(
     const ExecutionContext& context,
     const miopen::nllloss::UnreduceProblemDescription& problem) const
 {
     if(problem.GetInputDesc().GetSize() > 4)
-        return false;
-    if(!problem.IsAllContiguous())
         return false;
     if(!NLLLossUnreduceSolver::IsApplicable(context, problem))
         return false;
     return true;
 }
 
-ConvSolution NLLLossUnreduceBackwardContiguous4d::GetSolution(
+ConvSolution NLLLossUnreduceForward4d::GetSolution(
     const ExecutionContext& context,
     const miopen::nllloss::UnreduceProblemDescription& problem) const
 {
     std::ignore = context;
 
-    auto result            = ConvSolution{miopenStatusSuccess};
-    auto input_grad_dtype  = miopen::GetDataType(problem.GetInputDesc().GetType());
-    auto output_grad_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
+    auto result       = ConvSolution{miopenStatusSuccess};
+    auto input_dtype  = miopen::GetDataType(problem.GetInputDesc().GetType());
+    auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
 
     {
-        auto dtype     = problem.GetInputDesc().GetType();
+        auto dtype     = problem.GetOutputDesc().GetType();
         size_t N_total = problem.GetNtotal();
+
+        auto kernel = KernelInfo{};
 
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
             {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
             {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-            {"INPUT_TYPE", input_grad_dtype == "bfloat16" ? "ushort" : input_grad_dtype},
-            {"OUTPUT_TYPE", output_grad_dtype == "bfloat16" ? "ushort" : output_grad_dtype},
+            {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
+            {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
         };
 
-        result.construction_params.push_back(
-            solver::make_hip_kernel({LOCAL_SIZE_CON_BWD},
-                                    {N_total},
-                                    "MIOpenNLLLoss.cpp",
-                                    "NLLLossUnreducedBackward4dContiguous",
-                                    build_params));
+        result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_NON_CON_FWD},
+                                                             {N_total},
+                                                             "MIOpenNLLLoss.cpp",
+                                                             "NLLLossUnreducedForward4d",
+                                                             build_params));
     }
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::nllloss::BwdInvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::nllloss::InvokeParams>();
 
-            auto input_grad_tv  = get_inner_expanded_tv_4d(deref(params.inputGradDesc));
-            auto target_tv      = get_inner_expanded_tv_3d(deref(params.targetDesc));
-            auto weight_tv      = get_inner_expanded_tv_1d(deref(params.weightDesc));
-            auto output_grad_tv = get_inner_expanded_tv_3d(deref(params.outputGradDesc));
+            auto input_tv  = get_inner_expanded_tv_4d(deref(params.inputDesc));
+            auto target_tv = get_inner_expanded_tv_3d(deref(params.targetDesc));
+            auto weight_tv = get_inner_expanded_tv_1d(deref(params.weightDesc));
+            auto output_tv = get_inner_expanded_tv_3d(deref(params.outputDesc));
 
-            kernel(params.input_grad,
+            kernel(params.input,
                    params.target,
                    params.weight,
-                   params.output_grad,
+                   params.output,
                    params.ignore_index,
-                   input_grad_tv,
+                   input_tv,
                    target_tv,
                    weight_tv,
-                   output_grad_tv);
+                   output_tv);
         };
     };
 

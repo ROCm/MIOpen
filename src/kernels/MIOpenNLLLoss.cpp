@@ -63,8 +63,7 @@ __device__ void nlllossForward5d(const TI* __restrict__ input,
     size_t n[4];
     GET_NCDH(n[0], n[1], n[2], n[3], gid, target_tv);
 
-    size_t max_gid = target_tv.size[0] * target_tv.size[1] * target_tv.size[2] * target_tv.size[3];
-    if(gid >= max_gid)
+    if(n[0] >= target_tv.size[0])
         return;
 
     size_t Tidx = TV4D_IDX(target_tv, n[0], n[1], n[2], n[3]);
@@ -176,8 +175,7 @@ __device__ void nlllossBackward5d(TO* __restrict__ input_grad,
     size_t n[4];
     GET_NCDH(n[0], n[1], n[2], n[3], gid, target_tv);
 
-    size_t max_gid = target_tv.size[0] * target_tv.size[1] * target_tv.size[2] * target_tv.size[3];
-    if(gid >= max_gid)
+    if(n[0] >= target_tv.size[0])
         return;
 
     size_t Tidx = TV4D_IDX(target_tv, n[0], n[1], n[2], n[3]);
@@ -238,8 +236,7 @@ __device__ void nlllossUnreducedForward5d(const TI* __restrict__ input,
     size_t n[4];
     GET_NCDH(n[0], n[1], n[2], n[3], gid, output_tv);
 
-    size_t max_gid = output_tv.size[0] * output_tv.size[1] * output_tv.size[2] * output_tv.size[3];
-    if(gid >= max_gid)
+    if(n[0] >= output_tv.size[0])
         return;
 
     size_t Tidx = TV4D_IDX(target_tv, n[0], n[1], n[2], n[3]);
@@ -294,8 +291,7 @@ __device__ void nlllossUnreducedForward4d(const TI* __restrict__ input,
     size_t n[3];
     GET_NCD(n[0], n[1], n[2], gid, output_tv);
 
-    size_t max_gid = output_tv.size[0] * output_tv.size[1] * output_tv.size[2];
-    if(gid >= max_gid)
+    if(n[0] >= output_tv.size[0])
         return;
 
     size_t Tidx = TV3D_IDX(target_tv, n[0], n[1], n[2]);
@@ -340,23 +336,23 @@ __device__ void nlllossUnreducedForward4dContiguous(const TI* __restrict__ input
                                                     const TI* weight,
                                                     TO* __restrict__ output,
                                                     int32_t ignore_index,
-                                                    size_t N_total,
-                                                    size_t C,
-                                                    size_t D1,
-                                                    size_t D2)
+                                                    tensor_view_4d_t input_tv,
+                                                    tensor_view_3d_t target_tv,
+                                                    tensor_view_1d_t weight_tv,
+                                                    tensor_view_3d_t output_tv)
 {
     uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
-    if(gid >= N_total)
+    size_t n[3];
+    GET_NCD(n[0], n[1], n[2], gid, output_tv);
+
+    if(n[0] >= output_tv.size[0])
         return;
 
-    size_t NWH[3];
-    NWH[2]    = (gid) % D2;
-    size_t nc = (gid) / D2;
-    NWH[1]    = nc % D1;
-    NWH[0]    = nc / D1;
+    int32_t C   = input_tv.size[1];
+    int32_t t   = target[gid];
+    size_t Iidx = TV4D_IDX(input_tv, n[0], t, n[1], n[2]);
 
-    int32_t t = target[gid];
     if(t < 0 || t == ignore_index || t >= C)
     {
         output[gid] = static_cast<TO>(0);
@@ -365,8 +361,7 @@ __device__ void nlllossUnreducedForward4dContiguous(const TI* __restrict__ input
 
     FLOAT_ACCUM w = weight != nullptr ? CVT_FLOAT2ACCUM(weight[t]) : CVT_FP32_2ACCUM(1.0f);
 
-    uint32_t input_offset   = (NWH[0] * C + t) * D1 * D2 + NWH[1] * D2 + NWH[2];
-    FLOAT_ACCUM input_value = CVT_FLOAT2ACCUM(input[input_offset]);
+    FLOAT_ACCUM input_value = CVT_FLOAT2ACCUM(input[Iidx]);
 
     FLOAT_ACCUM val = CVT_FP32_2ACCUM(-1.0f) * w * input_value;
     output[gid]     = CVT_ACCUM2FLOAT(val);
@@ -377,13 +372,13 @@ extern "C" __global__ void NLLLossUnreducedForward4dContiguous(const INPUT_TYPE*
                                                                const INPUT_TYPE* weight,
                                                                OUTPUT_TYPE* __restrict__ output,
                                                                int32_t ignore_index,
-                                                               size_t N_total,
-                                                               size_t C,
-                                                               size_t D1,
-                                                               size_t D2)
+                                                               tensor_view_4d_t input_tv,
+                                                               tensor_view_3d_t target_tv,
+                                                               tensor_view_1d_t weight_tv,
+                                                               tensor_view_3d_t output_tv)
 {
     nlllossUnreducedForward4dContiguous<INPUT_TYPE, OUTPUT_TYPE>(
-        input, target, weight, output, ignore_index, N_total, C, D1, D2);
+        input, target, weight, output, ignore_index, input_tv, target_tv, weight_tv, output_tv);
 }
 
 template <typename TI, typename TO>
@@ -399,8 +394,7 @@ __device__ void nlllossUnreducedForward2d(const TI* __restrict__ input,
 {
     uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
-    size_t max_gid = output_tv.size[0] * output_tv.size[1] * output_tv.size[2];
-    if(gid >= max_gid)
+    if(gid >= output_tv.size[0])
         return;
 
     size_t Tidx = TV1D_IDX(target_tv, gid);
@@ -445,15 +439,18 @@ __device__ void nlllossUnreducedForward2dContiguous(const TI* __restrict__ input
                                                     const TI* weight,
                                                     TO* __restrict__ output,
                                                     int32_t ignore_index,
-                                                    size_t N_total,
-                                                    size_t C)
+                                                    tensor_view_2d_t input_tv,
+                                                    tensor_view_1d_t target_tv,
+                                                    tensor_view_1d_t weight_tv,
+                                                    tensor_view_1d_t output_tv)
 {
     uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
-    if(gid >= N_total)
+    if(gid >= output_tv.size[0])
         return;
 
     int32_t t = target[gid];
+    size_t C  = weight_tv.size[0];
     if(t < 0 || t == ignore_index || t >= C)
     {
         output[gid] = static_cast<TO>(0);
@@ -474,11 +471,13 @@ extern "C" __global__ void NLLLossUnreducedForward2dContiguous(const INPUT_TYPE*
                                                                const INPUT_TYPE* weight,
                                                                OUTPUT_TYPE* __restrict__ output,
                                                                int32_t ignore_index,
-                                                               size_t N_total,
-                                                               size_t C)
+                                                               tensor_view_2d_t input_tv,
+                                                               tensor_view_1d_t target_tv,
+                                                               tensor_view_1d_t weight_tv,
+                                                               tensor_view_1d_t output_tv)
 {
     nlllossUnreducedForward2dContiguous<INPUT_TYPE, OUTPUT_TYPE>(
-        input, target, weight, output, ignore_index, N_total, C);
+        input, target, weight, output, ignore_index, input_tv, target_tv, weight_tv, output_tv);
 }
 
 template <typename TI, typename TO>
@@ -497,8 +496,7 @@ __device__ void nlllossUnreducedBackward5d(TO* __restrict__ input_grad,
     size_t n[4];
     GET_NCDH(n[0], n[1], n[2], n[3], gid, output_grad_tv);
 
-    size_t max_gid = target_tv.size[0] * target_tv.size[1] * target_tv.size[2] * target_tv.size[3];
-    if(gid >= max_gid)
+    if(n[0] >= output_grad_tv.size[0])
         return;
 
     size_t Tidx = TV4D_IDX(target_tv, n[0], n[1], n[2], n[3]);
@@ -559,8 +557,7 @@ __device__ void nlllossUnreducedBackward4d(TO* __restrict__ input_grad,
     size_t n[3];
     GET_NCD(n[0], n[1], n[2], gid, output_grad_tv);
 
-    size_t max_gid = target_tv.size[0] * target_tv.size[1] * target_tv.size[2];
-    if(gid >= max_gid)
+    if(n[0] >= output_grad_tv.size[0])
         return;
 
     size_t Tidx = TV3D_IDX(target_tv, n[0], n[1], n[2]);
@@ -611,27 +608,26 @@ __device__ void nlllossUnreducedBackward4dContiguous(TO* __restrict__ input_grad
                                                      const TI* weight,
                                                      TI* __restrict__ output_grad,
                                                      int32_t ignore_index,
-                                                     size_t N_total,
-                                                     size_t C,
-                                                     size_t D1,
-                                                     size_t D2)
+                                                     tensor_view_4d_t input_grad_tv,
+                                                     tensor_view_3d_t target_tv,
+                                                     tensor_view_1d_t weight_tv,
+                                                     tensor_view_3d_t output_grad_tv)
 {
     uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
-    if(gid >= N_total)
+    size_t n[3];
+    GET_NCD(n[0], n[1], n[2], gid, output_grad_tv);
+
+    if(n[0] >= output_grad_tv.size[0])
         return;
 
-    size_t NWH[3];
-    NWH[2]    = (gid) % D2;
-    size_t nc = (gid) / D2;
-    NWH[1]    = nc % D1;
-    NWH[0]    = nc / D1;
+    int32_t C   = weight_tv.size[0];
+    int32_t t   = target[gid];
+    size_t Iidx = TV4D_IDX(input_grad_tv, n[0], t, n[1], n[2]);
 
-    int32_t t             = target[gid];
-    uint32_t input_offset = (NWH[0] * C + t) * D1 * D2 + NWH[1] * D2 + NWH[2];
     if(t < 0 || t == ignore_index || t >= C)
     {
-        input_grad[input_offset] = static_cast<TO>(0);
+        input_grad[Iidx] = static_cast<TO>(0);
         return;
     }
 
@@ -639,7 +635,7 @@ __device__ void nlllossUnreducedBackward4dContiguous(TO* __restrict__ input_grad
     FLOAT_ACCUM grad_val = CVT_FLOAT2ACCUM(output_grad[gid]);
     FLOAT_ACCUM input_grad_value = CVT_FP32_2ACCUM(-1.0f) * w * grad_val;
 
-    input_grad[input_offset] = CVT_ACCUM2FLOAT(input_grad_value);
+    input_grad[Iidx] = CVT_ACCUM2FLOAT(input_grad_value);
 }
 
 extern "C" __global__ void
@@ -648,13 +644,20 @@ NLLLossUnreducedBackward4dContiguous(INPUT_TYPE* __restrict__ input_grad,
                                      const INPUT_TYPE* weight,
                                      OUTPUT_TYPE* __restrict__ output_grad,
                                      int32_t ignore_index,
-                                     size_t N_total,
-                                     size_t C,
-                                     size_t D1,
-                                     size_t D2)
+                                     tensor_view_4d_t input_grad_tv,
+                                     tensor_view_3d_t target_tv,
+                                     tensor_view_1d_t weight_tv,
+                                     tensor_view_3d_t output_grad_tv)
 {
-    nlllossUnreducedBackward4dContiguous<INPUT_TYPE, OUTPUT_TYPE>(
-        input_grad, target, weight, output_grad, ignore_index, N_total, C, D1, D2);
+    nlllossUnreducedBackward4dContiguous<INPUT_TYPE, OUTPUT_TYPE>(input_grad,
+                                                                  target,
+                                                                  weight,
+                                                                  output_grad,
+                                                                  ignore_index,
+                                                                  input_grad_tv,
+                                                                  target_tv,
+                                                                  weight_tv,
+                                                                  output_grad_tv);
 }
 
 template <typename TI, typename TO>
@@ -670,8 +673,7 @@ __device__ void nlllossUnreducedBackward2d(TO* __restrict__ input_grad,
 {
     uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
-    size_t max_gid = target_tv.size[0];
-    if(gid >= max_gid)
+    if(gid >= target_tv.size[0])
         return;
 
     size_t Tidx = TV1D_IDX(target_tv, gid);
@@ -722,19 +724,23 @@ __device__ void nlllossUnreducedBackward2dContiguous(TO* __restrict__ input_grad
                                                      const TI* weight,
                                                      TI* __restrict__ output_grad,
                                                      int32_t ignore_index,
-                                                     size_t N_total,
-                                                     size_t C)
+                                                     tensor_view_2d_t input_grad_tv,
+                                                     tensor_view_1d_t target_tv,
+                                                     tensor_view_1d_t weight_tv,
+                                                     tensor_view_1d_t output_grad_tv)
 {
     uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
-    if(gid >= N_total)
+    if(gid >= target_tv.size[0])
         return;
 
-    int32_t t             = target[gid];
-    uint32_t input_offset = gid * C + t;
+    int32_t C   = weight_tv.size[0];
+    int32_t t   = target[gid];
+    size_t Iidx = TV2D_IDX(input_grad_tv, gid, t);
+
     if(t < 0 || t == ignore_index || t >= C)
     {
-        input_grad[input_offset] = static_cast<TO>(0);
+        input_grad[Iidx] = static_cast<TO>(0);
         return;
     }
 
@@ -742,7 +748,7 @@ __device__ void nlllossUnreducedBackward2dContiguous(TO* __restrict__ input_grad
     FLOAT_ACCUM grad_val = CVT_FLOAT2ACCUM(output_grad[gid]);
     FLOAT_ACCUM input_grad_value = CVT_FP32_2ACCUM(-1.0f) * w * grad_val;
 
-    input_grad[input_offset] = CVT_ACCUM2FLOAT(input_grad_value);
+    input_grad[Iidx] = CVT_ACCUM2FLOAT(input_grad_value);
 }
 
 extern "C" __global__ void
@@ -751,11 +757,20 @@ NLLLossUnreducedBackward2dContiguous(INPUT_TYPE* __restrict__ input_grad,
                                      const INPUT_TYPE* weight,
                                      OUTPUT_TYPE* __restrict__ output_grad,
                                      int32_t ignore_index,
-                                     size_t N_total,
-                                     size_t C)
+                                     tensor_view_2d_t input_grad_tv,
+                                     tensor_view_1d_t target_tv,
+                                     tensor_view_1d_t weight_tv,
+                                     tensor_view_1d_t output_grad_tv)
 {
-    nlllossUnreducedBackward2dContiguous<INPUT_TYPE, OUTPUT_TYPE>(
-        input_grad, target, weight, output_grad, ignore_index, N_total, C);
+    nlllossUnreducedBackward2dContiguous<INPUT_TYPE, OUTPUT_TYPE>(input_grad,
+                                                                  target,
+                                                                  weight,
+                                                                  output_grad,
+                                                                  ignore_index,
+                                                                  input_grad_tv,
+                                                                  target_tv,
+                                                                  weight_tv,
+                                                                  output_grad_tv);
 }
 
 __device__ FLOAT_ACCUM warpReduceSum(FLOAT_ACCUM val)

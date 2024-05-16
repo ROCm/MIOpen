@@ -40,6 +40,7 @@ NetworkConfig UnreduceProblemDescription::MakeNetworkConfig() const
     size_t numel       = GetNtotal();
     size_t num_batches = inputDesc.GetLengths()[0];
     size_t num_classes = GetC();
+    size_t num_dims = inputDesc.GetSize();
 
     auto input_dtype = inputDesc.GetType();
 
@@ -50,6 +51,7 @@ NetworkConfig UnreduceProblemDescription::MakeNetworkConfig() const
     ss << "contiguous" << contiguous;
     ss << "input_dtype" << input_dtype;
     ss << "numel" << numel;
+    ss << "num_dims" << num_dims;
     ss << "num_batches" << num_batches;
     ss << "num_classes" << num_classes;
 
@@ -61,6 +63,7 @@ NetworkConfig ReduceProblemDescription::MakeNetworkConfig() const
     size_t numel       = GetNtotal();
     size_t num_batches = inputDesc.GetLengths()[0];
     size_t num_classes = GetC();
+    size_t num_dims = inputDesc.GetSize();
 
     auto input_dtype = inputDesc.GetType();
 
@@ -70,6 +73,7 @@ NetworkConfig ReduceProblemDescription::MakeNetworkConfig() const
     ss << "is_fwd" << is_fwd;
     ss << "input_dtype" << input_dtype;
     ss << "numel" << numel;
+    ss << "num_dims" << num_dims;
     ss << "num_batches" << num_batches;
     ss << "num_classes" << num_classes;
 

@@ -44,30 +44,18 @@ namespace solver {
 
 namespace nllloss {
 
-bool NLLLossReduceForwardSolver::IsApplicable(
-    const ExecutionContext&, const miopen::nllloss::ReduceProblemDescription& problem) const
-{
-    if(!problem.IsSameType())
-        return false;
-    if(!problem.IsRightLength())
-        return false;
-    if(!problem.IsRightStride())
-        return false;
-    return true;
-}
-
-bool NLLLossReduceForward4d::IsApplicable(
+bool NLLLossReduceForward5d::IsApplicable(
     const ExecutionContext& context, const miopen::nllloss::ReduceProblemDescription& problem) const
 {
-    if(!NLLLossReduceForwardSolver::IsApplicable(context, problem))
+    if(problem.GetInputDesc().GetSize() > 5)
         return false;
-    if(problem.GetInputDesc().GetSize() > 4)
+    if(!NLLLossReduceSolver::IsApplicable(context, problem))
         return false;
     return true;
 }
 
 ConvSolution
-NLLLossReduceForward4d::GetSolution(const ExecutionContext& context,
+NLLLossReduceForward5d::GetSolution(const ExecutionContext& context,
                                     const miopen::nllloss::ReduceProblemDescription& problem) const
 {
     std::ignore = context;
@@ -91,7 +79,7 @@ NLLLossReduceForward4d::GetSolution(const ExecutionContext& context,
     result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_NON_CON_FWD},
                                                          {N_total},
                                                          "MIOpenNLLLoss.cpp",
-                                                         "NLLLossReduceForward4d",
+                                                         "NLLLossForward5d",
                                                          build_params));
 
     auto size = N_total;
@@ -110,8 +98,8 @@ NLLLossReduceForward4d::GetSolution(const ExecutionContext& context,
             {
                 decltype(auto) kernel = handle_.Run(kernels.front());
 
-                auto input_tv  = get_inner_expanded_tv_4d(deref(params.inputDesc));
-                auto target_tv = get_inner_expanded_tv_3d(deref(params.targetDesc));
+                auto input_tv  = get_inner_expanded_tv_5d(deref(params.inputDesc));
+                auto target_tv = get_inner_expanded_tv_4d(deref(params.targetDesc));
                 auto weight_tv = get_inner_expanded_tv_1d(deref(params.weightDesc));
 
                 kernel(params.input,
@@ -162,7 +150,7 @@ NLLLossReduceForward4d::GetSolution(const ExecutionContext& context,
     return result;
 }
 
-std::size_t NLLLossReduceForward4d::GetWorkspaceSize(
+std::size_t NLLLossReduceForward5d::GetWorkspaceSize(
     const ExecutionContext& /*context*/,
     const miopen::nllloss::ReduceProblemDescription& problem) const
 {

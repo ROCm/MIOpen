@@ -611,8 +611,6 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdInference{}.SolverDbId());
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKBwdBackward{}.SolverDbId());
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdTraining{}.SolverDbId());
-    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossReduceForward4d{}.SolverDbId());
-    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossReduceBackward4d{}.SolverDbId());
     Register(
         registry, ++id, Primitive::Normalization, layernorm::Layernorm2DCKForward{}.SolverDbId());
     Register(
@@ -652,6 +650,19 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Softmax, softmax::Softmax{}.SolverDbId());
     Register(registry, ++id, Primitive::Softmax, softmax::AttnSoftmax{}.SolverDbId());
 
+    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceForwardContiguous4d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceForwardContiguous2d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceForward4d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceForward2d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceForward5d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossReduceForward5d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceBackwardContiguous2d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceBackwardContiguous4d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceBackward4d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceBackward2d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceBackward5d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossReduceBackward2d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossReduceBackward5d{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

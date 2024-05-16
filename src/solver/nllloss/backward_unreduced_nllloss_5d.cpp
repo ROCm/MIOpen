@@ -35,7 +35,7 @@
 #include <miopen/target_properties.hpp>
 #include <miopen/tensor_view.hpp>
 
-#define LOCAL_SIZE_CON_BWD 1024
+#define LOCAL_SIZE_NON_CON_BWD 1024
 
 namespace miopen {
 
@@ -43,20 +43,18 @@ namespace solver {
 
 namespace nllloss {
 
-bool NLLLossUnreduceBackwardContiguous4d::IsApplicable(
+bool NLLLossUnreduceBackward5d::IsApplicable(
     const ExecutionContext& context,
     const miopen::nllloss::UnreduceProblemDescription& problem) const
 {
-    if(problem.GetInputDesc().GetSize() > 4)
-        return false;
-    if(!problem.IsAllContiguous())
+    if(problem.GetInputDesc().GetSize() > 5)
         return false;
     if(!NLLLossUnreduceSolver::IsApplicable(context, problem))
         return false;
     return true;
 }
 
-ConvSolution NLLLossUnreduceBackwardContiguous4d::GetSolution(
+ConvSolution NLLLossUnreduceBackward5d::GetSolution(
     const ExecutionContext& context,
     const miopen::nllloss::UnreduceProblemDescription& problem) const
 {
@@ -79,12 +77,11 @@ ConvSolution NLLLossUnreduceBackwardContiguous4d::GetSolution(
             {"OUTPUT_TYPE", output_grad_dtype == "bfloat16" ? "ushort" : output_grad_dtype},
         };
 
-        result.construction_params.push_back(
-            solver::make_hip_kernel({LOCAL_SIZE_CON_BWD},
-                                    {N_total},
-                                    "MIOpenNLLLoss.cpp",
-                                    "NLLLossUnreducedBackward4dContiguous",
-                                    build_params));
+        result.construction_params.push_back(solver::make_hip_kernel({LOCAL_SIZE_NON_CON_BWD},
+                                                                     {N_total},
+                                                                     "MIOpenNLLLoss.cpp",
+                                                                     "NLLLossUnreducedBackward5d",
+                                                                     build_params));
     }
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
@@ -92,10 +89,10 @@ ConvSolution NLLLossUnreduceBackwardContiguous4d::GetSolution(
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::nllloss::BwdInvokeParams>();
 
-            auto input_grad_tv  = get_inner_expanded_tv_4d(deref(params.inputGradDesc));
-            auto target_tv      = get_inner_expanded_tv_3d(deref(params.targetDesc));
+            auto input_grad_tv  = get_inner_expanded_tv_5d(deref(params.inputGradDesc));
+            auto target_tv      = get_inner_expanded_tv_4d(deref(params.targetDesc));
             auto weight_tv      = get_inner_expanded_tv_1d(deref(params.weightDesc));
-            auto output_grad_tv = get_inner_expanded_tv_3d(deref(params.outputGradDesc));
+            auto output_grad_tv = get_inner_expanded_tv_4d(deref(params.outputGradDesc));
 
             kernel(params.input_grad,
                    params.target,

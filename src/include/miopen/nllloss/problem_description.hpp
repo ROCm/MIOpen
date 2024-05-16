@@ -88,6 +88,14 @@ struct ProblemDescription : ProblemDescriptionBase
             return false;
 #endif
         }
+        if(inputDesc.GetLengths().size() > 5)
+        {
+#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+            MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Do not support Input Tensor size > 5.");
+#else
+            return false;
+#endif
+        }
         return true;
     }
 

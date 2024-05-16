@@ -43,30 +43,20 @@ namespace solver {
 
 namespace nllloss {
 
-bool NLLLossUnreduceForwardSolver::IsApplicable(
-    const ExecutionContext&, const miopen::nllloss::UnreduceProblemDescription& problem) const
-{
-    if(!problem.IsSameType())
-        return false;
-    if(!problem.IsRightLength())
-        return false;
-    if(!problem.IsRightStride())
-        return false;
-    return true;
-}
-
-bool NLLLossUnreduceForwardContiguous::IsApplicable(
+bool NLLLossUnreduceForwardContiguous4d::IsApplicable(
     const ExecutionContext& context,
     const miopen::nllloss::UnreduceProblemDescription& problem) const
 {
+    if(problem.GetInputDesc().GetSize() > 4)
+        return false;
     if(!problem.IsAllContiguous())
         return false;
-    if(!NLLLossUnreduceForwardSolver::IsApplicable(context, problem))
+    if(!NLLLossUnreduceSolver::IsApplicable(context, problem))
         return false;
     return true;
 }
 
-ConvSolution NLLLossUnreduceForwardContiguous::GetSolution(
+ConvSolution NLLLossUnreduceForwardContiguous4d::GetSolution(
     const ExecutionContext& context,
     const miopen::nllloss::UnreduceProblemDescription& problem) const
 {
@@ -102,21 +92,20 @@ ConvSolution NLLLossUnreduceForwardContiguous::GetSolution(
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::nllloss::InvokeParams>();
 
-            size_t N_total = params.outputDesc->GetElementSize();
-            auto dims      = params.inputDesc->GetLengths();
-            size_t C       = dims[1];
-            size_t D1      = dims[2];
-            size_t D2      = dims[3];
+            auto input_tv  = get_inner_expanded_tv_4d(deref(params.inputDesc));
+            auto target_tv = get_inner_expanded_tv_3d(deref(params.targetDesc));
+            auto weight_tv = get_inner_expanded_tv_1d(deref(params.weightDesc));
+            auto output_tv = get_inner_expanded_tv_3d(deref(params.outputDesc));
 
             kernel(params.input,
                    params.target,
                    params.weight,
                    params.output,
                    params.ignore_index,
-                   N_total,
-                   C,
-                   D1,
-                   D2);
+                   input_tv,
+                   target_tv,
+                   weight_tv,
+                   output_tv);
         };
     };
 

@@ -35,7 +35,7 @@
 #include <miopen/target_properties.hpp>
 #include <miopen/tensor_view.hpp>
 
-#define LOCAL_SIZE_CON_BWD 1024
+#define LOCAL_SIZE_NON_CON_BWD 1024
 
 namespace miopen {
 
@@ -43,20 +43,18 @@ namespace solver {
 
 namespace nllloss {
 
-bool NLLLossUnreduceBackwardContiguous4d::IsApplicable(
+bool NLLLossUnreduceBackward4d::IsApplicable(
     const ExecutionContext& context,
     const miopen::nllloss::UnreduceProblemDescription& problem) const
 {
     if(problem.GetInputDesc().GetSize() > 4)
-        return false;
-    if(!problem.IsAllContiguous())
         return false;
     if(!NLLLossUnreduceSolver::IsApplicable(context, problem))
         return false;
     return true;
 }
 
-ConvSolution NLLLossUnreduceBackwardContiguous4d::GetSolution(
+ConvSolution NLLLossUnreduceBackward4d::GetSolution(
     const ExecutionContext& context,
     const miopen::nllloss::UnreduceProblemDescription& problem) const
 {
@@ -79,12 +77,11 @@ ConvSolution NLLLossUnreduceBackwardContiguous4d::GetSolution(
             {"OUTPUT_TYPE", output_grad_dtype == "bfloat16" ? "ushort" : output_grad_dtype},
         };
 
-        result.construction_params.push_back(
-            solver::make_hip_kernel({LOCAL_SIZE_CON_BWD},
-                                    {N_total},
-                                    "MIOpenNLLLoss.cpp",
-                                    "NLLLossUnreducedBackward4dContiguous",
-                                    build_params));
+        result.construction_params.push_back(solver::make_hip_kernel({LOCAL_SIZE_NON_CON_BWD},
+                                                                     {N_total},
+                                                                     "MIOpenNLLLoss.cpp",
+                                                                     "NLLLossUnreducedBackward4d",
+                                                                     build_params));
     }
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {

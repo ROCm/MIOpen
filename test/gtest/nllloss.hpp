@@ -236,7 +236,7 @@ protected:
 
         if(divisor == 0.f)
         {
-            cpu_nllloss_forward_4d<T>(input, target, weight, ref_output, ignore_index);
+            cpu_nllloss_unreduce_forward<T>(input, target, weight, ref_output, ignore_index);
 
             status = miopen::NLLLossUnreduceForward(handle,
                                                     input.desc,
@@ -251,7 +251,7 @@ protected:
         }
         else
         {
-            cpu_nllloss_reduce_forward_4d(
+            cpu_nllloss_reduce_forward_5d<T>(
                 input, target, weight, ref_output, ref_workspace, ignore_index, divisor);
             status         = miopen::NLLLossReduceForward(handle,
                                                   workspace_dev.get(),
@@ -376,7 +376,7 @@ protected:
 
         if(divisor != 0.f)
         {
-            cpu_nllloss_reduce_backward_4d(
+            cpu_nllloss_reduce_backward<T>(
                 ref_input_grad, target, weight, output_grad, ignore_index, divisor);
 
             status = miopen::NLLLossReduceBackward(handle,
@@ -393,7 +393,8 @@ protected:
         }
         else
         {
-            cpu_nllloss_backward_4d<T>(ref_input_grad, target, weight, output_grad, ignore_index);
+            cpu_nllloss_unreduce_backward<T>(
+                ref_input_grad, target, weight, output_grad, ignore_index);
 
             status = miopen::NLLLossUnreduceBackward(handle,
                                                      input_grad.desc,

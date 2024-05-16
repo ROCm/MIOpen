@@ -43,11 +43,11 @@ namespace solver {
 
 namespace nllloss {
 
-bool NLLLossUnreduceBackwardContiguous4d::IsApplicable(
+bool NLLLossUnreduceBackwardContiguous2d::IsApplicable(
     const ExecutionContext& context,
     const miopen::nllloss::UnreduceProblemDescription& problem) const
 {
-    if(problem.GetInputDesc().GetSize() > 4)
+    if(problem.GetInputDesc().GetSize() > 2)
         return false;
     if(!problem.IsAllContiguous())
         return false;
@@ -56,7 +56,7 @@ bool NLLLossUnreduceBackwardContiguous4d::IsApplicable(
     return true;
 }
 
-ConvSolution NLLLossUnreduceBackwardContiguous4d::GetSolution(
+ConvSolution NLLLossUnreduceBackwardContiguous2d::GetSolution(
     const ExecutionContext& context,
     const miopen::nllloss::UnreduceProblemDescription& problem) const
 {
@@ -83,7 +83,7 @@ ConvSolution NLLLossUnreduceBackwardContiguous4d::GetSolution(
             solver::make_hip_kernel({LOCAL_SIZE_CON_BWD},
                                     {N_total},
                                     "MIOpenNLLLoss.cpp",
-                                    "NLLLossUnreducedBackward4dContiguous",
+                                    "NLLLossUnreducedBackward2dContiguous",
                                     build_params));
     }
 
@@ -92,10 +92,10 @@ ConvSolution NLLLossUnreduceBackwardContiguous4d::GetSolution(
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::nllloss::BwdInvokeParams>();
 
-            auto input_grad_tv  = get_inner_expanded_tv_4d(deref(params.inputGradDesc));
-            auto target_tv      = get_inner_expanded_tv_3d(deref(params.targetDesc));
+            auto input_grad_tv  = get_inner_expanded_tv_2d(deref(params.inputGradDesc));
+            auto target_tv      = get_inner_expanded_tv_1d(deref(params.targetDesc));
             auto weight_tv      = get_inner_expanded_tv_1d(deref(params.weightDesc));
-            auto output_grad_tv = get_inner_expanded_tv_3d(deref(params.outputGradDesc));
+            auto output_grad_tv = get_inner_expanded_tv_1d(deref(params.outputGradDesc));
 
             kernel(params.input_grad,
                    params.target,

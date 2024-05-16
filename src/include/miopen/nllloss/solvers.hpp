@@ -56,24 +56,30 @@ const auto make_hip_kernel = [](std::vector<size_t> localsize,
 
 namespace nllloss {
 
-using NLLLossSolver =
+using NLLLossUnreduce =
     NonTunableSolverBase<ExecutionContext, miopen::nllloss::UnreduceProblemDescription>;
 
-using NLLLossReduceSolver =
+using NLLLossReduce =
     NonTunableSolverBase<ExecutionContext, miopen::nllloss::ReduceProblemDescription>;
 
-// FORWARD UNREDUCE
-struct NLLLossUnreduceForwardSolver : NLLLossSolver
+struct NLLLossUnreduceSolver : NLLLossUnreduce
 {
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::nllloss::UnreduceProblemDescription& problem) const override;
 };
 
-struct NLLLossUnreduceForwardContiguous final : NLLLossUnreduceForwardSolver
+struct NLLLossReduceSolver : NLLLossReduce
+{
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::nllloss::ReduceProblemDescription& problem) const override;
+};
+
+// FORWARD UNREDUCE
+struct NLLLossUnreduceForwardContiguous4d final : NLLLossUnreduceSolver
 {
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<NLLLossUnreduceForwardContiguous>();
+        return GetSolverDbId<NLLLossUnreduceForwardContiguous4d>();
     }
 
     bool IsApplicable(const ExecutionContext& context,
@@ -84,7 +90,22 @@ struct NLLLossUnreduceForwardContiguous final : NLLLossUnreduceForwardSolver
                 const miopen::nllloss::UnreduceProblemDescription& problem) const override;
 };
 
-struct NLLLossUnreduceForward4d final : NLLLossUnreduceForwardSolver
+struct NLLLossUnreduceForwardContiguous2d final : NLLLossUnreduceSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<NLLLossUnreduceForwardContiguous2d>();
+    }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::nllloss::UnreduceProblemDescription& problem) const override;
+
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::nllloss::UnreduceProblemDescription& problem) const override;
+};
+
+struct NLLLossUnreduceForward4d final : NLLLossUnreduceSolver
 {
     const std::string& SolverDbId() const override
     {
@@ -99,18 +120,42 @@ struct NLLLossUnreduceForward4d final : NLLLossUnreduceForwardSolver
                 const miopen::nllloss::UnreduceProblemDescription& problem) const override;
 };
 
-// FORWARD REDUCE
-struct NLLLossReduceForwardSolver : NLLLossReduceSolver
-{
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::nllloss::ReduceProblemDescription& problem) const override;
-};
-
-struct NLLLossReduceForward4d final : NLLLossReduceForwardSolver
+struct NLLLossUnreduceForward2d final : NLLLossUnreduceSolver
 {
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<NLLLossReduceForward4d>();
+        return GetSolverDbId<NLLLossUnreduceForward2d>();
+    }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::nllloss::UnreduceProblemDescription& problem) const override;
+
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::nllloss::UnreduceProblemDescription& problem) const override;
+};
+
+struct NLLLossUnreduceForward5d final : NLLLossUnreduceSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<NLLLossUnreduceForward5d>();
+    }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::nllloss::UnreduceProblemDescription& problem) const override;
+
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::nllloss::UnreduceProblemDescription& problem) const override;
+};
+
+// FORWARD REDUCE
+struct NLLLossReduceForward5d final : NLLLossReduceSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<NLLLossReduceForward5d>();
     }
 
     bool IsApplicable(const ExecutionContext& context,
@@ -125,17 +170,11 @@ struct NLLLossReduceForward4d final : NLLLossReduceForwardSolver
 };
 
 // BACKWARD UNREDUCE
-struct NLLLossUnreduceBackwardSolver : NLLLossSolver
-{
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::nllloss::UnreduceProblemDescription& problem) const override;
-};
-
-struct NLLLossUnreduceBackwardContiguous final : NLLLossUnreduceBackwardSolver
+struct NLLLossUnreduceBackwardContiguous2d final : NLLLossUnreduceSolver
 {
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<NLLLossUnreduceBackwardContiguous>();
+        return GetSolverDbId<NLLLossUnreduceBackwardContiguous2d>();
     }
 
     bool IsApplicable(const ExecutionContext& context,
@@ -146,7 +185,22 @@ struct NLLLossUnreduceBackwardContiguous final : NLLLossUnreduceBackwardSolver
                 const miopen::nllloss::UnreduceProblemDescription& problem) const override;
 };
 
-struct NLLLossUnreduceBackward4d final : NLLLossUnreduceBackwardSolver
+struct NLLLossUnreduceBackwardContiguous4d final : NLLLossUnreduceSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<NLLLossUnreduceBackwardContiguous4d>();
+    }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::nllloss::UnreduceProblemDescription& problem) const override;
+
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::nllloss::UnreduceProblemDescription& problem) const override;
+};
+
+struct NLLLossUnreduceBackward4d final : NLLLossUnreduceSolver
 {
     const std::string& SolverDbId() const override
     {
@@ -161,12 +215,42 @@ struct NLLLossUnreduceBackward4d final : NLLLossUnreduceBackwardSolver
                 const miopen::nllloss::UnreduceProblemDescription& problem) const override;
 };
 
-// BACKWARD REDUCE
-struct NLLLossReduceBackward4d final : NLLLossReduceSolver
+struct NLLLossUnreduceBackward2d final : NLLLossUnreduceSolver
 {
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<NLLLossReduceBackward4d>();
+        return GetSolverDbId<NLLLossUnreduceBackward2d>();
+    }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::nllloss::UnreduceProblemDescription& problem) const override;
+
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::nllloss::UnreduceProblemDescription& problem) const override;
+};
+
+struct NLLLossUnreduceBackward5d final : NLLLossUnreduceSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<NLLLossUnreduceBackward5d>();
+    }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::nllloss::UnreduceProblemDescription& problem) const override;
+
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::nllloss::UnreduceProblemDescription& problem) const override;
+};
+
+// BACKWARD REDUCE
+struct NLLLossReduceBackward2d final : NLLLossReduceSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<NLLLossReduceBackward2d>();
     }
 
     bool IsApplicable(const ExecutionContext& context,
@@ -174,7 +258,20 @@ struct NLLLossReduceBackward4d final : NLLLossReduceSolver
     ConvSolution
     GetSolution(const ExecutionContext& context,
                 const miopen::nllloss::ReduceProblemDescription& problem) const override;
-    bool MayNeedWorkspace() const override { return false; }
+};
+
+struct NLLLossReduceBackward5d final : NLLLossReduceSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<NLLLossReduceBackward5d>();
+    }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::nllloss::ReduceProblemDescription& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::nllloss::ReduceProblemDescription& problem) const override;
 };
 
 } // namespace nllloss

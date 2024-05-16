@@ -63,8 +63,11 @@ miopenStatus_t NLLLossUnreduceForward(Handle& handle,
     }();
 
     const auto algo    = AlgorithmName{"NLLLossUnreduceForward"};
-    const auto solvers = solver::SolverContainer<solver::nllloss::NLLLossUnreduceForwardContiguous,
-                                                 solver::nllloss::NLLLossUnreduceForward4d>{};
+    const auto solvers = solver::SolverContainer<solver::nllloss::NLLLossUnreduceForwardContiguous2d,
+                                                 solver::nllloss::NLLLossUnreduceForwardContiguous4d,
+                                                 solver::nllloss::NLLLossUnreduceForward2d,
+                                                 solver::nllloss::NLLLossUnreduceForward4d,
+                                                 solver::nllloss::NLLLossUnreduceForward5d>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
@@ -82,7 +85,7 @@ size_t GetNLLLossReduceForwardWorkspaceSize(Handle& handle,
         nllloss::ReduceProblemDescription{inputDesc, targetDesc, weightDesc, outputDesc, -1, true};
 
     const auto algo    = AlgorithmName{"NLLLossReduceForward"};
-    const auto solvers = solver::SolverContainer<solver::nllloss::NLLLossReduceForward4d>{};
+    const auto solvers = solver::SolverContainer<solver::nllloss::NLLLossReduceForward5d>{};
 
     auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem);
 
@@ -125,7 +128,7 @@ miopenStatus_t NLLLossReduceForward(Handle& handle,
     }();
 
     const auto algo    = AlgorithmName{"NLLLossReduceForward"};
-    const auto solvers = solver::SolverContainer<solver::nllloss::NLLLossReduceForward4d>{};
+    const auto solvers = solver::SolverContainer<solver::nllloss::NLLLossReduceForward5d>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
@@ -161,8 +164,11 @@ miopenStatus_t NLLLossUnreduceBackward(Handle& handle,
         return tmp;
     }();
     const auto algo    = AlgorithmName{"NLLLossUnreduceBackward"};
-    const auto solvers = solver::SolverContainer<solver::nllloss::NLLLossUnreduceBackwardContiguous,
-                                                 solver::nllloss::NLLLossUnreduceBackward4d>{};
+    const auto solvers = solver::SolverContainer<solver::nllloss::NLLLossUnreduceBackwardContiguous2d,
+                                                 solver::nllloss::NLLLossUnreduceBackwardContiguous4d,
+                                                 solver::nllloss::NLLLossUnreduceBackward2d,
+                                                 solver::nllloss::NLLLossUnreduceBackward4d,
+                                                 solver::nllloss::NLLLossUnreduceBackward5d>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
@@ -200,7 +206,8 @@ miopenStatus_t NLLLossReduceBackward(Handle& handle,
         return tmp;
     }();
     const auto algo    = AlgorithmName{"NLLLossReduceBackward"};
-    const auto solvers = solver::SolverContainer<solver::nllloss::NLLLossReduceBackward4d>{};
+    const auto solvers = solver::SolverContainer<solver::nllloss::NLLLossReduceBackward2d,
+                                                 solver::nllloss::NLLLossReduceBackward5d>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 

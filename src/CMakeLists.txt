@@ -266,12 +266,21 @@ set( MIOpen_Source
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
     solver/mha/mha_solver.cpp
-    solver/nllloss/forward_con_nllloss_4d.cpp
-    solver/nllloss/forward_non_nllloss_4d.cpp
-    solver/nllloss/forward_reduce_nllloss_4d.cpp
+    solver/nllloss/backward_con_nllloss_2d.cpp
     solver/nllloss/backward_con_nllloss_4d.cpp
-    solver/nllloss/backward_non_nllloss_4d.cpp
-    solver/nllloss/backward_reduce_nllloss_4d.cpp
+    solver/nllloss/backward_nllloss_2d.cpp
+    solver/nllloss/backward_nllloss_5d.cpp
+    solver/nllloss/backward_unreduced_nllloss_2d.cpp
+    solver/nllloss/backward_unreduced_nllloss_4d.cpp
+    solver/nllloss/backward_unreduced_nllloss_5d.cpp
+    solver/nllloss/forward_con_nllloss_2d.cpp
+    solver/nllloss/forward_con_nllloss_4d.cpp
+    solver/nllloss/forward_nllloss_5d.cpp
+    solver/nllloss/forward_unreduced_nllloss_2d.cpp
+    solver/nllloss/forward_unreduced_nllloss_4d.cpp
+    solver/nllloss/forward_unreduced_nllloss_5d.cpp
+    solver/nllloss/solver_reduced.cpp
+    solver/nllloss/solver_unreduced.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp

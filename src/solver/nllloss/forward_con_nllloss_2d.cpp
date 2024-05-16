@@ -35,7 +35,7 @@
 #include <miopen/target_properties.hpp>
 #include <miopen/tensor_view.hpp>
 
-#define LOCAL_SIZE_NON_CON_FWD 1024
+#define LOCAL_SIZE_CON_FWD 1024
 
 namespace miopen {
 
@@ -43,18 +43,20 @@ namespace solver {
 
 namespace nllloss {
 
-bool NLLLossUnreduceForward4d::IsApplicable(
+bool NLLLossUnreduceForwardContiguous2d::IsApplicable(
     const ExecutionContext& context,
     const miopen::nllloss::UnreduceProblemDescription& problem) const
 {
-    if(problem.GetInputDesc().GetSize() > 4)
+    if(problem.GetInputDesc().GetSize() > 2)
         return false;
-    if(!NLLLossUnreduceForwardSolver::IsApplicable(context, problem))
+    if(!problem.IsAllContiguous())
+        return false;
+    if(!NLLLossUnreduceSolver::IsApplicable(context, problem))
         return false;
     return true;
 }
 
-ConvSolution NLLLossUnreduceForward4d::GetSolution(
+ConvSolution NLLLossUnreduceForwardContiguous2d::GetSolution(
     const ExecutionContext& context,
     const miopen::nllloss::UnreduceProblemDescription& problem) const
 {
@@ -68,8 +70,6 @@ ConvSolution NLLLossUnreduceForward4d::GetSolution(
         auto dtype     = problem.GetOutputDesc().GetType();
         size_t N_total = problem.GetNtotal();
 
-        auto kernel = KernelInfo{};
-
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
             {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
@@ -79,11 +79,12 @@ ConvSolution NLLLossUnreduceForward4d::GetSolution(
             {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
         };
 
-        result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_NON_CON_FWD},
-                                                             {N_total},
-                                                             "MIOpenNLLLoss.cpp",
-                                                             "NLLLossUnreducedForward4d",
-                                                             build_params));
+        result.construction_params.push_back(
+            solver::make_hip_kernel({LOCAL_SIZE_CON_FWD},
+                                    {N_total},
+                                    "MIOpenNLLLoss.cpp",
+                                    "NLLLossUnreducedForward2dContiguous",
+                                    build_params));
     }
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
@@ -91,10 +92,10 @@ ConvSolution NLLLossUnreduceForward4d::GetSolution(
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::nllloss::InvokeParams>();
 
-            auto input_tv  = get_inner_expanded_tv_4d(deref(params.inputDesc));
-            auto target_tv = get_inner_expanded_tv_3d(deref(params.targetDesc));
+            auto input_tv  = get_inner_expanded_tv_2d(deref(params.inputDesc));
+            auto target_tv = get_inner_expanded_tv_1d(deref(params.targetDesc));
             auto weight_tv = get_inner_expanded_tv_1d(deref(params.weightDesc));
-            auto output_tv = get_inner_expanded_tv_3d(deref(params.outputDesc));
+            auto output_tv = get_inner_expanded_tv_1d(deref(params.outputDesc));
 
             kernel(params.input,
                    params.target,

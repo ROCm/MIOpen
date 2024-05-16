@@ -6711,7 +6711,7 @@ miopenNLLLossReduceBackward(miopenHandle_t handle,
                             const void* target,
                             const miopenTensorDescriptor_t weightDesc,
                             const void* weight,
-                            const miopenTensorDescriptor_t outputDesc,
+                            const miopenTensorDescriptor_t outputGradDesc,
                             void* output_grad,
                             const int32_t ignore_index,
                             const float divisor);
