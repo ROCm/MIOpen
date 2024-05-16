@@ -31,6 +31,7 @@ namespace miopen {
 
 namespace graphapi {
 
+/*
 EngineCfg EngineCfgBuilder::build() &
 {
     if(mEngineSet)
@@ -42,6 +43,7 @@ EngineCfg EngineCfgBuilder::build() &
         MIOPEN_THROW(miopenStatusBadParm);
     }
 }
+*/
 
 EngineCfg EngineCfgBuilder::build() &&
 {

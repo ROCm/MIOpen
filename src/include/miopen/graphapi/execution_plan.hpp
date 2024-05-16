@@ -52,9 +52,9 @@ private:
 
 public:
     ExecutionPlan()                     = default;
-    ExecutionPlan(const ExecutionPlan&) = default;
+    ExecutionPlan(const ExecutionPlan&) = delete;
     ExecutionPlan(ExecutionPlan&&)      = default;
-    ExecutionPlan& operator=(const ExecutionPlan&) = default;
+    ExecutionPlan& operator=(const ExecutionPlan&) = delete;
     ExecutionPlan& operator=(ExecutionPlan&&) = default;
 
     miopenHandle_t getHandle() const noexcept { return mHandle; }
@@ -64,10 +64,12 @@ public:
     std::string getJsonRepresentation() const;
 
     void execute(const VariantPack& variantPack) {
-      mEngineCfg.getEngine().execute(variantPack);
+      mEngineCfg.getEngine().getExecutor()->execute(variantPack);
     }
 
-    size_t getWorkspaceSize() const { return mEngineCfg.getEngine().getWorkspaceSize(); }
+    size_t getWorkspaceSize() const { 
+      return mEngineCfg.getEngine().getExecutor()->getWorkspaceSize(); 
+    }
 
 };
 

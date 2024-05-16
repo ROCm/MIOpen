@@ -25,7 +25,6 @@
  *******************************************************************************/
 #pragma once
 
-#include <miopen/graphapi/engine.hpp>
 #include <miopen/graphapi/tensor.hpp>
 
 #include <algorithm>
@@ -121,7 +120,7 @@ protected:
     {
         assert(src);
         assert(tens_ptr);
-        auto e = makeEdge{src, tens_ptr};
+        auto e = makeEdge(src, tens_ptr);
         return internal::contains(mInEdges, e);
     }
 
@@ -129,7 +128,7 @@ protected:
     {
         assert(dst);
         assert(tens_ptr);
-        auto e = makeEdge{dst, tens_ptr};
+        auto e = makeEdge(dst, tens_ptr);
         return internal::contains(mOutEdges, e);
     }
 
@@ -215,6 +214,8 @@ protected:
 using Path       = std::vector<const OpNode*>;
 using VecOfPaths = std::vector<Path>;
 
+class Engine;
+
 class OpGraph
 {
     // NOTE: mSrcNode and mSinkNode need to reside on the heap because the graph may move
@@ -226,7 +227,9 @@ class OpGraph
 
     // Descriptor related members
     miopenHandle_t mHandle = nullptr;
-    std::vector<Engine> mEngines;
+    // TODO(Amber): decide whether to cache engines inside opgraph and decide when
+    // the caching happens
+    // std::vector<Engine> mEngines;
 
 public:
     OpGraph(const OpGraph&) = delete;
@@ -351,7 +354,7 @@ public:
     }
 
     miopenHandle_t getHandle() const noexcept { return mHandle; }
-    const std::vector<Engine>& getEngines() const noexcept { return mEngines; }
+    // const std::vector<Engine>& getEngines() const noexcept { return mEngines; }
 
 private:
     friend class OpGraphBuilder;

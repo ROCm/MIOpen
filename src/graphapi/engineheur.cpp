@@ -52,25 +52,19 @@ EngineHeurBuilder& EngineHeurBuilder::setSmCount(int32_t smCount)
     return *this;
 }
 
-EngineHeur EngineHeurBuilder::build()
+EngineHeur EngineHeurBuilder::build() &&
 {
     if(mEngineHeur.mOpGraph == nullptr || !mModeSet)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    EngineHeur engineHeur(mEngineHeur);
-
-    /* TODO: find solutions
-     * For now: just copy
-     * solutions from OpGraph
-     */
-    const auto& engines = engineHeur.mOpGraph->getEngines();
-    std::for_each(engines.begin(), engines.end(), [&engineHeur](const Engine& engine) {
-        engineHeur.mResults.emplace_back(engine);
+    std::vector<Engine> engines = findEngines(*mEngineHeur.mOpGraph);
+    std::for_each(engines.begin(), engines.end(), [this](const Engine& engine) {
+        mEngineHeur.mResults.emplace_back(engine);
     });
 
-    return engineHeur;
+    return std::move(mEngineHeur);
 }
 
 void BackendEngineHeurDescriptor::setAttribute(miopenBackendAttributeName_t attributeName,

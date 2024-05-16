@@ -63,7 +63,8 @@ void GraphExecutorFind20::execute(miopenHandle_t handle, const VariantPack& vpk)
 
     miopenTensorArgument_t targ{
       .id = v.mEnumId,
-      .descriptor = &(v.mTensDesc),
+      // .descriptor = &(v.mTensDesc),
+      .descriptor = nullptr,
       .buffer = gpu_ptr
     };
 
@@ -83,7 +84,7 @@ void GraphExecutorFind20::execute(miopenHandle_t handle, const VariantPack& vpk)
 }
 
 
-EngineBuilder& EngineBuilder::setOpGraph(const OpGraph* g)
+EngineBuilder& EngineBuilder::setGraph(OpGraph* g)
 {
     assert(g);
     mEngine.mGraph = checkPtr(g);
@@ -132,7 +133,7 @@ void BackendEngineDescriptor::setAttribute(miopenBackendAttributeName_t attribut
 
             BackendOperationGraphDescriptor& operationGraphDescriptor =
                 dynamic_cast<BackendOperationGraphDescriptor&>(backendDescriptor);
-            mBuilder.setOpGraph(operationGraphDescriptor.getOperationGraph());
+            mBuilder.setGraph(operationGraphDescriptor.getOperationGraph());
             mOpGraphDescriptor = apiDescriptor;
         }
         else

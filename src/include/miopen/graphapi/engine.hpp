@@ -142,9 +142,6 @@ public:
     const OpGraph* getOpGraph() const { return mGraph; }
     OpGraph* getOpGraph() { return mGraph; }
 
-    size_t getWorkspaceSize() const { 
-      return mExecutor->getWorkspaceSize();
-    }
 };
 
 class EngineBuilder

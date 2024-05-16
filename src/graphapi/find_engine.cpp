@@ -33,7 +33,7 @@
 namespace miopen {
 namespace graphapi {
 
-GraphPattern::~GraphPattern() = default;
+GraphPatternMatcher::~GraphPatternMatcher() = default;
 
 class MHA_FP8_Pattern : public GraphPattern
 {

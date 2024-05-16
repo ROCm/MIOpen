@@ -127,11 +127,11 @@ set( MIOpen_Source
     fusion/problem_description.cpp
     generic_search.cpp
     graphapi/convolution.cpp
-    graphapi/engine_alt.cpp
     graphapi/engine.cpp
     graphapi/enginecfg.cpp
     graphapi/engineheur.cpp
     graphapi/execution_plan.cpp
+    graphapi/find_engine.cpp
     graphapi/graphapi.cpp
     graphapi/matmul.cpp
     graphapi/opgraph.cpp

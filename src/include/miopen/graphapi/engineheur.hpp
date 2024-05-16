@@ -71,7 +71,7 @@ public:
     EngineHeurBuilder& setOpGraph(OpGraph* opGraph);
     EngineHeurBuilder& setMode(miopenBackendHeurMode_t mode);
     EngineHeurBuilder& setSmCount(int32_t smCount);
-    EngineHeur build();
+    EngineHeur build() &&;
 };
 
 class BackendEngineHeurDescriptor : public BackendDescriptor

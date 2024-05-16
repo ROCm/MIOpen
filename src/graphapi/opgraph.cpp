@@ -26,6 +26,7 @@
 
 #include <miopen/errors.hpp>
 #include <miopen/graphapi/opgraph.hpp>
+#include <miopen/graphapi/engine.hpp>
 
 #include <deque>
 #include <unordered_map>
@@ -436,7 +437,9 @@ void BackendOperationGraphDescriptor::getAttribute(miopenBackendAttributeName_t 
         if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount == 1)
         {
             *elementCount                           = 1;
-            *static_cast<int64_t*>(arrayOfElements) = mOpGraph.getEngines().size();
+            // *static_cast<int64_t*>(arrayOfElements) = mOpGraph.getEngines().size();
+            // NOTE(Amber): can be expensive without caching when called repeatedly
+            *static_cast<int64_t*>(arrayOfElements) = findEngines(mOpGraph).size();
         }
         else
         {
