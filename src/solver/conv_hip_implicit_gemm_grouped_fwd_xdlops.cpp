@@ -367,8 +367,8 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::HeuristicInit(
     case miopenHalf: Init<ck::half_t>(problem); break;
     case miopenFloat: Init<float>(problem); break;
     case miopenInt8: Init<int8_t>(problem); break;
+    case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
     case miopenInt32:
-    case miopenBFloat16:
     case miopenFloat8:
     case miopenBFloat8:
     case miopenDouble: break;
@@ -386,8 +386,8 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::SetNextValue(const ProblemD
         case miopenHalf: Init<ck::half_t>(problem); break;
         case miopenFloat: Init<float>(problem); break;
         case miopenInt8: Init<int8_t>(problem); break;
+        case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
         case miopenInt32:
-        case miopenBFloat16:
         case miopenFloat8:
         case miopenBFloat8:
         case miopenDouble: break;
@@ -420,8 +420,8 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsValid(
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
     case miopenInt8: return CheckIsSupportCKArgs<int8_t>(problem);
+    case miopenBFloat16: return CheckIsSupportCKArgs<ck::bhalf_t>(problem);
     case miopenInt32:
-    case miopenBFloat16:
     case miopenFloat8:
     case miopenBFloat8:
     case miopenDouble: break;
@@ -500,8 +500,8 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
     case miopenFloat: return CheckCKApplicability<float>(problem);
     case miopenInt8: return CheckCKApplicability<int8_t>(problem);
+    case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(problem);
     case miopenInt32:
-    case miopenBFloat16:
     case miopenFloat8:
     case miopenBFloat8:
     case miopenDouble: break;

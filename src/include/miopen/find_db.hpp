@@ -133,7 +133,7 @@ public:
 
     ~FindDbRecord_t()
     {
-        if(!db.is_initialized() || !content.is_initialized() || in_sync)
+        if(dont_store || !db.is_initialized() || !content.is_initialized() || in_sync)
             return;
         if(!db->StoreRecord(content.get()))
             MIOPEN_LOG_E("Failed to store record to find-db at <" << path << ">");
@@ -148,7 +148,7 @@ public:
     template <class TProblemDescription>
     static std::vector<Solution> TryLoad(Handle& handle,
                                          const TProblemDescription& problem,
-                                         const std::function<std::vector<Solution>()>& regenerator,
+                                         const std::function<FindCoreResult()>& regenerator,
                                          const std::string& path_suffix = "")
     {
         FindDbRecord_t<TDb> record{handle, problem, path_suffix};
@@ -172,9 +172,12 @@ public:
         record.in_sync = false;
         record.content.emplace(DbKinds::FindDb, problem);
 
-        const auto solutions = regenerator();
+        const auto result = regenerator();
 
-        for(const auto& solution : solutions)
+        if (!result.is_optimal)
+            return result.solutions;
+
+        for(const auto& solution : result.solutions)
         {
             const auto algo = solution.GetSolver().GetAlgo(problem.GetDirection());
             record.content->SetValues(
@@ -182,7 +185,7 @@ public:
                 FindDbData{solution.GetTime(), solution.GetWorkspaceSize(), algo});
         }
 
-        return solutions;
+        return result.solutions;
     }
 
 private:
@@ -190,7 +193,8 @@ private:
     std::string installed_path;
     boost::optional<DbTimer<TDb>> db;
     boost::optional<DbRecord> content{boost::none};
-    bool in_sync = false;
+    bool in_sync    = false;
+    bool dont_store = false; // E.g. to skip writing sub-optimal find-db records to disk.
 
     static std::string GetInstalledPath(Handle& handle, const std::string& path_suffix);
     static std::string GetInstalledPathEmbed(Handle& handle, const std::string& path_suffix);
