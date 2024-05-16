@@ -15,7 +15,7 @@ namespace solver {
 struct ConvSolution;
 } // namespace solver
 
-enum Exec_Arg_Type_t
+enum class Exec_Arg_Type_t
 {
     Scalar,
     Input_Ptr,
