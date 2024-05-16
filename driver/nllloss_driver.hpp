@@ -41,6 +41,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <vector>
 
 inline std::vector<int> GetStrides(std::vector<int> lengths, int contiguous)
 {
@@ -77,6 +78,7 @@ public:
     int ParseCmdLineArgs(int argc, char* argv[]) override;
     InputFlags& GetInputFlags() override { return inflags; }
 
+    std::vector<int> GetInputTensorDimsFromCmd();
     int GetandSetData() override;
 
     int AllocateBuffersAndCopy() override;
@@ -134,10 +136,7 @@ private:
 
     size_t ws_sizeInBytes;
 
-    size_t N;
-    size_t C;
-    size_t D1;
-    size_t D2;
+    std::vector<int> input_sizes;
     int32_t ignore_index;
     float divisor;
 };
@@ -155,27 +154,50 @@ int NLLLossDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 }
 
 template <typename Tgpu, typename Tref>
+std::vector<int> NLLLossDriver<Tgpu, Tref>::GetInputTensorDimsFromCmd()
+{
+    std::string lengthsStr = inflags.GetValueStr("input_dims");
+
+    std::vector<int> lengths;
+    std::size_t pos = 0;
+    std::size_t new_pos;
+
+    new_pos = lengthsStr.find(',', pos);
+    while(new_pos != std::string::npos)
+    {
+        std::string sliceStr = lengthsStr.substr(pos, new_pos - pos);
+
+        int len = std::stoi(sliceStr);
+
+        lengths.push_back(len);
+
+        pos     = new_pos + 1;
+        new_pos = lengthsStr.find(',', pos);
+    };
+
+    std::string sliceStr = lengthsStr.substr(pos);
+    int len              = std::stoi(sliceStr);
+
+    lengths.push_back(len);
+
+    return (lengths);
+}
+
+template <typename Tgpu, typename Tref>
 int NLLLossDriver<Tgpu, Tref>::GetandSetData()
 {
     auto reduction = inflags.GetValueStr("reduce");
     if(reduction != "none" && reduction != "mean" && reduction != "sum")
         return miopenStatusInvalidValue;
 
-    N            = inflags.GetValueInt("batchsize");
-    C            = inflags.GetValueInt("numclasses");
-    D1           = inflags.GetValueInt("D1");
-    D2           = inflags.GetValueInt("D2");
+    input_sizes  = GetInputTensorDimsFromCmd();
     ignore_index = static_cast<int32_t>(inflags.GetValueInt("ignore_index"));
 
-    if(N <= 0 || C <= 0 || D1 <= 0 || D2 <= 0)
-    {
-        MIOPEN_THROW("Error Input Tensor Lengths");
-    }
-
-    std::vector<int> in_len     = {N, C, D1, D2};
-    std::vector<int> target_len = {N, D1, D2};
-    std::vector<int> weight_len = {C};
-    std::vector<int> out_len    = {N, D1, D2};
+    std::vector<int> in_len     = input_sizes;
+    std::vector<int> target_len = in_len;
+    target_len.erase(std::next(target_len.begin()));
+    std::vector<int> weight_len = {in_len[1]};
+    std::vector<int> out_len    = target_len;
 
     auto in_strides     = GetStrides(in_len, 1);
     auto tar_strides    = GetStrides(target_len, inflags.GetValueInt("contiguous"));
@@ -212,10 +234,11 @@ template <typename Tgpu, typename Tref>
 int NLLLossDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward NLLLoss (Default=1)", "int");
-    inflags.AddInputFlag("batchsize", 'N', "5", "Batch size", "int");
-    inflags.AddInputFlag("numclasses", 'C', "10", "Number of classes", "int");
-    inflags.AddInputFlag("D1", 'd', "17", "Size D1", "int");
-    inflags.AddInputFlag("D2", 'D', "19", "Size D2", "int");
+    inflags.AddInputFlag("input_dims",
+                         'D',
+                         "16,21,21,21,10",
+                         "The dimensional lengths of the input tensor",
+                         "string");
     inflags.AddInputFlag("ignore_index", 'g', "-1", "Ignore index", "int");
     inflags.AddInputFlag("reduce",
                          'R',
@@ -280,7 +303,6 @@ int NLLLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     int status;
 
-    // forward
     for(int i = 0; i < in_sz; i++)
     {
         in[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-10.0), static_cast<Tgpu>(-(1e-2)));
@@ -289,7 +311,7 @@ int NLLLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < target_sz; i++)
     {
-        target[i] = prng::gen_A_to_B<int>(static_cast<int>(0), static_cast<int>(C - 1));
+        target[i] = prng::gen_A_to_B<int>(static_cast<int>(0), static_cast<int>(weight_sz - 1));
     }
     status |= target_dev->ToGPU(q, target.data());
 
@@ -301,7 +323,6 @@ int NLLLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     status |= out_dev->ToGPU(q, out.data());
 
-    // backward
     status |= in_grad_dev->ToGPU(q, in_grad.data());
 
     for(int i = 0; i < out_sz; i++)
@@ -385,7 +406,7 @@ int NLLLossDriver<Tgpu, Tref>::RunForwardCPU()
 {
     if(!std::isnan(divisor))
     {
-        mloNLLLossReduceForward4dRunHost<Tgpu, Tref>(inputDesc,
+        mloNLLLossReduceForward5dRunHost<Tgpu, Tref>(inputDesc,
                                                      targetDesc,
                                                      weightDesc,
                                                      in.data(),
@@ -398,15 +419,15 @@ int NLLLossDriver<Tgpu, Tref>::RunForwardCPU()
     }
     else
     {
-        mloNLLLossUnreduceForward4dRunHost<Tgpu, Tref>(inputDesc,
-                                                       targetDesc,
-                                                       weightDesc,
-                                                       outputDesc,
-                                                       in.data(),
-                                                       target.data(),
-                                                       weight.data(),
-                                                       out_host.data(),
-                                                       ignore_index);
+        mloNLLLossUnreduceForwardRunHost<Tgpu, Tref>(inputDesc,
+                                                     targetDesc,
+                                                     weightDesc,
+                                                     outputDesc,
+                                                     in.data(),
+                                                     target.data(),
+                                                     weight.data(),
+                                                     out_host.data(),
+                                                     ignore_index);
     }
     return miopenStatusSuccess;
 }
@@ -479,27 +500,27 @@ int NLLLossDriver<Tgpu, Tref>::RunBackwardCPU()
 {
     if(!std::isnan(divisor))
     {
-        mloNLLLossReduceBackward4dRunHost<Tgpu, Tref>(inputGradDesc,
+        mloNLLLossReduceBackwardRunHost<Tgpu, Tref>(inputGradDesc,
+                                                    targetDesc,
+                                                    weightDesc,
+                                                    in_grad_host.data(),
+                                                    target.data(),
+                                                    weight.data(),
+                                                    out_grad.data(),
+                                                    ignore_index,
+                                                    divisor);
+    }
+    else
+    {
+        mloNLLLossUnreduceBackwardRunHost<Tgpu, Tref>(inputGradDesc,
                                                       targetDesc,
                                                       weightDesc,
+                                                      outputGradDesc,
                                                       in_grad_host.data(),
                                                       target.data(),
                                                       weight.data(),
                                                       out_grad.data(),
-                                                      ignore_index,
-                                                      divisor);
-    }
-    else
-    {
-        mloNLLLossUnreduceBackward4dRunHost<Tgpu, Tref>(inputGradDesc,
-                                                        targetDesc,
-                                                        weightDesc,
-                                                        outputGradDesc,
-                                                        in_grad_host.data(),
-                                                        target.data(),
-                                                        weight.data(),
-                                                        out_grad.data(),
-                                                        ignore_index);
+                                                      ignore_index);
     }
     return miopenStatusSuccess;
 }
