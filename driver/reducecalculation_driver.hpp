@@ -47,14 +47,14 @@
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloSumForwardRunHost(miopenTensorDescriptor_t inputDesc,
-                             miopenTensorDescriptor_t yDesc,
+                             miopenTensorDescriptor_t outputDesc,
                              Tgpu* input,
                              Tcheck* outputhost,
                              int32_t dim,
                              miopenReduceCalculationNanPropagation_t nanPropagation)
 {
     auto input_dims  = miopen::deref(inputDesc).GetLengths();
-    auto output_dims = miopen::deref(yDesc).GetLengths();
+    auto output_dims = miopen::deref(outputDesc).GetLengths();
 
     auto reduce_size = input_dims[dim];
     auto output_numel =
@@ -90,14 +90,14 @@ int32_t mloSumForwardRunHost(miopenTensorDescriptor_t inputDesc,
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloProdForwardRunHost(miopenTensorDescriptor_t inputDesc,
-                              miopenTensorDescriptor_t reduceDesc,
+                              miopenTensorDescriptor_t outputDesc,
                               Tgpu* input,
                               Tcheck* outputhost,
                               int32_t dim,
                               miopenReduceCalculationNanPropagation_t nanPropagation)
 {
     auto input_dims  = miopen::deref(inputDesc).GetLengths();
-    auto output_dims = miopen::deref(reduceDesc).GetLengths();
+    auto output_dims = miopen::deref(outputDesc).GetLengths();
 
     auto reduce_size = input_dims[dim];
     auto output_numel =
@@ -139,7 +139,7 @@ public:
     ReduceCalculationDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputDesc);
-        miopenCreateTensorDescriptor(&yDesc);
+        miopenCreateTensorDescriptor(&outputDesc);
 
         data_type = miopen_type<Tgpu>{};
     }
@@ -164,7 +164,7 @@ public:
     ~ReduceCalculationDriver() override
     {
         miopenDestroyTensorDescriptor(inputDesc);
-        miopenDestroyTensorDescriptor(yDesc);
+        miopenDestroyTensorDescriptor(outputDesc);
     }
 
 private:
@@ -173,7 +173,7 @@ private:
     int forw;
 
     miopenTensorDescriptor_t inputDesc;
-    miopenTensorDescriptor_t yDesc;
+    miopenTensorDescriptor_t outputDesc;
 
     std::unique_ptr<GPUMem> in_dev;
     std::unique_ptr<GPUMem> out_dev;
@@ -223,7 +223,7 @@ int ReduceCalculationDriver<Tgpu, Tref>::GetandSetData()
     if(out_len.empty())
         out_len.push_back(1);
 
-    SetTensorNd(yDesc, out_len, data_type);
+    SetTensorNd(outputDesc, out_len, data_type);
 
     nanPropagation =
         static_cast<miopenReduceCalculationNanPropagation_t>(inflags.GetValueInt("NanPropagation"));
@@ -309,9 +309,10 @@ template <typename Tgpu, typename Tref>
 int ReduceCalculationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
     size_t in_sz  = GetTensorSize(inputDesc);
-    size_t out_sz = GetTensorSize(yDesc);
+    size_t out_sz = GetTensorSize(outputDesc);
 
-    miopenGetSumWorkspaceSize(GetHandle(), inputDesc, dim, yDesc, &ws_sizeInBytes);
+    miopenGetReduceCalculationWorkspaceSize(
+        GetHandle(), inputDesc, dim, reduceCalculationOp, outputDesc, &ws_sizeInBytes);
     if(ws_sizeInBytes == static_cast<size_t>(-1))
         return miopenStatusAllocFailed;
 
@@ -357,8 +358,8 @@ int ReduceCalculationDriver<Tgpu, Tref>::RunForwardGPU()
                                        inputDesc,
                                        in_dev->GetMem(),
                                        dim,
-                                       yCalculationOp,
-                                       yDesc,
+                                       reduceCalculationOp,
+                                       outputDesc,
                                        out_dev->GetMem());
 
         float time = 0.0;
@@ -394,12 +395,12 @@ int ReduceCalculationDriver<Tgpu, Tref>::RunForwardCPU()
     if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_SUM)
     {
         mloSumForwardRunHost<Tgpu, Tref>(
-            inputDesc, reduceDesc, in.data(), outhost.data(), dim, nanPropagation);
+            inputDesc, outputDesc, in.data(), outhost.data(), dim, nanPropagation);
     }
     else if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_PROD)
     {
         mloProdForwardRunHost<Tgpu, Tref>(
-            inputDesc, reduceDesc, in.data(), outhost.data(), dim, nanPropagation);
+            inputDesc, outputDesc, in.data(), outhost.data(), dim, nanPropagation);
     }
 
     return miopenStatusSuccess;

@@ -42,8 +42,13 @@ struct ProblemDescription : ProblemDescriptionBase
     ProblemDescription(miopenReduceCalculationNanPropagation_t nanPropagation_,
                        const TensorDescriptor& xDesc_,
                        const TensorDescriptor& yDesc_,
-                       int32_t dim_)
-        : nanPropagation(nanPropagation_), xDesc(xDesc_), yDesc(yDesc_), dim(dim_)
+                       int32_t dim_,
+                       miopenReduceCalculationOp_t reducecalculationOp_)
+        : nanPropagation(nanPropagation_),
+          xDesc(xDesc_),
+          yDesc(yDesc_),
+          dim(dim_),
+          reducecalculationOp(direducecalculationOp_)
     {
     }
 
@@ -201,6 +206,7 @@ private:
 
     int32_t dim;
     miopenReduceExtremeOp_t reduceExtremeOp;
+    miopenReduceCalculationOp_t reducecalculationOp;
 
     NetworkConfig MakeForwardNetworkConfig() const;
 };

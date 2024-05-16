@@ -85,7 +85,8 @@ miopenStatus_t ReduceCalculationForward(Handle& handle,
 
     if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_SUM)
     {
-        const auto problem = reduce::ProblemDescription{nanPropagation, xDesc, yDesc, dim};
+        const auto problem =
+            reduce::ProblemDescription{nanPropagation, xDesc, yDesc, dim, reduceCalculationOp};
 
         const auto invoke_params = [&]() {
             auto tmp           = reduce::InvokeParams{};

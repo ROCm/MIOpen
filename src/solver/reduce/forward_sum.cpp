@@ -99,7 +99,9 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
-        };
+            {"OP_TYPE", "ReduceCalculationOp_t::Sum"},
+            {"MIOPEN_REDUCE_CALCULATION_PROD", MIOPEN_REDUCE_CALCULATION_PROD},
+            {"MIOPEN_REDUCE_CALCULATION_SUM", MIOPEN_REDUCE_CALCULATION_SUM}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 

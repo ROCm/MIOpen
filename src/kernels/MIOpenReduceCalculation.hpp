@@ -23,18 +23,38 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "reducecalculation_driver.hpp"
-#include "registry_driver_maker.hpp"
+#ifndef GUARD_KERNELS_MIOPENREDUCECALCULATION_HPP
+#define GUARD_KERNELS_MIOPENREDUCECALCULATION_HPP
 
-static Driver* makeDriver(const std::string& base_arg)
+enum class ReduceCalculationOp_t
 {
-    if(base_arg == "reducecalculation")
-        return new ReduceCalculationDriver<float, float>();
-    if(base_arg == "reducereducecalculationfp16")
-        return new ReduceCalculationDriver<float16, float>();
-    if(base_arg == "reducereducecalculationbfp16")
-        return new ReduceCalculationDriver<bfloat16, float>();
-    return nullptr;
-}
+    Prod = 1,
+    Sum,
+    First_ = Prod,
+    Last_  = Sum,
+};
 
-REGISTER_DRIVER_MAKER(makeDriver);
+#ifndef __HIP_DEVICE_COMPILE__
+static_assert(MIOPEN_REDUCE_CALCULATION_PROD == static_cast<int>(ReduceCalculationOp_t::Prod));
+static_assert(MIOPEN_REDUCE_CALCULATION_SUM == static_cast<int>(ReduceCalculationOp_t::Sum));
+#endif
+
+template <typename T, ReduceCalculationOp_t op>
+struct reduce_func
+{
+    inline constexpr void calculate(T& a, T b) const;
+};
+
+template <typename T>
+struct reduce_func<T, ReduceCalculationOp_t::Prod>
+{
+    inline constexpr void calculate(T& a, T b) const { a *= b; }
+};
+
+template <typename T>
+struct reduce_func<T, ReduceCalculationOp_t::Sum>
+{
+    inline constexpr void calculate(T& a, T b) const { a += b; }
+};
+
+#endif // GUARD_GUARD_KERNELS_MIOPENREDUCEEXTREME_HPP
