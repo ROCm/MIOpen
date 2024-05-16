@@ -294,13 +294,13 @@ static std::vector<Solution> EvaluateInvokers(Handle& handle,
     return {{solution}};
 }
 
-std::vector<Solution> FindCore(const AnyInvokeParams& invoke_ctx,
-                               const ExecutionContext& ctx,
-                               const ProblemDescriptionBase& problem,
-                               const PrimitiveFindParameters& parameters,
-                               const std::vector<std::unique_ptr<ISolversFinder>>& finders,
-                               const std::optional<FindOptions>& options,
-                               bool force_attach_binary)
+FindCoreResult FindCore(const AnyInvokeParams& invoke_ctx,
+                        const ExecutionContext& ctx,
+                        const ProblemDescriptionBase& problem,
+                        const PrimitiveFindParameters& parameters,
+                        const std::vector<std::unique_ptr<ISolversFinder>>& finders,
+                        const std::optional<FindOptions>& options,
+                        bool force_attach_binary)
 {
     auto& handle = ctx.GetStream();
 
@@ -346,22 +346,27 @@ std::vector<Solution> FindCore(const AnyInvokeParams& invoke_ctx,
     // Evaluate Invokers
     AutoEnableProfiling enableProfiling{handle};
     const auto network_config = problem.MakeNetworkConfig();
-    auto is_result_optimal    = true;
+    auto ret                  = FindCoreResult();
+    ret.is_optimal            = true;
 
-    auto ret = std::vector<Solution>{};
-    ret.reserve(total);
+    ret.solutions.reserve(total);
 
     for(const auto& ss : solutions)
     {
         if(ss.second.empty())
             continue;
 
-        auto evaluated = EvaluateInvokers(
-            handle, ss.second, ss.first, network_config, invoke_ctx, is_result_optimal, force_attach_binary);
+        auto evaluated = EvaluateInvokers(handle,
+                                          ss.second,
+                                          ss.first,
+                                          network_config,
+                                          invoke_ctx,
+                                          ret.is_optimal,
+                                          force_attach_binary);
 
-        ret.insert(ret.end(),
-                   std::make_move_iterator(evaluated.begin()),
-                   std::make_move_iterator(evaluated.end()));
+        ret.solutions.insert(ret.solutions.end(),
+                             std::make_move_iterator(evaluated.begin()),
+                             std::make_move_iterator(evaluated.end()));
     }
 
     return ret;

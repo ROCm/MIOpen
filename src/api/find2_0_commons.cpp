@@ -119,7 +119,7 @@ miopenStatus_t miopenCreateBatchnormProblem(miopenProblem_t* problem,
         auto& container_deref = miopen::deref(*problem);
 
         container_deref.item = miopen::Problem();
-        auto& problem_deref  = boost::get<miopen::Problem>(container_deref.item);
+        auto& problem_deref  = std::get<miopen::Problem>(container_deref.item);
 
         problem_deref.SetOperatorDescriptor(miopen::BatchnormDescriptor{mode, runningMeanVariance});
         problem_deref.SetDirection(direction);

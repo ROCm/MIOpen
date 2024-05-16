@@ -36,6 +36,7 @@
 #include <miopen/ramdb.hpp>
 #include <miopen/readonlyramdb.hpp>
 #include <miopen/solution.hpp>
+#include <miopen/conv/solver_finders.hpp>
 
 #include <boost/optional.hpp>
 
@@ -174,7 +175,7 @@ public:
 
         const auto result = regenerator();
 
-        if (!result.is_optimal)
+        if(!result.is_optimal)
             return result.solutions;
 
         for(const auto& solution : result.solutions)

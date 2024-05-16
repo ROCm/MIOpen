@@ -837,52 +837,56 @@ void Problem::CalculateOutput()
 
 miopenTensorArgumentId_t Problem::GetInputId() const
 {
-    return std::visit(
-        boost::hof::match(
-            [&](const ConvolutionDescriptor&) {
-                return direction == miopenProblemDirectionForward ? miopenTensorConvolutionX
-                                                                  : miopenTensorConvolutionY;
-            },
-            [&](const ActivationDescriptor&) {
-                return direction == miopenProblemDirectionForward ? miopenTensorActivationX
-                                                                  : miopenTensorActivationDY;
-            },
-            [&](const BiasDescriptor&) {
-                return direction == miopenProblemDirectionForward ? miopenTensorBiasX
-                                                                  : miopenTensorBiasY;
-            },
-            [&](const BatchnormDescriptor&) {
-                return direction == miopenProblemDirectionBackward ? miopenTensorBatchnormDY
-                                                                   : miopenTensorBatchnormX;
-            },
-            [](const MhaDescriptor&) { return miopenTensorMhaK; },
-            [](const SoftmaxDescriptor&) { return miopenTensorSoftmaxX; }),
-        operator_descriptor);
+    return std::visit(boost::hof::match(
+                          [&](const ConvolutionDescriptor&) {
+                              return direction == miopenProblemDirectionForward
+                                         ? miopenTensorConvolutionX
+                                         : miopenTensorConvolutionY;
+                          },
+                          [&](const ActivationDescriptor&) {
+                              return direction == miopenProblemDirectionForward
+                                         ? miopenTensorActivationX
+                                         : miopenTensorActivationDY;
+                          },
+                          [&](const BiasDescriptor&) {
+                              return direction == miopenProblemDirectionForward ? miopenTensorBiasX
+                                                                                : miopenTensorBiasY;
+                          },
+                          [&](const BatchnormDescriptor&) {
+                              return direction == miopenProblemDirectionBackward
+                                         ? miopenTensorBatchnormDY
+                                         : miopenTensorBatchnormX;
+                          },
+                          [](const MhaDescriptor&) { return miopenTensorMhaK; },
+                          [](const SoftmaxDescriptor&) { return miopenTensorSoftmaxX; }),
+                      operator_descriptor);
 }
 
 miopenTensorArgumentId_t Problem::GetOutputId() const
 {
-    return std::visit(
-        boost::hof::match(
-            [&](const ConvolutionDescriptor&) {
-                return direction == miopenProblemDirectionForward ? miopenTensorConvolutionY
-                                                                  : miopenTensorConvolutionX;
-            },
-            [&](const ActivationDescriptor&) {
-                return direction == miopenProblemDirectionForward ? miopenTensorActivationY
-                                                                  : miopenTensorActivationDX;
-            },
-            [&](const BiasDescriptor&) {
-                return direction == miopenProblemDirectionForward ? miopenTensorBiasY
-                                                                  : miopenTensorBiasX;
-            },
-            [&](const BatchnormDescriptor&) {
-                return direction == miopenProblemDirectionBackward ? miopenTensorBatchnormDX
-                                                                   : miopenTensorBatchnormY;
-            },
-            [](const MhaDescriptor&) { return miopenTensorMhaO; },
-            [](const SoftmaxDescriptor&) { return miopenTensorSoftmaxY; }),
-        operator_descriptor);
+    return std::visit(boost::hof::match(
+                          [&](const ConvolutionDescriptor&) {
+                              return direction == miopenProblemDirectionForward
+                                         ? miopenTensorConvolutionY
+                                         : miopenTensorConvolutionX;
+                          },
+                          [&](const ActivationDescriptor&) {
+                              return direction == miopenProblemDirectionForward
+                                         ? miopenTensorActivationY
+                                         : miopenTensorActivationDX;
+                          },
+                          [&](const BiasDescriptor&) {
+                              return direction == miopenProblemDirectionForward ? miopenTensorBiasY
+                                                                                : miopenTensorBiasX;
+                          },
+                          [&](const BatchnormDescriptor&) {
+                              return direction == miopenProblemDirectionBackward
+                                         ? miopenTensorBatchnormDX
+                                         : miopenTensorBatchnormY;
+                          },
+                          [](const MhaDescriptor&) { return miopenTensorMhaO; },
+                          [](const SoftmaxDescriptor&) { return miopenTensorSoftmaxY; }),
+                      operator_descriptor);
 }
 
 void FusedProblem::PropagateDescriptors()
@@ -1023,102 +1027,103 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
     auto out           = get_buffer(GetOutputId(), out_desc);
 
     for(const auto& problem : problems)
+    {
         for(const auto& pair : problem.tensor_descriptors)
             if(pair.first != problem.GetInputId() && pair.first != problem.GetOutputId())
                 get_buffer(pair.first, pair.second);
 
-        std::visit(boost::hof::match(
-                       [&](const ConvolutionDescriptor& conv_desc) {
-                           gfx90aaltimpl = conv_desc.attribute.gfx90aFp16alt.GetFwd();
+        std::visit(
+            boost::hof::match(
+                [&](const ConvolutionDescriptor& conv_desc) {
+                    gfx90aaltimpl = conv_desc.attribute.gfx90aFp16alt.GetFwd();
 
-                           const auto wei_ptr = buffers.at(miopenTensorConvolutionW);
-                           operator_args.params.emplace_back(
-                               std::make_unique<miopen::fusion::ConvolutionOpInvokeParam>(wei_ptr));
-                       },
-                       [&](const ActivationDescriptor& activ_desc) {
-                           const auto alpha = activ_desc.GetAlpha();
-                           const auto beta  = activ_desc.GetBeta();
-                           const auto gamma = activ_desc.GetGamma();
+                    const auto wei_ptr = buffers.at(miopenTensorConvolutionW);
+                    operator_args.params.emplace_back(
+                        std::make_unique<miopen::fusion::ConvolutionOpInvokeParam>(wei_ptr));
+                },
+                [&](const ActivationDescriptor& activ_desc) {
+                    const auto alpha = activ_desc.GetAlpha();
+                    const auto beta  = activ_desc.GetBeta();
+                    const auto gamma = activ_desc.GetGamma();
 
-                           if(problem.GetDirection() == miopenProblemDirectionForward)
-                           {
-                               operator_args.params.emplace_back(
-                                   std::make_unique<miopen::fusion::ActivationOpInvokeParam>(
-                                       alpha, beta, gamma));
-                           }
-                           else
-                           {
-                               const auto x = buffers.at(miopenTensorActivationX);
-                               const auto y = buffers.at(miopenTensorActivationY);
+                    if(problem.GetDirection() == miopenProblemDirectionForward)
+                    {
+                        operator_args.params.emplace_back(
+                            std::make_unique<miopen::fusion::ActivationOpInvokeParam>(
+                                alpha, beta, gamma));
+                    }
+                    else
+                    {
+                        const auto x = buffers.at(miopenTensorActivationX);
+                        const auto y = buffers.at(miopenTensorActivationY);
 
-                               operator_args.params.emplace_back(
-                                   std::make_unique<miopen::fusion::ActivationBwdOpInvokeParam>(
-                                       y, x, alpha, beta, gamma));
-                           }
-                       },
-                       [&](const BiasDescriptor&) {
-                           const auto bias_ptr = buffers.at(miopenTensorBias);
-                           operator_args.params.emplace_back(
-                               std::make_unique<miopen::fusion::BiasOpInvokeParam>(bias_ptr));
-                       },
+                        operator_args.params.emplace_back(
+                            std::make_unique<miopen::fusion::ActivationBwdOpInvokeParam>(
+                                y, x, alpha, beta, gamma));
+                    }
+                },
+                [&](const BiasDescriptor&) {
+                    const auto bias_ptr = buffers.at(miopenTensorBias);
+                    operator_args.params.emplace_back(
+                        std::make_unique<miopen::fusion::BiasOpInvokeParam>(bias_ptr));
+                },
 
-                       [&](const MhaDescriptor&) {
-                           // Not implemented
-                           assert(false);
-                           MIOPEN_THROW(miopenStatusNotImplemented,
-                                        "Mha is not implemented for FusedProblem");
-                       },
-                       [&](const SoftmaxDescriptor&) {
-                           // Not implemented
-                           assert(false);
-                           MIOPEN_THROW(miopenStatusNotImplemented,
-                                        "Softmax is not implemented for FusedProblem");
-                       },
-                        [&](const BatchnormDescriptor& /*descriptor*/) {
-                        /// \todo: fix this to pass actual values
-                        switch (problem.GetDirection())
-                        {
-                        case miopenProblemDirectionForward:
-                            operator_args.params.emplace_back(
-                                std::make_unique<miopen::fusion::BatchNormFwdTrainingOpInvokeParam>(
-                                    buffers.at(miopenTensorBatchnormRunningMean),
-                                    buffers.at(miopenTensorBatchnormRunningVariance),
-                                    buffers.at(miopenTensorBatchnormSavedMean),
-                                    buffers.at(miopenTensorBatchnormSavedVariance),
-                                    buffers.at(miopenTensorBatchnormScale),
-                                    buffers.at(miopenTensorBatchnormBias),
-                                    get_scalar(miopenScalarBatchnormExpAvgFactor, double{}),
-                                    get_scalar(miopenScalarBatchnormEpsilon, double{})));
-                            break;
-                        case miopenProblemDirectionBackward:
-                            operator_args.params.emplace_back(
-                                std::make_unique<miopen::fusion::BatchNormBwdTrainingOpInvokeParam>(
-                                    buffers.at(miopenTensorBatchnormX),
-                                    buffers.at(miopenTensorBatchnormScale),
-                                    buffers.at(miopenTensorBatchnormBias),
-                                    buffers.at(miopenTensorBatchnormScaleDiff),
-                                    buffers.at(miopenTensorBatchnormBiasDiff),
-                                    buffers.at(miopenTensorBatchnormSavedMean),
-                                    buffers.at(miopenTensorBatchnormSavedVariance)));
-                            break;
-                        case miopenProblemDirectionInference: {
-                            operator_args.params.emplace_back(
-                                std::make_unique<miopen::fusion::BatchNormInferenceOpInvokeParam>(
-                                    buffers.at(miopenTensorBatchnormScale),
-                                    buffers.at(miopenTensorBatchnormBias),
-                                    buffers.at(miopenTensorBatchnormEstimatedMean),
-                                    buffers.at(miopenTensorBatchnormEstimatedVariance),
-                                    get_scalar(miopenScalarBatchnormEpsilon, double{})));
-                            break;
-                        }
-                        default:
-                            MIOPEN_THROW(
-                                miopenStatusBadParm,
-                                "Batchnorm only has forward, backward and inference directions");
-                        }
-                    }),
-
-                   problem.operator_descriptor);
+                [&](const MhaDescriptor&) {
+                    // Not implemented
+                    assert(false);
+                    MIOPEN_THROW(miopenStatusNotImplemented,
+                                 "Mha is not implemented for FusedProblem");
+                },
+                [&](const SoftmaxDescriptor&) {
+                    // Not implemented
+                    assert(false);
+                    MIOPEN_THROW(miopenStatusNotImplemented,
+                                 "Softmax is not implemented for FusedProblem");
+                },
+                [&](const BatchnormDescriptor& /*descriptor*/) {
+                    /// \todo: fix this to pass actual values
+                    switch(problem.GetDirection())
+                    {
+                    case miopenProblemDirectionForward:
+                        operator_args.params.emplace_back(
+                            std::make_unique<miopen::fusion::BatchNormFwdTrainingOpInvokeParam>(
+                                buffers.at(miopenTensorBatchnormRunningMean),
+                                buffers.at(miopenTensorBatchnormRunningVariance),
+                                buffers.at(miopenTensorBatchnormSavedMean),
+                                buffers.at(miopenTensorBatchnormSavedVariance),
+                                buffers.at(miopenTensorBatchnormScale),
+                                buffers.at(miopenTensorBatchnormBias),
+                                get_scalar(miopenScalarBatchnormExpAvgFactor, double{}),
+                                get_scalar(miopenScalarBatchnormEpsilon, double{})));
+                        break;
+                    case miopenProblemDirectionBackward:
+                        operator_args.params.emplace_back(
+                            std::make_unique<miopen::fusion::BatchNormBwdTrainingOpInvokeParam>(
+                                buffers.at(miopenTensorBatchnormX),
+                                buffers.at(miopenTensorBatchnormScale),
+                                buffers.at(miopenTensorBatchnormBias),
+                                buffers.at(miopenTensorBatchnormScaleDiff),
+                                buffers.at(miopenTensorBatchnormBiasDiff),
+                                buffers.at(miopenTensorBatchnormSavedMean),
+                                buffers.at(miopenTensorBatchnormSavedVariance)));
+                        break;
+                    case miopenProblemDirectionInference: {
+                        operator_args.params.emplace_back(
+                            std::make_unique<miopen::fusion::BatchNormInferenceOpInvokeParam>(
+                                buffers.at(miopenTensorBatchnormScale),
+                                buffers.at(miopenTensorBatchnormBias),
+                                buffers.at(miopenTensorBatchnormEstimatedMean),
+                                buffers.at(miopenTensorBatchnormEstimatedVariance),
+                                get_scalar(miopenScalarBatchnormEpsilon, double{})));
+                        break;
+                    }
+                    default:
+                        MIOPEN_THROW(
+                            miopenStatusBadParm,
+                            "Batchnorm only has forward, backward and inference directions");
+                    }
+                }),
+            problem.operator_descriptor);
     }
 
     return {operator_args, in_desc, in, out_desc, out, gfx90aaltimpl};
