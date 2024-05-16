@@ -47,7 +47,7 @@ using namespace miopen;
 namespace {
 inline bool CheckFloatArg(std::string_view arg)
 {
-    const std::string& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    const std::string& tmp = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
     return tmp.empty() || tmp == arg;
 }
 
@@ -107,7 +107,8 @@ inline std::vector<TestCase> GetSmokeTestCases()
 
 inline std::vector<TestCase> GetFullTestCases()
 {
-    if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) || miopen::IsEnabled(ENV(MIOPEN_TEST_ALL))) &&
+    if((miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
+        miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL))) &&
        CheckFloatArg("--float"))
     {
         return {

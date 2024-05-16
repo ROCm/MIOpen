@@ -39,12 +39,12 @@ auto GetTestCases()
 {
     // Regression test for SWDEV-305815 (issue 1206)
     const auto env =
-        std::tuple{std::pair{ENV(MIOPEN_DEBUG_CONV_WINOGRAD), std::string_view("0")},
-                   std::pair{ENV(MIOPEN_DEBUG_CONV_FFT), std::string_view("0")},
-                   std::pair{ENV(MIOPEN_DEBUG_CONV_DIRECT), std::string_view("0")},
-                   std::pair{ENV(MIOPEN_DEBUG_CONV_GEMM), std::string_view("0")},
-                   std::pair{ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM), std::string_view("0")},
-                   std::pair{ENV(MIOPEN_LOG_LEVEL), std::string_view("1")}};
+        std::tuple{std::pair{MIOPEN_ENV(MIOPEN_DEBUG_CONV_WINOGRAD), std::string_view("0")},
+                   std::pair{MIOPEN_ENV(MIOPEN_DEBUG_CONV_FFT), std::string_view("0")},
+                   std::pair{MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT), std::string_view("0")},
+                   std::pair{MIOPEN_ENV(MIOPEN_DEBUG_CONV_GEMM), std::string_view("0")},
+                   std::pair{MIOPEN_ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM), std::string_view("0")},
+                   std::pair{MIOPEN_ENV(MIOPEN_LOG_LEVEL), std::string_view("1")}};
 
     const std::string v          = " --verbose";
     const std::string dis_fwd    = " --disable-forward";
@@ -59,7 +59,7 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest() { return miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)); }
+bool SkipTest() { return miopen::IsDisabled(MIOPEN_ENV(MIOPEN_TEST_ALL)); }
 
 class Conv2dFloat_regression_float_mi100 : public FloatTestCase<std::vector<TestCase>>
 {
