@@ -66,7 +66,9 @@ void cpu_kldivloss_backward_5d(tensor<T> input,
                                tensor<T> output_grad,
                                tensor<T>& input_grad,
                                tensor<T>& target_grad,
-                               bool log_target, bool input_grad_out, bool target_grad_out)
+                               bool log_target,
+                               bool input_grad_out,
+                               bool target_grad_out)
 {
     auto I_tv  = get_inner_expanded_tv_5d(input.desc);
     auto T_tv  = get_inner_expanded_tv_5d(target.desc);
@@ -95,11 +97,14 @@ void cpu_kldivloss_backward_5d(tensor<T> input,
             forward_output = exp_target * (target_value - input_value);
             if(input_grad_out)
             {
-                input_grad[dIidx] = std::isnan(forward_output) ? static_cast<T>(0.0f) : static_cast<T>(-1.0f) * exp_target * output_grad_value;
+                input_grad[dIidx] = std::isnan(forward_output)
+                                        ? static_cast<T>(0.0f)
+                                        : static_cast<T>(-1.0f) * exp_target * output_grad_value;
             }
             if(target_grad_out)
             {
-                target_grad[dTidx] = static_cast<T>(forward_output + exp_target) * output_grad_value;
+                target_grad[dTidx] =
+                    static_cast<T>(forward_output + exp_target) * output_grad_value;
             }
         }
         else
@@ -112,9 +117,10 @@ void cpu_kldivloss_backward_5d(tensor<T> input,
             }
             if(target_grad_out)
             {
-                target_grad[dTidx] = (target_value == 0) ? 0.0f
-                                                         : (1 + (static_cast<T>(log(target_value)) - input_value)) *
-                                                               output_grad_value;
+                target_grad[dTidx] = (target_value == 0)
+                                         ? 0.0f
+                                         : (1 + (static_cast<T>(log(target_value)) - input_value)) *
+                                               output_grad_value;
             }
         }
     }

@@ -137,7 +137,8 @@ __device__ void kldivLossUnreducedBackward5d(const TI* __restrict__ input,
         if(input_grad)
         {
             FLOAT_ACCUM input_grad_value =
-                isnan(forward_output) ? CVT_FP32_2ACCUM(0.0f) : CVT_FP32_2ACCUM(-1.0f) * exp_target * output_grad_value;
+                isnan(forward_output) ? CVT_FP32_2ACCUM(0.0f)
+                                      : CVT_FP32_2ACCUM(-1.0f) * exp_target * output_grad_value;
             input_grad[dIidx] = CVT_ACCUM2FLOAT(input_grad_value);
         }
         if(target_grad)

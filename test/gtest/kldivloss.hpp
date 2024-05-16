@@ -312,8 +312,14 @@ protected:
 
         if(divisor == 0.f)
         {
-            cpu_kldivloss_backward_5d<T>(
-                input, target, output_grad, ref_input_grad, ref_target_grad, log_target, true, true);
+            cpu_kldivloss_backward_5d<T>(input,
+                                         target,
+                                         output_grad,
+                                         ref_input_grad,
+                                         ref_target_grad,
+                                         log_target,
+                                         true,
+                                         true);
 
             status = miopen::KLDivLossUnreducedBackward(handle,
                                                         input.desc,
