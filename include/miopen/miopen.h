@@ -5357,6 +5357,9 @@ typedef enum
     miopenProblemDirectionForward         = 0,
     miopenProblemDirectionBackward        = 1,
     miopenProblemDirectionBackwardWeights = 2,
+#ifdef MIOPEN_BETA_API
+    miopenProblemDirectionInference = 4,
+#endif
 } miopenProblemDirection_t;
 
 /*! @enum miopenTensorArgumentId_t
@@ -5403,20 +5406,39 @@ typedef enum
     miopenTensorMhaAmaxDS             = 35,
 
 #ifdef MIOPEN_BETA_API
-    miopenTensorActivationX  = 36,
-    miopenTensorActivationY  = 37,
-    miopenTensorActivationDX = 38,
-    miopenTensorActivationDY = 39,
-    miopenTensorBiasX        = 40,
-    miopenTensorBiasY        = 41,
-    miopenTensorBias         = 42,
-    miopenTensorSoftmaxX     = 43,
-    miopenTensorSoftmaxY     = 44,
-    miopenTensorSoftmaxDX    = 45,
-    miopenTensorSoftmaxDY    = 46,
+    miopenTensorActivationX                = 36,
+    miopenTensorActivationY                = 37,
+    miopenTensorActivationDX               = 38,
+    miopenTensorActivationDY               = 39,
+    miopenTensorBiasX                      = 40,
+    miopenTensorBiasY                      = 41,
+    miopenTensorBias                       = 42,
+    miopenTensorSoftmaxX                   = 43,
+    miopenTensorSoftmaxY                   = 44,
+    miopenTensorSoftmaxDX                  = 45,
+    miopenTensorSoftmaxDY                  = 46,
+    miopenTensorBatchnormX                 = 47,
+    miopenTensorBatchnormY                 = 48,
+    miopenTensorBatchnormRunningMean       = 49,
+    miopenTensorBatchnormRunningVariance   = 50,
+    miopenTensorBatchnormSavedMean         = 51,
+    miopenTensorBatchnormSavedVariance     = 52,
+    miopenTensorBatchnormScale             = 53,
+    miopenTensorBatchnormScaleDiff         = 54,
+    miopenTensorBatchnormEstimatedMean     = 55,
+    miopenTensorBatchnormEstimatedVariance = 56,
+    miopenTensorBatchnormBias              = 57,
+    miopenTensorBatchnormBiasDiff          = 58,
+    miopenTensorBatchnormDX                = 59,
+    miopenTensorBatchnormDY                = 60,
 #endif
 
     miopenTensorArgumentIsScalar = 1U << 31,
+
+#ifdef MIOPEN_BETA_API
+    miopenScalarBatchnormExpAvgFactor = miopenTensorArgumentIsScalar | 1,
+    miopenScalarBatchnormEpsilon      = miopenTensorArgumentIsScalar | 2,
+#endif
 } miopenTensorArgumentId_t;
 
 /*! @enum miopenTensorArgumentId_t
@@ -5752,6 +5774,19 @@ MIOPEN_EXPORT miopenStatus_t
 miopenCreateActivationProblem(miopenProblem_t* problem,
                               miopenActivationDescriptor_t operatorDesc,
                               miopenProblemDirection_t direction);
+
+/*! @brief Initializes a problem object describing an activation operation.
+ * @note As of now there is no way to actually get any solution for this kind of problems.
+ *
+ * @param problem   Pointer to the problem to initialize
+ * @param mode      Batchnorm mode
+ * @param direction Direction of the operation
+ * @return          miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenCreateBatchnormProblem(miopenProblem_t* problem,
+                                                          miopenBatchNormMode_t mode,
+                                                          bool runningMeanVariance,
+                                                          miopenProblemDirection_t direction);
 
 /*! @brief Fuse two problems into a single one. Problems can be either regular, or fused. No
  * problems are disposed in the process, so the problem2 should be destroyed manually if it is not
