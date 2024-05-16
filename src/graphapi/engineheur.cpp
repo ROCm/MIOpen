@@ -52,19 +52,19 @@ EngineHeurBuilder& EngineHeurBuilder::setSmCount(int32_t smCount)
     return *this;
 }
 
-EngineHeur EngineHeurBuilder::build() &&
+EngineHeur EngineHeurBuilder::build()
 {
     if(mEngineHeur.mOpGraph == nullptr || !mModeSet)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    std::vector<Engine> engines = findEngines(*mEngineHeur.mOpGraph);
+    const auto& engines = mEngineHeur.mOpGraph->getEngines();
     std::for_each(engines.begin(), engines.end(), [this](const Engine& engine) {
         mEngineHeur.mResults.emplace_back(engine);
     });
 
-    return std::move(mEngineHeur);
+    return mEngineHeur;
 }
 
 void BackendEngineHeurDescriptor::setAttribute(miopenBackendAttributeName_t attributeName,
@@ -137,6 +137,8 @@ void BackendEngineHeurDescriptor::finalize()
 
     mEngineHeur = mBuilder.build();
 
+    // TODO(Amber): delete
+    /*
     auto& engineCfgs = mEngineHeur.getResults();
     mResults.reserve(engineCfgs.size());
 
@@ -145,6 +147,7 @@ void BackendEngineHeurDescriptor::finalize()
     });
 
     engineCfgs.clear();
+    */
 
     mFinalized = true;
 }
@@ -217,6 +220,8 @@ void BackendEngineHeurDescriptor::getAttribute(miopenBackendAttributeName_t attr
     }
 }
 
+// TODO(Amber): delete
+/*
 BackendEngineHeurDescriptor::OwnedEngineCfgDescriptor::OwnedEngineCfgDescriptor(
     EngineCfg&& engineCfg, miopenBackendDescriptor_t opGraphDescriptor)
     : BackendEngineCfgDescriptor(std::move(engineCfg), &mOwnedEngineDescriptorInstance),
@@ -263,6 +268,7 @@ BackendEngineHeurDescriptor::OwnedEngineCfgDescriptor::operator=(
     }
     return *this;
 }
+*/
 
 } // namespace graphapi
 

@@ -46,12 +46,12 @@ private:
 
 public:
     EngineCfg()                 = default;
-    EngineCfg(const EngineCfg&) = delete;
+    EngineCfg(const EngineCfg&) = default;
     EngineCfg(EngineCfg&&)      = default;
-    EngineCfg& operator=(const EngineCfg&) = delete;
+    EngineCfg& operator=(const EngineCfg&) = default;
     EngineCfg& operator=(EngineCfg&&) = default;
 
-    // EngineCfg(const Engine& engine) : mEngine(engine) {}
+    EngineCfg(const Engine& engine) : mEngine(engine) {}
     EngineCfg(Engine&& engine) : mEngine(std::move(engine)) {}
 
     const Engine& getEngine() const noexcept { return mEngine; }
@@ -68,26 +68,24 @@ private:
     bool mEngineSet = false;
 
 public:
-    /*
     EngineCfgBuilder& setEngine(const Engine& engine) &
     {
         mEngineCfg.mEngine = engine;
         mEngineSet         = true;
         return *this;
     }
-    */
     EngineCfgBuilder& setEngine(Engine&& engine) &
     {
         mEngineCfg.mEngine = std::move(engine);
         mEngineSet         = true;
         return *this;
     }
-    // EngineCfgBuilder&& setEngine(const Engine& engine) && { return std::move(setEngine(engine)); }
+    EngineCfgBuilder&& setEngine(const Engine& engine) && { return std::move(setEngine(engine)); }
     EngineCfgBuilder&& setEngine(Engine&& engine) &&
     {
         return std::move(setEngine(std::move(engine)));
     }
-    // EngineCfg build() &;
+    EngineCfg build() &;
     EngineCfg build() &&;
 };
 
@@ -99,14 +97,12 @@ protected:
 
     miopenBackendDescriptor_t mEngineDescriptor = nullptr;
 
-    /*
     BackendEngineCfgDescriptor(const EngineCfg& engineCfg,
                                miopenBackendDescriptor_t engineDescriptor)
         : mEngineCfg(engineCfg), mEngineDescriptor(engineDescriptor)
     {
         mFinalized = true;
     }
-    */
     BackendEngineCfgDescriptor(EngineCfg&& engineCfg, miopenBackendDescriptor_t engineDescriptor)
         : mEngineCfg(std::move(engineCfg)), mEngineDescriptor(engineDescriptor)
     {

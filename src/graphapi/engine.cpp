@@ -56,17 +56,25 @@ void GraphExecutorFind20::execute(miopenHandle_t handle, const VariantPack& vpk)
     auto* gpu_ptr = vpk.getDataPtrs()[i];
     assert(gpu_ptr);
 
-    MIOPEN_THROW_IF(mTensorInfoMap->find(tens_id) == mTensorInfoMap->cend(), 
+    auto it = mTensorInfoMap->find(tens_id);
+    MIOPEN_THROW_IF(it == mTensorInfoMap->cend(), 
         "couldn't find a variant pack tensor id in the map");
 
-    auto& v = (*mTensorInfoMap)[tens_id];
+    auto& v = it->second;
 
+    /*
+     * TODO(Amber): use this code with C++20
     miopenTensorArgument_t targ{
       .id = v.mEnumId,
       // .descriptor = &(v.mTensDesc),
       .descriptor = nullptr,
       .buffer = gpu_ptr
     };
+    */
+    miopenTensorArgument_t targ{};
+    targ.id = v.mEnumId;
+    targ.descriptor = nullptr;
+    targ.buffer = gpu_ptr;
 
     tens_args.emplace_back(targ);
   }

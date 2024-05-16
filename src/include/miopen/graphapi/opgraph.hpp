@@ -227,9 +227,7 @@ class OpGraph
 
     // Descriptor related members
     miopenHandle_t mHandle = nullptr;
-    // TODO(Amber): decide whether to cache engines inside opgraph and decide when
-    // the caching happens
-    // std::vector<Engine> mEngines;
+    std::vector<Engine> mEngines{};
 
 public:
     OpGraph(const OpGraph&) = delete;
@@ -354,7 +352,10 @@ public:
     }
 
     miopenHandle_t getHandle() const noexcept { return mHandle; }
-    // const std::vector<Engine>& getEngines() const noexcept { return mEngines; }
+    const std::vector<Engine>& getEngines() const noexcept { return mEngines; }
+
+    void initEngines(); // TODO(Amber): make private. Called in finalize, but also
+                        // from C++ tests
 
 private:
     friend class OpGraphBuilder;

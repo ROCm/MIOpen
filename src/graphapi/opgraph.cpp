@@ -102,6 +102,19 @@ OpGraph OpGraphBuilder::build() &&
     return graph;
 }
 
+void OpGraph::initEngines() {
+  // cache the engines in the graph. 
+  // NOTE(amber): this may be expensive and there may be benefit in delaying
+  // findEngines to when the user calls it instead of calling it at graph build
+  // time, but cudnn graph API has semantics that suggest that graph knows its
+  // engines or engine count at least. 
+  // TODO(Amber): findEngines takes pointer to the graph and uses it to construct
+  // engines. This pointer  may become invalid when the graph object is moved. Fix
+  // by using shared_ptr or not storing graph inside engine 
+  mEngines = findEngines(this);
+
+}
+
 VecOfPaths OpGraph::getAllPaths() const
 {
     // TODO(Amber): does not check for cycles. Use DFS to first check for cycles
@@ -388,6 +401,7 @@ void BackendOperationGraphDescriptor::finalize()
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
     mOpGraph   = std::move(mBuilder).build();
+    mOpGraph.initEngines();
     mFinalized = true;
 }
 
@@ -437,9 +451,7 @@ void BackendOperationGraphDescriptor::getAttribute(miopenBackendAttributeName_t 
         if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount == 1)
         {
             *elementCount                           = 1;
-            // *static_cast<int64_t*>(arrayOfElements) = mOpGraph.getEngines().size();
-            // NOTE(Amber): can be expensive without caching when called repeatedly
-            *static_cast<int64_t*>(arrayOfElements) = findEngines(mOpGraph).size();
+            *static_cast<int64_t*>(arrayOfElements) = mOpGraph.getEngines().size();
         }
         else
         {

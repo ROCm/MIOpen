@@ -38,6 +38,19 @@ namespace miopen {
 
 namespace graphapi {
 
+class Engine;
+
+// Pattern is a family of solvers for the same graph shape
+class GraphPatternMatcher
+{
+
+public:
+    virtual bool matches(const OpGraph* graph)  const = 0;
+    virtual std::vector<Engine> getEngines(OpGraph* graph) const = 0;
+
+    virtual ~GraphPatternMatcher();
+};
+
 struct TensorInfo {
   miopenTensorArgumentId_t mEnumId = miopenTensorArgumentIdInvalid;
   Tensor* mGraphTensor = nullptr;
@@ -97,23 +110,10 @@ public:
   }
 };
 
-class Engine;
-
-// Pattern is a family of solvers for the same graph shape
-class GraphPatternMatcher
-{
-
-public:
-    virtual bool matches(const OpGraph& graph)  const                       = 0;
-    virtual std::vector<Engine> getEngines(const OpGraph& graph) const = 0;
-
-    virtual ~GraphPatternMatcher();
-};
-
 class Engine
 {
 private:
-    std::unique_ptr<GraphPatternExecutor> mExecutor;
+    std::shared_ptr<GraphPatternExecutor> mExecutor;
     OpGraph* mGraph;
     int64_t mGlobalIndex = -1;
     int32_t mSmCount     = 0;
@@ -121,9 +121,9 @@ private:
 
 public:
     Engine()              = default;
-    Engine(const Engine&) = delete;
+    Engine(const Engine&) = default;
     Engine(Engine&&)      = default;
-    Engine& operator=(const Engine&) = delete;
+    Engine& operator=(const Engine&) = default;
     Engine& operator=(Engine&&) = default;
 
     GraphPatternExecutor* getExecutor() noexcept
@@ -160,16 +160,16 @@ public:
 
   EngineBuilder& setSmCount(int32_t smCount);
 
-  EngineBuilder& setExecutor(std::unique_ptr<GraphPatternExecutor>&& e) {
+  EngineBuilder& setExecutor(const std::shared_ptr<GraphPatternExecutor>& e) {
     assert(e.get());
-    mEngine.mExecutor = std::move(e);
+    mEngine.mExecutor = e;
     mExecSet = true;
     return *this;
   }
 
-  Engine build() && {
+  Engine build() {
     MIOPEN_THROW_IF(!mGraphSet || !mExecSet || !mIndexSet, "must set graph, index and executor attributes");
-    return std::move(mEngine);
+    return mEngine;
   }
 };
 
@@ -185,12 +185,10 @@ private:
 public:
     BackendEngineDescriptor() = default;
 
-    /*
     BackendEngineDescriptor(const Engine& engine, miopenBackendDescriptor_t opGraphDescriptor)
         : mEngine(engine), mOpGraphDescriptor(opGraphDescriptor)
     {
     }
-    */
 
     void setAttribute(miopenBackendAttributeName_t attributeName,
                       miopenBackendAttributeType_t attributeType,
@@ -207,7 +205,7 @@ public:
     Engine& getEngine() noexcept { return mEngine; }
 };
 
-std::vector<Engine> findEngines(const OpGraph&);
+std::vector<Engine> findEngines(OpGraph*);
 
 } // namespace graphapi
 
