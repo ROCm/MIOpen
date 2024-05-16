@@ -312,7 +312,7 @@ function(add_test_command NAME EXE)
         add_test(NAME ${NAME} COMMAND echo skipped)
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
     elseif(WIN32)
-        add_test(NAME ${NAME} COMMAND $<TARGET_FILE:${EXE}> ${ARGN})
+        add_test(NAME ${NAME} COMMAND $<TARGET_FILE:${EXE}> ${ARGN} WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}")
     else()
         if(MIOPEN_TEST_GDB)
             file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmake"

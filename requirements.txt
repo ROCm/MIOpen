@@ -9,3 +9,4 @@ ROCm/eigen@3.4.0
 ROCm/frugally-deep@9683d557eb672ee2304f80f6682c51242d748a50
 #ROCm/composable_kernel@f0759faff4a1c3ba5f739dfed468530e0ee9f28b -DCMAKE_BUILD_TYPE=Release -DINSTANCES_ONLY=ON
 #ROCm/composable_kernel-internal@7e147c64323f8e6ee5ec64183cf30348a453a9cd -DCMAKE_BUILD_TYPE=Release -DINSTANCES_ONLY=ON
+#ROCm/composable_kernel@1d784873eec6d4c41454b8733272aa5da073fbc6 -DCMAKE_BUILD_TYPE=Release -DINSTANCES_ONLY=ON
