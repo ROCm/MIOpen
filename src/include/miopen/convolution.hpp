@@ -76,8 +76,8 @@ struct ConvolutionAttribute
 
         inline int Get() const
         {
-            if(!miopen::IsUnset(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)))
-                return miopen::Value(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL));
+            if(!miopen::IsUnset(MIOPEN_ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)))
+                return miopen::Value(MIOPEN_ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL));
             return value;
         }
 
@@ -105,17 +105,17 @@ struct ConvolutionAttribute
 
         inline miopenF8RoundingMode_t Get() const
         {
-            if(!miopen::IsUnset(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE)))
+            if(!miopen::IsUnset(MIOPEN_ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE)))
                 return static_cast<miopenF8RoundingMode_t>(
-                    miopen::Value(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE)));
+                    miopen::Value(MIOPEN_ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE)));
             return rounding_mode;
         }
 
         inline uint32_t GetSeed() const
         {
             // assert(rounding_mode == miopenF8RoundingModeStochastic);
-            if(!miopen::IsUnset(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED)))
-                return miopen::Value(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED));
+            if(!miopen::IsUnset(MIOPEN_ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED)))
+                return miopen::Value(MIOPEN_ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED));
             return seed;
         }
 
@@ -130,9 +130,9 @@ struct ConvolutionAttribute
     public:
         inline int Get() const
         {
-            if(!miopen::IsUnset(ENV(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)))
+            if(!miopen::IsUnset(MIOPEN_ENV(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)))
                 return static_cast<int>(
-                    miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)));
+                    miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)));
             return value;
         }
         operator bool() const
@@ -229,10 +229,12 @@ struct MIOPEN_EXPORT ConvolutionDescriptor : miopenConvolutionDescriptor
     std::size_t GetSolutionCount(const ExecutionContext& ctx,
                                  const conv::ProblemDescription& problem) const;
 
-    std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& ctx,
-                                                   const conv::ProblemDescription& problem,
-                                                   size_t maxSolutionCount,
-                                                   bool* fallbackPathTaken) const;
+    std::vector<miopenConvSolution_t>
+    GetSolutions(const ExecutionContext& ctx,
+                 const conv::ProblemDescription& problem,
+                 size_t maxSolutionCount,
+                 bool* fallbackPathTaken,
+                 const AnyInvokeParams* invokeParams = nullptr) const;
 
     void CompileSolution(const ExecutionContext& ctx,
                          const conv::ProblemDescription& problem,
@@ -355,9 +357,11 @@ struct MIOPEN_EXPORT ConvolutionDescriptor : miopenConvolutionDescriptor
     FindMode findMode;
     ConvolutionAttribute attribute;
 
-    std::vector<miopenConvSolution_t> GetSolutionsFallback(const ExecutionContext& ctx,
-                                                           const conv::ProblemDescription& problem,
-                                                           size_t maxSolutionCount) const;
+    std::vector<miopenConvSolution_t>
+    GetSolutionsFallback(const ExecutionContext& ctx,
+                         const conv::ProblemDescription& problem,
+                         size_t maxSolutionCount,
+                         const AnyInvokeParams* invokeParams = nullptr) const;
 
     std::size_t GetSolutionCountFallback(const ExecutionContext& ctx,
                                          const conv::ProblemDescription& problem) const;

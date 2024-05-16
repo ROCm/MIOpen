@@ -89,7 +89,6 @@ set( MIOpen_Source
     adam_api.cpp
     addlayernorm_api.cpp
     api/find2_0_commons.cpp
-    argmax_api.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
@@ -163,6 +162,7 @@ set( MIOpen_Source
     process.cpp
     ramdb.cpp
     readonlyramdb.cpp
+    reduceextreme_api.cpp
     reducetensor.cpp
     reducetensor_api.cpp
     reduce/problem_description.cpp
@@ -170,6 +170,7 @@ set( MIOpen_Source
     rnn_api.cpp
     rnn/rnn_util.cpp
     rnn/Solutions/rnn_transformer.cpp
+    scalar.cpp
     softmax.cpp
     softmax_api.cpp
     softmax/problem_description.cpp
@@ -288,6 +289,9 @@ set( MIOpen_Source
     solver/pooling/backward2d.cpp
     solver/pooling/backwardNd.cpp
     solver/reduce/forward_argmax.cpp
+    solver/reduce/forward_argmin.cpp
+    solver/reduce/forward_max.cpp
+    solver/reduce/forward_min.cpp
     solver/reduce/forward_sum.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
@@ -424,6 +428,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_stride1.inc
         kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_stride2.inc
         kernels/Conv_Winograd_v30_3_1_metadata.inc
+        kernels/MIOpenReduceExtreme.hpp
         kernels/bfloat16_dev.hpp
         kernels/conv_common.inc
         kernels/conv_sizes.inc
@@ -462,7 +467,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${GPU_BATCHED_TRANSPOSE_KERNEL_HIP}
         ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_SOURCE}
         kernels/MIOpenAdam.cpp
-        kernels/MIOpenArgmax.cpp
         kernels/MIOpenCat.cpp
         kernels/MIOpenCheckNumerics.cpp
         kernels/MIOpenBatchNormActivBwdPerAct.cl
@@ -491,6 +495,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConv1x1S.cl
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
+        kernels/MIOpenReduceExtreme.cpp
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenSoftmaxAttn.cpp
         kernels/MIOpenSum.cpp
@@ -603,7 +608,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         activ.cpp
         adam.cpp
         addlayernorm.cpp
-        argmax.cpp
         cat.cpp
         groupnorm.cpp
         kernel_cache.cpp
@@ -631,6 +635,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         t5layernorm.cpp
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
+        reduceextreme.cpp
         sum.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )

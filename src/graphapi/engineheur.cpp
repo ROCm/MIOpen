@@ -194,7 +194,7 @@ void BackendEngineHeurDescriptor::getAttribute(miopenBackendAttributeName_t attr
         {
             *elementCount = mResults.size();
             std::transform(mResults.begin(),
-                           mResults.begin() + std::min(*elementCount, requestedElementCount),
+                           mResults.begin() + minimum(*elementCount, requestedElementCount),
                            static_cast<miopenBackendDescriptor_t*>(arrayOfElements),
                            [](auto& descriptor) { return &descriptor; });
         }
