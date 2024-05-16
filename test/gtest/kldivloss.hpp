@@ -191,7 +191,7 @@ protected:
         }
         else
         {
-            // cpu_kldivloss_reduced_forward_5d(
+            // cpu_kldivloss_reduced_forward_5d<T>(
             //     input, target, weight, ref_output, ref_workspace, ignore_index, divisor);
             // status         = miopen::NLLLossReduceForward(handle,
             //                                       workspace_dev.get(),
@@ -336,7 +336,7 @@ protected:
         }
         else
         {
-            // cpu_kldivloss_reduced_forward_5d(
+            // cpu_kldivloss_reduced_forward_5d<T>(
             //     input, target, weight, ref_output, ref_workspace, ignore_index, divisor);
             // status         = miopen::NLLLossReduceForward(handle,
             //                                       workspace_dev.get(),
