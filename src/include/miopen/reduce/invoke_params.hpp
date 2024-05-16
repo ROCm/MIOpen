@@ -32,9 +32,9 @@
 namespace miopen {
 namespace reduce {
 
-struct InvokeParams : public miopen::InvokeParams
+struct ExtremeInvokeParams : public miopen::InvokeParams
 {
-    InvokeParams() = default;
+    ExtremeInvokeParams() = default;
 
     const TensorDescriptor* xDesc      = nullptr;
     const TensorDescriptor* yDesc      = nullptr;
@@ -43,6 +43,22 @@ struct InvokeParams : public miopen::InvokeParams
     ConstData_t x              = nullptr;
     Data_t y                   = nullptr;
     Data_t indice              = nullptr;
+    std::size_t workspace_size = 0;
+    int32_t dim                = 0;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
+
+struct CalculationInvokeParams : public miopen::InvokeParams
+{
+    CalculationInvokeParams() = default;
+
+    const TensorDescriptor* xDesc = nullptr;
+    const TensorDescriptor* yDesc = nullptr;
+
+    ConstData_t x              = nullptr;
+    Data_t y                   = nullptr;
     Data_t workspace           = nullptr;
     std::size_t workspace_size = 0;
     int32_t dim                = 0;

@@ -65,7 +65,7 @@ inline bool is_parallelism(size_t reqd_work_item_cnt, size_t output_numel, size_
 }
 
 inline bool IsImprovementOverROCm(const ExecutionContext& context,
-                                  const miopen::reduce::ProblemDescription& problem)
+                                  const miopen::reduce::ProblemDescriptionCalculation& problem)
 {
     auto xdims = problem.GetXDesc().GetLengths();
     auto ydims = problem.GetYDesc().GetLengths();

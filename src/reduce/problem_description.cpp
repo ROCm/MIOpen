@@ -33,7 +33,7 @@ namespace miopen {
 
 namespace reduce {
 
-NetworkConfig ProblemDescription::MakeNetworkConfig() const
+NetworkConfig ProblemDescriptionExtreme::MakeNetworkConfig() const
 {
     auto xlength = xDesc.GetLengths();
     std::vector<std::size_t> outputlength;
@@ -57,6 +57,30 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     ss << "size" << size;
     ss << "output_numel" << output_numel;
     ss << "reduceExtremeOp" << reduceExtremeOp;
+
+    return NetworkConfig{ss.str()};
+}
+
+NetworkConfig ProblemDescriptionCalculation::MakeNetworkConfig() const
+{
+    auto xlength = xDesc.GetLengths();
+    std::vector<std::size_t> outputlength;
+    outputlength = yDesc.GetLengths();
+
+    auto size         = xlength[dim];
+    auto output_numel = std::accumulate(outputlength.begin(),
+                                        outputlength.end(),
+                                        static_cast<size_t>(1),
+                                        std::multiplies<size_t>());
+    auto dtype        = xDesc.GetType();
+
+    std::ostringstream ss;
+
+    ss << "dtype" << dtype;
+    ss << "dim" << dim;
+    ss << "size" << size;
+    ss << "output_numel" << output_numel;
+    ss << "reduceCalculationOp" << reduceCalculationOp;
 
     return NetworkConfig{ss.str()};
 }

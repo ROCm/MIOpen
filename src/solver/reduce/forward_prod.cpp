@@ -41,7 +41,7 @@ namespace solver {
 namespace reduce {
 
 bool ProdForward::IsApplicable(const ExecutionContext& context,
-                               const miopen::reduce::ProblemDescription& problem) const
+                               const miopen::reduce::ProblemDescriptionCalculation& problem) const
 {
     if(!problem.IsSameType())
         return false;
@@ -58,8 +58,9 @@ bool ProdForward::IsApplicable(const ExecutionContext& context,
     return true;
 }
 
-ConvSolution ProdForward::GetSolution(const ExecutionContext& context,
-                                      const miopen::reduce::ProblemDescription& problem) const
+ConvSolution
+ProdForward::GetSolution(const ExecutionContext& context,
+                         const miopen::reduce::ProblemDescriptionCalculation& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -155,7 +156,8 @@ ConvSolution ProdForward::GetSolution(const ExecutionContext& context,
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) parallel_kernel = handle_.Run(kernels[0]);
                 decltype(auto) kernel          = handle_.Run(kernels[1]);
-                decltype(auto) params          = raw_params.CastTo<miopen::reduce::InvokeParams>();
+                decltype(auto) params =
+                    raw_params.CastTo<miopen::reduce::CalculationInvokeParams>();
 
                 auto xdims = params.xDesc->GetLengths();
                 auto ydims = params.yDesc->GetLengths();
@@ -207,7 +209,8 @@ ConvSolution ProdForward::GetSolution(const ExecutionContext& context,
         result.invoker_factory = [](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel = handle_.Run(kernels.front());
-                decltype(auto) params = raw_params.CastTo<miopen::reduce::InvokeParams>();
+                decltype(auto) params =
+                    raw_params.CastTo<miopen::reduce::CalculationInvokeParams>();
 
                 auto xdims = params.xDesc->GetLengths();
                 auto ydims = params.yDesc->GetLengths();
@@ -232,8 +235,9 @@ ConvSolution ProdForward::GetSolution(const ExecutionContext& context,
     return result;
 }
 
-std::size_t ProdForward::GetWorkspaceSize(const ExecutionContext& context,
-                                          const miopen::reduce::ProblemDescription& problem) const
+std::size_t
+ProdForward::GetWorkspaceSize(const ExecutionContext& context,
+                              const miopen::reduce::ProblemDescriptionCalculation& problem) const
 {
     auto xdims = problem.GetXDesc().GetLengths();
     auto ydims = problem.GetYDesc().GetLengths();

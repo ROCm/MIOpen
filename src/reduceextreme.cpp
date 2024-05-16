@@ -45,10 +45,11 @@ miopenStatus_t ReduceExtremeForward(Handle& handle,
 {
     if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMIN)
     {
-        const auto problem = reduce::ProblemDescription{xDesc, indiceDesc, dim, reduceExtremeOp};
+        const auto problem =
+            reduce::ProblemDescriptionExtreme{xDesc, indiceDesc, dim, reduceExtremeOp};
 
         const auto invoke_params = [&]() {
-            auto tmp       = reduce::InvokeParams{};
+            auto tmp       = reduce::ExtremeInvokeParams{};
             tmp.type       = InvokeType::Run;
             tmp.xDesc      = &xDesc;
             tmp.indiceDesc = &indiceDesc;
@@ -67,10 +68,11 @@ miopenStatus_t ReduceExtremeForward(Handle& handle,
     }
     else if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMAX)
     {
-        const auto problem = reduce::ProblemDescription{xDesc, indiceDesc, dim, reduceExtremeOp};
+        const auto problem =
+            reduce::ProblemDescriptionExtreme{xDesc, indiceDesc, dim, reduceExtremeOp};
 
         const auto invoke_params = [&]() {
-            auto tmp       = reduce::InvokeParams{};
+            auto tmp       = reduce::ExtremeInvokeParams{};
             tmp.type       = InvokeType::Run;
             tmp.xDesc      = &xDesc;
             tmp.indiceDesc = &indiceDesc;
@@ -104,10 +106,10 @@ miopenStatus_t ReduceExtremeForward(Handle& handle,
     if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN)
     {
         const auto problem =
-            reduce::ProblemDescription{xDesc, yDesc, indiceDesc, dim, reduceExtremeOp};
+            reduce::ProblemDescriptionExtreme{xDesc, yDesc, indiceDesc, dim, reduceExtremeOp};
 
         const auto invoke_params = [&]() {
-            auto tmp       = reduce::InvokeParams{};
+            auto tmp       = reduce::ExtremeInvokeParams{};
             tmp.type       = InvokeType::Run;
             tmp.xDesc      = &xDesc;
             tmp.yDesc      = &yDesc;
@@ -129,10 +131,10 @@ miopenStatus_t ReduceExtremeForward(Handle& handle,
     else if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX)
     {
         const auto problem =
-            reduce::ProblemDescription{xDesc, yDesc, indiceDesc, dim, reduceExtremeOp};
+            reduce::ProblemDescriptionExtreme{xDesc, yDesc, indiceDesc, dim, reduceExtremeOp};
 
         const auto invoke_params = [&]() {
-            auto tmp       = reduce::InvokeParams{};
+            auto tmp       = reduce::ExtremeInvokeParams{};
             tmp.type       = InvokeType::Run;
             tmp.xDesc      = &xDesc;
             tmp.yDesc      = &yDesc;
