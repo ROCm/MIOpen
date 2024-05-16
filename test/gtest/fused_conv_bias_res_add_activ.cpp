@@ -104,7 +104,8 @@ protected:
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>());
         output = tensor<T>{tensor_layout, output_desc.GetLengths()};
-        std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
+        // set output to zero since now beta is enabled in ref gpu kernel
+        std::fill(output.begin(), output.end(), 0.0);
 
         z = tensor<T>{tensor_layout, output_desc.GetLengths()};
         z.generate(gen_value);
