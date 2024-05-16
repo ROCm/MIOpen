@@ -44,8 +44,7 @@ namespace solver {
 namespace nllloss {
 
 bool NLLLossReduceBackward2d::IsApplicable(
-    const ExecutionContext& context,
-    const miopen::nllloss::ReduceProblemDescription& problem) const
+    const ExecutionContext& context, const miopen::nllloss::ReduceProblemDescription& problem) const
 {
     if(problem.GetInputDesc().GetSize() > 2)
         return false;

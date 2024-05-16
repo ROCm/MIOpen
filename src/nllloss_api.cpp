@@ -43,8 +43,10 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
     return os;
 }
 
-static void LogCmdNLLLoss(const miopenTensorDescriptor_t xDesc, const miopenTensorDescriptor_t tDesc, 
-                          const miopenTensorDescriptor_t wDesc, bool is_fwd)
+static void LogCmdNLLLoss(const miopenTensorDescriptor_t xDesc,
+                          const miopenTensorDescriptor_t tDesc,
+                          const miopenTensorDescriptor_t wDesc,
+                          bool is_fwd)
 {
     if(miopen::IsLoggingCmd())
     {

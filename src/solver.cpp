@@ -650,14 +650,26 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Softmax, softmax::Softmax{}.SolverDbId());
     Register(registry, ++id, Primitive::Softmax, softmax::AttnSoftmax{}.SolverDbId());
 
-    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceForwardContiguous4d{}.SolverDbId());
-    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceForwardContiguous2d{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::Loss,
+             nllloss::NLLLossUnreduceForwardContiguous4d{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::Loss,
+             nllloss::NLLLossUnreduceForwardContiguous2d{}.SolverDbId());
     Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceForward4d{}.SolverDbId());
     Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceForward2d{}.SolverDbId());
     Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceForward5d{}.SolverDbId());
     Register(registry, ++id, Primitive::Loss, nllloss::NLLLossReduceForward5d{}.SolverDbId());
-    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceBackwardContiguous2d{}.SolverDbId());
-    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceBackwardContiguous4d{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::Loss,
+             nllloss::NLLLossUnreduceBackwardContiguous2d{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::Loss,
+             nllloss::NLLLossUnreduceBackwardContiguous4d{}.SolverDbId());
     Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceBackward4d{}.SolverDbId());
     Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceBackward2d{}.SolverDbId());
     Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceBackward5d{}.SolverDbId());

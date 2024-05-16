@@ -40,7 +40,7 @@ NetworkConfig UnreduceProblemDescription::MakeNetworkConfig() const
     size_t numel       = GetNtotal();
     size_t num_batches = inputDesc.GetLengths()[0];
     size_t num_classes = GetC();
-    size_t num_dims = inputDesc.GetSize();
+    size_t num_dims    = inputDesc.GetSize();
 
     auto input_dtype = inputDesc.GetType();
 
@@ -63,7 +63,7 @@ NetworkConfig ReduceProblemDescription::MakeNetworkConfig() const
     size_t numel       = GetNtotal();
     size_t num_batches = inputDesc.GetLengths()[0];
     size_t num_classes = GetC();
-    size_t num_dims = inputDesc.GetSize();
+    size_t num_dims    = inputDesc.GetSize();
 
     auto input_dtype = inputDesc.GetType();
 
