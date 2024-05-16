@@ -57,27 +57,31 @@ struct InvokeParams : public miopen::InvokeParams
     Data_t GetWorkspace() const { return workspace; }
 };
 
-// struct BwdInvokeParams : public miopen::InvokeParams
-// {
+struct BwdInvokeParams : public miopen::InvokeParams
+{
 
-//     BwdInvokeParams() = default;
+    BwdInvokeParams() = default;
 
-//     const TensorDescriptor* inputGradDesc  = nullptr;
-//     const TensorDescriptor* targetDesc     = nullptr;
-//     const TensorDescriptor* outputGradDesc = nullptr;
+    const TensorDescriptor* inputDesc      = nullptr;
+    const TensorDescriptor* targetDesc     = nullptr;
+    const TensorDescriptor* outputGradDesc = nullptr;
+    const TensorDescriptor* inputGradDesc  = nullptr;
+    const TensorDescriptor* targetGradDesc = nullptr;
 
-//     Data_t input_grad       = nullptr;
-//     ConstData_t target      = nullptr;
-//     ConstData_t output_grad = nullptr;
+    ConstData_t input       = nullptr;
+    ConstData_t target      = nullptr;
+    ConstData_t output_grad = nullptr;
+    Data_t input_grad       = nullptr;
+    Data_t target_grad      = nullptr;
 
-//     bool log_target            = false;
-//     float divisor              = std::numeric_limits<float>::quiet_NaN();
-//     Data_t workspace           = nullptr;
-//     std::size_t workspace_size = 0;
+    bool log_target            = false;
+    float divisor              = std::numeric_limits<float>::quiet_NaN();
+    Data_t workspace           = nullptr;
+    std::size_t workspace_size = 0;
 
-//     std::size_t GetWorkspaceSize() const { return workspace_size; }
-//     Data_t GetWorkspace() const { return workspace; }
-// };
+    std::size_t GetWorkspaceSize() const { return workspace_size; }
+    Data_t GetWorkspace() const { return workspace; }
+};
 
 } // namespace kldivloss
 } // namespace miopen

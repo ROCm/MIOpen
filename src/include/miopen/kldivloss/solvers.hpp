@@ -62,13 +62,7 @@ using KLDivLossSolver =
 using KLDivLossReducedSolver =
     NonTunableSolverBase<ExecutionContext, miopen::kldivloss::ReducedProblemDescription>;
 
-// // FORWARD UNREDUCE
-// struct KLDivLossUnreducedForwardSolver : KLDivLossSolver
-// {
-//     bool IsApplicable(const ExecutionContext& context,
-//                       const miopen::kldivloss::UnreducedProblemDescription& problem) const
-//                       override;
-// };
+// FORWARD UNREDUCE
 
 struct KLDivLossUnreducedForward final : KLDivLossSolver
 {
@@ -112,45 +106,22 @@ struct KLDivLossUnreducedForward final : KLDivLossSolver
 //     bool MayNeedWorkspace() const override { return true; }
 // };
 
-// // BACKWARD UNREDUCE
-// struct NLLLossUnreducedBackwardSolver : KLDivLossSolver
-// {
-//     bool IsApplicable(const ExecutionContext& context,
-//                       const miopen::kldivloss::UnreducedProblemDescription& problem) const
-//                       override;
-// };
+// BACKWARD UNREDUCE
 
-// struct NLLLossUnreducedBackwardContiguous final : NLLLossUnreducedBackwardSolver
-// {
-//     const std::string& SolverDbId() const override
-//     {
-//         return GetSolverDbId<NLLLossUnreducedBackwardContiguous>();
-//     }
+struct KLDivLossUnreducedBackward final : KLDivLossSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<KLDivLossUnreducedBackward>();
+    }
 
-//     bool IsApplicable(const ExecutionContext& context,
-//                       const miopen::kldivloss::UnreducedProblemDescription& problem) const
-//                       override;
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::kldivloss::UnreducedProblemDescription& problem) const override;
 
-//     ConvSolution
-//     GetSolution(const ExecutionContext& context,
-//                 const miopen::kldivloss::UnreducedProblemDescription& problem) const override;
-// };
-
-// struct NLLLossUnreducedBackward4d final : NLLLossUnreducedBackwardSolver
-// {
-//     const std::string& SolverDbId() const override
-//     {
-//         return GetSolverDbId<NLLLossUnreducedBackward4d>();
-//     }
-
-//     bool IsApplicable(const ExecutionContext& context,
-//                       const miopen::kldivloss::UnreducedProblemDescription& problem) const
-//                       override;
-
-//     ConvSolution
-//     GetSolution(const ExecutionContext& context,
-//                 const miopen::kldivloss::UnreducedProblemDescription& problem) const override;
-// };
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::kldivloss::UnreducedProblemDescription& problem) const override;
+};
 
 // // BACKWARD REDUCE
 // struct NLLLossReducedBackward4d final : NLLLossReduceSolver

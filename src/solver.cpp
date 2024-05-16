@@ -612,9 +612,10 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKBwdBackward{}.SolverDbId());
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdTraining{}.SolverDbId());
     Register(registry, ++id, Primitive::Loss, kldivloss::KLDivLossUnreducedForward{}.SolverDbId());
-    // Register(registry, ++id, Primitive::Loss,
-    // kldivloss::KLDivLossUnreducedBackward{}.SolverDbId()); Register(registry, ++id,
-    // Primitive::Loss, kldivloss::KLDivLossReducedForward{}.SolverDbId()); Register(registry, ++id,
+    Register(registry, ++id, Primitive::Loss, kldivloss::KLDivLossUnreducedBackward{}.SolverDbId());
+    // Register(registry, ++id,
+    // Primitive::Loss, kldivloss::KLDivLossReducedForward{}.SolverDbId());
+    // Register(registry, ++id,
     // Primitive::Loss, kldivloss::KLDivLossReducedBackward{}.SolverDbId());
     Register(
         registry, ++id, Primitive::Normalization, layernorm::Layernorm2DCKForward{}.SolverDbId());

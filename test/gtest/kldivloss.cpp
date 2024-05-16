@@ -54,17 +54,17 @@ struct KLDivLossTestBFloat16 : KLDivLossTest<bfloat16>
 {
 };
 
-// struct KLDivLossTestFloatBwd : KLDivLossTestBwd<float>
-// {
-// };
+struct KLDivLossTestFloatBwd : KLDivLossTestBwd<float>
+{
+};
 
-// struct KLDivLossTestHalfBwd : KLDivLossTestBwd<half>
-// {
-// };
+struct KLDivLossTestHalfBwd : KLDivLossTestBwd<half>
+{
+};
 
-// struct KLDivLossTestBFloat16Bwd : KLDivLossTestBwd<bfloat16>
-// {
-// };
+struct KLDivLossTestBFloat16Bwd : KLDivLossTestBwd<bfloat16>
+{
+};
 
 } // namespace kldivloss
 using namespace kldivloss;
@@ -122,55 +122,55 @@ INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet,
                          KLDivLossTestBFloat16,
                          testing::ValuesIn(KLDivLossTestConfigs()));
 
-// // BACKWARD TEST
-// TEST_P(KLDivLossTestFloatBwd, KLDivLossTestBwd)
-// {
-//     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") ||
-//        GetFloatArg() == "--testall")
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
+// BACKWARD TEST
+TEST_P(KLDivLossTestFloatBwd, KLDivLossTestBwd)
+{
+    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") ||
+       GetFloatArg() == "--testall")
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
-// TEST_P(KLDivLossTestHalfBwd, KLDivLossTestBwd)
-// {
-//     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") ||
-//        GetFloatArg() == "--testall")
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
+TEST_P(KLDivLossTestHalfBwd, KLDivLossTestBwd)
+{
+    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") ||
+       GetFloatArg() == "--testall")
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
-// TEST_P(KLDivLossTestBFloat16Bwd, KLDivLossTestBwd)
-// {
-//     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") ||
-//        GetFloatArg() == "--testall")
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
+TEST_P(KLDivLossTestBFloat16Bwd, KLDivLossTestBwd)
+{
+    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") ||
+       GetFloatArg() == "--testall")
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
-// INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet,
-//                          KLDivLossTestFloatBwd,
-//                          testing::ValuesIn(KLDivLossTestConfigs()));
-// INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet,
-//                          KLDivLossTestHalfBwd,
-//                          testing::ValuesIn(KLDivLossTestConfigs()));
-// INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet,
-//                          KLDivLossTestBFloat16Bwd,
-//                          testing::ValuesIn(KLDivLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet,
+                         KLDivLossTestFloatBwd,
+                         testing::ValuesIn(KLDivLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet,
+                         KLDivLossTestHalfBwd,
+                         testing::ValuesIn(KLDivLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet,
+                         KLDivLossTestBFloat16Bwd,
+                         testing::ValuesIn(KLDivLossTestConfigs()));

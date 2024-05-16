@@ -262,11 +262,8 @@ set( MIOpen_Source
     solver/gemm_bwd.cpp
     solver/gemm_wrw.cpp
     solver/kldivloss/forward_kldivloss_unreduced.cpp
+    solver/kldivloss/backward_kldivloss_unreduced.cpp
     # solver/kldivloss/forward_kldivloss_reduced.cpp
-    # solver/kldivloss/forward_reduce_kldivloss_4d.cpp
-    # solver/kldivloss/backward_con_kldivloss_4d.cpp
-    # solver/kldivloss/backward_non_kldivloss_4d.cpp
-    # solver/kldivloss/backward_reduce_kldivloss_4d.cpp
     solver/groupnorm/forward_groupnorm.cpp
     solver/layernorm/forward_layernorm.cpp
     solver/layernorm/forward_layernorm2d_ck.cpp

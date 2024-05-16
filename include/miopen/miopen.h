@@ -513,7 +513,7 @@ typedef enum
     miopenActivationABS      = 5, /*!< Absolute value \f$abs(x)\f$ */
     miopenActivationPOWER = 6, /*!< Scaled and shifted power \f$(\alpha + \beta * x)^{gamma}\f$ */
     miopenActivationCLIPPEDRELU =
-        7, /*!< Clipped Rectified Linear Unit \f$ min(\alpha, max(0,x)) \f$ */
+        7,                     /*!< Clipped Rectified Linear Unit \f$ min(\alpha, max(0,x)) \f$ */
     miopenActivationLEAKYRELU =
         8, /*!< Leaky Rectified Linear Unit \f$ \alpha * x | x <= 0; x | x > 0 \f$ */
     miopenActivationELU =
@@ -6611,27 +6611,35 @@ miopenKLDivLossUnreducedForward(miopenHandle_t handle,
                                 void* output,
                                 bool log_target);
 
-// /*! @brief Execute a kldivloss reduced forward layer
-//  *
-//  * @param handle                   MIOpen handle (input)
-//  * @param inputDesc                Tensor descriptor for input tensor (input)
-//  * @param input                    Data tensor input (input)
-//  * @param targetDesc               Tensor descriptor for target tensor (input)
-//  * @param target                   Data tensor target (input)
-//  * @param outputDesc               Tensor descriptor for output tensor (input)
-//  * @param output                   Data tensor output (output)
-//  * @param log_target               Specifies whether target is the log space (input)
-//  * @param divisor                  Divisor (input)
-//  * @return                         miopenStatus_t
-//  */
-// MIOPEN_EXPORT miopenStatus_t miopenKLDivLossReducedForward(miopenHandle_t handle,
-//                                                            const miopenTensorDescriptor_t
-//                                                            inputDesc, const void* input, const
-//                                                            miopenTensorDescriptor_t targetDesc,
-//                                                            const void* target,
-//                                                            const miopenTensorDescriptor_t
-//                                                            outputDesc, void* output, bool
-//                                                            log_target, float divisor);
+/*! @brief Execute a kldivloss unreduced backward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Data tensor input (input)
+ * @param targetDesc               Tensor descriptor for target tensor (input)
+ * @param target                   Data tensor target (input)
+ * @param outputGradDesc           Tensor descriptor for output grad tensor (input)
+ * @param outputGrad               Data tensor output grad (input)
+ * @param inputgradDesc            Tensor descriptor for input gradient tensor (input)
+ * @param inputgrad                Data tensor input gradient (output)
+ * @param targetgradDesc           Tensor descriptor for target gradient tensor (input)
+ * @param targetgrad               Data tensor target gradient (output)
+ * @param log_target               Specifies whether target is the log space (input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenKLDivLossUnreducedBackward(miopenHandle_t handle,
+                                 const miopenTensorDescriptor_t inputDesc,
+                                 const void* input,
+                                 const miopenTensorDescriptor_t targetDesc,
+                                 const void* target,
+                                 const miopenTensorDescriptor_t outputGradDesc,
+                                 const void* output_grad,
+                                 const miopenTensorDescriptor_t inputGradDesc,
+                                 void* input_grad,
+                                 const miopenTensorDescriptor_t targetGradDesc,
+                                 void* target_grad,
+                                 bool log_target);
 /** @} */
 // CLOSEOUT KLDivLoss DOXYGEN GROUP
 #endif // MIOPEN_BETA_API

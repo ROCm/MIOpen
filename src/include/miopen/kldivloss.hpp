@@ -60,14 +60,18 @@ miopenStatus_t KLDivLossUnreducedForward(Handle& handle,
 //                                     bool log_target,
 //                                     float divisor);
 
-// miopenStatus_t KLDivLossUnreducedBackward(Handle& handle,
-//                                        const TensorDescriptor& inputGradDesc,
-//                                        Data_t input_grad,
-//                                        const TensorDescriptor& targetDesc,
-//                                        ConstData_t target,
-//                                        const TensorDescriptor& outputGradDesc,
-//                                        Data_t output_grad,
-//                                        int32_t ignore_index);
+miopenStatus_t KLDivLossUnreducedBackward(Handle& handle,
+                                          const TensorDescriptor& inputDesc,
+                                          ConstData_t input,
+                                          const TensorDescriptor& targetDesc,
+                                          ConstData_t target,
+                                          const TensorDescriptor& outputGradDesc,
+                                          ConstData_t output_grad,
+                                          const TensorDescriptor& inputGradDesc,
+                                          Data_t input_grad,
+                                          const TensorDescriptor& targetGradDesc,
+                                          Data_t target_grad,
+                                          bool log_target);
 
 // miopenStatus_t KLDivLossReducedBackward(Handle& handle,
 //                                      const TensorDescriptor& inputGradDesc,

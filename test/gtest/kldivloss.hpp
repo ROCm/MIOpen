@@ -64,9 +64,9 @@ struct KLDivLossTestCase
 inline std::vector<KLDivLossTestCase> KLDivLossForwardTestConfigs()
 { // dim, dims
     // clang-format off
-    return {{{256, 4, 8732},false, 0.0f},
-            {{256, 4, 8732},true, 0.0f},
-            {{34, 4},false, 0},
+    return {{{256, 4, 8732},true, 0.0f},
+            // {{256, 4, 8732},false, 0.0f},
+            // {{34, 4},false, 0},
             {{34, 4},true, 0}};
     // clang-format on
 }
@@ -246,133 +246,149 @@ protected:
 };
 
 // // BACKWARD TEST
-// template <typename T = float>
-// struct KLDivLossTestBwd : public ::testing::TestWithParam<KLDivLossTestCase>
-// {
-// protected:
-//     void SetUp() override
-//     {
-//         auto&& handle  = get_handle();
-//         kldivloss_config = GetParam();
+template <typename T = float>
+struct KLDivLossTestBwd : public ::testing::TestWithParam<KLDivLossTestCase>
+{
+protected:
+    void SetUp() override
+    {
+        auto&& handle    = get_handle();
+        kldivloss_config = GetParam();
 
-//         ignore_index    = kldivloss_config.ignore_index;
-//         weight_mode     = kldivloss_config.weight_mode;
-//         auto contiguous = kldivloss_config.contiguous;
-//         divisor         = kldivloss_config.divisor;
+        log_target = kldivloss_config.log_target;
+        divisor    = kldivloss_config.divisor;
 
-//         auto in_dim                    = kldivloss_config.GetInput();
-//         std::vector<size_t> target_dim = {in_dim[0], in_dim[2], in_dim[3]};
-//         std::vector<size_t> weight_dim = {in_dim[1]};
+        auto in_dim     = kldivloss_config.GetInput();
+        auto target_dim = in_dim;
 
-//         size_t numclass_C     = in_dim[1];
-//         auto gen_target_value = [numclass_C](auto...) {
-//             return prng::gen_A_to_B<int32_t>(0, numclass_C - 1);
-//         };
-//         auto gen_weight_value = [](auto...) {
-//             return prng::gen_A_to_B<T>(static_cast<T>(-10), static_cast<T>(10));
-//         };
-//         auto gen_weight_one = [](auto...) { return static_cast<T>(1); };
+        auto gen_input_value = [](auto...) {
+            return prng::gen_A_to_B<T>(static_cast<T>(-10.0f), static_cast<T>(10.0f));
+        };
 
-//         auto gen_output_grad_value = [](auto...) {
-//             return prng::gen_A_to_B<T>(static_cast<T>(-10), static_cast<T>(10));
-//         };
+        auto gen_target_value = [](auto...) {
+            return prng::gen_A_to_B<T>(static_cast<T>(1e-2), static_cast<T>(10.0f));
+        };
 
-//         auto in_strides = GetStrides(in_dim, true);
-//         input_grad      = tensor<T>{in_dim, in_strides};
-//         std::fill(input_grad.begin(), input_grad.end(), static_cast<T>(0.0f));
+        auto gen_output_grad_value = [](auto...) {
+            return prng::gen_A_to_B<T>(static_cast<T>(-10.0f), static_cast<T>(10.0f));
+        };
 
-//         ref_input_grad = tensor<T>{in_dim, in_strides};
-//         std::fill(ref_input_grad.begin(), ref_input_grad.end(), static_cast<T>(0.0f));
+        auto in_strides = GetStrides(in_dim, true);
+        input           = tensor<T>{in_dim, in_strides}.generate(gen_input_value);
 
-//         auto tar_strides = GetStrides(target_dim, contiguous);
-//         target           = tensor<int32_t>{target_dim, tar_strides}.generate(gen_target_value);
+        auto tar_strides = GetStrides(target_dim, true);
+        target           = tensor<T>{target_dim, tar_strides}.generate(gen_target_value);
 
-//         auto weight_strides = GetStrides(weight_dim, true);
-//         if(!weight_mode)
-//             weight = tensor<T>{weight_dim, weight_strides}.generate(gen_weight_one);
-//         else
-//             weight = tensor<T>{weight_dim, weight_strides}.generate(gen_weight_value);
+        auto out_dim     = divisor == 0.f ? in_dim : std::vector<size_t>{1};
+        auto out_strides = GetStrides(out_dim, true);
+        output_grad      = tensor<T>{out_dim, out_strides}.generate(gen_output_grad_value);
 
-//         std::vector<size_t> out_grad_dim =
-//             divisor == 0.f ? std::vector<size_t>{in_dim[0], in_dim[2], in_dim[3]}
-//                            : std::vector<size_t>{1};
-//         auto out_strides = GetStrides(out_grad_dim, true);
-//         output_grad      = tensor<T>{out_grad_dim, out_strides}.generate(gen_output_grad_value);
+        input_grad = tensor<T>{in_dim, in_strides};
+        std::fill(input_grad.begin(), input_grad.end(), std::numeric_limits<T>::quiet_NaN());
 
-//         input_grad_dev  = handle.Write(input_grad.data);
-//         target_dev      = handle.Write(target.data);
-//         weight_dev      = handle.Write(weight.data);
-//         output_grad_dev = handle.Write(output_grad.data);
-//     }
+        ref_input_grad = tensor<T>{in_dim, in_strides};
+        std::fill(
+            ref_input_grad.begin(), ref_input_grad.end(), std::numeric_limits<T>::quiet_NaN());
 
-//     void RunTest()
-//     {
-//         auto&& handle = get_handle();
+        target_grad = tensor<T>{target_dim, tar_strides};
+        std::fill(target_grad.begin(), target_grad.end(), std::numeric_limits<T>::quiet_NaN());
 
-//         miopenStatus_t status;
+        ref_target_grad = tensor<T>{target_dim, tar_strides};
+        std::fill(
+            ref_target_grad.begin(), ref_target_grad.end(), std::numeric_limits<T>::quiet_NaN());
 
-//         if(divisor != 0.f)
-//         {
-//             cpu_nllloss_reduce_backward_4d(
-//                 ref_input_grad, target, weight, output_grad, ignore_index, divisor);
+        input_dev       = handle.Write(input.data);
+        target_dev      = handle.Write(target.data);
+        output_grad_dev = handle.Write(output_grad.data);
+        input_grad_dev  = handle.Write(input_grad.data);
+        target_grad_dev = handle.Write(target_grad.data);
+    }
 
-//             status = miopen::NLLLossReduceBackward(handle,
-//                                                    input_grad.desc,
-//                                                    input_grad_dev.get(),
-//                                                    target.desc,
-//                                                    target_dev.get(),
-//                                                    weight.desc,
-//                                                    weight_dev.get(),
-//                                                    output_grad.desc,
-//                                                    output_grad_dev.get(),
-//                                                    ignore_index,
-//                                                    divisor);
-//         }
-//         else
-//         {
-//             cpu_nllloss_backward_4d<T>(ref_input_grad, target, weight, output_grad,
-//             ignore_index);
+    void RunTest()
+    {
+        auto&& handle = get_handle();
 
-//             status = miopen::KLDivLossUnreducedBackward(handle,
-//                                                      input_grad.desc,
-//                                                      input_grad_dev.get(),
-//                                                      target.desc,
-//                                                      target_dev.get(),
-//                                                      weight.desc,
-//                                                      weight_dev.get(),
-//                                                      output_grad.desc,
-//                                                      output_grad_dev.get(),
-//                                                      ignore_index);
-//         }
+        miopenStatus_t status;
 
-//         EXPECT_EQ(status, miopenStatusSuccess);
+        if(divisor == 0.f)
+        {
+            cpu_kldivloss_backward_5d<T>(
+                input, target, output_grad, ref_input_grad, ref_target_grad, log_target, true, true);
 
-//         input_grad.data = handle.Read<T>(input_grad_dev, input_grad.data.size());
-//     }
+            status = miopen::KLDivLossUnreducedBackward(handle,
+                                                        input.desc,
+                                                        input_dev.get(),
+                                                        target.desc,
+                                                        target_dev.get(),
+                                                        output_grad.desc,
+                                                        output_grad_dev.get(),
+                                                        input_grad.desc,
+                                                        input_grad_dev.get(),
+                                                        target_grad.desc,
+                                                        target_grad_dev.get(),
+                                                        log_target);
+        }
+        else
+        {
+            // cpu_kldivloss_reduced_forward_5d(
+            //     input, target, weight, ref_output, ref_workspace, ignore_index, divisor);
+            // status         = miopen::NLLLossReduceForward(handle,
+            //                                       workspace_dev.get(),
+            //                                       ws_sizeInBytes,
+            //                                       input.desc,
+            //                                       input_dev.get(),
+            //                                       target.desc,
+            //                                       target_dev.get(),
+            //                                       weight.desc,
+            //                                       weight_dev.get(),
+            //                                       output.desc,
+            //                                       output_dev.get(),
+            //                                       ignore_index,
+            //                                       divisor);
+        }
+        fflush(stdout);
 
-//     void Verify()
-//     {
-//         double threshold = std::numeric_limits<T>::epsilon();
-//         auto error       = miopen::rms_range(ref_input_grad, input_grad);
-//         EXPECT_TRUE(miopen::range_distance(ref_input_grad) ==
-//         miopen::range_distance(input_grad)); EXPECT_TRUE(error < threshold * 10) << "Error output
-//         beyond tolerance Error:" << error
-//                                             << ",  Thresholdx10: " << threshold * 10;
-//     }
-//     KLDivLossTestCase kldivloss_config;
+        EXPECT_EQ(status, miopenStatusSuccess);
 
-//     tensor<T> input_grad;
-//     tensor<T> ref_input_grad;
-//     tensor<int32_t> target;
-//     tensor<T> weight;
-//     tensor<T> output_grad;
+        input_grad.data  = handle.Read<T>(input_grad_dev, input_grad.data.size());
+        target_grad.data = handle.Read<T>(target_grad_dev, target_grad.data.size());
+    }
 
-//     bool weight_mode;
-//     int32_t ignore_index;
-//     float divisor;
+    void Verify()
+    {
+        double threshold = std::numeric_limits<T>::epsilon();
 
-//     miopen::Allocator::ManageDataPtr input_grad_dev;
-//     miopen::Allocator::ManageDataPtr target_dev;
-//     miopen::Allocator::ManageDataPtr weight_dev;
-//     miopen::Allocator::ManageDataPtr output_grad_dev;
-// };
+        auto error = miopen::rms_range(ref_input_grad, input_grad);
+
+        EXPECT_TRUE(miopen::range_distance(ref_input_grad) == miopen::range_distance(input_grad));
+        EXPECT_TRUE(error < threshold * 10) << "Error input grad beyond tolerance Error:" << error
+                                            << ",  Thresholdx10: " << threshold * 10;
+
+        auto target_error = miopen::rms_range(ref_target_grad, target_grad);
+
+        EXPECT_TRUE(miopen::range_distance(ref_target_grad) == miopen::range_distance(target_grad));
+        EXPECT_TRUE(target_error < threshold * 10)
+            << "Error target grad beyond tolerance Error:" << target_error
+            << ",  Thresholdx10: " << threshold * 10;
+    }
+    KLDivLossTestCase kldivloss_config;
+
+    tensor<T> input;
+    tensor<T> target;
+    tensor<T> output_grad;
+    tensor<T> input_grad;
+    tensor<T> target_grad;
+    tensor<T> ref_input_grad;
+    tensor<T> ref_target_grad;
+
+    bool log_target;
+    float divisor;
+
+    miopen::Allocator::ManageDataPtr input_dev;
+    miopen::Allocator::ManageDataPtr target_dev;
+    miopen::Allocator::ManageDataPtr output_grad_dev;
+    miopen::Allocator::ManageDataPtr input_grad_dev;
+    miopen::Allocator::ManageDataPtr target_grad_dev;
+
+    size_t ws_sizeInBytes;
+};

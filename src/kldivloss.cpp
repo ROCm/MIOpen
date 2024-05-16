@@ -66,7 +66,6 @@ miopenStatus_t KLDivLossUnreducedForward(Handle& handle,
 
     return miopenStatusSuccess;
 }
-} // namespace miopen
 
 // size_t GetKLDivLossReducedForwardWorkspaceSize(Handle& handle,
 //                                             const TensorDescriptor& inputDesc,
@@ -129,43 +128,47 @@ miopenStatus_t KLDivLossUnreducedForward(Handle& handle,
 //     return miopenStatusSuccess;
 // }
 
-// miopenStatus_t NLLLossUnreducedBackward(Handle& handle,
-//                                        const TensorDescriptor& inputGradDesc,
-//                                        Data_t input_grad,
-//                                        const TensorDescriptor& targetDesc,
-//                                        ConstData_t target,
-//                                        const TensorDescriptor& weightDesc,
-//                                        ConstData_t weight,
-//                                        const TensorDescriptor& outputGradDesc,
-//                                        Data_t output_grad,
-//                                        int32_t ignore_index)
-// {
-//     const auto problem = nllloss::UnreducedProblemDescription{
-//         inputGradDesc, targetDesc, weightDesc, outputGradDesc, ignore_index, false};
+miopenStatus_t KLDivLossUnreducedBackward(Handle& handle,
+                                          const TensorDescriptor& inputDesc,
+                                          ConstData_t input,
+                                          const TensorDescriptor& targetDesc,
+                                          ConstData_t target,
+                                          const TensorDescriptor& outputGradDesc,
+                                          ConstData_t output_grad,
+                                          const TensorDescriptor& inputGradDesc,
+                                          Data_t input_grad,
+                                          const TensorDescriptor& targetGradDesc,
+                                          Data_t target_grad,
+                                          bool log_target)
+{
+    const auto problem = kldivloss::UnreducedProblemDescription{
+        inputDesc, targetDesc, outputGradDesc, log_target, false};
 
-//     const auto invoke_params = [&]() {
-//         auto tmp           = nllloss::BwdInvokeParams{};
-//         tmp.inputGradDesc  = &inputGradDesc;
-//         tmp.targetDesc     = &targetDesc;
-//         tmp.weightDesc     = &weightDesc;
-//         tmp.outputGradDesc = &outputGradDesc;
+    const auto invoke_params = [&]() {
+        auto tmp           = kldivloss::BwdInvokeParams{};
+        tmp.inputDesc      = &inputDesc;
+        tmp.targetDesc     = &targetDesc;
+        tmp.outputGradDesc = &outputGradDesc;
+        tmp.inputGradDesc  = &inputGradDesc;
+        tmp.targetGradDesc = &targetGradDesc;
 
-//         tmp.input_grad   = input_grad;
-//         tmp.target       = target;
-//         tmp.weight       = weight;
-//         tmp.output_grad  = output_grad;
-//         tmp.ignore_index = ignore_index;
-//         return tmp;
-//     }();
-//     const auto algo    = AlgorithmName{"NLLLossUnreducedBackward"};
-//     const auto solvers =
-//     solver::SolverContainer<solver::nllloss::NLLLossUnreducedBackwardContiguous,
-//                                                  solver::nllloss::NLLLossUnreducedBackward4d>{};
+        tmp.input       = input;
+        tmp.target      = target;
+        tmp.output_grad = output_grad;
+        tmp.input_grad  = input_grad;
+        tmp.target_grad = target_grad;
 
-//     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+        tmp.log_target = log_target;
 
-//     return miopenStatusSuccess;
-// }
+        return tmp;
+    }();
+    const auto algo    = AlgorithmName{"KLDivLossUnreducedBackward"};
+    const auto solvers = solver::SolverContainer<solver::kldivloss::KLDivLossUnreducedBackward>{};
+
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+
+    return miopenStatusSuccess;
+}
 
 // miopenStatus_t NLLLossReducedBackward(Handle& handle,
 //                                      const TensorDescriptor& inputGradDesc,
@@ -205,4 +208,4 @@ miopenStatus_t KLDivLossUnreducedForward(Handle& handle,
 //     return miopenStatusSuccess;
 // }
 
-// } // namespace miopen
+} // namespace miopen
