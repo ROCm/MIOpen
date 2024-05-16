@@ -103,7 +103,7 @@ bool IsTestSupportedForDevMask()
     if constexpr(test(Gpu::gfx908))
         res = res || (dev == "gfx908");
     if constexpr(test(Gpu::gfx90A))
-        res = res || (dev == "gfx90A");
+        res = res || (dev == "gfx90a");
     if constexpr(test(Gpu::gfx94X))
         res = res || (miopen::StartsWith(dev, "gfx94"));
     if constexpr(test(Gpu::gfx103X))
