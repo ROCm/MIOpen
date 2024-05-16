@@ -78,7 +78,7 @@ bool gpu_ref_convolution_fwd(const tensor<Tin>& input,
                              const miopen::Scalar& beta  = miopen::Scalar(0.0))
 {
     bool gpu_ref_used = false;
-    if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF)))
+    if(!miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF)))
     {
         const AutoPrepareForGpuReference guard;
         auto&& handle            = get_handle();
@@ -122,7 +122,7 @@ bool gpu_ref_convolution_bwd(tensor<Tin>& input,
                              const miopen::Scalar& beta  = miopen::Scalar(0.0))
 {
     bool gpu_ref_used = false;
-    if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF)))
+    if(!miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF)))
     {
         const AutoPrepareForGpuReference guard;
         auto&& handle            = get_handle();
@@ -166,7 +166,7 @@ bool gpu_ref_convolution_wrw(const tensor<Tin>& input,
                              const miopen::Scalar& beta  = miopen::Scalar(0.0))
 {
     bool gpu_ref_used = false;
-    if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF)))
+    if(!miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF)))
     {
         const AutoPrepareForGpuReference guard;
         auto&& handle            = get_handle();
