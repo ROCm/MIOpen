@@ -197,19 +197,18 @@ extern "C" miopenStatus_t miopenGetConvolutionFindMode(const miopenConvolutionDe
 }
 
 extern "C" miopenStatus_t
-miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t ab_case,
+miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t alpha_beta_case,
                                                    miopenDataType_t data_type,
                                                    size_t C,
                                                    size_t K,
                                                    size_t output_tensor_size,
                                                    size_t* buffer_size)
 {
-    MIOPEN_LOG_FUNCTION(ab_case, data_type);
 
-    if(ab_case == BILINEAR || ab_case == SCALE ||
+    size_t byte_size = 0;
+    if(alpha_beta_case == BILINEAR || alpha_beta_case == SCALE ||
        ((data_type == miopenHalf) && ((C & 1) != 0 || (K & 1) != 0 /* Test if odd*/)))
     {
-        size_t byte_size;
         switch(data_type)
         {
         case miopenInt32:
@@ -227,6 +226,10 @@ miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
     {
         *buffer_size = 0;
     }
+
+    MIOPEN_LOG_FUNCTION(
+        alpha_beta_case, data_type, C, K, output_tensor_size, byte_size, *buffer_size);
+
     return miopenStatusSuccess;
 }
 
