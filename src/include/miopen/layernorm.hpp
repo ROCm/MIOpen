@@ -51,4 +51,4 @@ miopenStatus_t LayerNormForward(Handle& handle,
                                 int32_t normalized_dim);
 
 } // namespace miopen
-#endif // _MIOPEN_LAYERNORM_HPP_
+#endif // MIOPEN_LAYERNORM_HPP_

@@ -288,7 +288,7 @@ To disable using rocBlas entirely, set the  `-DMIOPEN_USE_ROCBLAS=Off` configura
 MIOpen configuration.
 
 You can find more information on logging with rocBLAS in the
-:doc:`rocBLAS programmer guide <rocblas:Programmers_Guide>`.
+:doc:`rocBLAS programmer guide <rocblas:how-to/Programmers_Guide>`.
 
 Numerical checking
 ==========================================================

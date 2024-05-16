@@ -110,26 +110,29 @@ struct KernelArgs
 
 struct HIPOCKernelInvoke
 {
-    hipStream_t stream          = nullptr;
-    hipFunction_t fun           = nullptr;
-    std::array<size_t, 3> ldims = {};
-    std::array<size_t, 3> gdims = {};
-    std::string name;
-    std::function<void(hipEvent_t, hipEvent_t)> callback;
-
-    // Workaround for aggregate types in c++11
     HIPOCKernelInvoke() {}
     HIPOCKernelInvoke(hipStream_t pstream,
                       hipFunction_t pfun,
                       std::array<size_t, 3> pldims,
                       std::array<size_t, 3> pgdims,
                       std::string pname,
-                      std::function<void(hipEvent_t, hipEvent_t)> pcallback)
-        : stream(pstream), fun(pfun), ldims(pldims), gdims(pgdims), name(pname), callback(pcallback)
+                      std::function<void(hipEvent_t, hipEvent_t)> pcallback,
+                      bool pcoop_launch)
+        : stream(pstream),
+          fun(pfun),
+          ldims(pldims),
+          gdims(pgdims),
+          name(pname),
+          callback(pcallback),
+          coop_launch(pcoop_launch)
     {
     }
+
     void operator()(std::vector<OpKernelArg>& any_args) const
     {
+        if(coop_launch)
+            MIOPEN_THROW(miopenStatusNotImplemented);
+
         char hip_args[256] = {0};
         auto sz_left       = any_args[0].size();
 
@@ -152,13 +155,35 @@ struct HIPOCKernelInvoke
     template <class... Ts>
     void operator()(Ts... xs) const
     {
-        KernelArgs<Ts...> args{xs...};
-        run(&args, sizeof(args));
+        if(coop_launch)
+        {
+            auto args = std::array<void*, sizeof...(xs)>{(&xs)...};
+            run_cooperative(args.data());
+        }
+        else
+        {
+            KernelArgs<Ts...> args{xs...};
+            run(&args, sizeof(args));
+        }
     }
 
-    void run(void* args, std::size_t size) const;
+    void SetLocalDims(size_t dim_x, size_t dim_y, size_t dim_z) { ldims = {dim_x, dim_y, dim_z}; }
+
+    void SetGlobalDims(size_t dim_x, size_t dim_y, size_t dim_z) { gdims = {dim_x, dim_y, dim_z}; }
 
     const std::string& GetName() const { return name; }
+
+private:
+    void run(void* args, std::size_t size) const;
+    void run_cooperative(void** kern_args) const;
+
+    hipStream_t stream          = nullptr;
+    hipFunction_t fun           = nullptr;
+    std::array<size_t, 3> ldims = {};
+    std::array<size_t, 3> gdims = {};
+    std::string name;
+    std::function<void(hipEvent_t, hipEvent_t)> callback;
+    bool coop_launch;
 };
 
 struct HIPOCKernel
@@ -196,7 +221,8 @@ struct HIPOCKernel
     }
 
     HIPOCKernelInvoke Invoke(hipStream_t stream,
-                             std::function<void(hipEvent_t, hipEvent_t)> callback = nullptr) const;
+                             std::function<void(hipEvent_t, hipEvent_t)> callback = nullptr,
+                             bool coop_launch                                     = false) const;
 };
 
 } // namespace miopen
