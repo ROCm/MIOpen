@@ -207,11 +207,11 @@ static void ShrinkToFind10Results(std::vector<Solution>& found)
     found = std::move(out);
 }
 
-static inline std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
-                                                    const conv::ProblemDescription& problem,
-                                                    const AnyInvokeParams& invoke_ctx,
-                                                    const int requestAlgoCount,
-                                                    bool force_attach_binary)
+std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
+                                      const conv::ProblemDescription& problem,
+                                      const AnyInvokeParams& invoke_ctx,
+                                      const int requestAlgoCount,
+                                      bool force_attach_binary)
 {
     auto results         = std::vector<Solution>{};
     auto sol             = boost::optional<miopenConvSolution_t>{};

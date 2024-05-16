@@ -158,7 +158,7 @@ struct Solution;
 std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
                                       const conv::ProblemDescription& problem,
                                       const AnyInvokeParams& invoke_ctx,
-                                      std::size_t max_solutions,
+                                      const int requestAlgoCount,
                                       bool force_attach_binary);
 
 struct MIOPEN_EXPORT ConvolutionDescriptor : miopenConvolutionDescriptor
