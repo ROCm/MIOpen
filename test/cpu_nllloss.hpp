@@ -160,123 +160,293 @@ void cpu_nllloss_reduce_backward(tensor<T>& input_grad,
     }
 }
 
-// template <class T>
-// void cpu_nllloss_unreduce_forward(tensor<T> input,
-//                                   tensor<int32_t> target,
-//                                   tensor<T> weight,
-//                                   tensor<T>& output,
-//                                   int32_t ignore_index)
-// {
-//     auto dims = input.desc.GetLengths();
-//     size_t N  = dims[0];
-//     size_t C  = dims[1];
-//     size_t D1 = dims[2];
-//     size_t D2 = dims[3];
+template <class T>
+void cpu_nllloss_unreduce_forward_2d(tensor<T> input,
+                                     tensor<int32_t> target,
+                                     tensor<T> weight,
+                                     tensor<T>& output,
+                                     int32_t ignore_index)
+{
+    auto dims = input.desc.GetLengths();
+    size_t C  = dims[1];
 
-//     auto I_tv = get_inner_expanded_tv_4d(input.desc);
-//     auto T_tv = get_inner_expanded_tv_3d(target.desc);
-//     auto W_tv = get_inner_expanded_tv_1d(weight.desc);
-//     auto O_tv = get_inner_expanded_tv_3d(output.desc);
+    auto I_tv = get_inner_expanded_tv_2d(input.desc);
+    auto T_tv = get_inner_expanded_tv_1d(target.desc);
+    auto W_tv = get_inner_expanded_tv_1d(weight.desc);
+    auto O_tv = get_inner_expanded_tv_1d(output.desc);
 
-//     for(size_t i = 0; i < N * D1 * D2; i++)
-//     {
-//         uint64_t n[3];
-//         GET_NCD(n[0], n[1], n[2], i, O_tv);
-//         size_t target_index = TV3D_IDX(T_tv, n[0], n[1], n[2]);
-//         int32_t t           = target[target_index];
-//         size_t input_index  = TV4D_IDX(I_tv, n[0], t, n[1], n[2]);
-//         size_t weight_index = TV1D_IDX(W_tv, t);
-//         size_t output_index = TV3D_IDX(O_tv, n[0], n[1], n[2]);
+    for(size_t i = 0; i < target.desc.GetElementSize(); i++)
+    {
+        size_t target_index = TV1D_IDX(T_tv, i);
+        int32_t t           = target[target_index];
+        size_t input_index  = TV2D_IDX(I_tv, i, t);
+        size_t weight_index = TV1D_IDX(W_tv, t);
+        size_t output_index = TV1D_IDX(O_tv, i);
 
-//         if(t < 0 || t == ignore_index || t >= C)
-//         {
-//             output[output_index] = static_cast<T>(0);
-//         }
-//         else
-//         {
-//             output[output_index] =
-//                 static_cast<T>(-1.0f) * weight[weight_index] * input[input_index];
-//         }
-//     }
-// }
+        if(t < 0 || t == ignore_index || t >= C)
+        {
+            output[output_index] = static_cast<T>(0);
+        }
+        else
+        {
+            output[output_index] =
+                static_cast<T>(-1.0f) * weight[weight_index] * input[input_index];
+        }
+    }
+}
 
-// template <class T>
-// void cpu_nllloss_unreduce_backward(tensor<T>& input_grad,
-//                                    tensor<int32_t> target,
-//                                    tensor<T> weight,
-//                                    tensor<T> output_grad,
-//                                    int32_t ignore_index)
-// {
-//     auto dims = input_grad.desc.GetLengths();
-//     size_t N  = dims[0];
-//     size_t C  = dims[1];
-//     size_t D1 = dims[2];
-//     size_t D2 = dims[3];
+template <class T>
+void cpu_nllloss_unreduce_forward_4d(tensor<T> input,
+                                     tensor<int32_t> target,
+                                     tensor<T> weight,
+                                     tensor<T>& output,
+                                     int32_t ignore_index)
+{
+    auto dims = input.desc.GetLengths();
+    size_t C  = dims[1];
 
-//     auto I_tv = get_inner_expanded_tv_4d(input_grad.desc);
-//     auto T_tv = get_inner_expanded_tv_3d(target.desc);
-//     auto W_tv = get_inner_expanded_tv_1d(weight.desc);
-//     auto O_tv = get_inner_expanded_tv_3d(output_grad.desc);
+    auto I_tv = get_inner_expanded_tv_4d(input.desc);
+    auto T_tv = get_inner_expanded_tv_3d(target.desc);
+    auto W_tv = get_inner_expanded_tv_1d(weight.desc);
+    auto O_tv = get_inner_expanded_tv_3d(output.desc);
 
-//     for(size_t i = 0; i < N * D1 * D2; i++)
-//     {
-//         uint64_t n[3];
-//         GET_NCD(n[0], n[1], n[2], i, O_tv);
-//         size_t target_index      = TV3D_IDX(T_tv, n[0], n[1], n[2]);
-//         int32_t t                = target[target_index];
-//         size_t input_grad_index  = TV4D_IDX(I_tv, n[0], t, n[1], n[2]);
-//         size_t weight_index      = TV1D_IDX(W_tv, t);
-//         size_t output_grad_index = TV3D_IDX(O_tv, n[0], n[1], n[2]);
+    for(size_t i = 0; i < target.desc.GetElementSize(); i++)
+    {
+        uint64_t n[3];
+        GET_NCD(n[0], n[1], n[2], i, O_tv);
+        size_t target_index = TV3D_IDX(T_tv, n[0], n[1], n[2]);
+        int32_t t           = target[target_index];
+        size_t input_index  = TV4D_IDX(I_tv, n[0], t, n[1], n[2]);
+        size_t weight_index = TV1D_IDX(W_tv, t);
+        size_t output_index = TV3D_IDX(O_tv, n[0], n[1], n[2]);
 
-//         if(t < 0 || t == ignore_index || t >= C)
-//         {
-//             input_grad[input_grad_index] = static_cast<T>(0);
-//         }
-//         else
-//         {
-//             input_grad[input_grad_index] =
-//                 static_cast<T>(-1.0f) * weight[weight_index] * output_grad[output_grad_index];
-//         }
-//     }
-// }
+        if(t < 0 || t == ignore_index || t >= C)
+        {
+            output[output_index] = static_cast<T>(0);
+        }
+        else
+        {
+            output[output_index] =
+                static_cast<T>(-1.0f) * weight[weight_index] * input[input_index];
+        }
+    }
+}
 
-// template <class T>
-// void cpu_nllloss_reduce_backward(tensor<T>& input_grad,
-//                                  tensor<int32_t> target,
-//                                  tensor<T> weight,
-//                                  tensor<T> output_grad,
-//                                  int32_t ignore_index,
-//                                  float divisor)
-// {
-//     auto dims = input_grad.desc.GetLengths();
-//     size_t N  = dims[0];
-//     size_t C  = dims[1];
-//     size_t D1 = dims[2];
-//     size_t D2 = dims[3];
+template <class T>
+void cpu_nllloss_unreduce_forward_5d(tensor<T> input,
+                                     tensor<int32_t> target,
+                                     tensor<T> weight,
+                                     tensor<T>& output,
+                                     int32_t ignore_index)
+{
+    auto dims = input.desc.GetLengths();
+    size_t C  = dims[1];
 
-//     auto I_tv = get_inner_expanded_tv_4d(input_grad.desc);
-//     auto T_tv = get_inner_expanded_tv_3d(target.desc);
-//     auto W_tv = get_inner_expanded_tv_1d(weight.desc);
+    auto I_tv = get_inner_expanded_tv_5d(input.desc);
+    auto T_tv = get_inner_expanded_tv_4d(target.desc);
+    auto W_tv = get_inner_expanded_tv_1d(weight.desc);
+    auto O_tv = get_inner_expanded_tv_4d(output.desc);
 
-//     for(size_t i = 0; i < N * D1 * D2; i++)
-//     {
-//         uint64_t n[3];
-//         GET_NCD(n[0], n[1], n[2], i, T_tv);
-//         size_t target_index     = TV3D_IDX(T_tv, n[0], n[1], n[2]);
-//         int32_t t               = target[target_index];
-//         size_t input_grad_index = TV4D_IDX(I_tv, n[0], t, n[1], n[2]);
-//         size_t weight_index     = TV1D_IDX(W_tv, t);
+    for(size_t i = 0; i < target.desc.GetElementSize(); i++)
+    {
+        uint64_t n[4];
+        GET_NCDH(n[0], n[1], n[2], n[3], i, O_tv);
+        size_t target_index = TV4D_IDX(T_tv, n[0], n[1], n[2], n[3]);
+        int32_t t           = target[target_index];
+        size_t input_index  = TV5D_IDX(I_tv, n[0], t, n[1], n[2], n[3]);
+        size_t weight_index = TV1D_IDX(W_tv, t);
+        size_t output_index = TV4D_IDX(O_tv, n[0], n[1], n[2], n[3]);
 
-//         if(t < 0 || t == ignore_index || t >= C)
-//         {
-//             input_grad[input_grad_index] = static_cast<T>(0);
-//         }
-//         else
-//         {
-//             input_grad[input_grad_index] =
-//                 (static_cast<T>(-1.0f) * weight[weight_index] * output_grad[0]) /
-//                 static_cast<T>(divisor);
-//         }
-//     }
-// }
+        if(t < 0 || t == ignore_index || t >= C)
+        {
+            output[output_index] = static_cast<T>(0);
+        }
+        else
+        {
+            output[output_index] =
+                static_cast<T>(-1.0f) * weight[weight_index] * input[input_index];
+        }
+    }
+}
+
+template <class T>
+void cpu_nllloss_unreduce_backward_2d(tensor<T>& input_grad,
+                                      tensor<int32_t> target,
+                                      tensor<T> weight,
+                                      tensor<T> output_grad,
+                                      int32_t ignore_index)
+{
+    auto dims = input_grad.desc.GetLengths();
+    size_t C  = dims[1];
+
+    auto I_tv = get_inner_expanded_tv_2d(input_grad.desc);
+    auto T_tv = get_inner_expanded_tv_1d(target.desc);
+    auto W_tv = get_inner_expanded_tv_1d(weight.desc);
+    auto O_tv = get_inner_expanded_tv_1d(output_grad.desc);
+
+    for(size_t i = 0; i < target.desc.GetElementSize(); i++)
+    {
+        size_t target_index      = TV1D_IDX(T_tv, i);
+        int32_t t                = target[target_index];
+        size_t input_grad_index  = TV2D_IDX(I_tv, i, t);
+        size_t weight_index      = TV1D_IDX(W_tv, t);
+        size_t output_grad_index = TV1D_IDX(O_tv, i);
+
+        if(t < 0 || t == ignore_index || t >= C)
+        {
+            input_grad[input_grad_index] = static_cast<T>(0);
+        }
+        else
+        {
+            input_grad[input_grad_index] =
+                static_cast<T>(-1.0f) * weight[weight_index] * output_grad[output_grad_index];
+        }
+    }
+}
+
+template <class T>
+void cpu_nllloss_unreduce_backward_4d(tensor<T>& input_grad,
+                                      tensor<int32_t> target,
+                                      tensor<T> weight,
+                                      tensor<T> output_grad,
+                                      int32_t ignore_index)
+{
+    auto dims = input_grad.desc.GetLengths();
+    size_t C  = dims[1];
+
+    auto I_tv = get_inner_expanded_tv_4d(input_grad.desc);
+    auto T_tv = get_inner_expanded_tv_3d(target.desc);
+    auto W_tv = get_inner_expanded_tv_1d(weight.desc);
+    auto O_tv = get_inner_expanded_tv_3d(output_grad.desc);
+
+    for(size_t i = 0; i < target.desc.GetElementSize(); i++)
+    {
+        uint64_t n[3];
+        GET_NCD(n[0], n[1], n[2], i, O_tv);
+        size_t target_index      = TV3D_IDX(T_tv, n[0], n[1], n[2]);
+        int32_t t                = target[target_index];
+        size_t input_grad_index  = TV4D_IDX(I_tv, n[0], t, n[1], n[2]);
+        size_t weight_index      = TV1D_IDX(W_tv, t);
+        size_t output_grad_index = TV3D_IDX(O_tv, n[0], n[1], n[2]);
+
+        if(t < 0 || t == ignore_index || t >= C)
+        {
+            input_grad[input_grad_index] = static_cast<T>(0);
+        }
+        else
+        {
+            input_grad[input_grad_index] =
+                static_cast<T>(-1.0f) * weight[weight_index] * output_grad[output_grad_index];
+        }
+    }
+}
+
+template <class T>
+void cpu_nllloss_unreduce_backward_5d(tensor<T>& input_grad,
+                                      tensor<int32_t> target,
+                                      tensor<T> weight,
+                                      tensor<T> output_grad,
+                                      int32_t ignore_index)
+{
+    auto dims = input_grad.desc.GetLengths();
+    size_t C  = dims[1];
+
+    auto I_tv = get_inner_expanded_tv_5d(input_grad.desc);
+    auto T_tv = get_inner_expanded_tv_4d(target.desc);
+    auto W_tv = get_inner_expanded_tv_1d(weight.desc);
+    auto O_tv = get_inner_expanded_tv_4d(output_grad.desc);
+
+    for(size_t i = 0; i < target.desc.GetElementSize(); i++)
+    {
+        uint64_t n[4];
+        GET_NCDH(n[0], n[1], n[2], n[3], i, O_tv);
+        size_t target_index      = TV4D_IDX(T_tv, n[0], n[1], n[2], n[3]);
+        int32_t t                = target[target_index];
+        size_t input_grad_index  = TV5D_IDX(I_tv, n[0], t, n[1], n[2], n[3]);
+        size_t weight_index      = TV1D_IDX(W_tv, t);
+        size_t output_grad_index = TV4D_IDX(O_tv, n[0], n[1], n[2], n[3]);
+
+        if(t < 0 || t == ignore_index || t >= C)
+        {
+            input_grad[input_grad_index] = static_cast<T>(0);
+        }
+        else
+        {
+            input_grad[input_grad_index] =
+                static_cast<T>(-1.0f) * weight[weight_index] * output_grad[output_grad_index];
+        }
+    }
+}
+
+template <class T>
+void cpu_nllloss_reduce_backward_2d(tensor<T>& input_grad,
+                                    tensor<int32_t> target,
+                                    tensor<T> weight,
+                                    tensor<T> output_grad,
+                                    int32_t ignore_index,
+                                    float divisor)
+{
+    auto dims = input_grad.desc.GetLengths();
+    size_t C  = dims[1];
+
+    auto I_tv = get_inner_expanded_tv_2d(input_grad.desc);
+    auto T_tv = get_inner_expanded_tv_1d(target.desc);
+    auto W_tv = get_inner_expanded_tv_1d(weight.desc);
+
+    for(size_t i = 0; i < target.desc.GetElementSize(); i++)
+    {
+        size_t target_index     = TV1D_IDX(T_tv, i);
+        int32_t t               = target[target_index];
+        size_t input_grad_index = TV2D_IDX(I_tv, i, t);
+        size_t weight_index     = TV1D_IDX(W_tv, t);
+
+        if(t < 0 || t == ignore_index || t >= C)
+        {
+            input_grad[input_grad_index] = static_cast<T>(0);
+        }
+        else
+        {
+            input_grad[input_grad_index] =
+                (static_cast<T>(-1.0f) * weight[weight_index] * output_grad[0]) /
+                static_cast<T>(divisor);
+        }
+    }
+}
+
+template <class T>
+void cpu_nllloss_reduce_backward_5d(tensor<T>& input_grad,
+                                    tensor<int32_t> target,
+                                    tensor<T> weight,
+                                    tensor<T> output_grad,
+                                    int32_t ignore_index,
+                                    float divisor)
+{
+    auto dims = input_grad.desc.GetLengths();
+    size_t C  = dims[1];
+
+    auto I_tv = get_inner_expanded_tv_5d(input_grad.desc);
+    auto T_tv = get_inner_expanded_tv_4d(target.desc);
+    auto W_tv = get_inner_expanded_tv_1d(weight.desc);
+
+    for(size_t i = 0; i < target.desc.GetElementSize(); i++)
+    {
+        uint64_t n[4];
+        GET_NCDH(n[0], n[1], n[2], n[3], i, T_tv);
+        size_t target_index     = TV4D_IDX(T_tv, n[0], n[1], n[2], n[3]);
+        int32_t t               = target[target_index];
+        size_t input_grad_index = TV5D_IDX(I_tv, n[0], t, n[1], n[2], n[3]);
+        size_t weight_index     = TV1D_IDX(W_tv, t);
+
+        if(t < 0 || t == ignore_index || t >= C)
+        {
+            input_grad[input_grad_index] = static_cast<T>(0);
+        }
+        else
+        {
+            input_grad[input_grad_index] =
+                (static_cast<T>(-1.0f) * weight[weight_index] * output_grad[0]) /
+                static_cast<T>(divisor);
+        }
+    }
+}
 #endif

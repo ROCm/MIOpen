@@ -64,74 +64,22 @@ struct NLLLossTestCase
     std::vector<size_t> GetInput() const { return input; }
 };
 
-inline std::vector<NLLLossTestCase> NLLLossUnreduceForwardContiguousTestConfigs()
-{ // dim, dims
-    // clang-format off
-    return {{{16, 21,512,512},false, 255, 1, false}};
-            // {{64, 21,254,333},false, 255, true},
-            // {{64, 21,213,331},false, 255, true},
-            // {{64, 21,240,332},false, 255, true},
-            // {{64, 21,212,320},false, 255, true},
-            // {{64, 21,218,333},false, 255, true},
-            // {{64, 21,270,333},false, 255, true},
-            // {{64, 21,237,329},false, 255, true},
-            // {{64, 21,225,246},false, 255, true},
-            // {{64, 21,240,292},false, 255, true},
-            // {{64, 21,288,303},false, 255, true},
-            // {{64, 21,274,275},false, 255, true},
-            // {{64, 21,273,322},false, 255, true},
-            // {{64, 21,240,320},false, 255, true},
-            // {{64, 21,238,269},false, 255, true},
-            // {{64, 21,213,326},false, 255, true},
-            // {{64, 21,297,333},false, 255, true},
-            // {{64, 21,212,303},false, 255, true},
-            // {{64, 21,230,335},false, 255, true},
-            // {{64, 21,198,257},false, 255, true},
-            // {{64, 21,283,320},false, 255, true},
-            // {{64, 21,175,333},false, 255, true},
-            // {{64, 21,267,326},false, 255, true},
-            // {{32, 21,256,256},false, 255, true},
-            // {{55, 21,112,257},false, 255, true},
-            // {{24, 21,512,512},true, 255, 0, true}};
-    // clang-format on
-}
-
-inline std::vector<NLLLossTestCase> NLLLossUnreduceBackwardContiguousTestConfigs()
-{ // dim, dims
-    // clang-format off
-    return {{{16, 21,512,512},false, 255, 1, true},
-            {{24, 21,512,512},true, 255, 1, true}};
-    // clang-format on
-}
-
-inline std::vector<NLLLossTestCase> NLLLossUnreduceForwardTestConfigs()
-{ // dim, dims
-    // clang-format off
-    return {{{16, 21,512,512},false, 255, 1, false},
-            {{24, 21,512,512},true, 255, 1, false}};
-    // clang-format on
-}
-
-inline std::vector<NLLLossTestCase> NLLLossUnreduceBackwardTestConfigs()
-{ // dim, dims
-    // clang-format off
-    return {{{16, 21,512,512},false, 255, 1, false},
-            {{24, 21,512,512},true, 255, 1, false}};
-    // clang-format on
-}
-
 inline std::vector<NLLLossTestCase> NLLLossTestConfigs()
 {
-    std::vector<NLLLossTestCase> tcs, temp;
-    temp = NLLLossUnreduceForwardContiguousTestConfigs();
-    tcs.insert(tcs.end(), temp.begin(), temp.end());
-    // temp = NLLLossUnreduceBackwardContiguousTestConfigs();
-    // tcs.insert(tcs.end(), temp.begin(), temp.end());
-    // temp = NLLLossUnreduceForwardTestConfigs();
-    // tcs.insert(tcs.end(), temp.begin(), temp.end());
-    // temp = NLLLossUnreduceBackwardTestConfigs();
-    // tcs.insert(tcs.end(), temp.begin(), temp.end());
-    return tcs;
+    return {
+        {{16, 21, 21, 21, 10}, false, 255, 1, false},
+        {{55, 21, 21, 21, 10}, false, 255, 0, false},
+        {{24, 21, 21, 21, 10}, true, 255, 0, true},
+        {{16, 21, 19, 23}, false, 255, 1, false},
+        {{55, 21, 19, 23}, false, 255, 0, false},
+        {{24, 21, 19, 23}, true, 255, 0, true},
+        {{16, 21, 25}, false, 255, 1, false},
+        {{16, 21, 25}, false, 255, 0, false},
+        {{16, 21, 25}, true, 255, 0, true},
+        {{16, 21}, false, 255, 1, false},
+        {{16, 21}, false, 255, 0, false},
+        {{16, 21}, true, 255, 0, true},
+    };
 }
 
 inline std::vector<size_t> GetStrides(std::vector<size_t> input, bool contiguous)
@@ -163,7 +111,9 @@ protected:
         auto contiguous = nllloss_config.contiguous;
 
         auto in_dim                    = nllloss_config.GetInput();
-        std::vector<size_t> target_dim = {in_dim[0], in_dim[2], in_dim[3]};
+        std::vector<size_t> target_dim = in_dim;
+        target_dim.erase(std::next(target_dim.begin()));
+
         std::vector<size_t> weight_dim = {in_dim[1]};
 
         auto gen_input_value = [](auto...) {
@@ -190,8 +140,7 @@ protected:
         else
             weight = tensor<T>{weight_dim, weight_strides}.generate(gen_weight_value);
 
-        auto out_dim     = divisor == 0.f ? std::vector<size_t>{in_dim[0], in_dim[2], in_dim[3]}
-                                          : std::vector<size_t>{1};
+        auto out_dim     = divisor == 0.f ? target_dim : std::vector<size_t>{1};
         auto out_strides = GetStrides(out_dim, true);
         output           = tensor<T>{out_dim, out_strides};
         std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
@@ -323,8 +272,11 @@ protected:
         auto contiguous = nllloss_config.contiguous;
         divisor         = nllloss_config.divisor;
 
-        auto in_dim                    = nllloss_config.GetInput();
-        std::vector<size_t> target_dim = {in_dim[0], in_dim[2], in_dim[3]};
+        auto in_dim = nllloss_config.GetInput();
+
+        std::vector<size_t> target_dim = in_dim;
+        target_dim.erase(std::next(target_dim.begin()));
+
         std::vector<size_t> weight_dim = {in_dim[1]};
 
         size_t numclass_C     = in_dim[1];
@@ -356,11 +308,9 @@ protected:
         else
             weight = tensor<T>{weight_dim, weight_strides}.generate(gen_weight_value);
 
-        std::vector<size_t> out_grad_dim =
-            divisor == 0.f ? std::vector<size_t>{in_dim[0], in_dim[2], in_dim[3]}
-                           : std::vector<size_t>{1};
-        auto out_strides = GetStrides(out_grad_dim, true);
-        output_grad      = tensor<T>{out_grad_dim, out_strides}.generate(gen_output_grad_value);
+        std::vector<size_t> out_grad_dim = divisor == 0.f ? target_dim : std::vector<size_t>{1};
+        auto out_strides                 = GetStrides(out_grad_dim, true);
+        output_grad = tensor<T>{out_grad_dim, out_strides}.generate(gen_output_grad_value);
 
         input_grad_dev  = handle.Write(input_grad.data);
         target_dev      = handle.Write(target.data);
