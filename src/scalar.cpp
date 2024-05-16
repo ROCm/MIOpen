@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,43 +23,25 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/scalar.hpp>
+#include <miopen/conv/problem_description.hpp>
 
-#include "sum.hpp"
-#include <miopen/env.hpp>
+namespace miopen {
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
-namespace sum {
-
-std::string GetFloatArg()
+Scalar::Scalar(ConstData_t ptr, miopenDataType_t type) : mType(type)
 {
-    const auto& tmp = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
+    if(type == miopenFloat)
     {
-        return "";
+        mVal = *static_cast<const float*>(ptr);
     }
-    return tmp;
-}
-
-struct SumTestFloat : SumTest<float>
-{
-};
-
-} // namespace sum
-using namespace sum;
-
-TEST_P(SumTestFloat, SumTestFw)
-{
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    else if(type == miopenDouble)
     {
-        RunTest();
-        Verify();
+        mVal = *static_cast<const double*>(ptr);
     }
     else
     {
-        GTEST_SKIP();
+        MIOPEN_THROW("ERROR: Only accepts float or double type for now.");
     }
-};
+}
 
-INSTANTIATE_TEST_SUITE_P(SumTestSet, SumTestFloat, testing::ValuesIn(SumTestConfigs()));
+} // namespace miopen

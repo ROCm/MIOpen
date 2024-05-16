@@ -29,8 +29,8 @@
 
 using namespace group_conv;
 
-DEFINE_GROUP_CONV2D_TEST(float, Forward);
-DEFINE_GROUP_CONV2D_TEST(half, Forward);
-DEFINE_GROUP_CONV2D_TEST(bfloat16, Forward);
+DEFINE_GROUP_CONV2D_TEST(float, Forward, 1.0, 0.0, Default);
+DEFINE_GROUP_CONV2D_TEST(half, Forward, 1.0, 0.0, Default);
+DEFINE_GROUP_CONV2D_TEST(bfloat16, Forward, 1.0, 0.0, Default);
 /// \todo int8_t tests don't work. Need debugging
 // DEFINE_GROUP_CONV2D_TEST(int8_t, Forward);
