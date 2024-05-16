@@ -42,13 +42,6 @@ enum GemmBackend_t
     rocblas       = 1,
 };
 
-enum CallGemmType_t
-{
-    callGemm                         = 0,
-    callGemmStridedBatched           = 1,
-    callGemmStridedBatchedSequential = 2,
-};
-
 // GEMM operation: C = alpha * op(A) * op(B) + beta * C.
 // op() can be either transpose or no-operation for A or B.
 // The shape (nRow x nCol) of op(A), op(B), C are:

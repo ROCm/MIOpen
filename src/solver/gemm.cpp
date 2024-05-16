@@ -663,6 +663,7 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                                          const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
+    std::ignore          = context;
     decltype(auto) conv  = problem.GetConv();
     decltype(auto) xDesc = problem.GetIn();
     decltype(auto) wDesc = problem.GetWeights();
