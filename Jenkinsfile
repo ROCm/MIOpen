@@ -262,7 +262,7 @@ def buildHipClangJob(Map conf=[:]){
                     withDockerContainer(image: image, args: dockerOpts) {
                         timeout(time: 5, unit: 'MINUTES')
                         {
-                            sh 'rocminfo'
+                            sh 'PATH="/opt/rocm/opencl/bin:/opt/rocm/opencl/bin/x86_64:$PATH" clinfo'
                         }
                     }
                 }
@@ -277,7 +277,7 @@ def buildHipClangJob(Map conf=[:]){
                     withDockerContainer(image: image, args: dockerOpts) {
                         timeout(time: 5, unit: 'MINUTES')
                         {
-                            sh 'rocminfo'
+                            sh 'PATH="/opt/rocm/opencl/bin:/opt/rocm/opencl/bin/x86_64:$PATH" clinfo'
                         }
                     }
                 }
