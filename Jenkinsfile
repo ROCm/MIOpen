@@ -523,11 +523,19 @@ pipeline {
             name: "PERF_TEST_BRANCH_OVERRIDE",
             defaultValue: false,
             description: "Enable performance testing stages")
+        booleanParam(
+            name: "DBSYNC_TEST",
+            defaultValue: true,
+            description: "Enable database synchronization testing stages")
         string(name: "PERF_TEST_OVERRIDE",
             defaultValue: '',
             description: "Add extra env vars for the MIOpenDriver cmd, comma separated")
         string(name: "DOCKER_IMAGE_OVERRIDE",
             defaultValue: '',
+            description: "")
+        booleanParam(
+            name: "WORKAROUND__TARGET_GFX94X_MINIMUM_TEST_ENABLE",
+            defaultValue: true,
             description: "")
     }
 
@@ -672,14 +680,14 @@ pipeline {
                 stage('Fp32 Hip Debug gfx94X') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX94X }
+                        expression { params.TARGET_GFX94X || params.WORKAROUND__TARGET_GFX94X_MINIMUM_TEST_ENABLE }
                     }
                     options {
                         retry(2)
                     }
                     agent{ label rocmnode("gfx94X") }
                     steps{
-                        buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false)
                     }
                 }
             }
@@ -920,7 +928,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx94X") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, needs_reboot:false)
                     }
                 }
                 stage('Bf16 Hip gfx94X') {
@@ -933,7 +941,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx94X") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, needs_reboot:false)
                     }
                 }
             }
@@ -948,42 +956,61 @@ pipeline {
                 Navi21_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
             }
             parallel{
-                stage('dbsync gfx908') {
+                stage('Dbsync gfx908') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 }
+                        expression { params.DBSYNC_TEST && params.TARGET_GFX908 }
                     }
                     options {
                         retry(2)
                     }
                     agent{ label rocmnode("gfx908") }
-                    environment{
-                        setup_flags="-DMIOPEN_TEST_DBSYNC=1"
-                        make_targets='test_db_sync'
-                        execute_cmd='MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync'
-                    }
                     steps{
-                        buildHipClangJobAndReboot(lfs_pull: true, setup_flags: setup_flags, make_targets: make_targets, execute_cmd: execute_cmd,
-                                                        needs_gpu:false, needs_reboot:false, build_install: "true")
+                        buildHipClangJobAndReboot(lfs_pull: true,
+                                                  setup_flags: "-DMIOPEN_TEST_DBSYNC=1",
+                                                  make_targets: 'test_db_sync',
+                                                  execute_cmd: 'MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync',
+                                                  needs_gpu:false,
+                                                  needs_reboot:false,
+                                                  build_install: "true")
                     }
                 }
-                stage('dbsync gfx90a') {
+                stage('Dbsync gfx90a') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX90A }
+                        expression { params.DBSYNC_TEST && params.TARGET_GFX90A }
                     }
                     options {
                         retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
-                    environment{
-                        setup_flags="-DMIOPEN_TEST_DBSYNC=1"
-                        make_targets='test_db_sync'
-                        execute_cmd='MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync'
-                    }
                     steps{
-                        buildHipClangJobAndReboot(lfs_pull: true, setup_flags: setup_flags, make_targets: make_targets, execute_cmd: execute_cmd,
-                                                        needs_gpu:false, needs_reboot:false, build_install: "true")
+                        buildHipClangJobAndReboot(lfs_pull: true,
+                                                  setup_flags: "-DMIOPEN_TEST_DBSYNC=1",
+                                                  make_targets: 'test_db_sync',
+                                                  execute_cmd: 'MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync',
+                                                  needs_gpu:false,
+                                                  needs_reboot:false,
+                                                  build_install: "true")
+                    }
+                }
+                stage('Dbsync gfx942') {
+                    when {
+                        beforeAgent true
+                        expression { params.DBSYNC_TEST && (params.TARGET_GFX94X || params.WORKAROUND__TARGET_GFX94X_MINIMUM_TEST_ENABLE) }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx942") }
+                    steps{
+                        buildHipClangJobAndReboot(lfs_pull: true,
+                                                  setup_flags: "-DMIOPEN_TEST_DBSYNC=1",
+                                                  make_targets: 'test_db_sync',
+                                                  execute_cmd: 'MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync',
+                                                  needs_gpu:false,
+                                                  needs_reboot:false,
+                                                  build_install: "true")
                     }
                 }
                 stage('Int8 HIP All Vega20') {
@@ -1035,7 +1062,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx94X") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true")
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true", needs_reboot:false)
                     }
                 }
                 stage('Fp16 Hip All gfx1030') {
@@ -1110,7 +1137,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx94X") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test)
+                        buildHipClangJobAndReboot(setup_flags: Full_test, needs_reboot:false)
                     }
                 }
                 stage('Fp16 Hip Install All Vega20') {
@@ -1201,7 +1228,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx94X") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true")
+                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true", needs_reboot:false)
                     }
                 }
             }
