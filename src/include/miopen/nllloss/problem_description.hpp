@@ -112,7 +112,8 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(inputDesc.GetType() != weightDesc.GetType())
         {
-            MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Input and Weight tensors types do not match.");
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "NLLLoss: Input and Weight tensors types do not match.");
         }
         return true;
     }
