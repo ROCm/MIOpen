@@ -142,7 +142,7 @@ public:
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
-    std::vector<int> GetInputTensorLengthsFromCmdLine();
+    std::vector<uint64_t> GetInputTensorLengthsFromCmdLine();
 
     int AllocateBuffersAndCopy() override;
 
@@ -310,10 +310,10 @@ int AdamDriver<Tgpu, Tref, is_amp, Tgrad>::AddCmdLineArgs()
 }
 
 template <typename Tgpu, typename Tref, bool is_amp, typename Tgrad>
-std::vector<int> AdamDriver<Tgpu, Tref, is_amp, Tgrad>::GetInputTensorLengthsFromCmdLine()
+std::vector<uint64_t> AdamDriver<Tgpu, Tref, is_amp, Tgrad>::GetInputTensorLengthsFromCmdLine()
 {
-    std::vector<int> ret;
-    auto tensor = inflags.GetValueTensor("dims");
+    std::vector<uint64_t> ret;
+    auto tensor = inflags.GetValueTensorUint64("dims");
     if(!tensor.lengths.empty())
         return tensor.lengths;
     return ret;

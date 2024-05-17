@@ -7138,10 +7138,10 @@ miopenFusedAdamWithOutput(miopenHandle_t handle,
  */
 /*! @brief Helper function to query the minimum workspace size required by the getitem call
  *
- * @param handle                  MIOpen Handle (input)
- * @param indexCount              Number of input tensor indexs (input)
- * @param indexDescs              Tensor descriptor of input tensor indexs (input)
- * @param sizeInBytes             Pointer to data to return the minimum workspace size
+ * @param [in]   handle                  MIOpen Handle
+ * @param [in]   indexCount              Number of input tensor indexs
+ * @param [in]   indexDescs              Tensor descriptor of input tensor indexs
+ * @param [out]  sizeInBytes             Pointer to data to return the minimum workspace size
  * @return                        miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -7154,21 +7154,21 @@ miopenGetGetitemWorkspaceSize(miopenHandle_t handle,
  *
  * Backward of getitem for tensor indexing, slicing, masking.
  *
- * @param handle                  MIOpen handle (input)
- * @param workspace               Address of the allocated workspace data (input)
- * @param workspaceSizeInBytes    Size in bytes of the allocated workspace data (input)
- * @param dyDesc                  Tensor descriptor of input tensor dy (input)
- * @param dy                      Source data tensor dyy (input)
- * @param indexCount              Number of input tensor indexs (input)
- * @param indexDescs              Tensor descriptor of input tensor indexs (input)
- * @param indexs                  Source data tensor indexs (input)
- * @param dxDesc                  Tensor descriptor of output tensor dx (input)
- * @param dx                      Data tensor dx (output)
- * @param dimCount                Number of dimensions (input)
- * @param dims                    Dimensions (input)
- * @param sliceCount              Number of slices (input)
- * @param slices                  Slices (input)
- * @param offset                  Offset of output tensor dx (input)
+ * @param [in]   handle                  MIOpen handle
+ * @param [in]   workspace               Address of the allocated workspace data
+ * @param [in]   workspaceSizeInBytes    Size in bytes of the allocated workspace data
+ * @param [in]   dyDesc                  Tensor descriptor of input tensor dy
+ * @param [in]   dy                      Source data tensor dy
+ * @param [in]   indexCount              Number of input tensor indexs
+ * @param [in]   indexDescs              Tensor descriptor of input tensor indexs
+ * @param [in]   indexs                  Source data tensor indexs
+ * @param [in]   dxDesc                  Tensor descriptor of output tensor dx
+ * @param [out]  dx                      Data tensor dx(It must be initialized to 0)
+ * @param [in]   dimCount                Number of dimensions
+ * @param [in]   dims                    Dimensions
+ * @param [in]   sliceCount              Number of slices
+ * @param [in]   slices                  Slices
+ * @param [in]   offset                  Offset of output tensor dx
  * @return                        miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGetitemBackward(miopenHandle_t handle,

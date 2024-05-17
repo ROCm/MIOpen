@@ -162,7 +162,6 @@ public:
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
-    std::vector<int> GetInputTensorLengthsFromCmdLine();
 
     int AllocateBuffersAndCopy() override;
 
@@ -247,8 +246,8 @@ int GetitemDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int GetitemDriver<Tgpu, Tref>::GetandSetData()
 {
-    auto dyTensorParam   = inflags.GetValueTensor("doutput");
-    auto dxTensorParam   = inflags.GetValueTensor("dinput");
+    auto dyTensorParam   = inflags.GetValueTensorUint64("doutput");
+    auto dxTensorParam   = inflags.GetValueTensorUint64("dinput");
     auto indexCountParam = inflags.GetValueInt("indexcount");
     auto dimCountParam   = inflags.GetValueInt("dimcount");
     auto sliceCountParam = inflags.GetValueInt("slicecount");
@@ -355,27 +354,11 @@ int GetitemDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     error     = std::vector<int32_t>(error_sz, static_cast<int32_t>(0));
     workspace = std::vector<int32_t>(ws_sizeInBytes / sizeof(int32_t), static_cast<int32_t>(0));
     dxhost    = std::vector<Tref>(dx_sz, static_cast<Tref>(0));
-    errorhost = std::vector<int32_t>(error_sz, static_cast<int32_t>(0));
+    errorhost = std::vector<int32_t>(error_sz, static_cast<int32_t>(1));
 
     for(int32_t i = 0; i < dy_sz; i++)
     {
         dy[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-0.01), static_cast<Tgpu>(0.01));
-    }
-
-    for(int32_t i = 0; i < error_sz; i++)
-    {
-        errorhost[i] = 1;
-    }
-
-    for(int32_t i = 0; i < ws_sizeInBytes / sizeof(int32_t); i++)
-    {
-        workspace[i] = 0;
-    }
-
-    for(int32_t i = 0; i < dx_sz; i++)
-    {
-        dx[i]     = 0;
-        dxhost[i] = 0;
     }
 
     for(int32_t i = 0; i < indexDescs.size(); i++)

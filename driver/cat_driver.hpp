@@ -106,7 +106,7 @@ public:
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
-    std::vector<std::vector<int>> GetInputTensorLengthsFromCmdLine();
+    std::vector<std::vector<uint64_t>> GetInputTensorLengthsFromCmdLine();
 
     int AllocateBuffersAndCopy() override;
 
@@ -203,14 +203,14 @@ int CatDriver<Tgpu, Tref>::AddCmdLineArgs()
 }
 
 template <typename Tgpu, typename Tref>
-std::vector<std::vector<int>> CatDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
+std::vector<std::vector<uint64_t>> CatDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
     const int max_input_count = 8;
-    std::vector<std::vector<int>> ret;
+    std::vector<std::vector<uint64_t>> ret;
     std::string name = "input";
     for(int i = 1; i < max_input_count; i++)
     {
-        auto tensor = inflags.GetValueTensor(name + std::to_string(i));
+        auto tensor = inflags.GetValueTensorUint64(name + std::to_string(i));
         if(!tensor.lengths.empty())
             ret.push_back(tensor.lengths);
     }

@@ -175,7 +175,7 @@ int ReduceExtremeDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
         return miopenStatusBadParm;
     }
 
-    auto inTensorParam = inflags.GetValueTensor("input");
+    auto inTensorParam = inflags.GetValueTensorUint64("input");
 
     if((inflags.GetValueInt("DimToReduce") < 0) ||
        (inflags.GetValueInt("DimToReduce") > inTensorParam.lengths.size() - 1))
@@ -190,7 +190,7 @@ int ReduceExtremeDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int ReduceExtremeDriver<Tgpu, Tref>::GetandSetData()
 {
-    auto inTensorParam = inflags.GetValueTensor("input");
+    auto inTensorParam = inflags.GetValueTensorUint64("input");
     auto in_len        = inTensorParam.lengths;
 
     dim             = inflags.GetValueInt("DimToReduce");

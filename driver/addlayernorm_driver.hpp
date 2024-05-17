@@ -202,7 +202,7 @@ int AddLayerNormDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int AddLayerNormDriver<Tgpu, Tref>::GetandSetData()
 {
-    auto inTensorParam = inflags.GetValueTensor("input");
+    auto inTensorParam = inflags.GetValueTensorUint64("input");
 
     auto in_len = inTensorParam.lengths;
 
