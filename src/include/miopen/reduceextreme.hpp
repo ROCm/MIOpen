@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_ARGMAX_HPP_
-#define MIOPEN_ARGMAX_HPP_
+#ifndef MIOPEN_REDUCEEXTREME_HPP_
+#define MIOPEN_REDUCEEXTREME_HPP_
 
 #include <miopen/common.hpp>
 
@@ -33,12 +33,23 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-miopenStatus_t ArgmaxForward(Handle& handle,
-                             const TensorDescriptor& xDesc,
-                             ConstData_t x,
-                             const TensorDescriptor& yDesc,
-                             Data_t y,
-                             int32_t dim);
+miopenStatus_t ReduceExtremeForward(Handle& handle,
+                                    const TensorDescriptor& xDesc,
+                                    ConstData_t x,
+                                    const TensorDescriptor& indiceDesc,
+                                    Data_t indice,
+                                    int32_t dim,
+                                    miopenReduceExtremeOp_t reduceExtremeOp);
+
+miopenStatus_t ReduceExtremeForward(Handle& handle,
+                                    const TensorDescriptor& xDesc,
+                                    ConstData_t x,
+                                    const TensorDescriptor& yDesc,
+                                    Data_t y,
+                                    const TensorDescriptor& indiceDesc,
+                                    Data_t indice,
+                                    int32_t dim,
+                                    miopenReduceExtremeOp_t reduceExtremeOp);
 
 } // namespace miopen
-#endif // _MIOPEN_ARGMAX_HPP_
+#endif // MIOPEN_REDUCEEXTREME_HPP_

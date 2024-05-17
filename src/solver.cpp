@@ -650,6 +650,10 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Softmax, softmax::Softmax{}.SolverDbId());
     Register(registry, ++id, Primitive::Softmax, softmax::AttnSoftmax{}.SolverDbId());
 
+    Register(registry, ++id, Primitive::Reduce, reduce::ArgminForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Reduce, reduce::MaxForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Reduce, reduce::MinForward{}.SolverDbId());
+
     Register(registry, ++id, Primitive::Mha, mha::MhaForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Mha, mha::MhaBackward{}.SolverDbId());
 
@@ -662,7 +666,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 bool ThisSolverIsDeprecatedStatic::IsDisabled(const ExecutionContext& ctx)
 {
     static const bool device_is_allowed = [&]() {
-        if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)))
+        if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)))
             return true;
         const auto device = ctx.GetStream().GetTargetProperties().Name();
         return device == "gfx803"                       // Fiji

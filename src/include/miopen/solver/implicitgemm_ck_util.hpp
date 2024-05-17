@@ -30,6 +30,7 @@
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/batched_transpose_sol.hpp>
 #include <miopen/tensor_ops.hpp>
+#include <miopen/miopen_internal.h>
 
 #if MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/utility/data_type.hpp>
@@ -44,6 +45,12 @@ struct ProblemDescription;
 namespace solver {
 
 struct ConvSolution;
+
+struct CKBWDWeightBufferDescriptor
+{
+    size_t ck_size;
+    size_t ck_offset;
+};
 
 template <typename ConvPtrsType>
 typename ConvPtrsType::iterator FindConvPtrByID(ConvPtrsType& conv_ptrs,
@@ -140,26 +147,31 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
     }
 
     ConvSolution result;
-    result.invoker_factory =
-        [ck_args     = CKArgsType{problem},
-         sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)}](const std::vector<Kernel>&) mutable {
-            return [ck_args = std::move(ck_args), sh_conv_ptr = std::move(sh_conv_ptr)](
-                       const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                const auto& data_ctx = primitive_parameters.CastTo<CastType>();
-                auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx.tensors);
-                auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
+    result.invoker_factory = [ck_args     = CKArgsType{problem},
+                              sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)}](
+                                 const std::vector<Kernel>&) mutable {
+        return [ck_args = std::move(ck_args), sh_conv_ptr = std::move(sh_conv_ptr)](
+                   const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            const auto& data_ctx = primitive_parameters.CastTo<CastType>();
+            auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx.tensors);
+            auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
+            {
+                HipEventProfiler pfr(handle);
+                if constexpr(std::is_same<CastType, miopen::conv::WrWInvokeParams>::value)
                 {
-                    HipEventProfiler pfr(handle);
-                    if constexpr(std::is_same<CastType, miopen::conv::WrWInvokeParams>::value)
+                    auto zero           = 0.0f;
+                    const auto& tensors = data_ctx.tensors;
+                    SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
+
+                    if(data_ctx.workSpace)
                     {
-                        auto zero           = 0.0f;
-                        const auto& tensors = data_ctx.tensors;
-                        SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
+                        sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), data_ctx.workSpace);
                     }
-                    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
                 }
-            };
+                invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+            }
         };
+    };
     return result;
 }
 
@@ -454,7 +466,8 @@ auto MakeTaggedTransposeInstances(ConvSolution& result,
                                   const CKArgsType& ck_args,
                                   const Input1TposeOp& input1_op,
                                   const Input2TposeOp& input2_op,
-                                  const OutputTposeOp& output_op)
+                                  const OutputTposeOp& output_op,
+                                  CKBWDWeightBufferDescriptor* ck_buff_des)
 {
 
     auto input1_solver = input1_op.MakeTransposeSolver(ctx, problem, ck_args);
@@ -477,10 +490,23 @@ auto MakeTaggedTransposeInstances(ConvSolution& result,
                                        output_solver.GetKernelInfo(),
                                        output_init_solver.GetKernelInfo()});
 
+    if(ck_buff_des)
+    {
+        MultiBufferWorkspaceTraits wt({input1_solver.GetOutputTensorSize(),
+                                       input2_solver.GetOutputTensorSize(),
+                                       output_solver.GetOutputTensorSize(),
+                                       ck_buff_des->ck_size});
+        ck_buff_des->ck_offset = wt.GetOffset(3);
+        return std::make_tuple(
+            TransposeInstanceTagged{input1_solver, 0, wt, 0, Input1TposeOp::CONV_OP_TAG},
+            TransposeInstanceTagged{input2_solver, 1, wt, 1, Input2TposeOp::CONV_OP_TAG},
+            TransposeInstanceTagged{output_solver, 2, wt, 2, OutputTposeOp::CONV_OP_TAG},
+            TransposeInstanceTagged{output_init_solver, 3, wt, 2, OutputTposeOp::CONV_OP_TAG});
+    }
+
     MultiBufferWorkspaceTraits wt({input1_solver.GetOutputTensorSize(),
                                    input2_solver.GetOutputTensorSize(),
                                    output_solver.GetOutputTensorSize()});
-
     return std::make_tuple(
         TransposeInstanceTagged{input1_solver, 0, wt, 0, Input1TposeOp::CONV_OP_TAG},
         TransposeInstanceTagged{input2_solver, 1, wt, 1, Input2TposeOp::CONV_OP_TAG},
@@ -539,24 +565,50 @@ inline void DebugPrintConvTensors(const ConvTensors& conv_tensors)
 #endif // NDEBUG
 } // end namespace internal
 
+// packed size in bytes
+inline size_t GetPackedSize(const TensorDescriptor& td)
+{
+    return td.GetElementSize() * GetTypeSize(td.GetType());
+}
+
+inline size_t GetCKAlphaBetaWorkspace(const miopen::conv::ProblemDescription& problem)
+{
+    std::size_t buff_size;
+    miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(problem.GetAlphaBetaCase(),
+                                                       problem.GetOutDataType(),
+                                                       problem.GetInChannels(),
+                                                       problem.GetOutChannels(),
+                                                       problem.GetOut().GetElementSize(),
+                                                       &buff_size);
+    return buff_size;
+}
+
 /// \todo move to a cpp file
 inline size_t GetWorkspaceSizeLayoutTransformConv(const miopen::conv::ProblemDescription& problem)
 {
     if(problem.IsLayoutNHWC())
     {
+        if(problem.GetDirection() == ::miopen::conv::Direction::BackwardWeights)
+        {
+            return GetCKAlphaBetaWorkspace(problem);
+        }
         return 0;
     }
 
     assert(problem.IsLayoutDefault());
-    // packed size in bytes
-    auto GetPackedSize = [](const TensorDescriptor& td) {
-        return td.GetElementSize() * GetTypeSize(td.GetType());
-    };
+
+    if(problem.GetDirection() == ::miopen::conv::Direction::BackwardWeights)
+    {
+        MultiBufferWorkspaceTraits wt({GetPackedSize(problem.GetIn()),
+                                       GetPackedSize(problem.GetWeights()),
+                                       GetPackedSize(problem.GetOut()),
+                                       GetCKAlphaBetaWorkspace(problem)});
+        return wt.GetSize();
+    }
 
     MultiBufferWorkspaceTraits wt({GetPackedSize(problem.GetIn()),
                                    GetPackedSize(problem.GetWeights()),
                                    GetPackedSize(problem.GetOut())});
-
     return wt.GetSize();
 }
 
@@ -579,10 +631,6 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
     ConvSolution result;
     auto ck_args = CKArgsType{problem};
 
-    auto [_input1_tr_inst, _input2_tr_inst, _output_tr_inst, _output_init_tr_inst] =
-        internal::MakeTaggedTransposeInstances<CKArgsType>(
-            result, ctx, problem, ck_args, input1_op, input2_op, output_op);
-
     auto conv_ptrs = DeviceOpType::GetInstances();
     auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id);
 
@@ -591,6 +639,10 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
         MIOPEN_LOG_E("PerformanceConfig kernel '" + kernel_id + "' does not exist.");
         return {miopenStatusInvalidValue};
     }
+
+    auto [_input1_tr_inst, _input2_tr_inst, _output_tr_inst, _output_init_tr_inst] =
+        internal::MakeTaggedTransposeInstances<CKArgsType>(
+            result, ctx, problem, ck_args, input1_op, input2_op, output_op, nullptr);
 
     result.invoker_factory = [ck_args             = std::move(ck_args),
                               sh_conv_ptr         = std::shared_ptr{std::move(*ptr_iter)},
@@ -711,8 +763,112 @@ ConvSolution InitInvokerFactoryWrwNCHW(const ExecutionContext& ctx,
     using Input2 = internal::CKTransposeInputOp<ND, internal::ConvOperandTag::Output>;
     using Output = internal::CKTransposeOutputOp<ND, internal::ConvOperandTag::Weights>;
 
-    return InitInvokerFactoryNCHW<DeviceOpType, CKArgsType, CastType>(
-        ctx, problem, kernel_id, Input1{}, Input2{}, Output{});
+    assert(problem.IsLayoutDefault());
+
+    ConvSolution result;
+    auto ck_args = CKArgsType{problem};
+
+    auto conv_ptrs = DeviceOpType::GetInstances();
+    auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id);
+
+    if(ptr_iter == conv_ptrs.end())
+    {
+        MIOPEN_LOG_E("PerformanceConfig kernel '" + kernel_id + "' does not exist.");
+        return {miopenStatusInvalidValue};
+    }
+
+    CKBWDWeightBufferDescriptor _ck_buff_des{0, 0};
+
+    _ck_buff_des.ck_size = GetCKAlphaBetaWorkspace(problem);
+
+    auto [_input1_tr_inst, _input2_tr_inst, _output_tr_inst, _output_init_tr_inst] =
+        internal::MakeTaggedTransposeInstances<CKArgsType>(
+            result, ctx, problem, ck_args, Input1{}, Input2{}, Output{}, &_ck_buff_des);
+
+    result.invoker_factory = [ck_args             = std::move(ck_args),
+                              sh_conv_ptr         = std::shared_ptr{std::move(*ptr_iter)},
+                              input1_tr_inst      = std::move(_input1_tr_inst),
+                              input2_tr_inst      = std::move(_input2_tr_inst),
+                              output_tr_inst      = std::move(_output_tr_inst),
+                              output_init_tr_inst = std::move(_output_init_tr_inst),
+                              ck_buff_des =
+                                  _ck_buff_des](const std::vector<Kernel>& kernels) mutable {
+        return [kernels,
+                ck_args             = std::move(ck_args),
+                sh_conv_ptr         = std::move(sh_conv_ptr),
+                input1_tr_inst      = std::move(input1_tr_inst),
+                input2_tr_inst      = std::move(input2_tr_inst),
+                output_tr_inst      = std::move(output_tr_inst),
+                output_init_tr_inst = std::move(output_init_tr_inst),
+                ck_buff_des         = ck_buff_des](const Handle& handle,
+                                           const AnyInvokeParams& primitive_parameters) mutable {
+            handle.ResetKernelTime();
+
+            const auto& data_ctx = primitive_parameters.CastTo<CastType>();
+
+            if(!data_ctx.workSpace)
+            {
+                MIOPEN_THROW(miopenStatusInvalidValue, "workspace pointer is null");
+            }
+
+            input1_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+            input2_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+            output_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+            output_init_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+
+            // conversion operator applied here to convert to ConvTensors
+            auto conv_tensors = ConvTensors(data_ctx.tensors);
+
+            /// \todo remove this when DataInvokeParams stops swapping
+            // "in" and "out" tensors for backward pass
+            if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Input)
+            {
+                // this is backward pass, swap back input and output
+                std::swap(conv_tensors.x, conv_tensors.y);
+                std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
+            }
+            HipEventProfiler pfr(handle);
+            input1_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
+
+            input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
+
+            output_init_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
+
+            /// \todo: Will need SetTensor() to properly zero out non-packed tensors
+            if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Weights)
+            {
+                output_tr_inst.ZeroOutBuffer();
+            }
+
+            std::array<internal::TransposeInstanceTagged*, 3> tr_ptrs = {
+                &input1_tr_inst, &input2_tr_inst, &output_tr_inst};
+
+            // sort by tag in order: Input, Weights, Output
+            std::sort(tr_ptrs.begin(), tr_ptrs.end(), [](const auto& left, const auto& right) {
+                return left->GetConvOperandTagAsInt() < right->GetConvOperandTagAsInt();
+            });
+
+            auto invoker_ptr  = sh_conv_ptr->MakeInvokerPointer();
+            auto argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                   tr_ptrs[0]->GetBufferPtr(),
+                                                   tr_ptrs[1]->GetBufferPtr(),
+                                                   tr_ptrs[2]->GetBufferPtr());
+
+            if(ck_buff_des.ck_offset)
+            {
+                auto buf_handle =
+                    handle.CreateSubBuffer(data_ctx.workSpace, ck_buff_des.ck_offset, 0);
+                assert(buf_handle.get());
+                sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), buf_handle.get());
+            }
+            invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+            output_tr_inst.ConvertTo(handle, kernels, conv_tensors);
+        };
+    };
+
+    result.workspace_sz = GetWorkspaceSizeLayoutTransformConv(problem);
+
+    return result;
 }
 
 template <typename InvokerFactoryMakerNCHW, typename InvokerFactoryMakerNHWC>
@@ -730,8 +886,8 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
         case miopenInt8: return invoker_factory_maker_ncdhw(int8_t{});
         case miopenHalf: return invoker_factory_maker_ncdhw(ck::half_t{});
         case miopenFloat: return invoker_factory_maker_ncdhw(float{});
+        case miopenBFloat16: return invoker_factory_maker_ncdhw(ck::bhalf_t{});
         case miopenInt32:
-        case miopenBFloat16:
         case miopenDouble:
         case miopenFloat8:
         case miopenBFloat8:
@@ -748,8 +904,8 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
         case miopenInt8: return invoker_factory_maker_ndhwc(int8_t{});
         case miopenHalf: return invoker_factory_maker_ndhwc(ck::half_t{});
         case miopenFloat: return invoker_factory_maker_ndhwc(float{});
+        case miopenBFloat16: return invoker_factory_maker_ndhwc(ck::bhalf_t{});
         case miopenInt32:
-        case miopenBFloat16:
         case miopenDouble:
         case miopenFloat8:
         case miopenBFloat8:

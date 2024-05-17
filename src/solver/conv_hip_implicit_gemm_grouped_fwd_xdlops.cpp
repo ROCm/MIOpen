@@ -334,7 +334,7 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsModelApplicable(
         return false;
     if(problem.GetInDataType() != miopenFloat && problem.GetInDataType() != miopenHalf)
         return false;
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS_AI_HEUR)))
+    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS_AI_HEUR)))
         return false;
     return true;
 }
@@ -367,8 +367,8 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::HeuristicInit(
     case miopenHalf: Init<ck::half_t>(problem); break;
     case miopenFloat: Init<float>(problem); break;
     case miopenInt8: Init<int8_t>(problem); break;
+    case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
     case miopenInt32:
-    case miopenBFloat16:
     case miopenFloat8:
     case miopenBFloat8:
     case miopenDouble: break;
@@ -386,8 +386,8 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::SetNextValue(const ProblemD
         case miopenHalf: Init<ck::half_t>(problem); break;
         case miopenFloat: Init<float>(problem); break;
         case miopenInt8: Init<int8_t>(problem); break;
+        case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
         case miopenInt32:
-        case miopenBFloat16:
         case miopenFloat8:
         case miopenBFloat8:
         case miopenDouble: break;
@@ -420,8 +420,8 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsValid(
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
     case miopenInt8: return CheckIsSupportCKArgs<int8_t>(problem);
+    case miopenBFloat16: return CheckIsSupportCKArgs<ck::bhalf_t>(problem);
     case miopenInt32:
-    case miopenBFloat16:
     case miopenFloat8:
     case miopenBFloat8:
     case miopenDouble: break;
@@ -472,7 +472,7 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)))
+    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)))
         return false;
     if(problem.HasNonPackedTensors())
         return false;
@@ -500,8 +500,8 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
     case miopenFloat: return CheckCKApplicability<float>(problem);
     case miopenInt8: return CheckCKApplicability<int8_t>(problem);
+    case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(problem);
     case miopenInt32:
-    case miopenBFloat16:
     case miopenFloat8:
     case miopenBFloat8:
     case miopenDouble: break;

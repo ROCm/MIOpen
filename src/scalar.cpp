@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,44 +23,25 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#include <miopen/argmax.hpp>
-#include <miopen/datatype.hpp>
-#include <miopen/find_solution.hpp>
-#include <miopen/float_equal.hpp>
-#include <miopen/kernel_cache.hpp>
-#include <miopen/reduce/invoke_params.hpp>
-#include <miopen/reduce/solvers.hpp>
-#include <miopen/tensor.hpp>
+#include <miopen/scalar.hpp>
+#include <miopen/conv/problem_description.hpp>
 
 namespace miopen {
 
-miopenStatus_t ArgmaxForward(Handle& handle,
-                             const TensorDescriptor& xDesc,
-                             ConstData_t x,
-                             const TensorDescriptor& yDesc,
-                             Data_t y,
-                             int32_t dim)
+Scalar::Scalar(ConstData_t ptr, miopenDataType_t type) : mType(type)
 {
-    const auto problem = reduce::ProblemDescription{xDesc, yDesc, dim};
-
-    const auto invoke_params = [&]() {
-        auto tmp  = reduce::InvokeParams{};
-        tmp.type  = InvokeType::Run;
-        tmp.xDesc = &xDesc;
-        tmp.yDesc = &yDesc;
-        tmp.x     = x;
-        tmp.y     = y;
-        tmp.dim   = dim;
-        return tmp;
-    }();
-
-    const auto algo    = AlgorithmName{"ArgmaxForward"};
-    const auto solvers = solver::SolverContainer<solver::reduce::ArgmaxForward>{};
-
-    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
-
-    return miopenStatusSuccess;
+    if(type == miopenFloat)
+    {
+        mVal = *static_cast<const float*>(ptr);
+    }
+    else if(type == miopenDouble)
+    {
+        mVal = *static_cast<const double*>(ptr);
+    }
+    else
+    {
+        MIOPEN_THROW("ERROR: Only accepts float or double type for now.");
+    }
 }
 
 } // namespace miopen
