@@ -33,6 +33,6 @@ MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 inline bool IsTestRunWith(const char* float_arg)
 {
     assert(float_arg != nullptr);
-    const auto& s_envVar = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    const auto& s_envVar = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
     return (s_envVar.compare(float_arg) == 0);
 }
