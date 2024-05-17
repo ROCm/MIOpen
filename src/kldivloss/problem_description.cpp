@@ -60,7 +60,7 @@ NetworkConfig ReducedProblemDescription::MakeNetworkConfig() const
     size_t numel       = GetNtotal();
     size_t num_batches = inputDesc.GetLengths()[0];
     size_t num_dims    = inputDesc.GetSize();
-    float ndivisor = GetDivisor();
+    float ndivisor     = GetDivisor();
     bool is_log_target = GetLogTarget();
     auto input_dtype   = inputDesc.GetType();
 

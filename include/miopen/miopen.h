@@ -6660,18 +6660,18 @@ miopenKLDivLossUnreducedBackward(miopenHandle_t handle,
  */
 MIOPEN_EXPORT miopenStatus_t
 miopenKLDivLossReducedBackward(miopenHandle_t handle,
-                                 const miopenTensorDescriptor_t inputDesc,
-                                 const void* input,
-                                 const miopenTensorDescriptor_t targetDesc,
-                                 const void* target,
-                                 const miopenTensorDescriptor_t outputGradDesc,
-                                 const void* output_grad,
-                                 const miopenTensorDescriptor_t inputGradDesc,
-                                 void* input_grad,
-                                 const miopenTensorDescriptor_t targetGradDesc,
-                                 void* target_grad,
-                                 float divisor,
-                                 bool log_target);
+                               const miopenTensorDescriptor_t inputDesc,
+                               const void* input,
+                               const miopenTensorDescriptor_t targetDesc,
+                               const void* target,
+                               const miopenTensorDescriptor_t outputGradDesc,
+                               const void* output_grad,
+                               const miopenTensorDescriptor_t inputGradDesc,
+                               void* input_grad,
+                               const miopenTensorDescriptor_t targetGradDesc,
+                               void* target_grad,
+                               float divisor,
+                               bool log_target);
 /** @} */
 // CLOSEOUT KLDivLoss DOXYGEN GROUP
 #endif // MIOPEN_BETA_API

@@ -171,18 +171,18 @@ miopenStatus_t KLDivLossUnreducedBackward(Handle& handle,
 }
 
 miopenStatus_t KLDivLossReducedBackward(Handle& handle,
-                                          const TensorDescriptor& inputDesc,
-                                          ConstData_t input,
-                                          const TensorDescriptor& targetDesc,
-                                          ConstData_t target,
-                                          const TensorDescriptor& outputGradDesc,
-                                          ConstData_t output_grad,
-                                          const TensorDescriptor& inputGradDesc,
-                                          Data_t input_grad,
-                                          const TensorDescriptor& targetGradDesc,
-                                          Data_t target_grad,
-                                          float divisor,
-                                          bool log_target)
+                                        const TensorDescriptor& inputDesc,
+                                        ConstData_t input,
+                                        const TensorDescriptor& targetDesc,
+                                        ConstData_t target,
+                                        const TensorDescriptor& outputGradDesc,
+                                        ConstData_t output_grad,
+                                        const TensorDescriptor& inputGradDesc,
+                                        Data_t input_grad,
+                                        const TensorDescriptor& targetGradDesc,
+                                        Data_t target_grad,
+                                        float divisor,
+                                        bool log_target)
 {
     const auto problem = kldivloss::ReducedProblemDescription{
         inputDesc, targetDesc, outputGradDesc, divisor, log_target, false};
@@ -201,7 +201,7 @@ miopenStatus_t KLDivLossReducedBackward(Handle& handle,
         tmp.input_grad  = input_grad;
         tmp.target_grad = target_grad;
 
-        tmp.divisor = divisor;
+        tmp.divisor    = divisor;
         tmp.log_target = log_target;
 
         return tmp;

@@ -99,8 +99,7 @@ struct KLDivLossReducedForward5d final : KLDivLossReducedSolver
     }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::kldivloss::ReducedProblemDescription& problem) const
-                      override;
+                      const miopen::kldivloss::ReducedProblemDescription& problem) const override;
     ConvSolution
     GetSolution(const ExecutionContext& context,
                 const miopen::kldivloss::ReducedProblemDescription& problem) const override;
@@ -135,8 +134,7 @@ struct KLDivLossReducedBackward5d final : KLDivLossReducedSolver
     }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::kldivloss::ReducedProblemDescription& problem) const
-                      override;
+                      const miopen::kldivloss::ReducedProblemDescription& problem) const override;
     ConvSolution
     GetSolution(const ExecutionContext& context,
                 const miopen::kldivloss::ReducedProblemDescription& problem) const override;
