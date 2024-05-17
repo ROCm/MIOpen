@@ -171,6 +171,7 @@ set( MIOpen_Source
     rnn_api.cpp
     rnn/rnn_util.cpp
     rnn/Solutions/rnn_transformer.cpp
+    scalar.cpp
     softmax.cpp
     softmax_api.cpp
     softmax/problem_description.cpp

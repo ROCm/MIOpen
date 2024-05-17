@@ -1775,7 +1775,7 @@ miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
  * miopenFindConvolutionForwardAlgorithm() must have been executed previously to
  * determine the required memory needed for the workspace and the best convolutional algorithm.
  * The scaling parameter alpha (float) and shift parameter beta (float) are only supported for
- * alpha = 1 and beta = 0.
+ * alpha = 1 and beta = 0 in 2D. In 3D, these parameters can take other values.
  *
  * The forward convolution is designed to accommodate both packed and non-packed tensor strides for
  * multiple data types and dimensions across various platforms. This flexibility ensures optimal
@@ -6676,6 +6676,19 @@ typedef enum
     MIOPEN_RNG_DISTRIBUTION_NORMAL,
 } miopenRngDistribution_t;
 
+typedef enum
+{
+    /* IDENTITY      alpha = 1.0 and beta = 0.0 */
+    /* SCALE         alpha = 4.2 and beta = 0.0 */
+    /* BILINEAR      alpha = 3.2 and beta = 1.1 */
+    /* ERROR_STATE   alpha = 0.0 and beta = 3.1 */
+
+    DEFAULT     = 0, /* alpha = 1.0 and beta = 0.0.*/
+    SCALE       = 1, /* alpha with some value and beta 0.0*/
+    BILINEAR    = 2, /* both alpha and beta with some value*/
+    ERROR_STATE = 3, /* alpha 0.0 and beta with some value, this should not occur.
+                        But used to check for errors.*/
+} miopenAlphaBetaCase_t;
 /*! @brief Operation mode of CUDNN_BACKEND_ENGINEHEUR_DESCRIPTOR
  *
  *  An enumerated type to indicate the operation mode of a CUDNN_BACKEND_ENGINEHEUR_DESCRIPTOR

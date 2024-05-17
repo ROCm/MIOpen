@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,42 +24,33 @@
  *
  *******************************************************************************/
 
-#include "sum.hpp"
-#include <miopen/env.hpp>
+#pragma once
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
+#include <miopen/common.hpp>
+#include <miopen/errors.hpp>
 
-namespace sum {
+#include <cassert>
 
-std::string GetFloatArg()
+namespace miopen {
+// Class store value in double for higher precision.
+struct Scalar
 {
-    const auto& tmp = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
+    explicit Scalar(double val) : mVal(val), mType(miopenDouble) {}
+
+    Scalar(ConstData_t ptr, miopenDataType_t type);
+
+    float GetAsFloat() const
     {
-        return "";
+        assert(mType == miopenFloat);
+        return static_cast<float>(mVal);
     }
-    return tmp;
-}
+    double GetAsDouble() const { return mVal; }
 
-struct SumTestFloat : SumTest<float>
-{
+    miopenDataType_t GetType() const { return mType; }
+
+private:
+    double mVal;
+    miopenDataType_t mType;
 };
 
-} // namespace sum
-using namespace sum;
-
-TEST_P(SumTestFloat, SumTestFw)
-{
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-INSTANTIATE_TEST_SUITE_P(SumTestSet, SumTestFloat, testing::ValuesIn(SumTestConfigs()));
+} // namespace miopen
