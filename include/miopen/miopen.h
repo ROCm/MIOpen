@@ -513,7 +513,7 @@ typedef enum
     miopenActivationABS      = 5, /*!< Absolute value \f$abs(x)\f$ */
     miopenActivationPOWER = 6, /*!< Scaled and shifted power \f$(\alpha + \beta * x)^{gamma}\f$ */
     miopenActivationCLIPPEDRELU =
-        7, /*!< Clipped Rectified Linear Unit \f$ min(\alpha, max(0,x)) \f$ */
+        7,                     /*!< Clipped Rectified Linear Unit \f$ min(\alpha, max(0,x)) \f$ */
     miopenActivationLEAKYRELU =
         8, /*!< Leaky Rectified Linear Unit \f$ \alpha * x | x <= 0; x | x > 0 \f$ */
     miopenActivationELU =
@@ -6646,6 +6646,8 @@ miopenNLLLossUnreduceBackward(miopenHandle_t handle,
  * @param targetDesc               Tensor descriptor for target tensor (input)
  * @param weightDesc               Tensor descriptor for weight tensor (input)
  * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param ignore_index             Ignore index (input)
+ * @param divisor                  Divisor (input)
  * @param sizeInBytes              Pointer to data to return the minimum workspace size
  * @return                         miopenStatus_t
  */
@@ -6655,6 +6657,8 @@ miopenGetNLLLossReduceForwardWorkspaceSize(miopenHandle_t handle,
                                            miopenTensorDescriptor_t targetDesc,
                                            miopenTensorDescriptor_t weightDesc,
                                            miopenTensorDescriptor_t outputDesc,
+                                           int32_t ignore_index,
+                                           float divisor,
                                            size_t* sizeInBytes);
 
 /*! @brief Execute a NLLLoss forward layer

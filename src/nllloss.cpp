@@ -79,11 +79,13 @@ size_t GetNLLLossReduceForwardWorkspaceSize(Handle& handle,
                                             const TensorDescriptor& inputDesc,
                                             const TensorDescriptor& targetDesc,
                                             const TensorDescriptor& weightDesc,
-                                            const TensorDescriptor& outputDesc)
+                                            const TensorDescriptor& outputDesc,
+                                            int32_t ignore_index,
+                                            float divisor)
 {
-    auto ctx = ExecutionContext{&handle};
-    const auto problem =
-        nllloss::ReduceProblemDescription{inputDesc, targetDesc, weightDesc, outputDesc, -1, true};
+    auto ctx           = ExecutionContext{&handle};
+    const auto problem = nllloss::ReduceProblemDescription{
+        inputDesc, targetDesc, weightDesc, outputDesc, ignore_index, divisor, true};
 
     const auto algo    = AlgorithmName{"NLLLossReduceForward"};
     const auto solvers = solver::SolverContainer<solver::nllloss::NLLLossReduceForward5d>{};
@@ -108,7 +110,7 @@ miopenStatus_t NLLLossReduceForward(Handle& handle,
                                     float divisor)
 {
     const auto problem = nllloss::ReduceProblemDescription{
-        inputDesc, targetDesc, weightDesc, outputDesc, ignore_index, true};
+        inputDesc, targetDesc, weightDesc, outputDesc, ignore_index, divisor, true};
 
     const auto invoke_params = [&]() {
         auto tmp       = nllloss::InvokeParams{};
@@ -190,7 +192,7 @@ miopenStatus_t NLLLossReduceBackward(Handle& handle,
                                      float divisor)
 {
     const auto problem = nllloss::ReduceProblemDescription{
-        inputGradDesc, targetDesc, weightDesc, outputGradDesc, ignore_index, false};
+        inputGradDesc, targetDesc, weightDesc, outputGradDesc, ignore_index, divisor, false};
 
     const auto invoke_params = [&]() {
         auto tmp           = nllloss::BwdInvokeParams{};

@@ -271,8 +271,14 @@ int NLLLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     if(!std::isnan(divisor))
     {
-        miopenGetNLLLossReduceForwardWorkspaceSize(
-            GetHandle(), inputDesc, targetDesc, weightDesc, outputDesc, &ws_sizeInBytes);
+        miopenGetNLLLossReduceForwardWorkspaceSize(GetHandle(),
+                                                   inputDesc,
+                                                   targetDesc,
+                                                   weightDesc,
+                                                   outputDesc,
+                                                   ignore_index,
+                                                   divisor,
+                                                   &ws_sizeInBytes);
         if(ws_sizeInBytes == static_cast<size_t>(-1))
             return miopenStatusAllocFailed;
     }
@@ -483,7 +489,7 @@ int NLLLossDriver<Tgpu, Tref>::RunBackwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            printf("Wall-clock Time Forward NLLLoss Elapsed: %f ms\n", t.gettime_ms() / iter);
+            printf("Wall-clock Time Backward NLLLoss Elapsed: %f ms\n", t.gettime_ms() / iter);
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
@@ -563,7 +569,7 @@ int NLLLossDriver<Tgpu, Tref>::VerifyBackward()
 {
     RunBackwardCPU();
     const Tref tolerance = GetTolerance();
-    auto error           = miopen::rms_range(out_host, out);
+    auto error           = miopen::rms_range(in_grad_host, in_grad);
 
     if(!std::isfinite(error) || error > tolerance)
     {

@@ -64,6 +64,7 @@ NetworkConfig ReduceProblemDescription::MakeNetworkConfig() const
     size_t num_batches = inputDesc.GetLengths()[0];
     size_t num_classes = GetC();
     size_t num_dims    = inputDesc.GetSize();
+    float ndivisor     = GetDivisor();
 
     auto input_dtype = inputDesc.GetType();
 
@@ -72,6 +73,7 @@ NetworkConfig ReduceProblemDescription::MakeNetworkConfig() const
     ss << "nllloss_reduce";
     ss << "is_fwd" << is_fwd;
     ss << "input_dtype" << input_dtype;
+    ss << "divisor" << ndivisor;
     ss << "numel" << numel;
     ss << "num_dims" << num_dims;
     ss << "num_batches" << num_batches;

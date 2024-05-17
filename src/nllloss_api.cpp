@@ -121,6 +121,8 @@ miopenGetNLLLossReduceForwardWorkspaceSize(miopenHandle_t handle,
                                            const miopenTensorDescriptor_t targetDesc,
                                            const miopenTensorDescriptor_t weightDesc,
                                            const miopenTensorDescriptor_t outputDesc,
+                                           int32_t ignore_index,
+                                           float divisor,
                                            size_t* sizeInBytes)
 {
 
@@ -132,7 +134,9 @@ miopenGetNLLLossReduceForwardWorkspaceSize(miopenHandle_t handle,
                                                          miopen::deref(inputDesc),
                                                          miopen::deref(targetDesc),
                                                          miopen::deref(weightDesc),
-                                                         miopen::deref(outputDesc));
+                                                         miopen::deref(outputDesc),
+                                                         ignore_index,
+                                                         divisor);
     });
 }
 

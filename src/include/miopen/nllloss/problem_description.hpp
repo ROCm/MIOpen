@@ -180,10 +180,12 @@ struct ReduceProblemDescription : ProblemDescription
                              const TensorDescriptor& weightDesc_,
                              const TensorDescriptor& outputDesc_,
                              int32_t ignore_index_,
+                             float divisor_,
                              bool is_fwd_)
         : ProblemDescription(
               inputDesc_, targetDesc_, weightDesc_, outputDesc_, ignore_index_, is_fwd_)
     {
+        divisor = divisor_;
         IsSameType();
         IsValidLength();
         IsValidStride();
@@ -191,6 +193,7 @@ struct ReduceProblemDescription : ProblemDescription
 
     size_t GetNtotal() const { return targetDesc.GetElementSize(); }
     size_t GetC() const { return weightDesc.GetElementSize(); }
+    float GetDivisor() const { return divisor; }
 
     bool IsValidLength() const
     {
@@ -204,6 +207,7 @@ struct ReduceProblemDescription : ProblemDescription
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
+    float divisor;
     NetworkConfig MakeForwardNetworkConfig() const;
 };
 

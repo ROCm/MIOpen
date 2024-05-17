@@ -49,7 +49,9 @@ size_t GetNLLLossReduceForwardWorkspaceSize(Handle& handle,
                                             const TensorDescriptor& inputDesc,
                                             const TensorDescriptor& targetDesc,
                                             const TensorDescriptor& weightDesc,
-                                            const TensorDescriptor& outputDesc);
+                                            const TensorDescriptor& outputDesc,
+                                            int32_t ignore_index,
+                                            float divisor);
 
 miopenStatus_t NLLLossReduceForward(Handle& handle,
                                     Data_t workspace,
