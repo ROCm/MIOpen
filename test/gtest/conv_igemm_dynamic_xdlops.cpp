@@ -38,8 +38,8 @@ namespace conv_igemm_dynamic_xdlops {
 auto GetTestCases()
 {
     const auto env_xdlops =
-        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
+        std::tuple{std::pair{MIOPEN_ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
+                   std::pair{MIOPEN_ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
                              std::string_view("ConvAsmImplicitGemmGTCDynamicBwdXdlops;"
                                               "ConvAsmImplicitGemmGTCDynamicFwdXdlops;"
                                               "ConvAsmImplicitGemmGTCDynamicWrwXdlops")}};
@@ -109,10 +109,10 @@ using TestCase = decltype(GetTestCases())::value_type;
 
 static bool SkipTest(const std::string& float_arg)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
+    if(miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)))
         return false;
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
-        if(miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == float_arg)
+    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)))
+        if(miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == float_arg)
             return false;
     return true;
 }

@@ -228,7 +228,7 @@ void BackendExecutionPlanDescriptor::getAttribute(miopenBackendAttributeName_t a
             const auto& vec = mExecutionPlan.getIntermediateIds();
             *elementCount   = vec.size();
             std::copy_n(vec.begin(),
-                        std::min(requestedElementCount, *elementCount),
+                        minimum(requestedElementCount, *elementCount),
                         static_cast<int64_t*>(arrayOfElements));
         }
         else
@@ -243,7 +243,7 @@ void BackendExecutionPlanDescriptor::getAttribute(miopenBackendAttributeName_t a
             std::string s = mExecutionPlan.getJsonRepresentation();
             *elementCount = s.size() + 1;
             std::copy_n(s.c_str(),
-                        std::min(requestedElementCount, *elementCount),
+                        minimum(requestedElementCount, *elementCount),
                         static_cast<char*>(arrayOfElements));
         }
         else

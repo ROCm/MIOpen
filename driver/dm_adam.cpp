@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,22 +23,18 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_ARGMAX_HPP_
-#define MIOPEN_ARGMAX_HPP_
+#include "adam_driver.hpp"
+#include "registry_driver_maker.hpp"
 
-#include <miopen/common.hpp>
+static Driver* makeDriver(const std::string& base_arg)
+{
+    if(base_arg == "adam")
+        return new AdamDriver<float, float>();
+    else if(base_arg == "adamfp16")
+        return new AdamDriver<float16, float>();
+    else if(base_arg == "ampadam")
+        return new AdamDriver<float, float, true, float16>();
+    return nullptr;
+}
 
-namespace miopen {
-
-struct Handle;
-struct TensorDescriptor;
-
-miopenStatus_t ArgmaxForward(Handle& handle,
-                             const TensorDescriptor& xDesc,
-                             ConstData_t x,
-                             const TensorDescriptor& yDesc,
-                             Data_t y,
-                             int32_t dim);
-
-} // namespace miopen
-#endif // _MIOPEN_ARGMAX_HPP_
+REGISTER_DRIVER_MAKER(makeDriver);

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,44 +23,18 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include "reduceextreme_driver.hpp"
+#include "registry_driver_maker.hpp"
 
-#include <miopen/argmax.hpp>
-#include <miopen/datatype.hpp>
-#include <miopen/find_solution.hpp>
-#include <miopen/float_equal.hpp>
-#include <miopen/kernel_cache.hpp>
-#include <miopen/reduce/invoke_params.hpp>
-#include <miopen/reduce/solvers.hpp>
-#include <miopen/tensor.hpp>
-
-namespace miopen {
-
-miopenStatus_t ArgmaxForward(Handle& handle,
-                             const TensorDescriptor& xDesc,
-                             ConstData_t x,
-                             const TensorDescriptor& yDesc,
-                             Data_t y,
-                             int32_t dim)
+static Driver* makeDriver(const std::string& base_arg)
 {
-    const auto problem = reduce::ProblemDescription{xDesc, yDesc, dim};
-
-    const auto invoke_params = [&]() {
-        auto tmp  = reduce::InvokeParams{};
-        tmp.type  = InvokeType::Run;
-        tmp.xDesc = &xDesc;
-        tmp.yDesc = &yDesc;
-        tmp.x     = x;
-        tmp.y     = y;
-        tmp.dim   = dim;
-        return tmp;
-    }();
-
-    const auto algo    = AlgorithmName{"ArgmaxForward"};
-    const auto solvers = solver::SolverContainer<solver::reduce::ArgmaxForward>{};
-
-    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
-
-    return miopenStatusSuccess;
+    if(base_arg == "reduceextreme")
+        return new ReduceExtremeDriver<float, float>();
+    if(base_arg == "reduceextremefp16")
+        return new ReduceExtremeDriver<float16, float>();
+    if(base_arg == "reduceextremebfp16")
+        return new ReduceExtremeDriver<bfloat16, float>();
+    return nullptr;
 }
 
-} // namespace miopen
+REGISTER_DRIVER_MAKER(makeDriver);

@@ -98,7 +98,8 @@ public:
                              ? *debug::testing_find_db_path_override()
                              : GetInstalledPath(handle, path_suffix)),
           db(boost::make_optional<DbTimer<TDb>>(
-              debug::testing_find_db_enabled && !IsEnabled(ENV(MIOPEN_DEBUG_DISABLE_FIND_DB)),
+              debug::testing_find_db_enabled &&
+                  !IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_DISABLE_FIND_DB)),
               DbTimer<TDb>{DbKinds::FindDb, installed_path, path}))
     {
         if(!db.is_initialized())
@@ -118,9 +119,10 @@ public:
 #if MIOPEN_DISABLE_USERDB
           db(boost::optional<DbTimer<TDb>>{DbKinds::FindDb})
 #else
-          db(boost::make_optional<DbTimer<TDb>>(debug::testing_find_db_enabled &&
-                                                    !IsEnabled(ENV(MIOPEN_DEBUG_DISABLE_FIND_DB)),
-                                                DbTimer<TDb>{DbKinds::FindDb, path, false}))
+          db(boost::make_optional<DbTimer<TDb>>(
+              debug::testing_find_db_enabled &&
+                  !IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_DISABLE_FIND_DB)),
+              DbTimer<TDb>{DbKinds::FindDb, path, false}))
 #endif
     {
         if(!db.is_initialized())
@@ -132,7 +134,7 @@ public:
 
     ~FindDbRecord_t()
     {
-        if(!db.is_initialized() || !content.is_initialized() || in_sync)
+        if(dont_store || !db.is_initialized() || !content.is_initialized() || in_sync)
             return;
         if(!db->StoreRecord(content.get()))
             MIOPEN_LOG_E("Failed to store record to find-db at <" << path << ">");
@@ -147,7 +149,7 @@ public:
     template <class TProblemDescription>
     static std::vector<PerfField> TryLoad(Handle& handle,
                                           const TProblemDescription& problem,
-                                          const std::function<void(DbRecord&)>& regenerator,
+                                          const std::function<bool(DbRecord&)>& regenerator,
                                           const std::string& path_suffix = "")
     {
         auto ret = std::vector<PerfField>{};
@@ -165,7 +167,7 @@ public:
         ret.clear();
         record.in_sync = false;
         record.content.emplace(DbKinds::FindDb, problem);
-        regenerator(*record.content);
+        record.dont_store = !regenerator(*record.content);
         record.CopyTo(ret);
 
         return ret;
@@ -176,7 +178,8 @@ private:
     std::string installed_path;
     boost::optional<DbTimer<TDb>> db;
     boost::optional<DbRecord> content{boost::none};
-    bool in_sync = false;
+    bool in_sync    = false;
+    bool dont_store = false; // E.g. to skip writing sub-optimal find-db records to disk.
 
     static std::string GetInstalledPath(Handle& handle, const std::string& path_suffix);
     static std::string GetInstalledPathEmbed(Handle& handle, const std::string& path_suffix);
