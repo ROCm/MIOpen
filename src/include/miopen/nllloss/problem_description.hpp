@@ -64,37 +64,22 @@ struct ProblemDescription : ProblemDescriptionBase
     bool IsValidLength() const
     {
         if(targetDesc.GetLengths()[0] != inputDesc.GetLengths()[0])
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Tensor sizes do not match.");
-#else
-            return false;
-#endif
+
         for(int32_t i = 1; i < targetDesc.GetSize(); ++i)
         {
             if(targetDesc.GetLengths()[i] != inputDesc.GetLengths()[i + 1])
             {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
                 MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Tensor sizes do not match.");
-#else
-                return false;
-#endif
             }
         }
         if(weightDesc.GetLengths()[0] != inputDesc.GetLengths()[1])
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Tensor sizes do not match.");
-#else
-            return false;
-#endif
         }
         if(inputDesc.GetLengths().size() > 5)
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Do not support Input Tensor size > 5.");
-#else
-            return false;
-#endif
         }
         return true;
     }
@@ -115,11 +100,7 @@ struct ProblemDescription : ProblemDescriptionBase
             for(int i = 1; i < p.size(); ++i)
             {
                 if(p[i].first != p[i - 1].first * p[i - 1].second)
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
                     MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Tensor strides do not valid.");
-#else
-                    return false;
-#endif
             }
             return true;
         };
@@ -131,7 +112,7 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(inputDesc.GetType() != weightDesc.GetType())
         {
-            return false;
+            MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Input and Weight tensors types do not match.");
         }
         return true;
     }
@@ -212,10 +193,10 @@ struct ReduceProblemDescription : ProblemDescription
 
     bool IsValidLength() const
     {
-        if(!ProblemDescription::IsValidLength())
-            return false;
         if(outputDesc.GetSize() != 1 || outputDesc.GetLengths()[0] != 1)
             MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Output Tensor size must be (1).");
+        if(!ProblemDescription::IsValidLength())
+            return false;
         return true;
     }
 
