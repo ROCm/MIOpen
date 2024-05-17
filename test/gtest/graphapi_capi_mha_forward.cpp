@@ -240,7 +240,9 @@ MakeMatmul(DescriptorWrapperPtr tensor1, DescriptorWrapperPtr tensor2, Descripto
 DescriptorWrapperPtr MakePointwise(miopenPointwiseMode_t mode,
                                    DescriptorWrapperPtr tensor1,
                                    DescriptorWrapperPtr tensor2,
-                                   DescriptorWrapperPtr output)
+                                   DescriptorWrapperPtr output,
+                                   bool setAlpha1Param = false,
+                                   float alpha1Param   = 0.0f)
 {
     DescriptorWrapperPtr pointwise = MakeDescriptor(MIOPEN_BACKEND_POINTWISE_DESCRIPTOR);
 
@@ -281,6 +283,12 @@ DescriptorWrapperPtr MakePointwise(miopenPointwiseMode_t mode,
 
     pointwiseOperation->SetAttribute(
         MIOPEN_ATTR_OPERATION_POINTWISE_YDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &outputDesc);
+
+    if(setAlpha1Param)
+    {
+        pointwiseOperation->SetAttribute(
+            MIOPEN_ATTR_OPERATION_POINTWISE_ALPHA1, MIOPEN_TYPE_FLOAT, 1, &alpha1Param);
+    }
 
     pointwiseOperation->AddRef(pointwise);
     pointwiseOperation->AddRef(tensor1);
@@ -460,11 +468,6 @@ private:
 
         // get next value for the rest of the tensors (which don't have any particular enum value)
         m_nextTensorId++;
-
-        // This attention scale param is just a float in Find 2.0, so no particular enum value, we
-        // should use m_nextTensorId as an identifier.
-        m_attentionScaleId = GetNextId();
-        MakeAndAddRealTensorDescriptor(m_attentionScaleId);
     }
 
     void MakeVirtualTensorsAndNodes()
@@ -492,8 +495,8 @@ private:
         AddGraphNode(MakeMatmul(m_realTensorMap[miopenTensorMhaQ]->m_gapiDesc,
                                 m_realTensorMap[miopenTensorMhaK]->m_gapiDesc,
                                 tMM0));
-        AddGraphNode(MakePointwise(
-            MIOPEN_POINTWISE_MUL, tMM0, m_realTensorMap[m_attentionScaleId]->m_gapiDesc, pwS0));
+        AddGraphNode(
+            MakePointwise(MIOPEN_POINTWISE_IDENTITY, tMM0, nullptr, pwS0, m_attentionScale));
         AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL,
                                    pwS0,
                                    m_realTensorMap[miopenTensorMhaDescaleQ]->m_gapiDesc,
@@ -791,8 +794,7 @@ private:
 
     int64_t m_nextTensorId = 0;
 
-    // In Find 2.0 attention scale is just a float value, lets save the id here
-    int64_t m_attentionScaleId = 0;
+    float m_attentionScale = 1.0f;
 
     int64_t m_workspaceSize = 0;
 
