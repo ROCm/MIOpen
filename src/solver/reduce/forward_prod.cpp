@@ -49,7 +49,7 @@ bool ProdForward::IsApplicable(const ExecutionContext& context,
         return false;
     if(!problem.IsValidLength())
         return false;
-    if(!problem.IsAllPacked())
+    if(!problem.IsAllContiguous())
         return false;
     if(!problem.IsNotLastDim())
         return false;
@@ -90,8 +90,8 @@ ProdForward::GetSolution(const ExecutionContext& context,
 
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenProd.cpp";
-        kernel.kernel_name = "ProdParallelFwdContiguous";
+        kernel.kernel_file = "MIOpenReduceCalculation.cpp";
+        kernel.kernel_name = "CalculationParallelFwdContiguous";
 
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
@@ -99,7 +99,9 @@ ProdForward::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
-        };
+            {"OP_TYPE", "ReduceCalculationOp_t::Prod"},
+            {"MIOPEN_REDUCE_CALCULATION_PROD", MIOPEN_REDUCE_CALCULATION_PROD},
+            {"MIOPEN_REDUCE_CALCULATION_SUM", MIOPEN_REDUCE_CALCULATION_SUM}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
@@ -124,8 +126,8 @@ ProdForward::GetSolution(const ExecutionContext& context,
 
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenProd.cpp";
-        kernel.kernel_name = "ProdFwdContiguous";
+        kernel.kernel_file = "MIOpenReduceCalculation.cpp";
+        kernel.kernel_name = "CalculationFwdContiguous";
 
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},

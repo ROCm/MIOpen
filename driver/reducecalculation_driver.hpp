@@ -41,17 +41,18 @@
 #include <vector>
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
+#include "../src/kernels/MIOpenReduceCalculation.hpp"
 
 #ifndef MLO_REDUCE_CALCULATIONMHOST_H_
 #define MLO_REDUCE_CALCULATIONMHOST_H_
 
-template <typename Tgpu, typename Tcheck>
-int32_t mloSumForwardRunHost(miopenTensorDescriptor_t inputDesc,
-                             miopenTensorDescriptor_t outputDesc,
-                             Tgpu* input,
-                             Tcheck* outputhost,
-                             int32_t dim,
-                             miopenReduceCalculationNanPropagation_t nanPropagation)
+template <typename Tgpu, typename Tcheck, ReduceCalculationOp_t op>
+int32_t mloReduceCalculationForwardRunHost(miopenTensorDescriptor_t inputDesc,
+                                           miopenTensorDescriptor_t outputDesc,
+                                           Tgpu* input,
+                                           Tcheck* outputhost,
+                                           int32_t dim,
+                                           miopenReduceCalculationNanPropagation_t nanPropagation)
 {
     auto input_dims  = miopen::deref(inputDesc).GetLengths();
     auto output_dims = miopen::deref(outputDesc).GetLengths();
@@ -61,72 +62,29 @@ int32_t mloSumForwardRunHost(miopenTensorDescriptor_t inputDesc,
         std::accumulate(output_dims.begin(), output_dims.end(), 1LL, std::multiplies<int64_t>());
 
     auto inner_size = 1ULL;
-    for(int32_t i = dim + 1; i < input_dims.size(); i++)
+    for(int32_t i = dim + 1; i < input_dims.size(); ++i)
     {
         inner_size *= input_dims[i];
     }
 
     int32_t ret = 0;
 
-    for(size_t o = 0; o < output_numel; o++)
+    for(size_t o = 0; o < output_numel; ++o)
     {
         size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
 
-        Tcheck sum = 0.0f;
-        for(size_t i = 0; i < reduce_size; i++)
+        Tcheck calculation = 0.0f;
+        for(size_t i = 0; i < reduce_size; ++i)
         {
             Tcheck val = static_cast<Tcheck>(input[input_idx]);
             if(nanPropagation && isnan(val))
             {
                 val = 0.0f;
             }
-            sum += val;
+            reduce_func<Tcheck, op>{}.calculate(calculation, val);
             input_idx += inner_size;
         }
-        outputhost[o] = sum;
-    }
-    return ret;
-}
-
-template <typename Tgpu, typename Tcheck>
-int32_t mloProdForwardRunHost(miopenTensorDescriptor_t inputDesc,
-                              miopenTensorDescriptor_t outputDesc,
-                              Tgpu* input,
-                              Tcheck* outputhost,
-                              int32_t dim,
-                              miopenReduceCalculationNanPropagation_t nanPropagation)
-{
-    auto input_dims  = miopen::deref(inputDesc).GetLengths();
-    auto output_dims = miopen::deref(outputDesc).GetLengths();
-
-    auto reduce_size = input_dims[dim];
-    auto output_numel =
-        std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
-
-    auto inner_size = 1ULL;
-    for(int32_t i = dim + 1; i < input_dims.size(); i++)
-    {
-        inner_size *= input_dims[i];
-    }
-
-    int32_t ret = 0;
-
-    for(size_t o = 0; o < output_numel; o++)
-    {
-        size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
-
-        Tcheck prod = 1.0f;
-        for(size_t i = 0; i < reduce_size; i++)
-        {
-            Tcheck val = static_cast<Tcheck>(input[input_idx]);
-            if(nanPropagation && isnan(val))
-            {
-                val = 1.0f;
-            }
-            prod *= val;
-            input_idx += inner_size;
-        }
-        outputhost[o] = prod;
+        outputhost[o] = calculation;
     }
     return ret;
 }
@@ -205,14 +163,16 @@ int ReduceCalculationDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[]
 template <typename Tgpu, typename Tref>
 int ReduceCalculationDriver<Tgpu, Tref>::GetandSetData()
 {
-    std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
-    dim                     = inflags.GetValueInt("DimToReduce");
+    auto inTensorParam = inflags.GetValueTensor("input");
+    dim                = inflags.GetValueInt("DimToReduce");
+    auto in_len        = inTensorParam.lengths;
 
-    SetTensorNd(inputDesc, in_len, data_type);
+    if(SetTensorNd(inputDesc, in_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input") + ".");
 
     std::vector<int> out_len;
 
-    for(int i = 0; i < in_len.size(); i++)
+    for(int i = 0; i < in_len.size(); ++i)
     {
         if(i != dim)
         {
@@ -223,7 +183,8 @@ int ReduceCalculationDriver<Tgpu, Tref>::GetandSetData()
     if(out_len.empty())
         out_len.push_back(1);
 
-    SetTensorNd(outputDesc, out_len, data_type);
+    if(SetTensorNd(outputDesc, out_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting output tensor.");
 
     nanPropagation =
         static_cast<miopenReduceCalculationNanPropagation_t>(inflags.GetValueInt("NanPropagation"));
@@ -238,12 +199,7 @@ int ReduceCalculationDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag(
         "forw", 'F', "1", "Run only Forward Reduce Calculation (Default=1)", "int");
-    inflags.AddInputFlag("batchsize", 'n', "256", "Mini-batch size (Default=100)", "int");
-    inflags.AddInputFlag("in_channels", 'c', "4", "Number of Input Channels (Default=3)", "int");
-    inflags.AddInputFlag("in_d", 'D', "0", "Input Depth (Default=0)", "int");
-    inflags.AddInputFlag("in_h", 'H', "0", "Input Height (Default=32)", "int");
-    inflags.AddInputFlag("in_w", 'W', "8732", "Input Width (Default=32)", "int");
-
+    inflags.AddTensorFlag("input", 'X', "256x4x8732", "input tensor descriptor");
     inflags.AddInputFlag(
         "DimToReduce", 'R', "1", "The indice of the dimensions to be reduced(Default=1)", "int");
     inflags.AddInputFlag(
@@ -258,7 +214,7 @@ int ReduceCalculationDriver<Tgpu, Tref>::AddCmdLineArgs()
         'O',
         "0",
         "Reduce Calculation Operation Type (check the miopenReduceCalculationOp_t in "
-        "miopen.h) (Default=0 to add the values of the reduced elements)",
+        "miopen.h) (Default=2 to add the values of the reduced elements)",
         "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
@@ -267,42 +223,6 @@ int ReduceCalculationDriver<Tgpu, Tref>::AddCmdLineArgs()
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
 
     return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref>
-std::vector<int> ReduceCalculationDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
-{
-    int in_n = inflags.GetValueInt("batchsize");
-    int in_c = inflags.GetValueInt("in_channels");
-    int in_w = inflags.GetValueInt("in_w");
-    int in_h = inflags.GetValueInt("in_h");
-    int in_d = inflags.GetValueInt("in_d");
-
-    if((in_n != 0) && (in_c != 0) && (in_d != 0) && (in_h != 0) && (in_w != 0))
-    {
-        return std::vector<int>({in_n, in_c, in_d, in_h, in_w});
-    }
-    else if((in_n != 0) && (in_c != 0) && (in_h != 0) && (in_w != 0))
-    {
-        return std::vector<int>({in_n, in_c, in_h, in_w});
-    }
-    else if((in_n != 0) && (in_c != 0) && (in_w != 0))
-    {
-        return std::vector<int>({in_n, in_c, in_w});
-    }
-    else if((in_n != 0) && (in_w != 0))
-    {
-        return std::vector<int>({in_n, in_w});
-    }
-    else if(in_n != 0)
-    {
-        return std::vector<int>({in_n});
-    }
-    else
-    {
-        std::cerr << "Error Input Tensor Lengths\n" << std::endl;
-        return std::vector<int>({0});
-    }
 }
 
 template <typename Tgpu, typename Tref>
@@ -326,16 +246,21 @@ int ReduceCalculationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     out     = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
     outhost = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
-    for(int i = 0; i < in_sz; i++)
+    for(int i = 0; i < in_sz; ++i)
     {
         in[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
     }
 
     if(in_dev->ToGPU(GetStream(), in.data()) != 0)
+    {
         std::cerr << "Error copying (in) to GPU, size: " << in_dev->GetSize() << std::endl;
-
+        return miopenStatusAllocFailed;
+    }
     if(out_dev->ToGPU(GetStream(), out.data()) != 0)
+    {
         std::cerr << "Error copying (out) to GPU, size: " << out_dev->GetSize() << std::endl;
+        return miopenStatusAllocFailed;
+    }
 
     return miopenStatusSuccess;
 }
@@ -349,7 +274,7 @@ int ReduceCalculationDriver<Tgpu, Tref>::RunForwardGPU()
     Timer t;
     START_TIME
 
-    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+    for(int i = 0; i < inflags.GetValueInt("iter"); ++i)
     {
         miopenReduceCalculationForward(GetHandle(),
                                        nanPropagation,
@@ -375,17 +300,19 @@ int ReduceCalculationDriver<Tgpu, Tref>::RunForwardGPU()
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
             std::cout << "Wall-clock Time Forward Reduce Calculation Elapsed: "
-                      << t.gettime_ms() / iter << " ms\n";
+                      << t.gettime_ms() / iter << " ms" << std::endl;
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
         std::cout << "GPU Kernel Time Forward Reduce Calculation Elapsed: " << kernel_average_time
-                  << " ms\n";
+                  << " ms" << std::endl;
     }
 
     if(out_dev->FromGPU(GetStream(), out.data()) != 0)
+    {
         std::cerr << "Error copying (out_dev) from GPU, size: " << out_dev->GetSize() << std::endl;
-
+        return miopenStatusInternalError;
+    }
     return miopenStatusSuccess;
 }
 
@@ -394,16 +321,16 @@ int ReduceCalculationDriver<Tgpu, Tref>::RunForwardCPU()
 {
     if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_SUM)
     {
-        mloSumForwardRunHost<Tgpu, Tref>(
+        return mloReduceCalculationForwardRunHost<Tgpu, Tref, ReduceCalculationOp_t::Sum>(
             inputDesc, outputDesc, in.data(), outhost.data(), dim, nanPropagation);
     }
     else if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_PROD)
     {
-        mloProdForwardRunHost<Tgpu, Tref>(
+        return mloReduceCalculationForwardRunHost<Tgpu, Tref, ReduceCalculationOp_t::Prod>(
             inputDesc, outputDesc, in.data(), outhost.data(), dim, nanPropagation);
     }
 
-    return miopenStatusSuccess;
+    return miopenStatusInternalError;
 }
 
 template <typename Tgpu, typename Tref>

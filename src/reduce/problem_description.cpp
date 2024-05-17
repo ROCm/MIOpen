@@ -48,11 +48,20 @@ NetworkConfig ProblemDescriptionExtreme::MakeNetworkConfig() const
                                         outputlength.end(),
                                         static_cast<size_t>(1),
                                         std::multiplies<size_t>());
-    auto dtype        = xDesc.GetType();
+    auto inputdtype   = xDesc.GetType();
+    auto outputdtype  = yDesc.GetType();
 
     std::ostringstream ss;
 
-    ss << "dtype" << dtype;
+    ss << "inputdtype" << inputdtype;
+    ss << "outputdtype" << outputdtype;
+    if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMIN) ||
+       (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMAX))
+    {
+        auto indicedtype = indiceDesc.GetType();
+        ss << "indicedtype" << indicedtype;
+    }
+
     ss << "dim" << dim;
     ss << "size" << size;
     ss << "output_numel" << output_numel;
@@ -72,11 +81,13 @@ NetworkConfig ProblemDescriptionCalculation::MakeNetworkConfig() const
                                         outputlength.end(),
                                         static_cast<size_t>(1),
                                         std::multiplies<size_t>());
-    auto dtype        = xDesc.GetType();
+    auto inputdtype   = xDesc.GetType();
+    auto outputdtype  = yDesc.GetType();
 
     std::ostringstream ss;
 
-    ss << "dtype" << dtype;
+    ss << "inputdtype" << inputdtype;
+    ss << "outputdtype" << outputdtype;
     ss << "dim" << dim;
     ss << "size" << size;
     ss << "output_numel" << output_numel;

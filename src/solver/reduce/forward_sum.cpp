@@ -50,7 +50,7 @@ bool SumForward::IsApplicable(const ExecutionContext& context,
         return false;
     if(!problem.IsValidLength())
         return false;
-    if(!problem.IsAllPacked())
+    if(!problem.IsAllContiguous())
         return false;
     if(!problem.IsNotLastDim())
         return false;
@@ -91,8 +91,8 @@ SumForward::GetSolution(const ExecutionContext& context,
 
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenSum.cpp";
-        kernel.kernel_name = "SumParallelFwdContiguous";
+        kernel.kernel_file = "MIOpenReduceCalculation.cpp";
+        kernel.kernel_name = "CalculationParallelFwdContiguous";
 
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
@@ -127,8 +127,8 @@ SumForward::GetSolution(const ExecutionContext& context,
 
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenSum.cpp";
-        kernel.kernel_name = "SumFwdContiguous";
+        kernel.kernel_file = "MIOpenReduceCalculation.cpp";
+        kernel.kernel_name = "CalculationFwdContiguous";
 
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
@@ -136,7 +136,9 @@ SumForward::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
-        };
+            {"OP_TYPE", "ReduceCalculationOp_t::Sum"},
+            {"MIOPEN_REDUCE_CALCULATION_PROD", MIOPEN_REDUCE_CALCULATION_PROD},
+            {"MIOPEN_REDUCE_CALCULATION_SUM", MIOPEN_REDUCE_CALCULATION_SUM}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 

@@ -25,7 +25,7 @@
  *******************************************************************************/
 
 #include "../driver/tensor_driver.hpp"
-#include "cpu_reducecalculation.hpp"
+#include "../src/kernels/MIOpenReduceCalculation.hpp"
 #include "get_handle.hpp"
 #include "random.hpp"
 #include "tensor_holder.hpp"
@@ -33,6 +33,41 @@
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/reducecalculation.hpp>
+
+template <typename T, ReduceCalculationOp_t op>
+void cpu_calculation_forward(tensor<T> input,
+                             tensor<T>& ref_output,
+                             int32_t dim,
+                             miopenReduceCalculationNanPropagation_t nanPropagation)
+{
+    auto input_dims  = input.desc.GetLengths();
+    auto output_dims = ref_output.desc.GetLengths();
+
+    auto reduce_size = input_dims[dim];
+    auto output_numel =
+        std::accumulate(output_dims.begin(), output_dims.end(), 1LL, std::multiplies<int64_t>());
+
+    auto inner_size = std::accumulate(
+        input_dims.begin() + dim + 1, input_dims.end(), 1ULL, std::multiplies<uint64_t>());
+
+    par_ford(output_numel)([&](size_t o) {
+        size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
+
+        T calculation = static_cast<T>(0);
+
+        ford(reduce_size)([&](size_t i) {
+            T val = input[input_idx];
+            if(nanPropagation && std::isnan(val))
+            {
+                val = static_cast<T>(0.0);
+            }
+            reduce_func<T, op>{}.calculate(calculation, val);
+            input_idx += inner_size;
+        });
+
+        ref_output[o] = calculation;
+    });
+}
 
 struct ReduceCalculationTestCase
 {
@@ -123,15 +158,6 @@ ReduceCalculationTestConfigs(miopenReduceCalculationOp_t reduceCalculationOp)
     // clang-format on
 }
 
-static int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
-{
-    const std::vector<std::size_t>& lens = desc.GetLengths();
-    std::vector<int32_t> int32_t_lens(lens.begin(), lens.end());
-
-    // set the strides for the tensor
-    return SetTensorNd(&desc, int32_t_lens, desc.GetType());
-}
-
 template <typename T = float>
 struct ReduceCalculationTest : public ::testing::TestWithParam<ReduceCalculationTestCase>
 {
@@ -160,10 +186,7 @@ protected:
             }
         }
 
-        SetTensorLayout(input.desc);
-
         output = tensor<T>{out_dims};
-        SetTensorLayout(output.desc);
         std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
 
         ref_output = tensor<T>{out_dims};
@@ -192,11 +215,13 @@ protected:
 
         if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_SUM)
         {
-            cpu_sum_forward<T>(input, ref_output, dim, nanPropagation);
+            cpu_calculation_forward<T, ReduceCalculationOp_t::Sum>(
+                input, ref_output, dim, nanPropagation);
         }
         else if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_PROD)
         {
-            cpu_prod_forward<T>(input, ref_output, dim, nanPropagation);
+            cpu_calculation_forward<T, ReduceCalculationOp_t::Prod>(
+                input, ref_output, dim, nanPropagation);
         }
 
         miopenStatus_t status;

@@ -40,7 +40,7 @@ __device__ void extremefwdcontiguous(const TI* __restrict__ x,
                                      uint64_t inner_size)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
-    if(gid >= indice_numel)
+    if(gid >= output_numel)
         return;
 
     uint64_t input_idx = (gid / inner_size) * inner_size * reduce_size + gid % inner_size;

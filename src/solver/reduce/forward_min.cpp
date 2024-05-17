@@ -62,7 +62,7 @@ bool MinForward::IsApplicable(const ExecutionContext& context,
         return false;
     if(!problem.IsValidLength())
         return false;
-    if(!problem.IsAllPackedWithIndice())
+    if(!problem.IsAllContiguousWithIndice())
         return false;
     if(!problem.IsNotLastDim())
         return false;

@@ -395,14 +395,17 @@ struct SolverContainer
                           const AnyInvokeParams& invoke_params) const
     {
         const auto network_config = problem.MakeNetworkConfig();
+        auto ctx                  = ExecutionContext{&handle};
 
-        if(const auto existingInvoker = handle.GetInvoker(network_config, boost::none, algo))
+        if(IsAnySolverApplicable(ctx, problem))
         {
-            (*existingInvoker)(handle, invoke_params);
-            return;
+            if(const auto existingInvoker = handle.GetInvoker(network_config, boost::none, algo))
+            {
+                (*existingInvoker)(handle, invoke_params);
+                return;
+            }
         }
 
-        auto ctx        = ExecutionContext{&handle};
         const auto slns = SearchForSolutions(ctx, problem, 1);
 
         if(slns.empty())

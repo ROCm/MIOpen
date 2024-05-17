@@ -138,9 +138,9 @@ struct ProblemDescriptionExtreme : ProblemDescriptionBase
         return true;
     }
 
-    bool IsAllPacked() const
+    bool IsAllContiguous() const
     {
-        if(!(xDesc.IsPacked() && yDesc.IsPacked()))
+        if(!(xDesc.IsContiguous() && yDesc.IsContiguous()))
         {
             return false;
         }
@@ -148,9 +148,9 @@ struct ProblemDescriptionExtreme : ProblemDescriptionBase
         return true;
     }
 
-    bool IsAllPackedWithIndice() const
+    bool IsAllContiguousWithIndice() const
     {
-        if(!(xDesc.IsPacked() && yDesc.IsPacked() && indiceDesc.IsPacked()))
+        if(!(xDesc.IsContiguous() && yDesc.IsContiguous() && indiceDesc.IsContiguous()))
         {
             return false;
         }
@@ -158,9 +158,9 @@ struct ProblemDescriptionExtreme : ProblemDescriptionBase
         return true;
     }
 
-    bool IsAllPackedIndice() const
+    bool IsAllContiguousIndice() const
     {
-        if(!(xDesc.IsPacked() && indiceDesc.IsPacked()))
+        if(!(xDesc.IsContiguous() && indiceDesc.IsContiguous()))
         {
             return false;
         }
@@ -267,9 +267,9 @@ struct ProblemDescriptionCalculation : ProblemDescriptionBase
         return true;
     }
 
-    bool IsAllPacked() const
+    bool IsAllContiguous() const
     {
-        if(!(xDesc.IsPacked() && yDesc.IsPacked()))
+        if(!(xDesc.IsContiguous() && yDesc.IsContiguous()))
         {
             return false;
         }
