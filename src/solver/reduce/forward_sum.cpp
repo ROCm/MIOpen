@@ -27,7 +27,6 @@
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/reduce/invoke_params.hpp>
-#include <miopen/reduce/utils.hpp>
 #include <miopen/reduce/solvers.hpp>
 #include <miopen/reduce/utils.hpp>
 #include <miopen/reducecalculation.hpp>
