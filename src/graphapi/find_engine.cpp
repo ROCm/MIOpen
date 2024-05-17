@@ -47,7 +47,11 @@ class MHA_FP8_Pattern : public GraphPatternMatcher
     {
         static auto graph_gen = PatternGraphGenerator::Make({
             {"OP_MATMUL", {"Q", "K"}, {"T_BMM_0"}},
-            {"OP_POINTWISE:MUL", {"T_BMM_0", "ATTN_S"}, {"PW_S_0"}},
+            // {"OP_POINTWISE:MUL", {"T_BMM_0", "ATTN_S"}, {"PW_S_0"}},
+            // replacing the MUL node above with IDENTITY node below for now
+            // because Find 2.0 mha descriptor expects attention scale as a scalar
+            // parameter on host side
+            {"OP_POINTWISE:IDENTITY", {"T_BMM_0"}, {"PW_S_0"}},
             {"OP_POINTWISE:MUL", {"PW_S_0", "DSCL_Q"}, {"PW_S_1"}},
             {"OP_POINTWISE:MUL", {"PW_S_1", "DSCL_K"}, {"PW_S_2"}},
             {"OP_REDUCTION:MAX", {"PW_S_2"}, {"M"}},
@@ -73,9 +77,12 @@ class MHA_FP8_Pattern : public GraphPatternMatcher
         return graph_gen->graph();
     }
 
-    std::shared_ptr<TensorInfoMap> extractFind20Tensors(const OpGraph& graph) const
+    std::shared_ptr<TensorInfoMap> extractFind20Tensors(const OpGraph& graph,
+                                                        float* attn_scale) const
     {
 
+        assert(attn_scale);
+        assert(&graph);
         std::vector<int64_t> all1s = {1ll, 1ll, 1ll, 1ll};
 
         auto tensor_map = std::make_shared<TensorInfoMap>();
@@ -107,9 +114,11 @@ class MHA_FP8_Pattern : public GraphPatternMatcher
                         graph.findOutNeighByName(matmul, "OP_POINTWISE:MUL"));
                     assert(pw_0);
 
-                    auto* attn_scl = pw_0->getB();
-                    assert(attn_scl->getDimensions() == all1s);
+                    float alpha1 = std::get<float>(pw_0->getAlpha1());
+                    *attn_scale  = alpha1;
                     // TODO(Amber): uncomment
+                    // auto* attn_scl = pw_0->getB();
+                    // assert(attn_scl->getDimensions() == all1s);
                     // add_mapping(miopenTensorMhaAttnScale, attn_scl);
 
                     auto* pw_1 = dynamic_cast<OperationPointwise*>(
@@ -243,14 +252,14 @@ public:
         miopenProblem_t mha_prob;
         MhaDescriptor mha_desc;
 
-        float scale = 1.0; // TODO: get attention scale
+        float attn_scale                          = std::numeric_limits<float>::quiet_NaN();
+        std::shared_ptr<TensorInfoMap> tensor_map = extractFind20Tensors(graph, &attn_scale);
+        assert(attn_scale != std::numeric_limits<float>::quiet_NaN());
 
-        mha_desc.SetParams(scale);
+        mha_desc.SetParams(attn_scale);
 
         auto s = miopenCreateMhaProblem(&mha_prob, &mha_desc, miopenProblemDirectionForward);
         MIOPEN_THROW_IF(s != miopenStatusSuccess, "failed while creating problem for mha fwd");
-
-        std::shared_ptr<TensorInfoMap> tensor_map = extractFind20Tensors(graph);
 
         for(auto& [k, v] : *tensor_map)
         {
