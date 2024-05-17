@@ -100,6 +100,7 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
     gr::OpGraph mGraph;
     gr::AutoDeleteAllocator mAlloc;
     std::unordered_map<std::string, TensorData> mFilledTensors;
+    float mAttentionScale = 1.0f;
 
     template <bool IsVirt>
     gr::Tensor* makeTensor(std::string_view name, const std::vector<int64_t>& dims)
@@ -150,6 +151,23 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
                                                    .setPointwise(pw)
                                                    .setX(in_tensors[0])
                                                    .setY(out_tensors[0])
+                                                   .build()));
+    }
+
+    void addUnaryPointwiseNode(gr::Pointwise* pw,
+                               const TensorVec& in_tensors,
+                               const TensorVec& out_tensors,
+                               float alpha1)
+    {
+
+        assert(in_tensors.size() == 1);
+        assert(out_tensors.size() == 1);
+
+        mGraphBuilder->addNode(mAlloc.allocate(gr::OperationPointwiseBuilder{}
+                                                   .setPointwise(pw)
+                                                   .setX(in_tensors[0])
+                                                   .setY(out_tensors[0])
+                                                   .setAlpha1(alpha1)
                                                    .build()));
     }
 
@@ -262,9 +280,14 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
         addNode("OP_MATMUL", {Q, K}, {T_MM_0});
 
         MAKE_TENSOR(T_SCL_0, nhss, true);
-        MAKE_TENSOR(ATN_SCL, all1s, false);
-
-        addNode("OP_POINTWISE:MUL", {T_MM_0, ATN_SCL}, {T_SCL_0});
+        // MAKE_TENSOR(ATN_SCL, all1s, false);
+        // addNode("OP_POINTWISE:MUL", {T_MM_0, ATN_SCL}, {T_SCL_0});
+        // NOTE(Amber): Replacing the code above with a hacky solution to pass
+        // attention scale as a scalar param instead of a tensor. This is because
+        // Find 2.0 for MHA expects it as a scalar param set on MHA Problem
+        // Descriptor.
+        auto* pw_id = makePointWiseDesc(MIOPEN_POINTWISE_IDENTITY);
+        addUnaryPointwiseNode(pw_id, {T_MM_0}, {T_SCL_0}, mAttentionScale);
 
         MAKE_TENSOR(T_SCL_1, nhss, true);
         MAKE_TENSOR(DSCL_Q, all1s, false);
