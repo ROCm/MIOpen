@@ -129,6 +129,14 @@ struct HipEventProfiler
 };
 #endif
 
+inline bool ShouldAllocateBufferForWRW(const miopen::conv::ProblemDescription& problem)
+{
+    return problem.GetAlphaBetaCase() == BILINEAR || problem.GetAlphaBetaCase() == SCALE ||
+           ((problem.GetOutDataType() == miopenHalf) &&
+            ((problem.GetInChannels() & 1) != 0 ||
+             (problem.GetOutChannels() & 1) != 0 /* Test if odd*/));
+}
+
 template <typename DeviceOpType,
           typename CKArgsType,
           typename CastType,
@@ -162,19 +170,15 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                 HipEventProfiler pfr(handle);
                 if constexpr(std::is_same<CastType, miopen::conv::WrWInvokeParams>::value)
                 {
-                    if(problem_.GetAlphaBetaCase() != BILINEAR)
+                    if(problem_.GetAlphaBetaCase() == DEFAULT)
                     {
                         auto zero           = 0.0f;
                         const auto& tensors = data_ctx.tensors;
                         SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
                     }
-
-                    assert((problem_.GetAlphaBetaCase() == BILINEAR ||
-                            problem_.GetAlphaBetaCase() == SCALE ||
-                            ((problem_.GetOutDataType() == miopenHalf) &&
-                             ((problem_.GetInChannels() & 1) != 0 ||
-                              (problem_.GetOutChannels() & 1) != 0 /* Test if odd*/))) &&
-                           data_ctx.workSpace != nullptr);
+                    assert(
+                        (ShouldAllocateBufferForWRW(problem_) && data_ctx.workSpace != nullptr) ||
+                        !(ShouldAllocateBufferForWRW(problem_) && data_ctx.workSpace == nullptr));
 
                     if(data_ctx.workSpace)
                     {
