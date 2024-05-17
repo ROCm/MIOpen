@@ -423,10 +423,7 @@ void BackendOperationGraphDescriptor::getAttribute(miopenBackendAttributeName_t 
         {
             *elementCount = mOps.size();
             std::copy_n(mOps.cbegin(),
-                        // WORKAROUND: building on Windows is failing due to conflicting definitions
-                        // of std::min() between the MSVC standard library and HIP Clang wrappers.
-                        *elementCount < requestedElementCount ? *elementCount
-                                                              : requestedElementCount,
+                        minimum(*elementCount, requestedElementCount),
                         static_cast<miopenBackendDescriptor_t*>(arrayOfElements));
         }
         else

@@ -41,7 +41,7 @@ bool ConvDirectNaiveConvBwd::IsApplicable(const ExecutionContext& ctx,
                                           const ProblemDescription& problem) const
 {
     if(!miopen::debug::AlwaysEnableConvDirectNaive &&
-       miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_BWD)))
+       miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_BWD)))
         return false;
 
     if(!ConvDirectNaiveConvIsApplicableByKernelType(ctx, problem))
@@ -83,215 +83,14 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ExecutionContext& ctx,
 {
     ConvSolution result;
 
-    int di          = problem.GetOutDepth();
-    int hi          = problem.GetOutHeight();
-    int wi          = problem.GetOutWidth();
-    int n           = problem.GetBatchSize();
-    int k           = problem.GetInChannels();
-    int c           = problem.GetOutChannels();
-    int do_         = problem.GetInDepth();
-    int ho          = problem.GetInHeight();
-    int wo          = problem.GetInWidth();
-    int sz          = problem.GetInDepth() > 1 ? problem.GetKernelStrideD() : 1;
-    int sy          = problem.GetInHeight() > 1 ? problem.GetKernelStrideH() : 1;
-    int sx          = problem.GetInWidth() > 1 ? problem.GetKernelStrideW() : 1;
-    int dz          = problem.GetWeightsDepth() > 1 ? problem.GetDilationD() : 1;
-    int dy          = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
-    int dx          = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
-    int pz          = problem.GetPadD();
-    int py          = problem.GetPadH();
-    int px          = problem.GetPadW();
-    int fz          = problem.GetWeightsDepth();
-    int fy          = problem.GetWeightsHeight();
-    int fx          = problem.GetWeightsWidth();
-    int group       = problem.GetGroupCount();
-    int c_per_group = c / group;
-    int k_per_group = k / group;
-
-    size_t block_size = 256;
-    size_t grid_size  = 1;
-    if(problem.IsLayoutDefault())
-    {
-        grid_size = static_cast<size_t>(n) * c;
-    }
-    else if(problem.IsLayoutNHWC())
-    {
-        if(problem.Is2d())
-            grid_size = static_cast<size_t>(group) * n * hi;
-        else
-            grid_size = static_cast<size_t>(group) * n * di;
-    }
-    else
-    {
-        MIOPEN_THROW("Unsupported layout");
-    }
-
-    KernelInfo kernel;
-
-    kernel.kernel_file = ConvDirectNaiveConvKernelFile(ctx, problem);
-    kernel.kernel_name = ConvDirectNaiveConvKernelName(problem);
-    kernel.g_wk.clear();
-
-    kernel.g_wk.push_back(grid_size * block_size);
-    kernel.g_wk.push_back(1);
-    kernel.g_wk.push_back(1);
-    kernel.l_wk.clear();
-    kernel.l_wk.push_back(block_size);
-    kernel.l_wk.push_back(1);
-    kernel.l_wk.push_back(1);
-
-    const auto is_f8 = (kernel.kernel_file == "fp8_naive_conv.cpp");
-
-    kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx, problem);
-
-    int G_stride_idx = conv_internal::GetGroupStrideIndex(problem);
-
     if(problem.Is2d())
     {
-        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-            const auto kern = kernels[0];
-            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                decltype(auto) data_ctx =
-                    primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
-                const auto& tensors = data_ctx.tensors;
-                float elapsed       = 0;
-                auto in_strides = conv_internal::MakeStrideArray<5>(conv_internal::SplitStrideCtoGC(
-                    group, tensors.inDesc.GetStrides(), G_stride_idx));
-                // For weights, we split K to (G, K_per_group), which is always index 0
-                auto wei_strides = conv_internal::MakeStrideArray<5>(
-                    conv_internal::SplitWeiStrideKtoGK(k_per_group, tensors.wDesc.GetStrides()));
-                auto out_strides =
-                    conv_internal::MakeStrideArray<5>(conv_internal::SplitStrideCtoGC(
-                        group, tensors.outDesc.GetStrides(), G_stride_idx));
-                /// \ref backward_tensors_reversed_why
-                if(is_f8)
-                {
-                    handle.Run(kern)(tensors.out,
-                                     tensors.w,
-                                     tensors.in,
-                                     out_strides,
-                                     wei_strides,
-                                     in_strides,
-                                     hi,
-                                     wi,
-                                     n,
-                                     k_per_group,
-                                     c_per_group,
-                                     ho,
-                                     wo,
-                                     sy,
-                                     sx,
-                                     dy,
-                                     dx,
-                                     py,
-                                     px,
-                                     fy,
-                                     fx,
-                                     group,
-                                     problem.GetConv().attribute.fp8rounding_mode.Get() ==
-                                         miopenF8RoundingModeStochastic,
-                                     problem.GetConv().attribute.fp8rounding_mode.GetSeed());
-                }
-                else
-                {
-                    handle.Run(kern)(tensors.out,
-                                     tensors.w,
-                                     tensors.in,
-                                     out_strides,
-                                     wei_strides,
-                                     in_strides,
-                                     hi,
-                                     wi,
-                                     n,
-                                     k_per_group,
-                                     c_per_group,
-                                     ho,
-                                     wo,
-                                     sy,
-                                     sx,
-                                     dy,
-                                     dx,
-                                     py,
-                                     px,
-                                     fy,
-                                     fx,
-                                     group);
-                }
-                if(handle.IsProfilingEnabled())
-                    elapsed += handle.GetKernelTime();
-
-                if(handle.IsProfilingEnabled())
-                {
-                    handle.ResetKernelTime();
-                    handle.AccumKernelTime(elapsed);
-                }
-            };
-        };
+        result = conv_internal::GetConv2DBWDSolution(ctx, problem);
     }
     else
     {
-        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-            const auto kern = kernels[0];
-            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                decltype(auto) data_ctx =
-                    primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
-                const auto& tensors = data_ctx.tensors;
-                float elapsed       = 0;
-
-                auto in_strides = conv_internal::MakeStrideArray<6>(conv_internal::SplitStrideCtoGC(
-                    group, tensors.inDesc.GetStrides(), G_stride_idx));
-                // For weights, we split K to (G, K_per_group), which is always index 0
-                auto wei_strides = conv_internal::MakeStrideArray<6>(
-                    conv_internal::SplitWeiStrideKtoGK(k_per_group, tensors.wDesc.GetStrides()));
-                auto out_strides =
-                    conv_internal::MakeStrideArray<6>(conv_internal::SplitStrideCtoGC(
-                        group, tensors.outDesc.GetStrides(), G_stride_idx));
-
-                /// \anchor backward_tensors_reversed_why
-                /// \todo Someone made the silly decision of swapping in and
-                /// out pointers in ConvTensors for backward pass, so now I have to
-                /// pass out in place of in, out_strides in place of in_strides and
-                /// vice-versa --amberhassaan
-                handle.Run(kern)(tensors.out,
-                                 tensors.w,
-                                 tensors.in,
-                                 out_strides,
-                                 wei_strides,
-                                 in_strides,
-                                 di,
-                                 hi,
-                                 wi,
-                                 n,
-                                 k_per_group,
-                                 c_per_group,
-                                 do_,
-                                 ho,
-                                 wo,
-                                 sz,
-                                 sy,
-                                 sx,
-                                 dz,
-                                 dy,
-                                 dx,
-                                 pz,
-                                 py,
-                                 px,
-                                 fz,
-                                 fy,
-                                 fx,
-                                 group);
-                if(handle.IsProfilingEnabled())
-                    elapsed += handle.GetKernelTime();
-
-                if(handle.IsProfilingEnabled())
-                {
-                    handle.ResetKernelTime();
-                    handle.AccumKernelTime(elapsed);
-                }
-            };
-        };
+        result = conv_internal::GetConv3DBWDSolution(ctx, problem);
     }
-    result.construction_params.push_back(kernel);
     return result;
 }
 
