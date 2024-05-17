@@ -34,10 +34,10 @@
 #include <gtest/gtest.h>
 
 #include "get_handle.hpp"
-
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include "../workspace.hpp"
+#include "gtest/mha_helper.hpp"
 
 
 miopenStatus_t
@@ -377,6 +377,7 @@ public:
             PrepareOpGraphAndEngines(handle);
 
             MakeVariantPackAndRun(handle);
+            RunCPUverify(handle);
 
         }
         catch(const miopen::Exception& ex)
@@ -615,6 +616,72 @@ private:
         // Execute the plan with a variant pack.
         miopenBackendExecute(rawHandle, m_executionPlan->GetDescriptor(), varpack->GetDescriptor());
     }
+
+    void RunCPUverify(miopen::Handle& handle)
+    {
+        auto softmaxRef  = tensor<float>{m_testN, m_testH, m_testS, m_testS};
+        auto oDescRef    = tensor<float>{m_testN, m_testH, m_testS, m_testD};
+        auto mDescRef    = tensor<float>{m_testN, m_testH, m_testS, 1};
+        auto zInvDescRef = tensor<float>{m_testN, m_testH, m_testS, 1};
+        float amaxSRef   = 0;
+        float amaxORef   = 0;
+
+        auto lookup = [this](const int64_t id) -> const tensor<float>& {
+            auto it = m_realTensorMap.find(id);
+            assert(it != m_realTensorMap.cend());
+            return it->second->m_tensor;
+        };
+
+        test::cpu::MultiHeadAttentionfp8(lookup(miopenTensorMhaQ),
+                                         lookup(miopenTensorMhaK),
+                                         lookup(miopenTensorMhaV),
+                                         softmaxRef,
+                                         mDescRef,
+                                         zInvDescRef,
+                                         lookup(miopenTensorMhaDescaleO)[0],
+                                         lookup(miopenTensorMhaDescaleK)[0],
+                                         lookup(miopenTensorMhaDescaleV)[0],
+                                         lookup(miopenTensorMhaDescaleS)[0],
+                                         lookup(miopenTensorMhaScaleS)[0],
+                                         lookup(miopenTensorMhaScaleO)[0],
+                                         lookup(miopenTensorMhaDropoutProbability)[0],
+                                         static_cast<uint64_t>(lookup(miopenTensorMhaDropoutSeed)[0]),
+                                         static_cast<uint64_t>(lookup(miopenTensorMhaDropoutOffset)[0]),
+                                         amaxSRef,
+                                         amaxORef,
+                                         oDescRef);
+
+        auto GetResult = [&](const int64_t& id) -> const tensor<float>& {
+            auto it = m_realTensorMap.find(id);
+            assert(it != m_realTensorMap.cend());
+
+            TensorDataPtr ptr = it->second;
+            ptr->m_tensor.data = handle.Read<float>(ptr->m_gpuBuffer, ptr->m_tensor.data.size());
+            return ptr->m_tensor;
+        };
+
+        const double errorThreshold = 5e-6;
+
+        const auto& resAmaxS = GetResult(miopenTensorMhaAmaxS);
+        auto amaxSAbsDiff  = std::abs(amaxSRef - resAmaxS[0]);
+        EXPECT_LT(amaxSAbsDiff, errorThreshold)
+            << " ref: " << amaxSRef << " result: " << resAmaxS[0];
+
+        const auto& resAmaxO = GetResult(miopenTensorMhaAmaxO);
+        auto amaxOAbsDiff  = std::abs(amaxORef - resAmaxO[0]);
+        EXPECT_LT(amaxOAbsDiff, errorThreshold)
+            << " ref: " << amaxORef << " result: " << resAmaxO[0];
+
+        double mError = miopen::rms_range(mDescRef, GetResult(miopenTensorMhaM));
+        EXPECT_LT(mError, errorThreshold);
+
+        double zInvError = miopen::rms_range(zInvDescRef, GetResult(miopenTensorMhaZInv));
+        EXPECT_LT(zInvError, errorThreshold);
+
+        double oError = miopen::rms_range(oDescRef, GetResult(miopenTensorMhaO));
+        EXPECT_LT(oError, errorThreshold);
+    }
+
 
     void AddGraphNode(DescriptorWrapperPtr node) { m_nodeVector.push_back(node); }
 
