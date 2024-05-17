@@ -1675,16 +1675,23 @@ miopenConvolutionBackwardWeightsImmediate(miopenHandle_t handle,
                                           size_t workSpaceSize,
                                           const uint64_t solution_id);
 
-/*! @brief Query the workspace size required for a forward convolution layer
+/*! @brief Query the workspace size required for a forward convolution algorithm.
  *
- * This call is required and must be executed once before running
- * miopenFindConvolutionForwardAlgorithm()
- * in order to determine the largest required allocation for the algorithm search; i.e., the maximum
- * size
- * of the memory needed from the set of potential forward convolution algorithm is returned.
+ * For given tensor and convolution descriptors, this function calculates and returns the minimum
+ * size of the workspace that must be provided to miopenFindConvolutionForwardAlgorithm() in order
+ * for the latter to find the best candidate from the available forward data convolution algorithms.
  *
- * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
- * this.
+ * WARNING: Providing smaller workspace may result in the selection of a slow convolution
+ * algorithm, and therefore affect library performance.
+ *
+ * It should be assumed that the required workspace size is different for each convolution
+ * configuration. Therefore, typically this function should be called at least once for each
+ * convolution configuration used.
+ *
+ * Since the convolution configuration is determined by tensor and convolution descriptors, the user
+ * should ensure that all descriptors contain complete information. For example, if Group/Depthwise
+ * convolution mode is used, then miopenSetConvolutionGroupCount() should be called before running
+ * this, and so on.
  *
  * @param handle         MIOpen handle (input)
  * @param wDesc          Tensor descriptor for weight tensor w (input)
@@ -1735,10 +1742,14 @@ miopenConvolutionForwardGetWorkSpaceSize(miopenHandle_t handle,
  * @param requestAlgoCount   Number of algorithms to return kernel times (input)
  * @param returnedAlgoCount  Pointer to number of algorithms returned (output)
  * @param perfResults        Pointer to union of best algorithm for forward and backwards (input)
- * @param workSpace          Pointer to workspace required for the search (output)
- * @param workSpaceSize      Size in bytes of the memory needed for find (output)
- * @param exhaustiveSearch   A boolean to toggle a full search of all algorithms and configurations
- * (input)
+ * @param workSpace          Pointer to workspace buffer (input).
+ * @param workSpaceSize      Size in bytes of the workspace buffer (input).
+ *                           The buffer must be allocated on the device by the caller.
+ *                           The size of the buffer should be determined by calling
+ *                           miopenConvolutionForwardGetWorkSpaceSize(), see its
+ *                           documentation for details.
+ * @param exhaustiveSearch   A boolean to toggle a full search of all algorithms
+ *                           and configurations (input)
  * @return                   miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -1763,7 +1774,7 @@ miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
  * miopenFindConvolutionForwardAlgorithm() must have been executed previously to
  * determine the required memory needed for the workspace and the best convolutional algorithm.
  * The scaling parameter alpha (float) and shift parameter beta (float) are only supported for
- * alpha = 1 and beta = 0.
+ * alpha = 1 and beta = 0 in 2D. In 3D, these parameters can take other values.
  *
  * The forward convolution is designed to accommodate both packed and non-packed tensor strides for
  * multiple data types and dimensions across various platforms. This flexibility ensures optimal
@@ -1828,16 +1839,24 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionForwardBias(miopenHandle_t handle,
                                                           const miopenTensorDescriptor_t yDesc,
                                                           void* y);
 
-/*! @brief Get the GPU memory required for the backward data convolution algorithm.
+/*! @brief Query the workspace size required for a backward data convolution algorithm.
  *
- * For a provided tensor descriptors and algorithm selection, this function calculates and returns
- * the workspace size required for back propagation on data. This call is required and must be
- * executed once before running miopenFindConvolutionBackwardDataAlgorithm() in order to determine
- * the largest required allocation for the algorithm search; i.e., the maximum size of the memory
- * needed from the set of potential backward convolution algorithm is returned.
+ * For given tensor and convolution descriptors, this function calculates and returns the minimum
+ * size of the workspace that must be provided to miopenFindConvolutionBackwardDataAlgorithm() in
+ * order for the latter to find the best candidate from the available backward data convolution
+ * algorithms.
  *
- * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
- * this.
+ * WARNING: Providing smaller workspace may result in the selection of a slow convolution
+ * algorithm, and therefore affect library performance.
+ *
+ * It should be assumed that the required workspace size is different for each convolution
+ * configuration. Therefore, typically this function should be called at least once for each
+ * convolution configuration used.
+ *
+ * Since the convolution configuration is determined by tensor and convolution descriptors, the user
+ * should ensure that all descriptors contain complete information. For example, if Group/Depthwise
+ * convolution mode is used, then miopenSetConvolutionGroupCount() should be called before running
+ * this, and so on.
  *
  * @param handle         MIOpen handle (input)
  * @param dyDesc         Tensor descriptor for data input tensor dy (input)
@@ -1888,10 +1907,14 @@ miopenConvolutionBackwardDataGetWorkSpaceSize(miopenHandle_t handle,
  * @param requestAlgoCount   Number of algorithms to return kernel times (input)
  * @param returnedAlgoCount  Pointer to number of algorithms returned (output)
  * @param perfResults        Pointer to union of best algorithm for forward and backwards (output)
- * @param workSpace          Pointer to workspace required for the search (output)
- * @param workSpaceSize      Size in bytes of the memory needed for find (output)
- * @param exhaustiveSearch   A boolean to toggle a full search of all algorithms and configurations
- * (input)
+ * @param workSpace          Pointer to workspace buffer (input).
+ * @param workSpaceSize      Size in bytes of the workspace buffer (input).
+ *                           The buffer must be allocated on the device by the caller.
+ *                           The size of the buffer should be determined by calling
+ *                           miopenConvolutionBackwardDataGetWorkSpaceSize(), see its
+ *                           documentation for details.
+ * @param exhaustiveSearch   A boolean to toggle a full search of all algorithms
+ *                           and configurations (input)
  * @return                   miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -1960,16 +1983,22 @@ miopenConvolutionBackwardData(miopenHandle_t handle,
 
 /*! @brief Get the GPU memory required for the backward weights convolution algorithm.
  *
+ * For given tensor and convolution descriptors, this function calculates and returns the minimum
+ * size of the workspace that must be provided to miopenFindConvolutionBackwardWeightsAlgorithm() in
+ * order for the latter to find the best candidate from the available backward weights convolution
+ * algorithms.
  *
- * For a provided tensor descriptors and algorithm selection, this function calculates and returns
- * the workspace size required for back propagation on data. This call is required and must be
- * executed once before running miopenFindConvolutionBackwardWeightsAlgorithm() in order to
- * determine
- * the largest required allocation for the algorithm search; i.e., the maximum size of the memory
- * needed from the set of potential backward weights convolution algorithm is returned.
+ * WARNING: Providing smaller workspace may result in the selection of a slow convolution
+ * algorithm, and therefore affect library performance.
  *
- * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
- * this.
+ * It should be assumed that the required workspace size is different for each convolution
+ * configuration. Therefore, typically this function should be called at least once for each
+ * convolution configuration used.
+ *
+ * Since the convolution configuration is determined by tensor and convolution descriptors, the user
+ * should ensure that all descriptors contain complete information. For example, if Group/Depthwise
+ * convolution mode is used, then miopenSetConvolutionGroupCount() should be called before running
+ * this, and so on.
  *
  * @param handle         MIOpen handle (input)
  * @param dyDesc         Tensor descriptor for data input tensor dy (input)
@@ -2020,10 +2049,14 @@ miopenConvolutionBackwardWeightsGetWorkSpaceSize(miopenHandle_t handle,
  * @param requestAlgoCount   Number of algorithms to return kernel times (input)
  * @param returnedAlgoCount  Pointer to number of algorithms returned (output)
  * @param perfResults        Pointer to union of best algorithm for forward and backwards (output)
- * @param workSpace          Pointer to workspace required for the search (output)
- * @param workSpaceSize      Size in bytes of the memory needed for find (output)
- * @param exhaustiveSearch   A boolean to toggle a full search of all algorithms and configurations
- * (input)
+ * @param workSpace          Pointer to workspace buffer (input).
+ * @param workSpaceSize      Size in bytes of the workspace buffer (input).
+ *                           The buffer must be allocated on the device by the caller.
+ *                           The size of the buffer should be determined by calling
+ *                           miopenConvolutionBackwardWeightsGetWorkSpaceSize(), see its
+ *                           documentation for details.
+ * @param exhaustiveSearch   A boolean to toggle a full search of all algorithms
+ *                           and configurations (input)
  * @return                   miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -5323,6 +5356,9 @@ typedef enum
     miopenProblemDirectionForward         = 0,
     miopenProblemDirectionBackward        = 1,
     miopenProblemDirectionBackwardWeights = 2,
+#ifdef MIOPEN_BETA_API
+    miopenProblemDirectionInference = 4,
+#endif
 } miopenProblemDirection_t;
 
 /*! @enum miopenTensorArgumentId_t
@@ -5369,20 +5405,39 @@ typedef enum
     miopenTensorMhaAmaxDS             = 35,
 
 #ifdef MIOPEN_BETA_API
-    miopenTensorActivationX  = 36,
-    miopenTensorActivationY  = 37,
-    miopenTensorActivationDX = 38,
-    miopenTensorActivationDY = 39,
-    miopenTensorBiasX        = 40,
-    miopenTensorBiasY        = 41,
-    miopenTensorBias         = 42,
-    miopenTensorSoftmaxX     = 43,
-    miopenTensorSoftmaxY     = 44,
-    miopenTensorSoftmaxDX    = 45,
-    miopenTensorSoftmaxDY    = 46,
+    miopenTensorActivationX                = 36,
+    miopenTensorActivationY                = 37,
+    miopenTensorActivationDX               = 38,
+    miopenTensorActivationDY               = 39,
+    miopenTensorBiasX                      = 40,
+    miopenTensorBiasY                      = 41,
+    miopenTensorBias                       = 42,
+    miopenTensorSoftmaxX                   = 43,
+    miopenTensorSoftmaxY                   = 44,
+    miopenTensorSoftmaxDX                  = 45,
+    miopenTensorSoftmaxDY                  = 46,
+    miopenTensorBatchnormX                 = 47,
+    miopenTensorBatchnormY                 = 48,
+    miopenTensorBatchnormRunningMean       = 49,
+    miopenTensorBatchnormRunningVariance   = 50,
+    miopenTensorBatchnormSavedMean         = 51,
+    miopenTensorBatchnormSavedVariance     = 52,
+    miopenTensorBatchnormScale             = 53,
+    miopenTensorBatchnormScaleDiff         = 54,
+    miopenTensorBatchnormEstimatedMean     = 55,
+    miopenTensorBatchnormEstimatedVariance = 56,
+    miopenTensorBatchnormBias              = 57,
+    miopenTensorBatchnormBiasDiff          = 58,
+    miopenTensorBatchnormDX                = 59,
+    miopenTensorBatchnormDY                = 60,
 #endif
 
     miopenTensorArgumentIsScalar = 1U << 31,
+
+#ifdef MIOPEN_BETA_API
+    miopenScalarBatchnormExpAvgFactor = miopenTensorArgumentIsScalar | 1,
+    miopenScalarBatchnormEpsilon      = miopenTensorArgumentIsScalar | 2,
+#endif
 } miopenTensorArgumentId_t;
 
 /*! @enum miopenTensorArgumentId_t
@@ -5718,6 +5773,19 @@ MIOPEN_EXPORT miopenStatus_t
 miopenCreateActivationProblem(miopenProblem_t* problem,
                               miopenActivationDescriptor_t operatorDesc,
                               miopenProblemDirection_t direction);
+
+/*! @brief Initializes a problem object describing an activation operation.
+ * @note As of now there is no way to actually get any solution for this kind of problems.
+ *
+ * @param problem   Pointer to the problem to initialize
+ * @param mode      Batchnorm mode
+ * @param direction Direction of the operation
+ * @return          miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenCreateBatchnormProblem(miopenProblem_t* problem,
+                                                          miopenBatchNormMode_t mode,
+                                                          bool runningMeanVariance,
+                                                          miopenProblemDirection_t direction);
 
 /*! @brief Fuse two problems into a single one. Problems can be either regular, or fused. No
  * problems are disposed in the process, so the problem2 should be destroyed manually if it is not
@@ -6623,6 +6691,19 @@ typedef enum
     MIOPEN_RNG_DISTRIBUTION_NORMAL,
 } miopenRngDistribution_t;
 
+typedef enum
+{
+    /* IDENTITY      alpha = 1.0 and beta = 0.0 */
+    /* SCALE         alpha = 4.2 and beta = 0.0 */
+    /* BILINEAR      alpha = 3.2 and beta = 1.1 */
+    /* ERROR_STATE   alpha = 0.0 and beta = 3.1 */
+
+    DEFAULT     = 0, /* alpha = 1.0 and beta = 0.0.*/
+    SCALE       = 1, /* alpha with some value and beta 0.0*/
+    BILINEAR    = 2, /* both alpha and beta with some value*/
+    ERROR_STATE = 3, /* alpha 0.0 and beta with some value, this should not occur.
+                        But used to check for errors.*/
+} miopenAlphaBetaCase_t;
 /*! @brief Operation mode of CUDNN_BACKEND_ENGINEHEUR_DESCRIPTOR
  *
  *  An enumerated type to indicate the operation mode of a CUDNN_BACKEND_ENGINEHEUR_DESCRIPTOR

@@ -158,11 +158,11 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     params += MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
 
 #if MIOPEN_BUILD_DEV
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_HIP_VERBOSE)))
+    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_HIP_VERBOSE)))
     {
         params += " -v";
     }
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_HIP_DUMP)))
+    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_HIP_DUMP)))
     {
         params += " -gline-tables-only";
         params += " -save-temps";
@@ -183,7 +183,8 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #endif
         tmp_dir->Execute(MIOPEN_HIP_COMPILER, args);
         if(!fs::exists(bin_file))
-            MIOPEN_THROW("Failed cmd: '" MIOPEN_HIP_COMPILER "', args: '" + args + '\'');
+            MIOPEN_THROW("Failed cmd: '" + std::string(MIOPEN_HIP_COMPILER) + "', args: '" + args +
+                         '\'');
     }
 
 #if defined(MIOPEN_OFFLOADBUNDLER_BIN) && !MIOPEN_BACKEND_HIP
