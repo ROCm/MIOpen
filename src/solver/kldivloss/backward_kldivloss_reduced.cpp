@@ -35,7 +35,7 @@
 #include <miopen/target_properties.hpp>
 #include <miopen/tensor_view.hpp>
 
-#define LOCAL_SIZE_UNREDUCED_FWD 1024
+#define LOCAL_SIZE_UNREDUCED_BWD 1024
 
 namespace miopen {
 
@@ -43,19 +43,19 @@ namespace solver {
 
 namespace kldivloss {
 
-bool KLDivLossUnreducedForward5d::IsApplicable(
+bool KLDivLossReducedBackward5d::IsApplicable(
     const ExecutionContext& context,
-    const miopen::kldivloss::UnreducedProblemDescription& problem) const
+    const miopen::kldivloss::ReducedProblemDescription& problem) const
 {
-    if(!KLDivLossUnreducedSolver::IsApplicable(context, problem))
+    if(!KLDivLossReducedSolver::IsApplicable(context, problem))
         return false;
 
     return true;
 }
 
-ConvSolution KLDivLossUnreducedForward5d::GetSolution(
+ConvSolution KLDivLossReducedBackward5d::GetSolution(
     const ExecutionContext& context,
-    const miopen::kldivloss::UnreducedProblemDescription& problem) const
+    const miopen::kldivloss::ReducedProblemDescription& problem) const
 {
     std::ignore = context;
 
@@ -78,29 +78,35 @@ ConvSolution KLDivLossUnreducedForward5d::GetSolution(
             {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
         };
 
-        result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_UNREDUCED_FWD},
+        result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_UNREDUCED_BWD},
                                                              {N_total},
                                                              "MIOpenKLDivLoss.cpp",
-                                                             "KLDivLossUnreducedForward5d",
+                                                             "KLDivLossReducedBackward5d",
                                                              build_params));
     }
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::kldivloss::InvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::kldivloss::BwdInvokeParams>();
 
-            auto input_tv  = get_inner_expanded_tv_5d(deref(params.inputDesc));
-            auto target_tv = get_inner_expanded_tv_5d(deref(params.targetDesc));
-            auto output_tv = get_inner_expanded_tv_5d(deref(params.outputDesc));
+            auto input_tv       = get_inner_expanded_tv_5d(deref(params.inputDesc));
+            auto target_tv      = get_inner_expanded_tv_5d(deref(params.targetDesc));
+            auto output_grad_tv = get_inner_expanded_tv_5d(deref(params.outputGradDesc));
+            auto input_grad_tv  = get_inner_expanded_tv_5d(deref(params.inputGradDesc));
+            auto target_grad_tv = get_inner_expanded_tv_5d(deref(params.targetGradDesc));
 
             kernel(params.input,
                    params.target,
-                   params.output,
+                   params.output_grad,
+                   params.input_grad,
+                   params.target_grad,
                    params.log_target,
                    input_tv,
                    target_tv,
-                   output_tv);
+                   output_grad_tv,
+                   input_grad_tv,
+                   target_grad_tv);
         };
     };
 

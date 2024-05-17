@@ -60,6 +60,7 @@ NetworkConfig ReducedProblemDescription::MakeNetworkConfig() const
     size_t numel       = GetNtotal();
     size_t num_batches = inputDesc.GetLengths()[0];
     size_t num_dims    = inputDesc.GetSize();
+    float ndivisor = GetDivisor();
     bool is_log_target = GetLogTarget();
     auto input_dtype   = inputDesc.GetType();
 
@@ -67,6 +68,7 @@ NetworkConfig ReducedProblemDescription::MakeNetworkConfig() const
 
     ss << "kldivloss_reduce";
     ss << "is_fwd" << is_fwd;
+    ss << "divisor" << ndivisor;
     ss << "log_target" << is_log_target;
     ss << "input_dtype" << input_dtype;
     ss << "numel" << numel;

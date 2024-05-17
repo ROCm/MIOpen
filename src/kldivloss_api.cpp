@@ -198,42 +198,49 @@ miopenKLDivLossUnreducedBackward(miopenHandle_t handle,
     });
 }
 
-// extern "C" miopenStatus_t miopenNLLLossReducedBackward(miopenHandle_t handle,
-//                                                       const miopenTensorDescriptor_t
-//                                                       inputGradDesc, void* input_grad, const
-//                                                       miopenTensorDescriptor_t targetDesc, const
-//                                                       void* target, const
-//                                                       miopenTensorDescriptor_t weightDesc, const
-//                                                       void* weight, const
-//                                                       miopenTensorDescriptor_t outputGradDesc,
-//                                                       void* output_grad,
-//                                                       const int32_t ignore_index,
-//                                                       const float divisor)
-// {
-//     MIOPEN_LOG_FUNCTION(handle,
-//                         inputGradDesc,
-//                         input_grad,
-//                         targetDesc,
-//                         target,
-//                         weightDesc,
-//                         weight,
-//                         outputGradDesc,
-//                         output_grad,
-//                         ignore_index,
-//                         divisor);
+extern "C" miopenStatus_t
+miopenKLDivLossReducedBackward(miopenHandle_t handle,
+                                 const miopenTensorDescriptor_t inputDesc,
+                                 const void* input,
+                                 const miopenTensorDescriptor_t targetDesc,
+                                 const void* target,
+                                 const miopenTensorDescriptor_t outputGradDesc,
+                                 const void* output_grad,
+                                 const miopenTensorDescriptor_t inputGradDesc,
+                                 void* input_grad,
+                                 const miopenTensorDescriptor_t targetGradDesc,
+                                 void* target_grad,
+                                 float divisor,
+                                 bool log_target)
+{
+    MIOPEN_LOG_FUNCTION(handle,
+                        inputDesc,
+                        input,
+                        targetDesc,
+                        target,
+                        outputGradDesc,
+                        output_grad,
+                        inputGradDesc,
+                        input_grad,
+                        targetGradDesc,
+                        target_grad,
+                        divisor,
+                        log_target);
 
-//     LogCmdNLLLoss(inputGradDesc, false);
-//     return miopen::try_([&] {
-//         miopen::NLLLossReducedBackward(miopen::deref(handle),
-//                                       miopen::deref(inputGradDesc),
-//                                       DataCast(input_grad),
-//                                       miopen::deref(targetDesc),
-//                                       DataCast(target),
-//                                       miopen::deref(weightDesc),
-//                                       DataCast(weight),
-//                                       miopen::deref(outputGradDesc),
-//                                       DataCast(output_grad),
-//                                       ignore_index,
-//                                       divisor);
-//     });
-// }
+    LogCmdKLDivLoss(inputGradDesc, false);
+    return miopen::try_([&] {
+        miopen::KLDivLossReducedBackward(miopen::deref(handle),
+                                           miopen::deref(inputDesc),
+                                           DataCast(input),
+                                           miopen::deref(targetDesc),
+                                           DataCast(target),
+                                           miopen::deref(outputGradDesc),
+                                           DataCast(output_grad),
+                                           miopen::deref(inputGradDesc),
+                                           DataCast(input_grad),
+                                           miopen::deref(targetGradDesc),
+                                           DataCast(target_grad),
+                                           divisor,
+                                           log_target);
+    });
+}

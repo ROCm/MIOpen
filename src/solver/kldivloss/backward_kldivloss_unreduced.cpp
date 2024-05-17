@@ -43,23 +43,17 @@ namespace solver {
 
 namespace kldivloss {
 
-bool KLDivLossUnreducedBackward::IsApplicable(
-    const ExecutionContext& /*context*/,
+bool KLDivLossUnreducedBackward5d::IsApplicable(
+    const ExecutionContext& context,
     const miopen::kldivloss::UnreducedProblemDescription& problem) const
 {
-    if(!problem.IsValidLength())
-    {
+    if(!KLDivLossUnreducedSolver::IsApplicable(context, problem))
         return false;
-    }
-    if(!problem.IsValidStride())
-    {
-        return false;
-    }
 
     return true;
 }
 
-ConvSolution KLDivLossUnreducedBackward::GetSolution(
+ConvSolution KLDivLossUnreducedBackward5d::GetSolution(
     const ExecutionContext& context,
     const miopen::kldivloss::UnreducedProblemDescription& problem) const
 {

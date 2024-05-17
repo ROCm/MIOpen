@@ -60,7 +60,7 @@ miopenStatus_t KLDivLossUnreducedForward(Handle& handle,
     }();
 
     const auto algo    = AlgorithmName{"KLDivLossUnreducedForward"};
-    const auto solvers = solver::SolverContainer<solver::kldivloss::KLDivLossUnreducedForward>{};
+    const auto solvers = solver::SolverContainer<solver::kldivloss::KLDivLossUnreducedForward5d>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
@@ -163,49 +163,55 @@ miopenStatus_t KLDivLossUnreducedBackward(Handle& handle,
         return tmp;
     }();
     const auto algo    = AlgorithmName{"KLDivLossUnreducedBackward"};
-    const auto solvers = solver::SolverContainer<solver::kldivloss::KLDivLossUnreducedBackward>{};
+    const auto solvers = solver::SolverContainer<solver::kldivloss::KLDivLossUnreducedBackward5d>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
     return miopenStatusSuccess;
 }
 
-// miopenStatus_t NLLLossReducedBackward(Handle& handle,
-//                                      const TensorDescriptor& inputGradDesc,
-//                                      Data_t input_grad,
-//                                      const TensorDescriptor& targetDesc,
-//                                      ConstData_t target,
-//                                      const TensorDescriptor& weightDesc,
-//                                      ConstData_t weight,
-//                                      const TensorDescriptor& outputGradDesc,
-//                                      Data_t output_grad,
-//                                      int32_t ignore_index,
-//                                      float divisor)
-// {
-//     const auto problem = nllloss::ReducedProblemDescription{
-//         inputGradDesc, targetDesc, weightDesc, outputGradDesc, ignore_index, false};
+miopenStatus_t KLDivLossReducedBackward(Handle& handle,
+                                          const TensorDescriptor& inputDesc,
+                                          ConstData_t input,
+                                          const TensorDescriptor& targetDesc,
+                                          ConstData_t target,
+                                          const TensorDescriptor& outputGradDesc,
+                                          ConstData_t output_grad,
+                                          const TensorDescriptor& inputGradDesc,
+                                          Data_t input_grad,
+                                          const TensorDescriptor& targetGradDesc,
+                                          Data_t target_grad,
+                                          float divisor,
+                                          bool log_target)
+{
+    const auto problem = kldivloss::ReducedProblemDescription{
+        inputDesc, targetDesc, outputGradDesc, divisor, log_target, false};
 
-//     const auto invoke_params = [&]() {
-//         auto tmp           = nllloss::BwdInvokeParams{};
-//         tmp.inputGradDesc  = &inputGradDesc;
-//         tmp.targetDesc     = &targetDesc;
-//         tmp.weightDesc     = &weightDesc;
-//         tmp.outputGradDesc = &outputGradDesc;
+    const auto invoke_params = [&]() {
+        auto tmp           = kldivloss::BwdInvokeParams{};
+        tmp.inputDesc      = &inputDesc;
+        tmp.targetDesc     = &targetDesc;
+        tmp.outputGradDesc = &outputGradDesc;
+        tmp.inputGradDesc  = &inputGradDesc;
+        tmp.targetGradDesc = &targetGradDesc;
 
-//         tmp.input_grad   = input_grad;
-//         tmp.target       = target;
-//         tmp.weight       = weight;
-//         tmp.output_grad  = output_grad;
-//         tmp.ignore_index = ignore_index;
-//         tmp.divisor      = divisor;
-//         return tmp;
-//     }();
-//     const auto algo    = AlgorithmName{"NLLLossReducedBackward"};
-//     const auto solvers = solver::SolverContainer<solver::nllloss::NLLLossReducedBackward4d>{};
+        tmp.input       = input;
+        tmp.target      = target;
+        tmp.output_grad = output_grad;
+        tmp.input_grad  = input_grad;
+        tmp.target_grad = target_grad;
 
-//     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+        tmp.divisor = divisor;
+        tmp.log_target = log_target;
 
-//     return miopenStatusSuccess;
-// }
+        return tmp;
+    }();
+    const auto algo    = AlgorithmName{"KLDivLossReducedBackward"};
+    const auto solvers = solver::SolverContainer<solver::kldivloss::KLDivLossReducedBackward5d>{};
+
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+
+    return miopenStatusSuccess;
+}
 
 } // namespace miopen

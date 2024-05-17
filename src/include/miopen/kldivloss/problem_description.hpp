@@ -66,20 +66,12 @@ struct ProblemDescription : ProblemDescriptionBase
         {
             if(targetDesc.GetLengths()[i] != inputDesc.GetLengths()[i])
             {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
                 MIOPEN_THROW(miopenStatusBadParm, "KLDivLoss: Tensor sizes do not match.");
-#else
-                return false;
-#endif
             }
         }
         if(inputDesc.GetSize() > 5)
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "KLDivLoss: Input tensor size > 5 is not supported.");
-#else
-            return false;
-#endif
         }
         return true;
     }
@@ -100,11 +92,7 @@ struct ProblemDescription : ProblemDescriptionBase
             for(int i = 1; i < p.size(); ++i)
             {
                 if(p[i].first != p[i - 1].first * p[i - 1].second)
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
                     MIOPEN_THROW(miopenStatusBadParm, "KLDivLoss: Tensor strides do not valid.");
-#else
-                    return false;
-#endif
             }
             return true;
         };
@@ -145,25 +133,29 @@ struct ReducedProblemDescription : ProblemDescription
     ReducedProblemDescription(const TensorDescriptor& inputDesc_,
                               const TensorDescriptor& targetDesc_,
                               const TensorDescriptor& outputDesc_,
+                              float divisor_,
                               bool log_target_,
                               bool is_fwd_)
         : ProblemDescription(inputDesc_, targetDesc_, outputDesc_, log_target_, is_fwd_)
     {
+        divisor = divisor_;
         IsValidLength();
     }
 
+    float GetDivisor() const { return divisor; }
     bool IsValidLength() const
     {
-        if(!ProblemDescription::IsValidLength())
-            return false;
         if(outputDesc.GetSize() != 1 || outputDesc.GetLengths()[0] != 1)
             MIOPEN_THROW(miopenStatusBadParm, "KLDivLoss: Output Tensor size must be (1).");
+        if(!ProblemDescription::IsValidLength())
+            return false;
         return true;
     }
 
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
+    float divisor;
     NetworkConfig MakeForwardNetworkConfig() const;
 };
 

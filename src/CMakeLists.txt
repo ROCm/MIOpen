@@ -264,6 +264,9 @@ set( MIOpen_Source
     solver/kldivloss/forward_kldivloss_unreduced.cpp
     solver/kldivloss/backward_kldivloss_unreduced.cpp
     # solver/kldivloss/forward_kldivloss_reduced.cpp
+    solver/kldivloss/backward_kldivloss_reduced.cpp
+    solver/kldivloss/solver_unreduced.cpp
+    solver/kldivloss/solver_reduced.cpp
     solver/groupnorm/forward_groupnorm.cpp
     solver/layernorm/forward_layernorm.cpp
     solver/layernorm/forward_layernorm2d_ck.cpp
