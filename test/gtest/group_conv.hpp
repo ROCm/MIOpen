@@ -267,11 +267,11 @@ private:
         std::fill(input.begin(), input.end(), T(0));
     }
 
-    template <typename F>
-    void SetupWrw(F&& gen_value)
+    template <typename FI, typename FO>
+    void SetupWrw(FI&& gen_value_in, FO&& gen_value_out)
     {
-        input.generate(gen_value);
-        output.generate(gen_value);
+        input.generate(gen_value_in);
+        output.generate(gen_value_out);
         std::fill(weights.begin(), weights.end(), T{0});
     }
 
@@ -454,8 +454,20 @@ protected:
         }
         else
         {
+
+            // Half16 can store up to 16384.
+            // If we initialize tensor with 5 * number_of_accumulations in tensor
+            // this will cause over flow. Hence we pick smaller number, since
+            // our tests have tensor with large sizes.
+            auto gen_value_wrw_in = [](auto...) {
+                return prng::gen_A_to_B(static_cast<T>(-0.1), static_cast<T>(0.1));
+            };
+            auto gen_value_wrw_out = [](auto...) {
+                return prng::gen_A_to_B(static_cast<T>(-0.01), static_cast<T>(0.1));
+            };
             static_assert(CONV_DIR == Direction::BackwardWeights);
-            SetupWrw(gen_value);
+            // in and out are populated with different values.
+            SetupWrw(gen_value_wrw_in, gen_value_wrw_out);
         }
 
         auto& handle = get_handle();

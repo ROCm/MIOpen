@@ -148,10 +148,13 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
 
     ConvSolution result;
     result.invoker_factory = [ck_args     = CKArgsType{problem},
+                              problem_    = problem,
                               sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)}](
                                  const std::vector<Kernel>&) mutable {
-        return [ck_args = std::move(ck_args), sh_conv_ptr = std::move(sh_conv_ptr)](
-                   const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+        return [ck_args     = std::move(ck_args),
+                problem_    = std::move(problem_),
+                sh_conv_ptr = std::move(sh_conv_ptr)](const Handle& handle,
+                                                      const AnyInvokeParams& primitive_parameters) {
             const auto& data_ctx = primitive_parameters.CastTo<CastType>();
             auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx.tensors);
             auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
@@ -159,9 +162,19 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                 HipEventProfiler pfr(handle);
                 if constexpr(std::is_same<CastType, miopen::conv::WrWInvokeParams>::value)
                 {
-                    auto zero           = 0.0f;
-                    const auto& tensors = data_ctx.tensors;
-                    SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
+                    if(problem_.GetAlphaBetaCase() != BILINEAR)
+                    {
+                        auto zero           = 0.0f;
+                        const auto& tensors = data_ctx.tensors;
+                        SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
+                    }
+
+                    assert((problem_.GetAlphaBetaCase() == BILINEAR ||
+                            problem_.GetAlphaBetaCase() == SCALE ||
+                            ((problem_.GetOutDataType() == miopenHalf) &&
+                             ((problem_.GetInChannels() & 1) != 0 ||
+                              (problem_.GetOutChannels() & 1) != 0 /* Test if odd*/))) &&
+                           data_ctx.workSpace != nullptr);
 
                     if(data_ctx.workSpace)
                     {
