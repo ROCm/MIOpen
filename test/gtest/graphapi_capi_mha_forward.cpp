@@ -39,7 +39,6 @@
 #include "../workspace.hpp"
 #include "gtest/mha_helper.hpp"
 
-
 miopenStatus_t
 CheckStatusAndThrow(miopenStatus_t status, const std::string& msg, bool addStatusToMessage = true)
 {
@@ -107,23 +106,26 @@ public:
                                 ", attributeType=" + std::to_string(attributeType));
     }
 
-    void GetAttribute( miopenBackendAttributeName_t attributeName,
-                        miopenBackendAttributeType_t attributeType,
-                        int64_t requestedElementCount,
-                        int64_t* elementCount,
-                        void* arrayOfElements)
+    void GetAttribute(miopenBackendAttributeName_t attributeName,
+                      miopenBackendAttributeType_t attributeType,
+                      int64_t requestedElementCount,
+                      int64_t* elementCount,
+                      void* arrayOfElements)
     {
-        miopenStatus_t status = miopenBackendGetAttribute(
-            m_descriptor, attributeName, attributeType, requestedElementCount, elementCount, arrayOfElements);
+        miopenStatus_t status = miopenBackendGetAttribute(m_descriptor,
+                                                          attributeName,
+                                                          attributeType,
+                                                          requestedElementCount,
+                                                          elementCount,
+                                                          arrayOfElements);
 
         CheckStatusAndThrow(status,
                             "miopenBackendGetAttribute failed: descriptorType = " +
                                 std::to_string(m_descriptorType) +
                                 ", attributeName=" + std::to_string(attributeName) +
-                                ", attributeType=" + std::to_string(attributeType) + 
-                                ", requestedElementCount=" + std::to_string(requestedElementCount) );
+                                ", attributeType=" + std::to_string(attributeType) +
+                                ", requestedElementCount=" + std::to_string(requestedElementCount));
     }
-
 
     void Finalize()
     {
@@ -159,12 +161,12 @@ DescriptorWrapperPtr MakeDescriptor(miopenBackendDescriptorType_t descriptorType
 }
 
 DescriptorWrapperPtr MakeGapiTensorDesc(int64_t uniqueId,
-                                          bool isVirtual = false,
-                                          int64_t n      = 1,
-                                          int64_t h      = 1,
-                                          int64_t s      = 1,
-                                          int64_t d      = 1,
-                                          bool transpose = false)
+                                        bool isVirtual = false,
+                                        int64_t n      = 1,
+                                        int64_t h      = 1,
+                                        int64_t s      = 1,
+                                        int64_t d      = 1,
+                                        bool transpose = false)
 {
     DescriptorWrapperPtr descWrapperPtr = MakeDescriptor(MIOPEN_BACKEND_TENSOR_DESCRIPTOR);
 
@@ -378,7 +380,6 @@ public:
 
             MakeVariantPackAndRun(handle);
             RunCPUverify(handle);
-
         }
         catch(const miopen::Exception& ex)
         {
@@ -394,13 +395,18 @@ private:
         GenerateConstant
     };
 
-
     void MakeRealTensors()
     {
         // We use identifiers from Find 2.0 enum to have sopmething unique for the test purposes
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaQ, GenerateType::GenerateRandom, false, m_testN, m_testH, m_testS, m_testD);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaQ,
+                                       GenerateType::GenerateRandom,
+                                       false,
+                                       m_testN,
+                                       m_testH,
+                                       m_testS,
+                                       m_testD);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaK,
-                                        GenerateType::GenerateRandom,
+                                       GenerateType::GenerateRandom,
                                        false,
                                        m_testN,
                                        m_testH,
@@ -408,7 +414,13 @@ private:
                                        m_testD,
                                        0,
                                        true); // transpose this tensor
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaV, GenerateType::GenerateRandom, false, m_testN, m_testH, m_testS, m_testD);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaV,
+                                       GenerateType::GenerateRandom,
+                                       false,
+                                       m_testN,
+                                       m_testH,
+                                       m_testS,
+                                       m_testD);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleK);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleQ);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleV);
@@ -419,17 +431,32 @@ private:
         // we have only double input for probability in RNG node (m_bernulliProbability), however
         // for pointwise pwScale3 we need to have it as a tensor, so we need to have these values
         // synced
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutProbability, GenerateType::GenerateConstant, false, 1, 1, 1, 1, m_bernulliProbability);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutProbability,
+                                       GenerateType::GenerateConstant,
+                                       false,
+                                       1,
+                                       1,
+                                       1,
+                                       1,
+                                       m_bernulliProbability);
 
         MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutSeed);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutOffset);
 
         // output real tensors
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaO, GenerateType::DontGenerate, false, m_testN, m_testH, m_testS, m_testD);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaO,
+                                       GenerateType::DontGenerate,
+                                       false,
+                                       m_testN,
+                                       m_testH,
+                                       m_testS,
+                                       m_testD);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxO, GenerateType::DontGenerate);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxS, GenerateType::DontGenerate);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaM, GenerateType::DontGenerate, false, m_testN, m_testH, m_testS, 1.0);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaZInv, GenerateType::DontGenerate, false, m_testN, m_testH, m_testS, 1.0);
+        MakeAndAddRealTensorDescriptor(
+            miopenTensorMhaM, GenerateType::DontGenerate, false, m_testN, m_testH, m_testS, 1.0);
+        MakeAndAddRealTensorDescriptor(
+            miopenTensorMhaZInv, GenerateType::DontGenerate, false, m_testN, m_testH, m_testS, 1.0);
 
         // get next value for the rest of the tensors (which don't have any particular enum value)
         m_nextTensorId++;
@@ -462,19 +489,24 @@ private:
         auto pwS6 = MakeGapiTensorDesc(GetNextId(), true, m_testN, m_testH, m_testS, m_testD);
 
         // Node creation
-        AddGraphNode(
-            MakeMatmul(m_realTensorMap[miopenTensorMhaQ]->m_gapiDesc, m_realTensorMap[miopenTensorMhaK]->m_gapiDesc, tMM0));
-        AddGraphNode(
-            MakePointwise(MIOPEN_POINTWISE_MUL, tMM0, m_realTensorMap[m_attentionScaleId]->m_gapiDesc, pwS0));
+        AddGraphNode(MakeMatmul(m_realTensorMap[miopenTensorMhaQ]->m_gapiDesc,
+                                m_realTensorMap[miopenTensorMhaK]->m_gapiDesc,
+                                tMM0));
         AddGraphNode(MakePointwise(
-            MIOPEN_POINTWISE_MUL, pwS0, m_realTensorMap[miopenTensorMhaDescaleQ]->m_gapiDesc, pwS1));
-        AddGraphNode(MakePointwise(
-            MIOPEN_POINTWISE_MUL, pwS1, m_realTensorMap[miopenTensorMhaDescaleK]->m_gapiDesc, pwS2));
+            MIOPEN_POINTWISE_MUL, tMM0, m_realTensorMap[m_attentionScaleId]->m_gapiDesc, pwS0));
+        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL,
+                                   pwS0,
+                                   m_realTensorMap[miopenTensorMhaDescaleQ]->m_gapiDesc,
+                                   pwS1));
+        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL,
+                                   pwS1,
+                                   m_realTensorMap[miopenTensorMhaDescaleK]->m_gapiDesc,
+                                   pwS2));
 
-        AddGraphNode(
-            MakeReduction(MIOPEN_REDUCE_TENSOR_MAX, pwS2, m_realTensorMap[miopenTensorMhaM]->m_gapiDesc));
-        AddGraphNode(
-            MakePointwise(MIOPEN_POINTWISE_SUB, pwS2, m_realTensorMap[miopenTensorMhaM]->m_gapiDesc, tSub));
+        AddGraphNode(MakeReduction(
+            MIOPEN_REDUCE_TENSOR_MAX, pwS2, m_realTensorMap[miopenTensorMhaM]->m_gapiDesc));
+        AddGraphNode(MakePointwise(
+            MIOPEN_POINTWISE_SUB, pwS2, m_realTensorMap[miopenTensorMhaM]->m_gapiDesc, tSub));
         AddGraphNode(MakePointwise(MIOPEN_POINTWISE_EXP, tSub, DescriptorWrapperPtr(), tExp));
         AddGraphNode(MakeReduction(MIOPEN_REDUCE_TENSOR_ADD, tExp, tSum));
         AddGraphNode(MakePointwise(MIOPEN_POINTWISE_EXP,
@@ -484,8 +516,8 @@ private:
         AddGraphNode(MakePointwise(
             MIOPEN_POINTWISE_MUL, tExp, m_realTensorMap[miopenTensorMhaZInv]->m_gapiDesc, tMult0));
 
-        AddGraphNode(
-            MakeReduction(MIOPEN_REDUCE_TENSOR_MAX, tMult0, m_realTensorMap[miopenTensorMhaAmaxS]->m_gapiDesc));
+        AddGraphNode(MakeReduction(
+            MIOPEN_REDUCE_TENSOR_MAX, tMult0, m_realTensorMap[miopenTensorMhaAmaxS]->m_gapiDesc));
 
         AddGraphNode(MakeRNG(m_bernulliProbability,
                              m_realTensorMap[miopenTensorMhaDropoutSeed]->m_gapiDesc,
@@ -501,12 +533,16 @@ private:
             MIOPEN_POINTWISE_MUL, pwS3, m_realTensorMap[miopenTensorMhaScaleS]->m_gapiDesc, pwS4));
 
         AddGraphNode(MakeMatmul(pwS4, m_realTensorMap[miopenTensorMhaV]->m_gapiDesc, tMM1));
-        AddGraphNode(MakePointwise(
-            MIOPEN_POINTWISE_MUL, tMM1, m_realTensorMap[miopenTensorMhaDescaleS]->m_gapiDesc, pwS5));
-        AddGraphNode(MakePointwise(
-            MIOPEN_POINTWISE_MUL, pwS5, m_realTensorMap[miopenTensorMhaDescaleV]->m_gapiDesc, pwS6));
-        AddGraphNode(
-            MakeReduction(MIOPEN_REDUCE_TENSOR_MAX, pwS6, m_realTensorMap[miopenTensorMhaAmaxO]->m_gapiDesc));
+        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL,
+                                   tMM1,
+                                   m_realTensorMap[miopenTensorMhaDescaleS]->m_gapiDesc,
+                                   pwS5));
+        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL,
+                                   pwS5,
+                                   m_realTensorMap[miopenTensorMhaDescaleV]->m_gapiDesc,
+                                   pwS6));
+        AddGraphNode(MakeReduction(
+            MIOPEN_REDUCE_TENSOR_MAX, pwS6, m_realTensorMap[miopenTensorMhaAmaxO]->m_gapiDesc));
         AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL,
                                    pwS6,
                                    m_realTensorMap[miopenTensorMhaScaleO]->m_gapiDesc,
@@ -521,7 +557,7 @@ private:
         DescriptorWrapperPtr operationGraph =
             MakeDescriptor(MIOPEN_BACKEND_OPERATIONGRAPH_DESCRIPTOR);
 
-        miopenBackendDescriptor_t opGraphDesc = operationGraph->GetDescriptor();            
+        miopenBackendDescriptor_t opGraphDesc = operationGraph->GetDescriptor();
 
         operationGraph->SetAttribute(
             MIOPEN_ATTR_OPERATIONGRAPH_HANDLE, MIOPEN_TYPE_HANDLE, 1, &rawHandle);
@@ -545,8 +581,8 @@ private:
 
         miopenBackendDescriptor_t engineDesc = engine->GetDescriptor();
 
-        engine->SetAttribute(MIOPEN_ATTR_ENGINE_OPERATION_GRAPH,
-                                MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &opGraphDesc);
+        engine->SetAttribute(
+            MIOPEN_ATTR_ENGINE_OPERATION_GRAPH, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &opGraphDesc);
         int64_t gidx = 0;
         engine->SetAttribute(MIOPEN_ATTR_ENGINE_GLOBAL_INDEX, MIOPEN_TYPE_INT64, 1, &gidx);
         engine->Finalize();
@@ -556,21 +592,27 @@ private:
 
         miopenBackendDescriptor_t engineConfigDesc = engineConfig->GetDescriptor();
 
-        engineConfig->SetAttribute(MIOPEN_ATTR_ENGINECFG_ENGINE,
-                                MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &engineDesc);
+        engineConfig->SetAttribute(
+            MIOPEN_ATTR_ENGINECFG_ENGINE, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &engineDesc);
 
         engineConfig->Finalize();
 
         // Setup a plan
         m_executionPlan = MakeDescriptor(MIOPEN_BACKEND_EXECUTION_PLAN_DESCRIPTOR);
 
-        m_executionPlan->SetAttribute(MIOPEN_ATTR_EXECUTION_PLAN_HANDLE, MIOPEN_TYPE_HANDLE, 1, &rawHandle);
+        m_executionPlan->SetAttribute(
+            MIOPEN_ATTR_EXECUTION_PLAN_HANDLE, MIOPEN_TYPE_HANDLE, 1, &rawHandle);
         m_executionPlan->SetAttribute(MIOPEN_ATTR_EXECUTION_PLAN_ENGINE_CONFIG,
-                                MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &engineConfigDesc);
+                                      MIOPEN_TYPE_BACKEND_DESCRIPTOR,
+                                      1,
+                                      &engineConfigDesc);
         m_executionPlan->Finalize();
 
         m_executionPlan->GetAttribute(MIOPEN_ATTR_EXECUTION_PLAN_WORKSPACE_SIZE,
-                                MIOPEN_TYPE_INT64, 1, NULL, &m_workspaceSize);
+                                      MIOPEN_TYPE_INT64,
+                                      1,
+                                      NULL,
+                                      &m_workspaceSize);
 
         // save references to prevent them from being released
         m_executionPlan->AddRef(operationGraph);
@@ -590,11 +632,11 @@ private:
         std::vector<int64_t> uids;
         uids.reserve(numTensors);
 
-        for (const auto& it : m_realTensorMap)
+        for(const auto& it : m_realTensorMap)
         {
             it.second->m_gpuBuffer = handle.Write(it.second->m_tensor.data);
             devPtrs.push_back(it.second->m_gpuBuffer.get());
-            
+
             uids.push_back(it.first);
         }
 
@@ -604,11 +646,13 @@ private:
         DescriptorWrapperPtr varpack = MakeDescriptor(MIOPEN_BACKEND_VARIANT_PACK_DESCRIPTOR);
 
         varpack->SetAttribute(MIOPEN_ATTR_VARIANT_PACK_DATA_POINTERS,
-                                MIOPEN_TYPE_VOID_PTR, numTensors, devPtrs.data());
-        varpack->SetAttribute(MIOPEN_ATTR_VARIANT_PACK_UNIQUE_IDS,
-                                MIOPEN_TYPE_INT64, numTensors, uids.data());
-        varpack->SetAttribute(MIOPEN_ATTR_VARIANT_PACK_WORKSPACE,
-                                MIOPEN_TYPE_VOID_PTR, 1, workspace.ptr());
+                              MIOPEN_TYPE_VOID_PTR,
+                              numTensors,
+                              devPtrs.data());
+        varpack->SetAttribute(
+            MIOPEN_ATTR_VARIANT_PACK_UNIQUE_IDS, MIOPEN_TYPE_INT64, numTensors, uids.data());
+        varpack->SetAttribute(
+            MIOPEN_ATTR_VARIANT_PACK_WORKSPACE, MIOPEN_TYPE_VOID_PTR, 1, workspace.ptr());
         varpack->Finalize();
 
         m_executionPlan->AddRef(varpack);
@@ -632,30 +676,31 @@ private:
             return it->second->m_tensor;
         };
 
-        test::cpu::MultiHeadAttentionfp8(lookup(miopenTensorMhaQ),
-                                         lookup(miopenTensorMhaK),
-                                         lookup(miopenTensorMhaV),
-                                         softmaxRef,
-                                         mDescRef,
-                                         zInvDescRef,
-                                         lookup(miopenTensorMhaDescaleO)[0],
-                                         lookup(miopenTensorMhaDescaleK)[0],
-                                         lookup(miopenTensorMhaDescaleV)[0],
-                                         lookup(miopenTensorMhaDescaleS)[0],
-                                         lookup(miopenTensorMhaScaleS)[0],
-                                         lookup(miopenTensorMhaScaleO)[0],
-                                         lookup(miopenTensorMhaDropoutProbability)[0],
-                                         static_cast<uint64_t>(lookup(miopenTensorMhaDropoutSeed)[0]),
-                                         static_cast<uint64_t>(lookup(miopenTensorMhaDropoutOffset)[0]),
-                                         amaxSRef,
-                                         amaxORef,
-                                         oDescRef);
+        test::cpu::MultiHeadAttentionfp8(
+            lookup(miopenTensorMhaQ),
+            lookup(miopenTensorMhaK),
+            lookup(miopenTensorMhaV),
+            softmaxRef,
+            mDescRef,
+            zInvDescRef,
+            lookup(miopenTensorMhaDescaleO)[0],
+            lookup(miopenTensorMhaDescaleK)[0],
+            lookup(miopenTensorMhaDescaleV)[0],
+            lookup(miopenTensorMhaDescaleS)[0],
+            lookup(miopenTensorMhaScaleS)[0],
+            lookup(miopenTensorMhaScaleO)[0],
+            lookup(miopenTensorMhaDropoutProbability)[0],
+            static_cast<uint64_t>(lookup(miopenTensorMhaDropoutSeed)[0]),
+            static_cast<uint64_t>(lookup(miopenTensorMhaDropoutOffset)[0]),
+            amaxSRef,
+            amaxORef,
+            oDescRef);
 
         auto GetResult = [&](const int64_t& id) -> const tensor<float>& {
             auto it = m_realTensorMap.find(id);
             assert(it != m_realTensorMap.cend());
 
-            TensorDataPtr ptr = it->second;
+            TensorDataPtr ptr  = it->second;
             ptr->m_tensor.data = handle.Read<float>(ptr->m_gpuBuffer, ptr->m_tensor.data.size());
             return ptr->m_tensor;
         };
@@ -663,12 +708,12 @@ private:
         const double errorThreshold = 5e-6;
 
         const auto& resAmaxS = GetResult(miopenTensorMhaAmaxS);
-        auto amaxSAbsDiff  = std::abs(amaxSRef - resAmaxS[0]);
+        auto amaxSAbsDiff    = std::abs(amaxSRef - resAmaxS[0]);
         EXPECT_LT(amaxSAbsDiff, errorThreshold)
             << " ref: " << amaxSRef << " result: " << resAmaxS[0];
 
         const auto& resAmaxO = GetResult(miopenTensorMhaAmaxO);
-        auto amaxOAbsDiff  = std::abs(amaxORef - resAmaxO[0]);
+        auto amaxOAbsDiff    = std::abs(amaxORef - resAmaxO[0]);
         EXPECT_LT(amaxOAbsDiff, errorThreshold)
             << " ref: " << amaxORef << " result: " << resAmaxO[0];
 
@@ -682,7 +727,6 @@ private:
         EXPECT_LT(oError, errorThreshold);
     }
 
-
     void AddGraphNode(DescriptorWrapperPtr node) { m_nodeVector.push_back(node); }
 
     // For real tensors we use values from enum miopenTensorArgumentId_t (miopen.h) jsut to have
@@ -690,18 +734,19 @@ private:
     // from real tensors" + 1
     void MakeAndAddRealTensorDescriptor(int64_t tensorId,
                                         GenerateType generateType = GenerateType::GenerateConstant,
-                                        bool isVirtual = false,
-                                        int64_t n      = 1,
-                                        int64_t h      = 1,
-                                        int64_t s      = 1,
-                                        int64_t d      = 1,                                        
-                                        double genConstant = 1.0,
-                                        bool transpose = false)
+                                        bool isVirtual            = false,
+                                        int64_t n                 = 1,
+                                        int64_t h                 = 1,
+                                        int64_t s                 = 1,
+                                        int64_t d                 = 1,
+                                        double genConstant        = 1.0,
+                                        bool transpose            = false)
     {
-        DescriptorWrapperPtr realTensorGapiDesc = MakeGapiTensorDesc(tensorId, isVirtual, n, h, s, d, transpose);
+        DescriptorWrapperPtr realTensorGapiDesc =
+            MakeGapiTensorDesc(tensorId, isVirtual, n, h, s, d, transpose);
 
         TensorDataPtr tensorDataPtr = std::make_shared<TensorData>();
-        tensorDataPtr->m_gapiDesc = realTensorGapiDesc;
+        tensorDataPtr->m_gapiDesc   = realTensorGapiDesc;
 
         // generate data
 
@@ -710,7 +755,8 @@ private:
         switch(generateType)
         {
         case GenerateType::GenerateConstant:
-            tensorDataPtr->m_tensor.generate([genConstant](auto n_, auto h_, auto s_, auto d_) { return genConstant; });
+            tensorDataPtr->m_tensor.generate(
+                [genConstant](auto n_, auto h_, auto s_, auto d_) { return genConstant; });
             break;
 
         case GenerateType::GenerateRandom:
