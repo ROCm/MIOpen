@@ -513,7 +513,7 @@ typedef enum
     miopenActivationABS      = 5, /*!< Absolute value \f$abs(x)\f$ */
     miopenActivationPOWER = 6, /*!< Scaled and shifted power \f$(\alpha + \beta * x)^{gamma}\f$ */
     miopenActivationCLIPPEDRELU =
-        7,                     /*!< Clipped Rectified Linear Unit \f$ min(\alpha, max(0,x)) \f$ */
+        7, /*!< Clipped Rectified Linear Unit \f$ min(\alpha, max(0,x)) \f$ */
     miopenActivationLEAKYRELU =
         8, /*!< Leaky Rectified Linear Unit \f$ \alpha * x | x <= 0; x | x > 0 \f$ */
     miopenActivationELU =
